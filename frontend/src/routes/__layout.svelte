@@ -26,6 +26,7 @@
 </div>
 
 <style lang="scss">
+
     .page {
         background-color: #3a463c;
         width: 100%;

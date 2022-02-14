@@ -58,8 +58,7 @@ out:slideOut
         margin: 0;
         padding: 0;
         /* border-radius: 3px 0 0 3px; */
-        margin-left: 230px;
-        padding: 20px;
+        margin-left: 280px;
         padding-right: 0px;
     }
     /* .content:first-child {

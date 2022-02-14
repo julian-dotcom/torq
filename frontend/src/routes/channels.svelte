@@ -16,7 +16,7 @@
     let getForwards = async function() {
         return client.GetAggrigatedForwards({
             peerIds: {pubKeys: []},
-            fromTs: (Date.now() - (7*day))/1000,
+            fromTs: 0, //(Date.now() - (7*day))/1000
             toTs: Date.now()/1000,
         })
     }
@@ -27,7 +27,7 @@
     <title>Torq | Channels</title>
 </svelte:head>
 
-<div class="index-page">
+<div class="forwards">
     {#await getForwards()}
         <div>Loading forwarding activity</div>
     {:then channels}
@@ -37,5 +37,6 @@
 </div>
 
 <style>
+
 
 </style>

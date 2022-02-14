@@ -28,6 +28,7 @@
 </nav>
 
 <style lang="scss">
+
     .navigation {
         position: fixed;
         left: 0;
