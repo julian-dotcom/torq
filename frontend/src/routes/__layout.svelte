@@ -17,7 +17,9 @@
 </svelte:head>
 
 <div class="page">
-    <Navigation />
+    <div class="navigation-wrapper">
+        <Navigation />
+    </div>
     <div class="content-wrapper">
         <PageWrapper refresh={$page.path}>
             <slot />
@@ -26,10 +28,15 @@
 </div>
 
 <style lang="scss">
-
-    .page {
-        background-color: #3a463c;
-        width: 100%;
-        overflow-x: hidden;
-    }
+.page {
+    background-color: #3a463c;
+    display: grid;
+    grid-template-columns: 280px auto;
+    align-items: stretch;
+}
+.navigation-wrapper {
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: auto;
+}
 </style>
