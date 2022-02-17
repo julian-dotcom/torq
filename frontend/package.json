@@ -38,6 +38,7 @@
         "protoc-gen-ts": "^0.6.0",
         "rxjs": "^7.4.0",
         "sass": "^1.43.4",
+        "svelte-flatpickr": "^3.2.6",
         "ts-proto": "^1.92.0"
     }
 }

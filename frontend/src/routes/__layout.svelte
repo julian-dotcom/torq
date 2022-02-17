@@ -2,6 +2,9 @@
     import { page } from '$app/stores'; // svelte@next
     import Navigation from '../components/Navigation.svelte';
     import PageWrapper from '../components/PageWrapper.svelte';
+
+    let expanded = false;
+
 </script>
 
 <svelte:head>
@@ -17,26 +20,16 @@
 </svelte:head>
 
 <div class="page">
-    <div class="navigation-wrapper">
-        <Navigation />
-    </div>
-    <div class="content-wrapper">
-        <PageWrapper refresh={$page.path}>
-            <slot />
-        </PageWrapper>
-    </div>
+  <div on:mouseenter={() => {expanded=true}} on:mouseleave={() => {expanded=false}}>
+    <Navigation {expanded} />
+  </div>
+  <PageWrapper refresh={$page.path} {expanded}>
+    <slot />
+  </PageWrapper>
 </div>
 
 <style lang="scss">
 .page {
     background-color: #3a463c;
-    display: grid;
-    grid-template-columns: 280px auto;
-    align-items: stretch;
-}
-.navigation-wrapper {
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: auto;
 }
 </style>

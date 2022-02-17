@@ -1,4 +1,10 @@
-<nav class="navigation">
+<script>
+  export let expanded = false
+
+</script>
+
+
+<nav class="navigation" class:expanded>
 
     <div class="logo">
         <div class="logo-symbol">
@@ -32,12 +38,28 @@
 
 <style lang="scss">
 
+    .navigation {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 110px;
+        background-color: #3A463C;
+        overflow: hidden;
+        transition: width 200ms;
+        transition-delay: 200ms;
+        &.expanded {
+          width: 280px;
+          transition: width 250ms;
+          transition-delay: 200ms;
+        }
+    }
+
     .logo {
         display: grid;
         grid-template-columns: 50px auto;
         grid-column-gap: 40px;
         margin-top: 40px;
-        margin-left: 40px;
+        margin-left: 30px;
         margin-bottom: 40px;
         align-items: center;
       .icon {
@@ -49,7 +71,7 @@
       display: grid;
       grid-template-rows: repeat(1, auto);
       grid-row-gap: 20px;
-      margin-left: 40px;
+      margin-left: 30px;
     }
 
     .menu-item {
