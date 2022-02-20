@@ -258,6 +258,63 @@ func main() {
 		},
 	}
 
+	subscribe := &cli.Command{
+		Name:  "subscribe",
+		Usage: "Start the subscribe daemon, listening for data from LND",
+		Action: func(c *cli.Context) error {
+
+			// Print startup message
+			fmt.Printf("Starting Torq v%s\n", build.Version())
+
+			fmt.Println("Connecting to the Torq database")
+			db, err := database.PgConnect(c.String("db.name"), c.String("db.user"),
+				c.String("db.password"), c.String("db.host"), c.String("db.port"))
+			if err != nil {
+				return fmt.Errorf("(cmd/lnc streamHtlcCommand) error connecting to db: %v", err)
+			}
+
+			defer func() {
+				cerr := db.Close()
+				if err == nil {
+					err = cerr
+				}
+			}()
+
+			fmt.Println("Checking for migrations..")
+			// Check if the database needs to be migrated.
+			err = migrations.MigrateUp(db.DB)
+			if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+				return err
+			}
+
+			fmt.Println("Connecting to lightning node")
+			// Connect to the node
+			conn, err := lndutil.Connect(
+				c.String("lnd.node_address"),
+				c.String("lnd.tls"),
+				c.String("lnd.macaroon"))
+
+			if err != nil {
+				return fmt.Errorf("failed to connect to lnd: %v", err)
+			}
+
+			ctx := context.Background()
+			errs, ctx := errgroup.WithContext(ctx)
+
+			// Subscribe to data from the node
+			//   TODO: Attempt to restart subscriptions if they fail.
+			errs.Go(func() error {
+				err = subscribe.Start(ctx, conn, db)
+				if err != nil {
+					return err
+				}
+				return nil
+			})
+
+			return errs.Wait()
+		},
+	}
+
 	// TODO: Remove. Only used for manually testing grpc calls
 	callGrpc := &cli.Command{
 		Name:  "call",
@@ -366,6 +423,7 @@ func main() {
 	app.Commands = cli.Commands{
 		start,
 		startGrpc,
+		subscribe,
 		callGrpc,
 		migrateUp,
 		migrateDown,
