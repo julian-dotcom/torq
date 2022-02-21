@@ -16,20 +16,20 @@
     </div>
 
     <div class="menu">
+<!--        <a href="/" class="menu-item">-->
+<!--            <div class="icon">-->
+<!--                <img src="./images/node-icon.svg" alt="Node page icon" />-->
+<!--            </div>-->
+<!--            <div class="text">-->
+<!--                Node-->
+<!--            </div>-->
+<!--        </a>-->
         <a href="/" class="menu-item">
-            <div class="icon">
-                <img src="./images/node-icon.svg" alt="Node page icon" />
-            </div>
-            <div class="text">
-                Node
-            </div>
-        </a>
-        <a href="/channels" class="menu-item">
             <div class="icon">
                 <img src="./images/channels-icon.svg" alt="Channels page icon" />
             </div>
             <div class="text">
-                Channels
+                Forwards
             </div>
         </a>
     </div>

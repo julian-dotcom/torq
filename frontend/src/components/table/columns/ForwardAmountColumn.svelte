@@ -34,7 +34,7 @@
   .column {
     display: grid;
     grid-auto-flow: row;
-    grid-auto-columns: min-content;
+    grid-auto-columns: auto;
     grid-row-gap: 10px;
   }
   .column-header {
@@ -60,7 +60,6 @@
     background-color: white;
     border-radius: 3px 0 0 3px;
     padding: 15px 15px;
-    min-width: 300px;
     /*box-shadow: 10px 0px 10px 0px rgba(0, 0, 0, 0.05);*/
   }
   .cell-end {
@@ -72,7 +71,6 @@
     display: grid;
     align-items: center;
     text-align: right;
-    min-width: 100px;
     /*box-shadow: 10px 0px 10px 0px rgba(0, 0, 0, 0.05);*/
   }
   .row-wrapper {

@@ -40,7 +40,8 @@
     .bar-values {
       display: flex;
       justify-content: space-between;
-      column-gap: 80px;
+      column-gap: 100px;
+
       white-space: nowrap;
       margin-bottom: 5px;
     }
@@ -55,7 +56,7 @@
       padding: 0 5px;
     }
     .bar-row {
-
+      min-width: 220px;
     }
     .bar {
       position: relative;

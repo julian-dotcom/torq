@@ -58,10 +58,8 @@
     border-radius: 3px 0 0 3px;
     padding: 15px 15px;
     /*box-shadow: 10px 0px 10px 0px rgba(0, 0, 0, 0.05);*/
-    min-width: 200px;
   }
   .cell-end {
-    min-width: 100px;
     background-color: white;
     border-radius: 0 3px 3px 0;
     border-left: solid 1px;
