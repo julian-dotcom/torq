@@ -72,6 +72,7 @@
       transition-timing-function: ease;
       overflow-x: hidden;
       color: white;
+      z-index: 4;
     }
     .filter-tab-wrapper.open {
       width: 375px;

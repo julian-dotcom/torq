@@ -42,6 +42,7 @@
         position: fixed;
         top: 0;
         bottom: 0;
+      z-index: 3;
         width: 110px;
         background-color: #3A463C;
         overflow: hidden;

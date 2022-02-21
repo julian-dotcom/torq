@@ -157,6 +157,7 @@
     }
     .channels-table-wrapper {
       padding-left: 40px;
+      background-color: #f3f4f5;
       margin-left: 0;
       transition: margin-left 200ms; // The close speed (reverse logic)
       transition-timing-function: ease;
@@ -165,26 +166,28 @@
         transition: margin-left 250ms; // The open speed (reverse logic)
         transition-timing-function: ease;
       }
+
     }
     .table {
       display: grid;
-      //overflow-x: scroll;
       grid-auto-flow: column;
       grid-column-gap: 20px;
       justify-content: start;
       font-size: 16px;
       margin-right: 40px;
+      margin-top: 120px;
     }
     .table-controls {
       padding-bottom: 30px;
+      padding-left: 40px;
+      margin-left: -40px;
       padding-top: 50px;
       background-color: #f3f4f5;
       z-index: 2;
       display: block;
+      position: fixed;
       width: 100%;
-      position: sticky;
       top: 0;
-
       .filter-button {
         height: 33px;
         font-size: 16px;
