@@ -1,4 +1,11 @@
-<nav class="navigation">
+<script>
+  export let expanded = false
+
+</script>
+
+
+<nav class="navigation" class:expanded>
+
     <div class="logo">
         <div class="logo-symbol">
             <img src="./images/logo-symbol.svg" alt="LN.capital logo symbol" />
@@ -7,67 +14,81 @@
             <img src="./images/logo-text.svg" alt="LN.capital logo text" />
         </div>
     </div>
+
     <div class="menu">
-        <div class="menu-item">
+        <a href="/" class="menu-item">
             <div class="icon">
                 <img src="./images/node-icon.svg" alt="Node page icon" />
             </div>
             <div class="text">
-                <a href="/">Node</a>
+                Node
             </div>
-        </div>
-        <div class="menu-item">
+        </a>
+        <a href="/channels" class="menu-item">
             <div class="icon">
                 <img src="./images/channels-icon.svg" alt="Channels page icon" />
             </div>
             <div class="text">
-                <a href="/channels">Channels</a>
+                Channels
             </div>
-        </div>
+        </a>
     </div>
+
 </nav>
 
 <style lang="scss">
+
     .navigation {
         position: fixed;
-        left: 0;
         top: 0;
-        color: white;
-        height: 100vh;
-        width: 200px;
-        width: auto;
-        display: inline;
-        margin-right: 20px;
-        padding: 34px 30px;
+        bottom: 0;
+      z-index: 3;
+        width: 110px;
+        background-color: #3A463C;
+        overflow: hidden;
+        transition: width 200ms;
+        transition-delay: 200ms;
+        &.expanded {
+          width: 280px;
+          transition: width 250ms;
+          transition-delay: 200ms;
+        }
     }
+
     .logo {
-        display: flex;
-    }
-    .logo .logo-text {
-        margin-top: 2px;
-    }
-    .logo .logo-symbol {
-        margin-right: 30px;
-    }
-    .menu {
         display: grid;
-        margin-top: 80px;
+        grid-template-columns: 50px auto;
+        grid-column-gap: 40px;
+        margin-top: 40px;
+        margin-left: 30px;
+        margin-bottom: 40px;
+        align-items: center;
+      .icon {
+
+      }
     }
+
+    .menu {
+      display: grid;
+      grid-template-rows: repeat(1, auto);
+      grid-row-gap: 20px;
+      margin-left: 30px;
+    }
+
     .menu-item {
+        display: grid;
+        grid-template-columns: 50px auto;
+        grid-column-gap: 40px;
+
+        align-items: center;
+        text-decoration: none;
         .icon {
-            display: inline;
-            vertical-align: middle;
         }
         .text {
-            display: inline;
-            vertical-align: middle;
             font-size: 20px;
-            a {
-                color: white;
-                text-decoration: none;
-                margin-left: 30px;
-            }
+            color: white;
+            text-decoration: none;
         }
-        margin-bottom: 20px;
     }
+
 </style>

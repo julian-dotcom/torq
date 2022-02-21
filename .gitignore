@@ -33,3 +33,4 @@ torq-d*.conf
 ## Ignore all certificate files
 *.pem
 
+node_modules
