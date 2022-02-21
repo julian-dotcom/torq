@@ -1,31 +1,32 @@
 <script>
   import { onMount } from 'svelte';
-  import ChannelColumn from '../components/ChannelColumn.svelte';
-  import ChannelFilter from '../components/ChannelFilter.svelte';
-  import HorizontalBarsCard from './cards/HorizontalBarsCard.svelte';
+  import ChannelFilter from '../ChannelFilter.svelte';
+  import ForwardAmountColumn from "./columns/ForwardAmountColumn.svelte";
   import { grpc } from '@improbable-eng/grpc-web';
-  import {torqrpcClientImpl, GrpcWebImpl} from '../torqrpc/torq'
-  import GaugeBarCard from "./cards/GaugeBarCard.svelte";
+  import {torqrpcClientImpl, GrpcWebImpl} from '../../torqrpc/torq'
+  import ForwardRevenueColumn from "./columns/ForwardRevenueColumn.svelte";
+  import ForwardCountColumn from "./columns/ForwardCountColumn.svelte";
+  import NameColumn from "./columns/NameColumn.svelte";
 
 
-  onMount(() => {
-    document.onkeydown = function(evt) {
-        evt = evt || window.event;
-        let isBody = document.activeElement == document.body
-        let isEscape = false;
-        let isF = false;
-        if ("key" in evt) {
-            isEscape = (evt.key === "Escape" || evt.key === "Esc");
-            isF = (evt.key === "f" || evt.key === "f");
-        }
-        if (isBody && (isEscape) && (open = true)) {
-            open = false
-        }
-        if (isBody && isF) {
-            open = !open
-        }
-    };
-  });
+    onMount(() => {
+      document.onkeydown = function(evt) {
+          evt = evt || window.event;
+          let isBody = document.activeElement == document.body
+          let isEscape = false;
+          let isF = false;
+          if ("key" in evt) {
+              isEscape = (evt.key === "Escape" || evt.key === "Esc");
+              isF = (evt.key === "f" || evt.key === "f");
+          }
+          if (isBody && (isEscape) && (open = true)) {
+              open = false
+          }
+          if (isBody && isF) {
+              open = !open
+          }
+      };
+    });
 
 
     let open = false;
@@ -38,13 +39,6 @@
         open = false
     }
 
-    function getGroupName(fw) {
-        let name = fw.groupName || fw.groupId.substring(0,20)
-        if (fw.channels.length > 1) {
-            return "("+ fw.channels.length +") " + name
-        }
-        return name
-    }
 
 
     let today = new Date()
@@ -143,44 +137,14 @@
               {formatDate(fromDate)}&emsp;-&emsp;{formatDate(toDate)}
             </div>
         </div>
-
     {#await p }
         <div>Loading forwarding activity</div>
     {:then channels}
-        <div class="channels-table">
-          <div class="row column-header">
-            <ChannelColumn alias={"Forwarded amount"}></ChannelColumn>
-            <ChannelColumn alias={"Fee revenue"}></ChannelColumn>
-            <ChannelColumn alias={"Forward count"}></ChannelColumn>
-          </div>
-
-          {#each channels.aggregatedForwards as fw}
-            <div class="row">
-
-              <!-- <div class="name">{getGroupName(fw)}</div>-->
-              <GaugeBarCard
-                props={{
-                  type: fw.groupId,
-                  heading: getGroupName(fw),
-                  oValue: fw.amountOut,
-                  iValue: fw.amountIn,
-                  totalRow: false
-                }}
-              />
-
-              <GaugeBarCard
-                props={{
-                  type: fw.groupId,
-                  heading: "-",
-                  oValue: fw.feeOut,
-                  iValue: fw.feeIn,
-                  totalRow: false
-                }}
-              />
-
-
-            </div>
-          {/each}
+        <div class="table">
+          <NameColumn {channels} />
+          <ForwardAmountColumn {channels} />
+          <ForwardRevenueColumn {channels} />
+          <ForwardCountColumn {channels} />
       </div>
     {/await}
       </div>
@@ -202,26 +166,14 @@
         transition-timing-function: ease;
       }
     }
-    .channels-table {
-      .column-header {
-        position: sticky;
-        top:0;
-      }
-        display: grid;
-        grid-template-columns: max-content;
-    }
-    .row {
+    .table {
       display: grid;
-      grid-auto-columns: 330px;
-      column-gap: 40px;
+      //overflow-x: scroll;
       grid-auto-flow: column;
-    }
-    .card
-    .name {
-      position: sticky;
-      margin-left: -40px;
-      padding-left: 40px;
-      left: 0;
+      grid-column-gap: 20px;
+      justify-content: start;
+      font-size: 16px;
+      margin-right: 40px;
     }
     .table-controls {
       padding-bottom: 30px;
