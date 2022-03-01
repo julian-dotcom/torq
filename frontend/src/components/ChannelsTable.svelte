@@ -172,8 +172,8 @@
                 props={{
                   type: fw.groupId,
                   heading: "-",
-                  oValue: fw.feeOut,
-                  iValue: fw.feeIn,
+                  oValue: fw.revenueOut,
+                  iValue: fw.revenueIn,
                   totalRow: false
                 }}
               />

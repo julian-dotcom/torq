@@ -8,6 +8,21 @@
     }
     return name
   }
+
+  function getChannelStatus(chanInfo) {
+    let open = 0
+    let total = 0
+    for (let chan of chanInfo) {
+      if (!chan.closed) {
+        open++
+      }
+      total = chanInfo.length
+    }
+    if (total == 1) {
+      return open ? "Open" : "Closed"
+    }
+    return open+"/"+total+" Open"
+  }
 </script>
 
 <div class="column">
@@ -19,7 +34,7 @@
     <div class="cell">
       <div class="name-wrapper">
         <div class="name">{getGroupName(fw)}</div>
-        <div class="status">{"active"}</div>
+        <div class="status">{getChannelStatus(fw.channels)}</div>
       </div>
     </div>
   {/each}
@@ -38,11 +53,10 @@
     line-height: 200%;
     margin-bottom: 10px;
     position: sticky;
-    top: 105px;
+    top: 0px;
     z-index: 2;
-    background-color: #f3f4f5;
-    border-bottom: 1px solid  #B3BCB5;
-    //box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.05);
+    background-color: white;
+    //border-bottom: 1px solid  #B3BCB5;
     //clip-path: polygon(0% 0%, 100% 0%, 100% 120%, 0% 120%);
     .bottom {
       display: grid;
@@ -57,6 +71,7 @@
     padding: 15px 15px;
   }
   .name-wrapper {
+    white-space: nowrap;
     .status {
       color: rgba(0,0,0,.4);
     }

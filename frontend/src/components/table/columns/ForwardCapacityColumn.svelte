@@ -1,68 +1,61 @@
 <script lang="ts">
-  import Gauge from '../shared/Gauge.svelte';
   import FormatNumber from "../../helpers/FormatNumber.svelte";
 
   export let channels
 
 </script>
 
-<div class="column" style="grid-template-columns: auto auto">
-  <div class="column-header">
-    <div class="top">Amount forwarded</div>
-    <div class="bottom">
-      <div class="left">Inbound</div>
-      <div class="right">Outbound</div>
-    </div>
+<div class="columna" style="grid-template-columns: auto auto">
+  <div class="column-header" >
+    Turnover
   </div>
-  <div class="column-header total">
-    <div class="top">&nbsp;</div>
-    <div class="bottom">Total</div>
+  <div class="column-header" >
+    Capacity
   </div>
   {#each channels.aggregatedForwards as fw}
-    <div class="row-wrapper">
-      <div class="cell-begin">
-        <Gauge oValue={Number(fw.amountOut)} iValue={Number(fw.amountIn)}/>
-      </div>
-      <div class="cell-end">
-        <FormatNumber value={Number(fw.amountTotal)} decimals={0} notation="standard"/>
-      </div>
+    <div class="cell-begin">
+      <FormatNumber value={Number(fw.turnover)} decimals={2} notation="standard"/>
+    </div>
+    <div class="cell-end">
+      <FormatNumber value={Number(fw.capacity)} decimals={0} notation="standard"/>
     </div>
   {/each}
 </div>
 
 <style lang="scss">
-  .column {
+  .columna {
     display: grid;
     grid-auto-flow: row;
     grid-auto-columns: auto;
     grid-row-gap: 10px;
+    align-items: start;
   }
   .column-header {
+    height: 64px;
     line-height: 200%;
-    margin-bottom: 10px;
+    margin-bottom: 11px;
+    justify-items: center;
     display: grid;
     position: sticky;
     top: 0;
     z-index: 2;
     background-color: white;
-
     .bottom {
-      display: grid;
-      grid-auto-flow: column;
-      justify-content: space-between;
       color: rgba(0,0,0,0.2);
-    }
-    &.total {
-      justify-items: center;
     }
   }
   .cell-begin {
+    height: 68.4px;
     background-color: white;
     border-radius: 3px 0 0 3px;
-    padding: 15px 15px;
+    padding: 15px 15px 15px 35px;
+    display: grid;
+    text-align: right;
+    align-items: center;
     /*box-shadow: 10px 0px 10px 0px rgba(0, 0, 0, 0.05);*/
   }
   .cell-end {
+    height: 68.4px;
     background-color: white;
     border-radius: 0 3px 3px 0;
     border-left: solid 1px;
@@ -73,8 +66,6 @@
     text-align: right;
     /*box-shadow: 10px 0px 10px 0px rgba(0, 0, 0, 0.05);*/
   }
-  .row-wrapper {
-    display: contents;
-  }
+
 
 </style>
