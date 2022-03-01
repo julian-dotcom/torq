@@ -7,6 +7,7 @@
   import ForwardRevenueColumn from "./columns/ForwardRevenueColumn.svelte";
   import ForwardCountColumn from "./columns/ForwardCountColumn.svelte";
   import NameColumn from "./columns/NameColumn.svelte";
+  import ForwardCapacityColumn from "./columns/ForwardCapacityColumn.svelte";
 
 
     onMount(() => {
@@ -128,20 +129,14 @@
 <div class="tab-wrapper">
 
     <ChannelFilter {open} {closeTab} bind:fromDate={fromDate} bind:toDate={toDate}/>
-
+    <div class="column-header-background"></div>
     <div class="channels-table-wrapper" class:open >
-        <div class="table-controls" class:open>
-            <div class="filter-button table-settings" on:click={openTab}>Filter</div>
-            <div class="filter-button table-settings" on:click={openTab}>Sort</div>
-            <div class="filter-button time-filter" on:click={openTab} >
-              {formatDate(fromDate)}&emsp;-&emsp;{formatDate(toDate)}
-            </div>
-        </div>
     {#await p }
         <div>Loading forwarding activity</div>
     {:then channels}
         <div class="table">
           <NameColumn {channels} />
+          <ForwardCapacityColumn {channels} />
           <ForwardAmountColumn {channels} />
           <ForwardRevenueColumn {channels} />
           <ForwardCountColumn {channels} />
@@ -168,6 +163,15 @@
       }
 
     }
+    .column-header-background {
+      position: fixed;
+      z-index: 2;
+      height: 65px;
+      background-color: white;
+      width: 100vw;
+      //border-bottom: 1px solid #B3BCB5;
+      box-shadow: 4px 1px 10px 0px rgba(0,0,0,0.15);
+    }
     .table {
       display: grid;
       grid-auto-flow: column;
@@ -175,7 +179,6 @@
       justify-content: start;
       font-size: 16px;
       margin-right: 40px;
-      margin-top: 120px;
     }
     .table-controls {
       padding-bottom: 30px;

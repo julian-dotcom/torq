@@ -1,0 +1,115 @@
+-- First remove the old version (in case of change in signature)
+drop function agg_forwards_by_pub_key(start_time timestamp, end_time timestamp, pub_keys text[]);
+
+-- Create new function
+CREATE OR REPLACE FUNCTION agg_forwards_by_pub_key(
+    start_time timestamp,
+    end_time timestamp,
+    pub_keys text[]
+)
+RETURNS TABLE(
+group_id text,
+group_name text,
+closed boolean[],
+chan_ids numeric[],
+
+amount_out numeric,
+amount_in numeric,
+amount_total numeric,
+
+fee_out numeric,
+fee_in numeric,
+fee_total numeric,
+
+count_out numeric,
+count_in numeric,
+count_total numeric,
+
+capacity numeric,
+turnover float
+) AS $$
+    select -- Basic information
+        ca.pub_key as group_id,
+        coalesce(ne.alias, '') as group_name,
+        array_agg(closed) as closed,
+        array_agg(chan_id) as chan_ids,
+        -- amount
+        sum(amount_out) as amount_out,
+        sum(amount_in) as amount_in,
+        sum(amount_out + amount_in) as amount_total,
+        -- revenue
+        sum(revenue_out) as revenue_out,
+        sum(revenue_in) as revenue_in,
+        sum(revenue_out + revenue_in) as revenue_total,
+        -- count
+        sum(count_out) as count_out,
+        sum(count_in) as count_in,
+        sum(count_out + count_in) as count_total,
+        -- capacity
+        coalesce(sum(capacity), 0) as capacity,
+        -- turnover
+        coalesce(round(sum(amount_out + amount_in)/sum(capacity), 2), 0) as turnover
+    from (
+        select ce.pub_key,
+            fw.chan_id,
+            ce.closed,
+            ce.capacity,
+            amount_out,
+            amount_in,
+            revenue_out,
+            revenue_in,
+            count_out,
+            count_in
+        from (
+            select coalesce(o.chan_id, i.chan_id) as chan_id,
+                   coalesce(o.amount,0) as amount_out,
+                   coalesce(o.revenue,0) as revenue_out,
+                   coalesce(o.count,0) as count_out,
+                   coalesce(i.amount,0) as amount_in,
+                   coalesce(i.revenue,0) as revenue_in,
+                   coalesce(i.count,0) as count_in
+            from (
+                select outgoing_channel_id chan_id,
+                       floor(sum(outgoing_amount_msat)/1000) as amount,
+                       floor(sum(fee_msat)/1000) as revenue,
+                       count(time) as count
+                from forward
+                where
+                  -- From time
+                  (($1 is null) or time >= $1) and
+                  -- To time
+                  (($2 is null) or time <= $2)
+                group by outgoing_channel_id
+            ) as o
+            full outer join (
+                select incoming_channel_id as chan_id,
+                       floor(sum(incoming_amount_msat)/1000) as amount,
+                       floor(sum(fee_msat)/1000) as revenue,
+                       count(time) as count
+                from forward
+                where
+                      -- From time
+                      (($1 is null) or time >= $1) and
+                      -- To time
+                      (($2 is null) or time <= $2)
+                group by incoming_channel_id
+            ) as i on i.chan_id = o.chan_id) as fw
+        left join (
+            select chan_id,
+                   pub_key,
+                   last(event->'capacity', time)::numeric as capacity,
+                   last(event_type, time) = 1 as closed
+            from channel_event
+            where event_type in (0,1)
+            group by chan_id, pub_key) as ce
+        on ce.chan_id = fw.chan_id
+    where
+          -- Filter on public keys
+          (($3::text[] is null) or (ce.pub_key = ANY($3)))
+    ) as ca
+    left join (
+        select pub_key, last(alias, timestamp) as alias from node_event group by pub_key) as ne
+    on ne.pub_key = ca.pub_key
+    group by ca.pub_key, ne.alias
+    order by revenue_total desc
+$$ LANGUAGE SQL;

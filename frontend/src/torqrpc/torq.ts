@@ -100,22 +100,35 @@ export interface AggregatedForwards {
    *   * Tag groups use the format: <Tag Name>
    */
   groupName: string;
-  /** The  outbound amount in sats (Satoshis) */
+  /** The  utbound amount in sats (Satoshis) */
   amountOut: Long;
   /** The inbound amount in sats (Satoshis) */
   amountIn: Long;
-  /** The outbound fee in sats. This is what the channel has directly produced. */
-  feeOut: Long;
+  /** The total amount forwarded both inbound and outbound */
+  amountTotal: Long;
+  /** The outbound revenue in sats. This is what the channel has directly produced. */
+  revenueOut: Long;
   /**
-   * The inbound fee in sats. This is what the channel has indirectly produced.
-   * These fees are not really earned by this channel/peer/group, but represents
-   * the channel/peer/group contribution to fees earned by other channels.
+   * The inbound revenue in sats. This is what the channel has indirectly produced.
+   * This revenue are not really earned by this channel/peer/group, but represents
+   * the channel/peer/group contribution to revenue earned by other channels.
    */
-  feeIn: Long;
+  revenueIn: Long;
+  /** Total revenue */
+  revenueTotal: Long;
   /** Number of outbound forwards. */
   countOut: Long;
   /** Number of inbound forwards. */
   countIn: Long;
+  /** Number of inbound forwards. */
+  countTotal: Long;
+  /** The total capacity of this channel */
+  capacity: Long;
+  /**
+   * Turnover = capacity/amount_total. It is a measure of how many times
+   * the capital is used in the given time interval.
+   */
+  turnover: number;
 }
 
 export interface ChannelIDs {
@@ -140,6 +153,8 @@ export interface ChanInfo {
   alias: string;
   /** The remote public key */
   pubKey: string;
+  /** True if the channel is closed */
+  closed: boolean;
   /** A list of tags associated with this channel */
   tags: string[];
 }
@@ -413,10 +428,15 @@ const baseAggregatedForwards: object = {
   groupName: "",
   amountOut: Long.UZERO,
   amountIn: Long.UZERO,
-  feeOut: Long.UZERO,
-  feeIn: Long.UZERO,
+  amountTotal: Long.UZERO,
+  revenueOut: Long.UZERO,
+  revenueIn: Long.UZERO,
+  revenueTotal: Long.UZERO,
   countOut: Long.UZERO,
   countIn: Long.UZERO,
+  countTotal: Long.UZERO,
+  capacity: Long.UZERO,
+  turnover: 0,
 };
 
 export const AggregatedForwards = {
@@ -442,17 +462,32 @@ export const AggregatedForwards = {
     if (!message.amountIn.isZero()) {
       writer.uint32(56).uint64(message.amountIn);
     }
-    if (!message.feeOut.isZero()) {
-      writer.uint32(64).uint64(message.feeOut);
+    if (!message.amountTotal.isZero()) {
+      writer.uint32(120).uint64(message.amountTotal);
     }
-    if (!message.feeIn.isZero()) {
-      writer.uint32(72).uint64(message.feeIn);
+    if (!message.revenueOut.isZero()) {
+      writer.uint32(64).uint64(message.revenueOut);
+    }
+    if (!message.revenueIn.isZero()) {
+      writer.uint32(72).uint64(message.revenueIn);
+    }
+    if (!message.revenueTotal.isZero()) {
+      writer.uint32(112).uint64(message.revenueTotal);
     }
     if (!message.countOut.isZero()) {
       writer.uint32(80).uint64(message.countOut);
     }
     if (!message.countIn.isZero()) {
       writer.uint32(88).uint64(message.countIn);
+    }
+    if (!message.countTotal.isZero()) {
+      writer.uint32(96).uint64(message.countTotal);
+    }
+    if (!message.capacity.isZero()) {
+      writer.uint32(104).uint64(message.capacity);
+    }
+    if (message.turnover !== 0) {
+      writer.uint32(133).float(message.turnover);
     }
     return writer;
   },
@@ -483,17 +518,32 @@ export const AggregatedForwards = {
         case 7:
           message.amountIn = reader.uint64() as Long;
           break;
+        case 15:
+          message.amountTotal = reader.uint64() as Long;
+          break;
         case 8:
-          message.feeOut = reader.uint64() as Long;
+          message.revenueOut = reader.uint64() as Long;
           break;
         case 9:
-          message.feeIn = reader.uint64() as Long;
+          message.revenueIn = reader.uint64() as Long;
+          break;
+        case 14:
+          message.revenueTotal = reader.uint64() as Long;
           break;
         case 10:
           message.countOut = reader.uint64() as Long;
           break;
         case 11:
           message.countIn = reader.uint64() as Long;
+          break;
+        case 12:
+          message.countTotal = reader.uint64() as Long;
+          break;
+        case 13:
+          message.capacity = reader.uint64() as Long;
+          break;
+        case 16:
+          message.turnover = reader.float();
           break;
         default:
           reader.skipType(tag & 7);
@@ -528,13 +578,21 @@ export const AggregatedForwards = {
       object.amountIn !== undefined && object.amountIn !== null
         ? Long.fromString(object.amountIn)
         : Long.UZERO;
-    message.feeOut =
-      object.feeOut !== undefined && object.feeOut !== null
-        ? Long.fromString(object.feeOut)
+    message.amountTotal =
+      object.amountTotal !== undefined && object.amountTotal !== null
+        ? Long.fromString(object.amountTotal)
         : Long.UZERO;
-    message.feeIn =
-      object.feeIn !== undefined && object.feeIn !== null
-        ? Long.fromString(object.feeIn)
+    message.revenueOut =
+      object.revenueOut !== undefined && object.revenueOut !== null
+        ? Long.fromString(object.revenueOut)
+        : Long.UZERO;
+    message.revenueIn =
+      object.revenueIn !== undefined && object.revenueIn !== null
+        ? Long.fromString(object.revenueIn)
+        : Long.UZERO;
+    message.revenueTotal =
+      object.revenueTotal !== undefined && object.revenueTotal !== null
+        ? Long.fromString(object.revenueTotal)
         : Long.UZERO;
     message.countOut =
       object.countOut !== undefined && object.countOut !== null
@@ -544,6 +602,18 @@ export const AggregatedForwards = {
       object.countIn !== undefined && object.countIn !== null
         ? Long.fromString(object.countIn)
         : Long.UZERO;
+    message.countTotal =
+      object.countTotal !== undefined && object.countTotal !== null
+        ? Long.fromString(object.countTotal)
+        : Long.UZERO;
+    message.capacity =
+      object.capacity !== undefined && object.capacity !== null
+        ? Long.fromString(object.capacity)
+        : Long.UZERO;
+    message.turnover =
+      object.turnover !== undefined && object.turnover !== null
+        ? Number(object.turnover)
+        : 0;
     return message;
   },
 
@@ -564,14 +634,23 @@ export const AggregatedForwards = {
       (obj.amountOut = (message.amountOut || Long.UZERO).toString());
     message.amountIn !== undefined &&
       (obj.amountIn = (message.amountIn || Long.UZERO).toString());
-    message.feeOut !== undefined &&
-      (obj.feeOut = (message.feeOut || Long.UZERO).toString());
-    message.feeIn !== undefined &&
-      (obj.feeIn = (message.feeIn || Long.UZERO).toString());
+    message.amountTotal !== undefined &&
+      (obj.amountTotal = (message.amountTotal || Long.UZERO).toString());
+    message.revenueOut !== undefined &&
+      (obj.revenueOut = (message.revenueOut || Long.UZERO).toString());
+    message.revenueIn !== undefined &&
+      (obj.revenueIn = (message.revenueIn || Long.UZERO).toString());
+    message.revenueTotal !== undefined &&
+      (obj.revenueTotal = (message.revenueTotal || Long.UZERO).toString());
     message.countOut !== undefined &&
       (obj.countOut = (message.countOut || Long.UZERO).toString());
     message.countIn !== undefined &&
       (obj.countIn = (message.countIn || Long.UZERO).toString());
+    message.countTotal !== undefined &&
+      (obj.countTotal = (message.countTotal || Long.UZERO).toString());
+    message.capacity !== undefined &&
+      (obj.capacity = (message.capacity || Long.UZERO).toString());
+    message.turnover !== undefined && (obj.turnover = message.turnover);
     return obj;
   },
 
@@ -592,13 +671,21 @@ export const AggregatedForwards = {
       object.amountIn !== undefined && object.amountIn !== null
         ? Long.fromValue(object.amountIn)
         : Long.UZERO;
-    message.feeOut =
-      object.feeOut !== undefined && object.feeOut !== null
-        ? Long.fromValue(object.feeOut)
+    message.amountTotal =
+      object.amountTotal !== undefined && object.amountTotal !== null
+        ? Long.fromValue(object.amountTotal)
         : Long.UZERO;
-    message.feeIn =
-      object.feeIn !== undefined && object.feeIn !== null
-        ? Long.fromValue(object.feeIn)
+    message.revenueOut =
+      object.revenueOut !== undefined && object.revenueOut !== null
+        ? Long.fromValue(object.revenueOut)
+        : Long.UZERO;
+    message.revenueIn =
+      object.revenueIn !== undefined && object.revenueIn !== null
+        ? Long.fromValue(object.revenueIn)
+        : Long.UZERO;
+    message.revenueTotal =
+      object.revenueTotal !== undefined && object.revenueTotal !== null
+        ? Long.fromValue(object.revenueTotal)
         : Long.UZERO;
     message.countOut =
       object.countOut !== undefined && object.countOut !== null
@@ -608,6 +695,15 @@ export const AggregatedForwards = {
       object.countIn !== undefined && object.countIn !== null
         ? Long.fromValue(object.countIn)
         : Long.UZERO;
+    message.countTotal =
+      object.countTotal !== undefined && object.countTotal !== null
+        ? Long.fromValue(object.countTotal)
+        : Long.UZERO;
+    message.capacity =
+      object.capacity !== undefined && object.capacity !== null
+        ? Long.fromValue(object.capacity)
+        : Long.UZERO;
+    message.turnover = object.turnover ?? 0;
     return message;
   },
 };
@@ -794,6 +890,7 @@ const baseChanInfo: object = {
   chanId: Long.UZERO,
   alias: "",
   pubKey: "",
+  closed: false,
   tags: "",
 };
 
@@ -810,6 +907,9 @@ export const ChanInfo = {
     }
     if (message.pubKey !== "") {
       writer.uint32(26).string(message.pubKey);
+    }
+    if (message.closed === true) {
+      writer.uint32(40).bool(message.closed);
     }
     for (const v of message.tags) {
       writer.uint32(34).string(v!);
@@ -833,6 +933,9 @@ export const ChanInfo = {
           break;
         case 3:
           message.pubKey = reader.string();
+          break;
+        case 5:
+          message.closed = reader.bool();
           break;
         case 4:
           message.tags.push(reader.string());
@@ -859,6 +962,10 @@ export const ChanInfo = {
       object.pubKey !== undefined && object.pubKey !== null
         ? String(object.pubKey)
         : "";
+    message.closed =
+      object.closed !== undefined && object.closed !== null
+        ? Boolean(object.closed)
+        : false;
     message.tags = (object.tags ?? []).map((e: any) => String(e));
     return message;
   },
@@ -869,6 +976,7 @@ export const ChanInfo = {
       (obj.chanId = (message.chanId || Long.UZERO).toString());
     message.alias !== undefined && (obj.alias = message.alias);
     message.pubKey !== undefined && (obj.pubKey = message.pubKey);
+    message.closed !== undefined && (obj.closed = message.closed);
     if (message.tags) {
       obj.tags = message.tags.map((e) => e);
     } else {
@@ -885,6 +993,7 @@ export const ChanInfo = {
         : Long.UZERO;
     message.alias = object.alias ?? "";
     message.pubKey = object.pubKey ?? "";
+    message.closed = object.closed ?? false;
     message.tags = object.tags?.map((e) => e) || [];
     return message;
   },

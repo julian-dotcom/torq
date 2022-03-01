@@ -7,11 +7,11 @@
 </script>
 
 <div class="column" style="grid-template-columns: {'auto auto'}">
-      <div class="column-header">
-    <div class="top">Successfull forwards</div>
+  <div class="column-header">
+    <div class="top">Successful forwards</div>
     <div class="bottom">
-      <div class="left">Outbound</div>
-      <div class="right">Inbound</div>
+      <div class="left">Inbound</div>
+      <div class="right">Outbound</div>
     </div>
   </div>
   <div class="column-header total">
@@ -23,7 +23,7 @@
           <Gauge oValue={Number(fw.countOut)} iValue={Number(fw.countIn)}/>
         </div>
         <div class="cell-end">
-          <FormatNumber value={Number(fw.countOut) + Number(fw.countIn)} decimals={0} notation="standard"/>
+          <FormatNumber value={Number(fw.countTotal)} decimals={0} notation="standard"/>
         </div>
   {/each}
 </div>
@@ -39,10 +39,9 @@
     margin-bottom: 10px;
     display: grid;
     position: sticky;
-    top: 105px;
+    top: 0px;
     z-index: 2;
-    background-color: #f3f4f5;
-    border-bottom: 1px solid  #B3BCB5;
+    background-color: white;
     .bottom {
       display: grid;
       grid-auto-flow: column;

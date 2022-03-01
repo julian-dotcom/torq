@@ -35,6 +35,7 @@ func (s torqGrpc) GetAggrigatedForwards(ctx context.Context, req *torqrpc.Aggreg
 		// Fetch based on peer ids
 		r, err := getAggForwardsByPubKeys(s.db, req.FromTs, req.ToTs, req.GetPeerIds().PubKeys)
 		if err != nil {
+			fmt.Println(err)
 			return nil, errors.Wrapf(err, "GetAggregatedForwards -> getAggForwardsByPubKeys(%v, %d, %d, %v)",
 				s.db, req.FromTs, req.ToTs, req.GetPeerIds().PubKeys)
 		}
@@ -109,13 +110,14 @@ func getAggForwardsByChanIds(db *sqlx.DB, fromTs int64, toTs int64, cids []uint6
 		err = rows.Scan(&chanId,
 			&alias,
 			&afw.AmountIn,
-			&afw.FeeIn,
+			&afw.RevenueIn,
 			&afw.CountIn,
 			&afw.AmountOut,
-			&afw.FeeOut,
+			&afw.RevenueOut,
 			&afw.CountOut,
 			&pubKey)
 		if err != nil {
+			fmt.Println("Happened")
 			return r, err
 		}
 
@@ -183,36 +185,45 @@ func getAggForwardsByPubKeys(db *sqlx.DB, fromTs int64, toTs int64, pubKeys []st
 
 	for rows.Next() {
 		afw := &torqrpc.AggregatedForwards{}
-		var pubKey string
+		var groupId string
 		var chanIds pq.Int64Array
-		var alias string
-		err = rows.Scan(&pubKey,
+		var closed pq.BoolArray
+		var groupName string
+		err = rows.Scan(&groupId,
+			&groupName,
+			&closed,
 			&chanIds,
-			&alias,
-			&afw.AmountIn,
-			&afw.FeeIn,
-			&afw.CountIn,
 			&afw.AmountOut,
-			&afw.FeeOut,
-			&afw.CountOut)
+			&afw.AmountIn,
+			&afw.AmountTotal,
+			&afw.RevenueOut,
+			&afw.RevenueIn,
+			&afw.RevenueTotal,
+			&afw.CountOut,
+			&afw.CountIn,
+			&afw.CountTotal,
+			&afw.Capacity,
+			&afw.Turnover,
+		)
 		if err != nil {
 			return r, err
 		}
 
 		// List all channels, with public keys and alias
 		afw.Channels = []*torqrpc.ChanInfo{}
-		for _, cid := range chanIds {
+		for i, cid := range chanIds {
 			// Add the channel Info
 			afw.Channels = append(afw.Channels, &torqrpc.ChanInfo{
 				ChanId: uint64(cid),
-				Alias:  alias,
-				PubKey: pubKey,
+				Alias:  groupName,
+				PubKey: groupId,
+				Closed: closed[i],
 			})
 		}
 
 		afw.GroupType = torqrpc.GroupType_PEER
-		afw.GroupId = pubKey
-		afw.GroupName = alias
+		afw.GroupId = groupId // group_id = remote public key
+		afw.GroupName = groupName
 
 		// Append to the result
 		r = append(r, afw)

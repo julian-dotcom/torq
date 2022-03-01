@@ -10,8 +10,8 @@
     <div class="column-header">
     <div class="top">Forwarding revenue</div>
     <div class="bottom">
-      <div class="left">Outbound</div>
-      <div class="right">Inbound</div>
+      <div class="left">Inbound</div>
+      <div class="right">Outbound</div>
     </div>
   </div>
   <div class="column-header total">
@@ -20,10 +20,10 @@
   </div>
   {#each channels.aggregatedForwards as fw}
         <div class="cell-begin">
-          <Gauge oValue={Number(fw.feeOut)} iValue={Number(fw.feeIn)}/>
+          <Gauge oValue={Number(fw.revenueOut)} iValue={Number(fw.revenueIn)}/>
         </div>
         <div class="cell-end">
-          <FormatNumber value={Number(fw.feeOut) + Number(fw.feeIn)} decimals={0} notation="standard"/>
+          <FormatNumber value={Number(fw.revenueTotal)} decimals={0} notation="standard"/>
         </div>
   {/each}
 </div>
@@ -39,10 +39,10 @@
     margin-bottom: 10px;
     display: grid;
     position: sticky;
-    top: 105px;
+    top: 0;
     z-index: 2;
-    background-color: #f3f4f5;
-    border-bottom: 1px solid  #B3BCB5;
+    background-color: white;
+
     .bottom {
       display: grid;
       grid-auto-flow: column;

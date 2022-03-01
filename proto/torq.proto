@@ -69,25 +69,41 @@ message AggregatedForwards {
   //   * Tag groups use the format: <Tag Name>
   string group_name = 5;
 
-  // The  outbound amount in sats (Satoshis)
+  // The  utbound amount in sats (Satoshis)
   uint64 amount_out = 6;
 
   // The inbound amount in sats (Satoshis)
   uint64 amount_in = 7;
 
-  // The outbound fee in sats. This is what the channel has directly produced.
-  uint64 fee_out = 8;
+  // The total amount forwarded both inbound and outbound
+  uint64 amount_total = 15;
 
-  // The inbound fee in sats. This is what the channel has indirectly produced.
-  // These fees are not really earned by this channel/peer/group, but represents
-  // the channel/peer/group contribution to fees earned by other channels.
-  uint64 fee_in = 9;
+  // The outbound revenue in sats. This is what the channel has directly produced.
+  uint64 revenue_out = 8;
+
+  // The inbound revenue in sats. This is what the channel has indirectly produced.
+  // This revenue are not really earned by this channel/peer/group, but represents
+  // the channel/peer/group contribution to revenue earned by other channels.
+  uint64 revenue_in = 9;
+
+  // Total revenue
+  uint64 revenue_total = 14;
 
   // Number of outbound forwards.
   uint64 count_out = 10;
 
   // Number of inbound forwards.
   uint64 count_in = 11;
+
+  // Number of inbound forwards.
+  uint64 count_total = 12;
+
+  // The total capacity of this channel
+  uint64 capacity = 13;
+
+  // Turnover = capacity/amount_total. It is a measure of how many times
+  // the capital is used in the given time interval.
+  float turnover = 16;
 
 }
 
@@ -117,6 +133,9 @@ message ChanInfo {
 
   // The remote public key
   string pub_key = 3;
+
+  // True if the channel is closed
+  bool closed = 5;
 
   // A list of tags associated with this channel
   repeated string tags = 4;
