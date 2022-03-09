@@ -34,3 +34,4 @@ torq-d*.conf
 *.pem
 
 node_modules
+.log
