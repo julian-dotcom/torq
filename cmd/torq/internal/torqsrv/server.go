@@ -1,13 +1,15 @@
 package torqsrv
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 )
 
 func Start(port int) {
 	r := gin.Default()
 	registerRoutes(r)
-	r.Run()
+	r.Run(":" + strconv.Itoa(port))
 }
 
 func registerRoutes(r *gin.Engine) {
