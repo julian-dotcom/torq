@@ -4,20 +4,19 @@ import { Routes, Route, Link } from "react-router-dom";
 import Navigation from "./components/navigation/Navigation";
 import TableControls from "./components/table/TableControls";
 import './App.scss';
+import TablePage from "./pages/TablePage";
 
 function App() {
   return (
     <div className="App torq">
-      {/*<Routes>*/}
-      {/*  <Route path="/" element={<Home />} />*/}
-      {/*  <Route path="about" element={<About />} />*/}
-      {/*</Routes>*/}
       <div className="main-content-wrapper">
         <div className="navigation-wrapper">
           <Navigation/>
         </div>
         <div className="page-wrapper">
-          <TableControls/>
+          <Routes>
+            <Route path="/" element={<TablePage/>} />
+          </Routes>
         </div>
       </div>
     </div>

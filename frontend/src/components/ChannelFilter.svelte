@@ -30,7 +30,7 @@
   <div class="filter-tab">
     <div class="filter-tab-header">
       <div class="heading">
-        Table menu
+        TablePage menu
       </div>
       <div class="close" on:click={closeTab}>
         &#215;

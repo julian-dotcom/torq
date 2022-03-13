@@ -1,7 +1,7 @@
 
 <script lang="ts">
     import ChannelsTable from '../components/ChannelsTable.svelte';
-    import Table from '../components/table/Table.svelte';
+    import TablePage from '../components/table/Table.svelte';
     import { grpc } from '@improbable-eng/grpc-web';
     // import { onMount, beforeUpdate} from 'svelte';
     import {torqrpcClientImpl, GrpcWebImpl} from '../torqrpc/torq'

@@ -1,0 +1,8 @@
+.table-page-wrapper {
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-rows: 34px auto;
+  justify-content: stretch;
+  grid-row-gap: 30px;
+}
+

@@ -4,6 +4,11 @@
   grid-template-columns: auto min-content;
   justify-items: space-between;
   align-items: center;
+  .title h1 {
+    margin-block-start: 0;
+    margin-block-end: 0;
+    font-size: 28px;
+  }
   .left-container {
     display: grid;
     grid-auto-flow: column;
