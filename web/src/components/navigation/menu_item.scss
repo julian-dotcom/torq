@@ -7,6 +7,10 @@
     font-weight: 500;
   }
 
+  .item {
+    margin-left: 10px;
+  }
+
   .content-wrapper {
     display: grid;
     grid-auto-flow: column;
@@ -31,15 +35,6 @@
     .text {
       line-height: 1.25em;
     }
-    .icon {
-      height: 1.5em;
-      text-align: center;
-      svg {
-        fill: var(--fg-default);
-        margin: 0;
-        height: 1.5em;
-      }
-    }
   }
 
   .actions {
@@ -48,13 +43,8 @@
     grid-column-gap: 5px;
     .action {
       height: calc(1.5em + 12px);
-      text-align: center;
       padding: 6px 6px;
-      svg {
-        fill: var(--fg-default);
-        margin: 0;
-        height: 1.5em;
-      }
+      margin-right: -6px;
     }
   }
 

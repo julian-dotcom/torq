@@ -1,6 +1,6 @@
 .torq .navigation {
   background-color: var(--bg-default) !important;
-  position: absolute;
+  position: fixed;
   top: 20px;
   left: 20px;
   height: calc(100vh - 40px);

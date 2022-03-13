@@ -2,6 +2,7 @@ import React from 'react';
 //import logo from './logo.svg';
 import { Routes, Route, Link } from "react-router-dom";
 import Navigation from "./components/navigation/Navigation";
+import TableControls from "./components/table/TableControls";
 import './App.scss';
 
 function App() {
@@ -11,7 +12,14 @@ function App() {
       {/*  <Route path="/" element={<Home />} />*/}
       {/*  <Route path="about" element={<About />} />*/}
       {/*</Routes>*/}
-      <Navigation/>
+      <div className="main-content-wrapper">
+        <div className="navigation-wrapper">
+          <Navigation/>
+        </div>
+        <div className="page-wrapper">
+          <TableControls/>
+        </div>
+      </div>
     </div>
   );
 }
