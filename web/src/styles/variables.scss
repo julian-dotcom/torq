@@ -1,0 +1,94 @@
+:root {
+  --color-blue-500: #033048;
+
+  --color-baige-500: #FAECCB;
+  --color-baige-400: #F9F3E4;
+  --color-baige-300: #FDFBF6;
+
+  --fg-default: var(--color-blue-500);
+  --bg-default: var(--color-baige-400);
+}
+
+
+//"fg-default": {
+//  "value": "{colors.blue.500}",
+//  "type": "color"
+//},
+//"fg-muted": {
+//  "value": "{colors.muted}",
+//  "type": "color"
+//},
+//"fg-subtle": {
+//  "value": "{colors.blue.300}",
+//  "type": "color"
+//}
+//
+//  "bg": {
+//    "default": {
+//      "value": "{colors.white}",
+//      "type": "color"
+//    },
+//    "muted": {
+//      "value": "{colors.beige.400}",
+//      "type": "color"
+//    },
+//    "subtle": {
+//      "value": "{colors.beige.300}",
+//      "type": "color"
+//    }
+//  },
+//  "primary": {
+//    "300": {
+//      "value": "{colors.green.300}",
+//      "type": "color"
+//    },
+//    "400": {
+//      "value": "{colors.green.400}",
+//      "type": "color"
+//    },
+//    "500": {
+//      "value": "{colors.green.500}",
+//      "type": "color"
+//    }
+//  },
+//  "secondary": {
+//    "300": {
+//      "value": "{colors.red.300}",
+//      "type": "color"
+//    },
+//    "400": {
+//      "value": "{colors.red.400}",
+//      "type": "color"
+//    },
+//    "500": {
+//      "value": "{colors.red.500}",
+//      "type": "color"
+//    }
+//  },
+//  "third": {
+//    "300": {
+//      "value": "{colors.blue.300}",
+//      "type": "color"
+//    },
+//    "400": {
+//      "value": "{colors.blue.400}",
+//      "type": "color"
+//    },
+//    "500": {
+//      "value": "{colors.blue.500}",
+//      "type": "color"
+//    }
+//  },
+//  "fourth": {
+//    "300": {
+//      "value": "{colors.beige.300}",
+//      "type": "color"
+//    },
+//    "400": {
+//      "value": "{colors.beige.400}",
+//      "type": "color"
+//    },
+//    "500": {
+//      "value": "{colors.beige.500}",
+//      "type": "color"
+//    }

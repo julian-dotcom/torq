@@ -1,0 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--fg-default)
+}
+svg {
+  height: 1.25em;
+}
+a, a:link, a:visited {
+  color: var(--fg-default);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--fg-default);
+  font-weight: 500;
+}
