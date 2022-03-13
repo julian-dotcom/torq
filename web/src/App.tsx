@@ -1,28 +1,17 @@
 import React from 'react';
-import logo from './logo.svg';
+//import logo from './logo.svg';
 import { Routes, Route, Link } from "react-router-dom";
+import Navigation from "./components/navigation/Navigation";
 import './App.scss';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <div>
-          <h1>Welcome to React Router!</h1>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="about" element={<About />} />
-          </Routes>
-        </div>                <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="App torq">
+      {/*<Routes>*/}
+      {/*  <Route path="/" element={<Home />} />*/}
+      {/*  <Route path="about" element={<About />} />*/}
+      {/*</Routes>*/}
+      <Navigation/>
     </div>
   );
 }

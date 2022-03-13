@@ -1,0 +1,38 @@
+.torq .navigation {
+  background-color: var(--bg-default) !important;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  height: calc(100vh - 40px);
+  width: 100%;
+  max-width: 270px;
+  padding: 20px;
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 30px;
+  grid-auto-rows: min-content;
+
+  .logo-wrapper {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: auto min-content;
+    grid-column-gap: 4px;
+    justify-items: space-between;
+    .logo svg {
+      fill: var(--fg-default);
+      height: 1.5em;
+    }
+    .collapse {
+      font-size: 1.5em;
+    }
+  }
+
+  .menu-items {
+    display: grid;
+    grid-auto-flow: row;
+    grid-row-gap: 15px;
+    grid-auto-rows: min-content;
+  }
+
+}
+
