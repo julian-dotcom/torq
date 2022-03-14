@@ -1,5 +1,7 @@
 :root {
   --color-blue-500: #033048;
+  --color-blue-400: #17445A;
+  --color-blue-300: #D9E0E4;
 
   --color-baige-600: #ECE6D6;
   --color-baige-500: #FAECCB;
@@ -18,6 +20,7 @@
 
   --fg-default: var(--color-blue-500);
   --fg-muted: var(--color-muted);
+  --fg-faint: var(--color-blue-300);
 
   --bg-default: var(--color-baige-400);
   --bg-lines: var(--color-baige-600);

@@ -3,8 +3,11 @@
   grid-auto-flow: row;
   grid-row-gap: 5px;
   grid-column-gap: 20px;
-  overflow-x: scroll;
   width: calc(100vw - 355px);
+  padding: 40px;
+}
+.torq .table-wrapper {
+  overflow-x: scroll;
 }
 
 //.torq .table-content {

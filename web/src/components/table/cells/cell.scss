@@ -1,13 +1,14 @@
 .torq .table-content {
   .cell {
     display: grid;
-    grid-row-gap: 10px;
-    padding: 10px 0 10px 20px;
+    grid-row-gap: 4px;
+    padding: 10px 0;
     align-items: start;
-    justify-items: stretch;
+    align-content: center;
     text-align: right;
     &.align-left {
       padding: 10px 20px 10px 0;
+      text-align: left;
     }
     .past {
       color: var(--fg-muted);
@@ -24,7 +25,7 @@
   .bar-cell {
     position: relative;
     z-index: 2;
-    grid-row-gap: 2px;
+    grid-row-gap: 4px;
     .bar-wrapper {
       display: grid;
       justify-items: end;
@@ -35,24 +36,6 @@
       min-width: 2px;
       background-color: var(--primary-500);
     }
-    //.bar {
-    //  position: absolute;
-    //  z-index: -1;
-    //  top: 9px;
-    //  right: 1px;
-    //  height: 18px;
-    //  min-width: 2px;
-    //  background-color: var(--primary-300);
-    //}
-    //.total-bar {
-    //  position: absolute;
-    //  z-index: -2;
-    //  top: 8px;
-    //  right: 0;
-    //  height: 20px;
-    //  width: 100%;
-    //  border-bottom: 1px solid var(--primary-400);
-    //}
   }
 
   .header {
@@ -63,7 +46,10 @@
     padding-bottom: 10px;
     border-bottom: 1px solid var(--bg-lines);
     white-space: nowrap;
+    padding-left: 30px;
     &.group_name {
+      padding-left: 0px;
+      padding-right: 50px;
       justify-items: start;
     }
   }

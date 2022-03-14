@@ -1,12 +1,14 @@
 .torq .navigation {
-  background-color: var(--bg-default) !important;
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  height: calc(100vh - 40px);
+  background-color: var(--fg-default);
+  color: var(--fg-faint);
+  //border-radius: 2px;
+  //position: fixed;
+  top: 0px;
+  left: 0px;
+  height: 100vh;
   width: 100%;
-  max-width: 270px;
-  padding: 20px;
+  //max-width: 270px;
+  padding: 30px;
   display: grid;
   grid-auto-flow: row;
   grid-row-gap: 30px;
@@ -19,11 +21,11 @@
     grid-column-gap: 4px;
     justify-items: space-between;
     .logo svg {
-      fill: var(--fg-default);
       height: 1.5em;
     }
     .collapse {
       font-size: 1.5em;
+      color: var(--fg-muted);
     }
   }
 

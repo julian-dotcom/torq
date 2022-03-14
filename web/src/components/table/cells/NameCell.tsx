@@ -8,6 +8,9 @@ function NameCell(current: string, key: string, index: number) {
       <div className="current">
         {current}
       </div>
+      <div className="past">
+        Open
+      </div>
     </div>
   )
 }
