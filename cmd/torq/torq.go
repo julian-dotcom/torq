@@ -21,14 +21,6 @@ import (
 	"os"
 )
 
-func loadFlags() func(context *cli.Context) (altsrc.InputSourceContext, error) {
-
-	return func(context *cli.Context) (altsrc.InputSourceContext, error) {
-		return altsrc.NewTomlSourceFromFile(context.String("config"))
-	}
-
-}
-
 func main() {
 	app := cli.NewApp()
 	app.Name = "torq"
@@ -355,4 +347,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+}
+
+func loadFlags() func(context *cli.Context) (altsrc.InputSourceContext, error) {
+	return func(context *cli.Context) (altsrc.InputSourceContext, error) {
+		if _, err := os.Stat(context.String("config")); err == nil {
+			return altsrc.NewTomlSourceFromFile(context.String("config"))
+		}
+		return altsrc.NewMapInputSource("", map[interface{}]interface{}{}), nil
+	}
 }
