@@ -34,7 +34,7 @@ function MenuItem(props: {
             {TitleComponent(props.routeTo)}
 
             {props.actions && (<div className="actions">
-              <div className="action">{props.actions}</div>
+              <div className="icon action">{props.actions}</div>
             </div>)}
 
           </div>

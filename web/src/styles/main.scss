@@ -1,9 +1,14 @@
 @import 'variables.scss';
 @import 'typography.scss';
+@import 'shared.scss';
 
 * {
   box-sizing: border-box;
 }
 body {
   margin: 0;
+}
+
+html, #root, body, .torq, .main-content-wrapper, .page-wrapper {
+  height: 100%;
 }

@@ -3,6 +3,14 @@
   grid-auto-flow: row;
   grid-auto-rows: min-content;
 
+  a, a:link, a:hover, a:visited,a:active {
+    color: var(--fg-faint);
+  }
+
+  .icon {
+    color: var(--fg-muted);
+  }
+
   &.selected {
     font-weight: 500;
   }
@@ -31,15 +39,6 @@
     .text {
       line-height: 1.25em;
     }
-    .icon {
-      height: 1.5em;
-      text-align: center;
-      svg {
-        fill: var(--fg-default);
-        margin: 0;
-        height: 1.5em;
-      }
-    }
   }
 
   .actions {
@@ -48,13 +47,8 @@
     grid-column-gap: 5px;
     .action {
       height: calc(1.5em + 12px);
-      text-align: center;
       padding: 6px 6px;
-      svg {
-        fill: var(--fg-default);
-        margin: 0;
-        height: 1.5em;
-      }
+      margin-right: -6px;
     }
   }
 

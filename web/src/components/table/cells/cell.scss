@@ -1,0 +1,61 @@
+.torq .table-content {
+  .cell {
+    display: grid;
+    grid-row-gap: 4px;
+    padding: 10px 0;
+    align-items: start;
+    align-content: center;
+    text-align: right;
+    &.align-left {
+      padding: 10px 20px 10px 0;
+      text-align: left;
+    }
+    .past {
+      color: var(--fg-muted);
+      font-size: var(--font-size-small);
+    }
+    .positive {
+      color: var(--primary-500)
+    }
+    .negative {
+      color: var(--secondary-500)
+    }
+  }
+
+  .bar-cell {
+    position: relative;
+    z-index: 2;
+    grid-row-gap: 4px;
+    .bar-wrapper {
+      display: grid;
+      justify-items: end;
+      background-color: var(--primary-300);
+    }
+    .bar {
+      height: 5px;
+      min-width: 2px;
+      background-color: var(--primary-500);
+    }
+  }
+
+  .header {
+    display: grid;
+    justify-items: end;
+    align-items: end;
+    grid-row-gap: 5px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--bg-lines);
+    white-space: nowrap;
+    padding-left: 30px;
+    &.group_name {
+      padding-left: 0px;
+      padding-right: 50px;
+      justify-items: start;
+    }
+  }
+
+  .header {
+
+  }
+}
+

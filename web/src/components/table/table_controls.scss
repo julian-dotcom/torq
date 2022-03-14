@@ -1,0 +1,25 @@
+.torq .table-controls {
+  padding: 30px 40px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: auto min-content;
+  justify-items: space-between;
+  align-items: center;
+  .title h1 {
+    margin-block-start: 0;
+    margin-block-end: 0;
+    font-size: 28px;
+  }
+  .left-container {
+    display: grid;
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: center;
+  }
+  .right-container {
+    display: grid;
+    grid-auto-flow: column;
+    justify-content: end;
+    align-items: center;
+  }
+}
