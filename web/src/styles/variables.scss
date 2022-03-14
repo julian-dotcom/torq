@@ -6,6 +6,14 @@
   --color-baige-400: #F9F3E4;
   --color-baige-300: #FDFBF6;
 
+  --color-green-500: #57D3CD;
+  --color-green-400: #B8EDE3;
+  --color-green-300: #ECFAF8;
+
+  --color-red-500: #FAAE93;
+  --color-red-400: #FCCEBE;
+  --color-red-300: #FEF2EE;
+
   --color-muted: #8198A3;
 
   --fg-default: var(--color-blue-500);
@@ -13,6 +21,16 @@
 
   --bg-default: var(--color-baige-400);
   --bg-lines: var(--color-baige-600);
+
+  --primary-500: var(--color-green-500);
+  --primary-400: var(--color-green-400);
+  --primary-300: var(--color-green-300);
+
+  --secondary-500: var(--color-red-500);
+  --secondary-400: var(--color-red-400);
+  --secondary-300: var(--color-red-300);
+
+
 
 
   --font-size-default: 14px;

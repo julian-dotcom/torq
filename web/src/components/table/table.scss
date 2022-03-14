@@ -5,22 +5,6 @@
   grid-column-gap: 20px;
   overflow-x: scroll;
   width: calc(100vw - 355px);
-
-  .cell, .header {
-    display: grid;
-    justify-items: end;
-    align-items: end;
-    &.group_name {
-      justify-items: start;
-    }
-  }
-
-  .header {
-    grid-row-gap: 5px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--bg-lines);
-  }
-
 }
 
 //.torq .table-content {
