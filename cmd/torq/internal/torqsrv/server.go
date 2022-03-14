@@ -1,14 +1,15 @@
 package torqsrv
 
 import (
-	"strconv"
-
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"strconv"
 )
 
 func Start(port int) {
 	r := gin.Default()
 	registerRoutes(r)
+	fmt.Println("Listening on port " + strconv.Itoa(port))
 	r.Run(":" + strconv.Itoa(port))
 }
 
