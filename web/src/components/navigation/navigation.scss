@@ -1,13 +1,8 @@
 .torq .navigation {
   background-color: var(--fg-default);
   color: var(--fg-faint);
-  //border-radius: 2px;
-  //position: fixed;
-  top: 0px;
-  left: 0px;
   height: 100vh;
-  width: 100%;
-  //max-width: 270px;
+  width: 290px;
   padding: 30px;
   display: grid;
   grid-auto-flow: row;

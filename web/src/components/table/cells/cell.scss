@@ -39,12 +39,17 @@
   }
 
   .header {
+    position: sticky;
+    top: 0;
+    z-index: 3;
     display: grid;
     justify-items: end;
     align-items: end;
     grid-row-gap: 5px;
+    padding-top: 20px;
     padding-bottom: 10px;
     border-bottom: 1px solid var(--bg-lines);
+    background-color: var(--bg-default);
     white-space: nowrap;
     padding-left: 30px;
     &.group_name {
@@ -52,10 +57,6 @@
       padding-right: 50px;
       justify-items: start;
     }
-  }
-
-  .header {
-
   }
 }
 
