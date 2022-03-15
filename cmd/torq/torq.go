@@ -166,7 +166,7 @@ func main() {
 				return nil
 			})
 
-			torqsrv.Start(c.Int("torq.port"))
+			torqsrv.Start(c.Int("torq.port"), db)
 
 			return nil
 		},

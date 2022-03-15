@@ -3,20 +3,27 @@ package torqsrv
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
+	"github.com/lncapital/torq/internal/channels"
 	"strconv"
 )
 
-func Start(port int) {
+func Start(port int, db *sqlx.DB) {
 	r := gin.Default()
-	registerRoutes(r)
+	registerRoutes(r, db)
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 	r.Run(":" + strconv.Itoa(port))
 }
 
-func registerRoutes(r *gin.Engine) {
+func registerRoutes(r *gin.Engine, db *sqlx.DB) {
 	registerStaticRoutes(r)
 	api := r.Group("/api")
 	{
+		channelRoutes := api.Group("/channels")
+		{
+			channels.RegisterChannelRoutes(channelRoutes, db)
+		}
+
 		api.GET("/ping", func(c *gin.Context) {
 			c.JSON(200, gin.H{
 				"message": "pong",
