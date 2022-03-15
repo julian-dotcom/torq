@@ -1,5 +1,35 @@
 .torq .main-content-wrapper {
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-columns: auto auto;
+  display: flex;
+  flex-direction: row;
+  align-content: flex-start;
+  .navigation-wrapper {
+    width: 290px;
+    overflow: hidden;
+    transition: width 250ms;
+    flex-shrink: 0;
+  }
+  .page-wrapper {
+    overflow-x: hidden;
+  }
+  &.nav-hidden {
+    // Todo: Clean up while fixing remaining responsive design
+    .navigation-wrapper {
+      width: 0px;
+      padding-right: 20px;
+      transition: width 200ms;
+      .navigation {
+        position: absolute;
+        left: -290px;
+        transition: left 250ms;
+        z-index: 100;
+      }
+      &:hover {
+        .navigation {
+          left: 0px;
+          transition: left 200ms;
+        }
+      }
+    }
+  }
+
 }

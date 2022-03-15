@@ -17,12 +17,14 @@
   --color-red-300: #FEF2EE;
 
   --color-muted: #8198A3;
+  --color-white: #ffffff;
 
   --fg-default: var(--color-blue-500);
   --fg-muted: var(--color-muted);
   --fg-faint: var(--color-blue-300);
 
-  --bg-default: var(--color-baige-400);
+  --bg-default: var(--color-white);
+  --bg-muted: var(--color-baige-400);
   --bg-lines: var(--color-baige-600);
 
   --primary-500: var(--color-green-500);
