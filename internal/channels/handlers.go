@@ -6,15 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 
 	// "gopkg.in/guregu/null.v4"
-	"github.com/lncapital/torq/pkg/server_errors"
 	"net/http"
 	"time"
 
-	"fmt"
+	"github.com/lncapital/torq/pkg/server_errors"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-	"github.com/lncapital/torq/torqrpc"
 )
 
 func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
@@ -36,7 +35,30 @@ func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time, cids []uint64) (r []*torqrpc.AggregatedForwards, err error) {
+type channel struct {
+	// The channel ID
+	ChanId uint64 `json:"chan_id"`
+	// Alias of remote peer
+	Alias string `json:"alias"`
+	// The remote public key
+	PubKey string `json:"pub_key"`
+	// The inbound amount in sats (Satoshis)
+	AmountIn uint64 `json:"amount_in"`
+	// The inbound revenue in sats. This is what the channel has indirectly produced.
+	// This revenue are not really earned by this channel/peer/group, but represents
+	// the channel/peer/group contribution to revenue earned by other channels.
+	RevenueIn uint64 `json:"revenue_in"`
+	// Number of inbound forwards.
+	CountIn uint64 `json:"count_in"`
+	// The  utbound amount in sats (Satoshis)
+	AmountOut uint64 `json:"amount_out"`
+	// The outbound revenue in sats. This is what the channel has directly produced.
+	RevenueOut uint64 `json:"revenue_out"`
+	// Number of outbound forwards.
+	CountOut uint64 `json:"count_out"`
+}
+
+func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time, cids []uint64) (r []*channel, err error) {
 
 	var rows *sql.Rows
 
@@ -70,35 +92,22 @@ func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time, 
 	}
 
 	for rows.Next() {
-		afw := &torqrpc.AggregatedForwards{}
-		var chanId uint64
-		var alias string
-		var pubKey string
-		err = rows.Scan(&chanId,
-			&alias,
-			&afw.AmountIn,
-			&afw.RevenueIn,
-			&afw.CountIn,
-			&afw.AmountOut,
-			&afw.RevenueOut,
-			&afw.CountOut,
-			&pubKey)
+		c := &channel{}
+		err = rows.Scan(&c.ChanId,
+			&c.Alias,
+			&c.AmountIn,
+			&c.RevenueIn,
+			&c.CountIn,
+			&c.AmountOut,
+			&c.RevenueOut,
+			&c.CountOut,
+			&c.PubKey)
 		if err != nil {
 			return r, err
 		}
 
-		// Add the channel Info
-		afw.Channels = []*torqrpc.ChanInfo{{
-			ChanId: chanId,
-			Alias:  alias,
-			PubKey: pubKey,
-		}}
-		afw.GroupType = torqrpc.GroupType_CHANNEL
-		afw.GroupId = fmt.Sprintf("%d", chanId)
-		afw.GroupName = alias
-
 		// Append to the result
-		r = append(r, afw)
+		r = append(r, c)
 
 	}
 
