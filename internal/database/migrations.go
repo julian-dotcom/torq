@@ -1,23 +1,20 @@
-package migrations
+package database
 
 import (
 	"database/sql"
-	"embed"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang-migrate/migrate/v4/source/httpfs"
+	"github.com/lncapital/torq/database/migrations"
 	"net/http"
 )
 
-//go:embed *.psql
-var static embed.FS
-
 // newMigrationInstance fetches sql files and creates a new migration instance.
 func newMigrationInstance(db *sql.DB) (*migrate.Migrate, error) {
-	sourceInstance, err := httpfs.New(http.FS(static), ".")
+	sourceInstance, err := httpfs.New(http.FS(migrations.MigrationFiles), ".")
 	if err != nil {
 		return nil, fmt.Errorf("invalid source instance, %w", err)
 	}
@@ -56,21 +53,6 @@ func MigrateUp(db *sql.DB) error {
 		if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion && err != migrate.ErrLocked {
 			return err
 		}
-	}
-
-	return nil
-}
-
-// MigrateDown migrates the database down one step. Should only be used during development.
-func MigrateDown(db *sql.DB) error {
-	m, err := newMigrationInstance(db)
-	if err != nil {
-		return err
-	}
-
-	err = m.Steps(-1)
-	if err != nil {
-		return err
 	}
 
 	return nil

@@ -8,8 +8,7 @@ import (
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
-	"github.com/lncapital/torq/migrations"
-	"github.com/lncapital/torq/pkg/database"
+	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/lndutil"
 	"github.com/lncapital/torq/torqrpc"
 	"github.com/urfave/cli/v2"
@@ -137,7 +136,7 @@ func main() {
 
 			fmt.Println("Checking for migrations..")
 			// Check if the database needs to be migrated.
-			err = migrations.MigrateUp(db.DB)
+			err = database.MigrateUp(db.DB)
 			if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 				return err
 			}
@@ -196,7 +195,7 @@ func main() {
 
 			fmt.Println("Checking for migrations..")
 			// Check if the database needs to be migrated.
-			err = migrations.MigrateUp(db.DB)
+			err = database.MigrateUp(db.DB)
 			if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 				return err
 			}
@@ -296,36 +295,11 @@ func main() {
 				}
 			}()
 
-			err = migrations.MigrateUp(db.DB)
+			err = database.MigrateUp(db.DB)
 			if err != nil {
 				return err
 			}
 
-			return nil
-		},
-	}
-
-	migrateDown := &cli.Command{
-		Name:  "migrate_down",
-		Usage: "Migrates the database down one step",
-		Action: func(c *cli.Context) error {
-			db, err := database.PgConnect(c.String("db.name"), c.String("db.user"),
-				c.String("db.password"), c.String("db.host"), c.String("db.port"))
-			if err != nil {
-				return err
-			}
-
-			defer func() {
-				cerr := db.Close()
-				if err == nil {
-					err = cerr
-				}
-			}()
-
-			err = migrations.MigrateDown(db.DB)
-			if err != nil {
-				return err
-			}
 			return nil
 		},
 	}
@@ -339,7 +313,6 @@ func main() {
 		subscribe,
 		callGrpc,
 		migrateUp,
-		migrateDown,
 	}
 
 	err = app.Run(os.Args)
