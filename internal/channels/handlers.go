@@ -35,7 +35,7 @@ func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-type channel struct {
+type channelData struct {
 	// The channel ID
 	ChanId uint64 `json:"chan_id"`
 	// Alias of remote peer
@@ -58,7 +58,7 @@ type channel struct {
 	CountOut uint64 `json:"count_out"`
 }
 
-func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time, cids []uint64) (r []*channel, err error) {
+func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time, cids []uint64) (r []*channelData, err error) {
 
 	var rows *sql.Rows
 
@@ -92,7 +92,7 @@ func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time, 
 	}
 
 	for rows.Next() {
-		c := &channel{}
+		c := &channelData{}
 		err = rows.Scan(&c.ChanId,
 			&c.Alias,
 			&c.AmountIn,
