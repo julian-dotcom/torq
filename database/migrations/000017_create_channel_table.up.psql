@@ -5,7 +5,6 @@ CREATE TABLE channel(
   -- At the moment only used by LND. Format is "funding tx id : output id"
   channel_point TEXT NULL,
   alias TEXT NULL,
-  source_pub_key TEXT NULL,
   destination_pub_key TEXT NULL,
   created_on TIMESTAMP NOT NULL,
   updated_on TIMESTAMP NULL
