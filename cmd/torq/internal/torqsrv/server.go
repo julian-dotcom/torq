@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/channels/tags"
 	"strconv"
 )
 
@@ -32,6 +33,10 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB) {
 		channelRoutes := api.Group("/channels")
 		{
 			channels.RegisterChannelRoutes(channelRoutes, db)
+			channelTagRoutes := channelRoutes.Group(":channelDbId/tags")
+			{
+				tags.RegisterTagRoutes(channelTagRoutes, db)
+			}
 		}
 
 		api.GET("/ping", func(c *gin.Context) {
