@@ -1,3 +1,49 @@
+.date-range-popover {
+  z-index: 999;
+
+  .rdrDayNumber span {
+    color: #033048 !important;
+  }
+  .rdrDay {
+    height: 2.6em;
+  }
+  .rdrDateRangePickerWrapper {
+    color: #033048;
+
+    .rdrMonth {
+      width: 274px;
+    }
+
+    .rdrDefinedRangesWrapper {
+      background-color: #f9fafb;
+    }
+    .rdrStaticRange .rdrStaticRangeSelected {
+      color: #033048 !important;
+    }
+    .rdrDateDisplayWrapper {
+      .rdrDateDisplayItem input {
+        color: #033048;
+      }
+
+      .rdrDateDisplayItemActive input {
+        font-weight: bold;
+      }
+      background-color: white;
+      .rdrDateDisplay {
+        margin: 0;
+        .rdrDateDisplayItem {
+          border: none;
+          box-shadow: none;
+        }
+      }
+      .rdrDateDisplay:nth-of-type(1) {
+        // border: 5px solid red;
+        font-size: 14px;
+      }
+    }
+  }
+}
+
 .torq .time-interval-wrapper {
   display: grid;
   grid-auto-flow: column;
@@ -10,6 +56,6 @@
     margin-top: -2px;
   }
   .interval .previous {
-    color: var(--fg-muted)
+    color: var(--fg-muted);
   }
 }
