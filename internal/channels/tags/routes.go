@@ -1,7 +1,6 @@
 package tags
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/pkg/server_errors"
@@ -41,7 +40,6 @@ func postTagHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	tag.ChannelDBID = channelDBID
-	fmt.Println(tag)
 	tagID, err := insertTag(db, tag)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
