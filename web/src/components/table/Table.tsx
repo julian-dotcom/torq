@@ -479,12 +479,17 @@ let pastRow: RowType[] = [
 
 
 function Table() {
-    let key: keyof typeof columns
-    let channel: keyof typeof currentRows
+  let key: keyof typeof columns
+  let channel: keyof typeof currentRows
+
+  const columnPadding = 2; // This is because we add an empty padding column before and after the real column
+  const numColumns = (Object.keys(columns).length + columnPadding)
+
+
     return (
       <div className="table-wrapper">
         <style>
-          {".table-content {grid-template-columns: repeat("+(Object.keys(columns).length+2)+",  minmax(min-content, auto))}"}
+          {".table-content {grid-template-columns: repeat("+numColumns+",  minmax(min-content, auto))}"}
         </style>
         <div className="table-content">
 
@@ -496,7 +501,7 @@ function Table() {
           })}
 
           {/*Empty header at the end*/}
-          {HeaderCell("", "first-empty-header")}
+          {HeaderCell("", "last-empty-header")}
 
           {currentRows.map((currentRow, index) => {
             let returnedRow = columns.map((column) => {
@@ -514,8 +519,11 @@ function Table() {
               }
             })
             // Add empty cells at the start and end of each row. This is to give the table a buffer at each end.
-            returnedRow = [<div className={"cell empty locked"}></div>, ...returnedRow, <div className={"cell empty"}></div>]
-            return returnedRow
+            return [
+              <div className={"cell empty locked"} key={"first-cell-" + index}/>,
+              ...returnedRow,
+              <div className={"cell empty"} key={"last-cell-" + index}/>
+            ]
           })}
 
           {/*Empty cell at the start*/}
