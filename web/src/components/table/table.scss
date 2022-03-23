@@ -2,9 +2,8 @@
   position: relative;
   display: grid;
   grid-auto-flow: row;
-  grid-row-gap: 5px;
-  grid-column-gap: 20px;
-  padding: 0 40px 40px;
+  //grid-row-gap: 5px;
+  grid-column-gap: 0px;
   height: fit-content;
 }
 .torq .table-controls-wrapper {
