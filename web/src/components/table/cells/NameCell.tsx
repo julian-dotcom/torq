@@ -1,10 +1,8 @@
-function NameCell(current: string, key: string, index: number) {
+const classNames = require('classnames');
+
+function NameCell(current: string, key: string, index: number | string, className?: string) {
   return (
-    // <div className={"header "} key={item.key}>
-    //   <div className="top">{item.primaryHeading}</div>
-    //   <div className="bottom">{item.secondaryHeading}</div>
-    // </div>
-    <div className={"cell align-left " + key} key={key + index}>
+    <div className={classNames("cell", "align-left", key, className)} key={key + index}>
       <div className="current">
         {current}
       </div>
