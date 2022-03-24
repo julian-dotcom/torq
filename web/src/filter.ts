@@ -12,19 +12,19 @@ const data = [
   }
 ]
 
-// interface for a filter that will filter the data
+// interface for a function that will filter the data
 interface FilterFunc {
   (input: Array<any>, key: string, parameter: any): Array<any>;
 }
 
-// interface for some metadata about a filter function such as what datatype it operates on and it's name
+// interface for some metadata about a filter function such as what datatype it operates on and its name
 interface FilterFuncObj {
   name: string,
   type: string,
   func: FilterFunc,
 }
 
-// available filter types that can be picked in the UI and what they do
+// available filter types that can be picked in the UI and a filter function implementation to achieve that
 const filterFuncs: Array<FilterFuncObj> = [
   {
     name: "equals",
@@ -43,7 +43,7 @@ const filterFuncs: Array<FilterFuncObj> = [
   },
 ]
 
-// an interface for a configured filter
+// an interface for a user configured filter with the key to operate on and value to filter by
 interface filter {
   filterFunc: FilterFuncObj,
   key: string,
