@@ -1,97 +1,37 @@
 import React, { Component } from "react";
 import "./table.scss";
 import tableRow from "./TableRow";
+import HeaderCell from "./cells/HeaderCell";
 import NameCell from "./cells/NameCell";
 import NumericCell from "./cells/NumericCell";
 import BarCell from "./cells/BarCell";
 
 export interface ColumnMetaData {
-  primary: string;
-  secondary: string;
-  type: string;
-  width?: string;
-  align?: string;
-}
-
-interface ColumnMeta {
-  primaryHeading: string;
-  secondaryHeading: string;
-  type?: string;
+  heading: string;
   key: string;
+  type?: string;
   width?: number;
+  locked?: boolean;
 }
 
-const columns: ColumnMeta[] = [
+const columns: ColumnMetaData[] = [
+  { heading: "Name", type: "NameCell", key: "group_name", locked: true },
+  { heading: "Capacity", type: "NumericCell", key: "capacity" },
+  { heading: "Turnover", type: "NumericCell", key: "turnover" },
+  { heading: "Amount out", type: "BarCell", key: "amount_out" },
+  { heading: "Amount inbound", type: "BarCell", key: "amount_in" },
+  { heading: "Amount total", type: "BarCell", key: "amount_total" },
+  { heading: "Revenue out", type: "NumericCell", key: "revenue_out" },
+  { heading: "Revenue inbound", type: "NumericCell", key: "revenue_in" },
+  { heading: "Revenue total", type: "NumericCell", key: "revenue_total" },
+  { heading: "Successful Forwards out", type: "NumericCell", key: "count_out" },
   {
-    primaryHeading: "",
-    secondaryHeading: "Name",
-    type: "NameCell",
-    key: "group_name",
-  },
-
-  {
-    primaryHeading: "",
-    secondaryHeading: "Turnover",
-    type: "NumericCell",
-    key: "turnover",
-  },
-  {
-    primaryHeading: "",
-    secondaryHeading: "Capacity",
-    type: "NumericCell",
-    key: "capacity",
-  },
-  {
-    primaryHeading: "Forwarded Amount",
-    secondaryHeading: "Outbound",
-    type: "BarCell",
-    key: "amount_out",
-  },
-  {
-    primaryHeading: "Forwarded Amount",
-    secondaryHeading: "Inbound",
-    type: "BarCell",
-    key: "amount_in",
-  },
-  {
-    primaryHeading: "Forwarded Amount",
-    secondaryHeading: "Total",
-    type: "BarCell",
-    key: "amount_total",
-  },
-  {
-    primaryHeading: "Forwarding Revenue",
-    secondaryHeading: "Outbound",
-    type: "NumericCell",
-    key: "revenue_out",
-  },
-  {
-    primaryHeading: "Forwarding Revenue",
-    secondaryHeading: "Inbound",
-    type: "NumericCell",
-    key: "revenue_in",
-  },
-  {
-    primaryHeading: "Forwarding Revenue",
-    secondaryHeading: "Total",
-    type: "NumericCell",
-    key: "revenue_total",
-  },
-  {
-    primaryHeading: "Successfull Forwards",
-    secondaryHeading: "Outbound",
-    type: "NumericCell",
-    key: "count_out",
-  },
-  {
-    primaryHeading: "Successfull Forwards",
-    secondaryHeading: "Inbound",
+    heading: "Successful Forwards inbound",
     type: "NumericCell",
     key: "count_in",
   },
   {
-    primaryHeading: "Successfull Forwards",
-    secondaryHeading: "Total",
+    heading: "Successful Forwards total",
     type: "NumericCell",
     key: "count_total",
   },
@@ -112,7 +52,21 @@ interface RowType {
   turnover: number;
 }
 
-let totalRows: RowType = {
+let totalRow: RowType = {
+  group_name: "Total",
+  amount_out: 1200000,
+  amount_in: 1200000,
+  amount_total: 1200000,
+  revenue_out: 1200000,
+  revenue_in: 1200000,
+  revenue_total: 1200000,
+  count_out: 1200000,
+  count_in: 1200000,
+  count_total: 1200000,
+  capacity: 1200000,
+  turnover: 1.42,
+};
+let pastTotalRow: RowType = {
   group_name: "Total",
   amount_out: 1200000,
   amount_in: 1200000,
@@ -551,32 +505,33 @@ let pastRow: RowType[] = [
   },
 ];
 
-function HeaderCell(item: ColumnMeta) {
-  return (
-    <div className={"header " + item.key} key={item.key}>
-      <div className="top">{item.primaryHeading}</div>
-      <div className="bottom">{item.secondaryHeading}</div>
-    </div>
-  );
-}
-
 function Table() {
   let key: keyof typeof columns;
   let channel: keyof typeof currentRows;
+
+  const columnPadding = 2; // This is because we add an empty padding column before and after the real column
+  const numColumns = Object.keys(columns).length + columnPadding;
+
   return (
     <div className="table-wrapper">
       <style>
         {".table-content {grid-template-columns: repeat(" +
-          Object.keys(columns).length +
+          numColumns +
           ",  minmax(min-content, auto))}"}
       </style>
       <div className="table-content">
-        {columns.map((item) => {
-          return HeaderCell(item);
+        {/*Empty header at the start*/}
+        {HeaderCell("", "first-empty-header", "empty locked")}
+
+        {columns.map((column) => {
+          return HeaderCell(column.heading, column.key, "", column.locked);
         })}
 
+        {/*Empty header at the end*/}
+        {HeaderCell("", "last-empty-header")}
+
         {currentRows.map((currentRow, index) => {
-          return columns.map((column) => {
+          let returnedRow = columns.map((column) => {
             let key = column.key as keyof RowType;
             let past = pastRow[index][key];
             switch (column.type) {
@@ -592,7 +547,7 @@ function Table() {
               case "BarCell":
                 return BarCell(
                   currentRow[key] as number,
-                  totalRows[key] as number,
+                  past as number,
                   past as number,
                   key,
                   index
@@ -606,7 +561,57 @@ function Table() {
                 );
             }
           });
+          // Add empty cells at the start and end of each row. This is to give the table a buffer at each end.
+          return [
+            <div className={"cell empty locked"} key={"first-cell-" + index} />,
+            ...returnedRow,
+            <div className={"cell empty"} key={"last-cell-" + index} />,
+          ];
         })}
+
+        {/*Empty cell at the start*/}
+        {<div className={"cell empty total-cell locked"}></div>}
+
+        {columns.map((column) => {
+          let key = column.key as keyof RowType;
+          switch (column.type) {
+            case "NameCell":
+              return NameCell(
+                totalRow[key] as string,
+                key,
+                "totals",
+                "total-cell"
+              );
+            case "NumericCell":
+              return NumericCell(
+                totalRow[key] as number,
+                pastTotalRow[key] as number,
+                key,
+                "totals",
+                "total-cell"
+              );
+            case "BarCell":
+              return BarCell(
+                totalRow[key] as number,
+                pastTotalRow[key] as number,
+                pastTotalRow[key] as number,
+                key,
+                "totals",
+                "total-cell"
+              );
+            default:
+              return NumericCell(
+                totalRow[key] as number,
+                pastTotalRow[key] as number,
+                key,
+                "totals",
+                "total-cell"
+              );
+          }
+        })}
+
+        {/*Empty cell at the end*/}
+        {<div className={"cell empty total-cell"}></div>}
       </div>
     </div>
   );

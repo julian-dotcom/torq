@@ -49,7 +49,7 @@ func main() {
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.port",
-			Value: "50050",
+			Value: "8080",
 			Usage: "Port for your regular grpc",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{

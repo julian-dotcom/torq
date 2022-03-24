@@ -2,17 +2,28 @@ package torqsrv
 
 import (
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/channels/tags"
 	"strconv"
 )
 
 func Start(port int, db *sqlx.DB) {
 	r := gin.Default()
 	registerRoutes(r, db)
+	applyCors(r)
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 	r.Run(":" + strconv.Itoa(port))
+}
+
+func applyCors(r *gin.Engine) {
+	corsConfig := cors.DefaultConfig()
+	//hot reload CORS
+	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AllowCredentials = true
+	r.Use(cors.New(corsConfig))
 }
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB) {
@@ -22,6 +33,10 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB) {
 		channelRoutes := api.Group("/channels")
 		{
 			channels.RegisterChannelRoutes(channelRoutes, db)
+			channelTagRoutes := channelRoutes.Group(":channelDbId/tags")
+			{
+				tags.RegisterTagRoutes(channelTagRoutes, db)
+			}
 		}
 
 		api.GET("/ping", func(c *gin.Context) {

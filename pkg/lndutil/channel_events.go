@@ -5,12 +5,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
+	"time"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"io"
-	"time"
+	"github.com/lncapital/torq/internal/channels"
+	"gopkg.in/guregu/null.v4"
 )
 
 func getChanPoint(cb []byte, oi uint32) (string, error) {
@@ -53,6 +56,17 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 		// Add the channel point to the chanPointList, this allows the
 		// channel graph to listen for routing policy updates
 		chanPointChan <- c.ChannelPoint
+
+		channel := channels.Channel{
+			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
+			ChannelPoint:      null.StringFrom(ChannelPoint),
+			DestinationPubKey: null.StringFrom(PubKey),
+		}
+		err = channels.AddChannelRecordIfDoesntExist(db, channel)
+		if err != nil {
+			return err
+		}
+
 	case lnrpc.ChannelEventUpdate_CLOSED_CHANNEL:
 		c := ce.GetClosedChannel()
 		ChanID = c.ChanId
@@ -61,6 +75,17 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 
 		// Updates the channel point list by removing the channel point from the chanPointList.
 		chanPointChan <- c.ChannelPoint
+
+		channel := channels.Channel{
+			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
+			ChannelPoint:      null.StringFrom(ChannelPoint),
+			DestinationPubKey: null.StringFrom(PubKey),
+		}
+		err = channels.AddChannelRecordIfDoesntExist(db, channel)
+		if err != nil {
+			return err
+		}
+
 	case lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL:
 		c := ce.GetFullyResolvedChannel()
 		ChannelPoint, err = getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
@@ -242,6 +267,17 @@ icoLoop:
 			return errors.Wrapf(err, "storeChannelList -> json.Marshal(%v)", channel)
 		}
 
+		// check if we have seen this channel before and if not store in the channel table
+		channelRecord := channels.Channel{
+			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
+			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
+			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
+		}
+		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
+		if err != nil {
+			return err
+		}
+
 		err = enrichAndInsertChannelEvent(db, lnrpc.ChannelEventUpdate_OPEN_CHANNEL,
 			true, channel.ChanId, channel.ChannelPoint, channel.RemotePubkey, jb)
 		if err != nil {
@@ -279,6 +315,17 @@ icoLoop:
 		jb, err := json.Marshal(channel)
 		if err != nil {
 			return errors.Wrapf(err, "storeChannelList -> json.Marshal(%v)", channel)
+		}
+
+		// check if we have seen this channel before and if not store in the channel table
+		channelRecord := channels.Channel{
+			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
+			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
+			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
+		}
+		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
+		if err != nil {
+			return err
 		}
 
 		err = enrichAndInsertChannelEvent(db, lnrpc.ChannelEventUpdate_CLOSED_CHANNEL,

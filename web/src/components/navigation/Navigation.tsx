@@ -1,5 +1,5 @@
 import React from 'react';
-import './navigation.scss'
+import { useSelector, useDispatch } from "react-redux";
 import MenuItem from './MenuItem'
 import {ReactComponent as DotIcon} from '../../icons/dot-solid.svg'
 import {ReactComponent as TorqLogo} from '../../icons/torq-logo.svg'
@@ -9,20 +9,31 @@ import {
   AddSquare20Regular as AddTable,
   ArrowRepeatAll20Regular as RebalanceIcon,
   ArrowExportRtl20Regular as CollapseIcon,
-  TextBulletListCheckmark20Regular as SelectNodeIcon,
+  ArrowExportLtr20Regular as ExpandIcon,
 } from "@fluentui/react-icons";
+import './navigation.scss'
+
 
 function Navigation() {
+  const dispatch = useDispatch();
+  const navHidden: number = useSelector((state:{navHidden:number}) => {return state.navHidden});
+
+  const toggleNav = () => {
+    dispatch({type: 'toggleNav'})
+  }
+
+  console.log(navHidden)
+
   return (
 <div className="navigation">
   <div className="logo-wrapper">
     <div className="logo"><TorqLogo/></div>
-    <div className="collapse icon-button">
-      <CollapseIcon/>
+    <div className="collapse icon-button" onClick={toggleNav}>
+      {navHidden ? <ExpandIcon/> : <CollapseIcon/>}
     </div>
   </div>
 
-  <MenuItem text={'Routing Node 2'} actions={<SelectNodeIcon/>}/>
+  <MenuItem text={'My Routing Node'} />
 
   <div className="menu-items">
     <MenuItem text={'Tables'} icon={<TableIcon/>} actions={<AddTable/>}>
@@ -43,6 +54,6 @@ function Navigation() {
   );
 }
 
-export default Navigation;
 
+export default Navigation;
 

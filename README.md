@@ -50,7 +50,7 @@ After creating the database, exit psql and the TimescaleDB container by hitting 
 At present Torq only connects to a single LND node. To run Torq provide the IP, Port, TLS cert and Macaroon of your LND Node as well as the database password set above. Database name and user are configurable but both default to `torq`.
 
 ``` sh
-docker run -p 50050:50050 --rm  \
+docker run -p 8080:8080 --rm  \
 -v <AbsolutePathLNDTLSCert>:/app/tls.cert \
 -v <AbsolutePathLNDMacaroon>:/app/readonly.macaroon \
 lncapital/torq --lnd.macaroon /app/readonly.macaroon \

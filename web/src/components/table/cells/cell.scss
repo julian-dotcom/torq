@@ -2,10 +2,11 @@
   .cell {
     display: grid;
     grid-row-gap: 4px;
-    padding: 10px 0;
+    padding: 10px 20px;
     align-items: start;
     align-content: center;
     text-align: right;
+    background-color: var(--bg-default);
     &.align-left {
       padding: 10px 20px 10px 0;
       text-align: left;
@@ -26,6 +27,7 @@
     position: relative;
     z-index: 2;
     grid-row-gap: 4px;
+    min-width: 200px;
     .bar-wrapper {
       display: grid;
       justify-items: end;
@@ -34,9 +36,18 @@
     .bar {
       height: 5px;
       min-width: 2px;
-      background-color: var(--primary-500);
+      background-color: var(--primary-400);
     }
   }
+
+  .total-cell {
+    position: sticky;
+    bottom: 0;
+    background-color: var(--bg-alt-faint);
+    border-top: 1px solid var(--bg-alt-strong);
+  }
+
+
 
   .header {
     position: sticky;
@@ -46,17 +57,45 @@
     justify-items: end;
     align-items: end;
     grid-row-gap: 5px;
-    padding-top: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--bg-lines);
+    padding: 20px 20px 10px 20px;
+    border-bottom: 1px solid var(--fg-subtle);
     background-color: var(--bg-default);
+    color: var(--fg-muted);
     white-space: nowrap;
     padding-left: 30px;
+    font-size: var(--font-size-small);
     &.group_name {
       padding-left: 0px;
       padding-right: 50px;
       justify-items: start;
     }
+    .content {
+      display: grid;
+      grid-auto-flow: column;
+      grid-column-gap: 5px;
+    }
+  }
+
+  // TODO: Clean this up after deciding on limitations to column freezing
+  .group_name, .locked {
+    position: sticky;
+    left: 50px;
+    top: 0;
+    //padding-left: 20px !important;
+    z-index: 5;
+    border-right: 1px solid var(--fg-faint);
+  }
+  .header.group_name, .header.first-empty-header {
+    z-index: 6;
+     //border-right: 1px solid var(--bg-default);
+    border-right: 1px solid var(--fg-faint);
+  }
+  .total-cell.group_name {
+     border-right: 1px solid var(--bg-alt-strong);
+  }
+  .empty.locked {
+    left: 0;
+    border-right: none;
   }
 }
 

@@ -1,10 +1,12 @@
 import './cell.scss'
 import NumberFormat from 'react-number-format';
 
-function BarCell(current: number, total: number, previous: number, key: string, index: number) {
+const classNames = require('classnames');
+
+function BarCell(current: number, total: number, previous: number, key: string, index: number|string, className?: string) {
   let previousPercent = previous*Math.round(Math.random()*200)
   return (
-    <div className={"cell bar-cell " + key} key={key + index}>
+    <div className={classNames("cell", "bar-cell", key, className)} key={key + index}>
       <div className="current">
         <NumberFormat displayType="text" thousandSeparator=',' value={current} />
       </div>

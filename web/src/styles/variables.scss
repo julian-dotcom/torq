@@ -2,6 +2,8 @@
   --color-blue-500: #033048;
   --color-blue-400: #17445A;
   --color-blue-300: #D9E0E4;
+  --color-blue-200: #F2F5F6;
+  --color-blue-100: #F9FAFB;
 
   --color-baige-600: #ECE6D6;
   --color-baige-500: #FAECCB;
@@ -21,11 +23,18 @@
 
   --fg-default: var(--color-blue-500);
   --fg-muted: var(--color-muted);
-  --fg-faint: var(--color-blue-300);
+  --fg-subtle: var(--color-blue-300);
+  --fg-faint: var(--color-blue-200);
+  --fg-extra-faint: var(--color-blue-100);
 
   --bg-default: var(--color-white);
-  --bg-muted: var(--color-baige-400);
-  --bg-lines: var(--color-baige-600);
+  --bg-muted: var(--color-muted);
+  --bg-subtle: var(--color-blue-300);
+  --bg-faint: var(--color-blue-200);
+  --bg-extra-faint: var(--color-blue-100);
+
+  --bg-alt-faint: var(--color-baige-300);
+  --bg-alt-strong: var(--color-baige-600);
 
   --primary-500: var(--color-green-500);
   --primary-400: var(--color-green-400);

@@ -54,6 +54,7 @@ require (
 	github.com/fergusstrange/embedded-postgres v1.10.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/getsentry/raven-go v0.2.0 // indirect
+	github.com/gin-contrib/cors v1.3.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.7.7 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
@@ -155,6 +156,7 @@ require (
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/genproto v0.0.0-20211013025323-ce878158c4d4 // indirect
 	gopkg.in/errgo.v1 v1.0.1 // indirect
+	gopkg.in/guregu/null.v4 v4.0.0 // indirect
 	gopkg.in/macaroon-bakery.v2 v2.0.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

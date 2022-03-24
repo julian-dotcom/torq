@@ -1,0 +1,12 @@
+CREATE TABLE channel(
+  -- A database primary key. NOT a channel_id as specified in BOLT 2
+  channel_db_id SERIAL PRIMARY KEY,
+  -- In the c-lighting and BOLT format e.g. 505580:1917:1
+  short_channel_id TEXT NOT NULL,
+  -- At the moment only used by LND. Format is "funding tx id : output id"
+  channel_point TEXT NULL,
+  alias TEXT NULL,
+  destination_pub_key TEXT NULL,
+  created_on TIMESTAMP NOT NULL,
+  updated_on TIMESTAMP NULL
+);
