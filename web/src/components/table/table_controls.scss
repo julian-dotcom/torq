@@ -1,8 +1,11 @@
+.torq .table-controls-wrapper {
+
+}
 .torq .table-controls {
   padding: 30px 40px;
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: auto min-content;
+  grid-template-columns: auto auto;
   justify-items: space-between;
   align-items: center;
   .left-container {

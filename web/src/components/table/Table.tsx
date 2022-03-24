@@ -506,8 +506,6 @@ let pastRow: RowType[] = [
 ];
 
 function Table() {
-  // let key: keyof typeof columns;
-  // let channel: keyof typeof currentRows;
 
   const numColumns = Object.keys(columns).length;
   const numRows = currentRows.length;

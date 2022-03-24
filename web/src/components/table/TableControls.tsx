@@ -7,18 +7,20 @@ import {
 } from "@fluentui/react-icons";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import TableHeader from "./TableHeader";
+import Dropdown from "../formElements/Dropdown";
 
 function TableControls() {
   return (
     <div className="table-controls">
       <div className="left-container">
-        <TableHeader title="Top Revenue Today" />
-        <TimeIntervalSelect />
+        {/*<TableHeader title="Top Revenue Today"/>*/}
+        <Dropdown/>
+        <DefaultButton icon={<ColumnsIcon/>} text={"Columns"}/>
+        <DefaultButton icon={<SortIcon/>} text={"Sort"}/>
+        <DefaultButton icon={<FilterIcon/>} text={"Filter"}/>
       </div>
       <div className="right-container">
-        <DefaultButton icon={<ColumnsIcon />} text={"Columns"} />
-        <DefaultButton icon={<SortIcon />} text={"Sort"} />
-        <DefaultButton icon={<FilterIcon />} text={"Filter"} />
+        <TimeIntervalSelect/>
       </div>
     </div>
   );
