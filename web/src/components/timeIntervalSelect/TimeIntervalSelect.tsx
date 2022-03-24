@@ -27,7 +27,7 @@ function RangeItem(props: any) {
             "block px-4 py-2 text-sm"
           )}
         >
-          {props.item.label}
+          {item.label}
         </p>
       )}
     </Menu.Item>
