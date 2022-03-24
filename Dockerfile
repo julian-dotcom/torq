@@ -22,7 +22,6 @@ FROM alpine
 COPY --from=backend-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=backend-builder /app/torq /app/
 COPY --from=frontend-builder /app/build /app/web/build
-COPY migrations /app/migrations
 RUN apk add --no-cache bash
 ENV GIN_MODE=release
 WORKDIR /app
