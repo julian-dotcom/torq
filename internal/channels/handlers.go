@@ -1,8 +1,6 @@
 package channels
 
 import (
-	"database/sql"
-
 	"github.com/gin-gonic/gin"
 
 	// "gopkg.in/guregu/null.v4"
@@ -13,7 +11,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 )
 
 func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
@@ -27,7 +24,7 @@ func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	r, err := getAggForwardsByChanIds(db, from, to, nil)
+	r, err := getAggForwardsByChanIds(db, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -36,6 +33,10 @@ func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 type channelData struct {
+	// Database primary key of channel
+	ChannelDBID int `json:"channelDbId"`
+	// Short channel id in c-lightning / BOLT format
+	ShortChannelID string `json:"shortChannelId"`
 	// The channel ID
 	ChanId uint64 `json:"chan_id"`
 	// Alias of remote peer
@@ -56,52 +57,103 @@ type channelData struct {
 	RevenueOut uint64 `json:"revenue_out"`
 	// Number of outbound forwards.
 	CountOut uint64 `json:"count_out"`
+	Capacity uint64 `json:"capacity"`
 }
 
-func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time, cids []uint64) (r []*channelData, err error) {
+func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*channelData, err error) {
+	var sql = `
+select
+    channel.channel_db_id,
+	channel.short_channel_id,
+    fwr.chan_id,
+    coalesce(ne.alias, '') as alias,
+    fwr.pub_key,
+    fwr.amount_out,
+    fwr.amount_in,
+    fwr.revenue_out,
+    fwr.revenue_in,
+    fwr.count_out,
+    fwr.count_in,
+    fwr.capacity --,
+    --round(((amount_out+amount_in)/capacity),2) as turnover
+from (
+    select ce.pub_key,
+	    ce.chan_point,
+        fw.chan_id,
+        ce.closed,
+        ce.capacity,
+        amount_out,
+        amount_in,
+        revenue_out,
+        revenue_in,
+        count_out,
+        count_in
+    from (
+        select coalesce(o.chan_id, i.chan_id) as chan_id,
+               coalesce(o.amount,0) as amount_out,
+               coalesce(o.revenue,0) as revenue_out,
+               coalesce(o.count,0) as count_out,
+               coalesce(i.amount,0) as amount_in,
+               coalesce(i.revenue,0) as revenue_in,
+               coalesce(i.count,0) as count_in
+        from (
+            select outgoing_channel_id chan_id,
+                   floor(sum(outgoing_amount_msat)/1000) as amount,
+                   floor(sum(fee_msat)/1000) as revenue,
+                   count(time) as count
+            from forward
+            where time >= $1
+                and time <= $2
+            group by outgoing_channel_id
+            ) as o
+        full outer join (
+            select incoming_channel_id as chan_id,
+                   floor(sum(incoming_amount_msat)/1000) as amount,
+                   floor(sum(fee_msat)/1000) as revenue,
+                   count(time) as count
+            from forward
+            where time >= $1
+                and time <= $2
+            group by incoming_channel_id) as i
+        on i.chan_id = o.chan_id
+    ) as fw
+    left join (
+        select chan_id,
+               pub_key,
+		       chan_point,
+               last(event->'capacity', time)::numeric as capacity,
+               last(event_type, time) = 1 as closed
+        from channel_event
+        where event_type in (0,1)
+        group by chan_id, pub_key, chan_point
+    ) as ce
+    on ce.chan_id = fw.chan_id
+) as fwr
+left join (
+    select pub_key, last(alias, timestamp) as alias from node_event group by pub_key) as ne
+on ne.pub_key = fwr.pub_key
+left join channel on channel.channel_point = fwr.chan_point;
+`
 
-	var rows *sql.Rows
-
-	// Request given channel IDs, if specified.
-	if len(cids) != 0 {
-
-		var q string
-		var args []interface{}
-
-		query := "select * from agg_forwards_by_chan_id(?, ?, (?))"
-		q, args, err = sqlx.In(query, fromTime, toTime, pq.Array(cids))
-		if err != nil {
-			return nil, errors.Wrapf(err, "getAggForwardsByChanIds -> sqlx.In(%s, %d, %d, %v)",
-				query, fromTime, toTime, cids)
-		}
-
-		qs := db.Rebind(q)
-		rows, err = db.Query(qs, args...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "getAggForwardsByChanIds -> db.Query(db.Rebind(qs), args...)")
-		}
-
-	} else { // Request all channel IDs if none are given
-		rows, err = db.Query("select * from agg_forwards_by_chan_id($1, $2, null)", fromTime, toTime)
-		if err != nil {
-			return nil, errors.Wrapf(err, "getAggForwardsByChanIds -> "+
-				"db.Queryx(\"select * from agg_forwards_by_chan_id(?, ?, null)\", %d, %d)",
-				fromTime, toTime)
-		}
-
+	rows, err := db.Query(sql, fromTime, toTime)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error running aggregated forwards query")
 	}
 
 	for rows.Next() {
 		c := &channelData{}
-		err = rows.Scan(&c.ChanId,
+		err = rows.Scan(&c.ChannelDBID,
+			&c.ShortChannelID,
+			&c.ChanId,
 			&c.Alias,
-			&c.AmountIn,
-			&c.RevenueIn,
-			&c.CountIn,
+			&c.PubKey,
 			&c.AmountOut,
+			&c.AmountIn,
 			&c.RevenueOut,
+			&c.RevenueIn,
 			&c.CountOut,
-			&c.PubKey)
+			&c.CountIn,
+			&c.Capacity)
 		if err != nil {
 			return r, err
 		}
