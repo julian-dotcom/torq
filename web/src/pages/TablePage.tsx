@@ -3,8 +3,6 @@ import TableControls from "../components/table/TableControls";
 import Table from "../components/table/Table";
 import './table-page.scss'
 
-let channels = {};
-
 function TablePage() {
     return (
       <div className="table-page-wrapper">

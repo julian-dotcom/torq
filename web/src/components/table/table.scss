@@ -2,23 +2,13 @@
   position: relative;
   display: grid;
   grid-auto-flow: row;
-  //grid-row-gap: 5px;
   grid-column-gap: 0px;
-  height: fit-content;
+  overflow: scroll;
+  height: 100vh;
 }
-.torq .table-controls-wrapper {
-  position: sticky;
-  left: 0;
-  right: 0;
-  top: -94px;
-  z-index: 10;
-  width: calc(100vw - 310px);
+.torq .table-wrapper {
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  overflow: hidden;
 }
-.torq .nav-hidden .table-controls-wrapper {
-    width: calc(100vw - 40px);
-}
-//.table-wrapper {
-//  display: flex;
-//  flex-grow: 1;
-//  flex-direction: column;
-//}
