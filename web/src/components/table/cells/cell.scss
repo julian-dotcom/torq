@@ -8,7 +8,7 @@
     text-align: right;
     background-color: var(--bg-default);
     &.align-left {
-      padding: 10px 20px 10px 0;
+      //padding: 10px 20px 10px 0;
       text-align: left;
     }
     .past {
@@ -62,10 +62,8 @@
     background-color: var(--bg-default);
     color: var(--fg-muted);
     white-space: nowrap;
-    padding-left: 30px;
     font-size: var(--font-size-small);
     &.group_name {
-      padding-left: 0px;
       padding-right: 50px;
       justify-items: start;
     }
@@ -79,19 +77,26 @@
   // TODO: Clean this up after deciding on limitations to column freezing
   .group_name, .locked {
     position: sticky;
-    left: 50px;
+    left: 20px;
     top: 0;
     //padding-left: 20px !important;
     z-index: 5;
     border-right: 1px solid var(--fg-faint);
   }
-  .header.group_name, .header.first-empty-header {
+  .header.group_name, .header.first-empty-header, .header.first-empty-header {
     z-index: 6;
-     //border-right: 1px solid var(--bg-default);
     border-right: 1px solid var(--fg-faint);
   }
   .total-cell.group_name {
      border-right: 1px solid var(--bg-alt-strong);
+  }
+  .empty {
+    padding: 0;
+    min-width: 20px;
+  }
+  .empty.locked {
+    left: 0;
+    border-right: none;
   }
   .empty.locked {
     left: 0;
@@ -99,3 +104,40 @@
   }
 }
 
+/* For extremely small screen devices (595px and below) */
+@media only screen and (max-width: 595px) {
+  .torq .table-content {
+    .cell, .header {
+      padding: 10px 10px;
+    }
+    .cell.empty, .header.empty {
+      min-width: 10px;
+      padding: 0;
+    }
+    .group_name, .locked {
+      position: sticky;
+      left: 10px;
+    }
+  }
+
+}
+
+/* Small screen devices (600px and above) */
+@media only screen and (min-width: 600px) {
+
+}
+
+/* Medium screen devices (768px and above) */
+@media only screen and (min-width: 768px) {
+
+}
+
+/* Big screen devices (889px and above) */
+@media only screen and (min-width: 889px) {
+
+}
+
+/* Extra big screen devices (1200px and above) */
+@media only screen and (min-width: 1200px) {
+
+}

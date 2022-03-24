@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: row;
   align-content: flex-start;
+  width: 100%;
   .navigation-wrapper {
     width: 290px;
     overflow: hidden;
@@ -9,7 +10,8 @@
     flex-shrink: 0;
   }
   .page-wrapper {
-    overflow-x: hidden;
+    overflow: hidden;
+    width: 100%;
   }
 
   &.nav-hidden {
