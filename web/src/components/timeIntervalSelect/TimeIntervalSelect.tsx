@@ -8,13 +8,14 @@ function classNames(...classes: any) {
   return classes.filter(Boolean).join(" ");
 }
 
-function RangeItem(item: any, setCurrentPeriod: any) {
+function RangeItem(props: any) {
+  const item = props.range;
   return (
     <Menu.Item>
       {({ active }) => (
         <p
           onClick={() =>
-            setCurrentPeriod([
+            props.setCurrentPeriod([
               item.range().startDate,
               item.range().endDate,
               item.rangeCompare().startDate,
@@ -26,7 +27,7 @@ function RangeItem(item: any, setCurrentPeriod: any) {
             "block px-4 py-2 text-sm"
           )}
         >
-          {item.label}
+          {props.item.label}
         </p>
       )}
     </Menu.Item>
@@ -45,12 +46,12 @@ function TimeIntervalSelect() {
     <Menu as="div" className="relative inline-block text-left ml-5">
       <div>
         <Menu.Button className="justify-center w-full py-2 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2focus:ring-offset-gray-100 focus:ring-indigo-500">
-          <p className="text-lg">
+          <p className="text-base">
             {" "}
             {format(currentPeriod[0], "MMM d, yyyy")} -{" "}
             {format(currentPeriod[1], "MMM d, yyyy")}
           </p>
-          <p>
+          <p className="text-slate-400 text-sm	">
             {" "}
             {format(currentPeriod[2], "MMM d, yyyy")} -{" "}
             {format(currentPeriod[3], "MMM d, yyyy")}
@@ -69,9 +70,9 @@ function TimeIntervalSelect() {
       >
         <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
           <div className="py-1">
-            {defaultStaticRanges.map((range: object) =>
-              RangeItem(range, setCurrentPeriod)
-            )}
+            {defaultStaticRanges.map((range: object) => (
+              <RangeItem range={range} setCurrentPeriod={setCurrentPeriod} />
+            ))}
           </div>
         </Menu.Items>
       </Transition>
