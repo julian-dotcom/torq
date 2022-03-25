@@ -13,27 +13,4 @@
     overflow: hidden;
     width: 100%;
   }
-
-  &.nav-hidden {
-    // Todo: Clean up while fixing remaining responsive design
-    .navigation-wrapper {
-      width: 0px;
-      padding-right: 1px;
-      transition: width 200ms;
-      height: 100vh;
-      .navigation {
-        position: absolute;
-        left: -290px;
-        transition: left 250ms;
-        z-index: 100;
-      }
-      &:hover {
-        .navigation {
-          left: 0px;
-          transition: left 200ms;
-        }
-      }
-    }
-  }
-
 }

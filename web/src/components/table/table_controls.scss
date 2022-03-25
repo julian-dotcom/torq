@@ -1,6 +1,3 @@
-.torq .table-controls-wrapper {
-
-}
 .torq .table-controls {
   padding: 30px 40px;
   display: grid;
@@ -19,5 +16,12 @@
     grid-auto-flow: column;
     justify-content: end;
     align-items: center;
+  }
+
+}
+
+@media only screen and (min-width: 1200px) {
+  .torq .table-controls .show-nav-btn {
+    display: none;
   }
 }

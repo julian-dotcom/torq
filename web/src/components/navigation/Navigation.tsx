@@ -8,7 +8,7 @@ import {
   ColumnTriple20Regular as TableIcon,
   AddSquare20Regular as AddTable,
   ArrowRepeatAll20Regular as RebalanceIcon,
-  ArrowExportRtl20Regular as CollapseIcon,
+  ChevronDoubleLeft20Regular as CollapseIcon,
   ArrowExportLtr20Regular as ExpandIcon,
 } from "@fluentui/react-icons";
 import './navigation.scss'
@@ -21,8 +21,6 @@ function Navigation() {
   const toggleNav = () => {
     dispatch({type: 'toggleNav'})
   }
-
-  console.log(navHidden)
 
   return (
 <div className="navigation">
