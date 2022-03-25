@@ -1,7 +1,16 @@
 import "./interval_select.scss";
 import { Fragment, useState } from "react";
-import { format } from "date-fns";
-import { defaultStaticRanges, defineds } from "./customRanges";
+import {
+  differenceInCalendarDays,
+  differenceInDays,
+  format,
+  startOfDay,
+} from "date-fns";
+import {
+  defaultStaticRanges,
+  defineds,
+  getCompareRanges,
+} from "./customRanges";
 import { Menu, Transition } from "@headlessui/react";
 import { CalendarLtr20Regular as IntervalIcon } from "@fluentui/react-icons";
 import { DateRangePicker } from "react-date-range";
@@ -61,6 +70,13 @@ function TimeIntervalSelect() {
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
+  const handleChange = (item: any) => {
+    const { startDate, endDate } = item.selection1;
+    const compareRanges = getCompareRanges(startDate, endDate);
+    setState({ ...state, ...item });
+    setCurrentPeriod([startDate, endDate, ...compareRanges]);
+  };
+
   return (
     <div>
       <Popover
@@ -84,7 +100,7 @@ function TimeIntervalSelect() {
                 direction="vertical"
                 inputRanges={[]}
                 ranges={[state.selection1]}
-                onChange={(item) => setState({ ...state, ...item })}
+                onChange={(item) => handleChange(item)}
               />
             </div>
           </div>
