@@ -1,51 +1,15 @@
 import "./interval_select.scss";
-import { Fragment, useState } from "react";
-import {
-  differenceInCalendarDays,
-  differenceInDays,
-  format,
-  startOfDay,
-} from "date-fns";
+import { useState } from "react";
+import { format } from "date-fns";
 import {
   defaultStaticRanges,
   defineds,
   getCompareRanges,
 } from "./customRanges";
-import { Menu, Transition } from "@headlessui/react";
-import { CalendarLtr20Regular as IntervalIcon } from "@fluentui/react-icons";
+
 import { DateRangePicker } from "react-date-range";
 import { Popover } from "react-tiny-popover";
 import { addDays } from "date-fns";
-
-function classNames(...classes: any) {
-  return classes.filter(Boolean).join(" ");
-}
-
-function RangeItem(props: any) {
-  const item = props.range;
-  return (
-    <Menu.Item>
-      {({ active }) => (
-        <p
-          onClick={() =>
-            props.setCurrentPeriod([
-              item.range().startDate,
-              item.range().endDate,
-              item.rangeCompare().startDate,
-              item.rangeCompare().endDate,
-            ])
-          }
-          className={classNames(
-            active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-            "block px-4 py-2 text-sm"
-          )}
-        >
-          {item.label}
-        </p>
-      )}
-    </Menu.Item>
-  );
-}
 
 function TimeIntervalSelect() {
   const [currentPeriod, setCurrentPeriod] = useState([

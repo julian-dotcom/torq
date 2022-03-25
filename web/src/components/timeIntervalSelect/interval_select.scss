@@ -1,18 +1,19 @@
 .date-range-popover {
   z-index: 999;
 
-  .rdrDayNumber span {
-    color: #033048 !important;
-  }
-  .rdrDay {
-    height: 2.6em;
-  }
-  .rdrMonthsVertical {
-    height: 290px !important;
-  }
-
   .rdrDateRangePickerWrapper {
     color: #033048;
+    box-shadow: 0px 0px 10px rgba(3, 48, 72, 0.1);
+    border-radius: 2px;
+    .rdrDayNumber span {
+      color: #033048 !important;
+    }
+    .rdrDay {
+      height: 2.6em;
+    }
+    .rdrMonthsVertical {
+      height: 290px !important;
+    }
     .rdrStaticRange {
       border-bottom: none;
     }
