@@ -7,13 +7,65 @@
   .rdrDay {
     height: 2.6em;
   }
+  .rdrMonthsVertical {
+    height: 290px !important;
+  }
+
   .rdrDateRangePickerWrapper {
     color: #033048;
+    .rdrStaticRange {
+      border-bottom: none;
+    }
+    .rdrStaticRangeLabel {
+      font-size: 14.5px;
+      color: #8198a3;
+    }
+    .rdrStaticRangeSelected {
+      font-weight: bold;
 
+      .rdrStaticRangeLabel {
+        color: #033048 !important;
+      }
+    }
     .rdrMonth {
       width: 274px;
+      padding-bottom: 0;
+    }
+    .rdrMonthName {
+      padding-top: 0;
+    }
+    .rdrMonthAndYearWrapper {
+      display: none;
+    }
+    .rdrWeekDays {
+      background: #f9fafb;
+      border-bottom: 1px solid #d9e0e4;
+    }
+    .rdrSelected,
+    .rdrInRange,
+    .rdrStartEdge,
+    .rdrEndEdge {
+      top: 1px;
+      bottom: 1px;
     }
 
+    .rdrDayEndOfMonth .rdrInRange,
+    .rdrDayEndOfMonth .rdrStartEdge,
+    .rdrDayEndOfWeek .rdrInRange,
+    .rdrDayEndOfWeek .rdrStartEdge {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .rdrDayStartOfWeek .rdrInRange {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .rdrStartEdge,
+    .rdrEndEdge {
+      color: #ddf6f5 !important;
+    }
     .rdrDefinedRangesWrapper {
       background-color: #f9fafb;
     }
@@ -24,7 +76,6 @@
       .rdrDateDisplayItem input {
         color: #033048;
       }
-
       .rdrDateDisplayItemActive input {
         font-weight: bold;
       }
@@ -50,6 +101,7 @@
   grid-template-columns: min-content auto;
   margin: 0 15px;
   grid-column-gap: 8px;
+  text-align: center;
 
   .icon {
     // TODO: Quick hack, clean up. FLW
