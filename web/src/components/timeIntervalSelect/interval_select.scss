@@ -11,6 +11,9 @@
     .rdrDay {
       height: 2.6em;
     }
+    .rdrDayPassive {
+      opacity: 0;
+    }
     .rdrMonthsVertical {
       height: 290px !important;
     }
@@ -61,6 +64,22 @@
     .rdrDayStartOfWeek .rdrInRange {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
+    }
+
+    .rdrDayStartOfMonth {
+      .rdrInRange {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+    }
+
+    .rdrDayToday .rdrDayNumber span:after {
+      background: none;
+    }
+    .rdrDayToday:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span:after {
+      background: none;
     }
 
     .rdrStartEdge,
