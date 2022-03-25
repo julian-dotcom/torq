@@ -1,9 +1,16 @@
 .torq .icon {
-    height: 1.5em;
-    text-align: center;
-    svg {
-      //fill: var(--fg-default);
-      margin: 0;
-      height: 1.5em;
-    }
+  display: grid;
+  svg {
+    margin: 0;
+    height: 18px;
+    width: 18px;
+  }
+  &.small svg {
+    height: 16px;
+    width: 16px;
+  }
+  &.large svg {
+    height: 20px;
+    width: 20px;
+  }
 }

@@ -8,7 +8,7 @@ function HeaderCell(heading: string, key: string, className?: string, locked?: b
   return (
     <div className={classNames("header", key, className)} key={key}>
       <div className="content">
-        {locked ? <div className="icon"><LockIcon/></div> : ""}
+        {locked ? <div className="icon small"><LockIcon/></div> : ""}
         <div className="text">{heading}</div>
       </div>
     </div>

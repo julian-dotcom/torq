@@ -504,8 +504,6 @@ let pastRow: RowType[] = [
 ];
 
 function Table() {
-  // let key: keyof typeof columns;
-  // let channel: keyof typeof currentRows;
 
   const numColumns = Object.keys(columns).length;
   const numRows = currentRows.length;
@@ -574,7 +572,7 @@ function Table() {
 
         {/* Empty filler cells to create an empty row that expands to push the last row down.
            It's ugly but seems to be the only way to do it */}
-        {<div className={"cell empty locked"}></div>}
+        {<div className={"cell empty locked"}/>}
         {columns.map((column) => {
           return (
             <div
@@ -583,11 +581,11 @@ function Table() {
             />
           );
         })}
-        {<div className={"cell empty "}></div>}
+        {<div className={"cell empty "}/>}
 
         {/* Totals row */}
         {/* Empty cell at the start */}
-        {<div className={"cell empty total-cell locked"}></div>}
+        {<div className={"cell empty total-cell locked"}/>}
         {columns.map((column) => {
           let key = column.key as keyof RowType;
           switch (column.type) {
@@ -625,9 +623,9 @@ function Table() {
               );
           }
         })}
-
         {/*Empty cell at the end*/}
-        {<div className={"cell empty total-cell"}></div>}
+        {<div className={"cell empty total-cell"}/>}
+
       </div>
     </div>
   );
