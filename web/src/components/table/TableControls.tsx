@@ -1,6 +1,7 @@
 import "./table_controls.scss";
 import DefaultButton from "../buttons/Button";
-import { useSelector, useDispatch } from "react-redux";
+import {useAppDispatch } from '../../store/hooks';
+import {toggleNav} from '../navigation/navSlice'
 import {
   ColumnTriple20Regular as ColumnsIcon,
   ArrowSortDownLines20Regular as SortIcon,
@@ -15,11 +16,7 @@ import Dropdown from "../formElements/Dropdown";
 
 function TableControls() {
 
-  const dispatch = useDispatch();
-
-  const toggleNav = () => {
-    dispatch({type: 'toggleNav'})
-  }
+  const dispatch = useAppDispatch()
 
   return (
     <div className="table-controls">
@@ -28,7 +25,7 @@ function TableControls() {
           <DefaultButton
             icon={<NavigationIcon/>}
             text={"Menu"}
-            onClick={toggleNav}
+            onClick={() => dispatch(toggleNav())}
             className={"show-nav-btn collapse-tablet"}/>
           <Dropdown/>
           <DefaultButton icon={<OptionsIcon/>} text={""} className={"collapse-tablet mobile-options"}/>
