@@ -3,9 +3,20 @@
   grid-auto-flow: column;
   align-items: center;
   grid-column-gap: 5px;
-  padding: 0px 15px;
+  padding: 5px 10px;
   cursor: pointer;
   &.small, &.small .icon {
     font-size: var(--font-size-small);
+  }
+  @media only screen and (max-width: 900px) {
+    &.small-tablet, &.small-tablet .icon {
+      font-size: var(--font-size-small);
+    }
+    &.collapse-tablet {
+      padding: 5px 0.5em;
+      .text {
+        display: none
+      }
+    }
   }
 }

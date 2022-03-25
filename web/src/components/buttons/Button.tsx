@@ -1,5 +1,6 @@
 import React, {MouseEventHandler} from 'react';
 import './button.scss'
+import classNames from "classnames";
 
 function DefaultButton(props: {
   text: string,
@@ -8,7 +9,7 @@ function DefaultButton(props: {
   className?: string,
 }) {
     return (
-      <div className={"button " + props.className} onClick={props.onClick}>
+      <div className={classNames("button", props.className)} onClick={props.onClick}>
         {props.icon && (<div className="icon">{props.icon}</div>)}
         <div className="text">{props.text}</div>
       </div>

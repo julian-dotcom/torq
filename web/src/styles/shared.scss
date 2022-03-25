@@ -1,7 +1,6 @@
 .torq .icon {
   display: grid;
   svg {
-    fill: var(--fg-default);
     margin: 0;
     height: 18px;
     width: 18px;
@@ -11,7 +10,7 @@
     width: 16px;
   }
   &.large svg {
-    height: 16px;
-    width: 16px;
+    height: 20px;
+    width: 20px;
   }
 }
