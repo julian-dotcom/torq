@@ -1,5 +1,7 @@
 import React from 'react';
-import { useSelector, useDispatch } from "react-redux";
+// import { useSelector, useDispatch } from "react-redux";
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import {selectHidden, toggleNav} from './navSlice'
 import MenuItem from './MenuItem'
 import {ReactComponent as DotIcon} from '../../icons/dot-solid.svg'
 import {ReactComponent as TorqLogo} from '../../icons/torq-logo.svg'
@@ -14,18 +16,14 @@ import './navigation.scss'
 
 
 function Navigation() {
-  const dispatch = useDispatch();
-  const navHidden: number = useSelector((state:{navHidden:number}) => {return state.navHidden});
 
-  const toggleNav = () => {
-    dispatch({type: 'toggleNav'})
-  }
+  const dispatch = useAppDispatch();
 
   return (
 <div className="navigation">
   <div className="logo-wrapper">
     <div className="logo"><TorqLogo/></div>
-    <div className="collapse icon-button" onClick={toggleNav}>
+    <div className="collapse icon-button" onClick={() => dispatch(toggleNav())}>
       <CollapseIcon/>
     </div>
   </div>
