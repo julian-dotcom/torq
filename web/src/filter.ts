@@ -1,5 +1,5 @@
 // just some sample data. the below code makes the assumption that the data will be an array of objects
-const data = [
+export const data = [
   {
     name: "Alice",
     age: 50,
@@ -39,7 +39,7 @@ const filterFuncs: Array<FilterFuncObj> = [
   {
     name: "includes",
     type: "tag",
-    func: (input: Array<any>, key: string, parameter: number) => input.filter(item => item[key].some(tag => tag === parameter))
+    func: (input: Array<any>, key: string, parameter: number) => input.filter(item => item[key].some((tag: any) => tag === parameter))
   },
 ]
 
