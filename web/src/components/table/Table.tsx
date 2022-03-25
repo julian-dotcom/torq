@@ -506,30 +506,35 @@ let pastRow: RowType[] = [
 ];
 
 function Table() {
-  let key: keyof typeof columns;
-  let channel: keyof typeof currentRows;
+  // let key: keyof typeof columns;
+  // let channel: keyof typeof currentRows;
 
-  const columnPadding = 2; // This is because we add an empty padding column before and after the real column
-  const numColumns = Object.keys(columns).length + columnPadding;
+  const numColumns = Object.keys(columns).length;
+  const numRows = currentRows.length;
 
   return (
     <div className="table-wrapper">
       <style>
-        {".table-content {grid-template-columns: repeat(" +
+        {".table-content {grid-template-columns: min-content repeat(" +
           numColumns +
-          ",  minmax(min-content, auto))}"}
+          ",  minmax(min-content, auto)) min-content;" +
+          "grid-template-rows: min-content repeat("+numRows+",min-content) auto min-content;}"
+        }
       </style>
       <div className="table-content">
+
         {/*Empty header at the start*/}
         {HeaderCell("", "first-empty-header", "empty locked")}
 
+        {/* Header cells */}
         {columns.map((column) => {
           return HeaderCell(column.heading, column.key, "", column.locked);
         })}
 
         {/*Empty header at the end*/}
-        {HeaderCell("", "last-empty-header")}
+        {HeaderCell("", "last-empty-header", "empty")}
 
+        {/* The main cells containing the data */}
         {currentRows.map((currentRow, index) => {
           let returnedRow = columns.map((column) => {
             let key = column.key as keyof RowType;
@@ -561,7 +566,7 @@ function Table() {
                 );
             }
           });
-          // Add empty cells at the start and end of each row. This is to give the table a buffer at each end.
+          // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
           return [
             <div className={"cell empty locked"} key={"first-cell-" + index} />,
             ...returnedRow,
@@ -569,9 +574,17 @@ function Table() {
           ];
         })}
 
-        {/*Empty cell at the start*/}
-        {<div className={"cell empty total-cell locked"}></div>}
+        {/* Empty filler cells to create an empty row that expands to push the last row down.
+           It's ugly but seems to be the only way to do it */}
+        {<div className={"cell empty locked"}></div>}
+        {columns.map((column) => {
+          return <div className={"cell empty " + column.key} key={"mid-cell-" + column.key} />
+        })}
+        {<div className={"cell empty "}></div>}
 
+        {/* Totals row */}
+        {/* Empty cell at the start */}
+        {<div className={"cell empty total-cell locked"}></div>}
         {columns.map((column) => {
           let key = column.key as keyof RowType;
           switch (column.type) {
