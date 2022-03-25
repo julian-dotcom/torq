@@ -1,6 +1,4 @@
-import React, { Component } from "react";
 import "./table.scss";
-import tableRow from "./TableRow";
 import HeaderCell from "./cells/HeaderCell";
 import NameCell from "./cells/NameCell";
 import NumericCell from "./cells/NumericCell";
@@ -518,11 +516,11 @@ function Table() {
         {".table-content {grid-template-columns: min-content repeat(" +
           numColumns +
           ",  minmax(min-content, auto)) min-content;" +
-          "grid-template-rows: min-content repeat("+numRows+",min-content) auto min-content;}"
-        }
+          "grid-template-rows: min-content repeat(" +
+          numRows +
+          ",min-content) auto min-content;}"}
       </style>
       <div className="table-content">
-
         {/*Empty header at the start*/}
         {HeaderCell("", "first-empty-header", "empty locked")}
 
@@ -578,7 +576,12 @@ function Table() {
            It's ugly but seems to be the only way to do it */}
         {<div className={"cell empty locked"}></div>}
         {columns.map((column) => {
-          return <div className={"cell empty " + column.key} key={"mid-cell-" + column.key} />
+          return (
+            <div
+              className={"cell empty " + column.key}
+              key={"mid-cell-" + column.key}
+            />
+          );
         })}
         {<div className={"cell empty "}></div>}
 

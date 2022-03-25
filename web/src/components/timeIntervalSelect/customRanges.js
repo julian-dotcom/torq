@@ -40,6 +40,17 @@ export const defineds = {
   endOfLast7DaysCompare: startOfDay(addDays(new Date(), -15))
 };
 
+
+export const getCompareRanges = (startDate, endDate) => {
+  const daysDifference = differenceInCalendarDays(endDate, startDate);
+  let compareRange = [
+    addDays(startOfDay(startDate), -1),
+    addDays(startOfDay(startDate), -(daysDifference + 1)),
+  ];
+
+  return compareRange
+}
+
 const staticRangeHandler = {
   range: {},
   isSelected(range) {
