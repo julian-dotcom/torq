@@ -8,7 +8,7 @@ const initialState: storeType = {
 
 const showNavReducer = (state: storeType = initialState, action: any) => {
   if (action.type === 'toggleNav') {
-    return {navHidden: !state.navHidden}
+    return { navHidden: !state.navHidden }
   }
 
   return state;
