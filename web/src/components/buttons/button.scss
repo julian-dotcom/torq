@@ -2,6 +2,10 @@
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  grid-column-gap: 10px;
+  grid-column-gap: 5px;
   padding: 0px 15px;
+  cursor: pointer;
+  &.small, &.small .icon {
+    font-size: var(--font-size-small);
+  }
 }

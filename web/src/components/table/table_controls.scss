@@ -1,5 +1,5 @@
 .torq .table-controls {
-  padding: 30px 40px;
+  padding: 20px 35px 10px 20px;
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: auto auto;
@@ -7,21 +7,25 @@
   align-items: center;
   .left-container {
     display: grid;
-    grid-auto-flow: column;
+    grid-auto-flow: row;
+    grid-row-gap: 10px;
     justify-content: start;
     align-items: center;
+  }
+  .upper-container {
+    display: grid;
+    grid-auto-flow: column;
+    justify-content: start;
+  }
+  .lower-container {
+    display: grid;
+    grid-auto-flow: column;
+    justify-content: start;
   }
   .right-container {
     display: grid;
     grid-auto-flow: column;
     justify-content: end;
     align-items: center;
-  }
-
-}
-
-@media only screen and (min-width: 1200px) {
-  .torq .table-controls .show-nav-btn {
-    display: none;
   }
 }

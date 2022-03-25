@@ -14,13 +14,20 @@
     grid-template-columns: auto min-content;
     grid-column-gap: 4px;
     justify-items: space-between;
+    align-items: center;
     .logo svg {
       height: 1.5em;
     }
     .collapse {
-      display: none;
+      display: grid;
+      justify-content: end;
+      align-items: center;
       font-size: 1.5em;
+      height: 1.5em;
+      width: 1.5em;
       color: var(--fg-muted);
+      margin-right: -10px;
+      padding-right: 10px;
     }
   }
 
@@ -32,24 +39,12 @@
   }
 
 }
-@media only screen and (max-width: 1200px) {
 
-}
-
-@media only screen and (max-width: 1200px) {
-  .torq .main-content-wrapper {
-    &.nav-hidden .navigation-wrapper {
-      width: 0px;
-      transition: width 200ms;
-      height: 100vh;
-
-      .navigation {
-        position: absolute;
-        left: -290px;
-        transition: left 250ms;
-        z-index: 100;
-      }
-    }
+.torq .main-content-wrapper {
+  &.nav-hidden .navigation-wrapper {
+    width: 0px;
+  }
+  @media only screen and (max-width: 1200px) {
     .navigation-wrapper {
       position: fixed;
       z-index: 11;
@@ -57,9 +52,6 @@
       bottom: 0;
       height: 100vh;
       box-shadow: 1px 0px 10px rgba(0,0,0,0.15);
-      .logo-wrapper .collapse {
-        display: block;
-      }
     }
   }
 }

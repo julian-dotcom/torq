@@ -9,7 +9,6 @@ import {
   AddSquare20Regular as AddTable,
   ArrowRepeatAll20Regular as RebalanceIcon,
   ChevronDoubleLeft20Regular as CollapseIcon,
-  ArrowExportLtr20Regular as ExpandIcon,
 } from "@fluentui/react-icons";
 import './navigation.scss'
 
@@ -27,7 +26,7 @@ function Navigation() {
   <div className="logo-wrapper">
     <div className="logo"><TorqLogo/></div>
     <div className="collapse icon-button" onClick={toggleNav}>
-      {navHidden ? <ExpandIcon/> : <CollapseIcon/>}
+      <CollapseIcon/>
     </div>
   </div>
 
