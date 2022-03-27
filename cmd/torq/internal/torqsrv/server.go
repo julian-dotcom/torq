@@ -27,7 +27,9 @@ func applyCors(r *gin.Engine) {
 }
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB) {
+	applyCors(r)
 	registerStaticRoutes(r)
+	//r.Use(CORSMiddleware())
 	api := r.Group("/api")
 	{
 		channelRoutes := api.Group("/channels")

@@ -1,7 +1,7 @@
 import "./table_controls.scss";
 import DefaultButton from "../buttons/Button";
 import {useAppDispatch } from '../../store/hooks';
-import {toggleNav} from '../navigation/navSlice'
+import {toggleNav} from '../navigation/navSlice';
 import {
   ColumnTriple20Regular as ColumnsIcon,
   ArrowSortDownLines20Regular as SortIcon,
@@ -13,10 +13,12 @@ import {
 } from "@fluentui/react-icons";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import Dropdown from "../formElements/Dropdown";
+import {fetchChannelsAsync} from "./tableSlice";
 
 function TableControls() {
 
   const dispatch = useAppDispatch()
+  dispatch(fetchChannelsAsync())
 
   return (
     <div className="table-controls">

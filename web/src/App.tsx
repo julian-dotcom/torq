@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Link } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from './store/hooks';
-import {selectHidden, toggleNav, NavState} from './components/navigation/navSlice'
+import {selectHidden, toggleNav} from './components/navigation/navSlice'
 
 import Navigation from "./components/navigation/Navigation";
 import TablePage from "./pages/TablePage";
