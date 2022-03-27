@@ -1,6 +1,6 @@
 const classNames = require('classnames');
 
-function NameCell(current: string, key: string, index: number | string, className?: string) {
+function AliasCell(current: string, key: string, index: number | string, className?: string) {
   return (
     <div className={classNames("cell", "align-left", key, className)} key={key + index}>
       <div className="current">
@@ -13,4 +13,4 @@ function NameCell(current: string, key: string, index: number | string, classNam
   )
 }
 
-export default NameCell;
+export default AliasCell;

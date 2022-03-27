@@ -63,7 +63,7 @@
     color: var(--fg-muted);
     white-space: nowrap;
     font-size: var(--font-size-small);
-    &.group_name {
+    &.alias {
       padding-right: 50px;
       justify-items: start;
     }
@@ -75,7 +75,7 @@
   }
 
   // TODO: Clean this up after deciding on limitations to column freezing
-  .group_name, .locked {
+  .alias, .locked {
     position: sticky;
     left: 20px;
     top: 0;
@@ -83,11 +83,11 @@
     z-index: 5;
     border-right: 1px solid var(--fg-faint);
   }
-  .header.group_name, .header.first-empty-header, .header.first-empty-header {
+  .header.alias, .header.first-empty-header, .header.first-empty-header {
     z-index: 6;
     border-right: 1px solid var(--fg-faint);
   }
-  .total-cell.group_name {
+  .total-cell.alias {
      border-right: 1px solid var(--bg-alt-strong);
   }
   .empty {
@@ -114,7 +114,7 @@
       min-width: 10px;
       padding: 0;
     }
-    .group_name, .locked {
+    .alias, .locked {
       position: sticky;
       left: 10px;
     }

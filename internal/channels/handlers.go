@@ -74,8 +74,7 @@ select
     fwr.revenue_in,
     fwr.count_out,
     fwr.count_in,
-    fwr.capacity --,
-    --round(((amount_out+amount_in)/capacity),2) as turnover
+    fwr.capacity
 from (
     select ce.pub_key,
 	    ce.chan_point,
@@ -132,7 +131,8 @@ from (
 left join (
     select pub_key, last(alias, timestamp) as alias from node_event group by pub_key) as ne
 on ne.pub_key = fwr.pub_key
-left join channel on channel.channel_point = fwr.chan_point;
+left join channel on channel.channel_point = fwr.chan_point
+order by revenue_out desc;
 `
 
 	rows, err := db.Query(sql, fromTime, toTime)
