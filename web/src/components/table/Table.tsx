@@ -18,10 +18,11 @@ export interface ColumnMetaData {
 const columns: ColumnMetaData[] = [
   { heading: "Name", type: "AliasCell", key: "alias", locked: true},
   { heading: "Revenue", type: "BarCell", key: "revenue_out" },
-  { heading: "Successful Forwards", type: "BarCell", key: "count_out" },
-  { heading: "Amount out", type: "BarCell", key: "amount_out" },
-  { heading: "Amount in", type: "BarCell", key: "amount_in" },
-  { heading: "Revenue contributed", type: "BarCell", key: "revenue_in" },
+  { heading: "Successful outbound", type: "BarCell", key: "count_out" },
+  { heading: "Successful inbound", type: "BarCell", key: "count_in" },
+  { heading: "Amount outbound", type: "BarCell", key: "amount_out" },
+  { heading: "Amount inbound", type: "BarCell", key: "amount_in" },
+  { heading: "Contributed (revenue inbound)", type: "BarCell", key: "revenue_in" },
   { heading: "Capacity", type: "NumericCell", key: "capacity" },
 ];
 
