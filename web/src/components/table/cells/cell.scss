@@ -50,6 +50,11 @@
       min-width: 2px;
       background-color: var(--primary-400);
     }
+    &.total-cell {
+      .bar-wrapper {
+        display: none;
+      }
+    }
   }
 
   .total-cell {

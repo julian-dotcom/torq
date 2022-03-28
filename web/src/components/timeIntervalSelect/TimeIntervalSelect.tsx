@@ -98,11 +98,11 @@ function TimeIntervalSelect() {
                 {format(new Date(currentPeriod.from), "MMM d, yyyy")} -{" "}
                 {format(new Date(currentPeriod.to), "MMM d, yyyy")}
               </p>
-              <p className="text-slate-400 text-sm">
-                {" "}
-                {format(new Date(currentPeriod.compareFrom), "MMM d, yyyy")} -{" "}
-                {format(new Date(currentPeriod.compareTo), "MMM d, yyyy")}
-              </p>
+              {/*<p className="text-slate-400 text-sm">*/}
+              {/*  {" "}*/}
+              {/*  {format(new Date(currentPeriod.compareFrom), "MMM d, yyyy")} -{" "}*/}
+              {/*  {format(new Date(currentPeriod.compareTo), "MMM d, yyyy")}*/}
+              {/*</p>*/}
             </div>
           </div>
         </div>

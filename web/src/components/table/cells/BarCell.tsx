@@ -23,10 +23,10 @@ function BarCell(current: number, total: number, previous: number, key: string, 
       {/*<div className={"past " + (previousPercent >= 100 ? "positive" : "negative")}>*/}
       {/*  <NumberFormat displayType="text" thousandSeparator=',' value={previousPercent}  /> %*/}
       {/*</div>*/}
-      <div className={classNames("past", {"positive": positive, "negative": !positive})}>
-        {positive ? "+" : "-"}
-        <NumberFormat displayType="text" thousandSeparator=',' value={Math.round(previous*0.141)}  />
-      </div>
+      {/*<div className={classNames("past", {"positive": positive, "negative": !positive})}>*/}
+      {/*  {positive ? "+" : "-"}*/}
+      {/*  <NumberFormat displayType="text" thousandSeparator=',' value={Math.round(previous*0.141)}  />*/}
+      {/*</div>*/}
     </div>
   )
 }
