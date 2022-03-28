@@ -24,6 +24,8 @@ function TableControls() {
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd")
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd")
   dispatch(fetchChannelsAsync({"from": from, "to":to}))
+
+
   // dispatch(updateFilters([{
   //   filterCategory: 'number',
   //   filterName: 'gte',
@@ -35,7 +37,7 @@ function TableControls() {
   //   filterName: 'gte',
   //   key: "revenue_out",
   //   parameter: 150
-  // }]))
+  // }] ))
 
   return (
     <div className="table-controls">

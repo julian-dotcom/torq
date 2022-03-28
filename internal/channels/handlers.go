@@ -57,7 +57,20 @@ type channelData struct {
 	RevenueOut uint64 `json:"revenue_out"`
 	// Number of outbound forwards.
 	CountOut uint64 `json:"count_out"`
+
+	// The total amount in sats (Satoshis) forwarded
+	AmountTotal uint64 `json:"amount_total"`
+	// The total revenue in sats. This is what the channel has directly and indirectly produced.
+	RevenueTotal uint64 `json:"revenue_total"`
+	// Number of total forwards.
+	CountTotal uint64 `json:"count_total"`
+
+	// The channels total capacity (as created)
 	Capacity uint64 `json:"capacity"`
+
+	TurnoverOut   float32 `json:"turnover_out"`
+	TurnoverIn    float32 `json:"turnover_in"`
+	TurnoverTotal float32 `json:"turnover_total"`
 }
 
 func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*channelData, err error) {
@@ -68,13 +81,25 @@ select
     fwr.chan_id,
     coalesce(ne.alias, '') as alias,
     fwr.pub_key,
+
     fwr.amount_out,
     fwr.amount_in,
+    (fwr.amount_in + fwr.amount_out) as amount_total,
+
     fwr.revenue_out,
     fwr.revenue_in,
+    (fwr.revenue_in + fwr.revenue_out) as revenue_total,
+
     fwr.count_out,
     fwr.count_in,
-    fwr.capacity
+    (fwr.count_in + fwr.count_out) as count_total,
+
+    fwr.capacity,
+
+    round(fwr.amount_out / fwr.capacity, 2) as turnover_out,
+    round(fwr.amount_in / fwr.capacity, 2) as turnover_in,
+    round((fwr.amount_in + fwr.amount_out) / fwr.capacity, 2) as turnover_total
+
 from (
     select ce.pub_key,
 	    ce.chan_point,
@@ -149,11 +174,18 @@ order by revenue_out desc;
 			&c.PubKey,
 			&c.AmountOut,
 			&c.AmountIn,
+			&c.AmountTotal,
 			&c.RevenueOut,
 			&c.RevenueIn,
+			&c.RevenueTotal,
 			&c.CountOut,
 			&c.CountIn,
-			&c.Capacity)
+			&c.CountTotal,
+			&c.Capacity,
+			&c.TurnoverOut,
+			&c.TurnoverIn,
+			&c.TurnoverTotal,
+		)
 		if err != nil {
 			return r, err
 		}

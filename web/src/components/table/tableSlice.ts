@@ -50,7 +50,7 @@ export const tableSlice = createSlice({
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
   reducers: {
-    updateFilters: (state, actions) => {
+    updateFilters: (state, actions: PayloadAction<Array<FilterInterface>>) => {
       state.filters = actions.payload
       // @ts-ignore
       state.channels = applyFilters(state.filters, state.channels)

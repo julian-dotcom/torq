@@ -21,9 +21,15 @@ const columns: ColumnMetaData[] = [
   { heading: "Revenue", type: "BarCell", key: "revenue_out" },
   { heading: "Successful outbound", type: "BarCell", key: "count_out" },
   { heading: "Successful inbound", type: "BarCell", key: "count_in" },
+  { heading: "Successful total", type: "BarCell", key: "count_total" },
   { heading: "Amount outbound", type: "BarCell", key: "amount_out" },
   { heading: "Amount inbound", type: "BarCell", key: "amount_in" },
+  { heading: "Amount total", type: "BarCell", key: "amount_total" },
   { heading: "Contributed (revenue inbound)", type: "BarCell", key: "revenue_in" },
+  { heading: "Contributed (revenue total)", type: "BarCell", key: "revenue_total" },
+  { heading: "Turnover outbound", type: "NumericCell", key: "turnover_out" },
+  { heading: "Turnover inbound", type: "NumericCell", key: "turnover_in" },
+  { heading: "Turnover total", type: "NumericCell", key: "turnover_total" },
   { heading: "Capacity", type: "NumericCell", key: "capacity" },
 ];
 
@@ -51,19 +57,31 @@ interface RowType {
   alias: string;
   amount_out: number;
   amount_in: number;
+  amount_total: number;
   revenue_out: number;
   revenue_in: number;
+  revenue_total: number;
   count_out: number;
+  count_total: number;
   count_in: number;
+  turnover_out: number;
+  turnover_in: number;
+  turnover_total: number;
   capacity: number;
 }
 interface TotalType {
   amount_out: number;
   amount_in: number;
+  amount_total: number;
   revenue_out: number;
   revenue_in: number;
+  revenue_total: number;
   count_out: number;
+  count_total: number;
   count_in: number;
+  turnover_out: number;
+  turnover_in: number;
+  turnover_total: number;
   capacity: number;
 }
 
@@ -82,20 +100,32 @@ function Table() {
     alias: "Total",
     amount_out: 0,
     amount_in: 0,
+    amount_total: 0,
     revenue_out: 0,
     revenue_in: 0,
+    revenue_total: 0,
     count_out: 0,
+    count_total: 0,
     count_in: 0,
+    turnover_out: 0,
+    turnover_in: 0,
+    turnover_total: 0,
     capacity: 0,
   }
   let max: RowType = {
     alias: "Max",
     amount_out: 0,
     amount_in: 0,
+    amount_total: 0,
     revenue_out: 0,
     revenue_in: 0,
+    revenue_total: 0,
     count_out: 0,
+    count_total: 0,
     count_in: 0,
+    turnover_out: 0,
+    turnover_in: 0,
+    turnover_total: 0,
     capacity: 0,
   }
 

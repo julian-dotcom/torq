@@ -31,12 +31,16 @@ export const FilterFunctions = {
   }
 }
 
-type filterNames = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'include' | 'notInclude'
+type filterCategoryType = 'string' | 'number'
+
+type numberFilterType = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte';
+type stringFilterType = 'include' | 'notInclude';
+type filterNameType = numberFilterType | stringFilterType
 
 // an interface for a user configured filter with the key to operate on and value to filter by
 export interface FilterInterface {
-  filterCategory: 'string' | 'number',
-  filterName: filterNames,
+  filterCategory: filterCategoryType,
+  filterName: filterNameType,
   key: string,
   parameter: any
 }
@@ -45,7 +49,7 @@ export function applyFilters(filters: Array<FilterInterface>, data: Array<any>):
   // @ts-ignore
   return filters.reduce((prev: [], cur: FilterInterface) => {
     // @ts-ignore
-    return FilterFunctions[cur.filterCategory as 'string' | 'number'][cur.filterName as filterNames](prev, cur.key, cur.parameter);
+    return FilterFunctions[cur.filterCategory as 'string' | 'number'][cur.filterName as filterNameType](prev, cur.key, cur.parameter);
   }, data)
 }
 
