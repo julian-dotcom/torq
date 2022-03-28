@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState, AppThunk } from '../../store/store';
 import {log} from "util";
+import {addDays, format} from 'date-fns';
 
 export interface TableState {
   channels: [];
@@ -18,8 +19,10 @@ const init: RequestInit = {
   // referrerPolicy: 'origin-when-cross-origin'
 };
 
-function fetchChannels() {
-  const body = fetch('http://localhost:8080/api/channels?from=2022-03-21&to=2022-03-28',init)
+function fetchChannels(from: string, to: string) {
+  //2022-03-21
+  to = format(addDays(new Date(to), 1), "yyyy-MM-dd")
+  const body = fetch(`http://localhost:8080/api/channels?from=${from}&to=${to}`,init)
     .then(response => {
       return response.json()
     })
@@ -33,8 +36,8 @@ function fetchChannels() {
 // typically used to make async requests.
 export const fetchChannelsAsync = createAsyncThunk(
   'table/fetchChannels',
-  async () => {
-    const response = await fetchChannels();
+  async (data: {from: string, to: string}) => {
+    const response = await fetchChannels(data.from, data.to);
     return response
   }
 );

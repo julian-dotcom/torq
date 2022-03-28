@@ -1,6 +1,6 @@
 import "./table_controls.scss";
 import DefaultButton from "../buttons/Button";
-import {useAppDispatch } from '../../store/hooks';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {toggleNav} from '../navigation/navSlice';
 import {
   ColumnTriple20Regular as ColumnsIcon,
@@ -14,11 +14,16 @@ import {
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import Dropdown from "../formElements/Dropdown";
 import {fetchChannelsAsync} from "./tableSlice";
+import {selectTimeInterval} from "../timeIntervalSelect/timeIntervalSlice";
+import {format} from 'date-fns';
 
 function TableControls() {
 
   const dispatch = useAppDispatch()
-  dispatch(fetchChannelsAsync())
+  const currentPeriod = useAppSelector(selectTimeInterval);
+  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd")
+  const to = format(new Date(currentPeriod.to), "yyyy-MM-dd")
+  dispatch(fetchChannelsAsync({"from": from, "to":to}))
 
   return (
     <div className="table-controls">
