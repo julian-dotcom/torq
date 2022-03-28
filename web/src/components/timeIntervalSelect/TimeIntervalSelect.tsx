@@ -69,7 +69,8 @@ function TimeIntervalSelect() {
                 showDateDisplay={false}
                 staticRanges={defaultStaticRanges}
                 rangeColors={["#ECFAF8", "#F9FAFB"]}
-                maxDate={new Date()}
+                maxDate={addDays(new Date(), 31)}
+                minDate={addDays((new Date().setFullYear(2015,1,1)), 0)}
                 scroll={{ enabled: true }}
                 months={1}
                 showMonthArrow={false}
@@ -78,7 +79,6 @@ function TimeIntervalSelect() {
                 inputRanges={[]}
                 ranges={[selection1]}
                 onChange={(item) => {
-                  console.log(item)
                   HandleChange(item)
                 }}
               />
