@@ -78,26 +78,40 @@
     .rdrDayEndOfMonth .rdrInRange,
     .rdrDayEndOfMonth .rdrStartEdge,
     .rdrDayEndOfWeek .rdrInRange,
-    .rdrDayEndOfWeek .rdrStartEdge {
+    .rdrDayEndOfWeek .rdrStartEdge, {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
-    .rdrDayEndOfWeek .rdrStartEdge.rdrEndEdge {
+    .rdrDayStartOfMonth .rdrInRange,
+    .rdrDayStartOfMonth .rdrEndEdge,
+    .rdrDayStartOfWeek .rdrInRange,
+    .rdrDayStartOfWeek .rdrEndEdge {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    .rdrDayEndOfWeek .rdrStartEdge.rdrEndEdge
+    .rdrDayEndOfMonth .rdrStartEdge.rdrEndEdge {
       border-top-right-radius: 50%;
       border-bottom-right-radius: 50%;
+    }
+    .rdrDayStartOfWeek .rdrStartEdge.rdrEndEdge,
+    .rdrDayStartOfMonth .rdrStartEdge.rdrEndEdge {
+      border-top-left-radius: 50%;
+      border-bottom-left-radius: 50%;
     }
 
     .rdrDayStartOfWeek .rdrInRange {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
+    .rdrStartEdge.rdrEndEdge {
+      border-radius: 50%;
+    }
 
     .rdrDayStartOfMonth {
       .rdrInRange {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
+        border-radius: 0;
       }
     }
     .rdrInfiniteMonths.rdrMonthsVertical::-webkit-scrollbar {
