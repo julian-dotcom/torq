@@ -1,0 +1,57 @@
+.torq .login-page-wrapper {
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  background-color: var(--bg-extra-faint);
+  min-width: 100vw;
+  min-height: 100vh;
+  .login-form-wrapper {
+    display: grid;
+    justify-items: center;
+    margin: 100px 0 0;
+    padding: 0 20px;
+    grid-auto-flow: row;
+    grid-row-gap: 20px;
+    width: 100%;
+    min-width: 280px;
+    max-width: 500px;
+  }
+  .login-form-wrapper .logo svg {
+    height: 30px;
+    width: 100%;
+  }
+  .login-form {
+    display: grid;
+    grid-auto-flow: column;
+    grid-column-gap: 10px;
+    grid-template-columns: auto min-content;
+    width: 100%;
+    border-radius: 4px;
+    background-color: var(--bg-default);
+    border: 1px solid var(--bg-subtle);
+    padding: 20px;
+  }
+  button.submit-button {
+    display: grid;
+    grid-auto-flow: column;
+    align-items: center;
+    grid-column-gap: 5px;
+    padding: 8px 15px 7px 10px;
+    font-size: var(--font-size-default);
+    background-color: var(--primary-300);
+    border-radius: 2px;
+    border: 1px solid var(--primary-400);
+    &:hover {
+      background-color: var(--primary-350);
+    }
+  }
+  input.password-field {
+    border-radius: 2px;
+    border: 1px solid var(--bg-subtle);
+    padding: 8px 8px 7px;
+    font-size: var(--font-size-default);
+    &:focus {
+      border-color: var(--bg-muted);
+    }
+  }
+}
