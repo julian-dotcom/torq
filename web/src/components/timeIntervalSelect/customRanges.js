@@ -11,8 +11,8 @@ import {
   startOfYear,
   differenceInCalendarDays, addYears,
 } from 'date-fns';
-// import locale from 'date-fns/locale/en-US'
-import locale from 'date-fns/locale/nb'
+import locale from 'date-fns/locale/en-US'
+// import locale from 'date-fns/locale/nb'
 
 export const defineds = {
   startOfToday: startOfDay(new Date()),

@@ -1,8 +1,8 @@
 import "./interval_select.scss";
 import { useState } from "react";
 import { format } from "date-fns";
-// import locale from 'date-fns/locale/en-US'
-import locale from 'date-fns/locale/nb'
+import locale from 'date-fns/locale/en-US'
+// import locale from 'date-fns/locale/nb'
 import {
   defaultStaticRanges,
   defineds,

@@ -1,6 +1,10 @@
 .date-range-popover {
   z-index: 20;
 
+  .rdrCalendarWrapper.rdrDateRangeWrapper {
+    padding: 20px
+  }
+
   .rdrDateRangePickerWrapper {
     color: #033048;
     box-shadow: 0px 0px 10px rgba(3, 48, 72, 0.1);
@@ -30,8 +34,27 @@
       }
     }
     .rdrMonth {
+      box-sizing: content-box;
       width: 274px;
-      padding-bottom: 0;
+      //padding-bottom: 0;
+    }
+    .rdrDay {
+      height: 40px;
+      border-radius: 0;
+    }
+    .rdrInRange {
+      border-radius: 0;
+      left: 0;
+      top:0;
+      right:0;
+    }
+    .rdrStartEdge {
+      border-top-left-radius: 50%;
+      border-bottom-left-radius: 50%;
+    }
+    .rdrEndEdge {
+      border-top-right-radius: 50%;
+      border-bottom-right-radius: 50%;
     }
     .rdrMonthName {
       padding-top: 0;
@@ -42,13 +65,14 @@
     .rdrWeekDays {
       background: #f9fafb;
       border-bottom: 1px solid #d9e0e4;
+      //padding-right: 25px;
     }
     .rdrSelected,
     .rdrInRange,
     .rdrStartEdge,
     .rdrEndEdge {
-      top: 1px;
-      bottom: 1px;
+      top: 2px;
+      bottom: 3px;
     }
 
     .rdrDayEndOfMonth .rdrInRange,
@@ -57,6 +81,10 @@
     .rdrDayEndOfWeek .rdrStartEdge {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
+    }
+    .rdrDayEndOfWeek .rdrStartEdge.rdrEndEdge {
+      border-top-right-radius: 50%;
+      border-bottom-right-radius: 50%;
     }
 
     .rdrDayStartOfWeek .rdrInRange {
@@ -72,6 +100,16 @@
         border-bottom-right-radius: 0;
       }
     }
+    .rdrInfiniteMonths.rdrMonthsVertical::-webkit-scrollbar {
+      display: none;
+    }
+    .rdrInfiniteMonths.rdrMonthsVertical {
+      /* Hide scrollbar for IE, Edge and Firefox */
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+
+    }
+
 
     .rdrDayToday .rdrDayNumber span:after {
       background: none;
@@ -97,7 +135,7 @@
       .rdrDateDisplayItemActive input {
         font-weight: bold;
       }
-      background-color: white;
+      //background-color: white;
       .rdrDateDisplay {
         margin: 0;
         .rdrDateDisplayItem {
@@ -106,7 +144,6 @@
         }
       }
       .rdrDateDisplay:nth-of-type(1) {
-        // border: 5px solid red;
         font-size: 14px;
       }
     }
