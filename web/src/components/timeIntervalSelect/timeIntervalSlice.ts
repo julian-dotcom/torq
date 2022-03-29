@@ -1,7 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { RootState } from '../../store/store';
 import {defineds, getCompareRanges} from "./customRanges";
-import {addDays} from 'date-fns';
+// import {addDays, wee} from 'date-fns';
+// import locale from 'date-fns/locale/nb'
+
+// console.log(locale)
 
 export interface TimeIntervalState {
   from: string;

@@ -11,6 +11,8 @@ import {
   startOfYear,
   differenceInCalendarDays, addYears,
 } from 'date-fns';
+// import locale from 'date-fns/locale/en-US'
+import locale from 'date-fns/locale/nb'
 
 export const defineds = {
   startOfToday: startOfDay(new Date()),
@@ -27,15 +29,15 @@ export const defineds = {
   startOfLast7DaysCompare: startOfDay(addDays(new Date(), -8)),
   endOfLast7DaysCompare: startOfDay(addDays(new Date(), -15)),
 
-  startOfWeek: startOfWeek(new Date()),
-  endOfWeek: endOfWeek(new Date()),
-  startOfWeekCompare: startOfWeek(addDays(new Date(), -7)),
-  endOfWeekCompare: endOfWeek(addDays(new Date(), -7)),
+  startOfWeek: startOfWeek(new Date(), {locale}),
+  endOfWeek: endOfWeek(new Date(), {locale}),
+  startOfWeekCompare: startOfWeek(addDays(new Date(), -7), {locale}),
+  endOfWeekCompare: endOfWeek(addDays(new Date(), -7), {locale}),
 
-  startOfLastWeek: startOfWeek(addDays(new Date(), -7)),
-  endOfLastWeek: endOfWeek(addDays(new Date(), -7)),
-  startOfLastWeekCompare: endOfWeek(addDays(new Date(), -8)),
-  endOfLastWeekCompare: endOfWeek(addDays(new Date(), -15)),
+  startOfLastWeek: startOfWeek(addDays(new Date(), -7), {locale}),
+  endOfLastWeek: endOfWeek(addDays(new Date(), -7), {locale}),
+  startOfLastWeekCompare: endOfWeek(addDays(new Date(), -8), {locale}),
+  endOfLastWeekCompare: endOfWeek(addDays(new Date(), -15), {locale}),
 
 
   startOfMonth: startOfMonth(new Date()),

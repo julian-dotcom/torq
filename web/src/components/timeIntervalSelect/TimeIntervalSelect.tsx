@@ -1,6 +1,8 @@
 import "./interval_select.scss";
 import { useState } from "react";
 import { format } from "date-fns";
+// import locale from 'date-fns/locale/en-US'
+import locale from 'date-fns/locale/nb'
 import {
   defaultStaticRanges,
   defineds,
@@ -60,22 +62,26 @@ function TimeIntervalSelect() {
         onClickOutside={() => setIsPopoverOpen(!isPopoverOpen)}
         containerClassName="date-range-popover"
         isOpen={isPopoverOpen}
-        positions={["bottom"]}
+        positions={['bottom']}
+        align={'end'}
         content={
-          <div className="shadow-lg">
-            <div style={{ background: "white" }}>
+          <div className="date-range-popover-content">
+            <div>
               <DateRangePicker
                 monthDisplayFormat="MMMM yyyy"
                 showDateDisplay={false}
                 staticRanges={defaultStaticRanges}
+                fixedHeight={false}
                 rangeColors={["#ECFAF8", "#F9FAFB"]}
-                maxDate={addDays(new Date(), 31)}
+                maxDate={addDays(new Date(), 0)}
                 minDate={addDays((new Date().setFullYear(2015,1,1)), 0)}
-                scroll={{ enabled: true }}
+                scroll={{ enabled: true, calendarHeight: 400 }}
                 months={1}
                 showMonthArrow={false}
                 showMonthAndYearPickers={false}
+                weekStartsOn={locale.options?.weekStartsOn || 0}
                 direction="vertical"
+
                 inputRanges={[]}
                 ranges={[selection1]}
                 onChange={(item) => {
@@ -92,7 +98,7 @@ function TimeIntervalSelect() {
         >
           <div className="icon">{/* <IntervalIcon /> */}</div>
           <div className="interval">
-            <div className="justify-center w-full py-2 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2focus:ring-offset-gray-100 focus:ring-indigo-500">
+            <div className="">
               <p className="text-base">
                 {" "}
                 {format(new Date(currentPeriod.from), "MMM d, yyyy")} -{" "}
