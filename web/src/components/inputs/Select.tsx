@@ -21,7 +21,7 @@ const customStyles = {
   }),
   singleValue: (provided: any) => ({
     ...provided,
-    fontSize: 12,
+    // fontSize: "var(--font-size-small)",
   }),
   option: (provided: any, state: any) => ({
     ...provided,
@@ -31,7 +31,7 @@ const customStyles = {
       boxShadow: "none",
       backgroundColor: "#D9E0E4",
     },
-    fontSize: 12,
+    // fontSize: "var(--font-size-small)",
   }),
   menuList: (provided: any, state: any) => ({
     ...provided,

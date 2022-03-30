@@ -5,42 +5,8 @@ import NumericCell from "./cells/NumericCell";
 import BarCell from "./cells/BarCell";
 import EmptyCell from "./cells/EmptyCell";
 import {useAppSelector} from "../../store/hooks";
-import {selectChannels} from "./tableSlice";
-import {FilterInterface} from './filter'
-
-
-export interface ColumnMetaData {
-  heading: string;
-  key: string;
-  type?: string;
-  width?: number;
-  locked?: boolean;
-}
-
-export const columns: ColumnMetaData[] = [
-  { heading: "Name", type: "AliasCell", key: "alias", locked: true },
-  { heading: "Revenue", type: "BarCell", key: "revenue_out" },
-  { heading: "Successful outbound", type: "BarCell", key: "count_out" },
-  { heading: "Successful inbound", type: "BarCell", key: "count_in" },
-  { heading: "Successful total", type: "BarCell", key: "count_total" },
-  { heading: "Amount outbound", type: "BarCell", key: "amount_out" },
-  { heading: "Amount inbound", type: "BarCell", key: "amount_in" },
-  { heading: "Amount total", type: "BarCell", key: "amount_total" },
-  {
-    heading: "Contributed (revenue inbound)",
-    type: "BarCell",
-    key: "revenue_in",
-  },
-  {
-    heading: "Contributed (revenue total)",
-    type: "BarCell",
-    key: "revenue_total",
-  },
-  { heading: "Turnover outbound", type: "NumericCell", key: "turnover_out" },
-  { heading: "Turnover inbound", type: "NumericCell", key: "turnover_in" },
-  { heading: "Turnover total", type: "NumericCell", key: "turnover_total" },
-  { heading: "Capacity", type: "NumericCell", key: "capacity" },
-];
+import {selectChannels, selectColumns} from "./tableSlice";
+import {FilterInterface} from './filter';
 
 interface RowType {
   alias: string;
@@ -76,6 +42,7 @@ interface TotalType {
 
 function Table() {
 
+  let columns = useAppSelector(selectColumns) || [];
   let channels = useAppSelector(selectChannels) || [];
 
   let total: RowType = {
