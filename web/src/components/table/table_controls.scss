@@ -21,6 +21,7 @@
     display: grid;
     grid-auto-flow: column;
     justify-content: start;
+    grid-column-gap: 10px;
   }
   .right-container {
     display: grid;

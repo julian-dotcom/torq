@@ -4,7 +4,8 @@ import styled from "@emotion/styled";
 
 const StyledButton = styled.button`
   background: ${(props: any) => (props.isOpen ? "#ECFAF8" : "none")};
-  border: ${(props: any) => (props.isOpen ? "1px solid #DDF6F5" : "none")};
+  border: ${(props: any) =>
+    props.isOpen ? "1px solid #DDF6F5" : "1px solid transparent"};
   border-radius: 2px;
   display: grid;
   grid-auto-flow: column;

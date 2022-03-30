@@ -4,8 +4,8 @@ import AliasCell from "./cells/AliasCell";
 import NumericCell from "./cells/NumericCell";
 import BarCell from "./cells/BarCell";
 import EmptyCell from "./cells/EmptyCell";
-import {useAppSelector} from "../../store/hooks";
-import {selectChannels} from "./tableSlice";
+import { useAppSelector } from "../../store/hooks";
+import { selectChannels } from "./tableSlice";
 
 export interface ColumnMetaData {
   heading: string;
@@ -15,14 +15,18 @@ export interface ColumnMetaData {
   locked?: boolean;
 }
 
-const columns: ColumnMetaData[] = [
-  { heading: "Name", type: "AliasCell", key: "alias", locked: true},
+export const columns: ColumnMetaData[] = [
+  { heading: "Name", type: "AliasCell", key: "alias", locked: true },
   { heading: "Revenue", type: "BarCell", key: "revenue_out" },
   { heading: "Successful outbound", type: "BarCell", key: "count_out" },
   { heading: "Successful inbound", type: "BarCell", key: "count_in" },
   { heading: "Amount outbound", type: "BarCell", key: "amount_out" },
   { heading: "Amount inbound", type: "BarCell", key: "amount_in" },
-  { heading: "Contributed (revenue inbound)", type: "BarCell", key: "revenue_in" },
+  {
+    heading: "Contributed (revenue inbound)",
+    type: "BarCell",
+    key: "revenue_in",
+  },
   { heading: "Capacity", type: "NumericCell", key: "capacity" },
 ];
 
@@ -47,7 +51,6 @@ interface TotalType {
 }
 
 function Table() {
-
   let channels = useAppSelector(selectChannels) || [];
 
   let total: RowType = {
@@ -59,7 +62,7 @@ function Table() {
     count_out: 0,
     count_in: 0,
     capacity: 0,
-  }
+  };
   let max: RowType = {
     alias: "Max",
     amount_out: 0,
@@ -69,20 +72,23 @@ function Table() {
     count_out: 0,
     count_in: 0,
     capacity: 0,
-  }
-
+  };
 
   const numColumns = Object.keys(columns).length;
   const numRows = channels.length;
 
   channels.forEach((row) => {
-    Object.keys(total).forEach((column ) => {
+    Object.keys(total).forEach((column) => {
       // @ts-ignore
-      total[column as keyof RowType] += row[column]
+      total[column as keyof RowType] += row[column];
       // @ts-ignore
-      max[column as keyof RowType] = Math.max(row[column], max[column as keyof RowType])
-    })
-  })
+      max[column as keyof RowType] = Math.max(
+        row[column],
+        //@ts-ignore
+        max[column as keyof RowType]
+      );
+    });
+  });
 
   return (
     <div className="table-wrapper">
@@ -148,7 +154,7 @@ function Table() {
 
         {/* Empty filler cells to create an empty row that expands to push the last row down.
            It's ugly but seems to be the only way to do it */}
-        {<div className={"cell empty locked"}/>}
+        {<div className={"cell empty locked"} />}
         {columns.map((column) => {
           return (
             <div
@@ -157,21 +163,16 @@ function Table() {
             />
           );
         })}
-        {<div className={"cell empty "}/>}
+        {<div className={"cell empty "} />}
 
         {/* Totals row */}
         {/* Empty cell at the start */}
-        {<div className={"cell empty total-cell locked"}/>}
+        {<div className={"cell empty total-cell locked"} />}
         {columns.map((column) => {
           let key = column.key as keyof TotalType;
           switch (column.type) {
             case "AliasCell":
-              return AliasCell(
-"Total",
-"alias",
-"totals",
-"total-cell"
-              )
+              return AliasCell("Total", "alias", "totals", "total-cell");
             case "NumericCell":
               return NumericCell(
                 total[key] as number,
@@ -190,11 +191,7 @@ function Table() {
                 "total-cell"
               );
             case "EmptyCell":
-              return EmptyCell(
-                key,
-                "totals",
-                "total-cell"
-              );
+              return EmptyCell(key, "totals", "total-cell");
             default:
               return NumericCell(
                 total[key] as number,
@@ -206,8 +203,7 @@ function Table() {
           }
         })}
         {/*Empty cell at the end*/}
-        {<div className={"cell empty total-cell"}/>}
-
+        {<div className={"cell empty total-cell"} />}
       </div>
     </div>
   );
