@@ -9,9 +9,9 @@ function NumericCell(current: number, previous: number, key: string, index: numb
       <div className="current">
         <NumberFormat displayType="text" thousandSeparator=',' value={current} />
       </div>
-      <div className="past">
-        <NumberFormat displayType="text" thousandSeparator=',' value={previous} />
-      </div>
+      {/*<div className="past">*/}
+      {/*  <NumberFormat displayType="text" thousandSeparator=',' value={previous} />*/}
+      {/*</div>*/}
     </div>
   )
 }

@@ -10,11 +10,15 @@
     &.align-left {
       //padding: 10px 20px 10px 0;
       text-align: left;
+      min-width: 200px;
+      .current {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
       @media only screen and (max-width: 900px) {
+        min-width: 0px;
         .current {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
           max-width: 100px;
         }
       }
@@ -49,6 +53,11 @@
       height: 5px;
       min-width: 2px;
       background-color: var(--primary-400);
+    }
+    &.total-cell {
+      .bar-wrapper {
+        display: none;
+      }
     }
   }
 

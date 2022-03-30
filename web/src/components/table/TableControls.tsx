@@ -1,7 +1,4 @@
 import "./table_controls.scss";
-import DefaultButton from "../buttons/Button";
-import { useAppDispatch } from "../../store/hooks";
-import { toggleNav } from "../navigation/navSlice";
 import {
   ColumnTriple20Regular as ColumnsIcon,
   Filter20Regular as FilterIcon,
@@ -13,12 +10,34 @@ import {
 
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import Dropdown from "../formElements/Dropdown";
-import { fetchChannelsAsync } from "./tableSlice";
+import DefaultButton from "../buttons/Button";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./SortControls";
+import { fetchChannelsAsync, updateFilters } from "./tableSlice";
+import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import { format } from "date-fns";
 
 function TableControls() {
   const dispatch = useAppDispatch();
-  dispatch(fetchChannelsAsync());
+  const currentPeriod = useAppSelector(selectTimeInterval);
+  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
+  const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
+  dispatch(fetchChannelsAsync({ from: from, to: to }));
+
+  // dispatch(updateFilters([{
+  //   filterCategory: 'number',
+  //   filterName: 'gte',
+  //   key: "amount_out",
+  //   parameter: 5000000
+  // },
+  // {
+  //   filterCategory: 'number',
+  //   filterName: 'gte',
+  //   key: "revenue_out",
+  //   parameter: 150
+  // }] ))
+
   return (
     <div className="table-controls">
       <div className="left-container">
