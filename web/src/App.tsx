@@ -45,7 +45,6 @@ function App() {
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   let location = useLocation();
-  let navigate = useNavigate();
 
   let c = new Cookies
   let torqSession = c.get('torq_session')

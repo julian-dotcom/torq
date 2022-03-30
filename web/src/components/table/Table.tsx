@@ -114,18 +114,19 @@ function Table() {
   const numColumns = Object.keys(columns).length;
   const numRows = channels.length;
 
-  channels.forEach((row) => {
-    Object.keys(total).forEach((column) => {
-      // @ts-ignore
-      total[column as keyof RowType] += row[column];
-      // @ts-ignore
-      max[column as keyof RowType] = Math.max(
-        row[column],
-        //@ts-ignore
-        max[column as keyof RowType]
-      );
-    });
-  });
+  if (channels.length > 0) {
+    channels.forEach((row) => {
+      Object.keys(total).forEach((column ) => {
+        // @ts-ignore
+        total[column as keyof RowType] += row[column]
+        // @ts-ignore
+        max[column as keyof RowType] = Math.max(
+          row[column],
+          // @ts-ignore
+          max[column as keyof RowType])
+      })
+    })
+  }
 
   return (
     <div className="table-wrapper">
@@ -137,7 +138,7 @@ function Table() {
           numRows +
           ",min-content) auto min-content;}"}
       </style>
-      <div className="table-content">
+      {channels.length > 0 ? (<div className="table-content">
         {/*Empty header at the start*/}
         {HeaderCell("", "first-empty-header", "empty locked")}
 
@@ -240,8 +241,8 @@ function Table() {
           }
         })}
         {/*Empty cell at the end*/}
-        {<div className={"cell empty total-cell"} />}
-      </div>
+        {<div className={"cell empty total-cell"}/>}
+      </div>) : (<div className="empty-table"></div>)}
     </div>
   );
 }

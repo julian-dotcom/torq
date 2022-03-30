@@ -94,11 +94,11 @@ select
     fwr.count_in,
     (fwr.count_in + fwr.count_out) as count_total,
 
-    fwr.capacity,
+    coalesce(fwr.capacity, 0),
 
-    round(fwr.amount_out / fwr.capacity, 2) as turnover_out,
-    round(fwr.amount_in / fwr.capacity, 2) as turnover_in,
-    round((fwr.amount_in + fwr.amount_out) / fwr.capacity, 2) as turnover_total
+    coalesce(round(fwr.amount_out / fwr.capacity, 2), 0) as turnover_out,
+    coalesce(round(fwr.amount_in / fwr.capacity, 2), 0) as turnover_in,
+    coalesce(round((fwr.amount_in + fwr.amount_out) / fwr.capacity, 2), 0) as turnover_total
 
 from (
     select ce.pub_key,
