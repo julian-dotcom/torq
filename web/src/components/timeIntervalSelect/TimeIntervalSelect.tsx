@@ -31,19 +31,6 @@ function TimeIntervalSelect() {
       key: "selection1",
     }
 
-  // const [state, setState] = useState({
-  //   selection1: {
-  //     startDate: addDays(new Date(), -7),
-  //     endDate: new Date(),
-  //     key: "selection1",
-  //   },
-  //   selection2: {
-  //     startDate: addDays(new Date(), -15),
-  //     endDate: addDays(new Date(), -8),
-  //     key: "selection2",
-  //   },
-  // });
-
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const dispatch = useAppDispatch()

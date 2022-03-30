@@ -4,8 +4,6 @@ import {defineds, getCompareRanges} from "./customRanges";
 // import {addDays, wee} from 'date-fns';
 // import locale from 'date-fns/locale/nb'
 
-// console.log(locale)
-
 export interface TimeIntervalState {
   from: string;
   to: string;

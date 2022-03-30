@@ -47,7 +47,7 @@ export const defineds = {
 
   last28Days: startOfDay(addDays(new Date(), -28)),
   startOfLast28DaysCompare: startOfDay(addDays(new Date(), -57)),
-  endOfLast28DaysCompare: startOfDay(addDays(new Date(), -29)),
+  endOfLast28DaysCompare: startOfDay(addDays(new Date(), -28)),
 
   last30Days: startOfDay(addDays(new Date(), -30)),
 

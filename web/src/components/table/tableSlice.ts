@@ -16,7 +16,7 @@ const initialState: TableState = {
   status: 'idle',
 };
 const init: RequestInit = {
-  // credentials: 'include',
+  credentials: 'include',
   headers: {'Content-Type':'application/json'},
   mode: 'cors',
   // referrerPolicy: 'origin-when-cross-origin'

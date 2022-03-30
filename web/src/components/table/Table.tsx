@@ -4,9 +4,10 @@ import AliasCell from "./cells/AliasCell";
 import NumericCell from "./cells/NumericCell";
 import BarCell from "./cells/BarCell";
 import EmptyCell from "./cells/EmptyCell";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { selectChannels, updateFilters } from "./tableSlice";
-import { FilterInterface, FilterFunctions } from "./filter";
+import {useAppSelector} from "../../store/hooks";
+import {selectChannels} from "./tableSlice";
+import {FilterInterface} from './filter'
+
 
 export interface ColumnMetaData {
   heading: string;
@@ -39,26 +40,6 @@ export const columns: ColumnMetaData[] = [
   { heading: "Turnover inbound", type: "NumericCell", key: "turnover_in" },
   { heading: "Turnover total", type: "NumericCell", key: "turnover_total" },
   { heading: "Capacity", type: "NumericCell", key: "capacity" },
-];
-
-// these are the filters and the arguments that the user has picked in the UI
-let filters: Array<FilterInterface> = [
-  {
-    filterCategory: "number",
-    filterName: "gte",
-    key: "amount_out",
-    parameter: 5000000,
-  },
-  // {
-  //   filterFunc: FilterFunctions.string.include,
-  //   key: "name",
-  //   parameter: "Alice"
-  // },
-  // {
-  //   filterFunc: filterFuncs[2],
-  //   key: "tags",
-  //   parameter: "astute"
-  // },
 ];
 
 interface RowType {
@@ -94,12 +75,8 @@ interface TotalType {
 }
 
 function Table() {
-  // const dispatch = useAppDispatch()
-  // dispatch(updateFilters(filters))
-  let channels = useAppSelector(selectChannels) || [];
 
-  // const channels = filters.reduce((prev, cur) => cur.filterFunc(prev, cur.key, cur.parameter), channels)
-  // console.log(channels)
+  let channels = useAppSelector(selectChannels) || [];
 
   let total: RowType = {
     alias: "Total",
