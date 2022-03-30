@@ -1,34 +1,29 @@
 import "./table_controls.scss";
-import DefaultButton from "../buttons/Button";
-import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {toggleNav} from '../navigation/navSlice';
 import {
   ColumnTriple20Regular as ColumnsIcon,
-  ArrowSortDownLines20Regular as SortIcon,
   Filter20Regular as FilterIcon,
   Navigation20Regular as NavigationIcon,
   ArrowJoin20Regular as GroupIcon,
   Search20Regular as SearchIcon,
   Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
+
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import Dropdown from "../formElements/Dropdown";
-import {fetchChannelsAsync, updateFilters} from "./tableSlice";
-import {selectTimeInterval} from "../timeIntervalSelect/timeIntervalSlice";
-import {format} from 'date-fns';
-import {useEffect} from "react";
+import DefaultButton from "../buttons/Button";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { toggleNav } from "../navigation/navSlice";
+import SortControls from "./SortControls";
+import { fetchChannelsAsync, updateFilters } from "./tableSlice";
+import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import { format } from "date-fns";
 
 function TableControls() {
-
-  const dispatch = useAppDispatch()
+  const dispatch = useAppDispatch();
   const currentPeriod = useAppSelector(selectTimeInterval);
-  useEffect(() => {
-    const from = format(new Date(currentPeriod.from), "yyyy-MM-dd")
-    const to = format(new Date(currentPeriod.to), "yyyy-MM-dd")
-    dispatch(fetchChannelsAsync({"from": from, "to":to}))
-  })
-
-
+  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
+  const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
+  dispatch(fetchChannelsAsync({ from: from, to: to }));
 
   // dispatch(updateFilters([{
   //   filterCategory: 'number',
@@ -48,23 +43,46 @@ function TableControls() {
       <div className="left-container">
         <div className="upper-container">
           <DefaultButton
-            icon={<NavigationIcon/>}
+            icon={<NavigationIcon />}
             text={"Menu"}
             onClick={() => dispatch(toggleNav())}
-            className={"show-nav-btn collapse-tablet"}/>
-          <Dropdown/>
-          <DefaultButton icon={<OptionsIcon/>} text={""} className={"collapse-tablet mobile-options"}/>
+            className={"show-nav-btn collapse-tablet"}
+          />
+          <Dropdown />
+          <DefaultButton
+            icon={<OptionsIcon />}
+            text={""}
+            className={"collapse-tablet mobile-options"}
+          />
         </div>
         <div className="lower-container">
-          <DefaultButton icon={<ColumnsIcon/>} text={"Columns"} className={"collapse-tablet"}/>
-          <DefaultButton icon={<SortIcon/>} text={"Sort"} className={"collapse-tablet"}/>
-          <DefaultButton icon={<FilterIcon/>} text={"Filter"} className={"collapse-tablet"}/>
-          <DefaultButton icon={<GroupIcon/>} text={"Group"} className={"collapse-tablet"}/>
-          <DefaultButton icon={<SearchIcon/>} text={"Search"} className={"small-tablet"}/>
+          <DefaultButton
+            icon={<ColumnsIcon />}
+            text={"Columns"}
+            className={"collapse-tablet"}
+          />
+          <div>
+            <SortControls />
+          </div>
+          <DefaultButton
+            icon={<FilterIcon />}
+            text={"Filter"}
+            className={"collapse-tablet"}
+          />
+          <DefaultButton
+            icon={<GroupIcon />}
+            text={"Group"}
+            className={"collapse-tablet"}
+          />
+          <DefaultButton
+            icon={<SearchIcon />}
+            text={"Search"}
+            className={"small-tablet"}
+          />
         </div>
       </div>
       <div className="right-container">
-        <TimeIntervalSelect/>
+        <TimeIntervalSelect />
       </div>
     </div>
   );
