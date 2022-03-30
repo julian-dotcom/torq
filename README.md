@@ -2,7 +2,7 @@
 
 Torq is a capital management tool for routing nodes on the lightning network.
 
-This software is in active development and should be considered alpha 
+This software is in active development and should be considered alpha
 
 ## Install
 
@@ -18,9 +18,10 @@ Torq can be run from a prebuilt docker image:
 
 ### Run TimescaleDB container
 
-Optional step if you already have a PostgreSQL database with TimescaleDB plugin. If not create one with the following command.
+Optional step if you already have a PostgreSQL database with TimescaleDB plugin.
+If not create one with the following command.
 
-``` sh
+```sh
 docker run -d --name timescaledb -p 5432:5432 \
 -v <AbsoluteDataPath>:/var/lib/postgresql/data \
 -e POSTGRES_PASSWORD=<DBPassword> timescale/timescaledb:latest-pg14
@@ -30,12 +31,13 @@ docker run -d --name timescaledb -p 5432:5432 \
 
 Shell into the timescale container to run `psql`.
 
-``` sh
+```sh
 docker exec -it timescaledb bash
 psql -U postgres
 ```
 
-Inside the postgres interactive terminal run the following three SQL commands to create a database and user.
+Inside the postgres interactive terminal run the following three SQL commands to
+create a database and user.
 
 ```postgresql
 CREATE DATABASE torq;
@@ -47,13 +49,16 @@ After creating the database, exit psql and the TimescaleDB container by hitting 
 
 ### Run Torq
 
-At present Torq only connects to a single LND node. To run Torq provide the IP, Port, TLS cert and Macaroon of your LND Node as well as the database password set above. Database name and user are configurable but both default to `torq`.
+At present Torq only connects to a single LND node. To run Torq provide the IP, Port, TLS cert and
+Macaroon of your LND Node as well as the database password set above and a frontend password of your choice.
+Database name and user are configurable but both default to `torq`.
 
-``` sh
+```sh
 docker run -p 8080:8080 --rm  \
 -v <AbsolutePathLNDTLSCert>:/app/tls.cert \
 -v <AbsolutePathLNDMacaroon>:/app/readonly.macaroon \
 lncapital/torq --lnd.macaroon /app/readonly.macaroon \
 --lnd.node_address <IP:Port of LND Node e.g. 190.190.190.190:10009> --lnd.tls /app/tls.cert \
---db.password <DBPassword> --db.host host.docker.internal start
+--db.password <DBPassword> --db.host host.docker.internal \
+--torq.password <ChooseYourFrontendPassword> start
 ```
