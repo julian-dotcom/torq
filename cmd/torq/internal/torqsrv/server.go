@@ -3,18 +3,27 @@ package torqsrv
 import (
 	"fmt"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/channels/tags"
+	"github.com/ulule/limiter/v3"
+	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
+	"github.com/ulule/limiter/v3/drivers/store/memory"
+	"log"
 	"strconv"
 )
 
-func Start(port int, db *sqlx.DB) {
+func Start(port int, apiPswd string, db *sqlx.DB) {
 	r := gin.Default()
-	registerRoutes(r, db)
 	applyCors(r)
+	//injectPasswordMiddleware(r)
+	registerRoutes(r, db, apiPswd)
+
 	fmt.Println("Listening on port " + strconv.Itoa(port))
+
 	r.Run(":" + strconv.Itoa(port))
 }
 
@@ -26,11 +35,44 @@ func applyCors(r *gin.Engine) {
 	r.Use(cors.New(corsConfig))
 }
 
-func registerRoutes(r *gin.Engine, db *sqlx.DB) {
-	applyCors(r)
+// loginKeyGetter is used to force the Login rate
+// limiter to limit all requests regardless of IP etc.
+func loginKeyGetter(c *gin.Context) string {
+	return "login_limiter"
+}
+
+// NewLoginRateLimitMiddleware is used to limit login attempts
+func NewLoginRateLimitMiddleware() gin.HandlerFunc {
+	// Define a limit rate to 10 requests per minute.
+	rate, err := limiter.NewRateFromFormatted("10-M")
+	if err != nil {
+		log.Fatal(err)
+	}
+	store := memory.NewStore()
+	return mgin.NewMiddleware(limiter.New(store, rate), mgin.WithKeyGetter(loginKeyGetter))
+}
+
+func apiPasswordMiddleware(apiPswd string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("apiPswd", apiPswd)
+	}
+}
+
+func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 	registerStaticRoutes(r)
-	//r.Use(CORSMiddleware())
+
+	// TODO: Generate this secret!
+	var Secret = []byte("secret")
+	r.Use(sessions.Sessions("torq_session", sessions.NewCookieStore(Secret)))
+
+	// Limit login attempts to 10 per minute.
+	rl := NewLoginRateLimitMiddleware()
+	r.POST("/login", rl, auth.Login(apiPwd))
+
+	r.GET("/logout", auth.Logout)
+
 	api := r.Group("/api")
+	api.Use(auth.AuthRequired)
 	{
 		channelRoutes := api.Group("/channels")
 		{

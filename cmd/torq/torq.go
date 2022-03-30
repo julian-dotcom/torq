@@ -43,6 +43,10 @@ func main() {
 
 		// Torq connection details
 		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "torq.password",
+			Usage: "Password used to access the API and frontend.",
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.host",
 			Value: "localhost",
 			Usage: "Host address for your regular grpc",
@@ -51,11 +55,6 @@ func main() {
 			Name:  "torq.port",
 			Value: "8080",
 			Usage: "Port for your regular grpc",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "torq.web_port",
-			Value: "50051",
-			Usage: "Port for your web grpc",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.cert",
@@ -165,7 +164,7 @@ func main() {
 				return nil
 			})
 
-			torqsrv.Start(c.Int("torq.port"), db)
+			torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db)
 
 			return nil
 		},

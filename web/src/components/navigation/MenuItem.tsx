@@ -13,7 +13,7 @@ function MenuItem(props: {
 
   let TitleComponent = function(routeTo?: string) {
     if (routeTo) {
-      return (<a href={""}  className={props.icon ? "title" : "title no-icon"} >
+      return (<a href={routeTo}  className={props.icon ? "title" : "title no-icon"} >
         <div className="icon">{props.icon}</div>
         <div className="text">{props.text}</div>
       </a>)

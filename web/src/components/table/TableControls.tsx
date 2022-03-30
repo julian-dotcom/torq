@@ -16,14 +16,18 @@ import Dropdown from "../formElements/Dropdown";
 import {fetchChannelsAsync, updateFilters} from "./tableSlice";
 import {selectTimeInterval} from "../timeIntervalSelect/timeIntervalSlice";
 import {format} from 'date-fns';
+import {useEffect} from "react";
 
 function TableControls() {
 
   const dispatch = useAppDispatch()
   const currentPeriod = useAppSelector(selectTimeInterval);
-  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd")
-  const to = format(new Date(currentPeriod.to), "yyyy-MM-dd")
-  dispatch(fetchChannelsAsync({"from": from, "to":to}))
+  useEffect(() => {
+    const from = format(new Date(currentPeriod.from), "yyyy-MM-dd")
+    const to = format(new Date(currentPeriod.to), "yyyy-MM-dd")
+    dispatch(fetchChannelsAsync({"from": from, "to":to}))
+  })
+
 
 
   // dispatch(updateFilters([{
