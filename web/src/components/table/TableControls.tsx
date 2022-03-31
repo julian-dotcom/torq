@@ -15,7 +15,7 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./SortControls";
 import FilterPopover from "./filter/FilterPopover";
-import { fetchChannelsAsync, updateFilters } from "./tableSlice";
+import { fetchChannelsAsync } from "./tableSlice";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { format } from "date-fns";
 
@@ -25,19 +25,6 @@ function TableControls() {
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
   dispatch(fetchChannelsAsync({ from: from, to: to }));
-
-  // dispatch(updateFilters([{
-  //   filterCategory: 'number',
-  //   filterName: 'gte',
-  //   key: "amount_out",
-  //   parameter: 5000000
-  // },
-  // {
-  //   filterCategory: 'number',
-  //   filterName: 'gte',
-  //   key: "revenue_out",
-  //   parameter: 150
-  // }] ))
 
   return (
     <div className="table-controls">

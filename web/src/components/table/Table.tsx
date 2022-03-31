@@ -6,7 +6,6 @@ import BarCell from "./cells/BarCell";
 import EmptyCell from "./cells/EmptyCell";
 import {useAppSelector} from "../../store/hooks";
 import {selectChannels, selectColumns} from "./tableSlice";
-import {FilterInterface} from './filter';
 
 interface RowType {
   alias: string;

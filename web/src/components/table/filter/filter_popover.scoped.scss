@@ -11,12 +11,12 @@
     border: 1px solid var(--bg-subtle);
     box-shadow: var(--popover-box-shadow);
     top: -2000px;
-    transition: top 0ms 200ms, opacity 200ms 0ms;
+    transition: top 0ms 100ms, opacity 100ms 0ms;
     opacity: 0;
   }
   .popover-wrapper.popover-open {
     top: calc(100% + 10px);
-    transition: top 0ms 0ms, opacity 200ms 0ms;
+    transition: top 0ms 0ms, opacity 100ms 0ms;
     opacity: 1;
   }
   .filter-rows {
