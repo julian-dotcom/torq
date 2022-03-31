@@ -206,11 +206,18 @@ const FilterPopover = () => {
     )
   }
 
+  const buttonText = (): string => {
+    if (filters.length > 0) {
+      return filters.length + " filters"
+    }
+    return "Filter"
+  }
+
   return (
     <div onClick={() => setIsPopoverOpen(!isPopoverOpen)}
          ref={wrapperRef}
          className={classNames("torq-popover-button-wrapper")} >
-      <DefaultButton text={"Filter"} icon={<FilterIcon/>} className={"collapse-tablet"}/>
+      <DefaultButton text={buttonText()} icon={<FilterIcon/>} className={"collapse-tablet"} isOpen={!!filters.length}/>
       <div className={classNames("popover-wrapper", {"popover-open": isPopoverOpen})}
            onClick={(e) =>{
              e.stopPropagation()
