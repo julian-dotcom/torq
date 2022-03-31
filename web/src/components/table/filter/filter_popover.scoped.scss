@@ -11,13 +11,20 @@
     border: 1px solid var(--bg-subtle);
     box-shadow: var(--popover-box-shadow);
     top: -2000px;
-    transition: top 0ms 200ms, opacity 200ms 0ms;
+    transition: top 0ms 100ms, opacity 100ms 0ms;
     opacity: 0;
   }
   .popover-wrapper.popover-open {
     top: calc(100% + 10px);
-    transition: top 0ms 0ms, opacity 200ms 0ms;
+    transition: top 0ms 0ms, opacity 100ms 0ms;
     opacity: 1;
+  }
+  .no-filters {
+    padding: 5px 10px;
+    background-color: var(--bg-extra-faint);
+    border: 1px solid var(--bg-subtle);
+    border-radius: 2px;
+    color: var(--fg-muted)
   }
   .filter-rows {
     display: grid;
@@ -36,7 +43,7 @@
     grid-auto-flow: column;
     grid-column-gap: 10px;
     align-items: center;
-    grid-template-columns: 100px auto 100px auto 30px;
+    grid-template-columns: 100px 250px 100px auto 30px;
     justify-content: stretch;
     justify-items: stretch;
     //font-size: var(--font-size-small);

@@ -33,6 +33,7 @@ export const columns: ColumnMetaData[] = [
 
 export interface TableState {
   channels: [];
+  modChannels: [];
   filters: Array<FilterInterface>;
   columns: ColumnMetaData[];
   status: 'idle' | 'loading' | 'failed';
@@ -40,6 +41,7 @@ export interface TableState {
 
 const initialState: TableState = {
   channels: [],
+  modChannels: [],
   filters: [],
   columns: columns,
   status: 'idle',
@@ -48,7 +50,6 @@ const init: RequestInit = {
   credentials: 'include',
   headers: {'Content-Type':'application/json'},
   mode: 'cors',
-  // referrerPolicy: 'origin-when-cross-origin'
 };
 
 function fetchChannels(from: string, to: string) {
@@ -79,10 +80,8 @@ export const tableSlice = createSlice({
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
   reducers: {
-    updateFilters: (state, actions: PayloadAction<Array<FilterInterface>>) => {
-      state.filters = actions.payload
-      // @ts-ignore
-      state.channels = applyFilters(state.filters, state.channels)
+    updateFilters: (state, actions: PayloadAction<{filters: FilterInterface[]}>) => {
+      state.filters = actions.payload.filters
     },
   },
   // The `extraReducers` field lets the slice handle actions defined elsewhere,
@@ -94,14 +93,17 @@ export const tableSlice = createSlice({
       })
       .addCase(fetchChannelsAsync.fulfilled, (state, action) => {
         state.status = 'idle';
-        state.channels = applyFilters(state.filters, action.payload);
+        state.channels = action.payload
       });
   },
 });
 
 export const { updateFilters } = tableSlice.actions;
 
-export const selectChannels = (state: RootState) => state.table.channels;
+export const selectChannels = (state: RootState) => {
+  return applyFilters(state.table.filters, state.table.channels)
+};
 export const selectColumns = (state: RootState) => state.table.columns;
+export const selectFilters = (state: RootState) => state.table.filters;
 
 export default tableSlice.reducer;
