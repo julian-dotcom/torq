@@ -1,4 +1,4 @@
-import DefaultButton from "../../buttons/Button";
+import DefaultButton from "../../../buttons/Button";
 import classNames from "classnames";
 import {
   Filter20Regular as FilterIcon,
@@ -6,14 +6,15 @@ import {
   AddSquare20Regular as AddFilterIcon,
 } from "@fluentui/react-icons";
 import React, {SetStateAction, useEffect, useRef, useState} from "react";
-import TorqSelect from "../../inputs/Select";
+import TorqSelect from "../../../inputs/Select";
 
 import './filter_popover.scoped.scss';
-import {useAppDispatch, useAppSelector} from "../../../store/hooks";
-import {selectColumns, selectFilters, updateFilters} from "../tableSlice";
-import {FilterFunctions, FilterInterface} from "../filter";
+import {useAppDispatch, useAppSelector} from "../../../../store/hooks";
+import {selectColumns, selectFilters, updateFilters} from "../../tableSlice";
+import {FilterFunctions, FilterInterface} from "../../filter";
 import NumberFormat from "react-number-format";
 import {log} from "util";
+import Popover from "../Popover";
 
 const combinerOptions = [
   { value: "and", label: "And" },
@@ -95,7 +96,6 @@ function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: f
     }, index)
   }
   const handleKeyChange = (item:any) => {
-    console.log(item)
     let newFilter = {
       ...convertFilterData(rowData),
       key: item.value,
@@ -162,28 +162,8 @@ function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: f
   )
 }
 
-function useOutsideClose(ref: any, setIsPopoverOpen: Function) {
-  useEffect(() => {
-    function handleClickOutside(event: any) {
-      if (ref.current && !ref.current.contains(event.target)) {
-        setIsPopoverOpen(false)
-      }
-    }
-    // Bind the event listener
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      // Unbind the event listener on clean up
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [ref]);
-}
 
 const FilterPopover = () => {
-  const wrapperRef = useRef(null)
-
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-
-  useOutsideClose(wrapperRef, setIsPopoverOpen)
 
   const filters = useAppSelector(selectFilters)
   const dispatch = useAppDispatch();
@@ -231,15 +211,15 @@ const FilterPopover = () => {
     return "Filter"
   }
 
+  let popOverButton = <DefaultButton
+        text={buttonText()}
+        icon={<FilterIcon/>}
+        className={"collapse-tablet"}
+        isOpen={!!filters.length}/>
+
   return (
-    <div onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-         ref={wrapperRef}
-         className={classNames("torq-popover-button-wrapper")} >
-      <DefaultButton text={buttonText()} icon={<FilterIcon/>} className={"collapse-tablet"} isOpen={!!filters.length}/>
-      <div className={classNames("popover-wrapper", {"popover-open": isPopoverOpen})}
-           onClick={(e) =>{
-             e.stopPropagation()
-           }}>
+    <Popover button={popOverButton}>
+      <div className={"filter-popover-content"}>
         <div className="filter-rows">
           {!filters.length && (<div className={"no-filters"}>No filters</div>)}
           {filters.map((filter, index) => {
@@ -256,7 +236,7 @@ const FilterPopover = () => {
           <DefaultButton text={"Add filter"} icon={<AddFilterIcon/>} onClick={addFilter} />
         </div>
       </div>
-    </div>
+    </Popover>
   )
 }
 

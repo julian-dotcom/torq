@@ -42,7 +42,7 @@ export interface TableState {
 const initialState: TableState = {
   channels: [],
   modChannels: [],
-  filters: [],
+  filters: loadTableState() || [],
   columns: columns,
   status: 'idle',
 };
@@ -75,6 +75,25 @@ export const fetchChannelsAsync = createAsyncThunk(
 );
 
 
+export function loadTableState() {
+  try {
+    const serializedState = localStorage.getItem("torq_table_filters");
+    if (!serializedState) return undefined;
+    return JSON.parse(serializedState);
+  } catch (e) {
+    return undefined;
+  }
+}
+
+export async function saveTableState(state: any) {
+  try {
+    const serializedState = JSON.stringify(state);
+    localStorage.setItem("torq_table_filters", serializedState);
+  } catch (e) {
+    console.log(e)
+  }
+}
+
 export const tableSlice = createSlice({
   name: 'table',
   initialState,
@@ -82,6 +101,7 @@ export const tableSlice = createSlice({
   reducers: {
     updateFilters: (state, actions: PayloadAction<{filters: FilterInterface[]}>) => {
       state.filters = actions.payload.filters
+      saveTableState(state.filters)
     },
   },
   // The `extraReducers` field lets the slice handle actions defined elsewhere,

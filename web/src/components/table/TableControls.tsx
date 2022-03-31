@@ -14,7 +14,7 @@ import DefaultButton from "../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./SortControls";
-import FilterPopover from "./filter/FilterPopover";
+import FilterPopover from "./controls/filter/FilterPopover";
 import { fetchChannelsAsync } from "./tableSlice";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { format } from "date-fns";
