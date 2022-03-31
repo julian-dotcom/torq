@@ -5,7 +5,7 @@ import {
   Navigation20Regular as NavigationIcon,
   ArrowJoin20Regular as GroupIcon,
   Search20Regular as SearchIcon,
-  Options20Regular as OptionsIcon,
+  Options20Regular as OptionsIcon
 } from "@fluentui/react-icons";
 
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
@@ -14,7 +14,7 @@ import DefaultButton from "../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./SortControls";
-import FilterPopover from "./filter/FilterPopover";
+// import FilterPopover from "./filter/FilterPopover";
 import { fetchChannelsAsync, updateFilters } from "./tableSlice";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { format } from "date-fns";
@@ -65,7 +65,7 @@ function TableControls() {
           <div>
             <SortControls />
           </div>
-          <FilterPopover/>
+          {/* <FilterPopover/> */}
           <DefaultButton
             icon={<GroupIcon />}
             text={"Group"}
