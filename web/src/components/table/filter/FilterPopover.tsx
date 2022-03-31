@@ -27,7 +27,7 @@ const ffLabels = {
   gte: '>=',
   lt: '<',
   lte: '<=',
-  includes: 'Include',
+  include: 'Include',
   notInclude: 'Not include',
 }
 
@@ -51,8 +51,8 @@ function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: f
 
   let columnsMeta = useAppSelector(selectColumns) || [];
 
-  let columnOptions = columnsMeta.slice().map((column: {key: string, heading: string}) => {
-    return {value: column.key, label: column.heading}
+  let columnOptions = columnsMeta.slice().map((column: {key: string, heading: string, valueType: string}) => {
+    return {value: column.key, label: column.heading, valueType: column.valueType}
   })
 
   columnOptions.sort((a: optionType, b: optionType) => {
@@ -95,11 +95,23 @@ function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: f
     }, index)
   }
   const handleKeyChange = (item:any) => {
-    // TODO: Look up column and add column category (number or string)
-    handleUpdateFilter({
+    console.log(item)
+    let newFilter = {
       ...convertFilterData(rowData),
-      key: item.value
-    }, index)
+      key: item.value,
+      category: item.valueType,
+    }
+    if (item.valueType !== rowData.category) {
+      if (item.valueType === 'string') {
+        newFilter.funcName = 'include'
+        newFilter.parameter = ''
+      } else {
+        newFilter.funcName = 'gte'
+        newFilter.parameter = 0
+      }
+    }
+
+    handleUpdateFilter(newFilter, index)
   }
   const handleFunctionChange = (item:any) => {
     handleUpdateFilter({
@@ -108,12 +120,17 @@ function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: f
     }, index)
   }
   const handleParamChange = (value: any) => {
-    if (value.floatValue) {
+    if (value.floatValue === 0 || value.floatValue) {
       handleUpdateFilter({
         ...convertFilterData(rowData),
         parameter: value.floatValue
       }, index)
+      return
     }
+    handleUpdateFilter({
+      ...convertFilterData(rowData),
+      parameter: (value.target.value || " ")
+    }, index)
   }
 
   return (
@@ -131,11 +148,12 @@ function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: f
         <TorqSelect options={functionOptions} value={rowData.func} onChange={handleFunctionChange} />
       </div>
       <div className="filter-parameter-container">
+        {rowData.category == 'number' ? (
         <NumberFormat
           className={"torq-input-field"}
           thousandSeparator=',' value={rowData.param}
           onValueChange={handleParamChange}
-        />
+        />) : <input type="text" className={"torq-input-field"} value={rowData.param} onChange={handleParamChange}/>}
       </div>
       <div className="remove-filter" onClick={() => (handleRemoveFilter(index))}>
         <RemoveIcon/>
