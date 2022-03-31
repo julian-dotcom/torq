@@ -5,7 +5,7 @@ import {
   Dismiss20Regular as RemoveIcon,
   AddSquare20Regular as AddFilterIcon,
 } from "@fluentui/react-icons";
-import React, {SetStateAction, useState} from "react";
+import React, {SetStateAction, useEffect, useRef, useState} from "react";
 import TorqSelect from "../../inputs/Select";
 
 import './filter_popover.scoped.scss';
@@ -40,8 +40,14 @@ function getFilterFunctions(filterCategory: 'number' | 'string') {
 }
 
 type optionType = {value: string, label:string}
+interface filterRowInterface {
+  index: number,
+  rowValues: FilterInterface,
+  handleUpdateFilter: Function,
+  handleRemoveFilter: Function
+}
 
-function FilterRow({index, rowValues, handleUpdateFilter}: {index: number, rowValues: FilterInterface, handleUpdateFilter: Function}) {
+function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: filterRowInterface) {
 
   let columnsMeta = useAppSelector(selectColumns) || [];
 
@@ -89,6 +95,7 @@ function FilterRow({index, rowValues, handleUpdateFilter}: {index: number, rowVa
     }, index)
   }
   const handleKeyChange = (item:any) => {
+    // TODO: Look up column and add column category (number or string)
     handleUpdateFilter({
       ...convertFilterData(rowData),
       key: item.value
@@ -130,21 +137,41 @@ function FilterRow({index, rowValues, handleUpdateFilter}: {index: number, rowVa
           onValueChange={handleParamChange}
         />
       </div>
-      <div className="remove-filter">
+      <div className="remove-filter" onClick={() => (handleRemoveFilter(index))}>
         <RemoveIcon/>
       </div>
     </div>
   )
 }
 
+function useOutsideClose(ref: any, setIsPopoverOpen: Function) {
+  useEffect(() => {
+    function handleClickOutside(event: any) {
+      if (ref.current && !ref.current.contains(event.target)) {
+        setIsPopoverOpen(false)
+      }
+    }
+    // Bind the event listener
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      // Unbind the event listener on clean up
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [ref]);
+}
+
 const FilterPopover = () => {
+  const wrapperRef = useRef(null)
+
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+  useOutsideClose(wrapperRef, setIsPopoverOpen)
 
   const filters = useAppSelector(selectFilters)
   const dispatch = useAppDispatch();
 
-  const handleUpdateFilter = (filter: FilterInterface, index: number) => {
-     const updatedFilters = [
+  const updateFilter = (filter: FilterInterface, index: number) => {
+     const updatedFilters: FilterInterface[] = [
        ...filters.slice(0,index),
        filter,
         ...filters.slice(index+1, filters.length)
@@ -154,8 +181,34 @@ const FilterPopover = () => {
     )
   }
 
+  const removeFilter = (index: number) => {
+     const updatedFilters: FilterInterface[] = [
+       ...filters.slice(0,index),
+        ...filters.slice(index+1, filters.length)
+     ]
+    dispatch(
+      updateFilters( {filters: updatedFilters})
+    )
+  }
+
+  const addFilter = () => {
+    const updatedFilters: FilterInterface[] = [
+       ...filters.slice(),
+       {combiner: 'and',
+          funcName: 'gte',
+          category: 'number',
+          key: "capacity",
+          parameter: 0
+        },
+     ]
+    dispatch(
+      updateFilters( {filters: updatedFilters})
+    )
+  }
+
   return (
     <div onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+         ref={wrapperRef}
          className={classNames("torq-popover-button-wrapper")} >
       <DefaultButton text={"Filter"} icon={<FilterIcon/>} className={"collapse-tablet"}/>
       <div className={classNames("popover-wrapper", {"popover-open": isPopoverOpen})}
@@ -163,17 +216,19 @@ const FilterPopover = () => {
              e.stopPropagation()
            }}>
         <div className="filter-rows">
+          {!filters.length && (<div className={"no-filters"}>No filters</div>)}
           {filters.map((filter, index) => {
             return (<FilterRow
               key={'filter-row-'+index}
               rowValues={filter}
               index={index}
-              handleUpdateFilter={handleUpdateFilter}
+              handleUpdateFilter={updateFilter}
+              handleRemoveFilter={removeFilter}
             />)
           })}
         </div>
         <div className="buttons-row">
-          <DefaultButton text={"Add filter"} icon={<AddFilterIcon/>} />
+          <DefaultButton text={"Add filter"} icon={<AddFilterIcon/>} onClick={addFilter} />
         </div>
       </div>
     </div>

@@ -42,13 +42,7 @@ export interface TableState {
 const initialState: TableState = {
   channels: [],
   modChannels: [],
-  filters: [{
-    combiner: 'and',
-    funcName: 'gte',
-    category: 'number',
-    key: "revenue_out",
-    parameter: 100
-  }],
+  filters: [],
   columns: columns,
   status: 'idle',
 };

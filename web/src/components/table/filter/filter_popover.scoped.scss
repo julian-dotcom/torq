@@ -19,6 +19,13 @@
     transition: top 0ms 0ms, opacity 100ms 0ms;
     opacity: 1;
   }
+  .no-filters {
+    padding: 5px 10px;
+    background-color: var(--bg-extra-faint);
+    border: 1px solid var(--bg-subtle);
+    border-radius: 2px;
+    color: var(--fg-muted)
+  }
   .filter-rows {
     display: grid;
     justify-content: stretch;
@@ -36,7 +43,7 @@
     grid-auto-flow: column;
     grid-column-gap: 10px;
     align-items: center;
-    grid-template-columns: 100px auto 100px auto 30px;
+    grid-template-columns: 100px 250px 100px auto 30px;
     justify-content: stretch;
     justify-items: stretch;
     //font-size: var(--font-size-small);
