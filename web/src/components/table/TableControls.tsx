@@ -14,6 +14,7 @@ import DefaultButton from "../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./SortControls";
+import FilterPopover from "./filter/FilterPopover";
 import { fetchChannelsAsync, updateFilters } from "./tableSlice";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { format } from "date-fns";
@@ -64,11 +65,7 @@ function TableControls() {
           <div>
             <SortControls />
           </div>
-          <DefaultButton
-            icon={<FilterIcon />}
-            text={"Filter"}
-            className={"collapse-tablet"}
-          />
+          <FilterPopover/>
           <DefaultButton
             icon={<GroupIcon />}
             text={"Group"}

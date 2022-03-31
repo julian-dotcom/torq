@@ -4,62 +4,9 @@ import AliasCell from "./cells/AliasCell";
 import NumericCell from "./cells/NumericCell";
 import BarCell from "./cells/BarCell";
 import EmptyCell from "./cells/EmptyCell";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { selectChannels, updateFilters } from "./tableSlice";
-import { FilterInterface, FilterFunctions } from "./filter";
-
-export interface ColumnMetaData {
-  heading: string;
-  key: string;
-  type?: string;
-  width?: number;
-  locked?: boolean;
-}
-
-export const columns: ColumnMetaData[] = [
-  { heading: "Name", type: "AliasCell", key: "alias", locked: true },
-  { heading: "Revenue", type: "BarCell", key: "revenue_out" },
-  { heading: "Successful outbound", type: "BarCell", key: "count_out" },
-  { heading: "Successful inbound", type: "BarCell", key: "count_in" },
-  { heading: "Successful total", type: "BarCell", key: "count_total" },
-  { heading: "Amount outbound", type: "BarCell", key: "amount_out" },
-  { heading: "Amount inbound", type: "BarCell", key: "amount_in" },
-  { heading: "Amount total", type: "BarCell", key: "amount_total" },
-  {
-    heading: "Contributed (revenue inbound)",
-    type: "BarCell",
-    key: "revenue_in",
-  },
-  {
-    heading: "Contributed (revenue total)",
-    type: "BarCell",
-    key: "revenue_total",
-  },
-  { heading: "Turnover outbound", type: "NumericCell", key: "turnover_out" },
-  { heading: "Turnover inbound", type: "NumericCell", key: "turnover_in" },
-  { heading: "Turnover total", type: "NumericCell", key: "turnover_total" },
-  { heading: "Capacity", type: "NumericCell", key: "capacity" },
-];
-
-// these are the filters and the arguments that the user has picked in the UI
-let filters: Array<FilterInterface> = [
-  {
-    filterCategory: "number",
-    filterName: "gte",
-    key: "amount_out",
-    parameter: 5000000,
-  },
-  // {
-  //   filterFunc: FilterFunctions.string.include,
-  //   key: "name",
-  //   parameter: "Alice"
-  // },
-  // {
-  //   filterFunc: filterFuncs[2],
-  //   key: "tags",
-  //   parameter: "astute"
-  // },
-];
+import {useAppSelector} from "../../store/hooks";
+import {selectChannels, selectColumns} from "./tableSlice";
+import {FilterInterface} from './filter';
 
 interface RowType {
   alias: string;
@@ -94,12 +41,9 @@ interface TotalType {
 }
 
 function Table() {
-  // const dispatch = useAppDispatch()
-  // dispatch(updateFilters(filters))
-  let channels = useAppSelector(selectChannels) || [];
 
-  // const channels = filters.reduce((prev, cur) => cur.filterFunc(prev, cur.key, cur.parameter), channels)
-  // console.log(channels)
+  let columns = useAppSelector(selectColumns) || [];
+  let channels = useAppSelector(selectChannels) || [];
 
   let total: RowType = {
     alias: "Total",
@@ -137,18 +81,19 @@ function Table() {
   const numColumns = Object.keys(columns).length;
   const numRows = channels.length;
 
-  channels.forEach((row) => {
-    Object.keys(total).forEach((column) => {
-      // @ts-ignore
-      total[column as keyof RowType] += row[column];
-      // @ts-ignore
-      max[column as keyof RowType] = Math.max(
-        row[column],
-        //@ts-ignore
-        max[column as keyof RowType]
-      );
-    });
-  });
+  if (channels.length > 0) {
+    channels.forEach((row) => {
+      Object.keys(total).forEach((column ) => {
+        // @ts-ignore
+        total[column as keyof RowType] += row[column]
+        // @ts-ignore
+        max[column as keyof RowType] = Math.max(
+          row[column],
+          // @ts-ignore
+          max[column as keyof RowType])
+      })
+    })
+  }
 
   return (
     <div className="table-wrapper">
@@ -160,7 +105,7 @@ function Table() {
           numRows +
           ",min-content) auto min-content;}"}
       </style>
-      <div className="table-content">
+      {channels.length > 0 ? (<div className="table-content">
         {/*Empty header at the start*/}
         {HeaderCell("", "first-empty-header", "empty locked")}
 
@@ -263,8 +208,8 @@ function Table() {
           }
         })}
         {/*Empty cell at the end*/}
-        {<div className={"cell empty total-cell"} />}
-      </div>
+        {<div className={"cell empty total-cell"}/>}
+      </div>) : (<div className="empty-table"></div>)}
     </div>
   );
 }
