@@ -5,7 +5,7 @@ import {
   Dismiss20Regular as RemoveIcon,
   AddSquare20Regular as AddFilterIcon,
 } from "@fluentui/react-icons";
-import React, {SetStateAction, useEffect, useRef, useState} from "react";
+import React from "react";
 import TorqSelect from "../../../inputs/Select";
 
 import './filter_popover.scoped.scss';
@@ -13,8 +13,7 @@ import {useAppDispatch, useAppSelector} from "../../../../store/hooks";
 import {selectColumns, selectFilters, updateFilters} from "../../tableSlice";
 import {FilterFunctions, FilterInterface} from "../../filter";
 import NumberFormat from "react-number-format";
-import {log} from "util";
-import Popover from "../Popover";
+import Popover from "../../../popover/Popover";
 
 const combinerOptions = [
   { value: "and", label: "And" },
@@ -113,24 +112,29 @@ function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: f
 
     handleUpdateFilter(newFilter, index)
   }
+
   const handleFunctionChange = (item:any) => {
     handleUpdateFilter({
       ...convertFilterData(rowData),
       funcName: item.value
     }, index)
   }
-  const handleParamChange = (value: any) => {
-    if (value.floatValue === 0 || value.floatValue) {
+
+  const handleParamChange = (e: any) => {
+
+    if (rowData.category === 'number') {
       handleUpdateFilter({
         ...convertFilterData(rowData),
-        parameter: value.floatValue
+        parameter: e.floatValue
       }, index)
       return
     }
+
     handleUpdateFilter({
       ...convertFilterData(rowData),
-      parameter: (value.target.value || " ")
+      parameter: e.target.value ? e.target.value : ""
     }, index)
+
   }
 
   return (

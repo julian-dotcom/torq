@@ -31,15 +31,14 @@ function Navigation() {
       <MenuItem text={'My Routing Node'} />
 
       <div className="menu-items">
-        <MenuItem text={'Tables'} icon={<TableIcon/>} actions={<AddTable/>}>
-          <MenuItem text={'Top revenue today'} icon={<DotIcon/>} selected={true} routeTo={'/a'} />
-          <MenuItem text={'Source channels'} icon={<DotIcon/>} routeTo={'/a'} />
-          <MenuItem text={'Destination channels'} icon={<DotIcon/>} routeTo={'/a'} />
-        </MenuItem>
+        {/*<MenuItem text={'Top revenue today'} icon={<DotIcon/>} selected={true} routeTo={'/a'} />*/}
+        {/*<MenuItem text={'Source channels'} icon={<DotIcon/>} routeTo={'/a'} />*/}
+        {/*<MenuItem text={'Destination channels'} icon={<DotIcon/>} routeTo={'/a'} />*/}
 
         <div className="wrapper">
-          <MenuItem text={'Fees'} icon={<FeeIcon/>} routeTo={'/'} />
-          <MenuItem text={'Rebalance'} icon={<RebalanceIcon/>} routeTo={'/'} />
+          <MenuItem text={'Tables'} icon={<TableIcon/>} actions={<AddTable/>}/>
+          <MenuItem text={'Fees'} icon={<FeeIcon/>}  />
+          <MenuItem text={'Rebalance'} icon={<RebalanceIcon/>}  />
           <MenuItem text={'Logout'} icon={<LogoutIcon/>} routeTo={'/logout'} />
         </div>
       </div>

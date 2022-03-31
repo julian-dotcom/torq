@@ -18,6 +18,7 @@ import FilterPopover from "./controls/filter/FilterPopover";
 import { fetchChannelsAsync } from "./tableSlice";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { format } from "date-fns";
+import ViewsPopover from "./controls/views/ViewsPopover";
 
 function TableControls() {
   const dispatch = useAppDispatch();
@@ -36,7 +37,7 @@ function TableControls() {
             onClick={() => dispatch(toggleNav())}
             className={"show-nav-btn collapse-tablet"}
           />
-          <Dropdown />
+          <ViewsPopover/>
           <DefaultButton
             icon={<OptionsIcon />}
             text={""}

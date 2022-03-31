@@ -1,4 +1,6 @@
-.torq {
+.torq .filter-popover-content {
+  width: 700px; // TODO: Needs to be responsivie
+
   .no-filters {
     padding: 5px 10px;
     background-color: var(--bg-extra-faint);
@@ -34,29 +36,5 @@
     justify-items: center;
     align-content: center;
     height: 100%;
-  }
-
-  .popover-open {
-    display: block;
-  }
-}
-.torq .torq-input-field  {
-  border-radius: 2px;
-  border: 1px solid var(--bg-subtle);
-  background-color: var(--bg-default);
-  font-size: var(--font-size-default);
-  //outline-color: var(--bg-muted);
-  //outline-offset: 0;
-  //outline-width: 1px;
-  width: 100%;
-  padding: 6.5px 10px;
-  color: var(--fg-default);
-  transition: border 100ms;
-  &:focus {
-    outline: none;
-    border: 1px solid var(--bg-muted);
-  }
-  &.small {
-    font-size: var(--font-size-small);
   }
 }

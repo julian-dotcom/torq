@@ -14,3 +14,64 @@
     width: 20px;
   }
 }
+
+// TODO: Consider cleaning this up as a component
+.torq .torq-input-field  {
+  border-radius: 2px;
+  border: 1px solid var(--bg-subtle);
+  background-color: var(--bg-default);
+  font-size: var(--font-size-default);
+  width: 100%;
+  padding: 6.5px 10px;
+  color: var(--fg-default);
+  transition: border 100ms;
+  &:focus {
+    outline: none;
+    border: 1px solid var(--bg-muted);
+  }
+  &.small {
+    font-size: var(--font-size-small);
+  }
+}
+.torq .torq-input-icon-field  {
+  border-radius: 2px;
+  background-color: var(--bg-default);
+  font-size: var(--font-size-default);
+  color: var(--fg-default);
+  display: grid;
+  grid-template-columns: auto min-content;
+  justify-self: left;
+  width: 100%;
+  box-sizing: border-box;
+  &.small {
+    font-size: var(--font-size-small);
+  }
+  &:focus {
+
+  }
+  input {
+    padding: 6.5px 10px;
+    border: 1px solid transparent;
+    border-right: none;
+    transition: border 100ms;
+  }
+  input:focus {
+    outline: none;
+    border: 1px solid var(--bg-muted);
+    border-right: none;
+  }
+  button {
+    border: 1px solid transparent;
+    border-left: none;
+    transition: border 100ms;
+    min-width: 39px;
+    svg {
+      transform: translateX(-4px);
+    }
+  }
+  input:focus + button {
+    outline: none;
+    border: 1px solid var(--bg-muted);
+    border-left: none;
+  }
+}

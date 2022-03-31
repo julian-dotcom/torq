@@ -213,7 +213,7 @@ function Table() {
         })}
         {/*Empty cell at the end*/}
         {<div className={"cell empty total-cell"}/>}
-      </div>)
+      </div>
     </div>
   );
 }
