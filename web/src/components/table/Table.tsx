@@ -79,6 +79,13 @@ function Table() {
 
   const numColumns = Object.keys(columns).length;
   const numRows = channels.length;
+  const rowGridStyle = (numRows: number): string => {
+    if (numRows > 0) {
+      return "grid-template-rows: min-content repeat(" + numRows + ",min-content) auto min-content;"
+    } else {
+      return "grid-template-rows: min-content  auto min-content;"
+    }
+  }
 
   if (channels.length > 0) {
     channels.forEach((row) => {
@@ -100,11 +107,9 @@ function Table() {
         {".table-content {grid-template-columns: min-content repeat(" +
           numColumns +
           ",  minmax(min-content, auto)) min-content;" +
-          "grid-template-rows: min-content repeat(" +
-          numRows +
-          ",min-content) auto min-content;}"}
+          rowGridStyle(numRows)+"}"}
       </style>
-      {channels.length > 0 ? (<div className="table-content">
+      <div className="table-content">
         {/*Empty header at the start*/}
         {HeaderCell("", "first-empty-header", "empty locked")}
 
@@ -208,7 +213,7 @@ function Table() {
         })}
         {/*Empty cell at the end*/}
         {<div className={"cell empty total-cell"}/>}
-      </div>) : (<div className="empty-table"></div>)}
+      </div>)
     </div>
   );
 }
