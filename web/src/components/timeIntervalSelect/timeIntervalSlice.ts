@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { RootState } from '../../store/store';
-import {defineds, getCompareRanges} from "./customRanges";
+import { defineds, getCompareRanges } from "./customRanges";
 
 export interface TimeIntervalState {
   from: string;

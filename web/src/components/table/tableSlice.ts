@@ -1,7 +1,9 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState, AppThunk } from '../../store/store';
-import {addDays, format} from 'date-fns';
-import {FilterInterface, FilterFunctions, applyFilters} from './filter'
+import { addDays, format } from 'date-fns';
+
+import fieldSorter from './sort';
+import { FilterInterface, FilterFunctions, applyFilters } from './filter'
 
 export interface ColumnMetaData {
   heading: string;
@@ -13,20 +15,20 @@ export interface ColumnMetaData {
 }
 
 export const columns: ColumnMetaData[] = [
-  { heading: "Name", type: "AliasCell", key: "alias", locked: true, valueType: "string"},
-  { heading: "Revenue", type: "BarCell", key: "revenue_out", valueType: "number"},
-  { heading: "Capacity", type: "NumericCell", key: "capacity", valueType: "number"},
-  { heading: "Amount outbound", type: "BarCell", key: "amount_out", valueType: "number"},
-  { heading: "Amount inbound", type: "BarCell", key: "amount_in", valueType: "number"},
-  { heading: "Amount total", type: "BarCell", key: "amount_total", valueType: "number"},
-  { heading: "Turnover outbound", type: "NumericCell", key: "turnover_out", valueType: "number"},
-  { heading: "Turnover inbound", type: "NumericCell", key: "turnover_in", valueType: "number"},
-  { heading: "Turnover total", type: "NumericCell", key: "turnover_total", valueType: "number"},
-  { heading: "Successful outbound", type: "BarCell", key: "count_out", valueType: "number"},
-  { heading: "Successful inbound", type: "BarCell", key: "count_in", valueType: "number"},
-  { heading: "Successful total", type: "BarCell", key: "count_total", valueType: "number"},
-  { heading: "Contributed revenue inbound", type: "BarCell", key: "revenue_in", valueType: "number"},
-  { heading: "Contributed revenue total", type: "BarCell", key: "revenue_total", valueType: "number"},
+  { heading: "Name", type: "AliasCell", key: "alias", locked: true, valueType: "string" },
+  { heading: "Revenue", type: "BarCell", key: "revenue_out", valueType: "number" },
+  { heading: "Capacity", type: "NumericCell", key: "capacity", valueType: "number" },
+  { heading: "Amount outbound", type: "BarCell", key: "amount_out", valueType: "number" },
+  { heading: "Amount inbound", type: "BarCell", key: "amount_in", valueType: "number" },
+  { heading: "Amount total", type: "BarCell", key: "amount_total", valueType: "number" },
+  { heading: "Turnover outbound", type: "NumericCell", key: "turnover_out", valueType: "number" },
+  { heading: "Turnover inbound", type: "NumericCell", key: "turnover_in", valueType: "number" },
+  { heading: "Turnover total", type: "NumericCell", key: "turnover_total", valueType: "number" },
+  { heading: "Successful outbound", type: "BarCell", key: "count_out", valueType: "number" },
+  { heading: "Successful inbound", type: "BarCell", key: "count_in", valueType: "number" },
+  { heading: "Successful total", type: "BarCell", key: "count_total", valueType: "number" },
+  { heading: "Contributed revenue inbound", type: "BarCell", key: "revenue_in", valueType: "number" },
+  { heading: "Contributed revenue total", type: "BarCell", key: "revenue_total", valueType: "number" },
 ]
 
 export interface ViewInterface {
@@ -41,6 +43,9 @@ export interface TableState {
   modChannels: [];
   selectedViewIndex: number;
   views: ViewInterface[];
+  sortBy: []; // Feilds to sort by
+  sorts: []; // Fields added
+  sortOptions: ColumnMetaData[]; // Fields remaining to be added
   status: 'idle' | 'loading' | 'failed';
 }
 
@@ -57,16 +62,20 @@ const initialState: TableState = {
   selectedViewIndex: 0,
   views: loadTableState() || [DefaultView],  //
   status: 'idle',
+  sortBy: [],
+  sorts: [],
+  sortOptions: columns,
+
 };
 const init: RequestInit = {
   credentials: 'include',
-  headers: {'Content-Type':'application/json'},
+  headers: { 'Content-Type': 'application/json' },
   mode: 'cors',
 };
 
 function fetchChannels(from: string, to: string) {
   to = format(addDays(new Date(to), 1), "yyyy-MM-dd")
-  const body = fetch(`http://localhost:8080/api/channels?from=${from}&to=${to}`,init)
+  const body = fetch(`http://localhost:8080/api/channels?from=${from}&to=${to}`, init)
     .then(response => {
       return response.json()
     })
@@ -80,11 +89,20 @@ function fetchChannels(from: string, to: string) {
 // typically used to make async requests.
 export const fetchChannelsAsync = createAsyncThunk(
   'table/fetchChannels',
-  async (data: {from: string, to: string}) => {
+  async (data: { from: string, to: string }) => {
     const response = await fetchChannels(data.from, data.to);
     return response
   }
 );
+
+
+function getDifference(array1: any[], array2: { key: any }[]) {
+  return array1.filter((object1: { key: any }) => {
+    return !array2.some((object2: { key: any }) => {
+      return object1.key === object2.key;
+    });
+  })
+};
 
 
 export function loadTableState() {
@@ -111,7 +129,7 @@ export const tableSlice = createSlice({
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
   reducers: {
-    updateFilters: (state, actions: PayloadAction<{filters: FilterInterface[]}>) => {
+    updateFilters: (state, actions: PayloadAction<{ filters: FilterInterface[] }>) => {
       state.views[state.selectedViewIndex].filters = actions.payload.filters
       // TODO: Skip localstorage, save on server when the user chooses too.
       saveTempView(state.views)
@@ -121,13 +139,24 @@ export const tableSlice = createSlice({
       // TODO: Skip localstorage, save on server when the user chooses too.
       saveTempView(state.views)
     },
-    updateViews: (state, actions: PayloadAction<{views: ViewInterface[]}>) => {
+    updateViews: (state, actions: PayloadAction<{ views: ViewInterface[] }>) => {
       state.views = actions.payload.views
       saveTempView(state.views)
     },
     updateSelectedView: (state, actions: PayloadAction<{ index: number }>) => {
       state.selectedViewIndex = actions.payload.index
-    }
+    },
+    updateSortOptions: (state, actions: PayloadAction<any[]>) => {
+      //@ts-ignore
+      state.sorts = actions.payload[0]
+      state.sortOptions = actions.payload[1]
+    },
+    updateSort: (state, actions: PayloadAction<string[]>) => {
+      // @ts-ignore
+      state.sortBy = actions.payload
+      // @ts-ignore
+      state.channels = [...state.channels].sort(fieldSorter(state.sortBy))
+    },
   },
   // The `extraReducers` field lets the slice handle actions defined elsewhere,
   // including actions generated by createAsyncThunk or in other slices.
@@ -143,18 +172,20 @@ export const tableSlice = createSlice({
   },
 });
 
-export const { updateFilters, updateViews, updateSelectedView, updateColumns } = tableSlice.actions;
+export const { updateFilters, updateViews, updateSelectedView, updateSortOptions, updateSort, updateColumns} = tableSlice.actions;
 
 export const selectChannels = (state: RootState) => {
   const filters = state.table.views[state.table.selectedViewIndex].filters || []
   return applyFilters(filters, state.table.channels)
 };
+
 export const selectActiveColumns = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].columns || [];
 }
-export const selectAllColumns = (state: RootState) => {
-  return columns;
-}
+export const selectAllColumns = (state: RootState) => columns;
+export const selectSorts = (state: RootState) => state.table.sorts;
+export const selectSortByOptions = (state: RootState) => state.table.sortOptions;
+export const selectSortBy = (state: RootState) => state.table.sortBy
 export const selectFilters = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].filters || []
 };

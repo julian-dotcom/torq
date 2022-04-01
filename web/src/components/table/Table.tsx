@@ -41,7 +41,6 @@ interface TotalType {
 }
 
 function Table() {
-
   let columns = useAppSelector(selectActiveColumns) || [];
   let channels = useAppSelector(selectChannels) || [];
 
@@ -59,7 +58,7 @@ function Table() {
     turnover_out: 0,
     turnover_in: 0,
     turnover_total: 0,
-    capacity: 0,
+    capacity: 0
   };
   let max: RowType = {
     alias: "Max",
@@ -75,31 +74,37 @@ function Table() {
     turnover_out: 0,
     turnover_in: 0,
     turnover_total: 0,
-    capacity: 0,
+    capacity: 0
   };
 
   const numColumns = Object.keys(columns).length;
   const numRows = channels.length;
   const rowGridStyle = (numRows: number): string => {
     if (numRows > 0) {
-      return "grid-template-rows: min-content repeat(" + numRows + ",min-content) auto min-content;"
+      return (
+        "grid-template-rows: min-content repeat(" +
+        numRows +
+        ",min-content) auto min-content;"
+      );
     } else {
-      return "grid-template-rows: min-content  auto min-content;"
+      return "grid-template-rows: min-content  auto min-content;";
     }
-  }
+  };
 
+  // console.log(channelsSorted);
   if (channels.length > 0) {
-    channels.forEach((row) => {
-      Object.keys(total).forEach((column ) => {
+    channels.forEach(row => {
+      Object.keys(total).forEach(column => {
         // @ts-ignore
-        total[column as keyof RowType] += row[column]
+        total[column as keyof RowType] += row[column];
         // @ts-ignore
         max[column as keyof RowType] = Math.max(
           row[column],
           // @ts-ignore
-          max[column as keyof RowType])
-      })
-    })
+          max[column as keyof RowType]
+        );
+      });
+    });
   }
 
   return (
@@ -108,7 +113,8 @@ function Table() {
         {".table-content {grid-template-columns: min-content repeat(" +
           numColumns +
           ",  minmax(min-content, auto)) min-content;" +
-          rowGridStyle(numRows)+"}"}
+          rowGridStyle(numRows) +
+          "}"}
       </style>
       <div className="table-content">
         {/*Empty header at the start*/}
@@ -142,7 +148,7 @@ function Table() {
           return [
             <div className={"cell empty locked"} key={"first-cell-" + index} />,
             ...returnedRow,
-            <div className={"cell empty"} key={"last-cell-" + index} />,
+            <div className={"cell empty"} key={"last-cell-" + index} />
           ];
         })}
 
@@ -177,7 +183,7 @@ function Table() {
           }
         })}
         {/*Empty cell at the end*/}
-        {<div className={"cell empty total-cell"}/>}
+        {<div className={"cell empty total-cell"} />}
       </div>
     </div>
   );
