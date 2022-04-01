@@ -1,0 +1,40 @@
+.torq .filter-popover-content {
+  width: 700px; // TODO: Needs to be responsivie
+
+  .no-filters {
+    padding: 5px 10px;
+    background-color: var(--bg-extra-faint);
+    border: 1px solid var(--bg-subtle);
+    border-radius: 2px;
+    color: var(--fg-muted)
+  }
+  .filter-rows {
+    display: grid;
+    justify-content: stretch;
+    grid-row-gap: 10px;
+    margin-bottom: 20px;
+  }
+  .buttons-row {
+    display: grid;
+    grid-auto-flow: column;
+    justify-items: left;
+    justify-content: left;
+  }
+  .filter-row {
+    display: grid;
+    grid-auto-flow: column;
+    grid-column-gap: 10px;
+    align-items: center;
+    grid-template-columns: 70px 200px 150px auto 30px;
+    justify-content: stretch;
+    justify-items: stretch;
+    //font-size: var(--font-size-small);
+  }
+
+  .remove-filter {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    height: 100%;
+  }
+}

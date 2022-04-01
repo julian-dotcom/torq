@@ -2,9 +2,9 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState, AppThunk } from '../../store/store';
 import { log } from "util";
 import { addDays, format } from 'date-fns';
-import { FilterInterface, FilterFunctions, applyFilters } from './filter'
-import fieldSorter from './sort';
 
+import fieldSorter from './sort';
+import { FilterInterface, FilterFunctions, applyFilters } from './filter'
 
 export interface ColumnMetaData {
   heading: string;
@@ -32,9 +32,17 @@ export const columns: ColumnMetaData[] = [
   { heading: "Capacity", type: "NumericCell", key: "capacity", valueType: "number" },
 ]
 
+export interface ViewInterface {
+  title: string;
+  saved: boolean;
+  filters: Array<FilterInterface>;
+}
+
 export interface TableState {
   channels: [];
-  filters: Array<FilterInterface>;
+  modChannels: [];
+  selectedViewIndex: number;
+  views: ViewInterface[];
   columns: ColumnMetaData[];
   sortBy: []; // Feilds to sort by
   sorts: []; // Fields added
@@ -44,8 +52,14 @@ export interface TableState {
 
 const initialState: TableState = {
   channels: [],
-  filters: [],
+  modChannels: [],
   columns: columns,
+  selectedViewIndex: 0,
+  views: loadTableState() || [{
+    title: "Default Table",
+    saved: true,
+    filters: [],
+  }],
   status: 'idle',
   sortBy: [],
   sorts: [],
@@ -56,7 +70,6 @@ const init: RequestInit = {
   credentials: 'include',
   headers: { 'Content-Type': 'application/json' },
   mode: 'cors',
-  // referrerPolicy: 'origin-when-cross-origin'
 };
 
 function fetchChannels(from: string, to: string) {
@@ -87,7 +100,27 @@ function getDifference(array1: any[], array2: { key: any }[]) {
     return !array2.some((object2: { key: any }) => {
       return object1.key === object2.key;
     });
-  });
+  })
+};
+
+
+export function loadTableState() {
+  try {
+    const serializedState = localStorage.getItem("torq_temp_view");
+    if (!serializedState) return undefined;
+    return JSON.parse(serializedState);
+  } catch (e) {
+    return undefined;
+  }
+}
+
+export async function saveTempView(state: any) {
+  try {
+    const serializedState = JSON.stringify(state);
+    localStorage.setItem("torq_temp_view", serializedState);
+  } catch (e) {
+    console.log(e)
+  }
 }
 
 export const tableSlice = createSlice({
@@ -95,17 +128,24 @@ export const tableSlice = createSlice({
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
   reducers: {
+    updateFilters: (state, actions: PayloadAction<{ filters: FilterInterface[] }>) => {
+      state.views[state.selectedViewIndex].filters = actions.payload.filters
+      // TODO: Skip localstorage, save on server when the user chooses too.
+      saveTempView(state.views)
+    },
+    updateViews: (state, actions: PayloadAction<{ views: ViewInterface[] }>) => {
+      state.views = actions.payload.views
+      saveTempView(state.views)
+    },
+    updateSelectedView: (state, actions: PayloadAction<{ index: number }>) => {
+      state.selectedViewIndex = actions.payload.index
+    },
     updateSortOptions: (state, actions: PayloadAction<any[]>) => {
       //@ts-ignore
       state.sorts = actions.payload[0]
 
       // console.log(actions.payload[1][0])
       state.sortOptions = actions.payload[1]
-    },
-    updateFilters: (state, actions: PayloadAction<Array<FilterInterface>>) => {
-      state.filters = actions.payload
-      // @ts-ignore
-      state.channels = applyFilters(state.filters, state.channels)
     },
     updateSort: (state, actions: PayloadAction<string[]>) => {
       // @ts-ignore
@@ -124,16 +164,24 @@ export const tableSlice = createSlice({
       })
       .addCase(fetchChannelsAsync.fulfilled, (state, action) => {
         state.status = 'idle';
-        state.channels = applyFilters(state.filters, action.payload);
+        state.channels = action.payload
       });
   },
 });
 
-export const { updateFilters, updateSort, updateSortOptions } = tableSlice.actions;
+export const { updateFilters, updateSort, updateSelectedView, updateSortOptions } = tableSlice.actions;
 
-export const selectChannels = (state: RootState) => state.table.channels;
+export const selectChannels = (state: RootState) => {
+  const filters = state.table.views[state.table.selectedViewIndex].filters || []
+  return applyFilters(filters, state.table.channels)
+};
 export const selectColumns = (state: RootState) => state.table.columns;
 export const selectSorts = (state: RootState) => state.table.sorts;
 export const selectSortByOptions = (state: RootState) => state.table.sortOptions;
+export const selectFilters = (state: RootState) => {
+  return state.table.views[state.table.selectedViewIndex].filters || []
+};
+export const selectViews = (state: RootState) => state.table.views;
+export const selectedViewindex = (state: RootState) => state.table.selectedViewIndex;
 
 export default tableSlice.reducer;

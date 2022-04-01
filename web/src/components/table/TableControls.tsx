@@ -9,15 +9,16 @@ import {
 } from "@fluentui/react-icons";
 
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import Dropdown from "../formElements/Dropdown";
+
 import DefaultButton from "../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./SortControls";
-// import FilterPopover from "./filter/FilterPopover";
-import { fetchChannelsAsync, updateFilters } from "./tableSlice";
+import { fetchChannelsAsync } from "./tableSlice";
+import FilterPopover from "./controls/filter/FilterPopover";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { format } from "date-fns";
+import ViewsPopover from "./controls/views/ViewsPopover";
 
 function TableControls() {
   const dispatch = useAppDispatch();
@@ -25,19 +26,6 @@ function TableControls() {
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
   dispatch(fetchChannelsAsync({ from: from, to: to }));
-
-  // dispatch(updateFilters([{
-  //   filterCategory: 'number',
-  //   filterName: 'gte',
-  //   key: "amount_out",
-  //   parameter: 5000000
-  // },
-  // {
-  //   filterCategory: 'number',
-  //   filterName: 'gte',
-  //   key: "revenue_out",
-  //   parameter: 150
-  // }] ))
 
   return (
     <div className="table-controls">
@@ -49,7 +37,7 @@ function TableControls() {
             onClick={() => dispatch(toggleNav())}
             className={"show-nav-btn collapse-tablet"}
           />
-          <Dropdown />
+          <ViewsPopover />
           <DefaultButton
             icon={<OptionsIcon />}
             text={""}
@@ -65,7 +53,7 @@ function TableControls() {
           <div>
             <SortControls />
           </div>
-          {/* <FilterPopover/> */}
+          <FilterPopover />
           <DefaultButton
             icon={<GroupIcon />}
             text={"Group"}

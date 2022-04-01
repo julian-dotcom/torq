@@ -7,6 +7,7 @@
   grid-auto-flow: row;
   grid-row-gap: 30px;
   grid-auto-rows: min-content;
+  grid-template-rows: min-content auto min-content;
 
   .logo-wrapper {
     display: grid;
@@ -36,6 +37,10 @@
     grid-auto-flow: row;
     grid-row-gap: 15px;
     grid-auto-rows: min-content;
+  }
+
+  .bottom-wrapper {
+
   }
 
 }
