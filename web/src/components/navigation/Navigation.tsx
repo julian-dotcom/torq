@@ -28,7 +28,7 @@ function Navigation() {
         </div>
       </div>
 
-      <MenuItem text={'My Routing Node'} />
+      {/*<MenuItem text={'My Routing Node'} />*/}
 
       <div className="menu-items">
         {/*<MenuItem text={'Top revenue today'} icon={<DotIcon/>} selected={true} routeTo={'/a'} />*/}
@@ -36,13 +36,16 @@ function Navigation() {
         {/*<MenuItem text={'Destination channels'} icon={<DotIcon/>} routeTo={'/a'} />*/}
 
         <div className="wrapper">
-          <MenuItem text={'Tables'} icon={<TableIcon/>} actions={<AddTable/>}/>
-          <MenuItem text={'Fees'} icon={<FeeIcon/>}  />
-          <MenuItem text={'Rebalance'} icon={<RebalanceIcon/>}  />
-          <MenuItem text={'Logout'} icon={<LogoutIcon/>} routeTo={'/logout'} />
+          {/*actions={<AddTable/>}*/}
+          <MenuItem text={'Tables'} icon={<TableIcon/>} />
+          {/*<MenuItem text={'Fees'} icon={<FeeIcon/>}  />*/}
+          {/*<MenuItem text={'Rebalance'} icon={<RebalanceIcon/>}  />*/}
         </div>
       </div>
 
+      <div className="bottom-wrapper">
+        <MenuItem text={'Logout'} icon={<LogoutIcon/>} routeTo={'/logout'} />
+      </div>
     </div>
   );
 }
