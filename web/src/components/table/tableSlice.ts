@@ -15,18 +15,18 @@ export interface ColumnMetaData {
 export const columns: ColumnMetaData[] = [
   { heading: "Name", type: "AliasCell", key: "alias", locked: true, valueType: "string"},
   { heading: "Revenue", type: "BarCell", key: "revenue_out", valueType: "number"},
-  { heading: "Successful outbound", type: "BarCell", key: "count_out", valueType: "number"},
-  { heading: "Successful inbound", type: "BarCell", key: "count_in", valueType: "number"},
-  { heading: "Successful total", type: "BarCell", key: "count_total", valueType: "number"},
+  { heading: "Capacity", type: "NumericCell", key: "capacity", valueType: "number"},
   { heading: "Amount outbound", type: "BarCell", key: "amount_out", valueType: "number"},
   { heading: "Amount inbound", type: "BarCell", key: "amount_in", valueType: "number"},
   { heading: "Amount total", type: "BarCell", key: "amount_total", valueType: "number"},
-  { heading: "Contributed (revenue inbound)", type: "BarCell", key: "revenue_in", valueType: "number"},
-  { heading: "Contributed (revenue total)", type: "BarCell", key: "revenue_total", valueType: "number"},
   { heading: "Turnover outbound", type: "NumericCell", key: "turnover_out", valueType: "number"},
   { heading: "Turnover inbound", type: "NumericCell", key: "turnover_in", valueType: "number"},
   { heading: "Turnover total", type: "NumericCell", key: "turnover_total", valueType: "number"},
-  { heading: "Capacity", type: "NumericCell", key: "capacity", valueType: "number"},
+  { heading: "Successful outbound", type: "BarCell", key: "count_out", valueType: "number"},
+  { heading: "Successful inbound", type: "BarCell", key: "count_in", valueType: "number"},
+  { heading: "Successful total", type: "BarCell", key: "count_total", valueType: "number"},
+  { heading: "Contributed revenue inbound", type: "BarCell", key: "revenue_in", valueType: "number"},
+  { heading: "Contributed revenue total", type: "BarCell", key: "revenue_total", valueType: "number"},
 ]
 
 export interface ViewInterface {

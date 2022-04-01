@@ -55,14 +55,14 @@
     grid-row-gap: 10px;
   }
   .unselected-columns {
-    padding: 10px 0;
+    //padding: 10px 0;
   }
   .unselected-column-row {
     display: grid;
     grid-template-columns: auto 36px;
     align-items: center;
     justify-content: space-between;
-    padding: 8.5px 10px 8.5px 10px;
+    padding: 8.5px 0px 8.5px 5px;
     cursor: pointer;
     &:hover {
       background-color: var(--bg-faint);

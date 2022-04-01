@@ -20,10 +20,8 @@ import {useAppDispatch, useAppSelector} from "../../../../store/hooks";
 import Fuse from "fuse.js";
 
 interface columnRow {
-  name: string;
+  column: ColumnMetaData;
   index: number;
-  cellType: string;
-  selected: boolean;
   handleRemoveColumn: Function;
   handleUpdateColumn: Function;
 }
@@ -33,33 +31,38 @@ const CellOptions: SelectOptionType[] = [
   {label: "Bar", value: "BarCell"},
 ]
 
-function ColumnRow({name, index, cellType, selected, handleRemoveColumn, handleUpdateColumn}: columnRow) {
-  const selectedOption = CellOptions.filter((column) => {
-    if (column.value === cellType) {
-      return column
+function ColumnRow({column, index, handleRemoveColumn, handleUpdateColumn}: columnRow) {
+
+  const selectedOption = CellOptions.filter((option) => {
+    if (option.value === column.type) {
+      return option
     }
   })[0] || {label: 'Name', value: 'AliasCell'}
 
   return (
     <div className="column-row">
       <div className="row-drag-handle">
-       {name !== "Name" ?(<DragHandle/>):""}
+       {column.key !== "alias" ?(<DragHandle/>):""}
       </div>
 
-      <div className="column-name" onClick={() => (index)}>
-        <div>{name}</div>
+      <div className="column-name">
+        <div>{column.heading}</div>
       </div>
 
-      <div className="column-type-select" onClick={() => (index)}>
-        {cellType !== 'AliasCell' ? (
-          <TorqSelect options={CellOptions} value={selectedOption} onChange={() => {
+      <div className="column-type-select">
+        {column.type !== 'AliasCell' ? (
+          <TorqSelect options={CellOptions} value={selectedOption} onChange={(o: SelectOptionType) => {
+            handleUpdateColumn({
+              ...column,
+              type: o.value,
+            }, index)
           }} isDisabled={!selectedOption}/>
         ) : (
           <TorqSelect options={selectedOption} value={selectedOption} isDisabled={true}/>
         )}
       </div>
 
-      {name !== "Name" ? (
+      {column.key !== "alias" ? (
         <div className="remove-column" onClick={() => {handleRemoveColumn(index)}}>
           <RemoveIcon/>
         </div>
@@ -94,20 +97,20 @@ function UnselectedColumn({name, index, handleAddColumn}: unselectedColumnRow) {
 
 function ColumnsPopover() {
 
-    const activeColumns = useAppSelector(selectActiveColumns)
-    const columns = useAppSelector(selectAllColumns)
+    const activeColumns = useAppSelector(selectActiveColumns);
+    const columns = useAppSelector(selectAllColumns);
     const dispatch = useAppDispatch();
 
-    // const updateColumn = (view: ViewInterface, index: number) => {
-    //    const updatedViews = [
-    //      ...views.slice(0,index),
-    //      {...views[index], ...view},
-    //       ...views.slice(index+1, views.length)
-    //    ]
-    //   dispatch(
-    //     updateViews( {views: updatedViews})
-    //   )
-    // }
+    const updateColumn = (column: ColumnMetaData, index: number) => {
+       const updatedColumns = [
+         ...activeColumns.slice(0,index),
+         column,
+          ...activeColumns.slice(index+1, columns.length)
+       ]
+      dispatch(
+        updateColumns( {columns: updatedColumns})
+      )
+    }
 
     const removeColumn = (index: number) => {
       const updatedColumns: ColumnMetaData[] = [
@@ -150,13 +153,11 @@ function ColumnsPopover() {
         <div className="column-rows">
           {activeColumns.map((column, index) => {
             return <ColumnRow
-              name={column.heading}
+              column={column}
               key={"selected-"+index}
               index={index}
               handleRemoveColumn={removeColumn}
-              handleUpdateColumn={() => {}}
-              cellType={column.type as string}
-              selected={true}/>
+              handleUpdateColumn={updateColumn}/>
           })}
         </div>
 
