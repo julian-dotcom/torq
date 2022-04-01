@@ -65,6 +65,7 @@ function Table() {
   let max = Object.assign({}, baseAcc);
   let average = Object.assign({}, baseAcc);
 
+  // console.log(channelsSorted);
   if (channels.length > 0) {
     channels.forEach(row => {
       Object.keys(total).forEach(column => {

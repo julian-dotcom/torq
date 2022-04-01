@@ -1,0 +1,18 @@
+.torq .sort-popover-content {
+  width: 450px;
+  display: grid;
+  grid-row-gap: 20px;
+  .sort-rows {
+    display: grid;
+    grid-row-gap: 10px;
+  }
+  .sort-row {
+    display: grid;
+    grid-auto-flow: column;
+    grid-column-gap: 10px;
+    align-items: center;
+    grid-template-columns: min-content auto 150px min-content;
+    justify-content: stretch;
+    justify-items: stretch;
+  }
+}

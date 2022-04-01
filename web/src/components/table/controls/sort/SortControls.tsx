@@ -2,162 +2,179 @@ import { useEffect, useState } from "react";
 import styled from "@emotion/styled";
 import {
   ArrowSortDownLines20Regular as SortIcon,
-  Dismiss20Regular as Dismiss,
-  ReOrder16Regular as ReOrder,
-  AddSquare20Regular,
+  Dismiss20Regular as DismissIcon,
+  ReOrder16Regular as ReOrderIcon,
+  AddSquare20Regular as AddIcon,
 } from "@fluentui/react-icons";
-
 import TorqSelect from "../../../inputs/Select";
 import DefaultButton from "../../../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
-import { selectAllColumns, selectSorts, updateSort, updateSortOptions, selectSortByOptions, } from "../../tableSlice";
+import {selectAllColumns, selectSortBy, updateSortBy,} from "../../tableSlice";
 import Popover from '../../../popover/Popover';
+// TODO: Convert to styled components using imported scss
+import './sort.scss'
 
-const ControlsContainer = styled.div({
-  width: 451,
-});
+export interface SortByOptionType {
+  value: string;
+  label: string;
+  direction: string;
+}
 
-const StyledSortIcon = styled(ReOrder)({
-  marginTop: 10
-});
-
-const StyledDismissIcon = styled(Dismiss)({
-  marginTop: 10
-});
-
-const StyledAddSort = styled(AddSquare20Regular)({
-  marginTop: 10
-});
-
-const Container = styled.div`
-  display: flex;
-  margin-bottom: 10px;
-  grid-column-gap: 10px;
-`;
-
-const sortOptions = [
-  { value: "", label: "Ascending" },
-  { value: "-", label: "Descending" }
+interface sortRowInterface {
+  selected: SortByOptionType;
+  options: SortByOptionType[];
+  index: number;
+  handleUpdateSort: Function;
+  handleRemoveSort: Function;
+}
+interface sortDirectionOption {
+  value: string;
+  label: string;
+}
+const sortDirectionOptions: sortDirectionOption[] = [
+  { value: "asc", label: "Ascending" },
+  { value: "desc", label: "Descending" }
 ];
 
-const AddSortButton = styled.button({
-  marginTop: 8,
-  color: "#033048"
-});
+const SortRow = ({selected, options, index, handleUpdateSort, handleRemoveSort}: sortRowInterface ) => {
 
-const SortRow = (props: any) => {
-  const [sortKey, setSortKey] = useState(props.options[0].key);
-  const [sortBy, setSortBy] = useState("");
-  const { handleSorts } = props;
-  useEffect(() => {
-    handleSorts({ key: sortKey, sortBy: sortBy });
-  }, [sortBy, sortKey]);
+  const handleColumn = (item: SortByOptionType) => {
+    handleUpdateSort(item, index)
+  }
+  const handleDirection = (item: {value: string, label: string}) => {
+    handleUpdateSort({
+      ...selected,
+      direction: item.value
+    }, index)
+  }
+
   return (
-    <>
-      <StyledSortIcon />
+    <div className={"sort-row"}>
+      <ReOrderIcon />
       <div style={{ flex: 3 }}>
         <TorqSelect
-          onChange={(v: any) => setSortKey(v.key)}
-          defaultValue={props.options[0]}
-          options={props.options}
+          onChange={handleColumn}
+          options={options}
           getOptionLabel={(option: { [x: string]: any }) =>
-            option[props.labelValue]
+            option['label']
           }
           getOptionValue={(option: { [x: string]: any }) =>
-            option[props.keyValue]
+            option['value']
           }
+          value={selected}
         />
       </div>
 
       <div style={{ flex: 2 }}>
         <TorqSelect
-          onChange={(v: any) => setSortBy(v.value)}
-          defaultValue={sortOptions[0]}
-          options={sortOptions}
+          onChange={handleDirection}
+          options={sortDirectionOptions}
+          getOptionLabel={(option: { [x: string]: any }) =>
+            option['label']
+          }
+          getOptionValue={(option: { [x: string]: any }) =>
+            option['value']
+          }
+          value={sortDirectionOptions.find(
+            (dir: sortDirectionOption) => dir.value === selected.direction)
+          }
         />
       </div>
-      <StyledDismissIcon onClick={() => props.handleDelete(props.id)} />
-    </>
+      <DismissIcon onClick={(() => {handleRemoveSort(index)})} />
+    </div>
   );
 };
 
-const SortControls = (props: any) => {
+const SortControls = () => {
 
   const dispatch = useAppDispatch();
-  const columns = useAppSelector(selectAllColumns) || [];
-  const sorts: any[] = useAppSelector(selectSorts) || [];
-  const sortOptions = useAppSelector(selectSortByOptions) || [];
+  const columns = useAppSelector(selectAllColumns);
+  const sorts = useAppSelector(selectSortBy);
 
-  const [sortBy, setSortBy] = useState<any[]>([]);
+  let options = columns
+    .slice()
+    .map((column: { key: string; heading: string; valueType: string }) => {
+      return {
+        value: column.key,
+        label: column.heading,
+        direction: 'desc'
+      };
+    });
+
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const handleAddSort = () => {
-    dispatch(updateSortOptions([[...sorts, columns[sorts.length+1]], columns]))
+    const updated: SortByOptionType[] = [
+      ...sorts,
+      {
+        direction: '',
+        value: columns[0].key,
+        label: columns[0].heading,
+      }
+    ]
+    dispatch(updateSortBy({sortBy: updated}))
   };
 
-  const handleSorts = (i: any) => {
-    const newArr = [...sortBy];
-    let objIndex = newArr.findIndex(obj => obj.key === i.key);
+  const handleUpdateSort = (update: SortByOptionType, index: number) => {
+    const updated: SortByOptionType[] = [
+      ...sorts.slice(0, index),
+      update,
+      ...sorts.slice(index + 1, sorts.length),
+    ]
+    dispatch(updateSortBy({sortBy: updated}))
+  };
 
-    if (objIndex >= 0) {
-      //@ts-ignore
-      newArr[objIndex].sortBy = i.sortBy;
-    } else {
-      //@ts-ignore
-      newArr.push(i);
+  const handleRemoveSort = (index: number) => {
+    const updated: SortByOptionType[] = [
+      ...sorts.slice(0, index),
+      ...sorts.slice(index + 1, sorts.length),
+    ]
+    dispatch(updateSortBy({sortBy: updated}))
+  };
+
+  const buttonText = (): string => {
+    if (sorts.length > 0) {
+      return sorts.length + " Sorted";
     }
-    setSortBy(newArr)
-    const ba: string[] = newArr.map(i => `${i.sortBy}${i.key}`);
-    dispatch(updateSort(ba));
-  };
-
-  const handleRemoveSort = (key: any) => {
-    const newArray = sorts.filter(function(element: { key: string }) {
-      return element.key !== key;
-    });
-
-    dispatch(updateSortOptions([[...newArray], columns]))
+    return "Sort";
   };
 
   let popOverButton = <DefaultButton
-          isOpen={isPopoverOpen}
+          isOpen={!!sorts.length}
           onClick={() => setIsPopoverOpen(!isPopoverOpen)}
           icon={<SortIcon />}
-          text={"Sort"}
+          text={buttonText()}
           className={"collapse-tablet"}
         />
 
   return (
     <div>
       <Popover button={popOverButton}>
-        <ControlsContainer>
-            {!sorts.length && <div className={"no-filters"}>No sorting</div>}
-            {sorts?.map(sort => {
+        <div className={"sort-popover-content"}>
+
+          {!sorts.length && <div className={"no-filters"}>No sorting</div>}
+
+          {!!sorts.length && (<div className={"sort-rows"}>
+            {sorts.map((item, index) => {
               return (
-                <Container key={sort.key}>
-                  <SortRow
-                    handleSorts={handleSorts}
-                    handleDelete={handleRemoveSort}
-                    keyValue="key"
-                    labelValue="heading"
-                    options={sortOptions}
-                    id={sort.key}
-                  />
-                </Container>
+                <SortRow
+                  key={item.value + index}
+                  selected={item}
+                  options={options}
+                  index={index}
+                  handleUpdateSort={handleUpdateSort}
+                  handleRemoveSort={handleRemoveSort}
+                />
               );
             })}
+          </div>)}
 
-            {columns.length === sorts.length ? null : (
-              <Container>
-                <StyledAddSort />
-                <AddSortButton onClick={() => handleAddSort()}>
-                  Add Sort
-                </AddSortButton>
-              </Container>
-            )}
-          </ControlsContainer>
+          <div className="buttons-row">
+            <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon/>}/>
+          </div>
 
+        </div>
       </Popover>
     </div>
   );

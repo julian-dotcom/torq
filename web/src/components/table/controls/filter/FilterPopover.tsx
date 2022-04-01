@@ -42,30 +42,19 @@ function getFilterFunctions(filterCategory: "number" | "string") {
 interface filterRowInterface {
   index: number;
   rowValues: FilterInterface;
+  columnOptions: SelectOptionType[];
   handleUpdateFilter: Function;
   handleRemoveFilter: Function;
 }
 
+interface filterOptionsInterface {
+  key: string;
+  heading: string;
+  valueType: string;
+}
 
-function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: filterRowInterface) {
 
-  let columnsMeta = useAppSelector(selectAllColumns) || [];
-
-  let columnOptions = columnsMeta
-    .slice()
-    .map((column: { key: string; heading: string; valueType: string }) => {
-      return {
-        value: column.key,
-        label: column.heading,
-        valueType: column.valueType
-      };
-    });
-
-  columnOptions.sort((a: SelectOptionType, b: SelectOptionType) => {
-    if(a.label < b.label) { return -1; }
-    if(a.label > b.label) { return 1; }
-    return 0;
-  });
+function FilterRow({index, rowValues, columnOptions, handleUpdateFilter, handleRemoveFilter}: filterRowInterface) {
 
   let functionOptions = getFilterFunctions(rowValues.category);
 
@@ -110,6 +99,7 @@ function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: f
       index
     );
   };
+
   const handleKeyChange = (item: any) => {
     let newFilter = {
       ...convertFilterData(rowData),
@@ -247,7 +237,7 @@ const FilterPopover = () => {
 
   const buttonText = (): string => {
     if (filters.length > 0) {
-      return filters.length + " filters";
+      return filters.length + " Filter" + (filters.length > 1 ? "s" : "")
     }
     return "Filter";
   };
@@ -261,6 +251,24 @@ const FilterPopover = () => {
     />
   );
 
+  const columnsMeta = useAppSelector(selectAllColumns) || [];
+
+  let columnOptions = columnsMeta
+    .slice()
+    .map((column: filterOptionsInterface) => {
+      return {
+        value: column.key,
+        label: column.heading,
+        valueType: column.valueType
+      };
+    });
+
+  columnOptions.sort((a: SelectOptionType, b: SelectOptionType) => {
+    if(a.label < b.label) { return -1; }
+    if(a.label > b.label) { return 1; }
+    return 0;
+  });
+
   return (
     <Popover button={popOverButton}>
       <div className={"filter-popover-content"}>
@@ -272,6 +280,7 @@ const FilterPopover = () => {
                 key={"filter-row-" + index}
                 rowValues={filter}
                 index={index}
+                columnOptions={columnOptions}
                 handleUpdateFilter={updateFilter}
                 handleRemoveFilter={removeFilter}
               />

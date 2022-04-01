@@ -1,9 +1,9 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState, AppThunk } from '../../store/store';
 import { addDays, format } from 'date-fns';
-
-import fieldSorter from './controls/sort/sort';
 import { FilterInterface, FilterFunctions, applyFilters } from './controls/filter/filter'
+import {SortByOptionType} from "./controls/sort/SortControls";
+import _ from "lodash";
 
 export interface ColumnMetaData {
   heading: string;
@@ -31,11 +31,13 @@ export const columns: ColumnMetaData[] = [
   { heading: "Contributed revenue total", type: "BarCell", key: "revenue_total", valueType: "number" },
 ]
 
+
 export interface ViewInterface {
   title: string;
   saved: boolean;
   filters: Array<FilterInterface>;
   columns: ColumnMetaData[];
+  sortBy: SortByOptionType[],
 }
 
 export interface TableState {
@@ -43,9 +45,6 @@ export interface TableState {
   modChannels: [];
   selectedViewIndex: number;
   views: ViewInterface[];
-  sortBy: []; // Feilds to sort by
-  sorts: []; // Fields added
-  sortOptions: ColumnMetaData[]; // Fields remaining to be added
   status: 'idle' | 'loading' | 'failed';
 }
 
@@ -54,6 +53,7 @@ export const DefaultView: ViewInterface = {
     saved: true,
     filters: [],
     columns: columns,
+    sortBy: [],
   }
 
 const initialState: TableState = {
@@ -62,10 +62,6 @@ const initialState: TableState = {
   selectedViewIndex: 0,
   views: loadTableState() || [DefaultView],  //
   status: 'idle',
-  sortBy: [],
-  sorts: [],
-  sortOptions: columns,
-
 };
 const init: RequestInit = {
   credentials: 'include',
@@ -96,13 +92,13 @@ export const fetchChannelsAsync = createAsyncThunk(
 );
 
 
-function getDifference(array1: any[], array2: { key: any }[]) {
-  return array1.filter((object1: { key: any }) => {
-    return !array2.some((object2: { key: any }) => {
-      return object1.key === object2.key;
-    });
-  })
-};
+// function getDifference(array1: any[], array2: { key: any }[]) {
+//   return array1.filter((object1: { key: any }) => {
+//     return !array2.some((object2: { key: any }) => {
+//       return object1.key === object2.key;
+//     });
+//   })
+// };
 
 
 export function loadTableState() {
@@ -146,16 +142,9 @@ export const tableSlice = createSlice({
     updateSelectedView: (state, actions: PayloadAction<{ index: number }>) => {
       state.selectedViewIndex = actions.payload.index
     },
-    updateSortOptions: (state, actions: PayloadAction<any[]>) => {
-      //@ts-ignore
-      state.sorts = actions.payload[0]
-      state.sortOptions = actions.payload[1]
-    },
-    updateSort: (state, actions: PayloadAction<string[]>) => {
-      // @ts-ignore
-      state.sortBy = actions.payload
-      // @ts-ignore
-      state.channels = [...state.channels].sort(fieldSorter(state.sortBy))
+    updateSortBy: (state, actions: PayloadAction<{ sortBy: SortByOptionType[] }>) => {
+      state.views[state.selectedViewIndex].sortBy = actions.payload.sortBy
+      saveTempView(state.views)
     },
   },
   // The `extraReducers` field lets the slice handle actions defined elsewhere,
@@ -172,20 +161,23 @@ export const tableSlice = createSlice({
   },
 });
 
-export const { updateFilters, updateViews, updateSelectedView, updateSortOptions, updateSort, updateColumns} = tableSlice.actions;
+export const { updateFilters, updateViews, updateSelectedView, updateSortBy, updateColumns} = tableSlice.actions;
+
 
 export const selectChannels = (state: RootState) => {
   const filters = state.table.views[state.table.selectedViewIndex].filters || []
-  return applyFilters(filters, state.table.channels)
+  const sorts = state.table.views[state.table.selectedViewIndex].sortBy || []
+
+  // TODO: Clean up
+  let channels = state.table.channels ? state.table.channels.slice() : []
+  return _.orderBy(applyFilters(filters, channels), sorts.map((s) => s.value), sorts.map((s) => s.direction) as ['asc'|'desc'])
 };
 
 export const selectActiveColumns = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].columns || [];
 }
 export const selectAllColumns = (state: RootState) => columns;
-export const selectSorts = (state: RootState) => state.table.sorts;
-export const selectSortByOptions = (state: RootState) => state.table.sortOptions;
-export const selectSortBy = (state: RootState) => state.table.sortBy
+export const selectSortBy = (state: RootState) => state.table.views[state.table.selectedViewIndex].sortBy
 export const selectFilters = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].filters || []
 };
