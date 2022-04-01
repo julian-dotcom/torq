@@ -1,0 +1,71 @@
+.torq .columns-popover-content {
+  //width: 375px;
+  display: grid;
+  row-gap: 20px;
+  .column-rows {
+    display: grid;
+    grid-row-gap: 10px;
+  }
+  .divider {
+    border-top: 1px solid var(--bg-subtle);
+  }
+  .remove-column.disabled {
+    color: var(--fg-subtle);
+  }
+  .column-search-wrapper {
+    position: relative;
+    .search-icon {
+      position: absolute;
+      top: 0;
+      left: 10px;
+      height: 100%;
+      display: grid;
+      align-items: center;
+      margin-top: -0.5px;
+      font-size: 18px;
+    }
+    input.column-search-field {
+      padding-left: 40px;
+      font-size: var(--font-size-default);
+    }
+  }
+  .column-row {
+    display: grid;
+    grid-template-columns: 36px 300px 150px 36px;
+    align-items: center;
+    justify-content: left;
+    padding-left: 5px;
+  }
+  .row-drag-handle {
+    cursor: grab;
+    justify-self: center;
+    margin-left: -10px;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+  .remove-column, .add-column {
+    cursor: pointer;
+    justify-self: center;
+    margin-right: -10px;
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+  .unselected-columns-wrapper {
+    display: grid;
+    grid-row-gap: 10px;
+  }
+  .unselected-columns {
+    //padding: 10px 0;
+  }
+  .unselected-column-row {
+    display: grid;
+    grid-template-columns: auto 36px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8.5px 0px 8.5px 5px;
+    cursor: pointer;
+    &:hover {
+      background-color: var(--bg-faint);
+    }
+  }
+}

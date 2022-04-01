@@ -18,6 +18,7 @@ import FilterPopover from "./controls/filter/FilterPopover";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 
 import ViewsPopover from "./controls/views/ViewsPopover";
+import ColumnsPopover from "./controls/columns/ColumnsPopover";
 
 function TableControls() {
   const dispatch = useAppDispatch();
@@ -44,14 +45,8 @@ function TableControls() {
           />
         </div>
         <div className="lower-container">
-          <DefaultButton
-            icon={<ColumnsIcon />}
-            text={"Columns"}
-            className={"collapse-tablet"}
-          />
-          <div>
-            <SortControls />
-          </div>
+          <ColumnsPopover />
+          <SortControls />
           <FilterPopover />
           <DefaultButton
             icon={<GroupIcon />}

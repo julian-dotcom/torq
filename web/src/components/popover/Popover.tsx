@@ -20,11 +20,12 @@ function useOutsideClose(ref: any, setIsPopoverOpen: Function) {
 }
 
 interface PopoverInterface {
+  className?: string,
   button?: ReactChild,
   children?: ReactChild,
 }
 
-const PopoverButton = ({button, children }: PopoverInterface) => {
+const PopoverButton = ({className, button, children }: PopoverInterface) => {
   const wrapperRef = useRef(null)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -33,7 +34,7 @@ const PopoverButton = ({button, children }: PopoverInterface) => {
   return (
     <div onClick={() => setIsPopoverOpen(!isPopoverOpen)}
          ref={wrapperRef}
-         className={classNames("torq-popover-button-wrapper")} >
+         className={classNames("torq-popover-button-wrapper", className)} >
       {button ? button : "button"}
       <div className={classNames("popover-wrapper", {"popover-open": isPopoverOpen})}
            onClick={(e) =>{e.stopPropagation()}}>

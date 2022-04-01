@@ -7,26 +7,14 @@ import {
   AddSquare20Regular,
 } from "@fluentui/react-icons";
 
-
 import TorqSelect from "../inputs/Select";
 import DefaultButton from "../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { selectColumns, selectSorts, updateSort, updateSortOptions, selectSortByOptions, } from "./tableSlice";
+import { selectAllColumns, selectSorts, updateSort, updateSortOptions, selectSortByOptions, } from "./tableSlice";
 import Popover from '../popover/Popover';
 
 const ControlsContainer = styled.div({
-  color: "#033048",
   width: 451,
-  background: "#ffffff",
-  padding: 20,
-  borderRadius: 2,
-  boxShadow: "0px 0px 10px rgba(3, 48, 72, 0.1)",
-  position: "fixed",
-  overflow: "visible",
-  top: 0,
-  left: 0,
-  transform: "translate(407px, 80px)",
-  zIndex: 999
 });
 
 const StyledSortIcon = styled(ReOrder)({
@@ -94,8 +82,9 @@ const SortRow = (props: any) => {
 };
 
 const SortControls = (props: any) => {
+
   const dispatch = useAppDispatch();
-  const columns = useAppSelector(selectColumns) || [];
+  const columns = useAppSelector(selectAllColumns) || [];
   const sorts: any[] = useAppSelector(selectSorts) || [];
   const sortOptions = useAppSelector(selectSortByOptions) || [];
 

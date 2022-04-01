@@ -5,11 +5,12 @@ import {
   Dismiss20Regular as RemoveIcon,
   AddSquare20Regular as AddFilterIcon
 } from "@fluentui/react-icons";
-import TorqSelect from "../../../inputs/Select";
+import React from "react";
+import TorqSelect, {SelectOptionType} from "../../../inputs/Select";
 
-import "./filter_popover.scoped.scss";
+import './filter_popover.scoped.scss';
 import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
-import { selectColumns, selectFilters, updateFilters } from "../../tableSlice";
+import { selectAllColumns, selectFilters, updateFilters } from "../../tableSlice";
 import { FilterFunctions, FilterInterface } from "../../filter";
 import NumberFormat from "react-number-format";
 import Popover from "../../../popover/Popover";
@@ -38,7 +39,6 @@ function getFilterFunctions(filterCategory: "number" | "string") {
   });
 }
 
-type optionType = { value: string; label: string };
 interface filterRowInterface {
   index: number;
   rowValues: FilterInterface;
@@ -46,13 +46,10 @@ interface filterRowInterface {
   handleRemoveFilter: Function;
 }
 
-function FilterRow({
-  index,
-  rowValues,
-  handleUpdateFilter,
-  handleRemoveFilter
-}: filterRowInterface) {
-  let columnsMeta = useAppSelector(selectColumns) || [];
+
+function FilterRow({index, rowValues, handleUpdateFilter, handleRemoveFilter}: filterRowInterface) {
+
+  let columnsMeta = useAppSelector(selectAllColumns) || [];
 
   let columnOptions = columnsMeta
     .slice()
@@ -64,31 +61,27 @@ function FilterRow({
       };
     });
 
-  columnOptions.sort((a: optionType, b: optionType) => {
-    if (a.label < b.label) {
-      return -1;
-    }
-    if (a.label > b.label) {
-      return 1;
-    }
+  columnOptions.sort((a: SelectOptionType, b: SelectOptionType) => {
+    if(a.label < b.label) { return -1; }
+    if(a.label > b.label) { return 1; }
     return 0;
   });
 
   let functionOptions = getFilterFunctions(rowValues.category);
 
   // @ts-ignore
-  let combinerOption: optionType = combinerOptions.find(
-    (item: optionType) => item.value === rowValues.combiner
-  );
+  let combinerOption: SelectOptionType = combinerOptions.find(
+    (item: SelectOptionType) => item.value === rowValues.combiner
+  )
   // @ts-ignore
-  let keyOption: optionType = columnOptions.find(
-    (item: optionType) => item.value === rowValues.key
-  );
+  let keyOption: SelectOptionType = columnOptions.find(
+    (item: SelectOptionType) => item.value === rowValues.key
+  )
   // @ts-ignore
-  let funcOption: optionType = functionOptions.find(
+  let funcOption: SelectOptionType = functionOptions.find(
     // @ts-ignore
-    (item: optionType) => item.value === rowValues.funcName
-  );
+    (item: SelectOptionType) => item.value === rowValues.funcName
+  )
 
   let rowData = {
     combiner: combinerOption,

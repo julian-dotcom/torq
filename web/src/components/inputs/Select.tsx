@@ -1,6 +1,9 @@
 import styled from "@emotion/styled";
 import Select from "react-select";
 
+
+export type SelectOptionType = {value: string, label:string}
+
 export const StyledSelect = styled(Select)`
   background: #ffffff;
 `;
