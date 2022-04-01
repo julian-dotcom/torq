@@ -4,9 +4,15 @@ import {
 
 const classNames = require('classnames');
 
-function HeaderCell(heading: string, key: string, className?: string, locked?: boolean) {
+interface headerCell {
+  heading: string;
+  className?: string;
+  locked?: boolean;
+}
+
+function HeaderCell({heading, className, locked}: headerCell) {
   return (
-    <div className={classNames("header", key, className)} key={key}>
+    <div className={classNames("header", className)}>
       <div className="content">
         {locked ? <div className="icon small"><LockIcon/></div> : ""}
         <div className="text">{heading}</div>

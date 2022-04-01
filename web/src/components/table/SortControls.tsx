@@ -11,7 +11,7 @@ import {
 import TorqSelect from "../inputs/Select";
 import DefaultButton from "../buttons/Button";
 import {useAppSelector} from "../../store/hooks";
-import {selectColumns} from "./tableSlice";
+import {selectAllColumns} from "./tableSlice";
 
 const ControlsContainer = styled.div({
   color: "#033048",
@@ -89,7 +89,7 @@ const SortRow = (props: any) => {
 };
 
 const SortControls = (props: any) => {
-  const columns = useAppSelector(selectColumns) || [];
+  const columns = useAppSelector(selectAllColumns) || [];
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 

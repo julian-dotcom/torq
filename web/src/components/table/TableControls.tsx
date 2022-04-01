@@ -19,6 +19,7 @@ import { fetchChannelsAsync } from "./tableSlice";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { format } from "date-fns";
 import ViewsPopover from "./controls/views/ViewsPopover";
+import ColumnsPopover from "./controls/columns/ColumnsPopover";
 
 function TableControls() {
   const dispatch = useAppDispatch();
@@ -45,11 +46,7 @@ function TableControls() {
           />
         </div>
         <div className="lower-container">
-          <DefaultButton
-            icon={<ColumnsIcon />}
-            text={"Columns"}
-            className={"collapse-tablet"}
-          />
+          <ColumnsPopover />
           <div>
             <SortControls />
           </div>

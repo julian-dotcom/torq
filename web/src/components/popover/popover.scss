@@ -2,18 +2,28 @@
   position: relative;
 
   .popover-wrapper {
+    max-height: calc(100vh - 120px);
     z-index: 20;
     background-color: var(--bg-default);
     position: absolute;
     left: 0;
     min-width: 100px;
     padding: 20px;
-    border-radius: 2px;
+    border-radius: 3px;
     border: 1px solid var(--bg-subtle);
     box-shadow: var(--popover-box-shadow);
     top: -2000px;
     transition: top 0ms 100ms, opacity 100ms 0ms;
     opacity: 0;
+  }
+  &.scrollable .popover-wrapper {
+    overflow-y: scroll;
+    /* Hide scrollbar for IE, Edge and Firefox */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
   }
 
   .popover-wrapper.popover-open {

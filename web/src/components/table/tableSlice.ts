@@ -33,6 +33,7 @@ export interface ViewInterface {
   title: string;
   saved: boolean;
   filters: Array<FilterInterface>;
+  columns: ColumnMetaData[];
 }
 
 export interface TableState {
@@ -40,20 +41,21 @@ export interface TableState {
   modChannels: [];
   selectedViewIndex: number;
   views: ViewInterface[];
-  columns: ColumnMetaData[];
   status: 'idle' | 'loading' | 'failed';
 }
+
+export const DefaultView: ViewInterface = {
+    title: "New Table",
+    saved: true,
+    filters: [],
+    columns: columns,
+  }
 
 const initialState: TableState = {
   channels: [],
   modChannels: [],
-  columns: columns,
   selectedViewIndex: 0,
-  views: loadTableState() || [{
-    title: "Default Table",
-    saved: true,
-    filters: [],
-  }],
+  views: loadTableState() || [DefaultView],  //
   status: 'idle',
 };
 const init: RequestInit = {
@@ -114,6 +116,11 @@ export const tableSlice = createSlice({
       // TODO: Skip localstorage, save on server when the user chooses too.
       saveTempView(state.views)
     },
+    updateColumns: (state, actions: PayloadAction<{columns: ColumnMetaData[]}>) => {
+      state.views[state.selectedViewIndex].columns = actions.payload.columns
+      // TODO: Skip localstorage, save on server when the user chooses too.
+      saveTempView(state.views)
+    },
     updateViews: (state, actions: PayloadAction<{views: ViewInterface[]}>) => {
       state.views = actions.payload.views
       saveTempView(state.views)
@@ -136,13 +143,18 @@ export const tableSlice = createSlice({
   },
 });
 
-export const { updateFilters, updateViews, updateSelectedView } = tableSlice.actions;
+export const { updateFilters, updateViews, updateSelectedView, updateColumns } = tableSlice.actions;
 
 export const selectChannels = (state: RootState) => {
   const filters = state.table.views[state.table.selectedViewIndex].filters || []
   return applyFilters(filters, state.table.channels)
 };
-export const selectColumns = (state: RootState) => state.table.columns;
+export const selectActiveColumns = (state: RootState) => {
+  return state.table.views[state.table.selectedViewIndex].columns || [];
+}
+export const selectAllColumns = (state: RootState) => {
+  return columns;
+}
 export const selectFilters = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].filters || []
 };

@@ -1,8 +1,13 @@
 const classNames = require('classnames');
 
-function AliasCell(current: string, key: string, index: number | string, className?: string) {
+interface AliasCell {
+  current: string,
+  className?: string
+}
+
+function AliasCell({current, className}: AliasCell) {
   return (
-    <div className={classNames("cell", "align-left", key, className)} key={key + index}>
+    <div className={classNames("cell", "align-left", className)}>
       <div className="current">
         {current}
       </div>

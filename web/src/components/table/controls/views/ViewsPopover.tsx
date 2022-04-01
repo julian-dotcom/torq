@@ -10,7 +10,14 @@ import {
   Reorder20Regular as DragHandle,
 } from "@fluentui/react-icons";
 import {useAppDispatch, useAppSelector} from "../../../../store/hooks";
-import {selectViews, updateViews, updateSelectedView, selectedViewindex, ViewInterface} from "../../tableSlice";
+import {
+  selectViews,
+  updateViews,
+  updateSelectedView,
+  selectedViewindex,
+  ViewInterface,
+  DefaultView
+} from "../../tableSlice";
 import {useState} from "react";
 
 interface viewRow {
@@ -106,11 +113,7 @@ function ViewsPopover() {
     const addView = () => {
       const updatedViews = [
          ...views.slice(),
-         {
-            title: "New Table",
-            saved: true,
-            filters: [],
-          }
+         DefaultView
        ]
       dispatch(
         updateViews( {views: updatedViews})

@@ -1,11 +1,17 @@
 import './cell.scss'
 import NumberFormat from 'react-number-format';
-
 const classNames = require('classnames');
 
-function NumericCell(current: number, previous: number, key: string, index: number|string, className?: string) {
+interface numericCell {
+  current: number,
+  previous?: number,
+  index: number | string,
+  className?: string
+}
+
+function NumericCell({current, previous, index, className}: numericCell) {
   return (
-    <div className={classNames("cell", "numeric-cell", key, className)} key={key + index}>
+    <div className={classNames("cell", "numeric-cell", className, index)}>
       <div className="current">
         <NumberFormat displayType="text" thousandSeparator=',' value={current} />
       </div>
