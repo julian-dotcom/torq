@@ -11,7 +11,7 @@ import TorqSelect, {SelectOptionType} from "../../../inputs/Select";
 import './filter_popover.scoped.scss';
 import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
 import { selectAllColumns, selectFilters, updateFilters } from "../../tableSlice";
-import { FilterFunctions, FilterInterface } from "../../filter";
+import { FilterFunctions, FilterInterface } from "./filter";
 import NumberFormat from "react-number-format";
 import Popover from "../../../popover/Popover";
 

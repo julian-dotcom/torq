@@ -7,11 +7,11 @@ import {
   AddSquare20Regular,
 } from "@fluentui/react-icons";
 
-import TorqSelect from "../inputs/Select";
-import DefaultButton from "../buttons/Button";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { selectAllColumns, selectSorts, updateSort, updateSortOptions, selectSortByOptions, } from "./tableSlice";
-import Popover from '../popover/Popover';
+import TorqSelect from "../../../inputs/Select";
+import DefaultButton from "../../../buttons/Button";
+import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
+import { selectAllColumns, selectSorts, updateSort, updateSortOptions, selectSortByOptions, } from "../../tableSlice";
+import Popover from '../../../popover/Popover';
 
 const ControlsContainer = styled.div({
   width: 451,

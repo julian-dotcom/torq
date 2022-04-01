@@ -13,7 +13,7 @@ function NumericCell({current, previous, index, className}: numericCell) {
   return (
     <div className={classNames("cell", "numeric-cell", className, index)}>
       <div className="current">
-        <NumberFormat displayType="text" thousandSeparator=',' value={current} />
+        <NumberFormat displayType="text" thousandSeparator=',' value={current}  decimalScale={2} />
       </div>
       {/*<div className="past">*/}
       {/*  <NumberFormat displayType="text" thousandSeparator=',' value={previous} />*/}

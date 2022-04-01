@@ -12,7 +12,7 @@ import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import DefaultButton from "../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { toggleNav } from "../navigation/navSlice";
-import SortControls from "./SortControls";
+import SortControls from "./controls/sort/SortControls";
 import { fetchChannelsAsync } from "./tableSlice";
 import FilterPopover from "./controls/filter/FilterPopover";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
@@ -48,16 +48,16 @@ function TableControls() {
           <ColumnsPopover />
           <SortControls />
           <FilterPopover />
-          <DefaultButton
-            icon={<GroupIcon />}
-            text={"Group"}
-            className={"collapse-tablet"}
-          />
-          <DefaultButton
-            icon={<SearchIcon />}
-            text={"Search"}
-            className={"small-tablet"}
-          />
+          {/*<DefaultButton*/}
+          {/*  icon={<GroupIcon />}*/}
+          {/*  text={"Group"}*/}
+          {/*  className={"collapse-tablet"}*/}
+          {/*/>*/}
+          {/*<DefaultButton*/}
+          {/*  icon={<SearchIcon />}*/}
+          {/*  text={"Search"}*/}
+          {/*  className={"small-tablet"}*/}
+          {/*/>*/}
         </div>
       </div>
       <div className="right-container">

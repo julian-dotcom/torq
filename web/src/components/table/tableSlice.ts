@@ -2,8 +2,8 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState, AppThunk } from '../../store/store';
 import { addDays, format } from 'date-fns';
 
-import fieldSorter from './sort';
-import { FilterInterface, FilterFunctions, applyFilters } from './filter'
+import fieldSorter from './controls/sort/sort';
+import { FilterInterface, FilterFunctions, applyFilters } from './controls/filter/filter'
 
 export interface ColumnMetaData {
   heading: string;

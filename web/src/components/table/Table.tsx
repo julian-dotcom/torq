@@ -44,7 +44,8 @@ function Table() {
   let columns = useAppSelector(selectActiveColumns) || [];
   let channels = useAppSelector(selectChannels) || [];
 
-  let total: RowType = {
+  // TODO: Clean this up. Create a user selectable totals.
+  let baseAcc: RowType = {
     alias: "Total",
     amount_out: 0,
     amount_in: 0,
@@ -60,22 +61,33 @@ function Table() {
     turnover_total: 0,
     capacity: 0
   };
-  let max: RowType = {
-    alias: "Max",
-    amount_out: 0,
-    amount_in: 0,
-    amount_total: 0,
-    revenue_out: 0,
-    revenue_in: 0,
-    revenue_total: 0,
-    count_out: 0,
-    count_total: 0,
-    count_in: 0,
-    turnover_out: 0,
-    turnover_in: 0,
-    turnover_total: 0,
-    capacity: 0
-  };
+  let total = Object.assign({}, baseAcc);
+  let max = Object.assign({}, baseAcc);
+  let average = Object.assign({}, baseAcc);
+
+  if (channels.length > 0) {
+    channels.forEach(row => {
+      Object.keys(total).forEach(column => {
+        // @ts-ignore
+        total[column as keyof RowType] += row[column];
+        // @ts-ignore
+        max[column as keyof RowType] = Math.max(
+          row[column],
+          // @ts-ignore
+          max[column as keyof RowType]
+        );
+      });
+    });
+
+    Object.keys(total).forEach(key => {
+      // @ts-ignore
+      average[key] = total[key]/channels.length
+    })
+
+    total.turnover_total = total.amount_total / total.capacity
+    total.turnover_out = total.amount_out / total.capacity
+    total.turnover_in = total.amount_in/ total.capacity
+  }
 
   const numColumns = Object.keys(columns).length;
   const numRows = channels.length;
@@ -90,22 +102,6 @@ function Table() {
       return "grid-template-rows: min-content  auto min-content;";
     }
   };
-
-  // console.log(channelsSorted);
-  if (channels.length > 0) {
-    channels.forEach(row => {
-      Object.keys(total).forEach(column => {
-        // @ts-ignore
-        total[column as keyof RowType] += row[column];
-        // @ts-ignore
-        max[column as keyof RowType] = Math.max(
-          row[column],
-          // @ts-ignore
-          max[column as keyof RowType]
-        );
-      });
-    });
-  }
 
   return (
     <div className="table-wrapper">
@@ -170,16 +166,19 @@ function Table() {
         {<div className={"cell empty total-cell locked"} />}
         {columns.map((column, index) => {
           let key = column.key as keyof TotalType;
+          // const isTurnover = ['turnover_total', 'turnover_out', 'turnover_in'].find((item) => item === key)
+          // let value = isTurnover ? average[key] as number :total[key] as number
+          let value = total[key] as number;
           switch (column.type) {
             case "AliasCell":
               // @ts-ignore
               return <AliasCell current={"Total"} className={classNames(key, index, "total-cell locked")} key={key + index}/>
             case "NumericCell":
-              return <NumericCell current={total[key] as number}  index={index} className={key + " total-cell"} key={`total-${key}-${index}`}/>;
+              return <NumericCell current={value}  index={index} className={key + " total-cell"} key={`total-${key}-${index}`}/>;
             case "BarCell":
-              return <BarCell current={total[key] as number} previous={total[key] as number} total={max[key] as number}  index={index} className={key + " total-cell"} key={`total-${key}-${index}`}/>;
+              return <BarCell current={value} previous={value} total={max[key] as number}  index={index} className={key + " total-cell"} key={`total-${key}-${index}`}/>;
             default:
-              return <NumericCell current={total[key] as number}  index={index} className={key + " total-cell"} key={`total-${key}-${index}`}/>;
+              return <NumericCell current={value}  index={index} className={key + " total-cell"} key={`total-${key}-${index}`}/>;
           }
         })}
         {/*Empty cell at the end*/}
