@@ -1,8 +1,5 @@
 //@ts-nocheck
 
-
-
-
 const fieldSorter = (fields: any[]) => (a: any, b: any) => fields.map(o => {
   let dir = 1;
   if (o[0] === '-') { dir = -1; o = o.substring(1); }

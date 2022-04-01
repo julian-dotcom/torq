@@ -143,14 +143,11 @@ export const tableSlice = createSlice({
     updateSortOptions: (state, actions: PayloadAction<any[]>) => {
       //@ts-ignore
       state.sorts = actions.payload[0]
-
-      // console.log(actions.payload[1][0])
       state.sortOptions = actions.payload[1]
     },
     updateSort: (state, actions: PayloadAction<string[]>) => {
       // @ts-ignore
       state.sortBy = actions.payload
-
       // @ts-ignore
       state.channels = [...state.channels].sort(fieldSorter(state.sortBy))
     },
@@ -178,6 +175,7 @@ export const selectChannels = (state: RootState) => {
 export const selectColumns = (state: RootState) => state.table.columns;
 export const selectSorts = (state: RootState) => state.table.sorts;
 export const selectSortByOptions = (state: RootState) => state.table.sortOptions;
+export const selectSortBy = (state: RootState) => state.table.sortBy
 export const selectFilters = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].filters || []
 };
