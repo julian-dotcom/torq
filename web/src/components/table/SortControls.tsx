@@ -70,7 +70,6 @@ function getDifference(array1: any[], array2: { key: any }[]) {
 const SortRow = (props: any) => {
   const [sortKey, setSortKey] = useState(props.options[0].key);
   const [sortBy, setSortBy] = useState("");
-
   const { handleSorts } = props;
   useEffect(() => {
     handleSorts({ key: sortKey, sortBy: sortBy });
@@ -110,6 +109,10 @@ const SortControls = (props: any) => {
   const sorts = useAppSelector(selectSorts) || [];
   const sortOptions = useAppSelector(selectSortByOptions) || [];
 
+  console.log(sorts)
+
+
+
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   // const [sortOptions, setSortOptions] = useState(columns);
@@ -118,13 +121,8 @@ const SortControls = (props: any) => {
 
   const handleAddSort = () => {
     const newOptions = getDifference(columns, sorts);
-    // setSortOptions(newOptions);
-    //@ts-ignore
-    // setSorts(prev => {
-    //   return [...prev, newOptions[0]];
-    // });
-
-    dispatch(updateSortOptions([[...sorts, newOptions[0]], [newOptions]]))
+    // console.log(columns[sorts.length])
+    dispatch(updateSortOptions([[...sorts, columns[sorts.length+1]], columns]))
   };
 
   const handleSorts = (i: any) => {
@@ -139,11 +137,7 @@ const SortControls = (props: any) => {
       newArr.push(i);
     }
 
-
-
     const ba: string[] = newArr.map(i => `${i.sortBy}${i.key}`);
-
-
     setSortBy(newArr);
 
     dispatch(updateSort(ba));

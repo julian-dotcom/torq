@@ -49,7 +49,8 @@ const initialState: TableState = {
   status: 'idle',
   sortBy: [],
   sorts: [],
-  sortOptions: columns
+  sortOptions: columns,
+
 };
 const init: RequestInit = {
   credentials: 'include',
@@ -81,7 +82,6 @@ export const fetchChannelsAsync = createAsyncThunk(
 );
 
 
-
 function getDifference(array1: any[], array2: { key: any }[]) {
   return array1.filter((object1: { key: any }) => {
     return !array2.some((object2: { key: any }) => {
@@ -89,7 +89,6 @@ function getDifference(array1: any[], array2: { key: any }[]) {
     });
   });
 }
-
 
 export const tableSlice = createSlice({
   name: 'table',
@@ -100,7 +99,7 @@ export const tableSlice = createSlice({
       //@ts-ignore
       state.sorts = actions.payload[0]
 
-      console.log(actions.payload)
+      // console.log(actions.payload[1][0])
       state.sortOptions = actions.payload[1]
     },
     updateFilters: (state, actions: PayloadAction<Array<FilterInterface>>) => {
