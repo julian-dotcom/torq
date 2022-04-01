@@ -169,7 +169,7 @@ export const tableSlice = createSlice({
   },
 });
 
-export const { updateFilters, updateSort, updateSelectedView, updateSortOptions } = tableSlice.actions;
+export const { updateFilters, updateSort, updateSelectedView, updateSortOptions, updateViews } = tableSlice.actions;
 
 export const selectChannels = (state: RootState) => {
   const filters = state.table.views[state.table.selectedViewIndex].filters || []
