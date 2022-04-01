@@ -4,8 +4,10 @@ import AliasCell from "./cells/AliasCell";
 import NumericCell from "./cells/NumericCell";
 import BarCell from "./cells/BarCell";
 import EmptyCell from "./cells/EmptyCell";
-import {useAppSelector} from "../../store/hooks";
-import {selectChannels, selectColumns} from "./tableSlice";
+import { FilterInterface } from "./filter";
+import fieldSorter from "./sort";
+import { useAppSelector } from "../../store/hooks";
+import { selectChannels, selectColumns } from "./tableSlice";
 
 interface RowType {
   alias: string;
@@ -40,7 +42,6 @@ interface TotalType {
 }
 
 function Table() {
-
   let columns = useAppSelector(selectColumns) || [];
   let channels = useAppSelector(selectChannels) || [];
 
@@ -58,7 +59,7 @@ function Table() {
     turnover_out: 0,
     turnover_in: 0,
     turnover_total: 0,
-    capacity: 0,
+    capacity: 0
   };
   let max: RowType = {
     alias: "Max",
@@ -74,31 +75,45 @@ function Table() {
     turnover_out: 0,
     turnover_in: 0,
     turnover_total: 0,
-    capacity: 0,
+    capacity: 0
   };
 
   const numColumns = Object.keys(columns).length;
   const numRows = channels.length;
   const rowGridStyle = (numRows: number): string => {
     if (numRows > 0) {
-      return "grid-template-rows: min-content repeat(" + numRows + ",min-content) auto min-content;"
+      return (
+        "grid-template-rows: min-content repeat(" +
+        numRows +
+        ",min-content) auto min-content;"
+      );
     } else {
-      return "grid-template-rows: min-content  auto min-content;"
+      return "grid-template-rows: min-content  auto min-content;";
     }
-  }
+  };
 
+  // console.log(channels);
+  // console.log(columns);
+
+  // const newCha =
+  // const channelsSorted = [...channels].sort(
+  //   fieldSorter(["alias", "-capacity"])
+  // );
+
+  // console.log(channelsSorted);
   if (channels.length > 0) {
-    channels.forEach((row) => {
-      Object.keys(total).forEach((column ) => {
+    channels.forEach(row => {
+      Object.keys(total).forEach(column => {
         // @ts-ignore
-        total[column as keyof RowType] += row[column]
+        total[column as keyof RowType] += row[column];
         // @ts-ignore
         max[column as keyof RowType] = Math.max(
           row[column],
           // @ts-ignore
-          max[column as keyof RowType])
-      })
-    })
+          max[column as keyof RowType]
+        );
+      });
+    });
   }
 
   return (
@@ -107,14 +122,15 @@ function Table() {
         {".table-content {grid-template-columns: min-content repeat(" +
           numColumns +
           ",  minmax(min-content, auto)) min-content;" +
-          rowGridStyle(numRows)+"}"}
+          rowGridStyle(numRows) +
+          "}"}
       </style>
       <div className="table-content">
         {/*Empty header at the start*/}
         {HeaderCell("", "first-empty-header", "empty locked")}
 
         {/* Header cells */}
-        {columns.map((column) => {
+        {columns.map(column => {
           return HeaderCell(column.heading, column.key, "", column.locked);
         })}
 
@@ -123,7 +139,7 @@ function Table() {
 
         {/* The main cells containing the data */}
         {channels.map((row, index) => {
-          let returnedRow = columns.map((column) => {
+          let returnedRow = columns.map(column => {
             let key = column.key as keyof RowType;
             let past = channels[index][key];
             switch (column.type) {
@@ -157,14 +173,14 @@ function Table() {
           return [
             <div className={"cell empty locked"} key={"first-cell-" + index} />,
             ...returnedRow,
-            <div className={"cell empty"} key={"last-cell-" + index} />,
+            <div className={"cell empty"} key={"last-cell-" + index} />
           ];
         })}
 
         {/* Empty filler cells to create an empty row that expands to push the last row down.
            It's ugly but seems to be the only way to do it */}
         {<div className={"cell empty locked"} />}
-        {columns.map((column) => {
+        {columns.map(column => {
           return (
             <div
               className={"cell empty " + column.key}
@@ -177,7 +193,7 @@ function Table() {
         {/* Totals row */}
         {/* Empty cell at the start */}
         {<div className={"cell empty total-cell locked"} />}
-        {columns.map((column) => {
+        {columns.map(column => {
           let key = column.key as keyof TotalType;
           switch (column.type) {
             case "AliasCell":
@@ -212,7 +228,7 @@ function Table() {
           }
         })}
         {/*Empty cell at the end*/}
-        {<div className={"cell empty total-cell"}/>}
+        {<div className={"cell empty total-cell"} />}
       </div>
     </div>
   );

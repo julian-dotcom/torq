@@ -35,7 +35,7 @@ function TimeIntervalSelect() {
 
   const dispatch = useAppDispatch()
 
-  const HandleChange = (item: any) => {
+  const handleChange = (item: any) => {
     const interval = {
       from: item.selection1.startDate.toString(),
       to: item.selection1.endDate.toString()
@@ -68,11 +68,10 @@ function TimeIntervalSelect() {
                 showMonthAndYearPickers={false}
                 weekStartsOn={locale.options?.weekStartsOn || 0}
                 direction="vertical"
-
                 inputRanges={[]}
                 ranges={[selection1]}
                 onChange={(item) => {
-                  HandleChange(item)
+                  handleChange(item)
                 }}
               />
             </div>

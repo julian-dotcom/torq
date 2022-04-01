@@ -1,13 +1,15 @@
+.no-filters {
+  padding: 5px 10px;
+  background-color: var(--bg-extra-faint);
+  border: 1px solid var(--bg-subtle);
+  border-radius: 2px;
+  color: var(--fg-muted)
+}
+
 .torq .filter-popover-content {
   width: 700px; // TODO: Needs to be responsivie
 
-  .no-filters {
-    padding: 5px 10px;
-    background-color: var(--bg-extra-faint);
-    border: 1px solid var(--bg-subtle);
-    border-radius: 2px;
-    color: var(--fg-muted)
-  }
+
   .filter-rows {
     display: grid;
     justify-content: stretch;

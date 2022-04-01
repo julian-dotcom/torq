@@ -1,23 +1,22 @@
 import "./table_controls.scss";
 import {
   ColumnTriple20Regular as ColumnsIcon,
-  Filter20Regular as FilterIcon,
   Navigation20Regular as NavigationIcon,
   ArrowJoin20Regular as GroupIcon,
   Search20Regular as SearchIcon,
-  Options20Regular as OptionsIcon,
+  Options20Regular as OptionsIcon
 } from "@fluentui/react-icons";
+import { format } from "date-fns";
 
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import Dropdown from "../formElements/Dropdown";
 import DefaultButton from "../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./SortControls";
-import FilterPopover from "./controls/filter/FilterPopover";
 import { fetchChannelsAsync } from "./tableSlice";
+import FilterPopover from "./controls/filter/FilterPopover";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
-import { format } from "date-fns";
+
 import ViewsPopover from "./controls/views/ViewsPopover";
 
 function TableControls() {
@@ -37,7 +36,7 @@ function TableControls() {
             onClick={() => dispatch(toggleNav())}
             className={"show-nav-btn collapse-tablet"}
           />
-          <ViewsPopover/>
+          <ViewsPopover />
           <DefaultButton
             icon={<OptionsIcon />}
             text={""}
@@ -53,7 +52,7 @@ function TableControls() {
           <div>
             <SortControls />
           </div>
-          <FilterPopover/>
+          <FilterPopover />
           <DefaultButton
             icon={<GroupIcon />}
             text={"Group"}
