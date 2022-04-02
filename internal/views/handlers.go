@@ -27,7 +27,7 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getTableViews(db *sqlx.DB) (r []*TableView, err error) {
-	sql := `Select id, view from table_view;`
+	sql := `Select id, view from table_view order by id;`
 
 	rows, err := db.Query(sql)
 	if err != nil {
@@ -73,15 +73,13 @@ func insertTableView(db *sqlx.DB, view *NewTableView) (r TableView, err error) {
 
 	sql := `
 		INSERT INTO table_view (view, created_on) values ($1, $2)
-		RETURNING id;
+		RETURNING id, view;
 	`
 
-	err = db.QueryRowx(sql, &view.View, time.Now().UTC()).Scan(&r.Id)
+	err = db.QueryRowx(sql, &view.View, time.Now().UTC()).Scan(&r.Id, &r.View)
 	if err != nil {
 		return TableView{}, errors.Wrap(err, "Unable to create view. SQL statement error")
 	}
-	// return the view with ID
-	r.View = view.View
 
 	return r, nil
 }

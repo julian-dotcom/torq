@@ -51,7 +51,7 @@ export interface TableState {
 
 export const DefaultView: ViewInterface = {
     title: "New Table",
-    saved: false,
+    saved: true,
     filters: [],
     columns: columns,
     sortBy: [],
@@ -149,10 +149,29 @@ export const createTableViewAsync = createAsyncThunk(
   async (data: { view: ViewInterface, index: number }) => {
 
     let body = await createTableView(data.view)
-
     return {view: body, index: data.index}
 })
 
+function deleteTableView(view: ViewInterface) {
+  const init: RequestInit = {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    mode: 'cors',
+    method: 'DELETE'
+  };
+  const body = fetch(`http://localhost:8080/api/table-views/${view.id}`, init)
+    .then(() => {return })
+  return body
+}
+
+export const deleteTableViewAsync = createAsyncThunk(
+  'table/deleteTableView',
+  async (data: { view: ViewInterface, index: number }) => {
+
+    let body = await deleteTableView(data.view)
+
+    return {index: data.index}
+})
 
 // export function loadTableState() {
 //   try {
@@ -184,8 +203,16 @@ export const tableSlice = createSlice({
     updateColumns: (state, actions: PayloadAction<{columns: ColumnMetaData[]}>) => {
       state.views[state.selectedViewIndex].columns = actions.payload.columns
     },
-    updateViews: (state, actions: PayloadAction<{ views: ViewInterface[] }>) => {
+    updateViews: (state, actions: PayloadAction<{ views: ViewInterface[], index: number }>) => {
       state.views = actions.payload.views
+      state.selectedViewIndex = actions.payload.index
+    },
+    deleteView: (state, actions: PayloadAction<{ view: ViewInterface, index: number }>) => {
+      state.views = [
+        ...state.views.slice(0,actions.payload.index),
+        ...state.views.slice(actions.payload.index+1, state.views.length),
+      ]
+      state.selectedViewIndex = 0
     },
     updateSelectedView: (state, actions: PayloadAction<{ index: number }>) => {
       state.selectedViewIndex = actions.payload.index
@@ -215,8 +242,8 @@ export const tableSlice = createSlice({
       })
       .addCase(createTableViewAsync.fulfilled, (state, action) => {
         state.status = 'idle';
-        state.views[action.payload.index] = action.payload.view.view
-        state.views[action.payload.index].saved = true
+        state.views[action.payload.index] = {...action.payload.view.view, id: action.payload.view.id}
+        state.selectedViewIndex = action.payload.index
       });
 
     builder
@@ -229,6 +256,19 @@ export const tableSlice = createSlice({
       });
 
     builder
+      .addCase(deleteTableViewAsync.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(deleteTableViewAsync.fulfilled, (state, action) => {
+        state.status = 'idle';
+        state.views = [
+          ...state.views.slice(0,action.payload.index),
+          ...state.views.slice(action.payload.index + 1, state.views.length),
+        ]
+        state.selectedViewIndex = 0;
+      });
+
+    builder
       .addCase(fetchChannelsAsync.pending, (state) => {
         state.status = 'loading';
       })
@@ -238,7 +278,7 @@ export const tableSlice = createSlice({
       });
 
     builder.addMatcher((action) => {
-      return ['table/updateFilters', 'table/updateSortBy', 'table/updateViews', 'table/updateColumns']
+      return ['table/updateFilters', 'table/updateSortBy', 'table/updateColumns']
         .findIndex((item) => action.type === item) !== -1
     }, (state, actions) => {
       // TODO: create compare version to indicate it view is saved or not.
@@ -247,19 +287,18 @@ export const tableSlice = createSlice({
 
     // Store the new name view name in the backend
     builder.addMatcher((action) => action.type === 'table/updateViews', (state, actions) => {
-      const uView = {...current(state.views[state.selectedViewIndex]), saved: true}
-      // TODO: the index here is not correct when creating new view
-      console.log(uView)
-        if (!uView.id) {
-          createTableView(uView).then(() => console.log('finished'))
-        }
-        updateTableView(uView).then(() => console.log('updated'))
-      })
+      updateTableView(state.views[state.selectedViewIndex]).then(() => console.log('View updated'))
+    })
+
+    // Store the new name view name in the backend
+    // builder.addMatcher((action) => action.type === 'table/deleteView', (state, actions) => {
+    //     deleteTableView(actions.payload.view).then(() => console.log('View deleted'))
+    //   })
 
   },
 });
 
-export const { updateFilters, updateViews, updateSelectedView, updateSortBy, updateColumns} = tableSlice.actions;
+export const { updateFilters, updateViews, deleteView, updateSelectedView, updateSortBy, updateColumns} = tableSlice.actions;
 
 
 export const selectChannels = (state: RootState) => {

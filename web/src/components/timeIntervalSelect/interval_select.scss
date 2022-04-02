@@ -172,6 +172,8 @@
   grid-column-gap: 8px;
   text-align: center;
   padding: 20px 0;
+  cursor: pointer;
+
 
   .icon {
     // TODO: Quick hack, clean up. FLW
@@ -179,5 +181,8 @@
   }
   .interval .previous {
     color: var(--fg-muted);
+  }
+  .interval .text-base {
+    font-size: var(--font-size-default);
   }
 }

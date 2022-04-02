@@ -13,10 +13,11 @@ import {useAppDispatch, useAppSelector} from "../../../../store/hooks";
 import {
   selectViews,
   updateViews,
+  deleteView,
   updateSelectedView,
   selectedViewIndex,
   ViewInterface,
-  DefaultView
+  DefaultView, createTableViewAsync, deleteTableViewAsync
 } from "../../tableSlice";
 import {useState} from "react";
 
@@ -90,9 +91,7 @@ function ViewsPopover() {
          {...views[index], ...view},
           ...views.slice(index+1, views.length)
        ]
-      dispatch(
-        updateViews( {views: updatedViews})
-      )
+      dispatch(updateViews( {views: updatedViews, index: index}))
     }
 
     const removeView = (index: number) => {
@@ -100,24 +99,11 @@ function ViewsPopover() {
       if (!confirmed) {
         return
       }
-      const updatedViews = [
-        ...views.slice(0,index),
-        ...views.slice(index+1, views.length)
-      ]
-      dispatch(updateSelectedView({index: 0}))
-      dispatch(
-        updateViews( {views: updatedViews})
-      )
+      dispatch(deleteTableViewAsync({view: views[index], index: index}))
     }
 
     const addView = () => {
-      const updatedViews = [
-         ...views.slice(),
-         DefaultView
-       ]
-      dispatch(
-        updateViews( {views: updatedViews})
-      )
+      dispatch(createTableViewAsync({view: DefaultView, index: views.length}))
     }
 
     const selectView = (index: number) => {
