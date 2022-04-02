@@ -1,10 +1,10 @@
 import "./table_controls.scss";
 import {
-  ColumnTriple20Regular as ColumnsIcon,
   Navigation20Regular as NavigationIcon,
   ArrowJoin20Regular as GroupIcon,
   Search20Regular as SearchIcon,
-  Options20Regular as OptionsIcon
+  Options20Regular as OptionsIcon,
+  Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import { format } from "date-fns";
 
@@ -13,20 +13,35 @@ import DefaultButton from "../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./controls/sort/SortControls";
-import {fetchChannelsAsync, fetchTableViewsAsync} from "./tableSlice";
+import {
+  createTableViewAsync,
+  fetchChannelsAsync,
+  fetchTableViewsAsync,
+  selectCurrentView,
+  selectedViewIndex, updateTableViewAsync
+} from "./tableSlice";
 import FilterPopover from "./controls/filter/FilterPopover";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 
 import ViewsPopover from "./controls/views/ViewsPopover";
 import ColumnsPopover from "./controls/columns/ColumnsPopover";
+import {Simulate} from "react-dom/test-utils";
 
 function TableControls() {
   const dispatch = useAppDispatch();
-  const currentPeriod = useAppSelector(selectTimeInterval);
-  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
-  const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
-  dispatch(fetchChannelsAsync({ from: from, to: to }));
-  dispatch(fetchTableViewsAsync());
+
+  const currentView = useAppSelector(selectCurrentView);
+  const currentViewIndex = useAppSelector(selectedViewIndex);
+
+  const saveView = () => {
+    let viewMod = {...currentView}
+    viewMod.saved = true
+    if (currentView.id === undefined || null) {
+      dispatch(createTableViewAsync({view: viewMod, index: currentViewIndex}))
+      return
+    }
+    dispatch(updateTableViewAsync({view: viewMod, index: currentViewIndex}))
+  }
 
   return (
     <div className="table-controls">
@@ -44,6 +59,12 @@ function TableControls() {
             text={""}
             className={"collapse-tablet mobile-options"}
           />
+          {!currentView.saved && (<DefaultButton
+            icon={<SaveIcon/>}
+            text={"Save"}
+            onClick={saveView}
+            className={"danger"}
+          />)}
         </div>
         <div className="lower-container">
           <ColumnsPopover />

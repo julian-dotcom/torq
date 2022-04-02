@@ -55,7 +55,7 @@ type NewTableView struct {
 func insertTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 
 	view := &NewTableView{}
-	err := c.BindJSON(view)
+	err := c.BindJSON(&view)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

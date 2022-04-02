@@ -119,6 +119,7 @@ function ViewsPopover() {
         updateViews( {views: updatedViews})
       )
     }
+
     const selectView = (index: number) => {
       dispatch(
         updateSelectedView({index: index})

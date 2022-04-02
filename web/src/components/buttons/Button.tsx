@@ -17,6 +17,13 @@ const StyledButton = styled.button`
   &.small .icon {
     font-size: var(--font-size-small);
   }
+  &.small {
+    padding: 2px 5px;
+  }
+  &.danger {
+    background-color: var(--secondary-300);
+    border: 1px solid var(--secondary-400);
+  }
   @media only screen and (max-width: 900px) {
     &.small-tablet,
     &.small-tablet .icon {

@@ -1,5 +1,5 @@
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RootState, AppThunk } from '../../store/store';
+import {createAsyncThunk, createSlice, current, PayloadAction} from '@reduxjs/toolkit';
+import {RootState} from '../../store/store';
 import { addDays, format } from 'date-fns';
 import { FilterInterface, FilterFunctions, applyFilters } from './controls/filter/filter'
 import {SortByOptionType} from "./controls/sort/SortControls";
@@ -61,9 +61,10 @@ const initialState: TableState = {
   channels: [],
   modChannels: [],
   selectedViewIndex: 0,
-  views: [DefaultView],  //loadTableState() ||
+  views: [DefaultView],
   status: 'idle',
 };
+
 const init: RequestInit = {
   credentials: 'include',
   headers: { 'Content-Type': 'application/json' },
@@ -79,6 +80,15 @@ function fetchChannels(from: string, to: string) {
   return body
 }
 
+export const fetchChannelsAsync = createAsyncThunk(
+  'table/fetchChannels',
+  async (data: { from: string, to: string }) => {
+    const response = await fetchChannels(data.from, data.to);
+    return response
+  }
+);
+
+
 function fetchTableViews() {
   const body = fetch(`http://localhost:8080/api/table-views`, init)
     .then(response => {
@@ -87,19 +97,6 @@ function fetchTableViews() {
   return body
 }
 
-// The function below is called a thunk and allows us to perform async logic. It
-// can be dispatched like a regular action: `dispatch(incrementAsync(10))`. This
-// will call the thunk with the `dispatch` function as the first argument. Async
-// code can then be executed and other actions can be dispatched. Thunks are
-// typically used to make async requests.
-export const fetchChannelsAsync = createAsyncThunk(
-  'table/fetchChannels',
-  // TODO: Fetch both channels and table setup if loading for the first time. Promise.all()
-  async (data: { from: string, to: string }) => {
-    const response = await fetchChannels(data.from, data.to);
-    return response
-  }
-);
 export const fetchTableViewsAsync = createAsyncThunk(
   'table/fetchTableViews',
   async () => {
@@ -109,24 +106,72 @@ export const fetchTableViewsAsync = createAsyncThunk(
 );
 
 
-export function loadTableState() {
-  try {
-    const serializedState = localStorage.getItem("torq_temp_view");
-    if (!serializedState) return undefined;
-    return JSON.parse(serializedState);
-  } catch (e) {
-    return undefined;
-  }
+function updateTableView(view: ViewInterface) {
+  const init: RequestInit = {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    mode: 'cors',
+    method: 'PUT',
+    body: JSON.stringify({id: view.id, view: view}),
+  };
+  const body = fetch(`http://localhost:8080/api/table-views`, init)
+    .then(response => {
+      return response.json()
+    })
+  return body
 }
 
-export async function saveTempView(state: any) {
-  try {
-    const serializedState = JSON.stringify(state);
-    localStorage.setItem("torq_temp_view", serializedState);
-  } catch (e) {
-    console.log(e)
-  }
+export const updateTableViewAsync = createAsyncThunk(
+  'table/updateTableView',
+  async (data: { view: ViewInterface, index: number }) => {
+
+    let body = await updateTableView(data.view)
+    return data.index
+})
+
+function createTableView(view: ViewInterface) {
+  const init: RequestInit = {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    mode: 'cors',
+    method: 'POST',
+    body: JSON.stringify({id: null, view: view}),
+  };
+  const body = fetch(`http://localhost:8080/api/table-views`, init)
+    .then(response => {
+      return response.json()
+    })
+  return body
 }
+
+export const createTableViewAsync = createAsyncThunk(
+  'table/createTableView',
+  async (data: { view: ViewInterface, index: number }) => {
+
+    let body = await createTableView(data.view)
+
+    return {view: body, index: data.index}
+})
+
+
+// export function loadTableState() {
+//   try {
+//     const serializedState = localStorage.getItem("torq_temp_view");
+//     if (!serializedState) return undefined;
+//     return JSON.parse(serializedState);
+//   } catch (e) {
+//     return undefined;
+//   }
+// }
+//
+// export async function saveTempView(state: any) {
+//   try {
+//     const serializedState = JSON.stringify(state);
+//     localStorage.setItem("torq_temp_view", serializedState);
+//   } catch (e) {
+//     console.log(e)
+//   }
+// }
 
 export const tableSlice = createSlice({
   name: 'table',
@@ -135,29 +180,54 @@ export const tableSlice = createSlice({
   reducers: {
     updateFilters: (state, actions: PayloadAction<{ filters: FilterInterface[] }>) => {
       state.views[state.selectedViewIndex].filters = actions.payload.filters
-      // TODO: Skip localstorage, save on server when the user chooses too.
-      saveTempView(state.views)
     },
     updateColumns: (state, actions: PayloadAction<{columns: ColumnMetaData[]}>) => {
       state.views[state.selectedViewIndex].columns = actions.payload.columns
-      // TODO: Skip localstorage, save on server when the user chooses too.
-      saveTempView(state.views)
     },
     updateViews: (state, actions: PayloadAction<{ views: ViewInterface[] }>) => {
       state.views = actions.payload.views
-      saveTempView(state.views)
     },
     updateSelectedView: (state, actions: PayloadAction<{ index: number }>) => {
       state.selectedViewIndex = actions.payload.index
     },
     updateSortBy: (state, actions: PayloadAction<{ sortBy: SortByOptionType[] }>) => {
       state.views[state.selectedViewIndex].sortBy = actions.payload.sortBy
-      saveTempView(state.views)
     },
   },
   // The `extraReducers` field lets the slice handle actions defined elsewhere,
   // including actions generated by createAsyncThunk or in other slices.
   extraReducers: (builder) => {
+
+    builder
+      .addCase(fetchTableViewsAsync.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchTableViewsAsync.fulfilled, (state, action) => {
+        state.status = 'idle';
+        if(action.payload) {
+          state.views = action.payload.map((view: {id: number, view: ViewInterface}) => {return {...view.view, id: view.id}})
+        }
+      });
+
+    builder
+      .addCase(createTableViewAsync.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(createTableViewAsync.fulfilled, (state, action) => {
+        state.status = 'idle';
+        state.views[action.payload.index] = action.payload.view.view
+        state.views[action.payload.index].saved = true
+      });
+
+    builder
+      .addCase(updateTableViewAsync.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(updateTableViewAsync.fulfilled, (state, action) => {
+        state.status = 'idle';
+        state.views[action.payload].saved = true
+      });
+
     builder
       .addCase(fetchChannelsAsync.pending, (state) => {
         state.status = 'loading';
@@ -166,14 +236,26 @@ export const tableSlice = createSlice({
         state.status = 'idle';
         state.channels = action.payload
       });
-    builder.addCase(fetchTableViewsAsync.pending, (state) => {
-      state.status = 'loading';
+
+    builder.addMatcher((action) => {
+      return ['table/updateFilters', 'table/updateSortBy', 'table/updateViews', 'table/updateColumns']
+        .findIndex((item) => action.type === item) !== -1
+    }, (state, actions) => {
+      // TODO: create compare version to indicate it view is saved or not.
+      state.views[state.selectedViewIndex].saved = false
     })
-    .addCase(fetchTableViewsAsync.fulfilled, (state, action) => {
-      state.status = 'idle';
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      state.views = action.payload.map((view: any) => {return {...view.view, id: view.id}})
-    });
+
+    // Store the new name view name in the backend
+    builder.addMatcher((action) => action.type === 'table/updateViews', (state, actions) => {
+      const uView = {...current(state.views[state.selectedViewIndex]), saved: true}
+      // TODO: the index here is not correct when creating new view
+      console.log(uView)
+        if (!uView.id) {
+          createTableView(uView).then(() => console.log('finished'))
+        }
+        updateTableView(uView).then(() => console.log('updated'))
+      })
+
   },
 });
 
@@ -198,6 +280,7 @@ export const selectFilters = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].filters || []
 };
 export const selectViews = (state: RootState) => state.table.views;
+export const selectCurrentView = (state: RootState) => state.table.views[state.table.selectedViewIndex];
 export const selectedViewIndex = (state: RootState) => state.table.selectedViewIndex;
 
 export default tableSlice.reducer;

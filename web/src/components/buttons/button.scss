@@ -9,6 +9,9 @@
   &.small .icon {
     font-size: var(--font-size-small);
   }
+  &.danger {
+    background-color: var(--secondary-300);
+  }
   @media only screen and (max-width: 900px) {
     &.small-tablet,
     &.small-tablet .icon {
