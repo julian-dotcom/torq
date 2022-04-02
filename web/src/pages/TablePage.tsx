@@ -12,8 +12,6 @@ function TablePage() {
   const currentPeriod = useAppSelector(selectTimeInterval);
 
   useEffect(() =>{
-    dispatch(fetchTableViewsAsync());
-
     const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
     const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
     dispatch(fetchChannelsAsync({ from: from, to: to }));

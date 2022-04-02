@@ -14,6 +14,7 @@ import "./App.scss";
 import { Cookies, useCookies } from "react-cookie";
 import { useAppDispatch } from "./store/hooks";
 import { logoutAsync } from "./pages/login/authSlice";
+import {fetchTableViewsAsync} from "./components/table/tableSlice";
 
 function Logout() {
   const dispatch = useAppDispatch();
@@ -28,6 +29,13 @@ function Logout() {
 }
 
 function App() {
+
+  const dispatch = useAppDispatch();
+
+  useEffect(() =>{
+    dispatch(fetchTableViewsAsync());
+  })
+
   return (
     <div className="App torq">
       <Routes>

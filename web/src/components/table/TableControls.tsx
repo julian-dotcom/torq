@@ -15,17 +15,13 @@ import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./controls/sort/SortControls";
 import {
   createTableViewAsync,
-  fetchChannelsAsync,
-  fetchTableViewsAsync,
   selectCurrentView,
   selectedViewIndex, updateTableViewAsync
 } from "./tableSlice";
 import FilterPopover from "./controls/filter/FilterPopover";
-import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 
 import ViewsPopover from "./controls/views/ViewsPopover";
 import ColumnsPopover from "./controls/columns/ColumnsPopover";
-import {Simulate} from "react-dom/test-utils";
 
 function TableControls() {
   const dispatch = useAppDispatch();
