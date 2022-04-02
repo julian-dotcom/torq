@@ -85,20 +85,12 @@ function fetchChannels(from: string, to: string) {
 // typically used to make async requests.
 export const fetchChannelsAsync = createAsyncThunk(
   'table/fetchChannels',
+  // TODO: Fetch both channels and table setup if loading for the first time. Promise.all()
   async (data: { from: string, to: string }) => {
     const response = await fetchChannels(data.from, data.to);
     return response
   }
 );
-
-
-// function getDifference(array1: any[], array2: { key: any }[]) {
-//   return array1.filter((object1: { key: any }) => {
-//     return !array2.some((object2: { key: any }) => {
-//       return object1.key === object2.key;
-//     });
-//   })
-// };
 
 
 export function loadTableState() {

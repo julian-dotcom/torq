@@ -36,12 +36,17 @@
     justify-content: left;
     padding-left: 5px;
   }
-  .row-drag-handle {
-    cursor: grab;
+  .row-left-icon {
     justify-self: center;
     margin-left: -10px;
     padding-left: 5px;
     padding-right: 5px;
+    &.drag-handle {
+      cursor: grab;
+    }
+    &.lock-btn {
+      cursor: pointer;
+    }
   }
   .remove-column, .add-column {
     cursor: pointer;

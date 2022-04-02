@@ -3,7 +3,8 @@ import {useState} from "react";
 import {
   ColumnTriple20Regular as ColumnsIcon,
   Dismiss20Regular as RemoveIcon,
-  Search20Regular as SearchIcon,
+  LockClosed20Regular as LockClosedIcon,
+  LockOpen20Regular as LockOpenIcon,
   Add20Regular as AddIcon,
   Reorder20Regular as DragHandle,
 } from "@fluentui/react-icons";
@@ -18,6 +19,7 @@ import {
 } from "../../tableSlice";
 import {useAppDispatch, useAppSelector} from "../../../../store/hooks";
 import Fuse from "fuse.js";
+import classNames from "classnames";
 
 interface columnRow {
   column: ColumnMetaData;
@@ -41,9 +43,15 @@ function ColumnRow({column, index, handleRemoveColumn, handleUpdateColumn}: colu
 
   return (
     <div className="column-row">
-      <div className="row-drag-handle">
-       {column.key !== "alias" ?(<DragHandle/>):""}
-      </div>
+      {column.key === "alias" ? (
+        <div className={classNames("row-left-icon lock-btn")}>
+          {column.locked ? <LockClosedIcon/> : <LockOpenIcon/>}
+        </div>
+      ) : (
+        <div className={classNames("row-left-icon  drag-handle")}>
+          <DragHandle/>
+        </div>
+      )}
 
       <div className="column-name">
         <div>{column.heading}</div>
@@ -139,7 +147,6 @@ function ColumnsPopover() {
   //   }
   // }
 
-
   let popOverButton = <DefaultButton
       text={activeColumns.length + " Columns"}
       icon={<ColumnsIcon/>}
@@ -179,12 +186,15 @@ function ColumnsPopover() {
 
           <div className="unselected-columns">
             {columns.map((column, index) => {
-              return (column.key !== "alias" ? (<UnselectedColumn
-                name={column.heading}
-                key={"unselected-" + index}
-                index={index}
-                handleAddColumn={addColumn}/>) : "")
+              if (activeColumns.findIndex((ac) => ac.key === column.key) === -1) {
+                return (<UnselectedColumn
+                  name={column.heading}
+                  key={"unselected-" + index}
+                  index={index}
+                  handleAddColumn={addColumn}/>)
+              }
             })}
+            {activeColumns.length === columns.length ? (<div className={"no-filters"}>All Columns added</div>) : ""}
           </div>
 
         </div>
