@@ -194,7 +194,7 @@ function ColumnsPopover() {
                   handleAddColumn={addColumn}/>)
               }
             })}
-            {activeColumns.length === columns.length ? (<div className={"no-filters"}>All Columns added</div>) : ""}
+            {activeColumns.length === columns.length ? (<div className={"no-filters"}>All columns added</div>) : ""}
           </div>
 
         </div>

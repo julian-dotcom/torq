@@ -13,7 +13,7 @@ import DefaultButton from "../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { toggleNav } from "../navigation/navSlice";
 import SortControls from "./controls/sort/SortControls";
-import { fetchChannelsAsync } from "./tableSlice";
+import {fetchChannelsAsync, fetchTableViewsAsync} from "./tableSlice";
 import FilterPopover from "./controls/filter/FilterPopover";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 
@@ -26,6 +26,7 @@ function TableControls() {
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
   dispatch(fetchChannelsAsync({ from: from, to: to }));
+  dispatch(fetchTableViewsAsync());
 
   return (
     <div className="table-controls">

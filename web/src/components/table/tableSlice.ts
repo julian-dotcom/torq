@@ -34,6 +34,7 @@ export const columns: ColumnMetaData[] = [
 
 export interface ViewInterface {
   title: string;
+  id?: number;
   saved: boolean;
   filters: Array<FilterInterface>;
   columns: ColumnMetaData[];
@@ -50,7 +51,7 @@ export interface TableState {
 
 export const DefaultView: ViewInterface = {
     title: "New Table",
-    saved: true,
+    saved: false,
     filters: [],
     columns: columns,
     sortBy: [],
@@ -60,7 +61,7 @@ const initialState: TableState = {
   channels: [],
   modChannels: [],
   selectedViewIndex: 0,
-  views: loadTableState() || [DefaultView],  //
+  views: [DefaultView],  //loadTableState() ||
   status: 'idle',
 };
 const init: RequestInit = {
@@ -78,6 +79,14 @@ function fetchChannels(from: string, to: string) {
   return body
 }
 
+function fetchTableViews() {
+  const body = fetch(`http://localhost:8080/api/table-views`, init)
+    .then(response => {
+      return response.json()
+    })
+  return body
+}
+
 // The function below is called a thunk and allows us to perform async logic. It
 // can be dispatched like a regular action: `dispatch(incrementAsync(10))`. This
 // will call the thunk with the `dispatch` function as the first argument. Async
@@ -88,6 +97,13 @@ export const fetchChannelsAsync = createAsyncThunk(
   // TODO: Fetch both channels and table setup if loading for the first time. Promise.all()
   async (data: { from: string, to: string }) => {
     const response = await fetchChannels(data.from, data.to);
+    return response
+  }
+);
+export const fetchTableViewsAsync = createAsyncThunk(
+  'table/fetchTableViews',
+  async () => {
+    const response = await fetchTableViews();
     return response
   }
 );
@@ -150,6 +166,14 @@ export const tableSlice = createSlice({
         state.status = 'idle';
         state.channels = action.payload
       });
+    builder.addCase(fetchTableViewsAsync.pending, (state) => {
+      state.status = 'loading';
+    })
+    .addCase(fetchTableViewsAsync.fulfilled, (state, action) => {
+      state.status = 'idle';
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      state.views = action.payload.map((view: any) => {return {...view.view, id: view.id}})
+    });
   },
 });
 
@@ -174,6 +198,6 @@ export const selectFilters = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].filters || []
 };
 export const selectViews = (state: RootState) => state.table.views;
-export const selectedViewindex = (state: RootState) => state.table.selectedViewIndex;
+export const selectedViewIndex = (state: RootState) => state.table.selectedViewIndex;
 
 export default tableSlice.reducer;

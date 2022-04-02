@@ -25,7 +25,7 @@ INSERT INTO channel_tag (
   tag,
   created_on
 ) values ($1, $2, $3)
-RETURNING tag_id;`, tag.ChannelDBID, tag.Tag, time.Now()).Scan(&tagID)
+RETURNING tag_id;`, tag.ChannelDBID, tag.Tag, time.Now().UTC()).Scan(&tagID)
 	if err != nil {
 		return 0, errors.Wrap(err, "Unable to execute SQL statement")
 	}

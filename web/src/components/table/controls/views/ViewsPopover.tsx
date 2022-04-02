@@ -14,7 +14,7 @@ import {
   selectViews,
   updateViews,
   updateSelectedView,
-  selectedViewindex,
+  selectedViewIndex,
   ViewInterface,
   DefaultView
 } from "../../tableSlice";
@@ -81,7 +81,7 @@ function ViewRow({title, index, handleUpdateView, handleRemoveView, handleSelect
 function ViewsPopover() {
 
     const views = useAppSelector(selectViews)
-    const selectedView = useAppSelector(selectedViewindex)
+    const selectedView = useAppSelector(selectedViewIndex)
     const dispatch = useAppDispatch();
 
     const updateView = (view: ViewInterface, index: number) => {

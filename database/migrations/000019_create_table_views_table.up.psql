@@ -1,0 +1,6 @@
+CREATE TABLE table_view (
+  id SERIAL PRIMARY KEY,
+  view JSON,
+  created_on TIMESTAMP NOT NULL,
+  updated_on TIMESTAMP NULL
+);

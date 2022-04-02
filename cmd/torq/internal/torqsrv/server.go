@@ -9,6 +9,7 @@ import (
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/channels/tags"
+	"github.com/lncapital/torq/internal/views"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
@@ -74,6 +75,12 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 	api := r.Group("/api")
 	api.Use(auth.AuthRequired)
 	{
+
+		tableViewRoutes := api.Group("/table-views")
+		{
+			views.RegisterTableViewRoutes(tableViewRoutes, db)
+		}
+
 		channelRoutes := api.Group("/channels")
 		{
 			channels.RegisterChannelRoutes(channelRoutes, db)
