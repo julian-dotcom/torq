@@ -52,7 +52,7 @@ const SortRow = ({selected, options, index, handleUpdateSort, handleRemoveSort}:
   }
 
   return (
-    <Draggable draggableId={`draggable-id-${index}`} index={index}>
+    <Draggable draggableId={`draggable-sort-id-${index}`} index={index}>
       {(provided, snapshot) => (
         <div className={classNames("sort-row", {"dragging": snapshot.isDragging})}
              ref={provided.innerRef}
@@ -198,7 +198,7 @@ const SortControls = () => {
                 {!sorts.length && <div className={"no-filters"}>No sorting</div>}
 
                   {!!sorts.length && (
-                      <Droppable droppableId={droppableContainerId}>
+                    <Droppable droppableId={droppableContainerId}>
                       {provided => (
                         <div className={"sort-rows"}
                              ref={provided.innerRef}
