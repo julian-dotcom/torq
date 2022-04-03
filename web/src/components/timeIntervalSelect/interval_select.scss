@@ -173,7 +173,9 @@
   text-align: center;
   padding: 20px 0;
   cursor: pointer;
-
+  @media only screen and (max-width: 600px) {
+    padding: 10px;
+  }
 
   .icon {
     // TODO: Quick hack, clean up. FLW

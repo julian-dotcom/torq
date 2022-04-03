@@ -1,5 +1,8 @@
 .torq .sort-popover-content {
   width: 450px;
+  @media only screen and (max-width: 900px) {
+    width: 100%;
+  }
   display: grid;
   grid-row-gap: 20px;
   .sort-rows {

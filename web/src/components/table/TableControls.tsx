@@ -50,16 +50,11 @@ function TableControls() {
             className={"show-nav-btn collapse-tablet"}
           />
           <ViewsPopover />
-          <DefaultButton
-            icon={<OptionsIcon />}
-            text={""}
-            className={"collapse-tablet mobile-options"}
-          />
           {!currentView.saved && (<DefaultButton
             icon={<SaveIcon/>}
             text={"Save"}
             onClick={saveView}
-            className={"danger"}
+            className={"collapse-tablet danger"}
           />)}
         </div>
         <div className="lower-container">
