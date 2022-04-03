@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import styled from "@emotion/styled";
+// import styled from "@emotion/styled";
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import {
   ArrowSortDownLines20Regular as SortIcon,
   Dismiss20Regular as DismissIcon,
@@ -13,6 +14,8 @@ import {selectAllColumns, selectSortBy, updateSortBy,} from "../../tableSlice";
 import Popover from '../../../popover/Popover';
 // TODO: Convert to styled components using imported scss
 import './sort.scss'
+import classNames from "classnames";
+
 
 export interface SortByOptionType {
   value: string;
@@ -49,39 +52,49 @@ const SortRow = ({selected, options, index, handleUpdateSort, handleRemoveSort}:
   }
 
   return (
-    <div className={"sort-row"}>
-      <ReOrderIcon />
-      <div style={{ flex: 3 }}>
-        <TorqSelect
-          onChange={handleColumn}
-          options={options}
-          getOptionLabel={(option: { [x: string]: any }) =>
-            option['label']
-          }
-          getOptionValue={(option: { [x: string]: any }) =>
-            option['value']
-          }
-          value={selected}
-        />
-      </div>
+    <Draggable draggableId={`draggable-id-${index}`} index={index}>
+      {(provided, snapshot) => (
+        <div className={classNames("sort-row", {"dragging": snapshot.isDragging})}
+             ref={provided.innerRef}
+             {...provided.draggableProps}
 
-      <div style={{ flex: 2 }}>
-        <TorqSelect
-          onChange={handleDirection}
-          options={sortDirectionOptions}
-          getOptionLabel={(option: { [x: string]: any }) =>
-            option['label']
-          }
-          getOptionValue={(option: { [x: string]: any }) =>
-            option['value']
-          }
-          value={sortDirectionOptions.find(
-            (dir: sortDirectionOption) => dir.value === selected.direction)
-          }
-        />
-      </div>
-      <DismissIcon onClick={(() => {handleRemoveSort(index)})} />
-    </div>
+        >
+          <div {...provided.dragHandleProps}>
+            <ReOrderIcon />
+          </div>
+          <div style={{ flex: 3 }}>
+            <TorqSelect
+              onChange={handleColumn}
+              options={options}
+              getOptionLabel={(option: { [x: string]: any }) =>
+                option['label']
+              }
+              getOptionValue={(option: { [x: string]: any }) =>
+                option['value']
+              }
+              value={selected}
+            />
+          </div>
+
+          <div style={{ flex: 2 }}>
+            <TorqSelect
+              onChange={handleDirection}
+              options={sortDirectionOptions}
+              getOptionLabel={(option: { [x: string]: any }) =>
+                option['label']
+              }
+              getOptionValue={(option: { [x: string]: any }) =>
+                option['value']
+              }
+              value={sortDirectionOptions.find(
+                (dir: sortDirectionOption) => dir.value === selected.direction)
+              }
+            />
+          </div>
+          <DismissIcon onClick={(() => {handleRemoveSort(index)})} />
+        </div>
+      )}
+    </Draggable>
   );
 };
 
@@ -148,33 +161,73 @@ const SortControls = () => {
           className={"collapse-tablet"}
         />
 
+  const droppableContainerId = "sort-list-droppable"
+
+  const onDragEnd = (result: any) => {
+    const {destination, source, draggableId} = result;
+
+    // Dropped outside of container
+    if (!destination || destination.droppableId !== droppableContainerId) {
+      return;
+    }
+
+    // Position not changed
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    let newSortsOrder = sorts.slice()
+    newSortsOrder.splice(source.index, 1)
+    newSortsOrder.splice(destination.index, 0, sorts[source.index])
+    dispatch(updateSortBy({sortBy: newSortsOrder}))
+  }
+
   return (
     <div>
       <Popover button={popOverButton}>
-        <div className={"sort-popover-content"}>
+        <DragDropContext
+          // onDragStart={}
+          // onDragUpdate={}
+          onDragEnd={onDragEnd}
+        >
 
-          {!sorts.length && <div className={"no-filters"}>No sorting</div>}
+          <div className={"sort-popover-content"}>
+                {!sorts.length && <div className={"no-filters"}>No sorting</div>}
 
-          {!!sorts.length && (<div className={"sort-rows"}>
-            {sorts.map((item, index) => {
-              return (
-                <SortRow
-                  key={item.value + index}
-                  selected={item}
-                  options={options}
-                  index={index}
-                  handleUpdateSort={handleUpdateSort}
-                  handleRemoveSort={handleRemoveSort}
-                />
-              );
-            })}
-          </div>)}
+                  {!!sorts.length && (
+                      <Droppable droppableId={droppableContainerId}>
+                      {provided => (
+                        <div className={"sort-rows"}
+                             ref={provided.innerRef}
+                             {...provided.droppableProps}>
 
-          <div className="buttons-row">
-            <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon/>}/>
-          </div>
+                          {sorts.map((item, index) => {
+                            return (
+                              <SortRow
+                                key={item.value + index}
+                                selected={item}
+                                options={options}
+                                index={index}
+                                handleUpdateSort={handleUpdateSort}
+                                handleRemoveSort={handleRemoveSort}
+                              />
+                            );
+                          })}
 
-        </div>
+                          {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                )}
+
+                <div className="buttons-row">
+                  <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon/>}/>
+                </div>
+            </div>
+        </DragDropContext>
       </Popover>
     </div>
   );
