@@ -59,7 +59,7 @@ const SortRow = ({selected, options, index, handleUpdateSort, handleRemoveSort}:
              {...provided.draggableProps}
 
         >
-          <div {...provided.dragHandleProps}>
+            <div {...provided.dragHandleProps}>
             <ReOrderIcon />
           </div>
           <div style={{ flex: 3 }}>

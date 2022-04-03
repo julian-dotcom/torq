@@ -173,6 +173,26 @@ export const deleteTableViewAsync = createAsyncThunk(
     return {index: data.index}
 })
 
+interface viewOrderInterface {
+  id: number | undefined,
+  view_order: number
+}
+
+function saveTableViewOrder(order: viewOrderInterface[]) {
+  const init: RequestInit = {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    mode: 'cors',
+    method: 'PATCH',
+    body: JSON.stringify(order),
+  };
+  const body = fetch(`http://localhost:8080/api/table-views/order`, init)
+    
+  return body
+}
+
+
+
 // export function loadTableState() {
 //   try {
 //     const serializedState = localStorage.getItem("torq_temp_view");
@@ -204,6 +224,10 @@ export const tableSlice = createSlice({
       state.views[state.selectedViewIndex].columns = actions.payload.columns
     },
     updateViews: (state, actions: PayloadAction<{ views: ViewInterface[], index: number }>) => {
+      state.views = actions.payload.views
+      state.selectedViewIndex = actions.payload.index
+    },
+    updateViewsOrder: (state, actions: PayloadAction<{ views: ViewInterface[], index: number }>) => {
       state.views = actions.payload.views
       state.selectedViewIndex = actions.payload.index
     },
@@ -290,6 +314,14 @@ export const tableSlice = createSlice({
       updateTableView(state.views[state.selectedViewIndex]).then(() => console.log('View updated'))
     })
 
+    // Update the table view order in the backend
+    builder.addMatcher((action) => action.type === 'table/updateViewsOrder', (state, actions) => {
+      const order: viewOrderInterface[] = state.views.map((view, index) => {
+        return {id: view.id, view_order: index}
+      })
+      saveTableViewOrder(order).then(() => console.log('View order updated'))
+    })
+
     // Store the new name view name in the backend
     // builder.addMatcher((action) => action.type === 'table/deleteView', (state, actions) => {
     //     deleteTableView(actions.payload.view).then(() => console.log('View deleted'))
@@ -298,7 +330,7 @@ export const tableSlice = createSlice({
   },
 });
 
-export const { updateFilters, updateViews, deleteView, updateSelectedView, updateSortBy, updateColumns} = tableSlice.actions;
+export const { updateFilters, updateViews, updateViewsOrder, deleteView, updateSelectedView, updateSortBy, updateColumns} = tableSlice.actions;
 
 
 export const selectChannels = (state: RootState) => {

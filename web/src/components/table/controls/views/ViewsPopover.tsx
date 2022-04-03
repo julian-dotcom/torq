@@ -1,4 +1,5 @@
 import './views.scss'
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import Popover from "../../../popover/Popover";
 import DefaultButton from "../../../buttons/Button";
 import {
@@ -17,9 +18,10 @@ import {
   updateSelectedView,
   selectedViewIndex,
   ViewInterface,
-  DefaultView, createTableViewAsync, deleteTableViewAsync
+  DefaultView, createTableViewAsync, deleteTableViewAsync, updateViewsOrder
 } from "../../tableSlice";
 import {useState} from "react";
+import classNames from "classnames";
 
 interface viewRow {
   title: string;
@@ -46,36 +48,42 @@ function ViewRow({title, index, handleUpdateView, handleRemoveView, handleSelect
   }
 
   return (
-    <div className="view-row">
-      <div className="view-row-drag-handle">
-        <DragHandle/>
-      </div>
+  <Draggable draggableId={`draggable-view-id-${index}`} index={index}>
+      {(provided, snapshot) => (
+      <div className={classNames("view-row", {"dragging": snapshot.isDragging})}
+         ref={provided.innerRef}
+         {...provided.draggableProps}>
 
-      {editView ? (
-        <form onSubmit={handleInputSubmit} className={"view-edit torq-input-icon-field"}>
-          <input type="text"
-            className={""}
-            autoFocus={true}
-            onChange={handleInputChange}
-            value={localTitle}/>
-          <button type={"submit"}><SaveIcon/></button>
-        </form>
-        ):
-        <div className="view-select" onClick={() => handleSelectView(index)}>
-          <div>{title}</div>
-          <div className="edit-view" onClick={() => (setEditView(true))}>
-            <EditIcon/>
-          </div>
+        <div className="view-row-drag-handle" {...provided.dragHandleProps}>
+          <DragHandle/>
         </div>
-      }
-      {!singleView ? (<div className="remove-view" onClick={() => (handleRemoveView(index))}>
-        <RemoveIcon/>
-      </div>) : (
-        <div className="remove-view disabled" >
-          <RemoveIcon/>
-        </div>)}
 
-    </div>
+        {editView ? (
+          <form onSubmit={handleInputSubmit} className={"view-edit torq-input-icon-field"}>
+            <input type="text"
+              className={""}
+              autoFocus={true}
+              onChange={handleInputChange}
+              value={localTitle}/>
+            <button type={"submit"}><SaveIcon/></button>
+          </form>
+          ):
+          <div className="view-select" onClick={() => handleSelectView(index)}>
+            <div>{title}</div>
+            <div className="edit-view" onClick={() => (setEditView(true))}>
+              <EditIcon/>
+            </div>
+          </div>
+        }
+        {!singleView ? (<div className="remove-view" onClick={() => (handleRemoveView(index))}>
+          <RemoveIcon/>
+        </div>) : (
+          <div className="remove-view disabled" >
+            <RemoveIcon/>
+          </div>)}
+
+      </div>)}
+    </Draggable>
   )
 }
 
@@ -112,6 +120,44 @@ function ViewsPopover() {
       )
     }
 
+    const droppableContainerId = "views-list-droppable"
+
+  const onDragEnd = (result: any) => {
+    const {destination, source, draggableId} = result;
+
+    // Dropped outside of container
+    if (!destination || destination.droppableId !== droppableContainerId) {
+      return;
+    }
+
+    // Position not changed
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    let newCurrentIndex = selectedView;
+    // If moved view is the selected view
+    if (source.index === selectedView) {
+      newCurrentIndex = destination.index
+    }
+    // If moved view has a source bellow the selected view
+    if ((source.index < selectedView) && (destination.index >= selectedView)) {
+      newCurrentIndex = selectedView -1
+    }
+    // If moved view has a source above the selected view
+    if ((source.index > selectedView) && (destination.index <= selectedView)) {
+      newCurrentIndex = selectedView +1
+    }
+
+    let newViewsOrder: ViewInterface[] = views.slice()
+    newViewsOrder.splice(source.index, 1)
+    newViewsOrder.splice(destination.index, 0, views[source.index])
+    dispatch(updateViewsOrder({views: newViewsOrder, index: newCurrentIndex}))
+  }
+
   let popOverButton = <DefaultButton
       text={views[selectedView].title}
       icon={<TableIcon/>}
@@ -120,23 +166,36 @@ function ViewsPopover() {
   const singleView = views.length <= 1 ? true :false
   return (
     <Popover button={popOverButton}>
-      <div className="views-popover-content">
-        <div className="view-rows">
-          {views.map((view, index) => {
-            return <ViewRow
-              title={view.title}
-              key={index}
-              index={index}
-              handleRemoveView={removeView}
-              handleUpdateView={updateView}
-              handleSelectView={selectView}
-              singleView={singleView} />
-          })}
+      <DragDropContext
+        onDragEnd={onDragEnd}
+      >
+        <div className="views-popover-content">
+          <Droppable droppableId={droppableContainerId}>
+            {provided => (
+              <div
+                className="view-rows"
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+              >
+                {views.map((view, index) => {
+                  return <ViewRow
+                    title={view.title}
+                    key={index}
+                    index={index}
+                    handleRemoveView={removeView}
+                    handleUpdateView={updateView}
+                    handleSelectView={selectView}
+                    singleView={singleView} />
+                })}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+          <div className="buttons-row">
+            <DefaultButton text={"Add table"} icon={<AddIcon/>} onClick={addView} />
+          </div>
         </div>
-        <div className="buttons-row">
-          <DefaultButton text={"Add table"} icon={<AddIcon/>} onClick={addView} />
-        </div>
-      </div>
+      </DragDropContext>
     </Popover>
   )
 }

@@ -27,7 +27,7 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getTableViews(db *sqlx.DB) (r []*TableView, err error) {
-	sql := `Select id, view from table_view order by id;`
+	sql := `Select id, view from table_view order by view_order;`
 
 	rows, err := db.Query(sql)
 	if err != nil {
@@ -84,7 +84,7 @@ func insertTableView(db *sqlx.DB, view *NewTableView) (r TableView, err error) {
 	return r, nil
 }
 
-func updateTableViewsHandler(c *gin.Context, db *sqlx.DB) {
+func updateTableViewHandler(c *gin.Context, db *sqlx.DB) {
 
 	view := &TableView{}
 	err := c.BindJSON(view)
@@ -141,10 +141,57 @@ func deleteTableView(db *sqlx.DB, id int) error {
 	return nil
 }
 
-//func deleteTag(db *sqlx.DB, channelDBID int, tagID int) error {
-//	_, err := db.Exec("DELETE FROM channel_tag WHERE channel_db_id = $1 AND tag_id = $2;", channelDBID, tagID)
-//	if err != nil {
-//		return errors.Wrap(err, "Unable to execute SQL statement")
-//	}
-//	return nil
-//}
+func updateTableViewOrderHandler(c *gin.Context, db *sqlx.DB) {
+
+	var viewOrders []*TableViewOrder
+	err := c.BindJSON(&viewOrders)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	err = updateTableViewOrder(db, viewOrders)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+type TableViewOrder struct {
+	Id        int `json:"id" db:"id"`
+	ViewOrder int `json:"view_order" db:"view_order"`
+}
+
+func updateTableViewOrder(db *sqlx.DB, viewOrders []*TableViewOrder) error {
+
+	// TODO: Switch tp updating using this and add Unique constraint
+	//sql := `
+	//	update table_view set view_order = temp_table.view_order
+	//	from (values
+	//		(78,  1),
+	//		(79,  3),
+	//		(81,  2)
+	//	) as temp_table(id, view_order)
+	//	where temp_table.id = table_view.id;
+	//`
+
+	sql := `
+		update table_view set view_order = $1
+		where id = $2;
+	`
+	tx := db.MustBegin()
+	for _, order := range viewOrders {
+		_, err := tx.Exec(sql, order.ViewOrder, order.Id)
+		if err != nil {
+			return errors.Wrap(err, "Unable to update view order. SQL statement error")
+		}
+	}
+
+	err := tx.Commit()
+	if err != nil {
+		return errors.Wrap(err, "Unable to commit update view order. SQL statement error")
+	}
+
+	return nil
+}
