@@ -2,12 +2,6 @@
 
 Torq is a capital management tool for routing nodes on the lightning network.
 
-This software is in active development and should be considered alpha
-
-## Install
-
-To install the backend, simply run `go install ./cmd/torq`
-
 ## Requirements
 
 Torq uses a postgres database with the TimescaleDB plugin.
