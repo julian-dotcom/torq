@@ -10,7 +10,7 @@
   .custom-mobile {
     display: none;
     @media only screen and (max-width: 600px) {
-      // display: block;
+      display: block;
     }
   }
   .rdrCalendarWrapper.rdrDateRangeWrapper {
@@ -23,20 +23,21 @@
     }
   }
 
-  .rdrDefinedRangesWrapper {
-    @media only screen and (max-width: 600px) {
-      // top: 50% !important;
-      // right: 50% !important;
-      // position: absolute;
-      // transform: translate(50%, -50%) !important;
-    }
-  }
-
   .rdrDateRangePickerWrapper {
     color: #033048;
     box-shadow: 0px 0px 10px rgba(3, 48, 72, 0.1);
     border-radius: 2px;
     border: 1px solid var(--bg-subtle);
+
+    @media only screen and (max-width: 600px) {
+      background-color: transparent;
+      border: none;
+      box-shadow: none;
+      // top: 40% !important;
+      // right: 50% !important;
+      // position: absolute;
+      // transform: translate(50%, -50%) !important;
+    }
     .rdrDayNumber span {
       color: #033048 !important;
     }
@@ -166,6 +167,15 @@
     .rdrDefinedRangesWrapper {
       padding-top: 10px;
       background-color: #f9fafb;
+      @media only screen and (max-width: 600px) {
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+        // top: 40% !important;
+        // right: 50% !important;
+        // position: absolute;
+        // transform: translate(50%, -50%) !important;
+      }
     }
     .rdrStaticRange .rdrStaticRangeSelected {
       color: #033048 !important;
@@ -177,7 +187,6 @@
       .rdrDateDisplayItemActive input {
         font-weight: bold;
       }
-      //background-color: white;
       .rdrDateDisplay {
         margin: 0;
         .rdrDateDisplayItem {
