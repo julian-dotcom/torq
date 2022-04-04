@@ -1,10 +1,34 @@
 .date-range-popover {
   z-index: 20;
+  @media only screen and (max-width: 600px) {
+    top: 30% !important;
+    right: 50% !important;
+    position: absolute;
+    transform: translate(50%, -50%) !important;
+  }
 
-  .rdrCalendarWrapper.rdrDateRangeWrapper {
-    padding: 20px;
+  .custom-mobile {
+    display: none;
     @media only screen and (max-width: 600px) {
+      display: block;
+    }
+  }
+  .rdrCalendarWrapper.rdrDateRangeWrapper {
+    @media only screen and (max-width: 600px) {
+      top: 50% !important;
+      right: 50% !important;
+      position: absolute;
+      transform: translate(50%, -50%) !important;
       display: none;
+    }
+  }
+
+  .rdrDefinedRangesWrapper {
+    @media only screen and (max-width: 600px) {
+      top: 50% !important;
+      right: 50% !important;
+      position: absolute;
+      transform: translate(50%, -50%) !important;
     }
   }
 
@@ -48,8 +72,8 @@
     .rdrInRange {
       border-radius: 0;
       left: 0;
-      top:0;
-      right:0;
+      top: 0;
+      right: 0;
     }
     .rdrStartEdge {
       border-top-left-radius: 50%;
@@ -93,8 +117,10 @@
       border-bottom-left-radius: 0;
     }
 
-    .rdrDayEndOfWeek .rdrStartEdge.rdrEndEdge
-    .rdrDayEndOfMonth .rdrStartEdge.rdrEndEdge {
+    .rdrDayEndOfWeek
+      .rdrStartEdge.rdrEndEdge
+      .rdrDayEndOfMonth
+      .rdrStartEdge.rdrEndEdge {
       border-top-right-radius: 50%;
       border-bottom-right-radius: 50%;
     }
@@ -122,10 +148,9 @@
     }
     .rdrInfiniteMonths.rdrMonthsVertical {
       /* Hide scrollbar for IE, Edge and Firefox */
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+      scrollbar-width: none; /* Firefox */
     }
-
 
     .rdrDayToday .rdrDayNumber span:after {
       background: none;

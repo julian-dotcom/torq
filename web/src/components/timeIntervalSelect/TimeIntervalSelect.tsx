@@ -12,8 +12,8 @@ import {
 import { DateRangePicker } from "react-date-range";
 import { Popover } from "react-tiny-popover";
 import { addDays } from "date-fns";
-import {useAppSelector, useAppDispatch} from "../../store/hooks";
-import {selectTimeInterval, updateInterval} from "./timeIntervalSlice";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
 
 interface selection {
   startDate: Date,
@@ -26,10 +26,10 @@ function TimeIntervalSelect() {
   const currentPeriod = useAppSelector(selectTimeInterval);
 
   const selection1: selection = {
-      startDate: new Date(currentPeriod.from),
-      endDate: new Date(currentPeriod.to),
-      key: "selection1",
-    }
+    startDate: new Date(currentPeriod.from),
+    endDate: new Date(currentPeriod.to),
+    key: "selection1",
+  }
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -43,6 +43,14 @@ function TimeIntervalSelect() {
     dispatch(updateInterval(interval))
   };
 
+
+  const renderCustomRangeLabel = () => (
+    //@ts-ignore
+    <div onClick={() => console.log('')} className="custom-mobile">
+      Custom
+    </div>
+  );
+
   return (
     <div>
       <Popover
@@ -55,13 +63,21 @@ function TimeIntervalSelect() {
           <div className="date-range-popover-content">
             <div>
               <DateRangePicker
+                renderStaticRangeLabel={renderCustomRangeLabel}
                 monthDisplayFormat="MMMM yyyy"
                 showDateDisplay={false}
-                staticRanges={defaultStaticRanges}
+                staticRanges={[...defaultStaticRanges, {
+                  label: 'Custom',
+                  hasCustomRendering: true,
+                  range: () => ({
+                  }),
+                  isSelected() {
+                  }
+                }]}
                 fixedHeight={false}
                 rangeColors={["#ECFAF8", "#F9FAFB"]}
                 maxDate={addDays(new Date(), 0)}
-                minDate={addDays((new Date().setFullYear(2015,1,1)), 0)}
+                minDate={addDays((new Date().setFullYear(2015, 1, 1)), 0)}
                 scroll={{ enabled: true, calendarHeight: 400 }}
                 months={1}
                 showMonthArrow={false}
