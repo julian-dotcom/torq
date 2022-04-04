@@ -28,6 +28,13 @@
     grid-auto-flow: column;
     justify-content: end;
     align-items: center;
+    .popover-container {
+      padding: 0 !important;
+    }
+    .popover-wrapper.popover-open {
+      right: 0;
+      left: inherit;
+    }
   }
   .mobile-options {
     display: none;

@@ -10,7 +10,7 @@ import {
 } from "./customRanges";
 
 import { DateRangePicker } from "react-date-range";
-import { Popover } from "react-tiny-popover";
+import Popover from "../popover/Popover";
 import { addDays } from "date-fns";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
@@ -51,67 +51,60 @@ function TimeIntervalSelect() {
     </div>
   );
 
+  const button = <div
+    className="time-interval-wrapper"
+    onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+  >
+    <div className="icon">{/* <IntervalIcon /> */}</div>
+    <div className="interval">
+      <div className="">
+        <p className="text-base">
+          {" "}
+          {format(new Date(currentPeriod.from), "MMM d, yyyy")} -{" "}
+          {format(new Date(currentPeriod.to), "MMM d, yyyy")}
+        </p>
+        {/*<p className="text-slate-400 text-sm">*/}
+        {/*  {" "}*/}
+        {/*  {format(new Date(currentPeriod.compareFrom), "MMM d, yyyy")} -{" "}*/}
+        {/*  {format(new Date(currentPeriod.compareTo), "MMM d, yyyy")}*/}
+        {/*</p>*/}
+      </div>
+    </div>
+  </div>
+
   return (
-    <div>
-      <Popover
-        onClickOutside={() => setIsPopoverOpen(!isPopoverOpen)}
-        containerClassName="date-range-popover"
-        isOpen={isPopoverOpen}
-        positions={['bottom']}
-        align={'end'}
-        content={
-          <div className="date-range-popover-content">
-            <div>
-              <DateRangePicker
-                renderStaticRangeLabel={renderCustomRangeLabel}
-                monthDisplayFormat="MMMM yyyy"
-                showDateDisplay={false}
-                staticRanges={[...defaultStaticRanges, {
-                  label: 'Custom',
-                  hasCustomRendering: true,
-                  range: () => ({
-                  }),
-                  isSelected() {
-                  }
-                }]}
-                fixedHeight={false}
-                rangeColors={["#ECFAF8", "#F9FAFB"]}
-                maxDate={addDays(new Date(), 0)}
-                minDate={addDays((new Date().setFullYear(2015, 1, 1)), 0)}
-                scroll={{ enabled: true, calendarHeight: 400 }}
-                months={1}
-                showMonthArrow={false}
-                showMonthAndYearPickers={false}
-                weekStartsOn={locale.options?.weekStartsOn || 0}
-                direction="vertical"
-                inputRanges={[]}
-                ranges={[selection1]}
-                onChange={(item) => {
-                  handleChange(item)
-                }}
-              />
-            </div>
-          </div>
-        }
-      >
-        <div
-          className="time-interval-wrapper"
-          onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-        >
-          <div className="icon">{/* <IntervalIcon /> */}</div>
-          <div className="interval">
-            <div className="">
-              <p className="text-base">
-                {" "}
-                {format(new Date(currentPeriod.from), "MMM d, yyyy")} -{" "}
-                {format(new Date(currentPeriod.to), "MMM d, yyyy")}
-              </p>
-              {/*<p className="text-slate-400 text-sm">*/}
-              {/*  {" "}*/}
-              {/*  {format(new Date(currentPeriod.compareFrom), "MMM d, yyyy")} -{" "}*/}
-              {/*  {format(new Date(currentPeriod.compareTo), "MMM d, yyyy")}*/}
-              {/*</p>*/}
-            </div>
+    <div className="date-range-popover">
+      <Popover button={button}>
+        <div className="date-range-popover-content">
+          <div>
+            <DateRangePicker
+              renderStaticRangeLabel={renderCustomRangeLabel}
+              monthDisplayFormat="MMMM yyyy"
+              showDateDisplay={false}
+              staticRanges={[...defaultStaticRanges, {
+                label: 'Custom',
+                hasCustomRendering: true,
+                range: () => ({
+                }),
+                isSelected() {
+                }
+              }]}
+              fixedHeight={false}
+              rangeColors={["#ECFAF8", "#F9FAFB"]}
+              maxDate={addDays(new Date(), 0)}
+              minDate={addDays((new Date().setFullYear(2015, 1, 1)), 0)}
+              scroll={{ enabled: true, calendarHeight: 400 }}
+              months={1}
+              showMonthArrow={false}
+              showMonthAndYearPickers={false}
+              weekStartsOn={locale.options?.weekStartsOn || 0}
+              direction="vertical"
+              inputRanges={[]}
+              ranges={[selection1]}
+              onChange={(item) => {
+                handleChange(item)
+              }}
+            />
           </div>
         </div>
       </Popover>
