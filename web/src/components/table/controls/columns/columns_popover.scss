@@ -1,5 +1,7 @@
 .torq .columns-popover-content {
-  //width: 375px;
+  @media only screen and (max-width: 900px) {
+    width: 100%;
+  }
   display: grid;
   row-gap: 20px;
   .column-rows {
@@ -31,10 +33,18 @@
   }
   .column-row {
     display: grid;
-    grid-template-columns: 36px 300px 150px 36px;
+    grid-template-columns: 36px minmax(300px, 100%) 150px 36px;
     align-items: center;
     justify-content: left;
     padding-left: 5px;
+    @media only screen and (max-width: 600px) {
+      grid-template-columns: 36px 1fr 1fr 36px;
+      .column-name {
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+    }
   }
   .row-left-icon {
     justify-self: center;

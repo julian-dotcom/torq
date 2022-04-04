@@ -1,5 +1,8 @@
 .torq .views-popover-content {
   width: 375px;
+  @media only screen and (max-width: 600px) {
+    width: 100%;
+  }
   .view-rows {
     margin-bottom: 20px;
     display: grid;
@@ -29,4 +32,5 @@
     align-items: center;
     justify-items: center;
   }
+
 }

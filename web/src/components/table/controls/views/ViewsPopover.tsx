@@ -161,9 +161,9 @@ function ViewsPopover() {
   let popOverButton = <DefaultButton
       text={views[selectedView].title}
       icon={<TableIcon/>}
-      className={"collapse-tablet"}/>
+      className={""}/>
 
-  const singleView = views.length <= 1 ? true :false
+  const singleView = views.length <= 1
   return (
     <Popover button={popOverButton}>
       <DragDropContext

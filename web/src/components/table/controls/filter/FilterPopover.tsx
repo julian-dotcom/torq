@@ -152,7 +152,13 @@ function FilterRow({index, rowValues, columnOptions, handleUpdateFilter, handleR
 
   return (
     <div className={classNames("filter-row", { first: !index })}>
-      {!index && <div className="filter-combiner-container">Where</div>}
+      {!index && <div className="combiner-container">
+        <div>Where</div>
+        {/*Clean this up using grid named cells*/}
+        <div className="remove-filter mobile-remove" onClick={() => handleRemoveFilter(index)}>
+          <RemoveIcon />
+        </div>
+      </div>}
       {!!index && (
         <div className="combiner-container">
           <TorqSelect
@@ -160,6 +166,9 @@ function FilterRow({index, rowValues, columnOptions, handleUpdateFilter, handleR
             value={rowData.combiner}
             onChange={handleCombinerChange}
           />
+          <div className="remove-filter mobile-remove" onClick={() => handleRemoveFilter(index)}>
+            <RemoveIcon />
+          </div>
         </div>
       )}
       <div className="filter-key-container">
@@ -193,7 +202,7 @@ function FilterRow({index, rowValues, columnOptions, handleUpdateFilter, handleR
           />
         )}
       </div>
-      <div className="remove-filter" onClick={() => handleRemoveFilter(index)}>
+      <div className="remove-filter desktop-remove" onClick={() => handleRemoveFilter(index)}>
         <RemoveIcon />
       </div>
     </div>

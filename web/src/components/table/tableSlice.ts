@@ -187,11 +187,9 @@ function saveTableViewOrder(order: viewOrderInterface[]) {
     body: JSON.stringify(order),
   };
   const body = fetch(`http://localhost:8080/api/table-views/order`, init)
-    
+
   return body
 }
-
-
 
 // export function loadTableState() {
 //   try {

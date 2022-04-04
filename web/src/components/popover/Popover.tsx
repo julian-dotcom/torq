@@ -1,5 +1,8 @@
 import './popover.scss'
 import {ReactChild, useEffect, useRef, useState} from "react";
+import {
+  Dismiss20Regular as DismissIcon,
+} from "@fluentui/react-icons";
 import classNames from "classnames";
 
 
@@ -38,7 +41,20 @@ const PopoverButton = ({className, button, children }: PopoverInterface) => {
       {button ? button : "button"}
       <div className={classNames("popover-wrapper", {"popover-open": isPopoverOpen})}
            onClick={(e) =>{e.stopPropagation()}}>
-        {children}
+      <div className={"popover-mobile-dismiss"}>
+        <div className="left-container" onClick={(e) => e.stopPropagation()}>
+          {button ? button : ""}
+        </div>
+        <div
+          className="right-container dismiss-button"
+          onClick={() => (setIsPopoverOpen(false))}>
+            {/*<DismissIcon/>*/}
+          Close
+        </div>
+      </div>
+        <div className="popover-container">
+          {children}
+        </div>
       </div>
     </div>
   )
