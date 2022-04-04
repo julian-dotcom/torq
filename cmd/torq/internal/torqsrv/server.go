@@ -20,7 +20,6 @@ import (
 func Start(port int, apiPswd string, db *sqlx.DB) {
 	r := gin.Default()
 	applyCors(r)
-	//injectPasswordMiddleware(r)
 	registerRoutes(r, db, apiPswd)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
@@ -66,13 +65,13 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 	var Secret = []byte("secret")
 	r.Use(sessions.Sessions("torq_session", sessions.NewCookieStore(Secret)))
 
+	api := r.Group("/api")
+
 	// Limit login attempts to 10 per minute.
 	rl := NewLoginRateLimitMiddleware()
-	r.POST("/login", rl, auth.Login(apiPwd))
+	api.POST("/login", rl, auth.Login(apiPwd))
+	api.GET("/logout", auth.Logout)
 
-	r.GET("/logout", auth.Logout)
-
-	api := r.Group("/api")
 	api.Use(auth.AuthRequired)
 	{
 
