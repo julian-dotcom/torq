@@ -3,9 +3,8 @@ import HeaderCell from "./cells/HeaderCell";
 import AliasCell from "./cells/AliasCell";
 import NumericCell from "./cells/NumericCell";
 import BarCell from "./cells/BarCell";
-import EmptyCell from "./cells/EmptyCell";
-import {useAppSelector} from "../../store/hooks";
-import {selectChannels, selectActiveColumns} from "./tableSlice";
+import { useAppSelector } from "../../store/hooks";
+import { selectChannels, selectActiveColumns } from "./tableSlice";
 import classNames from "classnames";
 
 interface RowType {
@@ -82,12 +81,12 @@ function Table() {
 
     Object.keys(total).forEach(key => {
       // @ts-ignore
-      average[key] = total[key]/channels.length
+      average[key] = total[key] / channels.length
     })
 
     total.turnover_total = total.amount_total / total.capacity
     total.turnover_out = total.amount_out / total.capacity
-    total.turnover_in = total.amount_in/ total.capacity
+    total.turnover_in = total.amount_in / total.capacity
   }
 
   const numColumns = Object.keys(columns).length;
@@ -132,13 +131,13 @@ function Table() {
             let past = channels[index][key];
             switch (column.type) {
               case "AliasCell":
-                return <AliasCell current={row[key] as string} className={classNames(key, index, "locked")} key={key + index + columnIndex}/>
+                return <AliasCell current={row[key] as string} className={classNames(key, index, "locked")} key={key + index + columnIndex} />
               case "NumericCell":
-                return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex}/>;
+                return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
               case "BarCell":
-                return <BarCell current={row[key] as number} previous={row[key] as number} total={max[key] as number} index={index} className={key} key={key + index + columnIndex}/>;
+                return <BarCell current={row[key] as number} previous={row[key] as number} total={max[key] as number} index={index} className={key} key={key + index + columnIndex} />;
               default:
-                return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex}/>;
+                return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
             }
           });
           // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
@@ -173,13 +172,13 @@ function Table() {
           switch (column.type) {
             case "AliasCell":
               // @ts-ignore
-              return <AliasCell current={"Total"} className={classNames(key, index, "total-cell locked")} key={key + index}/>
+              return <AliasCell current={"Total"} className={classNames(key, index, "total-cell locked")} key={key + index} />
             case "NumericCell":
-              return <NumericCell current={value}  index={index} className={key + " total-cell"} key={`total-${key}-${index}`}/>;
+              return <NumericCell current={value} index={index} className={key + " total-cell"} key={`total-${key}-${index}`} />;
             case "BarCell":
-              return <BarCell current={value} previous={value} total={max[key] as number}  index={index} className={key + " total-cell"} key={`total-${key}-${index}`}/>;
+              return <BarCell current={value} previous={value} total={max[key] as number} index={index} className={key + " total-cell"} key={`total-${key}-${index}`} />;
             default:
-              return <NumericCell current={value}  index={index} className={key + " total-cell"} key={`total-${key}-${index}`}/>;
+              return <NumericCell current={value} index={index} className={key + " total-cell"} key={`total-${key}-${index}`} />;
           }
         })}
         {/*Empty cell at the end*/}
