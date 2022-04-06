@@ -29,23 +29,25 @@ function TablePage() {
     dispatch(fetchChannelsAsync({ from: from, to: to }));
   }, [currentPeriod])
 
-  if (status === "loading") {
-    return (
-      <CenterCenter>
-        <BarLoader color='#B8EDE3' loading={true} height={10} width={100} />
-      </CenterCenter>
-    )
-  }
-
   return (
-    <FadeIn>
-      <div className="table-page-wrapper">
-        <div className="table-controls-wrapper">
-          <TableControls />
-        </div>
-        <Table />
+    <div className="table-page-wrapper">
+      <div className="table-controls-wrapper">
+        <TableControls />
       </div>
-    </FadeIn>
+      {status === "loading" ?
+        (
+          <CenterCenter>
+            <BarLoader color='#B8EDE3' loading={true} height={10} width={100} />
+          </CenterCenter>
+        ) :
+        (
+          <FadeIn>
+            <Table />
+          </FadeIn>
+        )
+      }
+
+    </div>
   );
 }
 
