@@ -1,8 +1,8 @@
-import {createAsyncThunk, createSlice, current, PayloadAction} from '@reduxjs/toolkit';
-import {RootState} from '../../store/store';
+import { createAsyncThunk, createSlice, current, PayloadAction } from '@reduxjs/toolkit';
+import { RootState } from '../../store/store';
 import { addDays, format } from 'date-fns';
-import { FilterInterface, FilterFunctions, applyFilters } from './controls/filter/filter'
-import {SortByOptionType} from "./controls/sort/SortControls";
+import { FilterInterface, applyFilters } from './controls/filter/filter'
+import { SortByOptionType } from "./controls/sort/SortControls";
 import _ from "lodash";
 
 export interface ColumnMetaData {
@@ -50,12 +50,12 @@ export interface TableState {
 }
 
 export const DefaultView: ViewInterface = {
-    title: "New Table",
-    saved: true,
-    filters: [],
-    columns: columns,
-    sortBy: [],
-  }
+  title: "New Table",
+  saved: true,
+  filters: [],
+  columns: columns,
+  sortBy: [],
+}
 
 const initialState: TableState = {
   channels: [],
@@ -112,7 +112,7 @@ function updateTableView(view: ViewInterface) {
     headers: { 'Content-Type': 'application/json' },
     mode: 'cors',
     method: 'PUT',
-    body: JSON.stringify({id: view.id, view: view}),
+    body: JSON.stringify({ id: view.id, view: view }),
   };
   const body = fetch(`http://localhost:8080/api/table-views`, init)
     .then(response => {
@@ -127,7 +127,7 @@ export const updateTableViewAsync = createAsyncThunk(
 
     let body = await updateTableView(data.view)
     return data.index
-})
+  })
 
 function createTableView(view: ViewInterface) {
   const init: RequestInit = {
@@ -135,7 +135,7 @@ function createTableView(view: ViewInterface) {
     headers: { 'Content-Type': 'application/json' },
     mode: 'cors',
     method: 'POST',
-    body: JSON.stringify({id: null, view: view}),
+    body: JSON.stringify({ id: null, view: view }),
   };
   const body = fetch(`http://localhost:8080/api/table-views`, init)
     .then(response => {
@@ -149,8 +149,8 @@ export const createTableViewAsync = createAsyncThunk(
   async (data: { view: ViewInterface, index: number }) => {
 
     let body = await createTableView(data.view)
-    return {view: body, index: data.index}
-})
+    return { view: body, index: data.index }
+  })
 
 function deleteTableView(view: ViewInterface) {
   const init: RequestInit = {
@@ -160,7 +160,7 @@ function deleteTableView(view: ViewInterface) {
     method: 'DELETE'
   };
   const body = fetch(`http://localhost:8080/api/table-views/${view.id}`, init)
-    .then(() => {return })
+    .then(() => { return })
   return body
 }
 
@@ -170,8 +170,8 @@ export const deleteTableViewAsync = createAsyncThunk(
 
     let body = await deleteTableView(data.view)
 
-    return {index: data.index}
-})
+    return { index: data.index }
+  })
 
 interface viewOrderInterface {
   id: number | undefined,
@@ -218,7 +218,7 @@ export const tableSlice = createSlice({
     updateFilters: (state, actions: PayloadAction<{ filters: FilterInterface[] }>) => {
       state.views[state.selectedViewIndex].filters = actions.payload.filters
     },
-    updateColumns: (state, actions: PayloadAction<{columns: ColumnMetaData[]}>) => {
+    updateColumns: (state, actions: PayloadAction<{ columns: ColumnMetaData[] }>) => {
       state.views[state.selectedViewIndex].columns = actions.payload.columns
     },
     updateViews: (state, actions: PayloadAction<{ views: ViewInterface[], index: number }>) => {
@@ -231,8 +231,8 @@ export const tableSlice = createSlice({
     },
     deleteView: (state, actions: PayloadAction<{ view: ViewInterface, index: number }>) => {
       state.views = [
-        ...state.views.slice(0,actions.payload.index),
-        ...state.views.slice(actions.payload.index+1, state.views.length),
+        ...state.views.slice(0, actions.payload.index),
+        ...state.views.slice(actions.payload.index + 1, state.views.length),
       ]
       state.selectedViewIndex = 0
     },
@@ -253,8 +253,8 @@ export const tableSlice = createSlice({
       })
       .addCase(fetchTableViewsAsync.fulfilled, (state, action) => {
         state.status = 'idle';
-        if(action.payload) {
-          state.views = action.payload.map((view: {id: number, view: ViewInterface}) => {return {...view.view, id: view.id}})
+        if (action.payload) {
+          state.views = action.payload.map((view: { id: number, view: ViewInterface }) => { return { ...view.view, id: view.id } })
         }
       });
 
@@ -264,7 +264,7 @@ export const tableSlice = createSlice({
       })
       .addCase(createTableViewAsync.fulfilled, (state, action) => {
         state.status = 'idle';
-        state.views[action.payload.index] = {...action.payload.view.view, id: action.payload.view.id}
+        state.views[action.payload.index] = { ...action.payload.view.view, id: action.payload.view.id }
         state.selectedViewIndex = action.payload.index
       });
 
@@ -284,7 +284,7 @@ export const tableSlice = createSlice({
       .addCase(deleteTableViewAsync.fulfilled, (state, action) => {
         state.status = 'idle';
         state.views = [
-          ...state.views.slice(0,action.payload.index),
+          ...state.views.slice(0, action.payload.index),
           ...state.views.slice(action.payload.index + 1, state.views.length),
         ]
         state.selectedViewIndex = 0;
@@ -315,7 +315,7 @@ export const tableSlice = createSlice({
     // Update the table view order in the backend
     builder.addMatcher((action) => action.type === 'table/updateViewsOrder', (state, actions) => {
       const order: viewOrderInterface[] = state.views.map((view, index) => {
-        return {id: view.id, view_order: index}
+        return { id: view.id, view_order: index }
       })
       saveTableViewOrder(order).then(() => console.log('View order updated'))
     })
@@ -328,7 +328,7 @@ export const tableSlice = createSlice({
   },
 });
 
-export const { updateFilters, updateViews, updateViewsOrder, deleteView, updateSelectedView, updateSortBy, updateColumns} = tableSlice.actions;
+export const { updateFilters, updateViews, updateViewsOrder, deleteView, updateSelectedView, updateSortBy, updateColumns } = tableSlice.actions;
 
 
 export const selectChannels = (state: RootState) => {
@@ -337,7 +337,7 @@ export const selectChannels = (state: RootState) => {
 
   // TODO: Clean up
   let channels = state.table.channels ? state.table.channels.slice() : []
-  return _.orderBy(applyFilters(filters, channels), sorts.map((s) => s.value), sorts.map((s) => s.direction) as ['asc'|'desc'])
+  return _.orderBy(applyFilters(filters, channels), sorts.map((s) => s.value), sorts.map((s) => s.direction) as ['asc' | 'desc'])
 };
 
 export const selectActiveColumns = (state: RootState) => {
@@ -351,5 +351,6 @@ export const selectFilters = (state: RootState) => {
 export const selectViews = (state: RootState) => state.table.views;
 export const selectCurrentView = (state: RootState) => state.table.views[state.table.selectedViewIndex];
 export const selectedViewIndex = (state: RootState) => state.table.selectedViewIndex;
+export const selectStatus = (state: RootState) => state.table.status;
 
 export default tableSlice.reducer;

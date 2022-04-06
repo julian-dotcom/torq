@@ -48,8 +48,8 @@
     .rdrInRange {
       border-radius: 0;
       left: 0;
-      top:0;
-      right:0;
+      top: 0;
+      right: 0;
     }
     .rdrStartEdge {
       border-top-left-radius: 50%;
@@ -81,7 +81,7 @@
     .rdrDayEndOfMonth .rdrInRange,
     .rdrDayEndOfMonth .rdrStartEdge,
     .rdrDayEndOfWeek .rdrInRange,
-    .rdrDayEndOfWeek .rdrStartEdge, {
+    .rdrDayEndOfWeek .rdrStartEdge {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
@@ -93,8 +93,10 @@
       border-bottom-left-radius: 0;
     }
 
-    .rdrDayEndOfWeek .rdrStartEdge.rdrEndEdge
-    .rdrDayEndOfMonth .rdrStartEdge.rdrEndEdge {
+    .rdrDayEndOfWeek
+      .rdrStartEdge.rdrEndEdge
+      .rdrDayEndOfMonth
+      .rdrStartEdge.rdrEndEdge {
       border-top-right-radius: 50%;
       border-bottom-right-radius: 50%;
     }
@@ -122,10 +124,9 @@
     }
     .rdrInfiniteMonths.rdrMonthsVertical {
       /* Hide scrollbar for IE, Edge and Firefox */
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+      scrollbar-width: none; /* Firefox */
     }
-
 
     .rdrDayToday .rdrDayNumber span:after {
       background: none;
