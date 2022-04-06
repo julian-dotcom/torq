@@ -7,6 +7,7 @@ import {
   Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import { format } from "date-fns";
+import FadeIn from "react-fade-in/lib/FadeIn";
 
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import DefaultButton from "../buttons/Button";
@@ -16,7 +17,7 @@ import SortControls from "./controls/sort/SortControls";
 import {
   createTableViewAsync,
   selectCurrentView,
-  selectedViewIndex, updateTableViewAsync
+  selectedViewIndex, selectStatus, updateTableViewAsync
 } from "./tableSlice";
 import FilterPopover from "./controls/filter/FilterPopover";
 
@@ -28,15 +29,16 @@ function TableControls() {
 
   const currentView = useAppSelector(selectCurrentView);
   const currentViewIndex = useAppSelector(selectedViewIndex);
+  const status = useAppSelector(selectStatus);
 
   const saveView = () => {
-    let viewMod = {...currentView}
+    let viewMod = { ...currentView }
     viewMod.saved = true
     if (currentView.id === undefined || null) {
-      dispatch(createTableViewAsync({view: viewMod, index: currentViewIndex}))
+      dispatch(createTableViewAsync({ view: viewMod, index: currentViewIndex }))
       return
     }
-    dispatch(updateTableViewAsync({view: viewMod, index: currentViewIndex}))
+    dispatch(updateTableViewAsync({ view: viewMod, index: currentViewIndex }))
   }
 
   return (
@@ -49,9 +51,10 @@ function TableControls() {
             onClick={() => dispatch(toggleNav())}
             className={"show-nav-btn collapse-tablet"}
           />
-          <ViewsPopover />
+          {status === 'loading' ? <div style={{ color: 'transparent' }}><ViewsPopover /></div> : <FadeIn> <ViewsPopover /></FadeIn>}
+
           {!currentView.saved && (<DefaultButton
-            icon={<SaveIcon/>}
+            icon={<SaveIcon />}
             text={"Save"}
             onClick={saveView}
             className={"collapse-tablet danger"}
