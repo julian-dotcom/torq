@@ -90,90 +90,89 @@ test('complex query returns false', () => {
   expect(result).toBe(false);
 })
 
-// test('simplest query serialises itself', () => {
-//   const expected = {
-//     "$filter": false
-//   }
-//   const simplestClauseFalse = new FilterClause(false)
-//   const result = JSON.parse(JSON.stringify(simplestClauseFalse))
-//   expect(result).toEqual(expected);
-// })
+test('simplest query serialises itself', () => {
+  const expected = {
+    "$filter": failingFilter
+  }
+  const simplestClauseFalse = new FilterClause(failingFilter)
+  const result = JSON.parse(JSON.stringify(simplestClauseFalse))
+  expect(result).toEqual(expected);
+})
 
-// test('simple AND query serialises itself', () => {
-//   const expected = {
-//     $and: [
-//       { $filter: false },
-//       { $filter: true },
-//     ]
-//   }
-//   const simpleAndClauseReturnFalse = new AndClause()
-//   simpleAndClauseReturnFalse.addChildClause(new FilterClause(false))
-//   simpleAndClauseReturnFalse.addChildClause(new FilterClause(true))
+test('simple AND query serialises itself', () => {
+  const expected = {
+    $and: [
+      { $filter: failingFilter },
+      { $filter: passingFilter },
+    ]
+  }
+  const simpleAndClauseReturnFalse = new AndClause()
+  simpleAndClauseReturnFalse.addChildClause(new FilterClause(failingFilter))
+  simpleAndClauseReturnFalse.addChildClause(new FilterClause(passingFilter))
 
-//   const result = JSON.parse(JSON.stringify(simpleAndClauseReturnFalse))
-//   expect(result).toEqual(expected);
-// })
+  const result = JSON.parse(JSON.stringify(simpleAndClauseReturnFalse))
+  expect(result).toEqual(expected);
+})
 
+test('complex query serialises itself', () => {
+  const expected = {
+    $and: [
+      { $filter: failingFilter },
+      {
+        $or: [
+          { $filter: failingFilter },
+          { $filter: failingFilter },
+          { $filter: passingFilter }]
+      }
+    ]
+  }
 
-// test('complex query serialises itself', () => {
-//   const expected = {
-//     $and: [
-//       { $filter: false },
-//       {
-//         $or: [
-//           { $filter: false },
-//           { $filter: false },
-//           { $filter: true }]
-//       }
-//     ]
-//   }
+  const clauseOrReturnTrue = new OrClause()
+  clauseOrReturnTrue.addChildClause(new FilterClause(failingFilter))
+  clauseOrReturnTrue.addChildClause(new FilterClause(failingFilter))
+  clauseOrReturnTrue.addChildClause(new FilterClause(passingFilter))
 
-//   const clauseOrReturnTrue = new OrClause()
-//   clauseOrReturnTrue.addChildClause(new FilterClause(false))
-//   clauseOrReturnTrue.addChildClause(new FilterClause(false))
-//   clauseOrReturnTrue.addChildClause(new FilterClause(true))
+  const complexClause = new AndClause()
+  complexClause.addChildClause(new FilterClause(failingFilter))
+  complexClause.addChildClause(clauseOrReturnTrue)
 
-//   const complexClause = new AndClause()
-//   complexClause.addChildClause(new FilterClause(false))
-//   complexClause.addChildClause(clauseOrReturnTrue)
+  const result = JSON.parse(JSON.stringify(complexClause))
+  expect(result).toEqual(expected);
+})
 
-//   const result = JSON.parse(JSON.stringify(complexClause))
-//   expect(result).toEqual(expected);
-// })
+test('deserialise into simple query', () => {
+  const simpleQuery = {
+    "$filter": failingFilter
+  }
+  const simpleQueryJSON = JSON.stringify(simpleQuery)
+  const result = deserialiseQueryJSON(simpleQueryJSON)
+  const expected = new FilterClause(failingFilter)
+  expect(result).toEqual(expected);
+})
 
-// test('deserialise into simple query', () => {
-//   const simpleQuery = {
-//     "$filter": false
-//   }
-//   const simpleQueryJSON = JSON.stringify(simpleQuery)
-//   const result = deserialiseQueryJSON(simpleQueryJSON)
-//   const expected = new FilterClause(false)
-//   expect(result).toEqual(expected);
-// })
+test('deserialise a complex query', () => {
+  const complexQuery = {
+    $and: [
+      { $filter: failingFilter },
+      {
+        $or: [
+          { $filter: failingFilter },
+          { $filter: failingFilter },
+          { $filter: passingFilter }]
+      }
+    ]
+  }
 
-// test('deserialise a complex query', () => {
-//   const complexQuery = {
-//     $and: [
-//       { $filter: false },
-//       {
-//         $or: [
-//           { $filter: false },
-//           { $filter: false },
-//           { $filter: true }]
-//       }
-//     ]
-//   }
+  const clauseOrReturnTrue = new OrClause()
+  clauseOrReturnTrue.addChildClause(new FilterClause(failingFilter))
+  clauseOrReturnTrue.addChildClause(new FilterClause(failingFilter))
+  clauseOrReturnTrue.addChildClause(new FilterClause(passingFilter))
 
-//   const clauseOrReturnTrue = new OrClause()
-//   clauseOrReturnTrue.addChildClause(new FilterClause(false))
-//   clauseOrReturnTrue.addChildClause(new FilterClause(false))
-//   clauseOrReturnTrue.addChildClause(new FilterClause(true))
+  const complexClause = new AndClause()
+  complexClause.addChildClause(new FilterClause(failingFilter))
+  complexClause.addChildClause(clauseOrReturnTrue)
 
-//   const complexClause = new AndClause()
-//   complexClause.addChildClause(new FilterClause(false))
-//   complexClause.addChildClause(clauseOrReturnTrue)
-
-//   const complexQueryJSON = JSON.stringify(complexQuery)
-//   const result = deserialiseQueryJSON(complexQueryJSON)
-//   expect(result).toEqual(complexClause);
-// })
+  const complexQueryJSON = JSON.stringify(complexQuery)
+  const result = deserialiseQueryJSON(complexQueryJSON)
+  expect(result).toEqual(complexClause);
+})
