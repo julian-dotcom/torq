@@ -10,12 +10,9 @@ import (
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/lndutil"
-	"github.com/lncapital/torq/torqrpc"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"log"
 	"os"
 )
@@ -65,6 +62,11 @@ func main() {
 			Name:  "torq.key",
 			Value: "./key.pem",
 			Usage: "Path to your key.pem file used by the GRPC server",
+		}),
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:  "torq.no-sub",
+			Value: false,
+			Usage: "Start the server without subscribing to node data.",
 		}),
 
 		// Torq database
@@ -140,29 +142,32 @@ func main() {
 				return err
 			}
 
-			fmt.Println("Connecting to lightning node")
-			// Connect to the node
-			conn, err := lndutil.Connect(
-				c.String("lnd.node_address"),
-				c.String("lnd.tls"),
-				c.String("lnd.macaroon"))
+			if !c.Bool("torq.no-sub") {
 
-			if err != nil {
-				return fmt.Errorf("failed to connect to lnd: %v", err)
-			}
+				fmt.Println("Connecting to lightning node")
+				// Connect to the node
+				conn, err := lndutil.Connect(
+					c.String("lnd.node_address"),
+					c.String("lnd.tls"),
+					c.String("lnd.macaroon"))
 
-			ctx := context.Background()
-			errs, ctx := errgroup.WithContext(ctx)
-
-			// Subscribe to data from the node
-			//   TODO: Attempt to restart subscriptions if they fail.
-			errs.Go(func() error {
-				err = subscribe.Start(ctx, conn, db)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to connect to lnd: %v", err)
 				}
-				return nil
-			})
+
+				ctx := context.Background()
+				errs, ctx := errgroup.WithContext(ctx)
+
+				// Subscribe to data from the node
+				//   TODO: Attempt to restart subscriptions if they fail.
+				errs.Go(func() error {
+					err = subscribe.Start(ctx, conn, db)
+					if err != nil {
+						return err
+					}
+					return nil
+				})
+			}
 
 			torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db)
 
@@ -227,56 +232,6 @@ func main() {
 		},
 	}
 
-	// TODO: Remove. Only used for manually testing grpc calls
-	callGrpc := &cli.Command{
-		Name:  "call",
-		Usage: "",
-		Action: func(c *cli.Context) error {
-
-			var conn *grpc.ClientConn
-
-			creds, err := credentials.NewClientTLSFromFile(c.String("torq.cert"), "")
-			if err != nil {
-				return fmt.Errorf("failed to load certificates: %v", err)
-			}
-
-			conn, err = grpc.Dial(fmt.Sprintf("%s:%s", c.String("torq.host"),
-				c.String("torq.port")), grpc.WithTransportCredentials(creds))
-			if err != nil {
-				log.Fatalf("did not connect: %s", err)
-			}
-			defer conn.Close()
-
-			client := torqrpc.NewTorqrpcClient(conn)
-			ctx := context.Background()
-			response, err := client.GetAggrigatedForwards(ctx, &torqrpc.AggregatedForwardsRequest{
-				//FromTs: time.Date(2021, 02, 01, 0, 0, 0, 0, time.UTC).Unix(),
-				//ToTs:   time.Date(2022, 02, 11, 0, 0, 0, 0, time.UTC).Unix(),
-				FromTs: 0,
-				ToTs:   0,
-				Ids:    &torqrpc.AggregatedForwardsRequest_ChannelIds{},
-				//Ids: &torqrpc.AggregatedForwardsRequest_PeerIds{
-				//	PeerIds: &torqrpc.PeerIDs{
-				//		PubKeys: []string{
-				//			"03b323009613777edc4e8024c6726758396bc026da99545971164a6baad31dfc69",
-				//			"039efdf7a40f848d9fe30f1ab97b297c06f96fde1992ece0eca7639711ecac5a93",
-				//			"03e8b9a977fa3ae7acce74c25986c7240a921222e349729737df832a1b5ceb49df",
-				//			"030bec0fb4a5dd5c2dffa5f008210a9b7e0689ee4bf7ae15a7e52491c65fbf4ca5",
-				//			"021c97a90a411ff2b10dc2a8e32de2f29d2fa49d41bfbb52bd416e460db0747d0d",
-				//		},
-				//	},
-				//},
-			})
-			if err != nil {
-				return err
-			}
-
-			log.Printf("Response from server: %s", response)
-
-			return nil
-		},
-	}
-
 	migrateUp := &cli.Command{
 		Name:  "migrate_up",
 		Usage: "Migrates the database to the latest version",
@@ -310,7 +265,6 @@ func main() {
 	app.Commands = cli.Commands{
 		start,
 		subscribe,
-		callGrpc,
 		migrateUp,
 	}
 
