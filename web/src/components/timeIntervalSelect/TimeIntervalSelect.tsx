@@ -3,7 +3,10 @@ import { useState } from "react";
 import { format, startOfDay } from "date-fns";
 import locale from 'date-fns/locale/en-US'
 import {
-  defaultStaticRanges, defineds,
+  CalendarLtr24Regular as Calendar,
+} from "@fluentui/react-icons";
+import {
+  defaultStaticRanges,
 } from "./customRanges";
 
 import { DateRangePicker } from "react-date-range";
@@ -12,6 +15,7 @@ import { addDays } from "date-fns";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
 import classNames from "classnames";
+import DefaultButton from "../buttons/Button";
 
 interface selection {
   startDate: Date,
@@ -58,30 +62,20 @@ function TimeIntervalSelect() {
     "mobile-date-range": isMobile
   });
 
-  const button = <div
-    className="time-interval-wrapper"
+  const buttonText = (): string => {
+    return `${format(new Date(currentPeriod.from), "MMM d, yyyy")} - ${format(new Date(currentPeriod.to), "MMM d, yyyy")}`;
+  };
+
+  let popOverButton = <DefaultButton
     onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-  >
-    <div className="icon">{/* <IntervalIcon /> */}</div>
-    <div className="interval">
-      <div className="">
-        <p className="text-base">
-          {" "}
-          {format(new Date(currentPeriod.from), "MMM d, yyyy")} -{" "}
-          {format(new Date(currentPeriod.to), "MMM d, yyyy")}
-        </p>
-        {/*<p className="text-slate-400 text-sm">*/}
-        {/*  {" "}*/}
-        {/*  {format(new Date(currentPeriod.compareFrom), "MMM d, yyyy")} -{" "}*/}
-        {/*  {format(new Date(currentPeriod.compareTo), "MMM d, yyyy")}*/}
-        {/*</p>*/}
-      </div>
-    </div>
-  </div>
+    icon={<Calendar />}
+    text={buttonText()}
+    className="time-interval-wrapper"
+  />
 
   return (
     <div className={dateRangeClass}>
-      <Popover button={button}>
+      <Popover button={popOverButton}>
         <div className="date-range-popover-content">
           <button className="close-date-range-mobile" onClick={() => handleMobileClick(false)}>X</button>
 
