@@ -6,7 +6,7 @@ import {
   Options20Regular as OptionsIcon,
   Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
-import { format } from "date-fns";
+
 
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import DefaultButton from "../buttons/Button";
@@ -16,7 +16,8 @@ import SortControls from "./controls/sort/SortControls";
 import {
   createTableViewAsync,
   selectCurrentView,
-  selectedViewIndex, updateTableViewAsync
+  selectedViewIndex,
+  updateTableViewAsync
 } from "./tableSlice";
 import FilterPopover from "./controls/filter/FilterPopover";
 
@@ -25,20 +26,18 @@ import ColumnsPopover from "./controls/columns/ColumnsPopover";
 
 function TableControls() {
   const dispatch = useAppDispatch();
-
   const currentView = useAppSelector(selectCurrentView);
   const currentViewIndex = useAppSelector(selectedViewIndex);
 
   const saveView = () => {
-    let viewMod = {...currentView}
+    let viewMod = { ...currentView }
     viewMod.saved = true
     if (currentView.id === undefined || null) {
-      dispatch(createTableViewAsync({view: viewMod, index: currentViewIndex}))
+      dispatch(createTableViewAsync({ view: viewMod, index: currentViewIndex }))
       return
     }
-    dispatch(updateTableViewAsync({view: viewMod, index: currentViewIndex}))
+    dispatch(updateTableViewAsync({ view: viewMod, index: currentViewIndex }))
   }
-
   return (
     <div className="table-controls">
       <div className="left-container">
@@ -51,7 +50,7 @@ function TableControls() {
           />
           <ViewsPopover />
           {!currentView.saved && (<DefaultButton
-            icon={<SaveIcon/>}
+            icon={<SaveIcon />}
             text={"Save"}
             onClick={saveView}
             className={"collapse-tablet danger"}

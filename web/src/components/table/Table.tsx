@@ -4,7 +4,7 @@ import AliasCell from "./cells/AliasCell";
 import NumericCell from "./cells/NumericCell";
 import BarCell from "./cells/BarCell";
 import { useAppSelector } from "../../store/hooks";
-import { selectChannels, selectActiveColumns } from "./tableSlice";
+import { selectChannels, selectActiveColumns, selectStatus } from "./tableSlice";
 import classNames from "classnames";
 
 interface RowType {
@@ -42,6 +42,7 @@ interface TotalType {
 function Table() {
   let columns = useAppSelector(selectActiveColumns) || [];
   let channels = useAppSelector(selectChannels) || [];
+  let status = useAppSelector(selectStatus)
 
   // TODO: Clean this up. Create a user selectable totals.
   let baseAcc: RowType = {
@@ -103,6 +104,11 @@ function Table() {
     }
   };
 
+  const tableClass = classNames("table-content", {
+    'loading': status === 'loading',
+    'idle': status === 'idle'
+  });
+
   return (
     <div className="table-wrapper">
       <style>
@@ -112,7 +118,8 @@ function Table() {
           rowGridStyle(numRows) +
           "}"}
       </style>
-      <div className="table-content">
+
+      <div className={tableClass}>
         {/*Empty header at the start*/}
         {<HeaderCell heading={""} className={"first-empty-header empty locked"} key={"first-empty-header"} />}
 
@@ -159,6 +166,8 @@ function Table() {
             />
           );
         })}
+
+
         {<div className={"cell empty "} />}
 
         {/* Totals row */}
@@ -184,6 +193,8 @@ function Table() {
         {/*Empty cell at the end*/}
         {<div className={"cell empty total-cell"} />}
       </div>
+
+
     </div>
   );
 }

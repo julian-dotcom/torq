@@ -12,3 +12,12 @@
   flex-direction: column;
   overflow: hidden;
 }
+
+.loading {
+  transition: opacity 250ms;
+  opacity: 0;
+}
+.idle {
+  transition: opacity 250ms;
+  opacity: 1;
+}
