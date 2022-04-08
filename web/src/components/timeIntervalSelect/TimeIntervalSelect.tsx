@@ -1,12 +1,9 @@
 import "./interval_select.scss";
 import { useState } from "react";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import locale from 'date-fns/locale/en-US'
-// import locale from 'date-fns/locale/nb'
 import {
-  defaultStaticRanges,
-  defineds,
-  getCompareRanges,
+  defaultStaticRanges, defineds,
 } from "./customRanges";
 
 import { DateRangePicker } from "react-date-range";
@@ -14,6 +11,7 @@ import Popover from "../popover/Popover";
 import { addDays } from "date-fns";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
+import classNames from "classnames";
 
 interface selection {
   startDate: Date,
@@ -22,8 +20,9 @@ interface selection {
 }
 
 function TimeIntervalSelect() {
-
   const currentPeriod = useAppSelector(selectTimeInterval);
+  const [isMobile, setIsMobile] = useState(false)
+  const [isCustom, setIsCustom] = useState(false)
 
   const selection1: selection = {
     startDate: new Date(currentPeriod.from),
@@ -43,13 +42,21 @@ function TimeIntervalSelect() {
     dispatch(updateInterval(interval))
   };
 
+  const handleMobileClick = (e: boolean) => {
+    setIsMobile(e)
+    setIsCustom(e)
+  }
 
   const renderCustomRangeLabel = () => (
     //@ts-ignore
-    <div onClick={() => console.log('')} className="custom-mobile">
+    <div onClick={() => handleMobileClick(true)} className="custom-mobile">
       Custom
     </div>
   );
+
+  const dateRangeClass = classNames("date-range-popover", {
+    "mobile-date-range": isMobile
+  });
 
   const button = <div
     className="time-interval-wrapper"
@@ -73,39 +80,43 @@ function TimeIntervalSelect() {
   </div>
 
   return (
-    <div className="date-range-popover">
+    <div className={dateRangeClass}>
       <Popover button={button}>
         <div className="date-range-popover-content">
-          <div>
-            <DateRangePicker
-              renderStaticRangeLabel={renderCustomRangeLabel}
-              monthDisplayFormat="MMMM yyyy"
-              showDateDisplay={false}
-              staticRanges={[...defaultStaticRanges, {
-                label: 'Custom',
-                hasCustomRendering: true,
-                range: () => ({
-                }),
-                isSelected() {
-                }
-              }]}
-              fixedHeight={false}
-              rangeColors={["#ECFAF8", "#F9FAFB"]}
-              maxDate={addDays(new Date(), 0)}
-              minDate={addDays((new Date().setFullYear(2015, 1, 1)), 0)}
-              scroll={{ enabled: true, calendarHeight: 400 }}
-              months={1}
-              showMonthArrow={false}
-              showMonthAndYearPickers={false}
-              weekStartsOn={locale.options?.weekStartsOn || 0}
-              direction="vertical"
-              inputRanges={[]}
-              ranges={[selection1]}
-              onChange={(item) => {
-                handleChange(item)
-              }}
-            />
-          </div>
+          <button className="close-date-range-mobile" onClick={() => handleMobileClick(false)}>X</button>
+
+          <DateRangePicker
+            renderStaticRangeLabel={renderCustomRangeLabel}
+            monthDisplayFormat="MMMM yyyy"
+            showDateDisplay={false}
+            staticRanges={[...defaultStaticRanges, {
+              label: 'Custom',
+              hasCustomRendering: true,
+              range: () => ({
+                startDate: startOfDay(addDays(new Date(), -3)),
+                endDate: new Date()
+              }),
+              isSelected() {
+                return isMobile
+              }
+            }]}
+            fixedHeight={false}
+            rangeColors={["#ECFAF8", "#F9FAFB"]}
+            maxDate={addDays(new Date(), 0)}
+            minDate={addDays((new Date().setFullYear(2015, 1, 1)), 0)}
+            scroll={{ enabled: true, calendarHeight: 400 }}
+            months={1}
+            showMonthArrow={false}
+            showMonthAndYearPickers={false}
+            weekStartsOn={locale.options?.weekStartsOn || 0}
+            direction="vertical"
+            inputRanges={[]}
+            ranges={[selection1]}
+            onChange={(item) => {
+              handleChange(item)
+            }}
+          />
+
         </div>
       </Popover>
     </div>

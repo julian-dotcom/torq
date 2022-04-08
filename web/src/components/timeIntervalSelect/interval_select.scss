@@ -6,13 +6,6 @@
     // position: absolute;
     // transform: translate(50%, -50%) !important;
   }
-
-  .custom-mobile {
-    display: none;
-    @media only screen and (max-width: 600px) {
-      display: block;
-    }
-  }
   .rdrCalendarWrapper.rdrDateRangeWrapper {
     @media only screen and (max-width: 600px) {
       // top: 50% !important;
@@ -22,7 +15,12 @@
       display: none;
     }
   }
-
+  .custom-mobile {
+    display: none;
+    @media only screen and (max-width: 600px) {
+      display: block;
+    }
+  }
   .rdrDateRangePickerWrapper {
     color: #033048;
     box-shadow: 0px 0px 10px rgba(3, 48, 72, 0.1);
@@ -198,6 +196,40 @@
         font-size: 14px;
       }
     }
+  }
+  .close-date-range-mobile {
+    display: none;
+  }
+  .torq-popover-button-wrapper {
+    justify-content: center;
+  }
+}
+
+.mobile-date-range {
+  .close-date-range-mobile {
+    display: block;
+    top: 10%;
+    right: 50%;
+    position: absolute;
+    transform: translate(50%, -72%);
+  }
+  .rdrCalendarWrapper.rdrDateRangeWrapper {
+    @media only screen and (max-width: 600px) {
+      top: 40% !important;
+      right: 50% !important;
+      position: absolute;
+      transform: translate(50%, -50%) !important;
+      display: block;
+    }
+  }
+
+  .date-range-popover-content {
+    background: rgb(3, 48, 72, 0.3);
+    height: 100vh;
+  }
+
+  .rdrStaticRanges {
+    pointer-events: none;
   }
 }
 
