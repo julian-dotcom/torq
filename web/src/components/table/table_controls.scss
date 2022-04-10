@@ -52,11 +52,12 @@
     grid-template-columns: auto;
     grid-template-rows: auto auto;
     padding: 10px;
-    .left-container,
-    .right-container {
+    .left-container {
       justify-content: stretch;
     }
-
+    .right-container {
+      justify-content: center;
+    }
     .left-container {
       grid-auto-flow: column;
       grid-template-columns: 1fr min-content;

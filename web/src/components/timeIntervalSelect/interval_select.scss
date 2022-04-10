@@ -185,6 +185,9 @@
     // TODO: Quick hack, clean up. FLW
     margin-top: -2px;
   }
+  .interval {
+    min-width: 195px;
+  }
   .interval .previous {
     color: var(--fg-muted);
   }

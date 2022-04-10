@@ -63,63 +63,61 @@ function TimeIntervalSelect() {
   }
 
   return (
-    <div>
-      <Popover
-        onClickOutside={() => setIsPopoverOpen(!isPopoverOpen)}
-        containerClassName="date-range-popover"
-        isOpen={isPopoverOpen}
-        positions={['bottom']}
-        align={'end'}
-        content={
-          <div className="date-range-popover-content">
-            <div>
-              <DateRangePicker
-                monthDisplayFormat="MMMM yyyy"
-                showDateDisplay={false}
-                staticRanges={defaultStaticRanges}
-                fixedHeight={false}
-                rangeColors={["#ECFAF8", "#F9FAFB"]}
-                maxDate={addDays(new Date(), 0)}
-                minDate={addDays((new Date().setFullYear(2015, 1, 1)), 0)}
-                scroll={{ enabled: true, calendarHeight: 400 }}
-                months={1}
-                showMonthArrow={false}
-                showMonthAndYearPickers={false}
-                weekStartsOn={locale.options?.weekStartsOn || 0}
-                direction="vertical"
-                inputRanges={[]}
-                ranges={[selection1]}
-                onChange={(item) => {
-                  handleChange(item)
-                }}
-              />
-            </div>
-          </div>
-        }
-      >
-        <div id="time-interval-wrapper">
-          <LeftIcon onClick={() => moveBackwardInTime()} />
-          <div className="time-interval-wrapper" onClick={() => setIsPopoverOpen(!isPopoverOpen)}>
-            <div className="icon">{/* <IntervalIcon /> */}</div>
-            <div className="interval">
-              <div className="">
-                <p className="text-base">
-                  {format(new Date(currentPeriod.from), "MMM d, yyyy")} -{" "}
-                  {format(new Date(currentPeriod.to), "MMM d, yyyy")}
+    <Popover
+      onClickOutside={() => setIsPopoverOpen(!isPopoverOpen)}
+      containerClassName="date-range-popover"
+      isOpen={isPopoverOpen}
+      positions={['bottom']}
+      align={'end'}
+      content={
+        <div className="date-range-popover-content">
 
-                </p>
-                {/*<p className="text-slate-400 text-sm">*/}
-                {/*  {" "}*/}
-                {/*  {format(new Date(currentPeriod.compareFrom), "MMM d, yyyy")} -{" "}*/}
-                {/*  {format(new Date(currentPeriod.compareTo), "MMM d, yyyy")}*/}
-                {/*</p>*/}
-              </div>
+          <DateRangePicker
+            monthDisplayFormat="MMMM yyyy"
+            showDateDisplay={false}
+            staticRanges={defaultStaticRanges}
+            fixedHeight={false}
+            rangeColors={["#ECFAF8", "#F9FAFB"]}
+            maxDate={addDays(new Date(), 0)}
+            minDate={addDays((new Date().setFullYear(2015, 1, 1)), 0)}
+            scroll={{ enabled: true, calendarHeight: 400 }}
+            months={1}
+            showMonthArrow={false}
+            showMonthAndYearPickers={false}
+            weekStartsOn={locale.options?.weekStartsOn || 0}
+            direction="vertical"
+            inputRanges={[]}
+            ranges={[selection1]}
+            onChange={(item) => {
+              handleChange(item)
+            }}
+          />
+
+        </div>
+      }
+    >
+      <div id="time-interval-wrapper">
+        <LeftIcon onClick={() => moveBackwardInTime()} />
+        <div onClick={() => setIsPopoverOpen(!isPopoverOpen)}>
+          <div className="icon">{/* <IntervalIcon /> */}</div>
+          <div className="interval">
+            <div className="">
+              <p className="text-base">
+                {format(new Date(currentPeriod.from), "MMM d, yyyy")} -{" "}
+                {format(new Date(currentPeriod.to), "MMM d, yyyy")}
+
+              </p>
+              {/*<p className="text-slate-400 text-sm">*/}
+              {/*  {" "}*/}
+              {/*  {format(new Date(currentPeriod.compareFrom), "MMM d, yyyy")} -{" "}*/}
+              {/*  {format(new Date(currentPeriod.compareTo), "MMM d, yyyy")}*/}
+              {/*</p>*/}
             </div>
           </div>
-          <RightIcon onClick={() => moveForwardInTime()} />
         </div>
-      </Popover>
-    </div>
+        <RightIcon onClick={() => moveForwardInTime()} />
+      </div>
+    </Popover>
   );
 }
 export default TimeIntervalSelect;
