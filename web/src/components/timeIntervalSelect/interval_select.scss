@@ -1,17 +1,7 @@
 .date-range-popover {
   z-index: 20;
-  @media only screen and (max-width: 600px) {
-    // top: 30% !important;
-    // right: 50% !important;
-    // position: absolute;
-    // transform: translate(50%, -50%) !important;
-  }
   .rdrCalendarWrapper.rdrDateRangeWrapper {
     @media only screen and (max-width: 600px) {
-      // top: 50% !important;
-      // right: 50% !important;
-      // position: absolute;
-      // transform: translate(50%, -50%) !important;
       display: none;
     }
   }
@@ -31,10 +21,6 @@
       background-color: transparent;
       border: none;
       box-shadow: none;
-      // top: 40% !important;
-      // right: 50% !important;
-      // position: absolute;
-      // transform: translate(50%, -50%) !important;
     }
     .rdrDayNumber span {
       color: #033048 !important;
@@ -169,10 +155,6 @@
         background-color: transparent;
         border: none;
         box-shadow: none;
-        // top: 40% !important;
-        // right: 50% !important;
-        // position: absolute;
-        // transform: translate(50%, -50%) !important;
       }
     }
     .rdrStaticRange .rdrStaticRangeSelected {
