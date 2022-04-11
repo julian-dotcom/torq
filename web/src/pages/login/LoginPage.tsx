@@ -19,7 +19,7 @@ function LoginPage() {
     };
   }
 
-  let from = (location.state as LocationState)?.from.pathname || "/"
+  let from = (location.state as LocationState)?.from?.pathname || "/"
   // Don't redirect back to logout.
   if (from == "/logout" || "/login") {
     from = "/"
