@@ -105,7 +105,6 @@ export const fetchTableViewsAsync = createAsyncThunk(
   }
 );
 
-
 function updateTableView(view: ViewInterface) {
   const init: RequestInit = {
     credentials: 'include',
