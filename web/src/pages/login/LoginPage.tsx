@@ -1,21 +1,25 @@
-import React, {useEffect} from 'react';
-import {useAppDispatch} from '../../store/hooks';
-import {loginAsync} from './authSlice';
-import {ReactComponent as TorqLogo} from '../../icons/torq-logo.svg'
+import React, { useEffect } from 'react';
+import { useAppDispatch } from '../../store/hooks';
+import { loginAsync } from './authSlice';
+import { ReactComponent as TorqLogo } from '../../icons/torq-logo.svg'
 import {
   LockOpen20Regular as UnlockIcon,
 } from "@fluentui/react-icons";
 import './login_page.scss'
-import {useLocation, useNavigate} from "react-router-dom";
-import {Cookies} from "react-cookie";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Cookies } from "react-cookie";
 
 function LoginPage() {
 
-  let navigate = useNavigate();
-  let location = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  interface LocationState {
+    from: {
+      pathname: string;
+    };
+  }
 
-  // @ts-ignore
-  let from = location.state?.from?.pathname || "/";
+  let from = (location.state as LocationState)?.from.pathname || "/"
   // Don't redirect back to logout.
   if (from == "/logout" || "/login") {
     from = "/"
@@ -23,7 +27,7 @@ function LoginPage() {
 
   let c = new Cookies
   const cookies = c.get('torq_session');
-  if(cookies !== undefined) {
+  if (cookies !== undefined) {
     navigate(from, { replace: true });
   }
   const dispatch = useAppDispatch()
@@ -33,7 +37,7 @@ function LoginPage() {
     const formData = new FormData(e.currentTarget)
     const password = formData.get("password") as string;
 
-    dispatch(loginAsync({password}))
+    dispatch(loginAsync({ password }))
 
     navigate(from, { replace: true });
   }
@@ -43,17 +47,17 @@ function LoginPage() {
     <div className="login-page-wrapper">
       <div className="login-form-wrapper">
         <div className="logo">
-          <TorqLogo/>
+          <TorqLogo />
         </div>
         <form className="login-form" onSubmit={submit}>
           <input type="password"
-                 name={"password"}
-                 className={"password-field"}
-                 placeholder={"Password..."}
+            name={"password"}
+            className={"password-field"}
+            placeholder={"Password..."}
           />
           <button type="submit"
-                 className={"submit-button"}>
-            <UnlockIcon/>
+            className={"submit-button"}>
+            <UnlockIcon />
             Login
           </button>
         </form>
