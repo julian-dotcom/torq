@@ -12,9 +12,11 @@ export interface ColumnMetaData {
   width?: number;
   locked?: boolean;
   valueType: string;
+  total?: number;
+  max?: number;
 }
 
-export const columns: ColumnMetaData[] = [
+export const availableColumns: ColumnMetaData[] = [
   { heading: "Name", type: "AliasCell", key: "alias", locked: true, valueType: "string" },
   { heading: "Revenue", type: "BarCell", key: "revenue_out", valueType: "number" },
   { heading: "Capacity", type: "NumericCell", key: "capacity", valueType: "number" },
@@ -30,7 +32,6 @@ export const columns: ColumnMetaData[] = [
   { heading: "Contributed revenue inbound", type: "BarCell", key: "revenue_in", valueType: "number" },
   { heading: "Contributed revenue total", type: "BarCell", key: "revenue_total", valueType: "number" },
 ]
-
 
 export interface ViewInterface {
   title: string;
@@ -53,7 +54,7 @@ export const DefaultView: ViewInterface = {
   title: "New Table",
   saved: true,
   filters: [],
-  columns: columns,
+  columns: availableColumns,
   sortBy: [],
 }
 
@@ -342,7 +343,7 @@ export const selectChannels = (state: RootState) => {
 export const selectActiveColumns = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].columns || [];
 }
-export const selectAllColumns = (state: RootState) => columns;
+export const selectAllColumns = (state: RootState) => availableColumns;
 export const selectSortBy = (state: RootState) => state.table.views[state.table.selectedViewIndex].sortBy
 export const selectFilters = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].filters || []

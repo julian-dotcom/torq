@@ -57,7 +57,6 @@ interface filterOptionsInterface {
 function FilterRow({ index, rowValues, columnOptions, handleUpdateFilter, handleRemoveFilter }: filterRowInterface) {
 
   let functionOptions = getFilterFunctions(rowValues.category);
-  console.log(functionOptions)
 
   const combinerOption = combinerOptions.find(
     item => item.value === rowValues.combiner
