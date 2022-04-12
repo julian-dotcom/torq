@@ -1,18 +1,30 @@
-.date-range-popover {
+.date-range-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 20;
-
   .rdrCalendarWrapper.rdrDateRangeWrapper {
-    padding: 20px;
     @media only screen and (max-width: 600px) {
       display: none;
     }
   }
-
+  .custom-mobile {
+    display: none;
+    @media only screen and (max-width: 600px) {
+      display: block;
+    }
+  }
   .rdrDateRangePickerWrapper {
     color: #033048;
     box-shadow: 0px 0px 10px rgba(3, 48, 72, 0.1);
     border-radius: 2px;
     border: 1px solid var(--bg-subtle);
+
+    @media only screen and (max-width: 600px) {
+      background-color: transparent;
+      border: none;
+      box-shadow: none;
+    }
     .rdrDayNumber span {
       color: #033048 !important;
     }
@@ -142,6 +154,11 @@
     .rdrDefinedRangesWrapper {
       padding-top: 10px;
       background-color: #f9fafb;
+      @media only screen and (max-width: 600px) {
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+      }
     }
     .rdrStaticRange .rdrStaticRangeSelected {
       color: #033048 !important;
@@ -153,7 +170,6 @@
       .rdrDateDisplayItemActive input {
         font-weight: bold;
       }
-      //background-color: white;
       .rdrDateDisplay {
         margin: 0;
         .rdrDateDisplayItem {
@@ -166,21 +182,50 @@
       }
     }
   }
+  .close-date-range-mobile {
+    display: none;
+  }
+  .torq-popover-button-wrapper {
+    justify-content: center;
+  }
 }
 
-.torq #time-interval-wrapper {
+.mobile-date-range {
+  .close-date-range-mobile {
+    display: block;
+    top: 10%;
+    right: 50%;
+    position: absolute;
+    transform: translate(50%, 0%);
+  }
+  .rdrCalendarWrapper.rdrDateRangeWrapper {
+    @media only screen and (max-width: 600px) {
+      top: 40% !important;
+      right: 50% !important;
+      position: absolute;
+      transform: translate(50%, -50%) !important;
+      display: block;
+    }
+  }
+
+  .date-range-popover-content {
+    background: rgb(3, 48, 72, 0.35);
+    height: 100vh;
+  }
+
+  .rdrStaticRanges {
+    pointer-events: none;
+  }
+}
+
+.torq .time-interval-wrapper {
   display: grid;
-  grid-auto-flow: column;
-  grid-template-columns: min-content auto;
-  margin: 0 15px;
-  grid-column-gap: 8px;
+  width: 250px;
   text-align: center;
-  padding: 20px 0;
   cursor: pointer;
   @media only screen and (max-width: 600px) {
     padding: 10px;
   }
-
   .icon {
     // TODO: Quick hack, clean up. FLW
     margin-top: -2px;

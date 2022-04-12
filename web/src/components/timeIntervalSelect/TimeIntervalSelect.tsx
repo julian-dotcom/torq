@@ -3,17 +3,19 @@ import { useState } from "react";
 import { format, startOfDay, addDays, parseISO, startOfWeek, endOfWeek, subDays, sub, add } from "date-fns";
 import locale from 'date-fns/locale/en-US'
 import { DateRangePicker } from "react-date-range";
-import { Popover } from "react-tiny-popover";
 import {
   ChevronLeft24Regular as LeftIcon,
   ChevronRight24Regular as RightIcon,
+  CalendarLtr24Regular as Calendar,
 } from "@fluentui/react-icons";
 
 import {
   defaultStaticRanges,
-  defineds,
-  getCompareRanges,
 } from "./customRanges";
+
+import Popover from "../popover/Popover";
+import classNames from "classnames";
+import DefaultButton from "../buttons/Button";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
 
@@ -25,6 +27,9 @@ interface selection {
 
 function TimeIntervalSelect() {
   const currentPeriod = useAppSelector(selectTimeInterval);
+  const [isMobile, setIsMobile] = useState(false)
+  const [isCustom, setIsCustom] = useState(false)
+
   const selection1: selection = {
     startDate: new Date(currentPeriod.from),
     endDate: new Date(currentPeriod.to),
@@ -43,13 +48,38 @@ function TimeIntervalSelect() {
     dispatch(updateInterval(interval))
   };
 
-  const moveBackwardInTime = () => {
+  const handleMobileClick = (e: boolean) => {
+    setIsMobile(e)
+    setIsCustom(e)
+  }
 
+  const renderCustomRangeLabel = () => (
+    //@ts-ignore
+    <div onClick={() => handleMobileClick(true)} className="custom-mobile">
+      Custom
+    </div>
+  );
+
+  const dateRangeClass = classNames("date-range-container", {
+    "mobile-date-range": isMobile
+  });
+
+  const buttonText = (): string => {
+    return `${format(new Date(currentPeriod.from), "MMM d, yyyy")} - ${format(new Date(currentPeriod.to), "MMM d, yyyy")}`;
+  };
+
+  let popOverButton = <DefaultButton
+    onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+    icon={<Calendar />}
+    text={buttonText()}
+    className="time-interval-wrapper"
+  />
+
+  const moveBackwardInTime = () => {
     const interval = {
       from: startOfDay(subDays(new Date(currentPeriod.to), 14)).toISOString(),
       to: startOfDay(subDays(new Date(currentPeriod.to), 7)).toISOString()
     }
-
     dispatch(updateInterval(interval))
   }
 
@@ -58,24 +88,30 @@ function TimeIntervalSelect() {
       from: startOfDay(addDays(new Date(currentPeriod.from), 7)).toISOString(),
       to: startOfDay(addDays(new Date(currentPeriod.from), 14)).toISOString()
     }
-
     dispatch(updateInterval(interval))
   }
 
   return (
-    <Popover
-      onClickOutside={() => setIsPopoverOpen(!isPopoverOpen)}
-      containerClassName="date-range-popover"
-      isOpen={isPopoverOpen}
-      positions={['bottom']}
-      align={'end'}
-      content={
+    <div className={dateRangeClass}>
+      <LeftIcon onClick={() => moveBackwardInTime()} />
+      <Popover button={popOverButton}>
         <div className="date-range-popover-content">
-
+          <button className="close-date-range-mobile" onClick={() => handleMobileClick(false)}>X</button>
           <DateRangePicker
+            renderStaticRangeLabel={renderCustomRangeLabel}
             monthDisplayFormat="MMMM yyyy"
             showDateDisplay={false}
-            staticRanges={defaultStaticRanges}
+            staticRanges={[...defaultStaticRanges, {
+              label: 'Custom',
+              hasCustomRendering: true,
+              range: () => ({
+                startDate: startOfDay(addDays(new Date(), -3)),
+                endDate: new Date()
+              }),
+              isSelected() {
+                return isMobile
+              }
+            }]}
             fixedHeight={false}
             rangeColors={["#ECFAF8", "#F9FAFB"]}
             maxDate={addDays(new Date(), 0)}
@@ -92,32 +128,10 @@ function TimeIntervalSelect() {
               handleChange(item)
             }}
           />
-
         </div>
-      }
-    >
-      <div id="time-interval-wrapper">
-        <LeftIcon onClick={() => moveBackwardInTime()} />
-        <div onClick={() => setIsPopoverOpen(!isPopoverOpen)}>
-          <div className="icon">{/* <IntervalIcon /> */}</div>
-          <div className="interval">
-            <div className="">
-              <p className="text-base">
-                {format(new Date(currentPeriod.from), "MMM d, yyyy")} -{" "}
-                {format(new Date(currentPeriod.to), "MMM d, yyyy")}
-
-              </p>
-              {/*<p className="text-slate-400 text-sm">*/}
-              {/*  {" "}*/}
-              {/*  {format(new Date(currentPeriod.compareFrom), "MMM d, yyyy")} -{" "}*/}
-              {/*  {format(new Date(currentPeriod.compareTo), "MMM d, yyyy")}*/}
-              {/*</p>*/}
-            </div>
-          </div>
-        </div>
-        <RightIcon onClick={() => moveForwardInTime()} />
-      </div>
-    </Popover>
+      </Popover>
+      <RightIcon onClick={() => moveForwardInTime()} />
+    </div>
   );
 }
 export default TimeIntervalSelect;
