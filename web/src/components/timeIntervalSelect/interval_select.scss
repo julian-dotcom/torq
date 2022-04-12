@@ -218,14 +218,10 @@
   }
 }
 
-.torq #time-interval-wrapper {
+.torq .time-interval-wrapper {
   display: grid;
-  grid-auto-flow: column;
-  grid-template-columns: min-content auto;
-  margin: 0 15px;
-  grid-column-gap: 8px;
+  width: 250px;
   text-align: center;
-  padding: 20px 0;
   cursor: pointer;
   @media only screen and (max-width: 600px) {
     padding: 10px;
