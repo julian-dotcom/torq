@@ -1,4 +1,7 @@
-.date-range-popover {
+.date-range-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 20;
   .rdrCalendarWrapper.rdrDateRangeWrapper {
     @media only screen and (max-width: 600px) {
@@ -215,7 +218,7 @@
   }
 }
 
-.torq .time-interval-wrapper {
+.torq #time-interval-wrapper {
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: min-content auto;
@@ -227,10 +230,12 @@
   @media only screen and (max-width: 600px) {
     padding: 10px;
   }
-
   .icon {
     // TODO: Quick hack, clean up. FLW
     margin-top: -2px;
+  }
+  .interval {
+    min-width: 195px;
   }
   .interval .previous {
     color: var(--fg-muted);
