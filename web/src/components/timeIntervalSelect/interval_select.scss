@@ -168,7 +168,7 @@
   }
 }
 
-.torq .time-interval-wrapper {
+.torq #time-interval-wrapper {
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: min-content auto;
@@ -184,6 +184,9 @@
   .icon {
     // TODO: Quick hack, clean up. FLW
     margin-top: -2px;
+  }
+  .interval {
+    min-width: 195px;
   }
   .interval .previous {
     color: var(--fg-muted);
