@@ -17,7 +17,7 @@ function Table() {
 
     for (const channel of channels) {
       for (const column of activeColumns) {
-        column.total = column.total ?? 0 + channel[column.key]
+        column.total = (column.total ?? 0) + channel[column.key]
         column.max = Math.max(column.max ?? 0, channel[column.key] ?? 0)
       }
     }
