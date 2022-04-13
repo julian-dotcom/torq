@@ -3,30 +3,26 @@ import clone from "clone"
 // TODO: Create Documentation with examples
 
 // available filter types that can be picked in the UI and a filter function implementation to achieve that
-export const FilterFunctions = {
-  number: {
-    eq: (input: any, key: string, parameter: number) => input[key] === parameter,
-    neq: (input: any, key: string, parameter: number) => input[key] !== parameter,
-    gt: (input: any, key: string, parameter: number) => input[key] > parameter,
-    gte: (input: any, key: string, parameter: number) => input[key] >= parameter,
-    lt: (input: any, key: string, parameter: number) => input[key] < parameter,
-    lte: (input: any, key: string, parameter: number) => input[key] <= parameter,
-  },
-  string: {
-    include: (input: any, key: string, parameter: string) => input[key].includes(parameter),
-    notInclude: (input: any, key: string, parameter: string) => !input[key].includes(parameter),
-  }
-}
-
-type numberFilterType = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte';
-type stringFilterType = 'include' | 'notInclude';
-export type filterFuncNameType = numberFilterType | stringFilterType
+export const FilterFunctions = new Map<string, Map<string, Function>>([
+  ["number", new Map<string, Function>([
+    ["eq", (input: any, key: string, parameter: number) => input[key] === parameter],
+    ["neq", (input: any, key: string, parameter: number) => input[key] !== parameter],
+    ["gt", (input: any, key: string, parameter: number) => input[key] > parameter],
+    ["gte", (input: any, key: string, parameter: number) => input[key] >= parameter],
+    ["lt", (input: any, key: string, parameter: number) => input[key] < parameter],
+    ["lte", (input: any, key: string, parameter: number) => input[key] <= parameter],
+  ])],
+  ["string", new Map<string, Function>([
+    ["include", (input: any, key: string, parameter: string) => input[key].includes(parameter)],
+    ["notInclude", (input: any, key: string, parameter: string) => !input[key].includes(parameter)]
+  ])]
+])
 
 // an interface for a user configured filter with the key to operate on and value to filter by
 export interface FilterInterface {
   combiner: 'and' | 'or';
   category: 'number' | 'string';
-  funcName: filterFuncNameType;
+  funcName: string;
   key: string;
   parameter: number | string;
 }
@@ -82,8 +78,10 @@ const parseClause = (clause: ClauseWithResult, data: any) => {
   typeSwitch: switch (clause.prefix) {
     case "$filter": {
       const filterClause = clause as FilterClause
-      // @ts-ignore
-      const filterFunc = FilterFunctions[filterClause.filter.category][filterClause.filter.funcName]
+      const filterFunc = FilterFunctions.get(filterClause.filter.category)?.get(filterClause.filter.funcName)
+      if (!filterFunc) {
+        throw new Error("Filter function is not yet defined")
+      }
       clause.result = filterFunc(data, filterClause.filter.key, filterClause.filter.parameter)
       break;
     }

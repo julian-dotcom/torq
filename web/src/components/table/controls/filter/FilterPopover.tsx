@@ -6,7 +6,7 @@ import {
   AddSquare20Regular as AddFilterIcon
 } from "@fluentui/react-icons";
 import React from "react";
-import TorqSelect, {SelectOptionType} from "../../../inputs/Select";
+import TorqSelect, { SelectOptionType } from "../../../inputs/Select";
 
 import './filter_popover.scoped.scss';
 import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
@@ -15,28 +15,29 @@ import { FilterFunctions, FilterInterface } from "./filter";
 import NumberFormat from "react-number-format";
 import Popover from "../../../popover/Popover";
 
-const combinerOptions = [
+const combinerOptions: SelectOptionType[] = [
   { value: "and", label: "And" }
   // { value: "or", label: "Or" },
 ];
 
-const ffLabels = {
-  eq: "=",
-  neq: "≠",
-  gt: ">",
-  gte: ">=",
-  lt: "<",
-  lte: "<=",
-  include: "Include",
-  notInclude: "Not include"
-};
+const ffLabels = new Map<string, string>([
+  ["eq", "="],
+  ["neq", "≠"],
+  ["gt", ">"],
+  ["gte", ">="],
+  ["lt", "<"],
+  ["lte", "<="],
+  ["include", "Include"],
+  ["notInclude", "Not include"]
+]);
 
 function getFilterFunctions(filterCategory: "number" | "string") {
-  // @ts-ignore
-  return Object.keys(FilterFunctions[filterCategory]).map((key: []) => {
-    // @ts-ignore
-    return { value: key, label: ffLabels[key] };
-  });
+  const filterFuncs = FilterFunctions.get(filterCategory)?.entries()
+  if (!filterFuncs) {
+    throw new Error("Filter category not found in list of filters")
+  }
+  return Array.from(filterFuncs, ([key, _]) => (
+    { value: key, label: ffLabels.get(key) ?? "Label not found" }))
 }
 
 interface filterRowInterface {
@@ -53,24 +54,28 @@ interface filterOptionsInterface {
   valueType: string;
 }
 
-
-function FilterRow({index, rowValues, columnOptions, handleUpdateFilter, handleRemoveFilter}: filterRowInterface) {
+function FilterRow({ index, rowValues, columnOptions, handleUpdateFilter, handleRemoveFilter }: filterRowInterface) {
 
   let functionOptions = getFilterFunctions(rowValues.category);
 
-  // @ts-ignore
-  let combinerOption: SelectOptionType = combinerOptions.find(
-    (item: SelectOptionType) => item.value === rowValues.combiner
+  const combinerOption = combinerOptions.find(
+    item => item.value === rowValues.combiner
   )
-  // @ts-ignore
-  let keyOption: SelectOptionType = columnOptions.find(
-    (item: SelectOptionType) => item.value === rowValues.key
+  if (!combinerOption) {
+    throw new Error("combiner not found")
+  }
+  const keyOption = columnOptions.find(
+    item => item.value === rowValues.key
   )
-  // @ts-ignore
-  let funcOption: SelectOptionType = functionOptions.find(
-    // @ts-ignore
-    (item: SelectOptionType) => item.value === rowValues.funcName
+  if (!keyOption) {
+    throw new Error("key option not found")
+  }
+  const funcOption = functionOptions.find(
+    item => item.value === rowValues.funcName
   )
+  if (!funcOption) {
+    throw new Error("func option not found")
+  }
 
   let rowData = {
     combiner: combinerOption,
@@ -273,8 +278,8 @@ const FilterPopover = () => {
     });
 
   columnOptions.sort((a: SelectOptionType, b: SelectOptionType) => {
-    if(a.label < b.label) { return -1; }
-    if(a.label > b.label) { return 1; }
+    if (a.label < b.label) { return -1; }
+    if (a.label > b.label) { return 1; }
     return 0;
   });
 

@@ -1,10 +1,10 @@
-import { AndClause, OrClause, FilterClause, processQuery, deserialiseQueryJSON, filterFuncNameType } from "./filter"
+import { AndClause, OrClause, FilterClause, processQuery, deserialiseQueryJSON } from "./filter"
 
 const data = { capacity: 99 }
 
 const failingFilter = {
   combiner: "and" as "and" | "or",
-  funcName: "gte" as filterFuncNameType,
+  funcName: "gte",
   category: "number" as "number" | "string",
   key: "capacity",
   parameter: 100
@@ -12,7 +12,7 @@ const failingFilter = {
 
 const passingFilter = {
   combiner: "and" as "and" | "or",
-  funcName: "gte" as filterFuncNameType,
+  funcName: "gte",
   category: "number" as "number" | "string",
   key: "capacity",
   parameter: 99
