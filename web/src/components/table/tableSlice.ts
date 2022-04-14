@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, current, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../store/store';
 import { addDays, format } from 'date-fns';
-import { FilterInterface, applyFilters } from './controls/filter/filter'
+import { deserialiseQueryJSON, FilterInterface, applyFilters, Clause, AndClause, FilterClause } from './controls/filter/filter'
 import { SortByOptionType } from "./controls/sort/SortControls";
 import _ from "lodash";
 
@@ -37,7 +37,7 @@ export interface ViewInterface {
   title: string;
   id?: number;
   saved: boolean;
-  filters: Array<FilterInterface>;
+  filters?: string;
   columns: ColumnMetaData[];
   sortBy: SortByOptionType[],
 }
@@ -53,8 +53,9 @@ export interface TableState {
 export const DefaultView: ViewInterface = {
   title: "New Table",
   saved: true,
-  filters: [],
   columns: availableColumns,
+  // TODO: a default filter should not be here, just placed to aid in development
+  filters: JSON.stringify(new AndClause()),
   sortBy: [],
 }
 
@@ -191,31 +192,12 @@ function saveTableViewOrder(order: viewOrderInterface[]) {
   return body
 }
 
-// export function loadTableState() {
-//   try {
-//     const serializedState = localStorage.getItem("torq_temp_view");
-//     if (!serializedState) return undefined;
-//     return JSON.parse(serializedState);
-//   } catch (e) {
-//     return undefined;
-//   }
-// }
-//
-// export async function saveTempView(state: any) {
-//   try {
-//     const serializedState = JSON.stringify(state);
-//     localStorage.setItem("torq_temp_view", serializedState);
-//   } catch (e) {
-//     console.log(e)
-//   }
-// }
-
 export const tableSlice = createSlice({
   name: 'table',
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
   reducers: {
-    updateFilters: (state, actions: PayloadAction<{ filters: FilterInterface[] }>) => {
+    updateFilters: (state, actions: PayloadAction<{ filters: string }>) => {
       state.views[state.selectedViewIndex].filters = actions.payload.filters
     },
     updateColumns: (state, actions: PayloadAction<{ columns: ColumnMetaData[] }>) => {
@@ -330,14 +312,15 @@ export const tableSlice = createSlice({
 
 export const { updateFilters, updateViews, updateViewsOrder, deleteView, updateSelectedView, updateSortBy, updateColumns } = tableSlice.actions;
 
-
 export const selectChannels = (state: RootState) => {
-  const filters = state.table.views[state.table.selectedViewIndex].filters || []
+  let channels = state.table.channels ? state.table.channels : [] as any[]
+  const filters = state.table.views[state.table.selectedViewIndex].filters
+  if (filters) {
+    const deserialisedFilters = deserialiseQueryJSON(filters)
+    channels = applyFilters(deserialisedFilters, channels)
+  }
   const sorts = state.table.views[state.table.selectedViewIndex].sortBy || []
-
-  // TODO: Clean up
-  let channels = state.table.channels ? state.table.channels.slice() : []
-  return _.orderBy(applyFilters(filters, channels), sorts.map((s) => s.value), sorts.map((s) => s.direction) as ['asc' | 'desc'])
+  return _.orderBy(channels, sorts.map((s) => s.value), sorts.map((s) => s.direction) as ['asc' | 'desc'])
 };
 
 export const selectActiveColumns = (state: RootState) => {
@@ -346,7 +329,7 @@ export const selectActiveColumns = (state: RootState) => {
 export const selectAllColumns = (state: RootState) => availableColumns;
 export const selectSortBy = (state: RootState) => state.table.views[state.table.selectedViewIndex].sortBy
 export const selectFilters = (state: RootState) => {
-  return state.table.views[state.table.selectedViewIndex].filters || []
+  return state.table.views[state.table.selectedViewIndex].filters
 };
 export const selectViews = (state: RootState) => state.table.views;
 export const selectCurrentView = (state: RootState) => state.table.views[state.table.selectedViewIndex];

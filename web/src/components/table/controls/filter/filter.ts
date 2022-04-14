@@ -27,17 +27,8 @@ export interface FilterInterface {
   parameter: number | string;
 }
 
-const createANDGraph = (filters: FilterInterface[]): Clause => {
-  const topLevelAnd = new AndClause()
-  for (const filter of filters) {
-    topLevelAnd.addChildClause(new FilterClause(filter))
-  }
-  return topLevelAnd
-}
-
-export function applyFilters(filters: Array<FilterInterface>, data: Array<any>): any[] {
-  const ANDGraph = createANDGraph(filters)
-  return data.filter(item => processQuery(ANDGraph, item))
+export function applyFilters(filters: Clause, data: Array<any>): any[] {
+  return data.filter(item => processQuery(filters, item))
 }
 
 class FilterClause {
