@@ -1,7 +1,7 @@
-import { createAsyncThunk, createSlice, current, PayloadAction } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../store/store';
 import { addDays, format } from 'date-fns';
-import { deserialiseQuery, FilterInterface, applyFilters, Clause, AndClause, FilterClause } from './controls/filter/filter'
+import { deserialiseQuery, applyFilters, AndClause } from './controls/filter/filter'
 import { SortByOptionType } from "./controls/sort/SortControls";
 import _ from "lodash";
 
@@ -125,7 +125,7 @@ export const updateTableViewAsync = createAsyncThunk(
   'table/updateTableView',
   async (data: { view: ViewInterface, index: number }) => {
 
-    let body = await updateTableView(data.view)
+    await updateTableView(data.view)
     return data.index
   })
 
@@ -167,9 +167,7 @@ function deleteTableView(view: ViewInterface) {
 export const deleteTableViewAsync = createAsyncThunk(
   'table/deleteTableView',
   async (data: { view: ViewInterface, index: number }) => {
-
-    let body = await deleteTableView(data.view)
-
+    await deleteTableView(data.view)
     return { index: data.index }
   })
 

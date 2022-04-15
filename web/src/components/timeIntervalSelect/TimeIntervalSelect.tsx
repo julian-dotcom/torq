@@ -1,6 +1,6 @@
 import "./interval_select.scss";
-import React, {ReactEventHandler, useState} from "react";
-import { format, startOfDay, addDays, isSameDay, subDays, differenceInDays } from "date-fns";
+import React, {useState} from "react";
+import { format, startOfDay, addDays, subDays, differenceInDays } from "date-fns";
 import locale from 'date-fns/locale/en-US'
 import { DateRangePicker } from "react-date-range";
 import {
@@ -33,8 +33,6 @@ function TimeIntervalSelect() {
     endDate: new Date(currentPeriod.to),
     key: "selection1",
   }
-
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const dispatch = useAppDispatch()
 
@@ -90,7 +88,6 @@ function TimeIntervalSelect() {
       <LeftIcon />
     </div>
     <DefaultButton
-      onClick={() => setIsPopoverOpen(!isPopoverOpen)}
       text={buttonText()}
       className="time-interval-wrapper"
     />

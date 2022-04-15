@@ -19,4 +19,11 @@
     justify-items: stretch;
     background-color: var(--bg-default);
   }
+   .no-filters {
+    padding: 5px 10px;
+    background-color: var(--bg-extra-faint);
+    border: 1px solid var(--bg-subtle);
+    border-radius: 2px;
+    color: var(--fg-muted);
+  }
 }
