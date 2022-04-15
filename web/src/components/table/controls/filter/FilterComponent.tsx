@@ -128,43 +128,42 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
       throw new Error("combiner not found")
     }
 
-    return (
-      <React.Fragment>
-        {
-          index === 0 && <div className={styles.combinerContainer}>
+    switch (index) {
+      case 0:
+        return (
+          <div className={styles.combinerContainer}>
             <div className={styles.combinerLabel}>Where</div>
             {/*Clean this up using grid named cells*/}
             <div className={classNames(styles.removeFilter, styles.mobileRemove)} onClick={() => removeFilter(index)}>
               <RemoveIcon />
             </div>
           </div>
-        }
-        {
-          index === 1 && (
-            <div className={styles.combinerContainer}>
-              <TorqSelect
-                options={combinerOptions}
-                value={combinerOption}
-                onChange={handleCombinerChange}
-              />
-              <div className={classNames(styles.removeFilter, styles.mobileRemove)} onClick={() => removeFilter(index)}>
-                <RemoveIcon />
-              </div>
+        )
+      case 1:
+        return (
+          <div className={styles.combinerContainer}>
+            <TorqSelect
+              options={combinerOptions}
+              value={combinerOption}
+              onChange={handleCombinerChange}
+            />
+            <div className={classNames(styles.removeFilter, styles.mobileRemove)} onClick={() => removeFilter(index)}>
+              <RemoveIcon />
             </div>
+          </div>
           )
-        }
-        {index > 1 &&
-          <div className={styles.combinerLabel}>{filters.prefix === "$and" ? "and" : "or"}</div>
-        }
-      </React.Fragment>
-    )
+      default:
+        return <div className={styles.combinerLabel}>{filters.prefix === "$and" ? "And" : "Or"}</div>
+    }
+
   }
 
   return (
-    <div className={child ? styles.childFilter : ""}>
+    <div className={classNames({[styles.childFilter]: child})}>
       <div className={styles.filterRows}>
 
-        {!filters && <div className={styles.noFilters}>No filters</div>}
+        {!filters.length && <div className={styles.noFilters}>No filters</div>}
+
         {(filters as AndClause | OrClause).childClauses.map((filter, index) => {
           if (filter.prefix === "$filter") {
             return (
@@ -183,16 +182,13 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
 
               </div>
             )
-          }
-        })}
-        {!child && (filters as AndClause | OrClause).childClauses.map((filter, index) => {
-          if (filter.prefix === "$and" || filter.prefix === "$or") {
+          } else {
             return (
               <div key={"filter-sub-group-" + index} className={classNames(styles.filterRow, {first: !index})}>
 
                 <div className={styles.combinerContainer}>
-
-                  <div className={styles.combinerLabel}>{filters.prefix === "$and" ? "and" : "or"}</div>
+                  <CombinerSelect index={index} />
+                  {/*<div className={styles.combinerLabel}>{filters.prefix === "$and" ? "And" : "Or"}</div>*/}
                 </div>
 
                 <FilterComponent
