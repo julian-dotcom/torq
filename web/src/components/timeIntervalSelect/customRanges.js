@@ -60,6 +60,8 @@ export const defineds = {
   startOfLast365DaysCompare: startOfDay(addYears(new Date(), -2)),
   endOfLast365DaysCompare: startOfDay(addYears(addDays(new Date(), -1), -1)),
 
+  startOfTime: startOfDay(new Date(2014,1,1, 0,0,0)),
+
 };
 
 
@@ -186,6 +188,17 @@ export const defaultStaticRanges = createStaticRanges([
     rangeCompare: () => ({
       startDate: defineds.startOfLast365DaysCompare,
       endDate: defineds.endOfLast365DaysCompare,
+    })
+  },
+  {
+    label: 'All',
+    range: () => ({
+      startDate: defineds.startOfTime,
+      endDate: defineds.startOfToday,
+    }),
+    rangeCompare: () => ({
+      startDate: defineds.startOfTime,
+      endDate: defineds.startOfTime,
     })
   },
 ]);

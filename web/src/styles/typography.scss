@@ -5,7 +5,8 @@ body {
   font-size: var(--font-size-default);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: var(--fg-default)
+  color: var(--fg-default);
+  font-variant-numeric: tabular-nums;
 }
 h1,h2,h3,h4,h5,h6 {
   font-family: 'Inter', sans-serif;

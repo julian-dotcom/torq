@@ -1,8 +1,22 @@
 .date-range-container {
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  grid-template-columns: min-content auto min-content;
   z-index: 20;
+  @media only screen and (max-width: 600px) {
+    width: calc(100vw - 20px);
+  }
+  .time-travel-arrow {
+    display: grid;
+    justify-items: center;
+    width: 33px;
+    cursor: pointer;
+    @media only screen and (max-width: 600px) {
+      //width: 43px;
+    }
+  }
   .rdrCalendarWrapper.rdrDateRangeWrapper {
     @media only screen and (max-width: 600px) {
       display: none;
@@ -220,11 +234,12 @@
 
 .torq .time-interval-wrapper {
   display: grid;
-  width: 250px;
+  width: 240px;
   text-align: center;
   cursor: pointer;
   @media only screen and (max-width: 600px) {
     padding: 10px;
+    width: auto;
   }
   .icon {
     // TODO: Quick hack, clean up. FLW

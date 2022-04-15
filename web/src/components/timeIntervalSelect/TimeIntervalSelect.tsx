@@ -1,6 +1,6 @@
 import "./interval_select.scss";
 import { useState } from "react";
-import { format, startOfDay, addDays, parseISO, startOfWeek, endOfWeek, subDays, sub, add } from "date-fns";
+import { format, startOfDay, addDays, parseISO, startOfWeek, endOfWeek, subDays, sub, add, differenceInDays } from "date-fns";
 import locale from 'date-fns/locale/en-US'
 import { DateRangePicker } from "react-date-range";
 import {
@@ -70,30 +70,33 @@ function TimeIntervalSelect() {
 
   let popOverButton = <DefaultButton
     onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-    icon={<Calendar />}
     text={buttonText()}
     className="time-interval-wrapper"
   />
 
   const moveBackwardInTime = () => {
+    let diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from))
     const interval = {
-      from: startOfDay(subDays(new Date(currentPeriod.to), 14)).toISOString(),
-      to: startOfDay(subDays(new Date(currentPeriod.to), 7)).toISOString()
+      from: startOfDay(subDays(new Date(currentPeriod.from), diff+1)).toISOString(),
+      to: startOfDay(subDays(new Date(currentPeriod.to), diff+1)).toISOString()
     }
     dispatch(updateInterval(interval))
   }
 
   const moveForwardInTime = () => {
+    let diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from))
     const interval = {
-      from: startOfDay(addDays(new Date(currentPeriod.from), 7)).toISOString(),
-      to: startOfDay(addDays(new Date(currentPeriod.from), 14)).toISOString()
+      from: startOfDay(addDays(new Date(currentPeriod.from), diff+1)).toISOString(),
+      to: startOfDay(addDays(new Date(currentPeriod.to), diff+1)).toISOString()
     }
     dispatch(updateInterval(interval))
   }
 
   return (
     <div className={dateRangeClass}>
-      <LeftIcon onClick={() => moveBackwardInTime()} />
+      <div className="time-travel-arrow"  onClick={moveBackwardInTime}>
+        <LeftIcon />
+      </div>
       <Popover button={popOverButton}>
         <div className="date-range-popover-content">
           <button className="close-date-range-mobile" onClick={() => handleMobileClick(false)}>X</button>
@@ -130,7 +133,10 @@ function TimeIntervalSelect() {
           />
         </div>
       </Popover>
-      <RightIcon onClick={() => moveForwardInTime()} />
+      <div className="time-travel-arrow" onClick={moveForwardInTime}>
+        <RightIcon />
+      </div>
+
     </div>
   );
 }
