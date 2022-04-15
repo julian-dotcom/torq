@@ -186,10 +186,7 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
             return (
               <div key={"filter-sub-group-" + index} className={classNames(styles.filterRow, {first: !index})}>
 
-                <div className={styles.combinerContainer}>
-                  <CombinerSelect index={index} />
-                  {/*<div className={styles.combinerLabel}>{filters.prefix === "$and" ? "And" : "Or"}</div>*/}
-                </div>
+                <CombinerSelect index={index} />
 
                 <FilterComponent
                   child={true}
