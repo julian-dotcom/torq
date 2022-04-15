@@ -1,13 +1,29 @@
+.date-range-button {
+  display: grid;
+  grid-auto-flow: column;
+  justify-items: center;
+  align-items: center;
+  @media only screen and (max-width: 600px) {
+    width: calc(100vw - 20px);
+    grid-template-columns: min-content auto min-content;
+  }
+}
+.popover-open  .date-range-button {
+  @media only screen and (max-width: 600px) {
+    width: 100%;
+    grid-template-columns: min-content auto min-content;
+    .time-travel-arrow {
+      display: none;
+    }
+  }
+}
 .date-range-container {
   display: grid;
   grid-auto-flow: column;
   align-items: center;
   justify-content: space-between;
-  grid-template-columns: min-content auto min-content;
   z-index: 20;
-  @media only screen and (max-width: 600px) {
-    width: calc(100vw - 20px);
-  }
+
   .time-travel-arrow {
     display: grid;
     justify-items: center;
@@ -28,6 +44,10 @@
       display: block;
     }
   }
+  .rdrStaticRange:hover .rdrStaticRangeLabel,
+  .rdrStaticRange:focus .rdrStaticRangeLabel {
+    background: transparent;
+  }
   .rdrDateRangePickerWrapper {
     color: #033048;
     border-radius: 2px;
@@ -36,6 +56,7 @@
       background-color: transparent;
       border: none;
       box-shadow: none;
+      width: 100%;
     }
     .rdrDayNumber span {
       color: #033048 !important;
@@ -170,10 +191,11 @@
         background-color: transparent;
         border: none;
         box-shadow: none;
+        width: 100%;
       }
     }
     .rdrStaticRange .rdrStaticRangeSelected {
-      color: #033048 !important;
+      color: var(--fg-default);
     }
     .rdrDateDisplayWrapper {
       .rdrDateDisplayItem input {
@@ -203,26 +225,35 @@
 }
 
 .mobile-date-range {
-  .close-date-range-mobile {
-    display: block;
-    top: 10%;
-    right: 50%;
-    position: absolute;
-    transform: translate(50%, 0%);
+  @media only screen and (max-width: 600px) {
+    .close-date-range-mobile {
+      display: block;
+      position: absolute;
+      right: 50%;
+      top: calc(50% + 40px);
+      transform: translate(50%, -0%);
+      background: var(--bg-default);
+      padding: 4px 10px;
+      border-radius: 2px;
+      width: 298px
+    }
   }
   .rdrCalendarWrapper.rdrDateRangeWrapper {
     @media only screen and (max-width: 600px) {
-      top: 40% !important;
-      right: 50% !important;
       position: absolute;
-      transform: translate(50%, -50%) !important;
+      top: 30px;
+      right: 50%;
+      transform: translate(50%, -0%);
       display: block;
     }
   }
 
   .date-range-popover-content {
+    position: relative;
     background: rgb(3, 48, 72, 0.35);
-    height: 100vh;
+    @media only screen and (max-width: 600px) {
+      height: calc(100vh - 62px);
+    }
   }
 
   .rdrStaticRanges {

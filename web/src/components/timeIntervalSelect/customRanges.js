@@ -9,7 +9,7 @@ import {
   endOfWeek,
   isSameDay,
   startOfYear,
-  differenceInCalendarDays, addYears,
+  differenceInCalendarDays, addYears, subDays,
 } from 'date-fns';
 import locale from 'date-fns/locale/en-US'
 // import locale from 'date-fns/locale/nb'
@@ -24,7 +24,7 @@ export const defineds = {
   endOfYesterdayCompare: startOfDay(addDays(new Date(), -2)),
 
 
-  startOfLast7Days: startOfDay(addDays(new Date(), -7)),
+  startOfLast7Days: startOfDay(subDays(new Date(), 6)),
   endOfLast7Days: startOfDay(new Date()),
   startOfLast7DaysCompare: startOfDay(addDays(new Date(), -8)),
   endOfLast7DaysCompare: startOfDay(addDays(new Date(), -15)),
@@ -191,7 +191,7 @@ export const defaultStaticRanges = createStaticRanges([
     })
   },
   {
-    label: 'All',
+    label: 'All time',
     range: () => ({
       startDate: defineds.startOfTime,
       endDate: defineds.startOfToday,
