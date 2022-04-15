@@ -2,7 +2,6 @@ import FilterRow from "./FilterRow"
 import DefaultButton from "../../../buttons/Button";
 import classNames from "classnames";
 import {
-  Filter20Regular as FilterIcon,
   Dismiss20Regular as RemoveIcon,
   AddSquare20Regular as AddFilterIcon,
   AddSquareMultiple20Regular as AddGroupIcon,
@@ -11,11 +10,9 @@ import React from "react";
 import TorqSelect, { SelectOptionType } from "../../../inputs/Select";
 
 import styles from './filter_popover.module.scss';
-import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
-import { selectAllColumns, selectFilters, updateFilters } from "../../tableSlice";
-import { AndClause, OrClause, Clause, FilterFunctions, FilterInterface, FilterClause } from "./filter";
-import NumberFormat from "react-number-format";
-import Popover from "../../../popover/Popover";
+import { useAppSelector } from "../../../../store/hooks";
+import { selectAllColumns } from "../../tableSlice";
+import { AndClause, OrClause, Clause, FilterClause } from "./filter";
 
 const combinerOptions: SelectOptionType[] = [
   { value: "and", label: "And" },
@@ -36,9 +33,8 @@ interface filterProps {
 }
 
 const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: filterProps) => {
-  const dispatch = useAppDispatch();
 
-  const updateFilter = (filter: FilterInterface, index: number) => {
+  const updateFilter = () => {
     onFilterUpdate()
   };
 
@@ -69,7 +65,6 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
     filters = filters as AndClause | OrClause
     filters.addChildClause(new FilterClause(
       {
-        combiner: "and",
         funcName: "gte",
         category: "number",
         key: "capacity",
@@ -87,7 +82,6 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
     filters.addChildClause(new AndClause([
       new FilterClause(
         {
-          combiner: "and",
           funcName: "gte",
           category: "number",
           key: "capacity",
@@ -170,54 +164,46 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
     <div className={child ? styles.childFilter : ""}>
       <div className={styles.filterRows}>
 
-
         {!filters && <div className={styles.noFilters}>No filters</div>}
         {(filters as AndClause | OrClause).childClauses.map((filter, index) => {
-          return (
-            <React.Fragment>
-              {
-                filter.prefix === "$filter" &&
-                <div key={"filter-row-" + index} className={classNames(styles.filterRow, { first: !index })}>
+          if (filter.prefix === "$filter") {
+            return (
+              <div key={"filter-row-wrapper-" + index} className={classNames(styles.filterRow, { first: !index })}>
 
-                  <CombinerSelect key={"combiner-select-" + index} index={index} />
+                <CombinerSelect index={index} />
 
-                  <FilterRow
-                    key={"filter-row-" + index}
-                    filterClause={filter as FilterClause}
-                    index={index}
-                    columnOptions={columnOptions}
-                    onUpdateFilter={updateFilter}
-                    onRemoveFilter={removeFilter}
-                  />
+                <FilterRow
+                  key={"filter-row-" + index}
+                  filterClause={filter as FilterClause}
+                  index={index}
+                  columnOptions={columnOptions}
+                  onUpdateFilter={updateFilter}
+                  onRemoveFilter={removeFilter}
+                />
 
-                </div>
-              }
-            </React.Fragment>
-          )
+              </div>
+            )
+          }
         })}
         {!child && (filters as AndClause | OrClause).childClauses.map((filter, index) => {
-          return (
-            <React.Fragment>
-              {
-                (filter.prefix === "$and" || filter.prefix === "$or") &&
-                <div key={"filter-sub-group-" + index} className={classNames(styles.filterRow, { first: !index })}>
+          if (filter.prefix === "$and" || filter.prefix === "$or") {
+            return (
+              <div key={"filter-sub-group-" + index} className={classNames(styles.filterRow, {first: !index})}>
 
-                  <div className={styles.combinerContainer}>
+                <div className={styles.combinerContainer}>
 
-                    <div className={styles.combinerLabel}>{filters.prefix === "$and" ? "and" : "or"}</div>
-                  </div>
-
-                  <FilterComponent
-                    key={"filter-group" + index}
-                    child={true}
-                    filters={filter}
-                    onNoChildrenLeft={handleNoChildrenLeft(index)}
-                    onFilterUpdate={onFilterUpdate} />
-
+                  <div className={styles.combinerLabel}>{filters.prefix === "$and" ? "and" : "or"}</div>
                 </div>
-              }
-            </React.Fragment>
-          )
+
+                <FilterComponent
+                  child={true}
+                  filters={filter}
+                  onNoChildrenLeft={handleNoChildrenLeft(index)}
+                  onFilterUpdate={onFilterUpdate}/>
+
+              </div>
+            )
+          }
         })}
       </div>
       <div className={styles.buttonsRow}>

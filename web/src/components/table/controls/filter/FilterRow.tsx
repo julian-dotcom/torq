@@ -1,14 +1,12 @@
 import classNames from "classnames";
 import {
-  Filter20Regular as FilterIcon,
   Dismiss20Regular as RemoveIcon,
-  AddSquare20Regular as AddFilterIcon
 } from "@fluentui/react-icons";
 import TorqSelect, { SelectOptionType } from "../../../inputs/Select";
 
 import { FilterClause } from "./filter";
 import styles from './filter_popover.module.scss';
-import { FilterFunctions, FilterInterface } from "./filter";
+import { FilterFunctions } from "./filter";
 import NumberFormat from "react-number-format";
 
 const ffLabels = new Map<string, string>([

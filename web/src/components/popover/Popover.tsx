@@ -1,8 +1,5 @@
 import './popover.scss'
 import {ReactChild, useEffect, useRef, useState} from "react";
-import {
-  Dismiss20Regular as DismissIcon,
-} from "@fluentui/react-icons";
 import classNames from "classnames";
 
 
@@ -48,7 +45,6 @@ const PopoverButton = ({className, button, children }: PopoverInterface) => {
         <div
           className="right-container dismiss-button"
           onClick={() => (setIsPopoverOpen(false))}>
-            {/*<DismissIcon/>*/}
           Close
         </div>
       </div>

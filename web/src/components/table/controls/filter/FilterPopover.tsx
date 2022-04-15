@@ -1,41 +1,31 @@
 import DefaultButton from "../../../buttons/Button";
-import classNames from "classnames";
 import {
   Filter20Regular as FilterIcon,
-  Dismiss20Regular as RemoveIcon,
-  AddSquare20Regular as AddFilterIcon
 } from "@fluentui/react-icons";
 import React from "react";
-import TorqSelect, { SelectOptionType } from "../../../inputs/Select";
 
 import styles from './filter_popover.module.scss';
 import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
-import { selectAllColumns, selectFilters, updateFilters } from "../../tableSlice";
-import { FilterFunctions, FilterInterface, deserialiseQueryJSON } from "./filter";
-import NumberFormat from "react-number-format";
+import {  selectFilters, updateFilters } from "../../tableSlice";
+import { deserialiseQuery } from "./filter";
 import Popover from "../../../popover/Popover";
 import FilterComponent from "./FilterComponent"
-
-import { Clause } from './filter'
 
 const FilterPopover = () => {
   const dispatch = useAppDispatch();
   const filtersString = useAppSelector(selectFilters);
-  const filters = filtersString ? deserialiseQueryJSON(filtersString) : undefined;
+  const filters = filtersString ? deserialiseQuery(filtersString) : undefined;
 
-  function handleClick() {
-  }
   const handleFilterUpdate = () => {
     if (filters) {
-      /* console.log(filters) */
-      dispatch(updateFilters({ filters: JSON.stringify(filters) }));
+      dispatch(updateFilters({ filters: filters.toJSON() }));
     }
   }
 
   const buttonText = (): string => {
-    /* if (filters.length > 0) {
-*   return filters.length + " Filter" + (filters.length > 1 ? "s" : "")
-* } */
+    if ((filters?.length || 0) > 0) {
+       return filters?.length + " Filter" + ((filters?.length || 0) > 1 ? "s" : "")
+     }
     return "Filter";
   };
 
@@ -44,7 +34,7 @@ const FilterPopover = () => {
       text={buttonText()}
       icon={<FilterIcon />}
       className={"collapse-tablet"}
-      isOpen={false}
+      isOpen={!!(filters?.length || 0)}
     />
   );
 

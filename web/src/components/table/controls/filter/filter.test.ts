@@ -1,4 +1,4 @@
-import { AndClause, OrClause, FilterClause, processQuery, deserialiseQueryJSON } from "./filter"
+import { AndClause, OrClause, FilterClause, processQuery, deserialiseQuery } from "./filter"
 
 const data = { capacity: 99 }
 
@@ -145,7 +145,7 @@ test('deserialise into simple query', () => {
     "$filter": failingFilter
   }
   const simpleQueryJSON = JSON.stringify(simpleQuery)
-  const result = deserialiseQueryJSON(simpleQueryJSON)
+  const result = deserialiseQuery(simpleQueryJSON)
   const expected = new FilterClause(failingFilter)
   expect(result).toEqual(expected);
 })
@@ -173,6 +173,6 @@ test('deserialise a complex query', () => {
   complexClause.addChildClause(clauseOrReturnTrue)
 
   const complexQueryJSON = JSON.stringify(complexQuery)
-  const result = deserialiseQueryJSON(complexQueryJSON)
+  const result = deserialiseQuery(complexQueryJSON)
   expect(result).toEqual(complexClause);
 })

@@ -20,7 +20,6 @@ export const FilterFunctions = new Map<string, Map<string, Function>>([
 
 // an interface for a user configured filter with the key to operate on and value to filter by
 export interface FilterInterface {
-  combiner: 'and' | 'or';
   category: 'number' | 'string';
   funcName: string;
   key: string;
@@ -33,7 +32,11 @@ export function applyFilters(filters: Clause, data: Array<any>): any[] {
 
 class FilterClause {
   prefix: string = "$filter"
+  length: number = 1
   constructor(public filter: FilterInterface) { }
+  getLength(): number {
+    return 1
+  }
   toJSON(): object {
     return { [this.prefix]: this.filter }
   }
@@ -42,16 +45,25 @@ class FilterClause {
 class AndClause {
   prefix: string = "$and"
   childClauses: Clause[] = []
+  length: number = 0
   constructor(childClauses?: Clause[]) {
     if (childClauses) {
       this.childClauses = childClauses
+      this.length = this.getLength()
     }
+  }
+  getLength(): number {
+    let length = 0
+    for (const clause of this.childClauses) {
+      length += clause.getLength()
+    }
+    return length
   }
   addChildClause(clause: Clause): void {
     this.childClauses.push(clause)
   }
   toJSON(): object {
-    return { [this.prefix]: this.childClauses }
+    return { [this.prefix]: this.childClauses.map(child => child.toJSON()) }
   }
 }
 
@@ -132,9 +144,5 @@ const deserialiseQuery = (query: any): Clause => {
   throw new Error("Expected JSON to contain $filter, $or or $and")
 }
 
-const deserialiseQueryJSON = (queryJSON: string): Clause => {
-  return deserialiseQuery(JSON.parse(queryJSON))
-}
-
-export { FilterClause, OrClause, AndClause, processQuery, deserialiseQueryJSON }
+export { FilterClause, OrClause, AndClause, processQuery, deserialiseQuery }
 export type { Clause }
