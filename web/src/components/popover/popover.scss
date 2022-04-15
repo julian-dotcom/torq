@@ -39,6 +39,9 @@
       }
     }
     .popover-mobile-dismiss {
+      position: sticky;
+      top:0;
+      z-index: 21;
       display: none;
       grid-template-columns: max-content min-content;
       white-space: nowrap;
