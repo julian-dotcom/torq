@@ -1,0 +1,2 @@
+UPDATE table_view
+SET view = jsonb_set(view::JSONB, '{filters}'::text[], to_json(('{"$and": []}')::jsonb)::jsonb);
