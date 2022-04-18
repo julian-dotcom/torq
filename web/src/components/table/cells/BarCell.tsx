@@ -17,7 +17,7 @@ function BarCell({current, total, previous, index, className}: barCell) {
   return (
     <div className={classNames("cell", "bar-cell", className)}>
       <div className="current">
-        <NumberFormat displayType="text" thousandSeparator=',' value={current} />
+        <NumberFormat displayType="text" thousandSeparator=',' value={current} decimalScale={2} />
       </div>
       <div className="bar-wrapper">
         <div className="bar" style={{width: percent*100+"%"}}/>
