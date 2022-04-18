@@ -58,13 +58,13 @@ function TableControls() {
         </div>
         <div className="lower-container">
           <ColumnsPopover />
-          <SortControls />
           <FilterPopover />
-          {/*<DefaultButton*/}
-          {/*  icon={<GroupIcon />}*/}
-          {/*  text={"Group"}*/}
-          {/*  className={"collapse-tablet"}*/}
-          {/*/>*/}
+          <SortControls />
+          <DefaultButton
+            icon={<GroupIcon />}
+            text={"Group"}
+            className={"collapse-tablet"}
+          />
           {/*<DefaultButton*/}
           {/*  icon={<SearchIcon />}*/}
           {/*  text={"Search"}*/}

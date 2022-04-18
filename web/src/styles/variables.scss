@@ -11,9 +11,16 @@
   --color-baige-300: #FDFBF6;
 
   --color-green-500: #57D3CD;
-  --color-green-400: #B8EDE3;
+  --color-green-400: #ABE9E6;
   --color-green-350: #DDF6F5;
   --color-green-300: #ECFAF8;
+
+  --color-purple-250: #DDC9FD;
+  --color-purple-200: #E3D4FD;
+  --color-purple-150: #EADFFE;
+  --color-purple-100: #F1E9FE;
+  --color-purple-50: #F8F4FF;
+  --color-purple-0: #FCFAFF;
 
   --color-red-500: #FAAE93;
   --color-red-400: #FCCEBE;
@@ -41,6 +48,10 @@
   --primary-400: var(--color-green-400);
   --primary-350: var(--color-green-350);
   --primary-300: var(--color-green-300);
+
+  --accent-a-100: var(--color-purple-0);
+  --accent-a-200: var(--color-purple-50);
+  --accent-a-300: var(--color-purple-100);
 
   --secondary-500: var(--color-red-500);
   --secondary-400: var(--color-red-400);

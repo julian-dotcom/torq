@@ -1,164 +1,137 @@
-.torq .table-content {
-  .cell {
-    display: grid;
-    grid-row-gap: 4px;
-    padding: 10px 20px;
-    align-items: start;
-    align-content: center;
-    text-align: right;
-    background-color: var(--bg-default);
-    &.align-left {
-      //padding: 10px 20px 10px 0;
-      text-align: left;
-      min-width: 200px;
-      .current {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      @media only screen and (max-width: 900px) {
-        min-width: 0px;
-        .current {
-          max-width: 100px;
-        }
-      }
-
-    }
-    .past {
-      color: var(--fg-muted);
-      font-size: var(--font-size-small);
-    }
-    .positive {
-      color: var(--primary-500)
-    }
-    .negative {
-      color: var(--secondary-500)
-    }
-  }
-
-  .bar-cell {
-    position: relative;
-    z-index: 2;
-    grid-row-gap: 4px;
+.cell {
+  display: grid;
+  grid-row-gap: 4px;
+  padding: 10px 20px;
+  align-items: start;
+  align-content: center;
+  text-align: right;
+  background-color: var(--bg-default);
+  &.align-left {
+    //padding: 10px 20px 10px 0;
+    text-align: left;
     min-width: 200px;
+    .current {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     @media only screen and (max-width: 900px) {
-      min-width: 150px;
-    }
-    .bar-wrapper {
-      display: grid;
-      justify-items: end;
-      background-color: var(--primary-300);
-    }
-    .bar {
-      height: 5px;
-      min-width: 2px;
-      background-color: var(--primary-400);
-    }
-    &.total-cell {
-      .bar-wrapper {
-        display: none;
+      min-width: 0px;
+      .current {
+        max-width: 100px;
       }
     }
   }
-
-  .total-cell {
-    position: sticky;
-    bottom: 0;
-    background-color: var(--bg-alt-faint);
-    border-top: 1px solid var(--bg-alt-strong);
-  }
-
-
-
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    display: grid;
-    justify-items: end;
-    align-items: end;
-    grid-row-gap: 5px;
-    padding: 20px 20px 10px 20px;
-    border-bottom: 1px solid var(--fg-subtle);
-    background-color: var(--bg-default);
+  .past {
     color: var(--fg-muted);
-    white-space: nowrap;
     font-size: var(--font-size-small);
-    &.alias {
-      padding-right: 50px;
-      justify-items: start;
-    }
-    .content {
-      display: grid;
-      grid-auto-flow: column;
-      grid-column-gap: 5px;
-    }
   }
-
-  // TODO: Clean this up after deciding on limitations to column freezing
-  .alias, .locked {
-    position: sticky;
-    left: 20px;
-    top: 0;
-    //padding-left: 20px !important;
-    z-index: 5;
-    border-right: 1px solid var(--fg-faint);
+  .positive {
+    color: var(--primary-500)
   }
-  .header.alias, .header.first-empty-header, .header.first-empty-header {
-    z-index: 6;
-    border-right: 1px solid var(--fg-faint);
-  }
-  .total-cell.alias {
-     border-right: 1px solid var(--bg-alt-strong);
-  }
-  .empty {
-    padding: 0;
-    min-width: 20px;
-  }
-  .empty.locked {
-    left: 0;
-    border-right: none;
-  }
-  .empty.locked {
-    left: 0;
-    border-right: none;
+  .negative {
+    color: var(--secondary-500)
   }
 }
+
+.bar-cell {
+  position: relative;
+  z-index: 2;
+  grid-row-gap: 4px;
+  min-width: 200px;
+  @media only screen and (max-width: 900px) {
+    min-width: 150px;
+  }
+  .bar-wrapper {
+    display: grid;
+    justify-items: end;
+    background-color: var(--primary-300);
+  }
+  .bar {
+    height: 5px;
+    min-width: 2px;
+    background-color: var(--primary-400);
+  }
+  &.total-cell {
+    .bar-wrapper {
+      display: none;
+    }
+  }
+}
+
+.total-cell {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--accent-a-100); //var(--bg-alt-faint);
+  border-top: 1px solid var(--accent-a-300); //var(--bg-alt-strong);
+  &.alias {
+   border-right: 1px solid var(--accent-a-300);
+  }
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  justify-items: end;
+  align-items: end;
+  grid-row-gap: 5px;
+  padding: 20px 20px 10px 20px;
+  border-bottom: 1px solid var(--fg-faint);
+  background-color: var(--bg-default);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  font-size: var(--font-size-small);
+  &.alias {
+    padding-right: 50px;
+    justify-items: start;
+  }
+  .content {
+    display: grid;
+    grid-auto-flow: column;
+    grid-column-gap: 5px;
+  }
+}
+
+// TODO: Clean this up after deciding on limitations to column freezing
+.alias, .locked {
+  position: sticky;
+  left: 20px;
+  top: 0;
+  //padding-left: 20px !important;
+  z-index: 5;
+  border-right: 1px solid var(--fg-faint);
+}
+.header.alias, .header.first-empty-header, .header.first-empty-header {
+  z-index: 6;
+  border-right: 1px solid var(--fg-faint);
+}
+.empty {
+  padding: 0;
+  min-width: 20px;
+}
+.empty.locked {
+  left: 0;
+  border-right: none;
+}
+.empty.locked {
+  left: 0;
+  border-right: none;
+}
+
 
 /* For extremely small screen devices (595px and below) */
 @media only screen and (max-width: 595px) {
-  .torq .table-content {
-    .cell, .header {
-      padding: 10px 10px;
-    }
-    .cell.empty, .header.empty {
-      min-width: 10px;
-      padding: 0;
-    }
-    .alias, .locked {
-      position: sticky;
-      left: 10px;
-    }
+  .cell, .header {
+    padding: 10px 10px;
   }
-
-}
-
-/* Small screen devices (600px and above) */
-@media only screen and (min-width: 600px) {
-
-}
-
-/* Medium screen devices (768px and above) */
-@media only screen and (min-width: 768px) {
-
-}
-
-/* Big screen devices (889px and above) */
-@media only screen and (min-width: 889px) {
-
-}
-
-/* Extra big screen devices (1200px and above) */
-@media only screen and (min-width: 1200px) {
-
+  .cell.empty, .header.empty {
+    min-width: 10px;
+    padding: 0;
+  }
+  .alias, .locked {
+    position: sticky;
+    left: 10px;
+  }
 }

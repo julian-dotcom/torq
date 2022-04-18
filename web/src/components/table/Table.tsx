@@ -1,4 +1,5 @@
-import "./table.scss";
+import styles from "./table.module.scss";
+import "./cells/cell.scss";
 import HeaderCell from "./cells/HeaderCell";
 import AliasCell from "./cells/AliasCell";
 import NumericCell from "./cells/NumericCell";
@@ -46,29 +47,27 @@ function Table() {
   const numRows = channels.length;
   const rowGridStyle = (numRows: number): string => {
     if (numRows > 0) {
-      return (
-        "grid-template-rows: min-content repeat(" +
-        numRows +
-        ",min-content) auto min-content;"
-      );
+      return ("grid-template-rows: min-content repeat(" + numRows + ",min-content) auto min-content;");
     } else {
       return "grid-template-rows: min-content  auto min-content;";
     }
   };
 
-  const tableClass = classNames("table-content", {
-    'loading': status === 'loading',
-    'idle': status === 'idle'
+  const tableClass = classNames(styles.tableContent, {
+    [styles.loading]: status === 'loading',
+    [styles.idle]: status === 'idle'
   });
 
+  const customStyle = "." + styles.tableContent + " {" +
+      "grid-template-columns: min-content repeat(" +numColumns +",  minmax(min-content, auto)) min-content;"+
+      rowGridStyle(numRows) +
+    "}"
+
+
   return (
-    <div className="table-wrapper">
+    <div className={styles.tableWrapper}>
       <style>
-        {".table-content {grid-template-columns: min-content repeat(" +
-          numColumns +
-          ",  minmax(min-content, auto)) min-content;" +
-          rowGridStyle(numRows) +
-          "}"}
+        {customStyle}
       </style>
 
       <div className={tableClass}>
@@ -99,11 +98,11 @@ function Table() {
             }
           });
           // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
-          return [
-            <div className={"cell empty locked"} key={"first-cell-" + index} />,
+          return (<div className={classNames(styles.tableRow, "torq-row-"+index)}>{[
+            <div className={"cell empty locked"} key={"first-cell-" + index}/>,
             ...returnedRow,
-            <div className={"cell empty"} key={"last-cell-" + index} />
-          ];
+            <div className={"cell empty"} key={"last-cell-" + index}/>
+          ]}</div>);
         })}
 
         {/* Empty filler cells to create an empty row that expands to push the last row down.

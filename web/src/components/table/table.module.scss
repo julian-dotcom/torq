@@ -1,4 +1,4 @@
-.torq .table-content {
+.tableContent {
   position: relative;
   display: grid;
   grid-auto-flow: row;
@@ -6,7 +6,7 @@
   overflow: scroll;
   height: 100vh;
 }
-.torq .table-wrapper {
+.tableWrapper {
   display: flex;
   flex-grow: 1;
   flex-direction: column;
@@ -20,4 +20,13 @@
 .idle {
   transition: opacity 250ms;
   opacity: 1;
+}
+.tableRow {
+  display: contents;
+}
+.tableRow:hover :global(.cell) {
+  //font-weight: 500;
+  background-color: var(--accent-a-100);
+  //-webkit-box-shadow: inset 0px -1px 0px 0px var(--primary-400);
+  //box-shadow: inset 0px -1px 0px 0px var(--primary-400);
 }
