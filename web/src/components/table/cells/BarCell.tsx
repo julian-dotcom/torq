@@ -22,6 +22,7 @@ function BarCell({current, total, previous, index, className}: barCell) {
       <div className="bar-wrapper">
         <div className="bar" style={{width: percent*100+"%"}}/>
         <div className="total-bar"/>
+
       </div>
       {/*<div className="bar-wrapper">*/}
       {/*  <div className="bar" style={{width: percent*100+"%"}}/>*/}

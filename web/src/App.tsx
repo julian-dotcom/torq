@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import DefaultLayout from "./pages/layout/DefaultLayout";
 import LoginLayout from "./pages/layout/LoginLayout";
-import TablePage from "./pages/TablePage";
+import TablePage from "./components/table/TablePage";
 import LoginPage from "./pages/login/LoginPage";
 import "./App.scss";
 import { Cookies, useCookies } from "react-cookie";

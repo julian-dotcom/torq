@@ -8,21 +8,21 @@ import {
 } from "@fluentui/react-icons";
 
 
-import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import DefaultButton from "../buttons/Button";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { toggleNav } from "../navigation/navSlice";
-import SortControls from "./controls/sort/SortControls";
+import TimeIntervalSelect from "../../timeIntervalSelect/TimeIntervalSelect";
+import DefaultButton from "../../buttons/Button";
+import { useAppDispatch, useAppSelector } from "../../../store/hooks";
+import { toggleNav } from "../../navigation/navSlice";
+import SortControls from "./sort/SortControls";
 import {
   createTableViewAsync,
   selectCurrentView,
   selectedViewIndex,
   updateTableViewAsync
-} from "./tableSlice";
-import FilterPopover from "./controls/filter/FilterPopover";
+} from "../tableSlice";
+import FilterPopover from "./filter/FilterPopover";
 
-import ViewsPopover from "./controls/views/ViewsPopover";
-import ColumnsPopover from "./controls/columns/ColumnsPopover";
+import ViewsPopover from "./views/ViewsPopover";
+import ColumnsPopover from "./columns/ColumnsPopover";
 
 function TableControls() {
   const dispatch = useAppDispatch();

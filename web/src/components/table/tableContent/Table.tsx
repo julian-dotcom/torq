@@ -1,11 +1,11 @@
 import styles from "./table.module.scss";
-import "./cells/cell.scss";
-import HeaderCell from "./cells/HeaderCell";
-import AliasCell from "./cells/AliasCell";
-import NumericCell from "./cells/NumericCell";
-import BarCell from "./cells/BarCell";
-import { useAppSelector } from "../../store/hooks";
-import { selectChannels, selectActiveColumns, selectStatus, ColumnMetaData } from "./tableSlice";
+import "../cells/cell.scss";
+import HeaderCell from "../cells/HeaderCell";
+import AliasCell from "../cells/AliasCell";
+import NumericCell from "../cells/NumericCell";
+import BarCell from "../cells/BarCell";
+import { useAppSelector } from "../../../store/hooks";
+import { selectChannels, selectActiveColumns, selectStatus, ColumnMetaData } from "../tableSlice";
 import classNames from "classnames";
 import clone from "clone"
 

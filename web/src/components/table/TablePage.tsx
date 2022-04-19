@@ -2,11 +2,11 @@ import './table-page.scss'
 import { useEffect } from 'react';
 import { format } from "date-fns";
 
-import TableControls from "../components/table/TableControls";
-import Table from "../components/table/Table";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { fetchChannelsAsync, } from "../components/table/tableSlice";
-import { selectTimeInterval } from "../components/timeIntervalSelect/timeIntervalSlice";
+import TableControls from "./controls/TableControls";
+import Table from "./tableContent/Table";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { fetchChannelsAsync, } from "./tableSlice";
+import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 
 function TablePage() {
   const dispatch = useAppDispatch();
