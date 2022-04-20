@@ -1,4 +1,4 @@
-import './table-page.scss'
+import styles from './table-page.module.scss'
 import { useEffect } from 'react';
 import { format } from "date-fns";
 
@@ -19,7 +19,7 @@ function TablePage() {
   }, [currentPeriod])
 
   return (
-    <div className="table-page-wrapper">
+    <div className={styles.tablePageWrapper}>
       <div className="table-controls-wrapper">
         <TableControls />
       </div>

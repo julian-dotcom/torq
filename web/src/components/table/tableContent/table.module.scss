@@ -24,6 +24,6 @@
 .tableRow {
   display: contents;
 }
-.tableRow:hover :global(.cell) {
+:global(.tableRow):hover :global(.cell) {
   background-color: var(--accent-a-100);
 }

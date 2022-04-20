@@ -6,7 +6,7 @@
   align-content: center;
   text-align: right;
   background-color: var(--bg-default);
-  &.align-left {
+  &.alignLeft {
     //padding: 10px 20px 10px 0;
     text-align: left;
     min-width: 200px;
@@ -34,7 +34,7 @@
   }
 }
 
-.bar-cell {
+.barCell {
   position: relative;
   z-index: 2;
   grid-row-gap: 4px;
@@ -42,7 +42,7 @@
   @media only screen and (max-width: 900px) {
     min-width: 150px;
   }
-  .bar-wrapper {
+  .barWrapper {
     display: grid;
     justify-items: end;
     background-color: var(--primary-300);
@@ -52,20 +52,23 @@
     min-width: 2px;
     background-color: var(--primary-400);
   }
-  &.total-cell {
+  &.totalCell {
     .bar-wrapper {
       display: none;
     }
   }
 }
 
-.total-cell {
+.totalCell {
   position: sticky;
   bottom: 0;
   background-color: var(--accent-a-100); //var(--bg-alt-faint);
   border-top: 1px solid var(--accent-a-300); //var(--bg-alt-strong);
   &.alias {
    border-right: 1px solid var(--accent-a-300);
+  }
+  .barWrapper {
+    display: none !important;
   }
 }
 
@@ -83,7 +86,7 @@
   color: var(--fg-muted);
   white-space: nowrap;
   font-size: var(--font-size-small);
-  &.alias {
+  &:global(.alias) {
     padding-right: 50px;
     justify-items: start;
   }
@@ -95,7 +98,7 @@
 }
 
 // TODO: Clean this up after deciding on limitations to column freezing
-.alias, .locked {
+:global(.alias), .locked {
   position: sticky;
   left: 20px;
   top: 0;
@@ -103,7 +106,7 @@
   z-index: 5;
   border-right: 1px solid var(--fg-faint);
 }
-.header.alias, .header.first-empty-header, .header.first-empty-header {
+.header:global(.alias), .header.firstEmptyHeader, .header.lastEmptyHeader {
   z-index: 6;
   border-right: 1px solid var(--fg-faint);
 }

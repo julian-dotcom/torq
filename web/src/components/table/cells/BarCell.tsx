@@ -1,4 +1,4 @@
-import './cell.scss'
+import styles from './cell.module.scss'
 import NumberFormat from 'react-number-format';
 const classNames = require('classnames');
 
@@ -15,14 +15,13 @@ function BarCell({current, total, previous, index, className}: barCell) {
   const percent = current / total;
   const positive: number = Math.round(Math.random())
   return (
-    <div className={classNames("cell", "bar-cell", className)}>
-      <div className="current">
+    <div className={classNames(styles.cell, styles.barCell, className)}>
+      <div className={styles.current}>
         <NumberFormat displayType="text" thousandSeparator=',' value={current} decimalScale={2} />
       </div>
-      <div className="bar-wrapper">
-        <div className="bar" style={{width: percent*100+"%"}}/>
-        <div className="total-bar"/>
-
+      <div className={styles.barWrapper}>
+        <div className={styles.bar} style={{width: percent*100+"%"}}/>
+        <div className={styles.totalBar}/>
       </div>
       {/*<div className="bar-wrapper">*/}
       {/*  <div className="bar" style={{width: percent*100+"%"}}/>*/}

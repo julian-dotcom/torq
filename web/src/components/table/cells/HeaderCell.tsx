@@ -1,6 +1,8 @@
 import {
   LockClosed12Regular as LockIcon
 } from "@fluentui/react-icons";
+import {inspect} from "util";
+import styles from './cell.module.scss'
 
 const classNames = require('classnames');
 
@@ -12,8 +14,8 @@ interface headerCell {
 
 function HeaderCell({heading, className, locked}: headerCell) {
   return (
-    <div className={classNames("header", className)}>
-      <div className="content">
+    <div className={classNames(styles.header, className)}>
+      <div className={styles.content}>
         {locked ? <div className="icon small"><LockIcon/></div> : ""}
         <div className="text">{heading}</div>
       </div>

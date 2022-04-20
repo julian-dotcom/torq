@@ -1,4 +1,4 @@
-import './cell.scss'
+import styles from './cell.module.scss'
 import NumberFormat from 'react-number-format';
 const classNames = require('classnames');
 
@@ -11,8 +11,8 @@ interface numericCell {
 
 function NumericCell({current, previous, index, className}: numericCell) {
   return (
-    <div className={classNames("cell", "numeric-cell", className, index)}>
-      <div className="current">
+    <div className={classNames(styles.cell, styles.numericCell, className, index)}>
+      <div className={styles.current}>
         <NumberFormat displayType="text" thousandSeparator=',' value={current}  decimalScale={2} />
       </div>
       {/*<div className="past">*/}

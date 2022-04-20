@@ -1,3 +1,4 @@
+import styles from './cell.module.scss'
 const classNames = require('classnames');
 
 interface AliasCell {
@@ -7,11 +8,11 @@ interface AliasCell {
 
 function AliasCell({current, className}: AliasCell) {
   return (
-    <div className={classNames("cell", "align-left", className)}>
-      <div className="current">
+    <div className={classNames(styles.cell, styles.alignLeft, className)}>
+      <div className={styles.current}>
         {current}
       </div>
-      <div className="past">
+      <div className={styles.past}>
         Open
       </div>
     </div>

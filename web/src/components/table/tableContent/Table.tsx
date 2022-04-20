@@ -1,5 +1,5 @@
 import styles from "./table.module.scss";
-import "../cells/cell.scss";
+import cellStyles from "../cells/cell.module.scss";
 import HeaderCell from "../cells/HeaderCell";
 import AliasCell from "../cells/AliasCell";
 import NumericCell from "../cells/NumericCell";
@@ -72,7 +72,7 @@ function Table() {
 
       <div className={tableClass}>
         {/*Empty header at the start*/}
-        {<HeaderCell heading={""} className={"first-empty-header empty locked"} key={"first-empty-header"} />}
+        {<HeaderCell heading={""} className={classNames(cellStyles.firstEmptyHeader, cellStyles.empty, cellStyles.locked)} key={"first-empty-header"} />}
 
         {/* Header cells */}
         {activeColumns.map((column, index) => {
@@ -80,7 +80,7 @@ function Table() {
         })}
 
         {/*Empty header at the end*/}
-        {<HeaderCell heading={""} className={"last-empty-header empty locked"} key={"last-empty-header"} />}
+        {<HeaderCell heading={""} className={classNames(cellStyles.lastEmptyHeader, cellStyles.empty)} key={"last-empty-header"} />}
 
         {/* The main cells containing the data */}
         {channels.map((row, index) => {
@@ -88,7 +88,7 @@ function Table() {
             const key = column.key;
             switch (column.type) {
               case "AliasCell":
-                return <AliasCell current={row[key] as string} className={classNames(key, index, "locked")} key={key + index + columnIndex} />
+                return <AliasCell current={row[key] as string} className={classNames(key, index, cellStyles.locked)} key={key + index + columnIndex} />
               case "NumericCell":
                 return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
               case "BarCell":
@@ -99,45 +99,45 @@ function Table() {
           });
           // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
           return (<div className={classNames(styles.tableRow, "torq-row-"+index)}>{[
-            <div className={"cell empty locked"} key={"first-cell-" + index}/>,
+            <div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked)} key={"first-cell-" + index}/>,
             ...returnedRow,
-            <div className={"cell empty"} key={"last-cell-" + index}/>
+            <div className={classNames(cellStyles.cell, cellStyles.empty)} key={"last-cell-" + index}/>
           ]}</div>);
         })}
 
         {/* Empty filler cells to create an empty row that expands to push the last row down.
            It's ugly but seems to be the only way to do it */}
-        {<div className={"cell empty locked"} />}
+        {<div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked)} />}
         {activeColumns.map((column, index) => {
           return (
             <div
-              className={`cell empty ${column.key}`}
+              className={classNames(cellStyles.cell, cellStyles.empty, column.key)}
               key={`mid-cell-${column.key}-${index}`}
             />
           );
         })}
 
 
-        {<div className={"cell empty "} />}
+        {<div className={classNames(cellStyles.cell, cellStyles.empty)} />}
 
         {/* Totals row */}
         {/* Empty cell at the start */}
-        {<div className={"cell empty total-cell locked"} />}
+        {<div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked, cellStyles.totalCell)} />}
         {activeColumns.map((column, index) => {
           let value = column.total as number;
           switch (column.type) {
             case "AliasCell":
-              return <AliasCell current={"Total"} className={classNames(column.key, index, "total-cell locked")} key={column.key + index} />
+              return <AliasCell current={"Total"} className={classNames(column.key, index, cellStyles.locked, cellStyles.totalCell)} key={column.key + index} />
             case "NumericCell":
-              return <NumericCell current={value} index={index} className={column.key + " total-cell"} key={`total-${column.key}-${index}`} />;
+              return <NumericCell current={value} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
             case "BarCell":
-              return <BarCell current={value} previous={value} total={column.max as number} index={index} className={column.key + " total-cell"} key={`total-${column.key}-${index}`} />;
+              return <BarCell current={value} previous={value} total={column.max as number} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
             default:
-              return <NumericCell current={value} index={index} className={column.key + " total-cell"} key={`total-${column.key}-${index}`} />;
+              return <NumericCell current={value} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
           }
         })}
         {/*Empty cell at the end*/}
-        {<div className={"cell empty total-cell"} />}
+        {<div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.totalCell)} />}
       </div>
 
 
