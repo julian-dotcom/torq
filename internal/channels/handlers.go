@@ -41,9 +41,9 @@ type channelData struct {
 	// The channel ID
 	ChanId uint64 `json:"chan_id"`
 	// Alias of remote peer
-	Alias string `json:"alias"`
+	Alias null.String `json:"alias"`
 	// The remote public key
-	PubKey string `json:"pub_key"`
+	PubKey null.String `json:"pub_key"`
 	// The inbound amount in sats (Satoshis)
 	AmountIn uint64 `json:"amount_in"`
 	// The inbound revenue in sats. This is what the channel has indirectly produced.
@@ -79,7 +79,7 @@ func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time) 
 select
     channel.channel_db_id,
 	channel.short_channel_id,
-    fwr.chan_id,
+    coalesce(fwr.chan_id, 0) as chan_id,
     coalesce(ne.alias, '') as alias,
     fwr.pub_key,
 
@@ -114,7 +114,7 @@ from (
         count_out,
         count_in
     from (
-        select coalesce(o.chan_id, i.chan_id) as chan_id,
+        select coalesce(o.chan_id, i.chan_id, 0) as chan_id,
                coalesce(o.amount,0) as amount_out,
                coalesce(o.revenue,0) as revenue_out,
                coalesce(o.count,0) as count_out,
