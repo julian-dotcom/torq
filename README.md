@@ -49,10 +49,15 @@ Database name and user are configurable but both default to `torq`.
 
 ```sh
 docker run -p 8080:8080 --rm  \
+--add-host=host.docker.internal:host-gateway \
 -v <AbsolutePathLNDTLSCert>:/app/tls.cert \
 -v <AbsolutePathLNDMacaroon>:/app/readonly.macaroon \
-lncapital/torq --lnd.macaroon /app/readonly.macaroon \
---lnd.node_address <IP:Port of LND Node e.g. 190.190.190.190:10009> --lnd.tls /app/tls.cert \
---db.password <DBPassword> --db.host host.docker.internal \
---torq.password <ChooseYourFrontendPassword> start
+lncapital/torq \
+--lnd.macaroon /app/readonly.macaroon \
+--lnd.tls /app/tls.cert \
+--db.host host.docker.internal \
+--lnd.node_address <IP:Port of LND Node e.g. 190.190.190.190:10009> \
+--db.password <DBPassword> \
+--torq.password <ChooseYourFrontendPassword> \
+start
 ```
