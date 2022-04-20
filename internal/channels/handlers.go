@@ -2,6 +2,7 @@ package channels
 
 import (
 	"github.com/gin-gonic/gin"
+	"gopkg.in/guregu/null.v4"
 
 	// "gopkg.in/guregu/null.v4"
 	"net/http"
@@ -34,9 +35,9 @@ func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
 
 type channelData struct {
 	// Database primary key of channel
-	ChannelDBID int `json:"channelDbId"`
+	ChannelDBID null.Int `json:"channelDbId"`
 	// Short channel id in c-lightning / BOLT format
-	ShortChannelID string `json:"shortChannelId"`
+	ShortChannelID null.String `json:"shortChannelId"`
 	// The channel ID
 	ChanId uint64 `json:"chan_id"`
 	// Alias of remote peer
@@ -167,7 +168,8 @@ order by revenue_out desc;
 
 	for rows.Next() {
 		c := &channelData{}
-		err = rows.Scan(&c.ChannelDBID,
+		err = rows.Scan(
+			&c.ChannelDBID,
 			&c.ShortChannelID,
 			&c.ChanId,
 			&c.Alias,
