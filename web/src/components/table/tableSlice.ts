@@ -72,9 +72,14 @@ const init: RequestInit = {
   mode: 'cors',
 };
 
+export const API_URL =
+  window.location.port === '3000'
+    ? "//" + window.location.hostname + ":8080"
+    : "//" + window.location.host + "";
+
 function fetchChannels(from: string, to: string) {
   to = format(addDays(new Date(to), 1), "yyyy-MM-dd")
-  const body = fetch(`http://localhost:8080/api/channels?from=${from}&to=${to}`, init)
+  const body = fetch(`${API_URL}/api/channels?from=${from}&to=${to}`, init)
     .then(response => {
       return response.json()
     })
@@ -91,7 +96,7 @@ export const fetchChannelsAsync = createAsyncThunk(
 
 
 function fetchTableViews() {
-  const body = fetch(`http://localhost:8080/api/table-views`, init)
+  const body = fetch(`${API_URL}/api/table-views`, init)
     .then(response => {
       return response.json()
     })
@@ -114,7 +119,7 @@ function updateTableView(view: ViewInterface) {
     method: 'PUT',
     body: JSON.stringify({ id: view.id, view: view }),
   };
-  const body = fetch(`http://localhost:8080/api/table-views`, init)
+  const body = fetch(`${API_URL}/api/table-views`, init)
     .then(response => {
       return response.json()
     })
@@ -137,7 +142,7 @@ function createTableView(view: ViewInterface) {
     method: 'POST',
     body: JSON.stringify({ id: null, view: view }),
   };
-  const body = fetch(`http://localhost:8080/api/table-views`, init)
+  const body = fetch(`${API_URL}/api/table-views`, init)
     .then(response => {
       return response.json()
     })
@@ -159,7 +164,7 @@ function deleteTableView(view: ViewInterface) {
     mode: 'cors',
     method: 'DELETE'
   };
-  const body = fetch(`http://localhost:8080/api/table-views/${view.id}`, init)
+  const body = fetch(`${API_URL}/api/table-views/${view.id}`, init)
     .then(() => { return })
   return body
 }
@@ -184,7 +189,7 @@ function saveTableViewOrder(order: viewOrderInterface[]) {
     method: 'PATCH',
     body: JSON.stringify(order),
   };
-  const body = fetch(`http://localhost:8080/api/table-views/order`, init)
+  const body = fetch(`${API_URL}/api/table-views/order`, init)
 
   return body
 }

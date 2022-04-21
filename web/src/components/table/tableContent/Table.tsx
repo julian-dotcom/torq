@@ -98,7 +98,7 @@ function Table() {
             }
           });
           // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
-          return (<div className={classNames(styles.tableRow, "torq-row-"+index)}>{[
+          return (<div className={classNames(styles.tableRow, "torq-row-"+index)} key={"torq-row-"+index}>{[
             <div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked)} key={"first-cell-" + index}/>,
             ...returnedRow,
             <div className={classNames(cellStyles.cell, cellStyles.empty)} key={"last-cell-" + index}/>

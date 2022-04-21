@@ -8,6 +8,11 @@ const initialState: AuthState = {
   status: 'idle'
 };
 
+export const API_URL =
+  window.location.port === '3000'
+    ? "//" + window.location.hostname + ":8080"
+    : "//" + window.location.host + "";
+
 function loginRequest(password: string) {
   let formData: FormData = new FormData();
   formData.append('username', 'admin')
@@ -18,18 +23,19 @@ function loginRequest(password: string) {
     mode: 'cors',
     body: formData,
   }
-  const result = fetch(`http://localhost:8080/api/login`,init)
+  const result = fetch(`${API_URL}/api/login`,init)
     .then(response => {
       return response.json()
     })
   return result
 }
+
 function logoutRequest() {
   const init: RequestInit = {
     credentials: 'include',
     mode: 'cors'
   }
-  const result = fetch(`http://localhost:8080/api/logout`,init)
+  const result = fetch(`${API_URL}/api/logout`,init)
     .then(response => {
       return response.json()
     })
