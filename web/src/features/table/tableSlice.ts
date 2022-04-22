@@ -333,28 +333,49 @@ const groupByReducer = (channels: Array<any>, by: string) => {
     return channels
   }
 
-  const summedPubKey = new Map<string, Map<string, any>>()
+  const summedPubKey: typeof channels = []
 
   for (const chan of channels) {
     const pub_key = String(chan["pub_key" as keyof typeof chan]);
 
-    const summedData = summedPubKey.get(pub_key) ?? new Map<string, any>()
+    const summedChan = summedPubKey.find(sc => sc["pub_key" as keyof typeof sc] == pub_key)
+    if (!summedChan) {
+      summedPubKey.push(chan);
+      continue;
+    }
 
     for (const key of Object.keys(chan)) {
       const value = chan[key as keyof typeof chan];
       if (typeof value !== 'number') {
-        summedData.set(key, value)
+
         continue;
       }
-      summedData.set(key, (summedData.get(key) ?? 0) + value)
+      (summedChan as { [key: string]: any })[key] = summedChan[key as keyof typeof summedChan] as number + value
     }
-    summedPubKey.set(pub_key, summedData)
-
   }
 
-  return Array.from(summedPubKey.values()).map((item) => {
-    return Object.fromEntries(item)
-  })
+    return summedPubKey
+
+  // for (const chan of channels) {
+  //   const pub_key = String(chan["pub_key" as keyof typeof chan]);
+  //
+  //   const summedData = summedPubKey.get(pub_key) ?? new Map<string, any>()
+  //
+  //   for (const key of Object.keys(chan)) {
+  //     const value = chan[key as keyof typeof chan];
+  //     if (typeof value !== 'number') {
+  //       summedData.set(key, value)
+  //       continue;
+  //     }
+  //     summedData.set(key, (summedData.get(key) ?? 0) + value)
+  //   }
+  //   summedPubKey.set(pub_key, summedData)
+  //
+  // }
+
+  // return Array.from(summedPubKey.values()).map((item) => {
+  //   return Object.fromEntries(item)
+  // })
 
 }
 
