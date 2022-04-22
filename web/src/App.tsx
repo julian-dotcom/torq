@@ -6,14 +6,14 @@ import {
   useLocation,
   Navigate
 } from "react-router-dom";
-import DefaultLayout from "./pages/layout/DefaultLayout";
-import LoginLayout from "./pages/layout/LoginLayout";
+import DefaultLayout from "./layout/DefaultLayout";
+import LoginLayout from "./layout/LoginLayout";
 import TablePage from "./components/table/TablePage";
-import LoginPage from "./pages/login/LoginPage";
+import LoginPage from "./components/auth/LoginPage";
 import "./App.scss";
 import { Cookies, useCookies } from "react-cookie";
 import { useAppDispatch } from "./store/hooks";
-import { logoutAsync } from "./pages/login/authSlice";
+import { logoutAsync } from "./components/auth/authSlice";
 import {fetchTableViewsAsync} from "./components/table/tableSlice";
 
 function Logout() {

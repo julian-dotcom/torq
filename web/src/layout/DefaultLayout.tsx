@@ -1,9 +1,9 @@
 import React from 'react';
 import { Outlet } from "react-router-dom";
-import { useAppSelector, useAppDispatch } from '../../store/hooks';
-import {selectHidden, toggleNav} from '../../components/navigation/navSlice'
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import {selectHidden, toggleNav} from '../components/navigation/navSlice'
 
-import Navigation from "../../components/navigation/Navigation";
+import Navigation from "../components/navigation/Navigation";
 import classNames from "classnames";
 
 function DefaultLayout() {
