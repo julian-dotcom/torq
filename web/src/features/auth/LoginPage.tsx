@@ -25,11 +25,14 @@ function LoginPage() {
     from = "/"
   }
 
-  let c = new Cookies
-  const cookies = c.get('torq_session');
-  if (cookies !== undefined) {
-    navigate(from, { replace: true });
-  }
+  useEffect(() => {
+    let c = new Cookies
+    const cookies = c.get('torq_session');
+    if (cookies !== undefined) {
+      navigate(from, { replace: true });
+    }
+  })
+
   const dispatch = useAppDispatch()
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {

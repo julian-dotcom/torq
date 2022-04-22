@@ -2,8 +2,7 @@ import "./table_controls.scss";
 import {
   Navigation20Regular as NavigationIcon,
   ArrowJoin20Regular as GroupIcon,
-  Search20Regular as SearchIcon,
-  Options20Regular as OptionsIcon,
+  // Search20Regular as SearchIcon,
   Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 
@@ -14,7 +13,7 @@ import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { toggleNav } from "../../navigation/navSlice";
 import SortControls from "./sort/SortControls";
 import {
-  createTableViewAsync,
+  createTableViewAsync, fetchChannelsAsync,
   selectCurrentView,
   selectedViewIndex,
   updateTableViewAsync
@@ -23,11 +22,21 @@ import FilterPopover from "./filter/FilterPopover";
 
 import ViewsPopover from "./views/ViewsPopover";
 import ColumnsPopover from "./columns/ColumnsPopover";
+import {useEffect} from "react";
+import {selectTimeInterval} from "../../timeIntervalSelect/timeIntervalSlice";
+import {format} from "date-fns";
 
 function TableControls() {
   const dispatch = useAppDispatch();
   const currentView = useAppSelector(selectCurrentView);
   const currentViewIndex = useAppSelector(selectedViewIndex);
+  const currentPeriod = useAppSelector(selectTimeInterval);
+
+    useEffect(() => {
+      const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
+      const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
+      dispatch(fetchChannelsAsync({ from: from, to: to }));
+    }, [currentPeriod])
 
   const saveView = () => {
     let viewMod = { ...currentView }

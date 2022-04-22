@@ -22,7 +22,7 @@ func AuthRequired(c *gin.Context) {
 	c.Next()
 }
 
-// login is a handler that parses a form and checks for specific data
+// Login creates a user session, logging them in given the right username and password
 func Login(apiPwd string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
@@ -54,15 +54,8 @@ func Login(apiPwd string) gin.HandlerFunc {
 
 func Logout(c *gin.Context) {
 	session := sessions.Default(c)
-	user := session.Get(userkey)
-	if user == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session token"})
-		return
-	}
+
 	session.Delete(userkey)
-	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
-		return
-	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
 }

@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import {
   Routes,
   Route,
-  useNavigate,
   useLocation,
   Navigate
 } from "react-router-dom";
@@ -11,10 +10,9 @@ import LoginLayout from "./layout/LoginLayout";
 import TablePage from "./features/table/TablePage";
 import LoginPage from "./features/auth/LoginPage";
 import "./App.scss";
-import { Cookies, useCookies } from "react-cookie";
+import { Cookies } from "react-cookie";
 import { useAppDispatch } from "./store/hooks";
 import { logoutAsync } from "./features/auth/authSlice";
-import {fetchTableViewsAsync} from "./features/table/tableSlice";
 
 function Logout() {
   const dispatch = useAppDispatch();
@@ -29,12 +27,6 @@ function Logout() {
 }
 
 function App() {
-
-  const dispatch = useAppDispatch();
-
-  useEffect(() =>{
-    dispatch(fetchTableViewsAsync());
-  })
 
   return (
     <div className="App torq">
@@ -63,7 +55,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 
   let c = new Cookies();
   let torqSession = c.get("torq_session");
-  if (torqSession == undefined) {
+  if (torqSession === undefined) {
     return <Navigate to={"/login"} state={location} replace={true} />;
   }
 

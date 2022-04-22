@@ -67,10 +67,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 
 	api := r.Group("/api")
 
+	api.GET("/logout", auth.Logout)
+
 	// Limit login attempts to 10 per minute.
 	rl := NewLoginRateLimitMiddleware()
 	api.POST("/login", rl, auth.Login(apiPwd))
-	api.GET("/logout", auth.Logout)
 
 	api.Use(auth.AuthRequired)
 	{
