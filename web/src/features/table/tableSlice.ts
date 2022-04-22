@@ -3,7 +3,7 @@ import { RootState } from '../../store/store';
 import { addDays, format } from 'date-fns';
 import { deserialiseQuery, applyFilters, AndClause } from './controls/filter/filter'
 import { SortByOptionType } from "./controls/sort/SortControls";
-import _ from "lodash";
+import _, {cloneDeep} from "lodash";
 
 export interface ColumnMetaData {
   heading: string;
@@ -31,6 +31,7 @@ export const availableColumns: ColumnMetaData[] = [
   { heading: "Successful total", type: "BarCell", key: "count_total", valueType: "number" },
   { heading: "Contributed revenue inbound", type: "BarCell", key: "revenue_in", valueType: "number" },
   { heading: "Contributed revenue total", type: "BarCell", key: "revenue_total", valueType: "number" },
+  { heading: "Public Key", type: "TextCell", key: "pub_key", valueType: "string" },
 ]
 
 export interface ViewInterface {
@@ -40,6 +41,7 @@ export interface ViewInterface {
   filters?: any;
   columns: ColumnMetaData[];
   sortBy: SortByOptionType[],
+  groupBy?: string,
 }
 
 export interface TableState {
@@ -51,18 +53,22 @@ export interface TableState {
 }
 
 export const DefaultView: ViewInterface = {
-  title: "New Table",
+  title: "Untitled Table",
   saved: true,
   columns: availableColumns,
   filters: new AndClause().toJSON(),
   sortBy: [],
+  groupBy: undefined,
 }
 
 const initialState: TableState = {
   channels: [],
   modChannels: [],
   selectedViewIndex: 0,
-  views: [DefaultView],
+  views: [{
+    ...DefaultView,
+    title: 'Default table',
+  }],
   status: 'idle',
 };
 
@@ -205,6 +211,9 @@ export const tableSlice = createSlice({
     updateColumns: (state, actions: PayloadAction<{ columns: ColumnMetaData[] }>) => {
       state.views[state.selectedViewIndex].columns = actions.payload.columns
     },
+    updateGroupBy: (state, actions: PayloadAction<{ groupBy: string }>) => {
+      state.views[state.selectedViewIndex].groupBy = actions.payload.groupBy
+    },
     updateViews: (state, actions: PayloadAction<{ views: ViewInterface[], index: number }>) => {
       state.views = actions.payload.views
       state.selectedViewIndex = actions.payload.index
@@ -284,7 +293,7 @@ export const tableSlice = createSlice({
       });
 
     builder.addMatcher((action) => {
-      return ['table/updateFilters', 'table/updateSortBy', 'table/updateColumns']
+      return ['table/updateFilters', 'table/updateSortBy', 'table/updateColumns', 'table/updateGroupBy']
         .findIndex((item) => action.type === item) !== -1
     }, (state, actions) => {
       // TODO: create compare version to indicate it view is saved or not.
@@ -307,11 +316,57 @@ export const tableSlice = createSlice({
   },
 });
 
-export const { updateFilters, updateViews, updateViewsOrder, deleteView, updateSelectedView, updateSortBy, updateColumns } = tableSlice.actions;
+export const {
+  updateFilters,
+  updateViews,
+  updateViewsOrder,
+  deleteView,
+  updateSelectedView,
+  updateSortBy,
+  updateColumns,
+  updateGroupBy,
+} = tableSlice.actions;
+
+const groupByReducer = (channels: Array<any>, by: string) => {
+
+  if (by !== 'peers') {
+    return channels
+  }
+
+  const summedPubKey = new Map<string, Map<string, any>>()
+
+  for (const chan of channels) {
+    const pub_key = String(chan["pub_key" as keyof typeof chan]);
+
+    const summedData = summedPubKey.get(pub_key) ?? new Map<string, any>()
+
+    for (const key of Object.keys(chan)) {
+      const value = chan[key as keyof typeof chan];
+      if (typeof value !== 'number') {
+        summedData.set(key, value)
+        continue;
+      }
+      summedData.set(key, (summedData.get(key) ?? 0) + value)
+    }
+    summedPubKey.set(pub_key, summedData)
+
+  }
+
+  return Array.from(summedPubKey.values()).map((item) => {
+    return Object.fromEntries(item)
+  })
+
+}
 
 export const selectChannels = (state: RootState) => {
-  let channels = state.table.channels ? state.table.channels : [] as any[]
+
+  let channels = cloneDeep(state.table.channels ? state.table.channels : [] as any[])
   const filters = state.table.views[state.table.selectedViewIndex].filters
+  const groupBy = state.table.views[state.table.selectedViewIndex].groupBy
+  if (channels.length > 0) {
+    channels = groupByReducer(channels, groupBy || 'channels')
+  }
+
   if (filters) {
     const deserialisedFilters = deserialiseQuery(filters)
     channels = applyFilters(deserialisedFilters, channels)
@@ -325,6 +380,7 @@ export const selectActiveColumns = (state: RootState) => {
 }
 export const selectAllColumns = (state: RootState) => availableColumns;
 export const selectSortBy = (state: RootState) => state.table.views[state.table.selectedViewIndex].sortBy
+export const selectGroupBy = (state: RootState) => state.table.views[state.table.selectedViewIndex].groupBy
 export const selectFilters = (state: RootState) => {
   // TODO: The stringify and parse here is done to avoid the object from being readonly (TypeError).
   //   This needs to be solved

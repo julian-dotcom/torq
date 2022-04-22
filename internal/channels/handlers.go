@@ -83,12 +83,12 @@ func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time) 
 	var sql = `
 select
     coalesce(ne.alias, '') as alias,
-    c.channel_db_id,
-    ce.chan_point,
-    ce.pub_key,
-    c.short_channel_id,
+    coalesce(c.channel_db_id, 0) as channel_db_id,
+    coalesce(ce.chan_point, '') as chan_point,
+    coalesce(ce.pub_key, '') as pub_key,
+    coalesce(c.short_channel_id, '') as short_channel_id,
     coalesce(ce.chan_id, 0) as chan_id,
-    ne.color,
+    coalesce(ne.color, '') as color,
     coalesce(ce.capacity::numeric, 0) as capacity,
 
     coalesce(fw.amount_out, 0) as amount_out,

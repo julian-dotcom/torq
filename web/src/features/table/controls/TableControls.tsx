@@ -1,17 +1,16 @@
 import "./table_controls.scss";
 import {
   Navigation20Regular as NavigationIcon,
-  ArrowJoin20Regular as GroupIcon,
   // Search20Regular as SearchIcon,
   Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
-
 
 import TimeIntervalSelect from "../../timeIntervalSelect/TimeIntervalSelect";
 import DefaultButton from "../../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { toggleNav } from "../../navigation/navSlice";
 import SortControls from "./sort/SortControls";
+import GroupPopover from "./group/GroupPopover";
 import {
   createTableViewAsync, fetchChannelsAsync,
   selectCurrentView,
@@ -69,11 +68,8 @@ function TableControls() {
           <ColumnsPopover />
           <FilterPopover />
           <SortControls />
-          <DefaultButton
-            icon={<GroupIcon />}
-            text={"Group"}
-            className={"collapse-tablet"}
-          />
+          <GroupPopover />
+
           {/*<DefaultButton*/}
           {/*  icon={<SearchIcon />}*/}
           {/*  text={"Search"}*/}

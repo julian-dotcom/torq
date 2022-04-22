@@ -185,50 +185,48 @@ const SortControls = () => {
   }
 
   return (
-    <div>
-      <Popover button={popOverButton}>
-        <DragDropContext
-          // onDragStart={}
-          // onDragUpdate={}
-          onDragEnd={onDragEnd}
-        >
+    <Popover button={popOverButton}>
+      <DragDropContext
+        // onDragStart={}
+        // onDragUpdate={}
+        onDragEnd={onDragEnd}
+      >
 
-          <div className={"sort-popover-content"}>
-                {!sorts.length && <div className={"no-filters"}>No sorting</div>}
+        <div className={"sort-popover-content"}>
+              {!sorts.length && <div className={"no-filters"}>No sorting</div>}
 
-                  {!!sorts.length && (
-                    <Droppable droppableId={droppableContainerId}>
-                      {provided => (
-                        <div className={"sort-rows"}
-                             ref={provided.innerRef}
-                             {...provided.droppableProps}>
+                {!!sorts.length && (
+                  <Droppable droppableId={droppableContainerId}>
+                    {provided => (
+                      <div className={"sort-rows"}
+                           ref={provided.innerRef}
+                           {...provided.droppableProps}>
 
-                          {sorts.map((item, index) => {
-                            return (
-                              <SortRow
-                                key={item.value + index}
-                                selected={item}
-                                options={options}
-                                index={index}
-                                handleUpdateSort={handleUpdateSort}
-                                handleRemoveSort={handleRemoveSort}
-                              />
-                            );
-                          })}
+                        {sorts.map((item, index) => {
+                          return (
+                            <SortRow
+                              key={item.value + index}
+                              selected={item}
+                              options={options}
+                              index={index}
+                              handleUpdateSort={handleUpdateSort}
+                              handleRemoveSort={handleRemoveSort}
+                            />
+                          );
+                        })}
 
-                          {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                )}
+                        {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              )}
 
-                <div className="buttons-row">
-                  <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon/>}/>
-                </div>
-            </div>
-        </DragDropContext>
-      </Popover>
-    </div>
+              <div className="buttons-row">
+                <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon/>}/>
+              </div>
+          </div>
+      </DragDropContext>
+    </Popover>
   );
 };
 

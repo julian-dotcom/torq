@@ -4,6 +4,7 @@ import HeaderCell from "../cells/HeaderCell";
 import AliasCell from "../cells/AliasCell";
 import NumericCell from "../cells/NumericCell";
 import BarCell from "../cells/BarCell";
+import TextCell from "../cells/TextCell";
 import { useAppSelector } from "../../../store/hooks";
 import { selectChannels, selectActiveColumns, selectStatus, ColumnMetaData } from "../tableSlice";
 import classNames from "classnames";
@@ -93,6 +94,8 @@ function Table() {
                 return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
               case "BarCell":
                 return <BarCell current={row[key] as number} previous={row[key] as number} total={column.max as number} index={index} className={key} key={key + index + columnIndex} />;
+            case "TextCell":
+              return <TextCell current={row[key] as string} className={classNames(column.key, index)} key={column.key + index} />
               default:
                 return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
             }
@@ -124,16 +127,17 @@ function Table() {
         {/* Empty cell at the start */}
         {<div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked, cellStyles.totalCell)} />}
         {activeColumns.map((column, index) => {
-          let value = column.total as number;
           switch (column.type) {
             case "AliasCell":
               return <AliasCell current={"Total"} className={classNames(column.key, index, cellStyles.locked, cellStyles.totalCell)} key={column.key + index} />
             case "NumericCell":
-              return <NumericCell current={value} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
+              return <NumericCell current={column.total as number} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
             case "BarCell":
-              return <BarCell current={value} previous={value} total={column.max as number} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
+              return <BarCell current={column.total as number} previous={column.total as number} total={column.max as number} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
+            case "TextCell":
+              return <TextCell current={' '} className={classNames(column.key, index, cellStyles.totalCell)} key={column.key + index} />
             default:
-              return <NumericCell current={value} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
+              return <NumericCell current={column.total as number} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
           }
         })}
         {/*Empty cell at the end*/}
