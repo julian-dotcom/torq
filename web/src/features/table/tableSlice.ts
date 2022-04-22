@@ -3,7 +3,8 @@ import { RootState } from '../../store/store';
 import { addDays, format } from 'date-fns';
 import { deserialiseQuery, applyFilters, AndClause } from './controls/filter/filter'
 import { SortByOptionType } from "./controls/sort/SortControls";
-import _, {cloneDeep} from "lodash";
+import API_URL from 'baseAPIURL';
+import _, { cloneDeep } from "lodash";
 
 export interface ColumnMetaData {
   heading: string;
@@ -77,11 +78,6 @@ const init: RequestInit = {
   headers: { 'Content-Type': 'application/json' },
   mode: 'cors',
 };
-
-export const API_URL =
-  window.location.port === '3000'
-    ? "//" + window.location.hostname + ":8080"
-    : "//" + window.location.host + "";
 
 function fetchChannels(from: string, to: string) {
   to = format(addDays(new Date(to), 1), "yyyy-MM-dd")
@@ -354,7 +350,7 @@ const groupByReducer = (channels: Array<any>, by: string) => {
     }
   }
 
-    return summedPubKey
+  return summedPubKey
 
   // for (const chan of channels) {
   //   const pub_key = String(chan["pub_key" as keyof typeof chan]);
