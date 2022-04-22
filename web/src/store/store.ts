@@ -1,8 +1,8 @@
 import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
-import navReducer from '../components/navigation/navSlice';
-import tableReducer from '../components/table/tableSlice';
-import timeIntervalReducer from '../components/timeIntervalSelect/timeIntervalSlice';
-import authreducer from '../components/auth/authSlice';
+import navReducer from '../features/navigation/navSlice';
+import tableReducer from '../features/table/tableSlice';
+import timeIntervalReducer from '../features/timeIntervalSelect/timeIntervalSlice';
+import authreducer from '../features/auth/authSlice';
 
 export const store = configureStore({
   reducer: {

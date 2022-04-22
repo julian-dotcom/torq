@@ -8,13 +8,13 @@ import {
 } from "react-router-dom";
 import DefaultLayout from "./layout/DefaultLayout";
 import LoginLayout from "./layout/LoginLayout";
-import TablePage from "./components/table/TablePage";
-import LoginPage from "./components/auth/LoginPage";
+import TablePage from "./features/table/TablePage";
+import LoginPage from "./features/auth/LoginPage";
 import "./App.scss";
 import { Cookies, useCookies } from "react-cookie";
 import { useAppDispatch } from "./store/hooks";
-import { logoutAsync } from "./components/auth/authSlice";
-import {fetchTableViewsAsync} from "./components/table/tableSlice";
+import { logoutAsync } from "./features/auth/authSlice";
+import {fetchTableViewsAsync} from "./features/table/tableSlice";
 
 function Logout() {
   const dispatch = useAppDispatch();
