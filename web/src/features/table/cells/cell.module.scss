@@ -6,21 +6,12 @@
   align-content: center;
   text-align: right;
   background-color: var(--bg-default);
+  @media only screen and (max-width: 900px) {
+    min-width: 0px;
+  }
   &.alignLeft {
-    //padding: 10px 20px 10px 0;
     text-align: left;
     min-width: 200px;
-    .current {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    @media only screen and (max-width: 900px) {
-      min-width: 0px;
-      .current {
-        max-width: 100px;
-      }
-    }
   }
   .past {
     color: var(--fg-muted);
@@ -123,6 +114,20 @@
   border-right: none;
 }
 
+.header.textCell, .cell.textCell {
+  justify-items: start;
+}
+.cell:global(.alias) {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @media only screen and (max-width: 900px) {
+    max-width: 100px;
+  }
+}
+
+
 
 /* For extremely small screen devices (595px and below) */
 @media only screen and (max-width: 595px) {
@@ -133,7 +138,7 @@
     min-width: 10px;
     padding: 0;
   }
-  .alias, .locked {
+  :global(.alias), .locked {
     position: sticky;
     left: 10px;
   }
