@@ -203,7 +203,10 @@ left join (
 		from (
 			select outgoing_channel_id,
 				   (jsonb_object_keys(event->'Event')::text) as event_type
+
 			from htlc_event
+			where time >= $1
+            	and time <= $2
 		) as f
 		where f.event_type not in ('ForwardEvent', 'SettleEvent')
 		group by outgoing_channel_id, f.event_type) as htlc_out
@@ -216,6 +219,8 @@ left join (
 			select incoming_channel_id,
 				   (jsonb_object_keys(event->'Event')::text) as event_type
 			from htlc_event
+			where time >= $1
+            	and time <= $2
 		) as f
 		where f.event_type not in ('ForwardEvent', 'SettleEvent')
 		group by incoming_channel_id, f.event_type
