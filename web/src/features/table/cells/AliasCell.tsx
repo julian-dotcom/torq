@@ -20,7 +20,7 @@ function OpenText(open: number) {
 function AliasCell({current, open, className}: AliasCell) {
   return (
     <div className={classNames(styles.cell, styles.alignLeft, className)}>
-      <div className={styles.current}>
+      <div className={classNames(styles.current, styles.text)}>
         {current}
       </div>
       {open !== undefined && (

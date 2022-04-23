@@ -118,16 +118,16 @@
   justify-items: start;
 }
 .cell:global(.alias), .header:global(.alias) {
-  max-width: 200px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  @media only screen and (max-width: 900px) {
-    max-width: 100px;
-    min-width: 0px;
+  .text {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  @media only screen and (max-width: 600px) {
+  @media only screen and (max-width: 900px) {
+  .text {
     max-width: 100px;
+  }
     min-width: 0px;
   }
 }
