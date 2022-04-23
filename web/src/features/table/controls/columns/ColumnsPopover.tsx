@@ -31,6 +31,7 @@ interface columnRow {
 const CellOptions: SelectOptionType[] = [
   {label: "Number", value: "NumericCell"},
   {label: "Bar", value: "BarCell"},
+  {label: "Text", value: "TextCell"},
 ]
 
 function NameColumnRow({column, index}: {column: ColumnMetaData, index: number}) {
