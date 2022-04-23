@@ -5,6 +5,10 @@
   grid-column-gap: 0px;
   overflow: scroll;
   height: 100vh;
+  -webkit-overflow-scrolling: touch;
+  @media only screen and (max-width: 600px) {
+    height: calc(100vh - 178px);
+  }
 }
 .tableWrapper {
   display: flex;

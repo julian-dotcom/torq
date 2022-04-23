@@ -12,6 +12,8 @@ function OpenText(open: number) {
     return `Open (${open})`
   } else if (open === 1) {
     return `Open`
+  } else {
+    return `Closed`
   }
 }
 
