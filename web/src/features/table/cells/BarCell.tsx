@@ -12,12 +12,12 @@ interface barCell {
 
 function BarCell({current, total, previous, index, className}: barCell) {
   let previousPercent = Math.round((current/previous)*Math.random()*200)
-  const percent = current / total;
+  const percent = (current||0) / total;
   const positive: number = Math.round(Math.random())
   return (
     <div className={classNames(styles.cell, styles.barCell, className)}>
       <div className={styles.current}>
-        <NumberFormat displayType="text" thousandSeparator=',' value={current} decimalScale={2} />
+        <NumberFormat displayType="text" thousandSeparator=',' value={current||0} decimalScale={2} />
       </div>
       <div className={styles.barWrapper}>
         <div className={styles.bar} style={{width: percent*100+"%"}}/>
