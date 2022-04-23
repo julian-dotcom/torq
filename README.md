@@ -2,9 +2,29 @@
 
 Torq is a capital management tool for routing nodes on the lightning network.
 
-## Requirements
+![Torq table preview](./torq-table-preview.png)
 
-Torq uses a postgres database with the TimescaleDB plugin.
+Current features:
+* Store all events from your node including HTLC events and channel enable/disable events.
+* Group stats based on peer (public key) and tags (released soon)
+* Filter data on any time frame
+* Navigate through time (days, weeks, months) and track your progress
+* Customize table views with a wide range of stats, filters sorting
+* Store different table views to quickly switch between different stats and useful information.
+
+Features on the roadmap:
+* Support for CLN (C-lightning)
+* Channel and Channel group inspection
+* Advanced graphs
+* Fee automation
+* Automatic rebalancing based on advanced rules
+* Limit HTLC amounts
+* Automatic Backups
+* Automatic channel tagging
+
+Join our [Telegram group](https://t.me/joinchat/V-Dks6zjBK4xZWY0) for updates on releases
+and feel free to ping us in the telegram group you have questions or need help getting started.
+We would alos love to hear your ideas for features or any other feedback you might have.
 
 ## Run With Docker
 
@@ -46,6 +66,7 @@ After creating the database, exit psql and the TimescaleDB container by hitting 
 At present Torq only connects to a single LND node. To run Torq provide the IP, Port, TLS cert and
 Macaroon of your LND Node as well as the database password set above and a frontend password of your choice.
 Database name and user are configurable but both default to `torq`.
+
 
 ```sh
 docker run -p 8080:8080 --rm  \
