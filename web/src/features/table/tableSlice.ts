@@ -31,7 +31,11 @@ export const availableColumns: ColumnMetaData[] = [
   { heading: "Successful total", type: "BarCell", key: "count_total", valueType: "number" },
   { heading: "Contributed revenue inbound", type: "BarCell", key: "revenue_in", valueType: "number" },
   { heading: "Contributed revenue total", type: "BarCell", key: "revenue_total", valueType: "number" },
-  { heading: "Public Key", type: "TextCell", key: "pub_key", valueType: "string" },
+  { heading: "Public key", type: "TextCell", key: "pub_key", valueType: "string" },
+  { heading: "Channel point", type: "TextCell", key: "channel_point", valueType: "string" },
+  { heading: "Channel short ID", type: "TextCell", key: "shortChannelId", valueType: "string" },
+  { heading: "LND Channel short ID", type: "TextCell", key: "chan_id", valueType: "string" },
+  { heading: "Open Channel", type: "TextCell", key: "open", valueType: "number" },
 ]
 
 export interface ViewInterface {
@@ -355,27 +359,6 @@ const groupByReducer = (channels: Array<any>, by: string) => {
   }
 
     return summedPubKey
-
-  // for (const chan of channels) {
-  //   const pub_key = String(chan["pub_key" as keyof typeof chan]);
-  //
-  //   const summedData = summedPubKey.get(pub_key) ?? new Map<string, any>()
-  //
-  //   for (const key of Object.keys(chan)) {
-  //     const value = chan[key as keyof typeof chan];
-  //     if (typeof value !== 'number') {
-  //       summedData.set(key, value)
-  //       continue;
-  //     }
-  //     summedData.set(key, (summedData.get(key) ?? 0) + value)
-  //   }
-  //   summedPubKey.set(pub_key, summedData)
-  //
-  // }
-
-  // return Array.from(summedPubKey.values()).map((item) => {
-  //   return Object.fromEntries(item)
-  // })
 
 }
 

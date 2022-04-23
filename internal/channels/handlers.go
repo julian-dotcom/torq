@@ -45,9 +45,12 @@ type channelData struct {
 	// Short channel id in c-lightning / BOLT format
 	ShortChannelID null.String `json:"shortChannelId"`
 	// The channel ID
-	ChanId uint64 `json:"chan_id"`
+	ChanId null.String `json:"chan_id"`
 	// Color of remote peer (Vanity)
 	Color null.String `json:"color"`
+	// Is the channel open
+	Open null.Int `json:"open"`
+
 	// The channels total capacity (as created)
 	Capacity uint64 `json:"capacity"`
 
@@ -82,13 +85,16 @@ type channelData struct {
 func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*channelData, err error) {
 	var sql = `
 select
-    coalesce(ne.alias, '') as alias,
+    coalesce(ne.alias, ce.pub_key, '') as alias,
     coalesce(c.channel_db_id, 0) as channel_db_id,
-    coalesce(ce.chan_point, '') as chan_point,
-    coalesce(ce.pub_key, '') as pub_key,
-    coalesce(c.short_channel_id, '') as short_channel_id,
-    coalesce(ce.chan_id, 0) as chan_id,
-    coalesce(ne.color, '') as color,
+    coalesce(ce.chan_point, 'Channel point missing') as chan_point,
+    coalesce(ce.pub_key, 'Public key missing') as pub_key,
+    coalesce(c.short_channel_id, 'Short channel ID missing') as short_channel_id,
+    coalesce(ce.chan_id::text, 'LND short channel id missing') as chan_id,
+    coalesce(ne.color, 'Color missing') as color,
+    coalesce(ce.open, 0) as open,
+
+
     coalesce(ce.capacity::numeric, 0) as capacity,
 
     coalesce(fw.amount_out, 0) as amount_out,
@@ -109,10 +115,11 @@ select
 from channel as c
 left join (
     select
-        distinct chan_id,
+        chan_id,
         chan_point,
         pub_key,
-        last(event->'capacity', time) as capacity
+        last(event->'capacity', time) as capacity,
+    	(1-last(event_type, time)) as open
     from channel_event where event_type in (0,1)
    group by chan_id, chan_point, pub_key
 ) as ce on c.channel_point = ce.chan_point
@@ -170,6 +177,7 @@ left join (
 			&c.ShortChannelID,
 			&c.ChanId,
 			&c.Color,
+			&c.Open,
 
 			&c.Capacity,
 

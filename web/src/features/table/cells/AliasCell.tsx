@@ -3,8 +3,16 @@ const classNames = require('classnames');
 
 interface AliasCell {
   current: string,
-  open?: boolean,
+  open?: number,
   className?: string
+}
+
+function OpenText(open: number) {
+  if (open > 1) {
+    return `Open (${open})`
+  } else if (open === 1) {
+    return `Open`
+  }
 }
 
 function AliasCell({current, open, className}: AliasCell) {
@@ -13,10 +21,11 @@ function AliasCell({current, open, className}: AliasCell) {
       <div className={styles.current}>
         {current}
       </div>
-      <div className={styles.past}>
-        {/*{open ? 'Open' : 'Closed'}*/}
-        {'-'}
-      </div>
+      {open !== undefined && (
+        <div className={classNames(styles.past, {[styles.positive]: open, [styles.negative]: !open})}>
+          {OpenText(open)}
+        </div>
+      )}
     </div>
   )
 }

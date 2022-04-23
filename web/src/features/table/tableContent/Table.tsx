@@ -77,7 +77,7 @@ function Table() {
 
         {/* Header cells */}
         {activeColumns.map((column, index) => {
-          return <HeaderCell heading={column.heading} className={column.key} key={column.key + index} locked={column.locked} />
+          return <HeaderCell heading={column.heading} className={classNames(column.key, (column.type === 'TextCell' ? cellStyles.textCell : ''))} key={column.key + index} locked={column.locked} />
         })}
 
         {/*Empty header at the end*/}
@@ -89,15 +89,15 @@ function Table() {
             const key = column.key;
             switch (column.type) {
               case "AliasCell":
-                return <AliasCell current={row[key] as string} className={classNames(key, index, cellStyles.locked)} key={key + index + columnIndex} />
+                return <AliasCell current={row[key] as string} open={row['open']} className={classNames(key, index, cellStyles.locked)} key={key + index + columnIndex} />
               case "NumericCell":
                 return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
               case "BarCell":
                 return <BarCell current={row[key] as number} previous={row[key] as number} total={column.max as number} index={index} className={key} key={key + index + columnIndex} />;
             case "TextCell":
-              return <TextCell current={row[key] as string} className={classNames(column.key, index)} key={column.key + index} />
-              default:
-                return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
+              return <TextCell current={row[key] as string} className={classNames(column.key, index, styles.textCell)} key={column.key + index} />
+            default:
+              return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
             }
           });
           // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
@@ -135,7 +135,7 @@ function Table() {
             case "BarCell":
               return <BarCell current={column.total as number} previous={column.total as number} total={column.max as number} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
             case "TextCell":
-              return <TextCell current={' '} className={classNames(column.key, index, cellStyles.totalCell)} key={column.key + index} />
+              return <TextCell current={' '} className={classNames(column.key, index, styles.textCell, cellStyles.totalCell)} key={column.key + index} />
             default:
               return <NumericCell current={column.total as number} index={index} className={classNames(column.key, index, cellStyles.totalCell)} key={`total-${column.key}-${index}`} />;
           }
