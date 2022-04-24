@@ -20,7 +20,7 @@ function loginRequest(password: string) {
     mode: 'cors',
     body: formData,
   }
-  const result = fetch(`${API_URL}/api/login`, init)
+  const result = fetch(`${API_URL}/login`, init)
     .then(response => {
       return response.json()
     })
@@ -32,7 +32,7 @@ function logoutRequest() {
     credentials: 'include',
     mode: 'cors'
   }
-  const result = fetch(`${API_URL}/api/logout`, init)
+  const result = fetch(`${API_URL}/logout`, init)
     .then(response => {
       return response.json()
     })
