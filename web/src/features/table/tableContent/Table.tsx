@@ -6,15 +6,21 @@ import NumericCell from "../cells/NumericCell";
 import BarCell from "../cells/BarCell";
 import TextCell from "../cells/TextCell";
 import { useAppSelector } from "../../../store/hooks";
-import { selectChannels, selectActiveColumns, selectStatus, ColumnMetaData } from "../tableSlice";
+import { selectActiveColumns, ColumnMetaData } from "../tableSlice";
 import classNames from "classnames";
 import clone from "clone"
+import { selectTimeInterval } from "../../timeIntervalSelect/timeIntervalSlice";
+import { useGetChannelsQuery } from 'apiSlice'
+import { format, addDays } from "date-fns";
 
 function Table() {
   const activeColumns = clone<ColumnMetaData[]>(useAppSelector(selectActiveColumns)) || [];
-  const channels = useAppSelector(selectChannels) || [];
-  const status = useAppSelector(selectStatus)
+  const currentPeriod = useAppSelector(selectTimeInterval);
+  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
+  const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
 
+  const { data, isLoading } = useGetChannelsQuery({ from: from, to: to })
+  const channels = data || [];
   if (channels.length > 0) {
 
     for (const channel of channels) {
@@ -55,13 +61,13 @@ function Table() {
   };
 
   const tableClass = classNames(styles.tableContent, {
-    [styles.loading]: status === 'loading',
-    [styles.idle]: status === 'idle'
+    [styles.loading]: isLoading,
+    [styles.idle]: !isLoading
   });
 
   const customStyle = "." + styles.tableContent + " {" +
-      "grid-template-columns: min-content repeat(" +numColumns +",  minmax(min-content, auto)) min-content;"+
-      rowGridStyle(numRows) +
+    "grid-template-columns: min-content repeat(" + numColumns + ",  minmax(min-content, auto)) min-content;" +
+    rowGridStyle(numRows) +
     "}"
 
 
@@ -84,7 +90,7 @@ function Table() {
         {<HeaderCell heading={""} className={classNames(cellStyles.lastEmptyHeader, cellStyles.empty)} key={"last-empty-header"} />}
 
         {/* The main cells containing the data */}
-        {channels.map((row, index) => {
+        {channels.map((row: any, index: any) => {
           const returnedRow = activeColumns.map((column, columnIndex) => {
             const key = column.key;
             switch (column.type) {
@@ -94,17 +100,17 @@ function Table() {
                 return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
               case "BarCell":
                 return <BarCell current={row[key] as number} previous={row[key] as number} total={column.max as number} index={index} className={key} key={key + index + columnIndex} />;
-            case "TextCell":
-              return <TextCell current={row[key] as string} className={classNames(column.key, index, styles.textCell)} key={column.key + index} />
-            default:
-              return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
+              case "TextCell":
+                return <TextCell current={row[key] as string} className={classNames(column.key, index, styles.textCell)} key={column.key + index} />
+              default:
+                return <NumericCell current={row[key] as number} index={index} className={key} key={key + index + columnIndex} />;
             }
           });
           // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
-          return (<div className={classNames(styles.tableRow, "torq-row-"+index)} key={"torq-row-"+index}>{[
-            <div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked)} key={"first-cell-" + index}/>,
+          return (<div className={classNames(styles.tableRow, "torq-row-" + index)} key={"torq-row-" + index}>{[
+            <div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked)} key={"first-cell-" + index} />,
             ...returnedRow,
-            <div className={classNames(cellStyles.cell, cellStyles.empty)} key={"last-cell-" + index}/>
+            <div className={classNames(cellStyles.cell, cellStyles.empty)} key={"last-cell-" + index} />
           ]}</div>);
         })}
 

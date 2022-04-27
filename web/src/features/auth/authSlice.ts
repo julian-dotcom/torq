@@ -1,5 +1,8 @@
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import API_URL from 'baseAPIURL';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+
+const API_URL = window.location.port === '3000'
+  ? "//" + window.location.hostname + ":8080/api"
+  : "//" + window.location.host + "/api";
 
 export interface AuthState {
   status: 'idle' | 'loading' | 'failed';

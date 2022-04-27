@@ -15,16 +15,20 @@ import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
 import {
   selectViews,
   updateViews,
-  deleteView,
   updateSelectedView,
   selectedViewIndex,
   ViewInterface,
-  DefaultView, createTableViewAsync, deleteTableViewAsync, updateViewsOrder
+  viewOrderInterface,
+  DefaultView, updateViewsOrder
 } from "../../tableSlice";
-
-
 import Popover from "../../../popover/Popover";
 import DefaultButton from "../../../buttons/Button";
+import {
+  useCreateTableViewMutation,
+  useUpdateTableViewMutation,
+  useDeleteTableViewMutation,
+  useUpdateTableViewsOrderMutation,
+} from 'apiSlice';
 
 interface viewRow {
   title: string;
@@ -94,6 +98,10 @@ function ViewsPopover() {
   const views = useAppSelector(selectViews)
   const selectedView = useAppSelector(selectedViewIndex)
   const dispatch = useAppDispatch();
+  const [updateTableView] = useUpdateTableViewMutation()
+  const [deleteTableView] = useDeleteTableViewMutation()
+  const [createTableView] = useCreateTableViewMutation()
+  const [updateTableViewsOrder] = useUpdateTableViewsOrderMutation()
 
   const updateView = (view: ViewInterface, index: number) => {
     const updatedViews = [
@@ -102,6 +110,7 @@ function ViewsPopover() {
       ...views.slice(index + 1, views.length)
     ]
     dispatch(updateViews({ views: updatedViews, index: index }))
+    updateTableView({ ...views[index], ...view })
   }
 
   const removeView = (index: number) => {
@@ -109,11 +118,11 @@ function ViewsPopover() {
     if (!confirmed) {
       return
     }
-    dispatch(deleteTableViewAsync({ view: views[index], index: index }))
+    deleteTableView({ view: views[index], index: index })
   }
 
   const addView = () => {
-    dispatch(createTableViewAsync({ view: DefaultView, index: views.length }))
+    createTableView({ view: DefaultView, index: views.length })
   }
 
   const selectView = (index: number) => {
@@ -125,7 +134,7 @@ function ViewsPopover() {
   const droppableContainerId = "views-list-droppable"
 
   const onDragEnd = (result: any) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source } = result;
 
     // Dropped outside of container
     if (!destination || destination.droppableId !== droppableContainerId) {
@@ -157,7 +166,14 @@ function ViewsPopover() {
     let newViewsOrder: ViewInterface[] = views.slice()
     newViewsOrder.splice(source.index, 1)
     newViewsOrder.splice(destination.index, 0, views[source.index])
+
     dispatch(updateViewsOrder({ views: newViewsOrder, index: newCurrentIndex }))
+
+    const order: viewOrderInterface[] = newViewsOrder.map((view, index) => {
+      return { id: view.id, view_order: index }
+    })
+    updateTableViewsOrder(order)
+
   }
 
   let popOverButton = <DefaultButton

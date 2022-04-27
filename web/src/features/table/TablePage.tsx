@@ -1,17 +1,11 @@
 import styles from './table-page.module.scss'
-import { useEffect } from 'react';
 import TableControls from "./controls/TableControls";
 import Table from "./tableContent/Table";
-import { useAppDispatch } from "../../store/hooks";
-import { fetchTableViewsAsync } from "./tableSlice";
+import { useGetTableViewsQuery } from "apiSlice"
 
 function TablePage() {
-
-  const dispatch = useAppDispatch();
-
-  useEffect(() =>{
-    dispatch(fetchTableViewsAsync());
-  })
+  // initial getting of the table views from the database
+  useGetTableViewsQuery()
 
   return (
     <div className={styles.tablePageWrapper}>

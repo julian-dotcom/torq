@@ -1,7 +1,6 @@
 import "./table_controls.scss";
 import {
   Navigation20Regular as NavigationIcon,
-  // Search20Regular as SearchIcon,
   Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 
@@ -12,39 +11,30 @@ import { toggleNav } from "../../navigation/navSlice";
 import SortControls from "./sort/SortControls";
 import GroupPopover from "./group/GroupPopover";
 import {
-  createTableViewAsync, fetchChannelsAsync,
   selectCurrentView,
-  selectedViewIndex,
-  updateTableViewAsync
+  selectedViewIndex
 } from "../tableSlice";
+import { useUpdateTableViewMutation, useCreateTableViewMutation } from 'apiSlice'
 import FilterPopover from "./filter/FilterPopover";
 
 import ViewsPopover from "./views/ViewsPopover";
 import ColumnsPopover from "./columns/ColumnsPopover";
-import {useEffect} from "react";
-import {selectTimeInterval} from "../../timeIntervalSelect/timeIntervalSlice";
-import {format} from "date-fns";
 
 function TableControls() {
   const dispatch = useAppDispatch();
   const currentView = useAppSelector(selectCurrentView);
   const currentViewIndex = useAppSelector(selectedViewIndex);
-  const currentPeriod = useAppSelector(selectTimeInterval);
-
-    useEffect(() => {
-      const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
-      const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
-      dispatch(fetchChannelsAsync({ from: from, to: to }));
-    }, [currentPeriod])
-
+  const [updateTableView] = useUpdateTableViewMutation()
+  const [createTableView] = useCreateTableViewMutation()
   const saveView = () => {
     let viewMod = { ...currentView }
     viewMod.saved = true
     if (currentView.id === undefined || null) {
-      dispatch(createTableViewAsync({ view: viewMod, index: currentViewIndex }))
+      createTableView({ view: viewMod, index: currentViewIndex })
       return
     }
-    dispatch(updateTableViewAsync({ view: viewMod, index: currentViewIndex }))
+    updateTableView(viewMod)
+
   }
   return (
     <div className="table-controls">
@@ -69,12 +59,6 @@ function TableControls() {
           <FilterPopover />
           <SortControls />
           <GroupPopover />
-
-          {/*<DefaultButton*/}
-          {/*  icon={<SearchIcon />}*/}
-          {/*  text={"Search"}*/}
-          {/*  className={"small-tablet"}*/}
-          {/*/>*/}
         </div>
       </div>
       <div className="right-container">
