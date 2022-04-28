@@ -12,15 +12,18 @@ import LoginPage from "./features/auth/LoginPage";
 import "./App.scss";
 import { Cookies } from "react-cookie";
 import { useAppDispatch } from "./store/hooks";
-import { logoutAsync } from "./features/auth/authSlice";
+/* import { logoutAsync } from "./features/auth/authSlice"; */
+import { useLogoutMutation } from 'apiSlice'
 
 function Logout() {
-  const dispatch = useAppDispatch();
+  const [logout] = useLogoutMutation()
+  /* const dispatch = useAppDispatch(); */
 
   useEffect(() => {
     let c = new Cookies();
     c.remove("torq_session");
-    dispatch(logoutAsync());
+    /* dispatch(logoutAsync()); */
+    logout()
   });
 
   return <Navigate to="/login" replace />;

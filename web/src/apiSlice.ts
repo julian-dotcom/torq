@@ -11,7 +11,9 @@ export const torqApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: API_URL,
     prepareHeaders: (headers, _) => {
-      headers.set('Content-Type', 'application/json')
+      if (!headers.get('Content-Type')) {
+        headers.set('Content-Type', 'application/json')
+      }
       return headers
     },
     credentials: "include",
@@ -53,6 +55,20 @@ export const torqApi = createApi({
         body: order,
       }),
     }),
+    logout: builder.mutation<any, void>({
+      query: () => ({
+        url: 'logout',
+        method: 'POST',
+      }),
+    }),
+    login: builder.mutation<any, FormData>({
+      query: (form) => ({
+        url: 'login',
+        method: 'POST',
+        body: new URLSearchParams(form as any),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      }),
+    }),
   }),
 })
 
@@ -65,4 +81,6 @@ export const {
   useCreateTableViewMutation,
   useDeleteTableViewMutation,
   useUpdateTableViewsOrderMutation,
+  useLoginMutation,
+  useLogoutMutation,
 } = torqApi

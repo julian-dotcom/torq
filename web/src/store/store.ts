@@ -2,7 +2,6 @@ import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
 import navReducer from '../features/navigation/navSlice';
 import tableReducer from '../features/table/tableSlice';
 import timeIntervalReducer from '../features/timeIntervalSelect/timeIntervalSlice';
-import authreducer from '../features/auth/authSlice';
 import { torqApi } from 'apiSlice';
 import { setupListeners } from '@reduxjs/toolkit/query'
 
@@ -11,7 +10,6 @@ export const store = configureStore({
     navigation: navReducer,
     table: tableReducer,
     timeInterval: timeIntervalReducer,
-    auth: authreducer,
     [torqApi.reducerPath]: torqApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>

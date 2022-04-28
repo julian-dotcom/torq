@@ -1,6 +1,4 @@
 import React, { useEffect } from 'react';
-import { useAppDispatch } from '../../store/hooks';
-import { loginAsync } from './authSlice';
 import { ReactComponent as TorqLogo } from '../../icons/torq-logo.svg'
 import {
   LockOpen20Regular as UnlockIcon,
@@ -8,8 +6,10 @@ import {
 import './login_page.scss'
 import { useLocation, useNavigate } from "react-router-dom";
 import { Cookies } from "react-cookie";
+import { useLoginMutation } from 'apiSlice'
 
 function LoginPage() {
+  const [login] = useLoginMutation()
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,15 +33,11 @@ function LoginPage() {
     }
   })
 
-  const dispatch = useAppDispatch()
-
-  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    const password = formData.get("password") as string;
-
-    dispatch(loginAsync({ password }))
-
+    formData.append('username', 'admin')
+    await login(formData)
     navigate(from, { replace: true });
   }
 
