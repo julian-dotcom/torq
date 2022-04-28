@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/lncapital/torq/migrations"
+	"github.com/lncapital/torq/internal/database"
 	"math/rand"
 	"net/url"
 	"time"
@@ -138,7 +138,7 @@ func (srv *Server) NewTestDatabase(ctx context.Context, migrate bool) (*sqlx.DB,
 
 	if migrate == true {
 		// Migrate the new test database
-		err = migrations.MigrateUp(db)
+		err = database.MigrateUp(db)
 		if err != nil {
 			return nil, err
 		}

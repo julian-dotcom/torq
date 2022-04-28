@@ -1,14 +1,17 @@
+.PHONY: test
+test: backend-test frontend-test
 
-test:
+.PHONY: backend-test
+backend-test:
 	go test ./... -v
 
+.PHONY: frontend-test
+frontend-test:
+	cd web && npm i && npm test -- --watchAll=false
+
+.PHONY: cover
 cover:
 	go test ./... -coverprofile cover.out && go tool cover -html=cover.out
-
-devcert:
-	go run $(GOROOT)/src/crypto/tls/generate_cert.go --host localhost
-	@echo "\n----\nRemember to allow the use of the unsigned certificate (from the organization Acme Co) in the browser."
-	@echo "\nYou can manually visit localhost:50051 and change the trust settings\n---\n"
 
 .PHONY: build-docker
 build-docker:
