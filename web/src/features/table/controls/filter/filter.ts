@@ -32,9 +32,8 @@ export function applyFilters(filters: Clause, data: Array<any>): any[] {
 
 class FilterClause {
   prefix: string = "$filter"
-  length: number = 1
   constructor(public filter: FilterInterface) { }
-  getLength(): number {
+  get length() {
     return 1
   }
   toJSON(): object {
@@ -45,17 +44,15 @@ class FilterClause {
 class AndClause {
   prefix: string = "$and"
   childClauses: Clause[] = []
-  length: number = 0
   constructor(childClauses?: Clause[]) {
     if (childClauses) {
       this.childClauses = childClauses
-      this.length = this.getLength()
     }
   }
-  getLength(): number {
+  get length() {
     let length = 0
     for (const clause of this.childClauses) {
-      length += clause.getLength()
+      length += clause.length
     }
     return length
   }
@@ -144,5 +141,9 @@ const deserialiseQuery = (query: any): Clause => {
   throw new Error("Expected JSON to contain $filter, $or or $and")
 }
 
-export { FilterClause, OrClause, AndClause, processQuery, deserialiseQuery }
+const deserialiseQueryFromString = (query: string): Clause => {
+  return deserialiseQuery(JSON.parse(query))
+}
+
+export { FilterClause, OrClause, AndClause, processQuery, deserialiseQuery, deserialiseQueryFromString }
 export type { Clause }
