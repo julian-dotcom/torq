@@ -9,7 +9,7 @@ import (
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/lndutil"
+	"github.com/lncapital/torq/pkg/lnd"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 	"golang.org/x/sync/errgroup"
@@ -146,7 +146,7 @@ func main() {
 
 				fmt.Println("Connecting to lightning node")
 				// Connect to the node
-				conn, err := lndutil.Connect(
+				conn, err := lnd.Connect(
 					c.String("lnd.node_address"),
 					c.String("lnd.tls"),
 					c.String("lnd.macaroon"))
@@ -206,7 +206,7 @@ func main() {
 
 			fmt.Println("Connecting to lightning node")
 			// Connect to the node
-			conn, err := lndutil.Connect(
+			conn, err := lnd.Connect(
 				c.String("lnd.node_address"),
 				c.String("lnd.tls"),
 				c.String("lnd.macaroon"))

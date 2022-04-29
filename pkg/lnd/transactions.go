@@ -1,4 +1,4 @@
-package lndutil
+package lnd
 
 import (
 	"context"

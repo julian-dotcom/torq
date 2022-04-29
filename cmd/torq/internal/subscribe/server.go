@@ -7,7 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
-	"github.com/lncapital/torq/pkg/lndutil"
+	"github.com/lncapital/torq/pkg/lnd"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -36,43 +36,43 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	}
 
 	// Store a list of public keys belonging to our nodes
-	lndutil.InitOurNodesList([]string{ni.IdentityPubkey})
+	lnd.InitOurNodesList([]string{ni.IdentityPubkey})
 
 	// Import Open channels
-	err = lndutil.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client)
+	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client)
 	if err != nil {
 		return errors.Wrapf(err, "Start -> importChannelList(%s, %v, %v)",
 			lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client)
 	}
 
 	// Import Closed channels
-	err = lndutil.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client)
+	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client)
 	if err != nil {
 		return errors.Wrapf(err, "Start -> importChannelList(%s, %v, %v)",
 			lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client)
 	}
 
 	// Import Node info (based on channels)
-	err = lndutil.ImportMissingNodeEvents(client, db)
+	err = lnd.ImportMissingNodeEvents(client, db)
 	if err != nil {
 		return errors.Wrapf(err, "Start -> ImportMissingNodeEvents(%v, %v)", client, db)
 	}
 
 	// Import routing policies from open channels
-	err = lndutil.ImportRoutingPolicies(client, db)
+	err = lnd.ImportRoutingPolicies(client, db)
 	if err != nil {
 		fmt.Println(err)
 		return errors.Wrapf(err, "Start -> ImportRoutingPolicies(%v, %v)", client, db)
 	}
 
 	// Initialize the peer list
-	err = lndutil.InitPeerList(db)
+	err = lnd.InitPeerList(db)
 	if err != nil {
 		return errors.Wrapf(err, "start -> InitPeerList(%v)", db)
 	}
 
 	// Initialize the channel id list
-	err = lndutil.InitChanIdList(db)
+	err = lnd.InitChanIdList(db)
 	if err != nil {
 		return errors.Wrapf(err, "start -> InitChanIdList(%v)", db)
 	}
@@ -82,17 +82,17 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	pubKeyChan := make(chan string)
 
 	// Start listening for updates to the public key list
-	go lndutil.UpdatePeerList(pubKeyChan)
+	go lnd.UpdatePeerList(pubKeyChan)
 
 	// Create a channel to update the list of channel points for our currently active with
 	chanPointChan := make(chan string)
 
 	// Start listening for updates to the channel point list
-	go lndutil.UpdateChanIdList(chanPointChan)
+	go lnd.UpdateChanIdList(chanPointChan)
 
 	// Transactions
 	errs.Go(func() error {
-		err := lndutil.SubscribeAndStoreTransactions(ctx, client, db)
+		err := lnd.SubscribeAndStoreTransactions(ctx, client, db)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeAndStoreTransactions(%v, %v, %v)", ctx, client, db)
 		}
@@ -101,7 +101,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 
 	// Graph (Node updates, fee updates etc.)
 	errs.Go(func() error {
-		err := lndutil.SubscribeAndStoreChannelGraph(ctx, client, db)
+		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeAndStoreChannelGraph(%v, %v, %v)", ctx, client, db)
 		}
@@ -110,7 +110,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 
 	// HTLC events
 	errs.Go(func() error {
-		err := lndutil.SubscribeAndStoreHtlcEvents(ctx, router, db)
+		err := lnd.SubscribeAndStoreHtlcEvents(ctx, router, db)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeAndStoreHtlcEvents(%v, %v, %v)", ctx, router, db)
 		}
@@ -119,7 +119,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 
 	// Channel Events
 	errs.Go(func() error {
-		err := lndutil.SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan)
+		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeAndStoreChannelEvents(%v, %v, %v)", ctx, router, db)
 		}
@@ -129,7 +129,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	// Forwarding history
 	errs.Go(func() error {
 
-		err := lndutil.SubscribeForwardingEvents(ctx, client, db, nil)
+		err := lnd.SubscribeForwardingEvents(ctx, client, db, nil)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeForwardingEvents(%v, %v, %v, %v)", ctx,
 				client, db, nil)

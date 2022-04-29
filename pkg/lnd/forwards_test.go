@@ -1,4 +1,4 @@
-package lndutil
+package lnd
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/mixer/clock"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"math"
 	"testing"
 	"time"
 )
@@ -24,6 +25,13 @@ type mockLightningClientForwardingHistory struct {
 // TODO: Use fuzzy tests:
 //	 https://go.dev/doc/fuzz/
 //   https://go.dev/blog/fuzz-beta
+
+func TestAbs(t *testing.T) {
+	got := math.Abs(-1)
+	if got != 2 {
+		t.Errorf("Abs(-1) = %v; want 1", got)
+	}
+}
 
 // ForwardingHistory mocks the response of LNDs lnrpc.ForwardingHistory
 func (c mockLightningClientForwardingHistory) ForwardingHistory(ctx context.Context,
