@@ -4,6 +4,7 @@ import { deserialiseQuery, applyFilters, AndClause } from './controls/filter/fil
 import { SortByOptionType } from "./controls/sort/SortControls";
 import _, { cloneDeep } from "lodash";
 import { torqApi } from 'apiSlice'
+import {groupByReducer} from "./controls/group/groupBy";
 
 export interface ColumnMetaData {
   heading: string;
@@ -188,6 +189,23 @@ export const {
   updateColumns,
   updateGroupBy,
 } = tableSlice.actions;
+
+export const selectChannels = (state: RootState) => {
+
+  let channels = cloneDeep(state.table.channels ? state.table.channels : [] as any[])
+  const filters = state.table.views[state.table.selectedViewIndex].filters
+  const groupBy = state.table.views[state.table.selectedViewIndex].groupBy
+  if (channels.length > 0) {
+    channels = groupByReducer(channels, groupBy || 'channels')
+  }
+
+  if (filters) {
+    const deserialisedFilters = deserialiseQuery(filters)
+    channels = applyFilters(deserialisedFilters, channels)
+  }
+  const sorts = state.table.views[state.table.selectedViewIndex].sortBy || []
+  return _.orderBy(channels, sorts.map((s) => s.value), sorts.map((s) => s.direction) as ['asc' | 'desc'])
+};
 
 export const selectActiveColumns = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].columns || [];
