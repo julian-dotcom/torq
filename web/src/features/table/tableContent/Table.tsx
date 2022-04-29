@@ -57,7 +57,6 @@ function Table() {
   }
 
   const channels = useMemo(() => {
-    let start = performance.now();
     const filters = filtersFromStore ? deserialiseQuery(clone<Clause>(filtersFromStore)) : undefined;
     let channels = cloneDeep(data ? data : [] as any[])
 
@@ -68,7 +67,6 @@ function Table() {
       channels = applyFilters(filters, channels)
     }
     const results = _.orderBy(channels, sortBy.map((s) => s.value), sortBy.map((s) => s.direction) as ['asc' | 'desc'])
-    console.log(`Time to filter, group and sort took ${(performance.now() - start).toFixed(3)}ms`)
     return results
   }, [data, filtersFromStore, groupBy, sortBy]);
 
