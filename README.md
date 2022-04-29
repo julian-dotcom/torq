@@ -26,7 +26,7 @@ Features on the roadmap:
 
 Join our [Telegram group](https://t.me/joinchat/V-Dks6zjBK4xZWY0) for updates on releases
 and feel free to ping us in the telegram group you have questions or need help getting started.
-We would alos love to hear your ideas for features or any other feedback you might have.
+We would also love to hear your ideas for features or any other feedback you might have.
 
 ## Run With Docker
 
