@@ -1,0 +1,35 @@
+.sortPopoverContent {
+  width: 450px;
+  @media only screen and (max-width: 900px) {
+    width: 100%;
+  }
+  display: grid;
+  grid-row-gap: 20px;
+}
+.sortRows {
+  display: grid;
+  grid-row-gap: 10px;
+}
+.sortRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-column-gap: 10px;
+  align-items: center;
+  grid-template-columns: min-content auto 150px min-content;
+  justify-content: stretch;
+  justify-items: stretch;
+  background-color: var(--bg-default);
+}
+ .noFilters {
+  padding: 5px 10px;
+  background-color: var(--bg-extra-faint);
+  border: 1px solid var(--bg-subtle);
+  border-radius: 2px;
+  color: var(--fg-muted);
+}
+.buttonsRow {
+  display: grid;
+  grid-auto-flow: column;
+  justify-items: left;
+  justify-content: left;
+}

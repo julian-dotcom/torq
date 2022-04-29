@@ -12,7 +12,7 @@ import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
 import {selectAllColumns, selectSortBy, updateSortBy,} from "../../tableSlice";
 import Popover from '../../../popover/Popover';
 // TODO: Convert to styled components using imported scss
-import './sort.scss'
+import styles from './sort.module.scss'
 import classNames from "classnames";
 
 
@@ -53,7 +53,7 @@ const SortRow = ({selected, options, index, handleUpdateSort, handleRemoveSort}:
   return (
     <Draggable draggableId={`draggable-sort-id-${index}`} index={index}>
       {(provided, snapshot) => (
-        <div className={classNames("sort-row", {"dragging": snapshot.isDragging})}
+        <div className={classNames(styles.sortRow, {"dragging": snapshot.isDragging})}
              ref={provided.innerRef}
              {...provided.draggableProps}
 
@@ -192,13 +192,13 @@ const SortControls = () => {
         onDragEnd={onDragEnd}
       >
 
-        <div className={"sort-popover-content"}>
-              {!sorts.length && <div className={"no-filters"}>No sorting</div>}
+        <div className={styles.sortPopoverContent}>
+              {!sorts.length && <div className={styles.noFilters}>No sorting</div>}
 
                 {!!sorts.length && (
                   <Droppable droppableId={droppableContainerId}>
                     {provided => (
-                      <div className={"sort-rows"}
+                      <div className={styles.sortRows}
                            ref={provided.innerRef}
                            {...provided.droppableProps}>
 
@@ -221,7 +221,7 @@ const SortControls = () => {
                 </Droppable>
               )}
 
-              <div className="buttons-row">
+              <div className={styles.buttonsRow}>
                 <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon/>}/>
               </div>
           </div>
