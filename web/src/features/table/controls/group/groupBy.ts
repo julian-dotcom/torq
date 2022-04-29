@@ -2,7 +2,7 @@
 const nonSummableFields: Array<string> = ["alias", "pub_key", "color"]
 const arrayAggKeys: Array<string> = ["channelDbId", "channel_point", "shortChannelId", "chan_id"]
 
-export const groupByReducer = (channels: Array<any>, by: string) => {
+export const groupByFn = (channels: Array<any>, by: string) => {
 
   if (by !== 'peers') {
     return channels

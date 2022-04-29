@@ -1,10 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../store/store';
-import { deserialiseQuery, applyFilters, AndClause } from './controls/filter/filter'
+import { AndClause } from './controls/filter/filter'
 import { SortByOptionType } from "./controls/sort/SortControls";
-import _, { cloneDeep } from "lodash";
 import { torqApi } from 'apiSlice'
-import {groupByReducer} from "./controls/group/groupBy";
 
 export interface ColumnMetaData {
   heading: string;
@@ -36,7 +34,7 @@ export const availableColumns: ColumnMetaData[] = [
   { heading: "Channel point", type: "TextCell", key: "channel_point", valueType: "string" },
   { heading: "Channel short ID", type: "TextCell", key: "shortChannelId", valueType: "string" },
   { heading: "LND Channel short ID", type: "TextCell", key: "chan_id", valueType: "string" },
-  { heading: "Open Channel", type: "TextCell", key: "open", valueType: "number" },
+  { heading: "Open Channel", type: "NumericCell", key: "open", valueType: "number" },
 
   { heading: "HTLC All failures in", type: "BarCell", key: "htlc_fail_all_in", valueType: "number" },
   { heading: "HTLC All failures out", type: "BarCell", key: "htlc_fail_all_out", valueType: "number" },
@@ -190,22 +188,6 @@ export const {
   updateGroupBy,
 } = tableSlice.actions;
 
-export const selectChannels = (state: RootState) => {
-
-  let channels = cloneDeep(state.table.channels ? state.table.channels : [] as any[])
-  const filters = state.table.views[state.table.selectedViewIndex].filters
-  const groupBy = state.table.views[state.table.selectedViewIndex].groupBy
-  if (channels.length > 0) {
-    channels = groupByReducer(channels, groupBy || 'channels')
-  }
-
-  if (filters) {
-    const deserialisedFilters = deserialiseQuery(filters)
-    channels = applyFilters(deserialisedFilters, channels)
-  }
-  const sorts = state.table.views[state.table.selectedViewIndex].sortBy || []
-  return _.orderBy(channels, sorts.map((s) => s.value), sorts.map((s) => s.direction) as ['asc' | 'desc'])
-};
 
 export const selectActiveColumns = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].columns || [];

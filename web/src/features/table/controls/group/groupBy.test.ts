@@ -1,4 +1,4 @@
-import {groupByReducer} from "./groupBy";
+import {groupByFn} from "./groupBy";
 
 const testData: Array<any> = [
   {
@@ -61,19 +61,19 @@ const testData: Array<any> = [
 
 
 test('Unknown by param returns exactly what was input', () => {
-  const result = groupByReducer(testData, '')
+  const result = groupByFn(testData, '')
 
   expect(result).toStrictEqual(testData);
 })
 
 test('grouping by channels returns exactly what was input', () => {
-  const result = groupByReducer(testData, 'channel')
+  const result = groupByFn(testData, 'channel')
 
   expect(result).toStrictEqual(testData);
 })
 
 test('grouping by peers returns correctly grouped channels', () => {
-  const result = groupByReducer(testData, 'peers')
+  const result = groupByFn(testData, 'peers')
 
   const expected: Array<any> = [
   {

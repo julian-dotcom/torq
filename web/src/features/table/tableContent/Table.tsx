@@ -21,6 +21,7 @@ import { format, addDays } from "date-fns";
 import { useMemo } from "react"
 import _, { cloneDeep } from "lodash";
 import { applyFilters, Clause, deserialiseQuery } from "../controls/filter/filter";
+import {groupByFn} from "../controls/group/groupBy";
 
 function Table() {
   const activeColumns = clone<ColumnMetaData[]>(useAppSelector(selectActiveColumns)) || [];
@@ -32,29 +33,6 @@ function Table() {
   const filtersFromStore = useAppSelector(selectFilters);
   const groupBy = useAppSelector(selectGroupBy)
   const sortBy = useAppSelector(selectSortBy)
-
-  const groupByFn = (channels: Array<any>, by: string) => {
-    if (by !== 'peers') {
-      return channels
-    }
-    const summedPubKey: typeof channels = []
-    for (const chan of channels) {
-      const pub_key = String(chan["pub_key" as keyof typeof chan]);
-      const summedChan = summedPubKey.find(sc => sc["pub_key" as keyof typeof sc] == pub_key)
-      if (!summedChan) {
-        summedPubKey.push(chan);
-        continue;
-      }
-      for (const key of Object.keys(chan)) {
-        const value = chan[key as keyof typeof chan];
-        if (typeof value !== 'number') {
-          continue;
-        }
-        (summedChan as { [key: string]: any })[key] = summedChan[key as keyof typeof summedChan] as number + value
-      }
-    }
-    return summedPubKey
-  }
 
   const channels = useMemo(() => {
     const filters = filtersFromStore ? deserialiseQuery(clone<Clause>(filtersFromStore)) : undefined;

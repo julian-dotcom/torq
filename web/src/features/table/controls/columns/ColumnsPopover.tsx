@@ -78,11 +78,15 @@ function ColumnRow({column, index, handleRemoveColumn, handleUpdateColumn}: colu
           </div>
 
           <div className="column-type-select">
-            <TorqSelect options={CellOptions} value={selectedOption} onChange={(o: SelectOptionType) => {
+            <TorqSelect
+              isDisabled={(column.valueType === 'string')}
+              options={CellOptions} value={selectedOption}
+              onChange={(o: SelectOptionType) => {
               handleUpdateColumn({
                 ...column,
                 type: o.value,
               }, index+1)
+
             }}/>
           </div>
 
