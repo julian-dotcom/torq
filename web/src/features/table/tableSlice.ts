@@ -189,65 +189,13 @@ export const {
   updateGroupBy,
 } = tableSlice.actions;
 
-const groupByReducer = (channels: Array<any>, by: string) => {
-
-  if (by !== 'peers') {
-    return channels
-  }
-
-  const summedPubKey: typeof channels = []
-
-  for (const chan of channels) {
-    const pub_key = String(chan["pub_key" as keyof typeof chan]);
-
-    const summedChan = summedPubKey.find(sc => sc["pub_key" as keyof typeof sc] == pub_key)
-    if (!summedChan) {
-      summedPubKey.push(chan);
-      continue;
-    }
-
-    for (const key of Object.keys(chan)) {
-      const value = chan[key as keyof typeof chan];
-      if (typeof value !== 'number') {
-
-        continue;
-      }
-      (summedChan as { [key: string]: any })[key] = summedChan[key as keyof typeof summedChan] as number + value
-    }
-  }
-
-  return summedPubKey
-
-}
-
-export const selectChannels = (state: RootState) => {
-
-  let channels = cloneDeep(state.table.channels ? state.table.channels : [] as any[])
-  const filters = state.table.views[state.table.selectedViewIndex].filters
-  const groupBy = state.table.views[state.table.selectedViewIndex].groupBy
-  if (channels.length > 0) {
-    channels = groupByReducer(channels, groupBy || 'channels')
-  }
-
-  if (filters) {
-    const deserialisedFilters = deserialiseQuery(filters)
-    channels = applyFilters(deserialisedFilters, channels)
-  }
-  const sorts = state.table.views[state.table.selectedViewIndex].sortBy || []
-  return _.orderBy(channels, sorts.map((s) => s.value), sorts.map((s) => s.direction) as ['asc' | 'desc'])
-};
-
 export const selectActiveColumns = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].columns || [];
 }
 export const selectAllColumns = (_: RootState) => availableColumns;
 export const selectSortBy = (state: RootState) => state.table.views[state.table.selectedViewIndex].sortBy
 export const selectGroupBy = (state: RootState) => state.table.views[state.table.selectedViewIndex].groupBy
-export const selectFilters = (state: RootState) => {
-  // TODO: The stringify and parse here is done to avoid the object from being readonly (TypeError).
-  //   This needs to be solved
-  return JSON.parse(JSON.stringify(state.table.views[state.table.selectedViewIndex].filters))
-};
+export const selectFilters = (state: RootState) => { return state.table.views[state.table.selectedViewIndex].filters };
 export const selectViews = (state: RootState) => state.table.views;
 export const selectCurrentView = (state: RootState) => state.table.views[state.table.selectedViewIndex];
 export const selectedViewIndex = (state: RootState) => state.table.selectedViewIndex;

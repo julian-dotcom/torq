@@ -6,12 +6,21 @@ import NumericCell from "../cells/NumericCell";
 import BarCell from "../cells/BarCell";
 import TextCell from "../cells/TextCell";
 import { useAppSelector } from "../../../store/hooks";
-import { selectActiveColumns, ColumnMetaData } from "../tableSlice";
+import {
+  selectActiveColumns,
+  ColumnMetaData,
+  selectFilters,
+  selectGroupBy,
+  selectSortBy,
+} from "../tableSlice";
 import classNames from "classnames";
 import clone from "clone"
 import { selectTimeInterval } from "../../timeIntervalSelect/timeIntervalSlice";
 import { useGetChannelsQuery } from 'apiSlice'
 import { format, addDays } from "date-fns";
+import { useMemo } from "react"
+import _, { cloneDeep } from "lodash";
+import { applyFilters, Clause, deserialiseQuery } from "../controls/filter/filter";
 
 function Table() {
   const activeColumns = clone<ColumnMetaData[]>(useAppSelector(selectActiveColumns)) || [];
@@ -19,8 +28,51 @@ function Table() {
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
 
-  const { data, isLoading } = useGetChannelsQuery({ from: from, to: to })
-  const channels = data || [];
+  const { data = [], isLoading } = useGetChannelsQuery({ from: from, to: to })
+  const filtersFromStore = useAppSelector(selectFilters);
+  const groupBy = useAppSelector(selectGroupBy)
+  const sortBy = useAppSelector(selectSortBy)
+
+  const groupByFn = (channels: Array<any>, by: string) => {
+    if (by !== 'peers') {
+      return channels
+    }
+    const summedPubKey: typeof channels = []
+    for (const chan of channels) {
+      const pub_key = String(chan["pub_key" as keyof typeof chan]);
+      const summedChan = summedPubKey.find(sc => sc["pub_key" as keyof typeof sc] == pub_key)
+      if (!summedChan) {
+        summedPubKey.push(chan);
+        continue;
+      }
+      for (const key of Object.keys(chan)) {
+        const value = chan[key as keyof typeof chan];
+        if (typeof value !== 'number') {
+          continue;
+        }
+        (summedChan as { [key: string]: any })[key] = summedChan[key as keyof typeof summedChan] as number + value
+      }
+    }
+    return summedPubKey
+  }
+
+  const channels = useMemo(() => {
+    let start = performance.now();
+    const filters = filtersFromStore ? deserialiseQuery(clone<Clause>(filtersFromStore)) : undefined;
+    let channels = cloneDeep(data ? data : [] as any[])
+
+    if (channels.length > 0) {
+      channels = groupByFn(channels, groupBy || 'channels')
+    }
+    if (filters) {
+      channels = applyFilters(filters, channels)
+    }
+    const results = _.orderBy(channels, sortBy.map((s) => s.value), sortBy.map((s) => s.direction) as ['asc' | 'desc'])
+    console.log(`Time to filter, group and sort took ${(performance.now() - start).toFixed(3)}ms`)
+    return results
+  }, [data, filtersFromStore, groupBy, sortBy]);
+
+  /* const channels = data || []; */
   if (channels.length > 0) {
 
     for (const channel of channels) {
