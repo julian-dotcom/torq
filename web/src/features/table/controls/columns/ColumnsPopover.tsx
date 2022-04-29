@@ -1,4 +1,4 @@
-import './columns_popover.scss'
+import styles from './columns_popover.module.scss'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import {
   ColumnTriple20Regular as ColumnsIcon,
@@ -37,13 +37,13 @@ const CellOptions: SelectOptionType[] = [
 function NameColumnRow({column, index}: {column: ColumnMetaData, index: number}) {
 
   return (
-    <div className={classNames("column-row", index)}>
-      <div className={classNames("row-left-icon lock-btn")}>
+    <div className={classNames(styles.columnRow, index)}>
+      <div className={classNames(styles.rowLeftIcon, styles.lockBtn)}>
         {column.locked ? <LockClosedIcon/> : <LockOpenIcon/>}
       </div>
 
 
-      <div className="column-name">
+      <div className={styles.columnName}>
         <div>{column.heading}</div>
       </div>
       <TorqSelect value={{label: "Name", value: "AliasCell"}} isDisabled={true}/>
@@ -63,7 +63,7 @@ function ColumnRow({column, index, handleRemoveColumn, handleUpdateColumn}: colu
     <Draggable draggableId={`draggable-column-id-${index}`}
                index={index}>
       {(provided, snapshot) => (
-        <div className={classNames("column-row", {"dragging": snapshot.isDragging})}
+        <div className={classNames(styles.columnRow, {"dragging": snapshot.isDragging})}
            ref={provided.innerRef}
            {...provided.draggableProps}
           >
@@ -109,13 +109,13 @@ interface unselectedColumnRow {
 function UnselectedColumn({name, index, handleAddColumn}: unselectedColumnRow) {
 
   return (
-    <div className="unselected-column-row" onClick={() => {handleAddColumn(index)}}>
+    <div className={styles.unselectedColumnRow} onClick={() => {handleAddColumn(index)}}>
 
-      <div className="unselected-column-name">
+      <div className={styles.unselectedColumnName}>
         <div>{name}</div>
       </div>
 
-      <div className="add-column" >
+      <div className={styles.addColumn}>
         <AddIcon/>
       </div>
 
@@ -207,17 +207,19 @@ function ColumnsPopover() {
       <DragDropContext
         onDragEnd={onDragEnd}
       >
-        <div className="columns-popover-content">
-          <div className="column-rows">
+        <div className={styles.columnsPopoverContent}>
+          <div className={styles.columnRows}>
             <NameColumnRow
               column={activeColumns.slice(0,1)[0]}
               key={"selected-0-name"}
               index={0}
             />
-            <div className="divider"/>
+
+            <div className={styles.divider}/>
+
             <Droppable droppableId={droppableContainerId}>
               {provided => (
-                <div className="draggable-columns column-rows"
+                <div className={classNames(styles.draggableColumns, styles.columnRows)}
                      ref={provided.innerRef}
                      {...provided.droppableProps}
                 >
@@ -235,9 +237,9 @@ function ColumnsPopover() {
             </Droppable>
 
 
-            <div className="divider"/>
+            <div className={styles.divider}/>
 
-            <div className={"unselected-columns-wrapper"}>
+            <div className={styles.unselectedColumnsWrapper}>
 
               {/*<div className="column-search-wrapper">*/}
               {/*  <div className="search-icon">*/}
@@ -251,7 +253,7 @@ function ColumnsPopover() {
               {/*    />*/}
               {/*</div>*/}
 
-              <div className="unselected-columns">
+              <div className={styles.unselectedColumns}>
                 {columns.map((column, index) => {
                   if (activeColumns.findIndex((ac) => ac.key === column.key) === -1) {
                     return (<UnselectedColumn
@@ -261,7 +263,7 @@ function ColumnsPopover() {
                       handleAddColumn={addColumn}/>)
                   }
                 })}
-                {activeColumns.length === columns.length ? (<div className={"no-filters"}>All columns added</div>) : ""}
+                {activeColumns.length === columns.length ? (<div className={styles.noFilters}>All columns added</div>) : ""}
               </div>
 
             </div>
