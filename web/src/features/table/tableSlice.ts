@@ -4,6 +4,7 @@ import { deserialiseQuery, applyFilters, AndClause } from './controls/filter/fil
 import { SortByOptionType } from "./controls/sort/SortControls";
 import _, { cloneDeep } from "lodash";
 import { torqApi } from 'apiSlice'
+import {groupByReducer} from "./controls/group/groupBy";
 
 export interface ColumnMetaData {
   heading: string;
@@ -188,37 +189,6 @@ export const {
   updateColumns,
   updateGroupBy,
 } = tableSlice.actions;
-
-const groupByReducer = (channels: Array<any>, by: string) => {
-
-  if (by !== 'peers') {
-    return channels
-  }
-
-  const summedPubKey: typeof channels = []
-
-  for (const chan of channels) {
-    const pub_key = String(chan["pub_key" as keyof typeof chan]);
-
-    const summedChan = summedPubKey.find(sc => sc["pub_key" as keyof typeof sc] == pub_key)
-    if (!summedChan) {
-      summedPubKey.push(chan);
-      continue;
-    }
-
-    for (const key of Object.keys(chan)) {
-      const value = chan[key as keyof typeof chan];
-      if (typeof value !== 'number') {
-
-        continue;
-      }
-      (summedChan as { [key: string]: any })[key] = summedChan[key as keyof typeof summedChan] as number + value
-    }
-  }
-
-  return summedPubKey
-
-}
 
 export const selectChannels = (state: RootState) => {
 

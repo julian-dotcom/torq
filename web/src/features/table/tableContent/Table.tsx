@@ -22,7 +22,6 @@ function Table() {
   const { data, isLoading } = useGetChannelsQuery({ from: from, to: to })
   const channels = data || [];
   if (channels.length > 0) {
-
     for (const channel of channels) {
       for (const column of activeColumns) {
         column.total = (column.total ?? 0) + channel[column.key]
