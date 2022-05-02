@@ -1,0 +1,168 @@
+ALTER TABLE htlc_event
+RENAME COLUMN event to data;
+
+ALTER TABLE htlc_event
+ADD COLUMN event_origin VARCHAR(9);
+UPDATE htlc_event
+SET event_origin = 'UNKNOWN'
+WHERE event_type = 0;
+UPDATE htlc_event
+SET event_origin = 'SEND'
+WHERE event_type = 1;
+UPDATE htlc_event
+SET event_origin = 'RECEIVE'
+WHERE event_type = 2;
+UPDATE htlc_event
+SET event_origin = 'FORWARD'
+WHERE event_type = 3;
+
+ALTER TABLE htlc_event
+RENAME COLUMN event_type to event_type_backup;
+
+ALTER TABLE htlc_event
+ADD COLUMN event_type VARCHAR(18);
+
+UPDATE htlc_event
+SET event_type = 'ForwardEvent'
+where data->'Event' ? 'ForwardEvent';
+
+UPDATE htlc_event
+SET event_type = 'ForwardFailEvent'
+where data->'Event' ? 'ForwardFailEvent';
+
+UPDATE htlc_event
+SET event_type = 'SettleEvent'
+where data->'Event' ? 'SettleEvent';
+
+UPDATE htlc_event
+SET event_type = 'LinkFailEvent'
+where data->'Event' ? 'LinkFailEvent';
+
+
+ALTER TABLE htlc_event
+ADD COLUMN outgoing_htlc_id bigint;
+UPDATE htlc_event
+SET outgoing_htlc_id = (data->'outgoing_htlc_id')::bigint;
+
+ALTER TABLE htlc_event
+ADD COLUMN incoming_htlc_id bigint;
+UPDATE htlc_event
+SET incoming_htlc_id = (data->'incoming_htlc_id')::bigint;
+
+ALTER TABLE htlc_event
+ADD COLUMN timestamp_ns numeric;
+UPDATE htlc_event
+SET timestamp_ns = (data->'timestamp_ns')::numeric;
+
+ALTER TABLE htlc_event
+ADD COLUMN incoming_amt_msat numeric;
+UPDATE htlc_event
+SET incoming_amt_msat = coalesce(
+    (data->'Event'->'LinkFailEvent'->'info'->>'incoming_amt_msat')::numeric,
+    (data->'Event'->'ForwardEvent'->'info'->>'incoming_amt_msat')::numeric
+);
+
+ALTER TABLE htlc_event
+ADD COLUMN outgoing_amt_msat numeric;
+UPDATE htlc_event
+SET outgoing_amt_msat = coalesce(
+    (data->'Event'->'LinkFailEvent'->'info'->>'outgoing_amt_msat')::numeric,
+    (data->'Event'->'ForwardEvent'->'info'->>'outgoing_amt_msat')::numeric
+);
+
+ALTER TABLE htlc_event
+ADD COLUMN incoming_timelock numeric;
+UPDATE htlc_event
+SET incoming_timelock = coalesce(
+    (data->'Event'->'LinkFailEvent'->'info'->>'incoming_timelock')::numeric,
+    (data->'Event'->'ForwardEvent'->'info'->>'incoming_timelock')::numeric
+);
+
+ALTER TABLE htlc_event
+ADD COLUMN outgoing_timelock numeric;
+UPDATE htlc_event
+SET outgoing_timelock = coalesce(
+    (data->'Event'->'LinkFailEvent'->'info'->>'outgoing_timelock')::numeric,
+    (data->'Event'->'ForwardEvent'->'info'->>'outgoing_timelock')::numeric
+);
+
+ALTER TABLE htlc_event
+DROP COLUMN event_type_backup;
+
+ALTER TABLE htlc_event
+ADD COLUMN bolt_failure_code VARCHAR(50);
+
+UPDATE htlc_event
+SET bolt_failure_code = CASE (data->'Event'->'LinkFailEvent'->'wire_failure')::int
+    WHEN 0 THEN 'RESERVED'
+    WHEN 1 THEN 'INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS'
+    WHEN 2 THEN 'INCORRECT_PAYMENT_AMOUNT'
+    WHEN 3 THEN 'FINAL_INCORRECT_CLTV_EXPIRY'
+    WHEN 4 THEN 'FINAL_INCORRECT_HTLC_AMOUNT'
+    WHEN 5 THEN 'FINAL_EXPIRY_TOO_SOON'
+    WHEN 6 THEN 'INVALID_REALM'
+    WHEN 7 THEN 'EXPIRY_TOO_SOON'
+    WHEN 8 THEN 'INVALID_ONION_VERSION'
+    WHEN 9 THEN 'INVALID_ONION_HMAC'
+    WHEN 10 THEN 'INVALID_ONION_KEY'
+    WHEN 11 THEN 'AMOUNT_BELOW_MINIMUM'
+    WHEN 12 THEN 'FEE_INSUFFICIENT'
+    WHEN 13 THEN 'INCORRECT_CLTV_EXPIRY'
+    WHEN 14 THEN 'CHANNEL_DISABLED'
+    WHEN 15 THEN 'TEMPORARY_CHANNEL_FAILURE'
+    WHEN 16 THEN 'REQUIRED_NODE_FEATURE_MISSING'
+    WHEN 17 THEN 'REQUIRED_CHANNEL_FEATURE_MISSING'
+    WHEN 18 THEN 'UNKNOWN_NEXT_PEER'
+    WHEN 19 THEN 'TEMPORARY_NODE_FAILURE'
+    WHEN 20 THEN 'PERMANENT_NODE_FAILURE'
+    WHEN 21 THEN 'PERMANENT_CHANNEL_FAILURE'
+    WHEN 22 THEN 'EXPIRY_TOO_FAR'
+    WHEN 23 THEN 'MPP_TIMEOUT'
+    WHEN 24 THEN 'INVALID_ONION_PAYLOAD'
+    WHEN 997 THEN 'INTERNAL_FAILURE'
+    WHEN 998 THEN 'UNKNOWN_FAILURE'
+    WHEN 999 THEN 'UNREADABLE_FAILURE'
+    END;
+
+
+ALTER TABLE htlc_event
+ADD COLUMN bolt_failure_string TEXT;
+
+UPDATE htlc_event
+SET bolt_failure_string = (data->'Event'->'LinkFailEvent'->>'failure_string');
+
+ALTER TABLE htlc_event
+ADD COLUMN lnd_failure_detail VARCHAR(50);
+
+UPDATE htlc_event
+SET lnd_failure_detail = CASE (data->'Event'->'LinkFailEvent'->'failure_detail')::int
+    WHEN 0 THEN 'UNKNOWN'
+    WHEN 1 THEN 'NO_DETAIL'
+    WHEN 2 THEN 'ONION_DECODE'
+    WHEN 3 THEN 'LINK_NOT_ELIGIBLE'
+    WHEN 4 THEN 'ON_CHAIN_TIMEOUT'
+    WHEN 5 THEN 'HTLC_EXCEEDS_MAX'
+    WHEN 6 THEN 'INSUFFICIENT_BALANCE'
+    WHEN 7 THEN 'INCOMPLETE_FORWARD'
+    WHEN 8 THEN 'HTLC_ADD_FAILED'
+    WHEN 9 THEN 'FORWARDS_DISABLED'
+    WHEN 10 THEN 'INVOICE_CANCELED'
+    WHEN 11 THEN 'INVOICE_UNDERPAID'
+    WHEN 12 THEN 'INVOICE_EXPIRY_TOO_SOON'
+    WHEN 13 THEN 'INVOICE_NOT_OPEN'
+    WHEN 14 THEN 'MPP_INVOICE_TIMEOUT'
+    WHEN 15 THEN 'ADDRESS_MISMATCH'
+    WHEN 16 THEN 'SET_TOTAL_MISMATCH'
+    WHEN 17 THEN 'SET_TOTAL_TOO_LOW'
+    WHEN 18 THEN 'SET_OVERPAID'
+    WHEN 19 THEN 'UNKNOWN_INVOICE'
+    WHEN 20 THEN 'INVALID_KEYSEND'
+    WHEN 21 THEN 'MPP_IN_PROGRESS'
+    WHEN 22 THEN 'CIRCULAR_ROUTE'
+END;
+
+CREATE INDEX ON htlc_event (event_type, time DESC);
+CREATE INDEX ON htlc_event (event_origin, time DESC);
+CREATE INDEX ON htlc_event (event_origin, time DESC, incoming_channel_id, outgoing_channel_id);
+CREATE INDEX ON htlc_event (event_type, time DESC, incoming_channel_id, outgoing_channel_id);
+CREATE INDEX ON htlc_event (time DESC, incoming_channel_id, outgoing_channel_id);

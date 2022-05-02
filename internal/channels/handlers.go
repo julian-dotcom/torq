@@ -201,9 +201,7 @@ left join (
 			   count(f.event_type) filter (where f.event_type = 'LinkFailEvent') as htlc_Link_Fail_Event,
 			   count(f.event_type) as htlc_fail_total
 		from (
-			select outgoing_channel_id,
-				   (jsonb_object_keys(event->'Event')::text) as event_type
-
+			select outgoing_channel_id, event_type
 			from htlc_event
 			where time >= $1
             	and time <= $2
@@ -216,8 +214,7 @@ left join (
 			   count(f.event_type) filter (where f.event_type = 'LinkFailEvent') as htlc_Link_Fail_Event,
 			   count(f.event_type) as htlc_fail_total
 		from (
-			select incoming_channel_id,
-				   (jsonb_object_keys(event->'Event')::text) as event_type
+			select incoming_channel_id, event_type
 			from htlc_event
 			where time >= $1
             	and time <= $2
