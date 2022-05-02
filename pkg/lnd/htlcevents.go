@@ -10,22 +10,207 @@ import (
 	"time"
 )
 
-// storeHTLCEvent extracts the timestamp and channel IDs from the HtlcEvent and converts the original struct to json.
-// Then it's stored in the database in the htlc table.
-func storeHTLCEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
+//forward_event	ForwardEvent
+//forward_fail_event	ForwardFailEvent
+//settle_event	SettleEvent
+//link_fail_event	LinkFailEvent
+
+func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.LinkFailEvent) error {
 
 	jb, err := json.Marshal(h)
 	if err != nil {
-		return fmt.Errorf("storeHTLCEvent -> json.Marshal(%v): %v", h, err)
+		return fmt.Errorf("storeLinkFailEvent -> json.Marshal(%v): %v", h, err)
 	}
 
-	stm := `INSERT INTO htlc_event (time, event_type, outgoing_channel_id, incoming_channel_id, 
-		event) VALUES($1, $2, $3, $4, $5)`
+	stm := `
+	INSERT INTO
+	htlc_event (
+		time,
+		event_origin,
+		outgoing_channel_id,
+		incoming_channel_id,
+		timestamp_ns,
+		data,
+		event_type,
+		incoming_amt_msat,
+		outgoing_amt_msat,
+		incoming_timelock,
+		Outgoing_timelock,
+		outgoing_htlc_id,
+		incoming_htlc_id,
+		bolt_failure_code,
+		bolt_failure_string,
+		lnd_failure_detail
+	)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+	`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
-	_, err = db.Exec(stm, timestampMs, h.EventType, h.OutgoingChannelId, h.IncomingChannelId, jb)
+
+	_, err = db.Exec(stm,
+		timestampMs,
+		h.EventType,
+		h.OutgoingChannelId,
+		h.IncomingChannelId,
+		h.TimestampNs,
+		jb,
+		"LinkFailEvent",
+		fwe.Info.IncomingAmtMsat,
+		fwe.Info.OutgoingAmtMsat,
+		fwe.Info.IncomingTimelock,
+		fwe.Info.OutgoingTimelock,
+		h.OutgoingHtlcId,
+		h.IncomingHtlcId,
+		fwe.WireFailure.String(),
+		fwe.FailureString,
+		fwe.FailureDetail.String(),
+	)
+
 	if err != nil {
-		return fmt.Errorf(`storeHTLCEvent -> db.Exec(%s, %v, %v, %v, %v, %v): %v`,
+		return fmt.Errorf(`storeLinkFailEvent -> db.Exec(%s, %v, %v, %v, %v, %v): %v`,
+			stm, timestampMs, h.EventType, h.OutgoingChannelId, h.IncomingChannelId, jb, err)
+	}
+
+	return nil
+}
+
+func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.SettleEvent) error {
+
+	jb, err := json.Marshal(h)
+	if err != nil {
+		return fmt.Errorf("storeForwardEvent -> json.Marshal(%v): %v", h, err)
+	}
+
+	stm := `
+	INSERT INTO
+	htlc_event (
+		time,
+		event_origin,
+		outgoing_channel_id,
+		incoming_channel_id,
+		timestamp_ns,
+		data,
+		event_type,
+		outgoing_htlc_id,
+		incoming_htlc_id
+	)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`
+
+	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+
+	_, err = db.Exec(stm,
+		timestampMs,
+		h.EventType,
+		h.OutgoingChannelId,
+		h.IncomingChannelId,
+		h.TimestampNs,
+		jb,
+		"SettleEvent",
+		h.OutgoingHtlcId,
+		h.IncomingHtlcId,
+	)
+
+	if err != nil {
+		return fmt.Errorf(`storeSettleEvent -> db.Exec(%s, %v, %v, %v, %v, %v): %v`,
+			stm, timestampMs, h.EventType, h.OutgoingChannelId, h.IncomingChannelId, jb, err)
+	}
+
+	return nil
+}
+
+func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
+
+	jb, err := json.Marshal(h)
+	if err != nil {
+		return fmt.Errorf("storeForwardFailEvent -> json.Marshal(%v): %v", h, err)
+	}
+
+	stm := `
+	INSERT INTO
+	htlc_event (
+		time,
+		event_origin,
+		outgoing_channel_id,
+		incoming_channel_id,
+		timestamp_ns,
+		data,
+		event_type,
+		outgoing_htlc_id,
+		incoming_htlc_id
+	)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`
+
+	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+
+	_, err = db.Exec(stm,
+		timestampMs,
+		h.EventType,
+		h.OutgoingChannelId,
+		h.IncomingChannelId,
+		h.TimestampNs,
+		jb,
+		"ForwardFailEvent",
+		h.OutgoingHtlcId,
+		h.IncomingHtlcId,
+	)
+
+	if err != nil {
+		return fmt.Errorf(`storeForwardFailEvent -> db.Exec(%s, %v, %v, %v, %v, %v): %v`,
+			stm, timestampMs, h.EventType, h.OutgoingChannelId, h.IncomingChannelId, jb, err)
+	}
+
+	return nil
+}
+
+func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.ForwardEvent) error {
+
+	jb, err := json.Marshal(h)
+	if err != nil {
+		return fmt.Errorf("storeForwardEvent -> json.Marshal(%v): %v", h, err)
+	}
+
+	stm := `
+	INSERT INTO
+	htlc_event (
+		time,
+		event_origin,
+		outgoing_channel_id,
+		incoming_channel_id,
+		timestamp_ns,
+		data,
+		event_type,
+		incoming_amt_msat,
+		outgoing_amt_msat,
+		incoming_timelock,
+		Outgoing_timelock,
+		outgoing_htlc_id,
+		incoming_htlc_id
+	)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	`
+
+	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+
+	_, err = db.Exec(stm,
+		timestampMs,
+		h.EventType,
+		h.OutgoingChannelId,
+		h.IncomingChannelId,
+		h.TimestampNs,
+		jb,
+		"ForwardEvent",
+		fwe.Info.IncomingAmtMsat,
+		fwe.Info.OutgoingAmtMsat,
+		fwe.Info.IncomingTimelock,
+		fwe.Info.OutgoingTimelock,
+		h.OutgoingHtlcId,
+		h.IncomingHtlcId,
+	)
+
+	if err != nil {
+		return fmt.Errorf(`storeForwardEvent -> db.Exec(%s, %v, %v, %v, %v, %v): %v`,
 			stm, timestampMs, h.EventType, h.OutgoingChannelId, h.IncomingChannelId, jb, err)
 	}
 
@@ -59,9 +244,27 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 			return fmt.Errorf("%v.ListFeatures(_) = _, %v", htlcStream, err)
 		}
 
-		err = storeHTLCEvent(db, htlcEvent)
-		if err != nil {
-			return fmt.Errorf("StreamHTLC(): %v", err)
+		switch htlcEvent.Event.(type) {
+		case *routerrpc.HtlcEvent_ForwardEvent:
+			err = storeForwardEvent(db, htlcEvent, htlcEvent.GetForwardEvent())
+			if err != nil {
+				return fmt.Errorf("StreamHTLC(): %v", err)
+			}
+		case *routerrpc.HtlcEvent_ForwardFailEvent:
+			err = storeForwardFailEvent(db, htlcEvent)
+			if err != nil {
+				return fmt.Errorf("StreamHTLC(): %v", err)
+			}
+		case *routerrpc.HtlcEvent_LinkFailEvent:
+			err = storeLinkFailEvent(db, htlcEvent, htlcEvent.GetLinkFailEvent())
+			if err != nil {
+				return fmt.Errorf("StreamHTLC(): %v", err)
+			}
+		case *routerrpc.HtlcEvent_SettleEvent:
+			err = storeSettleEvent(db, htlcEvent, htlcEvent.GetSettleEvent())
+			if err != nil {
+				return fmt.Errorf("StreamHTLC(): %v", err)
+			}
 		}
 
 	}

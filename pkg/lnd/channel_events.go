@@ -196,7 +196,6 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 }
 
 func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, cp []string) ([]string, error) {
-
 	// Prepare the query with an array of channel points
 	q := "select chan_point from channel_event where (chan_point in (?)) and (event_type = ?);"
 	qs, args, err := sqlx.In(q, cp, t)
@@ -340,7 +339,7 @@ icoLoop:
 	return nil
 }
 
-var sqlStm = `INSERT INTO channel_event (time, event_type, imported, chan_id, chan_point, pub_key, 
+var sqlStm = `INSERT INTO channel_event (time, event_type, imported, chan_id, chan_point, pub_key,
 	event) VALUES($1, $2, $3, $4, $5, $6, $7);`
 
 func insertChannelEvent(db *sqlx.DB, ts time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,

@@ -61,7 +61,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	// Import routing policies from open channels
 	err = lnd.ImportRoutingPolicies(client, db)
 	if err != nil {
-		fmt.Println(err)
 		return errors.Wrapf(err, "Start -> ImportRoutingPolicies(%v, %v)", client, db)
 	}
 
@@ -76,7 +75,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	if err != nil {
 		return errors.Wrapf(err, "start -> InitChanIdList(%v)", db)
 	}
-
 	// Create a channel to update the list of public key for nodes we have
 	// or have had channels with
 	pubKeyChan := make(chan string)
@@ -112,6 +110,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	errs.Go(func() error {
 		err := lnd.SubscribeAndStoreHtlcEvents(ctx, router, db)
 		if err != nil {
+			fmt.Printf("htlc subscribe error: %+v", err)
 			return errors.Wrapf(err, "Start->SubscribeAndStoreHtlcEvents(%v, %v, %v)", ctx, router, db)
 		}
 		return nil
