@@ -36,15 +36,15 @@ export const availableColumns: ColumnMetaData[] = [
   { heading: "LND Channel short ID", type: "TextCell", key: "chan_id", valueType: "string" },
   { heading: "Open Channel", type: "NumericCell", key: "open", valueType: "number" },
 
-  { heading: "HTLC All failures in", type: "BarCell", key: "htlc_fail_all_in", valueType: "number" },
-  { heading: "HTLC All failures out", type: "BarCell", key: "htlc_fail_all_out", valueType: "number" },
-  { heading: "HTLC All failures total", type: "BarCell", key: "htlc_fail_all_total", valueType: "number" },
-  { heading: "HTLC Unknown failures in", type: "BarCell", key: "htlc_forward_fail_in", valueType: "number" },
-  { heading: "HTLC Unknown failures out", type: "BarCell", key: "htlc_forward_fail_out", valueType: "number" },
-  { heading: "HTLC Unknown failures total", type: "BarCell", key: "htlc_forward_fail_total", valueType: "number" },
-  { heading: "HTLC Link failures in", type: "BarCell", key: "htlc_link_fail_in", valueType: "number" },
-  { heading: "HTLC Link failures out", type: "BarCell", key: "htlc_link_fail_out", valueType: "number" },
-  { heading: "HTLC Link failures total", type: "BarCell", key: "htlc_link_fail_total", valueType: "number" },
+  // { heading: "HTLC All failures in", type: "BarCell", key: "htlc_fail_all_in", valueType: "number" },
+  // { heading: "HTLC All failures out", type: "BarCell", key: "htlc_fail_all_out", valueType: "number" },
+  // { heading: "HTLC All failures total", type: "BarCell", key: "htlc_fail_all_total", valueType: "number" },
+  // { heading: "HTLC Unknown failures in", type: "BarCell", key: "htlc_forward_fail_in", valueType: "number" },
+  // { heading: "HTLC Unknown failures out", type: "BarCell", key: "htlc_forward_fail_out", valueType: "number" },
+  // { heading: "HTLC Unknown failures total", type: "BarCell", key: "htlc_forward_fail_total", valueType: "number" },
+  // { heading: "HTLC Link failures in", type: "BarCell", key: "htlc_link_fail_in", valueType: "number" },
+  // { heading: "HTLC Link failures out", type: "BarCell", key: "htlc_link_fail_out", valueType: "number" },
+  // { heading: "HTLC Link failures total", type: "BarCell", key: "htlc_link_fail_total", valueType: "number" },
 ]
 
 export interface ViewInterface {

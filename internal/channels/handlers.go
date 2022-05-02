@@ -80,16 +80,6 @@ type channelData struct {
 	TurnoverOut   float32 `json:"turnover_out"`
 	TurnoverIn    float32 `json:"turnover_in"`
 	TurnoverTotal float32 `json:"turnover_total"`
-
-	HtlcFailAllIn        null.Int `json:"htlc_fail_all_in"`
-	HtlcLinkFailIn       null.Int `json:"htlc_link_fail_in"`
-	HtlcForwardFailIn    null.Int `json:"htlc_forward_fail_in"`
-	HtlcFailAllOut       null.Int `json:"htlc_fail_all_out"`
-	HtlcLinkFailOut      null.Int `json:"htlc_link_fail_out"`
-	HtlcForwardFailOut   null.Int `json:"htlc_forward_fail_out"`
-	HtlcFailAllTotal     null.Int `json:"htlc_fail_all_total"`
-	HtlcLinkFailTotal    null.Int `json:"htlc_link_fail_total"`
-	HtlcForwardFailTotal null.Int `json:"htlc_forward_fail_total"`
 }
 
 func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*channelData, err error) {
@@ -121,19 +111,7 @@ select
 
     coalesce(round(fw.amount_out / ce.capacity::numeric, 2), 0) as turnover_out,
     coalesce(round(fw.amount_in / ce.capacity::numeric, 2), 0) as turnover_in,
-    coalesce(round((fw.amount_in + fw.amount_out) / ce.capacity::numeric, 2), 0) as turnover_total,
-
-    coalesce(htlc.htlc_fail_all_in, 0) as htlc_fail_all_in,
-	coalesce(htlc.htlc_Link_Fail_in, 0) as htlc_Link_Fail_in,
-	coalesce(htlc.htlc_Forward_Fail_in, 0) as htlc_Forward_Fail_in,
-	coalesce(htlc.htlc_fail_all_out, 0) as htlc_fail_all_out,
-	coalesce(htlc.htlc_Link_Fail_out, 0) as htlc_Link_Fail_out,
-	coalesce(htlc.htlc_Forward_Fail_out, 0) as htlc_Forward_Fail_out,
-	coalesce(htlc.htlc_fail_all_total, 0) as htlc_fail_all_total,
-	coalesce(htlc.htlc_Link_Fail_total, 0) as htlc_Link_Fail_total,
-	coalesce(htlc.htlc_Forward_Fail_total, 0) as htlc_Forward_Fail_total
-
-	-- 	htlc.htlc_fail_all_in / coalesce(fw.count_out, 0) as success
+    coalesce(round((fw.amount_in + fw.amount_out) / ce.capacity::numeric, 2), 0) as turnover_total
 
 from channel as c
 left join (
@@ -183,48 +161,6 @@ left join (
         group by incoming_channel_id) as i
     on i.chan_id = o.chan_id
 ) as fw on fw.chan_id = ce.chan_id
-left join (
-	select
-		coalesce(htlc_in.chan_id, htlc_out.chan_id) as chan_id,
-		sum(coalesce(htlc_in.htlc_fail_total, 0)) as htlc_fail_all_in,
-		sum(coalesce(htlc_in.htlc_Link_Fail_Event, 0)) as htlc_Link_Fail_in,
-		sum(coalesce(htlc_in.htlc_Forward_Fail_Event, 0)) as htlc_Forward_Fail_in,
-		sum(coalesce(htlc_out.htlc_fail_total, 0)) as htlc_fail_all_out,
-		sum(coalesce(htlc_out.htlc_Link_Fail_Event, 0)) as htlc_Link_Fail_out,
-		sum(coalesce(htlc_out.htlc_Forward_Fail_Event, 0)) as htlc_Forward_Fail_out,
-		sum(coalesce(htlc_out.htlc_fail_total + htlc_in.htlc_fail_total, 0)) as htlc_fail_all_total,
-		sum(coalesce(htlc_out.htlc_Link_Fail_Event + htlc_in.htlc_Link_Fail_Event, 0)) as htlc_Link_Fail_total,
-		sum(coalesce(htlc_out.htlc_Forward_Fail_Event + htlc_in.htlc_Forward_Fail_Event, 0)) as htlc_Forward_Fail_total
-	from (
-		select f.outgoing_channel_id as chan_id,
-			   count(f.event_type) filter (where f.event_type = 'ForwardFailEvent') as htlc_Forward_Fail_Event,
-			   count(f.event_type) filter (where f.event_type = 'LinkFailEvent') as htlc_Link_Fail_Event,
-			   count(f.event_type) as htlc_fail_total
-		from (
-			select outgoing_channel_id, event_type
-			from htlc_event
-			where time >= $1
-            	and time <= $2
-		) as f
-		where f.event_type not in ('ForwardEvent', 'SettleEvent')
-		group by outgoing_channel_id, f.event_type) as htlc_out
-	full outer join (
-		select f.incoming_channel_id as chan_id,
-			   count(f.event_type) filter (where f.event_type = 'ForwardFailEvent') as htlc_Forward_Fail_Event,
-			   count(f.event_type) filter (where f.event_type = 'LinkFailEvent') as htlc_Link_Fail_Event,
-			   count(f.event_type) as htlc_fail_total
-		from (
-			select incoming_channel_id, event_type
-			from htlc_event
-			where time >= $1
-            	and time <= $2
-		) as f
-		where f.event_type not in ('ForwardEvent', 'SettleEvent')
-		group by incoming_channel_id, f.event_type
-	) as htlc_in on htlc_out.chan_id = htlc_in.chan_id
-	where coalesce(htlc_in.chan_id, htlc_out.chan_id) != 0
-	group by coalesce(htlc_in.chan_id, htlc_out.chan_id)
-) as htlc on htlc.chan_id = ce.chan_id
 `
 
 	rows, err := db.Query(sql, fromTime, toTime)
@@ -261,16 +197,6 @@ left join (
 			&c.TurnoverOut,
 			&c.TurnoverIn,
 			&c.TurnoverTotal,
-
-			&c.HtlcFailAllIn,
-			&c.HtlcLinkFailIn,
-			&c.HtlcForwardFailIn,
-			&c.HtlcFailAllOut,
-			&c.HtlcLinkFailOut,
-			&c.HtlcForwardFailOut,
-			&c.HtlcFailAllTotal,
-			&c.HtlcLinkFailTotal,
-			&c.HtlcForwardFailTotal,
 		)
 		if err != nil {
 			return r, err
