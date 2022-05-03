@@ -1,7 +1,7 @@
-.torq .torq-popover-button-wrapper {
+.torq-popover-button-wrapper {
   position: relative;
 
-.popover-wrapper {
+  .popover-wrapper {
     max-height: calc(100vh - 120px);
     z-index: 20;
     background-color: var(--bg-default);
@@ -40,7 +40,7 @@
     }
     .popover-mobile-dismiss {
       position: sticky;
-      top:0;
+      top: 0;
       z-index: 21;
       display: none;
       grid-template-columns: max-content min-content;
@@ -59,7 +59,6 @@
         display: grid;
       }
     }
-
   }
   &.scrollable .popover-wrapper {
     overflow-y: scroll;
@@ -67,8 +66,8 @@
     &::-webkit-scrollbar {
       display: none;
     }
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 
   .popover-wrapper.popover-open {
@@ -82,5 +81,11 @@
       top: 0px;
     }
   }
-
+}
+.right .popover-wrapper.popover-open {
+  right: 0;
+  left: inherit;
+  .popover-container {
+    padding: 0;
+  }
 }
