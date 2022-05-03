@@ -1,4 +1,4 @@
-.torq .navigation {
+.navigation {
   background-color: var(--bg-extra-faint);
   height: 100vh;
   width: 290px;
@@ -16,9 +16,11 @@
     grid-column-gap: 4px;
     justify-items: space-between;
     align-items: center;
+
     .logo svg {
       height: 1.5em;
     }
+
     .collapse {
       display: grid;
       justify-content: end;
@@ -38,14 +40,9 @@
     grid-row-gap: 15px;
     grid-auto-rows: min-content;
   }
-
-  .bottom-wrapper {
-
-  }
-
 }
 
-.torq .main-content-wrapper {
+.main-content-wrapper {
   &.nav-hidden .navigation-wrapper {
     width: 0px;
   }
@@ -56,9 +53,7 @@
       top: 0;
       bottom: 0;
       height: 100vh;
-      box-shadow: 1px 0px 10px rgba(0,0,0,0.15);
+      box-shadow: 1px 0px 10px rgba(0, 0, 0, 0.15);
     }
   }
 }
-
-
