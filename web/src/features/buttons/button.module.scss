@@ -12,12 +12,6 @@
     background-color: var(--primary-300);
     border: 1px solid var(--primary-400);
   }
-  //(props:any) = > (props . isOpen ? "#ECFAF8":"none")
-  //}
-
-  //border: $ {
-  //(props:any) = > props . isOpen ? "1px solid #DDF6F5":"1px solid transparent"
-  //}
 
   &:global(.small),
   &:global(.small) :global(.icon) {

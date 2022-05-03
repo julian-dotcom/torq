@@ -29,13 +29,6 @@
   grid-auto-flow: column;
   justify-content: end;
   align-items: center;
-  .popoverWrapper.popoverOpen {
-    right: 0;
-    left: inherit;
-    .popoverContainer {
-      padding: 0;
-    }
-  }
 }
 .mobileOptions {
   display: none;

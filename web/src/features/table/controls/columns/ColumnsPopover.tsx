@@ -81,17 +81,17 @@ function ColumnRow({
           {...provided.draggableProps}
         >
           <div
-            className={classNames("row-left-icon  drag-handle")}
+            className={classNames(styles.rowLeftIcon, styles.dragHandle)}
             {...provided.dragHandleProps}
           >
             <DragHandle />
           </div>
 
-          <div className="column-name">
+          <div className={styles.columnName}>
             <div>{column.heading}</div>
           </div>
 
-          <div className="column-type-select">
+          <div className={styles.columnTypeSelect}>
             <TorqSelect
               isDisabled={column.valueType === "string"}
               options={CellOptions}
@@ -109,7 +109,7 @@ function ColumnRow({
           </div>
 
           <div
-            className="remove-column"
+            className={styles.removeColumn}
             onClick={() => {
               handleRemoveColumn(index + 1);
             }}
@@ -219,7 +219,7 @@ function ColumnsPopover() {
       text={activeColumns.length + " Columns"}
       icon={<ColumnsIcon />}
       isOpen={true}
-      className={"collapse-tablet "}
+      className={"collapse-tablet"}
     />
   );
 

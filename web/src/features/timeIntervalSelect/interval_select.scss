@@ -8,7 +8,7 @@
     grid-template-columns: min-content auto min-content;
   }
 }
-.popover-open  .date-range-button {
+.popover-open .date-range-button {
   @media only screen and (max-width: 600px) {
     width: 100%;
     grid-template-columns: min-content auto min-content;
@@ -235,7 +235,7 @@
       background: var(--bg-default);
       padding: 4px 10px;
       border-radius: 2px;
-      width: 298px
+      width: 298px;
     }
   }
   .rdrCalendarWrapper.rdrDateRangeWrapper {
