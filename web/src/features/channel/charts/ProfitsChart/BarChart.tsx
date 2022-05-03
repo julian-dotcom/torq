@@ -5,10 +5,10 @@ import React from "react";
 import * as d3 from "d3";
 
 function BarChart({ data }: { data: any[] }) {
+  const height = 470;
+  const width = 500;
   const ref = useD3(
     (svg: any) => {
-      const height = 500;
-      const width = 500;
       const margin = { top: 20, right: 30, bottom: 30, left: 40 };
 
       const x = d3
@@ -72,7 +72,7 @@ function BarChart({ data }: { data: any[] }) {
     <svg
       ref={ref}
       style={{
-        height: 500,
+        height: "100%",
         width: "100%",
         marginRight: "0px",
         marginLeft: "0px",
