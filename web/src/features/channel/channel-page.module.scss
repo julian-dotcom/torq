@@ -1,1 +1,65 @@
-import styles from
+.channelsPageContent {
+  margin: 20px;
+}
+.channelWrapper {
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 20px;
+}
+.pageRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-column-gap: 10px;
+}
+.channelSummary {
+  grid-template-columns: minmax(300px, 1fr) 2fr;
+}
+.shortColumn {
+  display: grid;
+  grid-row-gap: 10px;
+}
+.card {
+  background-color: var(--bg-default);
+  border: 1px solid var(--bg-subtle);
+  padding: 20px;
+}
+
+.channelControls {
+  padding: 20px 10px 20px 10px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: auto auto;
+  justify-items: space-between;
+  align-items: center;
+}
+.leftContainer {
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 10px;
+  justify-content: start;
+  align-items: center;
+}
+.upperContainer {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+}
+.lowerContainer {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  grid-column-gap: 10px;
+}
+.rightContainer {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: end;
+  align-items: center;
+  .popoverWrapper.popoverOpen {
+    right: 0;
+    left: inherit;
+    .popoverContainer {
+      padding: 0;
+    }
+  }
+}
