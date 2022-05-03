@@ -1,4 +1,4 @@
-import "./table_controls.scss";
+import styles from "./table_controls.module.scss";
 import {
   Navigation20Regular as NavigationIcon,
   Save20Regular as SaveIcon,
@@ -10,11 +10,11 @@ import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { toggleNav } from "../../navigation/navSlice";
 import SortControls from "./sort/SortControls";
 import GroupPopover from "./group/GroupPopover";
+import { selectCurrentView, selectedViewIndex } from "../tableSlice";
 import {
-  selectCurrentView,
-  selectedViewIndex
-} from "../tableSlice";
-import { useUpdateTableViewMutation, useCreateTableViewMutation } from 'apiSlice'
+  useUpdateTableViewMutation,
+  useCreateTableViewMutation,
+} from "apiSlice";
 import FilterPopover from "./filter/FilterPopover";
 
 import ViewsPopover from "./views/ViewsPopover";
@@ -24,22 +24,21 @@ function TableControls() {
   const dispatch = useAppDispatch();
   const currentView = useAppSelector(selectCurrentView);
   const currentViewIndex = useAppSelector(selectedViewIndex);
-  const [updateTableView] = useUpdateTableViewMutation()
-  const [createTableView] = useCreateTableViewMutation()
+  const [updateTableView] = useUpdateTableViewMutation();
+  const [createTableView] = useCreateTableViewMutation();
   const saveView = () => {
-    let viewMod = { ...currentView }
-    viewMod.saved = true
+    let viewMod = { ...currentView };
+    viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex })
-      return
+      createTableView({ view: viewMod, index: currentViewIndex });
+      return;
     }
-    updateTableView(viewMod)
-
-  }
+    updateTableView(viewMod);
+  };
   return (
-    <div className="table-controls">
-      <div className="left-container">
-        <div className="upper-container">
+    <div className={styles.tableControls}>
+      <div className={styles.leftContainer}>
+        <div className={styles.upperContainer}>
           <DefaultButton
             icon={<NavigationIcon />}
             text={"Menu"}
@@ -47,21 +46,23 @@ function TableControls() {
             className={"show-nav-btn collapse-tablet"}
           />
           <ViewsPopover />
-          {!currentView.saved && (<DefaultButton
-            icon={<SaveIcon />}
-            text={"Save"}
-            onClick={saveView}
-            className={"collapse-tablet danger"}
-          />)}
+          {!currentView.saved && (
+            <DefaultButton
+              icon={<SaveIcon />}
+              text={"Save"}
+              onClick={saveView}
+              className={"collapse-tablet danger"}
+            />
+          )}
         </div>
-        <div className="lower-container">
+        <div className={styles.lowerContainer}>
           <ColumnsPopover />
           <FilterPopover />
           <SortControls />
           <GroupPopover />
         </div>
       </div>
-      <div className="right-container">
+      <div className={styles.rightContainer}>
         <TimeIntervalSelect />
       </div>
     </div>

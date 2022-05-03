@@ -1,4 +1,4 @@
-.torq .main-content-wrapper {
+.main-content-wrapper {
   display: flex;
   flex-direction: row;
   align-content: flex-start;
@@ -37,7 +37,7 @@
     &.nav-hidden .dismiss-navigation-background {
       display: block;
       position: absolute;
-      background-color: rgba(0,0,0,0.15);
+      background-color: rgba(0, 0, 0, 0.15);
       z-index: 9;
       top: 0;
       bottom: 0;
@@ -45,5 +45,4 @@
       right: 0;
     }
   }
-
 }
