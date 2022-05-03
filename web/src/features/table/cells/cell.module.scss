@@ -18,10 +18,10 @@
     font-size: var(--font-size-small);
   }
   .positive {
-    color: var(--primary-500)
+    color: var(--primary-500);
   }
   .negative {
-    color: var(--secondary-500)
+    color: var(--secondary-500);
   }
 }
 
@@ -53,14 +53,26 @@
 .totalCell {
   position: sticky;
   bottom: 0;
-  background-color: var(--accent-a-100); //var(--bg-alt-faint);
-  border-top: 1px solid var(--accent-a-300); //var(--bg-alt-strong);
+  background-color: var(--accent-b-50); //var(--bg-alt-faint);
+  border-top: 1px solid var(--accent-b-500); //var(--bg-alt-strong);
+  border-bottom: 1px solid var(--accent-b-500);
   &.alias {
-   border-right: 1px solid var(--accent-a-300);
+    border-right: 1px solid var(--accent-b-500);
   }
   .barWrapper {
     display: none !important;
   }
+}
+.totalCell.empty.locked {
+  border-bottom-left-radius: 3px;
+  border-left: 1px solid var(--accent-b-500);
+}
+.totalCell.lastTotalCell {
+  border-right: 1px solid var(--accent-b-500);
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  border-bottom-right-radius: 3px;
 }
 
 .header {
@@ -74,6 +86,7 @@
   padding: 20px 20px 10px 20px;
   border-bottom: 1px solid var(--fg-faint);
   background-color: var(--bg-default);
+  border-top: 1px solid var(--bg-subtle);
   color: var(--fg-muted);
   white-space: nowrap;
   font-size: var(--font-size-small);
@@ -89,35 +102,64 @@
 }
 
 // TODO: Clean this up after deciding on limitations to column freezing
-:global(.alias), .locked {
+:global(.alias),
+.locked {
   position: sticky;
-  left: 20px;
+  left: 10px;
   top: 0;
   //padding-left: 20px !important;
   z-index: 5;
   border-right: 1px solid var(--fg-faint);
 }
-.header:global(.alias), .header.firstEmptyHeader, .header.lastEmptyHeader {
-  z-index: 6;
+.firstEmptyCell {
+}
+.lastEmptyCell {
+  border-right: 1px solid var(--fg-subtle);
+  position: -webkit-sticky;
+  position: sticky;
+  right: 0;
+  top: 0;
+  z-index: 2;
+}
+.header:global(.alias),
+.header.firstEmptyHeader,
+.header.lastEmptyHeader {
+  z-index: 7;
   border-right: 1px solid var(--fg-faint);
+  border-bottom: 1px solid var(--fg-faint);
+  border-top-right-radius: 3px;
 }
-.empty {
-  padding: 0;
-  min-width: 20px;
+.header.firstEmptyHeader {
+  border-top-left-radius: 3px;
+  border-left: 1px solid var(--bg-subtle);
+  border-top: 1px solid var(--bg-subtle);
 }
-.empty.locked {
-  left: 0;
-  border-right: none;
-}
-.empty.locked {
-  left: 0;
-  border-right: none;
+.header.lastEmptyHeader {
+  border-top-right-radius: 3px;
+  border-right: 1px solid var(--bg-subtle);
+  border-top: 1px solid var(--bg-subtle);
+  position: sticky;
+  right: 0;
+  top: 0;
+  z-index: 3;
 }
 
-.header.textCell, .cell.textCell {
+.empty {
+  padding: 0;
+  min-width: 10px;
+}
+.empty.locked {
+  left: 0;
+  border-right: none;
+  border-left: 1px solid var(--bg-subtle);
+}
+
+.header.textCell,
+.cell.textCell {
   justify-items: start;
 }
-.cell:global(.alias), .header:global(.alias) {
+.cell:global(.alias),
+.header:global(.alias) {
   .text {
     max-width: 200px;
     white-space: nowrap;
@@ -125,25 +167,26 @@
     text-overflow: ellipsis;
   }
   @media only screen and (max-width: 900px) {
-  .text {
-    max-width: 100px;
-  }
+    .text {
+      max-width: 100px;
+    }
     min-width: 0px;
   }
 }
 
-
-
 /* For extremely small screen devices (595px and below) */
 @media only screen and (max-width: 595px) {
-  .cell, .header {
+  .cell,
+  .header {
     padding: 10px 10px;
   }
-  .cell.empty, .header.empty {
+  .cell.empty,
+  .header.empty {
     min-width: 10px;
     padding: 0;
   }
-  :global(.alias), .locked {
+  :global(.alias),
+  .locked {
     position: sticky;
     left: 10px;
   }

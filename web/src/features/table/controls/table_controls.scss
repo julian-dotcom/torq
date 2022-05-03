@@ -1,5 +1,5 @@
 .torq .table-controls {
-  padding: 20px 35px 10px 20px;
+  padding: 20px 10px 20px 10px;
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: auto auto;
@@ -42,7 +42,7 @@
 }
 @media only screen and (max-width: 1200px) {
   .torq .table-controls {
-    padding: 20px 20px 10px 20px;
+    padding: 20px 10px 10px 10px;
   }
 }
 @media only screen and (min-width: 1200px) {

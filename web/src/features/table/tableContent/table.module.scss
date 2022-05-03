@@ -4,17 +4,24 @@
   grid-auto-flow: row;
   grid-column-gap: 0px;
   overflow: scroll;
+  scrollbar-gutter: stable;
   height: 100vh;
   -webkit-overflow-scrolling: touch;
+  margin: 0 10px 10px 10px;
+  border-radius: 3px;
   @media only screen and (max-width: 600px) {
     height: calc(100vh - 178px);
+    margin: 0 10px 10px 10px;
   }
 }
+
 .tableWrapper {
   display: flex;
   flex-grow: 1;
   flex-direction: column;
   overflow: hidden;
+  //overflow: scroll;
+  //scrollbar-gutter: stable;
 }
 
 .loading {
@@ -29,5 +36,41 @@
   display: contents;
 }
 :global(.tableRow):hover :global(.cell) {
-  background-color: var(--accent-a-100);
+  background-color: var(--accent-b-0);
+}
+
+@media only screen and (min-width: 900px) {
+  .tableContent:global(::-webkit-scrollbar) {
+    background-color: transparent;
+  }
+  .tableContent:global(::-webkit-scrollbar-track) {
+    border: none;
+    overflow: visible;
+    z-index: 100;
+    position: absolute;
+    background: transparent;
+    box-shadow: none;
+    -webkit-box-shadow: none;
+  }
+  .tableContent:global(::-webkit-scrollbar-thumb) {
+    height: 6px;
+    border: 4px solid rgba(0, 0, 0, 0);
+    background-clip: padding-box;
+    background-color: rgba(0, 0, 0, 0.2);
+    -webkit-border-radius: 7px;
+    -webkit-box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05),
+      inset 1px 1px 0px rgba(0, 0, 0, 0.05);
+  }
+
+  .tableContent:global(::-webkit-scrollbar-button) {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .tableContent:global(::-webkit-scrollbar-corner) {
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+  }
 }

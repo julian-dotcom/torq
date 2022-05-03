@@ -10,11 +10,6 @@ import (
 	"time"
 )
 
-//forward_event	ForwardEvent
-//forward_fail_event	ForwardFailEvent
-//settle_event	SettleEvent
-//link_fail_event	LinkFailEvent
-
 func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.LinkFailEvent) error {
 
 	jb, err := json.Marshal(h)

@@ -1,10 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  Routes,
-  Route,
-  useLocation,
-  Navigate
-} from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import DefaultLayout from "./layout/DefaultLayout";
 import LoginLayout from "./layout/LoginLayout";
 import TablePage from "./features/table/TablePage";
@@ -13,24 +8,23 @@ import "./App.scss";
 import { Cookies } from "react-cookie";
 import { useAppDispatch } from "./store/hooks";
 /* import { logoutAsync } from "./features/auth/authSlice"; */
-import { useLogoutMutation } from 'apiSlice'
+import { useLogoutMutation } from "apiSlice";
 
 function Logout() {
-  const [logout] = useLogoutMutation()
+  const [logout] = useLogoutMutation();
   /* const dispatch = useAppDispatch(); */
 
   useEffect(() => {
     let c = new Cookies();
     c.remove("torq_session");
     /* dispatch(logoutAsync()); */
-    logout()
+    logout();
   });
 
   return <Navigate to="/login" replace />;
 }
 
 function App() {
-
   return (
     <div className="App torq">
       <Routes>
