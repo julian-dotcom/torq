@@ -43,7 +43,7 @@ function TableControls() {
             icon={<NavigationIcon />}
             text={"Menu"}
             onClick={() => dispatch(toggleNav())}
-            className={"show-nav-btn collapse-tablet "}
+            className={"show-nav-btn collapse-tablet"}
           />
           <ViewsPopover />
           {!currentView.saved && (

@@ -42,10 +42,10 @@
 }
 
 @media only screen and (min-width: 1200px) {
-  :global(.main-content-wrapper .show-nav-btn.button) {
+  :global(.main-content-wrapper) :global(.show-nav-btn) {
     display: none;
   }
-  :global(.main-content-wrapper.nav-hidden .show-nav-btn.button) {
+  :global(.main-content-wrapper.nav-hidden) :global(.show-nav-btn) {
     display: grid;
   }
 }
