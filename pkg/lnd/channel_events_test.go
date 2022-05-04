@@ -3,23 +3,14 @@ package lnd
 import (
 	"context"
 	"database/sql"
-	"io"
-	"log"
-
-	// "github.com/cockroachdb/errors"
-	// "github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/testutil"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-
-	// "github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/testutil"
-	// "golang.org/x/sync/errgroup"
-
-	// "google.golang.org/grpc"
+	"io"
 	"testing"
 )
 
@@ -120,6 +111,18 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		runChannelEventTest(t, db, channelEventUpdate, expected)
 	})
 
+	t.Run("Pending Open Channel Event", func(t *testing.T) {
+		expected := channelEventData{Chan_id: 0, Chan_point: "0101010101010101010101010101010101010101010101010101010101010104:3", Pub_key: "",
+			Event_type: int(lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL)}
+		TxBytes := []byte{4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+		channel := &lnrpc.PendingUpdate{Txid: TxBytes, OutputIndex: 3}
+		channelEvent := lnrpc.ChannelEventUpdate_PendingOpenChannel{PendingOpenChannel: channel}
+		channelEventUpdate := &lnrpc.ChannelEventUpdate{
+			Type:    lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL,
+			Channel: &channelEvent}
+		runChannelEventTest(t, db, channelEventUpdate, expected)
+	})
+
 	db.Close()
 	err = srv.Cleanup()
 	if err != nil {
@@ -172,8 +175,7 @@ WHERE chan_point = $1 AND event_type = $2;`, expected.Chan_point, expected.Event
 	}
 
 	if len(channelEvents) != 1 {
-		log.Fatalf("channel events %v", channelEvents)
-		t.Fatal("Expected to get a single open channel event record")
+		t.Fatal("Expected to find a single channel event record stored in the database for this channel event update")
 	}
 
 	if channelEvents[0].Chan_id != expected.Chan_id ||
