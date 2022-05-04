@@ -1,8 +1,17 @@
 import * as d3 from "d3";
 import { ScaleLinear, ScaleTime, Selection } from "d3";
+import {
+  addDays,
+  addHours,
+  addMilliseconds,
+  subDays,
+  subHours,
+  subMilliseconds,
+} from "date-fns";
 
 type chartConfig = {
   data: Array<any>;
+  yAxisKey: string;
   margin: {
     top: number;
     right: number;
@@ -18,6 +27,7 @@ type chartConfig = {
 class Chart {
   config: chartConfig = {
     data: [],
+    yAxisKey: "",
     margin: {
       top: 10,
       right: 20,
@@ -31,6 +41,7 @@ class Chart {
   };
 
   data: Array<any> = [];
+  plots: Map<string, object> = new Map<string, object>();
 
   container: Selection<HTMLDivElement, {}, HTMLElement, any>;
   canvas: Selection<HTMLCanvasElement, {}, HTMLElement, any>;
@@ -40,12 +51,18 @@ class Chart {
   yAxisContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
   eventsContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
 
-  constructor(container: Selection<HTMLDivElement, {}, HTMLElement, any>) {
+  constructor(
+    container: Selection<HTMLDivElement, {}, HTMLElement, any>,
+    data: Array<any>,
+    yAxisKey: string
+  ) {
     if (container == undefined) {
       throw new Error("The chart container can't be null");
     }
-
     this.container = container;
+
+    this.data = data;
+    this.config.yAxisKey = yAxisKey;
 
     this.container.attr("style", "position: relative; height: 100%;");
     // Configure the chart width and height based on the container
@@ -56,16 +73,15 @@ class Chart {
       this.container?.node()?.getBoundingClientRect().height ||
       this.config.height;
 
+    // let diff = this.data[2].date - this.data[1].date;
+    let start = subHours(this.data[0].date, 16);
+    let end = addHours(this.data[this.data.length - 1].date, 16);
+    // const start = this.data[0].date;
+    // const end = this.data[this.data.length - 1].date;
+
     // Creating a scale
     // The range is the number of pixels the domain will be distributed across
     // The domain is the values to be displayed on the chart
-    // Here we're setting dummy content
-    this.config.yScale = d3
-      .scaleLinear()
-      .range([
-        0,
-        this.config.height - this.config.margin.top - this.config.margin.bottom,
-      ]);
 
     this.config.xScale = d3
       .scaleTime()
@@ -75,6 +91,14 @@ class Chart {
           this.config.margin.right -
           this.config.margin.left -
           10,
+      ])
+      .domain([start, end]);
+
+    this.config.yScale = d3
+      .scaleLinear()
+      .range([
+        0,
+        this.config.height - this.config.margin.top - this.config.margin.bottom,
       ]);
 
     this.container.select(".chartContainer").remove();
@@ -136,10 +160,17 @@ class Chart {
       );
   }
 
-  chart() {
-    // this.data = data ? data : [];
+  plot(PlotItem: typeof BarPlot, config: { id: string; key: string }) {
+    this.plots.set(config.id, new PlotItem(this, config));
+  }
 
-    // new Bars(this.canvas).draw([]);
+  drawYAxis() {
+    const max = Math.max(
+      ...this.data.map((d): number => {
+        return d[this.config.yAxisKey];
+      })
+    );
+    this.config.yScale.domain([max, 0]);
 
     this.yAxisContainer
       .attr("style", `height: 100%; width: ${this.config.margin.left}px;`)
@@ -152,7 +183,9 @@ class Chart {
         `translate(${this.config.margin.left},${this.config.margin.top})`
       )
       .call(d3.axisLeft(this.config.yScale));
+  }
 
+  drawXAxis() {
     this.xAxisContainer
       .attr(
         "style",
@@ -168,21 +201,42 @@ class Chart {
       .style("font-size", "12px")
       .attr("transform", `translate(${this.config.margin.left + 10},0)`)
       .call(d3.axisBottom(this.config.xScale).tickSizeOuter(0));
+  }
+
+  draw() {
+    this.drawXAxis();
+    this.drawYAxis();
+
+    this.plots.forEach((plot, key) => {
+      (plot as BarPlot).draw();
+    });
+
     return this;
   }
 }
 
-export class Bars {
+type figureConfig = { id: string; key: string };
+type barsConfig = { id: string; key: string; barSpacing: number };
+
+export class BarPlot {
   canvas: CanvasRenderingContext2D;
   chart: Chart;
 
-  config: { spacing: number } = { spacing: 0.2 };
+  config: barsConfig;
 
-  constructor(chart: Chart) {
+  constructor(chart: Chart, config: figureConfig) {
     this.chart = chart;
     this.canvas = chart.canvas
       ?.node()
       ?.getContext("2d") as CanvasRenderingContext2D;
+
+    const defaultConfig = {
+      barSpacing: 0.1,
+      id: "",
+      key: "",
+    };
+
+    this.config = { ...defaultConfig, ...config };
   }
 
   start(dataPoint: number): number {
@@ -198,10 +252,13 @@ export class Bars {
 
   barWidth(): number {
     const ticks = this.chart.config.xScale.ticks();
+
     return (
-      ((this.chart.config.xScale(ticks[1]) || 0) -
-        (this.chart.config.xScale(ticks[0]) || 0)) *
-      (1 - this.config.spacing)
+      // @ts-ignore
+      (this.chart.config.xScale(new Date(1, 0, 1)) -
+        // @ts-ignore
+        this.chart.config.xScale(new Date(1, 0, 0))) *
+      (1 - this.config.barSpacing)
     );
   }
 
@@ -209,8 +266,8 @@ export class Bars {
     return this.chart.config.yScale(dataPoint);
   }
 
-  draw(data: Array<any>) {
-    for (let i: number = 0; i < data.length; i++) {
+  draw() {
+    for (let i: number = 0; i < this.chart.data.length; i++) {
       this.canvas.fillStyle = "#C2E2FF";
       this.canvas.strokeStyle = "#C2E2FF";
       this.canvas.lineJoin = "round";
@@ -218,16 +275,25 @@ export class Bars {
       this.canvas.lineWidth = cornerRadius;
 
       this.canvas.fillRect(
-        this.start(data[i].date) - this.barWidth() / 2 + cornerRadius / 2,
-        this.top(data[i].revenue) + this.offset() + cornerRadius / 2,
+        this.start(this.chart.data[i].date) -
+          this.barWidth() / 2 +
+          cornerRadius / 2,
+        this.top(this.chart.data[i][this.config.key]) +
+          this.offset() +
+          cornerRadius / 2,
         this.barWidth() - cornerRadius,
-        this.top(-data[i].revenue) - cornerRadius
+        this.top(-this.chart.data[i][this.config.key]) - cornerRadius
       );
+
       this.canvas.strokeRect(
-        this.start(data[i].date) - this.barWidth() / 2 + cornerRadius / 2,
-        this.top(data[i].revenue) + this.offset() + cornerRadius / 2,
+        this.start(this.chart.data[i].date) -
+          this.barWidth() / 2 +
+          cornerRadius / 2,
+        this.top(this.chart.data[i][this.config.key]) +
+          this.offset() +
+          cornerRadius / 2,
         this.barWidth() - cornerRadius,
-        this.top(-data[i].revenue) - cornerRadius
+        this.top(-this.chart.data[i][this.config.key]) - cornerRadius
       );
     }
   }
