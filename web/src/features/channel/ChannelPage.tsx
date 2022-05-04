@@ -1,7 +1,7 @@
 import styles from "./channel-page.module.scss";
 import classNames from "classnames";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import BarChart from "./charts/ProfitsChart/BarChart";
+import BarChart from "./charts/barChart/BarChart";
 import Switch from "../inputs/Slider/Switch";
 
 const data = [
@@ -127,10 +127,20 @@ function ChannelPage() {
           </div>
         </div>
         <div className={styles.pageRow}>
-          <div className={styles.card}>Channel Events</div>
+          <div className={styles.card}>
+            Channel Events
+            <div className={styles.chartWrapper} style={{ height: "500px" }}>
+              <BarChart data={data} />
+            </div>
+          </div>
         </div>
         <div className={styles.pageRow}>
-          <div className={styles.card}>Channel Flow</div>
+          <div className={styles.card}>
+            Channel Flow
+            <div className={styles.chartWrapper} style={{ height: "500px" }}>
+              <BarChart data={data} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

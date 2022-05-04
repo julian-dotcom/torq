@@ -1,0 +1,12 @@
+.tick line {
+  visibility: hidden;
+}
+.tick text {
+  fill: var(--fg-muted);
+}
+.xAxisContainer path.domain {
+  stroke: var(--bg-subtle);
+}
+.yAxisContainer path.domain {
+  visibility: hidden;
+}
