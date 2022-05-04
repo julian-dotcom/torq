@@ -30,6 +30,8 @@ class Chart {
     xScale: d3.scaleTime([0, 800]),
   };
 
+  data: Array<any> = [];
+
   container: Selection<HTMLDivElement, {}, HTMLElement, any>;
   canvas: Selection<HTMLCanvasElement, {}, HTMLElement, any>;
   interactionLayer: Selection<HTMLCanvasElement, {}, HTMLElement, any>;
@@ -42,6 +44,7 @@ class Chart {
     if (container == undefined) {
       throw new Error("The chart container can't be null");
     }
+
     this.container = container;
 
     this.container.attr("style", "position: relative; height: 100%;");
@@ -62,8 +65,7 @@ class Chart {
       .range([
         0,
         this.config.height - this.config.margin.top - this.config.margin.bottom,
-      ])
-      .domain([100, 0]);
+      ]);
 
     this.config.xScale = d3
       .scaleTime()
@@ -73,8 +75,7 @@ class Chart {
           this.config.margin.right -
           this.config.margin.left -
           10,
-      ])
-      .domain([new Date(2022, 1, 1), new Date(2022, 2, 1)]);
+      ]);
 
     this.container.select(".chartContainer").remove();
     this.container.select(".xAxisContainer").remove();
@@ -136,6 +137,10 @@ class Chart {
   }
 
   chart() {
+    // this.data = data ? data : [];
+
+    // new Bars(this.canvas).draw([]);
+
     this.yAxisContainer
       .attr("style", `height: 100%; width: ${this.config.margin.left}px;`)
       .append("svg")
@@ -164,6 +169,67 @@ class Chart {
       .attr("transform", `translate(${this.config.margin.left + 10},0)`)
       .call(d3.axisBottom(this.config.xScale).tickSizeOuter(0));
     return this;
+  }
+}
+
+export class Bars {
+  canvas: CanvasRenderingContext2D;
+  chart: Chart;
+
+  config: { spacing: number } = { spacing: 0.2 };
+
+  constructor(chart: Chart) {
+    this.chart = chart;
+    this.canvas = chart.canvas
+      ?.node()
+      ?.getContext("2d") as CanvasRenderingContext2D;
+  }
+
+  start(dataPoint: number): number {
+    return this.chart.config.xScale(dataPoint) || 0;
+  }
+
+  offset(): number {
+    return (
+      (this.chart.canvas.node()?.height || 0) -
+      this.chart.config.yScale.range()[1]
+    );
+  }
+
+  barWidth(): number {
+    const ticks = this.chart.config.xScale.ticks();
+    return (
+      ((this.chart.config.xScale(ticks[1]) || 0) -
+        (this.chart.config.xScale(ticks[0]) || 0)) *
+      (1 - this.config.spacing)
+    );
+  }
+
+  top(dataPoint: number): number {
+    return this.chart.config.yScale(dataPoint);
+  }
+
+  draw(data: Array<any>) {
+    for (let i: number = 0; i < data.length; i++) {
+      this.canvas.fillStyle = "#C2E2FF";
+      this.canvas.strokeStyle = "#C2E2FF";
+      this.canvas.lineJoin = "round";
+      const cornerRadius = 5;
+      this.canvas.lineWidth = cornerRadius;
+
+      this.canvas.fillRect(
+        this.start(data[i].date) - this.barWidth() / 2 + cornerRadius / 2,
+        this.top(data[i].revenue) + this.offset() + cornerRadius / 2,
+        this.barWidth() - cornerRadius,
+        this.top(-data[i].revenue) - cornerRadius
+      );
+      this.canvas.strokeRect(
+        this.start(data[i].date) - this.barWidth() / 2 + cornerRadius / 2,
+        this.top(data[i].revenue) + this.offset() + cornerRadius / 2,
+        this.barWidth() - cornerRadius,
+        this.top(-data[i].revenue) - cornerRadius
+      );
+    }
   }
 }
 
