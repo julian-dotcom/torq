@@ -96,6 +96,30 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		runChannelEventTest(t, db, channelEventUpdate, expected)
 	})
 
+	t.Run("Active Channel Event", func(t *testing.T) {
+		expected := channelEventData{Chan_id: 0, Chan_point: "0101010101010101010101010101010101010101010101010101010101010102:3", Pub_key: "",
+			Event_type: int(lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL)}
+		fundingTxBytes := []byte{2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+		channel := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: fundingTxBytes}, OutputIndex: 3}
+		channelEvent := lnrpc.ChannelEventUpdate_ActiveChannel{ActiveChannel: channel}
+		channelEventUpdate := &lnrpc.ChannelEventUpdate{
+			Type:    lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL,
+			Channel: &channelEvent}
+		runChannelEventTest(t, db, channelEventUpdate, expected)
+	})
+
+	t.Run("Inactive Channel Event", func(t *testing.T) {
+		expected := channelEventData{Chan_id: 0, Chan_point: "0101010101010101010101010101010101010101010101010101010101010103:3", Pub_key: "",
+			Event_type: int(lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL)}
+		fundingTxBytes := []byte{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+		channel := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: fundingTxBytes}, OutputIndex: 3}
+		channelEvent := lnrpc.ChannelEventUpdate_InactiveChannel{InactiveChannel: channel}
+		channelEventUpdate := &lnrpc.ChannelEventUpdate{
+			Type:    lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL,
+			Channel: &channelEvent}
+		runChannelEventTest(t, db, channelEventUpdate, expected)
+	})
+
 	db.Close()
 	err = srv.Cleanup()
 	if err != nil {
