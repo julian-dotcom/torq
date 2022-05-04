@@ -84,6 +84,18 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		runChannelEventTest(t, db, channelEventUpdate, expected)
 	})
 
+	t.Run("Fully Resolved Channel Event", func(t *testing.T) {
+		expected := channelEventData{Chan_id: 0, Chan_point: "0101010101010101010101010101010101010101010101010101010101010101:3", Pub_key: "",
+			Event_type: int(lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL)}
+		fundingTxBytes := []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+		channel := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: fundingTxBytes}, OutputIndex: 3}
+		channelEvent := lnrpc.ChannelEventUpdate_FullyResolvedChannel{FullyResolvedChannel: channel}
+		channelEventUpdate := &lnrpc.ChannelEventUpdate{
+			Type:    lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL,
+			Channel: &channelEvent}
+		runChannelEventTest(t, db, channelEventUpdate, expected)
+	})
+
 	db.Close()
 	err = srv.Cleanup()
 	if err != nil {
@@ -122,8 +134,10 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	}
 
 	var channelEvents []channelEventData
-	err = db.Select(&channelEvents, "select chan_point, pub_key, event_type FROM channel_event WHERE chan_id = $1;",
-		expected.Chan_id)
+	err = db.Select(&channelEvents, `
+SELECT chan_id, pub_key
+FROM channel_event
+WHERE chan_point = $1 AND event_type = $2;`, expected.Chan_point, expected.Event_type)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -138,9 +152,8 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 		t.Fatal("Expected to get a single open channel event record")
 	}
 
-	if channelEvents[0].Chan_point != expected.Chan_point ||
-		channelEvents[0].Pub_key != expected.Pub_key ||
-		channelEvents[0].Event_type != expected.Event_type {
+	if channelEvents[0].Chan_id != expected.Chan_id ||
+		channelEvents[0].Pub_key != expected.Pub_key {
 		t.Fatal("Data not stored correctly")
 	}
 }
