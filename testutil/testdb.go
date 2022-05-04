@@ -1,7 +1,6 @@
 package testutil
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"github.com/cockroachdb/errors"
@@ -105,13 +104,13 @@ func randString(n int) string {
 
 // createDatabase creates a new database on the server and returns its
 // data source name.
-func (srv *Server) createDatabase(ctx context.Context) (string, error) {
+func (srv *Server) createDatabase() (string, error) {
 
 	// Create a new random name for the test database with prefix.
 	dbName := testDBPrefix + randString(16)
 
 	// Create a new test database
-	_, err := srv.conn.ExecContext(ctx, "CREATE DATABASE "+dbName+";")
+	_, err := srv.conn.Exec("CREATE DATABASE " + dbName + ";")
 	if err != nil {
 		return "", errors.Wrapf(err, "srv.conn.ExecContext(ctx, \"CREATE DATABASE %s;\"", dbName)
 	}
@@ -122,10 +121,10 @@ func (srv *Server) createDatabase(ctx context.Context) (string, error) {
 }
 
 // NewTestDatabase opens a connection to a freshly created database on the server.
-func (srv *Server) NewTestDatabase(ctx context.Context, migrate bool) (*sqlx.DB, error) {
+func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 
 	// Create the new test database based on the main server connection
-	dns, err := srv.createDatabase(ctx)
+	dns, err := srv.createDatabase()
 	if err != nil {
 		return nil, errors.Wrap(err, "srv.createDatabase(ctx)")
 	}

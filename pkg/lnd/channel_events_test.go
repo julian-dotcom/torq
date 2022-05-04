@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"io"
+	"log"
+
 	// "github.com/cockroachdb/errors"
 	// "github.com/jmoiron/sqlx"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/pkg/errors"
@@ -22,61 +25,90 @@ import (
 
 type stubLNDSubscribeChannelEventRPC struct {
 	grpc.ClientStream
-	Channels []interface{}
+	ChannelEvents []interface{}
 }
 
 func (s *stubLNDSubscribeChannelEventRPC) Recv() (*lnrpc.ChannelEventUpdate, error) {
-	if len(s.Channels) == 0 {
+	if len(s.ChannelEvents) == 0 {
 		return nil, io.EOF
 	}
-	var channel interface{}
-	channel, s.Channels = s.Channels[0], nil
-	if openChannel, ok := channel.(lnrpc.ChannelEventUpdate_OpenChannel); ok {
-		return &lnrpc.ChannelEventUpdate{
-			Type:    lnrpc.ChannelEventUpdate_OPEN_CHANNEL,
-			Channel: &openChannel}, nil
+	var channelEvent interface{}
+	channelEvent, s.ChannelEvents = s.ChannelEvents[0], nil
+	if eventUpdate, ok := channelEvent.(*lnrpc.ChannelEventUpdate); ok {
+		return eventUpdate, nil
 	}
 	return nil, io.EOF
 }
 
-func (s *stubLNDSubscribeChannelEventRPC) AddChannelEvent(channel *lnrpc.ChannelEventUpdate_OpenChannel) error {
-	s.Channels = append(s.Channels, channel)
-	return nil
-}
-
 type stubLNDSubscribeChannelEvent struct {
-	Channels []interface{}
+	ChannelEvents []interface{}
 }
 
 func (c *stubLNDSubscribeChannelEvent) SubscribeChannelEvents(
 	ctx context.Context, in *lnrpc.ChannelEventSubscription,
 	opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeChannelEventsClient, error) {
 
-	return &stubLNDSubscribeChannelEventRPC{Channels: c.Channels}, nil
+	return &stubLNDSubscribeChannelEventRPC{ChannelEvents: c.ChannelEvents}, nil
 }
 
 func TestSubscribeChannelEvents(t *testing.T) {
-	ctx := context.Background()
-	errs, ctx := errgroup.WithContext(ctx)
-
 	srv, err := testutil.InitTestDBConn()
 	if err != nil {
 		panic(err)
 	}
 
-	db, err := srv.NewTestDatabase(ctx, true)
+	db, err := srv.NewTestDatabase(true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	t.Run("Open Channel Event", func(t *testing.T) {
+		expected := channelEventData{Chan_id: 1337, Chan_point: "point break", Pub_key: "remote pub key",
+			Event_type: int(lnrpc.ChannelEventUpdate_OPEN_CHANNEL)}
+		channel := &lnrpc.Channel{ChanId: expected.Chan_id, ChannelPoint: expected.Chan_point, RemotePubkey: expected.Pub_key}
+		channelEvent := lnrpc.ChannelEventUpdate_OpenChannel{OpenChannel: channel}
+		channelEventUpdate := &lnrpc.ChannelEventUpdate{
+			Type:    lnrpc.ChannelEventUpdate_OPEN_CHANNEL,
+			Channel: &channelEvent}
+		runChannelEventTest(t, db, channelEventUpdate, expected)
+	})
+
+	t.Run("Closed Channel Event", func(t *testing.T) {
+		expected := channelEventData{Chan_id: 1338, Chan_point: "closed point break", Pub_key: "closed remote pub key",
+			Event_type: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL)}
+		channel := &lnrpc.ChannelCloseSummary{ChanId: expected.Chan_id, ChannelPoint: expected.Chan_point, RemotePubkey: expected.Pub_key}
+		channelEvent := lnrpc.ChannelEventUpdate_ClosedChannel{ClosedChannel: channel}
+		channelEventUpdate := &lnrpc.ChannelEventUpdate{
+			Type:    lnrpc.ChannelEventUpdate_CLOSED_CHANNEL,
+			Channel: &channelEvent}
+		runChannelEventTest(t, db, channelEventUpdate, expected)
+	})
+
+	db.Close()
+	err = srv.Cleanup()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+type channelEventData struct {
+	Chan_id    uint64
+	Chan_point string
+	Pub_key    string
+	Event_type int
+}
+
+func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, expected channelEventData) {
+	ctx := context.Background()
+	errs, ctx := errgroup.WithContext(ctx)
+
 	pubKeyChan := make(chan string, 1)
 	chanPointChan := make(chan string, 1)
 
-	expectedEvent := &lnrpc.Channel{ChanId: 1337, ChannelPoint: "point break", RemotePubkey: "remote pub key"}
-	client := &stubLNDSubscribeChannelEvent{Channels: []interface{}{
-		lnrpc.ChannelEventUpdate_OpenChannel{OpenChannel: expectedEvent}}}
+	client := &stubLNDSubscribeChannelEvent{ChannelEvents: []interface{}{channelEvent}}
 
 	errs.Go(func() error {
-		err = SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan)
+		err := SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan)
 		if err != nil {
 			t.Fatalf("Problem subscribing to channel events: %v", err)
 		}
@@ -84,19 +116,14 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	// wait for subscriptions to complete
-	err = errs.Wait()
+	err := errs.Wait()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	type channelEvent struct {
-		Chan_point string
-		Pub_key    string
-		Event_type int
-	}
-	var channelEvents []channelEvent
+	var channelEvents []channelEventData
 	err = db.Select(&channelEvents, "select chan_point, pub_key, event_type FROM channel_event WHERE chan_id = $1;",
-		expectedEvent.ChanId)
+		expected.Chan_id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -107,18 +134,13 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	}
 
 	if len(channelEvents) != 1 {
+		log.Fatalf("channel events %v", channelEvents)
 		t.Fatal("Expected to get a single open channel event record")
 	}
 
-	if channelEvents[0].Chan_point != expectedEvent.ChannelPoint ||
-		channelEvents[0].Pub_key != expectedEvent.RemotePubkey ||
-		channelEvents[0].Event_type != int(lnrpc.ChannelEventUpdate_OPEN_CHANNEL) {
+	if channelEvents[0].Chan_point != expected.Chan_point ||
+		channelEvents[0].Pub_key != expected.Pub_key ||
+		channelEvents[0].Event_type != expected.Event_type {
 		t.Fatal("Data not stored correctly")
-	}
-
-	db.Close()
-	err = srv.Cleanup()
-	if err != nil {
-		t.Fatal(err)
 	}
 }
