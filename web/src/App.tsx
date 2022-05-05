@@ -4,6 +4,7 @@ import DefaultLayout from "./layout/DefaultLayout";
 import LoginLayout from "./layout/LoginLayout";
 import TablePage from "./features/table/TablePage";
 import LoginPage from "./features/auth/LoginPage";
+import SettingsPage from "./features/settings/SettingsPage"
 import "./App.scss";
 import { Cookies } from "react-cookie";
 import { useAppDispatch } from "./store/hooks";
@@ -38,6 +39,16 @@ function App() {
             element={
               <RequireAuth>
                 <TablePage />
+              </RequireAuth>
+            }
+          />
+        </Route>
+        <Route element={<DefaultLayout />}>
+          <Route
+            path="/settings"
+            element={
+              <RequireAuth>
+                <SettingsPage name="seeeeeetings" />
               </RequireAuth>
             }
           />
