@@ -12,7 +12,7 @@ function BarChart({ data }: { data: any[] }) {
       chart.plot(BarPlot, { id: "revenue", key: "revenue" });
       chart.draw();
     },
-    [data.length]
+    [data]
   );
 
   // @ts-ignore

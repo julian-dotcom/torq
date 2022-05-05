@@ -1,13 +1,6 @@
 import * as d3 from "d3";
-import { ScaleLinear, ScaleTime, Selection } from "d3";
-import {
-  addDays,
-  addHours,
-  addMilliseconds,
-  subDays,
-  subHours,
-  subMilliseconds,
-} from "date-fns";
+import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
+import { addHours, subHours } from "date-fns";
 
 type chartConfig = {
   data: Array<any>;
@@ -50,6 +43,10 @@ class Chart {
   xAxisContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
   yAxisContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
   eventsContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  dataLabelContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+
+  context: CanvasRenderingContext2D;
+  interactionContext: CanvasRenderingContext2D;
 
   constructor(
     container: Selection<HTMLDivElement, {}, HTMLElement, any>,
@@ -73,16 +70,12 @@ class Chart {
       this.container?.node()?.getBoundingClientRect().height ||
       this.config.height;
 
-    // let diff = this.data[2].date - this.data[1].date;
     let start = subHours(this.data[0].date, 16);
     let end = addHours(this.data[this.data.length - 1].date, 16);
-    // const start = this.data[0].date;
-    // const end = this.data[this.data.length - 1].date;
 
     // Creating a scale
     // The range is the number of pixels the domain will be distributed across
     // The domain is the values to be displayed on the chart
-
     this.config.xScale = d3
       .scaleTime()
       .range([
@@ -101,34 +94,11 @@ class Chart {
         this.config.height - this.config.margin.top - this.config.margin.bottom,
       ]);
 
-    this.container.select(".chartContainer").remove();
-    this.container.select(".xAxisContainer").remove();
-    this.container.select(".yAxisContainer").remove();
-    this.container.select(".eventsContainer").remove();
+    this.container.html(null);
 
     this.chartContainer = this.container
       .append("div")
-      .attr("class", "chartContainer");
-
-    this.chartContainer = this.container
-      .append("div")
-      .attr("class", "xAxisContainer");
-
-    this.chartContainer = this.container
-      .append("div")
-      .attr("class", "yAxisContainer");
-
-    this.chartContainer = this.container
-      .append("div")
-      .attr("class", "eventsContainer");
-
-    this.chartContainer = this.container.select(".chartContainer");
-    this.xAxisContainer = this.container.select(".xAxisContainer");
-    this.yAxisContainer = this.container.select(".yAxisContainer");
-    this.eventsContainer = this.container.select(".eventsContainer");
-
-    this.container
-      .select(".chartContainer")
+      .attr("class", "chartContainer")
       .attr(
         "width",
         this.config.width - this.config.margin.left - this.config.margin.right
@@ -141,6 +111,18 @@ class Chart {
         "style",
         `position: absolute; left: ${this.config.margin.left}px; top: ${this.config.margin.top}px;`
       );
+
+    this.xAxisContainer = this.container
+      .append("div")
+      .attr("class", "xAxisContainer");
+
+    this.yAxisContainer = this.container
+      .append("div")
+      .attr("class", "yAxisContainer");
+
+    this.eventsContainer = this.container
+      .append("div")
+      .attr("class", "eventsContainer");
 
     this.canvas = this.container
       .select(".chartContainer")
@@ -156,11 +138,88 @@ class Chart {
       .attr("height", this.config.yScale.range()[1])
       .attr(
         "style",
-        "position: absolute; top: 0px; left: 10px; display: none;"
+        "position: absolute; left: 10px; top: 0px; display: none;" // display: none;
       );
+
+    this.dataLabelContainer = this.container
+      .select(".chartContainer")
+      .append("div")
+      .attr("class", "dataLabelContainer")
+      .attr("width", this.config.xScale.range()[1] + "px")
+      .attr("height", this.config.yScale.range()[1] + "px")
+      .attr(
+        "style",
+        `position: absolute; left: 10px; top: 0px; pointer-events: none;
+             width: ${this.config.xScale.range()[1]}px;
+             height: ${this.config.yScale.range()[1]}px;`
+      )
+      .html("<div>Soemthing<div>");
+
+    this.onHover();
+
+    this.context = this.canvas
+      ?.node()
+      ?.getContext("2d") as CanvasRenderingContext2D;
+
+    this.interactionContext = this.interactionLayer
+      ?.node()
+      ?.getContext("2d") as CanvasRenderingContext2D;
   }
 
-  plot(PlotItem: typeof BarPlot, config: { id: string; key: string }) {
+  /**
+   * nextCol keeps track of the next unique color used to identify figures (drawn objects) on the canvas.
+   */
+  nextCol: number = 1;
+
+  /**
+   * @remarks concept taken from https://www.freecodecamp.org/news/d3-and-canvas-in-3-steps-8505c8b27444/
+   */
+  genColor() {
+    let ret = [];
+    if (this.nextCol < 16777215) {
+      ret.push(this.nextCol & 0xff);
+      ret.push((this.nextCol & 0xff00) >> 8);
+      ret.push((this.nextCol & 0xff0000) >> 16);
+      // Increase by 10 because the drawn figure changes color when it partially touches a pixel
+      // when you increase by 10, the drawn color is different enough to prevent confusion between figures
+      this.nextCol += 1;
+    }
+    return "rgb(" + ret.join(",") + ")";
+  }
+
+  figures: Map<string, { plot: BarPlot; config: barInputConfig }> = new Map<
+    string,
+    { plot: BarPlot; config: barInputConfig }
+  >();
+
+  getFigure(
+    xLocation: number,
+    yLocation: number
+  ): { plot: BarPlot; config: barInputConfig } | undefined {
+    const colorData = this.interactionContext.getImageData(
+      xLocation,
+      yLocation,
+      1,
+      1
+    ).data;
+
+    return this.figures.get(
+      "rgb(" + [colorData[0], colorData[1], colorData[2]].join(",") + ")"
+    );
+  }
+
+  onHover() {
+    this.canvas.on("mousemove", (event) => {
+      const pointer = d3.pointer(event);
+      let figure = this.getFigure(pointer[0], pointer[1]);
+      if (figure !== undefined) {
+        figure.plot.setConfig(figure.config);
+        figure.plot.draw();
+      }
+    });
+  }
+
+  plot(PlotItem: typeof BarPlot, config: any) {
     this.plots.set(config.id, new PlotItem(this, config));
   }
 
@@ -200,13 +259,25 @@ class Chart {
       .append("g")
       .style("font-size", "12px")
       .attr("transform", `translate(${this.config.margin.left + 10},0)`)
-      .call(d3.axisBottom(this.config.xScale).tickSizeOuter(0));
+      .call(
+        d3
+          .axisBottom(this.config.xScale)
+          .tickSizeOuter(0)
+          .tickFormat(
+            d3.timeFormat("%d %b") as (
+              domainValue: NumberValue | Date,
+              index: number
+            ) => string
+          )
+      );
   }
 
   draw() {
+    // Draw the X and Y axis
     this.drawXAxis();
     this.drawYAxis();
 
+    // Draw each plot on the chart
     this.plots.forEach((plot, key) => {
       (plot as BarPlot).draw();
     });
@@ -215,34 +286,68 @@ class Chart {
   }
 }
 
-type figureConfig = { id: string; key: string };
-type barsConfig = { id: string; key: string; barSpacing: number };
+type barsConfig = {
+  barGap: number; // The gap between each bar
+  tickInterval: number; // The interval between each bar
+  barColor: string; // The color of the bar
+  hoverBarIndex?: number;
+  cornerRadius: number; // The radius of the bar
+  id: string; // The id used to fetch the BarPlot instance from the Chart instance
+  key: string; // The key used to fetch data for each bar
+};
+type barInputConfig = Partial<barsConfig> &
+  Required<Pick<barsConfig, "id" | "key">>;
 
 export class BarPlot {
-  canvas: CanvasRenderingContext2D;
   chart: Chart;
-
   config: barsConfig;
 
-  constructor(chart: Chart, config: figureConfig) {
+  /**
+   * Plots bars on a chart canvas. To use it add it to the plots map on the Chart instance.
+   *
+   * @param chart - The Chart instance where BarPlot will be plotted on
+   * @param config - Plot config, only required attributes are key and ID
+   */
+  constructor(chart: Chart, config: barInputConfig) {
     this.chart = chart;
-    this.canvas = chart.canvas
-      ?.node()
-      ?.getContext("2d") as CanvasRenderingContext2D;
 
-    const defaultConfig = {
-      barSpacing: 0.1,
-      id: "",
-      key: "",
+    this.config = {
+      barGap: 0.1,
+      barColor: "#C2E2FF",
+      cornerRadius: 3,
+      tickInterval:
+        (this.chart.config.xScale(new Date(1, 0, 1)) || 0) -
+        (this.chart.config.xScale(new Date(1, 0, 0)) || 0),
+      ...config,
     };
-
-    this.config = { ...defaultConfig, ...config };
   }
 
-  start(dataPoint: number): number {
-    return this.chart.config.xScale(dataPoint) || 0;
+  setConfig(config: barInputConfig) {
+    this.config = { ...this.config, ...config };
   }
 
+  /**
+   * xPoint returns the starting location for the bar on the xScale in pixels
+   *
+   * @param xValue the data point on the xScale that you want to convert to a pixel location on the chart.
+   */
+  xPoint(xValue: number): number {
+    return (this.chart.config.xScale(xValue) || 0) - this.barWidth() / 2;
+  }
+
+  /**
+   * yPoint returns the starting location for the bar on the yScale in pixels
+   *
+   * @param yValue the data point on the yScale that you want to convert to a pixel location on the chart.
+   */
+  yPoint(yValue: number): number {
+    return this.barHeight(yValue) + this.offset();
+  }
+
+  /**
+   * Used to offset the y pixel location effectively flipping the graph vertical axis,
+   * which is necessary because drawing has origin top left, while a chart/graph has origin bottom left.
+   */
   offset(): number {
     return (
       (this.chart.canvas.node()?.height || 0) -
@@ -251,49 +356,68 @@ export class BarPlot {
   }
 
   barWidth(): number {
-    const ticks = this.chart.config.xScale.ticks();
-
-    return (
-      // @ts-ignore
-      (this.chart.config.xScale(new Date(1, 0, 1)) -
-        // @ts-ignore
-        this.chart.config.xScale(new Date(1, 0, 0))) *
-      (1 - this.config.barSpacing)
-    );
+    return this.config.tickInterval;
   }
 
-  top(dataPoint: number): number {
+  barHeight(dataPoint: number): number {
     return this.chart.config.yScale(dataPoint);
   }
 
+  drawBar(
+    context: CanvasRenderingContext2D,
+    dataPoint: any,
+    fillColor: string
+  ) {
+    context.fillStyle = fillColor;
+    context.strokeStyle = fillColor;
+
+    // Draw the bar rectangle
+    context.fillRect(
+      this.xPoint(dataPoint.date) + this.config.cornerRadius / 2,
+      this.yPoint(dataPoint[this.config.key]) + this.config.cornerRadius / 2,
+      this.barWidth() * (1 - this.config.barGap) - this.config.cornerRadius,
+      this.barHeight(-dataPoint[this.config.key]) - this.config.cornerRadius
+    );
+
+    // This draws the stroke used to create rounded corners
+    context.strokeRect(
+      this.xPoint(dataPoint.date) + this.config.cornerRadius / 2,
+      this.yPoint(dataPoint[this.config.key]) + this.config.cornerRadius / 2,
+      this.barWidth() * (1 - this.config.barGap) - this.config.cornerRadius,
+      this.barHeight(-dataPoint[this.config.key]) - this.config.cornerRadius
+    );
+  }
+
+  /**
+   * Draw draws the bars on the Chart instance based on the configuration provided.
+   */
   draw() {
     for (let i: number = 0; i < this.chart.data.length; i++) {
-      this.canvas.fillStyle = "#C2E2FF";
-      this.canvas.strokeStyle = "#C2E2FF";
-      this.canvas.lineJoin = "round";
-      const cornerRadius = 5;
-      this.canvas.lineWidth = cornerRadius;
+      this.chart.context.fillStyle = this.config.barColor;
+      this.chart.context.strokeStyle = this.config.barColor;
+      this.chart.context.lineJoin = "round";
 
-      this.canvas.fillRect(
-        this.start(this.chart.data[i].date) -
-          this.barWidth() / 2 +
-          cornerRadius / 2,
-        this.top(this.chart.data[i][this.config.key]) +
-          this.offset() +
-          cornerRadius / 2,
-        this.barWidth() - cornerRadius,
-        this.top(-this.chart.data[i][this.config.key]) - cornerRadius
-      );
+      this.chart.context.lineWidth = this.config.cornerRadius;
 
-      this.canvas.strokeRect(
-        this.start(this.chart.data[i].date) -
-          this.barWidth() / 2 +
-          cornerRadius / 2,
-        this.top(this.chart.data[i][this.config.key]) +
-          this.offset() +
-          cornerRadius / 2,
-        this.barWidth() - cornerRadius,
-        this.top(-this.chart.data[i][this.config.key]) - cornerRadius
+      let barColor = this.config.barColor;
+      if (this.config.hoverBarIndex === i) {
+        barColor = "#9DD0FF";
+      }
+      this.drawBar(this.chart.context, this.chart.data[i], barColor);
+
+      // Create the interaction color and
+      const interactionColor = this.chart.genColor();
+      this.chart.figures.set(interactionColor, {
+        plot: this,
+        config: { ...this.config, hoverBarIndex: i },
+      });
+
+      this.chart.interactionContext.fillStyle = interactionColor;
+      this.chart.interactionContext.fillRect(
+        Math.round(this.xPoint(this.chart.data[i].date)),
+        Math.round(this.yPoint(this.chart.data[i][this.config.key])),
+        Math.round(this.barWidth()),
+        Math.round(this.barHeight(-this.chart.data[i][this.config.key]))
       );
     }
   }
