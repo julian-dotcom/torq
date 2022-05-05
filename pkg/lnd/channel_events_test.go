@@ -53,6 +53,15 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	testDBCleanup := func() {
+		db.Close()
+		err = srv.Cleanup()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	defer testDBCleanup()
+
 	t.Run("Open Channel Event", func(t *testing.T) {
 		expected := channelEventData{Chan_id: 1337, Chan_point: "point break", Pub_key: "remote pub key",
 			Event_type: int(lnrpc.ChannelEventUpdate_OPEN_CHANNEL)}
@@ -122,12 +131,6 @@ func TestSubscribeChannelEvents(t *testing.T) {
 			Channel: &channelEvent}
 		runChannelEventTest(t, db, channelEventUpdate, expected)
 	})
-
-	db.Close()
-	err = srv.Cleanup()
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 type channelEventData struct {
