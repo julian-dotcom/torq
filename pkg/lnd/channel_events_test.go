@@ -53,14 +53,14 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testDBCleanup := func() {
-		db.Close()
-		err = srv.Cleanup()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	defer testDBCleanup()
+	// testDBCleanup := func() {
+	// 	db.Close()
+	// 	err = srv.Cleanup()
+	// 	if err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// }
+	// defer testDBCleanup()
 
 	t.Run("Open Channel Event", func(t *testing.T) {
 		expected := channelEventData{Chan_id: 1337, Chan_point: "point break", Pub_key: "remote pub key",
@@ -74,7 +74,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Closed Channel Event", func(t *testing.T) {
-		expected := channelEventData{Chan_id: 1338, Chan_point: "closed point break", Pub_key: "closed remote pub key",
+		expected := channelEventData{Chan_id: 1337, Chan_point: "closed point break", Pub_key: "closed remote pub key",
 			Event_type: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL)}
 		channel := &lnrpc.ChannelCloseSummary{ChanId: expected.Chan_id, ChannelPoint: expected.Chan_point, RemotePubkey: expected.Pub_key}
 		channelEvent := lnrpc.ChannelEventUpdate_ClosedChannel{ClosedChannel: channel}
@@ -131,6 +131,38 @@ func TestSubscribeChannelEvents(t *testing.T) {
 			Channel: &channelEvent}
 		runChannelEventTest(t, db, channelEventUpdate, expected)
 	})
+
+	t.Run("Newly discovered channel is stored", func(t *testing.T) {
+		// The open channel and closed channel tests above used the same chan id of 1337
+		// so a single new channel record should have been created
+
+		type channel struct {
+			Short_channel_id    string
+			Channel_point       string
+			Destination_pub_key string
+		}
+		var channels []channel
+		err = db.Select(&channels, `SELECT short_channel_id, channel_point, destination_pub_key FROM channel;`)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				// t.Fatalf("Error was %v", err)
+				t.Fatal("There were no channel records but I did expect there to be one")
+			}
+			t.Fatalf("Problem executing sql: %v", err)
+		}
+
+		if len(channels) != 1 {
+			t.Fatal("Expected to find a single channel record stored in the database for these channel event updates")
+		}
+
+		if channels[0].Short_channel_id != "0:0:1337" ||
+			channels[0].Channel_point != "point break" ||
+			channels[0].Destination_pub_key != "remote pub key" {
+
+			t.Fatal("Channel data not stored correctly")
+		}
+
+	})
 }
 
 type channelEventData struct {
@@ -183,6 +215,6 @@ WHERE chan_point = $1 AND event_type = $2;`, expected.Chan_point, expected.Event
 
 	if channelEvents[0].Chan_id != expected.Chan_id ||
 		channelEvents[0].Pub_key != expected.Pub_key {
-		t.Fatal("Data not stored correctly")
+		t.Fatal("Channel event data not stored correctly")
 	}
 }
