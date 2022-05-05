@@ -63,12 +63,8 @@ class Chart {
 
     this.container.attr("style", "position: relative; height: 100%;");
     // Configure the chart width and height based on the container
-    this.config.width =
-      this.container?.node()?.getBoundingClientRect().width ||
-      this.config.width;
-    this.config.height =
-      this.container?.node()?.getBoundingClientRect().height ||
-      this.config.height;
+    this.config.width = this.getWidth();
+    this.config.height = this.getHeight();
 
     let start = subHours(this.data[0].date, 16);
     let end = addHours(this.data[this.data.length - 1].date, 16);
@@ -152,8 +148,7 @@ class Chart {
         `position: absolute; left: 10px; top: 0px; pointer-events: none;
              width: ${this.config.xScale.range()[1]}px;
              height: ${this.config.yScale.range()[1]}px;`
-      )
-      .html("<div>Soemthing<div>");
+      );
 
     this.onHover();
 
@@ -164,6 +159,19 @@ class Chart {
     this.interactionContext = this.interactionLayer
       ?.node()
       ?.getContext("2d") as CanvasRenderingContext2D;
+  }
+
+  getHeight(): number {
+    return (
+      this.container?.node()?.getBoundingClientRect().height ||
+      this.config.height
+    );
+  }
+
+  getWidth(): number {
+    return (
+      this.container?.node()?.getBoundingClientRect().width || this.config.width
+    );
   }
 
   /**
@@ -392,6 +400,8 @@ export class BarPlot {
    * Draw draws the bars on the Chart instance based on the configuration provided.
    */
   draw() {
+    this.chart.dataLabelContainer.selectAll(`.${this.config.id}`).html(null);
+
     for (let i: number = 0; i < this.chart.data.length; i++) {
       this.chart.context.fillStyle = this.config.barColor;
       this.chart.context.strokeStyle = this.config.barColor;
@@ -411,6 +421,25 @@ export class BarPlot {
         plot: this,
         config: { ...this.config, hoverBarIndex: i },
       });
+
+      if (this.config.hoverBarIndex === i) {
+        this.chart.dataLabelContainer
+          .append("div")
+          .attr("class", this.config.id)
+          .attr(
+            "style",
+            `position: absolute; left:${
+              this.xPoint(this.chart.data[i].date) +
+              (this.barWidth() * (1 - this.config.barGap) -
+                this.config.cornerRadius) /
+                2
+            }px;
+            top: ${this.yPoint(this.chart.data[i][this.config.key])}px;
+            transform: translate(-50%, -110%);
+            `
+          )
+          .text(d3.format(",.2r")(this.chart.data[i][this.config.key]));
+      }
 
       this.chart.interactionContext.fillStyle = interactionColor;
       this.chart.interactionContext.fillRect(
