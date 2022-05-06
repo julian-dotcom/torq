@@ -559,21 +559,23 @@ type areaPlotConfig = basePlotConfig & {
   key: string; // The key used to fetch data
   areaColor: string;
   areaGradient?: Array<string>[2];
+  addBuffer: boolean;
   globalAlpha: number;
 };
 
-type lonePlotConfigInit = Partial<areaPlotConfig> &
+type areaPlotConfigInit = Partial<areaPlotConfig> &
   Required<Pick<areaPlotConfig, "id" | "key">>;
 
 export class AreaPlot extends AbstractPlot {
   config: areaPlotConfig;
 
-  constructor(chart: Chart, config: lonePlotConfigInit) {
+  constructor(chart: Chart, config: areaPlotConfigInit) {
     super(chart, config);
 
     this.config = {
       areaColor: "#DAEDFF",
       globalAlpha: 0.5,
+      addBuffer: false,
       ...config,
     };
   }
@@ -612,7 +614,7 @@ export class AreaPlot extends AbstractPlot {
 
     let data = this.chart.data;
 
-    if (data) {
+    if (data && this.config.addBuffer) {
       let lastItem = clone(data[data.length - 1]);
       let firstItem = clone(data[0]);
       lastItem.date = addHours(lastItem.date, 16);
@@ -626,8 +628,57 @@ export class AreaPlot extends AbstractPlot {
 
     this.chart.context.fill();
     this.chart.context.globalAlpha = 1;
-    data.splice(data.length - 1, 1);
-    data.splice(0, 1);
+    if (data && this.config.addBuffer) {
+      data.splice(data.length - 1, 1);
+      data.splice(0, 1);
+    }
+  }
+}
+
+type linePlotConfig = basePlotConfig & {
+  key: string; // The key used to fetch data
+  lineColor: string;
+  globalAlpha: number;
+};
+
+type linePlotConfigInit = Partial<linePlotConfig> &
+  Required<Pick<areaPlotConfig, "id" | "key">>;
+
+export class LinePlot extends AbstractPlot {
+  config: linePlotConfig;
+
+  constructor(chart: Chart, config: linePlotConfigInit) {
+    super(chart, config);
+
+    this.config = {
+      lineColor: "#85C4FF",
+      globalAlpha: 1,
+      ...config,
+    };
+  }
+
+  draw(interactiveConfig?: { hoverBarIndex?: number }) {
+    const line = d3
+      .line()
+      .x((d, i): number => {
+        return this.chart.config.xScale(this.chart.data[i].date) || 0;
+      })
+      .y((d, i): number => {
+        return (
+          this.chart.config.yScale(this.chart.data[i][this.config.key]) || 0
+        );
+      })
+      .context(this.chart.context);
+
+    this.chart.context.globalAlpha = this.config.globalAlpha;
+
+    this.chart.context.strokeStyle = this.config.lineColor;
+
+    this.chart.context.beginPath();
+    line(this.chart.data);
+
+    this.chart.context.stroke();
+    this.chart.context.globalAlpha = 1;
   }
 }
 

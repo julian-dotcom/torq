@@ -2,7 +2,7 @@
 import { useD3 } from "../useD3";
 import React, { useEffect } from "react";
 import { Selection } from "d3";
-import Chart, { BarPlot, AreaPlot } from "../chart";
+import Chart, { BarPlot, AreaPlot, LinePlot } from "../chart";
 import "./bar-chart.scss";
 
 function BarChart({ data }: { data: any[] }) {
@@ -18,6 +18,7 @@ function BarChart({ data }: { data: any[] }) {
         key: "revenue",
         areaGradient: ["#DAEDFF", "#DDF6F5"],
       });
+      chart.plot(LinePlot, { id: "line", key: "revenue" });
       chart.draw();
     },
     []
