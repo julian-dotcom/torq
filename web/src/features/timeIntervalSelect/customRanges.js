@@ -9,9 +9,11 @@ import {
   endOfWeek,
   isSameDay,
   startOfYear,
-  differenceInCalendarDays, addYears, subDays,
-} from 'date-fns';
-import locale from 'date-fns/locale/en-US'
+  differenceInCalendarDays,
+  addYears,
+  subDays
+} from "date-fns";
+import locale from "date-fns/locale/en-US";
 // import locale from 'date-fns/locale/nb'
 
 export const defineds = {
@@ -23,22 +25,20 @@ export const defineds = {
   startOfYesterdayCompare: startOfDay(addDays(new Date(), -2)),
   endOfYesterdayCompare: startOfDay(addDays(new Date(), -2)),
 
-
   startOfLast7Days: startOfDay(subDays(new Date(), 6)),
   endOfLast7Days: startOfDay(new Date()),
   startOfLast7DaysCompare: startOfDay(addDays(new Date(), -8)),
   endOfLast7DaysCompare: startOfDay(addDays(new Date(), -15)),
 
-  startOfWeek: startOfWeek(new Date(), {locale}),
-  endOfWeek: endOfWeek(new Date(), {locale}),
-  startOfWeekCompare: startOfWeek(addDays(new Date(), -7), {locale}),
-  endOfWeekCompare: endOfWeek(addDays(new Date(), -7), {locale}),
+  startOfWeek: startOfWeek(new Date(), { locale }),
+  endOfWeek: endOfWeek(new Date(), { locale }),
+  startOfWeekCompare: startOfWeek(addDays(new Date(), -7), { locale }),
+  endOfWeekCompare: endOfWeek(addDays(new Date(), -7), { locale }),
 
-  startOfLastWeek: startOfWeek(addDays(new Date(), -7), {locale}),
-  endOfLastWeek: endOfWeek(addDays(new Date(), -7), {locale}),
-  startOfLastWeekCompare: endOfWeek(addDays(new Date(), -8), {locale}),
-  endOfLastWeekCompare: endOfWeek(addDays(new Date(), -15), {locale}),
-
+  startOfLastWeek: startOfWeek(addDays(new Date(), -7), { locale }),
+  endOfLastWeek: endOfWeek(addDays(new Date(), -7), { locale }),
+  startOfLastWeekCompare: endOfWeek(addDays(new Date(), -8), { locale }),
+  endOfLastWeekCompare: endOfWeek(addDays(new Date(), -15), { locale }),
 
   startOfMonth: startOfMonth(new Date()),
   endOfMonth: endOfMonth(new Date()),
@@ -60,20 +60,18 @@ export const defineds = {
   startOfLast365DaysCompare: startOfDay(addYears(new Date(), -2)),
   endOfLast365DaysCompare: startOfDay(addYears(addDays(new Date(), -1), -1)),
 
-  startOfTime: startOfDay(new Date(2014,1,1, 0,0,0)),
-
+  startOfTime: startOfDay(new Date(2014, 1, 1, 0, 0, 0))
 };
-
 
 export const getCompareRanges = (startDate, endDate) => {
   const daysDifference = differenceInCalendarDays(endDate, startDate);
   let compareRange = [
     addDays(startOfDay(startDate), -1),
-    addDays(startOfDay(startDate), -(daysDifference + 1)),
+    addDays(startOfDay(startDate), -(daysDifference + 1))
   ];
 
-  return compareRange
-}
+  return compareRange;
+};
 
 const staticRangeHandler = {
   range: {},
@@ -83,154 +81,167 @@ const staticRangeHandler = {
       isSameDay(range.startDate, definedRange.startDate) &&
       isSameDay(range.endDate, definedRange.endDate)
     );
-  },
+  }
 };
 
 export function createStaticRanges(ranges) {
-  return ranges.map((range) => ({ ...staticRangeHandler, ...range }));
+  return ranges.map(range => ({ ...staticRangeHandler, ...range }));
 }
 
 export const defaultStaticRanges = createStaticRanges([
   {
-    label: 'Today',
+    code: "today",
+    label: "Today",
     range: () => ({
       startDate: defineds.startOfToday,
-      endDate: defineds.endOfToday,
+      endDate: defineds.endOfToday
     }),
     rangeCompare: () => ({
       startDate: defineds.startOfYesterday,
-      endDate: defineds.endOfYesterday,
+      endDate: defineds.endOfYesterday
     })
   },
   {
-    label: 'Yesterday',
+    code: "yesterday",
+    label: "Yesterday",
     range: () => ({
       startDate: defineds.startOfYesterday,
-      endDate: defineds.endOfYesterday,
+      endDate: defineds.endOfYesterday
     }),
     rangeCompare: () => ({
       startDate: defineds.startOfYesterdayCompare,
-      endDate: defineds.endOfYesterdayCompare,
+      endDate: defineds.endOfYesterdayCompare
     })
   },
   {
-    label: 'This Week',
+    code: "thisweek",
+    label: "This Week",
     range: () => ({
       startDate: defineds.startOfWeek,
-      endDate: defineds.endOfWeek,
+      endDate: defineds.endOfWeek
     }),
     rangeCompare: () => ({
       startDate: defineds.startOfWeekCompare,
-      endDate: defineds.endOfLastWeekCompare,
-    }),
+      endDate: defineds.endOfLastWeekCompare
+    })
   },
   {
-    label: 'Last Week',
+    code: "lastweek",
+    label: "Last Week",
     range: () => ({
       startDate: defineds.startOfLastWeek,
-      endDate: defineds.endOfLastWeek,
+      endDate: defineds.endOfLastWeek
     }),
     rangeCompare: () => ({
       startDate: defineds.startOfLastWeekCompare,
-      endDate: defineds.endOfLastWeekCompare,
+      endDate: defineds.endOfLastWeekCompare
     })
   },
   {
-    label: 'Last 7 Days',
+    code: "last7days",
+    label: "Last 7 Days",
     range: () => ({
       startDate: defineds.startOfLast7Days,
-      endDate: defineds.endOfLast7Days,
+      endDate: defineds.endOfLast7Days
     }),
     rangeCompare: () => ({
       startDate: defineds.startOfLast7DaysCompare,
-      endDate: defineds.endOfLast7DaysCompare,
-    }),
+      endDate: defineds.endOfLast7DaysCompare
+    })
   },
   {
-    label: 'Last 28 Days',
+    code: "last28days",
+    label: "Last 28 Days",
     range: () => ({
       startDate: defineds.last28Days,
-      endDate: defineds.startOfToday,
+      endDate: defineds.startOfToday
     }),
     rangeCompare: () => ({
       startDate: defineds.startOfLast28DaysCompare,
-      endDate: defineds.endOfLast28DaysCompare,
+      endDate: defineds.endOfLast28DaysCompare
     })
   },
   {
-    label: 'Last 30 Days',
+    code: "last30days",
+    label: "Last 30 Days",
     range: () => ({
       startDate: defineds.last30Days,
-      endDate: defineds.startOfToday,
+      endDate: defineds.startOfToday
     }),
     rangeCompare: () => ({
       startDate: addDays(defineds.last30Days, -30),
-      endDate: addDays(defineds.last30Days, -1),
+      endDate: addDays(defineds.last30Days, -1)
     })
   },
   {
-    label: 'Year to date',
+    code: "yeartodate",
+    label: "Year to date",
     range: () => ({
       startDate: defineds.startOfCurrentYear,
-      endDate: defineds.startOfToday,
+      endDate: defineds.startOfToday
     }),
     rangeCompare: () => ({
       startDate: defineds.startYTDCompare,
-      endDate: defineds.endOfYTDCompare,
+      endDate: defineds.endOfYTDCompare
     })
   },
   {
-    label: 'Last 365 days',
+    code: "last365days",
+    label: "Last 365 days",
     range: () => ({
       startDate: defineds.startOfLast365Days,
-      endDate: defineds.startOfToday,
+      endDate: defineds.startOfToday
     }),
     rangeCompare: () => ({
       startDate: defineds.startOfLast365DaysCompare,
-      endDate: defineds.endOfLast365DaysCompare,
+      endDate: defineds.endOfLast365DaysCompare
     })
   },
   {
-    label: 'All time',
+    code: "alltime",
+    label: "All time",
     range: () => ({
       startDate: defineds.startOfTime,
-      endDate: defineds.startOfToday,
+      endDate: defineds.startOfToday
     }),
     rangeCompare: () => ({
       startDate: defineds.startOfTime,
-      endDate: defineds.startOfTime,
+      endDate: defineds.startOfTime
     })
-  },
+  }
 ]);
 
 export const defaultInputRanges = [
   {
-    label: 'days up to today',
+    label: "days up to today",
     range(value) {
       return {
-        startDate: addDays(defineds.startOfToday, (Math.max(Number(value), 1) - 1) * -1),
-        endDate: defineds.endOfToday,
+        startDate: addDays(
+          defineds.startOfToday,
+          (Math.max(Number(value), 1) - 1) * -1
+        ),
+        endDate: defineds.endOfToday
       };
     },
     getCurrentValue(range) {
-      if (!isSameDay(range.endDate, defineds.endOfToday)) return '-';
-      if (!range.startDate) return '∞';
+      if (!isSameDay(range.endDate, defineds.endOfToday)) return "-";
+      if (!range.startDate) return "∞";
       return differenceInCalendarDays(defineds.endOfToday, range.startDate) + 1;
-    },
+    }
   },
   {
-    label: 'days starting today',
+    label: "days starting today",
     range(value) {
       const today = new Date();
       return {
         startDate: today,
-        endDate: addDays(today, Math.max(Number(value), 1) - 1),
+        endDate: addDays(today, Math.max(Number(value), 1) - 1)
       };
     },
     getCurrentValue(range) {
-      if (!isSameDay(range.startDate, defineds.startOfToday)) return '-';
-      if (!range.endDate) return '∞';
+      if (!isSameDay(range.startDate, defineds.startOfToday)) return "-";
+      if (!range.endDate) return "∞";
       return differenceInCalendarDays(range.endDate, defineds.startOfToday) + 1;
-    },
-  },
+    }
+  }
 ];

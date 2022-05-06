@@ -3,30 +3,31 @@ import { ReactElement } from "react";
 interface boxProps {
   children: ReactElement;
   title?: string;
-  maxWidth?: number;
+  minWidth?: number;
 }
 
 function Box(props: boxProps) {
-  const styles = {
+  const dynamicStyles = {
     box: {
-      backgroundColor: "var(--bg-extra-faint)",
-      border: "1px solid var(--bg-subtle)",
+      backgroundColor: "var(--bg-default)",
+      border: "1px solid var(--fg-subtle)",
       borderRadius: "3px",
-      padding: "10px",
-      marginTop: "5px"
+      padding: "20px 10px",
+      marginTop: "10px"
     },
     container: {
-      display: "default"
+      marginBottom: "30px"
     }
   };
-  if (props.maxWidth) {
-    styles.container["maxWidth" as keyof typeof styles.container] =
-      props.maxWidth + "px";
+  if (props.minWidth) {
+    dynamicStyles.container[
+      "minWidth" as keyof typeof dynamicStyles.container
+    ] = props.minWidth + "px";
   }
   return (
-    <div style={styles.container}>
+    <div style={dynamicStyles.container}>
       <span>{props.title}</span>
-      <div style={styles.box}>{props.children}</div>
+      <div style={dynamicStyles.box}>{props.children}</div>
     </div>
   );
 }
