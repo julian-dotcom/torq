@@ -64,6 +64,17 @@
   padding: 20px;
   font-size: var(--font-size-small);
   border-radius: 3px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.chartContainer {
+  display: flex;
+  justify-items: start;
+  flex-direction: column;
+  flex: 1;
+  align-content: stretch;
+  justify-content: flex-start;
 }
 
 .cardRow {
@@ -82,4 +93,10 @@ rowValue {
 .heading {
   color: var(--fg-muted);
   margin-bottom: 5px;
+}
+
+.profitChartControls {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: space-between;
 }

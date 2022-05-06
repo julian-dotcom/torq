@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
 import { addHours, subHours } from "date-fns";
+import clone from "clone";
 
 type chartConfig = {
   data: Array<any>;
@@ -43,7 +44,6 @@ class Chart {
   xAxisContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
   yAxisContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
   eventsContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
-  dataLabelContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
 
   context: CanvasRenderingContext2D;
   interactionContext: CanvasRenderingContext2D;
@@ -110,11 +110,20 @@ class Chart {
 
     this.xAxisContainer = this.container
       .append("div")
-      .attr("class", "xAxisContainer");
+      .attr("class", "xAxisContainer")
+      .attr(
+        "style",
+        `width: 100%;
+               height: ${this.config.margin.bottom}px;
+               position: absolute;
+               bottom: 0;
+               left: 0;`
+      );
 
     this.yAxisContainer = this.container
       .append("div")
-      .attr("class", "yAxisContainer");
+      .attr("class", "yAxisContainer")
+      .attr("style", `height: 100%; width: ${this.config.margin.left}px;`);
 
     this.eventsContainer = this.container
       .append("div")
@@ -137,20 +146,71 @@ class Chart {
         "position: absolute; left: 10px; top: 0px; display: none;" // display: none;
       );
 
-    this.dataLabelContainer = this.container
-      .select(".chartContainer")
-      .append("div")
-      .attr("class", "dataLabelContainer")
-      .attr("width", this.config.xScale.range()[1] + "px")
-      .attr("height", this.config.yScale.range()[1] + "px")
+    this.context = this.canvas
+      ?.node()
+      ?.getContext("2d") as CanvasRenderingContext2D;
+
+    this.interactionContext = this.interactionLayer
+      ?.node()
+      ?.getContext("2d") as CanvasRenderingContext2D;
+
+    // Add event listeners like hover and window resizing
+    this.addResizeListener();
+    this.addHoverListener();
+  }
+
+  removeResizeListener() {
+    (d3.select(window).node() as EventTarget).removeEventListener(
+      "resize",
+      (event) => {
+        this.resizeChart();
+      }
+    );
+  }
+
+  addResizeListener() {
+    (d3.select(window).node() as EventTarget).addEventListener(
+      "resize",
+      (event) => {
+        this.resizeChart();
+      }
+    );
+  }
+
+  resizeChart() {
+    this.config.width = this.getWidth();
+    this.config.height = this.getHeight();
+
+    this.config.xScale.range([
+      0,
+      this.config.width -
+        this.config.margin.right -
+        this.config.margin.left -
+        10,
+    ]);
+
+    this.config.yScale.range([
+      0,
+      this.config.height - this.config.margin.top - this.config.margin.bottom,
+    ]);
+
+    this.chartContainer
       .attr(
-        "style",
-        `position: absolute; left: 10px; top: 0px; pointer-events: none;
-             width: ${this.config.xScale.range()[1]}px;
-             height: ${this.config.yScale.range()[1]}px;`
+        "width",
+        this.config.width - this.config.margin.left - this.config.margin.right
+      )
+      .attr(
+        "height",
+        this.config.height - this.config.margin.top - this.config.margin.bottom
       );
 
-    this.onHover();
+    this.canvas
+      .attr("width", this.config.xScale.range()[1])
+      .attr("height", this.config.yScale.range()[1]);
+
+    this.interactionLayer
+      .attr("width", this.config.xScale.range()[1])
+      .attr("height", this.config.yScale.range()[1]);
 
     this.context = this.canvas
       ?.node()
@@ -159,6 +219,8 @@ class Chart {
     this.interactionContext = this.interactionLayer
       ?.node()
       ?.getContext("2d") as CanvasRenderingContext2D;
+
+    this.draw();
   }
 
   getHeight(): number {
@@ -195,15 +257,15 @@ class Chart {
     return "rgb(" + ret.join(",") + ")";
   }
 
-  figures: Map<string, { plot: BarPlot; config: barInputConfig }> = new Map<
+  figures: Map<string, { plot: BarPlot; interactionConfig: any }> = new Map<
     string,
-    { plot: BarPlot; config: barInputConfig }
+    { plot: BarPlot; interactionConfig: barInputConfig }
   >();
 
   getFigure(
     xLocation: number,
     yLocation: number
-  ): { plot: BarPlot; config: barInputConfig } | undefined {
+  ): { plot: BarPlot; interactionConfig: any } | undefined {
     const colorData = this.interactionContext.getImageData(
       xLocation,
       yLocation,
@@ -216,31 +278,51 @@ class Chart {
     );
   }
 
-  onHover() {
+  addHoverListener() {
     this.canvas.on("mousemove", (event) => {
       const pointer = d3.pointer(event);
       let figure = this.getFigure(pointer[0], pointer[1]);
-      if (figure !== undefined) {
-        figure.plot.setConfig(figure.config);
-        figure.plot.draw();
-      }
+      this.context.clearRect(
+        0,
+        0,
+        this.config.xScale.range()[1],
+        this.config.yScale.range()[1]
+      );
+      this.interactionContext.clearRect(
+        0,
+        0,
+        this.config.xScale.range()[1],
+        this.config.yScale.range()[1]
+      );
+
+      this.plots.forEach((plot, key) => {
+        if (figure?.plot !== plot) {
+          (plot as BarPlot).draw();
+        } else {
+          figure.plot.draw(figure.interactionConfig);
+        }
+      });
     });
   }
 
-  plot(PlotItem: typeof BarPlot, config: any) {
+  plot(
+    PlotItem: any,
+    config: { [key: string | number]: any } & { id: string; key: string }
+  ) {
     this.plots.set(config.id, new PlotItem(this, config));
   }
 
   drawYAxis() {
+    this.yAxisContainer.select("svg").remove();
+
     const max = Math.max(
       ...this.data.map((d): number => {
         return d[this.config.yAxisKey];
       })
     );
-    this.config.yScale.domain([max, 0]);
+    this.config.yScale.domain([max * 1.1, 0]);
 
     this.yAxisContainer
-      .attr("style", `height: 100%; width: ${this.config.margin.left}px;`)
       .append("svg")
       .attr("style", `height: 100%; width: 100%;`)
       .append("g")
@@ -253,15 +335,8 @@ class Chart {
   }
 
   drawXAxis() {
+    this.xAxisContainer.select("svg").remove();
     this.xAxisContainer
-      .attr(
-        "style",
-        `width: 100%;
-               height: ${this.config.margin.bottom}px;
-               position: absolute;
-               bottom: 0;
-               left: 0;`
-      )
       .append("svg")
       .attr("style", `height: 100%; width: 100%;`)
       .append("g")
@@ -293,63 +368,24 @@ class Chart {
     return this;
   }
 }
-
-type barsConfig = {
-  barGap: number; // The gap between each bar
-  tickInterval: number; // The interval between each bar
-  barColor: string; // The color of the bar
-  hoverBarIndex?: number;
-  cornerRadius: number; // The radius of the bar
-  id: string; // The id used to fetch the BarPlot instance from the Chart instance
-  key: string; // The key used to fetch data for each bar
+type basePlotConfig = {
+  id: string; // The id used to fetch the Plot instance from the Chart instance
 };
-type barInputConfig = Partial<barsConfig> &
-  Required<Pick<barsConfig, "id" | "key">>;
 
-export class BarPlot {
+abstract class AbstractPlot {
   chart: Chart;
-  config: barsConfig;
+  config: object;
 
-  /**
-   * Plots bars on a chart canvas. To use it add it to the plots map on the Chart instance.
-   *
-   * @param chart - The Chart instance where BarPlot will be plotted on
-   * @param config - Plot config, only required attributes are key and ID
-   */
-  constructor(chart: Chart, config: barInputConfig) {
+  constructor(chart: Chart, config: any) {
     this.chart = chart;
 
     this.config = {
-      barGap: 0.1,
-      barColor: "#C2E2FF",
-      cornerRadius: 3,
-      tickInterval:
-        (this.chart.config.xScale(new Date(1, 0, 1)) || 0) -
-        (this.chart.config.xScale(new Date(1, 0, 0)) || 0),
       ...config,
     };
   }
 
   setConfig(config: barInputConfig) {
     this.config = { ...this.config, ...config };
-  }
-
-  /**
-   * xPoint returns the starting location for the bar on the xScale in pixels
-   *
-   * @param xValue the data point on the xScale that you want to convert to a pixel location on the chart.
-   */
-  xPoint(xValue: number): number {
-    return (this.chart.config.xScale(xValue) || 0) - this.barWidth() / 2;
-  }
-
-  /**
-   * yPoint returns the starting location for the bar on the yScale in pixels
-   *
-   * @param yValue the data point on the yScale that you want to convert to a pixel location on the chart.
-   */
-  yPoint(yValue: number): number {
-    return this.barHeight(yValue) + this.offset();
   }
 
   /**
@@ -363,12 +399,80 @@ export class BarPlot {
     );
   }
 
-  barWidth(): number {
-    return this.config.tickInterval;
+  height(dataPoint: number): number {
+    return this.chart.config.yScale(dataPoint);
   }
 
-  barHeight(dataPoint: number): number {
-    return this.chart.config.yScale(dataPoint);
+  /**
+   * xPoint returns the starting location for the bar on the xScale in pixels
+   *
+   * @param xValue the data point on the xScale that you want to convert to a pixel location on the chart.
+   */
+  xPoint(xValue: number): number {
+    return this.chart.config.xScale(xValue) || 0;
+  }
+
+  /**
+   * yPoint returns the starting location for the bar on the yScale in pixels
+   *
+   * @param yValue the data point on the yScale that you want to convert to a pixel location on the chart.
+   */
+  yPoint(yValue: number): number {
+    return this.height(yValue) + this.offset();
+  }
+
+  abstract draw(interactiveConfig?: object): any;
+}
+
+type barsConfig = basePlotConfig & {
+  key: string; // The key used to fetch data
+  barGap: number; // The gap between each bar
+  barColor: string; // The color of the bar
+  barHoverColor: string;
+  textColor: string;
+  textHoverColor: string;
+  cornerRadius: number; // The radius of the bar
+};
+type barInputConfig = Partial<barsConfig> &
+  Required<Pick<barsConfig, "id" | "key">>;
+
+export class BarPlot extends AbstractPlot {
+  config: barsConfig;
+
+  /**
+   * Plots bars on a chart canvas. To use it add it to the plots map on the Chart instance.
+   *
+   * @param chart - The Chart instance where BarPlot will be plotted on
+   * @param config - Plot config, only required attributes are key and ID
+   */
+  constructor(chart: Chart, config: barInputConfig) {
+    super(chart, config);
+
+    this.config = {
+      barGap: 0.1,
+      barColor: "#B6DCFF",
+      barHoverColor: "#9DD0FF",
+      textColor: "#8198A3",
+      textHoverColor: "#3A463C",
+      cornerRadius: 3,
+      ...config,
+    };
+  }
+
+  /**
+   * xPoint returns the starting location for the bar on the xScale in pixels
+   *
+   * @param xValue the data point on the xScale that you want to convert to a pixel location on the chart.
+   */
+  xPoint(xValue: number): number {
+    return (this.chart.config.xScale(xValue) || 0) - this.barWidth() / 2;
+  }
+
+  barWidth(): number {
+    return (
+      (this.chart.config.xScale(new Date(1, 0, 1)) || 0) -
+      (this.chart.config.xScale(new Date(1, 0, 0)) || 0)
+    );
   }
 
   drawBar(
@@ -381,37 +485,38 @@ export class BarPlot {
 
     // Draw the bar rectangle
     context.fillRect(
-      this.xPoint(dataPoint.date) + this.config.cornerRadius / 2,
+      this.xPoint(dataPoint.date) +
+        this.config.cornerRadius / 2 +
+        (this.barWidth() * this.config.barGap) / 2,
       this.yPoint(dataPoint[this.config.key]) + this.config.cornerRadius / 2,
       this.barWidth() * (1 - this.config.barGap) - this.config.cornerRadius,
-      this.barHeight(-dataPoint[this.config.key]) - this.config.cornerRadius
+      this.height(-dataPoint[this.config.key]) - this.config.cornerRadius
     );
 
     // This draws the stroke used to create rounded corners
     context.strokeRect(
-      this.xPoint(dataPoint.date) + this.config.cornerRadius / 2,
+      this.xPoint(dataPoint.date) +
+        this.config.cornerRadius / 2 +
+        (this.barWidth() * this.config.barGap) / 2,
       this.yPoint(dataPoint[this.config.key]) + this.config.cornerRadius / 2,
       this.barWidth() * (1 - this.config.barGap) - this.config.cornerRadius,
-      this.barHeight(-dataPoint[this.config.key]) - this.config.cornerRadius
+      this.height(-dataPoint[this.config.key]) - this.config.cornerRadius
     );
   }
 
   /**
    * Draw draws the bars on the Chart instance based on the configuration provided.
    */
-  draw() {
-    this.chart.dataLabelContainer.selectAll(`.${this.config.id}`).html(null);
-
+  draw(interactiveConfig?: { hoverBarIndex?: number }) {
     for (let i: number = 0; i < this.chart.data.length; i++) {
       this.chart.context.fillStyle = this.config.barColor;
       this.chart.context.strokeStyle = this.config.barColor;
       this.chart.context.lineJoin = "round";
-
       this.chart.context.lineWidth = this.config.cornerRadius;
 
       let barColor = this.config.barColor;
-      if (this.config.hoverBarIndex === i) {
-        barColor = "#9DD0FF";
+      if (interactiveConfig?.hoverBarIndex === i) {
+        barColor = this.config.barHoverColor;
       }
       this.drawBar(this.chart.context, this.chart.data[i], barColor);
 
@@ -419,36 +524,110 @@ export class BarPlot {
       const interactionColor = this.chart.genColor();
       this.chart.figures.set(interactionColor, {
         plot: this,
-        config: { ...this.config, hoverBarIndex: i },
+        interactionConfig: { hoverBarIndex: i },
       });
 
-      if (this.config.hoverBarIndex === i) {
-        this.chart.dataLabelContainer
-          .append("div")
-          .attr("class", this.config.id)
-          .attr(
-            "style",
-            `position: absolute; left:${
-              this.xPoint(this.chart.data[i].date) +
-              (this.barWidth() * (1 - this.config.barGap) -
-                this.config.cornerRadius) /
-                2
-            }px;
-            top: ${this.yPoint(this.chart.data[i][this.config.key])}px;
-            transform: translate(-50%, -110%);
-            `
-          )
-          .text(d3.format(",.2r")(this.chart.data[i][this.config.key]));
+      let textColor = this.config.textColor;
+      if (interactiveConfig?.hoverBarIndex === i) {
+        textColor = this.config.textHoverColor;
       }
+
+      this.chart.context.font = "12px Inter";
+      this.chart.context.textAlign = "center";
+      this.chart.context.textBaseline = "middle";
+      this.chart.context.fillStyle = textColor;
+      this.chart.context.fillText(
+        this.chart.data[i][this.config.key],
+        this.xPoint(this.chart.data[i].date) + this.barWidth() / 2,
+        this.yPoint(this.chart.data[i][this.config.key]) -
+          15 +
+          this.config.cornerRadius / 2
+      );
 
       this.chart.interactionContext.fillStyle = interactionColor;
       this.chart.interactionContext.fillRect(
         Math.round(this.xPoint(this.chart.data[i].date)),
         Math.round(this.yPoint(this.chart.data[i][this.config.key])),
         Math.round(this.barWidth()),
-        Math.round(this.barHeight(-this.chart.data[i][this.config.key]))
+        Math.round(this.height(-this.chart.data[i][this.config.key]))
       );
     }
+  }
+}
+
+type areaPlotConfig = basePlotConfig & {
+  key: string; // The key used to fetch data
+  areaColor: string;
+  areaGradient?: Array<string>[2];
+  globalAlpha: number;
+};
+
+type lonePlotConfigInit = Partial<areaPlotConfig> &
+  Required<Pick<areaPlotConfig, "id" | "key">>;
+
+export class AreaPlot extends AbstractPlot {
+  config: areaPlotConfig;
+
+  constructor(chart: Chart, config: lonePlotConfigInit) {
+    super(chart, config);
+
+    this.config = {
+      areaColor: "#DAEDFF",
+      globalAlpha: 0.5,
+      ...config,
+    };
+  }
+
+  draw(interactiveConfig?: { hoverBarIndex?: number }) {
+    const area = d3
+      .area()
+      .x((d, i): number => {
+        return this.chart.config.xScale(this.chart.data[i].date) || 0;
+      })
+      .y0((d, i): number => {
+        return (
+          this.chart.config.yScale(this.chart.data[i][this.config.key]) || 0
+        );
+      })
+      .y1((d, i): number => {
+        return this.chart.config.yScale(0) || 1;
+      })
+      .context(this.chart.context);
+
+    this.chart.context.globalAlpha = this.config.globalAlpha;
+
+    this.chart.context.fillStyle = this.config.areaColor;
+
+    if (this.config.areaGradient) {
+      let gradient = this.chart.context.createLinearGradient(
+        0,
+        0,
+        0,
+        this.chart.config.yScale.range()[1] || 0
+      );
+      gradient.addColorStop(0, this.config.areaGradient[1]); //"#DDF6F5";
+      gradient.addColorStop(1, this.config.areaGradient[0]);
+      this.chart.context.fillStyle = gradient;
+    }
+
+    let data = this.chart.data;
+
+    if (data) {
+      let lastItem = clone(data[data.length - 1]);
+      let firstItem = clone(data[0]);
+      lastItem.date = addHours(lastItem.date, 16);
+      data.push(lastItem);
+      data.unshift(firstItem);
+      firstItem.date = subHours(firstItem.date, 16);
+    }
+
+    this.chart.context.beginPath();
+    area(data);
+
+    this.chart.context.fill();
+    this.chart.context.globalAlpha = 1;
+    data.splice(data.length - 1, 1);
+    data.splice(0, 1);
   }
 }
 

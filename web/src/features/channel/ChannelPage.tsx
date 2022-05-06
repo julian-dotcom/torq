@@ -3,6 +3,13 @@ import classNames from "classnames";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import BarChart from "./charts/barChart/BarChart";
 import Switch from "../inputs/Slider/Switch";
+import Button from "../buttons/Button";
+import {
+  Settings16Regular as SettingsIcon,
+  ChevronDoubleLeft20Regular as CollapseIcon,
+  VirtualNetwork20Regular as ChannelIcon,
+  LockClosed20Regular as LogoutIcon,
+} from "@fluentui/react-icons";
 
 const data = [
   { date: new Date(2022, 11, 1), revenue: 2410, capacity: 9303000 },
@@ -20,6 +27,9 @@ const data = [
   { date: new Date(2022, 11, 13), revenue: 4220, capacity: 8638000 },
   { date: new Date(2022, 11, 14), revenue: 4980, capacity: 8778000 },
   { date: new Date(2022, 11, 15), revenue: 5280, capacity: 8352000 },
+  { date: new Date(2022, 11, 15), revenue: 5280, capacity: 8352000 },
+  { date: new Date(2022, 11, 16), revenue: 5280, capacity: 8352000 },
+  { date: new Date(2022, 11, 17), revenue: 5280, capacity: 8352000 },
 ];
 
 function ChannelPage() {
@@ -104,11 +114,21 @@ function ChannelPage() {
                 <div className={styles.rowValue}>Conservative</div>
               </div>
             </div>
-            {/*<div className={styles.card}>Automation</div>*/}
           </div>
 
           <div className={classNames(styles.card, styles.channelSummaryChart)}>
-            <BarChart data={data} />
+            <div className={styles.profitChartControls}>
+              <div className={styles.profitChartLeftControls}>
+                <Button text={"Revenue"} isOpen={true} />
+              </div>
+              <div className={styles.profitChartRightControls}>
+                <SettingsIcon />
+                Settings
+              </div>
+            </div>
+            <div className={styles.chartContainer}>
+              <BarChart data={data} />
+            </div>
           </div>
         </div>
         <div className={styles.pageRow}>
