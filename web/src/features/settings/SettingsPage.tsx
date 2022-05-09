@@ -4,26 +4,41 @@ import Box from "./Box";
 import style from "./settings.module.css";
 import Select, { SelectOption } from "../forms/Select";
 import SubmitButton from "../forms/SubmitButton";
-import React from "react";
+import React, { useEffect } from "react";
 import { defaultStaticRanges } from "../timeIntervalSelect/customRanges";
+import { useGetSettingsQuery } from "apiSlice";
+import { settings } from "apiTypes";
+import classNames from "classnames";
 
 interface settingsProps {
   name: string;
 }
 
 function Settings(props: settingsProps) {
+  const { data: settingsData } = useGetSettingsQuery();
+
+  const [savedMessage, setSavedMessage] = React.useState("");
+  const [settingsState, setSettingsState] = React.useState({
+    preferredTimezone: 0,
+  } as settings);
+
+  React.useEffect(() => {
+    // do some checking here to ensure data exist
+    if (settingsData) {
+      // mutate data if you need to
+      setSettingsState(settingsData);
+      const bla = settingsData?.defaultDateRange;
+    }
+  }, [settingsData]);
+
   const defaultDateRangeLabels: {
     label: string;
     code: string;
   }[] = defaultStaticRanges;
 
   const defaultDateRangeOptions: SelectOption[] = defaultDateRangeLabels.map(
-    dsr => ({ value: dsr.code, label: dsr.label })
+    (dsr) => ({ value: dsr.code, label: dsr.label })
   );
-
-  const handleDefaultDateRangeChange = (combiner: any) => {
-    console.log(combiner.value);
-  };
 
   let preferredTimezoneOptions: SelectOption[] = [];
   for (let i = -11; i <= 12; i++) {
@@ -37,10 +52,36 @@ function Settings(props: settingsProps) {
     preferredTimezoneOptions.push({ label: label, value: i.toString() });
   }
 
+  const weekStartsOnOptions: SelectOption[] = [
+    { label: "Saturday", value: "saturday" },
+    { label: "Sunday", value: "sunday" },
+    { label: "Monday", value: "monday" },
+  ];
+
+  const handleDefaultDateRangeChange = (combiner: any) => {
+    setSettingsState({ ...settingsState, defaultDateRange: combiner.value });
+  };
+
+  const handlePreferredTimezoneChange = (combiner: any) => {
+    setSettingsState({ ...settingsState, preferredTimezone: combiner.value });
+  };
+
+  const handleWeekStartsOnChange = (combiner: any) => {
+    setSettingsState({ ...settingsState, weekStartsOn: combiner.value });
+  };
+
   const submitPreferences = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("submitted");
+    setSavedMessage("Saved!");
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSavedMessage("");
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [savedMessage]);
 
   return (
     <Page>
@@ -54,23 +95,24 @@ function Settings(props: settingsProps) {
                   onChange={handleDefaultDateRangeChange}
                   options={defaultDateRangeOptions}
                   value={defaultDateRangeOptions.find(
-                    dd => dd.value === "Last 7 Days"
+                    (dd) => dd.value === settingsState?.defaultDateRange
                   )}
                 />
-
                 <Select
                   label="Preferred timezone"
-                  onChange={handleDefaultDateRangeChange}
+                  onChange={handlePreferredTimezoneChange}
                   options={preferredTimezoneOptions}
-                  value={preferredTimezoneOptions.find(tz => tz.value === "0")}
+                  value={preferredTimezoneOptions.find(
+                    (tz) =>
+                      tz.value === settingsState?.preferredTimezone.toString()
+                  )}
                 />
-
                 <Select
                   label="Week starts on"
-                  onChange={handleDefaultDateRangeChange}
-                  options={defaultDateRangeOptions}
-                  value={defaultDateRangeOptions.find(
-                    dd => dd.value === "Last 7 Days"
+                  onChange={handleWeekStartsOnChange}
+                  options={weekStartsOnOptions}
+                  value={weekStartsOnOptions.find(
+                    (dd) => dd.value === settingsState?.weekStartsOn
                   )}
                 />
                 <SubmitButton>
@@ -79,6 +121,11 @@ function Settings(props: settingsProps) {
                     Save
                   </React.Fragment>
                 </SubmitButton>
+                {savedMessage && (
+                  <div className={classNames(style.center, style.savedMessage)}>
+                    <span>{savedMessage}</span>
+                  </div>
+                )}
               </form>
             </Box>
           </div>

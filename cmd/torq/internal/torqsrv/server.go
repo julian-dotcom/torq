@@ -9,6 +9,7 @@ import (
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/channels/tags"
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/views"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
@@ -88,6 +89,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 			{
 				tags.RegisterTagRoutes(channelTagRoutes, db)
 			}
+		}
+
+		settingRoutes := api.Group("settings")
+		{
+			settings.RegisterSettingRoutes(settingRoutes, db)
 		}
 
 		api.GET("/ping", func(c *gin.Context) {
