@@ -1,6 +1,11 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { RootState } from '../../store/store';
-import { defineds, getCompareRanges } from "./customRanges";
+import { createSlice } from "@reduxjs/toolkit";
+import { RootState } from "../../store/store";
+import {
+  defineds,
+  getCompareRanges,
+  defaultStaticRanges,
+} from "./customRanges";
+import { torqApi } from "apiSlice";
 
 export interface TimeIntervalState {
   from: string;
@@ -17,7 +22,7 @@ const initialState: TimeIntervalState = {
 };
 
 export const timeIntervalSlice = createSlice({
-  name: 'timeInterval',
+  name: "timeInterval",
   initialState,
 
   // The `reducers` field lets us define reducers and generate associated actions
@@ -25,10 +30,27 @@ export const timeIntervalSlice = createSlice({
     updateInterval: (state, action) => {
       state.from = action.payload.from;
       state.to = action.payload.to;
-      const compareRange = getCompareRanges(new Date(state.from), new Date(state.to));
+      const compareRange = getCompareRanges(
+        new Date(state.from),
+        new Date(state.to)
+      );
       state.compareFrom = compareRange[1].toString();
       state.compareTo = compareRange[0].toString();
     },
+  },
+  extraReducers: (builder) => {
+    builder.addMatcher(
+      torqApi.endpoints.getSettings.matchFulfilled,
+      (state, { payload }) => {
+        const staticRange = defaultStaticRanges.find(
+          (sr: any) => sr.code === payload.defaultDateRange
+        );
+        state.to = staticRange.range().endDate.toString();
+        state.from = staticRange.range().startDate.toString();
+        state.compareTo = staticRange.rangeCompare().endDate.toString();
+        state.compareFrom = staticRange.rangeCompare().startDate.toString();
+      }
+    );
   },
 });
 

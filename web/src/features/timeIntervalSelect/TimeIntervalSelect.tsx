@@ -21,6 +21,7 @@ import classNames from "classnames";
 import DefaultButton from "../buttons/Button";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
+import { useGetSettingsQuery } from "apiSlice";
 
 interface selection {
   startDate: Date;
@@ -29,6 +30,9 @@ interface selection {
 }
 
 function TimeIntervalSelect() {
+  // triggers RTK Query to get settings which are intercepted in the timeIntervalSlice as an extra reducer
+  useGetSettingsQuery();
+
   const currentPeriod = useAppSelector(selectTimeInterval);
   const [isMobile, setIsMobile] = useState(false);
 
