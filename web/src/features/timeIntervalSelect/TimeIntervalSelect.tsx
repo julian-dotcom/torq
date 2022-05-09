@@ -31,7 +31,13 @@ interface selection {
 
 function TimeIntervalSelect() {
   // triggers RTK Query to get settings which are intercepted in the timeIntervalSlice as an extra reducer
-  useGetSettingsQuery();
+  const { data: settings } = useGetSettingsQuery();
+  const startOfWeek =
+    settings?.weekStartsOn === "saturday"
+      ? 6
+      : settings?.weekStartsOn === "sunday"
+      ? 0
+      : 1;
 
   const currentPeriod = useAppSelector(selectTimeInterval);
   const [isMobile, setIsMobile] = useState(false);
@@ -156,7 +162,7 @@ function TimeIntervalSelect() {
             months={1}
             showMonthArrow={false}
             showMonthAndYearPickers={false}
-            weekStartsOn={locale.options?.weekStartsOn || 0}
+            weekStartsOn={startOfWeek}
             direction="vertical"
             inputRanges={[]}
             ranges={[selection1]}
