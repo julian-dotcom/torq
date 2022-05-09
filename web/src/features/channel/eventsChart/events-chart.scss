@@ -1,0 +1,46 @@
+.eventsContainer {
+  pointer-events: none;
+}
+.eventsContainer .event-wrapper {
+  display: grid;
+  grid-row-gap: 5px;
+  justify-items: center;
+  transform: translateX(-50%);
+}
+.eventsContainer .event-item {
+  background-color: var(--accent-b-250);
+  border-radius: 2px;
+  padding: 3px 5px;
+  white-space: nowrap;
+  word-break: keep-all;
+  pointer-events: initial;
+  height: 24px;
+  display: grid;
+  align-items: center;
+  grid-auto-flow: column;
+  grid-column-gap: 5px;
+  &.channel_open {
+    background-color: var(--accent-b-250);
+  }
+  &.channel_close {
+    background-color: var(--secondary-400);
+  }
+  &.fee_rate {
+    background-color: var(--primary-350);
+  }
+  &.base_fee {
+    background-color: var(--accent-b-250);
+  }
+  &.rebalanced_out {
+    background-color: var(--accent-a-200);
+  }
+  &.rebalanced_in {
+    background-color: var(--accent-a-300);
+  }
+  &.channel_status_disabled {
+    background-color: var(--color-baige-400);
+  }
+  &.channel_status_enabled {
+    background-color: var(--color-baige-400);
+  }
+}

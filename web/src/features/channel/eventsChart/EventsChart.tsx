@@ -1,27 +1,31 @@
 // https://www.pluralsight.com/guides/using-d3.js-inside-a-react-app
-import { useD3 } from "../useD3";
+import { useD3 } from "../charts/useD3";
 import React, { useEffect } from "react";
 import { Selection } from "d3";
-import Chart, { BarPlot, AreaPlot, LinePlot } from "../chart";
-import "./bar-chart.scss";
+import Chart, { AreaPlot, LinePlot, EventsPlot } from "../charts/chart";
+import "./events-chart.scss";
 
-function BarChart({ data }: { data: any[] }) {
+type EventsChart = {
+  data: any[];
+};
+
+function EventsChart({ data }: EventsChart) {
   let chart: Chart;
 
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       chart = new Chart(container, data, "revenue");
-      chart.plot(BarPlot, { id: "bars", key: "revenue" });
       chart.plot(AreaPlot, {
-        id: "area",
-        key: "revenue",
-        areaGradient: ["#DAEDFF", "#DDF6F5"],
+        id: "capacity_out",
+        key: "capacity_out",
+        areaGradient: ["#DAEDFF", "#ABE9E6"],
       });
       chart.plot(LinePlot, { id: "line", key: "revenue" });
+      chart.plot(EventsPlot, { id: "events", key: "events" });
       chart.draw();
     },
-    []
+    [data]
   );
 
   useEffect(() => {
@@ -36,4 +40,4 @@ function BarChart({ data }: { data: any[] }) {
   return <div ref={ref} className={"testing"} />;
 }
 
-export default BarChart;
+export default EventsChart;

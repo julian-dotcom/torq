@@ -1,7 +1,8 @@
 import styles from "./channel-page.module.scss";
 import classNames from "classnames";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import BarChart from "./charts/barChart/BarChart";
+import ProfitsChart from "./revenueChart/ProtifsChart";
+import EventsChart from "./eventsChart/EventsChart";
 import Switch from "../inputs/Slider/Switch";
 import Button from "../buttons/Button";
 import {
@@ -12,24 +13,84 @@ import {
 } from "@fluentui/react-icons";
 
 const data = [
-  { date: new Date(2022, 11, 1), revenue: 2410, capacity: 9303000 },
-  { date: new Date(2022, 11, 2), revenue: 2310, capacity: 9303000 },
-  { date: new Date(2022, 11, 3), revenue: 2510, capacity: 9303000 },
-  { date: new Date(2022, 11, 4), revenue: 3800, capacity: 8185000 },
-  { date: new Date(2022, 11, 5), revenue: 3000, capacity: 8213000 },
-  { date: new Date(2022, 11, 6), revenue: 4812, capacity: 8518000 },
-  { date: new Date(2022, 11, 7), revenue: 3500, capacity: 8991000 },
-  { date: new Date(2022, 11, 8), revenue: 3800, capacity: 8620000 },
-  { date: new Date(2022, 11, 9), revenue: 4100, capacity: 8479000 },
-  { date: new Date(2022, 11, 10), revenue: 3780, capacity: 8479000 },
-  { date: new Date(2022, 11, 11), revenue: 3150, capacity: 8217000 },
-  { date: new Date(2022, 11, 12), revenue: 3980, capacity: 8085000 },
-  { date: new Date(2022, 11, 13), revenue: 4220, capacity: 8638000 },
-  { date: new Date(2022, 11, 14), revenue: 4980, capacity: 8778000 },
-  { date: new Date(2022, 11, 15), revenue: 5280, capacity: 8352000 },
-  { date: new Date(2022, 11, 15), revenue: 5280, capacity: 8352000 },
-  { date: new Date(2022, 11, 16), revenue: 5280, capacity: 8352000 },
-  { date: new Date(2022, 11, 17), revenue: 5280, capacity: 8352000 },
+  {
+    date: new Date(2022, 11, 1),
+    revenue: 2410,
+    capacity_out: 2503000,
+    events: [
+      { type: "channel_open", id: 3 },
+      { type: "fee_rate", value: 450, id: 4 },
+      { type: "base_fee", value: 0, id: 4 },
+    ],
+  },
+  { date: new Date(2022, 11, 2), revenue: 2310, capacity_out: 2803000 },
+  {
+    date: new Date(2022, 11, 3),
+    revenue: 2510,
+    capacity_out: 3003000,
+    events: [{ type: "fee_rate", value: 245, id: 2 }],
+  },
+  { date: new Date(2022, 11, 4), revenue: 3800, capacity_out: 2585000 },
+  {
+    date: new Date(2022, 11, 5),
+    revenue: 3000,
+    capacity_out: 2213000,
+  },
+  { date: new Date(2022, 11, 6), revenue: 4812, capacity_out: 2518000 },
+  {
+    date: new Date(2022, 11, 7),
+    revenue: 3500,
+    capacity_out: 2591000,
+    events: [
+      { type: "fee_rate", value: 355, id: 5 },
+      { type: "fee_rate", value: 230, id: 5 },
+      { type: "fee_rate", value: 412, id: 5 },
+      { type: "fee_rate", value: 150, id: 5 },
+      { type: "rebalanced_out", value: 1234500, id: 5 },
+    ],
+  },
+  { date: new Date(2022, 11, 8), revenue: 3800, capacity_out: 2020000 },
+  {
+    date: new Date(2022, 11, 9),
+    revenue: 4100,
+    capacity_out: 1879000,
+  },
+  { date: new Date(2022, 11, 10), revenue: 3780, capacity_out: 1579000 },
+  { date: new Date(2022, 11, 11), revenue: 3150, capacity_out: 2317000 },
+  {
+    date: new Date(2022, 11, 12),
+    revenue: 3980,
+    capacity_out: 2785000,
+  },
+  {
+    date: new Date(2022, 11, 13),
+    revenue: 4220,
+    capacity_out: 3538000,
+    events: [{ type: "channel_status_disabled", id: 8 }],
+  },
+  { date: new Date(2022, 11, 14), revenue: 4980, capacity_out: 4578000 },
+  {
+    date: new Date(2022, 11, 15),
+    revenue: 5280,
+    capacity_out: 5352000,
+    events: [{ type: "channel_status_enabled", id: 10 }],
+  },
+  {
+    date: new Date(2022, 11, 16),
+    revenue: 5280,
+    capacity_out: 4352000,
+    events: [
+      { type: "fee_rate", value: 550, id: 10 },
+      { type: "rebalanced_in", value: 423145, id: 10 },
+    ],
+  },
+  { date: new Date(2022, 11, 17), revenue: 5280, capacity_out: 3252000 },
+  {
+    date: new Date(2022, 11, 18),
+    revenue: 3280,
+    capacity_out: 3852000,
+    events: [{ type: "channel_close", id: 10 }],
+  },
 ];
 
 function ChannelPage() {
@@ -127,23 +188,37 @@ function ChannelPage() {
               </div>
             </div>
             <div className={styles.chartContainer}>
-              <BarChart data={data} />
+              <ProfitsChart data={data} />
             </div>
           </div>
         </div>
+
         <div className={styles.pageRow}>
-          <div className={styles.card}>
-            Channel Events
-            <div className={styles.chartWrapper} style={{ height: "500px" }}>
-              <BarChart data={data} />
+          <div
+            className={classNames(styles.card, styles.channelSummaryChart)}
+            style={{ height: "600px" }}
+          >
+            <div className={styles.profitChartControls}>
+              <div className={styles.profitChartLeftControls}>
+                <Button text={"Revenue"} isOpen={true} />
+              </div>
+              <div className={styles.profitChartRightControls}>
+                <SettingsIcon />
+                Settings
+              </div>
+            </div>
+
+            <div className={styles.chartContainer}>
+              <EventsChart data={data} />
             </div>
           </div>
         </div>
+
         <div className={styles.pageRow}>
           <div className={styles.card}>
             Channel Flow
             <div className={styles.chartWrapper} style={{ height: "500px" }}>
-              <BarChart data={data} />
+              {/*<BarChart data={data} />*/}
             </div>
           </div>
         </div>
