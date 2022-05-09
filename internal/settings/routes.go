@@ -3,7 +3,7 @@ package settings
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	// "github.com/lncapital/torq/pkg/server_errors"
+	"github.com/lncapital/torq/pkg/server_errors"
 	"net/http"
 	// "strconv"
 )
@@ -16,12 +16,27 @@ type settings struct {
 
 func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
+	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
 }
 func getSettingsHandler(c *gin.Context, db *sqlx.DB) {
-	currentSettings := settings{
-		DefaultDateRange:  "last28days",
-		PreferredTimezone: 3,
-		WeekStartsOn:      "saturday",
+	settings, err := getSettings(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
 	}
-	c.JSON(http.StatusOK, currentSettings)
+	c.JSON(http.StatusOK, settings)
+}
+
+func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
+	var settings settings
+	if err := c.BindJSON(&settings); err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	err := updateSettings(db, settings)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, settings)
 }

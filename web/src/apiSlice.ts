@@ -19,71 +19,81 @@ export const torqApi = createApi({
       return headers;
     },
     credentials: "include",
-    mode: "cors"
+    mode: "cors",
   }),
-  endpoints: builder => ({
+  tagTypes: ["settings"],
+  endpoints: (builder) => ({
     getChannels: builder.query<any, { from: string; to: string }>({
-      query: ({ from, to }) => `channels?from=${from}&to=${to}`
+      query: ({ from, to }) => `channels?from=${from}&to=${to}`,
     }),
     getTableViews: builder.query<any, void>({
-      query: () => `table-views`
+      query: () => `table-views`,
     }),
     createTableView: builder.mutation<
       any,
       { view: ViewInterface; index: number }
     >({
-      query: data => ({
+      query: (data) => ({
         url: "table-views",
         method: "POST",
-        body: { id: null, view: data.view }
+        body: { id: null, view: data.view },
       }),
       transformResponse: (response: { view: ViewInterface }, _, arg) => ({
         view: response,
-        index: arg.index
-      })
+        index: arg.index,
+      }),
     }),
     updateTableView: builder.mutation<any, ViewInterface>({
       query: (view: ViewInterface) => ({
         url: "table-views",
         method: "PUT",
-        body: { id: view.id, view: view }
-      })
+        body: { id: view.id, view: view },
+      }),
     }),
     deleteTableView: builder.mutation<
       any,
       { view: ViewInterface; index: number }
     >({
-      query: data => ({
+      query: (data) => ({
         url: `table-views/${data.view.id}`,
-        method: "DELETE"
+        method: "DELETE",
       }),
-      transformResponse: (_, __, arg) => ({ index: arg.index })
+      transformResponse: (_, __, arg) => ({ index: arg.index }),
     }),
     updateTableViewsOrder: builder.mutation<any, viewOrderInterface[]>({
       query: (order: viewOrderInterface[]) => ({
         url: "table-views/order",
         method: "PATCH",
-        body: order
-      })
+        body: order,
+      }),
     }),
     logout: builder.mutation<any, void>({
       query: () => ({
         url: "logout",
-        method: "POST"
-      })
+        method: "POST",
+      }),
     }),
     login: builder.mutation<any, FormData>({
-      query: form => ({
+      query: (form) => ({
         url: "login",
         method: "POST",
         body: new URLSearchParams(form as any),
-        headers: { "Content-Type": "application/x-www-form-urlencoded" }
-      })
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }),
     }),
     getSettings: builder.query<settings, void>({
-      query: () => `settings`
-    })
-  })
+      query: () => `settings`,
+      providesTags: ["settings"],
+    }),
+    updateSettings: builder.mutation<any, settings>({
+      query: (settings) => ({
+        url: "settings",
+        method: "PUT",
+        body: settings,
+      }),
+      invalidatesTags: ["settings"],
+    }),
+  }),
 });
 
 // Export hooks for usage in functional components, which are
@@ -97,5 +107,6 @@ export const {
   useUpdateTableViewsOrderMutation,
   useLoginMutation,
   useLogoutMutation,
-  useGetSettingsQuery
+  useGetSettingsQuery,
+  useUpdateSettingsMutation,
 } = torqApi;

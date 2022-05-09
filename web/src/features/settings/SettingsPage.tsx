@@ -6,16 +6,13 @@ import Select, { SelectOption } from "../forms/Select";
 import SubmitButton from "../forms/SubmitButton";
 import React, { useEffect } from "react";
 import { defaultStaticRanges } from "../timeIntervalSelect/customRanges";
-import { useGetSettingsQuery } from "apiSlice";
+import { useGetSettingsQuery, useUpdateSettingsMutation } from "apiSlice";
 import { settings } from "apiTypes";
 import classNames from "classnames";
 
-interface settingsProps {
-  name: string;
-}
-
-function Settings(props: settingsProps) {
+function Settings() {
   const { data: settingsData } = useGetSettingsQuery();
+  const [updateSettings] = useUpdateSettingsMutation();
 
   const [savedMessage, setSavedMessage] = React.useState("");
   const [settingsState, setSettingsState] = React.useState({
@@ -27,7 +24,6 @@ function Settings(props: settingsProps) {
     if (settingsData) {
       // mutate data if you need to
       setSettingsState(settingsData);
-      const bla = settingsData?.defaultDateRange;
     }
   }, [settingsData]);
 
@@ -63,7 +59,10 @@ function Settings(props: settingsProps) {
   };
 
   const handlePreferredTimezoneChange = (combiner: any) => {
-    setSettingsState({ ...settingsState, preferredTimezone: combiner.value });
+    setSettingsState({
+      ...settingsState,
+      preferredTimezone: parseInt(combiner.value),
+    });
   };
 
   const handleWeekStartsOnChange = (combiner: any) => {
@@ -72,7 +71,7 @@ function Settings(props: settingsProps) {
 
   const submitPreferences = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("submitted");
+    updateSettings(settingsState);
     setSavedMessage("Saved!");
   };
 

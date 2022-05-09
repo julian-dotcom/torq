@@ -1,0 +1,15 @@
+CREATE TABLE settings (
+  settings_id SERIAL PRIMARY KEY,
+  default_date_range TEXT NOT NULL,
+  preferred_timezone INT NOT NULL,
+  week_starts_on TEXT NOT NULL,
+  created_on TIMESTAMP NOT NULL,
+  updated_on TIMESTAMP NULL
+);
+
+INSERT INTO settings (
+  default_date_range,
+  preferred_timezone,
+  week_starts_on,
+  created_on
+) values ('last7days', 0, 'monday', now());
