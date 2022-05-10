@@ -14,6 +14,7 @@ import {
   subDays,
 } from "date-fns";
 
+// defineds: NOUN, pronounced: dɪˈfɪnedz, "The collective group of defined date ranges"
 export const defineds = {
   startOfToday: startOfDay(new Date()),
   endOfToday: endOfDay(new Date()),
