@@ -3,7 +3,7 @@ import { RootState } from "../../store/store";
 import {
   defineds,
   getCompareRanges,
-  defaultStaticRanges,
+  defaultStaticRangesFn,
 } from "./customRanges";
 import { torqApi } from "apiSlice";
 import { Draft } from "immer";
@@ -14,6 +14,7 @@ export interface TimeIntervalState {
   compareFrom: string;
   compareTo: string;
   defaultDateRange: string;
+  weekStartsOn: number;
 }
 
 const initialState: TimeIntervalState = {
@@ -22,6 +23,7 @@ const initialState: TimeIntervalState = {
   compareTo: defineds.endOfLast7DaysCompare.toString(),
   compareFrom: defineds.startOfLast7DaysCompare.toString(),
   defaultDateRange: "",
+  weekStartsOn: 1, // aka Sunday
 };
 
 export const timeIntervalSlice = createSlice({
@@ -45,6 +47,13 @@ export const timeIntervalSlice = createSlice({
     builder.addMatcher(
       torqApi.endpoints.getSettings.matchFulfilled,
       (state, { payload }) => {
+        const weekStartsOn =
+          payload.weekStartsOn === "saturday"
+            ? 6
+            : payload.weekStartsOn === "sunday"
+            ? 0
+            : 1;
+        state.weekStartsOn = weekStartsOn;
         if (!state.defaultDateRange) {
           setRangeToDefault(state, payload.defaultDateRange);
         }
@@ -64,6 +73,7 @@ function setRangeToDefault(
   state: Draft<TimeIntervalState>,
   defaultDateRange: string
 ) {
+  const defaultStaticRanges = defaultStaticRangesFn(state.weekStartsOn);
   const staticRange = defaultStaticRanges.find(
     (sr: any) => sr.code === defaultDateRange
   );

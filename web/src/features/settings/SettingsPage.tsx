@@ -5,7 +5,7 @@ import style from "./settings.module.css";
 import Select, { SelectOption } from "../forms/Select";
 import SubmitButton from "../forms/SubmitButton";
 import React, { useEffect } from "react";
-import { defaultStaticRanges } from "../timeIntervalSelect/customRanges";
+import { defaultStaticRangesFn } from "../timeIntervalSelect/customRanges";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "apiSlice";
 import { settings } from "apiTypes";
 import classNames from "classnames";
@@ -30,7 +30,7 @@ function Settings() {
   const defaultDateRangeLabels: {
     label: string;
     code: string;
-  }[] = defaultStaticRanges;
+  }[] = defaultStaticRangesFn(0);
 
   const defaultDateRangeOptions: SelectOption[] = defaultDateRangeLabels.map(
     (dsr) => ({ value: dsr.code, label: dsr.label })

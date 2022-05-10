@@ -1,5 +1,5 @@
 import "./interval_select.scss";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   format,
   startOfDay,
@@ -14,7 +14,7 @@ import {
   ChevronRight24Regular as RightIcon,
 } from "@fluentui/react-icons";
 
-import { defaultStaticRanges } from "./customRanges";
+import { defaultStaticRangesFn } from "./customRanges";
 
 import Popover from "../popover/Popover";
 import classNames from "classnames";
@@ -31,15 +31,12 @@ interface selection {
 
 function TimeIntervalSelect() {
   // triggers RTK Query to get settings which are intercepted in the timeIntervalSlice as an extra reducer
-  const { data: settings } = useGetSettingsQuery();
-  const startOfWeek =
-    settings?.weekStartsOn === "saturday"
-      ? 6
-      : settings?.weekStartsOn === "sunday"
-      ? 0
-      : 1;
+  useGetSettingsQuery();
 
   const currentPeriod = useAppSelector(selectTimeInterval);
+
+  const defaultStaticRanges = defaultStaticRangesFn(currentPeriod.weekStartsOn);
+
   const [isMobile, setIsMobile] = useState(false);
 
   const selection1: selection = {
@@ -144,9 +141,13 @@ function TimeIntervalSelect() {
                     defaultStaticRanges.findIndex((item: any) => {
                       // Mark Custom if definedRange is not found in predefined staticRanges
                       return (
-                        item.range().startDate.toString() ===
+                        item
+                          .range(currentPeriod.weekStartsOn)
+                          .startDate.toString() ===
                           definedRange.startDate?.toString() &&
-                        item.range().endDate.toString() ===
+                        item
+                          .range(currentPeriod.weekStartsOn)
+                          .endDate.toString() ===
                           definedRange.endDate?.toString()
                       );
                     }) === -1
@@ -162,7 +163,7 @@ function TimeIntervalSelect() {
             months={1}
             showMonthArrow={false}
             showMonthAndYearPickers={false}
-            weekStartsOn={startOfWeek}
+            weekStartsOn={currentPeriod.weekStartsOn as 0 | 1 | 6}
             direction="vertical"
             inputRanges={[]}
             ranges={[selection1]}
