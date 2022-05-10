@@ -6,12 +6,14 @@ import {
   defaultStaticRanges,
 } from "./customRanges";
 import { torqApi } from "apiSlice";
+import { Draft } from "immer";
 
 export interface TimeIntervalState {
   from: string;
   to: string;
   compareFrom: string;
   compareTo: string;
+  defaultDateRange: string;
 }
 
 const initialState: TimeIntervalState = {
@@ -19,6 +21,7 @@ const initialState: TimeIntervalState = {
   from: defineds.startOfLast7Days.toString(),
   compareTo: defineds.endOfLast7DaysCompare.toString(),
   compareFrom: defineds.startOfLast7DaysCompare.toString(),
+  defaultDateRange: "",
 };
 
 export const timeIntervalSlice = createSlice({
@@ -42,17 +45,33 @@ export const timeIntervalSlice = createSlice({
     builder.addMatcher(
       torqApi.endpoints.getSettings.matchFulfilled,
       (state, { payload }) => {
-        const staticRange = defaultStaticRanges.find(
-          (sr: any) => sr.code === payload.defaultDateRange
-        );
-        state.to = staticRange.range().endDate.toString();
-        state.from = staticRange.range().startDate.toString();
-        state.compareTo = staticRange.rangeCompare().endDate.toString();
-        state.compareFrom = staticRange.rangeCompare().startDate.toString();
+        if (!state.defaultDateRange) {
+          setRangeToDefault(state, payload.defaultDateRange);
+        }
+        if (state.defaultDateRange !== payload.defaultDateRange) {
+          state.defaultDateRange = payload.defaultDateRange;
+        }
       }
     );
+
+    builder.addMatcher(torqApi.endpoints.logout.matchFulfilled, (state) => {
+      setRangeToDefault(state, state.defaultDateRange);
+    });
   },
 });
+
+function setRangeToDefault(
+  state: Draft<TimeIntervalState>,
+  defaultDateRange: string
+) {
+  const staticRange = defaultStaticRanges.find(
+    (sr: any) => sr.code === defaultDateRange
+  );
+  state.to = staticRange.range().endDate.toString();
+  state.from = staticRange.range().startDate.toString();
+  state.compareTo = staticRange.rangeCompare().endDate.toString();
+  state.compareFrom = staticRange.rangeCompare().startDate.toString();
+}
 
 export const { updateInterval } = timeIntervalSlice.actions;
 

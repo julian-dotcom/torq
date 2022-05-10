@@ -21,13 +21,14 @@ export const torqApi = createApi({
     credentials: "include",
     mode: "cors",
   }),
-  tagTypes: ["settings"],
+  tagTypes: ["settings", "tableView"],
   endpoints: (builder) => ({
     getChannels: builder.query<any, { from: string; to: string }>({
       query: ({ from, to }) => `channels?from=${from}&to=${to}`,
     }),
     getTableViews: builder.query<any, void>({
       query: () => `table-views`,
+      providesTags: ["tableView"],
     }),
     createTableView: builder.mutation<
       any,
@@ -72,6 +73,7 @@ export const torqApi = createApi({
         url: "logout",
         method: "POST",
       }),
+      invalidatesTags: ["tableView"],
     }),
     login: builder.mutation<any, FormData>({
       query: (form) => ({
