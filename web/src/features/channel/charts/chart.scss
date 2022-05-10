@@ -1,0 +1,75 @@
+.tick line {
+  visibility: hidden;
+}
+.tick text {
+  fill: var(--fg-muted);
+}
+.xAxisContainer path.domain {
+  stroke: var(--bg-subtle);
+}
+.leftYAxisContainer path.domain,
+.rightYAxisContainer path.domain {
+  visibility: hidden;
+}
+.leftYAxisLabelContainer,
+.rightYAxisLabelContainer {
+  position: absolute;
+  top: 0;
+  right: 5px;
+  width: 100%;
+  text-align: right;
+  padding: 2px 5px 2px 5px;
+  background-color: rgba(3, 48, 72, 0.1);
+  backdrop-filter: blur(2px);
+  border-radius: 2px;
+}
+.rightYAxisLabelContainer {
+  left: 4px;
+  text-align: left;
+}
+
+.eventsContainer {
+  pointer-events: none;
+}
+.eventsContainer .event-wrapper {
+  display: grid;
+  grid-row-gap: 5px;
+  justify-items: center;
+  transform: translateX(-50%);
+}
+.eventsContainer .event-item {
+  background-color: var(--accent-b-250);
+  border-radius: 2px;
+  padding: 3px 5px;
+  white-space: nowrap;
+  word-break: keep-all;
+  height: 24px;
+  display: grid;
+  align-items: center;
+  grid-auto-flow: column;
+  grid-column-gap: 5px;
+  &.channel_open {
+    background-color: var(--accent-b-250);
+  }
+  &.channel_close {
+    background-color: var(--secondary-400);
+  }
+  &.fee_rate {
+    background-color: var(--primary-350);
+  }
+  &.base_fee {
+    background-color: var(--accent-b-250);
+  }
+  &.rebalanced_out {
+    background-color: var(--accent-a-200);
+  }
+  &.rebalanced_in {
+    background-color: var(--accent-a-300);
+  }
+  &.channel_status_disabled {
+    background-color: var(--color-baige-400);
+  }
+  &.channel_status_enabled {
+    background-color: var(--color-baige-400);
+  }
+}

@@ -5,17 +5,12 @@ import ProfitsChart from "./revenueChart/ProtifsChart";
 import EventsChart from "./eventsChart/EventsChart";
 import Switch from "../inputs/Slider/Switch";
 import Button from "../buttons/Button";
-import {
-  Settings16Regular as SettingsIcon,
-  ChevronDoubleLeft20Regular as CollapseIcon,
-  VirtualNetwork20Regular as ChannelIcon,
-  LockClosed20Regular as LogoutIcon,
-} from "@fluentui/react-icons";
+import { Settings16Regular as SettingsIcon } from "@fluentui/react-icons";
 
 const data = [
   {
     date: new Date(2022, 11, 1),
-    revenue: 2410,
+    revenue: 2910,
     capacity_out: 2503000,
     events: [
       { type: "channel_open", id: 3 },

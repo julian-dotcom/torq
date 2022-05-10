@@ -1,19 +1,18 @@
 import * as d3 from "d3";
-import {
-  NumberValue,
-  ScaleLinear,
-  ScaleTime,
-  Selection,
-  svg,
-  ValueFn,
-} from "d3";
+import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
 import { addHours, subHours } from "date-fns";
 import clone from "clone";
-import AddIcon from "@fluentui/svg-icons/icons/add_20_filled.svg";
+import eventIcons from "./eventIcons";
 
 type chartConfig = {
-  data: Array<any>;
-  yAxisKey: string;
+  leftYAxisKey: string;
+  rightYAxisKey: string;
+  showLeftYAxisLabel: boolean;
+  showRightYAxisLabel: boolean;
+  leftYAxisFormatter: (n: number | { valueOf(): number }) => string;
+  rightYAxisFormatter: (n: number | { valueOf(): number }) => string;
+  xAxisPadding: number;
+  yAxisPadding: number;
   margin: {
     top: number;
     right: number;
@@ -23,22 +22,30 @@ type chartConfig = {
   height: number;
   width: number;
   yScale: ScaleLinear<number, number, never>;
+  rightYScale: ScaleLinear<number, number, never>;
   xScale: ScaleTime<number, number, number | undefined>;
 };
 
 class Chart {
   config: chartConfig = {
-    data: [],
-    yAxisKey: "",
+    xAxisPadding: 12,
+    yAxisPadding: 1.2,
+    leftYAxisKey: "",
+    rightYAxisKey: "",
+    showLeftYAxisLabel: false,
+    showRightYAxisLabel: false,
+    leftYAxisFormatter: d3.format(",.3s"),
+    rightYAxisFormatter: d3.format(",.3s"),
     margin: {
       top: 10,
-      right: 20,
+      right: 10,
       bottom: 30,
-      left: 50,
+      left: 1,
     },
     height: 200,
     width: 500,
     yScale: d3.scaleLinear([0, 200]),
+    rightYScale: d3.scaleLinear([0, 200]),
     xScale: d3.scaleTime([0, 800]),
   };
 
@@ -47,12 +54,19 @@ class Chart {
 
   container: Selection<HTMLDivElement, {}, HTMLElement, any>;
   canvas: Selection<HTMLCanvasElement, {}, HTMLElement, any>;
+
   interactionLayer: Selection<HTMLCanvasElement, {}, HTMLElement, any>;
   chartContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+
   xAxisContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
-  yAxisContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  leftYAxisContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  rightYAxisContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+
   eventsContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
-  legendsContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legendContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+
+  leftYAxisLabelContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  rightYAxisLabelContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
 
   context: CanvasRenderingContext2D;
   interactionContext: CanvasRenderingContext2D;
@@ -60,23 +74,32 @@ class Chart {
   constructor(
     container: Selection<HTMLDivElement, {}, HTMLElement, any>,
     data: Array<any>,
-    yAxisKey: string
+    config: Partial<chartConfig>
   ) {
     if (container == undefined) {
       throw new Error("The chart container can't be null");
     }
-    this.container = container;
-
     this.data = data;
-    this.config.yAxisKey = yAxisKey;
+    this.config = { ...this.config, ...config };
 
+    if (this.config.leftYAxisKey) {
+      this.config.margin.left = 50;
+    }
+    if (this.config.rightYAxisKey) {
+      this.config.margin.right = 50;
+    }
+
+    this.container = container;
     this.container.attr("style", "position: relative; height: 100%;");
     // Configure the chart width and height based on the container
     this.config.width = this.getWidth();
     this.config.height = this.getHeight();
 
-    let start = subHours(this.data[0].date, 16);
-    let end = addHours(this.data[this.data.length - 1].date, 16);
+    let start = subHours(this.data[0].date, this.config.xAxisPadding);
+    let end = addHours(
+      this.data[this.data.length - 1].date,
+      this.config.xAxisPadding
+    );
 
     // Creating a scale
     // The range is the number of pixels the domain will be distributed across
@@ -93,6 +116,13 @@ class Chart {
       .domain([start, end]);
 
     this.config.yScale = d3
+      .scaleLinear()
+      .range([
+        0,
+        this.config.height - this.config.margin.top - this.config.margin.bottom,
+      ]);
+
+    this.config.rightYScale = d3
       .scaleLinear()
       .range([
         0,
@@ -117,12 +147,12 @@ class Chart {
         `position: absolute; left: ${this.config.margin.left}px; top: ${this.config.margin.top}px;`
       );
 
-    this.legendsContainer = this.container
+    this.legendContainer = this.container
       .append("div")
-      .attr("class", "legendsContainer")
+      .attr("class", "legendContainer")
       .attr(
         "style",
-        `position: absolute; left: ${this.config.margin.left + 10}px; top: ${
+        `position: absolute; right: ${this.config.margin.right + 10}px; top: ${
           this.config.margin.top + 10
         }px;`
       );
@@ -139,10 +169,31 @@ class Chart {
                left: 0;`
       );
 
-    this.yAxisContainer = this.container
+    this.leftYAxisContainer = this.container
       .append("div")
-      .attr("class", "yAxisContainer")
-      .attr("style", `height: 100%; width: ${this.config.margin.left}px;`);
+      .attr("class", "leftYAxisContainer")
+      .attr(
+        "style",
+        `position: absolute; top: 0; left: 0;  height: 100%; width: ${this.config.margin.left}px;`
+      );
+
+    this.leftYAxisLabelContainer = this.leftYAxisContainer
+      .append("div")
+      .attr("class", "leftYAxisLabelContainer")
+      .attr("style", `display: none;`);
+
+    this.rightYAxisContainer = this.container
+      .append("div")
+      .attr("class", "rightYAxisContainer")
+      .attr(
+        "style",
+        `position: absolute; top: 0; right: 0; height: 100%; width: ${this.config.margin.right}px;`
+      );
+
+    this.rightYAxisLabelContainer = this.rightYAxisContainer
+      .append("div")
+      .attr("class", "rightYAxisLabelContainer")
+      .attr("style", `display: none;`);
 
     this.eventsContainer = this.container
       .append("div")
@@ -191,6 +242,13 @@ class Chart {
     this.addResizeListener();
     this.addHoverListener();
     this.addMouseOutListener();
+  }
+
+  tickWidth(): number {
+    return (
+      (this.config.xScale(new Date(1, 0, 1)) || 0) -
+      (this.config.xScale(new Date(1, 0, 0)) || 0)
+    );
   }
 
   removeResizeListener() {
@@ -333,6 +391,8 @@ class Chart {
       this.plots.forEach((plot: any, key: string) => {
         plot.draw({});
       });
+      this.drawLeftYAxisLabel(0, 0);
+      this.drawRightYAxisLabel(0, 0);
     });
   }
 
@@ -342,25 +402,71 @@ class Chart {
       let figure = this.getFigure(xPosition, yPosition);
       this.clearCanvas();
 
-      let xIndex: number;
+      let xIndex: number | undefined = undefined;
       this.data.forEach((d: any, i) => {
         if (
-          this.config.xScale.invert(xPosition) > d?.date &&
-          this.config.xScale.invert(xPosition) < addHours(this.data[i].date, 24)
+          addHours(this.config.xScale.invert(xPosition), 12) >= d?.date &&
+          addHours(this.config.xScale.invert(xPosition), 12) <=
+            addHours(this.data[i].date, 24)
         ) {
           xIndex = i;
         }
       });
 
+      const leftYValue =
+        xIndex !== undefined
+          ? this.data[xIndex || 0][this.config.leftYAxisKey]
+          : 0;
+      const rightYValue =
+        xIndex !== undefined
+          ? this.data[xIndex || 0][this.config.rightYAxisKey]
+          : 0;
       this.plots.forEach((plot: any, key: string) => {
         plot.draw({
           xPosition,
           yPosition,
           xValue: this.config.xScale.invert(xPosition),
-          yValue: this.config.yScale.invert(yPosition),
+          leftYValue: leftYValue,
+          rightYValue: rightYValue,
           xIndex,
         });
       });
+
+      if (
+        this.config.showLeftYAxisLabel &&
+        this.config.leftYAxisKey &&
+        leftYValue
+      ) {
+        this.drawLeftYAxisLabel(this.config.yScale(leftYValue), leftYValue);
+        this.drawYCrosshair(
+          this.config.xScale(this.data[xIndex || 0].date) || 0,
+          this.config.yScale(leftYValue) || 0
+        );
+      }
+
+      if (
+        this.config.showRightYAxisLabel &&
+        this.config.rightYAxisKey &&
+        rightYValue
+      ) {
+        this.drawRightYAxisLabel(
+          this.config.rightYScale(rightYValue),
+          rightYValue
+        );
+        this.drawYCrosshair(
+          this.config.xScale(this.data[xIndex || 0].date) || 0,
+          this.config.rightYScale(rightYValue) || 0,
+          true
+        );
+      }
+
+      this.drawXCrosshair(
+        this.config.xScale(this.data[xIndex || 0].date) || 0,
+        Math.min(
+          this.config.yScale(leftYValue),
+          this.config.rightYScale(rightYValue)
+        )
+      );
     });
   }
 
@@ -371,17 +477,50 @@ class Chart {
     this.plots.set(config.id, new PlotItem(this, config));
   }
 
-  drawYAxis() {
-    this.yAxisContainer.select("svg").remove();
+  drawLeftYAxisLabel(position: number, tickLabel: number) {
+    if (position === 0) {
+      this.leftYAxisLabelContainer.attr(
+        "style",
+        `top: ${position}px; display: none;`
+      );
+      return;
+    }
+    this.leftYAxisLabelContainer
+      .attr("style", `top: ${position}px;`)
+      .text(tickLabel ? this.config.leftYAxisFormatter(tickLabel) : "");
+  }
+
+  drawRightYAxisLabel(position: number, tickLabel: number) {
+    if (position === 0) {
+      this.rightYAxisLabelContainer.attr(
+        "style",
+        `top: ${position}px; display: none;`
+      );
+      return;
+    }
+    this.rightYAxisLabelContainer
+      .attr(
+        "style",
+        `
+        top: ${position}px;`
+      )
+      .text(tickLabel ? this.config.rightYAxisFormatter(tickLabel) : "");
+  }
+
+  drawLeftYAxis() {
+    if (this.config.leftYAxisKey === "") {
+      return;
+    }
+    this.leftYAxisContainer.select("svg").remove();
 
     const max = Math.max(
       ...this.data.map((d): number => {
-        return d[this.config.yAxisKey];
+        return d[this.config.leftYAxisKey];
       })
     );
-    this.config.yScale.domain([max * 1.1, 0]);
+    this.config.yScale.domain([max * this.config.yAxisPadding, 0]);
 
-    this.yAxisContainer
+    this.leftYAxisContainer
       .append("svg")
       .attr("style", `height: 100%; width: 100%;`)
       .append("g")
@@ -390,7 +529,31 @@ class Chart {
         "transform",
         `translate(${this.config.margin.left},${this.config.margin.top})`
       )
-      .call(d3.axisLeft(this.config.yScale));
+      .call(d3.axisLeft(this.config.yScale).tickFormat(d3.format(",.3s")));
+  }
+
+  drawRightYAxis() {
+    if (this.config.rightYAxisKey === "") {
+      return;
+    }
+    this.rightYAxisContainer.select("svg").remove();
+
+    const max = Math.max(
+      ...this.data.map((d): number => {
+        return d[this.config.rightYAxisKey];
+      })
+    );
+    this.config.rightYScale.domain([max * this.config.yAxisPadding, 0]);
+
+    this.rightYAxisContainer
+      .append("svg")
+      .attr("style", `height: 100%; width: 100%;`)
+      .append("g")
+      .style("font-size", "12px")
+      .attr("transform", `translate(0,${this.config.margin.top})`)
+      .call(
+        d3.axisRight(this.config.rightYScale).tickFormat(d3.format(",.3s"))
+      );
   }
 
   drawXAxis() {
@@ -414,10 +577,38 @@ class Chart {
       );
   }
 
+  drawXCrosshair(xPosition: number, yPosition: number) {
+    this.context.lineWidth = 1;
+    this.context.strokeStyle = "rgba(3, 48, 72, 0.4)";
+    this.context.setLineDash([5, 3]);
+    this.context.beginPath();
+    this.context.moveTo(xPosition, yPosition);
+    this.context.lineTo(xPosition, this.config.yScale.range()[1]);
+    this.context.stroke();
+    // Reset the dashed line setting
+    this.context.setLineDash([0, 0]);
+  }
+
+  drawYCrosshair(xPosition: number, yPosition: number, right?: boolean) {
+    this.context.lineWidth = 1;
+    this.context.strokeStyle = "rgba(3, 48, 72, 0.4)";
+    this.context.setLineDash([5, 3]);
+    this.context.beginPath();
+    this.context.moveTo(0, yPosition);
+    if (right) {
+      this.context.moveTo(this.config.xScale.range()[1], yPosition);
+    }
+    this.context.lineTo(xPosition, yPosition); //this.config.yScale.range()[1]
+    this.context.stroke();
+    // Reset the dashed line setting
+    this.context.setLineDash([0, 0]);
+  }
+
   draw() {
     // Draw the X and Y axis
     this.drawXAxis();
-    this.drawYAxis();
+    this.drawLeftYAxis();
+    this.drawRightYAxis();
 
     // Draw each plot on the chart
     this.plots.forEach((plot, key) => {
@@ -436,7 +627,8 @@ type drawConfig = {
   xPosition?: number;
   yPosition?: number;
   xValue?: Date;
-  yValue?: number;
+  leftYValue?: number;
+  rightYValue?: number;
   xIndex?: number;
 };
 
@@ -463,7 +655,9 @@ abstract class AbstractPlot {
         return d[key];
       })
     );
-    return chart.config.yScale.copy().domain([yScaleMax * 1.1, 0]);
+    return chart.config.yScale
+      .copy()
+      .domain([yScaleMax * this.chart.config.yAxisPadding, 0]);
   }
 
   /**
@@ -585,10 +779,6 @@ export class BarPlot extends AbstractPlot {
     );
   }
 
-  // updateLegend() {
-  //   this.chart.legendsContainer.select(`#${this.config.id}`).append();
-  // }
-
   /**
    * Draw draws the bars on the Chart instance based on the configuration provided.
    */
@@ -636,7 +826,7 @@ export class BarPlot extends AbstractPlot {
         this.chart.context.textBaseline = "middle";
         this.chart.context.fillStyle = textColor;
         this.chart.context.fillText(
-          this.chart.data[i][this.config.key],
+          d3.format(",")(this.chart.data[i][this.config.key]),
           this.xPoint(this.chart.data[i].date) + this.barWidth() / 2,
           this.yPoint(this.chart.data[i][this.config.key]) -
             15 +
@@ -670,6 +860,9 @@ type areaPlotConfigInit = Partial<areaPlotConfig> &
 
 export class AreaPlot extends AbstractPlot {
   config: areaPlotConfig;
+  legend: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legendTextBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legendColorBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
 
   constructor(chart: Chart, config: areaPlotConfigInit) {
     super(chart, config);
@@ -681,6 +874,27 @@ export class AreaPlot extends AbstractPlot {
       addBuffer: false,
       ...config,
     };
+
+    this.legend = this.chart.legendContainer
+      .append("div")
+      .attr("id", `${this.config.id}`)
+      .attr(
+        "style",
+        `display: grid; grid-auto-flow: column; align-items: center; grid-column-gap: 5px;`
+      );
+
+    this.legendTextBox = this.legend
+      .append("div")
+      .attr("class", "legendTextBox");
+
+    const legendColor = this.config.areaGradient
+      ? `linear-gradient(0deg, ${this.config.areaGradient[0]} 0%, ${this.config.areaGradient[1]} 100%)`
+      : this.config.areaColor;
+
+    this.legendColorBox = this.legend
+      .append("div")
+      .attr("class", "legendColorBox")
+      .attr("style", `width: 12px; height: 12px; background: ${legendColor};`);
   }
 
   draw(drawConfig?: drawConfig) {
@@ -735,7 +949,7 @@ export class AreaPlot extends AbstractPlot {
     }
 
     this.chart.data.forEach((d, i) => {
-      if (this.config.labels || drawConfig?.xIndex === i) {
+      if (this.config.labels) {
         this.chart.context.font = "12px Inter";
         this.chart.context.textAlign = "center";
         this.chart.context.textBaseline = "middle";
@@ -747,6 +961,11 @@ export class AreaPlot extends AbstractPlot {
         );
       }
     });
+
+    const legendText = drawConfig?.xIndex
+      ? this.chart.data[drawConfig?.xIndex][this.config.key]
+      : this.chart.data[this.chart.data.length - 1][this.config.key];
+    this.legendTextBox.text(d3.format(",")(legendText));
   }
 }
 
@@ -763,6 +982,9 @@ type linePlotConfigInit = Partial<linePlotConfig> &
 
 export class LinePlot extends AbstractPlot {
   config: linePlotConfig;
+  legend: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legendTextBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legendColorBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
 
   constructor(chart: Chart, config: linePlotConfigInit) {
     super(chart, config);
@@ -773,6 +995,26 @@ export class LinePlot extends AbstractPlot {
       globalAlpha: 1,
       ...config,
     };
+
+    this.legend = this.chart.legendContainer
+      .append("div")
+      .attr("id", `${this.config.id}`)
+      .attr(
+        "style",
+        `display: grid; grid-auto-flow: column; align-items: center; grid-column-gap: 5px; justify-content: end;`
+      );
+
+    this.legendTextBox = this.legend
+      .append("div")
+      .attr("class", "legendTextBox");
+
+    this.legendColorBox = this.legend
+      .append("div")
+      .attr("class", "legendColorBox")
+      .attr(
+        "style",
+        `width: 12px; height: 12px; background: ${this.config.lineColor};`
+      );
   }
 
   draw(drawConfig?: drawConfig) {
@@ -795,8 +1037,8 @@ export class LinePlot extends AbstractPlot {
     this.chart.context.stroke();
     this.chart.context.globalAlpha = 1;
 
-    this.chart.data.forEach((d, i) => {
-      if (this.config.labels || drawConfig?.xIndex === i) {
+    if (this.config.labels) {
+      this.chart.data.forEach((d, i) => {
         this.chart.context.font = "12px Inter";
         this.chart.context.textAlign = "center";
         this.chart.context.textBaseline = "middle";
@@ -806,8 +1048,12 @@ export class LinePlot extends AbstractPlot {
           this.xPoint(d.date),
           this.yPoint(d[this.config.key]) - 15
         );
-      }
-    });
+      });
+    }
+
+    const hoverIndex = drawConfig?.xIndex || this.chart.data.length - 1;
+    const legendText = this.chart.data[hoverIndex][this.config.key];
+    this.legendTextBox.text(d3.format(",")(legendText));
   }
 }
 
@@ -818,93 +1064,6 @@ type eventsPlotConfigInit = Partial<linePlotConfig> &
 
 export class EventsPlot extends AbstractPlot {
   config: eventsPlotConfig;
-
-  icons: Map<string, string> = new Map<string, string>([
-    [
-      "rebalanced_in",
-      `
-        <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M15.5 2.5896C15.7761 2.5896 16 2.81346 16 3.0896V14.0896C16 14.3657 15.7761 14.5896 15.5 14.5896C15.2239 14.5896 15 14.3657 15 14.0896V3.0896C15 2.81346 15.2239 2.5896 15.5 2.5896ZM0 8.5896C0 8.31346 0.223858 8.0896 0.5 8.0896H11.2929L8.14645 4.94315C7.95118 4.74789 7.95118 4.43131 8.14645 4.23605C8.34171 4.04078 8.65829 4.04078 8.85355 4.23605L12.8536 8.23605C12.9015 8.28398 12.9377 8.33924 12.9621 8.39821C12.9861 8.45629 12.9996 8.5199 13 8.5866L13 8.5896L13 8.5926C12.9992 8.71956 12.9504 8.84628 12.8536 8.94315L8.85355 12.9432C8.65829 13.1384 8.34171 13.1384 8.14645 12.9432C7.95118 12.7479 7.95118 12.4313 8.14645 12.236L11.2929 9.0896H0.5C0.223858 9.0896 0 8.86574 0 8.5896Z" fill="#033048"/>
-        </svg>
-`,
-    ],
-    [
-      "rebalanced_out",
-      `
-        <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1.5 3.05237C1.77614 3.05237 2 3.27623 2 3.55237V12.0524C2 12.3285 1.77614 12.5524 1.5 12.5524C1.22386 12.5524 1 12.3285 1 12.0524V3.55237C1 3.27623 1.22386 3.05237 1.5 3.05237ZM10.6464 3.69881C10.8417 3.50355 11.1583 3.50355 11.3536 3.69881L14.8536 7.19881C15.0488 7.39408 15.0488 7.71066 14.8536 7.90592L11.3536 11.4059C11.1583 11.6012 10.8417 11.6012 10.6464 11.4059C10.4512 11.2107 10.4512 10.8941 10.6464 10.6988L13.2929 8.05237H4.5C4.22386 8.05237 4 7.82851 4 7.55237C4 7.27623 4.22386 7.05237 4.5 7.05237H13.2929L10.6464 4.40592C10.4512 4.21066 10.4512 3.89408 10.6464 3.69881Z" fill="#033048"/>
-        </svg>`,
-    ],
-    [
-      "channel_status_disabled",
-      `
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2.5 0C1.67157 0 1 0.671573 1 1.5V14.5C1 15.3284 1.67157 16 2.5 16H4.5C5.32843 16 6 15.3284 6 14.5V1.5C6 0.671573 5.32843 0 4.5 0H2.5ZM2.5 1H4.5C4.77614 1 5 1.22386 5 1.5V14.5C5 14.7761 4.77614 15 4.5 15H2.5C2.22386 15 2 14.7761 2 14.5V1.5C2 1.22386 2.22386 1 2.5 1ZM11.5 0C10.6716 0 10 0.671573 10 1.5V14.5C10 15.3284 10.6716 16 11.5 16H13.5C14.3284 16 15 15.3284 15 14.5V1.5C15 0.671573 14.3284 0 13.5 0H11.5ZM11.5 1H13.5C13.7761 1 14 1.22386 14 1.5V14.5C14 14.7761 13.7761 15 13.5 15H11.5C11.2239 15 11 14.7761 11 14.5V1.5C11 1.22386 11.2239 1 11.5 1Z" fill="#033048"/>
-      </svg>
-
-    `,
-    ],
-    [
-      "channel_status_enabled",
-      `
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M15.2204 6.68703C16.2558 7.25661 16.2558 8.74339 15.2204 9.31298L5.2234 14.812C4.22371 15.362 3 14.6393 3 13.4991L3 2.50093C3 1.36068 4.22371 0.638047 5.2234 1.18795L15.2204 6.68703ZM14.7381 8.43766C15.0833 8.2478 15.0833 7.7522 14.7381 7.56234L4.74113 2.06327C4.4079 1.87997 4 2.12084 4 2.50093L4 13.4991C4 13.8792 4.4079 14.12 4.74114 13.9367L14.7381 8.43766Z" fill="#033048"/>
-      </svg>
-
-`,
-    ],
-    [
-      "channel_open",
-      `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_1939_30587)">
-<path d="M4.19079 0.770537C4.3211 0.314446 4.73797 0 5.21231 0H10.4614C11.1865 0 11.6986 0.710426 11.4693 1.39836L11.4668 1.40584L11.4667 1.40582L10.2053 5H12.7691C13.7155 5 14.1764 6.1436 13.5356 6.81137L13.532 6.81508L13.532 6.81506L4.85551 15.6726C4.10113 16.4551 2.79636 15.7329 3.06026 14.6773L4.22998 9.99841H2.96271C2.25687 9.99841 1.74727 9.32283 1.94118 8.64415L4.19079 0.770537ZM5.21231 1C5.18445 1 5.15996 1.01847 5.15231 1.04526L2.90271 8.91887C2.89132 8.95873 2.92125 8.99841 2.96271 8.99841H4.87037C5.02434 8.99841 5.16972 9.06935 5.26447 9.19071C5.35923 9.31207 5.39279 9.47031 5.35544 9.61968L4.03041 14.9198C4.02649 14.9355 4.02679 14.9448 4.02721 14.949C4.02765 14.9534 4.02868 14.9568 4.03027 14.9601C4.03383 14.9676 4.04314 14.9798 4.06076 14.9896C4.07838 14.9993 4.09368 15.0007 4.10191 14.9997C4.10557 14.9993 4.109 14.9984 4.11295 14.9964C4.11674 14.9945 4.12478 14.9898 4.13597 14.9782L4.13952 14.9745L4.13954 14.9745L12.8151 6.11787C12.8273 6.10484 12.8305 6.09481 12.8318 6.0864C12.8336 6.07504 12.8325 6.05898 12.8253 6.04178C12.8181 6.0246 12.8079 6.01365 12.8002 6.00817C12.7949 6.00438 12.7869 6 12.7691 6H9.49996C9.33785 6 9.1858 5.9214 9.09205 5.78915C8.9983 5.65689 8.97449 5.48739 9.02817 5.33443L10.5212 1.08022C10.5331 1.04042 10.5033 1 10.4614 1H5.21231Z" fill="#033048"/>
-</g>
-<defs>
-<clipPath id="clip0_1939_30587">
-<rect width="16" height="16" fill="white"/>
-</clipPath>
-</defs>
-</svg>
-
-`,
-    ],
-    [
-      "channel_close",
-      `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_1939_30575)">
-<path d="M3.27265 3.97975L0.146447 0.853553C-0.0488155 0.658291 -0.0488155 0.341709 0.146447 0.146447C0.341709 -0.0488155 0.658291 -0.0488155 0.853553 0.146447L15.8536 15.1464C16.0488 15.3417 16.0488 15.6583 15.8536 15.8536C15.6583 16.0488 15.3417 16.0488 15.1464 15.8536L9.8577 10.5648L4.85429 15.6726C4.09991 16.4551 2.79514 15.7329 3.05904 14.6773L4.22876 9.99841H2.96148C2.25565 9.99841 1.74605 9.32283 1.93996 8.64415L3.27265 3.97975ZM9.15056 9.85766L4.08155 4.78865L2.90148 8.91887C2.8901 8.95873 2.92003 8.99841 2.96148 8.99841H4.86915C5.02312 8.99841 5.1685 9.06935 5.26325 9.19071C5.35801 9.31207 5.39156 9.47031 5.35422 9.61968L4.02919 14.9198C4.02527 14.9355 4.02557 14.9448 4.02599 14.949C4.02643 14.9534 4.02746 14.9568 4.02904 14.9601C4.03261 14.9676 4.04192 14.9798 4.05954 14.9896C4.07716 14.9993 4.09246 15.0007 4.10069 14.9997C4.10435 14.9993 4.10778 14.9984 4.11173 14.9964C4.11552 14.9945 4.12356 14.9898 4.13475 14.9782L4.13832 14.9745L9.15056 9.85766ZM12.8139 6.11787L10.5501 8.42896L11.2572 9.13611L13.5308 6.81506L13.5344 6.81137C14.1752 6.1436 13.7143 5 12.7678 5H10.2041L11.4655 1.40582L11.468 1.39836C11.6974 0.710426 11.1853 0 10.4602 0H5.21109C4.73675 0 4.31988 0.314446 4.18956 0.770537L3.90113 1.78004L4.71004 2.58894L5.15109 1.04526C5.15874 1.01847 5.18323 1 5.21109 1H10.4602C10.5021 1 10.5319 1.04042 10.52 1.08022L9.02695 5.33443C8.97327 5.48739 8.99708 5.65689 9.09083 5.78915C9.18458 5.9214 9.33663 6 9.49874 6H12.7678C12.7857 6 12.7936 6.00438 12.799 6.00817C12.8067 6.01365 12.8168 6.0246 12.824 6.04178C12.8313 6.05898 12.8324 6.07504 12.8306 6.0864C12.8293 6.09481 12.8261 6.10484 12.8139 6.11787Z" fill="#033048"/>
-</g>
-<defs>
-<clipPath id="clip0_1939_30575">
-<rect width="16" height="16" fill="white"/>
-</clipPath>
-</defs>
-</svg>
-
-`,
-    ],
-    [
-      "channel_force_close",
-      `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0ZM8 1C4.13401 1 1 4.13401 1 8C1 11.866 4.13401 15 8 15C11.866 15 15 11.866 15 8C15 4.13401 11.866 1 8 1ZM8 10.5C8.41421 10.5 8.75 10.8358 8.75 11.25C8.75 11.6642 8.41421 12 8 12C7.58579 12 7.25 11.6642 7.25 11.25C7.25 10.8358 7.58579 10.5 8 10.5ZM8 4C8.24546 4 8.44961 4.17688 8.49194 4.41012L8.5 4.5V9C8.5 9.27614 8.27614 9.5 8 9.5C7.75454 9.5 7.55039 9.32312 7.50806 9.08988L7.5 9V4.5C7.5 4.22386 7.72386 4 8 4Z" fill="#033048"/>
-</svg>
-`,
-    ],
-    [
-      "fee_rate",
-      `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 7C5 5.89543 5.89543 5 7 5C8.10457 5 9 5.89543 9 7C9 8.10457 8.10457 9 7 9C5.89543 9 5 8.10457 5 7ZM7 6C6.44772 6 6 6.44772 6 7C6 7.55228 6.44772 8 7 8C7.55228 8 8 7.55228 8 7C8 6.44772 7.55228 6 7 6ZM1.5 2C0.671573 2 0 2.67157 0 3.5V10.5C0 11.3284 0.671573 12 1.5 12H12.5C13.3284 12 14 11.3284 14 10.5V3.5C14 2.67157 13.3284 2 12.5 2H1.5ZM1 3.5C1 3.22386 1.22386 3 1.5 3H3V4C3 4.55228 2.55228 5 2 5L1 5V3.5ZM1 6L2 6C3.10457 6 4 5.10457 4 4V3H10V4C10 5.10457 10.8954 6 12 6L13 6V8H12C10.8954 8 10 8.89543 10 10V11H4V10C4 8.89543 3.10457 8 2 8H1V6ZM11 3H12.5C12.7761 3 13 3.22386 13 3.5V5L12 5C11.4477 5 11 4.55228 11 4V3ZM13 9V10.5C13 10.7761 12.7761 11 12.5 11H11V10C11 9.44772 11.4477 9 12 9H13ZM3 11H1.5C1.22386 11 1 10.7761 1 10.5V9H2C2.55228 9 3 9.44772 3 10V11ZM15.0001 10.5C15.0001 11.8807 13.8808 13 12.5001 13H2.08545C2.29137 13.5826 2.84699 14 3.5001 14H12.5001C14.4331 14 16.0001 12.433 16.0001 10.5V5.49997C16.0001 4.84686 15.5827 4.29125 15.0001 4.08533V10.5Z" fill="#033048"/>
-      </svg>
-      `,
-    ],
-    [
-      "base_fee",
-      `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 7C5 5.89543 5.89543 5 7 5C8.10457 5 9 5.89543 9 7C9 8.10457 8.10457 9 7 9C5.89543 9 5 8.10457 5 7ZM7 6C6.44772 6 6 6.44772 6 7C6 7.55228 6.44772 8 7 8C7.55228 8 8 7.55228 8 7C8 6.44772 7.55228 6 7 6ZM1.5 2C0.671573 2 0 2.67157 0 3.5V10.5C0 11.3284 0.671573 12 1.5 12H12.5C13.3284 12 14 11.3284 14 10.5V3.5C14 2.67157 13.3284 2 12.5 2H1.5ZM1 3.5C1 3.22386 1.22386 3 1.5 3H3V4C3 4.55228 2.55228 5 2 5L1 5V3.5ZM1 6L2 6C3.10457 6 4 5.10457 4 4V3H10V4C10 5.10457 10.8954 6 12 6L13 6V8H12C10.8954 8 10 8.89543 10 10V11H4V10C4 8.89543 3.10457 8 2 8H1V6ZM11 3H12.5C12.7761 3 13 3.22386 13 3.5V5L12 5C11.4477 5 11 4.55228 11 4V3ZM13 9V10.5C13 10.7761 12.7761 11 12.5 11H11V10C11 9.44772 11.4477 9 12 9H13ZM3 11H1.5C1.22386 11 1 10.7761 1 10.5V9H2C2.55228 9 3 9.44772 3 10V11ZM15.0001 10.5C15.0001 11.8807 13.8808 13 12.5001 13H2.08545C2.29137 13.5826 2.84699 14 3.5001 14H12.5001C14.4331 14 16.0001 12.433 16.0001 10.5V5.49997C16.0001 4.84686 15.5827 4.29125 15.0001 4.08533V10.5Z" fill="#033048"/>
-      </svg>
-      `,
-    ],
-  ]);
 
   lastWidth?: number;
   lastHeight?: number;
@@ -955,7 +1114,7 @@ export class EventsPlot extends AbstractPlot {
         return "event-item " + d.type;
       })
       .html((d: any, i) => {
-        const icon = this.icons.get(d.type) || "";
+        const icon = eventIcons.get(d.type) || "";
         if (d.value === undefined) {
           return icon;
         } else if (d.value === 0) {
