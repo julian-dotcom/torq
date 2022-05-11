@@ -31,9 +31,20 @@
   height: 30px;
   width: 30px;
   border-radius: 100%;
-  background-color: var(--color-green-300);
   display: grid;
   align-content: center;
+}
+
+.success {
+  background-color: var(--color-green-300);
+}
+
+.warn {
+  background-color: var(--color-baige-500);
+}
+
+.error {
+  background-color: var(--color-red-300);
 }
 
 .close {

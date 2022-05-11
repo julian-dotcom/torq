@@ -1,8 +1,14 @@
 import React, { useState, useEffect, createRef } from "react";
 import styles from "./toast.module.css";
-import { ThumbLike20Regular as SuccessIcon, Dismiss20Regular as CloseIcon } from "@fluentui/react-icons";
+import {
+  ThumbLike20Regular as SuccessIcon,
+  Dismiss20Regular as CloseIcon,
+  ErrorCircle20Regular as ErrorIcon,
+  Warning20Regular as WarnIcon,
+} from "@fluentui/react-icons";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 import { v4 as uuidv4 } from "uuid";
+import classNames from "classnames";
 
 export enum toastCategory {
   success,
@@ -31,10 +37,7 @@ const Toasts = React.forwardRef((_, ref) => {
   }));
 
   function addToast(message: string, category: toastCategory) {
-    setToasts([
-      ...toasts,
-      { uuid: uuidv4(), message: message + " " + Date.now(), category: category, timeRemaining: 6 },
-    ]);
+    setToasts([...toasts, { uuid: uuidv4(), message: message, category: category, timeRemaining: 6 }]);
   }
 
   useEffect(() => {
@@ -76,8 +79,19 @@ const Toasts = React.forwardRef((_, ref) => {
             >
               <div ref={ref} key={toast.uuid + "toast"} className={styles.toast}>
                 <div className={styles.icon}>
-                  <div className={styles.iconBackground}>
-                    <SuccessIcon />
+                  <div
+                    className={classNames(
+                      styles.iconBackground,
+                      {
+                        [styles.success]: toast.category === toastCategory.success,
+                      },
+                      { [styles.warn]: toast.category === toastCategory.warn },
+                      { [styles.error]: toast.category === toastCategory.error }
+                    )}
+                  >
+                    {toast.category === toastCategory.success && <SuccessIcon />}
+                    {toast.category === toastCategory.warn && <WarnIcon />}
+                    {toast.category === toastCategory.error && <ErrorIcon />}
                   </div>
                 </div>
                 <div>
