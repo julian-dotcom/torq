@@ -4,7 +4,7 @@ import Box from "./Box";
 import style from "./settings.module.css";
 import Select, { SelectOption } from "../forms/Select";
 import SubmitButton from "../forms/SubmitButton";
-import React, { useEffect } from "react";
+import React from "react";
 import { defaultStaticRangesFn } from "../timeIntervalSelect/customRanges";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "apiSlice";
 import { settings } from "apiTypes";
@@ -91,14 +91,16 @@ function Settings() {
                   options={defaultDateRangeOptions}
                   value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
                 />
-                <Select
-                  label="Preferred timezone"
-                  onChange={handlePreferredTimezoneChange}
-                  options={preferredTimezoneOptions}
-                  value={preferredTimezoneOptions.find(
-                    (tz) => tz.value === settingsState?.preferredTimezone.toString()
-                  )}
-                />
+                <div style={{ display: "none" }}>
+                  <Select
+                    label="Preferred timezone"
+                    onChange={handlePreferredTimezoneChange}
+                    options={preferredTimezoneOptions}
+                    value={preferredTimezoneOptions.find(
+                      (tz) => tz.value === settingsState?.preferredTimezone.toString()
+                    )}
+                  />
+                </div>
                 <Select
                   label="Week starts on"
                   onChange={handleWeekStartsOnChange}
