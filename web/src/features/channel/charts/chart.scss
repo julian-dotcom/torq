@@ -22,6 +22,7 @@
   background-color: rgba(3, 48, 72, 0.1);
   backdrop-filter: blur(2px);
   border-radius: 2px;
+  transform: translateY(-50%);
 }
 .rightYAxisLabelContainer {
   left: 4px;
@@ -71,5 +72,10 @@
   }
   &.channel_status_enabled {
     background-color: var(--color-baige-400);
+  }
+  @media only screen and (max-width: 900px) {
+    .event-item-text {
+      display: none;
+    }
   }
 }

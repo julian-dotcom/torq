@@ -15,7 +15,7 @@ const data = [
     events: [
       { type: "channel_open", id: 3 },
       { type: "fee_rate", value: 450, id: 4 },
-      { type: "base_fee", value: 0, id: 4 },
+      { type: "base_fee", value: 1, id: 4 },
     ],
   },
   { date: new Date(2022, 11, 2), revenue: 2310, capacity_out: 2803000 },
@@ -37,11 +37,11 @@ const data = [
     revenue: 3500,
     capacity_out: 2591000,
     events: [
+      { type: "rebalanced_out", value: 1234500, id: 5 },
       { type: "fee_rate", value: 355, id: 5 },
       { type: "fee_rate", value: 230, id: 5 },
       { type: "fee_rate", value: 412, id: 5 },
       { type: "fee_rate", value: 150, id: 5 },
-      { type: "rebalanced_out", value: 1234500, id: 5 },
     ],
   },
   { date: new Date(2022, 11, 8), revenue: 3800, capacity_out: 2020000 },
@@ -189,10 +189,7 @@ function ChannelPage() {
         </div>
 
         <div className={styles.pageRow}>
-          <div
-            className={classNames(styles.card, styles.channelSummaryChart)}
-            style={{ height: "600px" }}
-          >
+          <div className={classNames(styles.card, styles.channelSummaryChart)} style={{ height: "600px" }}>
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Button text={"Revenue"} isOpen={true} />

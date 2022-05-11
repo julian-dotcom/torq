@@ -15,7 +15,7 @@ function ProfitsChart({ data }: ProfitsChart) {
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
-      chart = new Chart(container, data, { leftYAxisKey: "revenue" });
+      chart = new Chart(container, data, { leftYAxisKey: "revenue", xAxisPadding: 12 });
       chart.plot(BarPlot, { id: "bars", key: "revenue" });
       chart.draw();
     },
