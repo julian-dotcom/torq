@@ -7,18 +7,17 @@ import LoginPage from "./features/auth/LoginPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import "./App.scss";
 import { Cookies } from "react-cookie";
-import { useAppDispatch } from "./store/hooks";
-/* import { logoutAsync } from "./features/auth/authSlice"; */
 import { useLogoutMutation } from "apiSlice";
+import Toasts, { addToastHandle } from "features/toast/Toasts";
+import ToastContext from "features/toast/context";
+import { BrowserRouter } from "react-router-dom";
 
 function Logout() {
   const [logout] = useLogoutMutation();
-  /* const dispatch = useAppDispatch(); */
 
   useEffect(() => {
     let c = new Cookies();
     c.remove("torq_session");
-    /* dispatch(logoutAsync()); */
     logout();
   });
 
@@ -26,35 +25,41 @@ function Logout() {
 }
 
 function App() {
+  const toastRef = React.useRef<addToastHandle>();
   return (
-    <div className="App torq">
-      <Routes>
-        <Route element={<LoginLayout />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/logout" element={<Logout />} />
-        </Route>
-        <Route element={<DefaultLayout />}>
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <TablePage />
-              </RequireAuth>
-            }
-          />
-        </Route>
-        <Route element={<DefaultLayout />}>
-          <Route
-            path="/settings"
-            element={
-              <RequireAuth>
-                <SettingsPage />
-              </RequireAuth>
-            }
-          />
-        </Route>
-      </Routes>
-    </div>
+    <ToastContext.Provider value={toastRef}>
+      <BrowserRouter>
+        <div className="App torq">
+          <Toasts ref={toastRef} />
+          <Routes>
+            <Route element={<LoginLayout />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/logout" element={<Logout />} />
+            </Route>
+            <Route element={<DefaultLayout />}>
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <TablePage />
+                  </RequireAuth>
+                }
+              />
+            </Route>
+            <Route element={<DefaultLayout />}>
+              <Route
+                path="/settings"
+                element={
+                  <RequireAuth>
+                    <SettingsPage />
+                  </RequireAuth>
+                }
+              />
+            </Route>
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </ToastContext.Provider>
   );
 }
 

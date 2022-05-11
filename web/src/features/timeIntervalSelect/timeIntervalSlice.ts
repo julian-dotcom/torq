@@ -1,10 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "../../store/store";
-import {
-  defineds,
-  getCompareRanges,
-  defaultStaticRangesFn,
-} from "./customRanges";
+import { defineds, getCompareRanges, defaultStaticRangesFn } from "./customRanges";
 import { torqApi } from "apiSlice";
 import { Draft } from "immer";
 
@@ -35,33 +31,22 @@ export const timeIntervalSlice = createSlice({
     updateInterval: (state, action) => {
       state.from = action.payload.from;
       state.to = action.payload.to;
-      const compareRange = getCompareRanges(
-        new Date(state.from),
-        new Date(state.to)
-      );
+      const compareRange = getCompareRanges(new Date(state.from), new Date(state.to));
       state.compareFrom = compareRange[1].toString();
       state.compareTo = compareRange[0].toString();
     },
   },
   extraReducers: (builder) => {
-    builder.addMatcher(
-      torqApi.endpoints.getSettings.matchFulfilled,
-      (state, { payload }) => {
-        const weekStartsOn =
-          payload.weekStartsOn === "saturday"
-            ? 6
-            : payload.weekStartsOn === "sunday"
-            ? 0
-            : 1;
-        state.weekStartsOn = weekStartsOn;
-        if (!state.defaultDateRange) {
-          setRangeToDefault(state, payload.defaultDateRange);
-        }
-        if (state.defaultDateRange !== payload.defaultDateRange) {
-          state.defaultDateRange = payload.defaultDateRange;
-        }
+    builder.addMatcher(torqApi.endpoints.getSettings.matchFulfilled, (state, { payload }) => {
+      const weekStartsOn = payload.weekStartsOn === "saturday" ? 6 : payload.weekStartsOn === "sunday" ? 0 : 1;
+      state.weekStartsOn = weekStartsOn;
+      if (!state.defaultDateRange) {
+        setRangeToDefault(state, payload.defaultDateRange);
       }
-    );
+      if (state.defaultDateRange !== payload.defaultDateRange) {
+        state.defaultDateRange = payload.defaultDateRange;
+      }
+    });
 
     builder.addMatcher(torqApi.endpoints.logout.matchFulfilled, (state) => {
       setRangeToDefault(state, state.defaultDateRange);
@@ -69,14 +54,9 @@ export const timeIntervalSlice = createSlice({
   },
 });
 
-function setRangeToDefault(
-  state: Draft<TimeIntervalState>,
-  defaultDateRange: string
-) {
+function setRangeToDefault(state: Draft<TimeIntervalState>, defaultDateRange: string) {
   const defaultStaticRanges = defaultStaticRangesFn(state.weekStartsOn);
-  const staticRange = defaultStaticRanges.find(
-    (sr: any) => sr.code === defaultDateRange
-  );
+  const staticRange = defaultStaticRanges.find((sr: any) => sr.code === defaultDateRange);
   state.to = staticRange.range().endDate.toString();
   state.from = staticRange.range().startDate.toString();
   state.compareTo = staticRange.rangeCompare().endDate.toString();

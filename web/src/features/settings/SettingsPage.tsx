@@ -8,13 +8,14 @@ import React, { useEffect } from "react";
 import { defaultStaticRangesFn } from "../timeIntervalSelect/customRanges";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "apiSlice";
 import { settings } from "apiTypes";
-import classNames from "classnames";
+import { toastCategory } from "../toast/Toasts";
+import ToastContext from "../toast/context";
 
 function Settings() {
   const { data: settingsData } = useGetSettingsQuery();
   const [updateSettings] = useUpdateSettingsMutation();
+  const toastRef = React.useContext(ToastContext);
 
-  const [savedMessage, setSavedMessage] = React.useState("");
   const [settingsState, setSettingsState] = React.useState({
     preferredTimezone: 0,
   } as settings);
@@ -32,9 +33,10 @@ function Settings() {
     code: string;
   }[] = defaultStaticRangesFn(0);
 
-  const defaultDateRangeOptions: SelectOption[] = defaultDateRangeLabels.map(
-    (dsr) => ({ value: dsr.code, label: dsr.label })
-  );
+  const defaultDateRangeOptions: SelectOption[] = defaultDateRangeLabels.map((dsr) => ({
+    value: dsr.code,
+    label: dsr.label,
+  }));
 
   let preferredTimezoneOptions: SelectOption[] = [];
   for (let i = -11; i <= 12; i++) {
@@ -72,15 +74,9 @@ function Settings() {
   const submitPreferences = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     updateSettings(settingsState);
-    setSavedMessage("Saved!");
+    //@ts-ignore
+    toastRef.current?.addToast("Settings saved", toastCategory.success);
   };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSavedMessage("");
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [savedMessage]);
 
   return (
     <Page>
@@ -93,26 +89,21 @@ function Settings() {
                   label="Default date range"
                   onChange={handleDefaultDateRangeChange}
                   options={defaultDateRangeOptions}
-                  value={defaultDateRangeOptions.find(
-                    (dd) => dd.value === settingsState?.defaultDateRange
-                  )}
+                  value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
                 />
                 <Select
                   label="Preferred timezone"
                   onChange={handlePreferredTimezoneChange}
                   options={preferredTimezoneOptions}
                   value={preferredTimezoneOptions.find(
-                    (tz) =>
-                      tz.value === settingsState?.preferredTimezone.toString()
+                    (tz) => tz.value === settingsState?.preferredTimezone.toString()
                   )}
                 />
                 <Select
                   label="Week starts on"
                   onChange={handleWeekStartsOnChange}
                   options={weekStartsOnOptions}
-                  value={weekStartsOnOptions.find(
-                    (dd) => dd.value === settingsState?.weekStartsOn
-                  )}
+                  value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
                 />
                 <SubmitButton>
                   <React.Fragment>
@@ -120,11 +111,6 @@ function Settings() {
                     Save
                   </React.Fragment>
                 </SubmitButton>
-                {savedMessage && (
-                  <div className={classNames(style.center, style.savedMessage)}>
-                    <span>{savedMessage}</span>
-                  </div>
-                )}
               </form>
             </Box>
           </div>
