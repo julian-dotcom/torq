@@ -2,7 +2,7 @@
 import { useD3 } from "../charts/useD3";
 import React, { useEffect } from "react";
 import { Selection } from "d3";
-import Chart, { AreaPlot, LinePlot, EventsPlot } from "../charts/chart";
+import { ChartCanvas, AreaPlot, EventsPlot, LinePlot } from "../charts/charts";
 import "../charts/chart.scss";
 
 type EventsChart = {
@@ -10,12 +10,12 @@ type EventsChart = {
 };
 
 function EventsChart({ data }: EventsChart) {
-  let chart: Chart;
+  let chart: ChartCanvas;
 
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
-      chart = new Chart(container, data, {
+      chart = new ChartCanvas(container, data, {
         leftYAxisKey: "revenue",
         rightYAxisKey: "capacity_out",
         showLeftYAxisLabel: true,
