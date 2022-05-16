@@ -6,6 +6,7 @@ import EventsChart from "./eventsChart/EventsChart";
 import Switch from "../inputs/Slider/Switch";
 import Button from "../buttons/Button";
 import { Settings16Regular as SettingsIcon } from "@fluentui/react-icons";
+import FlowChart from "./flowChart/FlowChart";
 
 const data = [
   {
@@ -86,6 +87,15 @@ const data = [
     capacity_out: 3852000,
     events: [{ type: "channel_close", id: 10 }],
   },
+];
+const flowData = [
+  { node: "Node 7", inbound: 0, outbound: 124003 },
+  { node: "Node 14", inbound: 0, outbound: 175000 },
+  { node: "Node 16", inbound: 0, outbound: 213143 },
+  { node: "Node 13", inbound: 0, outbound: 341982 },
+  { node: "Node 5", inbound: 33143, outbound: 582000 },
+  { node: "Node 18", inbound: 489231, outbound: 0 },
+  { node: "Node 9", inbound: 100000, outbound: 0 },
 ];
 
 function ChannelPage() {
@@ -210,7 +220,7 @@ function ChannelPage() {
           <div className={styles.card}>
             Channel Flow
             <div className={styles.chartWrapper} style={{ height: "500px" }}>
-              {/*<BarChart data={data} />*/}
+              <FlowChart data={flowData} />
             </div>
           </div>
         </div>
