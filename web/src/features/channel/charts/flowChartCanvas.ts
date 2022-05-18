@@ -51,6 +51,9 @@ class FlowChartCanvas {
     yScale: d3.scaleLinear([0, 200]),
     xScale: d3.scaleLinear([0, 500]),
   };
+
+  mouseOver?: { index: number; outbound: boolean };
+
   data: Array<FlowData> = [];
 
   container: Selection<HTMLDivElement, {}, HTMLElement, any>;
@@ -115,8 +118,10 @@ class FlowChartCanvas {
 
     this.context = this.canvas?.node()?.getContext("2d") as CanvasRenderingContext2D;
     this.interactionContext = this.interactionLayer?.node()?.getContext("2d") as CanvasRenderingContext2D;
-
+    this.context.imageSmoothingEnabled = false;
+    this.interactionContext.imageSmoothingEnabled = false;
     this.addResizeListener();
+    this.addHoverListener();
   }
 
   getHeight(): number {
@@ -167,19 +172,165 @@ class FlowChartCanvas {
     this.draw();
   }
 
-  draw() {
-    let inboundSum = 0;
-    let outboundSum = 0;
-    let yOffset = this.config.yScale.range()[1];
-    let outboundSumPosition = this.config.xScale.range()[1] / 2 - this.config.horizontalGap;
-    let inboundSumPosition = this.config.xScale.range()[1] / 2 + this.config.horizontalGap;
+  figures: Map<string, { index: number; outbound: boolean }> = new Map<string, { index: number; outbound: boolean }>();
 
+  getFigure(xLocation: number, yLocation: number): { index: number; outbound: boolean } | undefined {
+    const colorData = this.interactionContext.getImageData(xLocation, yLocation, 1, 1).data;
+
+    return this.figures.get("rgb(" + [colorData[0], colorData[1], colorData[2]].join(",") + ")");
+  }
+
+  addHoverListener() {
+    this.canvas.on("mousemove", (event) => {
+      const [xPosition, yPosition] = d3.pointer(event);
+      let figure = this.getFigure(xPosition, yPosition);
+
+      if (figure) {
+        console.log(figure);
+        this.mouseOver = figure;
+        this.clearCanvas();
+        this.draw();
+      } else if (figure !== this.mouseOver) {
+        this.mouseOver = undefined;
+        this.clearCanvas();
+        this.draw();
+      }
+    });
+  }
+
+  drawOutboundBars(
+    context: CanvasRenderingContext2D,
+    value: number,
+    outboundSum: number,
+    outboundSumPosition: number,
+    yOffset: number,
+    index: number
+  ) {
+    // Bars representing the amount of outbound traffic per channel with a gap between each subsequent bar
+    context.fillRect(
+      0,
+      yOffset - (this.config.yScale(outboundSum) + this.config.verticalGap * index),
+      this.config.barWidth,
+      -this.config.yScale(value) // d.outbound
+    );
+
+    // Bar representing the total amount of outbound traffic, same as bars above, but without the gap
+    context.fillRect(
+      outboundSumPosition,
+      yOffset - this.config.yScale(outboundSum),
+      this.config.barWidth,
+      -this.config.yScale(value)
+    );
+    context.fill();
+  }
+
+  drawOutboundConnectingLines(
+    context: CanvasRenderingContext2D,
+    value: number,
+    outboundSum: number,
+    outboundSumPosition: number,
+    yOffset: number,
+    index: number
+  ) {
     let line = d3
       .line()
       .x((d) => d[0])
       .y((d) => d[1])
       .curve(d3.curveBumpX)
-      .context(this.context);
+      .context(context);
+
+    context.beginPath();
+    line([
+      [10, yOffset - this.config.yScale(outboundSum) - this.config.yScale(value) / 2 - this.config.verticalGap * index],
+      [outboundSumPosition, yOffset - this.config.yScale(outboundSum) - this.config.yScale(value) / 2],
+    ]);
+    context.lineWidth = this.config.yScale(value);
+    context.stroke();
+    context.beginPath();
+  }
+
+  drawInboundBars(
+    context: CanvasRenderingContext2D,
+    value: number,
+    inboundSum: number,
+    inboundSumPosition: number,
+    yOffset: number,
+    index: number
+  ) {
+    // Bars representing the amount of inbound traffic per channel with a gap between each subsequent bar
+    context.fillRect(inboundSumPosition, yOffset - this.config.yScale(inboundSum), 10, -this.config.yScale(value));
+
+    // Bar representing the total amount of inbound traffic, same as bars above, but without the gap
+    context.fillRect(
+      this.config.xScale.range()[1] - this.config.barWidth,
+      yOffset - (this.config.yScale(inboundSum) + this.config.verticalGap * index),
+      this.config.barWidth,
+      -this.config.yScale(value)
+    );
+
+    context.fill();
+  }
+
+  drawInboundConnectingLines(
+    context: CanvasRenderingContext2D,
+    value: number,
+    inboundSum: number,
+    inboundSumPosition: number,
+    yOffset: number,
+    index: number
+  ) {
+    let line = d3
+      .line()
+      .x((d) => d[0])
+      .y((d) => d[1])
+      .curve(d3.curveBumpX)
+      .context(context);
+    context.beginPath();
+    line([
+      [
+        inboundSumPosition + this.config.barWidth,
+        yOffset - this.config.yScale(inboundSum) - this.config.yScale(value) / 2,
+      ],
+      [
+        this.config.xScale.range()[1] - this.config.barWidth,
+        yOffset - this.config.yScale(inboundSum) - this.config.yScale(value) / 2 - this.config.verticalGap * index,
+      ],
+    ]);
+    context.lineWidth = this.config.yScale(value);
+    context.stroke();
+    context.beginPath();
+  }
+
+  /**
+   * nextCol keeps track of the next unique color used to identify figures (drawn objects) on the canvas.
+   */
+  nextCol: number = 1;
+
+  /**
+   * @remarks concept taken from https://www.freecodecamp.org/news/d3-and-canvas-in-3-steps-8505c8b27444/
+   */
+  genColor() {
+    let ret = [];
+    if (this.nextCol < 16777215) {
+      ret.push(this.nextCol & 0xff);
+      ret.push((this.nextCol & 0xff00) >> 8);
+      ret.push((this.nextCol & 0xff0000) >> 16);
+      // Increase by 10 because the drawn figure changes color when it partially touches a pixel
+      // when you increase by 10, the drawn color is different enough to prevent confusion between figures
+      this.nextCol += 10;
+    }
+    return "rgb(" + ret.join(",") + ")";
+  }
+
+  draw() {
+    // Clear the interaction colours
+    this.figures.clear();
+
+    let inboundSum = 0;
+    let outboundSum = 0;
+    let yOffset = this.config.yScale.range()[1];
+    let outboundSumPosition = this.config.xScale.range()[1] / 2 - this.config.horizontalGap;
+    let inboundSumPosition = this.config.xScale.range()[1] / 2 + this.config.horizontalGap;
 
     this.data
       .filter((d) => d.outbound !== 0)
@@ -188,42 +339,30 @@ class FlowChartCanvas {
       })
       .forEach((d, i) => {
         this.context.fillStyle = this.config.outboundFill;
+        this.context.strokeStyle = this.config.outboundStroke;
 
-        if (d.outbound !== 0) {
-          // Bars representing the amount of outbound traffic per channel with a gap between each subsequent bar
-          this.context.fillRect(
-            0,
-            yOffset - (this.config.yScale(outboundSum) + this.config.verticalGap * i),
-            this.config.barWidth,
-            -this.config.yScale(d.outbound)
-          );
-
-          // Bar representing the total amount of outbound traffic, same as bars above, but without the gap
-          this.context.fillRect(
-            outboundSumPosition,
-            yOffset - this.config.yScale(outboundSum),
-            this.config.barWidth,
-            -this.config.yScale(d.outbound)
-          );
-
-          this.context.fill();
-
-          this.context.beginPath();
-          line([
-            [
-              10,
-              yOffset -
-                this.config.yScale(outboundSum) -
-                this.config.yScale(d.outbound) / 2 -
-                this.config.verticalGap * i,
-            ],
-            [outboundSumPosition, yOffset - this.config.yScale(outboundSum) - this.config.yScale(d.outbound) / 2],
-          ]);
-          this.context.lineWidth = this.config.yScale(d.outbound);
-          this.context.strokeStyle = this.config.outboundStroke;
-          this.context.stroke();
-          this.context.beginPath();
+        if (this.mouseOver?.index === i && this.mouseOver?.outbound === true) {
+          this.context.fillStyle = "#57D3CD";
+          this.context.strokeStyle = "#DDF6F5";
         }
+
+        this.drawOutboundBars(this.context, d.outbound, outboundSum, outboundSumPosition, yOffset, i);
+        this.drawOutboundConnectingLines(this.context, d.outbound, outboundSum, outboundSumPosition, yOffset, i);
+
+        // Draw the interaction context
+        const interactionColor = this.genColor();
+        this.figures.set(interactionColor, { index: i, outbound: true });
+        this.interactionContext.fillStyle = interactionColor;
+        this.interactionContext.strokeStyle = interactionColor;
+        this.drawOutboundBars(this.interactionContext, d.outbound, outboundSum, outboundSumPosition, yOffset, i);
+        this.drawOutboundConnectingLines(
+          this.interactionContext,
+          d.outbound,
+          outboundSum,
+          outboundSumPosition,
+          yOffset,
+          i
+        );
 
         outboundSum += d.outbound;
       });
@@ -235,42 +374,21 @@ class FlowChartCanvas {
       })
       .forEach((d, i) => {
         this.context.fillStyle = this.config.inboundFill;
-        if (d.inbound !== 0) {
-          // Bars representing the amount of inbound traffic per channel with a gap between each subsequent bar
-          this.context.fillRect(
-            inboundSumPosition,
-            yOffset - this.config.yScale(inboundSum),
-            10,
-            -this.config.yScale(d.inbound)
-          );
-
-          // Bar representing the total amount of inbound traffic, same as bars above, but without the gap
-          this.context.fillRect(
-            this.config.xScale.range()[1] - this.config.barWidth,
-            yOffset - (this.config.yScale(inboundSum) + this.config.verticalGap * i),
-            this.config.barWidth,
-            -this.config.yScale(d.inbound)
-          );
-
-          this.context.beginPath();
-          line([
-            [
-              inboundSumPosition + this.config.barWidth,
-              yOffset - this.config.yScale(inboundSum) - this.config.yScale(d.inbound) / 2,
-            ],
-            [
-              this.config.xScale.range()[1] - this.config.barWidth,
-              yOffset -
-                this.config.yScale(inboundSum) -
-                this.config.yScale(d.inbound) / 2 -
-                this.config.verticalGap * i,
-            ],
-          ]);
-          this.context.lineWidth = this.config.yScale(d.inbound);
-          this.context.strokeStyle = this.config.inboundStroke;
-          this.context.stroke();
-          this.context.beginPath();
+        this.context.strokeStyle = this.config.inboundStroke;
+        if (this.mouseOver?.index === i && this.mouseOver?.outbound === false) {
+          this.context.fillStyle = "#AAD6FF";
+          this.context.strokeStyle = "#E7F3FF";
         }
+        this.drawInboundBars(this.context, d.inbound, inboundSum, inboundSumPosition, yOffset, i);
+        this.drawInboundConnectingLines(this.context, d.inbound, inboundSum, inboundSumPosition, yOffset, i);
+
+        // Draw the interaction context
+        let interactionColor = this.genColor();
+        this.figures.set(interactionColor, { index: i, outbound: false });
+        this.interactionContext.fillStyle = interactionColor;
+        this.interactionContext.strokeStyle = interactionColor;
+        this.drawInboundBars(this.interactionContext, d.inbound, inboundSum, inboundSumPosition, yOffset, i);
+        this.drawInboundConnectingLines(this.interactionContext, d.inbound, inboundSum, inboundSumPosition, yOffset, i);
         inboundSum += d.inbound;
       });
 

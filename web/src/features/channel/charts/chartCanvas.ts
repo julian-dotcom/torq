@@ -201,8 +201,9 @@ class ChartCanvas {
       );
 
     this.context = this.canvas?.node()?.getContext("2d") as CanvasRenderingContext2D;
-
     this.interactionContext = this.interactionLayer?.node()?.getContext("2d") as CanvasRenderingContext2D;
+    this.context.imageSmoothingEnabled = false;
+    this.interactionContext.imageSmoothingEnabled = false;
 
     // Add event listeners like hover and window resizing
     this.addResizeListener();
@@ -246,8 +247,9 @@ class ChartCanvas {
     this.interactionLayer.attr("width", this.config.xScale.range()[1]).attr("height", this.config.yScale.range()[1]);
 
     this.context = this.canvas?.node()?.getContext("2d") as CanvasRenderingContext2D;
-
     this.interactionContext = this.interactionLayer?.node()?.getContext("2d") as CanvasRenderingContext2D;
+    this.context.imageSmoothingEnabled = false;
+    this.interactionContext.imageSmoothingEnabled = false;
 
     this.draw();
   }
