@@ -91,7 +91,7 @@ function Settings() {
                   options={defaultDateRangeOptions}
                   value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
                 />
-                <div style={{ display: "none" }}>
+                <div>
                   <Select
                     label="Preferred timezone"
                     onChange={handlePreferredTimezoneChange}

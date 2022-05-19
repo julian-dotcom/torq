@@ -18,6 +18,17 @@ func getSettings(db *sqlx.DB) (settingsData settings, err error) {
 	return settingsData, nil
 }
 
+func getTimeZones(db *sqlx.DB) (timeZones []timeZone, err error) {
+	err = db.Select(&timeZones, "SELECT name FROM pg_timezone_names ORDER BY name;")
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return make([]timeZone, 0), nil
+		}
+		return make([]timeZone, 0), errors.Wrap(err, "Unable to execute SQL query")
+	}
+	return timeZones, nil
+}
+
 func updateSettings(db *sqlx.DB, settings settings) (err error) {
 	_, err = db.Exec(`
 UPDATE settings SET

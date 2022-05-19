@@ -14,9 +14,25 @@ type settings struct {
 	WeekStartsOn      string `json:"weekStartsOn" db:"week_starts_on"`
 }
 
+type timeZone struct {
+	Name string `json:"name" db:"name"`
+}
+
 func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
+}
+func RegisterUnauthorisedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
+	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
+}
+
+func getTimeZonesHandler(c *gin.Context, db *sqlx.DB) {
+	timeZones, err := getTimeZones(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, timeZones)
 }
 func getSettingsHandler(c *gin.Context, db *sqlx.DB) {
 	settings, err := getSettings(db)

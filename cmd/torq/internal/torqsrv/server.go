@@ -74,6 +74,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 	rl := NewLoginRateLimitMiddleware()
 	api.POST("/login", rl, auth.Login(apiPwd))
 
+	unauthorisedSettingRoutes := api.Group("settings")
+	{
+		settings.RegisterUnauthorisedRoutes(unauthorisedSettingRoutes, db)
+	}
+
 	api.Use(auth.AuthRequired)
 	{
 
