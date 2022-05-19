@@ -1,35 +1,35 @@
-import styles from './cell.module.scss'
-const classNames = require('classnames');
+import styles from "./cell.module.scss";
+import { Link } from "react-router-dom";
+const classNames = require("classnames");
 
 interface AliasCell {
-  current: string,
-  open?: number,
-  className?: string
+  current: string;
+  chanId: string;
+  open?: number;
+  className?: string;
 }
 
 function OpenText(open: number) {
   if (open > 1) {
-    return `Open (${open})`
+    return `Open (${open})`;
   } else if (open === 1) {
-    return `Open`
+    return `Open`;
   } else {
-    return `Closed`
+    return `Closed`;
   }
 }
 
-function AliasCell({current, open, className}: AliasCell) {
+function AliasCell({ current, chanId, open, className }: AliasCell) {
   return (
-    <div className={classNames(styles.cell, styles.alignLeft, className)}>
-      <div className={classNames(styles.current, styles.text)}>
-        {current}
-      </div>
+    <Link className={classNames(styles.cell, styles.alignLeft, className)} to={"/channel/" + chanId}>
+      <div className={classNames(styles.current, styles.text)}>{current}</div>
       {open !== undefined && (
-        <div className={classNames(styles.past, {[styles.positive]: open, [styles.negative]: !open})}>
+        <div className={classNames(styles.past, { [styles.positive]: open, [styles.negative]: !open })}>
           {OpenText(open)}
         </div>
       )}
-    </div>
-  )
+    </Link>
+  );
 }
 
 export default AliasCell;

@@ -8,7 +8,13 @@ import Button from "../buttons/Button";
 import { Settings16Regular as SettingsIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
 
-const data = [
+import { useGetFlowQuery } from "apiSlice";
+import { useAppSelector } from "../../store/hooks";
+import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import { addDays, format } from "date-fns";
+import { useParams } from "react-router";
+
+const chanData = [
   {
     date: new Date(2022, 11, 1),
     revenue: 2910,
@@ -88,17 +94,18 @@ const data = [
     events: [{ type: "channel_close", id: 10 }],
   },
 ];
-const flowData = [
-  { node: "Node 7", inbound: 0, outbound: 124003 },
-  { node: "Node 14", inbound: 0, outbound: 175000 },
-  { node: "Node 16", inbound: 0, outbound: 213143 },
-  { node: "Node 13", inbound: 0, outbound: 341982 },
-  { node: "Node 5", inbound: 33143, outbound: 582000 },
-  { node: "Node 18", inbound: 489231, outbound: 0 },
-  { node: "Node 9", inbound: 100000, outbound: 0 },
-];
 
 function ChannelPage() {
+  const currentPeriod = useAppSelector(selectTimeInterval);
+  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
+  const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
+  let { chanId } = useParams();
+  const { data, isLoading } = useGetFlowQuery({
+    from: from,
+    to: to,
+    chanId: chanId || " ",
+  });
+
   return (
     <div className={styles.channelsPageContent}>
       <div className={styles.channelControls}>
@@ -193,7 +200,7 @@ function ChannelPage() {
               </div>
             </div>
             <div className={styles.chartContainer}>
-              <ProfitsChart data={data} />
+              <ProfitsChart data={chanData} />
             </div>
           </div>
         </div>
@@ -211,7 +218,7 @@ function ChannelPage() {
             </div>
 
             <div className={styles.chartContainer}>
-              <EventsChart data={data} />
+              <EventsChart data={chanData} />
             </div>
           </div>
         </div>
@@ -219,8 +226,8 @@ function ChannelPage() {
         <div className={styles.pageRow}>
           <div className={styles.card}>
             Channel Flow
-            <div className={styles.chartWrapper} style={{ height: "500px" }}>
-              <FlowChart data={flowData} />
+            <div className={classNames(styles.chartWrapper, styles.flowChartWrapper)}>
+              {!isLoading && data && <FlowChart data={data} />}
             </div>
           </div>
         </div>

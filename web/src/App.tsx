@@ -41,7 +41,7 @@ function App() {
             }
           />
           <Route
-            path="/channel"
+            path="/channel/:chanId"
             element={
               <RequireAuth>
                 <ChannelPage />

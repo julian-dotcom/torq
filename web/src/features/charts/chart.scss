@@ -101,9 +101,19 @@ canvas {
     @media only screen and (max-width: 600px) {
       display: block;
     }
+    &.hover {
+      @media only screen and (max-width: 600px) {
+        display: none;
+      }
+    }
   }
   .flow-outbound-value {
     transform: translateY(-50%);
+    &.hover {
+      @media only screen and (max-width: 600px) {
+        display: block;
+      }
+    }
   }
   .flow-outbound-value-total {
     transform: translate(-100%, -50%);
@@ -113,9 +123,19 @@ canvas {
     @media only screen and (max-width: 600px) {
       display: block;
     }
+    &.hover {
+      @media only screen and (max-width: 600px) {
+        display: none;
+      }
+    }
   }
   .flow-inbound-value {
     transform: translate(-100%, -50%);
+    &.hover {
+      @media only screen and (max-width: 600px) {
+        display: block;
+      }
+    }
   }
   .flow-inbound-value-total {
     transform: translate(0, -50%);

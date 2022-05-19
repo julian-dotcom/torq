@@ -63,6 +63,7 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
+// TODO: Add support for fetching multilple channels (chanId array)
 func getFlowByChannelId(db *sqlx.DB, chanId uint64, fromTime time.Time, toTime time.Time) (r []*channelFlowData,
 	err error) {
 
@@ -110,8 +111,7 @@ func getFlowByChannelId(db *sqlx.DB, chanId uint64, fromTime time.Time, toTime t
 				where time >= $1
             		and time <= $2
 					and outgoing_channel_id = $3
-				group by incoming_channel_id, outgoing_channel_id
-							 ) as i on o.outgoing_channel_id = i.incoming_channel_id) as fw
+				group by incoming_channel_id, outgoing_channel_id) as i on o.outgoing_channel_id = i.incoming_channel_id) as fw
 			left join (
 			select
 				chan_id,
@@ -140,16 +140,16 @@ func getFlowByChannelId(db *sqlx.DB, chanId uint64, fromTime time.Time, toTime t
 		c := &channelFlowData{}
 		err = rows.Scan(
 			&c.Alias,
+			&c.ChanId,
 			&c.ChanPoint,
 			&c.PubKey,
-			&c.ChanId,
-
-			&c.AmountOut,
-			&c.AmountIn,
 
 			&c.RevenueOut,
-			&c.RevenueIn,
+			&c.AmountOut,
 			&c.CountOut,
+
+			&c.AmountIn,
+			&c.RevenueIn,
 			&c.CountIn,
 		)
 		if err != nil {
