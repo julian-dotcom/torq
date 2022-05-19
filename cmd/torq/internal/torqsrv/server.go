@@ -9,6 +9,7 @@ import (
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/channels/tags"
+	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/views"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
@@ -90,12 +91,18 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 			}
 		}
 
+		flowRoutes := api.Group("/flow")
+		{
+			flow.RegisterFlowRoutes(flowRoutes, db)
+		}
+
 		api.GET("/ping", func(c *gin.Context) {
 			c.JSON(200, gin.H{
 				"message": "pong",
 			})
 		})
 	}
+
 }
 
 func registerStaticRoutes(r *gin.Engine) {
