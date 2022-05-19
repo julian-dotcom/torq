@@ -1,10 +1,10 @@
 // https://www.pluralsight.com/guides/using-d3.js-inside-a-react-app
-import { useD3 } from "../charts/useD3";
+import { useD3 } from "../../charts/useD3";
 import React, { useEffect } from "react";
 import { Selection } from "d3";
-import ChartCanvas from "../charts/chartCanvas";
-import { BarPlot } from "../charts/plots/bar";
-import "../charts/chart.scss";
+import ChartCanvas from "../../charts/chartCanvas";
+import { BarPlot } from "../../charts/plots/bar";
+import "../../charts/chart.scss";
 
 type ProfitsChart = {
   data: any[];

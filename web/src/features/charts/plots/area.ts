@@ -3,7 +3,7 @@ import { AbstractPlot, basePlotConfig, drawConfig } from "./abstract";
 import { addHours, subHours } from "date-fns";
 import * as d3 from "d3";
 import { Selection } from "d3";
-import clone from "../../../../clone";
+import clone from "../../../clone";
 
 type areaPlotConfig = basePlotConfig & {
   areaColor: string;
