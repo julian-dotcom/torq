@@ -145,9 +145,9 @@ left join (
                floor(sum(outgoing_amount_msat)/1000) as amount,
                floor(sum(fee_msat)/1000) as revenue,
                count(time) as count
-        from forward
-        where time >= $1
-            and time <= $2
+        from forward, settings
+        where time >= $1::timestamp AT TIME ZONE settings.preferred_timezone
+            and time <= $2::timestamp AT TIME ZONE settings.preferred_timezone
         group by outgoing_channel_id
         ) as o
     full outer join (
@@ -155,9 +155,9 @@ left join (
                floor(sum(incoming_amount_msat)/1000) as amount,
                floor(sum(fee_msat)/1000) as revenue,
                count(time) as count
-        from forward
-        where time >= $1
-            and time <= $2
+        from forward, settings
+        where time >= $1::timestamp AT TIME ZONE settings.preferred_timezone
+            and time <= $2::timestamp AT TIME ZONE settings.preferred_timezone
         group by incoming_channel_id) as i
     on i.chan_id = o.chan_id
 ) as fw on fw.chan_id = ce.chan_id

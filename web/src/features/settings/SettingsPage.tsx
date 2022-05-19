@@ -6,19 +6,18 @@ import Select, { SelectOption } from "../forms/Select";
 import SubmitButton from "../forms/SubmitButton";
 import React from "react";
 import { defaultStaticRangesFn } from "../timeIntervalSelect/customRanges";
-import { useGetSettingsQuery, useUpdateSettingsMutation } from "apiSlice";
+import { useGetSettingsQuery, useUpdateSettingsMutation, useGetTimeZonesQuery } from "apiSlice";
 import { settings } from "apiTypes";
 import { toastCategory } from "../toast/Toasts";
 import ToastContext from "../toast/context";
 
 function Settings() {
   const { data: settingsData } = useGetSettingsQuery();
+  const { data: timeZones = [] } = useGetTimeZonesQuery();
   const [updateSettings] = useUpdateSettingsMutation();
   const toastRef = React.useContext(ToastContext);
 
-  const [settingsState, setSettingsState] = React.useState({
-    preferredTimezone: 0,
-  } as settings);
+  const [settingsState, setSettingsState] = React.useState({} as settings);
 
   React.useEffect(() => {
     // do some checking here to ensure data exist
@@ -38,17 +37,10 @@ function Settings() {
     label: dsr.label,
   }));
 
-  let preferredTimezoneOptions: SelectOption[] = [];
-  for (let i = -11; i <= 12; i++) {
-    let label = "UTC";
-    if (i < 0) {
-      label += " " + i;
-    }
-    if (i > 0) {
-      label += " +" + i;
-    }
-    preferredTimezoneOptions.push({ label: label, value: i.toString() });
-  }
+  const preferredTimezoneOptions: SelectOption[] = timeZones.map((tz) => ({
+    value: tz.name,
+    label: tz.name,
+  }));
 
   const weekStartsOnOptions: SelectOption[] = [
     { label: "Saturday", value: "saturday" },
@@ -63,7 +55,7 @@ function Settings() {
   const handlePreferredTimezoneChange = (combiner: any) => {
     setSettingsState({
       ...settingsState,
-      preferredTimezone: parseInt(combiner.value),
+      preferredTimezone: combiner.value,
     });
   };
 
@@ -96,9 +88,7 @@ function Settings() {
                     label="Preferred timezone"
                     onChange={handlePreferredTimezoneChange}
                     options={preferredTimezoneOptions}
-                    value={preferredTimezoneOptions.find(
-                      (tz) => tz.value === settingsState?.preferredTimezone.toString()
-                    )}
+                    value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
                   />
                 </div>
                 <Select

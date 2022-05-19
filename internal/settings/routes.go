@@ -10,7 +10,7 @@ import (
 
 type settings struct {
 	DefaultDateRange  string `json:"defaultDateRange" db:"default_date_range"`
-	PreferredTimezone int    `json:"preferredTimezone" db:"preferred_timezone"`
+	PreferredTimezone string `json:"preferredTimezone" db:"preferred_timezone"`
 	WeekStartsOn      string `json:"weekStartsOn" db:"week_starts_on"`
 }
 

@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/table/tableSlice";
-import { settings } from "./apiTypes";
+import { settings, timeZone } from "./apiTypes";
 
 const API_URL =
   window.location.port === "3000"
@@ -30,10 +30,7 @@ export const torqApi = createApi({
       query: () => `table-views`,
       providesTags: ["tableView"],
     }),
-    createTableView: builder.mutation<
-      any,
-      { view: ViewInterface; index: number }
-    >({
+    createTableView: builder.mutation<any, { view: ViewInterface; index: number }>({
       query: (data) => ({
         url: "table-views",
         method: "POST",
@@ -51,10 +48,7 @@ export const torqApi = createApi({
         body: { id: view.id, view: view },
       }),
     }),
-    deleteTableView: builder.mutation<
-      any,
-      { view: ViewInterface; index: number }
-    >({
+    deleteTableView: builder.mutation<any, { view: ViewInterface; index: number }>({
       query: (data) => ({
         url: `table-views/${data.view.id}`,
         method: "DELETE",
@@ -95,6 +89,9 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["settings"],
     }),
+    getTimeZones: builder.query<timeZone[], void>({
+      query: () => `settings/timezones`,
+    }),
   }),
 });
 
@@ -111,4 +108,5 @@ export const {
   useLogoutMutation,
   useGetSettingsQuery,
   useUpdateSettingsMutation,
+  useGetTimeZonesQuery,
 } = torqApi;
