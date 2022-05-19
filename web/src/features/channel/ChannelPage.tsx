@@ -225,7 +225,15 @@ function ChannelPage() {
 
         <div className={styles.pageRow}>
           <div className={styles.card}>
-            Channel Flow
+            <div className={styles.profitChartControls}>
+              <div className={styles.profitChartLeftControls}>
+                <Button text={"Amount"} isOpen={true} />
+              </div>
+              <div className={styles.profitChartRightControls}>
+                <SettingsIcon />
+                Settings
+              </div>
+            </div>
             <div className={classNames(styles.chartWrapper, styles.flowChartWrapper)}>
               {!isLoading && data && <FlowChart data={data} />}
             </div>

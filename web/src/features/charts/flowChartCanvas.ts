@@ -9,6 +9,8 @@ type chartConfig = {
     bottom: number;
     left: number;
   };
+  keyOut: keyof Omit<FlowData, "alias" | "chan_id" | "pub_key" | "channel_point">;
+  keyIn: keyof Omit<FlowData, "alias" | "chan_id" | "pub_key" | "channel_point">;
   totalInbound: number;
   totalOutbound: number;
   verticalGap: number;
@@ -26,8 +28,15 @@ type chartConfig = {
 
 export type FlowData = {
   alias: string;
+  chan_id: string;
+  pub_key: string;
+  channel_point: string;
   amount_out: number;
+  revenue_out: number;
+  count_out: number;
   amount_in: number;
+  revenue_in: number;
+  count_in: number;
 };
 
 class FlowChartCanvas {
@@ -38,6 +47,8 @@ class FlowChartCanvas {
       bottom: 0,
       left: 0,
     },
+    keyOut: "amount_out",
+    keyIn: "amount_in",
     totalInbound: 0,
     totalOutbound: 0,
     verticalGap: 5,
@@ -85,23 +96,71 @@ class FlowChartCanvas {
     this.config.width = this.getWidth();
     this.config.height = this.getHeight();
 
-    this.config.totalInbound = data.map((d) => d.amount_in).reduce((partialSum, a) => partialSum + a, 0);
-    this.config.totalOutbound = data.map((d) => d.amount_out).reduce((partialSum, a) => partialSum + a, 0);
+    this.config.totalInbound = data
+      .map((d) => d[this.config.keyIn] as number)
+      .reduce((partialSum, a) => partialSum + a, 0);
+    this.config.totalOutbound = data
+      .map((d) => d[this.config.keyOut] as number)
+      .reduce((partialSum, a) => partialSum + a, 0);
+    const threshold = Math.max(this.config.totalOutbound, this.config.totalInbound) * 0.02;
 
+    // Filters out small channels
     this.data = clone(this.dataRaw);
-    let otherChannels = { alias: "[Other Channels]", amount_in: 0, amount_out: 0 };
+
+    let otherChannelsOut: FlowData = {
+      alias: "",
+      chan_id: "",
+      channel_point: "",
+      pub_key: "",
+      amount_in: 0,
+      revenue_in: 0,
+      count_in: 0,
+      amount_out: 0,
+      revenue_out: 0,
+      count_out: 0,
+    };
+    let otherChanOutCount = 0;
     this.data.forEach((d, i) => {
-      if (d.amount_out < this.config.totalOutbound * 0.015) {
-        otherChannels.amount_out += d.amount_out;
-        d.amount_out = 0;
-      }
-      if (d.amount_in < this.config.totalInbound * 0.015) {
-        otherChannels.amount_in += d.amount_in;
-        d.amount_in = 0;
+      if ((d[this.config.keyOut] as number) && (d[this.config.keyOut] as number) < threshold) {
+        otherChannelsOut.amount_out += d["amount_out"];
+        otherChannelsOut.revenue_out += d["revenue_out"];
+        otherChannelsOut.count_out += d["count_out"];
+        d["amount_out"] = 0;
+        d["revenue_out"] = 0;
+        d["count_out"] = 0;
+        otherChanOutCount++;
       }
     });
+    otherChannelsOut.alias = `(${otherChanOutCount} small channels)`;
+    this.data.push(otherChannelsOut);
 
-    this.data.push(otherChannels);
+    let otherChannelsIn: FlowData = {
+      alias: "",
+      chan_id: "",
+      channel_point: "",
+      pub_key: "",
+      amount_in: 0,
+      revenue_in: 0,
+      count_in: 0,
+      amount_out: 0,
+      revenue_out: 0,
+      count_out: 0,
+    };
+    let otherChanInCount = 0;
+    this.data.forEach((d, i) => {
+      if ((d[this.config.keyIn] as number) && (d[this.config.keyIn] as number) < threshold) {
+        otherChannelsIn.amount_in += d["amount_in"];
+        otherChannelsIn.revenue_in += d["revenue_in"];
+        otherChannelsIn.count_in += d["count_in"];
+        d["amount_in"] = 0;
+        d["revenue_in"] = 0;
+        d["count_in"] = 0;
+        otherChanInCount++;
+      }
+    });
+    otherChannelsIn.alias = `(${otherChanInCount} small channels)`;
+    this.data.push(otherChannelsIn);
+
     this.config.xScale = d3
       .scaleLinear()
       .range([0, this.config.width - this.config.margin.right - this.config.margin.left]);
@@ -112,8 +171,8 @@ class FlowChartCanvas {
       .domain([0, Math.max(this.config.totalInbound, this.config.totalOutbound)]);
 
     const longestIndex = Math.max(
-      this.data.filter((d) => d.amount_out !== 0).length,
-      this.data.filter((d) => d.amount_in !== 0).length
+      this.data.filter((d) => (d[this.config.keyOut] as number) !== 0).length,
+      this.data.filter((d) => (d[this.config.keyIn] as number) !== 0).length
     );
 
     this.config.yScale.domain([
@@ -191,12 +250,16 @@ class FlowChartCanvas {
 
     this.config.height = this.getHeight();
 
-    this.config.totalInbound = this.data.map((d) => d.amount_in).reduce((partialSum, a) => partialSum + a, 0);
-    this.config.totalOutbound = this.data.map((d) => d.amount_out).reduce((partialSum, a) => partialSum + a, 0);
+    this.config.totalInbound = this.data
+      .map((d) => d[this.config.keyIn] as number)
+      .reduce((partialSum, a) => partialSum + a, 0);
+    this.config.totalOutbound = this.data
+      .map((d) => d[this.config.keyOut] as number)
+      .reduce((partialSum, a) => partialSum + a, 0);
 
     const longestIndex = Math.max(
-      this.data.filter((d) => d.amount_out !== 0).length,
-      this.data.filter((d) => d.amount_in !== 0).length
+      this.data.filter((d) => (d[this.config.keyOut] as number) !== 0).length,
+      this.data.filter((d) => (d[this.config.keyIn] as number) !== 0).length
     );
 
     this.config.yScale
@@ -372,11 +435,11 @@ class FlowChartCanvas {
         `top: ${
           yOffset -
           this.config.yScale(outboundSum) -
-          this.config.yScale(dataPoint.amount_out) / 2 -
+          this.config.yScale(dataPoint[this.config.keyOut] as number) / 2 -
           this.config.verticalGap * index
         }px; left: ${20}px;`
       )
-      .text(d3.format(",")(dataPoint.amount_out));
+      .text(d3.format(",")(dataPoint[this.config.keyOut] as number));
 
     this.legendsContainer
       .append("div")
@@ -386,7 +449,7 @@ class FlowChartCanvas {
         `top: ${
           yOffset -
           this.config.yScale(outboundSum) -
-          this.config.yScale(dataPoint.amount_out) / 2 -
+          this.config.yScale(dataPoint[this.config.keyOut] as number) / 2 -
           // middle between the two endpoints
           (this.config.verticalGap * index) / 2
         }px; left: ${20 + outboundSumPosition / 2}px;`
@@ -414,11 +477,11 @@ class FlowChartCanvas {
         `top: ${
           yOffset -
           this.config.yScale(inboundSum) -
-          this.config.yScale(dataPoint.amount_in) / 2 -
+          this.config.yScale(dataPoint[this.config.keyIn] as number) / 2 -
           this.config.verticalGap * index
         }px; left: ${this.config.xScale.range()[1] - this.config.barWidth - 10}px;`
       )
-      .text(d3.format(",")(dataPoint.amount_in));
+      .text(d3.format(",")(dataPoint[this.config.keyIn] as number));
 
     this.legendsContainer
       .append("div")
@@ -428,7 +491,7 @@ class FlowChartCanvas {
         `top: ${
           yOffset -
           this.config.yScale(inboundSum) -
-          this.config.yScale(dataPoint.amount_in) / 2 -
+          this.config.yScale(dataPoint[this.config.keyIn] as number) / 2 -
           // middle between the two endpoints
           (this.config.verticalGap * index) / 2
         }px; left: ${this.config.xScale.range()[1] - this.config.barWidth - 10 - inboundSumPosition / 2 + 20}px;`
@@ -480,9 +543,9 @@ class FlowChartCanvas {
     }
 
     this.data
-      .filter((d) => d.amount_out !== 0)
+      .filter((d) => (d[this.config.keyOut] as number) !== 0)
       .sort((a, b) => {
-        return b.amount_out - a.amount_out;
+        return (b[this.config.keyOut] as number) - (a[this.config.keyOut] as number);
       })
       .forEach((d, i) => {
         this.context.fillStyle = this.config.outboundFill;
@@ -493,18 +556,39 @@ class FlowChartCanvas {
           this.context.strokeStyle = "#DDF6F5";
         }
 
-        this.drawOutboundBars(this.context, d.amount_out, outboundSum, outboundSumPosition, yOffset, i);
-        this.drawOutboundConnectingLines(this.context, d.amount_out, outboundSum, outboundSumPosition, yOffset, i);
+        this.drawOutboundBars(
+          this.context,
+          d[this.config.keyOut] as number,
+          outboundSum,
+          outboundSumPosition,
+          yOffset,
+          i
+        );
+        this.drawOutboundConnectingLines(
+          this.context,
+          d[this.config.keyOut] as number,
+          outboundSum,
+          outboundSumPosition,
+          yOffset,
+          i
+        );
 
         // Draw the interaction context
         const interactionColor = this.genColor();
         this.figures.set(interactionColor, { index: i, outbound: true });
         this.interactionContext.fillStyle = interactionColor;
         this.interactionContext.strokeStyle = interactionColor;
-        this.drawOutboundBars(this.interactionContext, d.amount_out, outboundSum, outboundSumPosition, yOffset, i);
+        this.drawOutboundBars(
+          this.interactionContext,
+          d[this.config.keyOut] as number,
+          outboundSum,
+          outboundSumPosition,
+          yOffset,
+          i
+        );
         this.drawOutboundConnectingLines(
           this.interactionContext,
-          d.amount_out,
+          d[this.config.keyOut] as number,
           outboundSum,
           outboundSumPosition,
           yOffset,
@@ -513,13 +597,13 @@ class FlowChartCanvas {
 
         this.drawOutboundValueLabels(d, outboundSum, outboundSumPosition, yOffset, i);
 
-        outboundSum += d.amount_out;
+        outboundSum += d[this.config.keyOut] as number;
       });
 
     this.data
-      .filter((d) => d.amount_in !== 0)
+      .filter((d) => (d[this.config.keyIn] as number) !== 0)
       .sort((a, b) => {
-        return b.amount_in - a.amount_in;
+        return (b[this.config.keyIn] as number) - (a[this.config.keyIn] as number);
       })
       .forEach((d, i) => {
         this.context.fillStyle = this.config.inboundFill;
@@ -528,18 +612,32 @@ class FlowChartCanvas {
           this.context.fillStyle = "#AAD6FF";
           this.context.strokeStyle = "#E7F3FF";
         }
-        this.drawInboundBars(this.context, d.amount_in, inboundSum, inboundSumPosition, yOffset, i);
-        this.drawInboundConnectingLines(this.context, d.amount_in, inboundSum, inboundSumPosition, yOffset, i);
+        this.drawInboundBars(this.context, d[this.config.keyIn] as number, inboundSum, inboundSumPosition, yOffset, i);
+        this.drawInboundConnectingLines(
+          this.context,
+          d[this.config.keyIn] as number,
+          inboundSum,
+          inboundSumPosition,
+          yOffset,
+          i
+        );
 
         // Draw the interaction context
         let interactionColor = this.genColor();
         this.figures.set(interactionColor, { index: i, outbound: false });
         this.interactionContext.fillStyle = interactionColor;
         this.interactionContext.strokeStyle = interactionColor;
-        this.drawInboundBars(this.interactionContext, d.amount_in, inboundSum, inboundSumPosition, yOffset, i);
+        this.drawInboundBars(
+          this.interactionContext,
+          d[this.config.keyIn] as number,
+          inboundSum,
+          inboundSumPosition,
+          yOffset,
+          i
+        );
         this.drawInboundConnectingLines(
           this.interactionContext,
-          d.amount_in,
+          d[this.config.keyIn] as number,
           inboundSum,
           inboundSumPosition,
           yOffset,
@@ -548,7 +646,7 @@ class FlowChartCanvas {
 
         this.drawInboundValueLabels(d, inboundSum, inboundSumPosition, yOffset, i);
 
-        inboundSum += d.amount_in;
+        inboundSum += d[this.config.keyIn] as number;
       });
 
     // Draw the total outbound value label

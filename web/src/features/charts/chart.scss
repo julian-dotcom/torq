@@ -97,7 +97,7 @@ canvas {
   }
 
   .flow-outbound-node {
-    transform: translate(-75%, -50%);
+    transform: translate(-50%, -50%);
     @media only screen and (max-width: 600px) {
       display: block;
     }
@@ -119,7 +119,7 @@ canvas {
     transform: translate(-100%, -50%);
   }
   .flow-inbound-node {
-    transform: translate(-25%, -50%);
+    transform: translate(-50%, -50%);
     @media only screen and (max-width: 600px) {
       display: block;
     }

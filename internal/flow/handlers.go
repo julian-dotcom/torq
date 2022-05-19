@@ -73,11 +73,13 @@ func getFlowByChannelId(db *sqlx.DB, chanId uint64, fromTime time.Time, toTime t
 			fw.chan_id,
 			ce.chan_point,
 			ne.pub_key,
+
 			coalesce(fw.amount_in, 0) as amount_in,
 			coalesce(fw.revenue_in, 0) as revenue_in,
 			coalesce(fw.count_in, 0) as count_in,
-			coalesce(fw.revenue_out, 0) as revenue_out,
+
 			coalesce(fw.amount_out, 0) as amount_out,
+			coalesce(fw.revenue_out, 0) as revenue_out,
 			coalesce(fw.count_out, 0) as count_out
 		from (
 			select
@@ -144,8 +146,8 @@ func getFlowByChannelId(db *sqlx.DB, chanId uint64, fromTime time.Time, toTime t
 			&c.ChanPoint,
 			&c.PubKey,
 
-			&c.RevenueOut,
 			&c.AmountOut,
+			&c.RevenueOut,
 			&c.CountOut,
 
 			&c.AmountIn,

@@ -113,7 +113,8 @@ rowValue {
   display: grid;
   grid-auto-flow: column;
   justify-content: space-between;
+  margin-bottom: 10px;
 }
 .flowChartWrapper {
-  height: calc(100vh - 100px);
+  height: calc(100vh - 200px);
 }
