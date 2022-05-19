@@ -82,3 +82,42 @@
 canvas {
   image-rendering: crisp-edges;
 }
+.legendsContainer {
+  div {
+    position: absolute;
+    white-space: nowrap;
+    color: var(--fg-muted);
+    @media only screen and (max-width: 600px) {
+      display: none;
+    }
+  }
+
+  .hover {
+    color: var(--fg-default);
+  }
+
+  .flow-outbound-node {
+    transform: translate(-75%, -50%);
+    @media only screen and (max-width: 600px) {
+      display: block;
+    }
+  }
+  .flow-outbound-value {
+    transform: translateY(-50%);
+  }
+  .flow-outbound-value-total {
+    transform: translate(-100%, -50%);
+  }
+  .flow-inbound-node {
+    transform: translate(-25%, -50%);
+    @media only screen and (max-width: 600px) {
+      display: block;
+    }
+  }
+  .flow-inbound-value {
+    transform: translate(-100%, -50%);
+  }
+  .flow-inbound-value-total {
+    transform: translate(0, -50%);
+  }
+}

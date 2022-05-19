@@ -58,6 +58,7 @@ class FlowChartCanvas {
 
   container: Selection<HTMLDivElement, {}, HTMLElement, any>;
   chartContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legendsContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
   canvas: Selection<HTMLCanvasElement, {}, HTMLElement, any>;
   interactionLayer: Selection<HTMLCanvasElement, {}, HTMLElement, any>;
   context: CanvasRenderingContext2D;
@@ -99,15 +100,13 @@ class FlowChartCanvas {
       .attr("height", this.config.height - this.config.margin.top - this.config.margin.bottom)
       .attr("style", `position: absolute; left: ${this.config.margin.left}px; top: ${this.config.margin.top}px;`);
 
-    this.canvas = this.container
-      .select(".chartContainer")
+    this.canvas = this.chartContainer
       .append("canvas")
       .attr("width", this.config.xScale.range()[1])
       .attr("height", this.config.yScale.range()[1])
       .attr("style", `position: absolute; left: 0; top: 0px;`);
 
-    this.interactionLayer = this.container
-      .select(".chartContainer")
+    this.interactionLayer = this.chartContainer
       .append("canvas")
       .attr("width", this.config.xScale.range()[1])
       .attr("height", this.config.yScale.range()[1])
@@ -120,6 +119,14 @@ class FlowChartCanvas {
     this.interactionContext = this.interactionLayer?.node()?.getContext("2d") as CanvasRenderingContext2D;
     this.context.imageSmoothingEnabled = false;
     this.interactionContext.imageSmoothingEnabled = false;
+
+    this.legendsContainer = this.container
+      .append("div")
+      .attr("class", "legendsContainer")
+      .attr("width", this.config.xScale.range()[1])
+      .attr("height", this.config.yScale.range()[1])
+      .attr("style", `position: absolute; left: 0; top: 0px; pointer-events: none;`);
+
     this.addResizeListener();
     this.addHoverListener();
   }
@@ -166,6 +173,7 @@ class FlowChartCanvas {
       .attr("height", this.config.height - this.config.margin.top - this.config.margin.bottom);
 
     this.canvas.attr("width", this.config.xScale.range()[1]).attr("height", this.config.yScale.range()[1]);
+    this.legendsContainer.attr("width", this.config.xScale.range()[1]).attr("height", this.config.yScale.range()[1]);
 
     this.clearCanvas();
 
@@ -301,6 +309,89 @@ class FlowChartCanvas {
     context.beginPath();
   }
 
+  drawOutboundValueLabels(
+    dataPoint: FlowData,
+    outboundSum: number,
+    outboundSumPosition: number,
+    yOffset: number,
+    index: number
+  ) {
+    let hoverClass: string = "";
+    if (index === this.mouseOver?.index && this.mouseOver.outbound === true) {
+      hoverClass = "hover";
+    }
+    this.legendsContainer
+      .append("div")
+      .attr("class", "flow-outbound-value " + hoverClass)
+      .attr(
+        "style",
+        `top: ${
+          yOffset -
+          this.config.yScale(outboundSum) -
+          this.config.yScale(dataPoint.outbound) / 2 -
+          this.config.verticalGap * index
+        }px; left: ${20}px;`
+      )
+      .text(d3.format(",")(dataPoint.outbound));
+
+    this.legendsContainer
+      .append("div")
+      .attr("class", "flow-outbound-node " + hoverClass)
+      .attr(
+        "style",
+        `top: ${
+          yOffset -
+          this.config.yScale(outboundSum) -
+          this.config.yScale(dataPoint.outbound) / 2 -
+          // middle between the two endpoints
+          (this.config.verticalGap * index) / 2
+        }px; left: ${20 + outboundSumPosition / 2}px;`
+      )
+      .text(dataPoint.node);
+  }
+
+  drawInboundValueLabels(
+    dataPoint: FlowData,
+    inboundSum: number,
+    inboundSumPosition: number,
+    yOffset: number,
+    index: number
+  ) {
+    let hoverClass: string = "";
+    if (index === this.mouseOver?.index && this.mouseOver.outbound === false) {
+      hoverClass = "hover";
+    }
+
+    this.legendsContainer
+      .append("div")
+      .attr("class", "flow-inbound-value " + hoverClass)
+      .attr(
+        "style",
+        `top: ${
+          yOffset -
+          this.config.yScale(inboundSum) -
+          this.config.yScale(dataPoint.inbound) / 2 -
+          this.config.verticalGap * index
+        }px; left: ${this.config.xScale.range()[1] - this.config.barWidth - 10}px;`
+      )
+      .text(d3.format(",")(dataPoint.inbound));
+
+    this.legendsContainer
+      .append("div")
+      .attr("class", "flow-inbound-node " + hoverClass)
+      .attr(
+        "style",
+        `top: ${
+          yOffset -
+          this.config.yScale(inboundSum) -
+          this.config.yScale(dataPoint.inbound) / 2 -
+          // middle between the two endpoints
+          (this.config.verticalGap * index) / 2
+        }px; left: ${this.config.xScale.range()[1] - this.config.barWidth - 10 - inboundSumPosition / 2 + 20}px;`
+      )
+      .text(dataPoint.node);
+  }
+
   /**
    * nextCol keeps track of the next unique color used to identify figures (drawn objects) on the canvas.
    */
@@ -326,11 +417,23 @@ class FlowChartCanvas {
     // Clear the interaction colours
     this.figures.clear();
 
+    // Clear legends
+    this.legendsContainer.selectAll("*").remove();
+
     let inboundSum = 0;
     let outboundSum = 0;
     let yOffset = this.config.yScale.range()[1];
     let outboundSumPosition = this.config.xScale.range()[1] / 2 - this.config.horizontalGap;
     let inboundSumPosition = this.config.xScale.range()[1] / 2 + this.config.horizontalGap;
+
+    let hoverInboundClass: string = "";
+    if (this.mouseOver?.outbound === false) {
+      hoverInboundClass = "hover";
+    }
+    let hoverOutboundClass: string = "";
+    if (this.mouseOver?.outbound === true) {
+      hoverOutboundClass = "hover";
+    }
 
     this.data
       .filter((d) => d.outbound !== 0)
@@ -364,6 +467,8 @@ class FlowChartCanvas {
           i
         );
 
+        this.drawOutboundValueLabels(d, outboundSum, outboundSumPosition, yOffset, i);
+
         outboundSum += d.outbound;
       });
 
@@ -389,8 +494,30 @@ class FlowChartCanvas {
         this.interactionContext.strokeStyle = interactionColor;
         this.drawInboundBars(this.interactionContext, d.inbound, inboundSum, inboundSumPosition, yOffset, i);
         this.drawInboundConnectingLines(this.interactionContext, d.inbound, inboundSum, inboundSumPosition, yOffset, i);
+
+        this.drawInboundValueLabels(d, inboundSum, inboundSumPosition, yOffset, i);
+
         inboundSum += d.inbound;
       });
+
+    // Draw the total outbound value label
+    this.legendsContainer
+      .append("div")
+      .attr("class", `flow-outbound-value-total ${hoverOutboundClass}`)
+      .attr("style", `top: ${yOffset - this.config.yScale(outboundSum) / 2}px; left: ${outboundSumPosition - 10}px;`)
+      .text(d3.format(",")(outboundSum));
+
+    // Draw the total inbound value label
+    this.legendsContainer
+      .append("div")
+      .attr("class", `flow-inbound-value-total ${hoverInboundClass}`)
+      .attr(
+        "style",
+        `top: ${yOffset - this.config.yScale(inboundSum) / 2}px; left: ${
+          inboundSumPosition + this.config.barWidth + 10
+        }px;`
+      )
+      .text(d3.format(",")(inboundSum));
 
     return this;
   }
