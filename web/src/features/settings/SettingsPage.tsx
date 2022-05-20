@@ -10,6 +10,7 @@ import { useGetSettingsQuery, useUpdateSettingsMutation, useGetTimeZonesQuery } 
 import { settings } from "apiTypes";
 import { toastCategory } from "../toast/Toasts";
 import ToastContext from "../toast/context";
+import NodeSettings from "./NodeSettings";
 
 function Settings() {
   const { data: settingsData } = useGetSettingsQuery();
@@ -20,9 +21,7 @@ function Settings() {
   const [settingsState, setSettingsState] = React.useState({} as settings);
 
   React.useEffect(() => {
-    // do some checking here to ensure data exist
     if (settingsData) {
-      // mutate data if you need to
       setSettingsState(settingsData);
     }
   }, [settingsData]);
@@ -66,8 +65,7 @@ function Settings() {
   const submitPreferences = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     updateSettings(settingsState);
-    //@ts-ignore
-    toastRef.current?.addToast("Settings saved", toastCategory.success);
+    toastRef?.current?.addToast("Settings saved", toastCategory.success);
   };
 
   return (
@@ -105,6 +103,7 @@ function Settings() {
                 </SubmitButton>
               </form>
             </Box>
+            <NodeSettings />
           </div>
         </div>
       </React.Fragment>
