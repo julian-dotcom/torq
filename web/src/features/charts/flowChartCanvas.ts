@@ -217,6 +217,7 @@ class FlowChartCanvas {
 
     this.addResizeListener();
     this.addHoverListener();
+    this.addMouseOutListener();
   }
 
   getHeight(): number {
@@ -310,6 +311,14 @@ class FlowChartCanvas {
         this.clearCanvas();
         this.draw();
       }
+    });
+  }
+
+  addMouseOutListener() {
+    this.canvas.on("mouseleave", (event) => {
+      this.mouseOver = undefined;
+      this.clearCanvas();
+      this.draw();
     });
   }
 

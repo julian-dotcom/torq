@@ -7,7 +7,7 @@ import (
 	"github.com/lncapital/torq/pkg/server_errors"
 	"gopkg.in/guregu/null.v4"
 	"net/http"
-	"strconv"
+	"strings"
 	"time"
 )
 
@@ -50,12 +50,13 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	chanId, err := strconv.ParseUint(c.Query("chan_id"), 10, 64)
+	chanIds := strings.Split(c.Query("chan_id"), ",")
+	//chanId, err := strconv.ParseUint(c.Query("chan_id"), 10, 64)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	r, err := getFlowByChannelId(db, chanId, from, to)
+	r, err := getFlowByChannelId(db, chanIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -63,8 +64,7 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-// TODO: Add support for fetching multilple channels (chanId array)
-func getFlowByChannelId(db *sqlx.DB, chanId uint64, fromTime time.Time, toTime time.Time) (r []*channelFlowData,
+func getFlowByChannelId(db *sqlx.DB, chanIds []string, fromTime time.Time, toTime time.Time) (r []*channelFlowData,
 	err error) {
 
 	const sql = `
@@ -92,28 +92,26 @@ func getFlowByChannelId(db *sqlx.DB, chanId uint64, fromTime time.Time, toTime t
 				o.count as count_out
 				from
 						 (select
-					incoming_channel_id,
 					outgoing_channel_id,
 					floor(sum(outgoing_amount_msat)/1000) as amount,
 					floor(sum(fee_msat)/1000) as revenue,
 					count(time) as count
 				from forward as fw
-				where time >= $1
-            		and time <= $2
-					and incoming_channel_id = $3
-				group by incoming_channel_id, outgoing_channel_id) as o
+				where time >= ?
+            		and time <= ?
+					and incoming_channel_id in (?)
+				group by outgoing_channel_id) as o
 				full outer join (
 				select
 					incoming_channel_id,
-					outgoing_channel_id,
 					floor(sum(outgoing_amount_msat)/1000) as amount,
 					floor(sum(fee_msat)/1000) as revenue,
 					count(time) as count
 				from forward as fw
-				where time >= $1
-            		and time <= $2
-					and outgoing_channel_id = $3
-				group by incoming_channel_id, outgoing_channel_id) as i on o.outgoing_channel_id = i.incoming_channel_id) as fw
+				where time >= ?
+            		and time <= ?
+					and outgoing_channel_id in (?)
+				group by incoming_channel_id) as i on o.outgoing_channel_id = i.incoming_channel_id) as fw
 			left join (
 			select
 				chan_id,
@@ -133,7 +131,14 @@ func getFlowByChannelId(db *sqlx.DB, chanId uint64, fromTime time.Time, toTime t
 		) as ne on ce.pub_key = ne.pub_key
 	`
 
-	rows, err := db.Query(sql, fromTime, toTime, chanId)
+	qs, args, err := sqlx.In(sql, fromTime, toTime, chanIds, fromTime, toTime, chanIds)
+	if err != nil {
+		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v)",
+			sql, fromTime, toTime, chanIds, fromTime, toTime, chanIds)
+	}
+
+	qsr := db.Rebind(qs)
+	rows, err := db.Query(qsr, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running aggregated forwards query")
 	}
