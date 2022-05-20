@@ -5,15 +5,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
-	"time"
-
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/channels"
+	"google.golang.org/grpc"
 	"gopkg.in/guregu/null.v4"
+	"io"
+	"time"
 )
 
 func getChanPoint(cb []byte, oi uint32) (string, error) {
@@ -124,9 +124,14 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 	return nil
 }
 
+type lndClientSubscribeChannelEvent interface {
+	SubscribeChannelEvents(ctx context.Context, in *lnrpc.ChannelEventSubscription,
+		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeChannelEventsClient, error)
+}
+
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
-func SubscribeAndStoreChannelEvents(ctx context.Context, client lnrpc.LightningClient,
+func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent,
 	db *sqlx.DB, pubKeyChan chan string, chanPoinChan chan string) error {
 
 	cesr := lnrpc.ChannelEventSubscription{}

@@ -1,0 +1,4 @@
+ALTER TABLE settings
+ALTER COLUMN preferred_timezone TYPE TEXT;
+
+UPDATE settings SET preferred_timezone = 'Universal';

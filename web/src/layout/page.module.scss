@@ -1,0 +1,10 @@
+.page {
+  padding: 20px 10px;
+}
+
+.headContainer {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  padding-bottom: 20px;
+}

@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/table/tableSlice";
+import { settings, timeZone } from "./apiTypes";
 
 const API_URL =
   window.location.port === "3000"
@@ -20,6 +21,7 @@ export const torqApi = createApi({
     credentials: "include",
     mode: "cors",
   }),
+  tagTypes: ["settings", "tableView"],
   endpoints: (builder) => ({
     getFlow: builder.query<any, { from: string; to: string; chanId: string }>({
       query: ({ from, to, chanId }) => `flow?from=${from}&to=${to}&chan_id=${chanId}`,
@@ -29,6 +31,7 @@ export const torqApi = createApi({
     }),
     getTableViews: builder.query<any, void>({
       query: () => `table-views`,
+      providesTags: ["tableView"],
     }),
     createTableView: builder.mutation<any, { view: ViewInterface; index: number }>({
       query: (data) => ({
@@ -36,7 +39,10 @@ export const torqApi = createApi({
         method: "POST",
         body: { id: null, view: data.view },
       }),
-      transformResponse: (response: { view: ViewInterface }, _, arg) => ({ view: response, index: arg.index }),
+      transformResponse: (response: { view: ViewInterface }, _, arg) => ({
+        view: response,
+        index: arg.index,
+      }),
     }),
     updateTableView: builder.mutation<any, ViewInterface>({
       query: (view: ViewInterface) => ({
@@ -64,6 +70,7 @@ export const torqApi = createApi({
         url: "logout",
         method: "POST",
       }),
+      invalidatesTags: ["tableView"],
     }),
     login: builder.mutation<any, FormData>({
       query: (form) => ({
@@ -72,6 +79,21 @@ export const torqApi = createApi({
         body: new URLSearchParams(form as any),
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       }),
+    }),
+    getSettings: builder.query<settings, void>({
+      query: () => `settings`,
+      providesTags: ["settings"],
+    }),
+    updateSettings: builder.mutation<any, settings>({
+      query: (settings) => ({
+        url: "settings",
+        method: "PUT",
+        body: settings,
+      }),
+      invalidatesTags: ["settings"],
+    }),
+    getTimeZones: builder.query<timeZone[], void>({
+      query: () => `settings/timezones`,
     }),
   }),
 });
@@ -88,4 +110,7 @@ export const {
   useUpdateTableViewsOrderMutation,
   useLoginMutation,
   useLogoutMutation,
+  useGetSettingsQuery,
+  useUpdateSettingsMutation,
+  useGetTimeZonesQuery,
 } = torqApi;

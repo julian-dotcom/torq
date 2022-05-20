@@ -10,7 +10,7 @@ import (
 func getTags(db *sqlx.DB, channelDBID int) (tags []tag, err error) {
 	err = db.Select(&tags, "SELECT * FROM channel_tag WHERE channel_db_id = $1;", channelDBID)
 	if err != nil {
-		if errors.As(err, &sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return make([]tag, 0), nil
 		}
 		return nil, errors.Wrap(err, "Unable to execute SQL query")

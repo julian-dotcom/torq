@@ -16,7 +16,7 @@
 }
 
 // TODO: Consider cleaning this up as a component
-.torq .torq-input-field  {
+.torq .torq-input-field {
   border-radius: 2px;
   border: 1px solid var(--bg-subtle);
   background-color: var(--bg-default);
@@ -33,7 +33,7 @@
     font-size: var(--font-size-small);
   }
 }
-.torq .torq-input-icon-field  {
+.torq .torq-input-icon-field {
   border-radius: 2px;
   background-color: var(--bg-default);
   font-size: var(--font-size-default);
@@ -47,7 +47,6 @@
     font-size: var(--font-size-small);
   }
   &:focus {
-
   }
   input {
     padding: 6.5px 10px;
@@ -73,5 +72,14 @@
     outline: none;
     border: 1px solid var(--bg-muted);
     border-left: none;
+  }
+}
+
+@media only screen and (min-width: 1200px) {
+  .main-content-wrapper .show-nav-btn {
+    display: none;
+  }
+  .main-content-wrapper.nav-hidden .show-nav-btn {
+    display: grid;
   }
 }

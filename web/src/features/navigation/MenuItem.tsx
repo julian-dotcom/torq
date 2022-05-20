@@ -1,6 +1,6 @@
-import React from "react";
 import styles from "./menu_item.module.scss";
 import classNames from "classnames";
+import { Link } from "react-router-dom";
 
 function MenuItem(props: {
   text: string;
@@ -13,15 +13,15 @@ function MenuItem(props: {
   let TitleComponent = function (routeTo?: string) {
     if (routeTo) {
       return (
-        <a
-          href={routeTo}
+        <Link
+          to={routeTo}
           className={classNames(styles.title, {
             [styles.noIcon]: !!props.icon,
           })}
         >
           <div className={styles.icon}>{props.icon}</div>
           <div className={styles.text}>{props.text}</div>
-        </a>
+        </Link>
       );
     } else {
       return (

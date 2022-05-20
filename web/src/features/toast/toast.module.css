@@ -1,0 +1,89 @@
+.toastContainer {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 9999;
+}
+
+.toast {
+  margin-bottom: 12px;
+  margin-right: 12px;
+  box-shadow: var(--popover-box-shadow);
+  border: 1px solid var(--bg-subtle);
+  padding: 10px;
+  background-color: white;
+  display: grid;
+  grid-template-columns: 30px 220px 30px;
+  align-content: center;
+}
+
+.message {
+  padding: 10px 20px;
+  text-align: center;
+}
+
+.toast > div {
+  display: grid;
+  align-content: center;
+}
+
+.iconBackground {
+  height: 30px;
+  width: 30px;
+  border-radius: 100%;
+  display: grid;
+  align-content: center;
+}
+
+.success {
+  background-color: var(--color-green-300);
+}
+
+.warn {
+  background-color: var(--color-baige-500);
+}
+
+.error {
+  background-color: var(--color-red-300);
+}
+
+.close {
+  height: 30px;
+  width: 30px;
+  cursor: pointer;
+  display: grid;
+  align-content: center;
+}
+
+.icon svg,
+.close svg {
+  margin: auto;
+}
+
+@keyframes toast-in-right {
+  from {
+    transform: translate(100%, 0%);
+  }
+  to {
+    transform: translate(0%, 0%);
+  }
+}
+
+.toastEnter {
+  opacity: 0;
+}
+
+.toastEnterActive {
+  opacity: 1;
+  animation: toast-in-right 700ms;
+  transition: opacity 700ms ease-in-out;
+}
+
+.toastExit {
+  opacity: 1;
+}
+
+.toastExitActive {
+  opacity: 0;
+  transition: opacity 400ms ease-in-out;
+}

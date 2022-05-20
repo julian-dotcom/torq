@@ -10,6 +10,7 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/channels/tags"
 	"github.com/lncapital/torq/internal/flow"
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/views"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
@@ -74,6 +75,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 	rl := NewLoginRateLimitMiddleware()
 	api.POST("/login", rl, auth.Login(apiPwd))
 
+	unauthorisedSettingRoutes := api.Group("settings")
+	{
+		settings.RegisterUnauthorisedRoutes(unauthorisedSettingRoutes, db)
+	}
+
 	api.Use(auth.AuthRequired)
 	{
 
@@ -94,6 +100,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 		flowRoutes := api.Group("/flow")
 		{
 			flow.RegisterFlowRoutes(flowRoutes, db)
+		}
+
+		settingRoutes := api.Group("settings")
+		{
+			settings.RegisterSettingRoutes(settingRoutes, db)
 		}
 
 		api.GET("/ping", func(c *gin.Context) {

@@ -34,15 +34,7 @@
   display: none;
 }
 
-@media only screen and (min-width: 1200px) {
-  :global(.main-content-wrapper) :global(.show-nav-btn) {
-    display: none;
-  }
-  :global(.main-content-wrapper.nav-hidden) :global(.show-nav-btn) {
-    display: grid;
-  }
-}
-@media only screen and (max-width: 1200px) {
+@media only screen and (max-width: 1199px) {
   .tableControls {
     padding: 20px 10px 10px 10px;
   }
