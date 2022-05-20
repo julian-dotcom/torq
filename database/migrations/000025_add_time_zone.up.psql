@@ -1,0 +1,23 @@
+ALTER TABLE channel ALTER COLUMN created_on type timestamptz using created_on::timestamp without time zone at time zone 'UTC';
+ALTER TABLE channel ALTER COLUMN updated_on type timestamptz using updated_on::timestamp without time zone at time zone 'UTC';
+
+ALTER TABLE channel_event ALTER COLUMN "time" type timestamptz using "time"::timestamp without time zone at time zone 'UTC';
+
+ALTER TABLE channel_tag ALTER COLUMN created_on type timestamptz using created_on::timestamp without time zone at time zone 'UTC';
+ALTER TABLE channel_tag ALTER COLUMN updated_on type timestamptz using updated_on::timestamp without time zone at time zone 'UTC';
+
+ALTER TABLE forward ALTER COLUMN "time" type timestamptz using "time"::timestamp without time zone at time zone 'UTC';
+
+ALTER TABLE htlc_event ALTER COLUMN "time" type timestamptz using "time"::timestamp without time zone at time zone 'UTC';
+
+ALTER TABLE node_event ALTER COLUMN "timestamp" type timestamptz using "timestamp"::timestamp without time zone at time zone 'UTC';
+
+ALTER TABLE routing_policy ALTER COLUMN ts type timestamptz using ts::timestamp without time zone at time zone 'UTC';
+
+ALTER TABLE settings ALTER COLUMN created_on type timestamptz using created_on::timestamp without time zone at time zone 'UTC';
+ALTER TABLE settings ALTER COLUMN updated_on type timestamptz using updated_on::timestamp without time zone at time zone 'UTC';
+
+ALTER TABLE table_view ALTER COLUMN created_on type timestamptz using created_on::timestamp without time zone at time zone 'UTC';
+ALTER TABLE table_view ALTER COLUMN updated_on type timestamptz using updated_on::timestamp without time zone at time zone 'UTC';
+
+ALTER TABLE tx ALTER COLUMN "timestamp" type timestamptz using "timestamp"::timestamp without time zone at time zone 'UTC';
