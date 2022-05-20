@@ -116,5 +116,7 @@ rowValue {
   margin-bottom: 10px;
 }
 .flowChartWrapper {
-  height: calc(100vh - 200px);
+  min-height: 500px;
+  height: calc(100vh - 300px);
+  max-height: 800px;
 }

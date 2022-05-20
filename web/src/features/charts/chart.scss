@@ -82,7 +82,7 @@
 canvas {
   image-rendering: crisp-edges;
 }
-.legendsContainer {
+.labelsContainer {
   div {
     position: absolute;
     white-space: nowrap;
@@ -96,8 +96,9 @@ canvas {
     color: var(--fg-default);
   }
 
+  .flow-inbound-node,
   .flow-outbound-node {
-    transform: translate(-50%, -50%);
+    transform: translateY(-50%);
     @media only screen and (max-width: 600px) {
       display: block;
     }
@@ -107,37 +108,45 @@ canvas {
       }
     }
   }
+  .flow-inbound-node {
+    transform: translate(-100%, -50%);
+  }
+
+  .flow-inbound-value,
   .flow-outbound-value {
-    transform: translateY(-50%);
+    transform: translate(-100%, -50%);
     &.hover {
       @media only screen and (max-width: 600px) {
         display: block;
-      }
-    }
-  }
-  .flow-outbound-value-total {
-    transform: translate(-100%, -50%);
-  }
-  .flow-inbound-node {
-    transform: translate(-50%, -50%);
-    @media only screen and (max-width: 600px) {
-      display: block;
-    }
-    &.hover {
-      @media only screen and (max-width: 600px) {
-        display: none;
       }
     }
   }
   .flow-inbound-value {
-    transform: translate(-100%, -50%);
-    &.hover {
-      @media only screen and (max-width: 600px) {
-        display: block;
-      }
+    transform: translate(-0, -50%);
+  }
+  .flow-inbound-value-total,
+  .flow-outbound-value-total {
+    color: var(--fg-default);
+    @media only screen and (max-width: 600px) {
+      display: block;
     }
   }
+  .flow-outbound-value-total {
+    transform: translate(-100%, 0);
+  }
   .flow-inbound-value-total {
-    transform: translate(0, -50%);
+    transform: translate(0, 0);
+  }
+}
+.legendsContainer {
+  color: var(--fg-muted);
+  height: 20px;
+  width: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr min-content min-content 1fr;
+  column-gap: 32px;
+  .destinations {
+    justify-self: end;
   }
 }

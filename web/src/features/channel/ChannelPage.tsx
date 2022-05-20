@@ -234,6 +234,12 @@ function ChannelPage() {
                 Settings
               </div>
             </div>
+            <div className="legendsContainer">
+              <div className="sources">Sources</div>
+              <div className="outbound">Outbound</div>
+              <div className="inbound">Inbound</div>
+              <div className="destinations">Destinations</div>
+            </div>
             <div className={classNames(styles.chartWrapper, styles.flowChartWrapper)}>
               {!isLoading && data && <FlowChart data={data} />}
             </div>
