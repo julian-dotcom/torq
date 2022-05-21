@@ -14,6 +14,7 @@ import Popover from "../../../popover/Popover";
 // TODO: Convert to styled components using imported scss
 import styles from "./sort.module.scss";
 import classNames from "classnames";
+import { ActionMeta } from "react-select";
 
 export interface SortByOptionType {
   value: string;
@@ -37,21 +38,15 @@ const sortDirectionOptions: sortDirectionOption[] = [
   { value: "desc", label: "Descending" },
 ];
 
-const SortRow = ({
-  selected,
-  options,
-  index,
-  handleUpdateSort,
-  handleRemoveSort,
-}: sortRowInterface) => {
-  const handleColumn = (item: SortByOptionType) => {
-    handleUpdateSort(item, index);
+const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort }: sortRowInterface) => {
+  const handleColumn = (newValue: unknown, actionMeta: ActionMeta<unknown>) => {
+    handleUpdateSort(newValue, index);
   };
-  const handleDirection = (item: { value: string; label: string }) => {
+  const handleDirection = (newValue: unknown, actionMeta: ActionMeta<unknown>) => {
     handleUpdateSort(
       {
         ...selected,
-        direction: item.value,
+        direction: (newValue as { value: string }).value,
       },
       index
     );
@@ -74,8 +69,8 @@ const SortRow = ({
             <TorqSelect
               onChange={handleColumn}
               options={options}
-              getOptionLabel={(option: { [x: string]: any }) => option["label"]}
-              getOptionValue={(option: { [x: string]: any }) => option["value"]}
+              getOptionLabel={(option: any): string => option["label"]}
+              getOptionValue={(option: any): string => option["value"]}
               value={selected}
             />
           </div>
@@ -84,11 +79,9 @@ const SortRow = ({
             <TorqSelect
               onChange={handleDirection}
               options={sortDirectionOptions}
-              getOptionLabel={(option: { [x: string]: any }) => option["label"]}
-              getOptionValue={(option: { [x: string]: any }) => option["value"]}
-              value={sortDirectionOptions.find(
-                (dir: sortDirectionOption) => dir.value === selected.direction
-              )}
+              getOptionLabel={(option: any): string => option["label"]}
+              getOptionValue={(option: any): string => option["value"]}
+              value={sortDirectionOptions.find((dir: sortDirectionOption) => dir.value === selected.direction)}
             />
           </div>
           <DismissIcon
@@ -107,15 +100,13 @@ const SortControls = () => {
   const columns = useAppSelector(selectAllColumns);
   const sorts = useAppSelector(selectSortBy);
 
-  let options = columns
-    .slice()
-    .map((column: { key: string; heading: string; valueType: string }) => {
-      return {
-        value: column.key,
-        label: column.heading,
-        direction: "desc",
-      };
-    });
+  let options = columns.slice().map((column: { key: string; heading: string; valueType: string }) => {
+    return {
+      value: column.key,
+      label: column.heading,
+      direction: "desc",
+    };
+  });
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -123,7 +114,7 @@ const SortControls = () => {
     const updated: SortByOptionType[] = [
       ...sorts,
       {
-        direction: "",
+        direction: "desc",
         value: columns[0].key,
         label: columns[0].heading,
       },
@@ -132,19 +123,12 @@ const SortControls = () => {
   };
 
   const handleUpdateSort = (update: SortByOptionType, index: number) => {
-    const updated: SortByOptionType[] = [
-      ...sorts.slice(0, index),
-      update,
-      ...sorts.slice(index + 1, sorts.length),
-    ];
+    const updated: SortByOptionType[] = [...sorts.slice(0, index), update, ...sorts.slice(index + 1, sorts.length)];
     dispatch(updateSortBy({ sortBy: updated }));
   };
 
   const handleRemoveSort = (index: number) => {
-    const updated: SortByOptionType[] = [
-      ...sorts.slice(0, index),
-      ...sorts.slice(index + 1, sorts.length),
-    ];
+    const updated: SortByOptionType[] = [...sorts.slice(0, index), ...sorts.slice(index + 1, sorts.length)];
     dispatch(updateSortBy({ sortBy: updated }));
   };
 
@@ -176,10 +160,7 @@ const SortControls = () => {
     }
 
     // Position not changed
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
       return;
     }
 
@@ -202,11 +183,7 @@ const SortControls = () => {
           {!!sorts.length && (
             <Droppable droppableId={droppableContainerId}>
               {(provided) => (
-                <div
-                  className={styles.sortRows}
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                >
+                <div className={styles.sortRows} ref={provided.innerRef} {...provided.droppableProps}>
                   {sorts.map((item, index) => {
                     return (
                       <SortRow
@@ -227,11 +204,7 @@ const SortControls = () => {
           )}
 
           <div className={styles.buttonsRow}>
-            <DefaultButton
-              onClick={() => handleAddSort()}
-              text={"Add Sort"}
-              icon={<AddIcon />}
-            />
+            <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon />} />
           </div>
         </div>
       </DragDropContext>

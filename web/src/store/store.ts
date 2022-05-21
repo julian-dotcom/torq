@@ -1,5 +1,6 @@
 import { configureStore, ThunkAction, Action } from "@reduxjs/toolkit";
 import navReducer from "../features/navigation/navSlice";
+import flowChartReducer from "../features/channel/channelSlice";
 import tableReducer from "../features/table/tableSlice";
 import timeIntervalReducer from "../features/timeIntervalSelect/timeIntervalSlice";
 import { torqApi } from "apiSlice";
@@ -10,6 +11,7 @@ export const store = configureStore({
     navigation: navReducer,
     table: tableReducer,
     timeInterval: timeIntervalReducer,
+    flowChart: flowChartReducer,
     [torqApi.reducerPath]: torqApi.reducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(torqApi.middleware),

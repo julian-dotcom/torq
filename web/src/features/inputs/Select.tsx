@@ -1,8 +1,7 @@
 import styled from "@emotion/styled";
-import Select from "react-select";
+import Select, { Props } from "react-select";
 
-
-export type SelectOptionType = {value: string, label:string}
+export type SelectOptionType = { value: string; label: string };
 
 export const StyledSelect = styled(Select)`
   background: #ffffff;
@@ -42,6 +41,6 @@ const customStyles = {
   }),
 };
 
-export default function TorqSelect(props: any) {
+export default function TorqSelect(props: Props) {
   return <StyledSelect styles={customStyles} {...props} />;
 }

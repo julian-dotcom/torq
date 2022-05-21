@@ -5,14 +5,16 @@ import ProfitsChart from "./revenueChart/ProtifsChart";
 import EventsChart from "./eventsChart/EventsChart";
 import Switch from "../inputs/Slider/Switch";
 import Button from "../buttons/Button";
+import Select from "../inputs/Select";
 import { Settings16Regular as SettingsIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
 
 import { useGetFlowQuery } from "apiSlice";
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
 import { useParams } from "react-router";
+import { selectFlowKeys, updateFlowKey } from "./channelSlice";
 
 const chanData = [
   {
@@ -97,6 +99,7 @@ const chanData = [
 
 function ChannelPage() {
   const currentPeriod = useAppSelector(selectTimeInterval);
+  const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
   let { chanId } = useParams();
@@ -105,6 +108,7 @@ function ChannelPage() {
     to: to,
     chanId: chanId || " ",
   });
+  const flowKey = useAppSelector(selectFlowKeys);
 
   return (
     <div className={styles.channelsPageContent}>
@@ -227,12 +231,31 @@ function ChannelPage() {
           <div className={styles.card}>
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
-                <Button text={"Amount"} isOpen={true} />
+                <Select
+                  value={flowKey}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      dispatch(
+                        updateFlowKey({
+                          flowKey: (newValue as { value: string; label: string }) || {
+                            value: "amount",
+                            label: "Amount",
+                          },
+                        })
+                      );
+                    }
+                  }}
+                  options={[
+                    { value: "amount", label: "Amount" },
+                    { value: "revenue", label: "Revenue" },
+                    { value: "count", label: "Count" },
+                  ]}
+                />
               </div>
-              <div className={styles.profitChartRightControls}>
-                <SettingsIcon />
-                Settings
-              </div>
+              {/*<div className={styles.profitChartRightControls}>*/}
+              {/*  <SettingsIcon />*/}
+              {/*  Settings*/}
+              {/*</div>*/}
             </div>
             <div className="legendsContainer">
               <div className="sources">Sources</div>

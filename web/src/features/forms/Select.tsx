@@ -1,11 +1,9 @@
 import RawSelect, { SelectOptionType } from "../inputs/Select";
+import { Props } from "react-select";
 
-interface selectProps {
+type selectProps = {
   label: string;
-  options: SelectOptionType[];
-  value: SelectOptionType | undefined;
-  onChange: Function;
-}
+} & Props;
 
 function Select(props: selectProps) {
   return (
@@ -13,11 +11,7 @@ function Select(props: selectProps) {
       <div style={{ marginBottom: "8px" }}>
         <span>{props.label}</span>
       </div>
-      <RawSelect
-        options={props.options}
-        value={props.value}
-        onChange={props.onChange}
-      />
+      <RawSelect options={props.options} value={props.value} onChange={props.onChange} />
     </div>
   );
 }

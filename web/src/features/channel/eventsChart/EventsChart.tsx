@@ -11,6 +11,19 @@ type EventsChart = {
 
 function EventsChart({ data }: EventsChart) {
   let chart: ChartCanvas;
+  let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
+
+  // Check and update the chart size if the navigation changes the container size
+  const navCheck: Function = (container: Selection<HTMLDivElement, {}, HTMLElement, any>): Function => {
+    return () => {
+      let boundingBox = container?.node()?.getBoundingClientRect();
+      if (currentSize[0] !== boundingBox?.width || currentSize[1] !== boundingBox?.height) {
+        chart.resizeChart();
+        chart.draw();
+        currentSize = [boundingBox?.width, boundingBox?.height];
+      }
+    };
+  };
 
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
@@ -29,6 +42,7 @@ function EventsChart({ data }: EventsChart) {
       chart.plot(LinePlot, { id: "line", key: "revenue" });
       chart.plot(EventsPlot, { id: "events", key: "events" });
       chart.draw();
+      setInterval(navCheck(container), 200);
     },
     [data]
   );

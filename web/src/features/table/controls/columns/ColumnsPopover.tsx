@@ -10,13 +10,8 @@ import {
 } from "@fluentui/react-icons";
 import DefaultButton from "../../../buttons/Button";
 import Popover from "../../../popover/Popover";
-import TorqSelect, { SelectOptionType } from "../../../inputs/Select";
-import {
-  updateColumns,
-  ColumnMetaData,
-  selectAllColumns,
-  selectActiveColumns,
-} from "../../tableSlice";
+import Select, { SelectOptionType } from "../../../inputs/Select";
+import { updateColumns, ColumnMetaData, selectAllColumns, selectActiveColumns } from "../../tableSlice";
 import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
 // import Fuse from "fuse.js";
 import classNames from "classnames";
@@ -34,13 +29,7 @@ const CellOptions: SelectOptionType[] = [
   { label: "Text", value: "TextCell" },
 ];
 
-function NameColumnRow({
-  column,
-  index,
-}: {
-  column: ColumnMetaData;
-  index: number;
-}) {
+function NameColumnRow({ column, index }: { column: ColumnMetaData; index: number }) {
   return (
     <div className={classNames(styles.columnRow, index)}>
       <div className={classNames(styles.rowLeftIcon, styles.lockBtn)}>
@@ -50,20 +39,12 @@ function NameColumnRow({
       <div className={styles.columnName}>
         <div>{column.heading}</div>
       </div>
-      <TorqSelect
-        value={{ label: "Name", value: "AliasCell" }}
-        isDisabled={true}
-      />
+      <Select value={{ label: "Name", value: "AliasCell" }} isDisabled={true} />
     </div>
   );
 }
 
-function ColumnRow({
-  column,
-  index,
-  handleRemoveColumn,
-  handleUpdateColumn,
-}: columnRow) {
+function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: columnRow) {
   const selectedOption = CellOptions.filter((option) => {
     if (option.value === column.type) {
       return option;
@@ -80,10 +61,7 @@ function ColumnRow({
           ref={provided.innerRef}
           {...provided.draggableProps}
         >
-          <div
-            className={classNames(styles.rowLeftIcon, styles.dragHandle)}
-            {...provided.dragHandleProps}
-          >
+          <div className={classNames(styles.rowLeftIcon, styles.dragHandle)} {...provided.dragHandleProps}>
             <DragHandle />
           </div>
 
@@ -92,15 +70,15 @@ function ColumnRow({
           </div>
 
           <div className={styles.columnTypeSelect}>
-            <TorqSelect
+            <Select
               isDisabled={column.valueType === "string"}
               options={CellOptions}
               value={selectedOption}
-              onChange={(o: SelectOptionType) => {
+              onChange={(o, actionMeta) => {
                 handleUpdateColumn(
                   {
                     ...column,
-                    type: o.value,
+                    type: actionMeta.option,
                   },
                   index + 1
                 );
@@ -128,11 +106,7 @@ interface unselectedColumnRow {
   handleAddColumn: Function;
 }
 
-function UnselectedColumn({
-  name,
-  index,
-  handleAddColumn,
-}: unselectedColumnRow) {
+function UnselectedColumn({ name, index, handleAddColumn }: unselectedColumnRow) {
   return (
     <div
       className={styles.unselectedColumnRow}
@@ -201,10 +175,7 @@ function ColumnsPopover() {
     }
 
     // Position not changed
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
       return;
     }
 
@@ -228,21 +199,14 @@ function ColumnsPopover() {
       <DragDropContext onDragEnd={onDragEnd}>
         <div className={styles.columnsPopoverContent}>
           <div className={styles.columnRows}>
-            <NameColumnRow
-              column={activeColumns.slice(0, 1)[0]}
-              key={"selected-0-name"}
-              index={0}
-            />
+            <NameColumnRow column={activeColumns.slice(0, 1)[0]} key={"selected-0-name"} index={0} />
 
             <div className={styles.divider} />
 
             <Droppable droppableId={droppableContainerId}>
               {(provided) => (
                 <div
-                  className={classNames(
-                    styles.draggableColumns,
-                    styles.columnRows
-                  )}
+                  className={classNames(styles.draggableColumns, styles.columnRows)}
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                 >
@@ -279,10 +243,7 @@ function ColumnsPopover() {
 
               <div className={styles.unselectedColumns}>
                 {columns.map((column, index) => {
-                  if (
-                    activeColumns.findIndex((ac) => ac.key === column.key) ===
-                    -1
-                  ) {
+                  if (activeColumns.findIndex((ac) => ac.key === column.key) === -1) {
                     return (
                       <UnselectedColumn
                         name={column.heading}
