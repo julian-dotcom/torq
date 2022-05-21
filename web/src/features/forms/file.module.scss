@@ -7,4 +7,22 @@
   margin-bottom: var(--form-margin-bottom);
   display: grid;
   justify-content: center;
+  position: relative;
+  z-index: 500;
+}
+.fileDropArea.dragging:after {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 600;
+}
+.dragging {
+  background-color: var(--color-green-300);
+}
+.error {
+  background-color: var(--color-red-300);
 }
