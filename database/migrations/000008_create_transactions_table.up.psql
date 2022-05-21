@@ -1,5 +1,5 @@
 CREATE TABLE tx (
-    timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL,  -- use TIMESTAMPTZ !!
     tx_hash text,
     amount numeric,
     num_confirmations	bigint,

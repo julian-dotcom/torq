@@ -1,6 +1,6 @@
 
 CREATE TABLE IF NOT EXISTS htlc_event (
-   time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+   time TIMESTAMP WITHOUT TIME ZONE NOT NULL,  -- use TIMESTAMPTZ !!
    outgoing_channel_id NUMERIC,
    incoming_channel_id NUMERIC,
    event jsonb NOT NULL

@@ -1,5 +1,5 @@
 CREATE TABLE routing_policy (
-    ts TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    ts TIMESTAMP WITHOUT TIME ZONE NOT NULL,  -- use TIMESTAMPTZ !!
     chan_id numeric not null,
     announcing_pub_key text,
     chan_point TEXT not null,
