@@ -7,9 +7,9 @@ import classNames from "classnames";
 
 interface fileProps {
   label?: string;
-  onFileDropped?: Function;
+  onFileChange?: Function;
 }
-function File({ label, onFileDropped }: fileProps) {
+function File({ label, onFileChange }: fileProps) {
   const drop = React.useRef<HTMLDivElement>(null);
   const hiddenFileRef = React.useRef<HTMLInputElement>(null);
 
@@ -54,13 +54,13 @@ function File({ label, onFileDropped }: fileProps) {
         setFileError(true);
         return;
       }
-      onFileDropped && onFileDropped(files);
       setMessage([
         "Current file: " + files[0].name,
         <br key="br1" />,
         <br key="br2" />,
         "To change, drop file or click to select",
       ]);
+      onFileChange && onFileChange(files[0]);
     }
   };
 

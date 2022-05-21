@@ -15,14 +15,21 @@ function NodeSettings() {
     toastRef?.current?.addToast("Node settings saved", toastCategory.success);
   };
 
+  const handleTLSFileChange = (file: File) => {
+    console.log(file);
+  };
+  const handleMacaroonFileChange = (file: File) => {
+    console.log(file);
+  };
+
   const clientOptions = [{ value: "LND", label: "LND" }];
   return (
     <Box minWidth={440} title="Node Settings">
       <form onSubmit={submitNodeSettings}>
         <Select label="Client" onChange={() => {}} options={clientOptions} value={clientOptions[0]} />
         <TextInput label="GRPC Address (IP or Tor)" />
-        <File label="TLS Certificate" />
-        <File label="Macaroon" />
+        <File label="TLS Certificate" onFileChange={handleTLSFileChange} />
+        <File label="Macaroon" onFileChange={handleMacaroonFileChange} />
         <SubmitButton>
           <React.Fragment>
             <SaveIcon />
