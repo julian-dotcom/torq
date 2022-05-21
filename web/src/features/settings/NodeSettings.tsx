@@ -22,11 +22,16 @@ function NodeSettings() {
     console.log(file);
   };
 
-  const clientOptions = [{ value: "LND", label: "LND" }];
+  const implementationOptions = [{ value: "LND", label: "LND" }];
   return (
     <Box minWidth={440} title="Node Settings">
       <form onSubmit={submitNodeSettings}>
-        <Select label="Client" onChange={() => {}} options={clientOptions} value={clientOptions[0]} />
+        <Select
+          label="Implementation"
+          onChange={() => {}}
+          options={implementationOptions}
+          value={implementationOptions[0]}
+        />
         <TextInput label="GRPC Address (IP or Tor)" />
         <File label="TLS Certificate" onFileChange={handleTLSFileChange} />
         <File label="Macaroon" onFileChange={handleMacaroonFileChange} />
