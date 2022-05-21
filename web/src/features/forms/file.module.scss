@@ -1,0 +1,10 @@
+.fileDropArea {
+  padding: 26px 10px;
+  border-style: dashed;
+  border-color: var(--fg-muted);
+  border-width: 1px;
+  border-radius: var(--radius-default);
+  margin-bottom: var(--form-margin-bottom);
+  display: grid;
+  justify-content: center;
+}

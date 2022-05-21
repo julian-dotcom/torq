@@ -5,6 +5,8 @@ import React from "react";
 import { Save20Regular as SaveIcon } from "@fluentui/react-icons";
 import { toastCategory, addToastHandle } from "../toast/Toasts";
 import ToastContext from "../toast/context";
+import File from "../forms/File";
+import TextInput from "../forms/TextInput";
 
 function NodeSettings() {
   const toastRef = React.useContext(ToastContext);
@@ -18,6 +20,9 @@ function NodeSettings() {
     <Box minWidth={440} title="Node Settings">
       <form onSubmit={submitNodeSettings}>
         <Select label="Client" onChange={() => {}} options={clientOptions} value={clientOptions[0]} />
+        <TextInput label="GRPC Address (IP or Tor)" />
+        <File label="TLS Certificate" />
+        <File label="Macaroon" />
         <SubmitButton>
           <React.Fragment>
             <SaveIcon />
