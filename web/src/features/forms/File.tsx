@@ -11,6 +11,8 @@ interface fileProps {
 }
 function File({ label, onFileDropped }: fileProps) {
   const drop = React.useRef<HTMLDivElement>(null);
+  const hiddenFileRef = React.useRef<HTMLInputElement>(null);
+
   const defaultMessageValue = "Drag file here or click to select";
 
   const [message, setMessage] = React.useState<string | (string | React.ReactElement)[]>(defaultMessageValue);
@@ -35,6 +37,33 @@ function File({ label, onFileDropped }: fileProps) {
     e.stopPropagation();
   };
 
+  const handleClick = () => {
+    hiddenFileRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length) {
+      processFiles(event.target.files);
+    }
+  };
+
+  const processFiles = (files: FileList) => {
+    if (files && files.length) {
+      if (files.length > 1) {
+        setMessage(["Too many files", <br key="br1" />, <br key="br2" />, "Drop file or click to select"]);
+        setFileError(true);
+        return;
+      }
+      onFileDropped && onFileDropped(files);
+      setMessage([
+        "Current file: " + files[0].name,
+        <br key="br1" />,
+        <br key="br2" />,
+        "To change, drop file or click to select",
+      ]);
+    }
+  };
+
   const handleDrop = (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -44,21 +73,7 @@ function File({ label, onFileDropped }: fileProps) {
     if (e.dataTransfer) {
       const files = e.dataTransfer.files;
 
-      if (files && files.length) {
-        if (files.length > 1) {
-          setMessage(["Too many files", <br key="br1" />, <br key="br2" />, "Drop file or click to select"]);
-          setFileError(true);
-          return;
-        }
-        onFileDropped && onFileDropped(files);
-        setMessage([
-          "Current file: " + files[0].name,
-          <br key="br1" />,
-          <br key="br2" />,
-          "To change, drop file or click to select",
-        ]);
-        console.log(files);
-      }
+      processFiles(files);
     }
   };
 
@@ -84,6 +99,7 @@ function File({ label, onFileDropped }: fileProps) {
         <span>{label}</span>
       </div>
       <div
+        onClick={handleClick}
         ref={drop}
         className={classNames(
           styles.fileDropArea,
@@ -93,6 +109,7 @@ function File({ label, onFileDropped }: fileProps) {
       >
         <span style={{ textAlign: "center" }}>{message}</span>
       </div>
+      <input ref={hiddenFileRef} onChange={handleFileChange} type="file" style={{ position: "fixed", top: "-100em" }} />
     </>
   );
 }
