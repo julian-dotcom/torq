@@ -35,7 +35,7 @@ UPDATE settings SET
   default_date_range = $1,
   preferred_timezone = $2,
   week_starts_on = $3,
-  created_on = $4;
+  updated_on = $4;
 `, settings.DefaultDateRange, settings.PreferredTimezone, settings.WeekStartsOn, time.Now().UTC())
 	if err != nil {
 		return errors.Wrap(err, "Unable to execute SQL statement")
