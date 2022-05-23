@@ -2,6 +2,7 @@ import * as d3 from "d3";
 import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
 import { addHours, subHours } from "date-fns";
 import { BarPlot } from "./plots/bar";
+import clone from "../../clone";
 
 type chartConfig = {
   leftYAxisKey: string;
@@ -23,6 +24,8 @@ type chartConfig = {
   yScale: ScaleLinear<number, number, never>;
   rightYScale: ScaleLinear<number, number, never>;
   xScale: ScaleTime<number, number, number | undefined>;
+  from: Date | undefined;
+  to: Date | undefined;
 };
 
 class ChartCanvas {
@@ -46,6 +49,8 @@ class ChartCanvas {
     yScale: d3.scaleLinear([0, 200]),
     rightYScale: d3.scaleLinear([0, 200]),
     xScale: d3.scaleTime([0, 800]),
+    from: undefined,
+    to: undefined,
   };
 
   data: Array<any> = [];
@@ -78,8 +83,13 @@ class ChartCanvas {
     if (container == undefined) {
       throw new Error("The chart container can't be null");
     }
-    this.data = data;
+
     this.config = { ...this.config, ...config };
+
+    this.data = clone(data).map((row: any) => {
+      row.date = new Date(row.date);
+      return row;
+    });
 
     if (this.config.leftYAxisKey) {
       this.config.margin.left = 50;
@@ -94,9 +104,8 @@ class ChartCanvas {
     this.config.width = this.getWidth();
     this.config.height = this.getHeight();
 
-    let start = subHours(this.data[0].date, this.config.xAxisPadding);
     let end = addHours(this.data[this.data.length - 1].date, this.config.xAxisPadding);
-
+    let start = subHours(this.data[0].date, this.config.xAxisPadding);
     // Creating a scale
     // The range is the number of pixels the domain will be distributed across
     // The domain is the values to be displayed on the chart

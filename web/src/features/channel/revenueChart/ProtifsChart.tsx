@@ -4,8 +4,6 @@ import React, { useEffect } from "react";
 import { Selection } from "d3";
 import ChartCanvas from "../../charts/chartCanvas";
 import { BarPlot } from "../../charts/plots/bar";
-import { selectHidden } from "../../navigation/navSlice";
-import { useAppSelector } from "../../../store/hooks";
 import "../../charts/chart.scss";
 import chartCanvas from "../../charts/chartCanvas";
 
@@ -32,8 +30,11 @@ function ProfitsChart({ data }: ProfitsChart) {
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
-      chart = new ChartCanvas(container, data, { leftYAxisKey: "revenue", xAxisPadding: 12 });
-      chart.plot(BarPlot, { id: "bars", key: "revenue" });
+      chart = new ChartCanvas(container, data, {
+        leftYAxisKey: "revenue_out",
+        xAxisPadding: 12,
+      });
+      chart.plot(BarPlot, { id: "bars", key: "revenue_out" });
       chart.draw();
       setInterval(navCheck(container), 200);
     },

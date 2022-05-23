@@ -1,7 +1,6 @@
 package channel_history
 
 import (
-	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -14,8 +13,6 @@ import (
 
 func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	chanIds := strings.Split(c.Param("chanIds"), ",")
-	fmt.Println(chanIds)
-	fmt.Println(c.Param("chanIds"))
 
 	chanHistory, err := getChannelHistory(db, chanIds)
 	if err != nil {
@@ -169,15 +166,15 @@ func getChannelHistory(db *sqlx.DB, chanIds []string) (r []*ChannelData, err err
 
 			coalesce(i.amount,0) as amount_in,
 			coalesce(o.amount,0) as amount_out,
-			coalesce((i.amount + o.amount), 0) as revenue_total,
+			coalesce((coalesce(i.amount,0) + coalesce(o.amount,0)), 0) as amount_total,
 
 			coalesce(i.revenue,0) as revenue_in,
 			coalesce(o.revenue,0) as revenue_out,
-			coalesce((i.revenue + o.revenue), 0) as revenue_total,
+			coalesce((coalesce(i.revenue,0) + coalesce(o.revenue,0)), 0) as revenue_total,
 
 			coalesce(i.count,0) as count_in,
 			coalesce(o.count,0) as count_out,
-			coalesce((i.count + o.count), 0) as count_total
+			coalesce((coalesce(i.count,0) + coalesce(o.count,0)), 0) as count_total
 		from (
 			select time_bucket('1 days', time) as date,
 				   outgoing_channel_id chan_id,
@@ -197,7 +194,8 @@ func getChannelHistory(db *sqlx.DB, chanIds []string) (r []*ChannelData, err err
 			from forward, settings
 			where incoming_channel_id in (?)
 			group by incoming_channel_id, date) as i
-		on (i.chan_id = o.chan_id) and (i.date = o.date);
+		on (i.chan_id = o.chan_id) and (i.date = o.date)
+		order by coalesce(i.date, o.date);
 	`
 
 	qs, args, err := sqlx.In(sql, chanIds, chanIds)
@@ -216,12 +214,13 @@ func getChannelHistory(db *sqlx.DB, chanIds []string) (r []*ChannelData, err err
 		c := &ChannelData{}
 		err = rows.Scan(
 			&c.Date,
-			&c.AmountOut,
+
 			&c.AmountIn,
+			&c.AmountOut,
 			&c.AmountTotal,
 
-			&c.RevenueOut,
 			&c.RevenueIn,
+			&c.RevenueOut,
 			&c.RevenueTotal,
 
 			&c.CountIn,

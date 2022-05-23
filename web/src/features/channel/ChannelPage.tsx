@@ -9,7 +9,7 @@ import Select from "../inputs/Select";
 import { Settings16Regular as SettingsIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
 
-import { useGetFlowQuery } from "apiSlice";
+import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
@@ -108,6 +108,10 @@ function ChannelPage() {
     to: to,
     chanId: chanId || " ",
   });
+  const historyQuery = useGetChannelHistoryQuery({
+    chanIds: chanId || " ",
+  });
+
   const flowKey = useAppSelector(selectFlowKeys);
 
   return (
@@ -204,7 +208,7 @@ function ChannelPage() {
               </div>
             </div>
             <div className={styles.chartContainer}>
-              <ProfitsChart data={chanData} />
+              {historyQuery.data && <ProfitsChart data={historyQuery.data.data} />}
             </div>
           </div>
         </div>
@@ -222,7 +226,8 @@ function ChannelPage() {
             </div>
 
             <div className={styles.chartContainer}>
-              <EventsChart data={chanData} />
+              {/*<EventsChart data={chanData} />*/}
+              {historyQuery.data && <EventsChart data={historyQuery.data.data} />}
             </div>
           </div>
         </div>

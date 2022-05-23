@@ -29,18 +29,18 @@ function EventsChart({ data }: EventsChart) {
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       chart = new ChartCanvas(container, data, {
-        leftYAxisKey: "revenue",
-        rightYAxisKey: "capacity_out",
+        leftYAxisKey: "amount_out",
+        // rightYAxisKey: "capacity_out",
         showLeftYAxisLabel: true,
-        showRightYAxisLabel: true,
+        // showRightYAxisLabel: true,
       });
       chart.plot(AreaPlot, {
-        id: "capacity_out",
-        key: "capacity_out",
+        id: "amount_out",
+        key: "amount_out",
         areaGradient: ["#DAEDFF", "#ABE9E6"],
       });
-      chart.plot(LinePlot, { id: "line", key: "revenue" });
-      chart.plot(EventsPlot, { id: "events", key: "events" });
+      // chart.plot(LinePlot, { id: "line", key: "revenue_out" });
+      // chart.plot(EventsPlot, { id: "events", key: "events" });
       chart.draw();
       setInterval(navCheck(container), 200);
     },
