@@ -42,3 +42,32 @@ UPDATE settings SET
 	}
 	return nil
 }
+
+func getLocalNode(db *sqlx.DB) (localNodeData localNode, err error) {
+	err = db.Get(&localNodeData, "SELECT * FROM local_node LIMIT 1;")
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return localNode{}, nil
+		}
+		return localNode{}, errors.Wrap(err, "Unable to execute SQL query")
+	}
+	return localNodeData, nil
+}
+
+func updateLocalNode(db *sqlx.DB, localNode localNode) (err error) {
+	_, err = db.Exec(`
+UPDATE local_node SET
+  implementation = $1,
+  grpc_address = $2,
+  tls_file_name = $3,
+  tls_data = $4,
+  macaroon_file_name = $5,
+  macaroon_data = $6,
+  updated_on = $7;
+`, localNode.Implementation, localNode.GRPCAddress, localNode.TLSFileName,
+		localNode.TLSDATA, localNode.MacaroonFileName, localNode.MacaroonData, time.Now().UTC())
+	if err != nil {
+		return errors.Wrap(err, "Unable to execute SQL statement")
+	}
+	return nil
+}
