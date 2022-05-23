@@ -13,12 +13,12 @@ test-backend-with-db-stop:
 	$(backendTest) || $(stopDevDb)
 
 .PHONY: test-frontend-with-db-stop
-test-frontend-with-db-stop:
+test-frontend-with-db-stop: start-dev-db wait-db
 	$(frontendTest) || (cd ../ && $(stopDevDb))
 
 .PHONY: test-backend
-test-backend:
-	$(backendTest)
+test-backend: start-dev-db wait-db
+	$(backendTest)  || $(stopDevDb)
 
 .PHONY: test-frontend
 test-frontend:

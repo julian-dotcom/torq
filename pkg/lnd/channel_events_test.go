@@ -64,8 +64,9 @@ func TestSubscribeChannelEvents(t *testing.T) {
 
 	t.Run("Open Channel Event", func(t *testing.T) {
 		expected := channelEventData{Chan_id: 1337, Chan_point: "point break", Pub_key: "remote pub key",
-			Event_type: int(lnrpc.ChannelEventUpdate_OPEN_CHANNEL)}
-		channel := &lnrpc.Channel{ChanId: expected.Chan_id, ChannelPoint: expected.Chan_point, RemotePubkey: expected.Pub_key}
+			Event_type: int(lnrpc.ChannelEventUpdate_OPEN_CHANNEL), Capacity: 100000000}
+		channel := &lnrpc.Channel{ChanId: expected.Chan_id, ChannelPoint: expected.Chan_point,
+			RemotePubkey: expected.Pub_key, Capacity: expected.Capacity}
 		channelEvent := lnrpc.ChannelEventUpdate_OpenChannel{OpenChannel: channel}
 		channelEventUpdate := &lnrpc.ChannelEventUpdate{
 			Type:    lnrpc.ChannelEventUpdate_OPEN_CHANNEL,
@@ -75,8 +76,9 @@ func TestSubscribeChannelEvents(t *testing.T) {
 
 	t.Run("Closed Channel Event", func(t *testing.T) {
 		expected := channelEventData{Chan_id: 1337, Chan_point: "closed point break", Pub_key: "closed remote pub key",
-			Event_type: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL)}
-		channel := &lnrpc.ChannelCloseSummary{ChanId: expected.Chan_id, ChannelPoint: expected.Chan_point, RemotePubkey: expected.Pub_key}
+			Event_type: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL), Capacity: 100000000}
+		channel := &lnrpc.ChannelCloseSummary{ChanId: expected.Chan_id, ChannelPoint: expected.Chan_point,
+			RemotePubkey: expected.Pub_key, Capacity: expected.Capacity}
 		channelEvent := lnrpc.ChannelEventUpdate_ClosedChannel{ClosedChannel: channel}
 		channelEventUpdate := &lnrpc.ChannelEventUpdate{
 			Type:    lnrpc.ChannelEventUpdate_CLOSED_CHANNEL,
@@ -170,6 +172,7 @@ type channelEventData struct {
 	Chan_point string
 	Pub_key    string
 	Event_type int
+	Capacity   int64
 }
 
 func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, expected channelEventData) {
@@ -189,7 +192,7 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 		return err
 	})
 
-	// wait for subscriptions to complete
+	// Wait for subscriptions to complete
 	err := errs.Wait()
 	if err != nil {
 		t.Fatal(err)
@@ -197,9 +200,10 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 
 	var channelEvents []channelEventData
 	err = db.Select(&channelEvents, `
-SELECT chan_id, pub_key
-FROM channel_event
-WHERE chan_point = $1 AND event_type = $2;`, expected.Chan_point, expected.Event_type)
+			SELECT chan_id, pub_key, event_type, coalesce((event->'capacity')::numeric, 0) as capacity
+			FROM channel_event
+			WHERE chan_point = $1 AND event_type = $2;`,
+		expected.Chan_point, expected.Event_type)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -216,5 +220,17 @@ WHERE chan_point = $1 AND event_type = $2;`, expected.Chan_point, expected.Event
 	if channelEvents[0].Chan_id != expected.Chan_id ||
 		channelEvents[0].Pub_key != expected.Pub_key {
 		t.Fatal("Channel event data not stored correctly")
+	}
+
+	// Check that channel open events stores the capacity correctly
+	if channelEvents[0].Event_type == 0 && channelEvents[0].Capacity != expected.Capacity {
+		t.Fatalf("Channel capacity is not stored correctly. Expected: %d, got: %d", expected.Capacity,
+			channelEvents[0].Capacity)
+	}
+
+	// Check that channel close events stores the capacity correctly
+	if channelEvents[0].Event_type == 1 && channelEvents[0].Capacity != expected.Capacity {
+		t.Fatalf("Channel capacity is not stored correctly. Expected: %d, got: %d", expected.Capacity,
+			channelEvents[0].Capacity)
 	}
 }
