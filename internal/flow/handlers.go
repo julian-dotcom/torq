@@ -50,8 +50,9 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	// TODO: Correct this to chand_ids here and in the frontend
 	chanIds := strings.Split(c.Query("chan_id"), ",")
-	//chanId, err := strconv.ParseUint(c.Query("chan_id"), 10, 64)
+
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

@@ -2,13 +2,11 @@ package channels
 
 import (
 	"github.com/gin-gonic/gin"
-	"gopkg.in/guregu/null.v4"
-
-	// "gopkg.in/guregu/null.v4"
-	"net/http"
-	"time"
-
 	"github.com/lncapital/torq/pkg/server_errors"
+	"gopkg.in/guregu/null.v4"
+	"net/http"
+
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
