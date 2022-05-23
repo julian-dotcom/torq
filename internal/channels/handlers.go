@@ -14,7 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
+func getChannelsTableHandler(c *gin.Context, db *sqlx.DB) {
 	from, err := time.Parse("2006-01-02", c.Query("from"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -25,7 +25,7 @@ func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	r, err := getAggForwardsByChanIds(db, from, to)
+	r, err := getChannelsTableData(db, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -33,7 +33,7 @@ func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-type channelData struct {
+type channelTableRow struct {
 	// Alias of remote peer
 	Alias null.String `json:"alias"`
 	// Database primary key of channel
@@ -82,7 +82,7 @@ type channelData struct {
 	TurnoverTotal float32 `json:"turnover_total"`
 }
 
-func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*channelData, err error) {
+func getChannelsTableData(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*channelTableRow, err error) {
 	var sql = `
 select
     coalesce(ne.alias, ce.pub_key, '') as alias,
@@ -169,7 +169,7 @@ left join (
 	}
 
 	for rows.Next() {
-		c := &channelData{}
+		c := &channelTableRow{}
 		err = rows.Scan(
 			&c.Alias,
 			&c.ChannelDBID,

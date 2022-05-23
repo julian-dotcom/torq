@@ -6,5 +6,5 @@ import (
 )
 
 func RegisterChannelRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("", func(c *gin.Context) { getChannelsHandler(c, db) })
+	r.GET("", func(c *gin.Context) { getChannelsTableHandler(c, db) })
 }
