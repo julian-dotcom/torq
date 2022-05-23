@@ -48,6 +48,7 @@ function File({ label, onFileChange }: fileProps) {
   };
 
   const processFiles = (files: FileList) => {
+    setFileError(false);
     if (files && files.length) {
       if (files.length > 1) {
         setMessage(["Too many files", <br key="br1" />, <br key="br2" />, "Drop file or click to select"]);
@@ -55,7 +56,7 @@ function File({ label, onFileChange }: fileProps) {
         return;
       }
       setMessage([
-        "Current file: " + files[0].name,
+        "Current file: " + files[0].name + " (" + files[0].size + " bytes)",
         <br key="br1" />,
         <br key="br2" />,
         "To change, drop file or click to select",
@@ -69,7 +70,6 @@ function File({ label, onFileChange }: fileProps) {
     e.stopPropagation();
 
     setDragging(false);
-    setFileError(false);
     if (e.dataTransfer) {
       const files = e.dataTransfer.files;
 
