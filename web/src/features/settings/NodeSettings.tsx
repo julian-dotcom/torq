@@ -7,13 +7,31 @@ import { toastCategory, addToastHandle } from "../toast/Toasts";
 import ToastContext from "../toast/context";
 import File from "../forms/File";
 import TextInput from "../forms/TextInput";
+import { useGetLocalNodeQuery, useUpdateLocalNodeMutation } from "apiSlice";
 
 function NodeSettings() {
   const toastRef = React.useContext(ToastContext);
+
+  const { data: localNodeData } = useGetLocalNodeQuery();
+  const [updateLocalNode] = useUpdateLocalNodeMutation();
+
   const submitNodeSettings = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toastRef?.current?.addToast("Node settings saved", toastCategory.success);
+
+    const form = new FormData();
+    form.append("implementation", "LND");
+    form.append("grpcAddress", "addr");
+    form.append("tlsFileName", "txs file name");
+    form.append("macaroonFileName", "mac file name");
+    form.append("macaroonData", new Blob([new Uint8Array([2]).buffer]), "macaroonData");
+    form.append("tlsData", new Blob([new Uint8Array([3]).buffer]), "somethingElse");
+    updateLocalNode(form);
+    toastRef?.current?.addToast("Local node info saved", toastCategory.success);
   };
+
+  React.useEffect(() => {
+    console.log(localNodeData);
+  });
 
   const handleTLSFileChange = (file: File) => {
     console.log(file);

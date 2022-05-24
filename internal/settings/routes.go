@@ -1,13 +1,16 @@
 package settings
 
 import (
+	// "io"
+	"log"
+	"mime/multipart"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"gopkg.in/guregu/null.v4"
+	// "gopkg.in/guregu/null.v4"
 	// "strconv"
 )
 
@@ -63,15 +66,17 @@ func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 type localNode struct {
-	LocalNodeId      int         `json:"localNodeId" db:"local_node_id"`
-	Implementation   string      `json:"implementation" db:"implementation"`
-	GRPCAddress      null.String `json:"GRPCAddress" db:"grpc_address"`
-	TLSFileName      null.String `json:"TLSFileName" db:"tls_file_name"`
-	TLSDATA          []byte      `json:"TLSData" db:"tls_data"`
-	MacaroonFileName null.String `json:"macaroonFileName" db:"macaroon_file_name"`
-	MacaroonData     []byte      `json:"macaroonData" db:"macaroon_data"`
-	CreateOn         time.Time   `json:"createdOn" db:"created_on"`
-	UpdatedOn        null.Time   `json:"updatedOn" db:"updated_on"`
+	LocalNodeId       int                   `json:"localNodeId" form:"localNodeId" db:"local_node_id"`
+	Implementation    string                `json:"implementation" form:"implementation" db:"implementation"`
+	GRPCAddress       *string               `json:"grpcAddress" form:"grpcAddress" db:"grpc_address"`
+	TLSFileName       *string               `json:"tlsFileName" form:"tlsFileName" db:"tls_file_name"`
+	TLSData           *multipart.FileHeader `json:"tlsData" form:"tlsData" db:"tls_data"`
+	MacaroonFileName  *string               `json:"macaroonFileName" form:"macaroonFileName" db:"macaroon_file_name"`
+	MacaroonData      *multipart.FileHeader `json:"macaroonData" form:"macaroonData" db:"macaroon_data"`
+	CreateOn          time.Time             `json:"createdOn" form:"createdOn" db:"created_on"`
+	UpdatedOn         *time.Time            `json:"updatedOn" form:"updatedOn" db:"updated_on"`
+	TLSDataBytes      []byte
+	MacaroonDataBytes []byte
 }
 
 func getLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
@@ -85,10 +90,23 @@ func getLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
 
 func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
 	var localNode localNode
-	if err := c.BindJSON(&localNode); err != nil {
+	// localNode.Implementation = c.PostForm("implementation")
+	// localNode.GRPCAddress.String = c.PostForm("GRPCAddress")
+	// localNode.TLSFileName = null.StringFrom(c.PostForm("TLSFileName"))
+	// tlsDataFileHeader, err := c.FormFile("tlsData")
+	// tlsDataFile, err := tlsDataFileHeader.Open()
+	// tlsData, err := io.ReadAll(tlsDataFile)
+	// if err != nil {
+	// 	return
+	// }
+	// localNode.TLSDataBytes = tlsData
+	// localNode.TLSData = c.Request.ParseMultipartForm(c.Request.FormValue("TLSData"))
+
+	if err := c.Bind(&localNode); err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	log.Printf("%v", localNode)
 	err := updateLocalNode(db, localNode)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)

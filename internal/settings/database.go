@@ -44,7 +44,13 @@ UPDATE settings SET
 }
 
 func getLocalNode(db *sqlx.DB) (localNodeData localNode, err error) {
-	err = db.Get(&localNodeData, "SELECT * FROM local_node LIMIT 1;")
+	err = db.Get(&localNodeData, `
+SELECT
+  implementation,
+  grpc_address,
+  tls_file_name,
+  macaroon_file_name
+FROM local_node LIMIT 1;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return localNode{}, nil
@@ -65,7 +71,7 @@ UPDATE local_node SET
   macaroon_data = $6,
   updated_on = $7;
 `, localNode.Implementation, localNode.GRPCAddress, localNode.TLSFileName,
-		localNode.TLSDATA, localNode.MacaroonFileName, localNode.MacaroonData, time.Now().UTC())
+		localNode.TLSDataBytes, localNode.MacaroonFileName, localNode.MacaroonDataBytes, time.Now().UTC())
 	if err != nil {
 		return errors.Wrap(err, "Unable to execute SQL statement")
 	}
