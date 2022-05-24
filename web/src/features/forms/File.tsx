@@ -8,16 +8,28 @@ import classNames from "classnames";
 interface fileProps {
   label?: string;
   onFileChange?: Function;
+  fileName?: string;
 }
-function File({ label, onFileChange }: fileProps) {
+function File({ label, onFileChange, fileName }: fileProps) {
   const drop = React.useRef<HTMLDivElement>(null);
   const hiddenFileRef = React.useRef<HTMLInputElement>(null);
 
-  const defaultMessageValue = "Drag file here or click to select";
+  const defaultMessageValue: (string | React.ReactElement)[] = ["Drag file here or click to select"];
 
-  const [message, setMessage] = React.useState<string | (string | React.ReactElement)[]>(defaultMessageValue);
+  const [message, setMessage] = React.useState<(string | React.ReactElement)[]>(defaultMessageValue);
   const [dragging, setDragging] = React.useState(false);
   const [fileError, setFileError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (fileName) {
+      setMessage([
+        "Current file: " + fileName,
+        <br key="br1" />,
+        <br key="br2" />,
+        "To change, drop file or click to select",
+      ]);
+    }
+  }, [fileName]);
 
   React.useEffect(() => {
     drop.current?.addEventListener("dragover", handleDragOver);
@@ -53,14 +65,9 @@ function File({ label, onFileChange }: fileProps) {
       if (files.length > 1) {
         setMessage(["Too many files", <br key="br1" />, <br key="br2" />, "Drop file or click to select"]);
         setFileError(true);
+        onFileChange && onFileChange(null);
         return;
       }
-      setMessage([
-        "Current file: " + files[0].name + " (" + files[0].size + " bytes)",
-        <br key="br1" />,
-        <br key="br2" />,
-        "To change, drop file or click to select",
-      ]);
       onFileChange && onFileChange(files[0]);
     }
   };

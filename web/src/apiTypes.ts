@@ -15,9 +15,9 @@ export interface localNode {
   implementation: string;
   grpcAddress?: string;
   tlsFileName?: string;
-  tlsData?: Uint8Array;
+  tlsFile: File;
   macaroonFileName?: string;
-  macaroonData?: Uint8Array;
+  macaroonFile: File;
   createdOn?: Date;
   updatedOn?: Date;
 }
