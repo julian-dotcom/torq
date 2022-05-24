@@ -2,17 +2,16 @@ package lnd
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
-	"google.golang.org/grpc/grpclog"
-	"io"
-	"io/ioutil"
-	"os"
-	"time"
-
 	"github.com/lightningnetwork/lnd/macaroons"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
 	"gopkg.in/macaroon.v2"
+	"io"
+	"os"
+	"time"
 )
 
 var (
@@ -22,22 +21,18 @@ var (
 )
 
 // Connect connects to LND using gRPC.
-func Connect(host, tlsCertPath, macaroonPath string) (*grpc.ClientConn, error) {
+func Connect(host string, tlsCert []byte, macaroonBytes []byte) (*grpc.ClientConn, error) {
 
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(info, warn, err))
 
-	tlsCreds, err := credentials.NewClientTLSFromFile(tlsCertPath, "")
-	if err != nil {
-		return nil, fmt.Errorf("cannot get lnd tls credentials: %v", err)
+	cp := x509.NewCertPool()
+	if !cp.AppendCertsFromPEM(tlsCert) {
+		return nil, fmt.Errorf("credentials: failed to append certificates")
 	}
-
-	macaroonBytes, err := ioutil.ReadFile(macaroonPath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read macaroon file: %v", err)
-	}
+	tlsCreds := credentials.NewClientTLSFromCert(cp, "")
 
 	mac := &macaroon.Macaroon{}
-	if err = mac.UnmarshalBinary(macaroonBytes); err != nil {
+	if err := mac.UnmarshalBinary(macaroonBytes); err != nil {
 		return nil, fmt.Errorf("cannot unmarshal macaroon: %v", err)
 	}
 

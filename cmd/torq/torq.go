@@ -9,6 +9,7 @@ import (
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -146,11 +147,15 @@ func main() {
 
 				fmt.Println("Connecting to lightning node")
 				// Connect to the node
-				conn, err := lnd.Connect(
-					c.String("lnd.node_address"),
-					c.String("lnd.tls"),
-					c.String("lnd.macaroon"))
+				connectionDetails, err := settings.GetConnectionDetails(db)
+				if err != nil {
+					return fmt.Errorf("failed to get node connection details: %v", err)
+				}
 
+				conn, err := lnd.Connect(
+					connectionDetails.GRPCAddress,
+					connectionDetails.TLSFileBytes,
+					connectionDetails.MacaroonFileBytes)
 				if err != nil {
 					return fmt.Errorf("failed to connect to lnd: %v", err)
 				}
@@ -206,11 +211,15 @@ func main() {
 
 			fmt.Println("Connecting to lightning node")
 			// Connect to the node
-			conn, err := lnd.Connect(
-				c.String("lnd.node_address"),
-				c.String("lnd.tls"),
-				c.String("lnd.macaroon"))
+			connectionDetails, err := settings.GetConnectionDetails(db)
+			if err != nil {
+				return fmt.Errorf("failed to get node connection details: %v", err)
+			}
 
+			conn, err := lnd.Connect(
+				connectionDetails.GRPCAddress,
+				connectionDetails.TLSFileBytes,
+				connectionDetails.MacaroonFileBytes)
 			if err != nil {
 				return fmt.Errorf("failed to connect to lnd: %v", err)
 			}
