@@ -20,46 +20,30 @@ function NodeSettings() {
 
   const submitNodeSettings = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    console.log("trying to submit");
-    console.log(localState);
     const form = new FormData();
     form.append("implementation", "LND");
     form.append("grpcAddress", localState.grpcAddress ?? "");
-    console.log(localState.tlsFile);
-    form.append("tlsData", localState.tlsFile, localState.tlsFileName);
-    form.append("macaroonData", localState.macaroonFile, localState.macaroonFileName);
+    form.append("tlsFile", localState.tlsFile, localState.tlsFileName);
+    form.append("macaroonFile", localState.macaroonFile, localState.macaroonFileName);
     updateLocalNode(form);
     toastRef?.current?.addToast("Local node info saved", toastCategory.success);
   };
 
   React.useEffect(() => {
-    console.log("I ram");
-    console.log(localNodeData);
-    console.log(localState);
     if (localNodeData) {
-      console.log("going to set the state");
       setLocalState(localNodeData);
     }
-    console.log(localNodeData);
-    console.log(localState);
   }, [localNodeData]);
 
   const handleTLSFileChange = (file: File) => {
-    console.log("change");
-    console.log(localState);
     setLocalState({ ...localState, tlsFile: file, tlsFileName: file ? file.name : undefined });
   };
 
   const handleMacaroonFileChange = (file: File) => {
-    console.log("change macaroon");
-    console.log(localState);
     setLocalState({ ...localState, macaroonFile: file, macaroonFileName: file ? file.name : undefined });
   };
 
   const handleAddressChange = (value: string) => {
-    console.log(" add change");
-    console.log(localState);
     setLocalState({ ...localState, grpcAddress: value });
   };
 
