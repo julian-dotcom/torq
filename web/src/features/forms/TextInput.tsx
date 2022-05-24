@@ -10,6 +10,9 @@ interface textInputProps {
 function TextInput({ label, value, placeholder, onChange }: textInputProps) {
   const [localValue, setLocalValue] = React.useState("" as string | undefined);
   React.useEffect(() => {
+    if (value === undefined) {
+      return;
+    }
     setLocalValue(value);
   }, [value]);
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
