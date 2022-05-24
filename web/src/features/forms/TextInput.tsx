@@ -4,23 +4,30 @@ import React from "react";
 interface textInputProps {
   label?: string;
   value?: string;
+  placeholder?: string;
+  onChange?: (value: string) => void;
 }
-function TextInput({ label, value }: textInputProps) {
-  const [localValue, setLocalValue] = React.useState("");
+function TextInput({ label, value, placeholder, onChange }: textInputProps) {
+  const [localValue, setLocalValue] = React.useState("" as string | undefined);
   React.useEffect(() => {
-    value && setLocalValue(value);
+    setLocalValue(value);
   }, [value]);
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
-    if (e.target.value) {
-      setLocalValue(e.target.value);
-    }
+    setLocalValue(e.target.value);
+    onChange && onChange(e.target.value);
   };
   return (
     <div style={{ marginBottom: "var(--form-margin-bottom)" }}>
       <div style={{ marginBottom: "var(--form-label-margin-bottom)" }}>
         <span>{label}</span>
       </div>
-      <input type="text" className={styles.textInput} value={localValue} onChange={handleChange} />
+      <input
+        type="text"
+        placeholder={placeholder}
+        className={styles.textInput}
+        value={localValue}
+        onChange={handleChange}
+      />
     </div>
   );
 }

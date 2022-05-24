@@ -21,24 +21,46 @@ function NodeSettings() {
   const submitNodeSettings = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    console.log("trying to submit");
+    console.log(localState);
     const form = new FormData();
     form.append("implementation", "LND");
-    form.append("grpcAddress", "addr");
-    form.append("macaroonData", new Blob([new Uint8Array([2]).buffer]), "macaroonData");
-    form.append("tlsData", new Blob([new Uint8Array([3]).buffer]), "somethingElse");
+    form.append("grpcAddress", localState.grpcAddress ?? "");
+    console.log(localState.tlsFile);
+    form.append("tlsData", localState.tlsFile, localState.tlsFileName);
+    form.append("macaroonData", localState.macaroonFile, localState.macaroonFileName);
     updateLocalNode(form);
     toastRef?.current?.addToast("Local node info saved", toastCategory.success);
   };
 
   React.useEffect(() => {
-    localNodeData && setLocalState(localNodeData);
+    console.log("I ram");
+    console.log(localNodeData);
+    console.log(localState);
+    if (localNodeData) {
+      console.log("going to set the state");
+      setLocalState(localNodeData);
+    }
+    console.log(localNodeData);
+    console.log(localState);
   }, [localNodeData]);
 
   const handleTLSFileChange = (file: File) => {
+    console.log("change");
+    console.log(localState);
     setLocalState({ ...localState, tlsFile: file, tlsFileName: file ? file.name : undefined });
   };
+
   const handleMacaroonFileChange = (file: File) => {
+    console.log("change macaroon");
+    console.log(localState);
     setLocalState({ ...localState, macaroonFile: file, macaroonFileName: file ? file.name : undefined });
+  };
+
+  const handleAddressChange = (value: string) => {
+    console.log(" add change");
+    console.log(localState);
+    setLocalState({ ...localState, grpcAddress: value });
   };
 
   const implementationOptions = [{ value: "LND", label: "LND" } as SelectOption];
@@ -51,7 +73,12 @@ function NodeSettings() {
           options={implementationOptions}
           value={implementationOptions.find((io) => io.value === localState?.implementation)}
         />
-        <TextInput label="GRPC Address (IP or Tor)" value={localState?.grpcAddress} />
+        <TextInput
+          label="GRPC Address (IP or Tor)"
+          value={localState?.grpcAddress}
+          onChange={handleAddressChange}
+          placeholder="100.100.100.100:10009"
+        />
         <File label="TLS Certificate" onFileChange={handleTLSFileChange} fileName={localState?.tlsFileName} />
         <File label="Macaroon" onFileChange={handleMacaroonFileChange} fileName={localState?.macaroonFileName} />
         <SubmitButton>

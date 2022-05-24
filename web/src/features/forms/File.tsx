@@ -21,32 +21,30 @@ function File({ label, onFileChange, fileName }: fileProps) {
   const [fileError, setFileError] = React.useState(false);
 
   React.useEffect(() => {
-    if (fileName) {
-      setMessage([
-        "Current file: " + fileName,
-        <br key="br1" />,
-        <br key="br2" />,
-        "To change, drop file or click to select",
-      ]);
-    }
+    setMessage([
+      "Current file: " + fileName,
+      <br key="br1" />,
+      <br key="br2" />,
+      "To change, drop file or click to select",
+    ]);
   }, [fileName]);
 
-  React.useEffect(() => {
-    drop.current?.addEventListener("dragover", handleDragOver);
-    drop.current?.addEventListener("drop", handleDrop);
-    drop.current?.addEventListener("dragenter", handleDragEnter);
-    drop.current?.addEventListener("dragleave", handleDragLeave);
-    return () => {
-      drop.current?.removeEventListener("dragover", handleDragOver);
-      drop.current?.removeEventListener("drop", handleDrop);
-      drop.current?.removeEventListener("dragenter", handleDragEnter);
-      drop.current?.removeEventListener("dragleave", handleDragLeave);
-    };
-  }, []);
+  /* React.useEffect(() => {
+   *   drop.current?.addEventListener("dragover", handleDragOver);
+   *   drop.current?.addEventListener("drop", handleDrop);
+   *   drop.current?.addEventListener("dragenter", handleDragEnter);
+   *   drop.current?.addEventListener("dragleave", handleDragLeave);
+   *   return () => {
+   *     drop.current?.removeEventListener("dragover", handleDragOver);
+   *     drop.current?.removeEventListener("drop", handleDrop);
+   *     drop.current?.removeEventListener("dragenter", handleDragEnter);
+   *     drop.current?.removeEventListener("dragleave", handleDragLeave);
+   *   };
+   * }, []); */
 
-  const handleDragOver = (e: DragEvent) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
+    /* e.stopPropagation(); */
   };
 
   const handleClick = () => {
@@ -72,9 +70,9 @@ function File({ label, onFileChange, fileName }: fileProps) {
     }
   };
 
-  const handleDrop = (e: DragEvent) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
+    /* e.stopPropagation(); */
 
     setDragging(false);
     if (e.dataTransfer) {
@@ -84,16 +82,16 @@ function File({ label, onFileChange, fileName }: fileProps) {
     }
   };
 
-  const handleDragEnter = (e: DragEvent) => {
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
+    /* e.stopPropagation(); */
 
     setDragging(true);
   };
 
-  const handleDragLeave = (e: DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
+    /* e.stopPropagation(); */
 
     if (e.target === drop.current) {
       setDragging(false);
@@ -106,6 +104,10 @@ function File({ label, onFileChange, fileName }: fileProps) {
         <span>{label}</span>
       </div>
       <div
+        onDrop={handleDrop}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
         onClick={handleClick}
         ref={drop}
         className={classNames(
