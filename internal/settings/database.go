@@ -60,6 +60,22 @@ FROM local_node LIMIT 1;`)
 	return localNodeData, nil
 }
 
+func getLocalNodeConnectionDetails(db *sqlx.DB) (localNodeData localNode, err error) {
+	err = db.Get(&localNodeData, `
+SELECT
+  grpc_address,
+  tls_data,
+  macaroon_data
+FROM local_node LIMIT 1;`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return localNode{}, nil
+		}
+		return localNode{}, errors.Wrap(err, "Unable to execute SQL query")
+	}
+	return localNodeData, nil
+}
+
 func updateLocalNode(db *sqlx.DB, localNode localNode) (err error) {
 	_, err = db.Exec(`
 UPDATE local_node SET
