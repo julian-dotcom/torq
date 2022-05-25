@@ -45,24 +45,9 @@ func main() {
 			Usage: "Password used to access the API and frontend.",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "torq.host",
-			Value: "localhost",
-			Usage: "Host address for your regular grpc",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.port",
 			Value: "8080",
-			Usage: "Port for your regular grpc",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "torq.cert",
-			Value: "./cert.pem",
-			Usage: "Path to your cert.pem file used by the GRPC server (torq)",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "torq.key",
-			Value: "./key.pem",
-			Usage: "Path to your key.pem file used by the GRPC server",
+			Usage: "Port to serve the HTTP API",
 		}),
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:  "torq.no-sub",
@@ -95,22 +80,6 @@ func main() {
 			Name:  "db.password",
 			Value: "password",
 			Usage: "Name of the postgres user with access to the database",
-		}),
-
-		// LND node connection details
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:    "lnd.node_address",
-			Aliases: []string{"na"},
-			Value:   "localhost:10009",
-			Usage:   "Where to reach the lnd. Default: localhost:10009",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "lnd.tls",
-			Usage: "Path to your tls.cert file (LND node).",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "lnd.macaroon",
-			Usage: "Path to your admin.macaroon file. (LND node)",
 		}),
 	}
 
