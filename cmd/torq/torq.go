@@ -147,25 +147,27 @@ func main() {
 
 				fmt.Println("Connecting to lightning node")
 				// Connect to the node
+
+				ctx := context.Background()
+				errs, ctx := errgroup.WithContext(ctx)
+
 				connectionDetails, err := settings.GetConnectionDetails(db)
 				if err != nil {
 					return fmt.Errorf("failed to get node connection details: %v", err)
 				}
 
-				conn, err := lnd.Connect(
-					connectionDetails.GRPCAddress,
-					connectionDetails.TLSFileBytes,
-					connectionDetails.MacaroonFileBytes)
-				if err != nil {
-					return fmt.Errorf("failed to connect to lnd: %v", err)
-				}
-
-				ctx := context.Background()
-				errs, ctx := errgroup.WithContext(ctx)
-
 				// Subscribe to data from the node
 				//   TODO: Attempt to restart subscriptions if they fail.
 				errs.Go(func() error {
+
+					conn, err := lnd.Connect(
+						connectionDetails.GRPCAddress,
+						connectionDetails.TLSFileBytes,
+						connectionDetails.MacaroonFileBytes)
+					if err != nil {
+						return fmt.Errorf("failed to connect to lnd: %v", err)
+					}
+
 					err = subscribe.Start(ctx, conn, db)
 					if err != nil {
 						return err
