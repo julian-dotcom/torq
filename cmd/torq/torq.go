@@ -18,6 +18,10 @@ import (
 	"os"
 )
 
+var startchan = make(chan struct{})
+var stopchan = make(chan struct{})
+var stoppedchan = make(chan struct{})
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "torq"
@@ -118,35 +122,56 @@ func main() {
 				// Connect to the node
 
 				ctx := context.Background()
-				errs, ctx := errgroup.WithContext(ctx)
-
-				connectionDetails, err := settings.GetConnectionDetails(db)
-				if err != nil {
-					return fmt.Errorf("failed to get node connection details: %v", err)
-				}
+				ctx, cancel := context.WithCancel(ctx)
 
 				// Subscribe to data from the node
 				//   TODO: Attempt to restart subscriptions if they fail.
-				errs.Go(func() error {
+				go (func() error {
+					for {
+						select {
+						case <-startchan:
+							connectionDetails, err := settings.GetConnectionDetails(db)
+							if err != nil {
+								fmt.Printf("failed to get node connection details: %v", err)
+								stoppedchan <- struct{}{}
+								continue
+							}
+							conn, err := lnd.Connect(
+								connectionDetails.GRPCAddress,
+								connectionDetails.TLSFileBytes,
+								connectionDetails.MacaroonFileBytes)
+							if err != nil {
+								fmt.Println("Failed to connect to lnd")
+								stoppedchan <- struct{}{}
+								continue
+							}
 
-					conn, err := lnd.Connect(
-						connectionDetails.GRPCAddress,
-						connectionDetails.TLSFileBytes,
-						connectionDetails.MacaroonFileBytes)
-					if err != nil {
-						fmt.Println("Failed to connect to lnd")
-						return fmt.Errorf("failed to connect to lnd: %v", err)
+							fmt.Println("Subscribing to LND")
+							err = subscribe.Start(ctx, conn, db)
+							if err != nil {
+								fmt.Printf("%v", err)
+							}
+							fmt.Println("LND Subscription stopped")
+							stoppedchan <- struct{}{}
+						}
 					}
+				})()
+				// starts LND subscription when Torq starts
+				startchan <- struct{}{}
 
-					err = subscribe.Start(ctx, conn, db)
-					if err != nil {
-						return err
+				go (func() {
+					for {
+						select {
+						case <-stopchan:
+							cancel()
+							ctx, cancel = context.WithCancel(context.Background())
+						}
 					}
-					return nil
-				})
+				})()
+
 			}
 
-			torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db)
+			torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, RestartLNDSubscription)
 
 			return nil
 		},
@@ -254,6 +279,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+}
+
+func RestartLNDSubscription() {
+	fmt.Println("Stopping")
+	stopchan <- struct{}{}
+	<-stoppedchan
+	fmt.Println("Stopped")
+	fmt.Println("Starting again")
+	startchan <- struct{}{}
 }
 
 func loadFlags() func(context *cli.Context) (altsrc.InputSourceContext, error) {

@@ -18,10 +18,10 @@ import (
 	"strconv"
 )
 
-func Start(port int, apiPswd string, db *sqlx.DB) {
+func Start(port int, apiPswd string, db *sqlx.DB, restartLNDSub func()) {
 	r := gin.Default()
 	applyCors(r)
-	registerRoutes(r, db, apiPswd)
+	registerRoutes(r, db, apiPswd, restartLNDSub)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -59,7 +59,7 @@ func apiPasswordMiddleware(apiPswd string) gin.HandlerFunc {
 	}
 }
 
-func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
+func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub func()) {
 	registerStaticRoutes(r)
 
 	// TODO: Generate this secret!
@@ -98,7 +98,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string) {
 
 		settingRoutes := api.Group("settings")
 		{
-			settings.RegisterSettingRoutes(settingRoutes, db)
+			settings.RegisterSettingRoutes(settingRoutes, db, restartLNDSub)
 		}
 
 		api.GET("/ping", func(c *gin.Context) {

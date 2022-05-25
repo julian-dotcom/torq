@@ -21,11 +21,11 @@ type timeZone struct {
 	Name string `json:"name" db:"name"`
 }
 
-func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB) {
+func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func()) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
 	r.GET("local-node", func(c *gin.Context) { getLocalNodeHandler(c, db) })
-	r.PUT("local-node", func(c *gin.Context) { updateLocalNodeHandler(c, db) })
+	r.PUT("local-node", func(c *gin.Context) { updateLocalNodeHandler(c, db, restartLNDSub) })
 }
 func RegisterUnauthorisedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
@@ -85,7 +85,7 @@ func getLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, localNode)
 }
 
-func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
+func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
 	var localNode localNode
 
 	if err := c.Bind(&localNode); err != nil {
@@ -138,6 +138,8 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
 			return
 		}
 	}
+
+	restartLNDSub()
 
 	c.JSON(http.StatusOK, localNode)
 }
