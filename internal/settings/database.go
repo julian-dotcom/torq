@@ -76,18 +76,39 @@ FROM local_node LIMIT 1;`)
 	return localNodeData, nil
 }
 
-func updateLocalNode(db *sqlx.DB, localNode localNode) (err error) {
+func updateLocalNodeDetails(db *sqlx.DB, localNode localNode) (err error) {
 	_, err = db.Exec(`
 UPDATE local_node SET
   implementation = $1,
   grpc_address = $2,
-  tls_file_name = $3,
-  tls_data = $4,
-  macaroon_file_name = $5,
-  macaroon_data = $6,
-  updated_on = $7;
-`, localNode.Implementation, localNode.GRPCAddress, localNode.TLSFileName,
-		localNode.TLSDataBytes, localNode.MacaroonFileName, localNode.MacaroonDataBytes, time.Now().UTC())
+  updated_on = $3;
+`, localNode.Implementation, localNode.GRPCAddress, time.Now().UTC())
+	if err != nil {
+		return errors.Wrap(err, "Unable to execute SQL statement")
+	}
+	return nil
+}
+
+func updateLocalNodeTLS(db *sqlx.DB, localNode localNode) (err error) {
+	_, err = db.Exec(`
+UPDATE local_node SET
+  tls_file_name = $1,
+  tls_data = $2,
+  updated_on = $3;
+`, localNode.TLSFileName, localNode.TLSDataBytes, time.Now().UTC())
+	if err != nil {
+		return errors.Wrap(err, "Unable to execute SQL statement")
+	}
+	return nil
+}
+
+func updateLocalNodeMacaroon(db *sqlx.DB, localNode localNode) (err error) {
+	_, err = db.Exec(`
+UPDATE local_node SET
+  macaroon_file_name = $1,
+  macaroon_data = $2,
+  updated_on = $3;
+`, localNode.MacaroonFileName, localNode.MacaroonDataBytes, time.Now().UTC())
 	if err != nil {
 		return errors.Wrap(err, "Unable to execute SQL statement")
 	}

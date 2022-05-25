@@ -23,8 +23,12 @@ function NodeSettings() {
     const form = new FormData();
     form.append("implementation", "LND");
     form.append("grpcAddress", localState.grpcAddress ?? "");
-    form.append("tlsFile", localState.tlsFile, localState.tlsFileName);
-    form.append("macaroonFile", localState.macaroonFile, localState.macaroonFileName);
+    if (localState.tlsFile) {
+      form.append("tlsFile", localState.tlsFile, localState.tlsFileName);
+    }
+    if (localState.macaroonFile) {
+      form.append("macaroonFile", localState.macaroonFile, localState.macaroonFileName);
+    }
     updateLocalNode(form);
     toastRef?.current?.addToast("Local node info saved", toastCategory.success);
   };

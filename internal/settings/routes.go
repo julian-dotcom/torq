@@ -1,13 +1,14 @@
 package settings
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
-	"github.com/lncapital/torq/pkg/server_errors"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
+	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 type settings struct {
@@ -86,53 +87,57 @@ func getLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
 
 func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
 	var localNode localNode
-	// localNode.Implementation = c.PostForm("implementation")
-	// localNode.GRPCAddress.String = c.PostForm("GRPCAddress")
-	// localNode.TLSFileName = null.StringFrom(c.PostForm("TLSFileName"))
-	// tlsDataFileHeader, err := c.FormFile("tlsData")
-	// tlsDataFile, err := tlsDataFileHeader.Open()
-	// tlsData, err := io.ReadAll(tlsDataFile)
-	// if err != nil {
-	// 	return
-	// }
-	// localNode.TLSDataBytes = tlsData
-	// localNode.TLSData = c.Request.ParseMultipartForm(c.Request.FormValue("TLSData"))
 
 	if err := c.Bind(&localNode); err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	err := updateLocalNodeDetails(db, localNode)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
 
-	localNode.TLSFileName = &localNode.TLSFile.Filename
-	tlsDataFile, err := localNode.TLSFile.Open()
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-	tlsData, err := io.ReadAll(tlsDataFile)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-	localNode.TLSDataBytes = tlsData
+	if localNode.TLSFile != nil {
+		localNode.TLSFileName = &localNode.TLSFile.Filename
+		tlsDataFile, err := localNode.TLSFile.Open()
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		tlsData, err := io.ReadAll(tlsDataFile)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		localNode.TLSDataBytes = tlsData
 
-	localNode.MacaroonFileName = &localNode.MacaroonFile.Filename
-	macaroonDataFile, err := localNode.MacaroonFile.Open()
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
+		err = updateLocalNodeTLS(db, localNode)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
 	}
-	macaroonData, err := io.ReadAll(macaroonDataFile)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-	localNode.MacaroonDataBytes = macaroonData
 
-	err = updateLocalNode(db, localNode)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
+	if localNode.MacaroonFile != nil {
+		localNode.MacaroonFileName = &localNode.MacaroonFile.Filename
+		macaroonDataFile, err := localNode.MacaroonFile.Open()
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		macaroonData, err := io.ReadAll(macaroonDataFile)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		localNode.MacaroonDataBytes = macaroonData
+		err = updateLocalNodeMacaroon(db, localNode)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
 	}
+
 	c.JSON(http.StatusOK, localNode)
 }

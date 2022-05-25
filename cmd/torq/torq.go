@@ -165,6 +165,7 @@ func main() {
 						connectionDetails.TLSFileBytes,
 						connectionDetails.MacaroonFileBytes)
 					if err != nil {
+						fmt.Println("Failed to connect to lnd")
 						return fmt.Errorf("failed to connect to lnd: %v", err)
 					}
 
