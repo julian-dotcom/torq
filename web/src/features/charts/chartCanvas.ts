@@ -142,7 +142,7 @@ class ChartCanvas {
       .attr("class", "xAxisContainer")
       .attr(
         "style",
-        `width: calc(100% - ${this.config.margin.left + this.config.margin.right}px);
+        `width: 100%;
                height: ${this.config.margin.bottom}px;
                position: absolute;
                bottom: 0;
@@ -465,6 +465,15 @@ class ChartCanvas {
   drawXAxis() {
     this.xAxisContainer.select("svg").remove();
 
+    const width = this.config.width;
+    const dataLength = this.data.length;
+    // This determines the frequencies of the date ticks to fit the width.
+    // bellow 500 px width chart width we leave 55px space between each tick.
+    // Above 500 we leave 80 px between each tick.
+    // Maximum number of ticks will always be once pr day
+    const frequency = width / (width < 500 ? 55 : 80);
+    const mod = Math.max(Math.round(dataLength / frequency), 1);
+
     this.xAxisContainer
       .append("svg")
       .attr("style", `height: 100%; width: 100%;`)
@@ -476,14 +485,11 @@ class ChartCanvas {
           .axisBottom(this.config.xScale)
           .tickSizeOuter(0)
           .tickFormat(d3.timeFormat("%d %b") as (domainValue: NumberValue | Date, index: number) => string)
-        // .ticks(
-        //   d3.timeDay.filter((d) => {
-        //     return d3.timeDay.count(new Date(), d) % 1 === 0;
-        //   })
-        // )
-        // .ticks(
-        //   Math.min(Math.max((this.config.width - this.config.margin.left - this.config.margin.right) / 85, 2), 20)
-        // )
+          .ticks(
+            d3.timeDay.filter((d) => {
+              return d3.timeDay.count(new Date(), d) % mod === 0;
+            })
+          )
       );
   }
 
