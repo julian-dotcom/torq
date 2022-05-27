@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "../../store/store";
-import { FlowData } from "../charts/flowChartCanvas";
 
 export interface NavState {
   flowKey: { value: "revenue" | "amount" | "count"; label: string };

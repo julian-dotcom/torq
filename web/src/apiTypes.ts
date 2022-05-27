@@ -1,7 +1,7 @@
 export interface settings {
   defaultDateRange: string;
   preferredTimezone: string;
-  weekStartsOn: string;
+  weekStartsOn: "saturday" | "sunday" | "monday";
 }
 
 export interface timeZone {

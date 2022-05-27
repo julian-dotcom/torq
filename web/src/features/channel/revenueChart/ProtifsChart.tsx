@@ -31,10 +31,13 @@ function ProfitsChart({ data }: ProfitsChart) {
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       chart = new ChartCanvas(container, data, {
-        leftYAxisKey: "revenue_out",
+        yScaleKey: "revenue_out",
+        rightYScaleKey: "revenue_out",
+        rightYAxisKeys: ["revenue_out"],
         xAxisPadding: 12,
       });
-      chart.plot(BarPlot, { id: "bars", key: "revenue_out" });
+
+      chart.plot(BarPlot, { id: "bars", key: "revenue_out", legendLabel: "Revenue out" });
       chart.draw();
       setInterval(navCheck(container), 200);
     },

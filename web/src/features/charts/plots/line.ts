@@ -5,8 +5,10 @@ import { Selection } from "d3";
 
 type linePlotConfig = basePlotConfig & {
   lineColor: string;
-  globalAlpha: number;
+  lineWidth: number;
   labels?: boolean;
+  legendLabel?: string;
+  rightAxis: boolean;
 };
 
 type linePlotConfigInit = Partial<linePlotConfig> & basePlotConfig;
@@ -22,45 +24,53 @@ export class LinePlot extends AbstractPlot {
 
     this.config = {
       lineColor: "#85C4FF",
-      globalAlpha: 1,
+      lineWidth: 1.7,
+      rightAxis: false,
       ...config,
     };
 
     this.legend = this.chart.legendContainer
       .append("div")
-      .attr("id", `${this.config.id}`)
-      .attr(
-        "style",
-        `display: grid; grid-auto-flow: column; align-items: center; grid-column-gap: 5px; justify-content: end;`
-      );
-
-    this.legendTextBox = this.legend.append("div").attr("class", "legendTextBox");
+      .attr("class", "legendContent")
+      .attr("id", `${this.config.id}`);
 
     this.legendColorBox = this.legend
       .append("div")
       .attr("class", "legendColorBox")
       .attr("style", `width: 12px; height: 12px; background: ${this.config.lineColor};`);
+
+    this.legend
+      .append("div")
+      .attr("class", "legendLabelBox")
+      .text((this.config.legendLabel || "") + ": ");
+
+    this.legendTextBox = this.legend.append("div").attr("class", "legendTextBox");
+  }
+
+  height(dataPoint: number): number {
+    const yScale = this.config.rightAxis ? this.chart.config.rightYScale : this.chart.config.yScale;
+    return yScale(dataPoint);
   }
 
   draw(drawConfig?: drawConfig) {
+    const yScale = this.config.rightAxis ? this.chart.config.rightYScale : this.chart.config.yScale;
     const line = d3
       .line()
       .x((d, i): number => {
         return this.chart.config.xScale(this.chart.data[i].date) || 0;
       })
       .y((d, i): number => {
-        return this.getYScale()(this.chart.data[i][this.config.key]) || 0;
+        return yScale(this.chart.data[i][this.config.key]) || 0;
       })
       .context(this.chart.context);
 
-    this.chart.context.globalAlpha = this.config.globalAlpha;
     this.chart.context.strokeStyle = this.config.lineColor;
 
     this.chart.context.beginPath();
     line(this.chart.data);
 
+    this.chart.context.lineWidth = this.config.lineWidth;
     this.chart.context.stroke();
-    this.chart.context.globalAlpha = 1;
 
     if (this.config.labels) {
       this.chart.data.forEach((d, i) => {
@@ -78,6 +88,10 @@ export class LinePlot extends AbstractPlot {
 
     const hoverIndex = drawConfig?.xIndex || this.chart.data.length - 1;
     const legendText = this.chart.data[hoverIndex][this.config.key];
+    // this.legendTextBox.text(
+    //   this.config.legendLabel ? this.config.legendLabel + ": " + d3.format(",")(legendText) : d3.format(",")(legendText)
+    // );
+
     this.legendTextBox.text(d3.format(",")(legendText));
   }
 }

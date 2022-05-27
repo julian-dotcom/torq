@@ -2,7 +2,7 @@
 import { useD3 } from "../../charts/useD3";
 import React, { useEffect } from "react";
 import { Selection } from "d3";
-import { ChartCanvas, AreaPlot, EventsPlot, LinePlot } from "../../charts/charts";
+import { ChartCanvas, AreaPlot, EventsPlot, LinePlot, BarPlot } from "../../charts/charts";
 import "../../charts/chart.scss";
 
 type EventsChart = {
@@ -29,22 +29,46 @@ function EventsChart({ data }: EventsChart) {
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       chart = new ChartCanvas(container, data, {
-        leftYAxisKey: "amount_out",
-        // rightYAxisKey: "capacity_out",
-        showLeftYAxisLabel: true,
+        yScaleKey: "amount_total",
+        rightYScaleKey: "amount_total",
+        rightYAxisKeys: ["amount_out", "amount_in", "amount_total"],
+        // leftYAxisKeys: ["amount_in"],
+        // showLeftYAxisLabel: true,
         // showRightYAxisLabel: true,
+        // xAxisPadding: 0,
       });
+      // chart.plot(BarPlot, {
+      //   id: "amount_out",
+      //   key: "amount_out",
+      //   areaGradient: ["#DAEDFF", "#ABE9E6"],
+      // });
       chart.plot(AreaPlot, {
+        id: "amount_total",
+        key: "amount_total",
+        legendLabel: "Amount Total",
+        areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
+      });
+      chart.plot(LinePlot, {
         id: "amount_out",
         key: "amount_out",
-        areaGradient: ["#DAEDFF", "#ABE9E6"],
+        legendLabel: "Amount Out",
+        lineColor: "#BA93FA",
+        // rightAxis: true,
       });
-      // chart.plot(LinePlot, { id: "line", key: "revenue_out" });
+      chart.plot(LinePlot, {
+        id: "amount_in",
+        key: "amount_in",
+        legendLabel: "Amount In",
+        lineColor: "#FAAE93",
+        // rightAxis: true,
+      });
+      // chart.plot(LinePlot, { id: "amount_out", key: "amount_out" });
+
       // chart.plot(EventsPlot, { id: "events", key: "events" });
       chart.draw();
       setInterval(navCheck(container), 200);
     },
-    [data]
+    [data, data ? data[0].date : "", data ? data[data.length - 1].date : ""]
   );
 
   useEffect(() => {
@@ -53,7 +77,7 @@ function EventsChart({ data }: EventsChart) {
         chart.removeResizeListener();
       }
     };
-  }, [data]);
+  }, [data, data ? data[0].date : ""]);
 
   // @ts-ignore
   return <div ref={ref} className={"testing"} />;

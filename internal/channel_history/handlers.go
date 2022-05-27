@@ -12,9 +12,20 @@ import (
 )
 
 func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
+	from, err := time.Parse("2006-01-02", c.Query("from"))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	to, err := time.Parse("2006-01-02", c.Query("to"))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
 	chanIds := strings.Split(c.Param("chanIds"), ",")
 
-	chanHistory, err := getChannelHistory(db, chanIds)
+	chanHistory, err := getChannelHistory(db, chanIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -158,47 +169,50 @@ type ChannelData struct {
 	CountTotal uint64 `json:"count_total"`
 }
 
-func getChannelHistory(db *sqlx.DB, chanIds []string) (r []*ChannelData, err error) {
+func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r []*ChannelData, err error) {
 
 	sql := `
 		select
-		    coalesce(i.date, o.date) as date,
+		    (coalesce(i.date, o.date)::timestamp AT TIME ZONE settings.preferred_timezone ) as date,
 
-			coalesce(i.amount,0) as amount_in,
-			coalesce(o.amount,0) as amount_out,
-			coalesce((coalesce(i.amount,0) + coalesce(o.amount,0)), 0) as amount_total,
-
-			coalesce(i.revenue,0) as revenue_in,
-			coalesce(o.revenue,0) as revenue_out,
-			coalesce((coalesce(i.revenue,0) + coalesce(o.revenue,0)), 0) as revenue_total,
-
-			coalesce(i.count,0) as count_in,
-			coalesce(o.count,0) as count_out,
-			coalesce((coalesce(i.count,0) + coalesce(o.count,0)), 0) as count_total
-		from (
-			select time_bucket('1 days', time) as date,
+			sum(coalesce(i.amount,0)) as amount_in,
+			sum(coalesce(o.amount,0)) as amount_out,
+			sum(coalesce((coalesce(i.amount,0) + coalesce(o.amount,0)), 0)) as amount_total,
+			sum(coalesce(i.revenue,0)) as revenue_in,
+			sum(coalesce(o.revenue,0)) as revenue_out,
+			sum(coalesce((coalesce(i.revenue,0) + coalesce(o.revenue,0)), 0)) as revenue_total,
+			sum(coalesce(i.count,0)) as count_in,
+			sum(coalesce(o.count,0)) as count_out,
+			sum(coalesce((coalesce(i.count,0) + coalesce(o.count,0)), 0)) as count_total
+		from settings, (
+			select time_bucket_gapfill('1 days', time, ?, ?) as date,
 				   outgoing_channel_id chan_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
 			where outgoing_channel_id in (?)
-			group by outgoing_channel_id, date
+				and time::timestamp AT TIME ZONE settings.preferred_timezone >= ?
+				and time::timestamp AT TIME ZONE settings.preferred_timezone <= ?
+			group by date, outgoing_channel_id
 			) as o
 		full outer join (
-			select time_bucket('1 days', time) as date,
-					incoming_channel_id as chan_id,
+			select time_bucket_gapfill('1 days', time, ? , ?) as date,
+				   incoming_channel_id as chan_id,
 				   floor(sum(incoming_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
 			where incoming_channel_id in (?)
-			group by incoming_channel_id, date) as i
+				and time::timestamp AT TIME ZONE settings.preferred_timezone >= ?
+				and time::timestamp AT TIME ZONE settings.preferred_timezone <= ?
+			group by date, incoming_channel_id) as i
 		on (i.chan_id = o.chan_id) and (i.date = o.date)
-		order by coalesce(i.date, o.date);
+		group by (coalesce(i.date, o.date)), settings.preferred_timezone
+		order by date;
 	`
 
-	qs, args, err := sqlx.In(sql, chanIds, chanIds)
+	qs, args, err := sqlx.In(sql, from, to, chanIds, from, to, from, to, chanIds, from, to)
 	if err != nil {
 		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v)",
 			sql, chanIds, chanIds)
@@ -236,4 +250,13 @@ func getChannelHistory(db *sqlx.DB, chanIds []string) (r []*ChannelData, err err
 
 	}
 	return r, nil
+}
+
+type ChannelEvent struct {
+	Date time.Time `json:"channelDbId"`
+	// The channel point
+	ChanPoint null.String `json:"channel_point"`
+	// The channel ID
+	ChanId   null.String `json:"chan_id"`
+	Otubound bool        `json:"outbound"`
 }

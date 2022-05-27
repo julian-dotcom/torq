@@ -1,12 +1,14 @@
 import * as d3 from "d3";
 import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
-import { addHours, subHours } from "date-fns";
+import { addHours, subHours, fromUnixTime } from "date-fns";
 import { BarPlot } from "./plots/bar";
 import clone from "../../clone";
 
 type chartConfig = {
-  leftYAxisKey: string;
-  rightYAxisKey: string;
+  yScaleKey: string;
+  rightYScaleKey: string;
+  leftYAxisKeys: Array<string>;
+  rightYAxisKeys: Array<string>;
   showLeftYAxisLabel: boolean;
   showRightYAxisLabel: boolean;
   leftYAxisFormatter: (n: number | { valueOf(): number }) => string;
@@ -30,10 +32,12 @@ type chartConfig = {
 
 class ChartCanvas {
   config: chartConfig = {
-    xAxisPadding: 0,
+    yScaleKey: "",
+    rightYScaleKey: "",
     yAxisPadding: 1.2,
-    leftYAxisKey: "",
-    rightYAxisKey: "",
+    xAxisPadding: 0,
+    leftYAxisKeys: [],
+    rightYAxisKeys: [],
     showLeftYAxisLabel: false,
     showRightYAxisLabel: false,
     leftYAxisFormatter: d3.format(",.3s"),
@@ -86,15 +90,21 @@ class ChartCanvas {
 
     this.config = { ...this.config, ...config };
 
-    this.data = clone(data).map((row: any) => {
-      row.date = new Date(row.date);
-      return row;
-    });
+    this.data = data
+      ? clone(data).map((row: any) => {
+          row.date = new Date(row.date);
+          return row;
+        })
+      : [{ date: new Date() }];
 
-    if (this.config.leftYAxisKey) {
+    if (this.data.length > 1) {
+      this.data.pop();
+    }
+
+    if (this.config.leftYAxisKeys.length) {
       this.config.margin.left = 50;
     }
-    if (this.config.rightYAxisKey) {
+    if (this.config.rightYAxisKeys.length) {
       this.config.margin.right = 50;
     }
 
@@ -104,8 +114,9 @@ class ChartCanvas {
     this.config.width = this.getWidth();
     this.config.height = this.getHeight();
 
-    let end = addHours(this.data[this.data.length - 1].date, this.config.xAxisPadding);
     let start = subHours(this.data[0].date, this.config.xAxisPadding);
+    let end = addHours(this.data[this.data.length - 1].date, this.config.xAxisPadding);
+
     // Creating a scale
     // The range is the number of pixels the domain will be distributed across
     // The domain is the values to be displayed on the chart
@@ -116,35 +127,22 @@ class ChartCanvas {
 
     this.config.yScale = d3
       .scaleLinear()
-      .range([0, this.config.height - this.config.margin.top - this.config.margin.bottom]);
+      .range([0, this.config.height - this.config.margin.top - this.config.margin.bottom])
+      .domain([0, 1]);
 
     this.config.rightYScale = d3
       .scaleLinear()
-      .range([0, this.config.height - this.config.margin.top - this.config.margin.bottom]);
+      .range([0, this.config.height - this.config.margin.top - this.config.margin.bottom])
+      .domain([0, 1]);
 
     this.container.html(null);
-
-    this.chartContainer = this.container
-      .append("div")
-      .attr("class", "chartContainer")
-      .attr("width", this.config.width - this.config.margin.left - this.config.margin.right)
-      .attr("height", this.config.height - this.config.margin.top - this.config.margin.bottom)
-      .attr("style", `position: absolute; left: ${this.config.margin.left}px; top: ${this.config.margin.top}px;`);
-
-    this.legendContainer = this.container
-      .append("div")
-      .attr("class", "legendContainer")
-      .attr(
-        "style",
-        `position: absolute; right: ${this.config.margin.right}px; top: ${this.config.margin.top + 10}px;`
-      );
 
     this.xAxisContainer = this.container
       .append("div")
       .attr("class", "xAxisContainer")
       .attr(
         "style",
-        `width: 100%;
+        `width: calc(100% - ${this.config.margin.left + this.config.margin.right}px);
                height: ${this.config.margin.bottom}px;
                position: absolute;
                bottom: 0;
@@ -157,7 +155,7 @@ class ChartCanvas {
       // .attr("style", `position: absolute; top: 0; left: 0;  height: 100%; width: ${this.config.margin.left}px;`);
       .attr(
         "style",
-        `width: ${this.config.margin.left}px;
+        `width: ${this.config.width}px;
         height: ${this.config.height - this.config.margin.top}px;
         position: absolute; left: 0; top: ${this.config.margin.top}px;`
       );
@@ -169,18 +167,29 @@ class ChartCanvas {
     this.rightYAxisContainer = this.container
       .append("div")
       .attr("class", "rightYAxisContainer")
-      // .attr("style", `position: absolute; top: 0; right: 0; height: 100%; width: ${this.config.margin.right}px;`);
       .attr(
         "style",
-        `width: ${this.config.margin.right}px;
+        `width: 100%;
         height: ${this.config.height - this.config.margin.top}px;
-        position: absolute; right: 0; top: ${this.config.margin.top}px;`
+        position: absolute; left: 0; top: ${this.config.margin.top}px;`
       );
 
     this.rightYAxisLabelContainer = this.rightYAxisContainer
       .append("div")
       .attr("class", "rightYAxisLabelContainer")
       .attr("style", `display: none;`);
+
+    this.chartContainer = this.container
+      .append("div")
+      .attr("class", "chartContainer")
+      .attr("width", this.config.width - this.config.margin.left - this.config.margin.right)
+      .attr("height", this.config.height - this.config.margin.top - this.config.margin.bottom)
+      .attr("style", `position: absolute; left: ${this.config.margin.left}px; top: ${this.config.margin.top}px;`);
+
+    this.legendContainer = this.container
+      .append("div")
+      .attr("class", "legendContainer")
+      .attr("style", `left: ${this.config.margin.left}px;`);
 
     this.eventsContainer = this.container
       .append("div")
@@ -302,6 +311,7 @@ class ChartCanvas {
 
   clearCanvas() {
     this.context.clearRect(0, 0, this.config.xScale.range()[1], this.config.yScale.range()[1]);
+    this.context.globalAlpha = 1;
     this.interactionContext.clearRect(0, 0, this.config.xScale.range()[1], this.config.yScale.range()[1]);
   }
 
@@ -332,37 +342,55 @@ class ChartCanvas {
         }
       });
 
-      const leftYValue = xIndex !== undefined ? this.data[xIndex || 0][this.config.leftYAxisKey] : 0;
-      const rightYValue = xIndex !== undefined ? this.data[xIndex || 0][this.config.rightYAxisKey] : 0;
+      let leftYAxisValues: Array<number> = [];
+      let rightYAxisValues: Array<number> = [];
+
+      this.config.rightYAxisKeys.forEach((key) => {
+        const rightYValue = xIndex != undefined ? this.data[xIndex || 0][key] : 0;
+        rightYAxisValues.push(this.config.rightYScale(rightYValue));
+      });
+
       this.plots.forEach((plot: any, key: string) => {
         plot.draw({
           xPosition,
           yPosition,
           xValue: this.config.xScale.invert(xPosition),
-          leftYValue: leftYValue,
-          rightYValue: rightYValue,
+          leftYValue: 0,
+          rightYValue: 0,
           xIndex,
         });
       });
 
-      if (this.config.showLeftYAxisLabel && this.config.leftYAxisKey && leftYValue) {
-        this.drawLeftYAxisLabel(this.config.yScale(leftYValue), leftYValue);
-        this.drawYCrosshair(this.config.xScale(this.data[xIndex || 0].date) || 0, this.config.yScale(leftYValue) || 0);
-      }
+      this.config.leftYAxisKeys.forEach((key) => {
+        const leftYValue = xIndex != undefined ? this.data[xIndex || 0][key] : 0;
+        leftYAxisValues.push(this.config.yScale(leftYValue));
+      });
 
-      if (this.config.showRightYAxisLabel && this.config.rightYAxisKey && rightYValue) {
-        this.drawRightYAxisLabel(this.config.rightYScale(rightYValue), rightYValue);
-        this.drawYCrosshair(
-          this.config.xScale(this.data[xIndex || 0].date) || 0,
-          this.config.rightYScale(rightYValue) || 0,
-          true
-        );
-      }
+      this.config.rightYAxisKeys.forEach((key) => {
+        const rightYValue = xIndex != undefined ? this.data[xIndex || 0][key] : 0;
+        if (this.config.showRightYAxisLabel && key && rightYValue) {
+          this.drawRightYAxisLabel(this.config.rightYScale(rightYValue), rightYValue);
+          this.drawYCrosshair(
+            this.config.xScale(this.data[xIndex || 0].date) || 0,
+            this.config.rightYScale(rightYValue) || 0,
+            true
+          );
+        }
+      });
 
-      this.drawXCrosshair(
-        this.config.xScale(this.data[xIndex || 0].date) || 0,
-        Math.min(this.config.yScale(leftYValue), this.config.rightYScale(rightYValue))
-      );
+      this.config.leftYAxisKeys.forEach((key) => {
+        const leftYValue = xIndex != undefined ? this.data[xIndex || 0][key] : 0;
+        if (this.config.showLeftYAxisLabel && key && leftYValue) {
+          this.drawLeftYAxisLabel(this.config.yScale(leftYValue), leftYValue);
+          this.drawYCrosshair(
+            this.config.xScale(this.data[xIndex || 0].date) || 0,
+            this.config.yScale(leftYValue) || 0
+          );
+        }
+      });
+
+      this.drawXCrosshair(this.config.xScale(this.data[xIndex || 0].date) || 0, -this.config.yScale.range()[1] || 0);
+      // });
     });
   }
 
@@ -395,16 +423,14 @@ class ChartCanvas {
   }
 
   drawLeftYAxis() {
-    if (this.config.leftYAxisKey === "") {
-      return;
-    }
     this.leftYAxisContainer.select("svg").remove();
 
-    const max = Math.max(
-      ...this.data.map((d): number => {
-        return d[this.config.leftYAxisKey];
-      })
-    );
+    const max =
+      Math.max(
+        ...this.data.map((dataPoint): number => {
+          return dataPoint[this.config.yScaleKey];
+        })
+      ) || 100; // having a default at 100 makes empty charts look nicer
     this.config.yScale.domain([max * this.config.yAxisPadding, 0]);
 
     this.leftYAxisContainer
@@ -417,16 +443,14 @@ class ChartCanvas {
   }
 
   drawRightYAxis() {
-    if (this.config.rightYAxisKey === "") {
-      return;
-    }
     this.rightYAxisContainer.select("svg").remove();
 
-    const max = Math.max(
-      ...this.data.map((d): number => {
-        return d[this.config.rightYAxisKey];
-      })
-    );
+    const max =
+      Math.max(
+        ...this.data.map((dataPoint): number => {
+          return dataPoint[this.config.rightYScaleKey];
+        })
+      ) || 100; // having a default at 100 makes empty charts look nicer
     this.config.rightYScale.domain([max * this.config.yAxisPadding, 0]);
 
     this.rightYAxisContainer
@@ -434,12 +458,13 @@ class ChartCanvas {
       .attr("style", `height: 100%; width: 100%;`)
       .append("g")
       .style("font-size", "12px")
-      .attr("transform", `translate(0,0)`)
-      .call(d3.axisRight(this.config.rightYScale).tickFormat(d3.format(",.2s")));
+      .attr("transform", `translate(-${this.config.margin.right}, 0)`)
+      .call(d3.axisRight(this.config.rightYScale).tickFormat(d3.format(",.2s")).tickSize(this.config.width));
   }
 
   drawXAxis() {
     this.xAxisContainer.select("svg").remove();
+
     this.xAxisContainer
       .append("svg")
       .attr("style", `height: 100%; width: 100%;`)
@@ -451,28 +476,33 @@ class ChartCanvas {
           .axisBottom(this.config.xScale)
           .tickSizeOuter(0)
           .tickFormat(d3.timeFormat("%d %b") as (domainValue: NumberValue | Date, index: number) => string)
-          .ticks(
-            Math.min(Math.max((this.config.width - this.config.margin.left - this.config.margin.right) / 85, 2), 20)
-          )
+        // .ticks(
+        //   d3.timeDay.filter((d) => {
+        //     return d3.timeDay.count(new Date(), d) % 1 === 0;
+        //   })
+        // )
+        // .ticks(
+        //   Math.min(Math.max((this.config.width - this.config.margin.left - this.config.margin.right) / 85, 2), 20)
+        // )
       );
   }
 
   drawXCrosshair(xPosition: number, yPosition: number) {
     this.context.lineWidth = 1;
-    this.context.strokeStyle = "rgba(3, 48, 72, 0.4)";
-    this.context.setLineDash([5, 3]);
+    this.context.strokeStyle = "rgba(3, 48, 72, 0.2)";
+    // this.context.setLineDash([5, 3]);
     this.context.beginPath();
     this.context.moveTo(xPosition, yPosition);
     this.context.lineTo(xPosition, this.config.yScale.range()[1]);
     this.context.stroke();
     // Reset the dashed line setting
-    this.context.setLineDash([0, 0]);
+    // this.context.setLineDash([0, 0]);
   }
 
   drawYCrosshair(xPosition: number, yPosition: number, right?: boolean) {
     this.context.lineWidth = 1;
-    this.context.strokeStyle = "rgba(3, 48, 72, 0.4)";
-    this.context.setLineDash([5, 3]);
+    this.context.strokeStyle = "rgba(3, 48, 72, 0.2)";
+    // this.context.setLineDash([5, 3]);
     this.context.beginPath();
     this.context.moveTo(0, yPosition);
     if (right) {
@@ -481,11 +511,12 @@ class ChartCanvas {
     this.context.lineTo(xPosition, yPosition); //this.config.yScale.range()[1]
     this.context.stroke();
     // Reset the dashed line setting
-    this.context.setLineDash([0, 0]);
+    // this.context.setLineDash([0, 0]);
   }
 
   draw() {
     // Draw the X and Y axis
+    this.clearCanvas();
     this.drawXAxis();
     this.drawLeftYAxis();
     this.drawRightYAxis();

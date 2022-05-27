@@ -1,8 +1,9 @@
 .tick line {
-  visibility: hidden;
+  //visibility: hidden;
+  stroke: var(--fg-subtle);
 }
 .tick text {
-  fill: var(--fg-muted);
+  fill: var(--fg-default);
 }
 .xAxisContainer path.domain {
   stroke: var(--bg-subtle);
@@ -148,5 +149,21 @@ canvas {
   column-gap: 32px;
   .destinations {
     justify-self: end;
+  }
+}
+.legendContainer {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  .legendContent {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: min-content min-content auto;
+    align-items: center;
+    grid-column-gap: 5px;
+    white-space: nowrap;
+  }
+  .legendTextBox {
+    text-align: end;
   }
 }

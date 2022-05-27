@@ -2,22 +2,26 @@ import ChartCanvas from "../chartCanvas";
 import { AbstractPlot, basePlotConfig, drawConfig } from "./abstract";
 import { addHours } from "date-fns";
 import * as d3 from "d3";
+import { Selection } from "d3";
 
 type barsConfig = basePlotConfig & {
   key: string; // The key used to fetch data
   barGap: number; // The gap between each bar
   barColor: string; // The color of the bar
   barHoverColor: string;
+  legendLabel?: string;
   labels?: boolean;
   textColor: string;
   textHoverColor: string;
-  cornerRadius: number; // The radius of the bar
+  rightAxis: boolean;
 };
 type barInputConfig = Partial<barsConfig> & Required<Pick<barsConfig, "id" | "key">>;
 
 export class BarPlot extends AbstractPlot {
   config: barsConfig;
-
+  legend: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legendTextBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legendColorBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
   /**
    * Plots bars on a chart canvas. To use it add it to the plots map on the Chart instance.
    *
@@ -28,14 +32,31 @@ export class BarPlot extends AbstractPlot {
     super(chart, config);
 
     this.config = {
+      rightAxis: false,
       barGap: 0.1,
       barColor: "#B6DCFF",
       barHoverColor: "#9DD0FF",
       textColor: "#8198A3",
       textHoverColor: "#3A463C",
-      cornerRadius: 3,
       ...config,
     };
+
+    this.legend = this.chart.legendContainer
+      .append("div")
+      .attr("class", "legendContent")
+      .attr("id", `${this.config.id}`);
+
+    this.legendColorBox = this.legend
+      .append("div")
+      .attr("class", "legendColorBox")
+      .attr("style", `width: 12px; height: 12px; background: ${this.config.barColor};`);
+
+    this.legend
+      .append("div")
+      .attr("class", "legendLabelBox")
+      .text((this.config.legendLabel || "") + ": ");
+
+    this.legendTextBox = this.legend.append("div").attr("class", "legendTextBox");
   }
 
   /**
@@ -45,6 +66,11 @@ export class BarPlot extends AbstractPlot {
    */
   xPoint(xValue: number): number {
     return (this.chart.config.xScale(xValue) || 0) - this.barWidth() / 2;
+  }
+
+  height(dataPoint: number): number {
+    const yScale = this.config.rightAxis ? this.chart.config.rightYScale : this.chart.config.yScale;
+    return yScale(dataPoint);
   }
 
   barWidth(): number {
@@ -57,18 +83,10 @@ export class BarPlot extends AbstractPlot {
 
     // Draw the bar rectangle
     context.fillRect(
-      this.xPoint(dataPoint.date) + this.config.cornerRadius / 2 + (this.barWidth() * this.config.barGap) / 2,
-      this.yPoint(dataPoint[this.config.key]) + this.config.cornerRadius / 2,
-      this.barWidth() * (1 - this.config.barGap) - this.config.cornerRadius,
-      this.height(-dataPoint[this.config.key]) - this.config.cornerRadius
-    );
-
-    // This draws the stroke used to create rounded corners
-    context.strokeRect(
-      this.xPoint(dataPoint.date) + this.config.cornerRadius / 2 + (this.barWidth() * this.config.barGap) / 2,
-      this.yPoint(dataPoint[this.config.key]) + this.config.cornerRadius / 2,
-      this.barWidth() * (1 - this.config.barGap) - this.config.cornerRadius,
-      this.height(-dataPoint[this.config.key]) - this.config.cornerRadius
+      this.xPoint(dataPoint.date) + (this.barWidth() * this.config.barGap) / 2,
+      this.yPoint(dataPoint[this.config.key]),
+      this.barWidth() * (1 - this.config.barGap),
+      this.height(-dataPoint[this.config.key])
     );
   }
 
@@ -78,9 +96,6 @@ export class BarPlot extends AbstractPlot {
   draw(drawConfig?: drawConfig) {
     this.chart.data.forEach((data, i) => {
       this.chart.context.fillStyle = this.config.barColor;
-      this.chart.context.strokeStyle = this.config.barColor;
-      this.chart.context.lineJoin = "round";
-      this.chart.context.lineWidth = this.config.cornerRadius;
 
       let xIndex: number = -1;
       if (
@@ -137,8 +152,13 @@ export class BarPlot extends AbstractPlot {
         this.chart.context.fillText(
           d3.format(",")(this.chart.data[i][this.config.key]),
           this.xPoint(this.chart.data[i].date) + this.barWidth() / 2,
-          this.yPoint(this.chart.data[i][this.config.key]) - 15 + this.config.cornerRadius / 2
+          this.yPoint(this.chart.data[i][this.config.key]) - 15
         );
+
+        const hoverIndex = drawConfig?.xIndex || this.chart.data.length - 1;
+        const legendText = this.chart.data[hoverIndex][this.config.key];
+
+        this.legendTextBox.text(d3.format(",")(legendText));
       }
     });
   }

@@ -48,7 +48,7 @@ export abstract class AbstractPlot {
   }
 
   height(dataPoint: number): number {
-    return this.getYScale()(dataPoint);
+    return this.chart.config.yScale(dataPoint);
   }
 
   /**

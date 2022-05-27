@@ -109,6 +109,8 @@ function ChannelPage() {
     chanId: chanId || " ",
   });
   const historyQuery = useGetChannelHistoryQuery({
+    from: from,
+    to: to,
     chanIds: chanId || " ",
   });
 
@@ -118,7 +120,18 @@ function ChannelPage() {
     <div className={styles.channelsPageContent}>
       <div className={styles.channelControls}>
         <div className={styles.leftContainer}>
-          <div className={styles.upperContainer}>Seetee Node</div>
+          <div className={styles.upperContainer}>
+            {!isLoading &&
+              historyQuery.data &&
+              (historyQuery.data.channels || [])
+                .map((d: any, i: number) => {
+                  return d.alias;
+                })
+                .filter((value: any, index: number, self: any[]) => {
+                  return self.indexOf(value) === index;
+                })
+                .join(", ")}
+          </div>
           <div className={styles.lowerContainer}></div>
         </div>
         <div className={styles.rightContainer}>

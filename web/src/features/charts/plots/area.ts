@@ -8,8 +8,8 @@ import clone from "../../../clone";
 type areaPlotConfig = basePlotConfig & {
   areaColor: string;
   areaGradient?: Array<string>[2];
+  legendLabel?: string;
   addBuffer: boolean;
-  globalAlpha: number;
   labels?: boolean;
 };
 
@@ -25,18 +25,15 @@ export class AreaPlot extends AbstractPlot {
     super(chart, config);
 
     this.config = {
-      areaColor: "#DAEDFF",
-      globalAlpha: 1,
+      areaColor: "#85C4FF",
       addBuffer: false,
       ...config,
     };
 
     this.legend = this.chart.legendContainer
       .append("div")
-      .attr("id", `${this.config.id}`)
-      .attr("style", `display: grid; grid-auto-flow: column; align-items: center; grid-column-gap: 5px;`);
-
-    this.legendTextBox = this.legend.append("div").attr("class", "legendTextBox");
+      .attr("class", "legendContent")
+      .attr("id", `${this.config.id}`);
 
     const legendColor = this.config.areaGradient
       ? `linear-gradient(0deg, ${this.config.areaGradient[0]} 0%, ${this.config.areaGradient[1]} 100%)`
@@ -46,6 +43,13 @@ export class AreaPlot extends AbstractPlot {
       .append("div")
       .attr("class", "legendColorBox")
       .attr("style", `width: 12px; height: 12px; background: ${legendColor};`);
+
+    this.legend
+      .append("div")
+      .attr("class", "legendLabelBox")
+      .text((this.config.legendLabel || "") + ": ");
+
+    this.legendTextBox = this.legend.append("div").attr("class", "legendTextBox");
   }
 
   draw(drawConfig?: drawConfig) {
@@ -55,14 +59,12 @@ export class AreaPlot extends AbstractPlot {
         return this.chart.config.xScale(this.chart.data[i].date) || 0;
       })
       .y0((d, i): number => {
-        return this.getYScale()(this.chart.data[i][this.config.key]) || 0;
+        return this.chart.config.yScale(this.chart.data[i][this.config.key]) || 0;
       })
       .y1((d, i): number => {
-        return this.getYScale()(0) || 1;
+        return this.chart.config.yScale(0) || 1;
       })
       .context(this.chart.context);
-
-    this.chart.context.globalAlpha = this.config.globalAlpha;
 
     this.chart.context.fillStyle = this.config.areaColor;
 
@@ -86,9 +88,8 @@ export class AreaPlot extends AbstractPlot {
 
     this.chart.context.beginPath();
     area(data);
-
     this.chart.context.fill();
-    this.chart.context.globalAlpha = 1;
+
     if (data && this.config.addBuffer) {
       data.splice(data.length - 1, 1);
       data.splice(0, 1);
@@ -111,6 +112,7 @@ export class AreaPlot extends AbstractPlot {
     const legendText = drawConfig?.xIndex
       ? this.chart.data[drawConfig?.xIndex][this.config.key]
       : this.chart.data[this.chart.data.length - 1][this.config.key];
+
     this.legendTextBox.text(d3.format(",")(legendText));
   }
 }

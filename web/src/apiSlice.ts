@@ -26,8 +26,8 @@ export const torqApi = createApi({
     getFlow: builder.query<any, { from: string; to: string; chanId: string }>({
       query: ({ from, to, chanId }) => `flow?from=${from}&to=${to}&chan_id=${chanId}`,
     }),
-    getChannelHistory: builder.query<any, { chanIds: string }>({
-      query: ({ chanIds }) => `channels/${chanIds}`,
+    getChannelHistory: builder.query<any, { from: string; to: string; chanIds: string }>({
+      query: ({ from, to, chanIds }) => `channels/${chanIds}?from=${from}&to=${to}`,
     }),
     getChannels: builder.query<any, { from: string; to: string }>({
       query: ({ from, to }) => `channels?from=${from}&to=${to}`,
