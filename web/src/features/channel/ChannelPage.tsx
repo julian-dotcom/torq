@@ -240,7 +240,7 @@ function ChannelPage() {
 
             <div className={styles.chartContainer}>
               {/*<EventsChart data={chanData} />*/}
-              {historyQuery.data && <EventsChart data={historyQuery.data.data} />}
+              {historyQuery.data && <EventsChart data={historyQuery.data.data} events={historyQuery.data.events} />}
             </div>
           </div>
         </div>

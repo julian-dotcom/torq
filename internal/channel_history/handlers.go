@@ -31,6 +31,12 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
+	chanEventHistory, err := getChannelEventHistory(db, chanIds, from, to)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
 	channels, err := getChannels(db, chanIds)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -41,6 +47,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		Label:    "No Label",
 		Channels: channels,
 		Data:     chanHistory,
+		Events:   chanEventHistory,
 	}
 
 	c.JSON(http.StatusOK, r)
@@ -137,8 +144,9 @@ type ChannelHistory struct {
 	Label string `json:"label"`
 
 	// A list of channels included in this response
-	Channels []*channel     `json:"channels"`
-	Data     []*ChannelData `json:"data"`
+	Channels []*channel      `json:"channels"`
+	Data     []*ChannelData  `json:"data"`
+	Events   []*ChannelEvent `json:"events"`
 }
 
 type ChannelData struct {
@@ -192,8 +200,8 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Ti
 				   count(time) as count
 			from forward, settings
 			where outgoing_channel_id in (?)
-				and time::timestamp AT TIME ZONE settings.preferred_timezone >= ?
-				and time::timestamp AT TIME ZONE settings.preferred_timezone <= ?
+				and time >= ?::timestamp AT TIME ZONE settings.preferred_timezone
+				and time <= ?::timestamp AT TIME ZONE settings.preferred_timezone
 			group by date, outgoing_channel_id
 			) as o
 		full outer join (
@@ -204,8 +212,8 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Ti
 				   count(time) as count
 			from forward, settings
 			where incoming_channel_id in (?)
-				and time::timestamp AT TIME ZONE settings.preferred_timezone >= ?
-				and time::timestamp AT TIME ZONE settings.preferred_timezone <= ?
+				and time >= ?::timestamp AT TIME ZONE settings.preferred_timezone
+				and time <= ?::timestamp AT TIME ZONE settings.preferred_timezone
 			group by date, incoming_channel_id) as i
 		on (i.chan_id = o.chan_id) and (i.date = o.date)
 		group by (coalesce(i.date, o.date)), settings.preferred_timezone
@@ -214,8 +222,8 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Ti
 
 	qs, args, err := sqlx.In(sql, from, to, chanIds, from, to, from, to, chanIds, from, to)
 	if err != nil {
-		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v)",
-			sql, chanIds, chanIds)
+		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v, %v, %v, %v, %v)",
+			sql, from, to, chanIds, from, to, from, to, chanIds, from, to)
 	}
 
 	qsr := db.Rebind(qs)
@@ -253,10 +261,177 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Ti
 }
 
 type ChannelEvent struct {
-	Date time.Time `json:"channelDbId"`
+	// The date used by the chart library to place roughly in the timeline. Usually bucketed pr day
+	Date time.Time `json:"date"`
+	// Spesific time the event happened.
+	Datetime time.Time `json:"datetime"`
 	// The channel point
-	ChanPoint null.String `json:"channel_point"`
+	ChanPoint *string `json:"channel_point"`
 	// The channel ID
-	ChanId   null.String `json:"chan_id"`
-	Otubound bool        `json:"outbound"`
+	ChanId *string `json:"chan_id"`
+	// The type of event. E.g. disable/enable, change in fee rate, base fee, min/max htlc amount
+	Type *string `json:"type"`
+	// Was this changed by our node (outbound) or their node (inbound)
+	Outbound *bool `json:"outbound"`
+	// The value, in cases where there is a value change,
+	//like with fee rate etc. Not used by disable/enable and channel open/close
+	Value *uint64 `json:"value"`
+	// The previous value
+	PreviousValue *uint64 `json:"previous_value"`
+}
+
+func getChannelEventHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r []*ChannelEvent, err error) {
+
+	sql := `WITH
+    fromDate AS (VALUES (?)),
+    toDate AS (VALUES (?))
+-- disabled changes
+select ts::DATE as date,
+        ts as datetime,
+        chan_point,
+	   chan_id,
+       outbound,
+       case when disabled = true then 'disabled' else 'enabled' end as type,
+       null as value,
+ 	   null as prev
+from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
+                         chan_point,
+             chan_id,
+             outbound,
+             disabled,
+             lag(disabled, 1, false) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
+      FROM routing_policy, settings
+      where chan_id in (?)
+        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+) as o
+where prev != disabled
+
+UNION
+-- fee rate changes
+select ts::DATE as date,
+       ts as datetime,
+       chan_point,
+       chan_id,
+       outbound,
+       'fee_rate' as type,
+       fee_rate as value,
+       prev
+from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
+             chan_point,
+             chan_id,
+             outbound,
+             fee_rate_mill_msat as fee_rate,
+             lag(fee_rate_mill_msat, 1, 0) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
+      FROM routing_policy, settings
+      where chan_id in (?)
+        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+) as o
+where prev != fee_rate
+
+UNION
+-- base fee changes
+select ts::DATE as date,
+       ts as datetime,
+       chan_point,
+       chan_id,
+       outbound,
+       'base_fee' as type,
+       round(fee_base / 1000) as value,
+       round(prev / 1000) as prev
+from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
+             chan_point,
+             chan_id,
+             outbound,
+             fee_base_msat as fee_base,
+             lag(fee_base_msat, 1, 0) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
+      FROM routing_policy, settings
+      where chan_id in (?)
+        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+) as o
+where prev != fee_base
+
+UNION
+-- max_htlc changes
+select ts::DATE as date,
+       ts as datetime,
+       chan_point,
+       chan_id,
+       outbound,
+       'max_htlc' as type,
+       round(max_htlc_msat / 1000) as value,
+       round(prev / 1000) as prev
+from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
+             chan_point,
+             chan_id,
+             outbound,
+             max_htlc_msat,
+             lag(max_htlc_msat, 1, 0) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
+      FROM routing_policy, settings
+      where chan_id in (?)
+        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+) as o
+where prev != max_htlc_msat
+
+UNION
+-- min_htlc changes
+select ts::DATE as date,
+       ts as datetime,
+       chan_point,
+       chan_id,
+       outbound,
+       'min_htlc' as type,
+       round(min_htlc / 1000) as value,
+       round(prev / 1000) as prev
+from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
+             chan_point,
+             chan_id,
+             outbound,
+             min_htlc,
+             lag(min_htlc, 1, 0) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
+      FROM routing_policy, settings
+      where chan_id in (?)
+        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+) as o
+where prev  != min_htlc
+order by datetime;
+`
+
+	qs, args, err := sqlx.In(sql, from, to, chanIds, chanIds, chanIds, chanIds, chanIds)
+	if err != nil {
+		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v, %v)",
+			sql, from, to, chanIds, chanIds, chanIds, chanIds, chanIds)
+	}
+
+	qsr := db.Rebind(qs)
+	rows, err := db.Query(qsr, args...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error running getChannelEventHistory query")
+	}
+
+	for rows.Next() {
+		c := &ChannelEvent{}
+		err = rows.Scan(
+			&c.Date,
+			&c.Datetime,
+			&c.ChanPoint,
+			&c.ChanId,
+			&c.Outbound,
+			&c.Type,
+			&c.Value,
+			&c.PreviousValue,
+		)
+		if err != nil {
+			return r, err
+		}
+
+		// Append to the result
+		r = append(r, c)
+
+	}
+	return r, nil
 }

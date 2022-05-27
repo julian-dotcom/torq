@@ -3,17 +3,27 @@ import { AbstractPlot, basePlotConfig, drawConfig } from "./abstract";
 import * as d3 from "d3";
 import eventIcons from "./eventIcons";
 
-type eventsPlotConfig = basePlotConfig;
+type eventsPlotConfig = basePlotConfig & {
+  events: any[];
+};
 
 export class EventsPlot extends AbstractPlot {
   config: eventsPlotConfig;
+  events: any[];
+  clusteredEvents: any[] = [];
 
   lastWidth?: number;
   lastHeight?: number;
 
   constructor(chart: ChartCanvas, config: eventsPlotConfig) {
     super(chart, config);
-
+    this.events = config.events;
+    if (config.events) {
+      this.clusteredEvents = config.events.reduce((rv, x) => {
+        (rv[x["date"]] = rv[x["date"]] || []).push(x);
+        return rv;
+      }, {});
+    }
     this.config = {
       ...config,
     };
@@ -29,32 +39,46 @@ export class EventsPlot extends AbstractPlot {
 
     // Clear events
     this.chart.eventsContainer.selectAll("*").remove();
+    // console.log(this.events);
+
+    if (!this.events) {
+      return;
+    }
 
     this.chart.eventsContainer
       .selectAll(".event-wrapper")
-      .data(this.chart.data)
+      .data(
+        this.events
+          .map((d: any, i: number) => {
+            return d.date;
+          })
+          .filter((value: any, index: number, self: any[]) => {
+            return self.indexOf(value) === index;
+          })
+      )
       .enter()
       .append("div")
       .attr("class", "event-wrapper")
       .attr("id", function (d: any, i) {
         return "event-" + i;
       })
-      .attr("style", (d: any, i) => {
-        return `position:absolute; left: ${this.xPoint(d.date)}px; bottom:5px;`;
+      .attr("style", (d: number, i) => {
+        return `position:absolute; left: ${this.xPoint(new Date(d))}px; bottom:5px;`;
       })
       .selectAll(".event-item")
       .data((d: any, i: number) => {
-        return d.events || [];
+        return this.clusteredEvents[d];
       })
       .enter()
       .append("div")
       .attr("class", (d: any, o) => {
-        return "event-item " + d.type;
+        const outbound = d.outbound ? "outbound" : "inbound";
+        return `event-item ${d.type} ${outbound}`;
       })
       .html((d: any, i) => {
         const icon = eventIcons.get(d.type) || "";
-        const text = d3.format(".2s")(d.value);
-        if (d.value === undefined) {
+        const text = d.value > 1 ? d3.format(".2s")(d.value) : d.value;
+        if (d.value === null) {
           return icon;
         } else if (d.value === 0) {
           return "0" + icon;

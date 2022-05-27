@@ -7,9 +7,10 @@ import "../../charts/chart.scss";
 
 type EventsChart = {
   data: any[];
+  events: any[];
 };
 
-function EventsChart({ data }: EventsChart) {
+function EventsChart({ data, events }: EventsChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
 
@@ -64,7 +65,7 @@ function EventsChart({ data }: EventsChart) {
       });
       // chart.plot(LinePlot, { id: "amount_out", key: "amount_out" });
 
-      // chart.plot(EventsPlot, { id: "events", key: "events" });
+      chart.plot(EventsPlot, { id: "events", key: "events", events: events });
       chart.draw();
       setInterval(navCheck(container), 200);
     },

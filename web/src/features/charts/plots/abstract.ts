@@ -56,7 +56,7 @@ export abstract class AbstractPlot {
    *
    * @param xValue the data point on the xScale that you want to convert to a pixel location on the chart.
    */
-  xPoint(xValue: number): number {
+  xPoint(xValue: number | Date): number {
     return this.chart.config.xScale(xValue) || 0;
   }
 

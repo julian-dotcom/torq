@@ -97,10 +97,6 @@ class ChartCanvas {
         })
       : [{ date: new Date() }];
 
-    if (this.data.length > 1) {
-      this.data.pop();
-    }
-
     if (this.config.leftYAxisKeys.length) {
       this.config.margin.left = 50;
     }
