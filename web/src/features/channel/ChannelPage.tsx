@@ -18,6 +18,8 @@ import { useParams } from "react-router";
 import { selectFlowKeys, updateFlowKey } from "./channelSlice";
 import eventIcons from "../charts/plots/eventIcons";
 
+const ft = d3.format(",");
+
 const f = d3.format(",.2s");
 function fm(value: number): string | number {
   if (value > 1) {
@@ -99,45 +101,45 @@ function ChannelPage() {
               <div className={styles.heading}>Revenue</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Forwarding fees</div>
-                <div className={styles.rowValue}>5,830</div>
+                <div className={styles.rowValue}>{historyQuery?.data?.revenue_out}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Channel Leases</div>
-                <div className={styles.rowValue}>501</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
-                <div className={styles.rowValue}>6,331</div>
+                <div className={styles.rowValue}>{historyQuery?.data?.revenue_out}</div>
               </div>
             </div>
             <div className={styles.card}>
               <div className={styles.heading}>Expenses</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Rebalansing</div>
-                <div className={styles.rowValue}>503</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Open & Close</div>
-                <div className={styles.rowValue}>450</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
-                <div className={styles.rowValue}>953</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
             </div>
             <div className={styles.card}>
               <div className={styles.heading}>Profit</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
-                <div className={styles.rowValue}>5,378</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>APY</div>
-                <div className={styles.rowValue}>11.2%</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Turnover</div>
-                <div className={styles.rowValue}>3.14</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
             </div>
             <div className={styles.card}>
@@ -146,19 +148,19 @@ function ChannelPage() {
                 <div className={styles.rowLabel}>
                   <Switch label={"Fees"} />
                 </div>
-                <div className={styles.rowValue}>Progressive</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>
                   <Switch label={"Rebalancing"} />
                 </div>
-                <div className={styles.rowValue}>Custom</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>
                   <Switch label={"HTLC amount"} />
                 </div>
-                <div className={styles.rowValue}>Conservative</div>
+                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
             </div>
           </div>
@@ -175,6 +177,56 @@ function ChannelPage() {
             </div>
             <div className={styles.chartContainer}>
               {historyQuery.data && <ProfitsChart data={historyQuery.data.history} />}
+            </div>
+          </div>
+        </div>
+
+        <div className={classNames(styles.pageRow, styles.tripleRow)}>
+          <div className={styles.card}>
+            <div className={styles.heading}>Amount</div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Outbound</div>
+              <div className={styles.rowValue}>{ft(historyQuery?.data?.amount_out)}</div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Inbound</div>
+              <div className={classNames(styles.rowValue)}>{ft(historyQuery?.data?.amount_in)}</div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Total</div>
+              <div className={styles.rowValue}>{ft(historyQuery?.data?.amount_total)}</div>
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.heading}>Revenue</div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Outbound</div>
+              <div className={styles.rowValue}>{ft(historyQuery?.data?.revenue_out)}</div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Inbound</div>
+              <div className={classNames(styles.rowValue)}>{ft(historyQuery?.data?.revenue_in)}</div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Total</div>
+              <div className={styles.rowValue}>{ft(historyQuery?.data?.revenue_total)}</div>
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.heading}>Transactions</div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Outbound</div>
+              <div className={styles.rowValue}>{ft(historyQuery?.data?.count_out)}</div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Inbound</div>
+              <div className={classNames(styles.rowValue)}>{ft(historyQuery?.data?.count_in)}</div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Total</div>
+              <div className={styles.rowValue}>{ft(historyQuery?.data?.count_total)}</div>
             </div>
           </div>
         </div>

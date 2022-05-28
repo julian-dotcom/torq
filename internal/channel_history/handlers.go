@@ -19,27 +19,27 @@ type ChannelHistory struct {
 	Label string `json:"label"`
 
 	// The  outbound amount in sats (Satoshis)
-	AmountOut uint64 `json:"amount_out"`
+	AmountOut *uint64 `json:"amount_out"`
 	// The inbound amount in sats (Satoshis)
-	AmountIn uint64 `json:"amount_in"`
+	AmountIn *uint64 `json:"amount_in"`
 	// The total amount in sats (Satoshis) forwarded
-	AmountTotal uint64 `json:"amount_total"`
+	AmountTotal *uint64 `json:"amount_total"`
 
 	// The outbound revenue in sats. This is what the channel has directly produced.
-	RevenueOut uint64 `json:"revenue_out"`
+	RevenueOut *uint64 `json:"revenue_out"`
 	// The inbound revenue in sats. This is what the channel has indirectly produced.
 	// This revenue are not really earned by this channel/peer/group, but represents
 	// the channel/peer/group contribution to revenue earned by other channels.
-	RevenueIn uint64 `json:"revenue_in"`
+	RevenueIn *uint64 `json:"revenue_in"`
 	// The total revenue in sats. This is what the channel has directly and indirectly produced.
-	RevenueTotal uint64 `json:"revenue_total"`
+	RevenueTotal *uint64 `json:"revenue_total"`
 
 	// Number of outbound forwards.
-	CountOut uint64 `json:"count_out"`
+	CountOut *uint64 `json:"count_out"`
 	// Number of inbound forwards.
-	CountIn uint64 `json:"count_in"`
+	CountIn *uint64 `json:"count_in"`
 	// Number of total forwards.
-	CountTotal uint64 `json:"count_total"`
+	CountTotal *uint64 `json:"count_total"`
 
 	// A list of channels included in this response
 	Channels []*channel               `json:"channels"`
@@ -96,6 +96,75 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 
 func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r ChannelHistory, err error) {
 
+	sql := `
+		select
+			sum(coalesce(i.amount,0)) as amount_in,
+			sum(coalesce(o.amount,0)) as amount_out,
+			sum(coalesce((i.amount + o.amount), 0)) as revenue_total,
+
+			sum(coalesce(i.revenue,0)) as revenue_in,
+			sum(coalesce(o.revenue,0)) as revenue_out,
+			sum(coalesce((i.revenue + o.revenue), 0)) as revenue_total,
+
+			sum(coalesce(i.count,0)) as count_in,
+			sum(coalesce(o.count,0)) as count_out,
+			sum(coalesce((i.count + o.count), 0)) as count_total
+		from (
+			select outgoing_channel_id,
+				   floor(sum(outgoing_amount_msat)/1000) as amount,
+				   floor(sum(fee_msat)/1000) as revenue,
+				   count(time) as count
+			from forward, settings
+			where outgoing_channel_id in (?)
+			and time >= ?::timestamp
+			and time <= ?::timestamp
+			group by outgoing_channel_id
+			) as o
+		full outer join (
+			select incoming_channel_id,
+				   floor(sum(incoming_amount_msat)/1000) as amount,
+				   floor(sum(fee_msat)/1000) as revenue,
+				   count(time) as count
+			from forward, settings
+			where incoming_channel_id in (?)
+			and time >= ?::timestamp
+			and time <= ?::timestamp
+			group by incoming_channel_id
+			) as i
+		on (i.incoming_channel_id = o.outgoing_channel_id);
+`
+
+	qs, args, err := sqlx.In(sql, chanIds, from, to, chanIds, from, to)
+	if err != nil {
+		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v)", sql, from, to, chanIds, from, to, chanIds)
+	}
+
+	qsr := db.Rebind(qs)
+
+	rows, err := db.Query(qsr, args...)
+	if err != nil {
+		return ChannelHistory{}, errors.Wrapf(err, "Error running getChannelTotal query")
+	}
+
+	for rows.Next() {
+		err = rows.Scan(
+			&r.AmountIn,
+			&r.AmountOut,
+			&r.AmountTotal,
+
+			&r.RevenueIn,
+			&r.RevenueOut,
+			&r.RevenueTotal,
+
+			&r.CountIn,
+			&r.CountOut,
+			&r.CountTotal,
+		)
+		if err != nil {
+			return r, err
+		}
+	}
+
 	return r, nil
 }
 
@@ -116,7 +185,7 @@ type channel struct {
 	Open null.Bool `json:"open"`
 
 	// The channels total capacity (as created)
-	Capacity uint64 `json:"capacity"`
+	Capacity *uint64 `json:"capacity"`
 }
 
 func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
@@ -177,7 +246,6 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 
 		// Append to the result
 		r = append(r, c)
-
 	}
 	return r, nil
 }
@@ -187,27 +255,27 @@ type ChannelHistoryRecords struct {
 
 	Date time.Time `json:"date"`
 	// The  outbound amount in sats (Satoshis)
-	AmountOut uint64 `json:"amount_out"`
+	AmountOut *uint64 `json:"amount_out"`
 	// The inbound amount in sats (Satoshis)
-	AmountIn uint64 `json:"amount_in"`
+	AmountIn *uint64 `json:"amount_in"`
 	// The total amount in sats (Satoshis) forwarded
-	AmountTotal uint64 `json:"amount_total"`
+	AmountTotal *uint64 `json:"amount_total"`
 
 	// The outbound revenue in sats. This is what the channel has directly produced.
-	RevenueOut uint64 `json:"revenue_out"`
+	RevenueOut *uint64 `json:"revenue_out"`
 	// The inbound revenue in sats. This is what the channel has indirectly produced.
 	// This revenue are not really earned by this channel/peer/group, but represents
 	// the channel/peer/group contribution to revenue earned by other channels.
-	RevenueIn uint64 `json:"revenue_in"`
+	RevenueIn *uint64 `json:"revenue_in"`
 	// The total revenue in sats. This is what the channel has directly and indirectly produced.
-	RevenueTotal uint64 `json:"revenue_total"`
+	RevenueTotal *uint64 `json:"revenue_total"`
 
 	// Number of outbound forwards.
-	CountOut uint64 `json:"count_out"`
+	CountOut *uint64 `json:"count_out"`
 	// Number of inbound forwards.
-	CountIn uint64 `json:"count_in"`
+	CountIn *uint64 `json:"count_in"`
 	// Number of total forwards.
-	CountTotal uint64 `json:"count_total"`
+	CountTotal *uint64 `json:"count_total"`
 }
 
 func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r []*ChannelHistoryRecords,
