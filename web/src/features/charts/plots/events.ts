@@ -39,7 +39,6 @@ export class EventsPlot extends AbstractPlot {
 
     // Clear events
     this.chart.eventsContainer.selectAll("*").remove();
-    // console.log(this.events);
 
     if (!this.events) {
       return;
@@ -50,7 +49,6 @@ export class EventsPlot extends AbstractPlot {
       .data(
         this.events
           .map((d: any, i: number) => {
-            console.log(d.date);
             return d.date;
           })
           .filter((value: any, index: number, self: any[]) => {

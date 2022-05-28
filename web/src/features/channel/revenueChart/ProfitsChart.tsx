@@ -3,9 +3,9 @@ import { useD3 } from "../../charts/useD3";
 import React, { useEffect } from "react";
 import { Selection } from "d3";
 import ChartCanvas from "../../charts/chartCanvas";
-import { BarPlot } from "../../charts/plots/bar";
 import "../../charts/chart.scss";
 import chartCanvas from "../../charts/chartCanvas";
+import { AreaPlot, LinePlot } from "../../charts/charts";
 
 type ProfitsChart = {
   data: any[];
@@ -31,13 +31,20 @@ function ProfitsChart({ data }: ProfitsChart) {
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       chart = new ChartCanvas(container, data, {
-        yScaleKey: "revenue_out",
-        rightYScaleKey: "revenue_out",
-        rightYAxisKeys: ["revenue_out"],
+        yScaleKey: "revenue_total",
+        rightYScaleKey: "revenue_total",
+        rightYAxisKeys: ["revenue_out", "revenue_in"],
         xAxisPadding: 12,
       });
 
-      chart.plot(BarPlot, { id: "bars", key: "revenue_out", legendLabel: "Revenue out" });
+      chart.plot(AreaPlot, {
+        id: "revenue_total",
+        key: "revenue_total",
+        legendLabel: "Revenue total",
+        areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
+      });
+      chart.plot(LinePlot, { id: "revenue_out", key: "revenue_out", legendLabel: "Revenue out", lineColor: "#BA93FA" });
+      chart.plot(LinePlot, { id: "revenue_in", key: "revenue_in", legendLabel: "Revenue in", lineColor: "#FAAE93" });
       chart.draw();
       setInterval(navCheck(container), 200);
     },

@@ -2,7 +2,7 @@ import styles from "./channel-page.module.scss";
 import * as d3 from "d3";
 import classNames from "classnames";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import ProfitsChart from "./revenueChart/ProtifsChart";
+import ProfitsChart from "./revenueChart/ProfitsChart";
 import EventsChart from "./eventsChart/EventsChart";
 import Switch from "../inputs/Slider/Switch";
 import Button from "../buttons/Button";
@@ -345,7 +345,7 @@ function ChannelPage() {
           <div className={classNames(styles.card, styles.channelSummaryChart)} style={{ height: "600px" }}>
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
-                <Button text={"Revenue"} isOpen={true} />
+                <Button text={"Amount"} isOpen={true} />
               </div>
               <div className={styles.profitChartRightControls}>
                 <SettingsIcon />
