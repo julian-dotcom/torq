@@ -139,7 +139,10 @@ rowValue {
   grid-column-gap: 5px;
 }
 .eventRow ~ .eventRowName {
-  margin-top: 10px;
+  margin-top: 20px;
+}
+.eventDateRow + .eventRowName {
+  margin-top: 5px;
 }
 .channelPoint,
 .channelAlias {
@@ -157,12 +160,11 @@ rowValue {
 }
 .eventDateRow {
   font-size: var(--font-size-small);
-  color: var(--fg-muted);
   border-bottom: 1px solid var(--bg-faint);
   padding-bottom: 5px;
 }
 .eventRow ~ .eventDateRow {
-  margin-top: 10px;
+  margin-top: 30px;
 }
 .datetime {
   white-space: nowrap;

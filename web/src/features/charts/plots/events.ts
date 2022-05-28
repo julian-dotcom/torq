@@ -50,6 +50,7 @@ export class EventsPlot extends AbstractPlot {
       .data(
         this.events
           .map((d: any, i: number) => {
+            console.log(d.date);
             return d.date;
           })
           .filter((value: any, index: number, self: any[]) => {

@@ -155,7 +155,17 @@ export class BarPlot extends AbstractPlot {
           this.yPoint(this.chart.data[i][this.config.key]) - 15
         );
 
-        const hoverIndex = drawConfig?.xIndex || this.chart.data.length - 1;
+        let hoverIndex: number;
+        switch (drawConfig?.xIndex) {
+          case undefined:
+            hoverIndex = this.chart.data.length - 1;
+            break;
+          case 0:
+            hoverIndex = 0;
+            break;
+          default:
+            hoverIndex = drawConfig?.xIndex || 0;
+        }
         const legendText = this.chart.data[hoverIndex][this.config.key];
 
         this.legendTextBox.text(d3.format(",")(legendText));

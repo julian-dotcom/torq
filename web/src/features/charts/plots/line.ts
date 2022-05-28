@@ -86,11 +86,18 @@ export class LinePlot extends AbstractPlot {
       });
     }
 
-    const hoverIndex = drawConfig?.xIndex || this.chart.data.length - 1;
+    let hoverIndex: number;
+    switch (drawConfig?.xIndex) {
+      case undefined:
+        hoverIndex = this.chart.data.length - 1;
+        break;
+      case 0:
+        hoverIndex = 0;
+        break;
+      default:
+        hoverIndex = drawConfig?.xIndex || 0;
+    }
     const legendText = this.chart.data[hoverIndex][this.config.key];
-    // this.legendTextBox.text(
-    //   this.config.legendLabel ? this.config.legendLabel + ": " + d3.format(",")(legendText) : d3.format(",")(legendText)
-    // );
 
     this.legendTextBox.text(d3.format(",")(legendText));
   }

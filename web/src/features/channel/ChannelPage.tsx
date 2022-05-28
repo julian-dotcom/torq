@@ -174,7 +174,7 @@ function ChannelPage() {
               </div>
             </div>
             <div className={styles.chartContainer}>
-              {historyQuery.data && <ProfitsChart data={historyQuery.data.data} />}
+              {historyQuery.data && <ProfitsChart data={historyQuery.data.history} />}
             </div>
           </div>
         </div>
@@ -193,7 +193,7 @@ function ChannelPage() {
                     const chan =
                       (historyQuery?.data?.channels || []).find((c: any) => c.channel_point === event.channel_point) ||
                       {};
-                    console.log(chan);
+
                     return (
                       <>
                         {newDate && (
@@ -202,7 +202,7 @@ function ChannelPage() {
                           </div>
                         )}
                         {(newDate || newAlias) && (
-                          <div className={styles.eventRowName}>
+                          <div key={"name-row" + index} className={styles.eventRowName}>
                             <div className={styles.channelAlias}>{chan.alias}</div>
                             <div>|</div>
                             <div className={styles.channelPoint}>{chan.channel_point}</div>
@@ -242,7 +242,7 @@ function ChannelPage() {
             </div>
 
             <div className={styles.chartContainer}>
-              {historyQuery.data && <EventsChart data={historyQuery.data.data} events={historyQuery.data.events} />}
+              {historyQuery.data && <EventsChart data={historyQuery.data.history} events={historyQuery.data.events} />}
             </div>
           </div>
         </div>

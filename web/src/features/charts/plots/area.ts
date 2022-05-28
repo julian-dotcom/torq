@@ -109,9 +109,18 @@ export class AreaPlot extends AbstractPlot {
       }
     });
 
-    const legendText = drawConfig?.xIndex
-      ? this.chart.data[drawConfig?.xIndex][this.config.key]
-      : this.chart.data[this.chart.data.length - 1][this.config.key];
+    let hoverIndex: number;
+    switch (drawConfig?.xIndex) {
+      case undefined:
+        hoverIndex = this.chart.data.length - 1;
+        break;
+      case 0:
+        hoverIndex = 0;
+        break;
+      default:
+        hoverIndex = drawConfig?.xIndex || 0;
+    }
+    const legendText = this.chart.data[hoverIndex][this.config.key];
 
     this.legendTextBox.text(d3.format(",")(legendText));
   }

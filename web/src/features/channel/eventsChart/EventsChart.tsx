@@ -36,7 +36,7 @@ function EventsChart({ data, events }: EventsChart) {
         // leftYAxisKeys: ["amount_in"],
         // showLeftYAxisLabel: true,
         // showRightYAxisLabel: true,
-        // xAxisPadding: 0,
+        xAxisPadding: 6,
       });
       // chart.plot(BarPlot, {
       //   id: "amount_out",

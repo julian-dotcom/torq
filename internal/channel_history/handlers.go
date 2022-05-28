@@ -11,6 +11,42 @@ import (
 	"time"
 )
 
+type ChannelHistory struct {
+	// The Label of the requested channels group,
+	// this is either an alias in the case where a single channel or a single node is requested.
+	// In the case where a group of channels is requested the Label will be based on the common name,
+	// such as a tag.
+	Label string `json:"label"`
+
+	// The  outbound amount in sats (Satoshis)
+	AmountOut uint64 `json:"amount_out"`
+	// The inbound amount in sats (Satoshis)
+	AmountIn uint64 `json:"amount_in"`
+	// The total amount in sats (Satoshis) forwarded
+	AmountTotal uint64 `json:"amount_total"`
+
+	// The outbound revenue in sats. This is what the channel has directly produced.
+	RevenueOut uint64 `json:"revenue_out"`
+	// The inbound revenue in sats. This is what the channel has indirectly produced.
+	// This revenue are not really earned by this channel/peer/group, but represents
+	// the channel/peer/group contribution to revenue earned by other channels.
+	RevenueIn uint64 `json:"revenue_in"`
+	// The total revenue in sats. This is what the channel has directly and indirectly produced.
+	RevenueTotal uint64 `json:"revenue_total"`
+
+	// Number of outbound forwards.
+	CountOut uint64 `json:"count_out"`
+	// Number of inbound forwards.
+	CountIn uint64 `json:"count_in"`
+	// Number of total forwards.
+	CountTotal uint64 `json:"count_total"`
+
+	// A list of channels included in this response
+	Channels []*channel               `json:"channels"`
+	History  []*ChannelHistoryRecords `json:"history"`
+	Events   []*ChannelEvent          `json:"events"`
+}
+
 func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	from, err := time.Parse("2006-01-02", c.Query("from"))
 	if err != nil {
@@ -25,32 +61,42 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 
 	chanIds := strings.Split(c.Param("chanIds"), ",")
 
+	// Get the total values for the whole requested time range (from - to)
+	r, err := getChannelTotal(db, chanIds, from, to)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	// Get the details for the requested channels
+	channels, err := getChannels(db, chanIds)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	r.Channels = channels
+
+	// Get the daily values
 	chanHistory, err := getChannelHistory(db, chanIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	r.History = chanHistory
 
 	chanEventHistory, err := getChannelEventHistory(db, chanIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-
-	channels, err := getChannels(db, chanIds)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-
-	r := ChannelHistory{
-		Label:    "No Label",
-		Channels: channels,
-		Data:     chanHistory,
-		Events:   chanEventHistory,
-	}
+	r.Events = chanEventHistory
 
 	c.JSON(http.StatusOK, r)
+}
+
+func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r ChannelHistory, err error) {
+
+	return r, nil
 }
 
 type channel struct {
@@ -136,20 +182,7 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 	return r, nil
 }
 
-type ChannelHistory struct {
-	// The Label of the requested channels group,
-	// this is either an alias in the case where a single channel or a single node is requested.
-	// In the case where a group of channels is requested the Label will be based on the common name,
-	// such as a tag.
-	Label string `json:"label"`
-
-	// A list of channels included in this response
-	Channels []*channel      `json:"channels"`
-	Data     []*ChannelData  `json:"data"`
-	Events   []*ChannelEvent `json:"events"`
-}
-
-type ChannelData struct {
+type ChannelHistoryRecords struct {
 	Alias string `json:"alias"`
 
 	Date time.Time `json:"date"`
@@ -177,11 +210,12 @@ type ChannelData struct {
 	CountTotal uint64 `json:"count_total"`
 }
 
-func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r []*ChannelData, err error) {
+func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r []*ChannelHistoryRecords,
+	err error) {
 
 	sql := `
 		select
-		    (coalesce(i.date, o.date)::timestamp AT TIME ZONE settings.preferred_timezone ) as date,
+		    (coalesce(i.date, o.date)::timestamp AT TIME ZONE settings.preferred_timezone) as date,
 
 			sum(coalesce(i.amount,0)) as amount_in,
 			sum(coalesce(o.amount,0)) as amount_out,
@@ -193,28 +227,29 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Ti
 			sum(coalesce(o.count,0)) as count_out,
 			sum(coalesce((coalesce(i.count,0) + coalesce(o.count,0)), 0)) as count_total
 		from settings, (
-			select time_bucket_gapfill('1 days', time, ?, ?) as date,
+			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE settings.preferred_timezone, ?, ?) as date,
 				   outgoing_channel_id chan_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
 			where outgoing_channel_id in (?)
-				and time >= ?::timestamp AT TIME ZONE settings.preferred_timezone
-				and time <= ?::timestamp AT TIME ZONE settings.preferred_timezone
+				and time::timestamp AT TIME ZONE settings.preferred_timezone >= ?::timestamp AT TIME ZONE settings.preferred_timezone
+				and time::timestamp AT TIME ZONE settings.preferred_timezone <= ?::timestamp AT TIME ZONE settings.preferred_timezone
 			group by date, outgoing_channel_id
 			) as o
 		full outer join (
-			select time_bucket_gapfill('1 days', time, ? , ?) as date,
+			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE settings.preferred_timezone, ? ,
+?) as date,
 				   incoming_channel_id as chan_id,
 				   floor(sum(incoming_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
 			where incoming_channel_id in (?)
-				and time >= ?::timestamp AT TIME ZONE settings.preferred_timezone
-				and time <= ?::timestamp AT TIME ZONE settings.preferred_timezone
-			group by date, incoming_channel_id) as i
+				and time::timestamp AT TIME ZONE settings.preferred_timezone >= ?::timestamp AT TIME ZONE settings.preferred_timezone
+				and time::timestamp AT TIME ZONE settings.preferred_timezone <= ?::timestamp AT TIME ZONE settings.preferred_timezone
+			group by date, incoming_channel_id)  as i
 		on (i.chan_id = o.chan_id) and (i.date = o.date)
 		group by (coalesce(i.date, o.date)), settings.preferred_timezone
 		order by date;
@@ -233,7 +268,7 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Ti
 	}
 
 	for rows.Next() {
-		c := &ChannelData{}
+		c := &ChannelHistoryRecords{}
 		err = rows.Scan(
 			&c.Date,
 
@@ -284,118 +319,119 @@ func getChannelEventHistory(db *sqlx.DB, chanIds []string, from time.Time, to ti
 
 	sql := `WITH
     fromDate AS (VALUES (?)),
-    toDate AS (VALUES (?))
+    toDate AS (VALUES (?)),
+    tz AS (select preferred_timezone as tz from settings)
 -- disabled changes
-select ts::DATE as date,
-        ts as datetime,
+select date(ts)::timestamp AT TIME ZONE (table tz) as date,
+        ts::timestamp AT TIME ZONE (table tz) as datetime,
         chan_point,
 	   chan_id,
        outbound,
        case when disabled = true then 'disabled' else 'enabled' end as type,
        null as value,
  	   null as prev
-from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
-                         chan_point,
+from (SELECT ts as ts,
+			 chan_point,
              chan_id,
              outbound,
              disabled,
              lag(disabled, 1, false) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
-      FROM routing_policy, settings
+      FROM routing_policy
       where chan_id in (?)
-        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
-        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
 ) as o
 where prev != disabled
 
 UNION
 -- fee rate changes
-select ts::DATE as date,
-       ts as datetime,
+select date(ts)::timestamp AT TIME ZONE (table tz) as date,
+       ts::timestamp AT TIME ZONE (table tz) as datetime,
        chan_point,
        chan_id,
        outbound,
        'fee_rate' as type,
        fee_rate as value,
        prev
-from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
+from (SELECT ts as ts,
              chan_point,
              chan_id,
              outbound,
              fee_rate_mill_msat as fee_rate,
              lag(fee_rate_mill_msat, 1, 0) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
-      FROM routing_policy, settings
+      FROM routing_policy
       where chan_id in (?)
-        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
-        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
 ) as o
 where prev != fee_rate
 
 UNION
 -- base fee changes
-select ts::DATE as date,
-       ts as datetime,
+select date(ts)::timestamp AT TIME ZONE (table tz) as date,
+       ts::timestamp AT TIME ZONE (table tz) as datetime,
        chan_point,
        chan_id,
        outbound,
        'base_fee' as type,
        round(fee_base / 1000) as value,
        round(prev / 1000) as prev
-from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
+from (SELECT ts as ts,
              chan_point,
              chan_id,
              outbound,
              fee_base_msat as fee_base,
              lag(fee_base_msat, 1, 0) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
-      FROM routing_policy, settings
+      FROM routing_policy
       where chan_id in (?)
-        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
-        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
 ) as o
 where prev != fee_base
 
 UNION
 -- max_htlc changes
-select ts::DATE as date,
-       ts as datetime,
+select date(ts)::timestamp AT TIME ZONE (table tz) as date,
+       ts::timestamp AT TIME ZONE (table tz) as datetime,
        chan_point,
        chan_id,
        outbound,
        'max_htlc' as type,
        round(max_htlc_msat / 1000) as value,
        round(prev / 1000) as prev
-from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
+from (SELECT ts as ts,
              chan_point,
              chan_id,
              outbound,
              max_htlc_msat,
              lag(max_htlc_msat, 1, 0) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
-      FROM routing_policy, settings
+      FROM routing_policy
       where chan_id in (?)
-        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
-        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
 ) as o
 where prev != max_htlc_msat
 
 UNION
 -- min_htlc changes
-select ts::DATE as date,
-       ts as datetime,
+select date(ts)::timestamp AT TIME ZONE (table tz) as date,
+       ts::timestamp AT TIME ZONE (table tz) as datetime,
        chan_point,
        chan_id,
        outbound,
        'min_htlc' as type,
        round(min_htlc / 1000) as value,
        round(prev / 1000) as prev
-from (SELECT ts::timestamp AT TIME ZONE settings.preferred_timezone as ts,
+from (SELECT ts as ts,
              chan_point,
              chan_id,
              outbound,
              min_htlc,
              lag(min_htlc, 1, 0) OVER (PARTITION BY chan_id, outbound ORDER BY ts) AS prev
-      FROM routing_policy, settings
+      FROM routing_policy
       where chan_id in (?)
-        and ts >= (table fromDate)::timestamp AT TIME ZONE settings.preferred_timezone
-        and ts <= (table toDate)::timestamp AT TIME ZONE settings.preferred_timezone
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
 ) as o
 where prev  != min_htlc
 order by datetime;
