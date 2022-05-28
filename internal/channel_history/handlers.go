@@ -100,7 +100,7 @@ func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time
 		select
 			sum(coalesce(i.amount,0)) as amount_in,
 			sum(coalesce(o.amount,0)) as amount_out,
-			sum(coalesce((i.amount + o.amount), 0)) as revenue_total,
+			sum(coalesce((i.amount + o.amount), 0)) as amount_total,
 
 			sum(coalesce(i.revenue,0)) as revenue_in,
 			sum(coalesce(o.revenue,0)) as revenue_out,
@@ -122,7 +122,7 @@ func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time
 			) as o
 		full outer join (
 			select incoming_channel_id,
-				   floor(sum(incoming_amount_msat)/1000) as amount,
+				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings

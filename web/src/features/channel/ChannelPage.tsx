@@ -71,6 +71,15 @@ function ChannelPage() {
   let prev: string;
   let prevAlias: string;
 
+  let total_capacity: number = 0;
+  if (historyQuery?.data?.channels) {
+    total_capacity = historyQuery.data.channels
+      .map((d: { capacity: number }) => {
+        return d.capacity;
+      })
+      .reduce((partialSum: number, a: number) => partialSum + a, 0);
+  }
+
   return (
     <div className={styles.channelsPageContent}>
       <div className={styles.channelControls}>
@@ -139,7 +148,9 @@ function ChannelPage() {
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Turnover</div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
+                <div className={classNames(styles.rowValue)}>
+                  {d3.format(",.2")(historyQuery?.data?.amount_total / total_capacity)}
+                </div>
               </div>
             </div>
             <div className={styles.card}>
@@ -185,6 +196,10 @@ function ChannelPage() {
           <div className={styles.card}>
             <div className={styles.heading}>Amount</div>
             <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Capacity</div>
+              <div className={styles.rowValue}>{ft(total_capacity)}</div>
+            </div>
+            <div className={styles.cardRow}>
               <div className={styles.rowLabel}>Outbound</div>
               <div className={styles.rowValue}>{ft(historyQuery?.data?.amount_out)}</div>
             </div>
@@ -195,6 +210,21 @@ function ChannelPage() {
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>Total</div>
               <div className={styles.rowValue}>{ft(historyQuery?.data?.amount_total)}</div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Turnover</div>
+              <div className={classNames(styles.rowValue)}>
+                {d3.format(",.2")(historyQuery?.data?.amount_total / total_capacity)}
+              </div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Balance score</div>
+              <div className={classNames(styles.rowValue)}>
+                {d3.format(".1%")(
+                  Math.min(historyQuery?.data?.amount_in, historyQuery?.data?.amount_out) /
+                    Math.max(historyQuery?.data?.amount_in, historyQuery?.data?.amount_out)
+                )}
+              </div>
             </div>
           </div>
 
@@ -212,10 +242,30 @@ function ChannelPage() {
               <div className={styles.rowLabel}>Total</div>
               <div className={styles.rowValue}>{ft(historyQuery?.data?.revenue_total)}</div>
             </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Average fee out</div>
+              <div className={classNames(styles.rowValue)}>
+                {d3.format(",.1f")((historyQuery?.data?.revenue_out / historyQuery?.data?.amount_out) * 1000 * 1000)}
+              </div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Average fee in</div>
+              <div className={classNames(styles.rowValue)}>
+                {d3.format(",.1f")((historyQuery?.data?.revenue_in / historyQuery?.data?.amount_in) * 1000 * 1000)}
+              </div>
+            </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Average fee</div>
+              <div className={classNames(styles.rowValue)}>
+                {d3.format(",.1f")(
+                  (historyQuery?.data?.revenue_total / historyQuery?.data?.amount_total) * 1000 * 1000
+                )}
+              </div>
+            </div>
           </div>
 
           <div className={styles.card}>
-            <div className={styles.heading}>Transactions</div>
+            <div className={styles.heading}>Transaction count</div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>Outbound</div>
               <div className={styles.rowValue}>{ft(historyQuery?.data?.count_out)}</div>
@@ -228,6 +278,15 @@ function ChannelPage() {
               <div className={styles.rowLabel}>Total</div>
               <div className={styles.rowValue}>{ft(historyQuery?.data?.count_total)}</div>
             </div>
+            <div className={styles.cardRow}>
+              <div className={styles.rowLabel}>Balance score (Nb. Tx)</div>
+              <div className={classNames(styles.rowValue)}>
+                {d3.format(".1%")(
+                  Math.min(historyQuery?.data?.count_in, historyQuery?.data?.count_out) /
+                    Math.max(historyQuery?.data?.count_in, historyQuery?.data?.count_out)
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -235,6 +294,7 @@ function ChannelPage() {
           <div className={styles.shortColumn}>
             <div className={classNames(styles.card, styles.scroll)} style={{ height: "600px" }}>
               <div className={styles.eventRowsWrapper}>
+                {!historyQuery?.data?.events && <div className={styles.eventRowName}>No events</div>}
                 {historyQuery?.data?.events &&
                   historyQuery.data.events.map((event: any, index: number) => {
                     const icon = eventIcons.get(event.type);
