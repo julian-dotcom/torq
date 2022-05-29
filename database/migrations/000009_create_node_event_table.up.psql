@@ -1,5 +1,5 @@
 CREATE TABLE node_event (
-    timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL,  -- use TIMESTAMPTZ !!
     pub_key	TEXT,
     alias	TEXT,
     color	TEXT,

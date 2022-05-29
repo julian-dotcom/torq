@@ -1,4 +1,14 @@
 UPDATE channel_event
+SET event = event->'Channel'->'OpenChannel'
+WHERE event_type = 0
+and imported = false;
+
+UPDATE channel_event
+SET event = event->'Channel'->'ClosedChannel'
+WHERE event_type = 1
+and imported = false;
+
+UPDATE channel_event
 SET event = event->'Channel'->'ActiveChannel'
 WHERE event_type = 2
 and imported = false;

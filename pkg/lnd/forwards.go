@@ -188,6 +188,4 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 			}
 		}
 	}
-
-	return nil
 }

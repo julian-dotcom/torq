@@ -2,6 +2,6 @@ CREATE TABLE channel_tag (
   tag_id SERIAL PRIMARY KEY,
   channel_db_id INTEGER NOT NULL REFERENCES channel(channel_db_id),
   tag TEXT NOT NULL,
-  created_on TIMESTAMP NOT NULL,
-  updated_on TIMESTAMP NULL
+  created_on TIMESTAMP NOT NULL,  -- use TIMESTAMPTZ !!
+  updated_on TIMESTAMP NULL  -- use TIMESTAMPTZ !!
 );

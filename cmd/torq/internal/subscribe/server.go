@@ -137,7 +137,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 		return nil
 	})
 
-	return errs.Wait()
+	err = errs.Wait()
+	fmt.Println("Subscriptions all ended")
+
+	return err
 }
 
 // Fetch static channel state and store it.

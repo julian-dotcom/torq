@@ -7,8 +7,8 @@ type selectProps = {
 
 function Select(props: selectProps) {
   return (
-    <div style={{ marginBottom: "15px" }}>
-      <div style={{ marginBottom: "8px" }}>
+    <div style={{ marginBottom: "var(--form-margin-bottom)" }}>
+      <div style={{ marginBottom: "var(--form-label-margin-bottom)" }}>
         <span>{props.label}</span>
       </div>
       <RawSelect options={props.options} value={props.value} onChange={props.onChange} />

@@ -9,6 +9,7 @@ import (
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -16,6 +17,10 @@ import (
 	"log"
 	"os"
 )
+
+var startchan = make(chan struct{})
+var stopchan = make(chan struct{})
+var stoppedchan = make(chan struct{})
 
 func main() {
 	app := cli.NewApp()
@@ -44,24 +49,9 @@ func main() {
 			Usage: "Password used to access the API and frontend.",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "torq.host",
-			Value: "localhost",
-			Usage: "Host address for your regular grpc",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.port",
 			Value: "8080",
-			Usage: "Port for your regular grpc",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "torq.cert",
-			Value: "./cert.pem",
-			Usage: "Path to your cert.pem file used by the GRPC server (torq)",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "torq.key",
-			Value: "./key.pem",
-			Usage: "Path to your key.pem file used by the GRPC server",
+			Usage: "Port to serve the HTTP API",
 		}),
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:  "torq.no-sub",
@@ -94,22 +84,6 @@ func main() {
 			Name:  "db.password",
 			Value: "password",
 			Usage: "Name of the postgres user with access to the database",
-		}),
-
-		// LND node connection details
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:    "lnd.node_address",
-			Aliases: []string{"na"},
-			Value:   "localhost:10009",
-			Usage:   "Where to reach the lnd. Default: localhost:10009",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "lnd.tls",
-			Usage: "Path to your tls.cert file (LND node).",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "lnd.macaroon",
-			Usage: "Path to your admin.macaroon file. (LND node)",
 		}),
 	}
 
@@ -146,30 +120,58 @@ func main() {
 
 				fmt.Println("Connecting to lightning node")
 				// Connect to the node
-				conn, err := lnd.Connect(
-					c.String("lnd.node_address"),
-					c.String("lnd.tls"),
-					c.String("lnd.macaroon"))
-
-				if err != nil {
-					return fmt.Errorf("failed to connect to lnd: %v", err)
-				}
 
 				ctx := context.Background()
-				errs, ctx := errgroup.WithContext(ctx)
+				ctx, cancel := context.WithCancel(ctx)
 
 				// Subscribe to data from the node
 				//   TODO: Attempt to restart subscriptions if they fail.
-				errs.Go(func() error {
-					err = subscribe.Start(ctx, conn, db)
-					if err != nil {
-						return err
+				go (func() error {
+					for {
+						select {
+						case <-startchan:
+							connectionDetails, err := settings.GetConnectionDetails(db)
+							if err != nil {
+								fmt.Printf("failed to get node connection details: %v", err)
+								stoppedchan <- struct{}{}
+								continue
+							}
+							conn, err := lnd.Connect(
+								connectionDetails.GRPCAddress,
+								connectionDetails.TLSFileBytes,
+								connectionDetails.MacaroonFileBytes)
+							if err != nil {
+								fmt.Println("Failed to connect to lnd")
+								stoppedchan <- struct{}{}
+								continue
+							}
+
+							fmt.Println("Subscribing to LND")
+							err = subscribe.Start(ctx, conn, db)
+							if err != nil {
+								fmt.Printf("%v", err)
+							}
+							fmt.Println("LND Subscription stopped")
+							stoppedchan <- struct{}{}
+						}
 					}
-					return nil
-				})
+				})()
+				// starts LND subscription when Torq starts
+				startchan <- struct{}{}
+
+				go (func() {
+					for {
+						select {
+						case <-stopchan:
+							cancel()
+							ctx, cancel = context.WithCancel(context.Background())
+						}
+					}
+				})()
+
 			}
 
-			torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db)
+			torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, RestartLNDSubscription)
 
 			return nil
 		},
@@ -206,11 +208,15 @@ func main() {
 
 			fmt.Println("Connecting to lightning node")
 			// Connect to the node
-			conn, err := lnd.Connect(
-				c.String("lnd.node_address"),
-				c.String("lnd.tls"),
-				c.String("lnd.macaroon"))
+			connectionDetails, err := settings.GetConnectionDetails(db)
+			if err != nil {
+				return fmt.Errorf("failed to get node connection details: %v", err)
+			}
 
+			conn, err := lnd.Connect(
+				connectionDetails.GRPCAddress,
+				connectionDetails.TLSFileBytes,
+				connectionDetails.MacaroonFileBytes)
 			if err != nil {
 				return fmt.Errorf("failed to connect to lnd: %v", err)
 			}
@@ -273,6 +279,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+}
+
+func RestartLNDSubscription() {
+	fmt.Println("Stopping")
+	stopchan <- struct{}{}
+	<-stoppedchan
+	fmt.Println("Stopped")
+	fmt.Println("Starting again")
+	startchan <- struct{}{}
 }
 
 func loadFlags() func(context *cli.Context) (altsrc.InputSourceContext, error) {

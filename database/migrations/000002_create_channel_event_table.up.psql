@@ -1,6 +1,6 @@
 
 CREATE TABLE IF NOT EXISTS channel_event (
-   time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+   time TIMESTAMP WITHOUT TIME ZONE NOT NULL,  -- use TIMESTAMPTZ !!
    type VARCHAR(22),
    chan_id NUMERIC,
    chan_point TEXT,

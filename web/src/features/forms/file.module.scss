@@ -1,0 +1,28 @@
+.fileDropArea {
+  padding: 26px 10px;
+  border-style: dashed;
+  border-color: var(--fg-muted);
+  border-width: 1px;
+  border-radius: var(--radius-default);
+  margin-bottom: var(--form-margin-bottom);
+  display: grid;
+  justify-content: center;
+  position: relative;
+  z-index: 500;
+}
+.fileDropArea.dragging:after {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 600;
+}
+.dragging {
+  background-color: var(--color-blue-300);
+}
+.error {
+  background-color: var(--color-red-300);
+}

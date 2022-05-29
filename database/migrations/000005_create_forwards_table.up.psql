@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS forward (
-   time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+   time TIMESTAMP WITHOUT TIME ZONE NOT NULL,  -- use TIMESTAMPTZ !!
    time_ns NUMERIC,
    outgoing_channel_id NUMERIC,
    incoming_channel_id NUMERIC,

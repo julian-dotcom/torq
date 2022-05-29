@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/table/tableSlice";
-import { settings, timeZone } from "./apiTypes";
+import { settings, timeZone, localNode } from "./apiTypes";
 
 const API_URL =
   window.location.port === "3000"
@@ -12,16 +12,16 @@ export const torqApi = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
     baseUrl: API_URL,
-    prepareHeaders: (headers, _) => {
-      if (!headers.get("Content-Type")) {
-        headers.set("Content-Type", "application/json");
-      }
-      return headers;
-    },
+    // prepareHeaders: (headers, _) => {
+    //   if (!headers.get("Content-Type")) {
+    //     headers.set("Content-Type", "application/json");
+    //   }
+    //   return headers;
+    // },
     credentials: "include",
     mode: "cors",
   }),
-  tagTypes: ["settings", "tableView"],
+  tagTypes: ["settings", "tableView", "localNode"],
   endpoints: (builder) => ({
     getFlow: builder.query<any, { from: string; to: string; chanId: string }>({
       query: ({ from, to, chanId }) => `flow?from=${from}&to=${to}&chan_id=${chanId}`,
@@ -80,7 +80,7 @@ export const torqApi = createApi({
         url: "login",
         method: "POST",
         body: new URLSearchParams(form as any),
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        // headers: { "Content-Type": "application/x-www-form-urlencoded" },
       }),
     }),
     getSettings: builder.query<settings, void>({
@@ -97,6 +97,18 @@ export const torqApi = createApi({
     }),
     getTimeZones: builder.query<timeZone[], void>({
       query: () => `settings/timezones`,
+    }),
+    getLocalNode: builder.query<localNode, void>({
+      query: () => `settings/local-node`,
+      providesTags: ["localNode"],
+    }),
+    updateLocalNode: builder.mutation<any, FormData>({
+      query: (localNode) => ({
+        url: "settings/local-node",
+        method: "PUT",
+        body: localNode,
+      }),
+      invalidatesTags: ["localNode"],
     }),
   }),
 });
@@ -117,4 +129,6 @@ export const {
   useGetSettingsQuery,
   useUpdateSettingsMutation,
   useGetTimeZonesQuery,
+  useGetLocalNodeQuery,
+  useUpdateLocalNodeMutation,
 } = torqApi;

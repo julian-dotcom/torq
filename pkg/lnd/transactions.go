@@ -103,5 +103,4 @@ func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction) error {
 	}
 	return nil
 
-	return nil
 }

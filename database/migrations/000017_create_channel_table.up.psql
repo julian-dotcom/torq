@@ -7,6 +7,6 @@ CREATE TABLE channel(
   channel_point TEXT NULL,
   alias TEXT NULL,
   destination_pub_key TEXT NULL,
-  created_on TIMESTAMP NOT NULL,
-  updated_on TIMESTAMP NULL
+  created_on TIMESTAMP NOT NULL,  -- use TIMESTAMPTZ !!
+  updated_on TIMESTAMP NULL  -- use TIMESTAMPTZ !!
 );
