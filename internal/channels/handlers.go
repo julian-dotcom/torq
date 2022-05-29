@@ -2,19 +2,17 @@ package channels
 
 import (
 	"github.com/gin-gonic/gin"
-	"gopkg.in/guregu/null.v4"
-
-	// "gopkg.in/guregu/null.v4"
-	"net/http"
-	"time"
-
 	"github.com/lncapital/torq/pkg/server_errors"
+	"gopkg.in/guregu/null.v4"
+	"net/http"
+
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 )
 
-func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
+func getChannelsTableHandler(c *gin.Context, db *sqlx.DB) {
 	from, err := time.Parse("2006-01-02", c.Query("from"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -25,7 +23,7 @@ func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	r, err := getAggForwardsByChanIds(db, from, to)
+	r, err := getChannelsTableData(db, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -33,7 +31,7 @@ func getChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-type channelData struct {
+type channelTableRow struct {
 	// Alias of remote peer
 	Alias null.String `json:"alias"`
 	// Database primary key of channel
@@ -82,7 +80,7 @@ type channelData struct {
 	TurnoverTotal float32 `json:"turnover_total"`
 }
 
-func getAggForwardsByChanIds(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*channelData, err error) {
+func getChannelsTableData(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*channelTableRow, err error) {
 	var sql = `
 select
     coalesce(ne.alias, ce.pub_key, '') as alias,
@@ -146,8 +144,8 @@ left join (
                floor(sum(fee_msat)/1000) as revenue,
                count(time) as count
         from forward, settings
-        where time >= $1::timestamp AT TIME ZONE settings.preferred_timezone
-            and time <= $2::timestamp AT TIME ZONE settings.preferred_timezone
+        where time::timestamp AT TIME ZONE settings.preferred_timezone >= $1::timestamp AT TIME ZONE settings.preferred_timezone
+            and time::timestamp AT TIME ZONE settings.preferred_timezone <= $2::timestamp AT TIME ZONE settings.preferred_timezone
         group by outgoing_channel_id
         ) as o
     full outer join (
@@ -156,8 +154,8 @@ left join (
                floor(sum(fee_msat)/1000) as revenue,
                count(time) as count
         from forward, settings
-        where time >= $1::timestamp AT TIME ZONE settings.preferred_timezone
-            and time <= $2::timestamp AT TIME ZONE settings.preferred_timezone
+        where time::timestamp AT TIME ZONE settings.preferred_timezone >= $1::timestamp AT TIME ZONE settings.preferred_timezone
+            and time::timestamp AT TIME ZONE settings.preferred_timezone <= $2::timestamp AT TIME ZONE settings.preferred_timezone
         group by incoming_channel_id) as i
     on i.chan_id = o.chan_id
 ) as fw on fw.chan_id = ce.chan_id
@@ -169,7 +167,7 @@ left join (
 	}
 
 	for rows.Next() {
-		c := &channelData{}
+		c := &channelTableRow{}
 		err = rows.Scan(
 			&c.Alias,
 			&c.ChannelDBID,

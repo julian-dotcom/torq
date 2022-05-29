@@ -1,18 +1,8 @@
 import "./interval_select.scss";
 import React, { useEffect, useState } from "react";
-import {
-  format,
-  startOfDay,
-  addDays,
-  subDays,
-  differenceInDays,
-} from "date-fns";
-import locale from "date-fns/locale/en-US";
+import { format, startOfDay, addDays, subDays, differenceInDays } from "date-fns";
 import { DateRangePicker } from "react-date-range";
-import {
-  ChevronLeft24Regular as LeftIcon,
-  ChevronRight24Regular as RightIcon,
-} from "@fluentui/react-icons";
+import { ChevronLeft24Regular as LeftIcon, ChevronRight24Regular as RightIcon } from "@fluentui/react-icons";
 
 import { defaultStaticRangesFn } from "./customRanges";
 
@@ -77,34 +67,20 @@ function TimeIntervalSelect() {
 
   const moveBackwardInTime = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
-    let diff = differenceInDays(
-      new Date(currentPeriod.to),
-      new Date(currentPeriod.from)
-    );
+    let diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from));
     const interval = {
-      from: startOfDay(
-        subDays(new Date(currentPeriod.from), diff + 1)
-      ).toISOString(),
-      to: startOfDay(
-        subDays(new Date(currentPeriod.to), diff + 1)
-      ).toISOString(),
+      from: startOfDay(subDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
+      to: startOfDay(subDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
     };
     dispatch(updateInterval(interval));
   };
 
   const moveForwardInTime = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
-    let diff = differenceInDays(
-      new Date(currentPeriod.to),
-      new Date(currentPeriod.from)
-    );
+    let diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from));
     const interval = {
-      from: startOfDay(
-        addDays(new Date(currentPeriod.from), diff + 1)
-      ).toISOString(),
-      to: startOfDay(
-        addDays(new Date(currentPeriod.to), diff + 1)
-      ).toISOString(),
+      from: startOfDay(addDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
+      to: startOfDay(addDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
     };
     dispatch(updateInterval(interval));
   };
@@ -141,14 +117,9 @@ function TimeIntervalSelect() {
                     defaultStaticRanges.findIndex((item: any) => {
                       // Mark Custom if definedRange is not found in predefined staticRanges
                       return (
-                        item
-                          .range(currentPeriod.weekStartsOn)
-                          .startDate.toString() ===
+                        item.range(currentPeriod.weekStartsOn).startDate.toString() ===
                           definedRange.startDate?.toString() &&
-                        item
-                          .range(currentPeriod.weekStartsOn)
-                          .endDate.toString() ===
-                          definedRange.endDate?.toString()
+                        item.range(currentPeriod.weekStartsOn).endDate.toString() === definedRange.endDate?.toString()
                       );
                     }) === -1
                   );
@@ -171,10 +142,7 @@ function TimeIntervalSelect() {
               handleChange(item);
             }}
           />
-          <div
-            className="close-date-range-mobile"
-            onClick={() => setIsMobile(false)}
-          >
+          <div className="close-date-range-mobile" onClick={() => setIsMobile(false)}>
             Close
           </div>
         </div>

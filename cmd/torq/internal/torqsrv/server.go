@@ -7,8 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/internal/auth"
+	"github.com/lncapital/torq/internal/channel_history"
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/channels/tags"
+	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/views"
 	"github.com/ulule/limiter/v3"
@@ -87,13 +88,21 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 			views.RegisterTableViewRoutes(tableViewRoutes, db)
 		}
 
+		//channelTagRoutes := api.Group("/tags")
+		//{
+		//	tags.RegisterTagRoutes(channelTagRoutes, db)
+		//}
+
 		channelRoutes := api.Group("/channels")
 		{
 			channels.RegisterChannelRoutes(channelRoutes, db)
-			channelTagRoutes := channelRoutes.Group(":channelDbId/tags")
-			{
-				tags.RegisterTagRoutes(channelTagRoutes, db)
-			}
+			channel_history.RegisterChannelHistoryRoutes(channelRoutes, db)
+
+		}
+
+		flowRoutes := api.Group("/flow")
+		{
+			flow.RegisterFlowRoutes(flowRoutes, db)
 		}
 
 		settingRoutes := api.Group("settings")
@@ -107,6 +116,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 			})
 		})
 	}
+
 }
 
 func registerStaticRoutes(r *gin.Engine) {

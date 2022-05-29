@@ -32,11 +32,6 @@ func getChanPoint(cb []byte, oi uint32) (string, error) {
 func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 	pubKeyChan chan string, chanPointChan chan string) error {
 
-	jb, err := json.Marshal(ce)
-	if err != nil {
-		return fmt.Errorf("storeChannelEvent -> json.Marshal(%v): %v", ce, err)
-	}
-
 	timestampMs := time.Now().UTC()
 
 	var ChanID uint64
@@ -62,10 +57,22 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 			ChannelPoint:      null.StringFrom(ChannelPoint),
 			DestinationPubKey: null.StringFrom(PubKey),
 		}
-		err = channels.AddChannelRecordIfDoesntExist(db, channel)
+
+		err := channels.AddChannelRecordIfDoesntExist(db, channel)
 		if err != nil {
 			return err
 		}
+		jb, err := json.Marshal(c)
+		if err != nil {
+			return fmt.Errorf("storeChannelEvent -> json.Marshal(%v): %v", c, err)
+		}
+		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		if err != nil {
+			return errors.Wrapf(err, `storeChannelEvent -> insertChannelEventExec(%v, %s, %s, %t, %d, %s, %s, %v)`,
+				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		}
+
+		return nil
 
 	case lnrpc.ChannelEventUpdate_CLOSED_CHANNEL:
 		c := ce.GetClosedChannel()
@@ -81,44 +88,87 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 			ChannelPoint:      null.StringFrom(ChannelPoint),
 			DestinationPubKey: null.StringFrom(PubKey),
 		}
-		err = channels.AddChannelRecordIfDoesntExist(db, channel)
+		err := channels.AddChannelRecordIfDoesntExist(db, channel)
 		if err != nil {
 			return err
 		}
+
+		jb, err := json.Marshal(c)
+		if err != nil {
+			return fmt.Errorf("storeChannelEvent -> json.Marshal(%v): %v", c, err)
+		}
+		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		if err != nil {
+			return errors.Wrapf(err, `storeChannelEvent -> insertChannelEventExec(%v, %s, %s, %t, %d, %s, %s, %v)`,
+				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		}
+
+		return nil
 
 	case lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL:
 		c := ce.GetFullyResolvedChannel()
-		ChannelPoint, err = getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		ChannelPoint, err := getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
 			return err
+		}
+		jb, err := json.Marshal(c)
+		if err != nil {
+			return fmt.Errorf("storeChannelEvent -> json.Marshal(%v): %v", c, err)
+		}
+		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		if err != nil {
+			return errors.Wrapf(err, `storeChannelEvent -> insertChannelEventExec(%v, %s, %s, %t, %d, %s, %s, %v)`,
+				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
 		}
 	case lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL:
 		c := ce.GetActiveChannel()
-		ChannelPoint, err = getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		ChannelPoint, err := getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
 			return err
 		}
+		jb, err := json.Marshal(c)
+		if err != nil {
+			return fmt.Errorf("storeChannelEvent -> json.Marshal(%v): %v", c, err)
+		}
+		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		if err != nil {
+			return errors.Wrapf(err, `storeChannelEvent -> insertChannelEventExec(%v, %s, %s, %t, %d, %s, %s, %v)`,
+				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		}
+		return nil
 	case lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL:
 		c := ce.GetInactiveChannel()
-		ChannelPoint, err = getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		ChannelPoint, err := getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
 			return err
 		}
+		jb, err := json.Marshal(c)
+		if err != nil {
+			return fmt.Errorf("storeChannelEvent -> json.Marshal(%v): %v", c, err)
+		}
+		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		if err != nil {
+			return errors.Wrapf(err, `storeChannelEvent -> insertChannelEventExec(%v, %s, %s, %t, %d, %s, %s, %v)`,
+				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		}
+		return nil
 	case lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL:
 		c := ce.GetPendingOpenChannel()
-		ChannelPoint, err = getChanPoint(c.GetTxid(), c.GetOutputIndex())
+		ChannelPoint, err := getChanPoint(c.GetTxid(), c.GetOutputIndex())
 		if err != nil {
 			return err
 		}
+		jb, err := json.Marshal(c)
+		if err != nil {
+			return fmt.Errorf("storeChannelEvent -> json.Marshal(%v): %v", c, err)
+		}
+		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		if err != nil {
+			return errors.Wrapf(err, `storeChannelEvent -> insertChannelEventExec(%v, %s, %s, %t, %d, %s, %s, %v)`,
+				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		}
+		return nil
 	default:
-		// TODO: Need to improve error handling and logging in the case of unknown event.
-		//  Simply storing the event without any link to a channel.
-	}
-
-	err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
-	if err != nil {
-		return errors.Wrapf(err, `storeChannelEvent -> insertChannelEventExec(%v, %s, %s, %t, %d, %s, %s, %v)`,
-			db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
 	}
 
 	return nil

@@ -5,7 +5,7 @@ frontendTest = cd web && npm i && npm test -- --watchAll=false
 stopDevDb = ($(MAKE) stop-dev-db && false)
 
 .PHONY: test
-test: start-dev-db wait-db test-backend-with-db-stop test-frontend-with-db-stop stop-dev-db
+test: start-dev-db wait-db test-frontend test-backend-with-db-stop stop-dev-db
 	@echo All tests pass!
 
 .PHONY: test-backend-with-db-stop
@@ -13,12 +13,12 @@ test-backend-with-db-stop:
 	$(backendTest) || $(stopDevDb)
 
 .PHONY: test-frontend-with-db-stop
-test-frontend-with-db-stop:
+test-frontend-with-db-stop: start-dev-db wait-db
 	$(frontendTest) || (cd ../ && $(stopDevDb))
 
 .PHONY: test-backend
-test-backend:
-	$(backendTest)
+test-backend: start-dev-db wait-db
+	$(backendTest)  || $(stopDevDb)
 
 .PHONY: test-frontend
 test-frontend:

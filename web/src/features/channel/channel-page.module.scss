@@ -1,0 +1,292 @@
+.channelControls {
+  padding: 10px 0 20px 0px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: auto auto;
+  justify-items: space-between;
+  align-items: center;
+}
+.leftContainer {
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 10px;
+  justify-content: start;
+  align-items: center;
+}
+.upperContainer {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+}
+.lowerContainer {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  grid-column-gap: 10px;
+}
+.rightContainer {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: end;
+  align-items: center;
+  .popoverWrapper.popoverOpen {
+    right: 0;
+    left: inherit;
+    .popoverContainer {
+      padding: 0;
+    }
+  }
+}
+
+.channelsPageContent {
+  margin: 20px;
+  @media only screen and (max-width: 600px) {
+    margin: 10px;
+  }
+}
+.channelWrapper {
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 20px;
+  @media only screen and (max-width: 900px) {
+    grid-row-gap: 10px;
+  }
+}
+.pageRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-column-gap: 10px;
+}
+.channelSummary,
+.eventSummary {
+  grid-template-columns: minmax(300px, 1fr) 2fr;
+  @media only screen and (max-width: 900px) {
+    grid-row-gap: 10px;
+    grid-template-columns: auto;
+    grid-template-rows: auto 600px;
+  }
+}
+.shortColumn {
+  display: grid;
+  grid-row-gap: 10px;
+}
+.tripleRow {
+  grid-auto-columns: 1fr;
+  @media only screen and (max-width: 900px) {
+    grid-row-gap: 10px;
+    grid-auto-flow: row;
+    grid-template-rows: auto;
+  }
+}
+.card {
+  background-color: var(--bg-default);
+  border: 1px solid var(--bg-subtle);
+  padding: 20px;
+  font-size: var(--font-size-small);
+  border-radius: 3px;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  @media only screen and (max-width: 600px) {
+    padding: 10px;
+  }
+}
+.chartContainer {
+  display: flex;
+  justify-items: start;
+  flex-direction: column;
+  flex: 1;
+  align-content: stretch;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.cardRow {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: space-between;
+}
+.rowLabel,
+rowValue {
+  display: grid;
+  align-items: center;
+  grid-auto-flow: column;
+  grid-column-gap: 5px;
+  line-height: 150%;
+}
+.heading {
+  color: var(--fg-muted);
+  margin-bottom: 5px;
+}
+.comingSoon {
+  color: var(--fg-muted);
+}
+
+.profitChartControls {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.flowChartWrapper {
+  min-height: 500px;
+  height: calc(100vh - 300px);
+  max-height: 800px;
+}
+.eventRowsWrapper {
+  display: grid;
+  grid-row-gap: 7px;
+  grid-auto-rows: min-content;
+}
+.eventRow {
+  padding: 6px 7px;
+  border-radius: 3px;
+}
+.eventRowName {
+  margin-bottom: 3px;
+  color: var(--fg-muted);
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  grid-column-gap: 5px;
+}
+.eventRow ~ .eventRowName {
+  margin-top: 20px;
+}
+.eventDateRow + .eventRowName {
+  margin-top: 5px;
+}
+.channelPoint,
+.channelAlias {
+  max-width: 100px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.eventRowDetails {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: min-content min-content auto;
+  grid-column-gap: 10px;
+  align-items: center;
+}
+.eventDateRow {
+  font-size: var(--font-size-small);
+  border-bottom: 1px solid var(--bg-faint);
+  padding-bottom: 5px;
+}
+.eventRow ~ .eventDateRow {
+  margin-top: 30px;
+}
+.datetime {
+  white-space: nowrap;
+}
+
+.channel_open {
+  background-color: var(--accent-b-250);
+  &.inbound {
+    background-color: var(--accent-b-100);
+  }
+}
+.channel_close {
+  background-color: var(--secondary-400);
+  &.inbound {
+    background-color: var(--secondary-200);
+  }
+}
+.fee_rate {
+  background-color: var(--primary-400);
+  &.inbound {
+    background-color: var(--primary-300);
+  }
+}
+.base_fee {
+  background-color: var(--bg-subtle);
+  &.inbound {
+    background-color: var(--bg-faint);
+  }
+}
+.rebalanced_out {
+  background-color: var(--accent-a-200);
+  &.inbound {
+    background-color: var(--secondary-200);
+  }
+}
+.rebalanced_in {
+  background-color: var(--accent-a-300);
+  &.inbound {
+    background-color: var(--secondary-200);
+  }
+}
+.disabled {
+  background-color: var(--color-baige-400);
+  &.inbound {
+    background-color: var(--color-baige-300);
+  }
+}
+.enabled {
+  background-color: var(--color-baige-400);
+  &.inbound {
+    background-color: var(--color-baige-300);
+  }
+}
+.min_htlc {
+  background-color: var(--accent-b-250);
+  &.inbound {
+    background-color: var(--accent-b-50);
+  }
+}
+.max_htlc {
+  background-color: var(--accent-a-300);
+  &.inbound {
+    background-color: var(--accent-a-200);
+  }
+}
+//.inbound {
+//  background-color: var(--bg-faint);
+//}
+
+.card.scroll {
+  overflow-y: scroll;
+  @media only screen and (min-width: 900px) {
+    padding-right: 5px;
+  }
+}
+@media only screen and (min-width: 900px) {
+  .card.scroll:global(::-webkit-scrollbar) {
+    background-color: transparent;
+  }
+  .card.scroll:global(::-webkit-scrollbar-track) {
+    border: none;
+    overflow: visible;
+    z-index: 100;
+    position: absolute;
+    background: transparent;
+    box-shadow: none;
+    -webkit-box-shadow: none;
+  }
+  .card.scroll:global(::-webkit-scrollbar-thumb) {
+    height: 6px;
+    border: 4px solid rgba(0, 0, 0, 0);
+    background-clip: padding-box;
+    background-color: rgba(0, 0, 0, 0.2);
+    -webkit-border-radius: 7px;
+    -webkit-box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05), inset 1px 1px 0px rgba(0, 0, 0, 0.05);
+  }
+
+  .card.scroll:global(::-webkit-scrollbar-button) {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .card.scroll:global(::-webkit-scrollbar-corner) {
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+}
+.channelChartSettingsPopover {
+  min-width: 150px;
+  padding: 20px;
+}

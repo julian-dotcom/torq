@@ -2,16 +2,13 @@ import React from "react";
 import { useAppDispatch } from "../../store/hooks";
 import { toggleNav } from "./navSlice";
 import MenuItem from "./MenuItem";
-import { ReactComponent as DotIcon } from "../../icons/dot-solid.svg";
 import { ReactComponent as TorqLogo } from "../../icons/torq-logo.svg";
 import {
-  Money20Regular as FeeIcon,
   ColumnTriple20Regular as TableIcon,
-  AddSquare20Regular as AddTable,
-  ArrowRepeatAll20Regular as RebalanceIcon,
   ChevronDoubleLeft20Regular as CollapseIcon,
+  Gauge20Regular as DashboardIcon,
   LockClosed20Regular as LogoutIcon,
-  Settings20Regular as SettingsIcon
+  Settings20Regular as SettingsIcon,
 } from "@fluentui/react-icons";
 import "./navigation.scss";
 
@@ -24,10 +21,7 @@ function Navigation() {
         <div className="logo">
           <TorqLogo />
         </div>
-        <div
-          className="collapse icon-button"
-          onClick={() => dispatch(toggleNav())}
-        >
+        <div className="collapse icon-button" onClick={() => dispatch(toggleNav())}>
           <CollapseIcon />
         </div>
       </div>
@@ -41,18 +35,15 @@ function Navigation() {
 
         <div className="wrapper">
           {/*actions={<AddTable/>}*/}
-          <MenuItem text={"Tables"} icon={<TableIcon />} routeTo={"/"} />
+          <MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/"} />
+          <MenuItem text={"Channels"} icon={<TableIcon />} routeTo={"/channels"} />
           {/*<MenuItem text={'Fees'} icon={<FeeIcon/>}  />*/}
           {/*<MenuItem text={'Rebalance'} icon={<RebalanceIcon/>}  />*/}
         </div>
       </div>
 
       <div className="bottom-wrapper">
-        <MenuItem
-          text={"Settings"}
-          icon={<SettingsIcon />}
-          routeTo={"/settings"}
-        />
+        <MenuItem text={"Settings"} icon={<SettingsIcon />} routeTo={"/settings"} />
         <MenuItem text={"Logout"} icon={<LogoutIcon />} routeTo={"/logout"} />
       </div>
     </div>

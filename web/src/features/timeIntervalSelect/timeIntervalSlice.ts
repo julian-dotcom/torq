@@ -13,6 +13,12 @@ export interface TimeIntervalState {
   weekStartsOn: number;
 }
 
+const startOfWeekTable = {
+  saturday: 6,
+  sunday: 0,
+  monday: 1,
+};
+
 const initialState: TimeIntervalState = {
   to: defineds.endOfLast7Days.toString(),
   from: defineds.startOfLast7Days.toString(),
@@ -38,7 +44,7 @@ export const timeIntervalSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addMatcher(torqApi.endpoints.getSettings.matchFulfilled, (state, { payload }) => {
-      const weekStartsOn = payload.weekStartsOn === "saturday" ? 6 : payload.weekStartsOn === "sunday" ? 0 : 1;
+      const weekStartsOn = startOfWeekTable[payload.weekStartsOn];
       state.weekStartsOn = weekStartsOn;
       if (!state.defaultDateRange) {
         setRangeToDefault(state, payload.defaultDateRange);

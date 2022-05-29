@@ -6,13 +6,7 @@ import NumericCell from "../cells/NumericCell";
 import BarCell from "../cells/BarCell";
 import TextCell from "../cells/TextCell";
 import { useAppSelector } from "../../../store/hooks";
-import {
-  selectActiveColumns,
-  ColumnMetaData,
-  selectFilters,
-  selectGroupBy,
-  selectSortBy,
-} from "../tableSlice";
+import { selectActiveColumns, ColumnMetaData, selectFilters, selectGroupBy, selectSortBy } from "../tableSlice";
 import classNames from "classnames";
 import clone from "clone";
 import { selectTimeInterval } from "../../timeIntervalSelect/timeIntervalSlice";
@@ -20,16 +14,11 @@ import { useGetChannelsQuery } from "apiSlice";
 import { format, addDays } from "date-fns";
 import { useMemo } from "react";
 import _, { cloneDeep } from "lodash";
-import {
-  applyFilters,
-  Clause,
-  deserialiseQuery,
-} from "../controls/filter/filter";
+import { applyFilters, Clause, deserialiseQuery } from "../controls/filter/filter";
 import { groupByFn } from "../controls/group/groupBy";
 
 function Table() {
-  const activeColumns =
-    clone<ColumnMetaData[]>(useAppSelector(selectActiveColumns)) || [];
+  const activeColumns = clone<ColumnMetaData[]>(useAppSelector(selectActiveColumns)) || [];
   const currentPeriod = useAppSelector(selectTimeInterval);
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
@@ -40,9 +29,7 @@ function Table() {
   const sortBy = useAppSelector(selectSortBy);
 
   const channels = useMemo(() => {
-    const filters = filtersFromStore
-      ? deserialiseQuery(clone<Clause>(filtersFromStore))
-      : undefined;
+    const filters = filtersFromStore ? deserialiseQuery(clone<Clause>(filtersFromStore)) : undefined;
     let channels = cloneDeep(data ? data : ([] as any[]));
 
     if (channels.length > 0) {
@@ -68,36 +55,23 @@ function Table() {
       }
     }
 
-    const turnover_total_col = activeColumns.find(
-      (col) => col.key === "turnover_total"
-    );
-    const turnover_out_col = activeColumns.find(
-      (col) => col.key === "turnover_out"
-    );
-    const turnover_in_col = activeColumns.find(
-      (col) => col.key === "turnover_in"
-    );
-    const amount_total_col = activeColumns.find(
-      (col) => col.key === "amount_total"
-    );
-    const amount_out_col = activeColumns.find(
-      (col) => col.key === "amount_out"
-    );
+    const turnover_total_col = activeColumns.find((col) => col.key === "turnover_total");
+    const turnover_out_col = activeColumns.find((col) => col.key === "turnover_out");
+    const turnover_in_col = activeColumns.find((col) => col.key === "turnover_in");
+    const amount_total_col = activeColumns.find((col) => col.key === "amount_total");
+    const amount_out_col = activeColumns.find((col) => col.key === "amount_out");
     const amount_in_col = activeColumns.find((col) => col.key === "amount_in");
     const capacity_col = activeColumns.find((col) => col.key === "capacity");
     if (turnover_total_col) {
-      turnover_total_col.total =
-        (amount_total_col?.total ?? 0) / (capacity_col?.total ?? 1);
+      turnover_total_col.total = (amount_total_col?.total ?? 0) / (capacity_col?.total ?? 1);
     }
 
     if (turnover_out_col) {
-      turnover_out_col.total =
-        (amount_out_col?.total ?? 0) / (capacity_col?.total ?? 1);
+      turnover_out_col.total = (amount_out_col?.total ?? 0) / (capacity_col?.total ?? 1);
     }
 
     if (turnover_in_col) {
-      turnover_in_col.total =
-        (amount_in_col?.total ?? 0) / (capacity_col?.total ?? 1);
+      turnover_in_col.total = (amount_in_col?.total ?? 0) / (capacity_col?.total ?? 1);
     }
   }
 
@@ -105,11 +79,7 @@ function Table() {
   const numRows = channels.length;
   const rowGridStyle = (numRows: number): string => {
     if (numRows > 0) {
-      return (
-        "grid-template-rows: min-content repeat(" +
-        numRows +
-        ",min-content) auto min-content;"
-      );
+      return "grid-template-rows: min-content repeat(" + numRows + ",min-content) auto min-content;";
     } else {
       return "grid-template-rows: min-content  auto min-content;";
     }
@@ -139,11 +109,7 @@ function Table() {
         {
           <HeaderCell
             heading={""}
-            className={classNames(
-              cellStyles.firstEmptyHeader,
-              cellStyles.empty,
-              cellStyles.locked
-            )}
+            className={classNames(cellStyles.firstEmptyHeader, cellStyles.empty, cellStyles.locked)}
             key={"first-empty-header"}
           />
         }
@@ -153,10 +119,7 @@ function Table() {
           return (
             <HeaderCell
               heading={column.heading}
-              className={classNames(
-                column.key,
-                column.type === "TextCell" ? cellStyles.textCell : ""
-              )}
+              className={classNames(column.key, column.type === "TextCell" ? cellStyles.textCell : "")}
               key={column.key + index}
               locked={column.locked}
             />
@@ -181,6 +144,7 @@ function Table() {
                 return (
                   <AliasCell
                     current={row[key] as string}
+                    chanId={row["chan_id"]}
                     open={row["open"]}
                     className={classNames(key, index, cellStyles.locked)}
                     key={key + index + columnIndex}
@@ -227,26 +191,15 @@ function Table() {
           });
           // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
           return (
-            <div
-              className={classNames(styles.tableRow, "torq-row-" + index)}
-              key={"torq-row-" + index}
-            >
+            <div className={classNames(styles.tableRow, "torq-row-" + index)} key={"torq-row-" + index}>
               {[
                 <div
-                  className={classNames(
-                    cellStyles.cell,
-                    cellStyles.empty,
-                    cellStyles.locked
-                  )}
+                  className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked)}
                   key={"first-cell-" + index}
                 />,
                 ...returnedRow,
                 <div
-                  className={classNames(
-                    cellStyles.cell,
-                    cellStyles.empty,
-                    cellStyles.lastEmptyCell
-                  )}
+                  className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.lastEmptyCell)}
                   key={"last-cell-" + index}
                 />,
               ]}
@@ -256,23 +209,11 @@ function Table() {
 
         {/* Empty filler cells to create an empty row that expands to push the last row down.
            It's ugly but seems to be the only way to do it */}
-        {
-          <div
-            className={classNames(
-              cellStyles.cell,
-              cellStyles.empty,
-              cellStyles.locked
-            )}
-          />
-        }
+        {<div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked)} />}
         {activeColumns.map((column, index) => {
           return (
             <div
-              className={classNames(
-                cellStyles.cell,
-                cellStyles.empty,
-                column.key
-              )}
+              className={classNames(cellStyles.cell, cellStyles.empty, column.key)}
               key={`mid-cell-${column.key}-${index}`}
             />
           );
@@ -282,28 +223,15 @@ function Table() {
 
         {/* Totals row */}
         {/* Empty cell at the start */}
-        {
-          <div
-            className={classNames(
-              cellStyles.cell,
-              cellStyles.empty,
-              cellStyles.locked,
-              cellStyles.totalCell
-            )}
-          />
-        }
+        {<div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked, cellStyles.totalCell)} />}
         {activeColumns.map((column, index) => {
           switch (column.type) {
             case "AliasCell":
               return (
                 <AliasCell
                   current={"Total"}
-                  className={classNames(
-                    column.key,
-                    index,
-                    cellStyles.locked,
-                    cellStyles.totalCell
-                  )}
+                  chanId={""}
+                  className={classNames(column.key, index, cellStyles.locked, cellStyles.totalCell)}
                   key={column.key + index}
                 />
               );
@@ -312,11 +240,7 @@ function Table() {
                 <NumericCell
                   current={column.total as number}
                   index={index}
-                  className={classNames(
-                    column.key,
-                    index,
-                    cellStyles.totalCell
-                  )}
+                  className={classNames(column.key, index, cellStyles.totalCell)}
                   key={`total-${column.key}-${index}`}
                 />
               );
@@ -327,11 +251,7 @@ function Table() {
                   previous={column.total as number}
                   total={column.max as number}
                   index={index}
-                  className={classNames(
-                    column.key,
-                    index,
-                    cellStyles.totalCell
-                  )}
+                  className={classNames(column.key, index, cellStyles.totalCell)}
                   key={`total-${column.key}-${index}`}
                 />
               );
@@ -354,11 +274,7 @@ function Table() {
                 <NumericCell
                   current={column.total as number}
                   index={index}
-                  className={classNames(
-                    column.key,
-                    index,
-                    cellStyles.totalCell
-                  )}
+                  className={classNames(column.key, index, cellStyles.totalCell)}
                   key={`total-${column.key}-${index}`}
                 />
               );
@@ -367,12 +283,7 @@ function Table() {
         {/*Empty cell at the end*/}
         {
           <div
-            className={classNames(
-              cellStyles.cell,
-              cellStyles.empty,
-              cellStyles.totalCell,
-              cellStyles.lastTotalCell
-            )}
+            className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.totalCell, cellStyles.lastTotalCell)}
           />
         }
       </div>

@@ -1,0 +1,29 @@
+UPDATE channel_event
+SET event = event->'Channel'->'OpenChannel'
+WHERE event_type = 0
+and imported = false;
+
+UPDATE channel_event
+SET event = event->'Channel'->'ClosedChannel'
+WHERE event_type = 1
+and imported = false;
+
+UPDATE channel_event
+SET event = event->'Channel'->'ActiveChannel'
+WHERE event_type = 2
+and imported = false;
+
+UPDATE channel_event
+SET event = event->'Channel'->'InactiveChannel'
+WHERE event_type = 3
+and imported = false;
+
+UPDATE channel_event
+SET event = event->'Channel'->'PendingOpenChannel'
+WHERE event_type = 4
+and imported = false;
+
+UPDATE channel_event
+SET event = event->'Channel'->'FullyResolvedChannel'
+WHERE event_type = 5
+and imported = false;

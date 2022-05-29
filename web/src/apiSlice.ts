@@ -23,6 +23,12 @@ export const torqApi = createApi({
   }),
   tagTypes: ["settings", "tableView", "localNode"],
   endpoints: (builder) => ({
+    getFlow: builder.query<any, { from: string; to: string; chanId: string }>({
+      query: ({ from, to, chanId }) => `flow?from=${from}&to=${to}&chan_id=${chanId}`,
+    }),
+    getChannelHistory: builder.query<any, { from: string; to: string; chanIds: string }>({
+      query: ({ from, to, chanIds }) => `channels/${chanIds}?from=${from}&to=${to}`,
+    }),
     getChannels: builder.query<any, { from: string; to: string }>({
       query: ({ from, to }) => `channels?from=${from}&to=${to}`,
     }),
@@ -110,6 +116,8 @@ export const torqApi = createApi({
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
 export const {
+  useGetFlowQuery,
+  useGetChannelHistoryQuery,
   useGetChannelsQuery,
   useGetTableViewsQuery,
   useUpdateTableViewMutation,

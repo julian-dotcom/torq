@@ -1,11 +1,9 @@
 import RawSelect, { SelectOptionType } from "../inputs/Select";
+import { Props } from "react-select";
 
-interface selectProps {
+type selectProps = {
   label: string;
-  options: SelectOptionType[];
-  value: SelectOptionType | undefined;
-  onChange: Function;
-}
+} & Props;
 
 function Select(props: selectProps) {
   return (

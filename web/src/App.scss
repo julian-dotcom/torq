@@ -23,9 +23,9 @@
 
   .page-wrapper {
     position: relative;
+    overflow-x: hidden;
     width: 100%;
     flex-grow: 1;
-    overflow: auto;
     scroll-behavior: smooth;
   }
 

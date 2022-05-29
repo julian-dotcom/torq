@@ -1,8 +1,9 @@
 import React, { useEffect } from "react";
-import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import DefaultLayout from "./layout/DefaultLayout";
 import LoginLayout from "./layout/LoginLayout";
 import TablePage from "./features/table/TablePage";
+
 import LoginPage from "./features/auth/LoginPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import "./App.scss";
@@ -11,17 +12,21 @@ import { useLogoutMutation } from "apiSlice";
 import Toasts, { addToastHandle } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import { BrowserRouter } from "react-router-dom";
+import ChannelPage from "./features/channel/ChannelPage";
+import DashboardPage from "./features/channel/DashboardPage";
 
 function Logout() {
   const [logout] = useLogoutMutation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     let c = new Cookies();
     c.remove("torq_session");
     logout();
+    navigate("/login", { replace: true });
   });
 
-  return <Navigate to="/login" replace />;
+  return <div />;
 }
 
 function App() {
@@ -38,10 +43,26 @@ function App() {
             </Route>
             <Route element={<DefaultLayout />}>
               <Route
-                path="/"
+                path="/channels"
                 element={
                   <RequireAuth>
                     <TablePage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/channel/:chanId"
+                element={
+                  <RequireAuth>
+                    <ChannelPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <DashboardPage />
                   </RequireAuth>
                 }
               />
@@ -64,13 +85,16 @@ function App() {
 }
 
 function RequireAuth({ children }: { children: JSX.Element }) {
-  let location = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  let c = new Cookies();
-  let torqSession = c.get("torq_session");
-  if (torqSession === undefined) {
-    return <Navigate to={"/login"} state={location} replace={true} />;
-  }
+  useEffect(() => {
+    let c = new Cookies();
+    const cookies = c.get("torq_session");
+    if (cookies === undefined) {
+      navigate("/login", { replace: true, state: location });
+    }
+  });
 
   return children;
 }

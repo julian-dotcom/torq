@@ -124,7 +124,7 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB) error {
 		for _, cu := range ceu {
 
 			ts = time.Now().UTC()
-			outbound = isOurNode(ceu[0].AdvertisingNode)
+			outbound = isOurNode(cu.AdvertisingNode)
 
 			err := insertRoutingPolicy(db, ts, outbound, &cu)
 			if err != nil {
