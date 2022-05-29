@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -14,6 +15,10 @@ func GetConnectionDetails(db *sqlx.DB) (connectionDetails, error) {
 	localNodeDetails, err := getLocalNodeConnectionDetails(db)
 	if err != nil {
 		return connectionDetails{}, err
+	}
+	if (localNodeDetails.GRPCAddress == nil) || (localNodeDetails.TLSDataBytes == nil) || (localNodeDetails.
+		MacaroonDataBytes == nil) {
+		return connectionDetails{}, errors.New("Missing node details")
 	}
 	return connectionDetails{
 		GRPCAddress:       *localNodeDetails.GRPCAddress,

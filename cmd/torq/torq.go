@@ -16,6 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"log"
 	"os"
+	"time"
 )
 
 var startchan = make(chan struct{})
@@ -130,11 +131,21 @@ func main() {
 					for {
 						select {
 						case <-startchan:
+						Credentials:
 							connectionDetails, err := settings.GetConnectionDetails(db)
-							if err != nil {
+							if err != nil && err.Error() != "Missing node details" {
 								fmt.Printf("failed to get node connection details: %v", err)
 								stoppedchan <- struct{}{}
 								continue
+							}
+							// TODO: Improve this. Simple retry I case of missing node details.
+							if err != nil && err.Error() == "Missing node details" {
+								fmt.Println("Missing node details. " +
+									"Go to settings and enter IP, port, macasoon and tls certificate. " +
+									"Retrying after a short delay")
+								time.Sleep(5 * time.Second)
+								fmt.Println("Retrying...")
+								goto Credentials
 							}
 							conn, err := lnd.Connect(
 								connectionDetails.GRPCAddress,
