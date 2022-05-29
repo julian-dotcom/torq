@@ -34,7 +34,7 @@ class ChartCanvas {
   config: chartConfig = {
     yScaleKey: "",
     rightYScaleKey: "",
-    yAxisPadding: 1.2,
+    yAxisPadding: 1.1,
     xAxisPadding: 0,
     leftYAxisKeys: [],
     rightYAxisKeys: [],

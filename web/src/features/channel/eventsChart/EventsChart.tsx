@@ -2,7 +2,7 @@
 import { useD3 } from "../../charts/useD3";
 import React, { useEffect } from "react";
 import { Selection } from "d3";
-import { ChartCanvas, AreaPlot, EventsPlot, LinePlot, BarPlot } from "../../charts/charts";
+import { ChartCanvas, EventsPlot, LinePlot, BarPlot } from "../../charts/charts";
 import "../../charts/chart.scss";
 import { useAppSelector } from "../../../store/hooks";
 import { selectEventChartKey } from "../channelSlice";
@@ -37,21 +37,14 @@ function EventsChart({ data, events, selectedEventTypes }: EventsChart) {
         yScaleKey: eventKey.value + "_total",
         rightYScaleKey: eventKey.value + "_total",
         rightYAxisKeys: [eventKey.value + "_out", eventKey.value + "_in", eventKey.value + "_total"],
-        // leftYAxisKeys: [eventKey.value + "_in"],
-        // showLeftYAxisLabel: true,
-        // showRightYAxisLabel: true,
         xAxisPadding: 6,
       });
-      // chart.plot(BarPlot, {
-      //   id: eventKey.value + "_out",
-      //   key: eventKey.value + "_out",
-      //   areaGradient: ["#DAEDFF", "#ABE9E6"],
-      // });
-      chart.plot(AreaPlot, {
+      chart.plot(BarPlot, {
         id: eventKey.value + "_total",
         key: eventKey.value + "_total",
         legendLabel: eventKey.label + " Total",
-        areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
+        barColor: "rgba(133, 196, 255, 0.5)",
+        // areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
       });
       chart.plot(LinePlot, {
         id: eventKey.value + "_out",
@@ -65,9 +58,7 @@ function EventsChart({ data, events, selectedEventTypes }: EventsChart) {
         key: eventKey.value + "_in",
         legendLabel: eventKey.label + " In",
         lineColor: "#FAAE93",
-        // rightAxis: true,
       });
-      // chart.plot(LinePlot, { id: eventKey.value + "_out", key: eventKey.value + "_out" });
       let filteredEvents =
         events?.filter((d) => {
           return selectedEventTypes.get(d.type); // selectedEventTypes
