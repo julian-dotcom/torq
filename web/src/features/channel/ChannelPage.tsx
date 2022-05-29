@@ -6,10 +6,11 @@ import Popover from "../popover/Popover";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import ProfitsChart from "./revenueChart/ProfitsChart";
 import EventsChart from "./eventsChart/EventsChart";
+import EventsCard from "../eventsCard/EventsCard";
 import Switch from "../inputs/Slider/Switch";
 import Button from "../buttons/Button";
 import Select from "../inputs/Select";
-import { Settings16Regular as SettingsIcon } from "@fluentui/react-icons";
+import { Settings16Regular as SettingsIcon, Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
 
 import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
@@ -25,39 +26,8 @@ import {
   updateFlowKey,
   updateProfitChartKey,
 } from "./channelSlice";
-import eventIcons from "../charts/plots/eventIcons";
 
 const ft = d3.format(",");
-
-const f = d3.format(",.2s");
-function fm(value: number): string | number {
-  if (value > 1) {
-    return f(value);
-  }
-  return value;
-}
-
-function formatEventText(type: string, value: number, prev: number, outbound: boolean): string {
-  const changed = value > prev ? "increased" : "decreased";
-  const changeText = `${changed} from ${fm(prev)} to ${fm(value)}`;
-  switch (type) {
-    case "fee_rate":
-      return `Fee rate ${outbound ? "outbound" : "inbound"} ${changeText}`;
-    case "base_fee":
-      return `Base fee ${outbound ? "outbound" : "inbound"} ${changeText}`;
-    case "min_htlc":
-      return `Min HTLC ${outbound ? "outbound" : "inbound"} ${changeText}`;
-    case "max_htlc":
-      return `Max HTLC ${outbound ? "outbound" : "inbound"} ${changeText}`;
-    case "rebalanced":
-      return `Rebalanced ${f(value)} ${outbound ? "outbound" : "inbound"}`;
-    case "disabled":
-      return `Disabled channel ${outbound ? "outbound" : "inbound"}`;
-    case "enabled":
-      return `Enabled channel ${outbound ? "outbound" : "inbound"}`;
-  }
-  return "";
-}
 
 const eventNames = new Map([
   ["fee_rate", "Fee rate"],
@@ -105,8 +75,6 @@ function ChannelPage() {
   const flowKey = useAppSelector(selectFlowKeys);
   const profitKey = useAppSelector(selectProfitChartKey);
   const eventKey = useAppSelector(selectEventChartKey);
-  let prev: string;
-  let prevAlias: string;
 
   let total_capacity: number = 0;
   if (historyQuery?.data?.channels) {
@@ -117,11 +85,14 @@ function ChannelPage() {
       .reduce((partialSum: number, a: number) => partialSum + a, 0);
   }
 
+  const selectedEventsCount = Array.from(selectedEvents).filter((d) => d[1]).length;
+
   return (
     <div className={styles.channelsPageContent}>
       <div className={styles.channelControls}>
         <div className={styles.leftContainer}>
-          <div className={styles.upperContainer}>
+          <div className={styles.upperContainer}></div>
+          <div className={styles.lowerContainer}>
             {!isLoading &&
               historyQuery.data &&
               (historyQuery.data.channels || [])
@@ -133,7 +104,6 @@ function ChannelPage() {
                 })
                 .join(", ")}
           </div>
-          <div className={styles.lowerContainer}></div>
         </div>
         <div className={styles.rightContainer}>
           <TimeIntervalSelect />
@@ -217,6 +187,7 @@ function ChannelPage() {
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Select
+                  className={"small"}
                   value={profitKey}
                   onChange={(newValue) => {
                     if (newValue) {
@@ -237,10 +208,10 @@ function ChannelPage() {
                   ]}
                 />
               </div>
-              <div className={styles.profitChartRightControls}>
-                <SettingsIcon />
-                Settings
-              </div>
+              {/*<div className={styles.profitChartRightControls}>*/}
+              {/*  <SettingsIcon />*/}
+              {/*  Settings*/}
+              {/*</div>*/}
             </div>
             <div className={styles.chartContainer}>
               {historyQuery.data && <ProfitsChart data={historyQuery.data.history} />}
@@ -348,60 +319,7 @@ function ChannelPage() {
 
         <div className={classNames(styles.pageRow, styles.eventSummary)}>
           <div className={styles.shortColumn}>
-            <div className={classNames(styles.card, styles.scroll)} style={{ height: "600px" }}>
-              <div className={styles.eventRowsWrapper}>
-                {!historyQuery?.data?.events && <div className={styles.eventRowName}>No events</div>}
-                {historyQuery?.data?.events &&
-                  historyQuery.data.events
-                    .filter((d: any) => {
-                      return selectedEvents.get(d.type); // selectedEventTypes
-                    })
-                    .map((event: any, index: number) => {
-                      const icon = eventIcons.get(event.type);
-                      const newDate = prev !== event.date;
-                      const newAlias = prevAlias !== event.channel_point;
-                      prev = event.date;
-                      prevAlias = event.channel_point;
-                      const chan =
-                        (historyQuery?.data?.channels || []).find(
-                          (c: any) => c.channel_point === event.channel_point
-                        ) || {};
-
-                      return (
-                        <React.Fragment key={"empty-wrapper-" + index}>
-                          {newDate && (
-                            <div key={"date-row" + index} className={styles.eventDateRow}>
-                              {format(new Date(event.date), "yyyy-MM-dd")}
-                            </div>
-                          )}
-                          {(newDate || newAlias) && (
-                            <div key={"name-row" + index} className={styles.eventRowName}>
-                              <div className={styles.channelAlias}>{chan.alias}</div>
-                              <div>|</div>
-                              <div className={styles.channelPoint}>{chan.channel_point}</div>
-                            </div>
-                          )}
-                          <div
-                            key={index}
-                            className={classNames(
-                              styles.eventRow,
-                              styles[event.type],
-                              styles[event.outbound ? "" : "inbound"]
-                            )}
-                          >
-                            <div className={styles.eventRowDetails}>
-                              <div className={styles.datetime}>{format(new Date(event.datetime), "hh:mm")}</div>
-                              <div className={"event-type"} dangerouslySetInnerHTML={{ __html: icon as string }} />
-                              <div className={"event-type-label"}>
-                                {formatEventText(event.type, event.value, event.previous_value, event.outbound)}
-                              </div>
-                            </div>
-                          </div>
-                        </React.Fragment>
-                      );
-                    })}
-              </div>
-            </div>
+            <EventsCard events={historyQuery} selectedEvents={selectedEvents} />
           </div>
           <div className={classNames(styles.card, styles.channelSummaryChart)} style={{ height: "600px" }}>
             <div className={styles.profitChartControls}>
@@ -429,7 +347,14 @@ function ChannelPage() {
               </div>
               <div className={styles.profitChartRightControls}>
                 <Popover
-                  button={<Button text={"Settings"} icon={<SettingsIcon />} className={"collapse-tablet"} />}
+                  button={
+                    <Button
+                      isOpen={selectedEventsCount > 0}
+                      text={`${selectedEventsCount}`}
+                      icon={<EventFlagIcon />}
+                      className={"collapse-tablet"}
+                    />
+                  }
                   className={"right"}
                 >
                   <div className={styles.channelChartSettingsPopover}>
