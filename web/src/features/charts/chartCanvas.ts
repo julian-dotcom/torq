@@ -73,6 +73,7 @@ class ChartCanvas {
   eventsContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
   legendContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
 
+  xAxisLabelContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
   leftYAxisLabelContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
   rightYAxisLabelContainer: Selection<HTMLDivElement, {}, HTMLElement, any>;
 
@@ -145,6 +146,8 @@ class ChartCanvas {
                left: 0;`
       );
 
+    this.xAxisLabelContainer = this.xAxisContainer.append("div").attr("class", "xAxisLabelContainer");
+
     this.leftYAxisContainer = this.container
       .append("div")
       .attr("class", "leftYAxisContainer")
@@ -155,6 +158,7 @@ class ChartCanvas {
         height: ${this.config.height - this.config.margin.top}px;
         position: absolute; left: 0; top: ${this.config.margin.top}px;`
       );
+
     this.leftYAxisLabelContainer = this.leftYAxisContainer
       .append("div")
       .attr("class", "leftYAxisLabelContainer")
@@ -319,6 +323,7 @@ class ChartCanvas {
       });
       this.drawLeftYAxisLabel(0, 0);
       this.drawRightYAxisLabel(0, 0);
+      this.drawXAxisLabel(0, 0);
     });
   }
 
@@ -386,12 +391,23 @@ class ChartCanvas {
       });
 
       this.drawXCrosshair(this.config.xScale(this.data[xIndex || 0].date) || 0, -this.config.yScale.range()[1] || 0);
+      this.drawXAxisLabel(this.config.xScale(this.data[xIndex || 0].date) || 0, this.data[xIndex || 0].date);
       // });
     });
   }
 
   plot(PlotItem: any, config: { [key: string | number]: any } & { id: string; key: string }) {
     this.plots.set(config.id, new PlotItem(this, config));
+  }
+
+  drawXAxisLabel(position: number, tickLabel: number) {
+    if (position === 0) {
+      this.xAxisLabelContainer.attr("style", `left: ${position}px; display: none;`).text("");
+      return;
+    }
+    this.xAxisLabelContainer
+      .attr("style", `left: ${position}px;`)
+      .text(tickLabel ? d3.timeFormat("%d %b %Y")(new Date(tickLabel)) : "");
   }
 
   drawLeftYAxisLabel(position: number, tickLabel: number) {

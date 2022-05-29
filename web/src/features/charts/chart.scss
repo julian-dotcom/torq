@@ -20,7 +20,7 @@
   width: 100%;
   text-align: right;
   padding: 2px 5px 2px 5px;
-  background-color: rgba(3, 48, 72, 0.1);
+  background-color: rgba(3, 48, 72, 1);
   backdrop-filter: blur(2px);
   border-radius: 2px;
   transform: translateY(-50%);
@@ -28,6 +28,17 @@
 .rightYAxisLabelContainer {
   left: 4px;
   text-align: left;
+}
+.xAxisLabelContainer {
+  position: absolute;
+  bottom: 5px;
+  text-align: center;
+  padding: 2px 5px 2px 5px;
+  background-color: rgba(3, 48, 72, 0.5);
+  color: var(--bg-default);
+  backdrop-filter: blur(2px);
+  border-radius: 2px;
+  transform: translateX(-50%);
 }
 
 .eventsContainer {
