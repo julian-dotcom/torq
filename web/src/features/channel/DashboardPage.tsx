@@ -10,9 +10,9 @@ import EventsCard from "../eventsCard/EventsCard";
 import Switch from "../inputs/Slider/Switch";
 import Button from "../buttons/Button";
 import Select from "../inputs/Select";
-import { Settings16Regular as SettingsIcon, Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
+import { Navigation20Regular as NavigationIcon, Gauge20Regular as DashboardIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
-
+import { toggleNav } from "../navigation/navSlice";
 import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
@@ -91,8 +91,15 @@ function ChannelPage() {
     <div className={styles.channelsPageContent}>
       <div className={styles.channelControls}>
         <div className={styles.leftContainer}>
-          <div className={styles.upperContainer}></div>
-          <div className={styles.lowerContainer}></div>
+          <div className={styles.lowerContainer}>
+            <Button
+              icon={<NavigationIcon />}
+              text={"Menu"}
+              onClick={() => dispatch(toggleNav())}
+              className={"show-nav-btn collapse-tablet"}
+            />
+            <Button icon={<DashboardIcon />} text={"Dashboard"} />
+          </div>
         </div>
         <div className={styles.rightContainer}>
           <TimeIntervalSelect />

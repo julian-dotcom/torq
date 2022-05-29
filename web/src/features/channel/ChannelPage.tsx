@@ -10,9 +10,14 @@ import EventsCard from "../eventsCard/EventsCard";
 import Switch from "../inputs/Slider/Switch";
 import Button from "../buttons/Button";
 import Select from "../inputs/Select";
-import { Settings16Regular as SettingsIcon, Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
+import {
+  Settings16Regular as SettingsIcon,
+  Iot20Regular as ChannelIcon,
+  Navigation20Regular as NavigationIcon,
+  Flag16Regular as EventFlagIcon,
+} from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
-
+import { toggleNav } from "../navigation/navSlice";
 import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
@@ -86,23 +91,29 @@ function ChannelPage() {
   }
 
   const selectedEventsCount = Array.from(selectedEvents).filter((d) => d[1]).length;
-
+  const title =
+    !isLoading &&
+    historyQuery.data &&
+    (historyQuery.data.channels || [])
+      .map((d: any, i: number) => {
+        return d.alias;
+      })
+      .filter((value: any, index: number, self: any[]) => {
+        return self.indexOf(value) === index;
+      })
+      .join(", ");
   return (
     <div className={styles.channelsPageContent}>
       <div className={styles.channelControls}>
         <div className={styles.leftContainer}>
-          <div className={styles.upperContainer}></div>
           <div className={styles.lowerContainer}>
-            {!isLoading &&
-              historyQuery.data &&
-              (historyQuery.data.channels || [])
-                .map((d: any, i: number) => {
-                  return d.alias;
-                })
-                .filter((value: any, index: number, self: any[]) => {
-                  return self.indexOf(value) === index;
-                })
-                .join(", ")}
+            <Button
+              icon={<NavigationIcon />}
+              text={"Menu"}
+              onClick={() => dispatch(toggleNav())}
+              className={"show-nav-btn collapse-tablet"}
+            />{" "}
+            <Button icon={<ChannelIcon />} text={title} />
           </div>
         </div>
         <div className={styles.rightContainer}>
