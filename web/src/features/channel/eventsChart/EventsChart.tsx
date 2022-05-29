@@ -4,15 +4,19 @@ import React, { useEffect } from "react";
 import { Selection } from "d3";
 import { ChartCanvas, AreaPlot, EventsPlot, LinePlot, BarPlot } from "../../charts/charts";
 import "../../charts/chart.scss";
+import { useAppSelector } from "../../../store/hooks";
+import { selectEventChartKey } from "../channelSlice";
 
 type EventsChart = {
   data: any[];
   events: any[];
+  selectedEventTypes: Map<string, boolean>;
 };
 
-function EventsChart({ data, events }: EventsChart) {
+function EventsChart({ data, events, selectedEventTypes }: EventsChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
+  const eventKey = useAppSelector(selectEventChartKey);
 
   // Check and update the chart size if the navigation changes the container size
   const navCheck: Function = (container: Selection<HTMLDivElement, {}, HTMLElement, any>): Function => {
@@ -30,46 +34,49 @@ function EventsChart({ data, events }: EventsChart) {
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       chart = new ChartCanvas(container, data, {
-        yScaleKey: "amount_total",
-        rightYScaleKey: "amount_total",
-        rightYAxisKeys: ["amount_out", "amount_in", "amount_total"],
-        // leftYAxisKeys: ["amount_in"],
+        yScaleKey: eventKey.value + "_total",
+        rightYScaleKey: eventKey.value + "_total",
+        rightYAxisKeys: [eventKey.value + "_out", eventKey.value + "_in", eventKey.value + "_total"],
+        // leftYAxisKeys: [eventKey.value + "_in"],
         // showLeftYAxisLabel: true,
         // showRightYAxisLabel: true,
         xAxisPadding: 6,
       });
       // chart.plot(BarPlot, {
-      //   id: "amount_out",
-      //   key: "amount_out",
+      //   id: eventKey.value + "_out",
+      //   key: eventKey.value + "_out",
       //   areaGradient: ["#DAEDFF", "#ABE9E6"],
       // });
       chart.plot(AreaPlot, {
-        id: "amount_total",
-        key: "amount_total",
-        legendLabel: "Amount Total",
+        id: eventKey.value + "_total",
+        key: eventKey.value + "_total",
+        legendLabel: eventKey.label + " Total",
         areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
       });
       chart.plot(LinePlot, {
-        id: "amount_out",
-        key: "amount_out",
-        legendLabel: "Amount Out",
+        id: eventKey.value + "_out",
+        key: eventKey.value + "_out",
+        legendLabel: eventKey.label + " Out",
         lineColor: "#BA93FA",
         // rightAxis: true,
       });
       chart.plot(LinePlot, {
-        id: "amount_in",
-        key: "amount_in",
-        legendLabel: "Amount In",
+        id: eventKey.value + "_in",
+        key: eventKey.value + "_in",
+        legendLabel: eventKey.label + " In",
         lineColor: "#FAAE93",
         // rightAxis: true,
       });
-      // chart.plot(LinePlot, { id: "amount_out", key: "amount_out" });
-
-      chart.plot(EventsPlot, { id: "events", key: "events", events: events });
+      // chart.plot(LinePlot, { id: eventKey.value + "_out", key: eventKey.value + "_out" });
+      let filteredEvents =
+        events?.filter((d) => {
+          return selectedEventTypes.get(d.type); // selectedEventTypes
+        }) || [];
+      chart.plot(EventsPlot, { id: "events", key: "events", events: filteredEvents });
       chart.draw();
       setInterval(navCheck(container), 200);
     },
-    [data, data ? data[0].date : "", data ? data[data.length - 1].date : ""]
+    [data, eventKey, data ? data[0].date : "", data ? data[data.length - 1].date : "", selectedEventTypes]
   );
 
   useEffect(() => {

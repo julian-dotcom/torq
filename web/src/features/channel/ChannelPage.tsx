@@ -1,6 +1,8 @@
+import React, { useState } from "react";
 import styles from "./channel-page.module.scss";
 import * as d3 from "d3";
 import classNames from "classnames";
+import Popover from "../popover/Popover";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import ProfitsChart from "./revenueChart/ProfitsChart";
 import EventsChart from "./eventsChart/EventsChart";
@@ -15,7 +17,14 @@ import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
 import { useParams } from "react-router";
-import { selectFlowKeys, updateFlowKey } from "./channelSlice";
+import {
+  selectEventChartKey,
+  selectFlowKeys,
+  selectProfitChartKey,
+  updateEventChartKey,
+  updateFlowKey,
+  updateProfitChartKey,
+} from "./channelSlice";
 import eventIcons from "../charts/plots/eventIcons";
 
 const ft = d3.format(",");
@@ -50,11 +59,37 @@ function formatEventText(type: string, value: number, prev: number, outbound: bo
   return "";
 }
 
+const eventNames = new Map([
+  ["fee_rate", "Fee rate"],
+  ["base_fee", "Base fee"],
+  ["min_htlc", "Min htlc"],
+  ["max_htlc", "Max htlc"],
+  ["enabled", "Enabled"],
+  ["disabled", "Disabled"],
+]);
+
 function ChannelPage() {
   const currentPeriod = useAppSelector(selectTimeInterval);
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
+  let [allToggle, setAllToggle] = React.useState(true);
+  let [selectedEvents, setSelectedEvents] = React.useState(
+    new Map<string, boolean>([
+      ["fee_rate", true],
+      ["base_fee", true],
+      ["min_htlc", true],
+      ["max_htlc", true],
+      ["enabled", true],
+      ["disabled", true],
+    ])
+  );
+  const handleSelectEventUpdate = (type: string) => {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSelectedEvents(new Map(selectedEvents.set(type, e.target.checked)));
+    };
+  };
+
   let { chanId } = useParams();
   const { data, isLoading } = useGetFlowQuery({
     from: from,
@@ -68,6 +103,8 @@ function ChannelPage() {
   });
 
   const flowKey = useAppSelector(selectFlowKeys);
+  const profitKey = useAppSelector(selectProfitChartKey);
+  const eventKey = useAppSelector(selectEventChartKey);
   let prev: string;
   let prevAlias: string;
 
@@ -179,7 +216,26 @@ function ChannelPage() {
           <div className={classNames(styles.card, styles.channelSummaryChart)}>
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
-                <Button text={"Revenue"} isOpen={true} />
+                <Select
+                  value={profitKey}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      dispatch(
+                        updateProfitChartKey({
+                          key: (newValue as { value: string; label: string }) || {
+                            value: "amount",
+                            label: "Amount",
+                          },
+                        })
+                      );
+                    }
+                  }}
+                  options={[
+                    { value: "amount", label: "Amount" },
+                    { value: "revenue", label: "Revenue" },
+                    { value: "count", label: "Count" },
+                  ]}
+                />
               </div>
               <div className={styles.profitChartRightControls}>
                 <SettingsIcon />
@@ -296,65 +352,139 @@ function ChannelPage() {
               <div className={styles.eventRowsWrapper}>
                 {!historyQuery?.data?.events && <div className={styles.eventRowName}>No events</div>}
                 {historyQuery?.data?.events &&
-                  historyQuery.data.events.map((event: any, index: number) => {
-                    const icon = eventIcons.get(event.type);
-                    const newDate = prev !== event.date;
-                    const newAlias = prevAlias !== event.channel_point;
-                    prev = event.date;
-                    prevAlias = event.channel_point;
-                    const chan =
-                      (historyQuery?.data?.channels || []).find((c: any) => c.channel_point === event.channel_point) ||
-                      {};
+                  historyQuery.data.events
+                    .filter((d: any) => {
+                      return selectedEvents.get(d.type); // selectedEventTypes
+                    })
+                    .map((event: any, index: number) => {
+                      const icon = eventIcons.get(event.type);
+                      const newDate = prev !== event.date;
+                      const newAlias = prevAlias !== event.channel_point;
+                      prev = event.date;
+                      prevAlias = event.channel_point;
+                      const chan =
+                        (historyQuery?.data?.channels || []).find(
+                          (c: any) => c.channel_point === event.channel_point
+                        ) || {};
 
-                    return (
-                      <>
-                        {newDate && (
-                          <div key={"date-row" + index} className={styles.eventDateRow}>
-                            {format(new Date(event.date), "yyyy-MM-dd")}
-                          </div>
-                        )}
-                        {(newDate || newAlias) && (
-                          <div key={"name-row" + index} className={styles.eventRowName}>
-                            <div className={styles.channelAlias}>{chan.alias}</div>
-                            <div>|</div>
-                            <div className={styles.channelPoint}>{chan.channel_point}</div>
-                          </div>
-                        )}
-                        <div
-                          key={index}
-                          className={classNames(
-                            styles.eventRow,
-                            styles[event.type],
-                            styles[event.outbound ? "" : "inbound"]
+                      return (
+                        <React.Fragment key={"empty-wrapper-" + index}>
+                          {newDate && (
+                            <div key={"date-row" + index} className={styles.eventDateRow}>
+                              {format(new Date(event.date), "yyyy-MM-dd")}
+                            </div>
                           )}
-                        >
-                          <div className={styles.eventRowDetails}>
-                            <div className={styles.datetime}>{format(new Date(event.datetime), "hh:mm")}</div>
-                            <div className={"event-type"} dangerouslySetInnerHTML={{ __html: icon as string }} />
-                            <div className={"event-type-label"}>
-                              {formatEventText(event.type, event.value, event.previous_value, event.outbound)}
+                          {(newDate || newAlias) && (
+                            <div key={"name-row" + index} className={styles.eventRowName}>
+                              <div className={styles.channelAlias}>{chan.alias}</div>
+                              <div>|</div>
+                              <div className={styles.channelPoint}>{chan.channel_point}</div>
+                            </div>
+                          )}
+                          <div
+                            key={index}
+                            className={classNames(
+                              styles.eventRow,
+                              styles[event.type],
+                              styles[event.outbound ? "" : "inbound"]
+                            )}
+                          >
+                            <div className={styles.eventRowDetails}>
+                              <div className={styles.datetime}>{format(new Date(event.datetime), "hh:mm")}</div>
+                              <div className={"event-type"} dangerouslySetInnerHTML={{ __html: icon as string }} />
+                              <div className={"event-type-label"}>
+                                {formatEventText(event.type, event.value, event.previous_value, event.outbound)}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </>
-                    );
-                  })}
+                        </React.Fragment>
+                      );
+                    })}
               </div>
             </div>
           </div>
           <div className={classNames(styles.card, styles.channelSummaryChart)} style={{ height: "600px" }}>
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
-                <Button text={"Amount"} isOpen={true} />
+                <Select
+                  value={eventKey}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      dispatch(
+                        updateEventChartKey({
+                          key: (newValue as { value: string; label: string }) || {
+                            value: "amount",
+                            label: "Amount",
+                          },
+                        })
+                      );
+                    }
+                  }}
+                  options={[
+                    { value: "amount", label: "Amount" },
+                    { value: "revenue", label: "Revenue" },
+                    { value: "count", label: "Count" },
+                  ]}
+                />
               </div>
               <div className={styles.profitChartRightControls}>
-                <SettingsIcon />
-                Settings
+                <Popover
+                  button={<Button text={"Settings"} icon={<SettingsIcon />} className={"collapse-tablet"} />}
+                  className={"right"}
+                >
+                  <div className={styles.channelChartSettingsPopover}>
+                    <div className={styles.cardRow}>
+                      <div className={styles.rowLabel}>
+                        <Switch
+                          label="Toggle all"
+                          checkboxProps={{
+                            checked: allToggle,
+                            onChange: (e) => {
+                              setAllToggle(e.target.checked);
+                              setSelectedEvents(
+                                new Map([
+                                  ["fee_rate", e.target.checked],
+                                  ["base_fee", e.target.checked],
+                                  ["min_htlc", e.target.checked],
+                                  ["max_htlc", e.target.checked],
+                                  ["enabled", e.target.checked],
+                                  ["disabled", e.target.checked],
+                                ])
+                              );
+                            },
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {Array.from(selectedEvents).map((item) => {
+                      return (
+                        <div className={styles.cardRow} key={item[0]}>
+                          <div className={styles.rowLabel}>
+                            <Switch
+                              label={eventNames.get(item[0]) || ""}
+                              checkboxProps={{
+                                checked: selectedEvents.get(item[0]),
+                                onChange: handleSelectEventUpdate(item[0]),
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Popover>
               </div>
             </div>
 
             <div className={styles.chartContainer}>
-              {historyQuery.data && <EventsChart data={historyQuery.data.history} events={historyQuery.data.events} />}
+              {historyQuery.data && (
+                <EventsChart
+                  data={historyQuery.data.history}
+                  events={historyQuery.data.events}
+                  selectedEventTypes={selectedEvents}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -384,10 +514,14 @@ function ChannelPage() {
                   ]}
                 />
               </div>
-              {/*<div className={styles.profitChartRightControls}>*/}
-              {/*  <SettingsIcon />*/}
-              {/*  Settings*/}
-              {/*</div>*/}
+              <div className={styles.profitChartRightControls}>
+                {/*<Popover*/}
+                {/*  button={<Button text={"Settings"} icon={<SettingsIcon />} className={"collapse-tablet"} />}*/}
+                {/*  className={"right"}*/}
+                {/*>*/}
+                {/*  Hello*/}
+                {/*</Popover>*/}
+              </div>
             </div>
             <div className="legendsContainer">
               <div className="sources">Sources</div>

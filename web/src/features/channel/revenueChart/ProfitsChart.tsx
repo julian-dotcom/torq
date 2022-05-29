@@ -4,8 +4,9 @@ import React, { useEffect } from "react";
 import { Selection } from "d3";
 import ChartCanvas from "../../charts/chartCanvas";
 import "../../charts/chart.scss";
-import chartCanvas from "../../charts/chartCanvas";
 import { AreaPlot, LinePlot } from "../../charts/charts";
+import { selectProfitChartKey } from "../channelSlice";
+import { useAppSelector } from "../../../store/hooks";
 
 type ProfitsChart = {
   data: any[];
@@ -14,6 +15,7 @@ type ProfitsChart = {
 function ProfitsChart({ data }: ProfitsChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
+  const profitKey = useAppSelector(selectProfitChartKey);
 
   // Check and update the chart size if the navigation changes the container size
   const navCheck: Function = (container: Selection<HTMLDivElement, {}, HTMLElement, any>): Function => {
@@ -31,24 +33,34 @@ function ProfitsChart({ data }: ProfitsChart) {
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       chart = new ChartCanvas(container, data, {
-        yScaleKey: "revenue_total",
-        rightYScaleKey: "revenue_total",
-        rightYAxisKeys: ["revenue_out", "revenue_in"],
+        yScaleKey: profitKey.value + "_total",
+        rightYScaleKey: profitKey.value + "_total",
+        rightYAxisKeys: [profitKey.value + "_out", profitKey.value + "_in"],
         xAxisPadding: 12,
       });
 
       chart.plot(AreaPlot, {
-        id: "revenue_total",
-        key: "revenue_total",
-        legendLabel: "Revenue total",
+        id: profitKey.value + "_total",
+        key: profitKey.value + "_total",
+        legendLabel: profitKey.label + " total",
         areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
       });
-      chart.plot(LinePlot, { id: "revenue_out", key: "revenue_out", legendLabel: "Revenue out", lineColor: "#BA93FA" });
-      chart.plot(LinePlot, { id: "revenue_in", key: "revenue_in", legendLabel: "Revenue in", lineColor: "#FAAE93" });
+      chart.plot(LinePlot, {
+        id: profitKey.value + "_out",
+        key: profitKey.value + "_out",
+        legendLabel: profitKey.label + " out",
+        lineColor: "#BA93FA",
+      });
+      chart.plot(LinePlot, {
+        id: profitKey.value + "_in",
+        key: profitKey.value + "_in",
+        legendLabel: profitKey.label + " in",
+        lineColor: "#FAAE93",
+      });
       chart.draw();
       setInterval(navCheck(container), 200);
     },
-    [data]
+    [data, data ? data[0].date : "", data ? data[data.length - 1].date : "", profitKey]
   );
 
   useEffect(() => {

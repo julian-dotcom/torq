@@ -515,7 +515,7 @@ from (SELECT ts as ts,
         and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
 ) as o
 where prev  != min_htlc
-order by datetime;
+order by datetime desc;
 `
 
 	qs, args, err := sqlx.In(sql, from, to, chanIds, chanIds, chanIds, chanIds, chanIds, chanIds)
