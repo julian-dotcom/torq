@@ -64,12 +64,12 @@ function ChannelPage() {
   const { data, isLoading } = useGetFlowQuery({
     from: from,
     to: to,
-    chanId: chanId || " ",
+    chanId: chanId || "1",
   });
   const historyQuery = useGetChannelHistoryQuery({
     from: from,
     to: to,
-    chanIds: chanId || " ",
+    chanIds: chanId || "1",
   });
 
   const flowKey = useAppSelector(selectFlowKeys);

@@ -57,7 +57,8 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	r, err := getFlowByChannelId(db, chanIds, from, to)
+
+	r, err := getFlow(db, chanIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -65,7 +66,8 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func getFlowByChannelId(db *sqlx.DB, chanIds []string, fromTime time.Time, toTime time.Time) (r []*channelFlowData,
+func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
+	toTime time.Time) (r []*channelFlowData,
 	err error) {
 
 	const sql = `
@@ -100,7 +102,7 @@ func getFlowByChannelId(db *sqlx.DB, chanIds []string, fromTime time.Time, toTim
 				from forward as fw
 				where time >= ?
             		and time <= ?
-					and incoming_channel_id in (?)
+					and ((?) or (incoming_channel_id in (?)))
 				group by outgoing_channel_id) as o
 				full outer join (
 				select
@@ -111,7 +113,7 @@ func getFlowByChannelId(db *sqlx.DB, chanIds []string, fromTime time.Time, toTim
 				from forward as fw
 				where time >= ?
             		and time <= ?
-					and outgoing_channel_id in (?)
+					and ((?) or (outgoing_channel_id in (?)))
 				group by incoming_channel_id) as i on o.outgoing_channel_id = i.incoming_channel_id) as fw
 			left join (
 			select
@@ -132,16 +134,23 @@ func getFlowByChannelId(db *sqlx.DB, chanIds []string, fromTime time.Time, toTim
 		) as ne on ce.pub_key = ne.pub_key
 	`
 
-	qs, args, err := sqlx.In(sql, fromTime, toTime, chanIds, fromTime, toTime, chanIds)
+	// TODO: Clean up
+	// Quick hack to simplify logic for fetching flow for all channels
+	var getAll = false
+	if chanIds[0] == "1" {
+		getAll = true
+	}
+
+	qs, args, err := sqlx.In(sql, fromTime, toTime, getAll, chanIds, fromTime, toTime, getAll, chanIds)
 	if err != nil {
-		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v)",
-			sql, fromTime, toTime, chanIds, fromTime, toTime, chanIds)
+		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v, %v, %v)",
+			sql, fromTime, toTime, getAll, chanIds, fromTime, toTime, getAll, chanIds)
 	}
 
 	qsr := db.Rebind(qs)
 	rows, err := db.Query(qsr, args...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error running aggregated forwards query")
+		return nil, errors.Wrapf(err, "Error running flow query")
 	}
 
 	for rows.Next() {

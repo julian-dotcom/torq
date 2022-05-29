@@ -6,7 +6,7 @@ import { ReactComponent as TorqLogo } from "../../icons/torq-logo.svg";
 import {
   ColumnTriple20Regular as TableIcon,
   ChevronDoubleLeft20Regular as CollapseIcon,
-  Eye20Regular as InspectIcon,
+  Gauge20Regular as DashboardIcon,
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
 } from "@fluentui/react-icons";
@@ -35,8 +35,8 @@ function Navigation() {
 
         <div className="wrapper">
           {/*actions={<AddTable/>}*/}
-          <MenuItem text={"Channels"} icon={<TableIcon />} routeTo={"/"} />
-          {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/channel"} />*/}
+          <MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/"} />
+          <MenuItem text={"Channels"} icon={<TableIcon />} routeTo={"/channels"} />
           {/*<MenuItem text={'Fees'} icon={<FeeIcon/>}  />*/}
           {/*<MenuItem text={'Rebalance'} icon={<RebalanceIcon/>}  />*/}
         </div>

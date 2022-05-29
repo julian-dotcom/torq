@@ -115,7 +115,7 @@ func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where outgoing_channel_id in (?)
+			where (? or outgoing_channel_id in (?))
 			and time >= ?::timestamp
 			and time <= ?::timestamp
 			group by outgoing_channel_id
@@ -126,7 +126,7 @@ func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where incoming_channel_id in (?)
+			where (? or incoming_channel_id in (?))
 			and time >= ?::timestamp
 			and time <= ?::timestamp
 			group by incoming_channel_id
@@ -134,7 +134,14 @@ func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time
 		on (i.incoming_channel_id = o.outgoing_channel_id);
 `
 
-	qs, args, err := sqlx.In(sql, chanIds, from, to, chanIds, from, to)
+	// TODO: Clean up
+	// Quick hack to simplify logic for fetching all channels
+	var getAll = false
+	if chanIds[0] == "1" {
+		getAll = true
+	}
+
+	qs, args, err := sqlx.In(sql, getAll, chanIds, from, to, getAll, chanIds, from, to)
 	if err != nil {
 		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v)", sql, from, to, chanIds, from, to, chanIds)
 	}
@@ -207,7 +214,7 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 				(last(event_type, time)) = 0 as open
 			from channel_event
 			where event_type in (0,1)
-				and chan_id in (?)
+				and (? or chan_id in (?))
 			group by chan_id) as ce
 		left join channel as c on c.channel_point = ce.channel_point
 		left join (
@@ -216,7 +223,15 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 			from node_event
 			group by pub_key) as ne on ne.pub_key = ce.pub_key;
 	`
-	qs, args, err := sqlx.In(sql, chanIds)
+
+	// TODO: Clean up
+	// Quick hack to simplify logic for fetching all channels
+	var getAll = false
+	if chanIds[0] == "1" {
+		getAll = true
+	}
+
+	qs, args, err := sqlx.In(sql, getAll, chanIds)
 	if err != nil {
 		return r, errors.Wrapf(err, "sqlx.In(%s, %v)", sql, chanIds)
 	}
@@ -278,12 +293,17 @@ type ChannelHistoryRecords struct {
 	CountTotal *uint64 `json:"count_total"`
 }
 
-func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r []*ChannelHistoryRecords,
+func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time,
+	to time.Time) (r []*ChannelHistoryRecords,
 	err error) {
 
-	sql := `
+	sql := `WITH
+		fromDate AS (VALUES (?)),
+		toDate AS (VALUES (?)),
+		allChannels as (VALUES(?)),
+		tz AS (select preferred_timezone as tz from settings)
 		select
-		    (coalesce(i.date, o.date)::timestamp AT TIME ZONE settings.preferred_timezone) as date,
+		    (coalesce(i.date, o.date)::timestamp AT TIME ZONE (table tz)) as date,
 
 			sum(coalesce(i.amount,0)) as amount_in,
 			sum(coalesce(o.amount,0)) as amount_out,
@@ -295,38 +315,44 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Ti
 			sum(coalesce(o.count,0)) as count_out,
 			sum(coalesce((coalesce(i.count,0) + coalesce(o.count,0)), 0)) as count_total
 		from settings, (
-			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE settings.preferred_timezone, ?, ?) as date,
+			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE (table tz), ?, ?) as date,
 				   outgoing_channel_id chan_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where outgoing_channel_id in (?)
-				and time::timestamp AT TIME ZONE settings.preferred_timezone >= ?::timestamp AT TIME ZONE settings.preferred_timezone
-				and time::timestamp AT TIME ZONE settings.preferred_timezone <= ?::timestamp AT TIME ZONE settings.preferred_timezone
+			where ((table allChannels)::boolean or outgoing_channel_id in (?))
+				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
+				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
 			group by date, outgoing_channel_id
 			) as o
 		full outer join (
-			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE settings.preferred_timezone, ? ,
-?) as date,
+			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE (table tz), ?, ?) as date,
 				   incoming_channel_id as chan_id,
 				   floor(sum(incoming_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where incoming_channel_id in (?)
-				and time::timestamp AT TIME ZONE settings.preferred_timezone >= ?::timestamp AT TIME ZONE settings.preferred_timezone
-				and time::timestamp AT TIME ZONE settings.preferred_timezone <= ?::timestamp AT TIME ZONE settings.preferred_timezone
+			where ((table allChannels)::boolean or incoming_channel_id in (?))
+				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
+				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
 			group by date, incoming_channel_id)  as i
 		on (i.chan_id = o.chan_id) and (i.date = o.date)
-		group by (coalesce(i.date, o.date)), settings.preferred_timezone
+		group by (coalesce(i.date, o.date)), (table tz)
 		order by date;
 	`
 
-	qs, args, err := sqlx.In(sql, from, to, chanIds, from, to, from, to, chanIds, from, to)
+	// TODO: Clean up
+	// Quick hack to simplify logic for fetching flow for all channels
+	var getAll = false
+	if chanIds[0] == "1" {
+		getAll = true
+	}
+
+	qs, args, err := sqlx.In(sql, from, to, getAll, from, to, chanIds, from, to, chanIds)
 	if err != nil {
 		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v, %v, %v, %v, %v)",
-			sql, from, to, chanIds, from, to, from, to, chanIds, from, to)
+			sql, from, to, getAll, from, to, chanIds, from, to, chanIds)
 	}
 
 	qsr := db.Rebind(qs)

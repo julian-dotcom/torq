@@ -13,6 +13,7 @@ import Toasts, { addToastHandle } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import { BrowserRouter } from "react-router-dom";
 import ChannelPage from "./features/channel/ChannelPage";
+import DashboardPage from "./features/channel/DashboardPage";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -42,7 +43,7 @@ function App() {
             </Route>
             <Route element={<DefaultLayout />}>
               <Route
-                path="/"
+                path="/channels"
                 element={
                   <RequireAuth>
                     <TablePage />
@@ -54,6 +55,14 @@ function App() {
                 element={
                   <RequireAuth>
                     <ChannelPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <DashboardPage />
                   </RequireAuth>
                 }
               />
