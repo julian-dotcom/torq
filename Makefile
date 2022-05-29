@@ -2,10 +2,10 @@ dbContainer = timescale/timescaledb:latest-pg14
 testDbPort = 5433
 backendTest = go test ./... -v -count=1
 frontendTest = cd web && npm i && npm test -- --watchAll=false
-stopDevDb = ($(MAKE) stop-dev-db && false)
+stopDevDb = ($(MAKE) stop-dev-db)
 
 .PHONY: test
-test: start-dev-db wait-db test-frontend test-backend-with-db-stop stop-dev-db
+test: start-dev-db wait-db test-frontend test-backend-with-db-stop
 	@echo All tests pass!
 
 .PHONY: test-backend-with-db-stop
