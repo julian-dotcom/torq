@@ -296,6 +296,10 @@ func enrichAndInsertChannelEvent(db *sqlx.DB, eventType lnrpc.ChannelEventUpdate
 
 func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel) error {
 
+	if len(c) == 0 {
+		return nil
+	}
+
 	// Creates a list of channel points in the request result.
 	var cp []string
 	for _, channel := range c {
@@ -346,6 +350,9 @@ icoLoop:
 
 func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary) error {
 
+	if len(c) == 0 {
+		return nil
+	}
 	// Creates a list of channel points in the request result.
 	var cp []string
 	for _, channel := range c {
