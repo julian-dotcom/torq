@@ -4,13 +4,12 @@ Torq is a capital management tool for routing nodes on the lightning network.
 
 ![All Tests](https://github.com/lncapital/torq/actions/workflows/test-on-push.yml/badge.svg)
 
-![Torq table preview](./torq-table-preview.png)
+![Torq - Inspect channel](./Torq-Inspect-channel.png)
 
 ## Quick start
 
-To install Torq follow one of these short guides
-* [Docker Compose](https://docs.ln.capital/docs/quick-start-docker-compose)
-* [Docker (seperate containers)](https://docs.ln.capital/docs/quick-start-docker-compose)
+To install Torq follow one of the simple guides here
+https://docs.ln.capital/
 
 ## Current features
 
@@ -36,3 +35,13 @@ To install Torq follow one of these short guides
 Join our [Telegram group](https://t.me/joinchat/V-Dks6zjBK4xZWY0) for updates on releases
 and feel free to ping us in the telegram group you have questions or need help getting started.
 We would also love to hear your ideas for features or any other feedback you might have.
+
+## Preview
+
+![Torq - Inspect channel](./Torq-Inspect-channel.png)
+
+![Torq - Inspect channel](./Torq-Events.png)
+
+![Torq - Inspect channel](./Torq-Flow.png)
+
+![Torq - Inspect channel](./Torq-Channels-table.png)
