@@ -25,7 +25,7 @@
     }
 
     @media only screen and (max-width: 600px) {
-      position: fixed;
+      //position: fixed;
       top: -20000px;
       right: 0px;
       left: 0px;
@@ -57,6 +57,7 @@
       }
       @media only screen and (max-width: 600px) {
         display: grid;
+        align-items: center;
       }
     }
   }
@@ -75,7 +76,8 @@
     transition: top 0ms 0ms, opacity 100ms 0ms;
     opacity: 1;
     @media only screen and (max-width: 900px) {
-      top: 100px;
+      position: absolute;
+      top: calc(100% + 10px);
     }
     @media only screen and (max-width: 600px) {
       top: 0px;
@@ -83,9 +85,15 @@
   }
 }
 .right .popover-wrapper.popover-open {
-  right: 0;
-  left: inherit;
+  right: 0px;
+  left: initial;
   .popover-container {
     padding: 0;
+  }
+  @media only screen and (max-width: 1199px) {
+    right: 0px;
+  }
+  @media only screen and (max-width: 600px) {
+    right: 0px;
   }
 }

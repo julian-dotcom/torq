@@ -1,13 +1,19 @@
 .navigation {
-  background-color: var(--bg-extra-faint);
+  //background-color: var(--bg-extra-faint), 0.8;
+  //opacity: 0.5;
+  backdrop-filter: blur(12px);
   height: 100vh;
   width: 290px;
-  padding: 30px;
+  padding: 20px;
+  padding-right: 0px;
   display: grid;
   grid-auto-flow: row;
   grid-row-gap: 30px;
   grid-auto-rows: min-content;
   grid-template-rows: min-content auto min-content;
+  div {
+    backdrop-filter: blur(0);
+  }
 
   .logo-wrapper {
     display: grid;
@@ -39,6 +45,7 @@
     grid-auto-flow: row;
     grid-row-gap: 15px;
     grid-auto-rows: min-content;
+    font-size: 16px;
   }
 }
 
@@ -47,13 +54,16 @@
     width: 0px;
   }
   @media only screen and (max-width: 1199px) {
+    .navigation {
+      padding-right: 20px;
+    }
     .navigation-wrapper {
       position: fixed;
       z-index: 21;
       top: 0;
       bottom: 0;
       height: 100vh;
-      box-shadow: 1px 0px 10px rgba(0, 0, 0, 0.15);
+      box-shadow: 1px 0px 0px rgba(0, 0, 0, 0.15);
     }
   }
 }

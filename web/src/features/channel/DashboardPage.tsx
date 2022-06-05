@@ -1,13 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import styles from "./channel-page.module.scss";
 import * as d3 from "d3";
 import classNames from "classnames";
-import Popover from "../popover/Popover";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import ProfitsChart from "./revenueChart/ProfitsChart";
-import EventsChart from "./eventsChart/EventsChart";
-import EventsCard from "../eventsCard/EventsCard";
-import Switch from "../inputs/Slider/Switch";
 import Button from "../buttons/Button";
 import Select from "../inputs/Select";
 import { Navigation20Regular as NavigationIcon, Gauge20Regular as DashboardIcon } from "@fluentui/react-icons";
@@ -22,7 +18,6 @@ import {
   selectEventChartKey,
   selectFlowKeys,
   selectProfitChartKey,
-  updateEventChartKey,
   updateFlowKey,
   updateProfitChartKey,
 } from "./channelSlice";
@@ -43,7 +38,6 @@ function ChannelPage() {
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
-  let [allToggle, setAllToggle] = React.useState(true);
   let [selectedEvents, setSelectedEvents] = React.useState(
     new Map<string, boolean>([
       ["fee_rate", true],

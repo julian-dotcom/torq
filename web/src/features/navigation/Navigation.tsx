@@ -5,7 +5,7 @@ import MenuItem from "./MenuItem";
 import { ReactComponent as TorqLogo } from "../../icons/torq-logo.svg";
 import {
   ColumnTriple20Regular as TableIcon,
-  ChevronDoubleLeft20Regular as CollapseIcon,
+  Navigation20Regular as CollapseIcon,
   Gauge20Regular as DashboardIcon,
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
