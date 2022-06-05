@@ -76,7 +76,7 @@
     transition: top 0ms 0ms, opacity 100ms 0ms;
     opacity: 1;
     @media only screen and (max-width: 900px) {
-      position: absolute;
+      position: fixed;
       top: calc(100% + 10px);
     }
     @media only screen and (max-width: 600px) {
