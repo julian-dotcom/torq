@@ -8,12 +8,18 @@ import (
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 	"io"
 	"time"
 )
 
+type subscribeChannelGrpahClient interface {
+	SubscribeChannelGraph(ctx context.Context, in *lnrpc.GraphTopologySubscription,
+		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeChannelGraphClient, error)
+}
+
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
-func SubscribeAndStoreChannelGraph(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
+func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB) error {
 
 	req := lnrpc.GraphTopologySubscription{}
 	stream, err := client.SubscribeChannelGraph(ctx, &req)
@@ -84,7 +90,6 @@ func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB) error {
 
 func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
 	for _, cu := range cus {
-
 		// Check if this channel update is relevant to one of our channels
 		// And if one of our nodes is advertising the channel update (meaning
 		// we have changed our the channel policy).
@@ -113,7 +118,7 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
 
 const rpQuery = `
 INSERT INTO routing_policy (ts,
-	chan_id, 
+	chan_id,
 	announcing_pub_key,
 	chan_point,
 	outbound,
@@ -125,7 +130,7 @@ INSERT INTO routing_policy (ts,
 	fee_rate_mill_msat)
 select $1, $2, $3,$4, $5, $6, $7, $8, $9, $10, $11
 WHERE NOT EXISTS (
-	select true 
+	select true
 	from (select last(chan_id,ts) chan_id,
 			last(announcing_pub_key, ts) as announcing_pub_key,
 			last(disabled,ts) disabled,
