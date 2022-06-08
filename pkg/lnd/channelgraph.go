@@ -10,6 +10,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
+	"io"
 	"time"
 )
 
@@ -39,6 +40,9 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		gpu, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
 
 		if err != nil {
 			fmt.Printf("Subscribe channel graph stream receive error: %v", err)

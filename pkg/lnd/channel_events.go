@@ -13,6 +13,7 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 	"gopkg.in/guregu/null.v4"
+	"io"
 	"time"
 )
 
@@ -201,6 +202,9 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 		}
 
 		chanEvent, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
 
 		if err != nil {
 			fmt.Printf("Subscribe channel events stream receive error: %v", err)

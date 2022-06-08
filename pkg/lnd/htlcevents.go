@@ -3,10 +3,12 @@ package lnd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"go.uber.org/ratelimit"
+	"io"
 	"time"
 )
 
@@ -233,6 +235,9 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 		}
 
 		htlcEvent, err := htlcStream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
 
 		if err != nil {
 			fmt.Printf("Subscribe htlc events stream receive error: %v", err)
