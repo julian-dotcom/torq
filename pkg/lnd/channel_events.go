@@ -10,9 +10,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/channels"
+	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 	"gopkg.in/guregu/null.v4"
-	"io"
 	"time"
 )
 
@@ -191,6 +191,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			ctx, cesr)
 	}
 
+	rl := ratelimit.New(1) // 1 per second maximum rate limit
 	for {
 
 		select {
@@ -200,16 +201,21 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 		}
 
 		chanEvent, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
+
 		if err != nil {
-			return errors.Wrap(err, "SubscribeChannelEvents -> stream.Recv()")
+			fmt.Printf("Subscribe channel events stream receive error: %v", err)
+			// rate limited resubscribe
+			rl.Take()
+			stream, err = client.SubscribeChannelEvents(ctx, &cesr)
+			continue
 		}
 
 		err = storeChannelEvent(db, chanEvent, pubKeyChan, chanPoinChan)
 		if err != nil {
-			return errors.Wrapf(err, "storeChannelEvent(%v, %v)", db, client)
+			fmt.Printf("Subscribe channel events store event error: %v", err)
+			// rate limit for caution but hopefully not needed
+			rl.Take()
+			continue
 		}
 
 	}

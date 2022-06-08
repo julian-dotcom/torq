@@ -2,10 +2,12 @@ package lnd
 
 import (
 	"context"
+	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"go.uber.org/ratelimit"
 	"io"
 	"time"
 )
@@ -42,6 +44,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		return errors.Wrapf(err, "SubscribeAndStoreTransactions -> client.SubscribeTransactions(%v, %v)",
 			ctx, req)
 	}
+	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
 	for {
 
@@ -56,14 +59,20 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 			break
 		}
 		if err != nil {
-			return errors.Wrap(err, "SubscribeTransactions -> stream.Recv()")
+			fmt.Printf("Subscribe transactions stream receive error: %v", err)
+			// rate limited resubscribe
+			rl.Take()
+			stream, err = client.SubscribeTransactions(ctx, &req)
+			continue
 		}
 
 		err = storeTransaction(db, tx)
 		if err != nil {
-			return errors.Wrapf(err, "storeTransaction(%v, %v)", db, tx)
+			fmt.Printf("Subscribe transaction events store transaction error: %v", err)
+			// rate limit for caution but hopefully not needed
+			rl.Take()
+			continue
 		}
-
 	}
 
 	return nil

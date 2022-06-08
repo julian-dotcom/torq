@@ -3,13 +3,13 @@ package lnd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"golang.org/x/sync/errgroup"
+	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
-	"io"
 	"time"
 )
 
@@ -28,7 +28,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		return errors.Wrapf(err, "SubscribeAndStoreChannelGraph -> client.SubscribeChannelGraph(%v, %v)", ctx, req)
 	}
 
-	errGrp, ctx := errgroup.WithContext(ctx)
+	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
 	for {
 
@@ -39,32 +39,32 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		gpu, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
+
 		if err != nil {
-			return errors.Wrap(err, "SubscribeChannelEvents -> stream.Recv()")
+			fmt.Printf("Subscribe channel graph stream receive error: %v", err)
+			// rate limited resubscribe
+			rl.Take()
+			stream, err = client.SubscribeChannelGraph(ctx, &req)
+			continue
 		}
 
-		errGrp.Go(func() error {
+		go (func() {
 			err := processNodeUpdates(gpu.NodeUpdates, db)
 			if err != nil {
-				return err
+				fmt.Printf("Subscribe channel graph process node updates error: %v", err)
 			}
-			return nil
-		})
+		})()
 
-		errGrp.Go(func() error {
+		go (func() {
 			err := processChannelUpdates(gpu.ChannelUpdates, db)
 			if err != nil {
-				return err
+				fmt.Printf("Subscribe channel graph process channel updates error: %v", err)
 			}
-			return nil
-		})
+		})()
 
 	}
 
-	return errGrp.Wait()
+	return nil
 }
 
 func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB) error {
