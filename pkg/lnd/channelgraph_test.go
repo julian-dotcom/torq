@@ -50,23 +50,64 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("Routing Policy", func(t *testing.T) {
-		//expected := channelEventData{Chan_id: 1337, Chan_point: "point break", Pub_key: "remote pub key",
-		//	Event_type: int(lnrpc.ChannelEventUpdate_OPEN_CHANNEL), Capacity: 100000000}
+	chanPoint := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.
+		ChannelPoint_FundingTxidBytes{
+		FundingTxidBytes: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
+		OutputIndex: 1}
 
-		chanPoint := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.
+	chanPointStr, err := getChanPoint([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, chanPoint.OutputIndex)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Add our public key to the list
+	ourNodePubKeys = append(ourNodePubKeys, "ourNodePubkey")
+
+	// Add our public key to the list
+	pubKeyList = append(pubKeyList, "firstNodePubkey", "secondNodePubkey")
+
+	// Add the channel to the list of relevant channels
+	chanPointList = append(chanPointList, chanPointStr)
+
+	t.Run("Irrelevant routing policy updates are ignored", func(t *testing.T) {
+
+		irrelevatChannelPoint := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.
 			ChannelPoint_FundingTxidBytes{
-			FundingTxidBytes: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
-			OutputIndex: 3}
-		chanPointStr, err := getChanPoint([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, chanPoint.OutputIndex)
-		if err != nil {
-			t.Fatal(err)
+			FundingTxidBytes: []byte{2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1}},
+			OutputIndex: 2}
+
+		irrelecantUpdateEvent := lnrpc.GraphTopologyUpdate{
+			NodeUpdates: nil,
+			ChannelUpdates: []*lnrpc.ChannelEdgeUpdate{{
+				ChanId:    12345678,
+				ChanPoint: irrelevatChannelPoint,
+				Capacity:  2000000,
+				RoutingPolicy: &lnrpc.RoutingPolicy{
+					TimeLockDelta:    0,
+					MinHtlc:          0,
+					FeeBaseMsat:      2,
+					FeeRateMilliMsat: 200,
+					Disabled:         true,
+					MaxHtlcMsat:      1000,
+					LastUpdate:       0,
+				},
+				AdvertisingNode: "secondNodePubkey",
+				ConnectingNode:  "secondIrrelevantPubkey",
+			}},
+			ClosedChans: nil,
 		}
 
-		ourNodePubKeys = append(ourNodePubKeys, "ourNodePubkey")
-		pubKeyList = append(pubKeyList, "theirNodePubkey")
-		// Add the channel to the list of relevant channels
-		chanPointList = append(chanPointList, chanPointStr)
+		result := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
+			GraphTopologyUpdate{&irrelecantUpdateEvent}})
+
+		if len(result) != 0 {
+			testutil.Fatalf(t, "Expected to find no routing policy record stored in the database. Found %d",
+				len(result))
+		}
+	})
+
+	t.Run("Relevant routing policies are correctly stored", func(t *testing.T) {
 
 		updateEvent := lnrpc.GraphTopologyUpdate{
 			NodeUpdates: nil,
@@ -90,10 +131,10 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		expected := routingPolicyData{
-			Ts:               time.Time{},
+			Ts:               time.Now(),
 			ChanPoint:        chanPointStr,
 			ChanId:           fmt.Sprint(updateEvent.ChannelUpdates[0].ChanId),
-			Outbound:         updateEvent.ChannelUpdates[0].AdvertisingNode == "ourNodePubkey",
+			Outbound:         false,
 			AnnouncingPubKey: updateEvent.ChannelUpdates[0].AdvertisingNode,
 			FeeRateMillMsat:  updateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
 			FeeBaseMsat:      updateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
@@ -103,8 +144,121 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			Disabled:         updateEvent.ChannelUpdates[0].RoutingPolicy.Disabled,
 		}
 
-		runChannelGraphTest(t, db, updateEvent, expected)
+		result := simulateChannelGraphUpdate(t, db,
+			&stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.GraphTopologyUpdate{&updateEvent}},
+		)
+
+		if len(result) != 1 {
+			testutil.Fatalf(t, "Expected to find a single routing policy record stored in the database. Found %d",
+				len(result))
+		}
+
+		if result[0].AnnouncingPubKey != expected.AnnouncingPubKey {
+			testutil.Errorf(t, "Incorrect announcing pub key. Expected: %v, got %v", expected.AnnouncingPubKey,
+				result[0].AnnouncingPubKey)
+		}
+
+		if result[0].ChanPoint != expected.ChanPoint {
+			testutil.Errorf(t, "Incorrect channel point. Expected: %v, got %v", expected.ChanPoint, result[0].ChanPoint)
+		}
+
+		if result[0].ChanId != expected.ChanId {
+			testutil.Errorf(t, "Incorrect channel id. Expected: %v, got %v", expected.ChanId, result[0].ChanId)
+		}
+
+		if result[0].Disabled != expected.Disabled {
+			testutil.Errorf(t, "Incorrect channel disabled state. Expected: %v, got %v", expected.Disabled,
+				result[0].Disabled)
+		}
+
+		if result[0].FeeRateMillMsat != expected.FeeRateMillMsat {
+			testutil.Errorf(t, "Incorrect fee rate. Expected: %v, got %v", expected.FeeRateMillMsat,
+				result[0].FeeRateMillMsat)
+		}
+
+		if result[0].FeeBaseMsat != expected.FeeBaseMsat {
+			testutil.Errorf(t, "Incorrect base fee state. Expected: %v, got %v", expected.FeeBaseMsat,
+				result[0].FeeBaseMsat)
+		}
+
+		if result[0].MinHtlc != expected.MinHtlc {
+			testutil.Errorf(t, "Incorrect min htlc. Expected: %v, got %v", expected.MinHtlc, result[0].MinHtlc)
+		}
+
+		if result[0].MaxHtlcMsat != expected.MaxHtlcMsat {
+			testutil.Errorf(t, "Incorrect max htlc. Expected: %v, got %v", expected.MaxHtlcMsat, result[0].MaxHtlcMsat)
+		}
+
+		if result[0].Outbound != expected.Outbound {
+			testutil.Errorf(t, "Incorrect outbound state. Expected: %v, got %v", expected.Outbound, result[0].Outbound)
+		}
+
+		if result[0].TimeLockDelta != expected.TimeLockDelta {
+			testutil.Errorf(t, "Incorrect timelock delta. Expected: %v, got %v", expected.TimeLockDelta,
+				result[0].TimeLockDelta)
+		}
+
+		r2 := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
+			GraphTopologyUpdate{&updateEvent}})
+
+		if len(r2) != 1 {
+			testutil.Fatalf(t, "Expected to find a single routing policy record stored in the database. Found %d",
+				len(r2))
+		}
+
+		if t.Failed() {
+			t.FailNow()
+		}
+
+		secondUpdateEvent := lnrpc.GraphTopologyUpdate{
+			NodeUpdates: nil,
+			ChannelUpdates: []*lnrpc.ChannelEdgeUpdate{{
+				ChanId:    12345678,
+				ChanPoint: chanPoint,
+				Capacity:  2000000,
+				RoutingPolicy: &lnrpc.RoutingPolicy{
+					TimeLockDelta:    0,
+					MinHtlc:          0,
+					FeeBaseMsat:      2,
+					FeeRateMilliMsat: 200,
+					Disabled:         true,
+					MaxHtlcMsat:      1000,
+					LastUpdate:       0,
+				},
+				AdvertisingNode: "ourNodePubkey",
+				ConnectingNode:  "secondIrrelevantPubkey",
+			}},
+			ClosedChans: nil,
+		}
+
+		e3 := routingPolicyData{
+			Ts:               time.Now(),
+			ChanPoint:        chanPointStr,
+			ChanId:           fmt.Sprint(secondUpdateEvent.ChannelUpdates[0].ChanId),
+			Outbound:         true,
+			AnnouncingPubKey: "ourNodePubkey",
+			FeeRateMillMsat:  secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
+			FeeBaseMsat:      secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
+			MaxHtlcMsat:      secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MaxHtlcMsat,
+			MinHtlc:          secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MinHtlc,
+			TimeLockDelta:    secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.TimeLockDelta,
+			Disabled:         secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.Disabled,
+		}
+
+		r3 := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
+			GraphTopologyUpdate{&secondUpdateEvent}})
+
+		if r3[1].AnnouncingPubKey != e3.AnnouncingPubKey {
+			testutil.Errorf(t, "Incorrect announcing pub key. Expected: %v, got %v", e3.AnnouncingPubKey,
+				r3[1].AnnouncingPubKey)
+		}
+
+		if r3[1].Outbound != e3.Outbound {
+			testutil.Errorf(t, "Incorrect outbound state. Expected: %v, got %v", e3.Outbound, r3[1].Outbound)
+		}
+
 	})
+
 }
 
 type routingPolicyData struct {
@@ -121,12 +275,9 @@ type routingPolicyData struct {
 	Disabled         bool   `db:"disabled"`
 }
 
-func runChannelGraphTest(t *testing.T, db *sqlx.DB, graphUpdate lnrpc.GraphTopologyUpdate, expected routingPolicyData) { //,
-	// expected channelEventData
+func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscribeChannelGraphRPC) (r []routingPolicyData) {
 	ctx := context.Background()
 	errs, ctx := errgroup.WithContext(ctx)
-
-	client := &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.GraphTopologyUpdate{&graphUpdate}}
 
 	errs.Go(func() error {
 		err := SubscribeAndStoreChannelGraph(ctx, client, db)
@@ -141,6 +292,9 @@ func runChannelGraphTest(t *testing.T, db *sqlx.DB, graphUpdate lnrpc.GraphTopol
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Add a sleep to prevent query to run before the update has been processed due to parallel processing
+	time.Sleep(250 * time.Millisecond)
 
 	var result []routingPolicyData
 	err = db.Select(&result, `
@@ -164,49 +318,5 @@ func runChannelGraphTest(t *testing.T, db *sqlx.DB, graphUpdate lnrpc.GraphTopol
 		t.Fatalf("Problem executing sql: %v", err)
 	}
 
-	if len(result) != 1 {
-		t.Fatalf("Expected to find a single routing policy record stored in the database. Found %d",
-			len(result))
-	}
-
-	if result[0].AnnouncingPubKey != expected.AnnouncingPubKey {
-		t.Fatalf("Incorrect announcing pub key. Expected: %v, got %v", expected.AnnouncingPubKey, result[0].AnnouncingPubKey)
-	}
-
-	if result[0].ChanPoint != expected.ChanPoint {
-		t.Fatalf("Incorrect channel point. Expected: %v, got %v", expected.ChanPoint, result[0].ChanPoint)
-	}
-
-	if result[0].ChanId != expected.ChanId {
-		t.Fatalf("Incorrect channel id. Expected: %v, got %v", expected.ChanId, result[0].ChanId)
-	}
-
-	if result[0].Disabled != expected.Disabled {
-		t.Fatalf("Incorrect channel disabled state. Expected: %v, got %v", expected.Disabled, result[0].Disabled)
-	}
-
-	if result[0].FeeRateMillMsat != expected.FeeRateMillMsat {
-		t.Fatalf("Incorrect fee rate. Expected: %v, got %v", expected.FeeRateMillMsat, result[0].FeeRateMillMsat)
-	}
-
-	if result[0].FeeBaseMsat != expected.FeeBaseMsat {
-		t.Fatalf("Incorrect base fee state. Expected: %v, got %v", expected.FeeBaseMsat, result[0].FeeBaseMsat)
-	}
-
-	if result[0].MinHtlc != expected.MinHtlc {
-		t.Fatalf("Incorrect min htlc. Expected: %v, got %v", expected.MinHtlc, result[0].MinHtlc)
-	}
-
-	if result[0].MaxHtlcMsat != expected.MaxHtlcMsat {
-		t.Fatalf("Incorrect max htlc. Expected: %v, got %v", expected.MaxHtlcMsat, result[0].MaxHtlcMsat)
-	}
-
-	if result[0].Outbound != expected.Outbound {
-		t.Fatalf("Incorrect outbound state. Expected: %v, got %v", expected.Outbound, result[0].Outbound)
-	}
-
-	if result[0].TimeLockDelta != expected.TimeLockDelta {
-		t.Fatalf("Incorrect timelock delta. Expected: %v, got %v", expected.TimeLockDelta, result[0].TimeLockDelta)
-	}
-
+	return result
 }
