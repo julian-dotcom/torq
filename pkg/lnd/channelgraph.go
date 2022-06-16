@@ -11,6 +11,7 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 	"io"
+	"log"
 	"time"
 )
 
@@ -45,10 +46,18 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		if err != nil {
-			fmt.Printf("Subscribe channel graph stream receive error: %v", err)
+			log.Printf("Subscribe channel graph stream receive: %v\n", err)
 			// rate limited resubscribe
-			rl.Take()
-			stream, err = client.SubscribeChannelGraph(ctx, &req)
+			log.Println("Attempting reconnect to channel graph")
+			for {
+				rl.Take()
+				stream, err = client.SubscribeChannelGraph(ctx, &req)
+				if err == nil {
+					log.Println("Reconnected to channel graph")
+					break
+				}
+				log.Printf("Reconnecting to channel graph: %v\n", err)
+			}
 			continue
 		}
 
