@@ -7,7 +7,9 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
+	"log"
 	"time"
 )
 
@@ -145,6 +147,9 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 	if (opt != nil) && (opt.Tick != nil) {
 		ticker = opt.Tick
 	}
+
+	rl := ratelimit.New(1) // 1 per second maximum rate limit
+
 	// Request the forwarding history at the requested interval.
 	// NB!: This timer is slowly being shifted because of the time required to
 	//fetch and store the response.
@@ -159,24 +164,23 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 			lastNs, err := fetchLastForwardTime(db)
 			lastTimestamp := lastNs / uint64(time.Second)
 			if err != nil {
-				return errors.Wrapf(err, "SubscribeForwardingEvents->fetchLastForwardTime(%v)", db)
+				log.Printf("Subscribe forwarding events: %v\n", err)
 			}
 
 			// Keep fetching until LND returns less than the max number of records requested.
 		fetchAll:
 			for {
+				rl.Take() // rate limited to 1 per second, when caught up will normally be 1 every 10 seconds
 				fwh, err := fetchForwardingHistory(ctx, client, lastTimestamp, me)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeForwardingEvents->fetchForwardingHistory(%v, "+
-						"%v, %v, %v"+
-						")", ctx, client, lastTimestamp, me)
+					log.Printf("Subscribe forwarding events: %v\n", err)
+					continue
 				}
 
 				// Store the forwarding history
 				err = storeForwardingHistory(db, fwh.ForwardingEvents)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeForwardingEvents->storeForwardingHistory(%v, "+
-						"%v)", db, fwh.ForwardingEvents)
+					log.Printf("Subscribe forwarding events: %v\n", err)
 				}
 
 				// Stop fetching if there are fewer forwards than max requested
@@ -184,7 +188,6 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				if len(fwh.ForwardingEvents) < me {
 					break fetchAll
 				}
-
 			}
 		}
 	}
