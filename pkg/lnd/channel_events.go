@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 	"gopkg.in/guregu/null.v4"
 	"io"
+	"log"
 	"time"
 )
 
@@ -207,10 +208,18 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 		}
 
 		if err != nil {
-			fmt.Printf("Subscribe channel events stream receive error: %v", err)
+			log.Printf("Subscribe channel events stream receive: %v", err)
 			// rate limited resubscribe
-			rl.Take()
-			stream, err = client.SubscribeChannelEvents(ctx, &cesr)
+			log.Println("Attempting reconnect to channel events")
+			for {
+				rl.Take()
+				stream, err = client.SubscribeChannelEvents(ctx, &cesr)
+				if err == nil {
+					log.Println("Reconnected to channel events")
+					break
+				}
+				log.Printf("Reconnecting to channel events: %v\n", err)
+			}
 			continue
 		}
 
