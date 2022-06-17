@@ -35,3 +35,5 @@ torq-d*.conf
 
 node_modules
 .log
+
+docker/docker-compose.yml
