@@ -21,8 +21,6 @@ func PgConnect(dbName, user, password, host, port string) (db *sqlx.DB, err erro
 		return nil, errors.Wrap(err, "pg connect")
 	}
 	if !userExists {
-		log.Println(userExists)
-		log.Println(user)
 		log.Println("Creating database user")
 		if err := createUser(defaultDB, user, password); err != nil {
 			return nil, errors.Wrap(err, "pg connect")
