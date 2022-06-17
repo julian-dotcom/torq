@@ -137,6 +137,18 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 		return nil
 	})
 
+	// Invoices
+	errs.Go(func() error {
+
+		err := lnd.SubscribeAndStoreInvoices(ctx, client, db)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStoreInvoices(%v, %v, %v)", ctx,
+				client, db)
+		}
+
+		return nil
+	})
+
 	err = errs.Wait()
 	fmt.Println("Subscriptions all ended")
 
