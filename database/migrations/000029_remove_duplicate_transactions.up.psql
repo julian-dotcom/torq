@@ -1,0 +1,7 @@
+DELETE FROM tx a USING (
+SELECT MIN(ctid) as ctid, tx.tx_hash
+FROM tx
+GROUP BY tx.tx_hash HAVING COUNT(*) > 1
+) b
+WHERE a.tx_hash = b.tx_hash
+AND a.ctid <> b.ctid;

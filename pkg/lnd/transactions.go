@@ -2,6 +2,7 @@ package lnd
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -12,37 +13,37 @@ import (
 	"time"
 )
 
-func ImportTransactions(client lnrpc.LightningClient, db *sqlx.DB) error {
+func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 
-	ctx := context.Background()
+	txHeight = 1
 
-	req := lnrpc.GetTransactionsRequest{}
-	res, err := client.GetTransactions(ctx, &req)
+	sqlLatest := `select max(block_height) from tx;`
 
-	for _, tx := range res.Transactions {
-		err = storeTransaction(db, tx)
-		if err != nil {
-			return errors.Wrapf(err, "ImportTransactions -> storeTransaction(%v, %v)", db, tx)
-		}
+	row := db.QueryRow(sqlLatest)
+	err = row.Scan(&txHeight)
+
+	switch err {
+	case nil:
+		return txHeight, err
+	case sql.ErrNoRows:
+		return 1, nil
 	}
 
-	return nil
+	return txHeight, nil
 }
 
 // SubscribeAndStoreTransactions Subscribes to on-chain transaction events from LND and stores them in the
 // database as a time series. It will also import unregistered transactions on startup.
 func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
 
-	err := ImportTransactions(client, db)
-	if err != nil {
-		return errors.Wrapf(err, "ImportTransactions(%v, %v)", client, db)
+	txheight, err := fetchLastTxHeight(db)
+	req := lnrpc.GetTransactionsRequest{
+		StartHeight: txheight,
 	}
 
-	req := lnrpc.GetTransactionsRequest{}
 	stream, err := client.SubscribeTransactions(ctx, &req)
 	if err != nil {
-		return errors.Wrapf(err, "SubscribeAndStoreTransactions -> client.SubscribeTransactions(%v, %v)",
-			ctx, req)
+		return err
 	}
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
@@ -78,7 +79,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 	return nil
 }
 
-var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height, 
+var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height,
                 total_fees, dest_addresses, raw_tx_hex, label) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT (timestamp, tx_hash) DO NOTHING;`
 
