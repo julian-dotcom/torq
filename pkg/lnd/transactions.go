@@ -16,7 +16,6 @@ import (
 func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 
 	txHeight = 1
-
 	sqlLatest := `select max(block_height) from tx;`
 
 	row := db.QueryRow(sqlLatest)
@@ -32,15 +31,36 @@ func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 	return txHeight, nil
 }
 
+func ImportTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
+
+	txheight, err := fetchLastTxHeight(db)
+
+	req := lnrpc.GetTransactionsRequest{
+		StartHeight: txheight,
+	}
+	res, err := client.GetTransactions(ctx, &req)
+
+	for _, tx := range res.Transactions {
+		err = storeTransaction(db, tx)
+		if err != nil {
+			return errors.Wrapf(err, "ImportTransactions -> storeTransaction(%v, %v)", db, tx)
+		}
+	}
+
+	return nil
+}
+
 // SubscribeAndStoreTransactions Subscribes to on-chain transaction events from LND and stores them in the
 // database as a time series. It will also import unregistered transactions on startup.
 func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
 
-	txheight, err := fetchLastTxHeight(db)
-	req := lnrpc.GetTransactionsRequest{
-		StartHeight: txheight,
+	// Imports transactions not captured on the stream
+	err := ImportTransactions(ctx, client, db)
+	if err != nil {
+		return errors.Wrapf(err, "ImportTransactions(%v, %v, %v)", ctx, client, db)
 	}
 
+	req := lnrpc.GetTransactionsRequest{}
 	stream, err := client.SubscribeTransactions(ctx, &req)
 	if err != nil {
 		return err
