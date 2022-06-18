@@ -1,6 +1,7 @@
 package channel_history
 
 import (
+	"database/sql"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -17,6 +18,8 @@ type ChannelHistory struct {
 	// In the case where a group of channels is requested the Label will be based on the common name,
 	// such as a tag.
 	Label string `json:"label"`
+
+	OnChainCost *uint64 `json:"on_chain_cost"`
 
 	// The  outbound amount in sats (Satoshis)
 	AmountOut *uint64 `json:"amount_out"`
@@ -90,6 +93,16 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	r.Events = chanEventHistory
+
+	if chanIds[0] == "1" {
+		r.OnChainCost, err = getTotalOnChainCost(db, from, to)
+	} else {
+		r.OnChainCost, err = getChannelOnChainCost(db, chanIds)
+	}
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
 
 	c.JSON(http.StatusOK, r)
 }
@@ -578,4 +591,49 @@ order by datetime desc;
 
 	}
 	return r, nil
+}
+
+func getTotalOnChainCost(db *sqlx.DB, from time.Time, to time.Time) (*uint64, error) {
+	var Cost uint64
+
+	q := `WITH tz AS (select preferred_timezone as tz from settings)
+		select coalesce(sum(total_fees), 0) as cost
+		from tx
+		where timestamp >= $1::timestamp AT TIME ZONE (table tz)
+			and timestamp <= $2::timestamp AT TIME ZONE (table tz)`
+
+	row := db.QueryRow(q, from, to)
+	err := row.Scan(&Cost)
+
+	if err != nil {
+		return &Cost, err
+	}
+
+	return &Cost, nil
+}
+
+func getChannelOnChainCost(db *sqlx.DB, chanIds []string) (cost *uint64, err error) {
+
+	q := `select coalesce(sum(total_fees), 0) as on_chain_cost
+		from tx
+		where split_part(label, '-', 2) in (?)`
+
+	qs, args, err := sqlx.In(q, chanIds)
+	if err != nil {
+		return nil, errors.Wrapf(err, "sqlx.In(%s, %v)", q, chanIds)
+	}
+
+	qsr := db.Rebind(qs)
+
+	row := db.QueryRow(qsr, args...)
+	err = row.Scan(&cost)
+
+	switch err {
+	case nil:
+		return cost, nil
+	case sql.ErrNoRows:
+		return cost, err
+	}
+
+	return cost, nil
 }
