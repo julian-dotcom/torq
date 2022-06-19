@@ -628,10 +628,11 @@ func getChannelOnChainCost(db *sqlx.DB, chanIds []string) (cost *uint64, err err
 	row := db.QueryRow(qsr, args...)
 	err = row.Scan(&cost)
 
-	switch err {
-	case nil:
+	if err == sql.ErrNoRows {
 		return cost, nil
-	case sql.ErrNoRows:
+	}
+
+	if err != nil {
 		return cost, err
 	}
 

@@ -1,0 +1,17 @@
+CREATE TABLE payment (
+  id SERIAL PRIMARY KEY,
+  payment_index numeric,
+  payment_hash text,
+  payment_preimage text,
+  payment_request text,
+  status text,
+  value_msat numeric,
+  fee_msat numeric,
+  htlcs jsonb,
+  failure_reason text,
+  creation_timestamp timestamptz,
+  creation_time_ns numeric,
+  created_on TIMESTAMPTZ NOT NULL,
+  updated_on TIMESTAMPTZ NULL,
+  UNIQUE (payment_index)
+);

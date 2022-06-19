@@ -15,17 +15,17 @@ import (
 
 func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 
-	txHeight = 1
 	sqlLatest := `select max(block_height) from tx;`
 
 	row := db.QueryRow(sqlLatest)
 	err = row.Scan(&txHeight)
 
-	switch err {
-	case nil:
-		return txHeight, err
-	case sql.ErrNoRows:
+	if err == sql.ErrNoRows {
 		return 1, nil
+	}
+
+	if err != nil {
+		return 1, err
 	}
 
 	return txHeight, nil

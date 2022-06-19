@@ -31,11 +31,12 @@ func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, 
 	row := db.QueryRow(sqlLatest)
 	err = row.Scan(&addIndex, &settleIndex)
 
-	switch err {
-	case nil:
-		return addIndex, settleIndex, err
-	case sql.ErrNoRows:
-		return 1, 1, nil
+	if err == sql.ErrNoRows {
+		return addIndex, settleIndex, nil
+	}
+
+	if err != nil {
+		return 1, 1, err
 	}
 
 	return addIndex, settleIndex, nil
