@@ -10,6 +10,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"go.uber.org/ratelimit"
 	"io"
+	"log"
 	"time"
 )
 
@@ -80,10 +81,18 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 			break
 		}
 		if err != nil {
-			fmt.Printf("Subscribe transactions stream receive error: %v", err)
+			log.Printf("Subscribe transactions stream receive: %v\n", err)
 			// rate limited resubscribe
-			rl.Take()
-			stream, err = client.SubscribeTransactions(ctx, &req)
+			log.Println("Attempting reconnect to transactions")
+			for {
+				rl.Take()
+				stream, err = client.SubscribeTransactions(ctx, &req)
+				if err == nil {
+					log.Println("Reconnected to transactions")
+					break
+				}
+				log.Printf("Reconnecting to transactions: %v\n", err)
+			}
 			continue
 		}
 

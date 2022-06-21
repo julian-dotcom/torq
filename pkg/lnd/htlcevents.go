@@ -9,6 +9,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"go.uber.org/ratelimit"
 	"io"
+	"log"
 	"time"
 )
 
@@ -236,43 +237,54 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 
 		htlcEvent, err := htlcStream.Recv()
 		if errors.Is(err, io.EOF) {
+			log.Println("EOF when processing htlc streams")
 			break
 		}
 
 		if err != nil {
-			fmt.Printf("Subscribe htlc events stream receive error: %v", err)
+			log.Printf("Subscribe htlc events stream receive: %v\n", err)
 			// rate limited resubscribe
-			rl.Take()
-			htlcStream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
+			log.Println("Attempting reconnect to HTLC events")
+			for {
+				rl.Take()
+				htlcStream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
+				if err == nil {
+					log.Println("Reconnected to HTLC events")
+					break
+				}
+				log.Printf("Reconnecting to HTLC events: %v\n", err)
+			}
 			continue
 		}
+
+		log.Println("Received HTLC Event")
 
 		switch htlcEvent.Event.(type) {
 		case *routerrpc.HtlcEvent_ForwardEvent:
 			err = storeForwardEvent(db, htlcEvent, htlcEvent.GetForwardEvent())
 			if err != nil {
-				fmt.Printf("Subscribe htlc events stream store forward event error: %v", err)
+				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_ForwardFailEvent:
 			err = storeForwardFailEvent(db, htlcEvent)
 			if err != nil {
-				fmt.Printf("Subscribe htlc events stream store forward event error: %v", err)
+				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_LinkFailEvent:
 			err = storeLinkFailEvent(db, htlcEvent, htlcEvent.GetLinkFailEvent())
 			if err != nil {
-				fmt.Printf("Subscribe htlc events stream store forward event error: %v", err)
+				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_SettleEvent:
 			err = storeSettleEvent(db, htlcEvent, htlcEvent.GetSettleEvent())
 			if err != nil {
-				fmt.Printf("Subscribe htlc events stream store forward event error: %v", err)
+				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
 				rl.Take()
 			}

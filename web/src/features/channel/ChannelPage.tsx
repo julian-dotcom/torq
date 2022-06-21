@@ -142,7 +142,7 @@ function ChannelPage() {
             <div className={styles.card}>
               <div className={styles.heading}>Expenses</div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Rebalansing</div>
+                <div className={styles.rowLabel}>Rebalancing</div>
                 <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
               <div className={styles.cardRow}>

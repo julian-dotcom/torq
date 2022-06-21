@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
@@ -100,7 +100,7 @@ func main() {
 			db, err := database.PgConnect(c.String("db.name"), c.String("db.user"),
 				c.String("db.password"), c.String("db.host"), c.String("db.port"))
 			if err != nil {
-				return fmt.Errorf("(cmd/lnc streamHtlcCommand) error connecting to db: %v", err)
+				return errors.Wrap(err, "start cmd")
 			}
 
 			defer func() {
@@ -200,7 +200,7 @@ func main() {
 			db, err := database.PgConnect(c.String("db.name"), c.String("db.user"),
 				c.String("db.password"), c.String("db.host"), c.String("db.port"))
 			if err != nil {
-				return fmt.Errorf("(cmd/lnc streamHtlcCommand) error connecting to db: %v", err)
+				return errors.Wrap(err, "subscribe cmd")
 			}
 
 			defer func() {
