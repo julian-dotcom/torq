@@ -66,7 +66,10 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent) error {
 					querySfwh)
 			}
 		}
-		tx.Commit()
+		err := tx.Commit()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -85,11 +88,12 @@ func fetchLastForwardTime(db *sqlx.DB) (uint64, error) {
 	row := db.QueryRow("SELECT time_ns FROM forward ORDER BY time_ns DESC LIMIT 1;")
 	err := row.Scan(&lastNs)
 
-	switch err {
-	case nil:
-		return lastNs, errors.Wrapf(err, "fetchLastForwardTime->row.Scan(%+v)", &lastNs)
-	case sql.ErrNoRows:
+	if err == sql.ErrNoRows {
 		return 0, nil
+	}
+
+	if err != nil {
+		return 0, err
 	}
 
 	return lastNs, nil
@@ -162,10 +166,10 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 
 			// Fetch the nanosecond timestamp of the most recent record we have.
 			lastNs, err := fetchLastForwardTime(db)
-			lastTimestamp := lastNs / uint64(time.Second)
 			if err != nil {
 				log.Printf("Subscribe forwarding events: %v\n", err)
 			}
+			lastTimestamp := lastNs / uint64(time.Second)
 
 			// Keep fetching until LND returns less than the max number of records requested.
 		fetchAll:

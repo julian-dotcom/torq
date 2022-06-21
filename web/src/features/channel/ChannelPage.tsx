@@ -89,7 +89,7 @@ function ChannelPage() {
       })
       .reduce((partialSum: number, a: number) => partialSum + a, 0);
   }
-
+  const profit: number = historyQuery?.data?.revenue_out - historyQuery?.data?.on_chain_cost;
   const selectedEventsCount = Array.from(selectedEvents).filter((d) => d[1]).length;
   const title =
     !isLoading &&
@@ -147,22 +147,18 @@ function ChannelPage() {
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Open & Close</div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
+                <div className={classNames(styles.rowValue)}>{ft(historyQuery?.data?.on_chain_cost)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
+                <div className={classNames(styles.rowValue)}>{ft(historyQuery?.data?.on_chain_cost)}</div>
               </div>
             </div>
             <div className={styles.card}>
               <div className={styles.heading}>Profit</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
-              </div>
-              <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>APY</div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
+                <div className={classNames(styles.rowValue)}>{ft(profit)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Turnover</div>

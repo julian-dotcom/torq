@@ -2,6 +2,7 @@ package lnd
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -13,11 +14,31 @@ import (
 	"time"
 )
 
-func ImportTransactions(client lnrpc.LightningClient, db *sqlx.DB) error {
+func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 
-	ctx := context.Background()
+	sqlLatest := `select max(block_height) from tx;`
 
-	req := lnrpc.GetTransactionsRequest{}
+	row := db.QueryRow(sqlLatest)
+	err = row.Scan(&txHeight)
+
+	if err == sql.ErrNoRows {
+		return 1, nil
+	}
+
+	if err != nil {
+		return 1, err
+	}
+
+	return txHeight, nil
+}
+
+func ImportTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
+
+	txheight, err := fetchLastTxHeight(db)
+
+	req := lnrpc.GetTransactionsRequest{
+		StartHeight: txheight,
+	}
 	res, err := client.GetTransactions(ctx, &req)
 
 	for _, tx := range res.Transactions {
@@ -34,16 +55,16 @@ func ImportTransactions(client lnrpc.LightningClient, db *sqlx.DB) error {
 // database as a time series. It will also import unregistered transactions on startup.
 func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
 
-	err := ImportTransactions(client, db)
+	// Imports transactions not captured on the stream
+	err := ImportTransactions(ctx, client, db)
 	if err != nil {
-		return errors.Wrapf(err, "ImportTransactions(%v, %v)", client, db)
+		return errors.Wrapf(err, "ImportTransactions(%v, %v, %v)", ctx, client, db)
 	}
 
 	req := lnrpc.GetTransactionsRequest{}
 	stream, err := client.SubscribeTransactions(ctx, &req)
 	if err != nil {
-		return errors.Wrapf(err, "SubscribeAndStoreTransactions -> client.SubscribeTransactions(%v, %v)",
-			ctx, req)
+		return err
 	}
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
@@ -87,7 +108,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 	return nil
 }
 
-var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height, 
+var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height,
                 total_fees, dest_addresses, raw_tx_hex, label) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT (timestamp, tx_hash) DO NOTHING;`
 

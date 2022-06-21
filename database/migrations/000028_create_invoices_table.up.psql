@@ -1,0 +1,105 @@
+CREATE TABLE invoice (
+    invoice_id SERIAL PRIMARY KEY,
+    memo TEXT,
+    r_preimage text,
+    r_hash text,
+    value_msat numeric,
+
+    -- When this invoice was created
+    creation_date timestamptz,
+
+    -- When this invoice was settled
+    settle_date timestamptz,
+
+    payment_request text,
+
+    -- The node the payment was sent too (destination)
+    destination_pub_key text,
+
+    /*
+    Hash (SHA-256) of a description of the payment. Used if the description of
+    payment (memo) is too long to naturally fit within the description field
+    of an encoded payment request.
+    */
+    description_hash text,
+
+    -- Payment request expiry time in seconds. Default is 3600 (1 hour).
+    expiry numeric,
+
+    fallback_addr text,
+
+    -- Delta to use for the time-lock of the CLTV extended to the final hop.
+    cltv_expiry numeric,
+
+    /*
+    Route hints that can each be individually used to assist in reaching the
+    invoice's destination.
+    */
+    route_hints jsonb,
+
+    --Whether this invoice should include routing hints for private channels.
+    private bool,
+
+    /*
+    The "add" index of this invoice. Each newly created invoice will increment
+    this index making it monotonically increasing. Callers to the
+    SubscribeInvoices call can use this to instantly get notified of all added
+    invoices with an add_index greater than this one.
+    */
+    add_index numeric,
+
+    /*
+    The "settle" index of this invoice. Each newly settled invoice will
+    increment this index making it monotonically increasing. Callers to the
+    SubscribeInvoices call can use this to instantly get notified of all
+    settled invoices with an settle_index greater than this one.
+    */
+    settle_index numeric,
+
+    /*
+    The amount that was accepted for this invoice, in millisatoshis. This will
+    ONLY be set if this invoice has been settled. We provide this field as if
+    the invoice was created with a zero value, then we need to record what
+    amount was ultimately accepted. Additionally, it's possible that the sender
+    paid MORE that was specified in the original invoice. So we'll record that
+    here as well.
+    */
+    amt_paid_msat numeric,
+
+    /*
+    The state the invoice is in.
+        OPEN = 0;
+        SETTLED = 1;
+        CANCELED = 2;
+        ACCEPTED = 3;
+    */
+    invoice_state varchar(20),
+
+    -- List of HTLCs paying to this invoice [EXPERIMENTAL].
+    htlcs jsonb,
+
+    -- List of features advertised on the invoice.
+    features jsonb,
+
+    is_keysend bool,
+
+    /*
+    The payment address of this invoice. This value will be used in MPP
+    payments, and also for newer invoices that always require the MPP payload
+    for added end-to-end security.
+    */
+    payment_addr text,
+
+    is_amp bool,
+
+    /*
+    Maps a 32-byte hex-encoded set ID to the sub-invoice AMP state for the
+    given set ID. This field is always populated for AMP invoices, and can be
+    used along side LookupInvoice to obtain the HTLC information related to a
+    given sub-invoice.
+    */
+    amp_invoice_state jsonb,
+
+    created_on timestamptz NOT NULL,
+    updated_on timestamptz NULL
+);
