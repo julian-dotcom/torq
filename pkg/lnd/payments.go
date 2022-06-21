@@ -10,27 +10,14 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/zpay32"
+	"google.golang.org/grpc"
 	"time"
 )
 
-// fetchPayments fetches completed payments from LND.
-func fetchPayments(ctx context.Context, client lnrpc.LightningClient, last uint64) (
-	r *lnrpc.ListPaymentsResponse, err error) {
-
-	//retry:
-	req := &lnrpc.ListPaymentsRequest{
-		IncludeIncomplete: true,
-		IndexOffset:       last,
-		MaxPayments:       1, // Only fetch one at a time due to the size of failed payments
-		Reversed:          false,
-	}
-	r, err = client.ListPayments(ctx, req)
-
-	if err != nil {
-		return nil, errors.Wrapf(err, "fetchPayments->ListPayments(%v, %v)", ctx, req)
-	}
-
-	return r, nil
+type lightningClient_ListPayments interface {
+	ListPayments(ctx context.Context, in *lnrpc.ListPaymentsRequest,
+		opts ...grpc.CallOption) (*lnrpc.ListPaymentsResponse,
+		error)
 }
 
 // PayOptions allows the caller to adjust the number of payments can be requested at a time
@@ -39,7 +26,7 @@ type PayOptions struct {
 	Tick <-chan time.Time
 }
 
-func SubscribeAndStorePayments(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB, opt *PayOptions) error {
+func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB, opt *PayOptions) error {
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
@@ -113,6 +100,26 @@ func fetchLastPaymentIndex(db *sqlx.DB) (uint64, error) {
 	return last, nil
 }
 
+// fetchPayments fetches completed payments from LND.
+func fetchPayments(ctx context.Context, client lightningClient_ListPayments, last uint64) (
+	r *lnrpc.ListPaymentsResponse, err error) {
+
+	//retry:
+	req := &lnrpc.ListPaymentsRequest{
+		IncludeIncomplete: true,
+		IndexOffset:       last,
+		MaxPayments:       1, // Only fetch one at a time due to the size of failed payments
+		Reversed:          false,
+	}
+	r, err = client.ListPayments(ctx, req)
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "fetchPayments->ListPayments(%v, %v)", ctx, req)
+	}
+
+	return r, nil
+}
+
 func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 
 	const q = `INSERT INTO payment(
@@ -165,6 +172,66 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 	}
 
 	return nil
+}
+
+func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB, opt *PayOptions) error {
+
+	// Create the default ticker used to fetch forwards at a set interval
+	c := clock.New()
+	ticker := c.Tick(10 * time.Second)
+
+	// If a custom ticker is set in the options, override the default ticker.
+	if (opt != nil) && (opt.Tick != nil) {
+		ticker = opt.Tick
+	}
+
+	// Request the in flight payments at the requested interval.
+	// NB!: This timer is slowly being shifted because of the time required to
+	// fetch and store the response.
+	for {
+		// Exit if canceled
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker:
+
+			// Fetch the last payment index we have stored
+			inFlightindexes, err := fetchInFlightPaymentIndexes(db)
+
+			if err != nil {
+				return errors.Wrapf(err, "SubscribeAndStorePayments->fetchLastPaymentIndex(%v)", db)
+			}
+
+			// Keep fetching until LND returns less than the max number of records requested.
+			for _, i := range inFlightindexes {
+				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
+				p, err := fetchPayments(ctx, client, ifPayIndex)
+				if err != nil {
+					return errors.Wrapf(err, "SubscribeAndUpdatePayments->fetchPayments(%v, %v, %d)", ctx, client, 1)
+				}
+
+				// Store the payments
+				err = updatePayments(db, p.Payments)
+				if err != nil {
+					return errors.Wrapf(err, "SubscribeAndStorePayments->updatePayment(%v, %v)", db, p.Payments)
+				}
+			}
+		}
+	}
+}
+
+type Payment struct {
+	PaymentIndex      uint64 `json:"payment_index" db:"payment_index"`
+	PaymentHash       string `json:"payment_hash" db:"payment_hash"`
+	PaymentPreimage   string `json:"payment_preimage" db:"payment_preimage"`
+	PaymentRequest    string `json:"payment_request" db:"payment_request"`
+	Status            string `json:"status" db:"status"`
+	ValueMsat         int64  `json:"value_msat" db:"value_msat"`
+	FeeMsat           int64  `json:"fee_msat" db:"fee_msat"`
+	Htlcs             []byte `json:"htlcs" db:"htlcs"`
+	FailureReason     string `json:"failure_reason" db:"failure_reason"`
+	CreationTimeNs    int64  `json:"creation_time_ns" db:"creation_time_ns"`
+	CreationTimestamp int64  `json:"creation_timestamp" db:"creation_timestamp"`
 }
 
 func fetchInFlightPaymentIndexes(db *sqlx.DB) (r []uint64, err error) {
@@ -279,64 +346,4 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 	}
 
 	return nil
-}
-
-func SubscribeAndUpdatePayments(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB, opt *PayOptions) error {
-
-	// Create the default ticker used to fetch forwards at a set interval
-	c := clock.New()
-	ticker := c.Tick(10 * time.Second)
-
-	// If a custom ticker is set in the options, override the default ticker.
-	if (opt != nil) && (opt.Tick != nil) {
-		ticker = opt.Tick
-	}
-
-	// Request the in flight payments at the requested interval.
-	// NB!: This timer is slowly being shifted because of the time required to
-	// fetch and store the response.
-	for {
-		// Exit if canceled
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-ticker:
-
-			// Fetch the last payment index we have stored
-			inFlightindexes, err := fetchInFlightPaymentIndexes(db)
-
-			if err != nil {
-				return errors.Wrapf(err, "SubscribeAndStorePayments->fetchLastPaymentIndex(%v)", db)
-			}
-
-			// Keep fetching until LND returns less than the max number of records requested.
-			for _, i := range inFlightindexes {
-				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
-				p, err := fetchPayments(ctx, client, ifPayIndex)
-				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndUpdatePayments->fetchPayments(%v, %v, %d)", ctx, client, 1)
-				}
-
-				// Store the payments
-				err = updatePayments(db, p.Payments)
-				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndStorePayments->updatePayment(%v, %v)", db, p.Payments)
-				}
-			}
-		}
-	}
-}
-
-type Payment struct {
-	PaymentIndex      uint64 `json:"payment_index" db:"payment_index"`
-	PaymentHash       string `json:"payment_hash" db:"payment_hash"`
-	PaymentPreimage   string `json:"payment_preimage" db:"payment_preimage"`
-	PaymentRequest    string `json:"payment_request" db:"payment_request"`
-	Status            string `json:"status" db:"status"`
-	ValueMsat         int64  `json:"value_msat" db:"value_msat"`
-	FeeMsat           int64  `json:"fee_msat" db:"fee_msat"`
-	Htlcs             []byte `json:"htlcs" db:"htlcs"`
-	FailureReason     string `json:"failure_reason" db:"failure_reason"`
-	CreationTimeNs    int64  `json:"creation_time_ns" db:"creation_time_ns"`
-	CreationTimestamp int64  `json:"creation_timestamp" db:"creation_timestamp"`
 }
