@@ -30,10 +30,21 @@ function Logout() {
 }
 
 function App() {
+  const [locationState, setLocationState] = React.useState("");
+
+  useEffect(() => {
+    const splitLocation = window.location.pathname.split("/");
+    if (splitLocation.length > 1) {
+      const path = splitLocation[1];
+      if (path === "torq") {
+        setLocationState(path);
+      }
+    }
+  });
   const toastRef = React.useRef<addToastHandle>();
   return (
     <ToastContext.Provider value={toastRef}>
-      <BrowserRouter>
+      <BrowserRouter basename={locationState}>
         <div className="App torq">
           <Toasts ref={toastRef} />
           <Routes>

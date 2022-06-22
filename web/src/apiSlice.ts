@@ -2,10 +2,22 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/table/tableSlice";
 import { settings, timeZone, localNode } from "./apiTypes";
 
-const API_URL =
-  window.location.port === "3000"
-    ? "//" + window.location.hostname + ":8080/api"
-    : "//" + window.location.host + "/api";
+const buildBaseUrl = () => {
+  // checks to see if the app is running under /torq and if so prepends that to API paths
+  const splitLocation = window.location.pathname.split("/");
+  let prefix = "";
+  if (splitLocation.length > 1) {
+    const path = splitLocation[1];
+    if (path === "torq") {
+      prefix = "/torq";
+    }
+  }
+  return window.location.port === "3000"
+    ? "//" + window.location.hostname + ":8080" + prefix + "/api"
+    : "//" + window.location.host + prefix + "/api";
+};
+
+const API_URL = buildBaseUrl();
 
 // Define a service using a base URL and expected endpoints
 export const torqApi = createApi({
