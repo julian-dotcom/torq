@@ -138,16 +138,16 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	})
 
 	// Invoices
-	errs.Go(func() error {
+	// errs.Go(func() error {
 
-		err := lnd.SubscribeAndStoreInvoices(ctx, client, db)
-		if err != nil {
-			return errors.Wrapf(err, "Start->SubscribeAndStoreInvoices(%v, %v, %v)", ctx,
-				client, db)
-		}
+	// 	err := lnd.SubscribeAndStoreInvoices(ctx, client, db)
+	// 	if err != nil {
+	// 		return errors.Wrapf(err, "Start->SubscribeAndStoreInvoices(%v, %v, %v)", ctx,
+	// 			client, db)
+	// 	}
 
-		return nil
-	})
+	// 	return nil
+	// })
 
 	// Payments
 	errs.Go(func() error {
