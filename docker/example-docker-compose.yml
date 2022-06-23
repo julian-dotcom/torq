@@ -1,7 +1,7 @@
 version: "3.7"
 services:
   torq:
-    # Consider specifying the exact version you want instead of "latest" (e.g. "0.4.6")
+    # Consider specifying the exact version you want instead of "latest" (e.g. "0.4.7")
     image: "lncapital/torq:latest"
     restart: always
     depends_on:
