@@ -10,8 +10,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/zpay32"
+	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 	"io"
+	"log"
 	"time"
 )
 
@@ -47,8 +49,10 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		SettleIndex: settleIndex,
 	})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "subscribe and store invoices: lnrpc subscribe")
 	}
+
+	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
 	for {
 
@@ -63,23 +67,97 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			break
 		}
 
+		if err != nil {
+			log.Printf("Subscribe and store invoice stream receive: %v\n", err)
+			// rate limited resubscribe
+			log.Println("Attempting reconnect to invoice subscription")
+			for {
+				rl.Take()
+				invoiceStream, err = client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
+					AddIndex:    addIndex,
+					SettleIndex: settleIndex,
+				})
+				if err == nil {
+					log.Println("Reconnected to invoice subscription")
+					break
+				}
+				log.Printf("Reconnecting to invoice subscription: %v\n", err)
+			}
+			continue
+		}
+
 		// TODO: Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
 		inva, err := zpay32.Decode(invoice.PaymentRequest, &chaincfg.MainNetParams)
 		if err != nil {
-			return err
+			log.Printf("Subscribe and store invoices: %v", err)
+			// rate limit for caution but hopefully not needed
+			rl.Take()
 		}
 
 		err = insertInvoice(db, invoice, fmt.Sprintf("%x", inva.Destination.SerializeCompressed()))
 		if err != nil {
-			return err
+			log.Printf("Subscribe and store invoices: %v", err)
+			// rate limit for caution but hopefully not needed
+			rl.Take()
 		}
-
 	}
 
 	return nil
 }
 
-var sqlInvoice = `INSERT INTO invoice (
+func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string) error {
+
+	rhJson, err := json.Marshal(invoice.RouteHints)
+	if err != nil {
+		return errors.Wrapf(err, "insert invoice: json marshal route hints")
+	}
+
+	htlcJson, err := json.Marshal(invoice.Htlcs)
+	if err != nil {
+		return errors.Wrapf(err, "insert invoice: json marshal htlcs")
+	}
+
+	featuresJson, err := json.Marshal(invoice.Features)
+	if err != nil {
+		return errors.Wrapf(err, "insert invoice: json marshal features")
+	}
+
+	aisJson, err := json.Marshal(invoice.AmpInvoiceState)
+	if err != nil {
+		return errors.Wrapf(err, "insert invoice: amp invoice state")
+	}
+
+	i := Invoice{
+		Memo:            invoice.Memo,
+		RPreimage:       hex.EncodeToString(invoice.RPreimage),
+		RHash:           hex.EncodeToString(invoice.RHash),
+		ValueMsat:       invoice.ValueMsat,
+		CreationDate:    time.Unix(invoice.CreationDate, 0).UTC(),
+		SettleDate:      time.Unix(invoice.SettleDate, 0).UTC(),
+		PaymentRequest:  invoice.PaymentRequest,
+		Destination:     destination,
+		DescriptionHash: invoice.DescriptionHash,
+		Expiry:          invoice.Expiry,
+		FallbackAddr:    invoice.FallbackAddr,
+		CltvExpiry:      invoice.CltvExpiry,
+		RouteHints:      rhJson,
+		Private:         false,
+		AddIndex:        invoice.AddIndex,
+		SettleIndex:     invoice.SettleIndex,
+		AmtPaidSat:      invoice.AmtPaidSat,
+		AmtPaidMsat:     invoice.AmtPaidMsat,
+		InvoiceState:    invoice.State.String(), // ,
+		Htlcs:           htlcJson,
+		Features:        featuresJson,
+		IsKeysend:       invoice.IsKeysend,
+		PaymentAddr:     hex.EncodeToString(invoice.PaymentAddr),
+		IsAmp:           invoice.IsAmp,
+		AmpInvoiceState: aisJson,
+		CreatedOn:       time.Now().UTC(),
+		UpdatedOn:       nil,
+	}
+
+	var sqlInvoice = `INSERT INTO invoice (
     memo,
     r_preimage,
     r_hash,
@@ -142,62 +220,10 @@ var sqlInvoice = `INSERT INTO invoice (
     :updated_on
 );`
 
-func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string) error {
-
-	rhJson, err := json.Marshal(invoice.RouteHints)
-	if err != nil {
-		return err
-	}
-
-	htlcJson, err := json.Marshal(invoice.Htlcs)
-	if err != nil {
-		return err
-	}
-
-	featuresJson, err := json.Marshal(invoice.Features)
-	if err != nil {
-		return err
-	}
-
-	aisJson, err := json.Marshal(invoice.AmpInvoiceState)
-	if err != nil {
-		return err
-	}
-
-	i := Invoice{
-		Memo:            invoice.Memo,
-		RPreimage:       hex.EncodeToString(invoice.RPreimage),
-		RHash:           hex.EncodeToString(invoice.RHash),
-		ValueMsat:       invoice.ValueMsat,
-		CreationDate:    time.Unix(invoice.CreationDate, 0).UTC(),
-		SettleDate:      time.Unix(invoice.SettleDate, 0).UTC(),
-		PaymentRequest:  invoice.PaymentRequest,
-		Destination:     destination,
-		DescriptionHash: invoice.DescriptionHash,
-		Expiry:          invoice.Expiry,
-		FallbackAddr:    invoice.FallbackAddr,
-		CltvExpiry:      invoice.CltvExpiry,
-		RouteHints:      rhJson,
-		Private:         false,
-		AddIndex:        invoice.AddIndex,
-		SettleIndex:     invoice.SettleIndex,
-		AmtPaidSat:      invoice.AmtPaidSat,
-		AmtPaidMsat:     invoice.AmtPaidMsat,
-		InvoiceState:    invoice.State.String(), // ,
-		Htlcs:           htlcJson,
-		Features:        featuresJson,
-		IsKeysend:       invoice.IsKeysend,
-		PaymentAddr:     hex.EncodeToString(invoice.PaymentAddr),
-		IsAmp:           invoice.IsAmp,
-		AmpInvoiceState: aisJson,
-		CreatedOn:       time.Now().UTC(),
-		UpdatedOn:       nil,
-	}
-
 	_, err = db.NamedExec(sqlInvoice, i)
 
 	if err != nil {
-		return errors.Wrapf(err, `insertInvoice -> db.Exec(%s, ...variables)`, sqlInvoice)
+		return errors.Wrapf(err, "insert invoice")
 	}
 	return nil
 }
