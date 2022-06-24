@@ -86,15 +86,19 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			continue
 		}
 
-		// TODO: Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
-		inva, err := zpay32.Decode(invoice.PaymentRequest, &chaincfg.MainNetParams)
-		if err != nil {
-			log.Printf("Subscribe and store invoices: %v", err)
-			// rate limit for caution but hopefully not needed
-			rl.Take()
+		var destinationPublicKey = ""
+		// if empty payment request invoice is likely keysend
+		if invoice.PaymentRequest != "" {
+			// TODO: Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
+			inva, err := zpay32.Decode(invoice.PaymentRequest, &chaincfg.MainNetParams)
+			if err != nil {
+				log.Printf("Subscribe and store invoices: decode payment request: %v", err)
+			} else {
+				destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
+			}
 		}
 
-		err = insertInvoice(db, invoice, fmt.Sprintf("%x", inva.Destination.SerializeCompressed()))
+		err = insertInvoice(db, invoice, destinationPublicKey)
 		if err != nil {
 			log.Printf("Subscribe and store invoices: %v", err)
 			// rate limit for caution but hopefully not needed
