@@ -202,14 +202,14 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
 				if err != nil {
-					log.Printf("Subscribe and update payments: %v\n")
+					log.Printf("Subscribe and update payments: %v\n", err)
 					continue
 				}
 
 				// Store the payments
 				err = updatePayments(db, p.Payments)
 				if err != nil {
-					log.Printf("Subscribe and update payments: %v\n")
+					log.Printf("Subscribe and update payments: %v\n", err)
 					continue
 				}
 			}
