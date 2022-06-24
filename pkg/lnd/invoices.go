@@ -2,7 +2,6 @@ package lnd
 
 import (
 	"context"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -22,21 +21,14 @@ type invoicesClient interface {
 }
 
 func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, err error) {
-
-	addIndex = 1
-	settleIndex = 1
-
-	sqlLatest := `select max(add_index), max(settle_index) from invoice;`
+	// index starts at 1
+	sqlLatest := `select coalesce(max(add_index),1), coalesce(max(settle_index),1) from invoice;`
 
 	row := db.QueryRow(sqlLatest)
 	err = row.Scan(&addIndex, &settleIndex)
 
-	if err == sql.ErrNoRows {
-		return addIndex, settleIndex, nil
-	}
-
 	if err != nil {
-		return 1, 1, err
+		return 0, 0, errors.Wrap(err, "getting max invoice indexes")
 	}
 
 	return addIndex, settleIndex, nil
@@ -46,6 +38,9 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 
 	// Get the latest settle and add index to prevent duplicate entries.
 	addIndex, settleIndex, err := fetchLastInvoiceIndexes(db)
+	if err != nil {
+		return errors.Wrap(err, "subscribe and store invoices")
+	}
 
 	invoiceStream, err := client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
 		AddIndex:    addIndex,
