@@ -257,8 +257,6 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 			continue
 		}
 
-		log.Println("Received HTLC Event")
-
 		switch htlcEvent.Event.(type) {
 		case *routerrpc.HtlcEvent_ForwardEvent:
 			err = storeForwardEvent(db, htlcEvent, htlcEvent.GetForwardEvent())
