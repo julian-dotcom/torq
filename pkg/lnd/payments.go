@@ -10,6 +10,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/zpay32"
 	"google.golang.org/grpc"
+	"log"
 	"time"
 )
 
@@ -53,14 +54,12 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 			}
 
 			// Keep fetching until LND returns less than the max number of records requested.
-
-		fetchAll:
 			for {
 
 				p, err := fetchPayments(ctx, client, last)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndStorePayments->fetchPayments(%v, %v, %v, %v)", ctx, client,
-						1)
+					log.Printf("Subscribe and store payments: %v\n", err)
+					break
 				}
 
 				last = p.LastIndexOffset
@@ -68,13 +67,14 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				// Store the payments
 				err = storePayments(db, p.Payments)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndStorePayments->storePayments(%v, %v)", db, p.Payments)
+					log.Printf("Subscribe and store payments: %v\n", err)
+					break
 				}
 
 				// Stop fetching if there are fewer forwards than max requested
 				// (indicates that we have the last forwarding record)
 				if len(p.Payments) == 0 {
-					break fetchAll
+					break
 				}
 			}
 		}
@@ -193,7 +193,8 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 			inFlightindexes, err := fetchInFlightPaymentIndexes(db)
 
 			if err != nil {
-				return errors.Wrapf(err, "SubscribeAndStorePayments->fetchLastPaymentIndex(%v)", db)
+				log.Printf("Subscribe and update payments: %v\n", err)
+				continue
 			}
 
 			// Keep fetching until LND returns less than the max number of records requested.
@@ -201,13 +202,15 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndUpdatePayments->fetchPayments(%v, %v, %d)", ctx, client, 1)
+					log.Printf("Subscribe and update payments: %v\n")
+					continue
 				}
 
 				// Store the payments
 				err = updatePayments(db, p.Payments)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndStorePayments->updatePayment(%v, %v)", db, p.Payments)
+					log.Printf("Subscribe and update payments: %v\n")
+					continue
 				}
 			}
 		}
