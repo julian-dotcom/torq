@@ -138,28 +138,28 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	})
 
 	// Invoices
-	// errs.Go(func() error {
+	errs.Go(func() error {
 
-	// 	err := lnd.SubscribeAndStoreInvoices(ctx, client, db)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "Start->SubscribeAndStoreInvoices(%v, %v, %v)", ctx,
-	// 			client, db)
-	// 	}
+		err := lnd.SubscribeAndStoreInvoices(ctx, client, db)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStoreInvoices(%v, %v, %v)", ctx,
+				client, db)
+		}
 
-	// 	return nil
-	// })
+		return nil
+	})
 
 	// Payments
-	// errs.Go(func() error {
+	errs.Go(func() error {
 
-	// 	err := lnd.SubscribeAndStorePayments(ctx, client, db, nil)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "Start->SubscribeAndStorePayments(%v, %v, %v)", ctx,
-	// 			client, db)
-	// 	}
+		err := lnd.SubscribeAndStorePayments(ctx, client, db, nil)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStorePayments(%v, %v, %v)", ctx,
+				client, db)
+		}
 
-	// 	return nil
-	// })
+		return nil
+	})
 
 	// Update in flight payments
 	errs.Go(func() error {
