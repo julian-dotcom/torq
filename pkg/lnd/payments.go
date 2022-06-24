@@ -2,7 +2,6 @@ package lnd
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"github.com/benbjohnson/clock"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -83,18 +82,13 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 }
 
 func fetchLastPaymentIndex(db *sqlx.DB) (uint64, error) {
-
 	var last uint64
 
 	row := db.QueryRow(`select coalesce(max(payment_index), 0) as latest from payment;`)
 	err := row.Scan(&last)
 
-	if err == sql.ErrNoRows {
-		return 0, nil
-	}
-
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "fetching last payment index")
 	}
 
 	return last, nil
@@ -114,7 +108,7 @@ func fetchPayments(ctx context.Context, client lightningClient_ListPayments, las
 	r, err = client.ListPayments(ctx, req)
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "fetchPayments->ListPayments(%v, %v)", ctx, req)
+		return nil, errors.Wrap(err, "fetch payments: lnrpc list payments")
 	}
 
 	return r, nil
@@ -162,7 +156,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 				payment.FailureReason.String(),
 				time.Now().UTC(),
 			); err != nil {
-				return errors.Wrapf(err, "storePayments->tx.Exec(%v)", q)
+				return errors.Wrapf(err, "store payments: db exec")
 			}
 		}
 		err := tx.Commit()
