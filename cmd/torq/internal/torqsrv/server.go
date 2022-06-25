@@ -97,6 +97,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 		{
 			channels.RegisterChannelRoutes(channelRoutes, db)
 			channel_history.RegisterChannelHistoryRoutes(channelRoutes, db)
+			channel_history.RegisterRebalancingTotals(channelRoutes, db)
 
 		}
 

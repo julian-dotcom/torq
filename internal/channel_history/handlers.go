@@ -19,7 +19,8 @@ type ChannelHistory struct {
 	// such as a tag.
 	Label string `json:"label"`
 
-	OnChainCost *uint64 `json:"on_chain_cost"`
+	OnChainCost   *uint64 `json:"on_chain_cost"`
+	RebalanceCost *uint64 `json:"rebalance_cost"`
 
 	// The  outbound amount in sats (Satoshis)
 	AmountOut *uint64 `json:"amount_out"`
@@ -43,6 +44,9 @@ type ChannelHistory struct {
 	CountIn *uint64 `json:"count_in"`
 	// Number of total forwards.
 	CountTotal *uint64 `json:"count_total"`
+
+	// Aggregated details about successful rebalancing (i.g. amount, cost, counts)
+	RebalancingTotal RebalancingTotal `json:"RebalancingTotal"`
 
 	// A list of channels included in this response
 	Channels []*channel               `json:"channels"`
@@ -70,6 +74,17 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+
+	pubKeys := strings.Split("some_pub_key", ",")
+
+	rebalanceTotals, err := getChannelRebalancingTotal(db, chanIds, pubKeys)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	r.RebalanceCost = &rebalanceTotals.SplitCostMsat
+	r.RebalancingTotal = rebalanceTotals
 
 	// Get the details for the requested channels
 	channels, err := getChannels(db, chanIds)
