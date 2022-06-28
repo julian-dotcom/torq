@@ -19,7 +19,8 @@ type ChannelHistory struct {
 	// such as a tag.
 	Label string `json:"label"`
 
-	OnChainCost *uint64 `json:"on_chain_cost"`
+	OnChainCost     *uint64 `json:"on_chain_cost"`
+	RebalancingCost *uint64 `json:"rebalancing_cost"`
 
 	// The  outbound amount in sats (Satoshis)
 	AmountOut *uint64 `json:"amount_out"`
@@ -43,6 +44,9 @@ type ChannelHistory struct {
 	CountIn *uint64 `json:"count_in"`
 	// Number of total forwards.
 	CountTotal *uint64 `json:"count_total"`
+
+	// Aggregated details about successful rebalancing (i.g. amount, cost, counts)
+	RebalancingDetails RebalancingDetails `json:"rebalancing"`
 
 	// A list of channels included in this response
 	Channels []*channel               `json:"channels"`
@@ -102,6 +106,24 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
+	}
+	if chanIds[0] == "1" {
+		reb, err := getRebalancingCost(db, from, to)
+		r.RebalancingCost = &reb.TotalCostMsat
+		r.RebalancingDetails = reb
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+	} else {
+		r.OnChainCost, err = getChannelOnChainCost(db, chanIds)
+		reb, err := getChannelRebalancing(db, chanIds, from, to)
+		r.RebalancingCost = &reb.SplitCostMsat
+		r.RebalancingDetails = reb
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, r)
@@ -335,8 +357,8 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time,
 				   count(time) as count
 			from forward, settings
 			where ((table allChannels)::boolean or outgoing_channel_id in (?))
-				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
-				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
+				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
+				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 			group by date, outgoing_channel_id
 			) as o
 		full outer join (
@@ -347,8 +369,8 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time,
 				   count(time) as count
 			from forward, settings
 			where ((table allChannels)::boolean or incoming_channel_id in (?))
-				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
-				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
+				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
+				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 			group by date, incoming_channel_id)  as i
 		on (i.chan_id = o.chan_id) and (i.date = o.date)
 		group by (coalesce(i.date, o.date)), (table tz)
@@ -450,8 +472,8 @@ from (SELECT ts as ts,
              lag(disabled, 1, false) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
       where chan_id in (?)
-        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
-        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
 where prev != disabled
 
@@ -475,8 +497,8 @@ from (SELECT ts as ts,
              lag(fee_rate_mill_msat, 1, 0) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
       where chan_id in (?)
-        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
-        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
 where prev != fee_rate
 
@@ -500,8 +522,8 @@ from (SELECT ts as ts,
              lag(fee_base_msat, 1, 0) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
       where chan_id in (?)
-        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
-        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
 where prev != fee_base
 
@@ -525,8 +547,8 @@ from (SELECT ts as ts,
              lag(max_htlc_msat, 1, 0) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
       where chan_id in (?)
-        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
-        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
 where prev != max_htlc_msat
 
@@ -550,8 +572,8 @@ from (SELECT ts as ts,
              lag(min_htlc, 1, 0) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
       where chan_id in (?)
-        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp AT TIME ZONE (table tz)
-        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp AT TIME ZONE (table tz)
+        and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
+        and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
 where prev  != min_htlc
 order by datetime desc;
@@ -599,8 +621,8 @@ func getTotalOnChainCost(db *sqlx.DB, from time.Time, to time.Time) (*uint64, er
 	q := `WITH tz AS (select preferred_timezone as tz from settings)
 		select coalesce(sum(total_fees), 0) as cost
 		from tx
-		where timestamp >= $1::timestamp AT TIME ZONE (table tz)
-			and timestamp <= $2::timestamp AT TIME ZONE (table tz)`
+		where timestamp::timestamp AT TIME ZONE (table tz) >= $1::timestamp
+			and timestamp::timestamp AT TIME ZONE (table tz) <= $2::timestamp`
 
 	row := db.QueryRow(q, from, to)
 	err := row.Scan(&Cost)

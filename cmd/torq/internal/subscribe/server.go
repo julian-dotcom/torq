@@ -29,14 +29,11 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	//   gRPC server of Torq
 	errs, ctx := errgroup.WithContext(ctx)
 
-	// Get the public key of our node
-	ni, err := client.GetInfo(ctx, &lnrpc.GetInfoRequest{})
-	if err != nil {
-		return errors.Wrapf(err, "start -> client.GetNodeInfo(ctx, &lnrpc.NodeInfoRequest{})")
-	}
-
 	// Store a list of public keys belonging to our nodes
-	lnd.InitOurNodesList([]string{ni.IdentityPubkey})
+	err := lnd.InitOurNodesList(ctx, client, db)
+	if err != nil {
+		return err
+	}
 
 	//Import Open channels
 	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client)
