@@ -83,6 +83,8 @@ function ChannelPage() {
   const profit: number =
     historyQuery?.data?.revenue_out - historyQuery?.data?.on_chain_cost - historyQuery?.data?.rebalancing_cost / 1000;
 
+  const totalCost: number = historyQuery?.data?.on_chain_cost + historyQuery?.data?.rebalancing_cost / 1000;
+
   return (
     <div className={styles.channelsPageContent}>
       <div className={styles.channelControls}>
@@ -132,9 +134,7 @@ function ChannelPage() {
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
-                <div className={classNames(styles.rowValue)}>
-                  {ft(historyQuery?.data?.on_chain_cost + historyQuery?.data?.rebalancing_cost / 1000)}
-                </div>
+                <div className={classNames(styles.rowValue)}>{ft(totalCost)}</div>
               </div>
             </div>
             <div className={styles.card}>
@@ -144,8 +144,10 @@ function ChannelPage() {
                 <div className={classNames(styles.rowValue)}>{ft(profit)}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>APY</div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
+                <div className={styles.rowLabel}>Gross Profit Margin</div>
+                <div className={classNames(styles.rowValue)}>
+                  {d3.format(".2%")((historyQuery?.data?.revenue_out - totalCost) / historyQuery?.data?.revenue_out)}
+                </div>
               </div>
             </div>
             <div className={styles.card}>

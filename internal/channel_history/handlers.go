@@ -75,8 +75,6 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	pubKeys := strings.Split("0305f5f4013f6c6eeb097bd8607204ec1f31577a05fae35f0d857c54d3b52e4e45", ",")
-
 	// Get the details for the requested channels
 	channels, err := getChannels(db, chanIds)
 	if err != nil {
@@ -110,7 +108,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	if chanIds[0] == "1" {
-		reb, err := getRebalancingCost(db, pubKeys, from, to)
+		reb, err := getRebalancingCost(db, from, to)
 		r.RebalancingCost = &reb.TotalCostMsat
 		r.RebalancingDetails = reb
 		if err != nil {
@@ -119,7 +117,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	} else {
 		r.OnChainCost, err = getChannelOnChainCost(db, chanIds)
-		reb, err := getChannelRebalancing(db, chanIds, pubKeys, from, to)
+		reb, err := getChannelRebalancing(db, chanIds, from, to)
 		r.RebalancingCost = &reb.SplitCostMsat
 		r.RebalancingDetails = reb
 		if err != nil {

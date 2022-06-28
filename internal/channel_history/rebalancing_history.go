@@ -14,12 +14,12 @@ type RebalancingDetails struct {
 	Count         uint64 `db:"count" json:"count"`
 }
 
-func getRebalancingCost(db *sqlx.DB, pubKeys []string, from time.Time, to time.Time) (cost RebalancingDetails,
+func getRebalancingCost(db *sqlx.DB, from time.Time, to time.Time) (cost RebalancingDetails,
 	err error) {
 
 	q := `WITH
 			tz AS (select preferred_timezone from settings),
-			pub_keys as (select $1::text[])
+			pub_keys as (select array_agg(pub_key) from local_node)
 		select coalesce(round(sum(amount_msat)),0) as amount_msat,
 			   coalesce(round(sum(total_fee_msat)),0) as total_cost_msat,
 			   coalesce(count(*), 0) as count
@@ -30,11 +30,11 @@ func getRebalancingCost(db *sqlx.DB, pubKeys []string, from time.Time, to time.T
 			from payment p
 			where status = 'SUCCEEDED'
 			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY(ARRAY[(table pub_keys)])
-			and creation_timestamp::timestamp AT TIME ZONE (table tz) >= $2::timestamp
-			and creation_timestamp::timestamp AT TIME ZONE (table tz) <= $3::timestamp
+			and creation_timestamp::timestamp AT TIME ZONE (table tz) >= $1::timestamp
+			and creation_timestamp::timestamp AT TIME ZONE (table tz) <= $2::timestamp
 		) as a;`
 
-	row := db.QueryRow(q, pq.Array(pubKeys), from, to)
+	row := db.QueryRow(q, from, to)
 	err = row.Scan(
 		&cost.AmountMsat,
 		&cost.TotalCostMsat,
@@ -53,12 +53,12 @@ func getRebalancingCost(db *sqlx.DB, pubKeys []string, from time.Time, to time.T
 
 }
 
-func getChannelRebalancingAllTime(db *sqlx.DB, chanIds []string, pubKeys []string) (cost RebalancingDetails, err error) {
+func getChannelRebalancingAllTime(db *sqlx.DB, chanIds []string) (cost RebalancingDetails, err error) {
 
 	q := `WITH
 			tz AS (select preferred_timezone from settings),
 			chan_ids as (select $1::text[]),
-			pub_keys as (select $2::text[])
+			pub_keys as (select array_agg(pub_key) from local_node)
 		select coalesce(round(sum(amount_msat)),0) as amount_msat,
 			   coalesce(round(sum(total_fee_msat)),0) as total_cost_msat,
 			   coalesce(round(sum(split_fee_msat)),0) as split_cost_msat,
@@ -88,7 +88,7 @@ func getChannelRebalancingAllTime(db *sqlx.DB, chanIds []string, pubKeys []strin
 			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY(ARRAY[(table pub_keys)])
 		) as a;`
 
-	row := db.QueryRow(q, pq.Array(chanIds), pq.Array(pubKeys))
+	row := db.QueryRow(q, pq.Array(chanIds))
 	err = row.Scan(
 		&cost.AmountMsat,
 		&cost.TotalCostMsat,
@@ -108,16 +108,16 @@ func getChannelRebalancingAllTime(db *sqlx.DB, chanIds []string, pubKeys []strin
 
 }
 
-func getChannelRebalancing(db *sqlx.DB, chanIds []string, pubKeys []string, from time.Time,
+func getChannelRebalancing(db *sqlx.DB, chanIds []string, from time.Time,
 	to time.Time) (cost RebalancingDetails,
 	err error) {
 
 	q := `WITH
 			tz AS (select preferred_timezone from settings),
 			chan_ids as (select $1::text[]),
-			pub_keys as (select $2::text[]),
-			fromDate AS (VALUES ($3)),
-			toDate AS (VALUES ($4))
+			pub_keys as (select array_agg(pub_key) from local_node),
+			fromDate AS (VALUES ($2)),
+			toDate AS (VALUES ($3))
 		select coalesce(round(sum(amount_msat)),0) as amount_msat,
 			   coalesce(round(sum(total_fee_msat)),0) as total_cost_msat,
 			   coalesce(round(sum(split_fee_msat)),0) as split_cost_msat,
@@ -149,7 +149,7 @@ func getChannelRebalancing(db *sqlx.DB, chanIds []string, pubKeys []string, from
 			and creation_timestamp::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 		) as a;`
 
-	row := db.QueryRow(q, pq.Array(chanIds), pq.Array(pubKeys), from, to)
+	row := db.QueryRow(q, pq.Array(chanIds), from, to)
 	err = row.Scan(
 		&cost.AmountMsat,
 		&cost.TotalCostMsat,

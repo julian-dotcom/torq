@@ -91,6 +91,9 @@ function ChannelPage() {
   }
   const profit: number =
     historyQuery?.data?.revenue_out - historyQuery?.data?.on_chain_cost - historyQuery?.data?.rebalancing_cost / 1000;
+
+  const totalCost: number = historyQuery?.data?.on_chain_cost + historyQuery?.data?.rebalancing_cost / 1000;
+
   const selectedEventsCount = Array.from(selectedEvents).filter((d) => d[1]).length;
   const title =
     !isLoading &&
@@ -162,6 +165,12 @@ function ChannelPage() {
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
                 <div className={classNames(styles.rowValue)}>{ft(profit)}</div>
+              </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>Gross Profit Margin</div>
+                <div className={classNames(styles.rowValue)}>
+                  {d3.format(".2%")((historyQuery?.data?.revenue_out - totalCost) / historyQuery?.data?.revenue_out)}
+                </div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Turnover</div>
