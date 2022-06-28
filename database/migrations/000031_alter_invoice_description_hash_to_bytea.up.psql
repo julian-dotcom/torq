@@ -1,0 +1,2 @@
+alter table invoice
+alter column description_hash type bytea using description_hash::bytea;
