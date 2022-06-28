@@ -22,7 +22,7 @@ import {
   updateProfitChartKey,
 } from "./channelSlice";
 
-const ft = d3.format(",");
+const ft = d3.format(",.0f");
 
 const eventNames = new Map([
   ["fee_rate", "Fee rate"],
@@ -80,7 +80,8 @@ function ChannelPage() {
   }
 
   const selectedEventsCount = Array.from(selectedEvents).filter((d) => d[1]).length;
-  const profit: number = historyQuery?.data?.revenue_out - historyQuery?.data?.on_chain_cost;
+  const profit: number =
+    historyQuery?.data?.revenue_out - historyQuery?.data?.on_chain_cost - historyQuery?.data?.rebalancing_cost / 1000;
 
   return (
     <div className={styles.channelsPageContent}>
@@ -123,7 +124,7 @@ function ChannelPage() {
               <div className={styles.heading}>Expenses</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Rebalancing</div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
+                <div className={classNames(styles.rowValue)}>{ft(historyQuery?.data?.rebalancing_cost / 1000)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Open & Close</div>
@@ -131,7 +132,9 @@ function ChannelPage() {
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
-                <div className={classNames(styles.rowValue)}>{ft(historyQuery?.data?.on_chain_cost)}</div>
+                <div className={classNames(styles.rowValue)}>
+                  {ft(historyQuery?.data?.on_chain_cost + historyQuery?.data?.rebalancing_cost / 1000)}
+                </div>
               </div>
             </div>
             <div className={styles.card}>

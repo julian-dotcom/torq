@@ -4,17 +4,56 @@ import (
 	"database/sql"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"time"
 )
 
-type RebalancingTotal struct {
+type RebalancingDetails struct {
 	AmountMsat    uint64 `db:"amount_msat" json:"amount_msat"`
 	TotalCostMsat uint64 `db:"total_cost_msat" json:"total_cost_msat"`
 	SplitCostMsat uint64 `db:"split_cost_msat" json:"split_cost_msat"`
 	Count         uint64 `db:"count" json:"count"`
 }
 
-func getChannelRebalancingTotal(db *sqlx.DB, chanIds []string, pubKeys []string) (cost RebalancingTotal,
+func getRebalancingCost(db *sqlx.DB, pubKeys []string, from time.Time, to time.Time) (cost RebalancingDetails,
 	err error) {
+
+	q := `WITH
+			tz AS (select preferred_timezone from settings),
+			pub_keys as (select $1::text[])
+		select coalesce(round(sum(amount_msat)),0) as amount_msat,
+			   coalesce(round(sum(total_fee_msat)),0) as total_cost_msat,
+			   coalesce(count(*), 0) as count
+		from (
+			select creation_timestamp at time zone (table tz),
+				   value_msat as amount_msat,
+				   fee_msat as total_fee_msat
+			from payment p
+			where status = 'SUCCEEDED'
+			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY(ARRAY[(table pub_keys)])
+			and creation_timestamp::timestamp AT TIME ZONE (table tz) >= $2::timestamp
+			and creation_timestamp::timestamp AT TIME ZONE (table tz) <= $3::timestamp
+		) as a;`
+
+	row := db.QueryRow(q, pq.Array(pubKeys), from, to)
+	err = row.Scan(
+		&cost.AmountMsat,
+		&cost.TotalCostMsat,
+		&cost.Count,
+	)
+
+	if err == sql.ErrNoRows {
+		return cost, nil
+	}
+
+	if err != nil {
+		return cost, err
+	}
+
+	return cost, nil
+
+}
+
+func getChannelRebalancingAllTime(db *sqlx.DB, chanIds []string, pubKeys []string) (cost RebalancingDetails, err error) {
 
 	q := `WITH
 			tz AS (select preferred_timezone from settings),
@@ -50,6 +89,67 @@ func getChannelRebalancingTotal(db *sqlx.DB, chanIds []string, pubKeys []string)
 		) as a;`
 
 	row := db.QueryRow(q, pq.Array(chanIds), pq.Array(pubKeys))
+	err = row.Scan(
+		&cost.AmountMsat,
+		&cost.TotalCostMsat,
+		&cost.SplitCostMsat,
+		&cost.Count,
+	)
+
+	if err == sql.ErrNoRows {
+		return cost, nil
+	}
+
+	if err != nil {
+		return cost, err
+	}
+
+	return cost, nil
+
+}
+
+func getChannelRebalancing(db *sqlx.DB, chanIds []string, pubKeys []string, from time.Time,
+	to time.Time) (cost RebalancingDetails,
+	err error) {
+
+	q := `WITH
+			tz AS (select preferred_timezone from settings),
+			chan_ids as (select $1::text[]),
+			pub_keys as (select $2::text[]),
+			fromDate AS (VALUES ($3)),
+			toDate AS (VALUES ($4))
+		select coalesce(round(sum(amount_msat)),0) as amount_msat,
+			   coalesce(round(sum(total_fee_msat)),0) as total_cost_msat,
+			   coalesce(round(sum(split_fee_msat)),0) as split_cost_msat,
+			   coalesce(count(*), 0) as count
+		from (
+			select creation_timestamp at time zone (table tz),
+				   value_msat as amount_msat,
+				   fee_msat as total_fee_msat,
+				   case
+				   when
+					   -- When two channels in the same group is involved, return the full rebalancing cost.
+					   htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY(ARRAY[(table chan_ids)]) and
+					   htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY(ARRAY[(table chan_ids)])
+					   then fee_msat
+				   when
+					   -- When only one channel in the group is involved, return half the rebalancing cost.
+					   htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY(ARRAY[(table chan_ids)]) or
+					   htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY(ARRAY[(table chan_ids)])
+					   then fee_msat/2
+				   end as split_fee_msat
+			from payment p
+			where status = 'SUCCEEDED'
+			and (
+				htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY(ARRAY[(table chan_ids)])
+				or htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY(ARRAY[(table chan_ids)])
+			)
+			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY(ARRAY[(table pub_keys)])
+			and creation_timestamp::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
+			and creation_timestamp::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
+		) as a;`
+
+	row := db.QueryRow(q, pq.Array(chanIds), pq.Array(pubKeys), from, to)
 	err = row.Scan(
 		&cost.AmountMsat,
 		&cost.TotalCostMsat,
