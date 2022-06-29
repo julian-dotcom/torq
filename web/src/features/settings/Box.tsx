@@ -13,16 +13,15 @@ function Box(props: boxProps) {
       border: "1px solid var(--fg-subtle)",
       borderRadius: "3px",
       padding: "20px 10px",
-      marginTop: "10px"
+      marginTop: "10px",
+      width: "100%",
     },
     container: {
-      marginBottom: "30px"
-    }
+      width: "100%",
+    },
   };
   if (props.minWidth) {
-    dynamicStyles.container[
-      "minWidth" as keyof typeof dynamicStyles.container
-    ] = props.minWidth + "px";
+    dynamicStyles.container["minWidth" as keyof typeof dynamicStyles.container] = props.minWidth + "px";
   }
   return (
     <div style={dynamicStyles.container}>

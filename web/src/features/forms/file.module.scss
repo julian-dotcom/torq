@@ -8,7 +8,7 @@
   display: grid;
   justify-content: center;
   position: relative;
-  z-index: 500;
+  z-index: 1;
 }
 .fileDropArea.dragging:after {
   content: "";
@@ -18,7 +18,7 @@
   right: 0;
   top: 0;
   bottom: 0;
-  z-index: 600;
+  z-index: 2;
 }
 .dragging {
   background-color: var(--color-blue-300);

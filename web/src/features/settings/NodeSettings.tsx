@@ -53,7 +53,7 @@ function NodeSettings() {
 
   const implementationOptions = [{ value: "LND", label: "LND" } as SelectOption];
   return (
-    <Box minWidth={440} title="Node Settings">
+    <Box title="Node Settings">
       <form onSubmit={submitNodeSettings}>
         <Select
           label="Implementation"

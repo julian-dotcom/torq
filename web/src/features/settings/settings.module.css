@@ -1,4 +1,6 @@
 .center {
   display: grid;
   justify-content: center;
+  grid-template-columns: minmax(300px, 440px);
+  grid-row-gap: 30px;
 }
