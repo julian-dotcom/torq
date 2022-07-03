@@ -48,6 +48,9 @@ type ChannelHistory struct {
 	// Aggregated details about successful rebalancing (i.g. amount, cost, counts)
 	RebalancingDetails RebalancingDetails `json:"rebalancing"`
 
+	// Channel balances over time
+	ChannelBalances []*ChannelBalance `json:"channel_balance"`
+
 	// A list of channels included in this response
 	Channels []*channel               `json:"channels"`
 	History  []*ChannelHistoryRecords `json:"history"`
@@ -107,6 +110,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+
 	if chanIds[0] == "1" {
 		reb, err := getRebalancingCost(db, from, to)
 		r.RebalancingCost = &reb.TotalCostMsat
@@ -124,6 +128,25 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		}
+	}
+
+	if chanIds[0] != "1" {
+
+		for _, chanId := range chanIds {
+			cb, err := getChannelBalance(db, string(chanId), from, to)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, err)
+				return
+			}
+
+			if len(r.ChannelBalances) == 0 {
+				r.ChannelBalances = []*ChannelBalance{&cb}
+			} else {
+				r.ChannelBalances = append(r.ChannelBalances, &cb)
+			}
+
+		}
+
 	}
 
 	c.JSON(http.StatusOK, r)
