@@ -20,6 +20,7 @@ type ChannelBalance struct {
 func getChannelBalance(db *sqlx.DB, chanId string, from time.Time, to time.Time) (ChannelBalance, error) {
 	cb := ChannelBalance{ChanId: chanId}
 	q := `WITH
+    		tz AS (select preferred_timezone from settings),
 			i AS (
 				select last(inital_balance, time) inital_balance, last(capacity, time) as capacity from (
 					select
@@ -74,7 +75,7 @@ func getChannelBalance(db *sqlx.DB, chanId string, from time.Time, to time.Time)
 				order by time)
 			) a
 		) b
-	where time between $2 and $3
+	where time::timestamp AT TIME ZONE (table tz) between $2 and $3
 ;`
 
 	rows, err := db.Queryx(q, chanId, from, to)
