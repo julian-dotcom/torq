@@ -7,12 +7,14 @@ export interface NavState {
   flowKey: keyOption;
   eventChartKey: keyOption;
   profitChartKey: keyOption;
+  balanceChanID: { value: number; label: string };
 }
 
 const initialState: NavState = {
   profitChartKey: { value: "revenue", label: "Revenue" },
   eventChartKey: { value: "amount", label: "Amount" },
   flowKey: { value: "amount", label: "Amount" },
+  balanceChanID: { value: 0, label: "" },
 };
 
 export const channelSlice = createSlice({
@@ -30,10 +32,13 @@ export const channelSlice = createSlice({
     updateEventChartKey: (state: any, action: any) => {
       state.eventChartKey = action.payload.key;
     },
+    updateBalanceChanID: (state: any, action: any) => {
+      state.balanceChanID = action.payload.key;
+    },
   },
 });
 
-export const { updateFlowKey, updateProfitChartKey, updateEventChartKey } = channelSlice.actions;
+export const { updateFlowKey, updateProfitChartKey, updateEventChartKey, updateBalanceChanID } = channelSlice.actions;
 
 // The function below is called a selector and allows us to select a value from
 // the state. Selectors can also be defined inline where they're used instead of
@@ -41,5 +46,6 @@ export const { updateFlowKey, updateProfitChartKey, updateEventChartKey } = chan
 export const selectFlowKeys = (state: RootState) => state.channel.flowKey;
 export const selectProfitChartKey = (state: RootState) => state.channel.profitChartKey;
 export const selectEventChartKey = (state: RootState) => state.channel.eventChartKey;
+export const selectBalanceChanID = (state: RootState) => state.channel.balanceChanID;
 
 export default channelSlice.reducer;

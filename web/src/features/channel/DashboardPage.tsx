@@ -203,7 +203,9 @@ function ChannelPage() {
               {/*</div>*/}
             </div>
             <div className={styles.chartContainer}>
-              {historyQuery.data && <ProfitsChart data={historyQuery.data.history} dashboard={true} />}
+              {historyQuery.data && (
+                <ProfitsChart data={historyQuery.data.history} dashboard={true} from={from} to={to} />
+              )}
             </div>
           </div>
         </div>

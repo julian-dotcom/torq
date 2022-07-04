@@ -120,8 +120,9 @@ export class AreaPlot extends AbstractPlot {
       default:
         hoverIndex = drawConfig?.xIndex || 0;
     }
-    const legendText = this.chart.data[hoverIndex][this.config.key];
-
-    this.legendTextBox.text(d3.format(",")(legendText));
+    if (this.chart?.data?.length > 0) {
+      const legendText = this.chart.data[hoverIndex][this.config.key];
+      this.legendTextBox.text(d3.format(",")(legendText));
+    }
   }
 }

@@ -30,7 +30,10 @@ import {
   updateEventChartKey,
   updateFlowKey,
   updateProfitChartKey,
+  updateBalanceChanID,
+  selectBalanceChanID,
 } from "./channelSlice";
+import BalanceChart from "./balanceChart/BalanceChart";
 
 const ft = d3.format(",.0f");
 
@@ -80,6 +83,10 @@ function ChannelPage() {
   const flowKey = useAppSelector(selectFlowKeys);
   const profitKey = useAppSelector(selectProfitChartKey);
   const eventKey = useAppSelector(selectEventChartKey);
+  let balanceChanId = useAppSelector(selectBalanceChanID);
+  if (balanceChanId.label === "") {
+    balanceChanId = { value: 0, label: historyQuery?.data?.channel_balance[0]?.ChanId || "" };
+  }
 
   let total_capacity: number = 0;
   if (historyQuery?.data?.channels) {
@@ -106,6 +113,13 @@ function ChannelPage() {
         return self.indexOf(value) === index;
       })
       .join(", ");
+  let channelBalanceOptions = [{ value: 0, label: "" }];
+  if (historyQuery?.data?.channel_balance) {
+    channelBalanceOptions = historyQuery.data.channel_balance.map((d: any, i: number) => {
+      return { value: i, label: d.ChanId };
+    });
+  }
+
   return (
     <div className={styles.channelsPageContent}>
       <div className={styles.channelControls}>
@@ -233,7 +247,7 @@ function ChannelPage() {
               {/*</div>*/}
             </div>
             <div className={styles.chartContainer}>
-              {historyQuery.data && <ProfitsChart data={historyQuery.data.history} />}
+              {historyQuery.data && <ProfitsChart data={historyQuery.data.history} from={from} to={to} />}
             </div>
           </div>
         </div>
@@ -424,9 +438,47 @@ function ChannelPage() {
             <div className={styles.chartContainer}>
               {historyQuery.data && (
                 <EventsChart
+                  from={from}
+                  to={to}
                   data={historyQuery.data.history}
                   events={historyQuery.data.events}
                   selectedEventTypes={selectedEvents}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className={classNames(styles.pageRow, styles.balanceChartWrapper)}>
+          <div className={styles.card}>
+            <div className={styles.profitChartControls}>
+              <div className={styles.profitChartLeftControls}>
+                <Select
+                  value={balanceChanId}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      dispatch(
+                        updateBalanceChanID({
+                          key: (newValue as { value: string; label: string }) || {
+                            value: 0,
+                            label: historyQuery.data.channel_balance[0].ChanId,
+                          },
+                        })
+                      );
+                    }
+                  }}
+                  isDisabled={channelBalanceOptions.length < 2}
+                  options={channelBalanceOptions}
+                />
+              </div>
+            </div>
+            <div className={classNames(styles.chartContainer)}>
+              {!isLoading && historyQuery?.data?.channel_balance?.length && (
+                <BalanceChart
+                  data={historyQuery.data.channel_balance[balanceChanId.value].Balances}
+                  totalCapacity={historyQuery.data.channels[balanceChanId.value].capacity}
+                  from={from}
+                  to={to}
                 />
               )}
             </div>

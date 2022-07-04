@@ -11,9 +11,11 @@ type EventsChart = {
   data: any[];
   events: any[];
   selectedEventTypes: Map<string, boolean>;
+  from: string;
+  to: string;
 };
 
-function EventsChart({ data, events, selectedEventTypes }: EventsChart) {
+function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
   const eventKey = useAppSelector(selectEventChartKey);
@@ -34,6 +36,8 @@ function EventsChart({ data, events, selectedEventTypes }: EventsChart) {
   const ref = useD3(
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       chart = new ChartCanvas(container, data, {
+        from: new Date(from),
+        to: new Date(to),
         yScaleKey: eventKey.value + "_total",
         rightYScaleKey: eventKey.value + "_total",
         rightYAxisKeys: [eventKey.value + "_out", eventKey.value + "_in", eventKey.value + "_total"],
