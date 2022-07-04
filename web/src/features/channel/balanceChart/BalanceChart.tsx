@@ -65,18 +65,12 @@ function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
         rightYAxisMaxOverride: totalCapacity,
         xAxisLabelFormatter: d3.timeFormat("%d %b - %H:%M") as (domainValue: NumberValue) => string,
       });
-      chart.plot(LinePlot, {
-        id: "outbound_capacity_line",
-        key: "outbound_capacity",
-        // legendLabel: "Outbound capacity",
-        labels: false,
-        lineColor: "rgba(133, 196, 255, 0.5)",
-      });
+
       chart.plot(AreaPlot, {
         id: "outbound_capacity",
         key: "outbound_capacity",
         legendLabel: "Outbound capacity",
-
+        curveFunction: d3.curveStepAfter,
         areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.6)"],
         // areaColor: "#FAAE93",
       });

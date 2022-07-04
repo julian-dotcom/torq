@@ -8,6 +8,7 @@ import clone from "../../../clone";
 type areaPlotConfig = basePlotConfig & {
   areaColor: string;
   areaGradient?: Array<string>[2];
+  curveFunction?: any;
   legendLabel?: string;
   addBuffer: boolean;
   labels?: boolean;
@@ -65,6 +66,10 @@ export class AreaPlot extends AbstractPlot {
         return this.chart.config.yScale(0) || 1;
       })
       .context(this.chart.context);
+
+    if (this.config.curveFunction) {
+      area.curve(this.config.curveFunction);
+    }
 
     this.chart.context.fillStyle = this.config.areaColor;
 

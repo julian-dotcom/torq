@@ -9,6 +9,7 @@ type linePlotConfig = basePlotConfig & {
   labels?: boolean;
   legendLabel?: string;
   rightAxis: boolean;
+  curveFunction?: any;
 };
 
 type linePlotConfigInit = Partial<linePlotConfig> & basePlotConfig;
@@ -64,6 +65,10 @@ export class LinePlot extends AbstractPlot {
         return yScale(this.chart.data[i][this.config.key]) || 0;
       })
       .context(this.chart.context);
+
+    if (this.config.curveFunction) {
+      line.curve(this.config.curveFunction);
+    }
 
     this.chart.context.strokeStyle = this.config.lineColor;
 
