@@ -37,6 +37,8 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       if (dashboard) {
         chart = new ChartCanvas(container, data, {
+          from: new Date(from),
+          to: new Date(to),
           yScaleKey: profitKey.value + "_out",
           rightYScaleKey: profitKey.value + "_out",
           rightYAxisKeys: [profitKey.value + "_out"],
