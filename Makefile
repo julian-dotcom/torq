@@ -49,3 +49,7 @@ cover:
 .PHONY: build-docker
 build-docker:
 	docker build . -t $(TAG)
+
+.PHONY: test-e2e
+test-e2e:
+	E2E=true go test -v ./test/e2e/lnd
