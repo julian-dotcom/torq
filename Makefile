@@ -52,4 +52,4 @@ build-docker:
 
 .PHONY: test-e2e
 test-e2e:
-	E2E=true go test -v ./test/e2e/lnd
+	E2E=true go test -v -count=1 ./test/e2e/lnd
