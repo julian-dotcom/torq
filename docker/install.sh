@@ -33,7 +33,6 @@ printf "\n"
 [ -f docker-compose.yml ] && rm docker-compose.yml
 
 curl --location --silent --output $TORQDIR"/docker-compose.yml" https://raw.githubusercontent.com/lncapital/torq/main/docker/example-docker-compose.yml
-
 curl --location --silent --output $TORQDIR"/start-torq.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/start.sh
 curl --location --silent --output $TORQDIR"/stop-torq.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/stop.sh
 curl --location --silent --output $TORQDIR"/update-torq.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/update.sh
@@ -49,15 +48,16 @@ Green='\033[0;32m' # Green text color
 Cyan='\033[0;36m'
 Red='\033[0;31m'
 NC='\033[0m' ## Reset text color
+START_COMMAND='start-torq.sh'
 
 echo 'We have added these scripts to 'TORQDIR':\n'
-echo "${Cyan}start-torq.sh${NC}\t (This command starts Torq)"
-echo "${Cyan}stop-torq.sh${NC}\t\t (This command stops Torq)"
+echo "${Cyan}${START_COMMAND}${NC}\t (This command starts Torq)"
+echo "${Cyan}stop-torq.sh${NC}\t (This command stops Torq)"
 echo "${Cyan}update-torq.sh${NC}\t (This command updates Torq)"
 echo "${Red}delete-torq.sh${NC}\t (WARNING: This command deletes Torq _including_ all collected data!)"
 
 echo "Optional: You can add these commands to your path"
 
 echo "\nTry it out! Start Torq now with:"
-echo "${Green}sh ${TORQDIR}/start.sh${NC}"
+echo "${Green}sh ${TORQDIR}/${START_COMMAND}${NC}"
 echo "\n"
