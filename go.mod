@@ -15,7 +15,6 @@ require (
 	github.com/lib/pq v1.10.3
 	github.com/lightningnetwork/lnd v0.14.3-beta
 	github.com/mixer/clock v0.0.0-20210321161542-3ac312e8c7e8
-	github.com/ory/dockertest/v3 v3.9.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.27.0
 	github.com/ulule/limiter/v3 v3.10.0
@@ -30,11 +29,9 @@ require (
 )
 
 require (
-	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/Microsoft/hcsshim v0.9.3 // indirect
-	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/aead/siphash v1.0.1 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
@@ -52,7 +49,6 @@ require (
 	github.com/btcsuite/btcwallet/wtxmgr v1.3.1-0.20210822222949-9b5a201c344c // indirect
 	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd // indirect
 	github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 // indirect
-	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f // indirect
 	github.com/cockroachdb/redact v1.1.3 // indirect
@@ -64,7 +60,6 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/lru v1.0.0 // indirect
-	github.com/docker/cli v20.10.14+incompatible // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
@@ -86,7 +81,6 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/google/btree v1.0.1 // indirect
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/gorilla/sessions v1.2.1 // indirect
@@ -97,7 +91,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.5.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.10.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
@@ -130,10 +123,8 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mholt/archiver/v3 v3.5.0 // indirect
 	github.com/miekg/dns v1.1.43 // indirect
-	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/moby/sys/mount v0.3.3 // indirect
 	github.com/moby/sys/mountinfo v0.6.2 // indirect
-	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nwaples/rardecode v1.1.2 // indirect
@@ -156,9 +147,6 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
-	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
-	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
@@ -195,6 +183,7 @@ require (
 	gopkg.in/macaroon-bakery.v2 v2.0.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gotest.tools/v3 v3.2.0 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
