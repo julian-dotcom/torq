@@ -1,21 +1,21 @@
 package e2e
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"github.com/docker/docker/api/types"
+	"github.com/ory/dockertest/v3"
+	dc "github.com/ory/dockertest/v3/docker"
+	"io"
 	"log"
 	"os"
 	"testing"
 	"time"
-
-	"github.com/docker/docker/api/types"
-	"github.com/ory/dockertest/v3"
-	dc "github.com/ory/dockertest/v3/docker"
-
 	// "github.com/docker/docker/api/types/container"
 	"encoding/json"
-
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -35,23 +35,9 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	tar, err := archive.TarWithOptions("docker/btcd", &archive.TarOptions{})
-	if err != nil {
-		log.Fatalf("Creating btcd archive: %s", err)
-	}
+	buildImage("docker/btcd/", "e2e/btcd", cli, ctx)
 
-	opts := types.ImageBuildOptions{
-		Dockerfile: "Dockerfile",
-		Tags:       []string{"e2e/btcd"},
-		Remove:     true,
-	}
-
-	res, err := cli.ImageBuild(ctx, tar, opts)
-	if err != nil {
-		log.Fatalf("Building btcd docker image: %s", err)
-	}
-	defer res.Body.Close()
-	stdcopy.StdCopy(os.Stdout, os.Stderr, res.Body)
+	buildImage("docker/lnd/", "e2e/lnd", cli, ctx)
 
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
 	pool, err := dockertest.NewPool("")
@@ -160,6 +146,62 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(code)
+}
+
+type ErrorLine struct {
+	Error       string      `json:"error"`
+	ErrorDetail ErrorDetail `json:"errorDetail"`
+}
+
+type ErrorDetail struct {
+	Message string `json:"message"`
+}
+
+func buildImage(path string, name string, cli *client.Client, ctx context.Context) {
+	tar, err := archive.TarWithOptions(path, &archive.TarOptions{})
+	if err != nil {
+		log.Fatalf("Creating %s archive: %v", name, err)
+	}
+
+	opts := types.ImageBuildOptions{
+		Dockerfile: "Dockerfile",
+		Tags:       []string{name},
+		Remove:     true,
+	}
+
+	res, err := cli.ImageBuild(ctx, tar, opts)
+	if err != nil {
+		log.Fatalf("Building %s docker image: %v", name, err)
+	}
+	defer res.Body.Close()
+	err = print(res.Body)
+	if err != nil {
+		log.Fatalf("Building %s docker image: %v", name, err)
+	}
+	log.Println("Did I build the image?" + name)
+	stdcopy.StdCopy(os.Stdout, os.Stderr, res.Body)
+}
+
+func print(rd io.Reader) error {
+	var lastLine string
+
+	scanner := bufio.NewScanner(rd)
+	for scanner.Scan() {
+		lastLine = scanner.Text()
+		fmt.Println(scanner.Text())
+	}
+
+	errLine := &ErrorLine{}
+	json.Unmarshal([]byte(lastLine), errLine)
+	if errLine.Error != "" {
+		return errors.New(errLine.Error)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func TestSomething(t *testing.T) {
