@@ -34,15 +34,30 @@ printf "\n"
 
 curl --location --silent --output $TORQDIR"/docker-compose.yml" https://raw.githubusercontent.com/lncapital/torq/main/docker/example-docker-compose.yml
 
-curl --location --silent --output $TORQDIR"/start.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/start.sh
-curl --location --silent --output $TORQDIR"/stop.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/stop.sh
-curl --location --silent --output $TORQDIR"/delete.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/delete.sh
-curl --location --silent --output $TORQDIR"/configure.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/configure.sh
+curl --location --silent --output $TORQDIR"/start-torq.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/start.sh
+curl --location --silent --output $TORQDIR"/stop-torq.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/stop.sh
+curl --location --silent --output $TORQDIR"/update-torq.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/update.sh
+curl --location --silent --output $TORQDIR"/delete-torq.sh" https://raw.githubusercontent.com/lncapital/torq/main/docker/delete.sh
 
 # https://stackoverflow.com/questions/16745988/sed-command-with-i-option-in-place-editing-works-fine-on-ubuntu-but-not-mac
 sed -i.bak "s/<YourDBPassword>/$DBPASSWORD/"  $TORQDIR"/docker-compose.yml" && rm $TORQDIR"/docker-compose.yml.bak"
 sed -i.bak "s/<YourUIPassword>/$UIPASSWORD/" $TORQDIR"/docker-compose.yml" && rm $TORQDIR"/docker-compose.yml.bak"
 
 echo 'Docker compose file (docker-compose.yml) created in '$TORQDIR
-echo 'Start Torq with:\n\n'
-echo 'sh '$TORQDIR'/start.sh'
+
+Green='\033[0;32m' # Green text color
+Cyan='\033[0;36m'
+Red='\033[0;31m'
+NC='\033[0m' ## Reset text color
+
+echo 'We have added these scripts to 'TORQDIR':\n'
+echo "${Cyan}start-torq.sh${NC}\t (This command starts Torq)"
+echo "${Cyan}stop-torq.sh${NC}\t\t (This command stops Torq)"
+echo "${Cyan}update-torq.sh${NC}\t (This command updates Torq)"
+echo "${Red}delete-torq.sh${NC}\t (WARNING: This command deletes Torq _including_ all collected data!)"
+
+echo "Optional: You can add these commands to your path"
+
+echo "\nTry it out! Start Torq now with:"
+echo "${Green}sh ${TORQDIR}/start.sh${NC}"
+echo "\n"
