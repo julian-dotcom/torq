@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-docker-compose down
+BASEDIR=$(dirname "$0")
+
+docker-compose -f $BASEDIR/docker-compose.yml down
