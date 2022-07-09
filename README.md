@@ -8,12 +8,17 @@ Torq is a capital management tool for routing nodes on the lightning network.
 
 ## Quick start
 
-To install Torq follow one of the simple guides here
-https://docs.ln.capital/
+To install Torq run:
+```sh
+sh -c "$(curl -fsSL https://torq.sh)"
+```
+
+You do not need sudo and you can check the contents of the installation script here: https://torq.sh
 
 ## Current features
 
 - Channel and Channel group inspection
+- See the channel balance (inbound/outbound capacity) over time.
 - Advanced charts and visualizations of aggregated forwarding statistics.
 - Visualization of sources and destinations for traffic.
 - Stores all events from your node including HTLC events, fee rate changes and channel enable/disable events.
@@ -30,6 +35,10 @@ https://docs.ln.capital/
 - Limit HTLC amounts
 - Automatic Backups
 - Automatic channel tagging
+
+## Documentation
+
+https://docs.ln.capital/
 
 ## Join us!
 Join our [Telegram group](https://t.me/joinchat/V-Dks6zjBK4xZWY0) for updates on releases

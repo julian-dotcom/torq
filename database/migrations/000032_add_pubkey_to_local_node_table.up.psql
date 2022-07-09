@@ -1,0 +1,2 @@
+alter table local_node
+add pub_key text

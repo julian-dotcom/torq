@@ -9,6 +9,7 @@ type linePlotConfig = basePlotConfig & {
   labels?: boolean;
   legendLabel?: string;
   rightAxis: boolean;
+  curveFunction?: any;
 };
 
 type linePlotConfigInit = Partial<linePlotConfig> & basePlotConfig;
@@ -34,16 +35,17 @@ export class LinePlot extends AbstractPlot {
       .attr("class", "legendContent")
       .attr("id", `${this.config.id}`);
 
-    this.legendColorBox = this.legend
-      .append("div")
-      .attr("class", "legendColorBox")
-      .attr("style", `width: 12px; height: 12px; background: ${this.config.lineColor};`);
+    this.legendColorBox = this.legend.append("div");
 
-    this.legend
-      .append("div")
-      .attr("class", "legendLabelBox")
-      .text((this.config.legendLabel || "") + ": ");
-
+    if (this.config.legendLabel) {
+      this.legendColorBox
+        .attr("class", "legendColorBox")
+        .attr("style", `width: 12px; height: 12px; background: ${this.config.lineColor};`);
+      this.legend
+        .append("div")
+        .attr("class", "legendLabelBox")
+        .text((this.config.legendLabel || "") + ": ");
+    }
     this.legendTextBox = this.legend.append("div").attr("class", "legendTextBox");
   }
 
@@ -63,6 +65,10 @@ export class LinePlot extends AbstractPlot {
         return yScale(this.chart.data[i][this.config.key]) || 0;
       })
       .context(this.chart.context);
+
+    if (this.config.curveFunction) {
+      line.curve(this.config.curveFunction);
+    }
 
     this.chart.context.strokeStyle = this.config.lineColor;
 
@@ -97,8 +103,9 @@ export class LinePlot extends AbstractPlot {
       default:
         hoverIndex = drawConfig?.xIndex || 0;
     }
-    const legendText = this.chart.data[hoverIndex][this.config.key];
-
-    this.legendTextBox.text(d3.format(",")(legendText));
+    if (this.config.legendLabel) {
+      const legendText = this.chart.data[hoverIndex][this.config.key];
+      this.legendTextBox.text(d3.format(",")(legendText));
+    }
   }
 }

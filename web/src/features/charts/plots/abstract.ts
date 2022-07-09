@@ -32,9 +32,13 @@ export abstract class AbstractPlot {
 
   getYScale() {
     const yScaleMax = Math.max(
-      ...this.chart.data.map((d): number => {
-        return d[this.config.key];
-      })
+      ...[
+        ...this.chart.data.map((d): number => {
+          return d[this.config.key];
+        }),
+        this.chart.config.yAxisMaxOverride,
+        this.chart.config.rightYAxisMaxOverride,
+      ]
     );
     return this.chart.config.yScale.copy().domain([yScaleMax * this.chart.config.yAxisPadding, 0]);
   }

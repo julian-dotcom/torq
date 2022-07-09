@@ -2,7 +2,6 @@ package lnd
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"github.com/benbjohnson/clock"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -11,6 +10,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/zpay32"
 	"google.golang.org/grpc"
+	"log"
 	"time"
 )
 
@@ -54,14 +54,12 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 			}
 
 			// Keep fetching until LND returns less than the max number of records requested.
-
-		fetchAll:
 			for {
 
 				p, err := fetchPayments(ctx, client, last)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndStorePayments->fetchPayments(%v, %v, %v, %v)", ctx, client,
-						1)
+					log.Printf("Subscribe and store payments: %v\n", err)
+					break
 				}
 
 				last = p.LastIndexOffset
@@ -69,13 +67,14 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				// Store the payments
 				err = storePayments(db, p.Payments)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndStorePayments->storePayments(%v, %v)", db, p.Payments)
+					log.Printf("Subscribe and store payments: %v\n", err)
+					break
 				}
 
 				// Stop fetching if there are fewer forwards than max requested
 				// (indicates that we have the last forwarding record)
 				if len(p.Payments) == 0 {
-					break fetchAll
+					break
 				}
 			}
 		}
@@ -83,18 +82,13 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 }
 
 func fetchLastPaymentIndex(db *sqlx.DB) (uint64, error) {
-
 	var last uint64
 
 	row := db.QueryRow(`select coalesce(max(payment_index), 0) as latest from payment;`)
 	err := row.Scan(&last)
 
-	if err == sql.ErrNoRows {
-		return 0, nil
-	}
-
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "fetching last payment index")
 	}
 
 	return last, nil
@@ -114,7 +108,7 @@ func fetchPayments(ctx context.Context, client lightningClient_ListPayments, las
 	r, err = client.ListPayments(ctx, req)
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "fetchPayments->ListPayments(%v, %v)", ctx, req)
+		return nil, errors.Wrap(err, "fetch payments: lnrpc list payments")
 	}
 
 	return r, nil
@@ -162,7 +156,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 				payment.FailureReason.String(),
 				time.Now().UTC(),
 			); err != nil {
-				return errors.Wrapf(err, "storePayments->tx.Exec(%v)", q)
+				return errors.Wrapf(err, "store payments: db exec")
 			}
 		}
 		err := tx.Commit()
@@ -199,7 +193,8 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 			inFlightindexes, err := fetchInFlightPaymentIndexes(db)
 
 			if err != nil {
-				return errors.Wrapf(err, "SubscribeAndStorePayments->fetchLastPaymentIndex(%v)", db)
+				log.Printf("Subscribe and update payments: %v\n", err)
+				continue
 			}
 
 			// Keep fetching until LND returns less than the max number of records requested.
@@ -207,13 +202,15 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndUpdatePayments->fetchPayments(%v, %v, %d)", ctx, client, 1)
+					log.Printf("Subscribe and update payments: %v\n", err)
+					continue
 				}
 
 				// Store the payments
 				err = updatePayments(db, p.Payments)
 				if err != nil {
-					return errors.Wrapf(err, "SubscribeAndStorePayments->updatePayment(%v, %v)", db, p.Payments)
+					log.Printf("Subscribe and update payments: %v\n", err)
+					continue
 				}
 			}
 		}

@@ -8,6 +8,7 @@ import clone from "../../../clone";
 type areaPlotConfig = basePlotConfig & {
   areaColor: string;
   areaGradient?: Array<string>[2];
+  curveFunction?: any;
   legendLabel?: string;
   addBuffer: boolean;
   labels?: boolean;
@@ -66,6 +67,10 @@ export class AreaPlot extends AbstractPlot {
       })
       .context(this.chart.context);
 
+    if (this.config.curveFunction) {
+      area.curve(this.config.curveFunction);
+    }
+
     this.chart.context.fillStyle = this.config.areaColor;
 
     if (this.config.areaGradient) {
@@ -120,8 +125,9 @@ export class AreaPlot extends AbstractPlot {
       default:
         hoverIndex = drawConfig?.xIndex || 0;
     }
-    const legendText = this.chart.data[hoverIndex][this.config.key];
-
-    this.legendTextBox.text(d3.format(",")(legendText));
+    if (this.chart?.data?.length > 0) {
+      const legendText = this.chart.data[hoverIndex][this.config.key];
+      this.legendTextBox.text(d3.format(",")(legendText));
+    }
   }
 }

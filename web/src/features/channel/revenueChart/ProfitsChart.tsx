@@ -11,9 +11,11 @@ import { useAppSelector } from "../../../store/hooks";
 type ProfitsChart = {
   data: any[];
   dashboard?: boolean;
+  from: string;
+  to: string;
 };
 
-function ProfitsChart({ data, dashboard }: ProfitsChart) {
+function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
   const profitKey = useAppSelector(selectProfitChartKey);
@@ -35,6 +37,8 @@ function ProfitsChart({ data, dashboard }: ProfitsChart) {
     (container: Selection<HTMLDivElement, {}, HTMLElement, any>) => {
       if (dashboard) {
         chart = new ChartCanvas(container, data, {
+          from: new Date(from),
+          to: new Date(to),
           yScaleKey: profitKey.value + "_out",
           rightYScaleKey: profitKey.value + "_out",
           rightYAxisKeys: [profitKey.value + "_out"],
@@ -50,6 +54,8 @@ function ProfitsChart({ data, dashboard }: ProfitsChart) {
         chart.draw();
       } else {
         chart = new ChartCanvas(container, data, {
+          from: new Date(from),
+          to: new Date(to),
           yScaleKey: profitKey.value + "_total",
           rightYScaleKey: profitKey.value + "_total",
           rightYAxisKeys: [profitKey.value + "_out", profitKey.value + "_in"],

@@ -1,7 +1,7 @@
 .navigation {
-  //background-color: var(--bg-extra-faint), 0.8;
+  background-color: var(--bg-extra-faint);
   //opacity: 0.5;
-  backdrop-filter: blur(12px);
+  //backdrop-filter: blur(12px);
   height: 100vh;
   width: 290px;
   padding: 20px;
@@ -11,9 +11,9 @@
   grid-row-gap: 30px;
   grid-auto-rows: min-content;
   grid-template-rows: min-content auto min-content;
-  div {
-    backdrop-filter: blur(0);
-  }
+  //div {
+  //  backdrop-filter: blur(0);
+  //}
 
   .logo-wrapper {
     display: grid;
@@ -45,7 +45,7 @@
     grid-auto-flow: row;
     grid-row-gap: 15px;
     grid-auto-rows: min-content;
-    font-size: 16px;
+    //font-size: 16px;
   }
 }
 

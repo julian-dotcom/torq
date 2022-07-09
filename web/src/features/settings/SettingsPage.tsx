@@ -73,7 +73,7 @@ function Settings() {
       <React.Fragment>
         <div>
           <div className={style.center}>
-            <Box minWidth={440} title="Date & time settings">
+            <Box title="Date & time settings">
               <form onSubmit={submitPreferences}>
                 <Select
                   label="Default date range"

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
+BASEDIR=$(dirname "$0")
+
 docker pull lncapital/torq
-docker-compose up -d
+docker-compose -f $BASEDIR/docker-compose.yml up  -d
 
 echo Torq is starting, please wait
 

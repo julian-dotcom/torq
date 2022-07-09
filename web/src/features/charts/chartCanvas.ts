@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
-import { addHours, subHours, fromUnixTime } from "date-fns";
+import { addHours, subHours, fromUnixTime, differenceInDays } from "date-fns";
 import { BarPlot } from "./plots/bar";
 import clone from "../../clone";
 
@@ -15,6 +15,8 @@ type chartConfig = {
   rightYAxisFormatter: (n: number | { valueOf(): number }) => string;
   xAxisPadding: number;
   yAxisPadding: number;
+  yAxisMaxOverride: number;
+  rightYAxisMaxOverride: number;
   margin: {
     top: number;
     right: number;
@@ -26,14 +28,19 @@ type chartConfig = {
   yScale: ScaleLinear<number, number, never>;
   rightYScale: ScaleLinear<number, number, never>;
   xScale: ScaleTime<number, number, number | undefined>;
-  from: Date | undefined;
-  to: Date | undefined;
+  xAxisFormatter: (domainValue: NumberValue | Date, index: number) => string;
+  xAxisLabelFormatter: (domainValue: NumberValue | Date) => string;
+  xAxisTickFunction?: any;
+  from: Date;
+  to: Date;
 };
 
 class ChartCanvas {
   config: chartConfig = {
     yScaleKey: "",
     rightYScaleKey: "",
+    yAxisMaxOverride: 0,
+    rightYAxisMaxOverride: 0,
     yAxisPadding: 1.1,
     xAxisPadding: 0,
     leftYAxisKeys: [],
@@ -53,8 +60,10 @@ class ChartCanvas {
     yScale: d3.scaleLinear([0, 200]),
     rightYScale: d3.scaleLinear([0, 200]),
     xScale: d3.scaleTime([0, 800]),
-    from: undefined,
-    to: undefined,
+    xAxisFormatter: d3.timeFormat("%d %b") as (domainValue: NumberValue | Date, index: number) => string,
+    xAxisLabelFormatter: d3.timeFormat("%d %b %Y") as (domainValue: NumberValue) => string,
+    from: new Date(),
+    to: new Date(),
   };
 
   data: Array<any> = [];
@@ -111,8 +120,8 @@ class ChartCanvas {
     this.config.width = this.getWidth();
     this.config.height = this.getHeight();
 
-    let start = subHours(this.data[0].date, this.config.xAxisPadding);
-    let end = addHours(this.data[this.data.length - 1].date, this.config.xAxisPadding);
+    let start = subHours(this.config.from, this.config.xAxisPadding);
+    let end = addHours(this.config.to, this.config.xAxisPadding);
 
     // Creating a scale
     // The range is the number of pixels the domain will be distributed across
@@ -334,19 +343,33 @@ class ChartCanvas {
       this.clearCanvas();
 
       let xIndex: number | undefined = undefined;
-      this.data.forEach((d: any, i) => {
-        if (
-          addHours(this.config.xScale.invert(xPosition), 12) >= d?.date &&
-          addHours(this.config.xScale.invert(xPosition), 12) <= addHours(this.data[i].date, 24)
-        ) {
-          xIndex = i;
-        }
-      });
+
+      // this.data.forEach((d: any, i) => {
+      //   if (
+      //     addHours(this.config.xScale.invert(xPosition), 12) >= d?.date &&
+      //     addHours(this.config.xScale.invert(xPosition), 12) <= addHours(this.data[i].date, 24)
+      //   ) {
+      //     xIndex = i;
+      //   }
+      // });
+
+      let closest = this.data
+        .map((d) => {
+          return d.date;
+        })
+        .reduce((prev, curr) => {
+          let currXPosition = this.config.xScale(curr) || 0;
+          let prevXPosition = this.config.xScale(prev) || 0;
+          return Math.abs(currXPosition - xPosition) < Math.abs(prevXPosition - xPosition) ? curr : prev;
+        });
+
+      xIndex = this.data.findIndex((d) => d.date === closest);
 
       let leftYAxisValues: Array<number> = [];
       let rightYAxisValues: Array<number> = [];
 
       this.config.rightYAxisKeys.forEach((key) => {
+        // eslint-disable-next-line eqeqeq
         const rightYValue = xIndex != undefined ? this.data[xIndex || 0][key] : 0;
         rightYAxisValues.push(this.config.rightYScale(rightYValue));
       });
@@ -363,11 +386,13 @@ class ChartCanvas {
       });
 
       this.config.leftYAxisKeys.forEach((key) => {
+        // eslint-disable-next-line eqeqeq
         const leftYValue = xIndex != undefined ? this.data[xIndex || 0][key] : 0;
         leftYAxisValues.push(this.config.yScale(leftYValue));
       });
 
       this.config.rightYAxisKeys.forEach((key) => {
+        // eslint-disable-next-line eqeqeq
         const rightYValue = xIndex != undefined ? this.data[xIndex || 0][key] : 0;
         if (this.config.showRightYAxisLabel && key && rightYValue) {
           this.drawRightYAxisLabel(this.config.rightYScale(rightYValue), rightYValue);
@@ -380,6 +405,7 @@ class ChartCanvas {
       });
 
       this.config.leftYAxisKeys.forEach((key) => {
+        // eslint-disable-next-line eqeqeq
         const leftYValue = xIndex != undefined ? this.data[xIndex || 0][key] : 0;
         if (this.config.showLeftYAxisLabel && key && leftYValue) {
           this.drawLeftYAxisLabel(this.config.yScale(leftYValue), leftYValue);
@@ -407,7 +433,7 @@ class ChartCanvas {
     }
     this.xAxisLabelContainer
       .attr("style", `left: ${position}px;`)
-      .text(tickLabel ? d3.timeFormat("%d %b %Y")(new Date(tickLabel)) : "");
+      .text(tickLabel ? this.config.xAxisLabelFormatter(new Date(tickLabel)) : "");
   }
 
   drawLeftYAxisLabel(position: number, tickLabel: number) {
@@ -439,9 +465,13 @@ class ChartCanvas {
 
     const max =
       Math.max(
-        ...this.data.map((dataPoint): number => {
-          return dataPoint[this.config.yScaleKey];
-        })
+        ...[
+          ...this.data.map((dataPoint): number => {
+            return dataPoint[this.config.yScaleKey];
+          }),
+          this.config.yAxisMaxOverride,
+          this.config.rightYAxisMaxOverride,
+        ]
       ) || 100; // having a default at 100 makes empty charts look nicer
     this.config.yScale.domain([max * this.config.yAxisPadding, 0]);
 
@@ -459,9 +489,13 @@ class ChartCanvas {
 
     const max =
       Math.max(
-        ...this.data.map((dataPoint): number => {
-          return dataPoint[this.config.rightYScaleKey];
-        })
+        ...[
+          ...this.data.map((dataPoint): number => {
+            return dataPoint[this.config.rightYScaleKey];
+          }),
+          this.config.yAxisMaxOverride,
+          this.config.rightYAxisMaxOverride,
+        ]
       ) || 100; // having a default at 100 makes empty charts look nicer
     this.config.rightYScale.domain([max * this.config.yAxisPadding, 0]);
 
@@ -478,13 +512,12 @@ class ChartCanvas {
     this.xAxisContainer.select("svg").remove();
 
     const width = this.config.width;
-    const dataLength = this.data.length;
     // This determines the frequencies of the date ticks to fit the width.
     // bellow 500 px width chart width we leave 55px space between each tick.
     // Above 500 we leave 80 px between each tick.
     // Maximum number of ticks will always be once pr day
     const frequency = width / (width < 500 ? 55 : 80);
-    const mod = Math.max(Math.round(dataLength / frequency), 1);
+    const mod = Math.max(Math.round(differenceInDays(this.config.to, this.config.from) / frequency), 1);
 
     this.xAxisContainer
       .append("svg")
@@ -496,10 +529,10 @@ class ChartCanvas {
         d3
           .axisBottom(this.config.xScale)
           .tickSizeOuter(0)
-          .tickFormat(d3.timeFormat("%d %b") as (domainValue: NumberValue | Date, index: number) => string)
+          .tickFormat(this.config.xAxisFormatter)
           .ticks(
             d3.timeDay.filter((d) => {
-              return d3.timeDay.count(new Date(), d) % mod === 0;
+              return d3.timeDay.count(this.config.from, d) % mod === 0;
             })
           )
       );
