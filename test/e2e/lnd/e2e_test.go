@@ -7,21 +7,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"log"
-	"os"
-	"testing"
-	// "time"
-
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
+	"io"
+	"log"
+	"os"
+	"testing"
+	"time"
 	// "github.com/ory/dockertest/v3"
 	// dc "github.com/ory/dockertest/v3/docker"
 )
+
+const defautDelayMS = 500          // 500ms
+const defaultMaxDurationMS = 30000 // 30s
+
+const networkName = "e2e"
+const aliceName = "e2e-alice"
+const bobName = "e2e-bob"
+const carolName = "e2e-carol"
+const btcdName = "e2e-btcd"
 
 func TestMain(m *testing.M) {
 
@@ -36,6 +44,9 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
+
+	// cleanup any old networks or containers that might have been left around from a failed run
+	cleanup(cli, ctx)
 
 	e2eNetwork, err := cli.NetworkCreate(ctx, "e2e", types.NetworkCreate{})
 	if err != nil {
@@ -59,7 +70,7 @@ func TestMain(m *testing.M) {
 			"e2e-shared:/rpc",
 			"e2e-bitcoin:/data",
 		},
-	}, &networkingConfig, nil, "e2e-btcd")
+	}, &networkingConfig, nil, btcdName)
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +86,7 @@ func TestMain(m *testing.M) {
 			"e2e-shared:/rpc",
 			"e2e-lnd:/root/.lnd",
 		},
-	}, &networkingConfig, nil, "e2e-alice")
+	}, &networkingConfig, nil, aliceName)
 	if err != nil {
 		panic(err)
 	}
@@ -147,51 +158,53 @@ func TestMain(m *testing.M) {
 	// 	log.Fatalf("Could not start alice: %s", err)
 	// }
 
-	// var aliceAddress string
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	// if err := pool.Retry(func() error {
 	//docker exec -it alice lncli --network=simnet newaddress np2wkh
 
-loop:
-	c := types.ExecConfig{AttachStdout: true, AttachStderr: true,
-		Cmd: []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}}
-	execID, _ := cli.ContainerExecCreate(ctx, alice.ID, c)
+	var aliceAddress string
+	err = retry(func() error {
+		c := types.ExecConfig{AttachStdout: true, AttachStderr: true,
+			Cmd: []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}}
+		execID, _ := cli.ContainerExecCreate(ctx, alice.ID, c)
 
-	res, er := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
-	if er != nil {
-		log.Printf("Container exec attach on alice: %v\n", err)
-	}
+		res, er := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
+		if er != nil {
+			log.Printf("Container exec attach on alice: %v\n", err)
+		}
 
-	err = cli.ContainerExecStart(ctx, execID.ID, types.ExecStartCheck{})
+		err = cli.ContainerExecStart(ctx, execID.ID, types.ExecStartCheck{})
+		if err != nil {
+			log.Printf("Container exec start on alice: %v\n", err)
+		}
+		var bufStdout bytes.Buffer
+		// stdout := bufio.NewWriter(&bufStdout)
+		var bufStderr bytes.Buffer
+
+		// stdcopy.StdCopy(os.Stdout, stderr, res.Reader)
+		stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
+
+		var address struct {
+			Address string `json:"address"`
+		}
+		err = json.Unmarshal(bufStdout.Bytes(), &address)
+		if err != nil {
+			return errors.New("RPC not returning valid JSON")
+		}
+
+		if address.Address == "" {
+			return errors.New("Not valid address")
+		}
+		aliceAddress = address.Address
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
 	if err != nil {
-		log.Printf("Container exec start on alice: %v\n", err)
-	}
-	var bufStdout bytes.Buffer
-	// stdout := bufio.NewWriter(&bufStdout)
-	var bufStderr bytes.Buffer
-
-	// stdcopy.StdCopy(os.Stdout, stderr, res.Reader)
-	stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
-
-	var address struct {
-		Address string `json:"address"`
-	}
-	err = json.Unmarshal(bufStdout.Bytes(), &address)
-	if err != nil {
-		// return errors.New("RPC not returning valid JSON")
-		log.Println("loop")
-		goto loop
-	}
-
-	if address.Address == "" {
-		// return errors.New("Not valid address")
-		log.Println("loop")
-		goto loop
+		log.Fatalf("Getting alice mining address: %v", err)
 	}
 	// content, _, _ := res.Reader.ReadLine()
 	// log.Println(string(content))
 	log.Println("Alice receive address created")
-	log.Println(address.Address)
+	log.Println(aliceAddress)
 	// aliceAddress = address.Address
 
 	// }); err != nil {
@@ -212,13 +225,89 @@ loop:
 	os.Exit(code)
 }
 
-type ErrorLine struct {
-	Error       string      `json:"error"`
-	ErrorDetail ErrorDetail `json:"errorDetail"`
+func retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds int) error {
+	totalWaited := 0
+	for {
+		if totalWaited > maxWaitMilliseconds {
+			return errors.New("Exceeded maximum wait period")
+		}
+		if operation() == nil {
+			break
+		}
+		log.Println("Waiting...")
+		time.Sleep(time.Duration(delayMilliseconds) * time.Millisecond)
+		totalWaited += delayMilliseconds
+	}
+	return nil
 }
 
-type ErrorDetail struct {
-	Message string `json:"message"`
+func cleanup(cli *client.Client, ctx context.Context) {
+	findAndRemoveContainer(cli, ctx, btcdName)
+	findAndRemoveContainer(cli, ctx, aliceName)
+	findAndRemoveNetwork(cli, ctx, networkName)
+}
+
+func findAndRemoveNetwork(cli *client.Client, ctx context.Context, name string) {
+	network, err := findNetworkByName(cli, ctx, name)
+	if err != nil {
+		log.Fatalf("Removing old %s network: %v", name, err)
+	}
+	if network != nil {
+		log.Printf("Old %s network found; removing\n", name)
+		if err := cli.NetworkRemove(ctx, network.ID); err != nil {
+			log.Fatalf("Removing old %s network: %v", name, err)
+		}
+	}
+}
+
+func findNetworkByName(cli *client.Client, ctx context.Context, name string) (*types.NetworkResource, error) {
+	networks, err := cli.NetworkList(ctx, types.NetworkListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, network := range networks {
+		if network.Name == name {
+			return &network, nil
+		}
+	}
+	return nil, nil
+}
+
+func findAndRemoveContainer(cli *client.Client, ctx context.Context, name string) {
+	container, err := findContainerByName(cli, ctx, name)
+	if err != nil {
+		log.Fatalf("Removing old %s container: %v", name, err)
+	}
+	if container != nil {
+		log.Printf("Old %s container found; removing\n", name)
+
+		if container.State == "running" {
+			if err := cli.ContainerStop(ctx, container.ID, nil); err != nil {
+				log.Fatalf("Stopping old %s container: %v", name, err)
+			}
+		}
+		if err := cli.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
+			log.Fatalf("Stopping old %s container: %v", name, err)
+		}
+	}
+}
+
+func findContainerByName(cli *client.Client, ctx context.Context, name string) (*types.Container, error) {
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{All: true})
+	if err != nil {
+		return nil, err
+	}
+	for _, container := range containers {
+		log.Println(container.State)
+		log.Println(container.Status)
+		for _, containerName := range container.Names {
+			// internal docker names have leading slashes; trim off
+			if containerName[1:] == name {
+				return &container, nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 func buildImage(path string, name string, cli *client.Client, ctx context.Context) {
@@ -242,6 +331,15 @@ func buildImage(path string, name string, cli *client.Client, ctx context.Contex
 	if err != nil {
 		log.Fatalf("Printing build output for %s docker image: %v", name, err)
 	}
+}
+
+type ErrorLine struct {
+	Error       string      `json:"error"`
+	ErrorDetail ErrorDetail `json:"errorDetail"`
+}
+
+type ErrorDetail struct {
+	Message string `json:"message"`
 }
 
 func printBuildOutput(rd io.Reader) error {
