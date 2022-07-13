@@ -17,6 +17,7 @@ type chartConfig = {
   yAxisPadding: number;
   yAxisMaxOverride: number;
   rightYAxisMaxOverride: number;
+  tickWidth: {days?: number, hours?: number, minutes?: number, seconds?: number};
   margin: {
     top: number;
     right: number;
@@ -239,7 +240,13 @@ class ChartCanvas {
   }
 
   tickWidth(): number {
-    return (this.config.xScale(new Date(1, 0, 1)) || 0) - (this.config.xScale(new Date(1, 0, 0)) || 0);
+    let seconds = (this.config.tickWidth.days || 0)* 24 * 60 * 60;
+    seconds += (this.config.tickWidth.hours || 0) * 60* 60;
+    seconds += (this.config.tickWidth.minutes || 0) * 60;
+    seconds += (this.config.tickWidth.seconds || 0)
+    const milliseconds = (seconds || 86400) * 1000
+
+    return (this.config.xScale(milliseconds) || 0) - (this.config.xScale(0) || 0);
   }
 
   removeResizeListener() {

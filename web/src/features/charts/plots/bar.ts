@@ -74,7 +74,7 @@ export class BarPlot extends AbstractPlot {
   }
 
   barWidth(): number {
-    return (this.chart.config.xScale(new Date(1, 0, 1)) || 0) - (this.chart.config.xScale(new Date(1, 0, 0)) || 0);
+    return (this.chart.tickWidth());
   }
 
   drawBar(context: CanvasRenderingContext2D, dataPoint: any, fillColor: string) {
