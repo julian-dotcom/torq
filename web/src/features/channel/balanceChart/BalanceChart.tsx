@@ -9,6 +9,7 @@ import { AreaPlot, BarPlot, LinePlot } from "../../charts/charts";
 import { selectProfitChartKey } from "../channelSlice";
 import { useAppSelector } from "../../../store/hooks";
 import clone from "../../../clone";
+import {useGetSettingsQuery} from "../../../apiSlice";
 
 type BalanceChart = {
   data: any[];
@@ -21,6 +22,7 @@ function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
   const profitKey = useAppSelector(selectProfitChartKey);
+  const settings = useGetSettingsQuery()
 
   // Check and update the chart size if the navigation changes the container size
   const navCheck: Function = (container: Selection<HTMLDivElement, {}, HTMLElement, any>): Function => {
@@ -58,6 +60,7 @@ function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
       chart = new ChartCanvas(container, paddedData, {
         from: new Date(from),
         to: new Date(to),
+        timezone: settings?.data?.preferredTimezone || "UTC",
         yScaleKey: "outbound_capacity",
         rightYScaleKey: "outbound_capacity",
         rightYAxisKeys: ["outbound_capacity"],

@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
-import { addHours, subHours, fromUnixTime, differenceInDays } from "date-fns";
+import {addHours, subHours, fromUnixTime, differenceInDays, subDays, differenceInSeconds} from "date-fns";
+import {utcToZonedTime, zonedTimeToUtc} from "date-fns-tz";
 import { BarPlot } from "./plots/bar";
 import clone from "../../clone";
 
@@ -34,6 +35,7 @@ type chartConfig = {
   xAxisTickFunction?: any;
   from: Date;
   to: Date;
+  timezone: string;
 };
 
 class ChartCanvas {
@@ -50,6 +52,7 @@ class ChartCanvas {
     showRightYAxisLabel: false,
     leftYAxisFormatter: d3.format(",.3s"),
     rightYAxisFormatter: d3.format(",.3s"),
+    tickWidth: {days: 1, hours: 0, minutes: 0, seconds: 0},
     margin: {
       top: 10,
       right: 10,
@@ -60,11 +63,12 @@ class ChartCanvas {
     width: 500,
     yScale: d3.scaleLinear([0, 200]),
     rightYScale: d3.scaleLinear([0, 200]),
-    xScale: d3.scaleTime([0, 800]),
+    xScale: d3.scaleUtc([0, 800]),
     xAxisFormatter: d3.timeFormat("%d %b") as (domainValue: NumberValue | Date, index: number) => string,
     xAxisLabelFormatter: d3.timeFormat("%d %b %Y") as (domainValue: NumberValue) => string,
     from: new Date(),
     to: new Date(),
+    timezone: "America/Montserrat",
   };
 
   data: Array<any> = [];
@@ -103,7 +107,7 @@ class ChartCanvas {
 
     this.data = data
       ? clone(data).map((row: any) => {
-          row.date = new Date(row.date);
+          row.date = utcToZonedTime(row.date, this.config.timezone);
           return row;
         })
       : [{ date: new Date() }];
@@ -121,14 +125,19 @@ class ChartCanvas {
     this.config.width = this.getWidth();
     this.config.height = this.getHeight();
 
-    let start = subHours(this.config.from, this.config.xAxisPadding);
-    let end = addHours(this.config.to, this.config.xAxisPadding);
+    let timeOffset = differenceInSeconds(utcToZonedTime(new Date(), this.config.timezone), utcToZonedTime(new Date(), 'UTC'))
+
+    console.log(timeOffset*1000)
+
+    let start = utcToZonedTime(subHours(this.config.from.getTime() - timeOffset*1000, this.config.xAxisPadding), this.config.timezone);
+    let end = utcToZonedTime(addHours(subDays(this.config.to.getTime() - timeOffset*1000, 0), this.config.xAxisPadding), this.config.timezone);
+
 
     // Creating a scale
     // The range is the number of pixels the domain will be distributed across
     // The domain is the values to be displayed on the chart
     this.config.xScale = d3
-      .scaleTime()
+      .scaleUtc()
       .range([0, this.config.width - this.config.margin.right - this.config.margin.left])
       .domain([start, end]);
 
@@ -440,7 +449,7 @@ class ChartCanvas {
     }
     this.xAxisLabelContainer
       .attr("style", `left: ${position}px;`)
-      .text(tickLabel ? this.config.xAxisLabelFormatter(new Date(tickLabel)) : "");
+      .text(tickLabel ? this.config.xAxisLabelFormatter(tickLabel) : "");
   }
 
   drawLeftYAxisLabel(position: number, tickLabel: number) {

@@ -7,6 +7,7 @@ import "../../charts/chart.scss";
 import { BarPlot, LinePlot } from "../../charts/charts";
 import { selectProfitChartKey } from "../channelSlice";
 import { useAppSelector } from "../../../store/hooks";
+import {useGetSettingsQuery} from "../../../apiSlice";
 
 type ProfitsChart = {
   data: any[];
@@ -19,6 +20,7 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
   const profitKey = useAppSelector(selectProfitChartKey);
+  const settings = useGetSettingsQuery()
 
   // Check and update the chart size if the navigation changes the container size
   const navCheck: Function = (container: Selection<HTMLDivElement, {}, HTMLElement, any>): Function => {
@@ -39,6 +41,7 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
         chart = new ChartCanvas(container, data, {
           from: new Date(from),
           to: new Date(to),
+          timezone: settings?.data?.preferredTimezone || "UTC",
           yScaleKey: profitKey.value + "_out",
           rightYScaleKey: profitKey.value + "_out",
           rightYAxisKeys: [profitKey.value + "_out"],
@@ -56,6 +59,7 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
         chart = new ChartCanvas(container, data, {
           from: new Date(from),
           to: new Date(to),
+          timezone: settings?.data?.preferredTimezone || "UTC",
           yScaleKey: profitKey.value + "_total",
           rightYScaleKey: profitKey.value + "_total",
           rightYAxisKeys: [profitKey.value + "_out", profitKey.value + "_in"],
@@ -85,7 +89,7 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
 
       setInterval(navCheck(container), 200);
     },
-    [data, data ? data[0].date : "", data ? data[data.length - 1].date : "", profitKey]
+    [data, data ? data[0].date : "", data ? data[data.length - 1].date : "", profitKey, settings]
   );
 
   useEffect(() => {
