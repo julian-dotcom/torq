@@ -6,6 +6,7 @@ import { ChartCanvas, EventsPlot, LinePlot, BarPlot } from "../../charts/charts"
 import "../../charts/chart.scss";
 import { useAppSelector } from "../../../store/hooks";
 import { selectEventChartKey } from "../channelSlice";
+import {useGetSettingsQuery} from "../../../apiSlice";
 
 type EventsChart = {
   data: any[];
@@ -19,6 +20,7 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
   const eventKey = useAppSelector(selectEventChartKey);
+  const settings = useGetSettingsQuery()
 
   // Check and update the chart size if the navigation changes the container size
   const navCheck: Function = (container: Selection<HTMLDivElement, {}, HTMLElement, any>): Function => {
@@ -38,10 +40,11 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
       chart = new ChartCanvas(container, data, {
         from: new Date(from),
         to: new Date(to),
+        timezone: settings?.data?.preferredTimezone || "UTC",
         yScaleKey: eventKey.value + "_total",
         rightYScaleKey: eventKey.value + "_total",
         rightYAxisKeys: [eventKey.value + "_out", eventKey.value + "_in", eventKey.value + "_total"],
-        xAxisPadding: 6,
+        xAxisPadding: 12,
       });
       chart.plot(BarPlot, {
         id: eventKey.value + "_total",
@@ -71,7 +74,7 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
       chart.draw();
       setInterval(navCheck(container), 200);
     },
-    [data, eventKey, data ? data[0].date : "", data ? data[data.length - 1].date : "", selectedEventTypes]
+    [data, eventKey, data ? data[0].date : "", data ? data[data.length - 1].date : "", selectedEventTypes, settings]
   );
 
   useEffect(() => {
