@@ -117,7 +117,6 @@ func TestMain(m *testing.M) {
 		var output []string
 		cmd := []string{"/start-btcctl.sh", "generate", "400"}
 		err = execJSONReturningCommand(cli, ctx, btcd, cmd, &output)
-		log.Printf("%s", output)
 		if err != nil {
 			errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
 		}
@@ -129,6 +128,55 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("btcd mining blocks: %v", err)
 	}
+
+	log.Println("Blocks mined")
+	log.Println("Checking that segwit is active")
+
+	err = retry(func() error {
+		var blockchainInfo struct {
+			Bip9Softforks struct {
+				Segwit struct {
+					Status string `json:"status"`
+				} `json:"segwit"`
+			} `json:"bip9_softforks"`
+		}
+		cmd := []string{"/start-btcctl.sh", "getblockchaininfo"}
+		err = execJSONReturningCommand(cli, ctx, btcd, cmd, &blockchainInfo)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
+		}
+		if blockchainInfo.Bip9Softforks.Segwit.Status != "active" {
+			return errors.New("Segwit not active")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("btcd checking segwit is active: %v", err)
+	}
+	log.Println("Segwit is active")
+	log.Println("Checking Alice's balance")
+
+	var aliceBalance string
+	err = retry(func() error {
+		var walletBalance struct {
+			ConfirmedBalance string `json:"confirmed_balance"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "walletbalance"}
+		err = execJSONReturningCommand(cli, ctx, alice, cmd, &walletBalance)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on alice %s", alice.ID)
+		}
+		if walletBalance.ConfirmedBalance == "" {
+			return errors.New("Balance not confirmed")
+		}
+		aliceBalance = walletBalance.ConfirmedBalance
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Getting Alice's balance: %v", err)
+	}
+	log.Printf("Alice's balance is: %s\n", aliceBalance)
+
 	// bufStdout, _, err := execCommand(ctx, cli, container, cmd)
 	// if err != nil {
 	// 	return errors.Wrap(err, "Exec command on container")
@@ -176,8 +224,11 @@ func execCommand(ctx context.Context, cli *client.Client,
 		return bufStdout, bufStderr, errors.Wrap(err, "Container exec start")
 	}
 
-	// stdcopy.StdCopy(os.Stdout, stderr, res.Reader)
+	// stdcopy.StdCopy(os.Stdout, os.Stderr, res.Reader)
 	stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
+	// DEBUG Tip: uncomment below to see raw output of commands
+	log.Printf("%s\n", string(bufStdout.Bytes()))
+	log.Printf("%s\n", string(bufStderr.Bytes()))
 	return bufStdout, bufStderr, nil
 }
 
