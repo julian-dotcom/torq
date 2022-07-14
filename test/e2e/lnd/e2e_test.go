@@ -5,10 +5,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
+	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
@@ -46,154 +46,49 @@ func TestMain(m *testing.M) {
 	}
 
 	// cleanup any old networks or containers that might have been left around from a failed run
+	log.Println("Checking if any old container or networks are present")
 	cleanup(cli, ctx)
 
-	e2eNetwork, err := cli.NetworkCreate(ctx, "e2e", types.NetworkCreate{})
-	if err != nil {
-		log.Fatalf("Could not create e2e network: %s", err)
-	}
-
 	buildImage("docker/btcd/", "e2e/btcd", cli, ctx)
-
 	buildImage("docker/lnd/", "e2e/lnd", cli, ctx)
 
-	networkingConfig := network.NetworkingConfig{
-		EndpointsConfig: map[string]*network.EndpointSettings{},
-	}
-	networkingConfig.EndpointsConfig[e2eNetwork.ID] = &network.EndpointSettings{Links: []string{"e2e-btcd:blockchain"}}
+	networkingConfig := createNetwork(ctx, cli, "e2e")
 
-	btcd, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: "e2e/btcd",
-		Env:   []string{"NETWORK=simnet"},
-	}, &container.HostConfig{
-		Binds: []string{
+	_ = createContainer(cli, ctx, "e2e/btcd", btcdName,
+		[]string{"NETWORK=simnet"},
+		[]string{
 			"e2e-shared:/rpc",
 			"e2e-bitcoin:/data",
-		},
-	}, &networkingConfig, nil, btcdName)
-	if err != nil {
-		panic(err)
-	}
-	if err := cli.ContainerStart(ctx, btcd.ID, types.ContainerStartOptions{}); err != nil {
-		panic(err)
-	}
+		}, networkingConfig)
 
-	alice, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: "e2e/lnd",
-		Env:   []string{"NETWORK=simnet"},
-	}, &container.HostConfig{
-		Binds: []string{
+	alice := createContainer(cli, ctx, "e2e/lnd", aliceName,
+		[]string{"NETWORK=simnet"},
+		[]string{
 			"e2e-shared:/rpc",
 			"e2e-lnd:/root/.lnd",
-		},
-	}, &networkingConfig, nil, aliceName)
-	if err != nil {
-		panic(err)
-	}
-	if err := cli.ContainerStart(ctx, alice.ID, types.ContainerStartOptions{}); err != nil {
-		panic(err)
-	}
+		}, networkingConfig)
 
-	// statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
-	// select {
-	// case err := <-errCh:
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// case <-statusCh:
-	// }
-
-	out, err := cli.ContainerLogs(ctx, btcd.ID, types.ContainerLogsOptions{ShowStdout: true})
-	if err != nil {
-		panic(err)
-	}
-	stdcopy.StdCopy(os.Stdout, os.Stderr, out)
-
-	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
-	// pool, err := dockertest.NewPool("")
+	// Example looking at container logs
+	// out, err := cli.ContainerLogs(ctx, btcd.ID, types.ContainerLogsOptions{ShowStdout: true})
 	// if err != nil {
-	// 	log.Fatalf("Could not connect to docker: %s", err)
+	// 	panic(err)
 	// }
+	// stdcopy.StdCopy(os.Stdout, os.Stderr, out)
 
-	// network, err := pool.CreateNetwork("lnd-test")
-	// if err != nil {
-	// 	log.Fatalf("Could not create network: %s", err)
-	// }
-
-	// defer func() {
-	// 	network.Close()
-	// }()
-
-	// pool.MaxWait = 1 * time.Minute
-
-	// removeAfterExitOption := func(config *dc.HostConfig) {
-	// 	// set AutoRemove to true so that stopped container goes away by itself
-	// 	config.AutoRemove = true
-	// 	config.RestartPolicy = dc.RestartPolicy{
-	// 		Name: "no",
-	// 	}
-	// }
-
-	// btcdOptions := &dockertest.RunOptions{
-	// 	Name:     "blockchain",
-	// 	Mounts:   []string{"e2e-shared:/rpc", "e2e-bitcoin:/data"},
-	// 	Env:      []string{"NETWORK=simnet"},
-	// 	Networks: []*dockertest.Network{network},
-	// }
-	// // pulls an image, creates a container based on it and runs it
-	// btcd, err := pool.BuildAndRunWithOptions("./docker/btcd/Dockerfile", btcdOptions)
-	// if err != nil {
-	// 	log.Fatalf("Could not start btcd: %s", err)
-	// }
-
-	// aliceOptions := &dockertest.RunOptions{
-	// 	Name:     "lnd-alice",
-	// 	Mounts:   []string{"e2e-shared:/rpc", "e2e-lnd:/root/.lnd"},
-	// 	Env:      []string{"NETWORK=simnet"},
-	// 	Networks: []*dockertest.Network{network},
-	// }
-	// // pulls an image, creates a container based on it and runs it
-	// alice, err := pool.BuildAndRunWithOptions("./docker/lnd/Dockerfile", aliceOptions, removeAfterExitOption)
-	// if err != nil {
-	// 	log.Fatalf("Could not start alice: %s", err)
-	// }
-
-	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
-	// if err := pool.Retry(func() error {
-	//docker exec -it alice lncli --network=simnet newaddress np2wkh
+	log.Println("Creating new mining address on Alice")
 
 	var aliceAddress string
 	err = retry(func() error {
-		c := types.ExecConfig{AttachStdout: true, AttachStderr: true,
-			Cmd: []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}}
-		execID, _ := cli.ContainerExecCreate(ctx, alice.ID, c)
-
-		res, er := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
-		if er != nil {
-			log.Printf("Container exec attach on alice: %v\n", err)
-		}
-
-		err = cli.ContainerExecStart(ctx, execID.ID, types.ExecStartCheck{})
-		if err != nil {
-			log.Printf("Container exec start on alice: %v\n", err)
-		}
-		var bufStdout bytes.Buffer
-		// stdout := bufio.NewWriter(&bufStdout)
-		var bufStderr bytes.Buffer
-
-		// stdcopy.StdCopy(os.Stdout, stderr, res.Reader)
-		stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
-
 		var address struct {
 			Address string `json:"address"`
 		}
-		err = json.Unmarshal(bufStdout.Bytes(), &address)
+		cmd := []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}
+		err = execJSONReturningCommand(cli, ctx, alice, cmd, &address)
 		if err != nil {
-			return errors.New("RPC not returning valid JSON")
+			errors.Wrapf(err, "Running exec command on container %s", alice.ID)
 		}
-
 		if address.Address == "" {
-			return errors.New("Not valid address")
+			return errors.New("Not a valid address")
 		}
 		aliceAddress = address.Address
 		return nil
@@ -201,28 +96,99 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Getting alice mining address: %v", err)
 	}
-	// content, _, _ := res.Reader.ReadLine()
-	// log.Println(string(content))
 	log.Println("Alice receive address created")
 	log.Println(aliceAddress)
-	// aliceAddress = address.Address
 
-	// }); err != nil {
-	// 	log.Fatalf("Could exec command on Alice: %s", err)
-	// }
+	log.Println("Recreating btcd container with Alice's mining address")
+	findAndRemoveContainer(cli, ctx, btcdName)
+	log.Println("Starting new btcd container")
+	_ = createContainer(cli, ctx, "e2e/btcd", btcdName,
+		[]string{
+			"NETWORK=simnet",
+			"MINING_ADDRESS=" + aliceAddress},
+		[]string{
+			"e2e-shared:/rpc",
+			"e2e-bitcoin:/data",
+		}, networkingConfig)
+
+	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
 
 	code := m.Run()
 
-	// You can't defer this because os.Exit doesn't care for defer
-	// if err := pool.Purge(btcd); err != nil {
-	// 	log.Fatalf("Could not purge btcd: %s", err)
-	// }
-
-	// if err := pool.Purge(alice); err != nil {
-	// 	log.Fatalf("Could not purge alice: %s", err)
-	// }
-
+	// try to cleanup after run
+	// can't defer this as os.Exit doesn't care for defer
+	// cleanup(cli, ctx)
 	os.Exit(code)
+}
+
+func execJSONReturningCommand(cli *client.Client, ctx context.Context,
+	container dockercontainer.ContainerCreateCreatedBody,
+	cmd []string, returnObject interface{}) error {
+
+	bufStdout, _, err := execCommand(ctx, cli, container, cmd)
+	if err != nil {
+		return errors.Wrap(err, "Exec command on container")
+	}
+
+	err = json.Unmarshal(bufStdout.Bytes(), returnObject)
+	if err != nil {
+		return errors.Wrap(err, "json unmarshal")
+	}
+	return nil
+}
+
+func execCommand(ctx context.Context, cli *client.Client,
+	container dockercontainer.ContainerCreateCreatedBody,
+	cmd []string) (bufStdout bytes.Buffer, bufStderr bytes.Buffer, err error) {
+
+	c := types.ExecConfig{AttachStdout: true, AttachStderr: true,
+		Cmd: cmd}
+	execID, _ := cli.ContainerExecCreate(ctx, container.ID, c)
+
+	res, err := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
+	if err != nil {
+		return bufStdout, bufStderr, errors.Wrap(err, "Container exec start")
+	}
+
+	err = cli.ContainerExecStart(ctx, execID.ID, types.ExecStartCheck{})
+	if err != nil {
+		return bufStdout, bufStderr, errors.Wrap(err, "Container exec start")
+	}
+
+	// stdcopy.StdCopy(os.Stdout, stderr, res.Reader)
+	stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
+	return bufStdout, bufStderr, nil
+}
+
+func createContainer(cli *client.Client, ctx context.Context,
+	image string, name string, env []string, binds []string,
+	networkingConfig network.NetworkingConfig) dockercontainer.ContainerCreateCreatedBody {
+
+	btcd, err := cli.ContainerCreate(ctx, &dockercontainer.Config{
+		Image: image,
+		Env:   env,
+	}, &dockercontainer.HostConfig{
+		Binds: binds,
+	}, &networkingConfig, nil, name)
+	if err != nil {
+		log.Fatalf("Creating %s container: %v", name, err)
+	}
+	if err := cli.ContainerStart(ctx, btcd.ID, types.ContainerStartOptions{}); err != nil {
+		log.Fatalf("Starting %s container: %v", name, err)
+	}
+	return btcd
+}
+
+func createNetwork(ctx context.Context, cli *client.Client, name string) network.NetworkingConfig {
+	e2eNetwork, err := cli.NetworkCreate(ctx, name, types.NetworkCreate{})
+	if err != nil {
+		log.Fatalf("Creating %s network: %v", name, err)
+	}
+	networkingConfig := network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{},
+	}
+	networkingConfig.EndpointsConfig[e2eNetwork.ID] = &network.EndpointSettings{Links: []string{"e2e-btcd:blockchain"}}
+	return networkingConfig
 }
 
 func retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds int) error {
@@ -276,18 +242,18 @@ func findNetworkByName(cli *client.Client, ctx context.Context, name string) (*t
 func findAndRemoveContainer(cli *client.Client, ctx context.Context, name string) {
 	container, err := findContainerByName(cli, ctx, name)
 	if err != nil {
-		log.Fatalf("Removing old %s container: %v", name, err)
+		log.Fatalf("Removing %s container: %v", name, err)
 	}
 	if container != nil {
-		log.Printf("Old %s container found; removing\n", name)
+		log.Printf("%s container found; removing\n", name)
 
 		if container.State == "running" {
 			if err := cli.ContainerStop(ctx, container.ID, nil); err != nil {
-				log.Fatalf("Stopping old %s container: %v", name, err)
+				log.Fatalf("Stopping %s container: %v", name, err)
 			}
 		}
 		if err := cli.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
-			log.Fatalf("Stopping old %s container: %v", name, err)
+			log.Fatalf("Removing %s container: %v", name, err)
 		}
 	}
 }
@@ -298,8 +264,6 @@ func findContainerByName(cli *client.Client, ctx context.Context, name string) (
 		return nil, err
 	}
 	for _, container := range containers {
-		log.Println(container.State)
-		log.Println(container.Status)
 		for _, containerName := range container.Names {
 			// internal docker names have leading slashes; trim off
 			if containerName[1:] == name {
