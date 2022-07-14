@@ -82,6 +82,13 @@ func TestMain(m *testing.M) {
 			// "e2e-lnd-bob:/root/.lnd",
 		}, networkingConfig)
 
+	log.Println("Starting Carol")
+	carol := createContainer(cli, ctx, "e2e/lnd", carolName,
+		[]string{"NETWORK=simnet"},
+		[]string{
+			"e2e-shared:/rpc",
+			// "e2e-lnd-bob:/root/.lnd",
+		}, networkingConfig)
 	// Example looking at container logs
 	// out, err := cli.ContainerLogs(ctx, btcd.ID, types.ContainerLogsOptions{ShowStdout: true})
 	// if err != nil {
@@ -97,7 +104,7 @@ func TestMain(m *testing.M) {
 			Address string `json:"address"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}
-		err = execJSONReturningCommand(cli, ctx, alice, cmd, &address)
+		err = execJSONReturningCommand(ctx, cli, alice, cmd, &address)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
@@ -144,7 +151,7 @@ func TestMain(m *testing.M) {
 			} `json:"bip9_softforks"`
 		}
 		cmd := []string{"/start-btcctl.sh", "getblockchaininfo"}
-		err = execJSONReturningCommand(cli, ctx, btcd, cmd, &blockchainInfo)
+		err = execJSONReturningCommand(ctx, cli, btcd, cmd, &blockchainInfo)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
 		}
@@ -167,23 +174,7 @@ func TestMain(m *testing.M) {
 	log.Printf("Alice's onchain balance is: %s\n", aliceBalance)
 
 	log.Println("Get Bob's pubkey")
-
-	var getInfo struct {
-		IdentityPubkey string `json:"identity_pubkey"`
-	}
-	var bobPubkey string
-	err = retry(func() error {
-		cmd := []string{"lncli", "--network=simnet", "getinfo"}
-		err = execJSONReturningCommand(cli, ctx, bob, cmd, &getInfo)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
-		}
-		if getInfo.IdentityPubkey == "" {
-			return errors.New("Invalid Pubkey")
-		}
-		bobPubkey = getInfo.IdentityPubkey
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	bobPubkey, err := getPubKey(ctx, cli, bob)
 	if err != nil {
 		log.Fatalf("Getting Bob's pubkey: %v", err)
 	}
@@ -224,7 +215,7 @@ func TestMain(m *testing.M) {
 	}
 	err = retry(func() error {
 		cmd := []string{"lncli", "--network=simnet", "listpeers"}
-		err = execJSONReturningCommand(cli, ctx, alice, cmd, &listPeers)
+		err = execJSONReturningCommand(ctx, cli, alice, cmd, &listPeers)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
@@ -243,19 +234,7 @@ func TestMain(m *testing.M) {
 	log.Println("Bob confirmed as peer of Alice")
 
 	log.Println("Getting Alice's pubkey")
-	var alicePubkey string
-	err = retry(func() error {
-		cmd := []string{"lncli", "--network=simnet", "getinfo"}
-		err = execJSONReturningCommand(cli, ctx, alice, cmd, &getInfo)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
-		}
-		if getInfo.IdentityPubkey == "" {
-			return errors.New("Invalid Pubkey")
-		}
-		alicePubkey = getInfo.IdentityPubkey
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	alicePubkey, err := getPubKey(ctx, cli, alice)
 	if err != nil {
 		log.Fatalf("Getting Alice's pubkey: %v", err)
 	}
@@ -266,7 +245,7 @@ func TestMain(m *testing.M) {
 
 	err = retry(func() error {
 		cmd := []string{"lncli", "--network=simnet", "listpeers"}
-		err = execJSONReturningCommand(cli, ctx, bob, cmd, &listPeers)
+		err = execJSONReturningCommand(ctx, cli, bob, cmd, &listPeers)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on bob %s", bob.ID)
 		}
@@ -291,7 +270,7 @@ func TestMain(m *testing.M) {
 			FundingTxId string `json:"funding_txid"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "openchannel", "--node_key=" + bobPubkey, "--local_amt=1000000"}
-		err = execJSONReturningCommand(cli, ctx, alice, cmd, &openChannel)
+		err = execJSONReturningCommand(ctx, cli, alice, cmd, &openChannel)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
@@ -324,7 +303,7 @@ func TestMain(m *testing.M) {
 			} `json:"channels"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "listchannels"}
-		err = execJSONReturningCommand(cli, ctx, alice, cmd, &listChannels)
+		err = execJSONReturningCommand(ctx, cli, alice, cmd, &listChannels)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
@@ -350,7 +329,7 @@ func TestMain(m *testing.M) {
 			EncodedPayReq string `json:"payment_request"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "addinvoice", "--amt=100000"}
-		err = execJSONReturningCommand(cli, ctx, bob, cmd, &addInvoice)
+		err = execJSONReturningCommand(ctx, cli, bob, cmd, &addInvoice)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
 		}
@@ -391,7 +370,7 @@ func TestMain(m *testing.M) {
 			Balance string `json:"balance"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "channelbalance"}
-		err = execJSONReturningCommand(cli, ctx, bob, cmd, &channelBalance)
+		err = execJSONReturningCommand(ctx, cli, bob, cmd, &channelBalance)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
 		}
@@ -421,7 +400,7 @@ func TestMain(m *testing.M) {
 		fundingTxId := aliceBobChannelPoint[:strings.IndexByte(aliceBobChannelPoint, ':')]
 		outputIndex := aliceBobChannelPoint[strings.IndexByte(aliceBobChannelPoint, ':')+1:]
 		cmd := []string{"lncli", "--network=simnet", "closechannel", "--funding_txid=" + fundingTxId, "--output_index=" + outputIndex}
-		err = execJSONReturningCommand(cli, ctx, alice, cmd, &closeChannel)
+		err = execJSONReturningCommand(ctx, cli, alice, cmd, &closeChannel)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
@@ -450,6 +429,13 @@ func TestMain(m *testing.M) {
 	}
 	log.Printf("Bob's onchain balance: %s\n", bobOnChainBalance)
 
+	log.Println("Getting Carol's pubkey")
+	carolPubkey, err := getPubKey(ctx, cli, carol)
+	if err != nil {
+		log.Fatalf("Getting Carol's pubkey: %v", err)
+	}
+	log.Printf("Carol's pubkey: %s\n", carolPubkey)
+
 	code := m.Run()
 
 	// try to cleanup after run
@@ -458,13 +444,35 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func getPubKey(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody) (pubkey string, err error) {
+	var getInfo struct {
+		IdentityPubkey string `json:"identity_pubkey"`
+	}
+	err = retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "getinfo"}
+		err = execJSONReturningCommand(ctx, cli, container, cmd, &getInfo)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+		}
+		if getInfo.IdentityPubkey == "" {
+			return errors.New("Invalid Pubkey")
+		}
+		pubkey = getInfo.IdentityPubkey
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		return "", errors.Wrap(err, "Calling getinfo")
+	}
+	return pubkey, nil
+}
+
 func getOnchainBalance(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody) (balance string, err error) {
 	err = retry(func() error {
 		var walletBalance struct {
 			ConfirmedBalance string `json:"confirmed_balance"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "walletbalance"}
-		err := execJSONReturningCommand(cli, ctx, container, cmd, &walletBalance)
+		err := execJSONReturningCommand(ctx, cli, container, cmd, &walletBalance)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on %s", container.ID)
 		}
@@ -488,7 +496,7 @@ func mineBlocks(ctx context.Context, cli *client.Client, btcd dockercontainer.Co
 	err := retry(func() error {
 		var output []string
 		cmd := []string{"/start-btcctl.sh", "generate", strconv.Itoa(numberOfBlocks)}
-		err := execJSONReturningCommand(cli, ctx, btcd, cmd, &output)
+		err := execJSONReturningCommand(ctx, cli, btcd, cmd, &output)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
 		}
@@ -503,7 +511,7 @@ func mineBlocks(ctx context.Context, cli *client.Client, btcd dockercontainer.Co
 	return nil
 }
 
-func execJSONReturningCommand(cli *client.Client, ctx context.Context,
+func execJSONReturningCommand(ctx context.Context, cli *client.Client,
 	container dockercontainer.ContainerCreateCreatedBody,
 	cmd []string, returnObject interface{}) error {
 
@@ -540,8 +548,8 @@ func execCommand(ctx context.Context, cli *client.Client,
 	// stdcopy.StdCopy(os.Stdout, os.Stderr, res.Reader)
 	stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
 	// DEBUG Tip: uncomment below to see raw output of commands
-	// log.Printf("%s\n", string(bufStdout.Bytes()))
-	// log.Printf("%s\n", string(bufStderr.Bytes()))
+	log.Printf("%s\n", string(bufStdout.Bytes()))
+	log.Printf("%s\n", string(bufStderr.Bytes()))
 	return bufStdout, bufStderr, nil
 }
 
