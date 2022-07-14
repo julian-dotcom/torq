@@ -58,14 +58,14 @@ func TestMain(m *testing.M) {
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
-			"e2e-bitcoin:/data",
+			// "e2e-bitcoin:/data",
 		}, networkingConfig)
 
 	alice := createContainer(cli, ctx, "e2e/lnd", aliceName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
-			"e2e-lnd:/root/.lnd",
+			// "e2e-lnd-alice:/root/.lnd",
 		}, networkingConfig)
 
 	// Example looking at container logs
@@ -85,7 +85,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}
 		err = execJSONReturningCommand(cli, ctx, alice, cmd, &address)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on alice %s", alice.ID)
+			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
 		if address.Address == "" {
 			return errors.New("Not a valid address")
@@ -108,7 +108,7 @@ func TestMain(m *testing.M) {
 			"MINING_ADDRESS=" + aliceAddress},
 		[]string{
 			"e2e-shared:/rpc",
-			"e2e-bitcoin:/data",
+			// "e2e-bitcoin:/data",
 		}, networkingConfig)
 
 	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
@@ -164,7 +164,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "walletbalance"}
 		err = execJSONReturningCommand(cli, ctx, alice, cmd, &walletBalance)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on alice %s", alice.ID)
+			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
 		if walletBalance.ConfirmedBalance == "" {
 			return errors.New("Balance not confirmed")
@@ -177,11 +177,156 @@ func TestMain(m *testing.M) {
 	}
 	log.Printf("Alice's balance is: %s\n", aliceBalance)
 
-	// bufStdout, _, err := execCommand(ctx, cli, container, cmd)
-	// if err != nil {
-	// 	return errors.Wrap(err, "Exec command on container")
-	// }
-	//
+	log.Println("Starting Bob")
+	bob := createContainer(cli, ctx, "e2e/lnd", bobName,
+		[]string{"NETWORK=simnet"},
+		[]string{
+			"e2e-shared:/rpc",
+			// "e2e-lnd-bob:/root/.lnd",
+		}, networkingConfig)
+
+	log.Println("Get Bob's pubkey")
+
+	var getInfo struct {
+		IdentityPubkey string `json:"identity_pubkey"`
+	}
+	var bobPubkey string
+	err = retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "getinfo"}
+		err = execJSONReturningCommand(cli, ctx, bob, cmd, &getInfo)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
+		}
+		if getInfo.IdentityPubkey == "" {
+			return errors.New("Invalid Pubkey")
+		}
+		bobPubkey = getInfo.IdentityPubkey
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Getting Bob's pubkey: %v", err)
+	}
+	log.Printf("Bob's pubkey is: %s\n", bobPubkey)
+
+	bobInspection, err := cli.ContainerInspect(ctx, bob.ID)
+	if err != nil {
+		log.Fatalf("Getting Bob's IP Address: %v", err)
+	}
+	bobIPAddress := bobInspection.NetworkSettings.Networks["e2e"].IPAddress
+	log.Println("Bob's IP address is:")
+	log.Println(bobIPAddress)
+
+	log.Println("Connecting Bob to Alice")
+
+	err = retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "connect", bobPubkey + "@" + bobIPAddress}
+		var stderr bytes.Buffer
+		_, stderr, err = execCommand(ctx, cli, alice, cmd)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+		}
+		if len(stderr.Bytes()) > 0 {
+			return errors.New("Bob not connected to Alice")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Checking that Bob is a peer of Alice: %v", err)
+	}
+
+	log.Println("Verifing Bob is a peer of Alice")
+
+	var listPeers struct {
+		Peers []struct {
+			Pubkey string `json:"pub_key"`
+		} `json:"peers"`
+	}
+	err = retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "listpeers"}
+		err = execJSONReturningCommand(cli, ctx, alice, cmd, &listPeers)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+		}
+		if len(listPeers.Peers) == 0 {
+			return errors.New("Bob not a peer")
+		}
+		if listPeers.Peers[0].Pubkey != bobPubkey {
+			return errors.New("Bob not a peer")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Checking that Bob is a peer of Alice: %v", err)
+	}
+
+	log.Println("Bob confirmed as peer of Alice")
+
+	log.Println("Getting Alice's pubkey")
+	var alicePubkey string
+	err = retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "getinfo"}
+		err = execJSONReturningCommand(cli, ctx, alice, cmd, &getInfo)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+		}
+		if getInfo.IdentityPubkey == "" {
+			return errors.New("Invalid Pubkey")
+		}
+		alicePubkey = getInfo.IdentityPubkey
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Getting Alice's pubkey: %v", err)
+	}
+
+	log.Printf("Alice's pubkey is: %s\n", alicePubkey)
+
+	log.Println("Verifing Alice is a peer of Bob")
+
+	err = retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "listpeers"}
+		err = execJSONReturningCommand(cli, ctx, bob, cmd, &listPeers)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on bob %s", bob.ID)
+		}
+		if len(listPeers.Peers) == 0 {
+			return errors.New("Alice not a peer")
+		}
+		if listPeers.Peers[0].Pubkey != alicePubkey {
+			return errors.New("Alice not a peer")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Checking that Alice is a peer of Bob: %v", err)
+	}
+	log.Println("Alice confirmed as peer of Bob")
+
+	log.Println("Create the Alice<->Bob channel")
+
+	var aliceFundingTxId string
+	err = retry(func() error {
+		var openChannel struct {
+			FundingTxId string `json:"funding_txid"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "openchannel", "--node_key=" + bobPubkey, "--local_amt=1000000"}
+		err = execJSONReturningCommand(cli, ctx, alice, cmd, &openChannel)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+		}
+		if openChannel.FundingTxId == "" {
+			return errors.New("Channel not created")
+		}
+		aliceFundingTxId = openChannel.FundingTxId
+		return nil
+	}, 4500, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Creating Alice<->Bob channel: %v", err)
+	}
+	log.Printf("Funding transaction ID: %s\n", aliceFundingTxId)
+
+	log.Println("Include funding transaction in block thereby opening the channel")
+
 	code := m.Run()
 
 	// try to cleanup after run
@@ -282,6 +427,8 @@ func retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds in
 func cleanup(cli *client.Client, ctx context.Context) {
 	findAndRemoveContainer(cli, ctx, btcdName)
 	findAndRemoveContainer(cli, ctx, aliceName)
+	findAndRemoveContainer(cli, ctx, bobName)
+	findAndRemoveContainer(cli, ctx, carolName)
 	findAndRemoveNetwork(cli, ctx, networkName)
 }
 
