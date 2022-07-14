@@ -264,62 +264,10 @@ func TestMain(m *testing.M) {
 
 	log.Println("Create the Alice<->Bob channel")
 
-	var aliceFundingTxId string
-	err = retry(func() error {
-		var openChannel struct {
-			FundingTxId string `json:"funding_txid"`
-		}
-		cmd := []string{"lncli", "--network=simnet", "openchannel", "--node_key=" + bobPubkey, "--local_amt=1000000"}
-		err = execJSONReturningCommand(ctx, cli, alice, cmd, &openChannel)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
-		}
-		if openChannel.FundingTxId == "" {
-			return errors.New("Channel not created")
-		}
-		aliceFundingTxId = openChannel.FundingTxId
-		return nil
-	}, 4500, defaultMaxDurationMS)
+	aliceBobChannelPoint, err := createChannel(ctx, cli, alice, bobPubkey, "1000000", btcd)
 	if err != nil {
 		log.Fatalf("Creating Alice<->Bob channel: %v", err)
 	}
-	log.Printf("Funding transaction ID: %s\n", aliceFundingTxId)
-
-	log.Println("Include funding transaction in block thereby opening the channel")
-
-	err = mineBlocks(ctx, cli, btcd, 3)
-	if err != nil {
-		log.Fatalf("Mining blocks: %v", err)
-	}
-
-	log.Println("Blocks mined")
-	log.Println("Checking channel with Bob is open")
-
-	var aliceBobChannelPoint string
-	err = retry(func() error {
-		var listChannels struct {
-			Channels []struct {
-				ChannelPoint string `json:"channel_point"`
-			} `json:"channels"`
-		}
-		cmd := []string{"lncli", "--network=simnet", "listchannels"}
-		err = execJSONReturningCommand(ctx, cli, alice, cmd, &listChannels)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
-		}
-		if len(listChannels.Channels) == 0 {
-			return errors.New("Channel not open")
-		}
-		if listChannels.Channels[0].ChannelPoint == "" {
-			return errors.New("Channel not open")
-		}
-		aliceBobChannelPoint = listChannels.Channels[0].ChannelPoint
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
-	if err != nil {
-		log.Fatalf("Creating Alice<->Bob channel: %v", err)
-	}
-	log.Printf("Alice<->Bob channel point: %s\n", aliceBobChannelPoint)
 
 	log.Println("Generating invoice for payment to Bob")
 
@@ -444,6 +392,69 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func createChannel(ctx context.Context, cli *client.Client, initiator dockercontainer.ContainerCreateCreatedBody,
+	remotePubkey string, amount string, btcd dockercontainer.ContainerCreateCreatedBody) (channelPoint string, err error) {
+
+	var fundingTxId string
+	err = retry(func() error {
+		var openChannel struct {
+			FundingTxId string `json:"funding_txid"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "openchannel", "--node_key=" + remotePubkey, "--local_amt=" + amount}
+		err := execJSONReturningCommand(ctx, cli, initiator, cmd, &openChannel)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on %s", initiator.ID)
+		}
+		if openChannel.FundingTxId == "" {
+			return errors.New("Channel not created")
+		}
+		fundingTxId = openChannel.FundingTxId
+		return nil
+	}, 4500, defaultMaxDurationMS)
+	if err != nil {
+		return "", errors.Wrap(err, "Creating channel")
+	}
+	log.Printf("Funding transaction ID: %s\n", fundingTxId)
+
+	log.Println("Include funding transaction in block thereby opening the channel")
+
+	err = mineBlocks(ctx, cli, btcd, 3)
+	if err != nil {
+		return "", errors.Wrap(err, "Mining blocks")
+	}
+
+	log.Println("Blocks mined")
+	log.Println("Checking channel is open")
+
+	err = retry(func() error {
+		var listChannels struct {
+			Channels []struct {
+				ChannelPoint string `json:"channel_point"`
+			} `json:"channels"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "listchannels"}
+		err = execJSONReturningCommand(ctx, cli, initiator, cmd, &listChannels)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on %s", initiator.ID)
+		}
+		if len(listChannels.Channels) == 0 {
+			return errors.New("Channel not open")
+		}
+		if listChannels.Channels[0].ChannelPoint == "" {
+			return errors.New("Channel not open")
+		}
+		channelPoint = listChannels.Channels[0].ChannelPoint
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		return "", errors.Wrap(err, "Creating channel")
+	}
+	log.Printf("Channel point: %s\n", channelPoint)
+
+	return channelPoint, nil
+
+}
+
 func getPubKey(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody) (pubkey string, err error) {
 	var getInfo struct {
 		IdentityPubkey string `json:"identity_pubkey"`
@@ -548,8 +559,8 @@ func execCommand(ctx context.Context, cli *client.Client,
 	// stdcopy.StdCopy(os.Stdout, os.Stderr, res.Reader)
 	stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
 	// DEBUG Tip: uncomment below to see raw output of commands
-	log.Printf("%s\n", string(bufStdout.Bytes()))
-	log.Printf("%s\n", string(bufStderr.Bytes()))
+	// log.Printf("%s\n", string(bufStdout.Bytes()))
+	// log.Printf("%s\n", string(bufStderr.Bytes()))
 	return bufStdout, bufStderr, nil
 }
 
