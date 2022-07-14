@@ -327,6 +327,51 @@ func TestMain(m *testing.M) {
 
 	log.Println("Include funding transaction in block thereby opening the channel")
 
+	err = retry(func() error {
+		var output []string
+		cmd := []string{"/start-btcctl.sh", "generate", "3"}
+		err = execJSONReturningCommand(cli, ctx, btcd, cmd, &output)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
+		}
+		if len(output) == 0 {
+			return errors.New("Blocks not mined")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("btcd mining blocks: %v", err)
+	}
+
+	log.Println("Blocks mined")
+	log.Println("Checking channel with Bob is open")
+
+	var aliceBobChannelPoint string
+	err = retry(func() error {
+		var listChannels struct {
+			Channels []struct {
+				ChannelPoint string `json:"channel_point"`
+			} `json:"channels"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "listchannels"}
+		err = execJSONReturningCommand(cli, ctx, alice, cmd, &listChannels)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+		}
+		if len(listChannels.Channels) == 0 {
+			return errors.New("Channel not open")
+		}
+		if listChannels.Channels[0].ChannelPoint == "" {
+			return errors.New("Channel not open")
+		}
+		aliceBobChannelPoint = listChannels.Channels[0].ChannelPoint
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Creating Alice<->Bob channel: %v", err)
+	}
+	log.Printf("Alice<->Bob channel point: %s\n", aliceBobChannelPoint)
+
 	code := m.Run()
 
 	// try to cleanup after run
@@ -372,8 +417,8 @@ func execCommand(ctx context.Context, cli *client.Client,
 	// stdcopy.StdCopy(os.Stdout, os.Stderr, res.Reader)
 	stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
 	// DEBUG Tip: uncomment below to see raw output of commands
-	log.Printf("%s\n", string(bufStdout.Bytes()))
-	log.Printf("%s\n", string(bufStderr.Bytes()))
+	// log.Printf("%s\n", string(bufStdout.Bytes()))
+	// log.Printf("%s\n", string(bufStderr.Bytes()))
 	return bufStdout, bufStderr, nil
 }
 
