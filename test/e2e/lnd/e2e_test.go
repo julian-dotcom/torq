@@ -85,7 +85,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}
 		err = execJSONReturningCommand(cli, ctx, alice, cmd, &address)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on container %s", alice.ID)
+			errors.Wrapf(err, "Running exec command on alice %s", alice.ID)
 		}
 		if address.Address == "" {
 			return errors.New("Not a valid address")
@@ -102,7 +102,7 @@ func TestMain(m *testing.M) {
 	log.Println("Recreating btcd container with Alice's mining address")
 	findAndRemoveContainer(cli, ctx, btcdName)
 	log.Println("Starting new btcd container")
-	_ = createContainer(cli, ctx, "e2e/btcd", btcdName,
+	btcd := createContainer(cli, ctx, "e2e/btcd", btcdName,
 		[]string{
 			"NETWORK=simnet",
 			"MINING_ADDRESS=" + aliceAddress},
@@ -113,6 +113,27 @@ func TestMain(m *testing.M) {
 
 	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
 
+	err = retry(func() error {
+		var output []string
+		cmd := []string{"/start-btcctl.sh", "generate", "400"}
+		err = execJSONReturningCommand(cli, ctx, btcd, cmd, &output)
+		log.Printf("%s", output)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
+		}
+		if len(output) == 0 {
+			return errors.New("Blocks not mined")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("btcd mining blocks: %v", err)
+	}
+	// bufStdout, _, err := execCommand(ctx, cli, container, cmd)
+	// if err != nil {
+	// 	return errors.Wrap(err, "Exec command on container")
+	// }
+	//
 	code := m.Run()
 
 	// try to cleanup after run
