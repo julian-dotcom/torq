@@ -16,6 +16,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 	// "github.com/ory/dockertest/v3"
@@ -97,7 +99,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}
 		err = execJSONReturningCommand(cli, ctx, alice, cmd, &address)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
 		if address.Address == "" {
 			return errors.New("Not a valid address")
@@ -125,20 +127,9 @@ func TestMain(m *testing.M) {
 
 	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
 
-	err = retry(func() error {
-		var output []string
-		cmd := []string{"/start-btcctl.sh", "generate", "400"}
-		err = execJSONReturningCommand(cli, ctx, btcd, cmd, &output)
-		if err != nil {
-			errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
-		}
-		if len(output) == 0 {
-			return errors.New("Blocks not mined")
-		}
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	err = mineBlocks(ctx, cli, btcd, 400)
 	if err != nil {
-		log.Fatalf("btcd mining blocks: %v", err)
+		log.Fatalf("Mining blocks: %v", err)
 	}
 
 	log.Println("Blocks mined")
@@ -155,7 +146,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"/start-btcctl.sh", "getblockchaininfo"}
 		err = execJSONReturningCommand(cli, ctx, btcd, cmd, &blockchainInfo)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
+			return errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
 		}
 		if blockchainInfo.Bip9Softforks.Segwit.Status != "active" {
 			return errors.New("Segwit not active")
@@ -168,28 +159,11 @@ func TestMain(m *testing.M) {
 	log.Println("Segwit is active")
 	log.Println("Checking Alice's balance")
 
-	var aliceBalance string
-	err = retry(func() error {
-		var walletBalance struct {
-			ConfirmedBalance string `json:"confirmed_balance"`
-		}
-		cmd := []string{"lncli", "--network=simnet", "walletbalance"}
-		err = execJSONReturningCommand(cli, ctx, alice, cmd, &walletBalance)
-		if err != nil {
-			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
-		}
-		if walletBalance.ConfirmedBalance == "" {
-			return errors.New("Balance not confirmed")
-		}
-		if walletBalance.ConfirmedBalance == "0" {
-			return errors.New("Balance not confirmed")
-		}
-		aliceBalance = walletBalance.ConfirmedBalance
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	aliceBalance, err := getOnchainBalance(ctx, cli, alice)
 	if err != nil {
 		log.Fatalf("Getting Alice's balance: %v", err)
 	}
+
 	log.Printf("Alice's onchain balance is: %s\n", aliceBalance)
 
 	log.Println("Get Bob's pubkey")
@@ -202,7 +176,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "getinfo"}
 		err = execJSONReturningCommand(cli, ctx, bob, cmd, &getInfo)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
+			return errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
 		}
 		if getInfo.IdentityPubkey == "" {
 			return errors.New("Invalid Pubkey")
@@ -252,7 +226,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "listpeers"}
 		err = execJSONReturningCommand(cli, ctx, alice, cmd, &listPeers)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
 		if len(listPeers.Peers) == 0 {
 			return errors.New("Bob not a peer")
@@ -274,7 +248,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "getinfo"}
 		err = execJSONReturningCommand(cli, ctx, alice, cmd, &getInfo)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
 		if getInfo.IdentityPubkey == "" {
 			return errors.New("Invalid Pubkey")
@@ -294,7 +268,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "listpeers"}
 		err = execJSONReturningCommand(cli, ctx, bob, cmd, &listPeers)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on bob %s", bob.ID)
+			return errors.Wrapf(err, "Running exec command on bob %s", bob.ID)
 		}
 		if len(listPeers.Peers) == 0 {
 			return errors.New("Alice not a peer")
@@ -319,7 +293,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "openchannel", "--node_key=" + bobPubkey, "--local_amt=1000000"}
 		err = execJSONReturningCommand(cli, ctx, alice, cmd, &openChannel)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
 		if openChannel.FundingTxId == "" {
 			return errors.New("Channel not created")
@@ -334,20 +308,9 @@ func TestMain(m *testing.M) {
 
 	log.Println("Include funding transaction in block thereby opening the channel")
 
-	err = retry(func() error {
-		var output []string
-		cmd := []string{"/start-btcctl.sh", "generate", "3"}
-		err = execJSONReturningCommand(cli, ctx, btcd, cmd, &output)
-		if err != nil {
-			errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
-		}
-		if len(output) == 0 {
-			return errors.New("Blocks not mined")
-		}
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	err = mineBlocks(ctx, cli, btcd, 3)
 	if err != nil {
-		log.Fatalf("btcd mining blocks: %v", err)
+		log.Fatalf("Mining blocks: %v", err)
 	}
 
 	log.Println("Blocks mined")
@@ -363,7 +326,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "listchannels"}
 		err = execJSONReturningCommand(cli, ctx, alice, cmd, &listChannels)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
 		if len(listChannels.Channels) == 0 {
 			return errors.New("Channel not open")
@@ -386,10 +349,10 @@ func TestMain(m *testing.M) {
 		var addInvoice struct {
 			EncodedPayReq string `json:"payment_request"`
 		}
-		cmd := []string{"lncli", "--network=simnet", "addinvoice", "--amt=10000"}
+		cmd := []string{"lncli", "--network=simnet", "addinvoice", "--amt=100000"}
 		err = execJSONReturningCommand(cli, ctx, bob, cmd, &addInvoice)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
+			return errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
 		}
 		if addInvoice.EncodedPayReq == "" {
 			return errors.New("Invoice not generated")
@@ -422,7 +385,7 @@ func TestMain(m *testing.M) {
 	}
 
 	log.Println("Checking payment received by Bob")
-	var bobBalance string
+	var bobChannelBalance string
 	err = retry(func() error {
 		var channelBalance struct {
 			Balance string `json:"balance"`
@@ -430,7 +393,7 @@ func TestMain(m *testing.M) {
 		cmd := []string{"lncli", "--network=simnet", "channelbalance"}
 		err = execJSONReturningCommand(cli, ctx, bob, cmd, &channelBalance)
 		if err != nil {
-			errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
+			return errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
 		}
 		if channelBalance.Balance == "" {
 			return errors.New("Payment not received")
@@ -438,15 +401,54 @@ func TestMain(m *testing.M) {
 		if channelBalance.Balance == "0" {
 			return errors.New("Payment not received")
 		}
-		bobBalance = channelBalance.Balance
+		bobChannelBalance = channelBalance.Balance
 		return nil
 	}, defautDelayMS, defaultMaxDurationMS)
 	if err != nil {
-		log.Fatalf("Creating Bob invoice: %v", err)
+		log.Fatalf("Checking Bob's balance: %v", err)
 	}
 
 	log.Println("Payment received by Bob")
-	log.Printf("Bob's channel balance: %s\n", bobBalance)
+	log.Printf("Bob's channel balance: %s\n", bobChannelBalance)
+
+	log.Println("Close Alice<->Bob channel to gain on chain funds for Bob")
+
+	var aliceBobClosingTxId string
+	err = retry(func() error {
+		var closeChannel struct {
+			ClosingTxId string `json:"closing_txid"`
+		}
+		fundingTxId := aliceBobChannelPoint[:strings.IndexByte(aliceBobChannelPoint, ':')]
+		outputIndex := aliceBobChannelPoint[strings.IndexByte(aliceBobChannelPoint, ':')+1:]
+		cmd := []string{"lncli", "--network=simnet", "closechannel", "--funding_txid=" + fundingTxId, "--output_index=" + outputIndex}
+		err = execJSONReturningCommand(cli, ctx, alice, cmd, &closeChannel)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+		}
+		if closeChannel.ClosingTxId == "" {
+			return errors.New("Channel not closed")
+		}
+		aliceBobClosingTxId = closeChannel.ClosingTxId
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Closing Alice<->Bob channel: %v", err)
+	}
+
+	log.Printf("Alice<->Bob channel closing transaction id: %s\n", aliceBobClosingTxId)
+
+	log.Println("Mining some blocks to confirm closing transaction")
+
+	err = mineBlocks(ctx, cli, btcd, 3)
+	if err != nil {
+		log.Fatalf("Mining blocks: %v", err)
+	}
+
+	bobOnChainBalance, err := getOnchainBalance(ctx, cli, bob)
+	if err != nil {
+		log.Fatalf("Getting Bob's balance: %v", err)
+	}
+	log.Printf("Bob's onchain balance: %s\n", bobOnChainBalance)
 
 	code := m.Run()
 
@@ -454,6 +456,51 @@ func TestMain(m *testing.M) {
 	// can't defer this as os.Exit doesn't care for defer
 	// cleanup(cli, ctx)
 	os.Exit(code)
+}
+
+func getOnchainBalance(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody) (balance string, err error) {
+	err = retry(func() error {
+		var walletBalance struct {
+			ConfirmedBalance string `json:"confirmed_balance"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "walletbalance"}
+		err := execJSONReturningCommand(cli, ctx, container, cmd, &walletBalance)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+		}
+		if walletBalance.ConfirmedBalance == "" {
+			return errors.New("Balance not confirmed")
+		}
+		if walletBalance.ConfirmedBalance == "0" {
+			return errors.New("Balance not confirmed")
+		}
+		balance = walletBalance.ConfirmedBalance
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		return "", errors.Wrap(err, "Getting balance")
+	}
+	return balance, nil
+
+}
+
+func mineBlocks(ctx context.Context, cli *client.Client, btcd dockercontainer.ContainerCreateCreatedBody, numberOfBlocks int) error {
+	err := retry(func() error {
+		var output []string
+		cmd := []string{"/start-btcctl.sh", "generate", strconv.Itoa(numberOfBlocks)}
+		err := execJSONReturningCommand(cli, ctx, btcd, cmd, &output)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
+		}
+		if len(output) == 0 {
+			return errors.New("Blocks not mined")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		errors.Wrap(err, "btcd mining blocks")
+	}
+	return nil
 }
 
 func execJSONReturningCommand(cli *client.Client, ctx context.Context,
