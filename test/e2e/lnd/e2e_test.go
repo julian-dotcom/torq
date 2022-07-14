@@ -22,7 +22,7 @@ import (
 	// dc "github.com/ory/dockertest/v3/docker"
 )
 
-const defautDelayMS = 500          // 500ms
+const defautDelayMS = 1000         // 1s
 const defaultMaxDurationMS = 30000 // 30s
 
 const networkName = "e2e"
@@ -49,11 +49,14 @@ func TestMain(m *testing.M) {
 	log.Println("Checking if any old container or networks are present")
 	cleanup(cli, ctx)
 
-	buildImage("docker/btcd/", "e2e/btcd", cli, ctx)
-	buildImage("docker/lnd/", "e2e/lnd", cli, ctx)
+	log.Println("Building btcd image from dockerfile")
+	buildImage("docker/btcd/", "e2e/btcd", cli, ctx, false)
+	log.Println("Building lnd image from dockerfile")
+	buildImage("docker/lnd/", "e2e/lnd", cli, ctx, false)
 
 	networkingConfig := createNetwork(ctx, cli, "e2e")
 
+	log.Println("Starting btcd")
 	_ = createContainer(cli, ctx, "e2e/btcd", btcdName,
 		[]string{"NETWORK=simnet"},
 		[]string{
@@ -61,11 +64,20 @@ func TestMain(m *testing.M) {
 			// "e2e-bitcoin:/data",
 		}, networkingConfig)
 
+	log.Println("Starting Alice")
 	alice := createContainer(cli, ctx, "e2e/lnd", aliceName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
 			// "e2e-lnd-alice:/root/.lnd",
+		}, networkingConfig)
+
+	log.Println("Starting Bob")
+	bob := createContainer(cli, ctx, "e2e/lnd", bobName,
+		[]string{"NETWORK=simnet"},
+		[]string{
+			"e2e-shared:/rpc",
+			// "e2e-lnd-bob:/root/.lnd",
 		}, networkingConfig)
 
 	// Example looking at container logs
@@ -169,21 +181,16 @@ func TestMain(m *testing.M) {
 		if walletBalance.ConfirmedBalance == "" {
 			return errors.New("Balance not confirmed")
 		}
+		if walletBalance.ConfirmedBalance == "0" {
+			return errors.New("Balance not confirmed")
+		}
 		aliceBalance = walletBalance.ConfirmedBalance
 		return nil
 	}, defautDelayMS, defaultMaxDurationMS)
 	if err != nil {
 		log.Fatalf("Getting Alice's balance: %v", err)
 	}
-	log.Printf("Alice's balance is: %s\n", aliceBalance)
-
-	log.Println("Starting Bob")
-	bob := createContainer(cli, ctx, "e2e/lnd", bobName,
-		[]string{"NETWORK=simnet"},
-		[]string{
-			"e2e-shared:/rpc",
-			// "e2e-lnd-bob:/root/.lnd",
-		}, networkingConfig)
+	log.Printf("Alice's onchain balance is: %s\n", aliceBalance)
 
 	log.Println("Get Bob's pubkey")
 
@@ -372,6 +379,75 @@ func TestMain(m *testing.M) {
 	}
 	log.Printf("Alice<->Bob channel point: %s\n", aliceBobChannelPoint)
 
+	log.Println("Generating invoice for payment to Bob")
+
+	var bobEncodedInvoice string
+	err = retry(func() error {
+		var addInvoice struct {
+			EncodedPayReq string `json:"payment_request"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "addinvoice", "--amt=10000"}
+		err = execJSONReturningCommand(cli, ctx, bob, cmd, &addInvoice)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
+		}
+		if addInvoice.EncodedPayReq == "" {
+			return errors.New("Invoice not generated")
+		}
+		bobEncodedInvoice = addInvoice.EncodedPayReq
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Creating Bob invoice: %v", err)
+	}
+
+	log.Printf("Encoded payment request: %s\n", bobEncodedInvoice)
+
+	log.Println("Alice paying invoice sending payment to Bob")
+
+	err = retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "sendpayment", "--force", "--pay_req=" + bobEncodedInvoice}
+		var stderr bytes.Buffer
+		_, stderr, err = execCommand(ctx, cli, alice, cmd)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
+		}
+		if len(stderr.Bytes()) > 0 {
+			return errors.New("Payment not sent")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Sending Alice->Bob payment: %v", err)
+	}
+
+	log.Println("Checking payment received by Bob")
+	var bobBalance string
+	err = retry(func() error {
+		var channelBalance struct {
+			Balance string `json:"balance"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "channelbalance"}
+		err = execJSONReturningCommand(cli, ctx, bob, cmd, &channelBalance)
+		if err != nil {
+			errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
+		}
+		if channelBalance.Balance == "" {
+			return errors.New("Payment not received")
+		}
+		if channelBalance.Balance == "0" {
+			return errors.New("Payment not received")
+		}
+		bobBalance = channelBalance.Balance
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		log.Fatalf("Creating Bob invoice: %v", err)
+	}
+
+	log.Println("Payment received by Bob")
+	log.Printf("Bob's channel balance: %s\n", bobBalance)
+
 	code := m.Run()
 
 	// try to cleanup after run
@@ -462,7 +538,7 @@ func retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds in
 		if operation() == nil {
 			break
 		}
-		log.Println("Waiting...")
+		log.Println("Checking...")
 		time.Sleep(time.Duration(delayMilliseconds) * time.Millisecond)
 		totalWaited += delayMilliseconds
 	}
@@ -538,7 +614,7 @@ func findContainerByName(cli *client.Client, ctx context.Context, name string) (
 	return nil, nil
 }
 
-func buildImage(path string, name string, cli *client.Client, ctx context.Context) {
+func buildImage(path string, name string, cli *client.Client, ctx context.Context, printOutput bool) {
 	tar, err := archive.TarWithOptions(path, &archive.TarOptions{})
 	if err != nil {
 		log.Fatalf("Creating %s archive: %v", name, err)
@@ -555,9 +631,11 @@ func buildImage(path string, name string, cli *client.Client, ctx context.Contex
 		log.Fatalf("Building %s docker image: %v", name, err)
 	}
 	defer res.Body.Close()
-	err = printBuildOutput(res.Body)
-	if err != nil {
-		log.Fatalf("Printing build output for %s docker image: %v", name, err)
+	if printOutput {
+		err = printBuildOutput(res.Body)
+		if err != nil {
+			log.Fatalf("Printing build output for %s docker image: %v", name, err)
+		}
 	}
 }
 
