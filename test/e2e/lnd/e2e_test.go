@@ -52,9 +52,9 @@ func TestMain(m *testing.M) {
 	cleanup(cli, ctx)
 
 	log.Println("Building btcd image from dockerfile")
-	buildImage("docker/btcd/", "e2e/btcd", cli, ctx, false)
+	buildImage("docker/btcd/", "e2e/btcd", cli, ctx)
 	log.Println("Building lnd image from dockerfile")
-	buildImage("docker/lnd/", "e2e/lnd", cli, ctx, false)
+	buildImage("docker/lnd/", "e2e/lnd", cli, ctx)
 
 	networkingConfig := createNetwork(ctx, cli, "e2e")
 
@@ -682,8 +682,10 @@ func execCommand(ctx context.Context, cli *client.Client,
 	// stdcopy.StdCopy(os.Stdout, os.Stderr, res.Reader)
 	stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
 	// DEBUG Tip: uncomment below to see raw output of commands
-	// log.Printf("%s\n", string(bufStdout.Bytes()))
-	// log.Printf("%s\n", string(bufStderr.Bytes()))
+	if len(os.Getenv("DEBUG")) > 0 {
+		log.Printf("%s\n", string(bufStdout.Bytes()))
+		log.Printf("%s\n", string(bufStderr.Bytes()))
+	}
 	return bufStdout, bufStderr, nil
 }
 
@@ -814,7 +816,7 @@ func findContainerByName(cli *client.Client, ctx context.Context, name string) (
 	return nil, nil
 }
 
-func buildImage(path string, name string, cli *client.Client, ctx context.Context, printOutput bool) {
+func buildImage(path string, name string, cli *client.Client, ctx context.Context) {
 	tar, err := archive.TarWithOptions(path, &archive.TarOptions{})
 	if err != nil {
 		log.Fatalf("Creating %s archive: %v", name, err)
@@ -831,7 +833,7 @@ func buildImage(path string, name string, cli *client.Client, ctx context.Contex
 		log.Fatalf("Building %s docker image: %v", name, err)
 	}
 	defer res.Body.Close()
-	if printOutput {
+	if len(os.Getenv("DEBUG")) > 0 {
 		err = printBuildOutput(res.Body)
 		if err != nil {
 			log.Fatalf("Printing build output for %s docker image: %v", name, err)
