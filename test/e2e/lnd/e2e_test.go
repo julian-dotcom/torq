@@ -24,8 +24,8 @@ import (
 	// dc "github.com/ory/dockertest/v3/docker"
 )
 
-const defautDelayMS = 1000         // 1s
-const defaultMaxDurationMS = 30000 // 30s
+const defautDelayMS = 2000         // 2s
+const defaultMaxDurationMS = 60000 // 60s
 
 const networkName = "e2e"
 const aliceName = "e2e-alice"
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// cleanup any old networks or containers that might have been left around from a failed run
-	log.Println("Checking if any old container or networks are present")
+	log.Println("Checking if any old containers or networks are present")
 	cleanup(cli, ctx)
 
 	log.Println("Building btcd image from dockerfile")
@@ -74,21 +74,6 @@ func TestMain(m *testing.M) {
 			// "e2e-lnd-alice:/root/.lnd",
 		}, networkingConfig)
 
-	log.Println("Starting Bob")
-	bob := createContainer(cli, ctx, "e2e/lnd", bobName,
-		[]string{"NETWORK=simnet"},
-		[]string{
-			"e2e-shared:/rpc",
-			// "e2e-lnd-bob:/root/.lnd",
-		}, networkingConfig)
-
-	log.Println("Starting Carol")
-	carol := createContainer(cli, ctx, "e2e/lnd", carolName,
-		[]string{"NETWORK=simnet"},
-		[]string{
-			"e2e-shared:/rpc",
-			// "e2e-lnd-bob:/root/.lnd",
-		}, networkingConfig)
 	// Example looking at container logs
 	// out, err := cli.ContainerLogs(ctx, btcd.ID, types.ContainerLogsOptions{ShowStdout: true})
 	// if err != nil {
@@ -173,12 +158,16 @@ func TestMain(m *testing.M) {
 
 	log.Printf("Alice's onchain balance is: %s\n", aliceBalance)
 
+	// start Bob and Carol AFTER btcd has restarted
+	log.Println("Starting Bob")
+	bob := createContainer(cli, ctx, "e2e/lnd", bobName,
+		[]string{"NETWORK=simnet"},
+		[]string{
+			"e2e-shared:/rpc",
+			// "e2e-lnd-bob:/root/.lnd",
+		}, networkingConfig)
+
 	log.Println("Get Bob's pubkey")
-	bobPubkey, err := getPubKey(ctx, cli, bob)
-	if err != nil {
-		log.Fatalf("Getting Bob's pubkey: %v", err)
-	}
-	log.Printf("Bob's pubkey is: %s\n", bobPubkey)
 
 	bobInspection, err := cli.ContainerInspect(ctx, bob.ID)
 	if err != nil {
@@ -187,6 +176,12 @@ func TestMain(m *testing.M) {
 	bobIPAddress := bobInspection.NetworkSettings.Networks["e2e"].IPAddress
 	log.Println("Bob's IP address is:")
 	log.Println(bobIPAddress)
+
+	bobPubkey, err := getPubKey(ctx, cli, bob)
+	if err != nil {
+		log.Fatalf("Getting Bob's pubkey: %v", err)
+	}
+	log.Printf("Bob's pubkey is: %s\n", bobPubkey)
 
 	log.Println("Connecting Bob to Alice")
 
@@ -222,14 +217,14 @@ func TestMain(m *testing.M) {
 
 	log.Println("Create the Alice<->Bob channel")
 
-	aliceBobChannelPoint, err := createChannel(ctx, cli, alice, bobPubkey, "1000000", btcd)
+	aliceBobChannelPoint, err := createChannel(ctx, cli, alice, bobPubkey, "12000000", btcd)
 	if err != nil {
 		log.Fatalf("Creating Alice<->Bob channel: %v", err)
 	}
 
 	log.Println("Generating invoice for payment to Bob")
 
-	bobEncodedInvoice, err := generateInvoice(ctx, cli, bob, "10000")
+	bobEncodedInvoice, err := generateInvoice(ctx, cli, bob, "1000000")
 	if err != nil {
 		log.Fatalf("Creating Bob invoice: %v", err)
 	}
@@ -238,42 +233,13 @@ func TestMain(m *testing.M) {
 
 	log.Println("Alice paying invoice sending payment to Bob")
 
-	err = retry(func() error {
-		cmd := []string{"lncli", "--network=simnet", "sendpayment", "--force", "--pay_req=" + bobEncodedInvoice}
-		var stderr bytes.Buffer
-		_, stderr, err := execCommand(ctx, cli, alice, cmd)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
-		}
-		if len(stderr.Bytes()) > 0 {
-			return errors.New("Payment not sent")
-		}
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	err = payInvoice(ctx, cli, alice, bobEncodedInvoice)
 	if err != nil {
 		log.Fatalf("Sending Alice->Bob payment: %v", err)
 	}
 
 	log.Println("Checking payment received by Bob")
-	var bobChannelBalance string
-	err = retry(func() error {
-		var channelBalance struct {
-			Balance string `json:"balance"`
-		}
-		cmd := []string{"lncli", "--network=simnet", "channelbalance"}
-		err := execJSONReturningCommand(ctx, cli, bob, cmd, &channelBalance)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
-		}
-		if channelBalance.Balance == "" {
-			return errors.New("Payment not received")
-		}
-		if channelBalance.Balance == "0" {
-			return errors.New("Payment not received")
-		}
-		bobChannelBalance = channelBalance.Balance
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	bobChannelBalance, err := getChannelBalance(ctx, cli, bob)
 	if err != nil {
 		log.Fatalf("Checking Bob's balance: %v", err)
 	}
@@ -320,6 +286,14 @@ func TestMain(m *testing.M) {
 	}
 	log.Printf("Bob's onchain balance: %s\n", bobOnChainBalance)
 
+	log.Println("Starting Carol")
+	carol := createContainer(cli, ctx, "e2e/lnd", carolName,
+		[]string{"NETWORK=simnet"},
+		[]string{
+			"e2e-shared:/rpc",
+			// "e2e-lnd-bob:/root/.lnd",
+		}, networkingConfig)
+
 	log.Println("Getting Carol's pubkey")
 	carolPubkey, err := getPubKey(ctx, cli, carol)
 	if err != nil {
@@ -327,12 +301,137 @@ func TestMain(m *testing.M) {
 	}
 	log.Printf("Carol's pubkey: %s\n", carolPubkey)
 
+	carolInspection, err := cli.ContainerInspect(ctx, carol.ID)
+	if err != nil {
+		log.Fatalf("Getting Carol's IP Address: %v", err)
+	}
+	carolIPAddress := carolInspection.NetworkSettings.Networks["e2e"].IPAddress
+	log.Println("Carol's IP address is:")
+	log.Println(carolIPAddress)
+
+	log.Println("Connecting Carol to Bob")
+
+	err = connectPeer(ctx, cli, bob, carolPubkey, carolIPAddress)
+	if err != nil {
+		log.Fatalf("Connecting Carol to Bob: %v", err)
+	}
+
+	log.Println("Verifing Carol is a peer of Bob")
+
+	carolPeerExists, err := checkPeerExists(ctx, cli, bob, carolPubkey)
+	if err != nil || !carolPeerExists {
+		log.Fatalf("Checking that Carol is a peer of Bob: %v", err)
+	}
+
+	log.Println("Carol confirmed as peer of Bob")
+
+	log.Println("Verifing Bob is a peer of Carol")
+	carolBobPeerExists, err := checkPeerExists(ctx, cli, carol, bobPubkey)
+	if err != nil || !carolBobPeerExists {
+		log.Fatalf("Checking that Bob is a peer of Carol: %v", err)
+	}
+	log.Println("Bob confirmed as peer of Carol")
+
+	err = mineBlocks(ctx, cli, btcd, 30)
+	if err != nil {
+		log.Fatalf("Mining blocks: %v\n", err)
+	}
+	log.Println("Create the Bob<->Carol channel")
+
+	_, err = createChannel(ctx, cli, bob, carolPubkey, "100000", btcd)
+	if err != nil {
+		log.Fatalf("Creating Bob<->Carol channel: %v", err)
+	}
+
+	log.Println("Recreate the Alice<->Bob channel")
+
+	aliceBobChannelPoint, err = createChannel(ctx, cli, alice, bobPubkey, "1000000", btcd)
+	if err != nil {
+		log.Fatalf("Creating Alice<->Bob channel: %v", err)
+	}
+
+	log.Println("Generating invoice for payment to Carol")
+
+	carolEncodedInvoice, err := generateInvoice(ctx, cli, carol, "10")
+	if err != nil {
+		log.Fatalf("Creating Carol invoice: %v", err)
+	}
+
+	log.Printf("Encoded payment request: %s\n", carolEncodedInvoice)
+
+	err = connectPeer(ctx, cli, alice, carolPubkey, carolIPAddress)
+	if err != nil {
+		log.Fatalf("Peering Alice and Carol: %v", err)
+	}
+
+	log.Println("Alice paying invoice sending payment via Bob to Carol")
+
+	err = payInvoice(ctx, cli, alice, carolEncodedInvoice)
+	if err != nil {
+		log.Fatalf("Sending Alice->Bob->Carol payment: %v", err)
+	}
+
+	log.Println("Checking payment received by Carol")
+	carolChannelBalance, err := getChannelBalance(ctx, cli, carol)
+	if err != nil {
+		log.Fatalf("Checking Carol's balance: %v", err)
+	}
+
+	log.Println("Payment received by Carol")
+	log.Printf("Carol's channel balance: %s\n", carolChannelBalance)
+
 	code := m.Run()
 
 	// try to cleanup after run
 	// can't defer this as os.Exit doesn't care for defer
 	// cleanup(cli, ctx)
 	os.Exit(code)
+}
+
+func getChannelBalance(ctx context.Context, cli *client.Client,
+	initiator dockercontainer.ContainerCreateCreatedBody) (balance string, err error) {
+	err = retry(func() error {
+		var channelBalance struct {
+			Balance string `json:"balance"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "channelbalance"}
+		err := execJSONReturningCommand(ctx, cli, initiator, cmd, &channelBalance)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on %s", initiator.ID)
+		}
+		if channelBalance.Balance == "" {
+			return errors.New("Payment not received")
+		}
+		if channelBalance.Balance == "0" {
+			return errors.New("Payment not received")
+		}
+		balance = channelBalance.Balance
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		return "", errors.Wrap(err, "Getting channel balance")
+	}
+	return balance, nil
+}
+
+func payInvoice(ctx context.Context, cli *client.Client,
+	initiator dockercontainer.ContainerCreateCreatedBody, invoice string) error {
+	err := retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "sendpayment", "--force", "--pay_req=" + invoice}
+		var stderr bytes.Buffer
+		_, stderr, err := execCommand(ctx, cli, initiator, cmd)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on %s", initiator.ID)
+		}
+		if len(stderr.Bytes()) > 0 {
+			return errors.New("Payment not sent")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		return errors.Wrap(err, "Sending payment")
+	}
+	return nil
 }
 
 func generateInvoice(ctx context.Context, cli *client.Client,
@@ -362,7 +461,8 @@ func checkPeerExists(ctx context.Context, cli *client.Client, initiator dockerco
 	remotePubkey string) (bool, error) {
 	var listPeers struct {
 		Peers []struct {
-			Pubkey string `json:"pub_key"`
+			Pubkey   string `json:"pub_key"`
+			SyncType string `json:"sync_type"`
 		} `json:"peers"`
 	}
 	err := retry(func() error {
@@ -374,6 +474,9 @@ func checkPeerExists(ctx context.Context, cli *client.Client, initiator dockerco
 		for _, peer := range listPeers.Peers {
 			if peer.Pubkey == remotePubkey {
 				// peer found, return from retry
+				if peer.SyncType != "ACTIVE_SYNC" {
+					return noRetryError{}
+				}
 				return nil
 			}
 		}
@@ -397,6 +500,13 @@ func connectPeer(ctx context.Context, cli *client.Client, initiator dockercontai
 		if len(stderr.Bytes()) > 0 {
 			return errors.New("Peer didn't connect")
 		}
+
+		// immediately check if the peer is connected as sometimes it seems to succeed and didn't
+		peerConnected, err := checkPeerExists(ctx, cli, initiator, remotePubkey)
+		if err != nil || !peerConnected {
+			return errors.New("Peer didn't connect")
+		}
+
 		return nil
 	}, defautDelayMS, defaultMaxDurationMS)
 	if err != nil {
@@ -423,7 +533,7 @@ func createChannel(ctx context.Context, cli *client.Client, initiator dockercont
 		}
 		fundingTxId = openChannel.FundingTxId
 		return nil
-	}, 4500, defaultMaxDurationMS)
+	}, defautDelayMS, defaultMaxDurationMS)
 	if err != nil {
 		return "", errors.Wrap(err, "Creating channel")
 	}
@@ -431,7 +541,7 @@ func createChannel(ctx context.Context, cli *client.Client, initiator dockercont
 
 	log.Println("Include funding transaction in block thereby opening the channel")
 
-	err = mineBlocks(ctx, cli, btcd, 3)
+	err = mineBlocks(ctx, cli, btcd, 30)
 	if err != nil {
 		return "", errors.Wrap(err, "Mining blocks")
 	}
@@ -608,13 +718,24 @@ func createNetwork(ctx context.Context, cli *client.Client, name string) network
 	return networkingConfig
 }
 
+type noRetryError struct{}
+
+func (nre noRetryError) Error() string {
+	return "Skip retries"
+}
+
 func retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds int) error {
 	totalWaited := 0
 	for {
 		if totalWaited > maxWaitMilliseconds {
 			return errors.New("Exceeded maximum wait period")
 		}
-		if operation() == nil {
+		err := operation()
+		var noRetry noRetryError
+		if errors.As(err, &noRetry) {
+			return err
+		}
+		if err == nil {
 			break
 		}
 		log.Println("Checking...")
