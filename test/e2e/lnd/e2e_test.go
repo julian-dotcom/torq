@@ -33,6 +33,13 @@ const bobName = "e2e-bob"
 const carolName = "e2e-carol"
 const btcdName = "e2e-btcd"
 
+var ctx context.Context
+var cli *client.Client
+var btcd dockercontainer.ContainerCreateCreatedBody
+var alice dockercontainer.ContainerCreateCreatedBody
+var bob dockercontainer.ContainerCreateCreatedBody
+var carol dockercontainer.ContainerCreateCreatedBody
+
 func TestMain(m *testing.M) {
 
 	if os.Getenv("E2E") == "" {
@@ -40,9 +47,10 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx = context.Background()
 
-	cli, err := client.NewEnvClient()
+	var err error
+	cli, err = client.NewEnvClient()
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +75,7 @@ func TestMain(m *testing.M) {
 		}, networkingConfig)
 
 	log.Println("Starting Alice")
-	alice := createContainer(cli, ctx, "e2e/lnd", aliceName,
+	alice = createContainer(cli, ctx, "e2e/lnd", aliceName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
@@ -108,7 +116,7 @@ func TestMain(m *testing.M) {
 	log.Println("Recreating btcd container with Alice's mining address")
 	findAndRemoveContainer(cli, ctx, btcdName)
 	log.Println("Starting new btcd container")
-	btcd := createContainer(cli, ctx, "e2e/btcd", btcdName,
+	btcd = createContainer(cli, ctx, "e2e/btcd", btcdName,
 		[]string{
 			"NETWORK=simnet",
 			"MINING_ADDRESS=" + aliceAddress},
@@ -160,7 +168,7 @@ func TestMain(m *testing.M) {
 
 	// start Bob and Carol AFTER btcd has restarted
 	log.Println("Starting Bob")
-	bob := createContainer(cli, ctx, "e2e/lnd", bobName,
+	bob = createContainer(cli, ctx, "e2e/lnd", bobName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
@@ -287,7 +295,7 @@ func TestMain(m *testing.M) {
 	log.Printf("Bob's onchain balance: %s\n", bobOnChainBalance)
 
 	log.Println("Starting Carol")
-	carol := createContainer(cli, ctx, "e2e/lnd", carolName,
+	carol = createContainer(cli, ctx, "e2e/lnd", carolName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
@@ -359,11 +367,6 @@ func TestMain(m *testing.M) {
 
 	log.Printf("Encoded payment request: %s\n", carolEncodedInvoice)
 
-	err = connectPeer(ctx, cli, alice, carolPubkey, carolIPAddress)
-	if err != nil {
-		log.Fatalf("Peering Alice and Carol: %v", err)
-	}
-
 	log.Println("Alice paying invoice sending payment via Bob to Carol")
 
 	err = payInvoice(ctx, cli, alice, carolEncodedInvoice)
@@ -379,6 +382,8 @@ func TestMain(m *testing.M) {
 
 	log.Println("Payment received by Carol")
 	log.Printf("Carol's channel balance: %s\n", carolChannelBalance)
+
+	log.Println("Cluster setup complete, ready to run tests")
 
 	code := m.Run()
 
@@ -872,6 +877,29 @@ func printBuildOutput(rd io.Reader) error {
 	return nil
 }
 
-func TestSomething(t *testing.T) {
-	// db.Query()
+func TestPayCarolFromAlice(t *testing.T) {
+	log.Println("Generating invoice for payment to Carol")
+
+	carolEncodedInvoice, err := generateInvoice(ctx, cli, carol, "10")
+	if err != nil {
+		log.Fatalf("Creating Carol invoice: %v", err)
+	}
+
+	log.Printf("Encoded payment request: %s\n", carolEncodedInvoice)
+
+	log.Println("Alice paying invoice sending payment via Bob to Carol")
+
+	err = payInvoice(ctx, cli, alice, carolEncodedInvoice)
+	if err != nil {
+		log.Fatalf("Sending Alice->Bob->Carol payment: %v", err)
+	}
+
+	log.Println("Checking payment received by Carol")
+	carolChannelBalance, err := getChannelBalance(ctx, cli, carol)
+	if err != nil {
+		log.Fatalf("Checking Carol's balance: %v", err)
+	}
+
+	log.Println("Payment received by Carol")
+	log.Printf("Carol's channel balance: %s\n", carolChannelBalance)
 }
