@@ -104,7 +104,7 @@ func TestMain(m *testing.M) {
 			Address string `json:"address"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}
-		err = execJSONReturningCommand(ctx, cli, alice, cmd, &address)
+		err := execJSONReturningCommand(ctx, cli, alice, cmd, &address)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
@@ -151,7 +151,7 @@ func TestMain(m *testing.M) {
 			} `json:"bip9_softforks"`
 		}
 		cmd := []string{"/start-btcctl.sh", "getblockchaininfo"}
-		err = execJSONReturningCommand(ctx, cli, btcd, cmd, &blockchainInfo)
+		err := execJSONReturningCommand(ctx, cli, btcd, cmd, &blockchainInfo)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on btcd %s", btcd.ID)
 		}
@@ -190,44 +190,15 @@ func TestMain(m *testing.M) {
 
 	log.Println("Connecting Bob to Alice")
 
-	err = retry(func() error {
-		cmd := []string{"lncli", "--network=simnet", "connect", bobPubkey + "@" + bobIPAddress}
-		var stderr bytes.Buffer
-		_, stderr, err = execCommand(ctx, cli, alice, cmd)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
-		}
-		if len(stderr.Bytes()) > 0 {
-			return errors.New("Bob not connected to Alice")
-		}
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	err = connectPeer(ctx, cli, alice, bobPubkey, bobIPAddress)
 	if err != nil {
-		log.Fatalf("Checking that Bob is a peer of Alice: %v", err)
+		log.Fatalf("Connecting Bob to Alice: %v", err)
 	}
 
 	log.Println("Verifing Bob is a peer of Alice")
 
-	var listPeers struct {
-		Peers []struct {
-			Pubkey string `json:"pub_key"`
-		} `json:"peers"`
-	}
-	err = retry(func() error {
-		cmd := []string{"lncli", "--network=simnet", "listpeers"}
-		err = execJSONReturningCommand(ctx, cli, alice, cmd, &listPeers)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
-		}
-		if len(listPeers.Peers) == 0 {
-			return errors.New("Bob not a peer")
-		}
-		if listPeers.Peers[0].Pubkey != bobPubkey {
-			return errors.New("Bob not a peer")
-		}
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
-	if err != nil {
+	bobPeerExists, err := checkPeerExists(ctx, cli, alice, bobPubkey)
+	if err != nil || !bobPeerExists {
 		log.Fatalf("Checking that Bob is a peer of Alice: %v", err)
 	}
 
@@ -243,21 +214,8 @@ func TestMain(m *testing.M) {
 
 	log.Println("Verifing Alice is a peer of Bob")
 
-	err = retry(func() error {
-		cmd := []string{"lncli", "--network=simnet", "listpeers"}
-		err = execJSONReturningCommand(ctx, cli, bob, cmd, &listPeers)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on bob %s", bob.ID)
-		}
-		if len(listPeers.Peers) == 0 {
-			return errors.New("Alice not a peer")
-		}
-		if listPeers.Peers[0].Pubkey != alicePubkey {
-			return errors.New("Alice not a peer")
-		}
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
-	if err != nil {
+	alicePeerExists, err := checkPeerExists(ctx, cli, bob, alicePubkey)
+	if err != nil || !alicePeerExists {
 		log.Fatalf("Checking that Alice is a peer of Bob: %v", err)
 	}
 	log.Println("Alice confirmed as peer of Bob")
@@ -271,22 +229,7 @@ func TestMain(m *testing.M) {
 
 	log.Println("Generating invoice for payment to Bob")
 
-	var bobEncodedInvoice string
-	err = retry(func() error {
-		var addInvoice struct {
-			EncodedPayReq string `json:"payment_request"`
-		}
-		cmd := []string{"lncli", "--network=simnet", "addinvoice", "--amt=100000"}
-		err = execJSONReturningCommand(ctx, cli, bob, cmd, &addInvoice)
-		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
-		}
-		if addInvoice.EncodedPayReq == "" {
-			return errors.New("Invoice not generated")
-		}
-		bobEncodedInvoice = addInvoice.EncodedPayReq
-		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	bobEncodedInvoice, err := generateInvoice(ctx, cli, bob, "10000")
 	if err != nil {
 		log.Fatalf("Creating Bob invoice: %v", err)
 	}
@@ -298,7 +241,7 @@ func TestMain(m *testing.M) {
 	err = retry(func() error {
 		cmd := []string{"lncli", "--network=simnet", "sendpayment", "--force", "--pay_req=" + bobEncodedInvoice}
 		var stderr bytes.Buffer
-		_, stderr, err = execCommand(ctx, cli, alice, cmd)
+		_, stderr, err := execCommand(ctx, cli, alice, cmd)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
@@ -318,7 +261,7 @@ func TestMain(m *testing.M) {
 			Balance string `json:"balance"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "channelbalance"}
-		err = execJSONReturningCommand(ctx, cli, bob, cmd, &channelBalance)
+		err := execJSONReturningCommand(ctx, cli, bob, cmd, &channelBalance)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Bob %s", bob.ID)
 		}
@@ -348,7 +291,7 @@ func TestMain(m *testing.M) {
 		fundingTxId := aliceBobChannelPoint[:strings.IndexByte(aliceBobChannelPoint, ':')]
 		outputIndex := aliceBobChannelPoint[strings.IndexByte(aliceBobChannelPoint, ':')+1:]
 		cmd := []string{"lncli", "--network=simnet", "closechannel", "--funding_txid=" + fundingTxId, "--output_index=" + outputIndex}
-		err = execJSONReturningCommand(ctx, cli, alice, cmd, &closeChannel)
+		err := execJSONReturningCommand(ctx, cli, alice, cmd, &closeChannel)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on Alice %s", alice.ID)
 		}
@@ -392,6 +335,76 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func generateInvoice(ctx context.Context, cli *client.Client,
+	initiator dockercontainer.ContainerCreateCreatedBody, amount string) (encodedInvoice string, err error) {
+	err = retry(func() error {
+		var addInvoice struct {
+			EncodedPayReq string `json:"payment_request"`
+		}
+		cmd := []string{"lncli", "--network=simnet", "addinvoice", "--amt=" + amount}
+		err := execJSONReturningCommand(ctx, cli, initiator, cmd, &addInvoice)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on %s", initiator.ID)
+		}
+		if addInvoice.EncodedPayReq == "" {
+			return errors.New("Invoice not generated")
+		}
+		encodedInvoice = addInvoice.EncodedPayReq
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		return "", errors.Wrap(err, "Creating invoice")
+	}
+	return encodedInvoice, nil
+}
+
+func checkPeerExists(ctx context.Context, cli *client.Client, initiator dockercontainer.ContainerCreateCreatedBody,
+	remotePubkey string) (bool, error) {
+	var listPeers struct {
+		Peers []struct {
+			Pubkey string `json:"pub_key"`
+		} `json:"peers"`
+	}
+	err := retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "listpeers"}
+		err := execJSONReturningCommand(ctx, cli, initiator, cmd, &listPeers)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on Alice %s", initiator.ID)
+		}
+		for _, peer := range listPeers.Peers {
+			if peer.Pubkey == remotePubkey {
+				// peer found, return from retry
+				return nil
+			}
+		}
+		return errors.New("peer not found")
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		return false, errors.Wrap(err, "Checking nodes are peers")
+	}
+	return true, nil
+}
+
+func connectPeer(ctx context.Context, cli *client.Client, initiator dockercontainer.ContainerCreateCreatedBody,
+	remotePubkey string, remoteIPAddress string) error {
+	err := retry(func() error {
+		cmd := []string{"lncli", "--network=simnet", "connect", remotePubkey + "@" + remoteIPAddress}
+		var stderr bytes.Buffer
+		_, stderr, err := execCommand(ctx, cli, initiator, cmd)
+		if err != nil {
+			return errors.Wrapf(err, "Running exec command on %s", initiator.ID)
+		}
+		if len(stderr.Bytes()) > 0 {
+			return errors.New("Peer didn't connect")
+		}
+		return nil
+	}, defautDelayMS, defaultMaxDurationMS)
+	if err != nil {
+		return errors.Wrap(err, "Connecting peers")
+	}
+	return nil
+}
+
 func createChannel(ctx context.Context, cli *client.Client, initiator dockercontainer.ContainerCreateCreatedBody,
 	remotePubkey string, amount string, btcd dockercontainer.ContainerCreateCreatedBody) (channelPoint string, err error) {
 
@@ -433,7 +446,7 @@ func createChannel(ctx context.Context, cli *client.Client, initiator dockercont
 			} `json:"channels"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "listchannels"}
-		err = execJSONReturningCommand(ctx, cli, initiator, cmd, &listChannels)
+		err := execJSONReturningCommand(ctx, cli, initiator, cmd, &listChannels)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on %s", initiator.ID)
 		}
