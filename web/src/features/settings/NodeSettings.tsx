@@ -61,18 +61,24 @@ function NodeSettings() {
           options={implementationOptions}
           value={implementationOptions.find((io) => io.value === localState?.implementation)}
         />
-        <TextInput
-          label="GRPC Address (IP or Tor)"
-          value={localState?.grpcAddress}
-          onChange={handleAddressChange}
-          placeholder="100.100.100.100:10009"
-        />
-        <File label="TLS Certificate" onFileChange={handleTLSFileChange} fileName={localState?.tlsFileName} />
-        <File label="Macaroon" onFileChange={handleMacaroonFileChange} fileName={localState?.macaroonFileName} />
+        <span id="address">
+          <TextInput
+            label="GRPC Address (IP or Tor)"
+            value={localState?.grpcAddress}
+            onChange={handleAddressChange}
+            placeholder="100.100.100.100:10009"
+          />
+        </span>
+        <span id="tls">
+          <File label="TLS Certificate" onFileChange={handleTLSFileChange} fileName={localState?.tlsFileName} />
+        </span>
+        <span id="macaroon">
+          <File label="Macaroon" onFileChange={handleMacaroonFileChange} fileName={localState?.macaroonFileName} />
+        </span>
         <SubmitButton>
           <React.Fragment>
             <SaveIcon />
-            Save
+            Save node details
           </React.Fragment>
         </SubmitButton>
       </form>
