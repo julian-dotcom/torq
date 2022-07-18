@@ -17,20 +17,20 @@ jobs:
           name: E2E_Video_Recording
           path: test/e2e/lnd/e2e_videos/
       - name: Print btcd logs if failure
-        if: always() && (steps.e2e.outcome == 'failure'
+        if: always() && (steps.e2e.outcome == 'failure')
         run: docker logs e2e-btcd
       - name: Print alice logs if failure
-        if: always() && (steps.e2e.outcome == 'failure'
+        if: always() && (steps.e2e.outcome == 'failure')
         run: docker logs e2e-alice
       - name: Print bob logs if failure
-        if: always() && (steps.e2e.outcome == 'failure'
+        if: always() && (steps.e2e.outcome == 'failure')
         run: docker logs e2e-bob
       - name: Print carol logs if failure
-        if: always() && (steps.e2e.outcome == 'failure'
+        if: always() && (steps.e2e.outcome == 'failure')
         run: docker logs e2e-carol
       # setup ssh access if e2e job fails
       - name: Setup upterm session
-        if: always() && (steps.e2e.outcome == 'failure'
+        if: always() && (steps.e2e.outcome == 'failure')
         timeout-minutes: 10
         uses: lhotari/action-upterm@v1
         with:
