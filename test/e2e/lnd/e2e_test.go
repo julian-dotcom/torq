@@ -80,7 +80,7 @@ func TestMain(m *testing.M) {
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
-			// "e2e-bitcoin:/data",
+			"e2e-bitcoin:/data",
 		}, networkingConfig)
 
 	log.Println("Starting Alice")
@@ -88,7 +88,7 @@ func TestMain(m *testing.M) {
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
-			// "e2e-lnd-alice:/root/.lnd",
+			"e2e-lnd-alice:/root/.lnd",
 		}, networkingConfig)
 
 	// Example looking at container logs
@@ -122,6 +122,9 @@ func TestMain(m *testing.M) {
 	log.Println("Alice receive address created")
 	log.Println(aliceAddress)
 
+	log.Println("Shutting Alice down before btcd restart")
+	findAndRemoveContainer(ctx, cli, aliceName)
+
 	log.Println("Recreating btcd container with Alice's mining address")
 	findAndRemoveContainer(ctx, cli, btcdName)
 	log.Println("Starting new btcd container")
@@ -142,6 +145,16 @@ func TestMain(m *testing.M) {
 	}
 
 	log.Println("Blocks mined")
+
+	log.Println("Recreating Alice now that btcd is back online")
+
+	alice = createContainer(ctx, cli, "e2e/lnd", aliceName,
+		[]string{"NETWORK=simnet"},
+		[]string{
+			"e2e-shared:/rpc",
+			"e2e-lnd-alice:/root/.lnd",
+		}, networkingConfig)
+
 	log.Println("Checking that segwit is active")
 
 	err = retry(func() error {
@@ -772,6 +785,8 @@ func cleanup(cli *client.Client, ctx context.Context) {
 	findAndRemoveNetwork(ctx, cli, networkName)
 
 	findAndRemoveVolume(ctx, cli, "e2e-shared")
+	findAndRemoveVolume(ctx, cli, "e2e-btcd")
+	findAndRemoveVolume(ctx, cli, "e2e-lnd-alice")
 
 }
 func findAndRemoveVolume(ctx context.Context, cli *client.Client, name string) {
