@@ -21,7 +21,7 @@ func TestPlaywrightVideo(t *testing.T) {
 	}
 	page, err := browser.NewPage(playwright.BrowserNewContextOptions{
 		RecordVideo: &playwright.BrowserNewContextOptionsRecordVideo{
-			Dir: playwright.String("videos/"),
+			Dir: playwright.String("e2e_videos/"),
 		},
 	})
 	if err != nil {
