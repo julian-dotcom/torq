@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/playwright-community/playwright-go"
 	"io"
 	"log"
 	"os"
@@ -20,8 +21,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	// "github.com/ory/dockertest/v3"
-	// dc "github.com/ory/dockertest/v3/docker"
 )
 
 const defautDelayMS = 2000          // 2s
@@ -47,12 +46,20 @@ func TestMain(m *testing.M) {
 		return
 	}
 
+	var err error
+	pwRunOpts := &playwright.RunOptions{
+		Browsers: []string{"chromium"},
+	}
+	err = playwright.Install(pwRunOpts)
+	if err != nil {
+		log.Fatalf("Installing playwright: %v\n", err)
+	}
+
 	ctx = context.Background()
 
-	var err error
 	cli, err = client.NewEnvClient()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Getting new docker client: %v\n", err)
 	}
 
 	// cleanup any old networks or containers that might have been left around from a failed run
