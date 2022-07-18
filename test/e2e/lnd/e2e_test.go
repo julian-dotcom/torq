@@ -24,8 +24,8 @@ import (
 	// dc "github.com/ory/dockertest/v3/docker"
 )
 
-const defautDelayMS = 2000         // 2s
-const defaultMaxDurationMS = 60000 // 60s
+const defautDelayMS = 2000          // 2s
+const defaultMaxDurationMS = 120000 // 60s
 
 const networkName = "e2e"
 const aliceName = "e2e-alice"
