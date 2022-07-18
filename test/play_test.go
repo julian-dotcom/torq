@@ -11,6 +11,12 @@ import (
 )
 
 func TestPlaywrightVideo(t *testing.T) {
+
+	if os.Getenv("E2E") == "" {
+		log.Println("Skipping e2e tests as E2E environment variable not set")
+		return
+	}
+
 	pw, err := playwright.Run()
 	if err != nil {
 		log.Fatalf("could not launch playwright: %v", err)
