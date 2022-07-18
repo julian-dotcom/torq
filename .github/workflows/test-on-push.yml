@@ -10,3 +10,8 @@ jobs:
         run: make test
       - name: Run E2E Tests
         run: make test-e2e-debug
+      - uses: actions/upload-artifact@v2
+        if: ${{ failure() || success() }}
+        with:
+          name: Recordings
+          path: test/e2e/lnd/e2e_videos/

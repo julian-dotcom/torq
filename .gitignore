@@ -37,3 +37,5 @@ node_modules
 .log
 
 docker/docker-compose.yml
+
+e2e_videos
