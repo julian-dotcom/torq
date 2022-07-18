@@ -6,14 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cockroachdb/errors"
-	"github.com/docker/docker/api/types"
-	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/playwright-community/playwright-go"
 	"io"
 	"log"
 	"os"
@@ -21,6 +13,16 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cockroachdb/errors"
+	"github.com/docker/docker/api/types"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/playwright-community/playwright-go"
 )
 
 const defautDelayMS = 2000          // 2s
@@ -67,14 +69,14 @@ func TestMain(m *testing.M) {
 	cleanup(cli, ctx)
 
 	log.Println("Building btcd image from dockerfile")
-	buildImage("docker/btcd/", "e2e/btcd", cli, ctx)
+	buildImage(ctx, cli, "docker/btcd/", "e2e/btcd")
 	log.Println("Building lnd image from dockerfile")
-	buildImage("docker/lnd/", "e2e/lnd", cli, ctx)
+	buildImage(ctx, cli, "docker/lnd/", "e2e/lnd")
 
 	networkingConfig := createNetwork(ctx, cli, "e2e")
 
 	log.Println("Starting btcd")
-	_ = createContainer(cli, ctx, "e2e/btcd", btcdName,
+	_ = createContainer(ctx, cli, "e2e/btcd", btcdName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
@@ -82,7 +84,7 @@ func TestMain(m *testing.M) {
 		}, networkingConfig)
 
 	log.Println("Starting Alice")
-	alice = createContainer(cli, ctx, "e2e/lnd", aliceName,
+	alice = createContainer(ctx, cli, "e2e/lnd", aliceName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
@@ -121,9 +123,9 @@ func TestMain(m *testing.M) {
 	log.Println(aliceAddress)
 
 	log.Println("Recreating btcd container with Alice's mining address")
-	findAndRemoveContainer(cli, ctx, btcdName)
+	findAndRemoveContainer(ctx, cli, btcdName)
 	log.Println("Starting new btcd container")
-	btcd = createContainer(cli, ctx, "e2e/btcd", btcdName,
+	btcd = createContainer(ctx, cli, "e2e/btcd", btcdName,
 		[]string{
 			"NETWORK=simnet",
 			"MINING_ADDRESS=" + aliceAddress},
@@ -175,7 +177,7 @@ func TestMain(m *testing.M) {
 
 	// start Bob and Carol AFTER btcd has restarted
 	log.Println("Starting Bob")
-	bob = createContainer(cli, ctx, "e2e/lnd", bobName,
+	bob = createContainer(ctx, cli, "e2e/lnd", bobName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
@@ -302,7 +304,7 @@ func TestMain(m *testing.M) {
 	log.Printf("Bob's onchain balance: %s\n", bobOnChainBalance)
 
 	log.Println("Starting Carol")
-	carol = createContainer(cli, ctx, "e2e/lnd", carolName,
+	carol = createContainer(ctx, cli, "e2e/lnd", carolName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			"e2e-shared:/rpc",
@@ -703,7 +705,7 @@ func execCommand(ctx context.Context, cli *client.Client,
 	return bufStdout, bufStderr, nil
 }
 
-func createContainer(cli *client.Client, ctx context.Context,
+func createContainer(ctx context.Context, cli *client.Client,
 	image string, name string, env []string, binds []string,
 	networkingConfig network.NetworkingConfig) dockercontainer.ContainerCreateCreatedBody {
 
@@ -762,15 +764,44 @@ func retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds in
 }
 
 func cleanup(cli *client.Client, ctx context.Context) {
-	findAndRemoveContainer(cli, ctx, btcdName)
-	findAndRemoveContainer(cli, ctx, aliceName)
-	findAndRemoveContainer(cli, ctx, bobName)
-	findAndRemoveContainer(cli, ctx, carolName)
-	findAndRemoveNetwork(cli, ctx, networkName)
+	findAndRemoveContainer(ctx, cli, btcdName)
+	findAndRemoveContainer(ctx, cli, aliceName)
+	findAndRemoveContainer(ctx, cli, bobName)
+	findAndRemoveContainer(ctx, cli, carolName)
+
+	findAndRemoveNetwork(ctx, cli, networkName)
+
+	findAndRemoveVolume(ctx, cli, "e2e-shared")
+
+}
+func findAndRemoveVolume(ctx context.Context, cli *client.Client, name string) {
+	volume, err := findVolumeByName(ctx, cli, name)
+	if err != nil {
+		log.Fatalf("Removing old %s volume: %v", name, err)
+	}
+	if volume != nil {
+		log.Printf("Old %s volume found; removing\n", name)
+		if err := cli.VolumeRemove(ctx, volume.Name, false); err != nil {
+			log.Fatalf("Removing old %s volume: %v", name, err)
+		}
+	}
 }
 
-func findAndRemoveNetwork(cli *client.Client, ctx context.Context, name string) {
-	network, err := findNetworkByName(cli, ctx, name)
+func findVolumeByName(ctx context.Context, cli *client.Client, name string) (*types.Volume, error) {
+	volumes, err := cli.VolumeList(ctx, filters.Args{})
+	if err != nil {
+		return nil, err
+	}
+	for _, volume := range volumes.Volumes {
+		if volume.Name == name {
+			return volume, nil
+		}
+	}
+	return nil, nil
+}
+
+func findAndRemoveNetwork(ctx context.Context, cli *client.Client, name string) {
+	network, err := findNetworkByName(ctx, cli, name)
 	if err != nil {
 		log.Fatalf("Removing old %s network: %v", name, err)
 	}
@@ -782,7 +813,7 @@ func findAndRemoveNetwork(cli *client.Client, ctx context.Context, name string) 
 	}
 }
 
-func findNetworkByName(cli *client.Client, ctx context.Context, name string) (*types.NetworkResource, error) {
+func findNetworkByName(ctx context.Context, cli *client.Client, name string) (*types.NetworkResource, error) {
 	networks, err := cli.NetworkList(ctx, types.NetworkListOptions{})
 	if err != nil {
 		return nil, err
@@ -795,8 +826,8 @@ func findNetworkByName(cli *client.Client, ctx context.Context, name string) (*t
 	return nil, nil
 }
 
-func findAndRemoveContainer(cli *client.Client, ctx context.Context, name string) {
-	container, err := findContainerByName(cli, ctx, name)
+func findAndRemoveContainer(ctx context.Context, cli *client.Client, name string) {
+	container, err := findContainerByName(ctx, cli, name)
 	if err != nil {
 		log.Fatalf("Removing %s container: %v", name, err)
 	}
@@ -814,7 +845,7 @@ func findAndRemoveContainer(cli *client.Client, ctx context.Context, name string
 	}
 }
 
-func findContainerByName(cli *client.Client, ctx context.Context, name string) (*types.Container, error) {
+func findContainerByName(ctx context.Context, cli *client.Client, name string) (*types.Container, error) {
 	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		return nil, err
@@ -830,7 +861,7 @@ func findContainerByName(cli *client.Client, ctx context.Context, name string) (
 	return nil, nil
 }
 
-func buildImage(path string, name string, cli *client.Client, ctx context.Context) {
+func buildImage(ctx context.Context, cli *client.Client, path string, name string) {
 	tar, err := archive.TarWithOptions(path, &archive.TarOptions{})
 	if err != nil {
 		log.Fatalf("Creating %s archive: %v", name, err)
