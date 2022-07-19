@@ -49,6 +49,7 @@ var btcd dockercontainer.ContainerCreateCreatedBody
 var alice dockercontainer.ContainerCreateCreatedBody
 var bob dockercontainer.ContainerCreateCreatedBody
 var carol dockercontainer.ContainerCreateCreatedBody
+var bobIPAddress string
 
 func TestMain(m *testing.M) {
 
@@ -222,7 +223,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Getting Bob's IP Address: %v", err)
 	}
-	bobIPAddress := bobInspection.NetworkSettings.Networks["e2e"].IPAddress
+	bobIPAddress = bobInspection.NetworkSettings.Networks["e2e"].IPAddress
 	log.Println("Bob's IP address is:")
 	log.Println(bobIPAddress)
 
@@ -1063,7 +1064,7 @@ func TestPlaywrightVideo(t *testing.T) {
 		log.Fatalln("Week starts on not found")
 	}
 
-	page.Fill("#address input[type=text]", bobName+":10009")
+	page.Fill("#address input[type=text]", bobIPAddress+":10009")
 
 	tlsFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/tls.cert")
 	if err != nil {
