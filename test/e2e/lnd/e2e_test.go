@@ -73,6 +73,14 @@ func TestMain(m *testing.M) {
 	log.Println("Checking if any old containers or networks are present")
 	cleanup(cli, ctx)
 
+	// path to Dockerfile in route
+	buildImage(ctx, cli, "../../../", "e2e/torq")
+
+	if os.Getenv("E2E") != "" {
+		log.Println("Skipping e2e tests as E2E environment variable not set")
+		return
+	}
+
 	log.Println("Building btcd image from dockerfile")
 	buildImage(ctx, cli, "docker/btcd/", "e2e/btcd")
 	log.Println("Building lnd image from dockerfile")
@@ -884,7 +892,7 @@ func findContainerByName(ctx context.Context, cli *client.Client, name string) (
 }
 
 func buildImage(ctx context.Context, cli *client.Client, path string, name string) {
-	tar, err := archive.TarWithOptions(path, &archive.TarOptions{})
+	tar, err := archive.TarWithOptions(path, &archive.TarOptions{ExcludePatterns: []string{"web/node_modules", ".git"}})
 	if err != nil {
 		log.Fatalf("Creating %s archive: %v", name, err)
 	}
