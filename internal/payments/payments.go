@@ -50,12 +50,11 @@ type PaymentDetails struct {
 	FailedRoutes     []*Route `json:"failed_routes" db:"failed_routes"`
 }
 
-func getPaymentsMaxOffset(db *sqlx.DB, from time.Time, to time.Time, limit int) (maxOffset int, err error) {
+func getPaymentsMaxOffset(db *sqlx.DB, filters sq.Sqlizer, from time.Time, to time.Time, limit int) (maxOffset int, err error) {
 	err = db.Get(&maxOffset, `
 		WITH
-			tz AS (select preferred_timezone as tz from settings)
-			select floor(count(*)::float8/$3) from payment
-			WHERE creation_timestamp::timestamp AT TIME ZONE (table tz) between $1 AND $2;`, limit)
+			pub_keys as (select array_agg(pub_key) from local_node)
+			select floor(count(*)::float8/$3) from payment;`)
 	if err != nil {
 		return 0, err
 	}
@@ -79,7 +78,8 @@ type QueryFilter struct {
 	Value    string
 }
 
-func getPayments(db *sqlx.DB, filters sq.Sqlizer, limit uint64, offset uint64) (r []*Payment, err error) {
+func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Payment,
+	err error) {
 
 	//if qpp.From != nil {
 	//	qbs = append(qbs, sq.GtOrEq{"creation_timestamp::timestamp AT TIME ZONE (table tz)": qpp.From})
@@ -95,7 +95,7 @@ func getPayments(db *sqlx.DB, filters sq.Sqlizer, limit uint64, offset uint64) (
 		FromSelect(
 			sq.Select(`
 				payment_index,
-				creation_timestamp,
+				creation_timestamp as date,
 				destination_pub_key,
 				status,
 				value_msat,
@@ -113,8 +113,8 @@ func getPayments(db *sqlx.DB, filters sq.Sqlizer, limit uint64, offset uint64) (
 				PlaceholderFormat(sq.Dollar).
 				From("payment"),
 			"subquery").
-		Where(filters).
-		OrderBy("creation_timestamp desc").
+		Where(filter).
+		OrderBy(order...).
 		Limit(limit).
 		Offset(offset).
 		Prefix(`WITH
@@ -139,7 +139,23 @@ func getPayments(db *sqlx.DB, filters sq.Sqlizer, limit uint64, offset uint64) (
 
 	for rows.Next() {
 		var p Payment
-		err = rows.StructScan(&p)
+		err = rows.Scan(
+			&p.PaymentIndex,
+			&p.CreationTimestamp,
+			&p.DestinationPubKey,
+			&p.Status,
+			&p.ValueMsat,
+			&p.FeeMsat,
+			&p.FailureReason,
+			&p.PaymentHash,
+			&p.PaymentPreimage,
+			&p.PaymentRequest,
+			&p.IsRebalance,
+			&p.IsMPP,
+			&p.CountSuccessfulAttempts,
+			&p.CountFailedAttempts,
+			&p.SecondsInFlight,
+		)
 
 		if err != nil {
 			return nil, err

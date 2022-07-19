@@ -1,32 +1,96 @@
 package payments
 
 import (
-	"encoding/json"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	qp "github.com/lncapital/torq/internal/query_parser"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"net/http"
+	"strconv"
 )
 
 func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 
-	/*
-		birdJson := `{"$and":[{"$filter":{"funcName":"eq","category":"number","key":"status","parameter":"SUCCEEDED"}},{"$filter":{"funcName":"eq","category":"number","key":"status","parameter":"SUCCEEDED"}},{"$or":[{"$filter":{"funcName":"lte","category":"number","key":"seconds_in_flight","parameter":"2"}},{"$filter":{"funcName":"lte","category":"number","key":"count_successful_attempts","parameter":"10"}}]}]}`
-	*/
-	filterQuery := c.Query("filter")
-	var filter FilterClauses
-	err := json.Unmarshal([]byte(filterQuery), &filter)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
+	// Filter parser with whitelisted columns
+	var filter sq.Sqlizer
+	filterParam := c.Query("filters")
+	var err error
+	if filterParam != "" {
+		filter, err = qp.ParseFilterParam(filterParam, []string{
+			"date",
+			"destination_pub_key",
+			"status",
+			"value_msat",
+			"fee_msat",
+			"failure_reason",
+			"is_rebalance",
+			"is_mpp",
+			"count_successful_attempts",
+			"count_failed_attempts",
+			"seconds_in_flight",
+		})
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+			return
+		}
 	}
 
-	// "sortBy":[{"value":"revenue_out","label":"Revenue","direction":"desc"}]
-	//sortByQuery := c.Query("sortBy")
+	var sort []string
+	sortParam := c.Query("sortBy")
+	if sortParam != "" {
+		// Sort parser with whitelisted columns
+		sort, err = qp.ParseSortParams(
+			sortParam,
+			[]string{
+				"date",
+				"status",
+				"value_msat",
+				"fee_msat",
+				"failure_reason",
+				"count_successful_attempts",
+				"count_failed_attempts",
+				"seconds_in_flight",
+			})
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+			return
+		}
+	}
 
-	f := ParseFiltersParams(filter)
+	var limit uint64 = 100
+	if c.Query("limit") != "" {
+		limit, err = strconv.ParseUint(c.Query("limit"), 10, 64)
+		switch err.(type) {
+		case nil:
+			break
+		case *strconv.NumError:
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Limit must be a positive number"})
+			return
+		default:
+			server_errors.LogAndSendServerError(c, err)
+		}
+		if limit == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Limit must be a at least 1"})
+			return
+		}
+	}
 
-	r, err := getPayments(db, f, 200, 0)
+	var offset uint64 = 0
+	if c.Query("offset") != "" {
+		offset, err = strconv.ParseUint(c.Query("offset"), 10, 64)
+		switch err.(type) {
+		case nil:
+			break
+		case *strconv.NumError:
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Offset must be a positive number"})
+			return
+		default:
+			server_errors.LogAndSendServerError(c, err)
+		}
+	}
+
+	r, err := getPayments(db, filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
