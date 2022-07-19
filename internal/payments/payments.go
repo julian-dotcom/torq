@@ -3,27 +3,26 @@ package payments
 import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 	"time"
 )
 
 type Payment struct {
-	PaymentIndex            uint64         `json:"payment_index" db:"payment_index"`
-	CreationTimestamp       time.Time      `json:"creation_timestamp" db:"creation_timestamp"`
-	Status                  string         `json:"status" db:"status"`
-	DestinationPubKey       *string        `json:"destination_pub_key" db:"destination_pub_key"`
-	FailureReason           string         `json:"failure_reason" db:"failure_reason"`
-	FeeMsat                 uint64         `json:"fee_msat" db:"fee_msat"`
-	ValueMsat               uint64         `json:"value_msat" db:"value_msat"`
-	PaymentHash             string         `json:"payment_hash" db:"payment_hash"`
-	PaymentPreimage         string         `json:"payment_preimage" db:"payment_preimage"`
-	PaymentRequest          *string        `json:"payment_request" db:"payment_request"`
-	IsRebalance             *bool          `json:"is_rebalance" db:"is_rebalance"`
-	CountSuccessfulAttempts int            `json:"count_successful_attempts" db:"count_successful_attempts"`
-	CountFailedAttempts     int            `json:"count_failed_attempts" db:"count_failed_attempts"`
-	SuccessfulAttemptTimeNs pq.StringArray `json:"successful_attempt_time_ns" db:"successful_attempt_time_ns"`
-	SuccessfulResolveTimeNs pq.StringArray `json:"successful_resolve_time_ns" db:"successful_resolve_time_ns"`
+	PaymentIndex            uint64    `json:"payment_index" db:"payment_index"`
+	CreationTimestamp       time.Time `json:"creation_timestamp" db:"creation_timestamp"`
+	DestinationPubKey       *string   `json:"destination_pub_key" db:"destination_pub_key"`
+	Status                  string    `json:"status" db:"status"`
+	ValueMsat               uint64    `json:"value_msat" db:"value_msat"`
+	FeeMsat                 uint64    `json:"fee_msat" db:"fee_msat"`
+	FailureReason           string    `json:"failure_reason" db:"failure_reason"`
+	PaymentHash             string    `json:"payment_hash" db:"payment_hash"`
+	PaymentPreimage         string    `json:"payment_preimage" db:"payment_preimage"`
+	PaymentRequest          *string   `json:"payment_request" db:"payment_request"`
+	IsRebalance             *bool     `json:"is_rebalance" db:"is_rebalance"`
+	IsMPP                   bool      `json:"is_mpp" db:"is_mpp"`
+	CountSuccessfulAttempts int       `json:"count_successful_attempts" db:"count_successful_attempts"`
+	CountFailedAttempts     int       `json:"count_failed_attempts" db:"count_failed_attempts"`
+	SecondsInFlight         *float32  `json:"seconds_in_flight" db:"seconds_in_flight"`
 }
 
 type Hop struct {
@@ -80,55 +79,42 @@ type QueryFilter struct {
 	Value    string
 }
 
-func getPayments(db *sqlx.DB, qpp QueryPaymentsParams, limit uint64, offset uint64) (r []*Payment, err error) {
+func getPayments(db *sqlx.DB, filters sq.Sqlizer, limit uint64, offset uint64) (r []*Payment, err error) {
+
+	//if qpp.From != nil {
+	//	qbs = append(qbs, sq.GtOrEq{"creation_timestamp::timestamp AT TIME ZONE (table tz)": qpp.From})
+	//}
+
+	//if qpp.To != nil {
+	//	qbs = append(qbs, sq.LtOrEq{"creation_timestamp::timestamp AT TIME ZONE (table tz)": qpp.To})
+	//}
 
 	//language=PostgreSQL
-	q := `(select creation_timestamp, payment_index, payment_hash, payment_preimage, payment_request, status, value_msat, fee_msat, failure_reason,
-		    destination_pub_key,
-			(htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY(ARRAY[(table pub_keys)])) as is_rebalance,
-			jsonb_array_length(jsonb_path_query_array(htlcs, '$??(@.status==1).route')) count_successful_attempts,
-			jsonb_array_length(jsonb_path_query_array(htlcs, '$??(@.status!=1).route')) count_failed_attempts,
-    		ARRAY(SELECT jsonb_array_elements(jsonb_path_query_array(htlcs,'$??(@.status==1).attempt_time_ns'))) as successful_attempt_time_ns,
-    		ARRAY(SELECT jsonb_array_elements(jsonb_path_query_array(htlcs,'$??(@.status==1).resolve_time_ns'))) as successful_resolve_time_ns
-		from (
-			SELECT creation_timestamp, created_on, payment_index, payment_hash, payment_preimage, payment_request,
-status, value_msat, fee_msat, failure_reason,htlcs,
-			htlcs->-1->'route'->'hops'->-1->>'pub_key' as destination_pub_key
-			from payment
-			order by creation_timestamp desc
-		) a) b
-	`
-
-	qbs := sq.And{}
-
-	if qpp.From != nil {
-		qbs = append(qbs, sq.GtOrEq{"creation_timestamp::timestamp AT TIME ZONE (table tz)": qpp.From})
-	}
-
-	if qpp.To != nil {
-		qbs = append(qbs, sq.LtOrEq{"creation_timestamp::timestamp AT TIME ZONE (table tz)": qpp.To})
-	}
-
-	if qpp.Destination != nil {
-		qbs = append(qbs, sq.Eq{"b.destination_pub_key": qpp.Destination})
-	}
-
-	if qpp.IsRebalance != nil {
-		qbs = append(qbs, sq.Eq{"b.is_rebalance": qpp.IsRebalance})
-	}
-
-	if qpp.FailureReason != nil {
-		qbs = append(qbs, sq.Eq{"b.failure_reason": qpp.FailureReason})
-	}
-
-	if qpp.Status != nil {
-		qbs = append(qbs, sq.Eq{"status": qpp.Status})
-	}
-
 	qb := sq.Select("*").
 		PlaceholderFormat(sq.Dollar).
-		From(q).
-		Where(qbs).
+		FromSelect(
+			sq.Select(`
+				payment_index,
+				creation_timestamp,
+				destination_pub_key,
+				status,
+				value_msat,
+				fee_msat,
+				failure_reason,
+				payment_hash,
+				payment_preimage,
+				payment_request,
+				destination_pub_key = ANY(ARRAY[(table pub_keys)]) as is_rebalance,
+				is_mpp,
+				count_successful_attempts,
+				count_failed_attempts,
+				extract(epoch from (to_timestamp(resolved_ns/1000000000)-creation_timestamp))::numeric seconds_in_flight
+			`).
+				PlaceholderFormat(sq.Dollar).
+				From("payment"),
+			"subquery").
+		Where(filters).
+		OrderBy("creation_timestamp desc").
 		Limit(limit).
 		Offset(offset).
 		Prefix(`WITH
@@ -146,30 +132,14 @@ status, value_msat, fee_msat, failure_reason,htlcs,
 	// Log for debugging
 	log.Debug().Msgf("Query: %s, \n Args: %v", qs, args)
 
-	rows, err := db.DB.Query(qs, args...)
+	rows, err := db.Queryx(qs, args...)
 	if err != nil {
 		return nil, err
 	}
 
 	for rows.Next() {
 		var p Payment
-		err = rows.Scan(
-			&p.CreationTimestamp,
-			&p.PaymentIndex,
-			&p.PaymentHash,
-			&p.PaymentPreimage,
-			&p.PaymentRequest,
-			&p.Status,
-			&p.ValueMsat,
-			&p.FeeMsat,
-			&p.FailureReason,
-			&p.DestinationPubKey,
-			&p.IsRebalance,
-			&p.CountSuccessfulAttempts,
-			&p.CountFailedAttempts,
-			&p.SuccessfulAttemptTimeNs,
-			&p.SuccessfulResolveTimeNs,
-		)
+		err = rows.StructScan(&p)
 
 		if err != nil {
 			return nil, err
