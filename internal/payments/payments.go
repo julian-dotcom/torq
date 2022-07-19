@@ -204,6 +204,7 @@ func getPaymentDetails(db *sqlx.DB, paymentHash string) (*PaymentDetails, error)
 	}
 
 	d := PaymentDetails{}
+	d.PaymentIndex = r.PaymentIndex
 	d.Date = r.Date
 	d.DestinationPubKey = r.DestinationPubKey
 	d.Status = r.Status
