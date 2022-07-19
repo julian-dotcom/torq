@@ -1084,8 +1084,6 @@ func TestPlaywrightVideo(t *testing.T) {
 		log.Fatalf("Reading tls tar: %v\n", err)
 	}
 
-	os.WriteFile("/tmp/tls4.cert", tlsBuf.Bytes(), os.ModeAppend)
-
 	pTlsFile := playwright.InputFile{Name: "tls.cert", Buffer: tlsBuf.Bytes()}
 	page.SetInputFiles("#tls input[type=file]", []playwright.InputFile{pTlsFile})
 
@@ -1106,8 +1104,6 @@ func TestPlaywrightVideo(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Reading macaroon tar: %v\n", err)
 	}
-
-	os.WriteFile("/tmp/readonly4.macaroon", macaroonBuf.Bytes(), os.ModeAppend)
 
 	pMacaroonFile := playwright.InputFile{Name: "readonly.macaroon", Buffer: macaroonBuf.Bytes()}
 	page.SetInputFiles("#macaroon input[type=file]", []playwright.InputFile{pMacaroonFile})
