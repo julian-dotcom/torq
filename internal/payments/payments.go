@@ -1,6 +1,7 @@
 package payments
 
 import (
+	"encoding/json"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -9,7 +10,7 @@ import (
 
 type Payment struct {
 	PaymentIndex            uint64    `json:"payment_index" db:"payment_index"`
-	CreationTimestamp       time.Time `json:"creation_timestamp" db:"creation_timestamp"`
+	Date                    time.Time `json:"date" db:"date"`
 	DestinationPubKey       *string   `json:"destination_pub_key" db:"destination_pub_key"`
 	Status                  string    `json:"status" db:"status"`
 	ValueMsat               uint64    `json:"value_msat" db:"value_msat"`
@@ -44,9 +45,15 @@ type Route struct {
 	TotalTimeLock uint64 `json:"total_time_lock" db:"total_time_lock"`
 }
 
+type PaymentDetailsRaw struct {
+	Payment
+	SuccessfulRoutes []byte `json:"successful_routes" db:"successful_routes"`
+	FailedRoutes     []byte `json:"failed_routes" db:"failed_routes"`
+}
+
 type PaymentDetails struct {
 	Payment
-	SuccessFulRoutes []*Route `json:"successful_routes" db:"successful_routes"`
+	SuccessfulRoutes []*Route `json:"successful_routes" db:"successful_routes"`
 	FailedRoutes     []*Route `json:"failed_routes" db:"failed_routes"`
 }
 
@@ -80,14 +87,6 @@ type QueryFilter struct {
 
 func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Payment,
 	err error) {
-
-	//if qpp.From != nil {
-	//	qbs = append(qbs, sq.GtOrEq{"creation_timestamp::timestamp AT TIME ZONE (table tz)": qpp.From})
-	//}
-
-	//if qpp.To != nil {
-	//	qbs = append(qbs, sq.LtOrEq{"creation_timestamp::timestamp AT TIME ZONE (table tz)": qpp.To})
-	//}
 
 	//language=PostgreSQL
 	qb := sq.Select("*").
@@ -141,7 +140,7 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 		var p Payment
 		err = rows.Scan(
 			&p.PaymentIndex,
-			&p.CreationTimestamp,
+			&p.Date,
 			&p.DestinationPubKey,
 			&p.Status,
 			&p.ValueMsat,
@@ -168,24 +167,59 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 	return r, nil
 }
 
-func getPaymentDetails(db *sqlx.DB, paymentHash string) (r *PaymentDetails, err error) {
+func getPaymentDetails(db *sqlx.DB, paymentHash string) (*PaymentDetails, error) {
 
-	q := `
-		WITH
+	//language=PostgreSQL
+	qb := sq.Select(`
+				payment_index,
+				creation_timestamp as date,
+				destination_pub_key,
+				status,
+				value_msat,
+				fee_msat,
+				failure_reason,
+				payment_hash,
+				payment_preimage,
+				payment_request,
+				destination_pub_key = ANY(ARRAY[(table pub_keys)]) as is_rebalance,
+				is_mpp,
+				count_successful_attempts,
+				count_failed_attempts,
+				extract(epoch from (to_timestamp(resolved_ns/1000000000)-creation_timestamp))::numeric seconds_in_flight,
+				successful_routes,
+				failed_routes
+			`).
+		PlaceholderFormat(sq.Dollar).
+		From("payment").Where(sq.Eq{"payment_hash": paymentHash}).
+		Prefix(`WITH
 			pub_keys as (select array_agg(pub_key) from local_node)
-		select creation_timestamp, payment_index, payment_hash, payment_preimage, payment_request, status, value_msat, fee_msat, failure_reason,
-			(htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY(ARRAY[(table pub_keys)])) as is_rebalance,
-			jsonb_array_length(jsonb_path_query_array(htlcs, '$?(@.status==1).route')) count_successful_attempts,
-			jsonb_array_length(jsonb_path_query_array(htlcs, '$?(@.status!=1).route')) count_failed_attempts,
-			jsonb_path_query_array(htlcs, '$?(@.status==1).attempt_time_ns') as successful_attempt_time_ns,
-			jsonb_path_query_array(htlcs, '$?(@.status==1).resolve_time_ns') as successful_resolve_time_ns,
-		    jsonb_path_query_array(htlcs, '$?(@.status!=1).route') failed_routes,
-   			jsonb_path_query_array(htlcs, '$?(@.status==1).route') successful_routes
-		from payment
-			WHERE payment_hash = $1;
-	`
+		`)
 
-	err = db.Get(r, q, paymentHash)
+	qs, args, err := qb.ToSql()
+	r := PaymentDetailsRaw{}
 
-	return r, nil
+	err = db.QueryRowx(qs, args...).StructScan(&r)
+	if err != nil {
+		return nil, err
+	}
+
+	d := PaymentDetails{}
+	d.Date = r.Date
+	d.DestinationPubKey = r.DestinationPubKey
+	d.Status = r.Status
+	d.ValueMsat = r.ValueMsat
+	d.FeeMsat = r.FeeMsat
+	d.FailureReason = r.FailureReason
+	d.PaymentHash = r.PaymentHash
+	d.PaymentPreimage = r.PaymentPreimage
+	d.PaymentRequest = r.PaymentRequest
+	d.IsRebalance = r.IsRebalance
+	d.IsMPP = r.IsMPP
+	d.CountSuccessfulAttempts = r.CountSuccessfulAttempts
+	d.CountFailedAttempts = r.CountFailedAttempts
+	d.SecondsInFlight = r.SecondsInFlight
+	json.Unmarshal(r.SuccessfulRoutes, &d.SuccessfulRoutes)
+	json.Unmarshal(r.FailedRoutes, &d.FailedRoutes)
+
+	return &d, nil
 }

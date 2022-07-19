@@ -99,6 +99,18 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
+func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
+
+	r, err := getPaymentDetails(db, c.Param("paymentHash"))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, r)
+}
+
 func RegisterPaymentsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("", func(c *gin.Context) { getPaymentsHandler(c, db) })
+	r.GET(":paymentHash", func(c *gin.Context) { getPaymentHandler(c, db) })
 }

@@ -13,7 +13,7 @@ import (
 // Example of json
 // {"$and":[
 //  {"$filter":{"funcName":"eq","key":"status","parameter":"SUCCEEDED"}},
-//  {"$filter":{"funcName":"gte","key":"amount_msat","parameter":"2000"}}
+//  {"$filter":{"funcName":"gte","key":"amount_msat","parameter":2000}}
 // ]}
 
 func ParseFilterParam(params string, allowedColumns []string) (f sq.Sqlizer, err error) {

@@ -1,0 +1,7 @@
+alter table payment
+    drop successful_routes,
+    drop failed_routes;
+
+alter table payment
+    add column successful_routes jsonb GENERATED ALWAYS AS (jsonb_path_query_array(htlcs, '$?(@.status==1).route')) STORED,
+    add column failed_routes jsonb GENERATED ALWAYS AS (jsonb_path_query_array(htlcs, '$?(@.status!=1).route')) STORED
