@@ -33,6 +33,11 @@ const aliceName = "e2e-alice"
 const bobName = "e2e-bob"
 const carolName = "e2e-carol"
 const btcdName = "e2e-btcd"
+const sharedVolumeName = "e2e-shared"
+const btcdVolumeName = "e2e-btcd"
+const aliceVolumeName = "e2e-lnd-alice"
+const bobVolumeName = "e2e-lnd-bob"
+const carolVolumeName = "e2e-lnd-carol"
 
 var ctx context.Context
 var cli *client.Client
@@ -79,16 +84,16 @@ func TestMain(m *testing.M) {
 	_ = createContainer(ctx, cli, "e2e/btcd", btcdName,
 		[]string{"NETWORK=simnet"},
 		[]string{
-			"e2e-shared:/rpc",
-			"e2e-bitcoin:/data",
+			sharedVolumeName + ":/rpc",
+			btcdVolumeName + ":/data",
 		}, networkingConfig)
 
 	log.Println("Starting Alice")
 	alice = createContainer(ctx, cli, "e2e/lnd", aliceName,
 		[]string{"NETWORK=simnet"},
 		[]string{
-			"e2e-shared:/rpc",
-			"e2e-lnd-alice:/root/.lnd",
+			sharedVolumeName + ":/rpc",
+			aliceVolumeName + ":/root/.lnd",
 		}, networkingConfig)
 
 	// Example looking at container logs
@@ -133,8 +138,8 @@ func TestMain(m *testing.M) {
 			"NETWORK=simnet",
 			"MINING_ADDRESS=" + aliceAddress},
 		[]string{
-			"e2e-shared:/rpc",
-			// "e2e-bitcoin:/data",
+			sharedVolumeName + ":/rpc",
+			btcdVolumeName + ":/data",
 		}, networkingConfig)
 
 	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
@@ -151,8 +156,8 @@ func TestMain(m *testing.M) {
 	alice = createContainer(ctx, cli, "e2e/lnd", aliceName,
 		[]string{"NETWORK=simnet"},
 		[]string{
-			"e2e-shared:/rpc",
-			"e2e-lnd-alice:/root/.lnd",
+			sharedVolumeName + ":/rpc",
+			aliceVolumeName + ":/root/.lnd",
 		}, networkingConfig)
 
 	log.Println("Checking that segwit is active")
@@ -193,8 +198,8 @@ func TestMain(m *testing.M) {
 	bob = createContainer(ctx, cli, "e2e/lnd", bobName,
 		[]string{"NETWORK=simnet"},
 		[]string{
-			"e2e-shared:/rpc",
-			// "e2e-lnd-bob:/root/.lnd",
+			sharedVolumeName + ":/rpc",
+			bobVolumeName + ":/root/.lnd",
 		}, networkingConfig)
 
 	log.Println("Get Bob's pubkey")
@@ -320,8 +325,8 @@ func TestMain(m *testing.M) {
 	carol = createContainer(ctx, cli, "e2e/lnd", carolName,
 		[]string{"NETWORK=simnet"},
 		[]string{
-			"e2e-shared:/rpc",
-			// "e2e-lnd-bob:/root/.lnd",
+			sharedVolumeName + ":/rpc",
+			carolVolumeName + ":/root/.lnd",
 		}, networkingConfig)
 
 	log.Println("Getting Carol's pubkey")
@@ -787,6 +792,8 @@ func cleanup(cli *client.Client, ctx context.Context) {
 	findAndRemoveVolume(ctx, cli, "e2e-shared")
 	findAndRemoveVolume(ctx, cli, "e2e-btcd")
 	findAndRemoveVolume(ctx, cli, "e2e-lnd-alice")
+	findAndRemoveVolume(ctx, cli, "e2e-lnd-bob")
+	findAndRemoveVolume(ctx, cli, "e2e-lnd-carol")
 
 }
 func findAndRemoveVolume(ctx context.Context, cli *client.Client, name string) {
@@ -960,6 +967,7 @@ func TestPayCarolFromAlice(t *testing.T) {
 }
 
 func TestPlaywrightVideo(t *testing.T) {
+
 	pw, err := playwright.Run()
 	if err != nil {
 		log.Fatalf("could not launch playwright: %v", err)
@@ -983,9 +991,66 @@ func TestPlaywrightVideo(t *testing.T) {
 		}
 		fmt.Printf("Visited %s\n", url)
 	}
-	gotoPage("http://whatsmyuseragent.org")
-	gotoPage("https://github.com")
-	gotoPage("https://microsoft.com")
+	gotoPage("http://localhost:3000")
+
+	// page redirects to login
+	// _, err = page.WaitForNavigation(playwright.PageWaitForNavigationOptions{URL: "http://localhost:3000/login"})
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	page.Fill(".login-form .password-field", "password")
+
+	page.Click(".login-form .submit-button")
+
+	_, err = page.Locator("text=Forwarding fees")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	page.Click("text=Settings")
+	ws, err := page.IsVisible("text=Week starts on")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !ws {
+		log.Fatalln("Week starts on not found")
+	}
+
+	page.Fill("#address input[type=text]", "194.163.169.135:10009")
+
+	tlsFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/tls.cert")
+	if err != nil {
+		log.Fatalf("Copying tls file: %v\n", err)
+	}
+
+	tlsFile, err := io.ReadAll(tlsFileReader)
+	if err != nil {
+		log.Fatalf("Reading tls file: %v\n", err)
+	}
+
+	pTlsFile := playwright.InputFile{Name: "tls4.cert", Buffer: tlsFile}
+	page.SetInputFiles("#tls input[type=file]", []playwright.InputFile{pTlsFile})
+
+	macaroonFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/data/chain/bitcoin/simnet/readonly.macaroon")
+	if err != nil {
+		log.Fatalf("Copying macaroon file: %v\n", err)
+	}
+	macaroonFile, err := io.ReadAll(macaroonFileReader)
+	if err != nil {
+		log.Fatalf("Reading macaroon file: %v\n", err)
+	}
+	pMacaroonFile := playwright.InputFile{Name: "readonly4.macaroon", Buffer: macaroonFile}
+	page.SetInputFiles("#macaroon input[type=file]", []playwright.InputFile{pMacaroonFile})
+
+	page.Click("text=Save node details")
+
+	page.Click("text=Channels")
+
+	time.Sleep(5 * time.Second)
+
+	// log.Println(page.Content())
+
 	if err := page.Close(); err != nil {
 		log.Fatalf("failed to close page: %v", err)
 	}
