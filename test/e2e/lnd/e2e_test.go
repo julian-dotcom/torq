@@ -1,19 +1,12 @@
 package e2e
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
-	"os"
-	"strconv"
-	"strings"
-	"testing"
-	"time"
-
 	"github.com/cockroachdb/errors"
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
@@ -22,13 +15,23 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/docker/go-connections/nat"
 	"github.com/playwright-community/playwright-go"
+	"io"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
 )
 
 const defautDelayMS = 2000          // 2s
 const defaultMaxDurationMS = 120000 // 60s
 
 const networkName = "e2e"
+const torqName = "e2e-torq"
+const torqDBName = "e2e-torq-db"
 const aliceName = "e2e-alice"
 const bobName = "e2e-bob"
 const carolName = "e2e-carol"
@@ -38,6 +41,7 @@ const btcdVolumeName = "e2e-btcd"
 const aliceVolumeName = "e2e-lnd-alice"
 const bobVolumeName = "e2e-lnd-bob"
 const carolVolumeName = "e2e-lnd-carol"
+const torqPort = "4927"
 
 var ctx context.Context
 var cli *client.Client
@@ -73,20 +77,22 @@ func TestMain(m *testing.M) {
 	log.Println("Checking if any old containers or networks are present")
 	cleanup(cli, ctx)
 
-	// path to Dockerfile in route
-	buildImage(ctx, cli, "../../../", "e2e/torq")
+	log.Println("Creating e2e network")
+	networkingConfig := createNetwork(ctx, cli, "e2e")
 
-	if os.Getenv("E2E") != "" {
-		log.Println("Skipping e2e tests as E2E environment variable not set")
-		return
-	}
+	log.Println("Starting Torq DB")
+	_ = createContainer(ctx, cli, "timescale/timescaledb:latest-pg14", torqDBName,
+		[]string{"POSTGRES_PASSWORD=password"},
+		nil, nil, "", networkingConfig)
+
+	log.Println("Building Torq image")
+	// path to Dockerfile in root of project
+	buildImage(ctx, cli, "../../../", "e2e/torq")
 
 	log.Println("Building btcd image from dockerfile")
 	buildImage(ctx, cli, "docker/btcd/", "e2e/btcd")
 	log.Println("Building lnd image from dockerfile")
 	buildImage(ctx, cli, "docker/lnd/", "e2e/lnd")
-
-	networkingConfig := createNetwork(ctx, cli, "e2e")
 
 	log.Println("Starting btcd")
 	_ = createContainer(ctx, cli, "e2e/btcd", btcdName,
@@ -94,7 +100,7 @@ func TestMain(m *testing.M) {
 		[]string{
 			sharedVolumeName + ":/rpc",
 			btcdVolumeName + ":/data",
-		}, networkingConfig)
+		}, nil, "", networkingConfig)
 
 	log.Println("Starting Alice")
 	alice = createContainer(ctx, cli, "e2e/lnd", aliceName,
@@ -102,7 +108,7 @@ func TestMain(m *testing.M) {
 		[]string{
 			sharedVolumeName + ":/rpc",
 			aliceVolumeName + ":/root/.lnd",
-		}, networkingConfig)
+		}, nil, "", networkingConfig)
 
 	// Example looking at container logs
 	// out, err := cli.ContainerLogs(ctx, btcd.ID, types.ContainerLogsOptions{ShowStdout: true})
@@ -148,7 +154,7 @@ func TestMain(m *testing.M) {
 		[]string{
 			sharedVolumeName + ":/rpc",
 			btcdVolumeName + ":/data",
-		}, networkingConfig)
+		}, nil, "", networkingConfig)
 
 	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
 
@@ -166,7 +172,7 @@ func TestMain(m *testing.M) {
 		[]string{
 			sharedVolumeName + ":/rpc",
 			aliceVolumeName + ":/root/.lnd",
-		}, networkingConfig)
+		}, nil, "", networkingConfig)
 
 	log.Println("Checking that segwit is active")
 
@@ -208,7 +214,7 @@ func TestMain(m *testing.M) {
 		[]string{
 			sharedVolumeName + ":/rpc",
 			bobVolumeName + ":/root/.lnd",
-		}, networkingConfig)
+		}, nil, "10009", networkingConfig)
 
 	log.Println("Get Bob's pubkey")
 
@@ -329,13 +335,25 @@ func TestMain(m *testing.M) {
 	}
 	log.Printf("Bob's onchain balance: %s\n", bobOnChainBalance)
 
+	// Starting torq here means that the database should be ready and Torq should be up before test needs it
+	// Better solution would be to check that the DB is ready and that Torq is ready
+	log.Println("Starting Torq")
+	_ = createContainer(ctx, cli, "e2e/torq", torqName, nil, nil,
+		[]string{
+			"--db.host", torqDBName,
+			"--db.password", "password",
+			"--torq.password", "password",
+			"--torq.port", torqPort,
+			"start"},
+		torqPort, networkingConfig)
+
 	log.Println("Starting Carol")
 	carol = createContainer(ctx, cli, "e2e/lnd", carolName,
 		[]string{"NETWORK=simnet"},
 		[]string{
 			sharedVolumeName + ":/rpc",
 			carolVolumeName + ":/root/.lnd",
-		}, networkingConfig)
+		}, nil, "", networkingConfig)
 
 	log.Println("Getting Carol's pubkey")
 	carolPubkey, err := getPubKey(ctx, cli, carol)
@@ -732,15 +750,33 @@ func execCommand(ctx context.Context, cli *client.Client,
 }
 
 func createContainer(ctx context.Context, cli *client.Client,
-	image string, name string, env []string, binds []string,
+	image string, name string, env []string, binds []string, cmd []string, mappedPort string,
 	networkingConfig network.NetworkingConfig) dockercontainer.ContainerCreateCreatedBody {
 
-	btcd, err := cli.ContainerCreate(ctx, &dockercontainer.Config{
-		Image: image,
-		Env:   env,
-	}, &dockercontainer.HostConfig{
+	hostConfig := &dockercontainer.HostConfig{
 		Binds: binds,
-	}, &networkingConfig, nil, name)
+	}
+	openPorts := nat.PortSet{}
+	if mappedPort != "" {
+		hostConfig.PortBindings = nat.PortMap{
+			nat.Port(mappedPort) + "/tcp": []nat.PortBinding{
+				{
+					HostIP:   "0.0.0.0",
+					HostPort: mappedPort,
+				},
+			},
+		}
+		openPorts = nat.PortSet{
+			nat.Port(mappedPort) + "/tcp": struct{}{},
+		}
+	}
+
+	btcd, err := cli.ContainerCreate(ctx, &dockercontainer.Config{
+		Image:        image,
+		Env:          env,
+		Cmd:          cmd,
+		ExposedPorts: openPorts,
+	}, hostConfig, &networkingConfig, nil, name)
 	if err != nil {
 		log.Fatalf("Creating %s container: %v", name, err)
 	}
@@ -790,6 +826,8 @@ func retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds in
 }
 
 func cleanup(cli *client.Client, ctx context.Context) {
+	findAndRemoveContainer(ctx, cli, torqName)
+	findAndRemoveContainer(ctx, cli, torqDBName)
 	findAndRemoveContainer(ctx, cli, btcdName)
 	findAndRemoveContainer(ctx, cli, aliceName)
 	findAndRemoveContainer(ctx, cli, bobName)
@@ -999,7 +1037,7 @@ func TestPlaywrightVideo(t *testing.T) {
 		}
 		fmt.Printf("Visited %s\n", url)
 	}
-	gotoPage("http://localhost:3000")
+	gotoPage("http://localhost:" + torqPort)
 
 	// page redirects to login
 	// _, err = page.WaitForNavigation(playwright.PageWaitForNavigationOptions{URL: "http://localhost:3000/login"})
@@ -1025,30 +1063,50 @@ func TestPlaywrightVideo(t *testing.T) {
 		log.Fatalln("Week starts on not found")
 	}
 
-	page.Fill("#address input[type=text]", "194.163.169.135:10009")
+	page.Fill("#address input[type=text]", bobName+":10009")
 
 	tlsFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/tls.cert")
 	if err != nil {
 		log.Fatalf("Copying tls file: %v\n", err)
 	}
-
-	tlsFile, err := io.ReadAll(tlsFileReader)
+	// file comes out as a tar, untar it
+	tlsTar := tar.NewReader(tlsFileReader)
+	// hdr gives you the header of the tar file
+	_, err = tlsTar.Next()
+	if err == io.EOF || err != nil {
+		// EOF == end of tar archive
+		log.Fatalf("Reading tls tar header: %v\n", err)
+	}
+	tlsBuf := new(bytes.Buffer)
+	_, err = tlsBuf.ReadFrom(tlsTar)
 	if err != nil {
-		log.Fatalf("Reading tls file: %v\n", err)
+		log.Fatalf("Reading tls tar: %v\n", err)
 	}
 
-	pTlsFile := playwright.InputFile{Name: "tls4.cert", Buffer: tlsFile}
+	os.WriteFile("/tmp/tls2.cert", tlsBuf.Bytes(), os.ModeAppend)
+
+	pTlsFile := playwright.InputFile{Name: "tls.cert", Buffer: tlsBuf.Bytes()}
 	page.SetInputFiles("#tls input[type=file]", []playwright.InputFile{pTlsFile})
 
 	macaroonFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/data/chain/bitcoin/simnet/readonly.macaroon")
 	if err != nil {
 		log.Fatalf("Copying macaroon file: %v\n", err)
 	}
-	macaroonFile, err := io.ReadAll(macaroonFileReader)
-	if err != nil {
-		log.Fatalf("Reading macaroon file: %v\n", err)
+	// file comes out as a tar, untar it
+	macaroonTar := tar.NewReader(macaroonFileReader)
+	// hdr gives you the header of the tar file
+	_, err = macaroonTar.Next()
+	if err == io.EOF || err != nil {
+		// EOF == end of tar archive
+		log.Fatalf("Reading macaroon tar header: %v\n", err)
 	}
-	pMacaroonFile := playwright.InputFile{Name: "readonly4.macaroon", Buffer: macaroonFile}
+	macaroonBuf := new(bytes.Buffer)
+	_, err = macaroonBuf.ReadFrom(macaroonTar)
+	if err != nil {
+		log.Fatalf("Reading macaroon tar: %v\n", err)
+	}
+
+	pMacaroonFile := playwright.InputFile{Name: "readonly.macaroon", Buffer: macaroonBuf.Bytes()}
 	page.SetInputFiles("#macaroon input[type=file]", []playwright.InputFile{pMacaroonFile})
 
 	page.Click("text=Save node details")
