@@ -947,11 +947,9 @@ func buildImage(ctx context.Context, cli *client.Client, path string, name strin
 		log.Fatalf("Building %s docker image: %v", name, err)
 	}
 	defer res.Body.Close()
-	if len(os.Getenv("DEBUG")) > 0 {
-		err = printBuildOutput(res.Body)
-		if err != nil {
-			log.Fatalf("Printing build output for %s docker image: %v", name, err)
-		}
+	err = printBuildOutput(res.Body)
+	if err != nil {
+		log.Fatalf("Printing build output for %s docker image: %v", name, err)
 	}
 }
 
@@ -970,7 +968,9 @@ func printBuildOutput(rd io.Reader) error {
 	scanner := bufio.NewScanner(rd)
 	for scanner.Scan() {
 		lastLine = scanner.Text()
-		fmt.Println(scanner.Text())
+		if len(os.Getenv("DEBUG")) > 0 {
+			fmt.Println(scanner.Text())
+		}
 	}
 
 	errLine := &ErrorLine{}
