@@ -69,22 +69,6 @@ func getPaymentsMaxOffset(db *sqlx.DB, filters sq.Sqlizer, from time.Time, to ti
 	return maxOffset, err
 }
 
-type QueryPaymentsParams struct {
-	From                    *time.Time
-	To                      *time.Time
-	Destination             []string
-	IsRebalance             *bool
-	CountSuccessfulAttempts *QueryFilter
-	CountFailedAttempts     *QueryFilter
-	FailureReason           []string
-	Status                  []string
-}
-
-type QueryFilter struct {
-	Operator string
-	Value    string
-}
-
 func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Payment,
 	err error) {
 
@@ -196,31 +180,45 @@ func getPaymentDetails(db *sqlx.DB, paymentHash string) (*PaymentDetails, error)
 		`)
 
 	qs, args, err := qb.ToSql()
-	r := PaymentDetailsRaw{}
+	r := PaymentDetails{}
+	var sr []byte
+	var fr []byte
 
-	err = db.QueryRowx(qs, args...).StructScan(&r)
+	err = db.QueryRowx(qs, args...).Scan(
+		&r.PaymentIndex,
+		&r.Date,
+		&r.DestinationPubKey,
+		&r.Status,
+		&r.ValueMsat,
+		&r.FeeMsat,
+		&r.FailureReason,
+		&r.PaymentHash,
+		&r.PaymentPreimage,
+		&r.PaymentRequest,
+		&r.IsRebalance,
+		&r.IsMPP,
+		&r.CountSuccessfulAttempts,
+		&r.CountFailedAttempts,
+		&r.SecondsInFlight,
+		&sr,
+		&fr,
+	)
+
 	if err != nil {
 		return nil, err
 	}
 
-	d := PaymentDetails{}
-	d.PaymentIndex = r.PaymentIndex
-	d.Date = r.Date
-	d.DestinationPubKey = r.DestinationPubKey
-	d.Status = r.Status
-	d.ValueMsat = r.ValueMsat
-	d.FeeMsat = r.FeeMsat
-	d.FailureReason = r.FailureReason
-	d.PaymentHash = r.PaymentHash
-	d.PaymentPreimage = r.PaymentPreimage
-	d.PaymentRequest = r.PaymentRequest
-	d.IsRebalance = r.IsRebalance
-	d.IsMPP = r.IsMPP
-	d.CountSuccessfulAttempts = r.CountSuccessfulAttempts
-	d.CountFailedAttempts = r.CountFailedAttempts
-	d.SecondsInFlight = r.SecondsInFlight
-	json.Unmarshal(r.SuccessfulRoutes, &d.SuccessfulRoutes)
-	json.Unmarshal(r.FailedRoutes, &d.FailedRoutes)
+	// Unmarshal the Successful routes json byte array
+	err = json.Unmarshal(sr, &r.SuccessfulRoutes)
+	if err != nil {
+		return nil, err
+	}
 
-	return &d, nil
+	// Unmarshal the Failed routes json byte array
+	err = json.Unmarshal(fr, &r.FailedRoutes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &r, nil
 }
