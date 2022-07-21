@@ -9,13 +9,13 @@ import (
 // Example of sort json input
 // "sortBy":[{"value":"revenue_out", direction":"desc"}]
 
-type Sort struct {
+type Order struct {
 	Value     string `json:"value"`
 	Direction string `json:"direction"`
 }
 
-func ParseSortParams(params string, allowedColumns []string) ([]string, error) {
-	var sort []Sort
+func ParseOrderParams(params string, allowedColumns []string) ([]string, error) {
+	var sort []Order
 	err := json.Unmarshal([]byte(params), &sort)
 	if err != nil {
 		return nil, err
@@ -26,14 +26,14 @@ func ParseSortParams(params string, allowedColumns []string) ([]string, error) {
 		AllowedColumns: allowedColumns,
 	}
 
-	sortString, err := qp.ParseSortClauses(sort)
+	sortString, err := qp.ParseOrderClauses(sort)
 	if err != nil {
 		return nil, err
 	}
 	return sortString, nil
 }
 
-func (qp *QueryParser) ParseSort(s Sort) (r string, err error) {
+func (qp *QueryParser) ParseOrder(s Order) (r string, err error) {
 
 	// Prevents SQL injection by only allowing whitelisted column names.
 	if !qp.IsAllowed(s.Value) {
@@ -52,10 +52,10 @@ func (qp *QueryParser) ParseSort(s Sort) (r string, err error) {
 	return fmt.Sprintf("%s %s", s.Value, s.Direction), nil
 }
 
-func (qp *QueryParser) ParseSortClauses(s []Sort) (r []string, err error) {
+func (qp *QueryParser) ParseOrderClauses(s []Order) (r []string, err error) {
 
 	for _, sort := range s {
-		os, err := qp.ParseSort(sort)
+		os, err := qp.ParseOrder(sort)
 		if err != nil {
 			return r, err
 		}

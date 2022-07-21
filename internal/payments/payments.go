@@ -1,6 +1,7 @@
 package payments
 
 import (
+	"database/sql"
 	"encoding/json"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
@@ -151,7 +152,15 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 	return r, nil
 }
 
-func getPaymentDetails(db *sqlx.DB, paymentHash string) (*PaymentDetails, error) {
+type ErrPaymentNotFound struct {
+	Identifier string
+}
+
+func (e ErrPaymentNotFound) Error() string {
+	return "Payment not found"
+}
+
+func getPaymentDetails(db *sqlx.DB, identifier string) (*PaymentDetails, error) {
 
 	//language=PostgreSQL
 	qb := sq.Select(`
@@ -174,7 +183,13 @@ func getPaymentDetails(db *sqlx.DB, paymentHash string) (*PaymentDetails, error)
 				failed_routes
 			`).
 		PlaceholderFormat(sq.Dollar).
-		From("payment").Where(sq.Eq{"payment_hash": paymentHash}).
+		From("payment").
+		Where(
+			sq.Or{
+				sq.Eq{"payment_hash": identifier},
+				sq.Eq{"payment_request": identifier},
+				sq.Eq{"payment_preimage": identifier},
+			}).
 		Prefix(`WITH
 			pub_keys as (select array_agg(pub_key) from local_node)
 		`)
@@ -204,7 +219,12 @@ func getPaymentDetails(db *sqlx.DB, paymentHash string) (*PaymentDetails, error)
 		&fr,
 	)
 
-	if err != nil {
+	switch err {
+	case nil:
+		break
+	case sql.ErrNoRows:
+		return nil, ErrPaymentNotFound{identifier}
+	default:
 		return nil, err
 	}
 

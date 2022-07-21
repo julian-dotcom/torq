@@ -10,6 +10,7 @@ import (
 	"github.com/lncapital/torq/internal/channel_history"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/flow"
+	"github.com/lncapital/torq/internal/invoices"
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/views"
@@ -97,6 +98,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 		paymentRoutes := api.Group("/payments")
 		{
 			payments.RegisterPaymentsRoutes(paymentRoutes, db)
+		}
+
+		invoiceRoutes := api.Group("/invoices")
+		{
+			invoices.RegisterInvoicesRoutes(invoiceRoutes, db)
 		}
 
 		channelRoutes := api.Group("/channels")

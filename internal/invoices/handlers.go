@@ -1,4 +1,4 @@
-package payments
+package invoices
 
 import (
 	sq "github.com/Masterminds/squirrel"
@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
+func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 
 	// Filter parser with whitelisted columns
 	var filter sq.Sqlizer
@@ -18,17 +18,27 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 	var err error
 	if filterParam != "" {
 		filter, err = qp.ParseFilterParam(filterParam, []string{
-			"date",
+			"creation_date",
+			"settle_date",
+			"add_index",
+			"settle_index",
+			"payment_request",
 			"destination_pub_key",
-			"status",
+			"r_hash",
+			"r_preimage",
+			"memo",
 			"value_msat",
-			"fee_msat",
-			"failure_reason",
+			"amt_paid_msat",
+			"invoice_state",
 			"is_rebalance",
-			"is_mpp",
-			"count_successful_attempts",
-			"count_failed_attempts",
-			"seconds_in_flight",
+			"is_keysend",
+			"is_amp",
+			"payment_addr",
+			"fallback_addr",
+			"updated_on",
+			"expiry",
+			"cltv_expiry",
+			"private",
 		})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
@@ -43,14 +53,19 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 		sort, err = qp.ParseOrderParams(
 			sortParam,
 			[]string{
-				"date",
-				"status",
+				"creation_date",
+				"settle_date",
+				"add_index",
+				"settle_index",
+				"memo",
 				"value_msat",
-				"fee_msat",
-				"failure_reason",
-				"count_successful_attempts",
-				"count_failed_attempts",
-				"seconds_in_flight",
+				"amt_paid_msat",
+				"invoice_state",
+				"is_keysend",
+				"is_amp",
+				"updated_on",
+				"expiry",
+				"private",
 			})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
@@ -90,7 +105,7 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	r, err := getPayments(db, filter, sort, limit, offset)
+	r, err := getInvoices(db, filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -99,13 +114,13 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
+func getInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 
-	r, err := getPaymentDetails(db, c.Param("identifier"))
+	r, err := getInvoiceDetails(db, c.Param("identifier"))
 	switch err.(type) {
 	case nil:
 		break
-	case ErrPaymentNotFound:
+	case ErrInvoiceNotFound:
 		c.JSON(http.StatusNotFound, gin.H{"Error": err.Error(), "Identifier": c.Param("identifier")})
 		return
 	default:
@@ -116,7 +131,7 @@ func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func RegisterPaymentsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("", func(c *gin.Context) { getPaymentsHandler(c, db) })
-	r.GET(":identifier", func(c *gin.Context) { getPaymentHandler(c, db) })
+func RegisterInvoicesRoutes(r *gin.RouterGroup, db *sqlx.DB) {
+	r.GET("", func(c *gin.Context) { getInvoicesHandler(c, db) })
+	r.GET(":identifier", func(c *gin.Context) { getInvoiceHandler(c, db) })
 }
