@@ -68,5 +68,6 @@ exec lnd \
     "--$BACKEND.rpcpass"="$RPCPASS" \
     "--rpclisten=$HOSTNAME:10009" \
     "--rpclisten=localhost:10009" \
+    "--trickledelay=1000" \
     --debuglevel="$DEBUG" \
     "$@"
