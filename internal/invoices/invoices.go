@@ -34,7 +34,7 @@ type Invoice struct {
 }
 
 func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Invoice,
-	err error) {
+	total uint64, err error) {
 
 	qb := sq.Select("*").FromSelect(sq.Select(`
 				creation_date,
@@ -62,23 +62,25 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 		PlaceholderFormat(sq.Dollar).
 		Where(filter).
 		OrderBy(order...).
-		Limit(limit).
-		Offset(offset).
 		Prefix(`WITH
 			tz AS (select preferred_timezone as tz from settings),
 			pub_keys as (select array_agg(pub_key) from local_node)
 		`)
 
+	if limit > 0 {
+		qb = qb.Limit(limit).Offset(offset)
+	}
+
 	qs, args, err := qb.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	fmt.Println(qs, args)
 
 	rows, err := db.Queryx(qs, args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	for rows.Next() {
@@ -108,13 +110,57 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 		)
 
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		r = append(r, &i)
 
 	}
-	return r, nil
+
+	totalQb := sq.Select("count(*) as total").
+		PlaceholderFormat(sq.Dollar).
+		FromSelect(
+			sq.Select(`
+				creation_date,
+				settle_date,
+				add_index,
+				settle_index,
+				payment_request,
+				destination_pub_key,
+				r_hash,
+				r_preimage,
+				memo,
+				value_msat,
+				amt_paid_msat,
+				invoice_state,
+				destination_pub_key = ANY(ARRAY[(table pub_keys)]) as is_rebalance,
+				is_keysend,
+				is_amp,
+				payment_addr,
+				fallback_addr,
+				updated_on,
+				expiry,
+				cltv_expiry,
+				private
+			`).From("invoice"),
+			"subquery").
+		Where(filter).
+		Prefix(`WITH
+			tz AS (select preferred_timezone as tz from settings),
+			pub_keys as (select array_agg(pub_key) from local_node)
+		`)
+
+	totalQs, args, err := totalQb.ToSql()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = db.QueryRowx(totalQs, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return r, total, nil
 
 }
 

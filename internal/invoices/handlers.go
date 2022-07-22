@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	qp "github.com/lncapital/torq/internal/query_parser"
+	ah "github.com/lncapital/torq/pkg/api_helpers"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"net/http"
 	"strconv"
@@ -73,7 +74,7 @@ func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	var limit uint64 = 100
+	var limit uint64
 	if c.Query("limit") != "" {
 		limit, err = strconv.ParseUint(c.Query("limit"), 10, 64)
 		switch err.(type) {
@@ -91,7 +92,7 @@ func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	var offset uint64 = 0
+	var offset uint64
 	if c.Query("offset") != "" {
 		offset, err = strconv.ParseUint(c.Query("offset"), 10, 64)
 		switch err.(type) {
@@ -105,13 +106,19 @@ func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	r, err := getInvoices(db, filter, sort, limit, offset)
+	r, total, err := getInvoices(db, filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, r)
+	c.JSON(http.StatusOK, ah.ApiResponse{
+		Data: r,
+		Pagination: ah.Pagination{
+			Total:  total,
+			Limit:  limit,
+			Offset: offset,
+		}})
 }
 
 func getInvoiceHandler(c *gin.Context, db *sqlx.DB) {

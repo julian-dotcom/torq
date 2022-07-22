@@ -5,21 +5,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	qp "github.com/lncapital/torq/internal/query_parser"
+	ah "github.com/lncapital/torq/pkg/api_helpers"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"net/http"
 	"strconv"
 )
-
-type Pagination struct {
-	Total  uint64 `json:"total"`
-	Limit  uint64 `json:"Limit"`
-	Offset uint64 `json:"Offset"`
-}
-
-type ApiResponse struct {
-	Data       interface{}
-	Pagination Pagination
-}
 
 func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 
@@ -96,8 +86,8 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	c.JSON(http.StatusOK, ApiResponse{
-		Data: r, Pagination: Pagination{
+	c.JSON(http.StatusOK, ah.ApiResponse{
+		Data: r, Pagination: ah.Pagination{
 			Total:  total,
 			Limit:  limit,
 			Offset: offset,
