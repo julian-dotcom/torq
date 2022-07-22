@@ -11,6 +11,7 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/invoices"
+	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/views"
@@ -103,6 +104,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 		invoiceRoutes := api.Group("/invoices")
 		{
 			invoices.RegisterInvoicesRoutes(invoiceRoutes, db)
+		}
+
+		onChainTx := api.Group("/on-chain-tx")
+		{
+			on_chain_tx.RegisterOnChainTxsRoutes(onChainTx, db)
 		}
 
 		channelRoutes := api.Group("/channels")

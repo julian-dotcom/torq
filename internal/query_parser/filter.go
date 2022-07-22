@@ -94,10 +94,13 @@ func (qp *QueryParser) ParseFilter(f Filter) (r sq.Sqlizer, err error) {
 		return sq.LtOrEq{f.Key: param}, nil
 	case "like":
 		return sq.Like{f.Key: "%" + fmt.Sprintf("%v", param) + "%"}, nil
+	case "any":
+		return Overlap(param, f.Key, false)
+	case "notany":
+		return Overlap(param, f.Key, true)
 	default:
 		return r, fmt.Errorf("%s is not a valid filter function", f.FuncName)
 	}
-
 }
 
 func (qp *QueryParser) ParseFilterClauses(f FilterClauses) (d sq.Sqlizer, err error) {
