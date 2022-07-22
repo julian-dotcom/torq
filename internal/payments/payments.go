@@ -58,20 +58,8 @@ type PaymentDetails struct {
 	FailedRoutes     []*Route `json:"failed_routes" db:"failed_routes"`
 }
 
-func getPaymentsMaxOffset(db *sqlx.DB, filters sq.Sqlizer, from time.Time, to time.Time, limit int) (maxOffset int, err error) {
-	err = db.Get(&maxOffset, `
-		WITH
-			pub_keys as (select array_agg(pub_key) from local_node)
-			select floor(count(*)::float8/$3) from payment;`)
-	if err != nil {
-		return 0, err
-	}
-
-	return maxOffset, err
-}
-
 func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Payment,
-	err error) {
+	total uint64, err error) {
 
 	//language=PostgreSQL
 	qb := sq.Select("*").
@@ -99,18 +87,20 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 			"subquery").
 		Where(filter).
 		OrderBy(order...).
-		Limit(limit).
-		Offset(offset).
 		Prefix(`WITH
 			tz AS (select preferred_timezone as tz from settings),
 			pub_keys as (select array_agg(pub_key) from local_node)
 		`)
 
+	if limit > 0 {
+		qb = qb.Limit(limit).Offset(offset)
+	}
+
 	// Compile the query
 	qs, args, err := qb.ToSql()
 
 	if err != nil {
-		return nil, err
+		return nil, total, err
 	}
 
 	// Log for debugging
@@ -118,7 +108,7 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 
 	rows, err := db.Queryx(qs, args...)
 	if err != nil {
-		return nil, err
+		return nil, total, err
 	}
 
 	for rows.Next() {
@@ -142,14 +132,53 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 		)
 
 		if err != nil {
-			return nil, err
+			return nil, total, err
 		}
 
 		r = append(r, &p)
 
 	}
 
-	return r, nil
+	totalQb := sq.Select("count(*) as total").
+		PlaceholderFormat(sq.Dollar).
+		FromSelect(
+			sq.Select(`
+				payment_index,
+				creation_timestamp as date,
+				destination_pub_key,
+				status,
+				value_msat,
+				fee_msat,
+				failure_reason,
+				payment_hash,
+				payment_preimage,
+				payment_request,
+				destination_pub_key = ANY(ARRAY[(table pub_keys)]) as is_rebalance,
+				is_mpp,
+				count_successful_attempts,
+				count_failed_attempts,
+				extract(epoch from (to_timestamp(resolved_ns/1000000000)-creation_timestamp))::numeric seconds_in_flight
+			`).
+				PlaceholderFormat(sq.Dollar).
+				From("payment"),
+			"subquery").
+		Where(filter).
+		Prefix(`WITH
+			tz AS (select preferred_timezone as tz from settings),
+			pub_keys as (select array_agg(pub_key) from local_node)
+		`)
+
+	totalQs, args, err := totalQb.ToSql()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = db.QueryRowx(totalQs, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return r, total, nil
 }
 
 type ErrPaymentNotFound struct {
