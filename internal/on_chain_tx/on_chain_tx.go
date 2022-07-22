@@ -24,7 +24,7 @@ type Transaction struct {
 }
 
 func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Transaction,
-	err error) {
+	total uint64, err error) {
 
 	//language=PostgreSQL
 	qb := sq.Select("*").
@@ -48,15 +48,16 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 				From("tx"),
 			"subquery").
 		Where(filter).
-		OrderBy(order...).
-		Limit(limit).
-		Offset(offset)
+		OrderBy(order...)
+
+	if limit > 0 {
+		qb = qb.Limit(limit).Offset(offset)
+	}
 
 	// Compile the query
 	qs, args, err := qb.ToSql()
-
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// Log for debugging
@@ -64,7 +65,7 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 
 	rows, err := db.Queryx(qs, args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	for rows.Next() {
 		var tx Transaction
@@ -81,12 +82,43 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 		)
 
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		r = append(r, &tx)
-
 	}
 
-	return r, nil
+	totalQb := sq.Select("count(*) as total").
+		PlaceholderFormat(sq.Dollar).
+		FromSelect(
+			sq.Select(`
+			   timestamp as date,
+			   tx_hash,
+			   --block_hash,
+			   --block_height,
+			   --raw_tx_hex,
+			   dest_addresses,
+			   array_length(dest_addresses, 1) as dest_addresses_count,
+			   amount * 1000 as amount_msat,
+			   total_fees * 1000 as total_fees_msat,
+			   label,
+			   (regexp_matches(label, '\d{1,}:(openchannel|closechannel|sweep)|$'))[1] as lnd_tx_type_label,
+       		   (regexp_matches(label, '\d{1,}:(openchannel|closechannel):shortchanid-(\d{18,18})|$') )[2] as lnd_short_chan_id
+			`).
+				PlaceholderFormat(sq.Dollar).
+				From("tx"),
+			"subquery").
+		Where(filter)
+
+	totalQs, args, err := totalQb.ToSql()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = db.QueryRowx(totalQs, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return r, total, nil
 }

@@ -10,6 +10,17 @@ import (
 	"strconv"
 )
 
+type Pagination struct {
+	Total  uint64 `json:"total"`
+	Limit  uint64 `json:"Limit"`
+	Offset uint64 `json:"Offset"`
+}
+
+type ApiResponse struct {
+	Data       interface{}
+	Pagination Pagination
+}
+
 func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 
 	// Filter parser with whitelisted columns
@@ -51,7 +62,7 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	var limit uint64 = 100
+	var limit uint64
 	if c.Query("limit") != "" {
 		limit, err = strconv.ParseUint(c.Query("limit"), 10, 64)
 		switch err.(type) {
@@ -63,13 +74,9 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 		default:
 			server_errors.LogAndSendServerError(c, err)
 		}
-		if limit == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"Error": "Limit must be a at least 1"})
-			return
-		}
 	}
 
-	var offset uint64 = 0
+	var offset uint64
 	if c.Query("offset") != "" {
 		offset, err = strconv.ParseUint(c.Query("offset"), 10, 64)
 		switch err.(type) {
@@ -83,13 +90,18 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	r, err := getOnChainTxs(db, filter, sort, limit, offset)
+	r, total, err := getOnChainTxs(db, filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, r)
+	c.JSON(http.StatusOK, ApiResponse{
+		Data: r, Pagination: Pagination{
+			Total:  total,
+			Limit:  limit,
+			Offset: offset,
+		}})
 }
 
 // "tx_hash", "raw_tx_hex",
