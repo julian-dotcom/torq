@@ -21,31 +21,21 @@ func getChannelBalance(db *sqlx.DB, chanId string, from time.Time, to time.Time)
 	cb := ChannelBalance{ChanId: chanId}
 	q := `WITH
     		tz AS (select preferred_timezone from settings),
-			i AS (
-				select last(inital_balance, time) inital_balance, last(capacity, time) as capacity from (
-					select
-						time,
-						case
-							when (event->'initiator')::boolean = true
-								then (event->'capacity')::numeric
-							when (event->'open_initiator')::int = 1
-								then (event->'capacity')::numeric
-							else 0
-						end as inital_balance,
-						(event->'capacity')::numeric as capacity
-					from channel_event
-					where chan_id = $1
-					and event_type in (0,1)
-				) a
+		   initial_balance as (
+				select coalesce((-amount)-total_fees, 0) as initial_balance
+				from channel_event
+				left join tx on split_part(chan_point, ':', 1) = tx_hash
+				where event_type in (0,1) and
+					  chan_id = $1
+				limit 1
 			),
 			chan_id as (select $1::text)
 		select time as date,
 		       outbound_capacity,
-		       ((select capacity from (table i) ib) - outbound_capacity) as inbound_capacity,
 		       outbound_capacity - lag(outbound_capacity) over (order by time) as capacity_diff
 		from (
 			select time,
-			       floor((select inital_balance from (table i) ib) + sum(amt/1000) over(order by time)) as outbound_capacity
+			       floor((table initial_balance) + sum(amt/1000) over(order by time)) as outbound_capacity
 			from (
 				(select time,
 				   -outgoing_amount_msat as amt

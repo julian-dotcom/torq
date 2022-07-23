@@ -9,10 +9,10 @@ import Select from "../inputs/Select";
 import { Navigation20Regular as NavigationIcon, Gauge20Regular as DashboardIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
 import { toggleNav } from "../navigation/navSlice";
-import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
+import { useGetFlowQuery, useGetChannelHistoryQuery, useGetSettingsQuery } from "apiSlice";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
-import { addDays, format } from "date-fns";
+import {addDays, format} from "date-fns";
 import { useParams } from "react-router";
 import {
   selectEventChartKey,
@@ -35,9 +35,10 @@ const eventNames = new Map([
 
 function ChannelPage() {
   const currentPeriod = useAppSelector(selectTimeInterval);
+
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
-  const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
+  const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
   let [selectedEvents, setSelectedEvents] = React.useState(
     new Map<string, boolean>([
       ["fee_rate", true],
@@ -57,12 +58,12 @@ function ChannelPage() {
   let { chanId } = useParams();
   const { data, isLoading } = useGetFlowQuery({
     from: from,
-    to: to,
+    to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
     chanId: chanId || "1",
   });
   const historyQuery = useGetChannelHistoryQuery({
     from: from,
-    to: to,
+    to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
     chanIds: chanId || "1",
   });
 

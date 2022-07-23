@@ -144,7 +144,7 @@ func main() {
 									"Go to settings and enter IP, port, macasoon and tls certificate. " +
 									"Retrying after a short delay")
 								time.Sleep(5 * time.Second)
-								fmt.Println("Retrying...")
+								log.Println("Retrying...")
 								goto Credentials
 							}
 							conn, err := lnd.Connect(
@@ -152,7 +152,7 @@ func main() {
 								connectionDetails.TLSFileBytes,
 								connectionDetails.MacaroonFileBytes)
 							if err != nil {
-								fmt.Println("Failed to connect to lnd")
+								log.Printf("Failed to connect to lnd: %v\n", err)
 								stoppedchan <- struct{}{}
 								continue
 							}
