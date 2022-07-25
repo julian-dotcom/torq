@@ -21,7 +21,7 @@ func Overlap(param interface{}, key string, notEq bool) (r sq.Sqlizer, err error
 	case []float64:
 		sa := sq.Or{}
 		for _, value := range param.([]float64) {
-			sa = append(sa, sq.Expr(fmt.Sprintf("? %s ANY(%d)", equalOpr, key), value))
+			sa = append(sa, sq.Expr(fmt.Sprintf("? %s ANY(%s)", equalOpr, key), value))
 		}
 		return sa, nil
 	case []string:
