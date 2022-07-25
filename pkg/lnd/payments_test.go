@@ -8,6 +8,8 @@ import (
 	"github.com/mixer/clock"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"io"
+	"log"
 	"reflect"
 	"testing"
 	"time"
@@ -31,13 +33,14 @@ func (c *mockLightningClient_ListPayments) ListPayments(ctx context.Context, in 
 		Payments:        c.Payments,
 		LastIndexOffset: c.LastIndexOffset,
 	}
+
 	if len(c.Payments) > 0 {
 		c.Payments = c.Payments[1:]
-	} else {
-		c.Payments = nil
+		return &r, nil
 	}
+	c.Payments = nil
+	return nil, io.EOF
 
-	return &r, nil
 }
 
 func TestSubscribePayments(t *testing.T) {
@@ -58,7 +61,7 @@ func TestSubscribePayments(t *testing.T) {
 	}
 	//defer db.Close()
 
-	mockTickerInterval := 10 * time.Second
+	mockTickerInterval := 1 * time.Millisecond
 	opt := PayOptions{
 		Tick: c.Tick(mockTickerInterval),
 	}
@@ -205,8 +208,8 @@ func TestSubscribePayments(t *testing.T) {
 		c.AddTime(mockTickerInterval)
 	}
 
-	// Give the goroutine time to act on the mocked time interval
-	time.Sleep(400 * time.Millisecond)
+	// wait for EOF and go routine to return
+	errs.Wait()
 
 	t.Run("Last payment index is stored correctly", func(t *testing.T) {
 		var expected uint64 = 15
@@ -319,6 +322,8 @@ func TestSubscribePayments(t *testing.T) {
 	}
 
 	errs.Go(func() error {
+		log.Println("entering here")
+
 		err := SubscribeAndUpdatePayments(ctx, &mclientUpdate, db, &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeAndUpdatePayments(%v, %v, %v, %v)", ctx, mclientUpdate, db, &opt))
@@ -332,8 +337,8 @@ func TestSubscribePayments(t *testing.T) {
 		c.AddTime(mockTickerInterval)
 	}
 
-	// Give the goroutine time to act on the mocked time interval
-	time.Sleep(400 * time.Millisecond)
+	// wait for EOF and go routine to return
+	errs.Wait()
 
 	t.Run("List of in flight payments is correct after update.", func(t *testing.T) {
 		var expected = []uint64{11}

@@ -10,6 +10,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/zpay32"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 	"time"
 )
@@ -57,6 +58,10 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 			for {
 
 				p, err := fetchPayments(ctx, client, last)
+				//currently only used for testing
+				if errors.As(err, &io.EOF) {
+					return nil
+				}
 				if err != nil {
 					log.Printf("Subscribe and store payments: %v\n", err)
 					break
@@ -201,6 +206,10 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 			for _, i := range inFlightindexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
+				//currently only used for testing
+				if errors.As(err, &io.EOF) {
+					return nil
+				}
 				if err != nil {
 					log.Printf("Subscribe and update payments: %v\n", err)
 					continue
