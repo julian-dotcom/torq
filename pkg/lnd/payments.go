@@ -236,7 +236,8 @@ func fetchInFlightPaymentIndexes(db *sqlx.DB) (r []uint64, err error) {
 	rows, err := db.Query(`
 		select payment_index
 		from payment
-		where status = 'IN_FLIGHT';
+		where status = 'IN_FLIGHT'
+		order by payment_index asc;
 	`)
 	if err != nil {
 		return nil, err
