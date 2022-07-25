@@ -444,7 +444,10 @@ func TestMain(m *testing.M) {
 
 	// try to cleanup after run
 	// can't defer this as os.Exit doesn't care for defer
-	// cleanup(cli, ctx)
+	if code == 0 {
+		cleanup(cli, ctx)
+	}
+
 	os.Exit(code)
 }
 
