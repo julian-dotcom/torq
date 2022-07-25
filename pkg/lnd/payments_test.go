@@ -9,7 +9,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"io"
-	"log"
 	"reflect"
 	"testing"
 	"time"
@@ -47,7 +46,6 @@ func TestSubscribePayments(t *testing.T) {
 
 	ctx := context.Background()
 	errs, ctx := errgroup.WithContext(ctx)
-	ctx, stopSubFwE := context.WithCancel(ctx)
 	c := clock.NewMockClock(time.Unix(0, 0))
 
 	srv, err := testutil.InitTestDBConn()
@@ -59,7 +57,7 @@ func TestSubscribePayments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//defer db.Close()
+	defer db.Close()
 
 	mockTickerInterval := 1 * time.Millisecond
 	opt := PayOptions{
@@ -321,9 +319,11 @@ func TestSubscribePayments(t *testing.T) {
 		},
 	}
 
-	errs.Go(func() error {
-		log.Println("entering here")
+	// reset context
+	ctx = context.Background()
+	errs, ctx = errgroup.WithContext(ctx)
 
+	errs.Go(func() error {
 		err := SubscribeAndUpdatePayments(ctx, &mclientUpdate, db, &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeAndUpdatePayments(%v, %v, %v, %v)", ctx, mclientUpdate, db, &opt))
@@ -339,6 +339,9 @@ func TestSubscribePayments(t *testing.T) {
 
 	// wait for EOF and go routine to return
 	errs.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("List of in flight payments is correct after update.", func(t *testing.T) {
 		var expected = []uint64{11}
@@ -352,17 +355,5 @@ func TestSubscribePayments(t *testing.T) {
 			testutil.Successf(t, "We got the expected list of payment indexes")
 		}
 	})
-
-	// Stop subscribing by canceling the context and ticking to the next iteration.
-	stopSubFwE()
-	c.AddTime(mockTickerInterval)
-
-	// Check for potential errors from the goroutine (SubscribeForwardingEvents)
-	err = errs.Wait()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	db.Close()
 
 }
