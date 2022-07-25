@@ -31,6 +31,12 @@ jobs:
       - name: Print carol logs if failure
         if: always() && (steps.e2e.outcome == 'failure')
         run: docker logs e2e-carol
+      - name: Print torq logs if failure
+        if: always() && (steps.e2e.outcome == 'failure')
+        run: docker logs e2e-torq
+      - name: Print torq db logs if failure
+        if: always() && (steps.e2e.outcome == 'failure')
+        run: docker logs e2e-torq-db
       # setup ssh access if e2e job fails
       - name: Setup upterm session
         if: always() && (steps.e2e.outcome == 'failure')
