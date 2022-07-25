@@ -127,8 +127,6 @@ class ChartCanvas {
 
     let timeOffset = differenceInSeconds(utcToZonedTime(new Date(), this.config.timezone), utcToZonedTime(new Date(), 'UTC'))
 
-    console.log(timeOffset*1000)
-
     let start = utcToZonedTime(subHours(this.config.from.getTime() - timeOffset*1000, this.config.xAxisPadding), this.config.timezone);
     let end = utcToZonedTime(addHours(subDays(this.config.to.getTime() - timeOffset*1000, 0), this.config.xAxisPadding), this.config.timezone);
 

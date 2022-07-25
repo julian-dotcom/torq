@@ -130,7 +130,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 				  failure_reason,
 				  created_on)
 			  VALUES ($1, $2, $3,$4, $5,$6, $7, $8, $9, $10, $11, $12)
-			  ON CONFLICT (payment_index) DO NOTHING;`
+			  ON CONFLICT (creation_timestamp, payment_index) DO NOTHING;`
 
 	if len(p) > 0 {
 		tx := db.MustBegin()

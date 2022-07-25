@@ -1,0 +1,17 @@
+
+alter table payment
+    add column destination_pub_key text GENERATED ALWAYS AS (htlcs->-1->'route'->'hops'->-1->>'pub_key') STORED,
+    add column is_mpp boolean GENERATED ALWAYS AS (jsonb_array_length(jsonb_path_query_array(htlcs, '$?(@.status==1).route')) > 1) STORED,
+    add column count_successful_attempts int GENERATED ALWAYS AS (jsonb_array_length(jsonb_path_query_array(htlcs, '$?(@.status==1).route'))) STORED,
+    add column count_failed_attempts int GENERATED ALWAYS AS (jsonb_array_length(jsonb_path_query_array(htlcs, '$?(@.status!=1).route'))) STORED,
+    add column resolved_ns numeric GENERATED ALWAYS AS (jsonb_array_element(jsonb_path_query_array(htlcs, '$.resolve_time_ns'), -1)::numeric) STORED,
+    add column successful_routes jsonb GENERATED ALWAYS AS (jsonb_path_query_array(htlcs, '$?(@.status==1).route.hops')) STORED,
+    add column failed_routes jsonb GENERATED ALWAYS AS (jsonb_path_query_array(htlcs, '$?(@.status!=1).route.hops')) STORED
+
+
+
+
+
+
+
+
