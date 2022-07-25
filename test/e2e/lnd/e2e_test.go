@@ -1021,24 +1021,42 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	pw, err := playwright.Run()
 	if err != nil {
-		log.Fatalf("could not launch playwright: %v", err)
+		t.Fatalf("could not launch playwright: %v", err)
 	}
 	browser, err := pw.Chromium.Launch()
 	if err != nil {
-		log.Fatalf("could not launch Chromium: %v", err)
+		t.Fatalf("could not launch Chromium: %v", err)
 	}
 	page, err := browser.NewPage(playwright.BrowserNewContextOptions{
 		RecordVideo: &playwright.BrowserNewContextOptionsRecordVideo{
 			Dir: playwright.String("e2e_videos/"),
 		},
 	})
+
+	defer func() {
+		if err := page.Close(); err != nil {
+			t.Fatalf("failed to close page: %v", err)
+		}
+		path, err := page.Video().Path()
+		if err != nil {
+			t.Fatalf("failed to get video path: %v", err)
+		}
+		fmt.Printf("Saved to %s\n", path)
+		if err = browser.Close(); err != nil {
+			t.Fatalf("could not close browser: %v", err)
+		}
+		if err = pw.Stop(); err != nil {
+			t.Fatalf("could not stop Playwright: %v", err)
+		}
+	}()
+
 	if err != nil {
-		log.Fatalf("could not create page: %v", err)
+		t.Fatalf("could not create page: %v", err)
 	}
 	gotoPage := func(url string) {
 		fmt.Printf("Visiting %s\n", url)
 		if _, err = page.Goto(url); err != nil {
-			log.Fatalf("could not goto: %v", err)
+			t.Fatalf("could not goto: %v", err)
 		}
 		fmt.Printf("Visited %s\n", url)
 	}
@@ -1056,23 +1074,23 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	_, err = page.Locator("text=Forwarding fees")
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	page.Click("text=Settings")
 	ws, err := page.IsVisible("text=Week starts on")
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	if !ws {
-		log.Fatalln("Week starts on not found")
+		t.Fatalf("Week starts on not found\n")
 	}
 
 	page.Fill("#address input[type=text]", bobIPAddress+":10009")
 
 	tlsFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/tls.cert")
 	if err != nil {
-		log.Fatalf("Copying tls file: %v\n", err)
+		t.Fatalf("Copying tls file: %v\n", err)
 	}
 	// file comes out as a tar, untar it
 	tlsTar := tar.NewReader(tlsFileReader)
@@ -1080,12 +1098,12 @@ func TestPlaywrightVideo(t *testing.T) {
 	_, err = tlsTar.Next()
 	if err == io.EOF || err != nil {
 		// EOF == end of tar archive
-		log.Fatalf("Reading tls tar header: %v\n", err)
+		t.Fatalf("Reading tls tar header: %v\n", err)
 	}
 	tlsBuf := new(bytes.Buffer)
 	_, err = tlsBuf.ReadFrom(tlsTar)
 	if err != nil {
-		log.Fatalf("Reading tls tar: %v\n", err)
+		t.Fatalf("Reading tls tar: %v\n", err)
 	}
 
 	pTlsFile := playwright.InputFile{Name: "tls.cert", Buffer: tlsBuf.Bytes()}
@@ -1093,7 +1111,7 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	macaroonFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/data/chain/bitcoin/simnet/readonly.macaroon")
 	if err != nil {
-		log.Fatalf("Copying macaroon file: %v\n", err)
+		t.Fatalf("Copying macaroon file: %v\n", err)
 	}
 	// file comes out as a tar, untar it
 	macaroonTar := tar.NewReader(macaroonFileReader)
@@ -1101,12 +1119,12 @@ func TestPlaywrightVideo(t *testing.T) {
 	_, err = macaroonTar.Next()
 	if err == io.EOF || err != nil {
 		// EOF == end of tar archive
-		log.Fatalf("Reading macaroon tar header: %v\n", err)
+		t.Fatalf("Reading macaroon tar header: %v\n", err)
 	}
 	macaroonBuf := new(bytes.Buffer)
 	_, err = macaroonBuf.ReadFrom(macaroonTar)
 	if err != nil {
-		log.Fatalf("Reading macaroon tar: %v\n", err)
+		t.Fatalf("Reading macaroon tar: %v\n", err)
 	}
 
 	pMacaroonFile := playwright.InputFile{Name: "readonly.macaroon", Buffer: macaroonBuf.Bytes()}
@@ -1116,22 +1134,4 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	page.Click("text=Channels")
 
-	time.Sleep(5 * time.Second)
-
-	// log.Println(page.Content())
-
-	if err := page.Close(); err != nil {
-		log.Fatalf("failed to close page: %v", err)
-	}
-	path, err := page.Video().Path()
-	if err != nil {
-		log.Fatalf("failed to get video path: %v", err)
-	}
-	fmt.Printf("Saved to %s\n", path)
-	if err = browser.Close(); err != nil {
-		log.Fatalf("could not close browser: %v", err)
-	}
-	if err = pw.Stop(); err != nil {
-		log.Fatalf("could not stop Playwright: %v", err)
-	}
 }
