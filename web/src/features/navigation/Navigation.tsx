@@ -46,11 +46,9 @@ function Navigation() {
         {/*<MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/sadfa"} />*/}
 
         <NavCategory text={"Analyze"} collapsed={false}>
-          <>
-            <MenuItem text={"Summary"} icon={<SummaryIcon />} routeTo={"/"} />
-            <MenuItem text={"Forwards"} icon={<ForwardsIcon />} routeTo={"/channels"} />
-            {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
-          </>
+          <MenuItem text={"Summary"} icon={<SummaryIcon />} routeTo={"/"} />
+          <MenuItem text={"Forwards"} icon={<ForwardsIcon />} routeTo={"/channels"} />
+          {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
         </NavCategory>
 
         {/*<NavCategory text={"Manage"} collapsed={false}>*/}
@@ -61,9 +59,7 @@ function Navigation() {
         {/*</NavCategory>*/}
 
         <NavCategory text={"Transact"} collapsed={false}>
-          <>
-            <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/payments"} />
-          </>
+          <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/transactions/payments"} />
         </NavCategory>
       </div>
 

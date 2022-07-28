@@ -6,7 +6,7 @@ import {
   LineHorizontal120Regular as CollapseIcon,
 } from "@fluentui/react-icons";
 
-function NavCategory(props: { text: string; collapsed?: boolean; children: React.ReactChild }) {
+function NavCategory(props: { text: string; collapsed?: boolean; children: React.ReactNode }) {
   const icon = props.collapsed ? <ExpandIcon /> : <CollapseIcon />;
   return (
     <div className={classNames(styles.navCategory)}>

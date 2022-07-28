@@ -18,8 +18,9 @@
 .tableWrapper {
   display: flex;
   //flex-grow: 1;
+  height: 100%;
   flex-direction: column;
-  height: calc(100% - 120px);
+  //height: calc(100% - 120px);
   //overflow: hidden;
   //overflow: scroll;
   scrollbar-gutter: stable;

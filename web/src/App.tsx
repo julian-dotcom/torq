@@ -78,14 +78,16 @@ function App() {
                   </RequireAuth>
                 }
               />
-              <Route
-                path="/payments"
-                element={
-                  <RequireAuth>
-                    <PaymentsPage />
-                  </RequireAuth>
-                }
-              />
+              <Route path="transactions">
+                <Route
+                  path="payments"
+                  element={
+                    <RequireAuth>
+                      <PaymentsPage />
+                    </RequireAuth>
+                  }
+                />
+              </Route>
             </Route>
             <Route element={<DefaultLayout />}>
               <Route
