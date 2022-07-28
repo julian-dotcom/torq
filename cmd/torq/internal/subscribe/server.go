@@ -16,7 +16,7 @@ import (
 // fetches data as needed and stores it in the database.
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
-func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId int) error {
 
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
@@ -36,14 +36,14 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 	}
 
 	//Import Open channels
-	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client)
+	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, localNodeId)
 	if err != nil {
 		return errors.Wrapf(err, "Start -> importChannelList(%s, %v, %v)",
 			lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client)
 	}
 
 	// Import Closed channels
-	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client)
+	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, localNodeId)
 	if err != nil {
 		return errors.Wrapf(err, "Start -> importChannelList(%s, %v, %v)",
 			lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client)
@@ -115,7 +115,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB) error {
 
 	// Channel Events
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan)
+		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan, localNodeId)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeAndStoreChannelEvents(%v, %v, %v)", ctx, router, db)
 		}

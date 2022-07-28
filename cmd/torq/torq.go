@@ -158,7 +158,7 @@ func main() {
 							}
 
 							fmt.Println("Subscribing to LND")
-							err = subscribe.Start(ctx, conn, db)
+							err = subscribe.Start(ctx, conn, db, 1)
 							if err != nil {
 								fmt.Printf("%v", err)
 							}
@@ -238,7 +238,7 @@ func main() {
 			// Subscribe to data from the node
 			//   TODO: Attempt to restart subscriptions if they fail.
 			errs.Go(func() error {
-				err = subscribe.Start(ctx, conn, db)
+				err = subscribe.Start(ctx, conn, db, 1)
 				if err != nil {
 					return err
 				}

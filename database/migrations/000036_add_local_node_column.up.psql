@@ -1,0 +1,8 @@
+BEGIN;
+
+-- channel table
+ALTER TABLE channel ADD COLUMN local_node_id INTEGER NULL REFERENCES local_node(local_node_id) ;
+UPDATE channel SET local_node_id = 1;
+ALTER TABLE channel ALTER COLUMN local_node_id SET NOT NULL;
+
+COMMIT;

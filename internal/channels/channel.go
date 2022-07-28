@@ -16,6 +16,7 @@ type Channel struct {
 	ChannelPoint      null.String `json:"channelPoint" db:"channel_point"`
 	Alias             null.String `json:"alias" db:"alias"`
 	DestinationPubKey null.String `json:"destinationPubKey" db:"destination_pub_key"`
+	LocalNodeId       int         `json:"localNodeId" db:"local_node_id"`
 	CreatedOn         time.Time   `json:"createdOn" db:"created_on"`
 	UpdateOn          null.Time   `json:"updatedOn" db:"updated_on"`
 }

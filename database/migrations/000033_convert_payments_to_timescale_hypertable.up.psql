@@ -1,0 +1,13 @@
+
+alter table payment
+    drop constraint payment_payment_index_key;
+
+alter table payment
+    drop column id;
+
+SELECT create_hypertable('payment','creation_timestamp', migrate_data => true) ;
+
+CREATE INDEX htlc_jsonb_index ON payment USING GIN (htlcs);
+
+alter table payment
+    add constraint payment_payment_index_key UNIQUE (creation_timestamp, payment_index);

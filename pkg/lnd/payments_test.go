@@ -8,6 +8,7 @@ import (
 	"github.com/mixer/clock"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"io"
 	"reflect"
 	"testing"
 	"time"
@@ -31,20 +32,20 @@ func (c *mockLightningClient_ListPayments) ListPayments(ctx context.Context, in 
 		Payments:        c.Payments,
 		LastIndexOffset: c.LastIndexOffset,
 	}
+
 	if len(c.Payments) > 0 {
 		c.Payments = c.Payments[1:]
-	} else {
-		c.Payments = nil
+		return &r, nil
 	}
+	c.Payments = nil
+	return nil, io.EOF
 
-	return &r, nil
 }
 
 func TestSubscribePayments(t *testing.T) {
 
 	ctx := context.Background()
 	errs, ctx := errgroup.WithContext(ctx)
-	ctx, stopSubFwE := context.WithCancel(ctx)
 	c := clock.NewMockClock(time.Unix(0, 0))
 
 	srv, err := testutil.InitTestDBConn()
@@ -56,9 +57,9 @@ func TestSubscribePayments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//defer db.Close()
+	defer db.Close()
 
-	mockTickerInterval := 10 * time.Second
+	mockTickerInterval := 1 * time.Millisecond
 	opt := PayOptions{
 		Tick: c.Tick(mockTickerInterval),
 	}
@@ -205,8 +206,8 @@ func TestSubscribePayments(t *testing.T) {
 		c.AddTime(mockTickerInterval)
 	}
 
-	// Give the goroutine time to act on the mocked time interval
-	time.Sleep(400 * time.Millisecond)
+	// wait for EOF and go routine to return
+	errs.Wait()
 
 	t.Run("Last payment index is stored correctly", func(t *testing.T) {
 		var expected uint64 = 15
@@ -318,6 +319,10 @@ func TestSubscribePayments(t *testing.T) {
 		},
 	}
 
+	// reset context
+	ctx = context.Background()
+	errs, ctx = errgroup.WithContext(ctx)
+
 	errs.Go(func() error {
 		err := SubscribeAndUpdatePayments(ctx, &mclientUpdate, db, &opt)
 		if err != nil {
@@ -332,8 +337,11 @@ func TestSubscribePayments(t *testing.T) {
 		c.AddTime(mockTickerInterval)
 	}
 
-	// Give the goroutine time to act on the mocked time interval
-	time.Sleep(400 * time.Millisecond)
+	// wait for EOF and go routine to return
+	errs.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("List of in flight payments is correct after update.", func(t *testing.T) {
 		var expected = []uint64{11}
@@ -347,17 +355,5 @@ func TestSubscribePayments(t *testing.T) {
 			testutil.Successf(t, "We got the expected list of payment indexes")
 		}
 	})
-
-	// Stop subscribing by canceling the context and ticking to the next iteration.
-	stopSubFwE()
-	c.AddTime(mockTickerInterval)
-
-	// Check for potential errors from the goroutine (SubscribeForwardingEvents)
-	err = errs.Wait()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	db.Close()
 
 }
