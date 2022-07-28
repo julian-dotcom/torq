@@ -10,6 +10,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/zpay32"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 	"time"
 )
@@ -57,6 +58,10 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 			for {
 
 				p, err := fetchPayments(ctx, client, last)
+				//currently only used for testing
+				if errors.As(err, &io.EOF) {
+					return nil
+				}
 				if err != nil {
 					log.Printf("Subscribe and store payments: %v\n", err)
 					break
@@ -130,7 +135,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 				  failure_reason,
 				  created_on)
 			  VALUES ($1, $2, $3,$4, $5,$6, $7, $8, $9, $10, $11, $12)
-			  ON CONFLICT (payment_index) DO NOTHING;`
+			  ON CONFLICT (creation_timestamp, payment_index) DO NOTHING;`
 
 	if len(p) > 0 {
 		tx := db.MustBegin()
@@ -201,6 +206,10 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 			for _, i := range inFlightindexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
+				//currently only used for testing
+				if errors.As(err, &io.EOF) {
+					return nil
+				}
 				if err != nil {
 					log.Printf("Subscribe and update payments: %v\n", err)
 					continue
@@ -236,7 +245,8 @@ func fetchInFlightPaymentIndexes(db *sqlx.DB) (r []uint64, err error) {
 	rows, err := db.Query(`
 		select payment_index
 		from payment
-		where status = 'IN_FLIGHT';
+		where status = 'IN_FLIGHT'
+		order by payment_index asc;
 	`)
 	if err != nil {
 		return nil, err

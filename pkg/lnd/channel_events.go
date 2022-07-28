@@ -32,7 +32,7 @@ func getChanPoint(cb []byte, oi uint32) (string, error) {
 // ChannelEvent and converts the original struct to json.
 // Then it's stored in the database in the channel_event table.
 func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
-	pubKeyChan chan string, chanPointChan chan string) error {
+	pubKeyChan chan string, chanPointChan chan string, localNodeId int) error {
 
 	timestampMs := time.Now().UTC()
 
@@ -58,6 +58,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
 			ChannelPoint:      null.StringFrom(ChannelPoint),
 			DestinationPubKey: null.StringFrom(PubKey),
+			LocalNodeId:       localNodeId,
 		}
 
 		err := channels.AddChannelRecordIfDoesntExist(db, channel)
@@ -89,6 +90,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
 			ChannelPoint:      null.StringFrom(ChannelPoint),
 			DestinationPubKey: null.StringFrom(PubKey),
+			LocalNodeId:       localNodeId,
 		}
 		err := channels.AddChannelRecordIfDoesntExist(db, channel)
 		if err != nil {
@@ -184,7 +186,7 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent,
-	db *sqlx.DB, pubKeyChan chan string, chanPoinChan chan string) error {
+	db *sqlx.DB, pubKeyChan chan string, chanPoinChan chan string, localNodeId int) error {
 
 	cesr := lnrpc.ChannelEventSubscription{}
 	stream, err := client.SubscribeChannelEvents(ctx, &cesr)
@@ -223,7 +225,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			continue
 		}
 
-		err = storeChannelEvent(db, chanEvent, pubKeyChan, chanPoinChan)
+		err = storeChannelEvent(db, chanEvent, pubKeyChan, chanPoinChan, localNodeId)
 		if err != nil {
 			fmt.Printf("Subscribe channel events store event error: %v", err)
 			// rate limit for caution but hopefully not needed
@@ -236,7 +238,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 	return nil
 }
 
-func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, client lnrpc.LightningClient) error {
+func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, client lnrpc.LightningClient, localNodeId int) error {
 
 	ctx := context.Background()
 	switch t {
@@ -247,7 +249,7 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 			return errors.Wrapf(err, "ImportChannelList -> client.ListChannels(%v, %v)", ctx, req)
 		}
 
-		err = storeImportedOpenChannels(db, r.Channels)
+		err = storeImportedOpenChannels(db, r.Channels, localNodeId)
 		if err != nil {
 			return errors.Wrapf(err, "ImportChannelList -> storeImportedOpenChannels(%v, %v)", db, r.Channels)
 		}
@@ -259,7 +261,7 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 			return errors.Wrapf(err, "ImportChannelList -> client.ClosedChannels(%v, %v)", ctx, req)
 		}
 
-		err = storeImportedClosedChannels(db, r.Channels)
+		err = storeImportedClosedChannels(db, r.Channels, localNodeId)
 		if err != nil {
 			return errors.Wrapf(err, "ImportChannelList -> storeImportedClosedChannels(%v, %v)", db, r.Channels)
 		}
@@ -313,7 +315,7 @@ func enrichAndInsertChannelEvent(db *sqlx.DB, eventType lnrpc.ChannelEventUpdate
 	return nil
 }
 
-func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel) error {
+func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, localNodeId int) error {
 
 	if len(c) == 0 {
 		return nil
@@ -333,6 +335,19 @@ func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel) error {
 icoLoop:
 	for _, channel := range c {
 
+		// check if we have seen this channel before and if not store in the channel table
+		channelRecord := channels.Channel{
+			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
+			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
+			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
+			LocalNodeId:       localNodeId,
+		}
+		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
+		if err != nil {
+			return err
+		}
+
+		// skip if we have an existing channel open channel event
 		for _, e := range ecp {
 			if channel.ChannelPoint == e {
 				continue icoLoop
@@ -342,17 +357,6 @@ icoLoop:
 		jb, err := json.Marshal(channel)
 		if err != nil {
 			return errors.Wrapf(err, "storeChannelList -> json.Marshal(%v)", channel)
-		}
-
-		// check if we have seen this channel before and if not store in the channel table
-		channelRecord := channels.Channel{
-			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
-			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
-			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
-		}
-		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
-		if err != nil {
-			return err
 		}
 
 		err = enrichAndInsertChannelEvent(db, lnrpc.ChannelEventUpdate_OPEN_CHANNEL,
@@ -367,7 +371,7 @@ icoLoop:
 	return nil
 }
 
-func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary) error {
+func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary, localNodeId int) error {
 
 	if len(c) == 0 {
 		return nil
@@ -386,6 +390,19 @@ func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary) er
 icoLoop:
 	for _, channel := range c {
 
+		// check if we have seen this channel before and if not store in the channel table
+		channelRecord := channels.Channel{
+			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
+			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
+			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
+			LocalNodeId:       localNodeId,
+		}
+		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
+		if err != nil {
+			return err
+		}
+
+		// skip if we already have channel close channel event for this channel
 		for _, e := range ecp {
 			if channel.ChannelPoint == e {
 				continue icoLoop
@@ -395,17 +412,6 @@ icoLoop:
 		jb, err := json.Marshal(channel)
 		if err != nil {
 			return errors.Wrapf(err, "storeChannelList -> json.Marshal(%v)", channel)
-		}
-
-		// check if we have seen this channel before and if not store in the channel table
-		channelRecord := channels.Channel{
-			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
-			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
-			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
-		}
-		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
-		if err != nil {
-			return err
 		}
 
 		err = enrichAndInsertChannelEvent(db, lnrpc.ChannelEventUpdate_CLOSED_CHANNEL,

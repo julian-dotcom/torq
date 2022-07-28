@@ -185,7 +185,7 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	client := &stubLNDSubscribeChannelEvent{ChannelEvents: []interface{}{channelEvent}}
 
 	errs.Go(func() error {
-		err := SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan)
+		err := SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan, 1)
 		if err != nil {
 			t.Fatalf("Problem subscribing to channel events: %v", err)
 		}
