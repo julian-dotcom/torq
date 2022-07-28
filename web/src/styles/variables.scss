@@ -1,4 +1,14 @@
 :root {
+  --content-default: #033048;
+  --content-muted: #8198a3;
+  --content-subtle: #d9e0e4;
+  --content-faded: #f2f5f6;
+  --content-faint: #f9fafb;
+
+  --material-layer-1: #ffffff;
+  --material-layer-2: #f9fcff; /*#f9f9fb;*/
+  --material-layer-3: #daedff;
+
   --color-blue-500: #033048;
   --color-blue-400: #17445a;
   --color-blue-300: #d9e0e4;
@@ -38,6 +48,7 @@
   --bg-default: var(--color-white);
   --bg-muted: var(--color-muted);
   --bg-subtle: var(--color-blue-300);
+  --bg-faint: var(--color-blue-200);
   --bg-faint: var(--color-blue-200);
   --bg-extra-faint: var(--color-blue-100);
 

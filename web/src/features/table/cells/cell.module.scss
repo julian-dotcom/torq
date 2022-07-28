@@ -86,7 +86,7 @@
   padding: 20px 20px 10px 20px;
   border-bottom: 1px solid var(--fg-faint);
   background-color: var(--bg-default);
-  border-top: 1px solid var(--bg-subtle);
+  border-top: 1px solid var(--material-layer-3);
   color: var(--fg-muted);
   white-space: nowrap;
   font-size: var(--font-size-small);
@@ -114,7 +114,7 @@
 .firstEmptyCell {
 }
 .lastEmptyCell {
-  border-right: 1px solid var(--fg-subtle);
+  border-right: 1px solid var(--material-layer-3);
   position: -webkit-sticky;
   position: sticky;
   right: 0;
@@ -131,13 +131,13 @@
 }
 .header.firstEmptyHeader {
   border-top-left-radius: 3px;
-  border-left: 1px solid var(--bg-subtle);
-  border-top: 1px solid var(--bg-subtle);
+  border-left: 1px solid var(--material-layer-3);
+  border-top: 1px solid var(--material-layer-3);
 }
 .header.lastEmptyHeader {
   border-top-right-radius: 3px;
-  border-right: 1px solid var(--bg-subtle);
-  border-top: 1px solid var(--bg-subtle);
+  border-right: 1px solid var(--material-layer-3);
+  border-top: 1px solid var(--material-layer-3);
   position: sticky;
   right: 0;
   top: 0;
@@ -151,7 +151,7 @@
 .empty.locked {
   left: 0;
   border-right: none;
-  border-left: 1px solid var(--bg-subtle);
+  border-left: 1px solid var(--material-layer-3);
 }
 
 .header.textCell,

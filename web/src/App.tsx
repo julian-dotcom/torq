@@ -6,7 +6,7 @@ import TablePage from "./features/table/TablePage";
 
 import LoginPage from "./features/auth/LoginPage";
 import SettingsPage from "./features/settings/SettingsPage";
-import "./App.scss";
+import styles from "./app.module.scss";
 import { Cookies } from "react-cookie";
 import { useLogoutMutation } from "apiSlice";
 import Toasts, { addToastHandle } from "features/toast/Toasts";
@@ -14,6 +14,7 @@ import ToastContext from "features/toast/context";
 import { BrowserRouter } from "react-router-dom";
 import ChannelPage from "./features/channel/ChannelPage";
 import DashboardPage from "./features/channel/DashboardPage";
+import PaymentsPage from "./features/payments/payments";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -45,7 +46,7 @@ function App() {
   return (
     <ToastContext.Provider value={toastRef}>
       <BrowserRouter basename={locationState}>
-        <div className="App torq">
+        <div className={styles.app}>
           <Toasts ref={toastRef} />
           <Routes>
             <Route element={<LoginLayout />}>
@@ -53,6 +54,14 @@ function App() {
               <Route path="/logout" element={<Logout />} />
             </Route>
             <Route element={<DefaultLayout />}>
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <DashboardPage />
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="/channels"
                 element={
@@ -70,10 +79,10 @@ function App() {
                 }
               />
               <Route
-                path="/"
+                path="/payments"
                 element={
                   <RequireAuth>
-                    <DashboardPage />
+                    <PaymentsPage />
                   </RequireAuth>
                 }
               />

@@ -219,7 +219,7 @@ function Table() {
           );
         })}
 
-        {<div className={classNames(cellStyles.cell, cellStyles.empty)} />}
+        {<div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.lastEmptyCell)} />}
 
         {/* Totals row */}
         {/* Empty cell at the start */}

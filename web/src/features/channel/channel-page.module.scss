@@ -1,5 +1,5 @@
 .channelControls {
-  padding: 0px 0 10px 0px;
+  padding: 0 0 10px 0;
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: auto auto;
@@ -40,7 +40,7 @@
 
 @media only screen and (max-width: 1199px) {
   .channelControls {
-    padding: 0px 00px 10px 0px;
+    padding: 0px 0px 10px 0px;
   }
 }
 @media only screen and (max-width: 600px) {
@@ -80,6 +80,7 @@
 
 .channelsPageContent {
   margin: 20px;
+  width: 100%;
   @media only screen and (max-width: 600px) {
     margin: 10px;
   }
@@ -120,7 +121,7 @@
 }
 .card {
   background-color: var(--bg-default);
-  border: 1px solid var(--bg-subtle);
+  border: 1px solid var(--material-layer-3);
   padding: 20px;
   font-size: var(--font-size-small);
   //box-shadow: var(--popover-box-shadow);

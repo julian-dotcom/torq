@@ -1,69 +1,33 @@
-.navigation {
-  background-color: var(--bg-extra-faint);
-  //opacity: 0.5;
-  //backdrop-filter: blur(12px);
-  height: 100vh;
-  width: 290px;
-  padding: 20px;
-  padding-right: 0px;
-  display: grid;
-  grid-auto-flow: row;
-  grid-row-gap: 30px;
-  grid-auto-rows: min-content;
-  grid-template-rows: min-content auto min-content;
-  //div {
-  //  backdrop-filter: blur(0);
-  //}
-
-  .logo-wrapper {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-columns: auto min-content;
-    grid-column-gap: 4px;
-    justify-items: space-between;
-    align-items: center;
-
-    .logo svg {
-      height: 1.5em;
-    }
-
-    .collapse {
-      display: grid;
-      justify-content: end;
-      align-items: center;
-      font-size: 1.5em;
-      height: 1.5em;
-      width: 1.5em;
-      color: var(--fg-muted);
-      margin-right: -10px;
-      padding-right: 10px;
-    }
-  }
-
-  .menu-items {
-    display: grid;
-    grid-auto-flow: row;
-    grid-row-gap: 15px;
-    grid-auto-rows: min-content;
-    //font-size: 16px;
-  }
-}
+//.navigation {
+//  background-color: var(--bg-default);
+//  height: 100vh;
+//  width: 280px;
+//  padding-right: 0px;
+//  display: grid;
+//  grid-auto-flow: row;
+//  grid-row-gap: 24px;
+//  grid-auto-rows: min-content;
+//  grid-template-rows: min-content auto min-content;
+//  //div {
+//  //  backdrop-filter: blur(0);
+//  //}
+//}
 
 .main-content-wrapper {
-  &.nav-hidden .navigation-wrapper {
-    width: 0px;
-  }
-  @media only screen and (max-width: 1199px) {
-    .navigation {
-      padding-right: 20px;
-    }
-    .navigation-wrapper {
-      position: fixed;
-      z-index: 21;
-      top: 0;
-      bottom: 0;
-      height: 100vh;
-      box-shadow: 1px 0px 0px rgba(0, 0, 0, 0.15);
-    }
-  }
+  //&.nav-hidden .navigation-wrapper {
+  //  width: 0px;
+  //}
+  //@media only screen and (max-width: 1199px) {
+  //  .navigation {
+  //    //padding-right: 20px;
+  //  }
+  //  .navigation-wrapper {
+  //    position: fixed;
+  //    z-index: 21;
+  //    top: 0;
+  //    bottom: 0;
+  //    height: 100vh;
+  //    box-shadow: 1px 0px 0px rgba(0, 0, 0, 0.15);
+  //  }
+  //}
 }
