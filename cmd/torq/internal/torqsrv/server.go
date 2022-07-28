@@ -12,6 +12,7 @@ import (
 	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/views"
+	"github.com/lncapital/torq/pkg/lnd"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
@@ -97,6 +98,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 		{
 			channels.RegisterChannelRoutes(channelRoutes, db)
 			channel_history.RegisterChannelHistoryRoutes(channelRoutes, db)
+		}
+
+		openChannelRoute := api.Group("/openChan")
+		{
+			lnd.RegisterOpenChannelRoute(openChannelRoute, db)
 		}
 
 		flowRoutes := api.Group("/flow")
