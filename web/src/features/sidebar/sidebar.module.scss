@@ -1,0 +1,40 @@
+@use "/src/styles/typography.scss";
+
+.sidebarContainer {
+  padding: 16px;
+  display: grid;
+  grid-row-gap: 24px;
+}
+.titleContainer,
+.SidebarTitleContainer {
+  display: grid;
+  grid-template-columns: 44px auto 44px;
+  grid-template-rows: 44px;
+  align-items: center;
+  gap: 4px;
+}
+.sidebarContent,
+.SidebarSectionContent {
+  display: grid;
+  grid-row-gap: 0px;
+}
+.SidebarSectionContent {
+  margin-bottom: 16px;
+}
+
+.SidebarTitleContainer {
+  border-bottom: 1px solid var(--content-subtle);
+  margin-bottom: 16px;
+}
+
+.icon,
+.sidebarIcon,
+.close {
+  padding: 8px;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+}
+.title {
+  @include typography.L-regular;
+}

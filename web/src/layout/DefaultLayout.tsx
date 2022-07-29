@@ -22,7 +22,6 @@ function DefaultLayout() {
         {/*<div className="dismiss-navigation-background" onClick={() => dispatch(toggleNav())} />*/}
         <Outlet />
       </div>
-      <div className={navStyles.rightSidebarWrapper}></div>
     </div>
   );
 }

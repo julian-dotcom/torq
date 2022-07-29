@@ -14,7 +14,7 @@ import ToastContext from "features/toast/context";
 import { BrowserRouter } from "react-router-dom";
 import ChannelPage from "./features/channel/ChannelPage";
 import DashboardPage from "./features/channel/DashboardPage";
-import PaymentsPage from "./features/payments/payments";
+import PaymentsPage from "./features/payments/Payments";
 import NoMatch from "./features/no_match/NoMatch";
 
 function Logout() {

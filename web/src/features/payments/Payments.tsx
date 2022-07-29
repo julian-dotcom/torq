@@ -11,7 +11,7 @@ function PaymentsPage() {
 
   const breadcrumbs = ["Transact", <Link to={"/transact/payments"}>Payments</Link>];
   return (
-    <TablePageTemplate title={"Transactions"} breadcrumbs={breadcrumbs}>
+    <TablePageTemplate title={"Transactions"} breadcrumbs={breadcrumbs} sidebarExpanded={false}>
       <div className={styles.tablePageWrapper}>
         <Table />
       </div>

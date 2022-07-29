@@ -34,3 +34,11 @@ a:hover {
   color: var(--fg-default);
   font-weight: 500;
 }
+@mixin L-regular {
+  font-size: var(--font-L-regular);
+  font-weight: 500;
+}
+@mixin XXL-regular {
+  font-size: var(--font-XXL-regular);
+  font-weight: 500;
+}
