@@ -45,9 +45,9 @@ function Navigation() {
       <div className={styles.mainNavWrapper}>
         {/*<MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/sadfa"} />*/}
 
-        <NavCategory text={"Analyze"} collapsed={false}>
+        <NavCategory text={"Analyse"} collapsed={false}>
           <MenuItem text={"Summary"} icon={<SummaryIcon />} routeTo={"/"} />
-          <MenuItem text={"Forwards"} icon={<ForwardsIcon />} routeTo={"/channels"} />
+          <MenuItem text={"Forwards"} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
           {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
         </NavCategory>
 
@@ -59,7 +59,7 @@ function Navigation() {
         {/*</NavCategory>*/}
 
         <NavCategory text={"Transact"} collapsed={false}>
-          <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/transactions/payments"} />
+          <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/transact/payments"} />
         </NavCategory>
       </div>
 

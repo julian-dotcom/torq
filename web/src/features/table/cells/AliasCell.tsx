@@ -21,7 +21,7 @@ function OpenText(open: number) {
 
 function AliasCell({ current, chanId, open, className }: AliasCell) {
   return (
-    <Link className={classNames(styles.cell, styles.alignLeft, className)} to={"/channel/" + chanId}>
+    <Link className={classNames(styles.cell, styles.alignLeft, className)} to={"/analyse/inspect/" + chanId}>
       <div className={classNames(styles.current, styles.text)}>{current}</div>
       {open !== undefined && (
         <div className={classNames(styles.past, { [styles.positive]: open, [styles.negative]: !open })}>

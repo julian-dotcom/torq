@@ -15,6 +15,7 @@ import { BrowserRouter } from "react-router-dom";
 import ChannelPage from "./features/channel/ChannelPage";
 import DashboardPage from "./features/channel/DashboardPage";
 import PaymentsPage from "./features/payments/payments";
+import NoMatch from "./features/no_match/NoMatch";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -62,23 +63,25 @@ function App() {
                   </RequireAuth>
                 }
               />
-              <Route
-                path="/channels"
-                element={
-                  <RequireAuth>
-                    <TablePage />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/channel/:chanId"
-                element={
-                  <RequireAuth>
-                    <ChannelPage />
-                  </RequireAuth>
-                }
-              />
-              <Route path="transactions">
+              <Route path="/analyse">
+                <Route
+                  path="forwards"
+                  element={
+                    <RequireAuth>
+                      <TablePage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="inspect/:chanId"
+                  element={
+                    <RequireAuth>
+                      <ChannelPage />
+                    </RequireAuth>
+                  }
+                />
+              </Route>
+              <Route path="/transact">
                 <Route
                   path="payments"
                   element={
@@ -88,8 +91,6 @@ function App() {
                   }
                 />
               </Route>
-            </Route>
-            <Route element={<DefaultLayout />}>
               <Route
                 path="/settings"
                 element={
@@ -98,6 +99,7 @@ function App() {
                   </RequireAuth>
                 }
               />
+              <Route path="*" element={<NoMatch />} />
             </Route>
           </Routes>
         </div>
