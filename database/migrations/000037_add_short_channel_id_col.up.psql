@@ -1,0 +1,42 @@
+
+-- channel table
+UPDATE channel SET short_channel_id = REPLACE(short_channel_id, ':','x');
+CREATE INDEX channel_short_channel_id_idx ON channel(short_channel_id);
+ALTER TABLE channel ADD COLUMN lnd_short_channel_id NUMERIC NULL; -- Populated in migration 38, set to NOT NULL in migration 39
+CREATE INDEX channel_lnd_short_channel_id_idx ON channel(lnd_short_channel_id);
+
+-- channel_event table
+ALTER TABLE channel_event RENAME COLUMN chan_id TO lnd_short_channel_id;
+CREATE INDEX channel_event_lnd_short_channel_id_idx ON channel_event(lnd_short_channel_id);
+ALTER TABLE channel_event ADD COLUMN short_channel_id TEXT NULL; -- Populated in migration 38, stays as NULL as not all channel events have short channel ids
+CREATE INDEX channel_event_short_channel_id_idx ON channel_event(short_channel_id);
+ALTER TABLE channel_event RENAME COLUMN chan_point TO lnd_channel_point;
+CREATE INDEX channel_event_lnd_channel_point_idx ON channel_event(lnd_channel_point);
+
+-- forward table
+ALTER TABLE forward RENAME COLUMN outgoing_channel_id TO lnd_outgoing_short_channel_id;
+CREATE INDEX forward_lnd_outgoing_short_channel_id_idx ON forward(lnd_outgoing_short_channel_id);
+ALTER TABLE forward RENAME COLUMN incoming_channel_id TO lnd_incoming_short_channel_id;
+CREATE INDEX forward_lnd_incoming_short_channel_id_idx ON forward(lnd_incoming_short_channel_id);
+ALTER TABLE forward ADD COLUMN outgoing_short_channel_id TEXT NULL; -- Populated in migration 38, set to NOT NULL in migration 39
+CREATE INDEX forward_outgoing_short_channel_id_idx ON forward(outgoing_short_channel_id);
+ALTER TABLE forward ADD COLUMN incoming_short_channel_id TEXT NULL; -- Populated in migration 38, set to NOT NULL in migration 39
+CREATE INDEX forward_incoming_short_channel_id_idx ON forward(incoming_short_channel_id);
+
+-- htlc_event table
+ALTER TABLE htlc_event RENAME COLUMN outgoing_channel_id TO lnd_outgoing_short_channel_id;
+CREATE INDEX htlc_event_lnd_outgoing_short_channel_id_idx ON htlc_event(lnd_outgoing_short_channel_id);
+ALTER TABLE htlc_event RENAME COLUMN incoming_channel_id TO lnd_incoming_short_channel_id;
+CREATE INDEX htlc_event_lnd_incoming_short_channel_id_idx ON htlc_event(lnd_incoming_short_channel_id);
+ALTER TABLE htlc_event ADD COLUMN outgoing_short_channel_id TEXT NULL; -- Populated in migration 38, set to NOT NULL in migration 39
+CREATE INDEX htlc_event_outgoing_short_channel_id_idx ON htlc_event(outgoing_short_channel_id);
+ALTER TABLE htlc_event ADD COLUMN incoming_short_channel_id TEXT NULL; -- Populated in migration 38, set to NOT NULL in migration 39
+CREATE INDEX htlc_event_incoming_short_channel_id_idx ON htlc_event(incoming_short_channel_id);
+
+-- routing_policy table
+ALTER TABLE routing_policy RENAME COLUMN chan_id TO lnd_short_channel_id;
+CREATE INDEX routing_policy_lnd_short_channel_id_idx ON routing_policy(lnd_short_channel_id);
+ALTER TABLE routing_policy ADD COLUMN short_channel_id TEXT NULL; -- Populated in migration 38, set to NOT NULL in migration 39
+CREATE INDEX routing_policy_short_channel_id_idx ON routing_policy(short_channel_id);
+ALTER TABLE routing_policy RENAME COLUMN chan_point TO lnd_channel_point;
+CREATE INDEX routing_policy_lnd_channel_point_idx ON routing_policy(lnd_channel_point);

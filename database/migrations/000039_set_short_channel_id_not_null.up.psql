@@ -1,0 +1,9 @@
+
+
+ALTER TABLE channel ALTER COLUMN lnd_short_channel_id SET NOT NULL;
+-- ALTER TABLE forward ALTER COLUMN outgoing_short_channel_id SET NOT NULL;
+-- ALTER TABLE forward ALTER COLUMN incoming_short_channel_id SET NOT NULL;
+-- ALTER TABLE htlc_event ALTER COLUMN outgoing_short_channel_id SET NOT NULL;
+-- ALTER TABLE htlc_event ALTER COLUMN incoming_short_channel_id SET NOT NULL;
+-- ALTER TABLE routing_policy ALTER COLUMN short_channel_id SET NOT NULL;
+

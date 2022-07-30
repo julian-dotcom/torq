@@ -1,10 +1,13 @@
 package channels
 
 import (
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/guregu/null.v4"
-	"strconv"
-	"time"
 )
 
 type Channel struct {
@@ -41,6 +44,26 @@ func ConvertLNDShortChannelID(LNDShortChannelID uint64) string {
 	txIndex := uint32(LNDShortChannelID>>16) & 0xFFFFFF
 	outputIndex := uint16(LNDShortChannelID)
 	return strconv.FormatUint(uint64(blockHeight), 10) +
-		":" + strconv.FormatUint(uint64(txIndex), 10) +
-		":" + strconv.FormatUint(uint64(outputIndex), 10)
+		"x" + strconv.FormatUint(uint64(txIndex), 10) +
+		"x" + strconv.FormatUint(uint64(outputIndex), 10)
+}
+
+func ConvertShortChannelIDToLND(ShortChannelID string) (uint64, error) {
+	parts := strings.Split(ShortChannelID, "x")
+	blockHeight, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, errors.Wrap(err, "Converting block height from string to int")
+	}
+	txIndex, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, errors.Wrap(err, "Converting tx index from string to int")
+	}
+	txPosition, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return 0, errors.Wrap(err, "Converting tx position from string to int")
+	}
+
+	return (uint64(blockHeight) << 40) |
+		(uint64(txIndex) << 16) |
+		(uint64(txPosition)), nil
 }

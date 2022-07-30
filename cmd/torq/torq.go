@@ -112,7 +112,7 @@ func main() {
 
 			fmt.Println("Checking for migrations..")
 			// Check if the database needs to be migrated.
-			err = database.MigrateUp(db.DB)
+			err = database.MigrateUp(db)
 			if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 				return err
 			}
@@ -212,7 +212,7 @@ func main() {
 
 			fmt.Println("Checking for migrations..")
 			// Check if the database needs to be migrated.
-			err = database.MigrateUp(db.DB)
+			err = database.MigrateUp(db)
 			if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 				return err
 			}
@@ -266,7 +266,7 @@ func main() {
 				}
 			}()
 
-			err = database.MigrateUp(db.DB)
+			err = database.MigrateUp(db)
 			if err != nil {
 				return err
 			}
