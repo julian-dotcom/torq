@@ -59,7 +59,7 @@ function Navigation() {
         {/*</NavCategory>*/}
 
         <NavCategory text={"Transact"} collapsed={false}>
-          <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/transact/payments"} />
+          <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/transactions/payments"} />
         </NavCategory>
       </div>
 

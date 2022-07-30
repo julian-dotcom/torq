@@ -1,6 +1,6 @@
-import styles from "./table-page.module.scss";
-import TableControls from "./controls/TableControls";
-import Table from "./tableContent/Table";
+import styles from "../table/table-page.module.scss";
+import TableControls from "../table/controls/TableControls";
+import Table from "../table/tableContent/Table";
 import { useGetTableViewsQuery } from "apiSlice";
 import { Link } from "react-router-dom";
 import {
@@ -14,17 +14,19 @@ import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
+  TableControlsTabsGroup,
+  TableControlsTab,
 } from "../tablePage/TablePageTemplate";
 import { useState } from "react";
+import TransactTabs from "./TransactTabs";
 
 type sections = {
   filter: boolean;
   sort: boolean;
-  group: boolean;
   columns: boolean;
 };
 
-function TablePage() {
+function InvoicesPage() {
   // initial getting of the table views from the database
   useGetTableViewsQuery();
 
@@ -36,7 +38,6 @@ function TablePage() {
     filter: false,
     sort: false,
     columns: false,
-    group: false,
   };
   const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
 
@@ -54,7 +55,6 @@ function TablePage() {
       }
     };
   };
-
   const sidebarSectionHandler = (section: keyof sections) => {
     return () => {
       setActiveSidebarSections({
@@ -73,6 +73,8 @@ function TablePage() {
 
   const tableControls = (
     <TableControlSection>
+      <TransactTabs />
+
       <TableControlsButtonGroup>
         <TableControlsButton
           onClickHandler={setSection("columns")}
@@ -85,17 +87,12 @@ function TablePage() {
           active={activeSidebarSections.filter}
         />
         <TableControlsButton onClickHandler={setSection("sort")} icon={SortIcon} active={activeSidebarSections.sort} />
-        <TableControlsButton
-          onClickHandler={setSection("group")}
-          icon={GroupIcon}
-          active={activeSidebarSections.group}
-        />
       </TableControlsButtonGroup>
     </TableControlSection>
   );
 
   const sidebar = (
-    <Sidebar title={"Table Options"} closeSidebarHandler={closeSidebarHandler()}>
+    <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
       <SidebarSection
         title={"Columns"}
         icon={ColumnsIcon}
@@ -120,21 +117,13 @@ function TablePage() {
       >
         {"Something"}
       </SidebarSection>
-      <SidebarSection
-        title={"Group"}
-        icon={GroupIcon}
-        expanded={activeSidebarSections.group}
-        sectionToggleHandler={sidebarSectionHandler("group")}
-      >
-        {"Something"}
-      </SidebarSection>
     </Sidebar>
   );
 
-  const breadcrumbs = ["Analyse", <Link to={"/analyse/forwards"}>Forwards</Link>];
+  const breadcrumbs = ["Transactions", <Link to={"/transactions/invoices"}>Invoices</Link>];
   return (
     <TablePageTemplate
-      title={"Forwards"}
+      title={"Invoices"}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}
@@ -145,4 +134,4 @@ function TablePage() {
   );
 }
 
-export default TablePage;
+export default InvoicesPage;

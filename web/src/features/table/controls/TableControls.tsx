@@ -38,16 +38,9 @@ function TableControls() {
             <DefaultButton icon={<SaveIcon />} text={"Save"} onClick={saveView} className={"collapse-tablet danger"} />
           )}
         </div>
-        <div className={styles.lowerContainer}>
-          <ColumnsPopover />
-          <FilterPopover />
-          <SortControls />
-          <GroupPopover />
-        </div>
+        <div className={styles.lowerContainer}></div>
       </div>
-      <div className={styles.rightContainer}>
-        <TimeIntervalSelect />
-      </div>
+      <div className={styles.rightContainer}></div>
     </div>
   );
 }

@@ -1,29 +1,34 @@
 @use "/src/styles/typography.scss";
 
-.sidebarContainer {
-  padding: 16px;
+.sidebarWrapper {
   display: grid;
-  grid-row-gap: 24px;
+  grid-auto-rows: min-content;
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  padding: 16px;
+  grid-row-gap: 16px;
 }
 .titleContainer,
-.SidebarTitleContainer {
+.sectionTitleContainer {
   display: grid;
   grid-template-columns: 44px auto 44px;
   grid-template-rows: 44px;
   align-items: center;
   gap: 4px;
 }
-.sidebarContent,
-.SidebarSectionContent {
-  display: grid;
-  grid-row-gap: 0px;
-}
-.SidebarSectionContent {
+
+.sectionTitleContainer {
+  border-bottom: 1px solid var(--content-subtle);
   margin-bottom: 16px;
 }
 
-.SidebarTitleContainer {
-  border-bottom: 1px solid var(--content-subtle);
+.sidebarContent,
+.sidebarSectionContent {
+  display: grid;
+  grid-row-gap: 32px;
+}
+.sidebarSectionContent {
   margin-bottom: 16px;
 }
 

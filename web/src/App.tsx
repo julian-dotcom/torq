@@ -14,7 +14,10 @@ import ToastContext from "features/toast/context";
 import { BrowserRouter } from "react-router-dom";
 import ChannelPage from "./features/channel/ChannelPage";
 import DashboardPage from "./features/channel/DashboardPage";
-import PaymentsPage from "./features/payments/Payments";
+import PaymentsPage from "./features/transact/PaymentsPage";
+import InvoicesPage from "./features/transact/InvoicesPage";
+import OnChainPage from "./features/transact/OnChainPage";
+import AllTxPage from "./features/transact/AllTxPage";
 import NoMatch from "./features/no_match/NoMatch";
 
 function Logout() {
@@ -81,12 +84,36 @@ function App() {
                   }
                 />
               </Route>
-              <Route path="/transact">
+              <Route path="/transactions">
                 <Route
                   path="payments"
                   element={
                     <RequireAuth>
                       <PaymentsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="invoices"
+                  element={
+                    <RequireAuth>
+                      <InvoicesPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="onchain"
+                  element={
+                    <RequireAuth>
+                      <OnChainPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="all"
+                  element={
+                    <RequireAuth>
+                      <AllTxPage />
                     </RequireAuth>
                   }
                 />
