@@ -140,11 +140,11 @@ func TestSubscribeChannelEvents(t *testing.T) {
 
 		type channel struct {
 			Short_channel_id    string
-			Channel_point       string
+			LND_Channel_point   string
 			Destination_pub_key string
 		}
 		var channels []channel
-		err = db.Select(&channels, `SELECT short_channel_id, channel_point, destination_pub_key FROM channel;`)
+		err = db.Select(&channels, `SELECT short_channel_id, lnd_channel_point, destination_pub_key FROM channel;`)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				// t.Fatalf("Error was %v", err)
@@ -158,7 +158,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		}
 
 		if channels[0].Short_channel_id != "0:0:1337" ||
-			channels[0].Channel_point != "point break" ||
+			channels[0].LND_Channel_point != "point break" ||
 			channels[0].Destination_pub_key != "remote pub key" {
 
 			t.Fatal("Channel data not stored correctly")

@@ -5,6 +5,7 @@ CREATE INDEX channel_short_channel_id_idx ON channel(short_channel_id);
 ALTER TABLE channel ADD COLUMN lnd_short_channel_id NUMERIC NULL; -- Populated in migration 38, set to NOT NULL in migration 39
 CREATE INDEX channel_lnd_short_channel_id_idx ON channel(lnd_short_channel_id);
 ALTER TABLE channel RENAME COLUMN channel_point TO lnd_channel_point;
+CREATE INDEX channel_lnd_channel_point_idx ON channel(lnd_channel_point);
 
 -- channel_event table
 ALTER TABLE channel_event RENAME COLUMN chan_id TO lnd_short_channel_id;
