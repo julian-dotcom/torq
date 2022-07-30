@@ -23,14 +23,15 @@ func insertChannel(db *sqlx.DB, channel Channel) error {
 	_, err := db.Exec(`
 INSERT INTO channel (
   short_channel_id,
-  channel_point,
+  lnd_channel_point,
   alias,
   destination_pub_key,
   local_node_id,
+  lnd_short_channel_id,
   created_on
 ) values (
-  $1, $2, $3, $4, $5, $6
-);`, channel.ShortChannelID, channel.ChannelPoint, channel.Alias, channel.DestinationPubKey, channel.LocalNodeId, time.Now().UTC())
+  $1, $2, $3, $4, $5, $6, $7
+);`, channel.ShortChannelID, channel.LNDChannelPoint, channel.Alias, channel.DestinationPubKey, channel.LocalNodeId, channel.LNDShortChannelID, time.Now().UTC())
 	if err != nil {
 		return errors.Wrap(err, "Unable to execute SQL statement")
 	}

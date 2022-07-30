@@ -56,9 +56,10 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 
 		channel := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
-			ChannelPoint:      null.StringFrom(ChannelPoint),
+			LNDChannelPoint:   null.StringFrom(ChannelPoint),
 			DestinationPubKey: null.StringFrom(PubKey),
 			LocalNodeId:       localNodeId,
+			LNDShortChannelID: ChanID,
 		}
 
 		err := channels.AddChannelRecordIfDoesntExist(db, channel)
@@ -88,9 +89,10 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 
 		channel := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
-			ChannelPoint:      null.StringFrom(ChannelPoint),
+			LNDChannelPoint:   null.StringFrom(ChannelPoint),
 			DestinationPubKey: null.StringFrom(PubKey),
 			LocalNodeId:       localNodeId,
+			LNDShortChannelID: ChanID,
 		}
 		err := channels.AddChannelRecordIfDoesntExist(db, channel)
 		if err != nil {
@@ -273,7 +275,7 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 
 func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, cp []string) ([]string, error) {
 	// Prepare the query with an array of channel points
-	q := "select chan_point from channel_event where (chan_point in (?)) and (event_type = ?);"
+	q := "select lnd_channel_point from channel_event where (chan_point in (?)) and (event_type = ?);"
 	qs, args, err := sqlx.In(q, cp, t)
 	if err != nil {
 		return []string{}, errors.Wrapf(err, "sqlx.In(%s, %v, %d)", q, cp, t)
@@ -282,7 +284,7 @@ func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB
 	// Query and create the list of existing channel points (ecp)
 	var ecp []string
 	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args...)
+	rows, err := db.Query(qsr, args)
 	if err != nil {
 		return []string{}, errors.Wrapf(err, "getExistingChannelEvents -> db.Query(qsr, args...)")
 	}
@@ -338,9 +340,10 @@ icoLoop:
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
-			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
+			LNDChannelPoint:   null.StringFrom(channel.ChannelPoint),
 			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
 			LocalNodeId:       localNodeId,
+			LNDShortChannelID: channel.ChanId,
 		}
 		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
 		if err != nil {
@@ -393,9 +396,10 @@ icoLoop:
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
-			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
+			LNDChannelPoint:   null.StringFrom(channel.ChannelPoint),
 			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
 			LocalNodeId:       localNodeId,
+			LNDShortChannelID: channel.ChanId,
 		}
 		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
 		if err != nil {
