@@ -44,12 +44,7 @@ func MigrateUp(db *sqlx.DB) error {
 		return errors.Wrap(err, "Getting database migration version")
 	}
 
-	// three migrations for converting between c-lightning and lnd short channel id formats
-	if version < 37 {
-		err = m.Migrate(37)
-		if err != nil {
-			return errors.Wrap(err, "Migrating to version 37")
-		}
+	runMigration38 := func() error {
 		if err = convertShortChannelIds(db); err != nil {
 			return errors.Wrap(err, "Converting short channel ids")
 		}
@@ -57,12 +52,23 @@ func MigrateUp(db *sqlx.DB) error {
 		if err != nil {
 			return errors.Wrap(err, "Setting database migration version to 38")
 		}
+		return nil
+	}
+	// three migrations for converting between c-lightning and lnd short channel id formats
+	if version < 37 {
+		err = m.Migrate(37)
+		if err != nil {
+			return errors.Wrap(err, "Migrating to version 37")
+		}
+		if err = runMigration38(); err != nil {
+			return err
+		}
 	}
 
 	// this state should be impossible but could happen if the migration process is interrupted
 	if version == 37 {
-		if err = convertShortChannelIds(db); err != nil {
-			return errors.Wrap(err, "Converting short channel ids")
+		if err = runMigration38(); err != nil {
+			return err
 		}
 	}
 
@@ -148,15 +154,15 @@ func convertShortChannelIds(db *sqlx.DB) error {
 				return errors.Wrap(err, "Scanning lnd_outgoing_short_channel_id and lnd_incoming_short_channel_id from forward table")
 			}
 			outgoingShortChannelId := channels.ConvertLNDShortChannelID(lndOutgoingShortChannelId)
-			updateStatement := "UPDATE forward SET outgoing_short_channel_id = $1 WHERE lnd_outgoing_short_channel_id = $2"
-			if _, err := db.Exec(updateStatement, outgoingShortChannelId, lndOutgoingShortChannelId); err != nil {
+			incomingShortChannelId := channels.ConvertLNDShortChannelID(lndIncomingShortChannelId)
+			updateStatement := "UPDATE forward SET outgoing_short_channel_id = $1, incoming_short_channel_id = $2 WHERE lnd_outgoing_short_channel_id = $3 AND lnd_incoming_short_channel_id = $4"
+			if _, err := db.Exec(updateStatement, outgoingShortChannelId, incomingShortChannelId, lndOutgoingShortChannelId, lndIncomingShortChannelId); err != nil {
 				return errors.Wrap(err, "Updating outgoing_short_channel_id on forward table")
 			}
-			incomingShortChannelId := channels.ConvertLNDShortChannelID(lndIncomingShortChannelId)
-			updateStatement = "UPDATE forward SET incoming_short_channel_id = $1 WHERE lnd_incoming_short_channel_id = $2"
-			if _, err := db.Exec(updateStatement, incomingShortChannelId, lndIncomingShortChannelId); err != nil {
-				return errors.Wrap(err, "Updating incoming_short_channel_id on forward table")
-			}
+			// updateStatement = "UPDATE forward SET incoming_short_channel_id = $1 WHERE lnd_incoming_short_channel_id = $2"
+			// if _, err := db.Exec(updateStatement, incomingShortChannelId, lndIncomingShortChannelId); err != nil {
+			// 	return errors.Wrap(err, "Updating incoming_short_channel_id on forward table")
+			// }
 		}
 		err = rows.Err()
 		if err != nil {
