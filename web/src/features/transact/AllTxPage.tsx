@@ -1,5 +1,5 @@
 import styles from "../table/table-page.module.scss";
-import TableControls from "../table/controls/TableControls";
+import TableControls from "../sidebar/sections/TableControls";
 import Table from "../table/tableContent/Table";
 import { useGetTableViewsQuery } from "apiSlice";
 import { Link } from "react-router-dom";
@@ -16,7 +16,7 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlsTabsGroup,
   TableControlsTab,
-} from "../tablePage/TablePageTemplate";
+} from "../tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TransactTabs from "./TransactTabs";
 
@@ -129,7 +129,7 @@ function AllTxPage() {
       sidebar={sidebar}
       tableControls={tableControls}
     >
-      <Table />
+      {/*<Table />*/}
     </TablePageTemplate>
   );
 }

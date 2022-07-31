@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import DefaultLayout from "./layout/DefaultLayout";
 import LoginLayout from "./layout/LoginLayout";
-import TablePage from "./features/table/TablePage";
+import ForwardsPage from "./features/forwards/ForwardsPage";
 
 import LoginPage from "./features/auth/LoginPage";
 import SettingsPage from "./features/settings/SettingsPage";
@@ -71,7 +71,7 @@ function App() {
                   path="forwards"
                   element={
                     <RequireAuth>
-                      <TablePage />
+                      <ForwardsPage />
                     </RequireAuth>
                   }
                 />

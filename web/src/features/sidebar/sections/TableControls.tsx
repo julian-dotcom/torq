@@ -5,14 +5,14 @@ import TimeIntervalSelect from "../../timeIntervalSelect/TimeIntervalSelect";
 import DefaultButton from "../../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { toggleNav } from "../../navigation/navSlice";
-import SortControls from "./sort/SortControls";
-import GroupPopover from "./group/GroupPopover";
-import { selectCurrentView, selectedViewIndex } from "../tableSlice";
+import SortControls from "./sort/SortSection";
+import GroupBySection from "./group/GroupBySection";
+import { selectCurrentView, selectedViewIndex } from "../../forwards/tableSlice";
 import { useUpdateTableViewMutation, useCreateTableViewMutation } from "apiSlice";
-import FilterPopover from "./filter/FilterPopover";
+import FilterPopover from "./filter/FilterSection";
 
 import ViewsPopover from "./views/ViewsPopover";
-import ColumnsPopover from "./columns/ColumnsPopover";
+import ColumnsPopover from "./columns/ColumnsSection";
 
 function TableControls() {
   const dispatch = useAppDispatch();

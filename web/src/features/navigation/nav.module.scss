@@ -136,7 +136,7 @@
 
   a:hover {
     border-color: var(--fg-muted);
-    background-color: var(--accent-b-0);
+    background-color: var(--primary-0);
   }
 
   a.selected {
@@ -144,7 +144,7 @@
     border-right: 1px solid #91caff;
     margin-right: -1px;
     color: var(--content-default);
-    background-color: var(--accent-b-50);
+    background-color: var(--primary-50);
   }
 }
 

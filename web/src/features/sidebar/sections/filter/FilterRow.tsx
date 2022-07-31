@@ -1,11 +1,9 @@
 import classNames from "classnames";
-import {
-  Dismiss20Regular as RemoveIcon,
-} from "@fluentui/react-icons";
+import { Dismiss20Regular as RemoveIcon } from "@fluentui/react-icons";
 import TorqSelect, { SelectOptionType } from "../../../inputs/Select";
 
 import { FilterClause } from "./filter";
-import styles from './filter_popover.module.scss';
+import styles from "./filter-section.module.scss";
 import { FilterFunctions } from "./filter";
 import NumberFormat from "react-number-format";
 
@@ -17,16 +15,15 @@ const ffLabels = new Map<string, string>([
   ["lt", "<"],
   ["lte", "<="],
   ["include", "Include"],
-  ["notInclude", "Not include"]
+  ["notInclude", "Not include"],
 ]);
 
 function getFilterFunctions(filterCategory: "number" | "string") {
-  const filterFuncs = FilterFunctions.get(filterCategory)?.entries()
+  const filterFuncs = FilterFunctions.get(filterCategory)?.entries();
   if (!filterFuncs) {
-    throw new Error("Filter category not found in list of filters")
+    throw new Error("Filter category not found in list of filters");
   }
-  return Array.from(filterFuncs, ([key, _]) => (
-    { value: key, label: ffLabels.get(key) ?? "Label not found" }))
+  return Array.from(filterFuncs, ([key, _]) => ({ value: key, label: ffLabels.get(key) ?? "Label not found" }));
 }
 
 interface filterRowInterface {
@@ -38,22 +35,17 @@ interface filterRowInterface {
 }
 
 function FilterRow({ index, filterClause, columnOptions, onUpdateFilter, onRemoveFilter }: filterRowInterface) {
-
-  const rowValues = filterClause.filter
+  const rowValues = filterClause.filter;
 
   let functionOptions = getFilterFunctions(rowValues.category);
 
-  const keyOption = columnOptions.find(
-    item => item.value === rowValues.key
-  )
+  const keyOption = columnOptions.find((item) => item.value === rowValues.key);
   if (!keyOption) {
-    throw new Error("key option not found")
+    throw new Error("key option not found");
   }
-  const funcOption = functionOptions.find(
-    item => item.value === rowValues.funcName
-  )
+  const funcOption = functionOptions.find((item) => item.value === rowValues.funcName);
   if (!funcOption) {
-    throw new Error("func option not found")
+    throw new Error("func option not found");
   }
 
   let selectData = {
@@ -62,39 +54,31 @@ function FilterRow({ index, filterClause, columnOptions, onUpdateFilter, onRemov
   };
 
   const handleKeyChange = (item: any) => {
-    rowValues.key = item.value
-    onUpdateFilter()
+    rowValues.key = item.value;
+    onUpdateFilter();
   };
 
   const handleFunctionChange = (item: any) => {
-    rowValues.funcName = item.value
-    onUpdateFilter()
+    rowValues.funcName = item.value;
+    onUpdateFilter();
   };
 
   const handleParamChange = (e: any) => {
     if (rowValues.category === "number") {
-      rowValues.parameter = e.floatValue
+      rowValues.parameter = e.floatValue;
     } else {
-      rowValues.parameter = e.target.value ? e.target.value : ""
+      rowValues.parameter = e.target.value ? e.target.value : "";
     }
-    onUpdateFilter()
+    onUpdateFilter();
   };
 
   return (
     <div className={classNames(styles.filter, { first: !index })}>
       <div className="filter-key-container">
-        <TorqSelect
-          options={columnOptions}
-          value={selectData.key}
-          onChange={handleKeyChange}
-        />
+        <TorqSelect options={columnOptions} value={selectData.key} onChange={handleKeyChange} />
       </div>
       <div className="filter-function-container">
-        <TorqSelect
-          options={functionOptions}
-          value={selectData.func}
-          onChange={handleFunctionChange}
-        />
+        <TorqSelect options={functionOptions} value={selectData.func} onChange={handleFunctionChange} />
       </div>
       <div className="filter-parameter-container">
         {rowValues.category === "number" ? (
@@ -105,18 +89,13 @@ function FilterRow({ index, filterClause, columnOptions, onUpdateFilter, onRemov
             onValueChange={handleParamChange}
           />
         ) : (
-          <input
-            type="text"
-            className={"torq-input-field"}
-            value={rowValues.parameter}
-            onChange={handleParamChange}
-          />
+          <input type="text" className={"torq-input-field"} value={rowValues.parameter} onChange={handleParamChange} />
         )}
       </div>
       <div className={classNames(styles.removeFilter, styles.desktopRemove)} onClick={() => onRemoveFilter(index)}>
         <RemoveIcon />
       </div>
-    </div >
+    </div>
   );
 }
 

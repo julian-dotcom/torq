@@ -1,7 +1,5 @@
-import styles from "./table-page.module.scss";
-import TableControls from "./controls/TableControls";
-import Table from "./tableContent/Table";
-import { useGetTableViewsQuery } from "apiSlice";
+import Table from "../table/tableContent/Table";
+import { useGetChannelsQuery, useGetTableViewsQuery } from "apiSlice";
 import { Link } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
@@ -14,8 +12,29 @@ import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
-} from "../tablePage/TablePageTemplate";
+  TableControlsTabsGroup,
+} from "../tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import {
+  updateColumns,
+  selectActiveColumns,
+  selectAllColumns,
+  ColumnMetaData,
+  selectFilters,
+  updateFilters,
+  selectSortBy,
+  updateSortBy,
+  selectGroupBy,
+  updateGroupBy,
+} from "./tableSlice";
+import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
+import FilterSection from "../sidebar/sections/filter/FilterSection";
+import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import { addDays, format } from "date-fns";
+import { Clause, deserialiseQuery } from "../sidebar/sections/filter/filter";
+import SortSection, { SortByOptionType } from "../sidebar/sections/sort/SortSection";
+import GroupBySection from "../sidebar/sections/group/GroupBySection";
 
 type sections = {
   filter: boolean;
@@ -24,9 +43,23 @@ type sections = {
   columns: boolean;
 };
 
-function TablePage() {
+function ForwardsPage() {
   // initial getting of the table views from the database
   useGetTableViewsQuery();
+  const dispatch = useAppDispatch();
+
+  const activeColumns = useAppSelector(selectActiveColumns);
+  const columns = useAppSelector(selectAllColumns);
+  const filters = useAppSelector(selectFilters);
+  const sortBy = useAppSelector(selectSortBy);
+  const groupedBy = useAppSelector(selectGroupBy) || "channels";
+
+  // const activeColumns = clone<ColumnMetaData[]>(useAppSelector(selectActiveColumns)) || [];
+  const currentPeriod = useAppSelector(selectTimeInterval);
+  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
+  const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
+
+  const { data = [], isLoading } = useGetChannelsQuery({ from: from, to: to });
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -73,6 +106,7 @@ function TablePage() {
 
   const tableControls = (
     <TableControlSection>
+      <TableControlsTabsGroup />
       <TableControlsButtonGroup>
         <TableControlsButton
           onClickHandler={setSection("columns")}
@@ -94,6 +128,22 @@ function TablePage() {
     </TableControlSection>
   );
 
+  const updateColumnsHandler = (columns: ColumnMetaData[]) => {
+    dispatch(updateColumns({ columns: columns }));
+  };
+
+  const handleFilterUpdate = (filters: Clause) => {
+    dispatch(updateFilters({ filters: filters.toJSON() }));
+  };
+
+  const handleSortUpdate = (updated: Array<SortByOptionType>) => {
+    dispatch(updateSortBy({ sortBy: updated }));
+  };
+
+  const handleGroupByUpdate = (updated: string) => {
+    dispatch(updateGroupBy({ groupBy: updated }));
+  };
+
   const sidebar = (
     <Sidebar title={"Table Options"} closeSidebarHandler={closeSidebarHandler()}>
       <SidebarSection
@@ -102,31 +152,34 @@ function TablePage() {
         expanded={activeSidebarSections.columns}
         sectionToggleHandler={sidebarSectionHandler("columns")}
       >
-        {"Something"}
+        <ColumnsSection columns={columns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
       </SidebarSection>
+
       <SidebarSection
         title={"Filter"}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
         sectionToggleHandler={sidebarSectionHandler("filter")}
       >
-        {"Something"}
+        <FilterSection filters={filters} filterUpdateHandler={handleFilterUpdate} />
       </SidebarSection>
+
       <SidebarSection
         title={"Sort"}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}
         sectionToggleHandler={sidebarSectionHandler("sort")}
       >
-        {"Something"}
+        <SortSection columns={columns} sortBy={sortBy} updateSortByHandler={handleSortUpdate} />
       </SidebarSection>
+
       <SidebarSection
         title={"Group"}
         icon={GroupIcon}
         expanded={activeSidebarSections.group}
         sectionToggleHandler={sidebarSectionHandler("group")}
       >
-        {"Something"}
+        <GroupBySection groupBy={groupedBy} groupByHandler={handleGroupByUpdate} />
       </SidebarSection>
     </Sidebar>
   );
@@ -140,9 +193,9 @@ function TablePage() {
       sidebar={sidebar}
       tableControls={tableControls}
     >
-      <Table />
+      <Table activeColumns={activeColumns} data={data} isLoading={isLoading} />
     </TablePageTemplate>
   );
 }
 
-export default TablePage;
+export default ForwardsPage;

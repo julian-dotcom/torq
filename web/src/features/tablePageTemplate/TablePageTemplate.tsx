@@ -83,14 +83,14 @@ export function TableControlsTab(props: TableControlsTabProps) {
   );
 }
 
-export function TableControlSection(props: { children: React.ReactNode }) {
+export function TableControlSection(props: { children?: React.ReactNode }) {
   return <div className={classNames(styles.tableControlsSection)}>{props.children}</div>;
 }
 
-export function TableControlsButtonGroup(props: { children: React.ReactNode }) {
+export function TableControlsButtonGroup(props: { children?: React.ReactNode }) {
   return <div className={classNames(styles.tableControlsButtonGroup)}>{props.children}</div>;
 }
 
-export function TableControlsTabsGroup(props: { children: React.ReactNode }) {
+export function TableControlsTabsGroup(props: { children?: React.ReactNode }) {
   return <div className={classNames(styles.tableControlsTabsGroup)}>{props.children}</div>;
 }

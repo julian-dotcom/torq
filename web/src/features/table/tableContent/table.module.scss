@@ -34,7 +34,7 @@
   display: contents;
 }
 :global(.tableRow):hover :global(.cell) {
-  background-color: var(--accent-b-0);
+  background-color: var(--primary-0);
 }
 
 @media only screen and (min-width: 900px) {

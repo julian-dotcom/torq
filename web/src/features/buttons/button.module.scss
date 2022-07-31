@@ -9,8 +9,8 @@
   border: 1px solid transparent;
 
   &.open {
-    background-color: var(--primary-300);
-    border: 1px solid var(--primary-400);
+    background-color: var(--accent1-300);
+    border: 1px solid var(--accent1-400);
   }
 
   &:global(.small),

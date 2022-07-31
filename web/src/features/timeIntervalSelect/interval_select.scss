@@ -77,9 +77,9 @@
     }
     .rdrStaticRangeSelected {
       font-weight: normal;
-      background-color: var(--accent-b-150);
+      background-color: var(--primary-150);
       margin-bottom: -1px;
-      border-bottom: 1px solid var(--accent-b-500);
+      border-bottom: 1px solid var(--primary-500);
       .rdrStaticRangeLabel {
         color: #033048 !important;
       }
@@ -186,7 +186,7 @@
     }
     .rdrDefinedRangesWrapper {
       padding-top: 10px;
-      background-color: var(--accent-b-50);
+      background-color: var(--primary-50);
       @media only screen and (max-width: 600px) {
         background-color: transparent;
         border: none;

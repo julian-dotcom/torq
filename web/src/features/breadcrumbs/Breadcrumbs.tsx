@@ -1,6 +1,6 @@
 import React from "react";
 import styles from "./breadcrumbs.module.scss";
-import TableControls from "../table/controls/TableControls";
+import TableControls from "../sidebar/sections/TableControls";
 
 type BreadcrumbsProps = {
   breadcrumbs: Array<string | React.ReactChildren>;

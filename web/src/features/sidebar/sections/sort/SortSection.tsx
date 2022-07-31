@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
-  ArrowSortDownLines20Regular as SortIcon,
   Dismiss20Regular as DismissIcon,
   ReOrder16Regular as ReOrderIcon,
   AddSquare20Regular as AddIcon,
 } from "@fluentui/react-icons";
-import TorqSelect from "../../../inputs/Select";
-import DefaultButton from "../../../buttons/Button";
-import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
-import { selectAllColumns, selectSortBy, updateSortBy } from "../../tableSlice";
-import Popover from "../../../popover/Popover";
+import TorqSelect from "features/inputs/Select";
+import DefaultButton from "features/buttons/Button";
+import { ColumnMetaData } from "features/forwards/tableSlice";
 // TODO: Convert to styled components using imported scss
 import styles from "./sort.module.scss";
 import classNames from "classnames";
@@ -95,12 +92,18 @@ const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort 
   );
 };
 
-const SortControls = () => {
-  const dispatch = useAppDispatch();
-  const columns = useAppSelector(selectAllColumns);
-  const sorts = useAppSelector(selectSortBy);
+type SortSectionProps = {
+  columns: Array<ColumnMetaData>;
+  sortBy: Array<SortByOptionType>;
+  updateSortByHandler: (sortBy: Array<SortByOptionType>) => void;
+};
 
-  let options = columns.slice().map((column: { key: string; heading: string; valueType: string }) => {
+const SortSection = (props: SortSectionProps) => {
+  // const dispatch = useAppDispatch();
+  // const columns = useAppSelector(selectAllColumns);
+  // const sorts = useAppSelector(selectSortBy);
+
+  let options = props.columns.slice().map((column: { key: string; heading: string; valueType: string }) => {
     return {
       value: column.key,
       label: column.heading,
@@ -108,46 +111,41 @@ const SortControls = () => {
     };
   });
 
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-
   const handleAddSort = () => {
     const updated: SortByOptionType[] = [
-      ...sorts,
+      ...props.sortBy,
       {
         direction: "desc",
-        value: columns[0].key,
-        label: columns[0].heading,
+        value: props.columns[0].key,
+        label: props.columns[0].heading,
       },
     ];
-    dispatch(updateSortBy({ sortBy: updated }));
+    props.updateSortByHandler(updated);
   };
 
   const handleUpdateSort = (update: SortByOptionType, index: number) => {
-    const updated: SortByOptionType[] = [...sorts.slice(0, index), update, ...sorts.slice(index + 1, sorts.length)];
-    dispatch(updateSortBy({ sortBy: updated }));
+    const updated: SortByOptionType[] = [
+      ...props.sortBy.slice(0, index),
+      update,
+      ...props.sortBy.slice(index + 1, props.sortBy.length),
+    ];
+    props.updateSortByHandler(updated);
   };
 
   const handleRemoveSort = (index: number) => {
-    const updated: SortByOptionType[] = [...sorts.slice(0, index), ...sorts.slice(index + 1, sorts.length)];
-    dispatch(updateSortBy({ sortBy: updated }));
+    const updated: SortByOptionType[] = [
+      ...props.sortBy.slice(0, index),
+      ...props.sortBy.slice(index + 1, props.sortBy.length),
+    ];
+    props.updateSortByHandler(updated);
   };
 
   const buttonText = (): string => {
-    if (sorts.length > 0) {
-      return sorts.length + " Sorted";
+    if (props.sortBy.length > 0) {
+      return props.sortBy.length + " Sorted";
     }
     return "Sort";
   };
-
-  let popOverButton = (
-    <DefaultButton
-      isOpen={!!sorts.length}
-      onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-      icon={<SortIcon />}
-      text={buttonText()}
-      className={"collapse-tablet "}
-    />
-  );
 
   const droppableContainerId = "sort-list-droppable";
 
@@ -164,52 +162,50 @@ const SortControls = () => {
       return;
     }
 
-    let newSortsOrder = sorts.slice();
+    let newSortsOrder = props.sortBy.slice();
     newSortsOrder.splice(source.index, 1);
-    newSortsOrder.splice(destination.index, 0, sorts[source.index]);
-    dispatch(updateSortBy({ sortBy: newSortsOrder }));
+    newSortsOrder.splice(destination.index, 0, props.sortBy[source.index]);
+    props.updateSortByHandler(newSortsOrder);
   };
 
   return (
-    <Popover button={popOverButton}>
-      <DragDropContext
-        // onDragStart={}
-        // onDragUpdate={}
-        onDragEnd={onDragEnd}
-      >
-        <div className={styles.sortPopoverContent}>
-          {!sorts.length && <div className={styles.noFilters}>No sorting</div>}
+    <DragDropContext
+      // onDragStart={}
+      // onDragUpdate={}
+      onDragEnd={onDragEnd}
+    >
+      <div className={styles.sortPopoverContent}>
+        {!props.sortBy.length && <div className={styles.noFilters}>No sorting</div>}
 
-          {!!sorts.length && (
-            <Droppable droppableId={droppableContainerId}>
-              {(provided) => (
-                <div className={styles.sortRows} ref={provided.innerRef} {...provided.droppableProps}>
-                  {sorts.map((item, index) => {
-                    return (
-                      <SortRow
-                        key={item.value + index}
-                        selected={item}
-                        options={options}
-                        index={index}
-                        handleUpdateSort={handleUpdateSort}
-                        handleRemoveSort={handleRemoveSort}
-                      />
-                    );
-                  })}
+        {!!props.sortBy.length && (
+          <Droppable droppableId={droppableContainerId}>
+            {(provided) => (
+              <div className={styles.sortRows} ref={provided.innerRef} {...provided.droppableProps}>
+                {props.sortBy.map((item, index) => {
+                  return (
+                    <SortRow
+                      key={item.value + index}
+                      selected={item}
+                      options={options}
+                      index={index}
+                      handleUpdateSort={handleUpdateSort}
+                      handleRemoveSort={handleRemoveSort}
+                    />
+                  );
+                })}
 
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          )}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        )}
 
-          <div className={styles.buttonsRow}>
-            <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon />} />
-          </div>
+        <div className={styles.buttonsRow}>
+          <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon />} />
         </div>
-      </DragDropContext>
-    </Popover>
+      </div>
+    </DragDropContext>
   );
 };
 
-export default SortControls;
+export default SortSection;

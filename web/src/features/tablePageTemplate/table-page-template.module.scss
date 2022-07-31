@@ -95,8 +95,8 @@
 .active {
   .tableControlsButtonIcon {
     color: var(--content-default);
-    background-color: var(--accent-b-100);
-    //border: 1px solid var(--primary-400);
+    background-color: var(--primary-100);
+    //border: 1px solid var(--accent1-400);
   }
 }
 a.tableControlsTab {
@@ -104,13 +104,13 @@ a.tableControlsTab {
   align-items: center;
   justify-items: center;
   padding: 8px;
-  border-bottom: 1px solid var(--accent-b-150);
+  border-bottom: 1px solid var(--primary-150);
   color: var(--content-default);
   white-space: nowrap;
   &:hover {
     //background-color: var(--content);
     font-weight: normal;
-    border-bottom-color: var(--accent-b-500);
+    border-bottom-color: var(--primary-500);
   }
   &.tabSelected {
     border-color: var(--content-default);

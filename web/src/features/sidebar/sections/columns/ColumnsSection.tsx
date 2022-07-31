@@ -1,20 +1,15 @@
-import styles from "./columns_popover.module.scss";
+import classNames from "classnames";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
-  ColumnTriple20Regular as ColumnsIcon,
   Dismiss20Regular as RemoveIcon,
   LockClosed20Regular as LockClosedIcon,
   LockOpen20Regular as LockOpenIcon,
   Add20Regular as AddIcon,
   Reorder20Regular as DragHandle,
 } from "@fluentui/react-icons";
-import DefaultButton from "../../../buttons/Button";
-import Popover from "../../../popover/Popover";
-import Select, { SelectOptionType } from "../../../inputs/Select";
-import { updateColumns, ColumnMetaData, selectAllColumns, selectActiveColumns } from "../../tableSlice";
-import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
-// import Fuse from "fuse.js";
-import classNames from "classnames";
+import styles from "./columns-section.module.scss";
+import Select, { SelectOptionType } from "features/inputs/Select";
+import { ColumnMetaData } from "features/forwards/tableSlice";
 
 interface columnRow {
   column: ColumnMetaData;
@@ -125,46 +120,37 @@ function UnselectedColumn({ name, index, handleAddColumn }: unselectedColumnRow)
   );
 }
 
-function ColumnsPopover() {
-  const activeColumns = useAppSelector(selectActiveColumns);
-  const columns = useAppSelector(selectAllColumns);
-  const dispatch = useAppDispatch();
+type ColumnsSectionProps = {
+  activeColumns: ColumnMetaData[];
+  columns: ColumnMetaData[];
+  handleUpdateColumn: Function;
+};
 
+function ColumnsSection(props: ColumnsSectionProps) {
   const updateColumn = (column: ColumnMetaData, index: number) => {
     const updatedColumns = [
-      ...activeColumns.slice(0, index),
+      ...props.activeColumns.slice(0, index),
       column,
-      ...activeColumns.slice(index + 1, columns.length),
+      ...props.activeColumns.slice(index + 1, props.columns.length),
     ];
-    dispatch(updateColumns({ columns: updatedColumns }));
+    props.handleUpdateColumn(updatedColumns);
   };
 
   const removeColumn = (index: number) => {
     const updatedColumns: ColumnMetaData[] = [
-      ...activeColumns.slice(0, index),
-      ...activeColumns.slice(index + 1, activeColumns.length),
+      ...props.activeColumns.slice(0, index),
+      ...props.activeColumns.slice(index + 1, props.activeColumns.length),
     ];
-    dispatch(updateColumns({ columns: updatedColumns }));
+    props.handleUpdateColumn(updatedColumns);
   };
 
   const addColumn = (index: number) => {
-    const updatedColumns: ColumnMetaData[] = [...activeColumns, columns[index]];
-    dispatch(updateColumns({ columns: updatedColumns }));
+    const updatedColumns: ColumnMetaData[] = [...props.activeColumns, props.columns[index]];
+    props.handleUpdateColumn(updatedColumns);
   };
 
-  // const fuzeOptions = {
-  //   keys: ['heading']
-  // }
-  // const fuse = new Fuse(columns, fuzeOptions)
-  //
-  // const handleSearch = (e: any) => {
-  //   if (e.target.value) {
-  //     return fuse.search(e.target.value).map((item) => item.item)
-  //   }
-  // }
-
   const droppableContainerId = "column-list-droppable";
-  const draggableColumns = activeColumns.slice(1, activeColumns.length);
+  const draggableColumns = props.activeColumns.slice(1, props.activeColumns.length);
 
   const onDragEnd = (result: any) => {
     const { destination, source, draggableId } = result;
@@ -182,24 +168,15 @@ function ColumnsPopover() {
     let newColumns: ColumnMetaData[] = draggableColumns.slice();
     newColumns.splice(source.index, 1);
     newColumns.splice(destination.index, 0, draggableColumns[source.index]);
-    dispatch(updateColumns({ columns: [columns[0], ...newColumns] }));
+    props.handleUpdateColumn([props.columns[0], ...newColumns]);
   };
 
-  let popOverButton = (
-    <DefaultButton
-      text={activeColumns.length + " Columns"}
-      icon={<ColumnsIcon />}
-      isOpen={true}
-      className={"collapse-tablet"}
-    />
-  );
-
   return (
-    <Popover button={popOverButton} className={"scrollable"}>
+    <div>
       <DragDropContext onDragEnd={onDragEnd}>
         <div className={styles.columnsPopoverContent}>
           <div className={styles.columnRows}>
-            <NameColumnRow column={activeColumns.slice(0, 1)[0]} key={"selected-0-name"} index={0} />
+            <NameColumnRow column={props.activeColumns.slice(0, 1)[0]} key={"selected-0-name"} index={0} />
 
             <div className={styles.divider} />
 
@@ -229,21 +206,9 @@ function ColumnsPopover() {
             <div className={styles.divider} />
 
             <div className={styles.unselectedColumnsWrapper}>
-              {/*<div className="column-search-wrapper">*/}
-              {/*  <div className="search-icon">*/}
-              {/*    <SearchIcon/>*/}
-              {/*  </div>*/}
-              {/*  <input type="search"*/}
-              {/*    className={"torq-input-field column-search-field"}*/}
-              {/*    autoFocus={true}*/}
-              {/*    onChange={handleSearch}*/}
-              {/*    placeholder={"Search..."}*/}
-              {/*    />*/}
-              {/*</div>*/}
-
               <div className={styles.unselectedColumns}>
-                {columns.map((column, index) => {
-                  if (activeColumns.findIndex((ac) => ac.key === column.key) === -1) {
+                {props.columns.map((column, index) => {
+                  if (props.activeColumns.findIndex((ac) => ac.key === column.key) === -1) {
                     return (
                       <UnselectedColumn
                         name={column.heading}
@@ -254,7 +219,7 @@ function ColumnsPopover() {
                     );
                   }
                 })}
-                {activeColumns.length === columns.length ? (
+                {props.activeColumns.length === props.columns.length ? (
                   <div className={styles.noFilters}>All columns added</div>
                 ) : (
                   ""
@@ -264,8 +229,8 @@ function ColumnsPopover() {
           </div>
         </div>
       </DragDropContext>
-    </Popover>
+    </div>
   );
 }
 
-export default ColumnsPopover;
+export default ColumnsSection;

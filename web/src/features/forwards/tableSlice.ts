@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../../store/store";
-import { AndClause } from "./controls/filter/filter";
-import { SortByOptionType } from "./controls/sort/SortControls";
+import { AndClause } from "../sidebar/sections/filter/filter";
+import { SortByOptionType } from "../sidebar/sections/sort/SortSection";
 import { torqApi } from "apiSlice";
 
 export interface ColumnMetaData {
@@ -196,33 +196,21 @@ export const tableSlice = createSlice({
     updateFilters: (state, actions: PayloadAction<{ filters: any }>) => {
       state.views[state.selectedViewIndex].filters = actions.payload.filters;
     },
-    updateColumns: (
-      state,
-      actions: PayloadAction<{ columns: ColumnMetaData[] }>
-    ) => {
+    updateColumns: (state, actions: PayloadAction<{ columns: ColumnMetaData[] }>) => {
       state.views[state.selectedViewIndex].columns = actions.payload.columns;
     },
     updateGroupBy: (state, actions: PayloadAction<{ groupBy: string }>) => {
       state.views[state.selectedViewIndex].groupBy = actions.payload.groupBy;
     },
-    updateViews: (
-      state,
-      actions: PayloadAction<{ views: ViewInterface[]; index: number }>
-    ) => {
+    updateViews: (state, actions: PayloadAction<{ views: ViewInterface[]; index: number }>) => {
       state.views = actions.payload.views;
       state.selectedViewIndex = actions.payload.index;
     },
-    updateViewsOrder: (
-      state,
-      actions: PayloadAction<{ views: ViewInterface[]; index: number }>
-    ) => {
+    updateViewsOrder: (state, actions: PayloadAction<{ views: ViewInterface[]; index: number }>) => {
       state.views = actions.payload.views;
       state.selectedViewIndex = actions.payload.index;
     },
-    deleteView: (
-      state,
-      actions: PayloadAction<{ view: ViewInterface; index: number }>
-    ) => {
+    deleteView: (state, actions: PayloadAction<{ view: ViewInterface; index: number }>) => {
       state.views = [
         ...state.views.slice(0, actions.payload.index),
         ...state.views.slice(actions.payload.index + 1, state.views.length),
@@ -232,10 +220,7 @@ export const tableSlice = createSlice({
     updateSelectedView: (state, actions: PayloadAction<{ index: number }>) => {
       state.selectedViewIndex = actions.payload.index;
     },
-    updateSortBy: (
-      state,
-      actions: PayloadAction<{ sortBy: SortByOptionType[] }>
-    ) => {
+    updateSortBy: (state, actions: PayloadAction<{ sortBy: SortByOptionType[] }>) => {
       state.views[state.selectedViewIndex].sortBy = actions.payload.sortBy;
     },
   },
@@ -245,12 +230,9 @@ export const tableSlice = createSlice({
     builder.addMatcher(
       (action) => {
         return (
-          [
-            "table/updateFilters",
-            "table/updateSortBy",
-            "table/updateColumns",
-            "table/updateGroupBy",
-          ].findIndex((item) => action.type === item) !== -1
+          ["table/updateFilters", "table/updateSortBy", "table/updateColumns", "table/updateGroupBy"].findIndex(
+            (item) => action.type === item
+          ) !== -1
         );
       },
       (state, _) => {
@@ -259,48 +241,34 @@ export const tableSlice = createSlice({
       }
     );
 
-    builder.addMatcher(
-      torqApi.endpoints.createTableView.matchFulfilled,
-      (state, { payload }) => {
-        state.views[payload.index] = {
-          ...payload.view.view,
-          id: payload.view.id,
-        };
-        state.selectedViewIndex = payload.index;
-      }
-    );
+    builder.addMatcher(torqApi.endpoints.createTableView.matchFulfilled, (state, { payload }) => {
+      state.views[payload.index] = {
+        ...payload.view.view,
+        id: payload.view.id,
+      };
+      state.selectedViewIndex = payload.index;
+    });
 
-    builder.addMatcher(
-      torqApi.endpoints.deleteTableView.matchFulfilled,
-      (state, { payload }) => {
-        state.views = [
-          ...state.views.slice(0, payload.index),
-          ...state.views.slice(payload.index + 1, state.views.length),
-        ];
-        state.selectedViewIndex = 0;
-      }
-    );
+    builder.addMatcher(torqApi.endpoints.deleteTableView.matchFulfilled, (state, { payload }) => {
+      state.views = [
+        ...state.views.slice(0, payload.index),
+        ...state.views.slice(payload.index + 1, state.views.length),
+      ];
+      state.selectedViewIndex = 0;
+    });
 
-    builder.addMatcher(
-      torqApi.endpoints.getTableViews.matchFulfilled,
-      (state, { payload }) => {
-        state.views = payload.map(
-          (view: { id: number; view: ViewInterface }) => {
-            return { ...view.view, id: view.id };
-          }
-        );
-      }
-    );
+    builder.addMatcher(torqApi.endpoints.getTableViews.matchFulfilled, (state, { payload }) => {
+      state.views = payload.map((view: { id: number; view: ViewInterface }) => {
+        return { ...view.view, id: view.id };
+      });
+    });
 
-    builder.addMatcher(
-      torqApi.endpoints.updateTableView.matchFulfilled,
-      (state, { payload }) => {
-        const view = state.views.find((v) => v.id === payload.id);
-        if (view) {
-          view.saved = true;
-        }
+    builder.addMatcher(torqApi.endpoints.updateTableView.matchFulfilled, (state, { payload }) => {
+      const view = state.views.find((v) => v.id === payload.id);
+      if (view) {
+        view.saved = true;
       }
-    );
+    });
 
     // builder.addMatcher(torqApi.endpoints.logout.matchFulfilled, (state) => {
     //   Object.assign(state, initialState);
@@ -323,18 +291,14 @@ export const selectActiveColumns = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].columns || [];
 };
 export const selectAllColumns = (_: RootState) => availableColumns;
-export const selectSortBy = (state: RootState) =>
-  state.table.views[state.table.selectedViewIndex].sortBy;
-export const selectGroupBy = (state: RootState) =>
-  state.table.views[state.table.selectedViewIndex].groupBy;
+export const selectSortBy = (state: RootState) => state.table.views[state.table.selectedViewIndex].sortBy;
+export const selectGroupBy = (state: RootState) => state.table.views[state.table.selectedViewIndex].groupBy;
 export const selectFilters = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].filters;
 };
 export const selectViews = (state: RootState) => state.table.views;
-export const selectCurrentView = (state: RootState) =>
-  state.table.views[state.table.selectedViewIndex];
-export const selectedViewIndex = (state: RootState) =>
-  state.table.selectedViewIndex;
+export const selectCurrentView = (state: RootState) => state.table.views[state.table.selectedViewIndex];
+export const selectedViewIndex = (state: RootState) => state.table.selectedViewIndex;
 export const selectStatus = (state: RootState) => state.table.status;
 
 export default tableSlice.reducer;

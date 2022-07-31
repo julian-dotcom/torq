@@ -230,9 +230,9 @@ rowValue {
 }
 
 .channel_open {
-  background-color: var(--accent-b-250);
+  background-color: var(--primary-250);
   &.inbound {
-    background-color: var(--accent-b-100);
+    background-color: var(--primary-100);
   }
 }
 .channel_close {
@@ -242,9 +242,9 @@ rowValue {
   }
 }
 .fee_rate {
-  background-color: var(--primary-400);
+  background-color: var(--accent1-400);
   &.inbound {
-    background-color: var(--primary-300);
+    background-color: var(--accent1-300);
   }
 }
 .base_fee {
@@ -254,13 +254,13 @@ rowValue {
   }
 }
 .rebalanced_out {
-  background-color: var(--accent-a-200);
+  background-color: var(--secondary-2-50);
   &.inbound {
     background-color: var(--secondary-200);
   }
 }
 .rebalanced_in {
-  background-color: var(--accent-a-300);
+  background-color: var(--secondary-2-100);
   &.inbound {
     background-color: var(--secondary-200);
   }
@@ -278,15 +278,15 @@ rowValue {
   }
 }
 .min_htlc {
-  background-color: var(--accent-b-250);
+  background-color: var(--primary-250);
   &.inbound {
-    background-color: var(--accent-b-50);
+    background-color: var(--primary-50);
   }
 }
 .max_htlc {
-  background-color: var(--accent-a-300);
+  background-color: var(--secondary-2-100);
   &.inbound {
-    background-color: var(--accent-a-200);
+    background-color: var(--secondary-2-50);
   }
 }
 //.inbound {

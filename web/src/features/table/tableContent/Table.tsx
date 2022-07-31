@@ -6,24 +6,23 @@ import NumericCell from "../cells/NumericCell";
 import BarCell from "../cells/BarCell";
 import TextCell from "../cells/TextCell";
 import { useAppSelector } from "../../../store/hooks";
-import { selectActiveColumns, ColumnMetaData, selectFilters, selectGroupBy, selectSortBy } from "../tableSlice";
+import { ColumnMetaData, selectFilters, selectGroupBy, selectSortBy } from "../../forwards/tableSlice";
 import classNames from "classnames";
 import clone from "clone";
-import { selectTimeInterval } from "../../timeIntervalSelect/timeIntervalSlice";
-import { useGetChannelsQuery } from "apiSlice";
-import { format, addDays } from "date-fns";
 import { useMemo } from "react";
 import _, { cloneDeep } from "lodash";
-import { applyFilters, Clause, deserialiseQuery } from "../controls/filter/filter";
-import { groupByFn } from "../controls/group/groupBy";
+import { applyFilters, Clause, deserialiseQuery } from "../../sidebar/sections/filter/filter";
+import { groupByFn } from "../../sidebar/sections/group/groupBy";
 
-function Table() {
-  const activeColumns = clone<ColumnMetaData[]>(useAppSelector(selectActiveColumns)) || [];
-  const currentPeriod = useAppSelector(selectTimeInterval);
-  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
-  const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
+type TableProps = {
+  activeColumns: Array<ColumnMetaData>;
+  data: Array<any>;
+  isLoading: boolean;
+};
 
-  const { data = [], isLoading } = useGetChannelsQuery({ from: from, to: to });
+function Table(props: TableProps) {
+  const activeColumns = clone<Array<ColumnMetaData>>(props.activeColumns) || [];
+  const data = clone<ColumnMetaData[]>(props.data) || [];
   const filtersFromStore = useAppSelector(selectFilters);
   const groupBy = useAppSelector(selectGroupBy);
   const sortBy = useAppSelector(selectSortBy);
@@ -86,8 +85,8 @@ function Table() {
   };
 
   const tableClass = classNames(styles.tableContent, {
-    [styles.loading]: isLoading,
-    [styles.idle]: !isLoading,
+    [styles.loading]: props.isLoading,
+    [styles.idle]: !props.isLoading,
   });
 
   const customStyle =

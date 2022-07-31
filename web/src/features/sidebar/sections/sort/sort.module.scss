@@ -18,9 +18,9 @@
   grid-template-columns: min-content auto 150px min-content;
   justify-content: stretch;
   justify-items: stretch;
-  background-color: var(--bg-default);
+  background-color: var(--content-default);
 }
- .noFilters {
+.noFilters {
   padding: 5px 10px;
   background-color: var(--bg-extra-faint);
   border: 1px solid var(--bg-subtle);
