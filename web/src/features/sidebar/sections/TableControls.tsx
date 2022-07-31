@@ -7,11 +7,11 @@ import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { toggleNav } from "../../navigation/navSlice";
 import SortControls from "./sort/SortSection";
 import GroupBySection from "./group/GroupBySection";
-import { selectCurrentView, selectedViewIndex } from "../../forwards/tableSlice";
+import { selectCurrentView, selectedViewIndex } from "../../forwards/forwardsSlice";
 import { useUpdateTableViewMutation, useCreateTableViewMutation } from "apiSlice";
 import FilterPopover from "./filter/FilterSection";
 
-import ViewsPopover from "./views/ViewsPopover";
+import ViewsPopover from "../../forwards/views/ViewsPopover";
 import ColumnsPopover from "./columns/ColumnsSection";
 
 function TableControls() {

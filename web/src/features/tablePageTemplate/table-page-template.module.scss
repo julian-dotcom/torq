@@ -35,6 +35,7 @@
   justify-content: space-between;
   grid-area: Controls;
   align-items: center;
+  padding-bottom: 16px;
 }
 .pageSidebarWrapper {
   width: 0;
@@ -43,7 +44,7 @@
   position: relative;
 }
 .pageSidebarWrapper.sidebarExpanded {
-  width: 280px;
+  width: 320px;
 }
 .titleContainer {
   font-size: var(--font-XXL-regular);
@@ -99,23 +100,7 @@
     //border: 1px solid var(--accent1-400);
   }
 }
-a.tableControlsTab {
-  display: grid;
-  align-items: center;
-  justify-items: center;
-  padding: 8px;
-  border-bottom: 1px solid var(--primary-150);
-  color: var(--content-default);
-  white-space: nowrap;
-  &:hover {
-    //background-color: var(--content);
-    font-weight: normal;
-    border-bottom-color: var(--primary-500);
-  }
-  &.tabSelected {
-    border-color: var(--content-default);
-  }
-}
+
 .tableControlsTabsGroup {
   display: grid;
   grid-auto-flow: column;

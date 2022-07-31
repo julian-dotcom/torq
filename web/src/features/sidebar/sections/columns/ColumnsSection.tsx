@@ -9,7 +9,7 @@ import {
 } from "@fluentui/react-icons";
 import styles from "./columns-section.module.scss";
 import Select, { SelectOptionType } from "features/inputs/Select";
-import { ColumnMetaData } from "features/forwards/tableSlice";
+import { ColumnMetaData } from "features/forwards/forwardsSlice";
 
 interface columnRow {
   column: ColumnMetaData;

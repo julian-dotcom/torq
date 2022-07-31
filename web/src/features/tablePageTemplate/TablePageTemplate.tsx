@@ -67,22 +67,6 @@ export function TableControlsButton(props: TableControlsButtonProps) {
   );
 }
 
-type TableControlsTabProps = {
-  title: string;
-  to: string;
-};
-
-export function TableControlsTab(props: TableControlsTabProps) {
-  let linkClasses = (p: { isActive: boolean }): string => {
-    return classNames(styles.tableControlsTab, { [styles.tabSelected]: p.isActive });
-  };
-  return (
-    <NavLink to={props.to} className={linkClasses}>
-      {props.title}
-    </NavLink>
-  );
-}
-
 export function TableControlSection(props: { children?: React.ReactNode }) {
   return <div className={classNames(styles.tableControlsSection)}>{props.children}</div>;
 }

@@ -14,7 +14,7 @@ const customStyles = {
   control: (provided: any, state: any) => ({
     ...provided,
     borderRadius: 2,
-    border: "1px solid #D9E0E4",
+    border: "1px solid transparent",
     boxShadow: "none",
     "&:hover": {
       border: "1px solid #8198a3",
@@ -28,10 +28,10 @@ const customStyles = {
   option: (provided: any, state: any) => ({
     ...provided,
     color: "#8198a3",
-    background: state.isFocused ? "#D9E0E4" : "#f9fafb",
+    background: state.isFocused ? "var(--primary-150)" : "#ffffff",
     "&:hover": {
       boxShadow: "none",
-      backgroundColor: "#D9E0E4",
+      backgroundColor: "var(--primary-100)",
     },
     // fontSize: "var(--font-size-small)",
   }),
@@ -39,6 +39,10 @@ const customStyles = {
     ...provided,
     background: "#f9fafb",
   }),
+};
+
+type TorqSelectProps = Props & {
+  styles?: any;
 };
 
 export default function TorqSelect(props: Props) {

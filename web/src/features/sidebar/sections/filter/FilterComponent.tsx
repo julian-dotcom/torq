@@ -11,7 +11,7 @@ import TorqSelect, { SelectOptionType } from "../../../inputs/Select";
 
 import styles from "./filter-section.module.scss";
 import { useAppSelector } from "../../../../store/hooks";
-import { selectAllColumns } from "../../../forwards/tableSlice";
+import { selectAllColumns } from "../../../forwards/forwardsSlice";
 import { AndClause, OrClause, Clause, FilterClause } from "./filter";
 
 const combinerOptions: SelectOptionType[] = [

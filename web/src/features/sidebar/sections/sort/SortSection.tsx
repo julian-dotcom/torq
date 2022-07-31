@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
-  Dismiss20Regular as DismissIcon,
+  Delete16Regular as DismissIcon,
   ReOrder16Regular as ReOrderIcon,
-  AddSquare20Regular as AddIcon,
+  Add16Regular as AddIcon,
+  ArrowSortDownLines16Regular as SortDescIcon,
 } from "@fluentui/react-icons";
-import TorqSelect from "features/inputs/Select";
+import DropDown from "./SortDropDown";
 import DefaultButton from "features/buttons/Button";
-import { ColumnMetaData } from "features/forwards/tableSlice";
-// TODO: Convert to styled components using imported scss
+import { ColumnMetaData } from "features/forwards/forwardsSlice";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
@@ -39,11 +39,11 @@ const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort 
   const handleColumn = (newValue: unknown, actionMeta: ActionMeta<unknown>) => {
     handleUpdateSort(newValue, index);
   };
-  const handleDirection = (newValue: unknown, actionMeta: ActionMeta<unknown>) => {
+  const updateDirection = (selected: SortByOptionType) => {
     handleUpdateSort(
       {
         ...selected,
-        direction: (newValue as { value: string }).value,
+        direction: selected.direction === "asc" ? "desc" : "asc",
       },
       index
     );
@@ -59,11 +59,12 @@ const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort 
           ref={provided.innerRef}
           {...provided.draggableProps}
         >
-          <div {...provided.dragHandleProps}>
+          <div {...provided.dragHandleProps} className={styles.dragHandle}>
             <ReOrderIcon />
           </div>
-          <div style={{ flex: 3 }}>
-            <TorqSelect
+          <div className={styles.labelWrapper}>
+            {/*{selected.label}*/}
+            <DropDown
               onChange={handleColumn}
               options={options}
               getOptionLabel={(option: any): string => option["label"]}
@@ -72,20 +73,26 @@ const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort 
             />
           </div>
 
-          <div style={{ flex: 2 }}>
-            <TorqSelect
-              onChange={handleDirection}
-              options={sortDirectionOptions}
-              getOptionLabel={(option: any): string => option["label"]}
-              getOptionValue={(option: any): string => option["value"]}
-              value={sortDirectionOptions.find((dir: sortDirectionOption) => dir.value === selected.direction)}
+          <div
+            className={classNames(styles.directionWrapper, { [styles.asc]: selected.direction === "asc" })}
+            onClick={() => updateDirection(selected)}
+          >
+            {<SortDescIcon />}
+            {/*<TorqSelect*/}
+            {/*  onChange={handleDirection}*/}
+            {/*  options={sortDirectionOptions}*/}
+            {/*  getOptionLabel={(option: any): string => option["label"]}*/}
+            {/*  getOptionValue={(option: any): string => option["value"]}*/}
+            {/*  value={sortDirectionOptions.find((dir: sortDirectionOption) => dir.value === selected.direction)}*/}
+            {/*/>*/}
+          </div>
+          <div className={styles.dismissIconWrapper}>
+            <DismissIcon
+              onClick={() => {
+                handleRemoveSort(index);
+              }}
             />
           </div>
-          <DismissIcon
-            onClick={() => {
-              handleRemoveSort(index);
-            }}
-          />
         </div>
       )}
     </Draggable>
@@ -175,7 +182,7 @@ const SortSection = (props: SortSectionProps) => {
       onDragEnd={onDragEnd}
     >
       <div className={styles.sortPopoverContent}>
-        {!props.sortBy.length && <div className={styles.noFilters}>No sorting</div>}
+        {!props.sortBy.length && <div className={styles.noFilters}>Not sorted</div>}
 
         {!!props.sortBy.length && (
           <Droppable droppableId={droppableContainerId}>
@@ -201,7 +208,7 @@ const SortSection = (props: SortSectionProps) => {
         )}
 
         <div className={styles.buttonsRow}>
-          <DefaultButton onClick={() => handleAddSort()} text={"Add Sort"} icon={<AddIcon />} />
+          <DefaultButton onClick={() => handleAddSort()} text={"Add"} icon={<AddIcon />} />
         </div>
       </div>
     </DragDropContext>

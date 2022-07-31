@@ -12,8 +12,6 @@ import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
-  TableControlsTabsGroup,
-  TableControlsTab,
 } from "../tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TransactTabs from "./TransactTabs";

@@ -8,7 +8,7 @@ import LoginPage from "./features/auth/LoginPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import styles from "./app.module.scss";
 import { Cookies } from "react-cookie";
-import { useLogoutMutation } from "apiSlice";
+import { useGetTableViewsQuery, useLogoutMutation } from "apiSlice";
 import Toasts, { addToastHandle } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import { BrowserRouter } from "react-router-dom";
@@ -69,6 +69,14 @@ function App() {
               <Route path="/analyse">
                 <Route
                   path="forwards"
+                  element={
+                    <RequireAuth>
+                      <ForwardsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="forwards/:viewId"
                   element={
                     <RequireAuth>
                       <ForwardsPage />

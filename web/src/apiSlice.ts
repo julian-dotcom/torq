@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { ViewInterface, viewOrderInterface } from "features/forwards/tableSlice";
+import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSlice";
 import { settings, timeZone, localNode } from "./apiTypes";
 
 const buildBaseUrl = () => {

@@ -1,6 +1,6 @@
 import Table from "../table/tableContent/Table";
 import { useGetChannelsQuery, useGetTableViewsQuery } from "apiSlice";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
@@ -8,13 +8,18 @@ import {
   ArrowJoin20Regular as GroupIcon,
 } from "@fluentui/react-icons";
 import Sidebar, { SidebarSection } from "../sidebar/Sidebar";
+import { useParams } from "react-router-dom";
+import { orderBy, cloneDeep } from "lodash";
+import { applyFilters, Clause, deserialiseQuery } from "features/sidebar/sections/filter/filter";
+import { groupByFn } from "features/sidebar/sections/group/groupBy";
+
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "../tablePageTemplate/TablePageTemplate";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   updateColumns,
@@ -27,14 +32,15 @@ import {
   updateSortBy,
   selectGroupBy,
   updateGroupBy,
-} from "./tableSlice";
+} from "./forwardsSlice";
+import ViewsPopover from "./views/ViewsPopover";
 import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
 import FilterSection from "../sidebar/sections/filter/FilterSection";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
-import { Clause, deserialiseQuery } from "../sidebar/sections/filter/filter";
 import SortSection, { SortByOptionType } from "../sidebar/sections/sort/SortSection";
 import GroupBySection from "../sidebar/sections/group/GroupBySection";
+import clone from "../../clone";
 
 type sections = {
   filter: boolean;
@@ -45,21 +51,32 @@ type sections = {
 
 function ForwardsPage() {
   // initial getting of the table views from the database
-  useGetTableViewsQuery();
+
   const dispatch = useAppDispatch();
 
-  const activeColumns = useAppSelector(selectActiveColumns);
-  const columns = useAppSelector(selectAllColumns);
-  const filters = useAppSelector(selectFilters);
-  const sortBy = useAppSelector(selectSortBy);
-  const groupedBy = useAppSelector(selectGroupBy) || "channels";
-
-  // const activeColumns = clone<ColumnMetaData[]>(useAppSelector(selectActiveColumns)) || [];
   const currentPeriod = useAppSelector(selectTimeInterval);
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
 
-  const { data = [], isLoading } = useGetChannelsQuery({ from: from, to: to });
+  const viewResponse = useGetTableViewsQuery();
+  const chanResponse = useGetChannelsQuery({ from: from, to: to });
+
+  const columns = useAppSelector(selectAllColumns);
+  const sortBy = useAppSelector(selectSortBy);
+  const groupBy = useAppSelector(selectGroupBy) || "channels";
+  const filters = useAppSelector(selectFilters);
+
+  const activeColumns = clone<Array<ColumnMetaData>>(useAppSelector(selectActiveColumns)) || [];
+  const data = clone<ColumnMetaData[]>(chanResponse.data) || [];
+
+  // useEffect(() => {
+  //   if (viewId === "" && !viewResponse.isLoading) {
+  //     // window.history.replaceState(null, "", "/analyse/forwards/" + viewResponse.data[0].title);
+  //     navigate("/analyse/forwards/" + (viewResponse.data[0].view.title || "").replace(/\s+/g, "-").toLowerCase(), {
+  //       replace: true,
+  //     });
+  //   }
+  // }, [viewResponse.isLoading]);
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -106,7 +123,7 @@ function ForwardsPage() {
 
   const tableControls = (
     <TableControlSection>
-      <TableControlsTabsGroup />
+      <TableControlsTabsGroup>{!viewResponse.isLoading && <ViewsPopover />}</TableControlsTabsGroup>
       <TableControlsButtonGroup>
         <TableControlsButton
           onClickHandler={setSection("columns")}
@@ -179,12 +196,59 @@ function ForwardsPage() {
         expanded={activeSidebarSections.group}
         sectionToggleHandler={sidebarSectionHandler("group")}
       >
-        <GroupBySection groupBy={groupedBy} groupByHandler={handleGroupByUpdate} />
+        <GroupBySection groupBy={groupBy} groupByHandler={handleGroupByUpdate} />
       </SidebarSection>
     </Sidebar>
   );
 
   const breadcrumbs = ["Analyse", <Link to={"/analyse/forwards"}>Forwards</Link>];
+
+  const channels = useMemo(() => {
+    let channels = cloneDeep(data ? data : ([] as any[]));
+
+    if (channels.length > 0) {
+      channels = groupByFn(channels, groupBy || "channels");
+    }
+    if (filters) {
+      let f = deserialiseQuery(clone<Clause>(filters));
+      channels = applyFilters(f, channels);
+    }
+    return orderBy(
+      channels,
+      sortBy.map((s) => s.value),
+      sortBy.map((s) => s.direction) as ["asc" | "desc"]
+    );
+  }, [chanResponse.data, filters, groupBy, sortBy]);
+
+  /* const channels = data || []; */
+  if (channels.length > 0) {
+    for (const channel of channels) {
+      for (const column of activeColumns) {
+        column.total = (column.total ?? 0) + channel[column.key];
+        column.max = Math.max(column.max ?? 0, channel[column.key] ?? 0);
+      }
+    }
+
+    const turnover_total_col = activeColumns.find((col) => col.key === "turnover_total");
+    const turnover_out_col = activeColumns.find((col) => col.key === "turnover_out");
+    const turnover_in_col = activeColumns.find((col) => col.key === "turnover_in");
+    const amount_total_col = activeColumns.find((col) => col.key === "amount_total");
+    const amount_out_col = activeColumns.find((col) => col.key === "amount_out");
+    const amount_in_col = activeColumns.find((col) => col.key === "amount_in");
+    const capacity_col = activeColumns.find((col) => col.key === "capacity");
+    if (turnover_total_col) {
+      turnover_total_col.total = (amount_total_col?.total ?? 0) / (capacity_col?.total ?? 1);
+    }
+
+    if (turnover_out_col) {
+      turnover_out_col.total = (amount_out_col?.total ?? 0) / (capacity_col?.total ?? 1);
+    }
+
+    if (turnover_in_col) {
+      turnover_in_col.total = (amount_in_col?.total ?? 0) / (capacity_col?.total ?? 1);
+    }
+  }
+
   return (
     <TablePageTemplate
       title={"Forwards"}
@@ -193,7 +257,11 @@ function ForwardsPage() {
       sidebar={sidebar}
       tableControls={tableControls}
     >
-      <Table activeColumns={activeColumns} data={data} isLoading={isLoading} />
+      <Table
+        activeColumns={activeColumns}
+        data={channels}
+        isLoading={chanResponse.isLoading || chanResponse.isFetching || chanResponse.isUninitialized}
+      />
     </TablePageTemplate>
   );
 }

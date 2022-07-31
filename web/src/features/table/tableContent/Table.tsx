@@ -6,13 +6,9 @@ import NumericCell from "../cells/NumericCell";
 import BarCell from "../cells/BarCell";
 import TextCell from "../cells/TextCell";
 import { useAppSelector } from "../../../store/hooks";
-import { ColumnMetaData, selectFilters, selectGroupBy, selectSortBy } from "../../forwards/tableSlice";
+import { ColumnMetaData, selectFilters, selectGroupBy, selectSortBy } from "../../forwards/forwardsSlice";
 import classNames from "classnames";
 import clone from "clone";
-import { useMemo } from "react";
-import _, { cloneDeep } from "lodash";
-import { applyFilters, Clause, deserialiseQuery } from "../../sidebar/sections/filter/filter";
-import { groupByFn } from "../../sidebar/sections/group/groupBy";
 
 type TableProps = {
   activeColumns: Array<ColumnMetaData>;
@@ -21,61 +17,8 @@ type TableProps = {
 };
 
 function Table(props: TableProps) {
-  const activeColumns = clone<Array<ColumnMetaData>>(props.activeColumns) || [];
-  const data = clone<ColumnMetaData[]>(props.data) || [];
-  const filtersFromStore = useAppSelector(selectFilters);
-  const groupBy = useAppSelector(selectGroupBy);
-  const sortBy = useAppSelector(selectSortBy);
-
-  const channels = useMemo(() => {
-    const filters = filtersFromStore ? deserialiseQuery(clone<Clause>(filtersFromStore)) : undefined;
-    let channels = cloneDeep(data ? data : ([] as any[]));
-
-    if (channels.length > 0) {
-      channels = groupByFn(channels, groupBy || "channels");
-    }
-    if (filters) {
-      channels = applyFilters(filters, channels);
-    }
-    const results = _.orderBy(
-      channels,
-      sortBy.map((s) => s.value),
-      sortBy.map((s) => s.direction) as ["asc" | "desc"]
-    );
-    return results;
-  }, [data, filtersFromStore, groupBy, sortBy]);
-
-  /* const channels = data || []; */
-  if (channels.length > 0) {
-    for (const channel of channels) {
-      for (const column of activeColumns) {
-        column.total = (column.total ?? 0) + channel[column.key];
-        column.max = Math.max(column.max ?? 0, channel[column.key] ?? 0);
-      }
-    }
-
-    const turnover_total_col = activeColumns.find((col) => col.key === "turnover_total");
-    const turnover_out_col = activeColumns.find((col) => col.key === "turnover_out");
-    const turnover_in_col = activeColumns.find((col) => col.key === "turnover_in");
-    const amount_total_col = activeColumns.find((col) => col.key === "amount_total");
-    const amount_out_col = activeColumns.find((col) => col.key === "amount_out");
-    const amount_in_col = activeColumns.find((col) => col.key === "amount_in");
-    const capacity_col = activeColumns.find((col) => col.key === "capacity");
-    if (turnover_total_col) {
-      turnover_total_col.total = (amount_total_col?.total ?? 0) / (capacity_col?.total ?? 1);
-    }
-
-    if (turnover_out_col) {
-      turnover_out_col.total = (amount_out_col?.total ?? 0) / (capacity_col?.total ?? 1);
-    }
-
-    if (turnover_in_col) {
-      turnover_in_col.total = (amount_in_col?.total ?? 0) / (capacity_col?.total ?? 1);
-    }
-  }
-
-  const numColumns = Object.keys(activeColumns).length;
-  const numRows = channels.length;
+  const numColumns = Object.keys(props.activeColumns).length;
+  const numRows = (props.data || []).length;
   const rowGridStyle = (numRows: number): string => {
     if (numRows > 0) {
       return "grid-template-rows: min-content repeat(" + numRows + ",min-content) auto min-content;";
@@ -84,10 +27,7 @@ function Table(props: TableProps) {
     }
   };
 
-  const tableClass = classNames(styles.tableContent, {
-    [styles.loading]: props.isLoading,
-    [styles.idle]: !props.isLoading,
-  });
+  const tableClass = classNames(styles.tableContent, { [styles.loading]: props.isLoading });
 
   const customStyle =
     "." +
@@ -98,6 +38,10 @@ function Table(props: TableProps) {
     ",  minmax(min-content, auto)) min-content;" +
     rowGridStyle(numRows) +
     "}";
+
+  if (!props.data) {
+    return <div className={styles.tableWrapper}>No data</div>;
+  }
 
   return (
     <div className={styles.tableWrapper}>
@@ -114,7 +58,7 @@ function Table(props: TableProps) {
         }
 
         {/* Header cells */}
-        {activeColumns.map((column, index) => {
+        {props.activeColumns.map((column, index) => {
           return (
             <HeaderCell
               heading={column.heading}
@@ -135,8 +79,8 @@ function Table(props: TableProps) {
         }
 
         {/* The main cells containing the data */}
-        {channels.map((row: any, index: any) => {
-          const returnedRow = activeColumns.map((column, columnIndex) => {
+        {props.data.map((row: any, index: any) => {
+          const returnedRow = props.activeColumns.map((column, columnIndex) => {
             const key = column.key;
             switch (column.type) {
               case "AliasCell":
@@ -209,7 +153,7 @@ function Table(props: TableProps) {
         {/* Empty filler cells to create an empty row that expands to push the last row down.
            It's ugly but seems to be the only way to do it */}
         {<div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked)} />}
-        {activeColumns.map((column, index) => {
+        {props.activeColumns.map((column, index) => {
           return (
             <div
               className={classNames(cellStyles.cell, cellStyles.empty, column.key)}
@@ -223,7 +167,7 @@ function Table(props: TableProps) {
         {/* Totals row */}
         {/* Empty cell at the start */}
         {<div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked, cellStyles.totalCell)} />}
-        {activeColumns.map((column, index) => {
+        {props.activeColumns.map((column, index) => {
           switch (column.type) {
             case "AliasCell":
               return (

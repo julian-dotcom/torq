@@ -1,13 +1,14 @@
 import React from "react";
-import { TableControlsTab, TableControlsTabsGroup } from "../tablePageTemplate/TablePageTemplate";
+import TabButton from "features/buttons/TabButton";
+import { TableControlsTabsGroup } from "features/tablePageTemplate/TablePageTemplate";
 
 function TransactTabs() {
   return (
     <TableControlsTabsGroup>
-      <TableControlsTab to={"/transactions/all"} title={"All"} />
-      <TableControlsTab to={"/transactions/payments"} title={"Payments"} />
-      <TableControlsTab to={"/transactions/invoices"} title={"Invoices"} />
-      <TableControlsTab to={"/transactions/onchain"} title={"On-Chain"} />
+      <TabButton to={"/transactions/all"} title={"All"} />
+      <TabButton to={"/transactions/payments"} title={"Payments"} />
+      <TabButton to={"/transactions/invoices"} title={"Invoices"} />
+      <TabButton to={"/transactions/onchain"} title={"On-Chain"} />
     </TableControlsTabsGroup>
   );
 }

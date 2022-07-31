@@ -188,7 +188,7 @@ export interface viewOrderInterface {
   view_order: number;
 }
 
-export const tableSlice = createSlice({
+export const forwardsSlice = createSlice({
   name: "table",
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
@@ -285,7 +285,7 @@ export const {
   updateSortBy,
   updateColumns,
   updateGroupBy,
-} = tableSlice.actions;
+} = forwardsSlice.actions;
 
 export const selectActiveColumns = (state: RootState) => {
   return state.table.views[state.table.selectedViewIndex].columns || [];
@@ -301,4 +301,4 @@ export const selectCurrentView = (state: RootState) => state.table.views[state.t
 export const selectedViewIndex = (state: RootState) => state.table.selectedViewIndex;
 export const selectStatus = (state: RootState) => state.table.status;
 
-export default tableSlice.reducer;
+export default forwardsSlice.reducer;

@@ -10,8 +10,8 @@ import {
 } from "@fluentui/react-icons";
 import { useState } from "react";
 import classNames from "classnames";
-
-import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
+import TabButton from "features/buttons/TabButton";
+import { useAppDispatch, useAppSelector } from "store/hooks";
 import {
   selectViews,
   updateViews,
@@ -21,9 +21,9 @@ import {
   viewOrderInterface,
   DefaultView,
   updateViewsOrder,
-} from "../../../forwards/tableSlice";
-import Popover from "../../../popover/Popover";
-import DefaultButton from "../../../buttons/Button";
+} from "features/forwards/forwardsSlice";
+import Popover from "features/popover/Popover";
+import DefaultButton from "features/buttons/Button";
 import {
   useCreateTableViewMutation,
   useUpdateTableViewMutation,
@@ -172,11 +172,11 @@ function ViewsPopover() {
     updateTableViewsOrder(order);
   };
 
-  let popOverButton = <DefaultButton text={views[selectedView].title} icon={<TableIcon />} className={""} />;
+  let button = <TabButton title={views[selectedView].title} dropDown={true} />;
 
   const singleView = views.length <= 1;
   return (
-    <Popover button={popOverButton}>
+    <Popover button={button}>
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="views-popover-content">
           <Droppable droppableId={droppableContainerId}>
