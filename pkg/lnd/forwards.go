@@ -54,7 +54,7 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent) error {
 		lnd_incoming_short_channel_id, lnd_outgoing_short_channel_id,
 		incoming_short_channel_id, outgoing_short_channel_id,
 		incoming_amount_msat, outgoing_amount_msat)
-	VALUES ($1, $2, $3,$4, $5,$6, $7)
+	VALUES ($1, $2, $3,$4, $5, $6, $7, $8, $9)
 	ON CONFLICT (time, time_ns) DO NOTHING;`
 
 	if len(fwh) > 0 {
