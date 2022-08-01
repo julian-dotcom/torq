@@ -1,14 +1,13 @@
 .groupRowWrapper {
   display: grid;
-  grid-row-gap: 10px;
+  grid-row-gap: 8px;
 }
 .groupRow {
   display: grid;
   grid-template-columns: min-content auto;
   grid-auto-flow: column;
-  grid-column-gap: 10px;
-  padding: 8px 10px;
-  min-width: 300px;
+  grid-column-gap: 16px;
+  padding: 8px 12px;
   align-items: center;
   border-radius: var(--radius-default);
   text-align: left;

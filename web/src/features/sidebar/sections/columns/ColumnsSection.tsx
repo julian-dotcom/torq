@@ -1,15 +1,18 @@
 import classNames from "classnames";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
-  Dismiss20Regular as RemoveIcon,
-  LockClosed20Regular as LockClosedIcon,
-  LockOpen20Regular as LockOpenIcon,
-  Add20Regular as AddIcon,
-  Reorder20Regular as DragHandle,
+  Delete16Regular as RemoveIcon,
+  Options16Regular as OptionsIcon,
+  LineHorizontal1Regular as OptionsExpandedIcon,
+  LockClosed16Regular as LockClosedIcon,
+  LockOpen16Regular as LockOpenIcon,
+  AddCircle16Regular as AddIcon,
+  ReOrder16Regular as DragHandle,
 } from "@fluentui/react-icons";
 import styles from "./columns-section.module.scss";
-import Select, { SelectOptionType } from "features/inputs/Select";
+import Select, { SelectOptionType } from "./ColumnDropDown";
 import { ColumnMetaData } from "features/forwards/forwardsSlice";
+import { useState } from "react";
 
 interface columnRow {
   column: ColumnMetaData;
@@ -34,7 +37,7 @@ function NameColumnRow({ column, index }: { column: ColumnMetaData; index: numbe
       <div className={styles.columnName}>
         <div>{column.heading}</div>
       </div>
-      <Select value={{ label: "Name", value: "AliasCell" }} isDisabled={true} />
+      {/*<Select value={{ label: "Name", value: "AliasCell" }} isDisabled={true} />*/}
     </div>
   );
 }
@@ -44,50 +47,58 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
     if (option.value === column.type) {
       return option;
     }
-  })[0] || { label: "Name", value: "AliasCell" };
+  })[0];
+
+  let [expanded, setExpanded] = useState(false);
 
   return (
     <Draggable draggableId={`draggable-column-id-${index}`} index={index}>
       {(provided, snapshot) => (
         <div
-          className={classNames(styles.columnRow, {
+          className={classNames(styles.rowContent, {
             dragging: snapshot.isDragging,
+            [styles.expanded]: expanded,
           })}
           ref={provided.innerRef}
           {...provided.draggableProps}
         >
-          <div className={classNames(styles.rowLeftIcon, styles.dragHandle)} {...provided.dragHandleProps}>
-            <DragHandle />
-          </div>
+          <div className={classNames(styles.columnRow)}>
+            <div className={classNames(styles.rowLeftIcon, styles.dragHandle)} {...provided.dragHandleProps}>
+              <DragHandle />
+            </div>
 
-          <div className={styles.columnName}>
-            <div>{column.heading}</div>
-          </div>
+            <div className={styles.columnName}>
+              <div>{column.heading}</div>
+            </div>
 
-          <div className={styles.columnTypeSelect}>
+            <div className={styles.rowOptions} onClick={() => setExpanded(!expanded)}>
+              {expanded ? <OptionsExpandedIcon /> : <OptionsIcon />}
+            </div>
+
+            <div
+              className={styles.removeColumn}
+              onClick={() => {
+                handleRemoveColumn(index + 1);
+              }}
+            >
+              <RemoveIcon />
+            </div>
+          </div>
+          <div className={styles.rowOptionsContainer}>
             <Select
               isDisabled={column.valueType === "string"}
               options={CellOptions}
               value={selectedOption}
-              onChange={(o, actionMeta) => {
+              onChange={(newValue) => {
                 handleUpdateColumn(
                   {
                     ...column,
-                    type: actionMeta.option,
+                    type: (newValue as { value: string; label: string }).value,
                   },
                   index + 1
                 );
               }}
             />
-          </div>
-
-          <div
-            className={styles.removeColumn}
-            onClick={() => {
-              handleRemoveColumn(index + 1);
-            }}
-          >
-            <RemoveIcon />
           </div>
         </div>
       )}
@@ -174,11 +185,9 @@ function ColumnsSection(props: ColumnsSectionProps) {
   return (
     <div>
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className={styles.columnsPopoverContent}>
+        <div className={styles.columnsSectionContent}>
           <div className={styles.columnRows}>
             <NameColumnRow column={props.activeColumns.slice(0, 1)[0]} key={"selected-0-name"} index={0} />
-
-            <div className={styles.divider} />
 
             <Droppable droppableId={droppableContainerId}>
               {(provided) => (
@@ -191,7 +200,7 @@ function ColumnsSection(props: ColumnsSectionProps) {
                     return (
                       <ColumnRow
                         column={column}
-                        key={"selected-" + index}
+                        key={"selected-" + column.key + "-" + index}
                         index={index}
                         handleRemoveColumn={removeColumn}
                         handleUpdateColumn={updateColumn}
@@ -206,25 +215,18 @@ function ColumnsSection(props: ColumnsSectionProps) {
             <div className={styles.divider} />
 
             <div className={styles.unselectedColumnsWrapper}>
-              <div className={styles.unselectedColumns}>
-                {props.columns.map((column, index) => {
-                  if (props.activeColumns.findIndex((ac) => ac.key === column.key) === -1) {
-                    return (
-                      <UnselectedColumn
-                        name={column.heading}
-                        key={"unselected-" + index}
-                        index={index}
-                        handleAddColumn={addColumn}
-                      />
-                    );
-                  }
-                })}
-                {props.activeColumns.length === props.columns.length ? (
-                  <div className={styles.noFilters}>All columns added</div>
-                ) : (
-                  ""
-                )}
-              </div>
+              {props.columns.map((column, index) => {
+                if (props.activeColumns.findIndex((ac) => ac.key === column.key) === -1) {
+                  return (
+                    <UnselectedColumn
+                      name={column.heading}
+                      key={"unselected-" + index}
+                      index={index}
+                      handleAddColumn={addColumn}
+                    />
+                  );
+                }
+              })}
             </div>
           </div>
         </div>
