@@ -165,15 +165,15 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 }
 
 type Htlc struct {
-	State           *uint64 `json:"state" db:"state"`
-	ChanId          *uint64 `json:"chan_id" db:"chan_id"`
-	AmtMsat         *uint64 `json:"amt_msat" db:"amt_msat"`
-	HtlcIndex       *uint64 `json:"htlc_index" db:"htlc_index"`
-	AcceptTime      *uint64 `json:"accept_time" db:"accept_time"`
-	ResolveTime     *uint64 `json:"resolve_time" db:"resolve_time"`
-	AcceptHeight    *uint64 `json:"accept_height" db:"accept_height"`
-	ExpiryHeight    *uint64 `json:"expiry_height" db:"expiry_height"`
-	MppTotalAmtMsat *uint64 `json:"mpp_total_amt_msat" db:"mpp_total_amt_msat"`
+	State             *uint64 `json:"state" db:"state"`
+	LNDShortChannelId *uint64 `json:"chan_id" db:"lnd_short_channel_id"`
+	AmtMsat           *uint64 `json:"amt_msat" db:"amt_msat"`
+	HtlcIndex         *uint64 `json:"htlc_index" db:"htlc_index"`
+	AcceptTime        *uint64 `json:"accept_time" db:"accept_time"`
+	ResolveTime       *uint64 `json:"resolve_time" db:"resolve_time"`
+	AcceptHeight      *uint64 `json:"accept_height" db:"accept_height"`
+	ExpiryHeight      *uint64 `json:"expiry_height" db:"expiry_height"`
+	MppTotalAmtMsat   *uint64 `json:"mpp_total_amt_msat" db:"mpp_total_amt_msat"`
 }
 
 type Feature struct {
@@ -193,11 +193,11 @@ type InvoiceDetails struct {
 }
 
 type HopHint struct {
-	ChanId          *uint64 `json:"chan_id" db:"chan_id"`
-	NodeId          *string `json:"node_id" db:"node_id"`
-	FeeBaseMsat     *uint64 `json:"fee_base_msat" db:"fee_base_msat"`
-	CltvExpiryDelta *uint64 `json:"cltv_expiry_delta" db:"cltv_expiry_delta"`
-	FeeProportional *uint64 `json:"fee_proportional_millionths" db:"fee_proportional_millionths"`
+	LNDShortChannelId *uint64 `json:"chan_id" db:"lnd_short_channel_id"`
+	NodeId            *string `json:"node_id" db:"node_id"`
+	FeeBaseMsat       *uint64 `json:"fee_base_msat" db:"fee_base_msat"`
+	CltvExpiryDelta   *uint64 `json:"cltv_expiry_delta" db:"cltv_expiry_delta"`
+	FeeProportional   *uint64 `json:"fee_proportional_millionths" db:"fee_proportional_millionths"`
 }
 
 type RouteHints struct {

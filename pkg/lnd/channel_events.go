@@ -430,15 +430,18 @@ icoLoop:
 	return nil
 }
 
-var sqlStm = `INSERT INTO channel_event (time, event_type, imported, chan_id, chan_point, pub_key,
-	event) VALUES($1, $2, $3, $4, $5, $6, $7);`
-
 func insertChannelEvent(db *sqlx.DB, ts time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,
-	imported bool, chanId uint64, chanPoint string, pubKey string, jb []byte) error {
-	_, err := db.Exec(sqlStm, ts, eventType, imported, chanId, chanPoint, pubKey, jb)
+	imported bool, lndShortChannelId uint64, lndChannelPoint string, pubKey string, jb []byte) error {
+
+	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
+
+	var sqlStm = `INSERT INTO channel_event (time, event_type, imported, short_channel_id, lnd_short_channel_id, lnd_channel_point, pub_key,
+	event) VALUES($1, $2, $3, $4, $5, $6, $7, $8);`
+
+	_, err := db.Exec(sqlStm, ts, eventType, imported, shortChannelId, lndShortChannelId, lndChannelPoint, pubKey, jb)
 	if err != nil {
 		return errors.Wrapf(err, `insertChannelEvent -> db.Exec(%s, %s, %d, %t, %d, %s, %s, %v)`,
-			sqlStm, ts, eventType, imported, chanId, chanPoint, pubKey, jb)
+			sqlStm, ts, eventType, imported, lndShortChannelId, lndChannelPoint, pubKey, jb)
 	}
 	return nil
 }

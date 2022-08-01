@@ -51,7 +51,7 @@ from (SELECT ts as ts,
              announcing_pub_key,
              ARRAY[announcing_pub_key] as pub_key_array,
              disabled,
-             lag(disabled, 1, false) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
+             lag(disabled, 1, false) OVER (PARTITION BY lnd_short_channel_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
       where short_channel_id in (?)
         and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
@@ -101,7 +101,7 @@ from (SELECT ts as ts,
              announcing_pub_key,
              ARRAY[announcing_pub_key] as pub_key_array,
              fee_base_msat as fee_base,
-             lag(fee_base_msat, 1, 0) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
+             lag(fee_base_msat, 1, 0) OVER (PARTITION BY lnd_short_channel_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
       where short_channel_id in (?)
         and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp

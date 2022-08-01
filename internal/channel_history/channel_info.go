@@ -12,13 +12,13 @@ type channel struct {
 	// Database primary key of channel
 	ChannelDBID null.Int `json:"channelDbId"`
 	// The channel point
-	ChanPoint null.String `json:"channel_point"`
+	LNDChannelPoint null.String `json:"channel_point"`
 	// The remote public key
 	PubKey null.String `json:"pub_key"`
 	// Short channel id in c-lightning / BOLT format
 	ShortChannelID null.String `json:"shortChannelId"`
 	// The channel ID
-	ChanId null.String `json:"chan_id"`
+	LNDShortChannelId null.String `json:"chan_id"`
 	// Is the channel open
 	Open null.Bool `json:"open"`
 
@@ -30,24 +30,24 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 
 	sql := `
 		select ne.alias,
-		       chan_id,
-		       ce.channel_point,
+		       lnd_short_channel_id,
+		       ce.lnd_channel_point,
 		       ce.pub_key,
 		       capacity,
 		       open,
-		       short_channel_id,
+		       c.short_channel_id,
 		       channel_db_id
 		from (select
-				last(chan_id, time) as chan_id,
-				last(chan_point, time) as channel_point,
+				last(lnd_short_channel_id, time) as lnd_short_channel_id,
+				last(lnd_channel_point, time) as lnd_channel_point,
 				last(pub_key, time) as pub_key,
 				last(event->'capacity', time) as capacity,
 				(last(event_type, time)) = 0 as open
 			from channel_event
 			where event_type in (0,1)
-				and (? or chan_id in (?))
-			group by chan_id) as ce
-		left join channel as c on c.channel_point = ce.channel_point
+				and (? or lnd_short_channel_id in (?))
+			group by lnd_short_channel_id) as ce
+		left join channel as c on c.lnd_channel_point = ce.lnd_channel_point
 		left join (
 			select pub_key,
 			       last(alias, timestamp) as alias
@@ -69,7 +69,7 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 
 	qsr := db.Rebind(qs)
 
-	rows, err := db.Query(qsr, args...)
+	rows, err := db.Query(qsr, args)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running getChannelsByPubkey query")
 	}
@@ -78,8 +78,8 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 		c := &channel{}
 		err = rows.Scan(
 			&c.Alias,
-			&c.ChanId,
-			&c.ChanPoint,
+			&c.LNDShortChannelId,
+			&c.LNDChannelPoint,
 			&c.PubKey,
 			&c.Capacity,
 			&c.Open,

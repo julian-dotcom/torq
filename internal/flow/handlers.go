@@ -15,11 +15,11 @@ type channelFlowData struct {
 	// Alias of remote peer
 	Alias null.String `json:"alias"`
 	// The channel point
-	ChanPoint null.String `json:"channel_point"`
+	LNDChannelPoint null.String `json:"channel_point"`
 	// The remote public key
 	PubKey null.String `json:"pub_key"`
 	// Short channel id in c-lightning / BOLT format
-	ChanId null.String `json:"chan_id"`
+	LNDShortChannelId null.String `json:"chan_id"`
 
 	// The  outbound amount in sats (Satoshis)
 	AmountOut uint64 `json:"amount_out"`
@@ -73,8 +73,8 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 	const sql = `
 		select
 			ne.alias,
-			fw.chan_id,
-			ce.chan_point,
+			fw.lnd_short_channel_id,
+			ce.lnd_channel_point,
 			ne.pub_key,
 
 			coalesce(fw.amount_in, 0) as amount_in,
@@ -86,7 +86,7 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 			coalesce(fw.count_out, 0) as count_out
 		from (
 			select
-				coalesce(o.outgoing_channel_id, i.incoming_channel_id) as chan_id,
+				coalesce(o.lnd_outgoing_short_channel_id, i.lnd_incoming_short_channel_id) as lnd_short_channel_id,
 				i.amount as amount_in,
 				o.amount as amount_out,
 				i.revenue as revenue_in,
@@ -95,36 +95,36 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 				o.count as count_out
 				from
 						 (select
-					outgoing_channel_id,
+					lnd_outgoing_short_channel_id,
 					floor(sum(outgoing_amount_msat)/1000) as amount,
 					floor(sum(fee_msat)/1000) as revenue,
 					count(time) as count
 				from forward as fw
 				where time >= ?
             		and time <= ?
-					and ((?) or (incoming_channel_id in (?)))
-				group by outgoing_channel_id) as o
+					and ((?) or (lnd_incoming_short_channel_id in (?)))
+				group by lnd_outgoing_short_channel_id) as o
 				full outer join (
 				select
-					incoming_channel_id,
+					lnd_incoming_short_channel_id,
 					floor(sum(outgoing_amount_msat)/1000) as amount,
 					floor(sum(fee_msat)/1000) as revenue,
 					count(time) as count
 				from forward as fw
 				where time >= ?
             		and time <= ?
-					and ((?) or (outgoing_channel_id in (?)))
-				group by incoming_channel_id) as i on o.outgoing_channel_id = i.incoming_channel_id) as fw
+					and ((?) or (lnd_outgoing_short_channel_id in (?)))
+				group by lnd_incoming_short_channel_id) as i on o.lnd_outgoing_short_channel_id = i.lnd_incoming_short_channel_id) as fw
 			left join (
 			select
-				chan_id,
-				chan_point,
+				lnd_short_channel_id,
+				lnd_channel_point,
 				pub_key,
 				last(event->'capacity', time) as capacity,
 				(1-last(event_type, time)) as open
 			from channel_event where event_type in (0,1)
-		   group by chan_id, chan_point, pub_key
-		) as ce on fw.chan_id = ce.chan_id
+		   group by lnd_short_channel_id, lnd_channel_point, pub_key
+		) as ce on fw.lnd_short_channel_id = ce.lnd_short_channel_id
 		left join (
 			select
 				pub_key,
@@ -148,7 +148,7 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 	}
 
 	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args...)
+	rows, err := db.Query(qsr, args)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running flow query")
 	}
@@ -157,8 +157,8 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 		c := &channelFlowData{}
 		err = rows.Scan(
 			&c.Alias,
-			&c.ChanId,
-			&c.ChanPoint,
+			&c.LNDShortChannelId,
+			&c.LNDChannelPoint,
 			&c.PubKey,
 
 			&c.AmountOut,

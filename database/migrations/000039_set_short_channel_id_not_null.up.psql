@@ -1,5 +1,4 @@
 
-
 ALTER TABLE channel ALTER COLUMN lnd_short_channel_id SET NOT NULL;
 -- ALTER TABLE forward ALTER COLUMN outgoing_short_channel_id SET NOT NULL;
 -- ALTER TABLE forward ALTER COLUMN incoming_short_channel_id SET NOT NULL;

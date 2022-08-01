@@ -17,7 +17,7 @@ type Transaction struct {
 	TotalFeesMsat      int64          `json:"total_fees_msat" db:"total_fees_msat"`
 	Label              *string        `json:"label" db:"label"`
 	LndTxTypeLabel     *string        `json:"lnd_tx_type_label" db:"lnd_tx_type_label"`
-	LndShortChanId     *string        `json:"lnd_short_chan_id" db:"lnd_short_chan_id"`
+	LndShortChannelId  *string        `json:"lnd_short_chan_id" db:"lnd_short_chan_id"`
 	//BlockHash        *string   `json:"block_hash" db:"block_hash"`
 	//BlockHeight      uint64    `json:"block_height" db:"block_height"`
 	//RawTxHex         string    `json:"raw_tx_hex" db:"raw_tx_hex"`
@@ -78,7 +78,7 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 			&tx.TotalFeesMsat,
 			&tx.Label,
 			&tx.LndTxTypeLabel,
-			&tx.LndShortChanId,
+			&tx.LndShortChannelId,
 		)
 
 		if err != nil {

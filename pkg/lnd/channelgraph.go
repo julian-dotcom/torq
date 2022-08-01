@@ -131,9 +131,9 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
 
 const rpQuery = `
 INSERT INTO routing_policy (ts,
-	chan_id,
+	lnd_short_channel_id,
 	announcing_pub_key,
-	chan_point,
+	lnd_channel_point,
 	outbound,
 	disabled,
 	time_lock_delta,
@@ -144,7 +144,7 @@ INSERT INTO routing_policy (ts,
 select $1, $2, $3,$4, $5, $6, $7, $8, $9, $10, $11
 WHERE NOT EXISTS (
 	select true
-	from (select last(chan_id,ts) chan_id,
+	from (select last(lnd_short_channel_id,ts) lnd_short_channel_id,
 			last(announcing_pub_key, ts) as announcing_pub_key,
 			last(disabled,ts) disabled,
 			last(time_lock_delta,ts) time_lock_delta,
@@ -153,8 +153,8 @@ WHERE NOT EXISTS (
 			last(fee_base_msat,ts) fee_base_msat,
 			last(fee_rate_mill_msat, ts) fee_rate_mill_msat
 		from routing_policy
-		group by chan_id, announcing_pub_key) as a
-	where a.chan_id = $12 and
+		group by lnd_short_channel_id, announcing_pub_key) as a
+	where a.lnd_short_channel_id = $12 and
 		  a.announcing_pub_key = $13 and
 		  a.disabled = $14 and
 		  a.time_lock_delta = $15 and

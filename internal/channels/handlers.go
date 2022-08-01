@@ -43,7 +43,7 @@ type channelTableRow struct {
 	// Short channel id in c-lightning / BOLT format
 	ShortChannelID null.String `json:"shortChannelId"`
 	// The channel ID
-	ChanId null.String `json:"chan_id"`
+	LNDShortChannelId null.String `json:"chan_id"`
 	// Color of remote peer (Vanity)
 	Color null.String `json:"color"`
 	// Is the channel open
@@ -174,7 +174,7 @@ left join (
 			&c.LNDChannelPoint,
 			&c.PubKey,
 			&c.ShortChannelID,
-			&c.ChanId,
+			&c.LNDShortChannelId,
 			&c.Color,
 			&c.Open,
 

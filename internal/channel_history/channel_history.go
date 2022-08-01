@@ -57,28 +57,28 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time,
 			sum(coalesce((coalesce(i.count,0) + coalesce(o.count,0)), 0)) as count_total
 		from settings, (
 			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE (table tz), ?, ?) as date,
-				   outgoing_channel_id chan_id,
+				   lnd_outgoing_short_channel_id lnd_short_channel_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where ((table allChannels)::boolean or outgoing_channel_id in (?))
+			where ((table allChannels)::boolean or lnd_outgoing_short_channel_id in (?))
 				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
 				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
-			group by date, outgoing_channel_id
+			group by date, lnd_outgoing_short_channel_id
 			) as o
 		full outer join (
 			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE (table tz), ?, ?) as date,
-				   incoming_channel_id as chan_id,
+				   lnd_incoming_short_channel_id as lnd_short_channel_id,
 				   floor(sum(incoming_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where ((table allChannels)::boolean or incoming_channel_id in (?))
+			where ((table allChannels)::boolean or lnd_incoming_short_channel_id in (?))
 				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
 				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
-			group by date, incoming_channel_id)  as i
-		on (i.chan_id = o.chan_id) and (i.date = o.date)
+			group by date, lnd_incoming_short_channel_id)  as i
+		on (i.lnd_short_channel_id = o.lnd_short_channel_id) and (i.date = o.date)
 		group by (coalesce(i.date, o.date)), (table tz)
 		order by date;
 	`
@@ -97,7 +97,7 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time,
 	}
 
 	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args...)
+	rows, err := db.Query(qsr, args)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running getChannelHistory query")
 	}
