@@ -146,7 +146,7 @@ left join (
         from forward, settings
         where time::timestamp AT TIME ZONE settings.preferred_timezone >= $1::timestamp AT TIME ZONE settings.preferred_timezone
             and time::timestamp AT TIME ZONE settings.preferred_timezone <= $2::timestamp AT TIME ZONE settings.preferred_timezone
-        group by outgoing_channel_id
+        group by lnd_outgoing_short_channel_id
         ) as o
     full outer join (
         select incoming_short_channel_id as short_channel_id,
@@ -156,7 +156,7 @@ left join (
         from forward, settings
         where time::timestamp AT TIME ZONE settings.preferred_timezone >= $1::timestamp AT TIME ZONE settings.preferred_timezone
             and time::timestamp AT TIME ZONE settings.preferred_timezone <= $2::timestamp AT TIME ZONE settings.preferred_timezone
-        group by incoming_channel_id) as i
+        group by lnd_incoming_short_channel_id) as i
     on i.short_channel_id = o.short_channel_id
 ) as fw on fw.short_channel_id = ce.short_channel_id
 `

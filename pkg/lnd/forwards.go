@@ -23,11 +23,11 @@ type dbForwardEvent struct {
 	TimeNs uint64 `db:"time_ns"`
 
 	// The incoming channel ID that carried the HTLC that created the circuit.
-	ChanIdIn uint64 `db:"incoming_channel_id"`
+	LNDIncomingShortChannelId uint64 `db:"lnd_incoming_short_channel_id"`
 
 	// The outgoing channel ID that carried the preimage that completed the
 	// circuit.
-	ChanIdOut uint64 `db:"outgoing_channel_id"`
+	LNDOutgoingShortChannelId uint64 `db:"lnd_outgoing_short_channel_id"`
 
 	// The total fee (in milli-satoshis) that this payment circuit carried.
 	FeeMsat uint64 `db:"fee_msat"`
@@ -46,7 +46,7 @@ func convMicro(ns uint64) time.Time {
 }
 
 const querySfwh = `INSERT INTO forward(time, time_ns, fee_msat,
-		incoming_channel_id, outgoing_channel_id,
+		lnd_incoming_short_channel_id, lnd_outgoing_short_channel_id,
 		incoming_amount_msat, outgoing_amount_msat)
 	VALUES ($1, $2, $3,$4, $5,$6, $7)
 	ON CONFLICT (time, time_ns) DO NOTHING;`

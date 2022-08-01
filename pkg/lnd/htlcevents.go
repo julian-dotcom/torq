@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
-	"go.uber.org/ratelimit"
 	"io"
 	"log"
 	"time"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/lncapital/torq/internal/channels"
+	"go.uber.org/ratelimit"
 )
 
 func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.LinkFailEvent) error {
@@ -25,8 +27,10 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 	htlc_event (
 		time,
 		event_origin,
-		outgoing_channel_id,
-		incoming_channel_id,
+		lnd_outgoing_short_channel_id,
+		lnd_incoming_short_channel_id,
+		outgoing_short_channel_id,
+		incoming_short_channel_id,
 		timestamp_ns,
 		data,
 		event_type,
@@ -40,16 +44,21 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 		bolt_failure_string,
 		lnd_failure_detail
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 	`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+
+	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
+	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
 
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
 		h.OutgoingChannelId,
 		h.IncomingChannelId,
+		outgoingShortChannelId,
+		incomingShortChannelId,
 		h.TimestampNs,
 		jb,
 		"LinkFailEvent",
@@ -84,24 +93,30 @@ func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Settle
 	htlc_event (
 		time,
 		event_origin,
-		outgoing_channel_id,
-		incoming_channel_id,
+		lnd_outgoing_short_channel_id,
+		lnd_incoming_short_channel_id,
+		outgoing_short_channel_id,
+		incoming_short_channel_id,
 		timestamp_ns,
 		data,
 		event_type,
 		outgoing_htlc_id,
 		incoming_htlc_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
+	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
 
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
 		h.OutgoingChannelId,
 		h.IncomingChannelId,
+		outgoingShortChannelId,
+		incomingShortChannelId,
 		h.TimestampNs,
 		jb,
 		"SettleEvent",
@@ -129,24 +144,30 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
 	htlc_event (
 		time,
 		event_origin,
-		outgoing_channel_id,
-		incoming_channel_id,
+		lnd_outgoing_short_channel_id,
+		lnd_incoming_short_channel_id,
+		outgoing_short_channel_id,
+		incoming_short_channel_id,
 		timestamp_ns,
 		data,
 		event_type,
 		outgoing_htlc_id,
 		incoming_htlc_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
+	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
 
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
 		h.OutgoingChannelId,
 		h.IncomingChannelId,
+		outgoingShortChannelId,
+		incomingShortChannelId,
 		h.TimestampNs,
 		jb,
 		"ForwardFailEvent",
@@ -174,8 +195,10 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 	htlc_event (
 		time,
 		event_origin,
-		outgoing_channel_id,
-		incoming_channel_id,
+		lnd_outgoing_short_channel_id,
+		lnd_incoming_short_channel_id,
+		outgoing_short_channel_id,
+		incoming_short_channel_id,
 		timestamp_ns,
 		data,
 		event_type,
@@ -186,16 +209,20 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 		outgoing_htlc_id,
 		incoming_htlc_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 	`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
+	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
 
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
 		h.OutgoingChannelId,
 		h.IncomingChannelId,
+		outgoingShortChannelId,
+		incomingShortChannelId,
 		h.TimestampNs,
 		jb,
 		"ForwardEvent",
