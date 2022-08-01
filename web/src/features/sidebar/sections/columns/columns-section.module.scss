@@ -1,0 +1,152 @@
+.columnsSectionContent {
+  //@media only screen and (max-width: 900px) {
+  //  width: 100%;
+  //}
+  display: grid;
+  row-gap: 20px;
+}
+.columnRows {
+  display: grid;
+  grid-row-gap: 8px;
+  font-size: 12px;
+}
+//.divider {
+//  border-top: 1px solid var(--bg-subtle);
+//}
+.removeColumn.disabled {
+  color: var(--fg-subtle);
+}
+.columnSearchWrapper {
+  position: relative;
+  .searchIcon {
+    position: absolute;
+    top: 0;
+    left: 10px;
+    height: 100%;
+    display: grid;
+    align-items: center;
+    margin-top: -0.5px;
+    font-size: 18px;
+  }
+  input.columnSearchField {
+    padding-left: 40px;
+    font-size: var(--font-size-default);
+  }
+}
+.columnRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 34px auto 34px 34px;
+  //grid-template-rows: minmax(34px, auto);
+  align-items: center;
+  justify-items: center;
+  background-color: var(--secondary-1-50);
+  padding: 0;
+  font-size: 12px;
+  border-radius: 2px;
+  color: var(--secondary-1-500);
+  //@media only screen and (max-width: 600px) {
+  //  grid-template-columns: 34px 1fr 1fr 34px;
+  //  .columnName {
+  //    white-space: nowrap;
+  //    text-overflow: ellipsis;
+  //    overflow: hidden;
+  //  }
+  //}
+}
+.rowOptions {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border-left: 1px solid var(--secondary-1-150);
+  padding: 8px;
+  width: 34px;
+  height: 100%;
+  &:hover {
+    background-color: var(--secondary-1-100);
+  }
+}
+.rowContent .rowOptionsContainer {
+  height: 0px;
+  overflow: hidden;
+}
+.rowContent.expanded {
+  display: grid;
+  grid-template-rows: min-content auto;
+  background-color: var(--secondary-1-0);
+  //.rowOptions {
+  //  background-color: var(--secondary-1-100);
+  //}
+  .rowOptionsContainer {
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+    padding: 8px;
+    border: 1px solid var(--secondary-1-50);
+    overflow: initial;
+    height: auto;
+  }
+}
+.columnName {
+  justify-self: stretch;
+  color: var(--content-default);
+  text-overflow: ellipsis;
+  padding: 8px 4px;
+  //&:hover {
+  //  background-color: var(--secondary-1-100);
+  //}
+}
+.rowLeftIcon {
+  padding: 8px;
+}
+.removeColumn,
+.dragHandle,
+.addColumn {
+  display: grid;
+  align-items: center;
+  cursor: pointer;
+  border-left: 1px solid var(--secondary-1-150);
+  padding: 8px;
+  height: 100%;
+  &:hover {
+    background-color: var(--secondary-1-100);
+  }
+}
+.dragHandle {
+  border-left: none;
+}
+.unselectedColumnsWrapper {
+  display: grid;
+  grid-row-gap: 8px;
+}
+
+.unselectedColumnRow {
+  display: grid;
+  grid-template-columns: auto 34px;
+  background-color: var(--primary-0);
+  color: var(--primary-600);
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  &:hover {
+    background-color: var(--primary-100);
+  }
+}
+.unselectedColumnName {
+  text-overflow: ellipsis;
+  padding: 8px 16px;
+}
+.addColumn {
+  color: var(--primary-600);
+  border-color: var(--primary-150);
+  &:hover {
+    background-color: var(--primary-100);
+  }
+}
+.noColumns {
+  padding: 8px 12px 7px;
+  background-color: var(--bg-extra-faint);
+  border: 1px solid var(--bg-subtle);
+  border-radius: 2px;
+  color: var(--fg-muted);
+}

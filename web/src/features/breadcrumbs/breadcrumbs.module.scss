@@ -1,0 +1,13 @@
+.breadcrumbs {
+  color: var(--content-muted);
+  a,
+  a:link,
+  a:visited {
+    color: var(--content-muted);
+  }
+  a:hover,
+  a:active {
+    color: var(--content-default);
+    font-weight: 400;
+  }
+}

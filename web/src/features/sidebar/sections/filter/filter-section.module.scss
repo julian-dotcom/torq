@@ -1,0 +1,105 @@
+.noFilters {
+  padding: 5px 10px;
+  background-color: var(--bg-extra-faint);
+  border: 1px solid var(--bg-subtle);
+  border-radius: 2px;
+  color: var(--fg-muted);
+}
+
+.filterPopoverContent {
+  width: 700px;
+  @media only screen and (max-width: 900px) {
+    width: 100%;
+  }
+
+  .filterRows {
+    display: grid;
+    justify-content: stretch;
+    grid-row-gap: 10px;
+    margin-bottom: 20px;
+    @media only screen and (max-width: 700px) {
+      grid-row-gap: 30px;
+    }
+  }
+
+  .childFilter {
+    border-radius: 3px;
+    border: 1px solid var(--bg-subtle);
+    background-color: var(--bg-extra-faint);
+    padding: 10px;
+  }
+  .buttonsRow {
+    display: grid;
+    grid-auto-flow: column;
+    justify-items: left;
+    justify-content: left;
+  }
+  .combinerLabel {
+    padding: 10px;
+  }
+  .filterRow {
+    display: grid;
+    grid-auto-flow: column;
+    grid-column-gap: 10px;
+    align-items: top;
+    grid-template-columns: 85px auto;
+    justify-content: stretch;
+    justify-items: stretch;
+    .removeFilter.mobileRemove {
+      display: none;
+    }
+    @media only screen and (max-width: 700px) {
+      .removeFilter.mobileRemove {
+        display: grid;
+      }
+      .removeFilter.desktopRemove {
+        display: none;
+      }
+      .combinerContainer {
+        display: grid;
+        grid-template-columns: max-content min-content;
+        justify-content: space-between;
+      }
+      grid-auto-flow: row;
+      grid-template-columns: auto;
+      grid-row-gap: 5px;
+      //grid-template-columns: 36px 1fr 1fr 1fr 36px;
+    }
+  }
+  .filter {
+    display: grid;
+    grid-auto-flow: column;
+    grid-column-gap: 10px;
+    align-items: center;
+    grid-template-columns: 210px 80px auto 30px;
+    justify-content: stretch;
+    justify-items: stretch;
+    .removeFilter.mobileRemove {
+      display: none;
+    }
+    @media only screen and (max-width: 700px) {
+      .removeFilter.mobileRemove {
+        display: grid;
+      }
+      .removeFilter.desktopRemove {
+        display: none;
+      }
+      .combiner-container {
+        display: grid;
+        grid-template-columns: max-content min-content;
+        justify-content: space-between;
+      }
+      grid-auto-flow: row;
+      grid-template-columns: auto;
+      grid-row-gap: 5px;
+      //grid-template-columns: 36px 1fr 1fr 1fr 36px;
+    }
+  }
+
+  .removeFilter {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    height: 100%;
+  }
+}

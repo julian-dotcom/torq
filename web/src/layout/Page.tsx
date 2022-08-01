@@ -14,15 +14,7 @@ function Page(props: pageProps) {
   const dispatch = useAppDispatch();
   return (
     <div className={styles.page}>
-      <div className={styles.headContainer}>
-        <Button
-          icon={<NavigationIcon />}
-          text={"Menu"}
-          onClick={() => dispatch(toggleNav())}
-          className={"show-nav-btn collapse-tablet"}
-        />
-        {props.head}
-      </div>
+      {props.head && <div className={styles.headContainer}>{props.head}</div>}
       {props.children}
     </div>
   );

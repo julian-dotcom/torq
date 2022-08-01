@@ -1,4 +1,4 @@
-.torq .login-page-wrapper {
+.login-page-wrapper {
   display: grid;
   align-items: start;
   justify-items: center;
@@ -38,11 +38,11 @@
     grid-column-gap: 5px;
     padding: 8px 15px 7px 10px;
     font-size: var(--font-size-default);
-    background-color: var(--primary-300);
+    background-color: var(--accent1-300);
     border-radius: 2px;
-    border: 1px solid var(--primary-400);
+    border: 1px solid var(--accent1-400);
     &:hover {
-      background-color: var(--primary-350);
+      background-color: var(--accent1-350);
     }
   }
   input.password-field {

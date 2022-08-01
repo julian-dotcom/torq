@@ -9,8 +9,8 @@
   border: 1px solid transparent;
 
   &.open {
-    background-color: var(--primary-300);
-    border: 1px solid var(--primary-400);
+    background-color: var(--accent1-300);
+    border: 1px solid var(--accent1-400);
   }
 
   &:global(.small),
@@ -41,5 +41,28 @@
     :global(.text) {
       display: none;
     }
+  }
+}
+
+/*
+Tab Button
+*/
+.tabButton {
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  grid-auto-flow: column;
+  grid-column-gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid var(--primary-150);
+  color: var(--content-default);
+  white-space: nowrap;
+  &:hover {
+    //background-color: var(--content);
+    font-weight: normal;
+    border-bottom-color: var(--primary-500);
+  }
+  &.tabSelected {
+    border-color: var(--content-default);
   }
 }

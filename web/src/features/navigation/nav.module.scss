@@ -1,0 +1,243 @@
+.navigationWrapper {
+  width: 280px;
+  overflow: hidden;
+  transition: width 200ms;
+  height: 100vh;
+  flex-shrink: 0;
+}
+.navCollapsed .navigationWrapper {
+  width: 69px;
+}
+.navigation {
+  background-color: var(--bg-default);
+  //border-right: 1px solid var(--material-layer-3);
+  height: 100vh;
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 24px;
+  grid-auto-rows: min-content;
+  grid-template-rows: min-content auto min-content;
+  width: 280px;
+  position: fixed;
+  transition: width 200ms;
+  overflow: hidden;
+}
+.navCollapsed {
+  .navigation {
+    width: 69px;
+  }
+}
+.mainNavWrapper {
+  display: grid;
+  grid-row-gap: 0px;
+  grid-auto-rows: min-content;
+}
+.bottomWrapper {
+  border-top: 1px solid var(--bg-subtle);
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.navCategory {
+  margin-bottom: 24px;
+}
+.eventsButton,
+.collapseButton {
+  padding: 8px;
+  margin: -8px;
+  display: grid;
+}
+.collapseButton {
+  color: var(--content-default);
+}
+.NavCategoryTitleContainer {
+  display: grid;
+  grid-auto-flow: column;
+  grid-row-gap: 8px;
+  width: 100%;
+  justify-content: space-between;
+  padding: 12px 24px 12px;
+  color: var(--fg-muted);
+}
+.navCategoryTitle {
+  font-weight: 400;
+}
+.navCollapsedCategoryTitle {
+  display: none;
+}
+
+.logoWrapper {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: auto min-content;
+  column-gap: 16px;
+  justify-items: start;
+  //justify-content: space-between;
+  align-items: center;
+  padding: 32px 24px 0px;
+  height: 52px;
+}
+.logo svg {
+  height: 20px;
+}
+
+@media only screen and (min-width: 901px) {
+  .navCollapsed {
+    .collapseButton {
+      padding: 32px 24px 0;
+    }
+    .NavCategoryTitleContainer {
+      display: none;
+    }
+    .navCollapsedCategoryTitle {
+      display: block;
+    }
+    .eventsButton {
+      display: none;
+    }
+    .logo {
+      display: none;
+    }
+    .logoWrapper {
+      padding: 0;
+      grid-template-columns: auto;
+      justify-items: center;
+    }
+  }
+}
+
+/*
+----------------------------
+-- Menu Items
+----------------------------
+*/
+.contentWrapper {
+  display: grid;
+  grid-auto-flow: column;
+  grid-column-gap: 5px;
+  justify-items: space-between;
+  align-items: center;
+}
+.item {
+  display: grid;
+  grid-auto-flow: row;
+  grid-auto-rows: min-content;
+}
+.contentWrapper {
+  a,
+  a:link,
+  a:visited,
+  a:active {
+    color: var(--content-muted);
+    padding: 12px 24px 12px 22px;
+    border-left: 2px solid transparent;
+    color: var(--content-muted);
+    font-weight: 500;
+  }
+
+  a:hover {
+    border-color: var(--fg-muted);
+    background-color: var(--primary-0);
+  }
+
+  a.selected {
+    border-color: var(--content-default);
+    border-right: 1px solid #91caff;
+    margin-right: -1px;
+    color: var(--content-default);
+    background-color: var(--primary-50);
+  }
+}
+
+.icon {
+  //display: grid;
+  //svg {
+  //  margin: 0;
+  //  height: 20px;
+  //  width: 20px;
+  //}
+  //&.small svg {
+  //  height: 16px;
+  //  width: 16px;
+  //}
+  //&.large svg {
+  //  height: 20px;
+  //  width: 20px;
+  //}
+}
+
+.title {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min-content auto;
+  grid-column-gap: 8px;
+  justify-content: start;
+  align-items: center;
+  color: var(--content-muted);
+}
+.text {
+  font-size: 14px;
+  line-height: 1.25em;
+}
+.noIcon {
+  grid-auto-columns: auto;
+}
+@media only screen and (min-width: 901px) {
+  .navCollapsed {
+    .text {
+      display: none;
+    }
+  }
+}
+/*
+----------------------------
+-- Top navigation (Mobile nav)
+----------------------------
+ */
+.topNavigation {
+  display: none;
+}
+@media only screen and (max-width: 900px) {
+  .navigationWrapper {
+    width: 0;
+    //overflow: hidden;
+    height: calc(100vh - 50px);
+    margin-top: 50px;
+    transition: width 200ms;
+  }
+  .navigation {
+    width: 0;
+    overflow: hidden;
+    transition: width 200ms;
+    height: calc(100vh - 50px);
+    grid-template-rows: auto min-content;
+  }
+  .mainNavWrapper {
+    padding-top: 16px;
+  }
+  .navCollapsed {
+    .navigationWrapper {
+      width: 280px;
+      overflow: hidden;
+    }
+    .navigation {
+      width: 280px;
+      overflow: hidden;
+    }
+  }
+  .logoWrapper {
+    display: none;
+  }
+  .topNavigation {
+    height: 50px;
+    width: 100vw;
+    position: fixed;
+    display: grid;
+    grid-auto-flow: column;
+    justify-content: space-between;
+    top: 0;
+    z-index: 10;
+    padding: 16px 24px 12px;
+    background-color: var(--bg-default);
+    border-bottom: 1px solid var(--material-layer-3);
+  }
+}

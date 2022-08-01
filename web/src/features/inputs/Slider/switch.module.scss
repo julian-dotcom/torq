@@ -46,20 +46,20 @@
 }
 
 input:checked + .slider {
-  background-color: var(--primary-300);
-  border-color: var(--primary-400);
+  background-color: var(--accent1-300);
+  border-color: var(--accent1-400);
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px var(--primary-300);
+  box-shadow: 0 0 1px var(--accent1-300);
 }
 
 input:checked + .slider:before {
   -webkit-transform: translateX(12px);
   -ms-transform: translateX(12px);
   transform: translateX(12px);
-  background-color: var(--primary-400);
-  border-color: var(--primary-500);
+  background-color: var(--accent1-400);
+  border-color: var(--accent1-500);
 }
 
 /* Rounded sliders */

@@ -18,7 +18,7 @@
     font-size: var(--font-size-small);
   }
   .positive {
-    color: var(--primary-500);
+    color: var(--accent1-500);
   }
   .negative {
     color: var(--secondary-500);
@@ -36,12 +36,12 @@
   .barWrapper {
     display: grid;
     justify-items: end;
-    background-color: var(--primary-300);
+    background-color: var(--accent1-300);
   }
   .bar {
     height: 5px;
     min-width: 2px;
-    background-color: var(--primary-400);
+    background-color: var(--accent1-400);
   }
   &.totalCell {
     .bar-wrapper {
@@ -53,11 +53,11 @@
 .totalCell {
   position: sticky;
   bottom: 0;
-  background-color: var(--accent-b-50); //var(--bg-alt-faint);
-  border-top: 1px solid var(--accent-b-500); //var(--bg-alt-strong);
-  border-bottom: 1px solid var(--accent-b-500);
+  background-color: var(--primary-50); //var(--bg-alt-faint);
+  border-top: 1px solid var(--primary-500); //var(--bg-alt-strong);
+  border-bottom: 1px solid var(--primary-500);
   &.alias {
-    border-right: 1px solid var(--accent-b-500);
+    border-right: 1px solid var(--primary-500);
   }
   .barWrapper {
     display: none !important;
@@ -65,10 +65,10 @@
 }
 .totalCell.empty.locked {
   border-bottom-left-radius: 3px;
-  border-left: 1px solid var(--accent-b-500);
+  border-left: 1px solid var(--primary-500);
 }
 .totalCell.lastTotalCell {
-  border-right: 1px solid var(--accent-b-500);
+  border-right: 1px solid var(--primary-500);
   right: 0;
   bottom: 0;
   z-index: 7;
@@ -84,9 +84,9 @@
   align-items: end;
   grid-row-gap: 5px;
   padding: 20px 20px 10px 20px;
-  border-bottom: 1px solid var(--fg-faint);
+  border-bottom: 1px solid var(--primary-100);
   background-color: var(--bg-default);
-  border-top: 1px solid var(--bg-subtle);
+  border-top: 1px solid var(--material-layer-3);
   color: var(--fg-muted);
   white-space: nowrap;
   font-size: var(--font-size-small);
@@ -109,12 +109,12 @@
   top: 0;
   //padding-left: 20px !important;
   z-index: 5;
-  border-right: 1px solid var(--fg-faint);
+  border-right: 1px solid var(--primary-100);
 }
 .firstEmptyCell {
 }
 .lastEmptyCell {
-  border-right: 1px solid var(--fg-subtle);
+  border-right: 1px solid var(--primary-150);
   position: -webkit-sticky;
   position: sticky;
   right: 0;
@@ -125,19 +125,19 @@
 .header.firstEmptyHeader,
 .header.lastEmptyHeader {
   z-index: 7;
-  border-right: 1px solid var(--fg-faint);
-  border-bottom: 1px solid var(--fg-faint);
+  border-right: 1px solid var(--primary-100);
+  border-bottom: 1px solid var(--primary-100);
   border-top-right-radius: 3px;
 }
 .header.firstEmptyHeader {
   border-top-left-radius: 3px;
-  border-left: 1px solid var(--bg-subtle);
-  border-top: 1px solid var(--bg-subtle);
+  border-left: 1px solid var(--primary-150);
+  border-top: 1px solid var(--primary-150);
 }
 .header.lastEmptyHeader {
   border-top-right-radius: 3px;
-  border-right: 1px solid var(--bg-subtle);
-  border-top: 1px solid var(--bg-subtle);
+  border-right: 1px solid var(--primary-150);
+  border-top: 1px solid var(--primary-150);
   position: sticky;
   right: 0;
   top: 0;
@@ -151,7 +151,7 @@
 .empty.locked {
   left: 0;
   border-right: none;
-  border-left: 1px solid var(--bg-subtle);
+  border-left: 1px solid var(--material-layer-3);
 }
 
 .header.textCell,
