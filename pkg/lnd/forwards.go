@@ -3,14 +3,16 @@ package lnd
 import (
 	"context"
 	"database/sql"
+	"log"
+	"time"
+
 	"github.com/benbjohnson/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/internal/channels"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
-	"log"
-	"time"
 )
 
 type dbForwardEvent struct {
@@ -45,22 +47,26 @@ func convMicro(ns uint64) time.Time {
 	return time.Unix(0, int64(ns)).Round(time.Microsecond).UTC()
 }
 
-const querySfwh = `INSERT INTO forward(time, time_ns, fee_msat,
+// storeForwardingHistory
+func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent) error {
+
+	const querySfwh = `INSERT INTO forward(time, time_ns, fee_msat,
 		lnd_incoming_short_channel_id, lnd_outgoing_short_channel_id,
+		incoming_short_channel_id, outgoing_short_channel_id,
 		incoming_amount_msat, outgoing_amount_msat)
 	VALUES ($1, $2, $3,$4, $5,$6, $7)
 	ON CONFLICT (time, time_ns) DO NOTHING;`
-
-// storeForwardingHistory
-func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent) error {
 
 	if len(fwh) > 0 {
 		tx := db.MustBegin()
 
 		for _, event := range fwh {
 
+			incomingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdIn)
+			outgoingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdOut)
+
 			if _, err := tx.Exec(querySfwh, convMicro(event.TimestampNs), event.TimestampNs,
-				event.FeeMsat, event.ChanIdIn, event.ChanIdOut, event.AmtInMsat,
+				event.FeeMsat, event.ChanIdIn, event.ChanIdOut, incomingShortChannelId, outgoingShortChannelId, event.AmtInMsat,
 				event.AmtOutMsat); err != nil {
 				return errors.Wrapf(err, "storeForwardingHistory->tx.Exec(%v)",
 					querySfwh)
