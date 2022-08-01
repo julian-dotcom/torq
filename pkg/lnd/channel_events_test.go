@@ -202,7 +202,7 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	err = db.Select(&channelEvents, `
 			SELECT lnd_short_channel_id, pub_key, event_type, coalesce((event->'capacity')::numeric, 0) as capacity
 			FROM channel_event
-			WHERE chan_point = $1 AND event_type = $2;`,
+			WHERE lnd_channel_point = $1 AND event_type = $2;`,
 		expected.LNDChannelPoint, expected.EventType)
 
 	if err != nil {

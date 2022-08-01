@@ -230,13 +230,13 @@ var chanPointList []string
 
 func InitChanIdList(db *sqlx.DB) error {
 	q := `
-		select array_agg(chan_point) as chan_point from (
+		select array_agg(lnd_channel_point) as lnd_channel_point from (
 			select
 				last(event_type, time) as event_type,
-				last(chan_point,time) as chan_point
+				last(lnd_channel_point,time) as lnd_channel_point
 			from channel_event
 			where event_type in(0,1)
-			group by chan_point
+			group by lnd_channel_point
 		) as t
 		where t.event_type = 0;`
 

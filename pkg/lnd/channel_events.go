@@ -275,7 +275,7 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 
 func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, cp []string) ([]string, error) {
 	// Prepare the query with an array of channel points
-	q := "select lnd_channel_point from channel_event where (chan_point in (?)) and (event_type = ?);"
+	q := "select lnd_channel_point from channel_event where (lnd_channel_point in (?)) and (event_type = ?);"
 	qs, args, err := sqlx.In(q, cp, t)
 	if err != nil {
 		return []string{}, errors.Wrapf(err, "sqlx.In(%s, %v, %d)", q, cp, t)
