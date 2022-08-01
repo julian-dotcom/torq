@@ -69,7 +69,7 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 
 	qsr := db.Rebind(qs)
 
-	rows, err := db.Query(qsr, args)
+	rows, err := db.Query(qsr, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running getChannelsByPubkey query")
 	}

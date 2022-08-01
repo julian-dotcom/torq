@@ -168,7 +168,7 @@ order by datetime desc;
 	}
 
 	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args)
+	rows, err := db.Query(qsr, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running getChannelEventHistory query")
 	}

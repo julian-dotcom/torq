@@ -97,7 +97,7 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time,
 	}
 
 	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args)
+	rows, err := db.Query(qsr, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running getChannelHistory query")
 	}

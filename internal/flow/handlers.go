@@ -148,7 +148,7 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 	}
 
 	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args)
+	rows, err := db.Query(qsr, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running flow query")
 	}

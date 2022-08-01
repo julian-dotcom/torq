@@ -284,7 +284,7 @@ func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB
 	// Query and create the list of existing channel points (ecp)
 	var ecp []string
 	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args)
+	rows, err := db.Query(qsr, args...)
 	if err != nil {
 		return []string{}, errors.Wrapf(err, "getExistingChannelEvents -> db.Query(qsr, args...)")
 	}

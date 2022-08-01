@@ -60,7 +60,7 @@ func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time
 
 	qsr := db.Rebind(qs)
 
-	rows, err := db.Query(qsr, args)
+	rows, err := db.Query(qsr, args...)
 	if err != nil {
 		return ChannelHistory{}, errors.Wrapf(err, "Error running getChannelTotal query")
 	}
