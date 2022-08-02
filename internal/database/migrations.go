@@ -41,7 +41,9 @@ func MigrateUp(db *sqlx.DB) error {
 
 	version, _, err := m.Version()
 	if err != nil {
-		return errors.Wrap(err, "Getting database migration version")
+		if !errors.As(err, &migrate.ErrNilVersion) {
+			return errors.Wrap(err, "Getting database migration version")
+		}
 	}
 
 	runMigration38 := func() error {
