@@ -293,9 +293,6 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 		t.Fatal(err)
 	}
 
-	// Add a sleep to prevent query to run before the update has been processed due to parallel processing
-	time.Sleep(250 * time.Millisecond)
-
 	var result []routingPolicyData
 	err = db.Select(&result, `
 			select ts,

@@ -3,11 +3,6 @@ package lnd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
-	"log"
-	"time"
-
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -15,6 +10,9 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
+	"io"
+	"log"
+	"time"
 )
 
 type subscribeChannelGrpahClient interface {
@@ -63,19 +61,15 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			continue
 		}
 
-		go (func() {
-			err := processNodeUpdates(gpu.NodeUpdates, db)
-			if err != nil {
-				fmt.Printf("Subscribe channel graph process node updates error: %v", err)
-			}
-		})()
+		err = processNodeUpdates(gpu.NodeUpdates, db)
+		if err != nil {
+			return errors.Wrap(err, "Process node updates")
+		}
 
-		go (func() {
-			err := processChannelUpdates(gpu.ChannelUpdates, db)
-			if err != nil {
-				fmt.Printf("Subscribe channel graph process channel updates error: %v", err)
-			}
-		})()
+		err = processChannelUpdates(gpu.ChannelUpdates, db)
+		if err != nil {
+			return errors.Wrap(err, "Process channel updates")
+		}
 
 	}
 
