@@ -12,7 +12,7 @@ import {
 import styles from "./columns-section.module.scss";
 import Select, { SelectOptionType } from "./ColumnDropDown";
 import { ColumnMetaData } from "features/forwards/forwardsSlice";
-import { useState } from "react";
+import React, { useState } from "react";
 
 interface columnRow {
   column: ColumnMetaData;
@@ -235,4 +235,5 @@ function ColumnsSection(props: ColumnsSectionProps) {
   );
 }
 
+const ColumnsSectionMemo = React.memo(ColumnsSection);
 export default ColumnsSection;

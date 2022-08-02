@@ -1,23 +1,23 @@
-import styles from './cell.module.scss'
-const classNames = require('classnames');
+import styles from "./cell.module.scss";
+import React from "react";
+const classNames = require("classnames");
 
 interface textCell {
-  current: string | Array<string>,
-  className?: string
+  current: string | Array<string>;
+  className?: string;
 }
 
-function TextCell({current, className}: textCell) {
-  let displayCurrent = current
+function TextCell({ current, className }: textCell) {
+  let displayCurrent = current;
   if (Array.isArray(current)) {
-    displayCurrent = current.join(", ")
+    displayCurrent = current.join(", ");
   }
   return (
     <div className={classNames(styles.cell, styles.alignLeft, className)}>
-      <div className={styles.current}>
-        {displayCurrent}
-      </div>
+      <div className={styles.current}>{displayCurrent}</div>
     </div>
-  )
+  );
 }
 
-export default TextCell;
+const TextCellMemo = React.memo(TextCell);
+export default TextCellMemo;

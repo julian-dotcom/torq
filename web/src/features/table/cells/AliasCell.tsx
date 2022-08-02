@@ -1,5 +1,6 @@
 import styles from "./cell.module.scss";
 import { Link } from "react-router-dom";
+import React from "react";
 const classNames = require("classnames");
 
 interface AliasCell {
@@ -31,5 +32,5 @@ function AliasCell({ current, chanId, open, className }: AliasCell) {
     </Link>
   );
 }
-
-export default AliasCell;
+const AliasCellMemo = React.memo(AliasCell);
+export default AliasCellMemo;

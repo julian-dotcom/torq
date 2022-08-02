@@ -91,12 +91,9 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
     onFilterUpdate();
   };
 
-  const handleCombinerChange = (combiner: any) => {
-    if (combiner.value !== "and" && combiner.value !== "or") {
-      throw new Error("Combiner should be either an AND or an OR");
-    }
+  const handleCombinerChange = () => {
     // this effectively changes the type of the object from AndClause to OrClause or vice versa
-    filters.prefix = combiner.value === "and" ? "$and" : "$or";
+    filters.prefix = filters.prefix === "$and" ? "$or" : "$and";
     onFilterUpdate();
   };
 
@@ -120,6 +117,8 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
     return 0;
   });
 
+  const combinerOption = combinerOptions.find((item) => item.value === (filters.prefix === "$and" ? "and" : "or"));
+
   const CombinerSelect = ({ index }: { index: number }) => {
     const combinerOption = combinerOptions.find((item) => item.value === (filters.prefix === "$and" ? "and" : "or"));
     if (!combinerOption) {
@@ -128,22 +127,17 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
 
     switch (index) {
       case 0:
-        return (
-          <div className={styles.combinerContainer}>
-            <div className={styles.combinerLabel}>Where</div>
-            {/*Clean this up using grid named cells*/}
-            <div className={classNames(styles.removeFilter, styles.mobileRemove)} onClick={() => removeFilter(index)}>
-              <RemoveIcon />
-            </div>
-          </div>
-        );
+        break;
       case 1:
         return (
           <div className={styles.combinerContainer}>
-            <TorqSelect options={combinerOptions} value={combinerOption} onChange={handleCombinerChange} />
-            <div className={classNames(styles.removeFilter, styles.mobileRemove)} onClick={() => removeFilter(index)}>
-              <RemoveIcon />
-            </div>
+            <TorqSelect
+              options={combinerOptions}
+              value={combinerOption}
+              onChange={() => {
+                handleCombinerChange();
+              }}
+            />
           </div>
         );
       default:
@@ -159,10 +153,27 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
         {(filters as AndClause | OrClause).childClauses.map((filter, index) => {
           if (filter.prefix === "$filter") {
             return (
-              <div key={"filter-row-wrapper-" + index} className={classNames(styles.filterRow, { first: !index })}>
-                <CombinerSelect index={index} />
+              <div
+                key={"filter-row-wrapper-" + index}
+                className={classNames(styles.filterRow, { [styles.first]: !index })}
+              >
+                {index !== 0 && (
+                  <div
+                    className={styles.combinerContainer}
+                    onClick={() => {
+                      handleCombinerChange();
+                    }}
+                  >
+                    {
+                      combinerOptions.find((item) => {
+                        return "$" + item.value === filters.prefix;
+                      })?.label
+                    }
+                  </div>
+                )}
 
                 <FilterRow
+                  child={true}
                   key={"filter-row-" + index}
                   filterClause={filter as FilterClause}
                   index={index}
@@ -175,7 +186,22 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
           } else {
             return (
               <div key={"filter-sub-group-" + index} className={classNames(styles.filterRow, { first: !index })}>
-                <CombinerSelect index={index} />
+                {/*<CombinerSelect index={index} />*/}
+                {/*handleCombinerChange*/}
+                {index !== 0 && (
+                  <div
+                    className={styles.combinerContainer}
+                    onClick={() => {
+                      handleCombinerChange();
+                    }}
+                  >
+                    {
+                      combinerOptions.find((item) => {
+                        return "$" + item.value === filters.prefix;
+                      })?.label
+                    }
+                  </div>
+                )}
 
                 <FilterComponent
                   child={true}

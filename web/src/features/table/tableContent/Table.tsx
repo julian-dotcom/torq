@@ -39,9 +39,9 @@ function Table(props: TableProps) {
     rowGridStyle(numRows) +
     "}";
 
-  if (!props.data) {
-    return <div className={styles.tableWrapper}>No data</div>;
-  }
+  // if (props.isLoading == true) {
+  //   return <div className={styles.tableWrapper}>No data</div>;
+  // }
 
   return (
     <div className={styles.tableWrapper}>
@@ -94,21 +94,13 @@ function Table(props: TableProps) {
                   />
                 );
               case "NumericCell":
-                return (
-                  <NumericCell
-                    current={row[key] as number}
-                    index={index}
-                    className={key}
-                    key={key + index + columnIndex}
-                  />
-                );
+                return <NumericCell current={row[key] as number} className={key} key={key + index + columnIndex} />;
               case "BarCell":
                 return (
                   <BarCell
                     current={row[key] as number}
                     previous={row[key] as number}
                     total={column.max as number}
-                    index={index}
                     className={key}
                     key={key + index + columnIndex}
                   />
@@ -122,14 +114,7 @@ function Table(props: TableProps) {
                   />
                 );
               default:
-                return (
-                  <NumericCell
-                    current={row[key] as number}
-                    index={index}
-                    className={key}
-                    key={key + index + columnIndex}
-                  />
-                );
+                return <NumericCell current={row[key] as number} className={key} key={key + index + columnIndex} />;
             }
           });
           // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
@@ -182,7 +167,6 @@ function Table(props: TableProps) {
               return (
                 <NumericCell
                   current={column.total as number}
-                  index={index}
                   className={classNames(column.key, index, cellStyles.totalCell)}
                   key={`total-${column.key}-${index}`}
                 />
@@ -193,7 +177,6 @@ function Table(props: TableProps) {
                   current={column.total as number}
                   previous={column.total as number}
                   total={column.max as number}
-                  index={index}
                   className={classNames(column.key, index, cellStyles.totalCell)}
                   key={`total-${column.key}-${index}`}
                 />
@@ -216,7 +199,6 @@ function Table(props: TableProps) {
               return (
                 <NumericCell
                   current={column.total as number}
-                  index={index}
                   className={classNames(column.key, index, cellStyles.totalCell)}
                   key={`total-${column.key}-${index}`}
                 />

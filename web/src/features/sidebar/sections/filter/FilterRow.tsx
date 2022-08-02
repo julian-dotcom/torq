@@ -1,6 +1,6 @@
 import classNames from "classnames";
-import { Dismiss20Regular as RemoveIcon } from "@fluentui/react-icons";
-import TorqSelect, { SelectOptionType } from "../../../inputs/Select";
+import { Delete16Regular as RemoveIcon } from "@fluentui/react-icons";
+import Select, { SelectOptionType } from "./FilterDropDown";
 
 import { FilterClause } from "./filter";
 import styles from "./filter-section.module.scss";
@@ -28,13 +28,14 @@ function getFilterFunctions(filterCategory: "number" | "string") {
 
 interface filterRowInterface {
   index: number;
+  child: boolean;
   filterClause: FilterClause;
   columnOptions: SelectOptionType[];
   onUpdateFilter: Function;
   onRemoveFilter: Function;
 }
 
-function FilterRow({ index, filterClause, columnOptions, onUpdateFilter, onRemoveFilter }: filterRowInterface) {
+function FilterRow({ index, child, filterClause, columnOptions, onUpdateFilter, onRemoveFilter }: filterRowInterface) {
   const rowValues = filterClause.filter;
 
   let functionOptions = getFilterFunctions(rowValues.category);
@@ -72,28 +73,41 @@ function FilterRow({ index, filterClause, columnOptions, onUpdateFilter, onRemov
     onUpdateFilter();
   };
 
+  const label = columnOptions.find((item) => item.value === rowValues.key)?.label;
+
   return (
     <div className={classNames(styles.filter, { first: !index })}>
-      <div className="filter-key-container">
-        <TorqSelect options={columnOptions} value={selectData.key} onChange={handleKeyChange} />
+      <div className={styles.filterKeyContainer}>
+        {label}
+        <div className={classNames(styles.removeFilter, styles.desktopRemove)} onClick={() => onRemoveFilter(index)}>
+          <RemoveIcon />
+        </div>
       </div>
-      <div className="filter-function-container">
-        <TorqSelect options={functionOptions} value={selectData.func} onChange={handleFunctionChange} />
-      </div>
-      <div className="filter-parameter-container">
-        {rowValues.category === "number" ? (
-          <NumberFormat
-            className={"torq-input-field"}
-            thousandSeparator=","
-            value={rowValues.parameter}
-            onValueChange={handleParamChange}
-          />
-        ) : (
-          <input type="text" className={"torq-input-field"} value={rowValues.parameter} onChange={handleParamChange} />
-        )}
-      </div>
-      <div className={classNames(styles.removeFilter, styles.desktopRemove)} onClick={() => onRemoveFilter(index)}>
-        <RemoveIcon />
+
+      <div className={classNames(styles.filterOptions, { [styles.expanded]: true })}>
+        <Select options={columnOptions} value={selectData.key} onChange={handleKeyChange} />
+
+        <div className="filter-function-container">
+          <Select options={functionOptions} value={selectData.func} onChange={handleFunctionChange} />
+        </div>
+
+        <div className="filter-parameter-container">
+          {rowValues.category === "number" ? (
+            <NumberFormat
+              className={"torq-input-field"}
+              thousandSeparator=","
+              value={rowValues.parameter}
+              onValueChange={handleParamChange}
+            />
+          ) : (
+            <input
+              type="text"
+              className={"torq-input-field"}
+              value={rowValues.parameter}
+              onChange={handleParamChange}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
