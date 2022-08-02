@@ -482,13 +482,19 @@ func payInvoice(ctx context.Context, cli *client.Client,
 	err := retry(func() error {
 		cmd := []string{"lncli", "--network=simnet", "sendpayment", "--force", "--pay_req=" + invoice}
 		var stderr bytes.Buffer
-		_, stderr, err := execCommand(ctx, cli, initiator, cmd)
+		stdout, stderr, err := execCommand(ctx, cli, initiator, cmd)
 		if err != nil {
 			return errors.Wrapf(err, "Running exec command on %s", initiator.ID)
 		}
 		if len(stderr.Bytes()) > 0 {
+			log.Println("Standard error not empty, retrying")
 			return errors.New("Payment not sent")
 		}
+		if len(stdout.Bytes()) == 0 {
+			log.Println("Standard out is empty, retrying")
+			return errors.New("Payment not sent")
+		}
+		log.Println("Pay invoice command complete")
 		return nil
 	}, defautDelayMS, defaultMaxDurationMS)
 	if err != nil {
@@ -714,9 +720,13 @@ func execJSONReturningCommand(ctx context.Context, cli *client.Client,
 	container dockercontainer.ContainerCreateCreatedBody,
 	cmd []string, returnObject interface{}) error {
 
-	bufStdout, _, err := execCommand(ctx, cli, container, cmd)
+	bufStdout, bufStderr, err := execCommand(ctx, cli, container, cmd)
 	if err != nil {
 		return errors.Wrap(err, "Exec command on container")
+	}
+	if len(bufStderr.Bytes()) > 0 {
+		log.Println("std error not empty")
+		return errors.New("Stderr not empty")
 	}
 
 	err = json.Unmarshal(bufStdout.Bytes(), returnObject)
