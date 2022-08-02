@@ -85,7 +85,7 @@ function ChannelPage() {
   const eventKey = useAppSelector(selectEventChartKey);
   let balanceChanId = useAppSelector(selectBalanceChanID);
   if (balanceChanId.label === "") {
-    balanceChanId = { value: 0, label: historyQuery?.data?.channel_balance[0]?.ChanId || "" };
+    balanceChanId = { value: 0, label: historyQuery?.data?.channel_balance[0]?.LNDShortChannelId || "" };
   }
 
   let total_capacity: number = 0;
@@ -455,7 +455,7 @@ function ChannelPage() {
                         updateBalanceChanID({
                           key: (newValue as { value: string; label: string }) || {
                             value: 0,
-                            label: historyQuery.data.channel_balance[0].ChanId,
+                            label: historyQuery.data.channel_balance[0].LNDShortChannelId,
                           },
                         })
                       );
