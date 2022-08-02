@@ -131,7 +131,7 @@ left join (
     group by pub_key
 ) as ne on ce.pub_key = ne.pub_key
 left join (
-    select coalesce(o.short_channel_id, i.short_channel_id, 0) as short_channel_id,
+    select coalesce(o.lnd_short_channel_id, i.lnd_short_channel_id, 0) as lnd_short_channel_id,
         coalesce(o.amount,0) as amount_out,
         coalesce(o.revenue,0) as revenue_out,
         coalesce(o.count,0) as count_out,
@@ -139,7 +139,7 @@ left join (
         coalesce(i.revenue,0) as revenue_in,
         coalesce(i.count,0) as count_in
     from (
-        select outgoing_short_channel_id short_channel_id,
+        select lnd_outgoing_short_channel_id lnd_short_channel_id,
                floor(sum(outgoing_amount_msat)/1000) as amount,
                floor(sum(fee_msat)/1000) as revenue,
                count(time) as count
@@ -149,7 +149,7 @@ left join (
         group by lnd_outgoing_short_channel_id
         ) as o
     full outer join (
-        select incoming_short_channel_id as short_channel_id,
+        select lnd_incoming_short_channel_id as lnd_short_channel_id,
                floor(sum(incoming_amount_msat)/1000) as amount,
                floor(sum(fee_msat)/1000) as revenue,
                count(time) as count
@@ -157,13 +157,13 @@ left join (
         where time::timestamp AT TIME ZONE settings.preferred_timezone >= $1::timestamp AT TIME ZONE settings.preferred_timezone
             and time::timestamp AT TIME ZONE settings.preferred_timezone <= $2::timestamp AT TIME ZONE settings.preferred_timezone
         group by lnd_incoming_short_channel_id) as i
-    on i.short_channel_id = o.short_channel_id
-) as fw on fw.short_channel_id = ce.short_channel_id
+    on i.lnd_short_channel_id = o.lnd_short_channel_id
+) as fw on fw.lnd_short_channel_id = ce.lnd_short_channel_id
 `
 
 	rows, err := db.Query(sql, fromTime, toTime)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error running aggregated forwards query")
+		return nil, errors.Wrapf(err, "Running aggregated forwards query")
 	}
 
 	for rows.Next() {
