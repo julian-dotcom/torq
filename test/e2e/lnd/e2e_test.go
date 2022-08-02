@@ -275,7 +275,7 @@ func TestMain(m *testing.M) {
 
 	log.Println("Generating invoice for payment to Bob")
 
-	bobEncodedInvoice, err := generateInvoice(ctx, cli, bob, "1000000")
+	bobEncodedInvoice, err := generateInvoice(ctx, cli, bob, "4100000")
 	if err != nil {
 		log.Fatalf("Creating Bob invoice: %v", err)
 	}
