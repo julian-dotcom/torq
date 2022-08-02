@@ -30,7 +30,7 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 
 	sql := `
 		select ne.alias,
-		       lnd_short_channel_id,
+		       ce.lnd_short_channel_id,
 		       ce.lnd_channel_point,
 		       ce.pub_key,
 		       capacity,
@@ -71,7 +71,7 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 
 	rows, err := db.Query(qsr, args...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error running getChannelsByPubkey query")
+		return nil, errors.Wrapf(err, "Running getChannelsByPubkey query")
 	}
 
 	for rows.Next() {
