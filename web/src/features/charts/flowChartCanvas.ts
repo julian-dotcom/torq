@@ -366,6 +366,14 @@ class FlowChartCanvas {
       .curve(d3.curveBumpX)
       .context(context);
 
+    if (index === 0) {
+      line = d3
+        .line()
+        .x((d) => d[0])
+        .y((d) => d[1])
+        .context(context);
+    }
+
     context.beginPath();
     line([
       [
@@ -416,10 +424,23 @@ class FlowChartCanvas {
   ) {
     let line = d3
       .line()
-      .x((d) => d[0])
-      .y((d) => d[1])
+      .x((d) => {
+        return d[0];
+      })
+      .y((d) => {
+        return d[1];
+      })
       .curve(d3.curveBumpX)
       .context(context);
+
+    if (index === 0) {
+      line = d3
+        .line()
+        .x((d) => d[0])
+        .y((d) => d[1])
+        .context(context);
+    }
+
     context.beginPath();
     line([
       [
@@ -631,6 +652,7 @@ class FlowChartCanvas {
           this.context.strokeStyle = "#E7F3FF";
         }
         this.drawInboundBars(this.context, d[this.config.keyIn] as number, inboundSum, inboundSumPosition, yOffset, i);
+
         this.drawInboundConnectingLines(
           this.context,
           d[this.config.keyIn] as number,
@@ -640,7 +662,7 @@ class FlowChartCanvas {
           i
         );
 
-        // Draw the interaction context
+        //Draw the interaction context
         let interactionColor = this.genColor();
         this.figures.set(interactionColor, { index: i, outbound: false });
         this.interactionContext.fillStyle = interactionColor;

@@ -3,7 +3,7 @@
   stroke: var(--fg-subtle);
 }
 .tick text {
-  fill: var(--fg-default);
+  fill: var(--content-default);
 }
 .xAxisContainer path.domain {
   stroke: var(--bg-subtle);
@@ -34,8 +34,8 @@
   bottom: 5px;
   text-align: center;
   padding: 2px 5px 2px 5px;
-  background-color: rgba(3, 48, 72, 0.5);
-  color: var(--content-default);
+  background-color: var(--bg-muted);
+  color: white;
   backdrop-filter: blur(2px);
   border-radius: 2px;
   transform: translateX(-50%);
