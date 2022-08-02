@@ -157,7 +157,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 			t.Fatal("Expected to find a single channel record stored in the database for these channel event updates")
 		}
 
-		if channels[0].Short_channel_id != "0:0:1337" ||
+		if channels[0].Short_channel_id != "0x0x1337" ||
 			channels[0].LND_Channel_point != "point break" ||
 			channels[0].Destination_pub_key != "remote pub key" {
 
@@ -168,11 +168,11 @@ func TestSubscribeChannelEvents(t *testing.T) {
 }
 
 type channelEventData struct {
-	LNDShortChannelId uint64
-	LNDChannelPoint   string
-	PubKey            string
-	EventType         int
-	Capacity          int64
+	LNDShortChannelId uint64 `db:"lnd_short_channel_id"`
+	LNDChannelPoint   string `db:"lnd_channel_point"`
+	PubKey            string `db:"pub_key"`
+	EventType         int    `db:"event_type"`
+	Capacity          int64  `db:"capacity"`
 }
 
 func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, expected channelEventData) {
