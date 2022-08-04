@@ -1,8 +1,9 @@
 .cell {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   grid-row-gap: 4px;
   padding: 10px 20px;
-  align-items: start;
+  align-items: end;
   align-content: center;
   text-align: right;
   background-color: var(--bg-default);
@@ -11,6 +12,7 @@
   }
   &.alignLeft {
     text-align: left;
+    align-items: start;
     min-width: 200px;
   }
   .past {
@@ -35,6 +37,7 @@
   }
   .barWrapper {
     display: grid;
+    width: 100%;
     justify-items: end;
     background-color: var(--accent1-300);
   }
@@ -87,7 +90,7 @@
   border-bottom: 1px solid var(--primary-100);
   background-color: var(--bg-default);
   border-top: 1px solid var(--material-layer-3);
-  color: var(--fg-muted);
+  color: var(--primary-600);
   white-space: nowrap;
   font-size: var(--font-size-small);
   &:global(.alias) {

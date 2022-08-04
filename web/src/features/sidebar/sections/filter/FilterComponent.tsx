@@ -6,18 +6,13 @@ import {
   AddSquare20Regular as AddFilterIcon,
   AddSquareMultiple20Regular as AddGroupIcon,
 } from "@fluentui/react-icons";
-import React from "react";
+import React, { useState } from "react";
 import TorqSelect, { SelectOptionType } from "../../../inputs/Select";
 
 import styles from "./filter-section.module.scss";
 import { useAppSelector } from "../../../../store/hooks";
 import { selectAllColumns } from "../../../forwards/forwardsSlice";
 import { AndClause, OrClause, Clause, FilterClause } from "./filter";
-
-const combinerOptions: SelectOptionType[] = [
-  { value: "and", label: "And" },
-  { value: "or", label: "Or" },
-];
 
 interface filterOptionsInterface {
   key: string;
@@ -29,8 +24,13 @@ interface filterProps {
   filters: Clause;
   onFilterUpdate: Function;
   onNoChildrenLeft?: Function;
-  child?: boolean;
+  child: boolean;
 }
+
+const combinerOptions = new Map<string, string>([
+  ["$and", "And"],
+  ["$or", "Or"],
+]);
 
 const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: filterProps) => {
   const updateFilter = () => {
@@ -117,34 +117,6 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
     return 0;
   });
 
-  const combinerOption = combinerOptions.find((item) => item.value === (filters.prefix === "$and" ? "and" : "or"));
-
-  const CombinerSelect = ({ index }: { index: number }) => {
-    const combinerOption = combinerOptions.find((item) => item.value === (filters.prefix === "$and" ? "and" : "or"));
-    if (!combinerOption) {
-      throw new Error("combiner not found");
-    }
-
-    switch (index) {
-      case 0:
-        break;
-      case 1:
-        return (
-          <div className={styles.combinerContainer}>
-            <TorqSelect
-              options={combinerOptions}
-              value={combinerOption}
-              onChange={() => {
-                handleCombinerChange();
-              }}
-            />
-          </div>
-        );
-      default:
-        return <div className={styles.combinerLabel}>{filters.prefix === "$and" ? "And" : "Or"}</div>;
-    }
-  };
-
   return (
     <div className={classNames({ [styles.childFilter]: child })}>
       <div className={styles.filterRows}>
@@ -157,52 +129,30 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
                 key={"filter-row-wrapper-" + index}
                 className={classNames(styles.filterRow, { [styles.first]: !index })}
               >
-                {index !== 0 && (
-                  <div
-                    className={styles.combinerContainer}
-                    onClick={() => {
-                      handleCombinerChange();
-                    }}
-                  >
-                    {
-                      combinerOptions.find((item) => {
-                        return "$" + item.value === filters.prefix;
-                      })?.label
-                    }
-                  </div>
-                )}
-
                 <FilterRow
-                  child={true}
+                  child={child}
                   key={"filter-row-" + index}
                   filterClause={filter as FilterClause}
                   index={index}
                   columnOptions={columnOptions}
                   onUpdateFilter={updateFilter}
                   onRemoveFilter={removeFilter}
+                  combiner={combinerOptions.get(filters.prefix)}
+                  handleCombinerChange={handleCombinerChange}
                 />
               </div>
             );
           } else {
             return (
-              <div key={"filter-sub-group-" + index} className={classNames(styles.filterRow, { first: !index })}>
+              <div
+                key={"filter-sub-group-" + index}
+                className={classNames(styles.filterRow, { first: !index, [styles.childWrapper]: true })}
+              >
                 {/*<CombinerSelect index={index} />*/}
                 {/*handleCombinerChange*/}
-                {index !== 0 && (
-                  <div
-                    className={styles.combinerContainer}
-                    onClick={() => {
-                      handleCombinerChange();
-                    }}
-                  >
-                    {
-                      combinerOptions.find((item) => {
-                        return "$" + item.value === filters.prefix;
-                      })?.label
-                    }
-                  </div>
-                )}
-
+                <div className={styles.filterKeyLabel} onClick={() => handleCombinerChange()}>
+                  {combinerOptions.get(filters.prefix)}
+                </div>
                 <FilterComponent
                   child={true}
                   filters={filter}
@@ -215,8 +165,16 @@ const FilterComponent = ({ filters, onFilterUpdate, onNoChildrenLeft, child }: f
         })}
       </div>
       <div className={styles.buttonsRow}>
-        <DefaultButton text={"Add filter"} icon={<AddFilterIcon />} onClick={addFilter} />
-        {!child && <DefaultButton text={"Add group"} icon={<AddGroupIcon />} onClick={addGroup} />}
+        <div className={styles.addFilterButton} onClick={addFilter}>
+          <AddFilterIcon />
+          <span className={styles.buttonText}>{"Add filter"}</span>
+        </div>
+        {!child && (
+          <div className={styles.addFilterButton} onClick={addGroup}>
+            <AddGroupIcon />
+            <span className={styles.buttonText}>{"Add group"}</span>
+          </div>
+        )}
       </div>
     </div>
   );

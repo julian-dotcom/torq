@@ -19,7 +19,7 @@ const FilterSection = (props: FilterSectionProps) => {
 
   return (
     <div className={styles.filterPopoverContent}>
-      {filters && <FilterComponent filters={filters} onFilterUpdate={handleFilterUpdate} />}
+      {filters && <FilterComponent filters={filters} onFilterUpdate={handleFilterUpdate} child={false} />}
     </div>
   );
 };

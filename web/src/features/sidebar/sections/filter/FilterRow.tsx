@@ -6,17 +6,31 @@ import { FilterClause } from "./filter";
 import styles from "./filter-section.module.scss";
 import { FilterFunctions } from "./filter";
 import NumberFormat from "react-number-format";
+import { useState } from "react";
+import { format } from "d3";
+
+const formatterDetailed = format(",.2f");
+const formatter = format(",.0f");
+
+function formatParameter(value: number) {
+  return value % 1 != 0 ? value : formatter(value);
+}
 
 const ffLabels = new Map<string, string>([
-  ["eq", "="],
-  ["neq", "≠"],
-  ["gt", ">"],
-  ["gte", ">="],
-  ["lt", "<"],
-  ["lte", "<="],
-  ["include", "Include"],
-  ["notInclude", "Not include"],
+  ["eq", "is equal to"],
+  ["neq", "is not equal to"],
+  ["gt", "is greater than"],
+  ["gte", "is greater than or equal to"],
+  ["lt", "is less than"],
+  ["lte", "is less than or equal to"],
+  ["include", "includes"],
+  ["notInclude", "does not include"],
 ]);
+
+//   mapSelectOptionType[] = [
+//   { value: "and", label: "And" },
+//   { value: "or", label: "Or" },
+// ];
 
 function getFilterFunctions(filterCategory: "number" | "string") {
   const filterFuncs = FilterFunctions.get(filterCategory)?.entries();
@@ -33,9 +47,22 @@ interface filterRowInterface {
   columnOptions: SelectOptionType[];
   onUpdateFilter: Function;
   onRemoveFilter: Function;
+  handleCombinerChange: Function;
+  combiner?: string;
 }
 
-function FilterRow({ index, child, filterClause, columnOptions, onUpdateFilter, onRemoveFilter }: filterRowInterface) {
+function FilterRow({
+  index,
+  child,
+  filterClause,
+  columnOptions,
+  onUpdateFilter,
+  onRemoveFilter,
+  handleCombinerChange,
+  combiner,
+}: filterRowInterface) {
+  const [rowExpanded, setRowExpanded] = useState(false);
+
   const rowValues = filterClause.filter;
 
   let functionOptions = getFilterFunctions(rowValues.category);
@@ -76,25 +103,45 @@ function FilterRow({ index, child, filterClause, columnOptions, onUpdateFilter, 
   const label = columnOptions.find((item) => item.value === rowValues.key)?.label;
 
   return (
-    <div className={classNames(styles.filter, { first: !index })}>
+    <div className={classNames(styles.filter, { [styles.first]: !index })}>
       <div className={styles.filterKeyContainer}>
-        {label}
+        {index !== 0 && (
+          <div
+            className={styles.combinerContainer}
+            onClick={() => {
+              handleCombinerChange();
+            }}
+          >
+            {combiner}
+          </div>
+        )}
+        <div className={styles.filterKeyLabel} onClick={() => setRowExpanded(!rowExpanded)}>
+          {label}
+          <span className={styles.filterFunctionLabel}> {funcOption.label} </span>
+          {rowValues.category === "number" ? formatParameter(rowValues.parameter as number) : rowValues.parameter}
+        </div>
         <div className={classNames(styles.removeFilter, styles.desktopRemove)} onClick={() => onRemoveFilter(index)}>
           <RemoveIcon />
         </div>
       </div>
 
-      <div className={classNames(styles.filterOptions, { [styles.expanded]: true })}>
-        <Select options={columnOptions} value={selectData.key} onChange={handleKeyChange} />
+      <div className={classNames(styles.filterOptions, { [styles.expanded]: rowExpanded })}>
+        <Select
+          selectProps={{ options: columnOptions, value: selectData.key, onChange: handleKeyChange }}
+          child={child}
+        />
 
         <div className="filter-function-container">
-          <Select options={functionOptions} value={selectData.func} onChange={handleFunctionChange} />
+          <Select
+            selectProps={{ options: functionOptions, value: selectData.func, onChange: handleFunctionChange }}
+            child={child}
+          />
         </div>
 
         <div className="filter-parameter-container">
           {rowValues.category === "number" ? (
             <NumberFormat
-              className={"torq-input-field"}
+              className={classNames(styles.filterInputField, styles.small)}
               thousandSeparator=","
               value={rowValues.parameter}
               onValueChange={handleParamChange}

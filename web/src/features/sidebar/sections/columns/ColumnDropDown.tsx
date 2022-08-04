@@ -27,14 +27,14 @@ const customStyles = {
   }),
   control: (provided: any, state: any) => ({
     ...provided,
-    border: "0px solid transparent",
+    border: "1px solid transparent",
     borderRadius: "2px",
     boxShadow: "none",
-    backgroundColor: "var(--secondary-1-50)",
+    backgroundColor: "white",
     minHeight: "34px",
     "&:hover": {
-      border: "0px solid transparent",
-      backgroundColor: "var(--secondary-1-100)",
+      border: "1px solid transparent",
+      // backgroundColor: "var(--secondary-1-100)",
       boxShadow: "none",
       borderRadius: "0px",
     },
@@ -66,6 +66,16 @@ const customStyles = {
   menu: (provided: any, state: any) => ({
     ...provided,
     boxShadow: "none",
+  }),
+  container: (provided: any, state: any) => ({
+    ...provided,
+    border: "1px solid var(--secondary-1-100)",
+    "&:hover": {
+      border: "1px solid var(--secondary-1-150)",
+      // backgroundColor: "var(--secondary-1-100)",
+      boxShadow: "none",
+      borderRadius: "2px",
+    },
   }),
 };
 

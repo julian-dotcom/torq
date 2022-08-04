@@ -39,11 +39,10 @@
 .sidebarContent,
 .sidebarSectionContent {
   display: grid;
-  grid-row-gap: 32px;
+  grid-row-gap: 12px;
 }
 .sidebarSectionContent {
   margin-bottom: 16px;
-  //overflow: scroll;
 }
 
 .icon,

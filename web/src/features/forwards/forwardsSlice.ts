@@ -177,7 +177,7 @@ const initialState: TableState = {
   views: [
     {
       ...DefaultView,
-      title: "Default table",
+      title: "Default View",
     },
   ],
   status: "idle",

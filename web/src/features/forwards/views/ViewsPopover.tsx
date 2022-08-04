@@ -1,4 +1,4 @@
-import "./views.scss";
+import styles from "./views.module.scss";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
   Table20Regular as TableIcon,
@@ -58,35 +58,35 @@ function ViewRow({ title, index, handleUpdateView, handleRemoveView, handleSelec
     <Draggable draggableId={`draggable-view-id-${index}`} index={index}>
       {(provided, snapshot) => (
         <div
-          className={classNames("view-row", { dragging: snapshot.isDragging })}
+          className={classNames(styles.viewRow, { dragging: snapshot.isDragging })}
           ref={provided.innerRef}
           {...provided.draggableProps}
         >
-          <div className="view-row-drag-handle" {...provided.dragHandleProps}>
+          <div className={styles.viewRowDragHandle} {...provided.dragHandleProps}>
             <DragHandle />
           </div>
 
           {editView ? (
-            <form onSubmit={handleInputSubmit} className={"view-edit torq-input-icon-field"}>
-              <input type="text" className={""} autoFocus={true} onChange={handleInputChange} value={localTitle} />
+            <form onSubmit={handleInputSubmit} className={classNames(styles.viewEdit, "torq-input-field")}>
+              <input type="text" autoFocus={true} onChange={handleInputChange} value={localTitle} />
               <button type={"submit"}>
                 <SaveIcon />
               </button>
             </form>
           ) : (
-            <div className="view-select" onClick={() => handleSelectView(index)}>
+            <div className={styles.viewSelect} onClick={() => handleSelectView(index)}>
               <div>{title}</div>
-              <div className="edit-view" onClick={() => setEditView(true)}>
+              <div className={styles.editView} onClick={() => setEditView(true)}>
                 <EditIcon />
               </div>
             </div>
           )}
           {!singleView ? (
-            <div className="remove-view" onClick={() => handleRemoveView(index)}>
+            <div className={styles.removeView} onClick={() => handleRemoveView(index)}>
               <RemoveIcon />
             </div>
           ) : (
-            <div className="remove-view disabled">
+            <div className={classNames(styles.removeView, styles.disabled)}>
               <RemoveIcon />
             </div>
           )}
@@ -178,10 +178,10 @@ function ViewsPopover() {
   return (
     <Popover button={button}>
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="views-popover-content">
+        <div className={styles.viewsPopoverContent}>
           <Droppable droppableId={droppableContainerId}>
             {(provided) => (
-              <div className="view-rows" ref={provided.innerRef} {...provided.droppableProps}>
+              <div className={styles.viewRows} ref={provided.innerRef} {...provided.droppableProps}>
                 {views.map((view, index) => {
                   return (
                     <ViewRow
@@ -199,8 +199,8 @@ function ViewsPopover() {
               </div>
             )}
           </Droppable>
-          <div className="buttons-row">
-            <DefaultButton text={"Add table"} icon={<AddIcon />} onClick={addView} />
+          <div className={styles.buttonsRow}>
+            <DefaultButton text={"Add View"} icon={<AddIcon />} onClick={addView} />
           </div>
         </div>
       </DragDropContext>

@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
   Delete16Regular as DismissIcon,
   ReOrder16Regular as ReOrderIcon,
-  Add16Regular as AddIcon,
+  AddSquare20Regular as AddIcon,
   ArrowSortDownLines16Regular as SortDescIcon,
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
@@ -208,7 +208,7 @@ const SortSection = (props: SortSectionProps) => {
         )}
 
         <div className={styles.buttonsRow}>
-          <DefaultButton onClick={() => handleAddSort()} text={"Add"} icon={<AddIcon />} />
+          <DefaultButton className={"small"} onClick={() => handleAddSort()} text={"Add"} icon={<AddIcon />} />
         </div>
       </div>
     </DragDropContext>
