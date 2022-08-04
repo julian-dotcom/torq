@@ -53,6 +53,7 @@
 .tableControlsSection {
   display: grid;
   grid-auto-flow: column;
+  align-items: end;
   grid-auto-columns: min-content;
   grid-template-columns: auto;
   grid-column-gap: 16px;

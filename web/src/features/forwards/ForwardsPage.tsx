@@ -4,8 +4,10 @@ import {
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
   ArrowJoin20Regular as GroupIcon,
+  Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import Sidebar, { SidebarSection } from "../sidebar/Sidebar";
+import { useUpdateTableViewMutation, useCreateTableViewMutation, useGetTableViewsQuery } from "apiSlice";
 
 import { Clause } from "features/sidebar/sections/filter/filter";
 
@@ -34,8 +36,10 @@ import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
 import FilterSection from "../sidebar/sections/filter/FilterSection";
 import SortSection, { SortByOptionType } from "../sidebar/sections/sort/SortSection";
 import GroupBySection from "../sidebar/sections/group/GroupBySection";
-import clone from "../../clone";
 import ForwardsDataWrapper from "./ForwardsDataWrapper";
+import DefaultButton from "../buttons/Button";
+import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
+import classNames from "classnames";
 
 type sections = {
   filter: boolean;
@@ -47,8 +51,13 @@ type sections = {
 function ForwardsPage() {
   const dispatch = useAppDispatch();
 
-  // const viewResponse = useGetTableViewsQuery();
+  useGetTableViewsQuery();
 
+  // const viewResponse = useGetTableViewsQuery();
+  const currentView = useAppSelector(selectCurrentView);
+  const currentViewIndex = useAppSelector(selectedViewIndex);
+  const [updateTableView] = useUpdateTableViewMutation();
+  const [createTableView] = useCreateTableViewMutation();
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
   const sortBy = useAppSelector(selectSortBy);
@@ -64,6 +73,16 @@ function ForwardsPage() {
     sort: false,
     columns: false,
     group: false,
+  };
+
+  const saveView = () => {
+    let viewMod = { ...currentView };
+    viewMod.saved = true;
+    if (currentView.id === undefined || null) {
+      createTableView({ view: viewMod, index: currentViewIndex });
+      return;
+    }
+    updateTableView(viewMod);
   };
 
   const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
@@ -110,7 +129,18 @@ function ForwardsPage() {
 
   const tableControls = (
     <TableControlSection>
-      <TableControlsTabsGroup>{<ViewsPopover />}</TableControlsTabsGroup>
+      <TableControlsTabsGroup>
+        {<ViewsPopover />}
+
+        <DefaultButton
+          icon={<SaveIcon />}
+          text={"Save View"}
+          onClick={saveView}
+          className={classNames("collapse-tablet disabled", {
+            danger: !currentView.saved,
+          })}
+        />
+      </TableControlsTabsGroup>
       <TableControlsButtonGroup>
         <TableControlsButton
           onClickHandler={setSection("columns")}

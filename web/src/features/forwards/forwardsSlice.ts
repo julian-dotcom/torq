@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../../store/store";
-import { AndClause } from "../sidebar/sections/filter/filter";
+import { AndClause, FilterClause } from "../sidebar/sections/filter/filter";
 import { SortByOptionType } from "../sidebar/sections/sort/SortSection";
 import { torqApi } from "apiSlice";
 
@@ -30,75 +30,75 @@ export const availableColumns: ColumnMetaData[] = [
     valueType: "number",
   },
   {
-    heading: "Capacity",
-    type: "NumericCell",
-    key: "capacity",
-    valueType: "number",
-  },
-  {
-    heading: "Amount outbound",
-    type: "BarCell",
-    key: "amount_out",
-    valueType: "number",
-  },
-  {
-    heading: "Amount inbound",
-    type: "BarCell",
-    key: "amount_in",
-    valueType: "number",
-  },
-  {
-    heading: "Amount total",
-    type: "BarCell",
-    key: "amount_total",
-    valueType: "number",
-  },
-  {
-    heading: "Turnover outbound",
-    type: "NumericCell",
-    key: "turnover_out",
-    valueType: "number",
-  },
-  {
-    heading: "Turnover inbound",
-    type: "NumericCell",
-    key: "turnover_in",
-    valueType: "number",
-  },
-  {
-    heading: "Turnover total",
-    type: "NumericCell",
-    key: "turnover_total",
-    valueType: "number",
-  },
-  {
-    heading: "Successful outbound",
-    type: "BarCell",
-    key: "count_out",
-    valueType: "number",
-  },
-  {
-    heading: "Successful inbound",
-    type: "BarCell",
-    key: "count_in",
-    valueType: "number",
-  },
-  {
-    heading: "Successful total",
+    heading: "Total Forwards",
     type: "BarCell",
     key: "count_total",
     valueType: "number",
   },
   {
-    heading: "Contributed revenue inbound",
+    heading: "Outbound Amount",
+    type: "BarCell",
+    key: "amount_out",
+    valueType: "number",
+  },
+  {
+    heading: "Inbound Amount",
+    type: "BarCell",
+    key: "amount_in",
+    valueType: "number",
+  },
+  {
+    heading: "Total Amount",
+    type: "BarCell",
+    key: "amount_total",
+    valueType: "number",
+  },
+  {
+    heading: "Turnover Outbound",
+    type: "BarCell",
+    key: "turnover_out",
+    valueType: "number",
+  },
+  {
+    heading: "Turnover Inbound",
+    type: "BarCell",
+    key: "turnover_in",
+    valueType: "number",
+  },
+  {
+    heading: "Total Turnover",
+    type: "BarCell",
+    key: "turnover_total",
+    valueType: "number",
+  },
+  {
+    heading: "Outbound Forwards",
+    type: "BarCell",
+    key: "count_out",
+    valueType: "number",
+  },
+  {
+    heading: "Inbound Forwards",
+    type: "BarCell",
+    key: "count_in",
+    valueType: "number",
+  },
+  {
+    heading: "Revenue inbound",
     type: "BarCell",
     key: "revenue_in",
     valueType: "number",
   },
   {
-    heading: "Contributed revenue total",
+    heading: "Revenue total",
     type: "BarCell",
     key: "revenue_total",
+    valueType: "number",
+  },
+  {
+    heading: "Capacity",
+    type: "BarCell",
+    key: "capacity",
     valueType: "number",
   },
   {
@@ -110,7 +110,7 @@ export const availableColumns: ColumnMetaData[] = [
   {
     heading: "Channel point",
     type: "TextCell",
-    key: "channel_point",
+    key: "lndChannelPoint",
     valueType: "string",
   },
   {
@@ -161,12 +161,33 @@ export interface TableState {
   status: "idle" | "loading" | "failed";
 }
 
+let defaultFilter = new AndClause();
+defaultFilter.addChildClause(
+  new FilterClause({
+    funcName: "gt",
+    category: "number" as "number" | "string",
+    key: "amount_total",
+    parameter: 0,
+  })
+);
+
 export const DefaultView: ViewInterface = {
-  title: "Untitled Table",
+  title: "Untitled View",
   saved: true,
-  columns: availableColumns,
-  filters: new AndClause().toJSON(),
-  sortBy: [],
+  columns: availableColumns.filter((c) =>
+    [
+      "alias",
+      "revenue_out",
+      "count_total",
+      "amount_out",
+      "amount_in",
+      "amount_total",
+      "turnover_total",
+      "capacity",
+    ].includes(c.key)
+  ),
+  filters: defaultFilter.toJSON(),
+  sortBy: [{ value: "revenue_out", label: "Revenue", direction: "desc" }],
   groupBy: undefined,
 };
 
