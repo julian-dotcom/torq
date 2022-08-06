@@ -2,9 +2,10 @@ package lnd
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc"
 )
 
-func RegisterOpenChannelRoute(r *gin.RouterGroup, db *sqlx.DB) {
-	r.POST("", func(c *gin.Context) { openChannel(c, db) })
+func RegisterControlChannelRoutes(r *gin.RouterGroup, client lnrpc.LightningClient) {
+	r.POST("open", func(c *gin.Context) { OpenChannelHandler(c, client) })
+	r.POST("close", func(c *gin.Context) { CloseChannelHandler(c, client) })
 }

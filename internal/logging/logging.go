@@ -5,6 +5,7 @@ package logging
 import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/rzajac/zltest"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"os"
@@ -49,7 +50,7 @@ func InitLogDev() {
 		EncodeLogsAsJson:      false,
 		FileLoggingEnabled:    true,
 		Directory:             "./",
-		Filename:              "marketdata.log",
+		Filename:              "torq.log",
 		MaxSize:               0,
 		MaxBackups:            0,
 		MaxAge:                0,
@@ -63,6 +64,18 @@ func InitLogDev() {
 func InitLogProd() {
 	ConfigureCallerMarshalFunc()
 	log.Logger = log.With().Caller().Logger()
+}
+
+// InitLogTest - used for testing
+// Print in the console
+func InitLogTest(tst *zltest.Tester) {
+	ConfigureCallerMarshalFunc()
+	var writers []io.Writer
+	writers = append(writers, tst)
+	//writers = append(writers, zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+	mw := io.MultiWriter(writers...)
+	tstLog := zerolog.New(mw).With().Timestamp().Logger()
+	log.Logger = tstLog
 }
 
 // Configure sets up the logging framework

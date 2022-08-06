@@ -2,82 +2,62 @@ package lnd
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
 	"io"
-	"net/http"
 )
 
-type OpenChanRequestBody struct {
-	LndAddress string
-	Amount     int64
+type lndClientOpenChannel interface {
+	OpenChannel(ctx context.Context, in *lnrpc.OpenChannelRequest, opts ...grpc.CallOption) (lnrpc.Lightning_OpenChannelClient, error)
 }
 
-func openChannel(c *gin.Context, db *sqlx.DB) {
-	var requestBody OpenChanRequestBody
+func openChannel(pubkey []byte, amt int64, client lndClientOpenChannel) (r Response, err error) {
 
-	if err := c.BindJSON(&requestBody); err != nil {
-		log.Error().Msgf("Error getting request body")
-	}
-
-	lndAddressStr := requestBody.LndAddress
-	fundingAmt := requestBody.Amount
-	fmt.Println(lndAddressStr)
-
-	pubKeyHex, err := hex.DecodeString(lndAddressStr)
-	if err != nil {
-		log.Error().Msgf("Unable to decode node public key: %v", err)
-	}
-
+	//open channel request
 	openChanReq := lnrpc.OpenChannelRequest{
-		NodePubkey:         pubKeyHex,
-		LocalFundingAmount: fundingAmt,
+		NodePubkey:         pubkey,
+		LocalFundingAmount: amt,
 	}
-	connectionDetails, err := settings.GetConnectionDetails(db)
+
 	ctx := context.Background()
-	//errs, ctx := errgroup.WithContext(ctx)
-	conn, err := Connect(
-		connectionDetails.GRPCAddress,
-		connectionDetails.TLSFileBytes,
-		connectionDetails.MacaroonFileBytes)
-	client := lnrpc.NewLightningClient(conn)
+
+	//Send open channel request
 	openChanRes, err := client.OpenChannel(ctx, &openChanReq)
 	if err != nil {
 		log.Error().Msgf("Err opening channel: %v", err)
+		r.Response = "Err opening channel"
+		return r, err
 	}
+	go receiveOpenResponse(openChanRes, ctx)
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				log.Error().Msgf("Context error: %v", ctx.Err())
-				break
-			default:
-			}
+	r.Response = "Channel opening"
+	return r, nil
+}
 
-			resp, err := openChanRes.Recv()
-			if err == io.EOF {
-
-				log.Debug().Msgf("Open channel EOF")
-				break
-			}
-			if err != nil {
-				//m["error"] = fmt.Sprintf("%v", err)
-				//c.JSON(http.StatusNotImplemented, m)
-				log.Error().Msgf("Err receive %v", err.Error())
-				break
-			}
-			log.Debug().Msgf("Channel openning status: %v", resp.String())
-
+//Get response for open channel request
+func receiveOpenResponse(req lnrpc.Lightning_OpenChannelClient, ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Error().Msgf("%v", ctx.Err())
+			return
+		default:
 		}
-		//close(waitc)
-	}()
-	r := make(map[string]string)
-	r["response"] = "Channel openning"
-	c.JSON(http.StatusOK, r)
+
+		resp, err := req.Recv()
+		if err == io.EOF {
+			log.Info().Msgf("Open channel EOF")
+			return
+		}
+		if err != nil {
+			log.Error().Msgf("Err receive %v", err.Error())
+			return
+		}
+		//log.Debug().Msgf("Chan point pending: %v", resp.GetChanOpen().String())
+		if resp.GetChanOpen() != nil {
+			log.Info().Msgf("Chan point: %v", resp.GetChanOpen().GetChannelPoint().GetFundingTxidStr())
+		}
+		//log.Debug().Msgf("Channel opening status: %v", resp.String())
+	}
 }
