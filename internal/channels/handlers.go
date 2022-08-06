@@ -37,13 +37,13 @@ type channelTableRow struct {
 	// Database primary key of channel
 	ChannelDBID null.Int `json:"channelDbId"`
 	// The channel point
-	ChanPoint null.String `json:"channel_point"`
+	LNDChannelPoint null.String `json:"lndChannelPoint"`
 	// The remote public key
 	PubKey null.String `json:"pub_key"`
 	// Short channel id in c-lightning / BOLT format
 	ShortChannelID null.String `json:"shortChannelId"`
 	// The channel ID
-	ChanId null.String `json:"chan_id"`
+	LNDShortChannelId null.String `json:"chan_id"`
 	// Color of remote peer (Vanity)
 	Color null.String `json:"color"`
 	// Is the channel open
@@ -85,10 +85,10 @@ func getChannelsTableData(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r 
 select
     coalesce(ne.alias, ce.pub_key, '') as alias,
     coalesce(c.channel_db_id, 0) as channel_db_id,
-    coalesce(ce.chan_point, 'Channel point missing') as chan_point,
+    coalesce(ce.lnd_channel_point, 'Channel point missing') as lnd_channel_point,
     coalesce(ce.pub_key, 'Public key missing') as pub_key,
     coalesce(c.short_channel_id, 'Short channel ID missing') as short_channel_id,
-    coalesce(ce.chan_id::text, 'LND short channel id missing') as chan_id,
+    coalesce(ce.lnd_short_channel_id::text, 'LND short channel id missing') as lnd_short_channel_id,
     coalesce(ne.color, 'Color missing') as color,
     coalesce(ce.open, 0) as open,
 
@@ -114,14 +114,14 @@ select
 from channel as c
 left join (
     select
-        chan_id,
-        chan_point,
+        lnd_short_channel_id,
+        lnd_channel_point,
         pub_key,
         last(event->'capacity', time) as capacity,
     	(1-last(event_type, time)) as open
     from channel_event where event_type in (0,1)
-   group by chan_id, chan_point, pub_key
-) as ce on c.channel_point = ce.chan_point
+   group by lnd_short_channel_id, lnd_channel_point, pub_key
+) as ce on c.lnd_channel_point = ce.lnd_channel_point
 left join (
     select
         pub_key,
@@ -131,7 +131,7 @@ left join (
     group by pub_key
 ) as ne on ce.pub_key = ne.pub_key
 left join (
-    select coalesce(o.chan_id, i.chan_id, 0) as chan_id,
+    select coalesce(o.lnd_short_channel_id, i.lnd_short_channel_id, 0) as lnd_short_channel_id,
         coalesce(o.amount,0) as amount_out,
         coalesce(o.revenue,0) as revenue_out,
         coalesce(o.count,0) as count_out,
@@ -139,31 +139,31 @@ left join (
         coalesce(i.revenue,0) as revenue_in,
         coalesce(i.count,0) as count_in
     from (
-        select outgoing_channel_id chan_id,
+        select lnd_outgoing_short_channel_id lnd_short_channel_id,
                floor(sum(outgoing_amount_msat)/1000) as amount,
                floor(sum(fee_msat)/1000) as revenue,
                count(time) as count
         from forward, settings
         where time::timestamp AT TIME ZONE settings.preferred_timezone >= $1::timestamp AT TIME ZONE settings.preferred_timezone
             and time::timestamp AT TIME ZONE settings.preferred_timezone <= $2::timestamp AT TIME ZONE settings.preferred_timezone
-        group by outgoing_channel_id
+        group by lnd_outgoing_short_channel_id
         ) as o
     full outer join (
-        select incoming_channel_id as chan_id,
+        select lnd_incoming_short_channel_id as lnd_short_channel_id,
                floor(sum(incoming_amount_msat)/1000) as amount,
                floor(sum(fee_msat)/1000) as revenue,
                count(time) as count
         from forward, settings
         where time::timestamp AT TIME ZONE settings.preferred_timezone >= $1::timestamp AT TIME ZONE settings.preferred_timezone
             and time::timestamp AT TIME ZONE settings.preferred_timezone <= $2::timestamp AT TIME ZONE settings.preferred_timezone
-        group by incoming_channel_id) as i
-    on i.chan_id = o.chan_id
-) as fw on fw.chan_id = ce.chan_id
+        group by lnd_incoming_short_channel_id) as i
+    on i.lnd_short_channel_id = o.lnd_short_channel_id
+) as fw on fw.lnd_short_channel_id = ce.lnd_short_channel_id
 `
 
 	rows, err := db.Query(sql, fromTime, toTime)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error running aggregated forwards query")
+		return nil, errors.Wrapf(err, "Running aggregated forwards query")
 	}
 
 	for rows.Next() {
@@ -171,10 +171,10 @@ left join (
 		err = rows.Scan(
 			&c.Alias,
 			&c.ChannelDBID,
-			&c.ChanPoint,
+			&c.LNDChannelPoint,
 			&c.PubKey,
 			&c.ShortChannelID,
-			&c.ChanId,
+			&c.LNDShortChannelId,
 			&c.Color,
 			&c.Open,
 

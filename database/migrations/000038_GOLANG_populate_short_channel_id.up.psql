@@ -1,0 +1,1 @@
+-- this migration is run in GO and converts short channel ids between c-lightning and LNDs format

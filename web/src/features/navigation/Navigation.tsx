@@ -1,48 +1,69 @@
 import React from "react";
-import { useAppDispatch } from "../../store/hooks";
-import { toggleNav } from "./navSlice";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { selectHidden, toggleNav } from "./navSlice";
+import classNames from "classnames";
 import MenuItem from "./MenuItem";
+import NavCategory from "./NavCategory";
 import { ReactComponent as TorqLogo } from "../../icons/torq-logo.svg";
 import {
-  ColumnTriple20Regular as TableIcon,
   Navigation20Regular as CollapseIcon,
-  Gauge20Regular as DashboardIcon,
+  Eye20Regular as InspectIcon,
+  AppsListDetail20Regular as ForwardsIcon,
+  Autosum20Regular as SummaryIcon,
+  Molecule20Regular as NodesIcon,
+  ArrowRouting20Regular as ChannelsIcon,
+  // ArrowRouting20Regular as ForwardsIcon,
+  Alert20Regular as EventsIcon,
+  MoneyHand20Regular as TransactionIcon,
+  BroadActivityFeed20Regular as DashboardIcon,
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
 } from "@fluentui/react-icons";
-import "./navigation.scss";
+import styles from "./nav.module.scss";
 
 function Navigation() {
   const dispatch = useAppDispatch();
 
+  let navCollapsed = true;
+
   return (
-    <div className="navigation">
-      <div className="logo-wrapper">
-        <div className="logo">
+    <div className={classNames(styles.navigation)}>
+      <div className={styles.logoWrapper}>
+        <div className={classNames(styles.logo)}>
           <TorqLogo />
         </div>
-        <div className="collapse icon-button" onClick={() => dispatch(toggleNav())}>
+
+        {/*<div className={classNames(styles.eventsButton)}>*/}
+        {/*  <EventsIcon />*/}
+        {/*</div>*/}
+
+        <div className={styles.collapseButton} onClick={() => dispatch(toggleNav())}>
           <CollapseIcon />
         </div>
       </div>
 
-      {/*<MenuItem text={'My Routing Node'} />*/}
+      <div className={styles.mainNavWrapper}>
+        {/*<MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/sadfa"} />*/}
 
-      <div className="menu-items">
-        {/*<MenuItem text={'Top revenue today'} icon={<DotIcon/>} selected={true} routeTo={'/a'} />*/}
-        {/*<MenuItem text={'Source channels'} icon={<DotIcon/>} routeTo={'/a'} />*/}
-        {/*<MenuItem text={'Destination channels'} icon={<DotIcon/>} routeTo={'/a'} />*/}
+        <NavCategory text={"Analyse"} collapsed={false}>
+          <MenuItem text={"Summary"} icon={<SummaryIcon />} routeTo={"/"} />
+          <MenuItem text={"Forwards"} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
+          {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
+        </NavCategory>
 
-        <div className="wrapper">
-          {/*actions={<AddTable/>}*/}
-          <MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/"} />
-          <MenuItem text={"Channels"} icon={<TableIcon />} routeTo={"/channels"} />
-          {/*<MenuItem text={'Fees'} icon={<FeeIcon/>}  />*/}
-          {/*<MenuItem text={'Rebalance'} icon={<RebalanceIcon/>}  />*/}
-        </div>
+        {/*<NavCategory text={"Manage"} collapsed={false}>*/}
+        {/*  <>*/}
+        {/*    <MenuItem text={"Nodes"} icon={<NodesIcon />} routeTo={"/nodes"} />*/}
+        {/*    <MenuItem text={"Channels"} icon={<ChannelsIcon />} routeTo={"/channelss"} />*/}
+        {/*  </>*/}
+        {/*</NavCategory>*/}
+
+        <NavCategory text={"Transact"} collapsed={false}>
+          <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/transactions/payments"} />
+        </NavCategory>
       </div>
 
-      <div className="bottom-wrapper">
+      <div className={classNames(styles.bottomWrapper)}>
         <MenuItem text={"Settings"} icon={<SettingsIcon />} routeTo={"/settings"} />
         <MenuItem text={"Logout"} icon={<LogoutIcon />} routeTo={"/logout"} />
       </div>

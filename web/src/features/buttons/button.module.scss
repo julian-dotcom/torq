@@ -1,16 +1,17 @@
 .button {
   border-radius: 2px;
-  display: grid;
-  grid-auto-flow: column;
+  display: flex;
   align-items: center;
-  grid-column-gap: 5px;
-  padding: 5px 9px;
+  column-gap: 5px;
+  padding: 0px 7px;
   cursor: pointer;
   border: 1px solid transparent;
+  background-color: transparent;
+  white-space: nowrap;
 
   &.open {
-    background-color: var(--primary-300);
-    border: 1px solid var(--primary-400);
+    background-color: var(--accent1-300);
+    border: 1px solid var(--accent1-400);
   }
 
   &:global(.small),
@@ -22,9 +23,21 @@
     padding: 2px 4px;
   }
 
+  &:global(.disabled) {
+    color: var(--fg-muted);
+    border: 1px solid var(--fg-subtle);
+    background-color: transparent;
+  }
+
   &:global(.danger) {
+    color: var(--fg-default);
     background-color: var(--secondary-300);
     border: 1px solid var(--secondary-400);
+  }
+
+  &:global(.secondary2) {
+    background-color: var(--secondary-2-50);
+    border: 1px solid var(--secondary-2-250);
   }
 
   :global(.text) {
@@ -41,5 +54,28 @@
     :global(.text) {
       display: none;
     }
+  }
+}
+
+/*
+Tab Button
+*/
+.tabButton {
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  grid-auto-flow: column;
+  grid-column-gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid var(--primary-150);
+  color: var(--content-default);
+  white-space: nowrap;
+  &:hover {
+    //background-color: var(--content);
+    font-weight: normal;
+    border-bottom-color: var(--primary-500);
+  }
+  &.tabSelected {
+    border-color: var(--content-default);
   }
 }

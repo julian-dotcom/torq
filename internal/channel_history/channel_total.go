@@ -22,28 +22,28 @@ func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time
 			sum(coalesce(o.count,0)) as count_out,
 			sum(coalesce((i.count + o.count), 0)) as count_total
 		from (
-			select outgoing_channel_id,
+			select lnd_outgoing_short_channel_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where (? or outgoing_channel_id in (?))
+			where (? or lnd_outgoing_short_channel_id in (?))
 			and time >= ?::timestamp
 			and time <= ?::timestamp
-			group by outgoing_channel_id
+			group by lnd_outgoing_short_channel_id
 			) as o
 		full outer join (
-			select incoming_channel_id,
+			select lnd_incoming_short_channel_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where (? or incoming_channel_id in (?))
+			where (? or lnd_incoming_short_channel_id in (?))
 			and time >= ?::timestamp
 			and time <= ?::timestamp
-			group by incoming_channel_id
+			group by lnd_incoming_short_channel_id
 			) as i
-		on (i.incoming_channel_id = o.outgoing_channel_id);
+		on (i.lnd_incoming_short_channel_id = o.lnd_outgoing_short_channel_id);
 `
 
 	// TODO: Clean up

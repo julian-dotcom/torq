@@ -3,7 +3,7 @@
   stroke: var(--fg-subtle);
 }
 .tick text {
-  fill: var(--fg-default);
+  fill: var(--content-default);
 }
 .xAxisContainer path.domain {
   stroke: var(--bg-subtle);
@@ -34,8 +34,8 @@
   bottom: 5px;
   text-align: center;
   padding: 2px 5px 2px 5px;
-  background-color: rgba(3, 48, 72, 0.5);
-  color: var(--bg-default);
+  background-color: var(--bg-muted);
+  color: white;
   backdrop-filter: blur(2px);
   border-radius: 2px;
   transform: translateX(-50%);
@@ -68,9 +68,9 @@
   }
 }
 .channel_open {
-  background-color: var(--accent-b-250);
+  background-color: var(--primary-250);
   &.inbound {
-    background-color: var(--accent-b-100);
+    background-color: var(--primary-100);
   }
 }
 .channel_close {
@@ -80,9 +80,9 @@
   }
 }
 .fee_rate {
-  background-color: var(--primary-400);
+  background-color: var(--accent1-400);
   &.inbound {
-    background-color: var(--primary-300);
+    background-color: var(--accent1-300);
   }
 }
 .base_fee {
@@ -92,13 +92,13 @@
   }
 }
 .rebalanced_out {
-  background-color: var(--accent-a-200);
+  background-color: var(--secondary-2-50);
   &.inbound {
     background-color: var(--secondary-200);
   }
 }
 .rebalanced_in {
-  background-color: var(--accent-a-300);
+  background-color: var(--secondary-2-100);
   &.inbound {
     background-color: var(--secondary-200);
   }
@@ -116,15 +116,15 @@
   }
 }
 .min_htlc {
-  background-color: var(--accent-b-250);
+  background-color: var(--primary-250);
   &.inbound {
-    background-color: var(--accent-b-50);
+    background-color: var(--primary-50);
   }
 }
 .max_htlc {
-  background-color: var(--accent-a-300);
+  background-color: var(--secondary-2-100);
   &.inbound {
-    background-color: var(--accent-a-200);
+    background-color: var(--secondary-2-50);
   }
 }
 canvas {

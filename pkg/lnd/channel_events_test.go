@@ -63,10 +63,10 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	// defer testDBCleanup()
 
 	t.Run("Open Channel Event", func(t *testing.T) {
-		expected := channelEventData{Chan_id: 1337, Chan_point: "point break", Pub_key: "remote pub key",
-			Event_type: int(lnrpc.ChannelEventUpdate_OPEN_CHANNEL), Capacity: 100000000}
-		channel := &lnrpc.Channel{ChanId: expected.Chan_id, ChannelPoint: expected.Chan_point,
-			RemotePubkey: expected.Pub_key, Capacity: expected.Capacity}
+		expected := channelEventData{LNDShortChannelId: 1337, LNDChannelPoint: "point break", PubKey: "remote pub key",
+			EventType: int(lnrpc.ChannelEventUpdate_OPEN_CHANNEL), Capacity: 100000000}
+		channel := &lnrpc.Channel{ChanId: expected.LNDShortChannelId, ChannelPoint: expected.LNDChannelPoint,
+			RemotePubkey: expected.PubKey, Capacity: expected.Capacity}
 		channelEvent := lnrpc.ChannelEventUpdate_OpenChannel{OpenChannel: channel}
 		channelEventUpdate := &lnrpc.ChannelEventUpdate{
 			Type:    lnrpc.ChannelEventUpdate_OPEN_CHANNEL,
@@ -75,10 +75,10 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Closed Channel Event", func(t *testing.T) {
-		expected := channelEventData{Chan_id: 1337, Chan_point: "closed point break", Pub_key: "closed remote pub key",
-			Event_type: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL), Capacity: 100000000}
-		channel := &lnrpc.ChannelCloseSummary{ChanId: expected.Chan_id, ChannelPoint: expected.Chan_point,
-			RemotePubkey: expected.Pub_key, Capacity: expected.Capacity}
+		expected := channelEventData{LNDShortChannelId: 1337, LNDChannelPoint: "closed point break", PubKey: "closed remote pub key",
+			EventType: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL), Capacity: 100000000}
+		channel := &lnrpc.ChannelCloseSummary{ChanId: expected.LNDShortChannelId, ChannelPoint: expected.LNDChannelPoint,
+			RemotePubkey: expected.PubKey, Capacity: expected.Capacity}
 		channelEvent := lnrpc.ChannelEventUpdate_ClosedChannel{ClosedChannel: channel}
 		channelEventUpdate := &lnrpc.ChannelEventUpdate{
 			Type:    lnrpc.ChannelEventUpdate_CLOSED_CHANNEL,
@@ -87,8 +87,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Fully Resolved Channel Event", func(t *testing.T) {
-		expected := channelEventData{Chan_id: 0, Chan_point: "0101010101010101010101010101010101010101010101010101010101010101:3", Pub_key: "",
-			Event_type: int(lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL)}
+		expected := channelEventData{LNDShortChannelId: 0, LNDChannelPoint: "0101010101010101010101010101010101010101010101010101010101010101:3", PubKey: "",
+			EventType: int(lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL)}
 		fundingTxBytes := []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 		channel := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: fundingTxBytes}, OutputIndex: 3}
 		channelEvent := lnrpc.ChannelEventUpdate_FullyResolvedChannel{FullyResolvedChannel: channel}
@@ -99,8 +99,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Active Channel Event", func(t *testing.T) {
-		expected := channelEventData{Chan_id: 0, Chan_point: "0101010101010101010101010101010101010101010101010101010101010102:3", Pub_key: "",
-			Event_type: int(lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL)}
+		expected := channelEventData{LNDShortChannelId: 0, LNDChannelPoint: "0101010101010101010101010101010101010101010101010101010101010102:3", PubKey: "",
+			EventType: int(lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL)}
 		fundingTxBytes := []byte{2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 		channel := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: fundingTxBytes}, OutputIndex: 3}
 		channelEvent := lnrpc.ChannelEventUpdate_ActiveChannel{ActiveChannel: channel}
@@ -111,8 +111,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Inactive Channel Event", func(t *testing.T) {
-		expected := channelEventData{Chan_id: 0, Chan_point: "0101010101010101010101010101010101010101010101010101010101010103:3", Pub_key: "",
-			Event_type: int(lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL)}
+		expected := channelEventData{LNDShortChannelId: 0, LNDChannelPoint: "0101010101010101010101010101010101010101010101010101010101010103:3", PubKey: "",
+			EventType: int(lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL)}
 		fundingTxBytes := []byte{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 		channel := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: fundingTxBytes}, OutputIndex: 3}
 		channelEvent := lnrpc.ChannelEventUpdate_InactiveChannel{InactiveChannel: channel}
@@ -123,8 +123,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Pending Open Channel Event", func(t *testing.T) {
-		expected := channelEventData{Chan_id: 0, Chan_point: "0101010101010101010101010101010101010101010101010101010101010104:3", Pub_key: "",
-			Event_type: int(lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL)}
+		expected := channelEventData{LNDShortChannelId: 0, LNDChannelPoint: "0101010101010101010101010101010101010101010101010101010101010104:3", PubKey: "",
+			EventType: int(lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL)}
 		TxBytes := []byte{4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 		channel := &lnrpc.PendingUpdate{Txid: TxBytes, OutputIndex: 3}
 		channelEvent := lnrpc.ChannelEventUpdate_PendingOpenChannel{PendingOpenChannel: channel}
@@ -140,11 +140,11 @@ func TestSubscribeChannelEvents(t *testing.T) {
 
 		type channel struct {
 			Short_channel_id    string
-			Channel_point       string
+			LND_Channel_point   string
 			Destination_pub_key string
 		}
 		var channels []channel
-		err = db.Select(&channels, `SELECT short_channel_id, channel_point, destination_pub_key FROM channel;`)
+		err = db.Select(&channels, `SELECT short_channel_id, lnd_channel_point, destination_pub_key FROM channel;`)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				// t.Fatalf("Error was %v", err)
@@ -157,8 +157,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 			t.Fatal("Expected to find a single channel record stored in the database for these channel event updates")
 		}
 
-		if channels[0].Short_channel_id != "0:0:1337" ||
-			channels[0].Channel_point != "point break" ||
+		if channels[0].Short_channel_id != "0x0x1337" ||
+			channels[0].LND_Channel_point != "point break" ||
 			channels[0].Destination_pub_key != "remote pub key" {
 
 			t.Fatal("Channel data not stored correctly")
@@ -168,11 +168,11 @@ func TestSubscribeChannelEvents(t *testing.T) {
 }
 
 type channelEventData struct {
-	Chan_id    uint64
-	Chan_point string
-	Pub_key    string
-	Event_type int
-	Capacity   int64
+	LNDShortChannelId uint64 `db:"lnd_short_channel_id"`
+	LNDChannelPoint   string `db:"lnd_channel_point"`
+	PubKey            string `db:"pub_key"`
+	EventType         int    `db:"event_type"`
+	Capacity          int64  `db:"capacity"`
 }
 
 func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, expected channelEventData) {
@@ -200,10 +200,10 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 
 	var channelEvents []channelEventData
 	err = db.Select(&channelEvents, `
-			SELECT chan_id, pub_key, event_type, coalesce((event->'capacity')::numeric, 0) as capacity
+			SELECT lnd_short_channel_id, pub_key, event_type, coalesce((event->'capacity')::numeric, 0) as capacity
 			FROM channel_event
-			WHERE chan_point = $1 AND event_type = $2;`,
-		expected.Chan_point, expected.Event_type)
+			WHERE lnd_channel_point = $1 AND event_type = $2;`,
+		expected.LNDChannelPoint, expected.EventType)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -217,19 +217,19 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 		t.Fatal("Expected to find a single channel event record stored in the database for this channel event update")
 	}
 
-	if channelEvents[0].Chan_id != expected.Chan_id ||
-		channelEvents[0].Pub_key != expected.Pub_key {
+	if channelEvents[0].LNDShortChannelId != expected.LNDShortChannelId ||
+		channelEvents[0].PubKey != expected.PubKey {
 		t.Fatal("Channel event data not stored correctly")
 	}
 
 	// Check that channel open events stores the capacity correctly
-	if channelEvents[0].Event_type == 0 && channelEvents[0].Capacity != expected.Capacity {
+	if channelEvents[0].EventType == 0 && channelEvents[0].Capacity != expected.Capacity {
 		t.Fatalf("Channel capacity is not stored correctly. Expected: %d, got: %d", expected.Capacity,
 			channelEvents[0].Capacity)
 	}
 
 	// Check that channel close events stores the capacity correctly
-	if channelEvents[0].Event_type == 1 && channelEvents[0].Capacity != expected.Capacity {
+	if channelEvents[0].EventType == 1 && channelEvents[0].Capacity != expected.Capacity {
 		t.Fatalf("Channel capacity is not stored correctly. Expected: %d, got: %d", expected.Capacity,
 			channelEvents[0].Capacity)
 	}

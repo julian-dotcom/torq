@@ -12,9 +12,9 @@ type ChannelEvent struct {
 	// Spesific time the event happened.
 	Datetime time.Time `json:"datetime"`
 	// The channel point
-	ChanPoint *string `json:"channel_point"`
+	LNDChannelPoint *string `json:"lndChannelPoint"`
 	// The channel ID
-	ChanId *string `json:"chan_id"`
+	ShortChannelId *string `json:"shortChannelId"`
 	// The type of event. E.g. disable/enable, change in fee rate, base fee, min/max htlc amount
 	Type *string `json:"type"`
 	// Was this changed by our node (outbound) or their node (inbound)
@@ -33,27 +33,27 @@ func getChannelEventHistory(db *sqlx.DB, chanIds []string, from time.Time, to ti
 	sql := `WITH
     fromDate AS (VALUES (?)),
     toDate AS (VALUES (?)),
-	pub_keys as (select array_agg(distinct pub_key) as pub_keys from channel_event where chan_id in (?)),
+	pub_keys as (select array_agg(distinct pub_key) as pub_keys from channel_event where short_channel_id in (?)),
     tz AS (select preferred_timezone as tz from settings)
 -- disabled changes
 select date(ts)::timestamp AT TIME ZONE (table tz) as date,
         ts::timestamp AT TIME ZONE (table tz) as datetime,
-        chan_point,
-	   chan_id,
+        lnd_channel_point,
+	   short_channel_id,
 	   ((table pub_keys) && pub_key_array) = false as outbound,
        announcing_pub_key,
        case when disabled = true then 'disabled' else 'enabled' end as type,
        null as value,
  	   null as prev
 from (SELECT ts as ts,
-			 chan_point,
-             chan_id,
+			 lnd_channel_point,
+             short_channel_id,
              announcing_pub_key,
              ARRAY[announcing_pub_key] as pub_key_array,
              disabled,
-             lag(disabled, 1, false) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
+             lag(disabled, 1, false) OVER (PARTITION BY lnd_short_channel_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
-      where chan_id in (?)
+      where short_channel_id in (?)
         and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
         and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
@@ -63,22 +63,22 @@ UNION
 -- fee rate changes
 select date(ts)::timestamp AT TIME ZONE (table tz) as date,
        ts::timestamp AT TIME ZONE (table tz) as datetime,
-       chan_point,
-       chan_id,
+       lnd_channel_point,
+       short_channel_id,
        ((table pub_keys) && pub_key_array) = false as outbound,
        announcing_pub_key,
        'fee_rate' as type,
        fee_rate as value,
        prev
 from (SELECT ts as ts,
-             chan_point,
-             chan_id,
+             lnd_channel_point,
+             short_channel_id,
              announcing_pub_key,
              ARRAY[announcing_pub_key] as pub_key_array,
              fee_rate_mill_msat as fee_rate,
-             lag(fee_rate_mill_msat, 1, 0) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
+             lag(fee_rate_mill_msat, 1, 0) OVER (PARTITION BY short_channel_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
-      where chan_id in (?)
+      where short_channel_id in (?)
         and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
         and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
@@ -88,22 +88,22 @@ UNION
 -- base fee changes
 select date(ts)::timestamp AT TIME ZONE (table tz) as date,
        ts::timestamp AT TIME ZONE (table tz) as datetime,
-       chan_point,
-       chan_id,
+       lnd_channel_point,
+       short_channel_id,
        ((table pub_keys) && pub_key_array) = false as outbound,
        announcing_pub_key,
        'base_fee' as type,
        round(fee_base / 1000) as value,
        round(prev / 1000) as prev
 from (SELECT ts as ts,
-             chan_point,
-             chan_id,
+             lnd_channel_point,
+             short_channel_id,
              announcing_pub_key,
              ARRAY[announcing_pub_key] as pub_key_array,
              fee_base_msat as fee_base,
-             lag(fee_base_msat, 1, 0) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
+             lag(fee_base_msat, 1, 0) OVER (PARTITION BY lnd_short_channel_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
-      where chan_id in (?)
+      where short_channel_id in (?)
         and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
         and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
@@ -113,22 +113,22 @@ UNION
 -- max_htlc changes
 select date(ts)::timestamp AT TIME ZONE (table tz) as date,
        ts::timestamp AT TIME ZONE (table tz) as datetime,
-       chan_point,
-       chan_id,
+       lnd_channel_point,
+       short_channel_id,
        ((table pub_keys) && pub_key_array) = false as outbound,
        announcing_pub_key,
        'max_htlc' as type,
        round(max_htlc_msat / 1000) as value,
        round(prev / 1000) as prev
 from (SELECT ts as ts,
-             chan_point,
-             chan_id,
+             lnd_channel_point,
+             short_channel_id,
              announcing_pub_key,
              ARRAY[announcing_pub_key] as pub_key_array,
              max_htlc_msat,
-             lag(max_htlc_msat, 1, 0) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
+             lag(max_htlc_msat, 1, 0) OVER (PARTITION BY short_channel_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
-      where chan_id in (?)
+      where short_channel_id in (?)
         and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
         and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
@@ -138,22 +138,22 @@ UNION
 -- min_htlc changes
 select date(ts)::timestamp AT TIME ZONE (table tz) as date,
        ts::timestamp AT TIME ZONE (table tz) as datetime,
-       chan_point,
-       chan_id,
+       lnd_channel_point,
+       short_channel_id,
        ((table pub_keys) && pub_key_array) = false as outbound,
        announcing_pub_key,
        'min_htlc' as type,
        round(min_htlc / 1000) as value,
        round(prev / 1000) as prev
 from (SELECT ts as ts,
-             chan_point,
-             chan_id,
+             lnd_channel_point,
+             short_channel_id,
              announcing_pub_key,
              ARRAY[announcing_pub_key] as pub_key_array,
              min_htlc,
-             lag(min_htlc, 1, 0) OVER (PARTITION BY chan_id, announcing_pub_key ORDER BY ts) AS prev
+             lag(min_htlc, 1, 0) OVER (PARTITION BY short_channel_id, announcing_pub_key ORDER BY ts) AS prev
       FROM routing_policy
-      where chan_id in (?)
+      where short_channel_id in (?)
         and ts::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
         and ts::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
 ) as o
@@ -178,8 +178,8 @@ order by datetime desc;
 		err = rows.Scan(
 			&c.Date,
 			&c.Datetime,
-			&c.ChanPoint,
-			&c.ChanId,
+			&c.LNDChannelPoint,
+			&c.ShortChannelId,
 			&c.Outbound,
 			&c.AnnouncingPubKey,
 			&c.Type,

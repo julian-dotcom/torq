@@ -28,13 +28,13 @@ type Payment struct {
 }
 
 type Hop struct {
-	Expiry           uint64 `json:"expiry" db:"expiry"`
-	ChanId           uint64 `json:"chan_id" db:"chan_id"`
-	PubKey           string `json:"pub_key" db:"pub_key"`
-	FeeMsat          uint64 `json:"fee_msat" db:"fee_msat"`
-	TlvPayload       bool   `json:"tlv_payload" db:"tlv_payload"`
-	ChanCapacity     uint64 `json:"chan_capacity" db:"chan_capacity"`
-	AmtToForwardMsat uint64 `json:"amt_to_forward_msat" db:"amt_to_forward_msat"`
+	Expiry            uint64 `json:"expiry" db:"expiry"`
+	LNDShortChannelId uint64 `json:"chan_id" db:"lnd_short_channel_id"`
+	PubKey            string `json:"pub_key" db:"pub_key"`
+	FeeMsat           uint64 `json:"fee_msat" db:"fee_msat"`
+	TlvPayload        bool   `json:"tlv_payload" db:"tlv_payload"`
+	ChanCapacity      uint64 `json:"chan_capacity" db:"chan_capacity"`
+	AmtToForwardMsat  uint64 `json:"amt_to_forward_msat" db:"amt_to_forward_msat"`
 }
 
 type Route struct {

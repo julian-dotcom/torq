@@ -6,13 +6,13 @@
   grid-column-gap: 5px;
   padding: 8px 15px 7px 10px;
   font-size: var(--font-size-default);
-  background-color: var(--primary-300);
+  background-color: var(--accent1-300);
   border-radius: 2px;
-  border: 1px solid var(--primary-400);
+  border: 1px solid var(--accent1-400);
   width: 100%;
   &:hover {
-    background-color: var(--primary-350);
-    border: 1px solid var(--primary-500);
+    background-color: var(--accent1-350);
+    border: 1px solid var(--accent1-500);
     box-shadow: none;
   }
 }

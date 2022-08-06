@@ -3,11 +3,11 @@ package lnd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/internal/channels"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 	"io"
@@ -61,19 +61,15 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			continue
 		}
 
-		go (func() {
-			err := processNodeUpdates(gpu.NodeUpdates, db)
-			if err != nil {
-				fmt.Printf("Subscribe channel graph process node updates error: %v", err)
-			}
-		})()
+		err = processNodeUpdates(gpu.NodeUpdates, db)
+		if err != nil {
+			return errors.Wrap(err, "Process node updates")
+		}
 
-		go (func() {
-			err := processChannelUpdates(gpu.ChannelUpdates, db)
-			if err != nil {
-				fmt.Printf("Subscribe channel graph process channel updates error: %v", err)
-			}
-		})()
+		err = processChannelUpdates(gpu.ChannelUpdates, db)
+		if err != nil {
+			return errors.Wrap(err, "Process channel updates")
+		}
 
 	}
 
@@ -131,9 +127,10 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
 
 const rpQuery = `
 INSERT INTO routing_policy (ts,
-	chan_id,
+	lnd_short_channel_id,
+	short_channel_id,
 	announcing_pub_key,
-	chan_point,
+	lnd_channel_point,
 	outbound,
 	disabled,
 	time_lock_delta,
@@ -141,10 +138,12 @@ INSERT INTO routing_policy (ts,
 	max_htlc_msat,
 	fee_base_msat,
 	fee_rate_mill_msat)
-select $1, $2, $3,$4, $5, $6, $7, $8, $9, $10, $11
+select $1, $2, $3,$4, $5, $6, $7, $8, $9, $10, $11, $12
 WHERE NOT EXISTS (
 	select true
-	from (select last(chan_id,ts) chan_id,
+	from (select
+            last(lnd_short_channel_id,ts) lnd_short_channel_id,
+            last(short_channel_id,ts) short_channel_id,
 			last(announcing_pub_key, ts) as announcing_pub_key,
 			last(disabled,ts) disabled,
 			last(time_lock_delta,ts) time_lock_delta,
@@ -153,15 +152,15 @@ WHERE NOT EXISTS (
 			last(fee_base_msat,ts) fee_base_msat,
 			last(fee_rate_mill_msat, ts) fee_rate_mill_msat
 		from routing_policy
-		group by chan_id, announcing_pub_key) as a
-	where a.chan_id = $12 and
-		  a.announcing_pub_key = $13 and
-		  a.disabled = $14 and
-		  a.time_lock_delta = $15 and
-		  a.min_htlc = $16 and
-		  a.max_htlc_msat = $17 and
-		  a.fee_base_msat = $18 and
-		  a.fee_rate_mill_msat = $19
+		group by lnd_short_channel_id, announcing_pub_key) as a
+	where a.lnd_short_channel_id = $13 and
+		  a.announcing_pub_key = $14 and
+		  a.disabled = $15 and
+		  a.time_lock_delta = $16 and
+		  a.min_htlc = $17 and
+		  a.max_htlc_msat = $18 and
+		  a.fee_base_msat = $19 and
+		  a.fee_rate_mill_msat = $20
 );`
 
 func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.ChannelEdgeUpdate) error {
@@ -172,9 +171,10 @@ func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.Cha
 			cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 	}
 
+	shortChannelId := channels.ConvertLNDShortChannelID(cu.ChanId)
 	// Check if the routing policy is unchanged
 
-	_, err = db.Exec(rpQuery, ts, cu.ChanId, cu.AdvertisingNode, cp, outbound,
+	_, err = db.Exec(rpQuery, ts, cu.ChanId, shortChannelId, cu.AdvertisingNode, cp, outbound,
 		cu.RoutingPolicy.Disabled, cu.RoutingPolicy.TimeLockDelta, cu.RoutingPolicy.MinHtlc,
 		cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat,
 		// Variables to check if it exists
@@ -230,13 +230,13 @@ var chanPointList []string
 
 func InitChanIdList(db *sqlx.DB) error {
 	q := `
-		select array_agg(chan_point) as chan_point from (
+		select array_agg(lnd_channel_point) as lnd_channel_point from (
 			select
 				last(event_type, time) as event_type,
-				last(chan_point,time) as chan_point
+				last(lnd_channel_point,time) as lnd_channel_point
 			from channel_event
 			where event_type in(0,1)
-			group by chan_point
+			group by lnd_channel_point
 		) as t
 		where t.event_type = 0;`
 

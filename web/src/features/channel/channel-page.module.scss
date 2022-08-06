@@ -1,5 +1,5 @@
 .channelControls {
-  padding: 0px 0 10px 0px;
+  padding: 0 0 10px 0;
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: auto auto;
@@ -40,7 +40,7 @@
 
 @media only screen and (max-width: 1199px) {
   .channelControls {
-    padding: 0px 00px 10px 0px;
+    padding: 0px 0px 10px 0px;
   }
 }
 @media only screen and (max-width: 600px) {
@@ -80,6 +80,7 @@
 
 .channelsPageContent {
   margin: 20px;
+  width: 100%;
   @media only screen and (max-width: 600px) {
     margin: 10px;
   }
@@ -120,7 +121,7 @@
 }
 .card {
   background-color: var(--bg-default);
-  border: 1px solid var(--bg-subtle);
+  border: 1px solid var(--material-layer-3);
   padding: 20px;
   font-size: var(--font-size-small);
   //box-shadow: var(--popover-box-shadow);
@@ -229,9 +230,9 @@ rowValue {
 }
 
 .channel_open {
-  background-color: var(--accent-b-250);
+  background-color: var(--primary-250);
   &.inbound {
-    background-color: var(--accent-b-100);
+    background-color: var(--primary-100);
   }
 }
 .channel_close {
@@ -241,9 +242,9 @@ rowValue {
   }
 }
 .fee_rate {
-  background-color: var(--primary-400);
+  background-color: var(--accent1-400);
   &.inbound {
-    background-color: var(--primary-300);
+    background-color: var(--accent1-300);
   }
 }
 .base_fee {
@@ -253,13 +254,13 @@ rowValue {
   }
 }
 .rebalanced_out {
-  background-color: var(--accent-a-200);
+  background-color: var(--secondary-2-50);
   &.inbound {
     background-color: var(--secondary-200);
   }
 }
 .rebalanced_in {
-  background-color: var(--accent-a-300);
+  background-color: var(--secondary-2-100);
   &.inbound {
     background-color: var(--secondary-200);
   }
@@ -277,15 +278,15 @@ rowValue {
   }
 }
 .min_htlc {
-  background-color: var(--accent-b-250);
+  background-color: var(--primary-250);
   &.inbound {
-    background-color: var(--accent-b-50);
+    background-color: var(--primary-50);
   }
 }
 .max_htlc {
-  background-color: var(--accent-a-300);
+  background-color: var(--secondary-2-100);
   &.inbound {
-    background-color: var(--accent-a-200);
+    background-color: var(--secondary-2-50);
   }
 }
 //.inbound {

@@ -18,7 +18,7 @@ import {
 } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
 import { toggleNav } from "../navigation/navSlice";
-import {useGetFlowQuery, useGetChannelHistoryQuery, useGetSettingsQuery} from "apiSlice";
+import { useGetFlowQuery, useGetChannelHistoryQuery, useGetSettingsQuery } from "apiSlice";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
@@ -85,7 +85,7 @@ function ChannelPage() {
   const eventKey = useAppSelector(selectEventChartKey);
   let balanceChanId = useAppSelector(selectBalanceChanID);
   if (balanceChanId.label === "") {
-    balanceChanId = { value: 0, label: historyQuery?.data?.channel_balance[0]?.ChanId || "" };
+    balanceChanId = { value: 0, label: historyQuery?.data?.channel_balance[0]?.LNDShortChannelId || "" };
   }
 
   let total_capacity: number = 0;
@@ -125,12 +125,6 @@ function ChannelPage() {
       <div className={styles.channelControls}>
         <div className={styles.leftContainer}>
           <div className={styles.lowerContainer}>
-            <Button
-              icon={<NavigationIcon />}
-              text={"Menu"}
-              onClick={() => dispatch(toggleNav())}
-              className={"show-nav-btn collapse-tablet"}
-            />{" "}
             <Button icon={<ChannelIcon />} text={title} />
           </div>
         </div>
@@ -461,7 +455,7 @@ function ChannelPage() {
                         updateBalanceChanID({
                           key: (newValue as { value: string; label: string }) || {
                             value: 0,
-                            label: historyQuery.data.channel_balance[0].ChanId,
+                            label: historyQuery.data.channel_balance[0].LNDShortChannelId,
                           },
                         })
                       );

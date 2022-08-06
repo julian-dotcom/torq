@@ -1,22 +1,31 @@
-.torq .icon {
-  display: grid;
-  svg {
-    margin: 0;
-    height: 18px;
-    width: 18px;
-  }
-  &.small svg {
-    height: 16px;
-    width: 16px;
-  }
-  &.large svg {
-    height: 20px;
-    width: 20px;
-  }
+//.icon {
+//  display: grid;
+//  svg {
+//    margin: 0;
+//    height: 18px;
+//    width: 18px;
+//  }
+//  &.small svg {
+//    height: 16px;
+//    width: 16px;
+//  }
+//  &.large svg {
+//    height: 20px;
+//    width: 20px;
+//  }
+//}
+svg {
+  height: auto;
+}
+html,
+body,
+#root > div {
+  box-sizing: border-box;
+  height: 100%;
 }
 
 // TODO: Consider cleaning this up as a component
-.torq .torq-input-field {
+.torq-input-field {
   border-radius: 2px;
   border: 1px solid var(--bg-subtle);
   background-color: var(--bg-default);
@@ -33,7 +42,7 @@
     font-size: var(--font-size-small);
   }
 }
-.torq .torq-input-icon-field {
+.torq-input-icon-field {
   border-radius: 2px;
   background-color: var(--bg-default);
   font-size: var(--font-size-default);

@@ -49,14 +49,11 @@ const PopoverButton = ({ className, button, children }: PopoverInterface) => {
           <div className="left-container" onClick={(e) => e.stopPropagation()}>
             {button ? button : ""}
           </div>
-          <div
-            className="right-container dismiss-button"
-            onClick={() => setIsPopoverOpen(false)}
-          >
+          <div className="right-container dismiss-button" onClick={() => setIsPopoverOpen(false)}>
             Close
           </div>
         </div>
-        <div className="popover-container">{children}</div>
+        {isPopoverOpen && <div className="popover-container">{children}</div>}
       </div>
     </div>
   );

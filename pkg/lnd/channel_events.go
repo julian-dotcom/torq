@@ -56,9 +56,10 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 
 		channel := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
-			ChannelPoint:      null.StringFrom(ChannelPoint),
+			LNDChannelPoint:   null.StringFrom(ChannelPoint),
 			DestinationPubKey: null.StringFrom(PubKey),
 			LocalNodeId:       localNodeId,
+			LNDShortChannelID: ChanID,
 		}
 
 		err := channels.AddChannelRecordIfDoesntExist(db, channel)
@@ -88,9 +89,10 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 
 		channel := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
-			ChannelPoint:      null.StringFrom(ChannelPoint),
+			LNDChannelPoint:   null.StringFrom(ChannelPoint),
 			DestinationPubKey: null.StringFrom(PubKey),
 			LocalNodeId:       localNodeId,
+			LNDShortChannelID: ChanID,
 		}
 		err := channels.AddChannelRecordIfDoesntExist(db, channel)
 		if err != nil {
@@ -273,7 +275,7 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 
 func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, cp []string) ([]string, error) {
 	// Prepare the query with an array of channel points
-	q := "select chan_point from channel_event where (chan_point in (?)) and (event_type = ?);"
+	q := "select lnd_channel_point from channel_event where (lnd_channel_point in (?)) and (event_type = ?);"
 	qs, args, err := sqlx.In(q, cp, t)
 	if err != nil {
 		return []string{}, errors.Wrapf(err, "sqlx.In(%s, %v, %d)", q, cp, t)
@@ -338,9 +340,10 @@ icoLoop:
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
-			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
+			LNDChannelPoint:   null.StringFrom(channel.ChannelPoint),
 			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
 			LocalNodeId:       localNodeId,
+			LNDShortChannelID: channel.ChanId,
 		}
 		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
 		if err != nil {
@@ -393,9 +396,10 @@ icoLoop:
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
-			ChannelPoint:      null.StringFrom(channel.ChannelPoint),
+			LNDChannelPoint:   null.StringFrom(channel.ChannelPoint),
 			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
 			LocalNodeId:       localNodeId,
+			LNDShortChannelID: channel.ChanId,
 		}
 		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
 		if err != nil {
@@ -426,15 +430,18 @@ icoLoop:
 	return nil
 }
 
-var sqlStm = `INSERT INTO channel_event (time, event_type, imported, chan_id, chan_point, pub_key,
-	event) VALUES($1, $2, $3, $4, $5, $6, $7);`
-
 func insertChannelEvent(db *sqlx.DB, ts time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,
-	imported bool, chanId uint64, chanPoint string, pubKey string, jb []byte) error {
-	_, err := db.Exec(sqlStm, ts, eventType, imported, chanId, chanPoint, pubKey, jb)
+	imported bool, lndShortChannelId uint64, lndChannelPoint string, pubKey string, jb []byte) error {
+
+	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
+
+	var sqlStm = `INSERT INTO channel_event (time, event_type, imported, short_channel_id, lnd_short_channel_id, lnd_channel_point, pub_key,
+	event) VALUES($1, $2, $3, $4, $5, $6, $7, $8);`
+
+	_, err := db.Exec(sqlStm, ts, eventType, imported, shortChannelId, lndShortChannelId, lndChannelPoint, pubKey, jb)
 	if err != nil {
 		return errors.Wrapf(err, `insertChannelEvent -> db.Exec(%s, %s, %d, %t, %d, %s, %s, %v)`,
-			sqlStm, ts, eventType, imported, chanId, chanPoint, pubKey, jb)
+			sqlStm, ts, eventType, imported, lndShortChannelId, lndChannelPoint, pubKey, jb)
 	}
 	return nil
 }

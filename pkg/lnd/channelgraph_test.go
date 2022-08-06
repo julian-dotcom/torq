@@ -131,17 +131,17 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		expected := routingPolicyData{
-			Ts:               time.Now(),
-			ChanPoint:        chanPointStr,
-			ChanId:           fmt.Sprint(updateEvent.ChannelUpdates[0].ChanId),
-			Outbound:         false,
-			AnnouncingPubKey: updateEvent.ChannelUpdates[0].AdvertisingNode,
-			FeeRateMillMsat:  updateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
-			FeeBaseMsat:      updateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
-			MaxHtlcMsat:      updateEvent.ChannelUpdates[0].RoutingPolicy.MaxHtlcMsat,
-			MinHtlc:          updateEvent.ChannelUpdates[0].RoutingPolicy.MinHtlc,
-			TimeLockDelta:    updateEvent.ChannelUpdates[0].RoutingPolicy.TimeLockDelta,
-			Disabled:         updateEvent.ChannelUpdates[0].RoutingPolicy.Disabled,
+			Ts:                time.Now(),
+			LNDChannelPoint:   chanPointStr,
+			LNDShortChannelId: fmt.Sprint(updateEvent.ChannelUpdates[0].ChanId),
+			Outbound:          false,
+			AnnouncingPubKey:  updateEvent.ChannelUpdates[0].AdvertisingNode,
+			FeeRateMillMsat:   updateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
+			FeeBaseMsat:       updateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
+			MaxHtlcMsat:       updateEvent.ChannelUpdates[0].RoutingPolicy.MaxHtlcMsat,
+			MinHtlc:           updateEvent.ChannelUpdates[0].RoutingPolicy.MinHtlc,
+			TimeLockDelta:     updateEvent.ChannelUpdates[0].RoutingPolicy.TimeLockDelta,
+			Disabled:          updateEvent.ChannelUpdates[0].RoutingPolicy.Disabled,
 		}
 
 		result := simulateChannelGraphUpdate(t, db,
@@ -158,12 +158,12 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 				result[0].AnnouncingPubKey)
 		}
 
-		if result[0].ChanPoint != expected.ChanPoint {
-			testutil.Errorf(t, "Incorrect channel point. Expected: %v, got %v", expected.ChanPoint, result[0].ChanPoint)
+		if result[0].LNDChannelPoint != expected.LNDChannelPoint {
+			testutil.Errorf(t, "Incorrect channel point. Expected: %v, got %v", expected.LNDChannelPoint, result[0].LNDChannelPoint)
 		}
 
-		if result[0].ChanId != expected.ChanId {
-			testutil.Errorf(t, "Incorrect channel id. Expected: %v, got %v", expected.ChanId, result[0].ChanId)
+		if result[0].LNDShortChannelId != expected.LNDShortChannelId {
+			testutil.Errorf(t, "Incorrect channel id. Expected: %v, got %v", expected.LNDShortChannelId, result[0].LNDShortChannelId)
 		}
 
 		if result[0].Disabled != expected.Disabled {
@@ -232,17 +232,17 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		e3 := routingPolicyData{
-			Ts:               time.Now(),
-			ChanPoint:        chanPointStr,
-			ChanId:           fmt.Sprint(secondUpdateEvent.ChannelUpdates[0].ChanId),
-			Outbound:         true,
-			AnnouncingPubKey: "ourNodePubkey",
-			FeeRateMillMsat:  secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
-			FeeBaseMsat:      secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
-			MaxHtlcMsat:      secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MaxHtlcMsat,
-			MinHtlc:          secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MinHtlc,
-			TimeLockDelta:    secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.TimeLockDelta,
-			Disabled:         secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.Disabled,
+			Ts:                time.Now(),
+			LNDChannelPoint:   chanPointStr,
+			LNDShortChannelId: fmt.Sprint(secondUpdateEvent.ChannelUpdates[0].ChanId),
+			Outbound:          true,
+			AnnouncingPubKey:  "ourNodePubkey",
+			FeeRateMillMsat:   secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
+			FeeBaseMsat:       secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
+			MaxHtlcMsat:       secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MaxHtlcMsat,
+			MinHtlc:           secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MinHtlc,
+			TimeLockDelta:     secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.TimeLockDelta,
+			Disabled:          secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.Disabled,
 		}
 
 		r3 := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
@@ -262,17 +262,17 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 }
 
 type routingPolicyData struct {
-	Ts               time.Time
-	ChanPoint        string `db:"chan_point"`
-	ChanId           string `db:"chan_id"`
-	Outbound         bool   `db:"outbound"`
-	AnnouncingPubKey string `db:"announcing_pub_key"`
-	FeeRateMillMsat  int64  `db:"fee_rate_mill_msat"`
-	FeeBaseMsat      int64  `db:"fee_base_msat"`
-	MaxHtlcMsat      uint64 `db:"max_htlc_msat"`
-	MinHtlc          int64  `db:"min_htlc"`
-	TimeLockDelta    uint32 `db:"time_lock_delta"`
-	Disabled         bool   `db:"disabled"`
+	Ts                time.Time
+	LNDChannelPoint   string `db:"lnd_channel_point"`
+	LNDShortChannelId string `db:"lnd_short_channel_id"`
+	Outbound          bool   `db:"outbound"`
+	AnnouncingPubKey  string `db:"announcing_pub_key"`
+	FeeRateMillMsat   int64  `db:"fee_rate_mill_msat"`
+	FeeBaseMsat       int64  `db:"fee_base_msat"`
+	MaxHtlcMsat       uint64 `db:"max_htlc_msat"`
+	MinHtlc           int64  `db:"min_htlc"`
+	TimeLockDelta     uint32 `db:"time_lock_delta"`
+	Disabled          bool   `db:"disabled"`
 }
 
 func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscribeChannelGraphRPC) (r []routingPolicyData) {
@@ -293,14 +293,11 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 		t.Fatal(err)
 	}
 
-	// Add a sleep to prevent query to run before the update has been processed due to parallel processing
-	time.Sleep(250 * time.Millisecond)
-
 	var result []routingPolicyData
 	err = db.Select(&result, `
 			select ts,
-				   chan_point,
-				   chan_id,
+				   lnd_channel_point,
+				   lnd_short_channel_id,
 				   outbound,
 				   announcing_pub_key,
 				   fee_rate_mill_msat,

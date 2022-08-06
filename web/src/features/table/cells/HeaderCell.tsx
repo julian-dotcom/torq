@@ -1,10 +1,9 @@
-import {
-  LockClosed12Regular as LockIcon
-} from "@fluentui/react-icons";
-import {inspect} from "util";
-import styles from './cell.module.scss'
+import { LockClosed12Regular as LockIcon } from "@fluentui/react-icons";
+import { inspect } from "util";
+import styles from "./cell.module.scss";
+import React from "react";
 
-const classNames = require('classnames');
+const classNames = require("classnames");
 
 interface headerCell {
   heading: string;
@@ -12,15 +11,21 @@ interface headerCell {
   locked?: boolean;
 }
 
-function HeaderCell({heading, className, locked}: headerCell) {
+function HeaderCell({ heading, className, locked }: headerCell) {
   return (
     <div className={classNames(styles.header, className)}>
       <div className={styles.content}>
-        {locked ? <div className="icon small"><LockIcon/></div> : ""}
+        {locked ? (
+          <div className="icon small">
+            <LockIcon />
+          </div>
+        ) : (
+          ""
+        )}
         <div className="text">{heading}</div>
       </div>
     </div>
-  )
+  );
 }
-
-export default HeaderCell;
+const HeaderCellMemo = React.memo(HeaderCell);
+export default HeaderCellMemo;

@@ -1,0 +1,17 @@
+.groupRowWrapper {
+  display: grid;
+  grid-row-gap: 8px;
+}
+.groupRow {
+  display: grid;
+  grid-template-columns: min-content auto;
+  grid-auto-flow: column;
+  grid-column-gap: 16px;
+  padding: 8px 12px;
+  align-items: center;
+  border-radius: var(--radius-default);
+  text-align: left;
+}
+.groupRowSelected {
+  background-color: var(--accent1-300);
+}

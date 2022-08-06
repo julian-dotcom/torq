@@ -130,9 +130,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 	}
 
 	// Connect to the new test database
-	db, err := sql.Open("postgres", dns)
+	db, err := sqlx.Open("postgres", dns)
 	if err != nil {
-		return nil, errors.Wrapf(err, "sql.Open(\"postgres\", %s)", dns)
+		return nil, errors.Wrapf(err, "sqlx.Open(\"postgres\", %s)", dns)
 	}
 
 	if migrate == true {
@@ -143,5 +143,5 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 		}
 	}
 
-	return sqlx.NewDb(db, "postgres"), nil
+	return db, nil
 }

@@ -46,7 +46,7 @@ function TimeIntervalSelect() {
   };
 
   const renderCustomRangeLabel = () => (
-    <div onClick={() => setIsMobile(true)} className="custom-mobile">
+    <div onClick={() => setIsMobile(true)} className="">
       Custom
     </div>
   );

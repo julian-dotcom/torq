@@ -5,38 +5,32 @@
   grid-column-gap: 0px;
   overflow: scroll;
   scrollbar-gutter: stable;
-  height: 100vh;
   -webkit-overflow-scrolling: touch;
-  margin: 0 10px 10px 10px;
   border-radius: 3px;
-  @media only screen and (max-width: 600px) {
-    height: calc(100vh - 178px);
-    margin: 0 10px 10px 10px;
-  }
+  width: 100%;
+  transition: opacity 200ms ease-in-out;
 }
 
 .tableWrapper {
   display: flex;
-  flex-grow: 1;
-  flex-direction: column;
-  overflow: hidden;
-  //overflow: scroll;
-  //scrollbar-gutter: stable;
+  height: 100%;
+  flex-direction: row;
+  scrollbar-gutter: stable;
 }
+//@media only screen and (max-width: 900px) {
+//  .tableWrapper {
+//    height: calc(100% - 170px);
+//  }
+//}
 
 .loading {
-  transition: opacity 250ms;
-  opacity: 0;
-}
-.idle {
-  transition: opacity 250ms;
-  opacity: 1;
+  opacity: 0.5;
 }
 .tableRow {
   display: contents;
 }
 :global(.tableRow):hover :global(.cell) {
-  background-color: var(--accent-b-0);
+  background-color: var(--primary-0);
 }
 
 @media only screen and (min-width: 900px) {
@@ -58,8 +52,7 @@
     background-clip: padding-box;
     background-color: rgba(0, 0, 0, 0.2);
     -webkit-border-radius: 7px;
-    -webkit-box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05),
-      inset 1px 1px 0px rgba(0, 0, 0, 0.05);
+    -webkit-box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05), inset 1px 1px 0px rgba(0, 0, 0, 0.05);
   }
 
   .tableContent:global(::-webkit-scrollbar-button) {
