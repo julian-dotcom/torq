@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channel_history"
 	"github.com/lncapital/torq/internal/channels"
@@ -15,17 +16,20 @@ import (
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/views"
+	"github.com/lncapital/torq/pkg/lnd"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
+	"google.golang.org/grpc"
 	"log"
 	"strconv"
 )
 
-func Start(port int, apiPswd string, db *sqlx.DB, restartLNDSub func()) {
+func Start(port int, apiPswd string, db *sqlx.DB, conn *grpc.ClientConn, restartLNDSub func()) {
+	client := lnrpc.NewLightningClient(conn)
 	r := gin.Default()
 	applyCors(r)
-	registerRoutes(r, db, apiPswd, restartLNDSub)
+	registerRoutes(r, db, apiPswd, client, restartLNDSub)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -63,7 +67,7 @@ func apiPasswordMiddleware(apiPswd string) gin.HandlerFunc {
 	}
 }
 
-func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub func()) {
+func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, client lnrpc.LightningClient, restartLNDSub func()) {
 	registerStaticRoutes(r)
 
 	// TODO: Generate this secret!
@@ -115,6 +119,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 		{
 			channels.RegisterChannelRoutes(channelRoutes, db)
 			channel_history.RegisterChannelHistoryRoutes(channelRoutes, db)
+		}
+
+		controlChannelRoutes := api.Group("/channel")
+		{
+			lnd.RegisterControlChannelRoutes(controlChannelRoutes, client)
 		}
 
 		flowRoutes := api.Group("/flow")

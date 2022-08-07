@@ -181,8 +181,19 @@ func main() {
 				})()
 
 			}
+			//connect
+			connectionDetails, err := settings.GetConnectionDetails(db)
+			conn, err := lnd.Connect(
+				connectionDetails.GRPCAddress,
+				connectionDetails.TLSFileBytes,
+				connectionDetails.MacaroonFileBytes)
+			if err != nil {
+				log.Printf("Failed to connect to lnd: %v\n", err)
+				stoppedchan <- struct{}{}
+				return err
+			}
 
-			torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, RestartLNDSubscription)
+			torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, conn, RestartLNDSubscription)
 
 			return nil
 		},

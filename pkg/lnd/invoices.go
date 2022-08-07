@@ -10,226 +10,16 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/zpay32"
+	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 	"io"
-	"log"
 	"time"
 )
 
 type invoicesClient interface {
 	SubscribeInvoices(ctx context.Context, in *lnrpc.InvoiceSubscription,
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeInvoicesClient, error)
-}
-
-func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, err error) {
-	// index starts at 1
-	sqlLatest := `select coalesce(max(add_index),1), coalesce(max(settle_index),1) from invoice;`
-
-	row := db.QueryRow(sqlLatest)
-	err = row.Scan(&addIndex, &settleIndex)
-
-	if err != nil {
-		return 0, 0, errors.Wrap(err, "getting max invoice indexes")
-	}
-
-	return addIndex, settleIndex, nil
-}
-
-func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB) error {
-
-	// Get the latest settle and add index to prevent duplicate entries.
-	addIndex, settleIndex, err := fetchLastInvoiceIndexes(db)
-	if err != nil {
-		return errors.Wrap(err, "subscribe and store invoices")
-	}
-
-	invoiceStream, err := client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
-		AddIndex:    addIndex,
-		SettleIndex: settleIndex,
-	})
-	if err != nil {
-		return errors.Wrap(err, "subscribe and store invoices: lnrpc subscribe")
-	}
-
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
-
-	for {
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		invoice, err := invoiceStream.Recv()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-
-		if err != nil {
-			log.Printf("Subscribe and store invoice stream receive: %v\n", err)
-			// rate limited resubscribe
-			log.Println("Attempting reconnect to invoice subscription")
-			for {
-				rl.Take()
-				invoiceStream, err = client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
-					AddIndex:    addIndex,
-					SettleIndex: settleIndex,
-				})
-				if err == nil {
-					log.Println("Reconnected to invoice subscription")
-					break
-				}
-				log.Printf("Reconnecting to invoice subscription: %v\n", err)
-			}
-			continue
-		}
-
-		var destinationPublicKey = ""
-		// if empty payment request invoice is likely keysend
-		if invoice.PaymentRequest != "" {
-			// TODO: Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
-			inva, err := zpay32.Decode(invoice.PaymentRequest, &chaincfg.MainNetParams)
-			if err != nil {
-				log.Printf("Subscribe and store invoices: decode payment request: %v", err)
-			} else {
-				destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
-			}
-		}
-
-		err = insertInvoice(db, invoice, destinationPublicKey)
-		if err != nil {
-			log.Printf("Subscribe and store invoices: %v", err)
-			// rate limit for caution but hopefully not needed
-			rl.Take()
-		}
-	}
-
-	return nil
-}
-
-func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string) error {
-
-	rhJson, err := json.Marshal(invoice.RouteHints)
-	if err != nil {
-		return errors.Wrapf(err, "insert invoice: json marshal route hints")
-	}
-
-	htlcJson, err := json.Marshal(invoice.Htlcs)
-	if err != nil {
-		return errors.Wrapf(err, "insert invoice: json marshal htlcs")
-	}
-
-	featuresJson, err := json.Marshal(invoice.Features)
-	if err != nil {
-		return errors.Wrapf(err, "insert invoice: json marshal features")
-	}
-
-	aisJson, err := json.Marshal(invoice.AmpInvoiceState)
-	if err != nil {
-		return errors.Wrapf(err, "insert invoice: amp invoice state")
-	}
-
-	i := Invoice{
-		Memo:            invoice.Memo,
-		RPreimage:       hex.EncodeToString(invoice.RPreimage),
-		RHash:           hex.EncodeToString(invoice.RHash),
-		ValueMsat:       invoice.ValueMsat,
-		CreationDate:    time.Unix(invoice.CreationDate, 0).UTC(),
-		SettleDate:      time.Unix(invoice.SettleDate, 0).UTC(),
-		PaymentRequest:  invoice.PaymentRequest,
-		Destination:     destination,
-		DescriptionHash: invoice.DescriptionHash,
-		Expiry:          invoice.Expiry,
-		FallbackAddr:    invoice.FallbackAddr,
-		CltvExpiry:      invoice.CltvExpiry,
-		RouteHints:      rhJson,
-		Private:         false,
-		AddIndex:        invoice.AddIndex,
-		SettleIndex:     invoice.SettleIndex,
-		AmtPaidSat:      invoice.AmtPaidSat,
-		AmtPaidMsat:     invoice.AmtPaidMsat,
-		InvoiceState:    invoice.State.String(), // ,
-		Htlcs:           htlcJson,
-		Features:        featuresJson,
-		IsKeysend:       invoice.IsKeysend,
-		PaymentAddr:     hex.EncodeToString(invoice.PaymentAddr),
-		IsAmp:           invoice.IsAmp,
-		AmpInvoiceState: aisJson,
-		CreatedOn:       time.Now().UTC(),
-		UpdatedOn:       nil,
-	}
-
-	var sqlInvoice = `INSERT INTO invoice (
-    memo,
-    r_preimage,
-    r_hash,
-    value_msat,
-    creation_date,
-    settle_date,
-    payment_request,
-    destination_pub_key,
-    description_hash,
-    expiry,
-    fallback_addr,
-    cltv_expiry,
-    route_hints,
-    private,
-    add_index,
-    settle_index,
-    amt_paid_msat,
-    /*
-    The state the invoice is in.
-        OPEN = 0;
-        SETTLED = 1;
-        CANCELED = 2;
-        ACCEPTED = 3;
-    */
-    invoice_state,
-    htlcs,
-    features,
-    is_keysend,
-    payment_addr,
-    is_amp,
-    amp_invoice_state,
-    created_on,
-    updated_on
-) VALUES(
-	:memo,
-    :r_preimage,
-    :r_hash,
-    :value_msat,
-    :creation_date,
-    :settle_date,
-    :payment_request,
-	:destination_pub_key,
-    :description_hash,
-    :expiry,
-    :fallback_addr,
-    :cltv_expiry,
-    :route_hints,
-    :private,
-    :add_index,
-    :settle_index,
-    :amt_paid_msat,
-    :invoice_state,
-    :htlcs,
-    :features,
-    :is_keysend,
-    :payment_addr,
-    :is_amp,
-    :amp_invoice_state,
-    :created_on,
-    :updated_on
-);`
-
-	_, err = db.NamedExec(sqlInvoice, i)
-
-	if err != nil {
-		return errors.Wrapf(err, "insert invoice")
-	}
-	return nil
 }
 
 type Invoice struct {
@@ -379,7 +169,272 @@ type Invoice struct {
 	   given sub-invoice.
 	*/
 	//map<string, AMPInvoiceState> amp_invoice_state = 28;
-	AmpInvoiceState []byte     `db:"amp_invoice_state" json:"amp_invoice_state"`
-	CreatedOn       time.Time  `db:"created_on" json:"created_on"`
-	UpdatedOn       *time.Time `db:"updated_on" json:"updated_on"`
+	AmpInvoiceState []byte    `db:"amp_invoice_state" json:"amp_invoice_state"`
+	CreatedOn       time.Time `db:"created_on" json:"created_on"`
+	UpdatedOn       time.Time `db:"updated_on" json:"updated_on"`
+}
+
+func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, err error) {
+	log.Info().Msgf("Fetch last invoice index")
+	// index starts at 1
+	sqlLatest := `select coalesce(max(add_index),1), coalesce(max(settle_index),1) from invoice;`
+
+	row := db.QueryRow(sqlLatest)
+	err = row.Scan(&addIndex, &settleIndex)
+
+	if err != nil {
+		log.Error().Msgf("getting max invoice indexes: %v", err)
+		return 0, 0, errors.Wrap(err, "getting max invoice indexes")
+	}
+
+	return addIndex, settleIndex, nil
+}
+
+func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB) error {
+
+	// Get the latest settle and add index to prevent duplicate entries.
+	addIndex, settleIndex, err := fetchLastInvoiceIndexes(db)
+	if err != nil {
+		log.Error().Msgf("subscribe and store invoices: %v", err)
+		return errors.Wrap(err, "subscribe and store invoices")
+	}
+
+	invoiceStream, err := client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
+		AddIndex:    addIndex,
+		SettleIndex: settleIndex,
+	})
+	if err != nil {
+		log.Error().Msgf("subscribe and store invoices - lnrpc subscribe:  %v", err)
+		return errors.Wrap(err, "subscribe and store invoices: lnrpc subscribe")
+	}
+
+	rl := ratelimit.New(1) // 1 per second maximum rate limit
+
+	for {
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		invoice, err := invoiceStream.Recv()
+		if errors.Is(err, io.EOF) {
+			log.Debug().Msgf("Get invoices - stream ended: EOF")
+			break
+		}
+
+		if err != nil {
+			log.Error().Msgf("Subscribe and store invoice stream receive: %v\n", err)
+			// rate limited resubscribe
+			log.Debug().Msg("Attempting reconnect to invoice subscription")
+			for {
+				rl.Take()
+				invoiceStream, err = client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
+					AddIndex:    addIndex,
+					SettleIndex: settleIndex,
+				})
+				if err == nil {
+					log.Debug().Msgf("Reconnected to invoice subscription")
+					break
+				}
+				log.Info().Msgf("Reconnecting to invoice subscription: %v\n", err)
+			}
+			continue
+		}
+
+		var destinationPublicKey = ""
+		// if empty payment request invoice is likely keysend
+		if invoice.PaymentRequest != "" {
+			// Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
+			nodeNetwork := getNodeNetwork(invoice.PaymentRequest)
+			log.Debug().Msgf("Node network: %v", nodeNetwork)
+
+			inva, err := zpay32.Decode(invoice.PaymentRequest, nodeNetwork)
+			if err != nil {
+				log.Error().Msgf("Subscribe and store invoices - decode payment request: %v", err)
+			} else {
+				log.Debug().Msg("all good")
+				destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
+			}
+		}
+
+		err = insertInvoice(db, invoice, destinationPublicKey)
+		if err != nil {
+			log.Error().Msgf("Subscribe and store invoices: %v", err)
+			// rate limit for caution but hopefully not needed
+			rl.Take()
+		}
+	}
+
+	return nil
+}
+
+//getNodeNetwork
+//Obtained from invoice.PaymentRequest
+//MainNetParams           bc
+//RegressionNetParams     bcrt
+//SigNetParams            tbs
+//TestNet3Params          tb
+//SimNetParams            sb
+//Example: invoice.PaymentRequest = lnbcrt500u1p3vmd6upp5y7ndr6dmyehql..."
+//       - First two characters should be "ln"
+//       - Next 2+2 characters determine the network
+//       - Here the network is RegressionNetParams - bcrt
+//This values come from chaincfg.<Params>.Bech32HRPSegwit
+func getNodeNetwork(pmntReq string) *chaincfg.Params {
+	nodeNetwork := &chaincfg.Params{}
+	nodeNetworkPrefix := pmntReq[2:4]
+	nodeNetworkSuffix := ""
+
+	switch {
+	case nodeNetworkPrefix == "bc":
+		nodeNetworkSuffix = pmntReq[4:6]
+		if nodeNetworkSuffix == "rt" {
+			nodeNetwork = &chaincfg.RegressionNetParams
+		} else {
+			nodeNetwork = &chaincfg.MainNetParams
+		}
+	case nodeNetworkPrefix == "tb":
+		nodeNetworkSuffix = pmntReq[4:5]
+		if nodeNetworkSuffix == "s" {
+			nodeNetwork = &chaincfg.SigNetParams
+		} else {
+			nodeNetwork = &chaincfg.TestNet3Params
+		}
+	case nodeNetworkPrefix == "sb":
+		nodeNetwork = &chaincfg.SimNetParams
+	default:
+		nodeNetwork = &chaincfg.MainNetParams
+	}
+
+	return nodeNetwork
+}
+
+func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string) error {
+
+	rhJson, err := json.Marshal(invoice.RouteHints)
+	if err != nil {
+		log.Error().Msgf("insert invoice: json marshal route hints: %v", err)
+		return errors.Wrapf(err, "insert invoice: json marshal route hints")
+	}
+
+	htlcJson, err := json.Marshal(invoice.Htlcs)
+	if err != nil {
+		log.Error().Msgf("insert invoice - json marshal htlcs: %v", err)
+		return errors.Wrapf(err, "insert invoice: json marshal htlcs")
+	}
+
+	featuresJson, err := json.Marshal(invoice.Features)
+	if err != nil {
+		log.Error().Msgf("insert invoice - json marshal features: %v", err)
+		return errors.Wrapf(err, "insert invoice: json marshal features")
+	}
+
+	aisJson, err := json.Marshal(invoice.AmpInvoiceState)
+	if err != nil {
+		log.Error().Msgf("")
+		return errors.Wrapf(err, "insert invoice: amp invoice state")
+	}
+
+	i := Invoice{
+		Memo:            invoice.Memo,
+		RPreimage:       hex.EncodeToString(invoice.RPreimage),
+		RHash:           hex.EncodeToString(invoice.RHash),
+		ValueMsat:       invoice.ValueMsat,
+		CreationDate:    time.Unix(invoice.CreationDate, 0).UTC(),
+		SettleDate:      time.Unix(invoice.SettleDate, 0).UTC(),
+		PaymentRequest:  invoice.PaymentRequest,
+		Destination:     destination,
+		DescriptionHash: invoice.DescriptionHash,
+		Expiry:          invoice.Expiry,
+		FallbackAddr:    invoice.FallbackAddr,
+		CltvExpiry:      invoice.CltvExpiry,
+		RouteHints:      rhJson,
+		Private:         false,
+		AddIndex:        invoice.AddIndex,
+		SettleIndex:     invoice.SettleIndex,
+		AmtPaidSat:      invoice.AmtPaidSat,
+		AmtPaidMsat:     invoice.AmtPaidMsat,
+		InvoiceState:    invoice.State.String(), // ,
+		Htlcs:           htlcJson,
+		Features:        featuresJson,
+		IsKeysend:       invoice.IsKeysend,
+		PaymentAddr:     hex.EncodeToString(invoice.PaymentAddr),
+		IsAmp:           invoice.IsAmp,
+		AmpInvoiceState: aisJson,
+		CreatedOn:       time.Now().UTC(),
+		UpdatedOn:       time.Time{},
+	}
+
+	var sqlInvoice = `INSERT INTO invoice (
+    memo,
+    r_preimage,
+    r_hash,
+    value_msat,
+    creation_date,
+    settle_date,
+    payment_request,
+    destination_pub_key,
+    description_hash,
+    expiry,
+    fallback_addr,
+    cltv_expiry,
+    route_hints,
+    private,
+    add_index,
+    settle_index,
+    amt_paid_msat,
+    /*
+    The state the invoice is in.
+        OPEN = 0;
+        SETTLED = 1;
+        CANCELED = 2;
+        ACCEPTED = 3;
+    */
+    invoice_state,
+    htlcs,
+    features,
+    is_keysend,
+    payment_addr,
+    is_amp,
+    amp_invoice_state,
+    created_on,
+    updated_on
+) VALUES(
+	:memo,
+    :r_preimage,
+    :r_hash,
+    :value_msat,
+    :creation_date,
+    :settle_date,
+    :payment_request,
+	:destination_pub_key,
+    :description_hash,
+    :expiry,
+    :fallback_addr,
+    :cltv_expiry,
+    :route_hints,
+    :private,
+    :add_index,
+    :settle_index,
+    :amt_paid_msat,
+    :invoice_state,
+    :htlcs,
+    :features,
+    :is_keysend,
+    :payment_addr,
+    :is_amp,
+    :amp_invoice_state,
+    :created_on,
+    :updated_on
+);`
+
+	_, err = db.NamedExec(sqlInvoice, i)
+
+	if err != nil {
+		log.Error().Msgf("insert invoice: %v", err)
+		return errors.Wrapf(err, "insert invoice")
+	}
+	return nil
 }
