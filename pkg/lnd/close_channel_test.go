@@ -77,7 +77,7 @@ func TestCloseChannel(t *testing.T) {
 	fundingTxid := lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: "test"}
 	outputIndex := uint32(1)
 	client := MockCloseChannelLC{}
-	resp, _ := closeChannel(&fundingTxid, outputIndex, client)
+	resp, _ := closeChannel(client, &fundingTxid, outputIndex, nil)
 	//fmt.Fprintf(os.Stderr, "%v\n", resp)
 	if resp.Response != "Channel closing" {
 		t.Fatalf("Failed")

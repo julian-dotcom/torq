@@ -91,7 +91,7 @@ func TestOpenChannel(t *testing.T) {
 	testPubKey := randPubKey(t)
 	testAmt := int64(1)
 	client := MockOpenChannelLC{}
-	resp, _ := openChannel(testPubKey.SerializeCompressed(), testAmt, client)
+	resp, _ := openChannel(client, testPubKey.SerializeCompressed(), testAmt, nil)
 	//fmt.Fprintf(os.Stderr, "%v\n", resp)
 	if resp.Response != "Channel opening" {
 		t.Fatalf("Failed")

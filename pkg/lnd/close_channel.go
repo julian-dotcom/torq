@@ -12,20 +12,26 @@ type lndClientCloseChannel interface {
 	CloseChannel(ctx context.Context, in *lnrpc.CloseChannelRequest, opts ...grpc.CallOption) (lnrpc.Lightning_CloseChannelClient, error)
 }
 
-func closeChannel(fundingTxid *lnrpc.ChannelPoint_FundingTxidStr, outputIndex uint32, client lndClientCloseChannel) (r Response, err error) {
+func closeChannel(client lndClientCloseChannel,
+	fundingTxid *lnrpc.ChannelPoint_FundingTxidStr,
+	outputIndex uint32,
+	satPerVbyte *uint64) (r Response, err error) {
 	ctx := context.Background()
 	channelPoint := lnrpc.ChannelPoint{
 		FundingTxid: fundingTxid,
 		OutputIndex: outputIndex,
 	}
 
-	//open channel request
+	//close channel request
 	closeChanReq := lnrpc.CloseChannelRequest{
 		ChannelPoint:    &channelPoint,
 		Force:           false,
 		TargetConf:      0,
 		DeliveryAddress: "",
-		SatPerVbyte:     0,
+	}
+
+	if satPerVbyte != nil {
+		closeChanReq.SatPerVbyte = *satPerVbyte
 	}
 
 	closeChanRes, err := client.CloseChannel(ctx, &closeChanReq)

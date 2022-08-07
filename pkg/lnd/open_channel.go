@@ -12,12 +12,16 @@ type lndClientOpenChannel interface {
 	OpenChannel(ctx context.Context, in *lnrpc.OpenChannelRequest, opts ...grpc.CallOption) (lnrpc.Lightning_OpenChannelClient, error)
 }
 
-func openChannel(pubkey []byte, amt int64, client lndClientOpenChannel) (r Response, err error) {
+func openChannel(client lndClientOpenChannel, pubkey []byte, amt int64, satPerVbyte *uint64) (r Response, err error) {
 
 	//open channel request
 	openChanReq := lnrpc.OpenChannelRequest{
 		NodePubkey:         pubkey,
 		LocalFundingAmount: amt,
+	}
+
+	if satPerVbyte != nil {
+		openChanReq.SatPerVbyte = *satPerVbyte
 	}
 
 	ctx := context.Background()

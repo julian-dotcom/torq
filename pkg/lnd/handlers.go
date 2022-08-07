@@ -11,12 +11,14 @@ import (
 )
 
 type OpenChanRequestBody struct {
-	LndAddress string
-	Amount     int64
+	LndAddress  string
+	Amount      int64
+	SatPerVbyte *uint64
 }
 
 type closeChanRequestBody struct {
 	ChannelPoint string
+	SatPerVbyte  *uint64
 }
 
 type Response struct {
@@ -34,19 +36,15 @@ func OpenChannelHandler(c *gin.Context, client lnrpc.LightningClient) {
 		c.JSON(http.StatusInternalServerError, r)
 	}
 
-	lndAddressStr := requestBody.LndAddress
-	fundingAmt := requestBody.Amount
-
 	//pubkey to hex
-	pubKeyHex, err := hex.DecodeString(lndAddressStr)
+	pubKeyHex, err := hex.DecodeString(requestBody.LndAddress)
 	if err != nil {
 		log.Error().Msgf("Unable to decode node public key: %v", err)
 		r.Response = "Error hexing pubkey"
 		c.JSON(http.StatusInternalServerError, r)
 	}
 
-	//resp, err := openChannel(pubKeyHex, fundingAmt, db)
-	resp, err := openChannel(pubKeyHex, fundingAmt, client)
+	resp, err := openChannel(client, pubKeyHex, requestBody.Amount, requestBody.SatPerVbyte)
 	if err != nil {
 		log.Error().Msgf("Error opening channel: %v", err)
 		r.Response = "Error opening channel"
@@ -87,7 +85,7 @@ func CloseChannelHandler(c *gin.Context, client lnrpc.LightningClient) {
 
 	log.Debug().Msgf("Funding: %v, index: %v", fundingTxid, outputIndex)
 
-	resp, err := closeChannel(fundingTxid, outputIndex, client)
+	resp, err := closeChannel(client, fundingTxid, outputIndex, requestBody.SatPerVbyte)
 
 	if err != nil {
 		log.Error().Msgf("Error closing channel: %v", err)
