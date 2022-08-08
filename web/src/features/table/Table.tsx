@@ -136,7 +136,7 @@ function Table(props: TableProps) {
   const numRows = (props.data || []).length;
   const rowGridStyle = (numRows: number): string => {
     if (numRows > 0) {
-      return `grid-template-rows: min-content repeat(${numRows},min-content) auto ${
+      return `grid-template-rows: min-content repeat(${numRows}, min-content) auto ${
         props.showTotals ? "min-content" : ""
       }`;
     } else {
@@ -154,7 +154,7 @@ function Table(props: TableProps) {
     " {" +
     "grid-template-columns: min-content repeat(" +
     numColumns +
-    ",  minmax(min-content, auto)) min-content;" +
+    ",  min-content) auto;" +
     rowGridStyle(numRows) +
     "}";
 
