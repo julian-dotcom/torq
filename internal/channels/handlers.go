@@ -1,15 +1,13 @@
 package channels
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"gopkg.in/guregu/null.v4"
 	"net/http"
-
 	"time"
-
-	"github.com/cockroachdb/errors"
-	"github.com/jmoiron/sqlx"
 )
 
 func getChannelsTableHandler(c *gin.Context, db *sqlx.DB) {
