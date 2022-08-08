@@ -494,6 +494,10 @@ func payInvoice(ctx context.Context, cli *client.Client,
 			log.Println("Standard out is empty, retrying")
 			return errors.New("Payment not sent")
 		}
+		if strings.Contains(strings.ToLower(stdout.String()), "error") {
+			log.Println("Word error was found in stdout, retrying")
+			return errors.New("Payment not sent")
+		}
 		log.Println("Pay invoice command complete")
 		return nil
 	}, defautDelayMS, defaultMaxDurationMS)
