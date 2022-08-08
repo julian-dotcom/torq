@@ -254,7 +254,6 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if err != nil {
 				log.Error().Msgf("Subscribe and store invoices - decode payment request: %v", err)
 			} else {
-				log.Debug().Msg("all good")
 				destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
 			}
 		}
