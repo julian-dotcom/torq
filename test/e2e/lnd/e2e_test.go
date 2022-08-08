@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 
 	ctx = context.Background()
 
-	cli, err = client.NewEnvClient()
+	cli, err = client.NewClientWithOpts()
 	if err != nil {
 		log.Fatalf("Getting new docker client: %v\n", err)
 	}
