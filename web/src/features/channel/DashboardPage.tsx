@@ -14,6 +14,7 @@ import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
 import { useParams } from "react-router";
+import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
 import {
   selectEventChartKey,
   selectFlowKeys,
@@ -87,18 +88,7 @@ function ChannelPage() {
   const totalCost: number = historyQuery?.data?.on_chain_cost + historyQuery?.data?.rebalancing_cost / 1000;
 
   return (
-    <div className={styles.channelsPageContent}>
-      <div className={styles.channelControls}>
-        <div className={styles.leftContainer}>
-          <div className={styles.lowerContainer}>
-            <Button icon={<DashboardIcon />} text={"Dashboard"} />
-          </div>
-        </div>
-        <div className={styles.rightContainer}>
-          <TimeIntervalSelect />
-        </div>
-      </div>
-
+    <DetailsPageTemplate title={"Forwards Summary"} titleContent={<TimeIntervalSelect />}>
       <div className={styles.channelWrapper}>
         <div className={classNames(styles.pageRow, styles.channelSummary)}>
           <div className={styles.shortColumn}>
@@ -251,7 +241,7 @@ function ChannelPage() {
           </div>
         </div>
       </div>
-    </div>
+    </DetailsPageTemplate>
   );
 }
 

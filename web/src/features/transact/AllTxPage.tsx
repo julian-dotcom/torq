@@ -1,6 +1,6 @@
 import styles from "../table/table-page.module.scss";
 import TableControls from "../sidebar/sections/TableControls";
-import Table from "../table/tableContent/Table";
+import Table from "../table/Table";
 import { useGetTableViewsQuery } from "apiSlice";
 import { Link } from "react-router-dom";
 import {

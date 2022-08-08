@@ -34,7 +34,6 @@ import {
   selectBalanceChanID,
 } from "./channelSlice";
 import BalanceChart from "./balanceChart/BalanceChart";
-
 import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
 
 const ft = d3.format(",.0f");

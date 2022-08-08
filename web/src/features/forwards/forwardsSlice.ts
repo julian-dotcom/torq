@@ -3,17 +3,7 @@ import { RootState } from "../../store/store";
 import { AndClause, FilterClause } from "../sidebar/sections/filter/filter";
 import { SortByOptionType } from "../sidebar/sections/sort/SortSection";
 import { torqApi } from "apiSlice";
-
-export interface ColumnMetaData {
-  heading: string;
-  key: string;
-  type?: string;
-  width?: number;
-  locked?: boolean;
-  valueType: string;
-  total?: number;
-  max?: number;
-}
+import { ColumnMetaData } from "../table/Table";
 
 export const availableColumns: ColumnMetaData[] = [
   {
@@ -126,8 +116,8 @@ export const availableColumns: ColumnMetaData[] = [
     valueType: "string",
   },
   {
-    heading: "Open Channel",
-    type: "NumericCell",
+    heading: "Open",
+    type: "BooleanCell",
     key: "open",
     valueType: "number",
   },

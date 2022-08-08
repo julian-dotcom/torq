@@ -13,7 +13,7 @@ function TextCell({ current, className }: textCell) {
     displayCurrent = current.join(", ");
   }
   return (
-    <div className={classNames(styles.cell, styles.alignLeft, className)}>
+    <div className={classNames(styles.cell, styles.alignLeft, styles.TextCell, className)}>
       <div className={styles.current}>{displayCurrent}</div>
     </div>
   );

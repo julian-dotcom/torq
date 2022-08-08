@@ -7,6 +7,7 @@
   align-content: center;
   text-align: right;
   background-color: var(--bg-default);
+  border-bottom: 1px solid var(--primary-100);
   @media only screen and (max-width: 900px) {
     min-width: 0px;
   }
@@ -157,8 +158,8 @@
   border-left: 1px solid var(--material-layer-3);
 }
 
-.header.textCell,
-.cell.textCell {
+.header.TextCell,
+.cell.TextCell {
   justify-items: start;
 }
 .cell:global(.alias),
@@ -174,6 +175,46 @@
       max-width: 100px;
     }
     min-width: 0px;
+  }
+}
+.cell.BooleanCell {
+  min-width: initial;
+  .checked {
+    color: var(--secondary-2-600);
+  }
+  .unchecked {
+    color: var(--content-muted);
+  }
+}
+.header.BooleanCell,
+.cell.BooleanCell {
+  align-items: center;
+  min-width: 24px;
+}
+
+.header.DateCell,
+.cell.DateCell {
+  justify-items: start;
+  min-width: initial;
+}
+.cell.DateCell {
+  white-space: nowrap;
+}
+
+.noTotalsRow {
+  border-bottom: 2px solid var(--primary-100);
+  min-height: 10px;
+  min-width: 10px;
+  position: sticky;
+  bottom: 0px;
+  z-index: 7;
+  &.firstEmptyCell {
+    z-index: 8;
+    left: 0;
+    border-bottom-left-radius: 3px;
+  }
+  &.lastEmptyCell {
+    border-bottom-right-radius: 3px;
   }
 }
 

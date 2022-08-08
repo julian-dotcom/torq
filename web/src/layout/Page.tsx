@@ -1,7 +1,4 @@
-import { Navigation20Regular as NavigationIcon } from "@fluentui/react-icons";
-import Button from "features/buttons/Button";
 import { useAppDispatch } from "store/hooks";
-import { toggleNav } from "features/navigation/navSlice";
 import { ReactElement } from "react";
 import styles from "./page.module.scss";
 

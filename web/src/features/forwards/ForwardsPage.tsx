@@ -23,7 +23,6 @@ import {
   updateColumns,
   selectActiveColumns,
   selectAllColumns,
-  ColumnMetaData,
   selectFilters,
   updateFilters,
   selectSortBy,
@@ -40,6 +39,8 @@ import ForwardsDataWrapper from "./ForwardsDataWrapper";
 import DefaultButton from "../buttons/Button";
 import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
 import classNames from "classnames";
+import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
+import { ColumnMetaData } from "../table/Table";
 
 type sections = {
   filter: boolean;
@@ -223,6 +224,7 @@ function ForwardsPage() {
   return (
     <TablePageTemplate
       title={"Forwards"}
+      titleContent={<TimeIntervalSelect />}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}

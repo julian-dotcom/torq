@@ -11,7 +11,7 @@ import {
 } from "@fluentui/react-icons";
 import styles from "./columns-section.module.scss";
 import Select, { SelectOptionType } from "./ColumnDropDown";
-import { ColumnMetaData } from "features/forwards/forwardsSlice";
+import { ColumnMetaData } from "features/table/Table";
 import React, { useState } from "react";
 
 interface columnRow {

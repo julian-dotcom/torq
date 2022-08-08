@@ -2,12 +2,12 @@ import React from "react";
 import styles from "./table-page-template.module.scss";
 
 import classNames from "classnames";
-import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import { FluentIconsProps } from "@fluentui/react-icons";
 import PageTitle from "features/templates/PageTitle";
 
 type TablePageTemplateProps = {
   title: string;
+  titleContent?: React.ReactNode;
   sidebarExpanded?: boolean;
   sidebar?: React.ReactNode;
   pageTotals?: React.ReactNode;
@@ -20,7 +20,7 @@ export default function TablePageTemplate(props: TablePageTemplateProps) {
   return (
     <div className={styles.contentWrapper}>
       <PageTitle breadcrumbs={props.breadcrumbs} title={props.title}>
-        <TimeIntervalSelect />
+        {props.titleContent}
       </PageTitle>
 
       <div className={classNames(styles.totalWrapper)}>{props.pageTotals}</div>

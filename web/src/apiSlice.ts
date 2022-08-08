@@ -44,6 +44,9 @@ export const torqApi = createApi({
     getChannels: builder.query<any, { from: string; to: string }>({
       query: ({ from, to }) => `channels?from=${from}&to=${to}`,
     }),
+    getPayments: builder.query<any, {}>({
+      query: () => `payments?limit=100&order=[{"value": "date", "direction": "desc"}]`,
+    }),
     getTableViews: builder.query<any, void>({
       query: () => `table-views`,
       providesTags: ["tableView"],
@@ -131,6 +134,7 @@ export const {
   useGetFlowQuery,
   useGetChannelHistoryQuery,
   useGetChannelsQuery,
+  useGetPaymentsQuery,
   useGetTableViewsQuery,
   useUpdateTableViewMutation,
   useCreateTableViewMutation,
