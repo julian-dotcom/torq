@@ -6,6 +6,10 @@
   height: 100%;
   column-gap: 32px;
 
+  @media only screen and (max-width: 900px) {
+    column-gap: 12px;
+  }
+
   //@media only screen and (max-width: 1199px) {
   //  .navigation-wrapper {
   //    width: 0px;

@@ -16,7 +16,7 @@ import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
   TableControlsTabsGroup,
-} from "../tablePageTemplate/TablePageTemplate";
+} from "../templates/tablePageTemplate/TablePageTemplate";
 import React, { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {

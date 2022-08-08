@@ -1,11 +1,10 @@
 import React from "react";
 import styles from "./table-page-template.module.scss";
-import Breadcrumbs from "../breadcrumbs/Breadcrumbs";
 
 import classNames from "classnames";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import { FluentIconsProps } from "@fluentui/react-icons";
-import { NavLink } from "react-router-dom";
+import PageTitle from "features/templates/PageTitle";
 
 type TablePageTemplateProps = {
   title: string;
@@ -20,15 +19,9 @@ type TablePageTemplateProps = {
 export default function TablePageTemplate(props: TablePageTemplateProps) {
   return (
     <div className={styles.contentWrapper}>
-      <div className={styles.pageControlsWrapper}>
-        <div className={styles.leftWrapper}>
-          <Breadcrumbs breadcrumbs={props.breadcrumbs || []} />
-          <h1 className={styles.titleContainer}>{props.title}</h1>
-        </div>
-        <div className={styles.rightWrapper}>
-          <TimeIntervalSelect />
-        </div>
-      </div>
+      <PageTitle breadcrumbs={props.breadcrumbs} title={props.title}>
+        <TimeIntervalSelect />
+      </PageTitle>
 
       <div className={classNames(styles.totalWrapper)}>{props.pageTotals}</div>
 

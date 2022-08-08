@@ -1,6 +1,6 @@
 import React from "react";
 import TabButton from "features/buttons/TabButton";
-import { TableControlsTabsGroup } from "features/tablePageTemplate/TablePageTemplate";
+import { TableControlsTabsGroup } from "features/templates/tablePageTemplate/TablePageTemplate";
 
 function TransactTabs() {
   return (

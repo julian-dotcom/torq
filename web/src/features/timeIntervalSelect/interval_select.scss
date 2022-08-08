@@ -3,8 +3,8 @@
   grid-auto-flow: column;
   justify-items: center;
   align-items: center;
-  @media only screen and (max-width: 600px) {
-    width: calc(100vw - 20px);
+  @media only screen and (max-width: 700px) {
+    width: calc(100vw - 24px);
     grid-template-columns: min-content auto min-content;
   }
 }
@@ -265,6 +265,7 @@
   display: grid;
   width: 240px;
   text-align: center;
+  justify-content: center;
   cursor: pointer;
   @media only screen and (max-width: 600px) {
     padding: 10px;

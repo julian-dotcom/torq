@@ -35,6 +35,8 @@ import {
 } from "./channelSlice";
 import BalanceChart from "./balanceChart/BalanceChart";
 
+import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
+
 const ft = d3.format(",.0f");
 
 const eventNames = new Map([
@@ -121,18 +123,7 @@ function ChannelPage() {
   }
 
   return (
-    <div className={styles.channelsPageContent}>
-      <div className={styles.channelControls}>
-        <div className={styles.leftContainer}>
-          <div className={styles.lowerContainer}>
-            <Button icon={<ChannelIcon />} text={title} />
-          </div>
-        </div>
-        <div className={styles.rightContainer}>
-          <TimeIntervalSelect />
-        </div>
-      </div>
-
+    <DetailsPageTemplate title={title} titleContent={<TimeIntervalSelect />}>
       <div className={styles.channelWrapper}>
         <div className={classNames(styles.pageRow, styles.channelSummary)}>
           <div className={styles.shortColumn}>
@@ -525,7 +516,7 @@ function ChannelPage() {
           </div>
         </div>
       </div>
-    </div>
+    </DetailsPageTemplate>
   );
 }
 

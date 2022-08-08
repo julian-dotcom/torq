@@ -1,0 +1,22 @@
+.pageTitleWrapper {
+  padding-top: 32px;
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: space-between;
+  grid-area: Controls;
+  padding-bottom: 16px;
+  align-items: end;
+  @media only screen and (max-width: 700px) {
+    grid-auto-flow: row;
+    grid-row-gap: 16px;
+    padding-top: 12px;
+    width: calc(100vw - 24px);
+  }
+}
+
+.titleContainer {
+  font-size: var(--font-XXL-regular);
+  @media only screen and (max-width: 700px) {
+    font-size: var(--font-L-regular);
+  }
+}

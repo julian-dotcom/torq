@@ -77,14 +77,6 @@
   //  display: grid;
   //}
 }
-
-.channelsPageContent {
-  margin: 20px;
-  width: 100%;
-  @media only screen and (max-width: 600px) {
-    margin: 10px;
-  }
-}
 .channelWrapper {
   display: grid;
   grid-auto-flow: row;

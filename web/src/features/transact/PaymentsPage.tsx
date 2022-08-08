@@ -5,14 +5,13 @@ import {
   Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
-  ArrowJoin20Regular as GroupIcon,
 } from "@fluentui/react-icons";
-import Sidebar, { SidebarSection } from "../sidebar/Sidebar";
+import Sidebar, { SidebarSection } from "features/sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
-} from "../tablePageTemplate/TablePageTemplate";
+} from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TransactTabs from "./TransactTabs";
 

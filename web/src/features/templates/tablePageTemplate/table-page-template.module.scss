@@ -14,10 +14,18 @@
   grid-column-gap: 32px;
   grid-row-gap: 0;
 }
+@media only screen and (max-width: 900px) {
+  .contentWrapper {
+    grid-column-gap: 0;
+  }
+}
 .leftWrapper {
 }
 .tableWrapper {
-  padding-bottom: 30px;
+  padding-bottom: 32px;
+  @media only screen and (max-width: 900px) {
+    padding-bottom: 12px;
+  }
 }
 .tableContainer {
   height: 100%;
@@ -28,15 +36,7 @@
   grid-area: Totals;
   display: grid;
 }
-.pageControlsWrapper {
-  padding-top: 32px;
-  display: grid;
-  grid-auto-flow: column;
-  justify-content: space-between;
-  grid-area: Controls;
-  align-items: center;
-  padding-bottom: 16px;
-}
+
 .pageSidebarWrapper {
   width: 0;
   background-color: var(--bg-default);
@@ -47,9 +47,6 @@
 .pageSidebarWrapper.sidebarExpanded {
   width: 320px;
 }
-.titleContainer {
-  font-size: var(--font-XXL-regular);
-}
 .tableControlsSection {
   display: grid;
   grid-auto-flow: column;
@@ -59,6 +56,9 @@
   grid-column-gap: 16px;
   grid-area: TableControls;
   padding-bottom: 8px;
+  @media only screen and (max-width: 900px) {
+    padding-right: 12px;
+  }
 }
 .tableExpander {
   display: flex;
@@ -76,6 +76,9 @@
   grid-auto-flow: column;
   grid-auto-columns: min-content;
   grid-column-gap: 4px;
+  @media only screen and (max-width: 900px) {
+    display: none;
+  }
 }
 .tableControlsButtonWrapper {
   height: 44px;
