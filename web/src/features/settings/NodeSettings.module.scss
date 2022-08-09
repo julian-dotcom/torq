@@ -1,0 +1,23 @@
+.container {
+  overflow: hidden;
+}
+.header {
+  display: flex;
+  .connectionIcon {
+    width: 28px;
+    height: 28px;
+    background-color: var(--secondary-2-500);
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.collapseIcon {
+  transition: 0.3s transform ease-in-out;
+  transform: rotate(0deg);
+  &.collapsed {
+    transform: rotate(90deg);
+  }
+}
