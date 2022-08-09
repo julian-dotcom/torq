@@ -43,19 +43,42 @@ UPDATE settings SET
 	return nil
 }
 
-func getLocalNode(db *sqlx.DB) (localNodeData localNode, err error) {
+func getLocalNode(db *sqlx.DB, localNodeId int) (localNodeData localNode, err error) {
 	err = db.Get(&localNodeData, `
 SELECT
+  local_node_id,
   implementation,
   grpc_address,
   tls_file_name,
-  macaroon_file_name
-FROM local_node LIMIT 1;`)
+  macaroon_file_name,
+  disabled,
+  deleted
+FROM local_node WHERE local_node_id = $1;`, localNodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return localNode{}, nil
 		}
 		return localNode{}, errors.Wrap(err, "Unable to execute SQL query")
+	}
+	return localNodeData, nil
+}
+
+func getLocalNodes(db *sqlx.DB) (localNodeData []localNode, err error) {
+	err = db.Select(&localNodeData, `
+SELECT
+  local_node_id,
+  implementation,
+  grpc_address,
+  tls_file_name,
+  macaroon_file_name,
+  disabled,
+  deleted
+FROM local_node;`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []localNode{}, nil
+		}
+		return []localNode{}, errors.Wrap(err, "Unable to execute SQL query")
 	}
 	return localNodeData, nil
 }
@@ -74,6 +97,22 @@ FROM local_node LIMIT 1;`)
 		return localNode{}, errors.Wrap(err, "Unable to execute SQL query")
 	}
 	return localNodeData, nil
+}
+
+func updateLocalNodeDisabledFlag(db *sqlx.DB, localNodeId int, disabled bool) (err error) {
+	_, err = db.Exec(` UPDATE local_node SET disabled = $1`, disabled, time.Now().UTC())
+	if err != nil {
+		return errors.Wrap(err, "Unable to execute SQL statement")
+	}
+	return nil
+}
+
+func updateLocalNodeDeletedFlag(db *sqlx.DB, localNodeId int, deleted bool) (err error) {
+	_, err = db.Exec(` UPDATE local_node SET deleted = $1`, deleted, time.Now().UTC())
+	if err != nil {
+		return errors.Wrap(err, "Unable to execute SQL statement")
+	}
+	return nil
 }
 
 func updateLocalNodeDetails(db *sqlx.DB, localNode localNode) (err error) {

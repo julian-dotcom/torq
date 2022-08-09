@@ -81,7 +81,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 
 	unauthorisedSettingRoutes := api.Group("settings")
 	{
-		settings.RegisterUnauthorisedRoutes(unauthorisedSettingRoutes, db)
+		settings.RegisterUnauthenticatedRoutes(unauthorisedSettingRoutes, db)
 	}
 
 	api.Use(auth.AuthRequired)
