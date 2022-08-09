@@ -1,7 +1,6 @@
 import styles from "./views.module.scss";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
-  Table20Regular as TableIcon,
   Dismiss20Regular as RemoveIcon,
   Edit16Regular as EditIcon,
   Save20Regular as SaveIcon,
@@ -23,7 +22,7 @@ import {
   updateViewsOrder,
 } from "features/forwards/forwardsSlice";
 import Popover from "features/popover/Popover";
-import DefaultButton from "features/buttons/Button";
+import Button, { buttonVariants } from "features/buttons/Button";
 import {
   useCreateTableViewMutation,
   useUpdateTableViewMutation,
@@ -200,7 +199,7 @@ function ViewsPopover() {
             )}
           </Droppable>
           <div className={styles.buttonsRow}>
-            <DefaultButton text={"Add View"} icon={<AddIcon />} onClick={addView} />
+            <Button variant={buttonVariants.ghost} text={"Add View"} icon={<AddIcon />} onClick={addView} />
           </div>
         </div>
       </DragDropContext>

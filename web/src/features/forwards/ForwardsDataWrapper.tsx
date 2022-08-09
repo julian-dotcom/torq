@@ -1,10 +1,11 @@
-import React, { ReactElement, useMemo } from "react";
+import React, { useMemo } from "react";
+
 import { cloneDeep, orderBy } from "lodash";
 import { useAppSelector } from "store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
 import { useGetChannelsQuery } from "../../apiSlice";
-import { ColumnMetaData, selectAllColumns, selectFilters, selectGroupBy, selectSortBy } from "./forwardsSlice";
+import { ColumnMetaData, selectFilters, selectGroupBy, selectSortBy } from "./forwardsSlice";
 import { applyFilters, Clause, deserialiseQuery } from "../sidebar/sections/filter/filter";
 import { groupByFn } from "../sidebar/sections/group/groupBy";
 import clone from "../../clone";

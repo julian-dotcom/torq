@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import styles from "./channel-page.module.scss";
 import * as d3 from "d3";
 import classNames from "classnames";
@@ -8,17 +8,11 @@ import ProfitsChart from "./revenueChart/ProfitsChart";
 import EventsChart from "./eventsChart/EventsChart";
 import EventsCard from "../eventsCard/EventsCard";
 import Switch from "../inputs/Slider/Switch";
-import Button from "../buttons/Button";
+import Button, { buttonVariants } from "../buttons/Button";
 import Select from "../inputs/Select";
-import {
-  Settings16Regular as SettingsIcon,
-  Iot20Regular as ChannelIcon,
-  Navigation20Regular as NavigationIcon,
-  Flag16Regular as EventFlagIcon,
-} from "@fluentui/react-icons";
+import { Iot20Regular as ChannelIcon, Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
-import { toggleNav } from "../navigation/navSlice";
-import { useGetFlowQuery, useGetChannelHistoryQuery, useGetSettingsQuery } from "apiSlice";
+import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
@@ -106,7 +100,7 @@ function ChannelPage() {
     !isLoading &&
     historyQuery.data &&
     (historyQuery.data.channels || [])
-      .map((d: any, i: number) => {
+      .map((d: any, _: number) => {
         return d.alias;
       })
       .filter((value: any, index: number, self: any[]) => {
@@ -125,7 +119,7 @@ function ChannelPage() {
       <div className={styles.channelControls}>
         <div className={styles.leftContainer}>
           <div className={styles.lowerContainer}>
-            <Button icon={<ChannelIcon />} text={title} />
+            <Button variant={buttonVariants.ghost} icon={<ChannelIcon />} text={title} />
           </div>
         </div>
         <div className={styles.rightContainer}>
@@ -376,6 +370,7 @@ function ChannelPage() {
                 <Popover
                   button={
                     <Button
+                      variant={buttonVariants.ghost}
                       isOpen={selectedEventsCount > 0}
                       text={`${selectedEventsCount}`}
                       icon={<EventFlagIcon />}

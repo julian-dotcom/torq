@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
   Delete16Regular as DismissIcon,
@@ -7,7 +6,7 @@ import {
   ArrowSortDownLines16Regular as SortDescIcon,
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
-import DefaultButton from "features/buttons/Button";
+import Button, { buttonVariants } from "features/buttons/Button";
 import { ColumnMetaData } from "features/forwards/forwardsSlice";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
@@ -26,17 +25,9 @@ interface sortRowInterface {
   handleUpdateSort: Function;
   handleRemoveSort: Function;
 }
-interface sortDirectionOption {
-  value: string;
-  label: string;
-}
-const sortDirectionOptions: sortDirectionOption[] = [
-  { value: "asc", label: "Ascending" },
-  { value: "desc", label: "Descending" },
-];
 
 const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort }: sortRowInterface) => {
-  const handleColumn = (newValue: unknown, actionMeta: ActionMeta<unknown>) => {
+  const handleColumn = (newValue: unknown, _: ActionMeta<unknown>) => {
     handleUpdateSort(newValue, index);
   };
   const updateDirection = (selected: SortByOptionType) => {
@@ -147,17 +138,10 @@ const SortSection = (props: SortSectionProps) => {
     props.updateSortByHandler(updated);
   };
 
-  const buttonText = (): string => {
-    if (props.sortBy.length > 0) {
-      return props.sortBy.length + " Sorted";
-    }
-    return "Sort";
-  };
-
   const droppableContainerId = "sort-list-droppable";
 
   const onDragEnd = (result: any) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source } = result;
 
     // Dropped outside of container
     if (!destination || destination.droppableId !== droppableContainerId) {
@@ -208,7 +192,13 @@ const SortSection = (props: SortSectionProps) => {
         )}
 
         <div className={styles.buttonsRow}>
-          <DefaultButton className={"small"} onClick={() => handleAddSort()} text={"Add"} icon={<AddIcon />} />
+          <Button
+            variant={buttonVariants.ghost}
+            className={"small"}
+            onClick={() => handleAddSort()}
+            text={"Add"}
+            icon={<AddIcon />}
+          />
         </div>
       </div>
     </DragDropContext>

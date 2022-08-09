@@ -3,7 +3,7 @@
   flex-direction: column;
   grid-row-gap: 4px;
   padding: 10px 20px;
-  align-items: end;
+  align-items: flex-end;
   align-content: center;
   text-align: right;
   background-color: var(--bg-default);
@@ -38,7 +38,7 @@
   .barWrapper {
     display: grid;
     width: 100%;
-    justify-items: end;
+    justify-items: flex-end;
     background-color: var(--accent1-300);
   }
   .bar {
@@ -83,8 +83,8 @@
   top: 0;
   z-index: 3;
   display: grid;
-  justify-items: end;
-  align-items: end;
+  justify-items: flex-end;
+  align-items: flex-end;
   grid-row-gap: 5px;
   padding: 20px 20px 10px 20px;
   border-bottom: 1px solid var(--primary-100);

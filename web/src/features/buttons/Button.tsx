@@ -1,26 +1,43 @@
-import { MouseEventHandler } from "react";
 import classNames from "classnames";
 import styles from "./button.module.scss";
 
-function DefaultButton(props: {
+export enum buttonVariants {
+  primary,
+  secondary,
+  ghost,
+  warning,
+  green,
+}
+
+function Button(props: {
   text: string;
   icon?: any;
-  onClick?: MouseEventHandler<HTMLButtonElement> | undefined;
+  onClick?: Function | undefined;
   className?: string;
   isOpen?: boolean;
+  variant: buttonVariants;
 }) {
+  const onClick = () => {
+    if (props.onClick) {
+      props.onClick();
+    }
+  };
   return (
-    <div
+    <button
       className={classNames(styles.button, props.className, {
         [styles.open]: props.isOpen,
+        [styles.primary]: props.variant === buttonVariants.primary,
+        [styles.secondary]: props.variant === buttonVariants.secondary,
+        [styles.ghost]: props.variant === buttonVariants.ghost,
+        [styles.warning]: props.variant === buttonVariants.warning,
+        [styles.green]: props.variant === buttonVariants.green,
       })}
-      //@ts-expect-error
-      onClick={props.onClick}
+      onClick={onClick}
     >
       {props.icon && <div className="icon">{props.icon}</div>}
       <div className="text">{props.text}</div>
-    </div>
+    </button>
   );
 }
 
-export default DefaultButton;
+export default Button;
