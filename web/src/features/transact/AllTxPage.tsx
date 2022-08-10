@@ -95,7 +95,7 @@ function AllTxPage() {
         title={"Columns"}
         icon={ColumnsIcon}
         expanded={activeSidebarSections.columns}
-        sectionToggleHandler={sidebarSectionHandler("columns")}
+        handleToggle={sidebarSectionHandler("columns")}
       >
         {"Something"}
       </SidebarSection>
@@ -103,7 +103,7 @@ function AllTxPage() {
         title={"Filter"}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
-        sectionToggleHandler={sidebarSectionHandler("filter")}
+        handleToggle={sidebarSectionHandler("filter")}
       >
         {"Something"}
       </SidebarSection>
@@ -111,7 +111,7 @@ function AllTxPage() {
         title={"Sort"}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}
-        sectionToggleHandler={sidebarSectionHandler("sort")}
+        handleToggle={sidebarSectionHandler("sort")}
       >
         {"Something"}
       </SidebarSection>

@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
   Delete16Regular as DismissIcon,
@@ -13,34 +13,41 @@ import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
 
+export interface SortByOptionType {
+  value: string;
+  label: string;
+  direction: string;
+}
+
+interface sortRowInterface {
+  selected: SortByOptionType;
+  options: SortByOptionType[];
+  index: number;
+  handleUpdateSort: Function;
+  handleRemoveSort: Function;
+}
 interface sortDirectionOption {
   value: string;
   label: string;
 }
 
-export type OrderBy = {
+export type OrderType = {
   key: string;
   direction: "asc" | "desc";
 };
 
-type OrderByOption = {
-  value: string;
-  label: string;
-};
+export type KeyLabels = Map<string, string>;
 
-type SortRowProps = {
-  selected: OrderBy;
-  options: Array<OrderByOption>;
-  index: number;
-  handleUpdateSort: Function;
-  handleRemoveSort: Function;
-};
+const directionLabels = new Map<string, string>([
+  ["asc", "Ascending"],
+  ["desc", "Descending"],
+]);
 
-const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort }: SortRowProps) => {
-  const handleColumn = (newValue: any, actionMeta: ActionMeta<unknown>) => {
-    handleUpdateSort({ key: newValue.value, direction: selected.direction }, index);
+const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort }: sortRowInterface) => {
+  const handleColumn = (newValue: unknown, actionMeta: ActionMeta<unknown>) => {
+    handleUpdateSort(newValue, index);
   };
-  const updateDirection = (selected: OrderBy) => {
+  const updateDirection = (selected: SortByOptionType) => {
     handleUpdateSort(
       {
         ...selected,
@@ -70,7 +77,7 @@ const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort 
               options={options}
               getOptionLabel={(option: any): string => option["label"]}
               getOptionValue={(option: any): string => option["value"]}
-              value={options.find((option) => option.value === selected.key)}
+              value={selected}
             />
           </div>
 
@@ -95,50 +102,53 @@ const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort 
 
 type SortSectionProps = {
   columns: Array<ColumnMetaData>;
-  orderBy: Array<OrderBy>;
-  updateHandler: (orderBy: Array<OrderBy>) => void;
+  orderBy: Array<SortByOptionType>;
+  updateSortByHandler: (sortBy: Array<SortByOptionType>) => void;
 };
 
-const SortSection = (props: SortSectionProps) => {
-  const [options, selected] = useMemo(() => {
-    let options: Array<OrderByOption> = [];
-    let selected: Array<OrderByOption> = [];
-
-    props.columns.slice().forEach((column: { key: string; heading: string }) => {
-      options.push({
-        value: column.key,
-        label: column.heading,
-      });
-    });
-    return [options, selected];
-  }, [props.columns]);
+const SortSectionOld = (props: SortSectionProps) => {
+  let options = props.columns.slice().map((column: { key: string; heading: string; valueType: string }) => {
+    return {
+      value: column.key,
+      label: column.heading,
+      direction: "desc",
+    };
+  });
 
   const handleAddSort = () => {
-    const updated: Array<OrderBy> = [
+    const updated: SortByOptionType[] = [
       ...props.orderBy,
       {
         direction: "desc",
-        key: props.columns[0].key,
+        value: props.columns[0].key,
+        label: props.columns[0].heading,
       },
     ];
-    props.updateHandler(updated);
+    props.updateSortByHandler(updated);
   };
 
-  const handleUpdateSort = (update: OrderBy, index: number) => {
-    const updated: Array<OrderBy> = [
+  const handleUpdateSort = (update: SortByOptionType, index: number) => {
+    const updated: SortByOptionType[] = [
       ...props.orderBy.slice(0, index),
       update,
       ...props.orderBy.slice(index + 1, props.orderBy.length),
     ];
-    props.updateHandler(updated);
+    props.updateSortByHandler(updated);
   };
 
   const handleRemoveSort = (index: number) => {
-    const updated: OrderBy[] = [
+    const updated: SortByOptionType[] = [
       ...props.orderBy.slice(0, index),
       ...props.orderBy.slice(index + 1, props.orderBy.length),
     ];
-    props.updateHandler(updated);
+    props.updateSortByHandler(updated);
+  };
+
+  const buttonText = (): string => {
+    if (props.orderBy.length > 0) {
+      return props.orderBy.length + " Sorted";
+    }
+    return "Sort";
   };
 
   const droppableContainerId = "sort-list-droppable";
@@ -159,7 +169,7 @@ const SortSection = (props: SortSectionProps) => {
     let newSortsOrder = props.orderBy.slice();
     newSortsOrder.splice(source.index, 1);
     newSortsOrder.splice(destination.index, 0, props.orderBy[source.index]);
-    props.updateHandler(newSortsOrder);
+    props.updateSortByHandler(newSortsOrder);
   };
 
   return (
@@ -178,7 +188,7 @@ const SortSection = (props: SortSectionProps) => {
                 {props.orderBy.map((item, index) => {
                   return (
                     <SortRow
-                      key={item.key + index}
+                      key={item.value + index}
                       selected={item}
                       options={options}
                       index={index}
@@ -202,4 +212,4 @@ const SortSection = (props: SortSectionProps) => {
   );
 };
 
-export default SortSection;
+export default memo(SortSectionOld);

@@ -5,7 +5,7 @@ import TimeIntervalSelect from "../../timeIntervalSelect/TimeIntervalSelect";
 import DefaultButton from "../../buttons/Button";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { toggleNav } from "../../navigation/navSlice";
-import SortControls from "./sort/SortSection";
+import SortControls from "./sort/SortSectionOld";
 import GroupBySection from "./group/GroupBySection";
 import { selectCurrentView, selectedViewIndex } from "../../forwards/forwardsSlice";
 import { useUpdateTableViewMutation, useCreateTableViewMutation } from "apiSlice";

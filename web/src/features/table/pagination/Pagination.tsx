@@ -5,6 +5,7 @@ import Select from "features/inputs/Select";
 import classNames from "classnames";
 import React, { useMemo } from "react";
 import { ChevronLeft20Filled as LeftIcon, ChevronRight20Filled as RightIcon } from "@fluentui/react-icons";
+import PaginationSelect from "./PaginationSelect";
 
 type PaginationProps = {
   limit: number;
@@ -50,11 +51,11 @@ function renderPages(
       >
         <LeftIcon />
       </button>
-      <Select
+      <PaginationSelect
         options={pageSelectOptions}
         menuPlacement={"top"}
-        className={styles.limitSelector}
-        value={{ value: offset / limit, label: offset / limit + 1 }}
+        className={styles.offsetSelector}
+        value={{ value: offset / limit, label: `Page ${offset / limit + 1} of ${pages}` }}
         onChange={(item: any) => {
           offsetHandler(item.value * limit);
         }}
@@ -104,7 +105,7 @@ function Pagination(props: PaginationProps) {
   const [pages, pageSelectOptions] = useMemo(() => {
     const pages = Math.ceil(props.total / props.limit);
     const pageSelectOptions = Array.from({ length: pages }, (_, i) => {
-      return { value: i, label: i + 1 };
+      return { value: i, label: `${i + 1} of ${pages}` };
     });
 
     return [pages, pageSelectOptions];
@@ -113,8 +114,8 @@ function Pagination(props: PaginationProps) {
   return (
     <div className={styles.paginationContainer}>
       <div className={styles.perPageSelectWrapper}>
-        <span>Per page </span>
-        <Select
+        <span>Per page: </span>
+        <PaginationSelect
           options={limitOptions}
           menuPlacement={"top"}
           className={styles.limitSelector}

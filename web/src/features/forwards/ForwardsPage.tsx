@@ -33,7 +33,7 @@ import {
 import ViewsPopover from "./views/ViewsPopover";
 import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
 import FilterSection from "../sidebar/sections/filter/FilterSection";
-import SortSection, { SortByOptionType } from "../sidebar/sections/sort/SortSection";
+import SortSection, { SortByOptionType } from "../sidebar/sections/sort/SortSectionOld";
 import GroupBySection from "../sidebar/sections/group/GroupBySection";
 import ForwardsDataWrapper from "./ForwardsDataWrapper";
 import DefaultButton from "../buttons/Button";
@@ -185,7 +185,7 @@ function ForwardsPage() {
         title={"Columns"}
         icon={ColumnsIcon}
         expanded={activeSidebarSections.columns}
-        sectionToggleHandler={sidebarSectionHandler("columns")}
+        handleToggle={sidebarSectionHandler("columns")}
       >
         <ColumnsSection columns={columns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
       </SidebarSection>
@@ -194,7 +194,7 @@ function ForwardsPage() {
         title={"Filter"}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
-        sectionToggleHandler={sidebarSectionHandler("filter")}
+        handleToggle={sidebarSectionHandler("filter")}
       >
         <FilterSection filters={filters} filterUpdateHandler={handleFilterUpdate} />
       </SidebarSection>
@@ -203,16 +203,16 @@ function ForwardsPage() {
         title={"Sort"}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}
-        sectionToggleHandler={sidebarSectionHandler("sort")}
+        handleToggle={sidebarSectionHandler("sort")}
       >
-        <SortSection columns={columns} sortBy={sortBy} updateSortByHandler={handleSortUpdate} />
+        <SortSection columns={columns} orderBy={sortBy} updateSortByHandler={handleSortUpdate} />
       </SidebarSection>
 
       <SidebarSection
         title={"Group"}
         icon={GroupIcon}
         expanded={activeSidebarSections.group}
-        sectionToggleHandler={sidebarSectionHandler("group")}
+        handleToggle={sidebarSectionHandler("group")}
       >
         <GroupBySection groupBy={groupBy} groupByHandler={handleGroupByUpdate} />
       </SidebarSection>

@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSlice";
 import { settings, timeZone, localNode } from "./apiTypes";
+import { SortByOptionType } from "./features/sidebar/sections/sort/SortSectionOld";
 
 const buildBaseUrl = () => {
   // checks to see if the app is running under /torq and if so prepends that to API paths
@@ -45,9 +46,12 @@ export const torqApi = createApi({
     getChannels: builder.query<any, { from: string; to: string }>({
       query: ({ from, to }) => `channels?from=${from}&to=${to}`,
     }),
-    getPayments: builder.query<any, { limit: number; offset: number }>({
-      query: ({ limit, offset }) =>
-        `payments?limit=${limit || 100}&offset=${offset || 0}&order=[{"value": "date", "direction": "desc"}]`,
+    getPayments: builder.query<
+      any,
+      { limit: number; offset: number; order: Array<{ key: string; direction: "asc" | "desc" }> }
+    >({
+      query: ({ limit, offset, order }) =>
+        `payments?limit=${limit || 100}&offset=${offset || 0}&order=${JSON.stringify(order)}`,
     }),
     getTableViews: builder.query<any, void>({
       query: () => `table-views`,

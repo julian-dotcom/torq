@@ -10,7 +10,7 @@ import (
 // "sortBy":[{"value":"revenue_out", direction":"desc"}]
 
 type Order struct {
-	Value     string `json:"value"`
+	Key       string `json:"key"`
 	Direction string `json:"direction"`
 }
 
@@ -36,10 +36,10 @@ func ParseOrderParams(params string, allowedColumns []string) ([]string, error) 
 func (qp *QueryParser) ParseOrder(s Order) (r string, err error) {
 
 	// Prevents SQL injection by only allowing whitelisted column names.
-	if !qp.IsAllowed(s.Value) {
+	if !qp.IsAllowed(s.Key) {
 		return r,
 			fmt.Errorf("sorting by %s is not allwed. Try one of: %v",
-				s.Value,
+				s.Key,
 				strings.Join(qp.AllowedColumns, ", "),
 			)
 	}
@@ -49,7 +49,7 @@ func (qp *QueryParser) ParseOrder(s Order) (r string, err error) {
 		return r, fmt.Errorf("%s is not a valid sort direction. Should be either asc or desc", s.Direction)
 	}
 
-	return fmt.Sprintf("%s %s", s.Value, s.Direction), nil
+	return fmt.Sprintf("%s %s", s.Key, s.Direction), nil
 }
 
 func (qp *QueryParser) ParseOrderClauses(s []Order) (r []string, err error) {

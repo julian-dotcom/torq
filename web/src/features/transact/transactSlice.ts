@@ -1,7 +1,7 @@
 import React from "react";
 import { createSlice } from "@reduxjs/toolkit";
 import { ColumnMetaData } from "../table/Table";
-import { SortByOptionType } from "../sidebar/sections/sort/SortSection";
+import { SortByOptionType } from "../sidebar/sections/sort/SortSectionOld";
 
 export interface ViewInterface {
   title: string;

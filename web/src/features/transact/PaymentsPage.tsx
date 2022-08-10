@@ -23,8 +23,9 @@ import BooleanCell from "../table/cells/BooleanCell";
 import BarCell from "../table/cells/BarCell";
 import TextCell from "../table/cells/TextCell";
 import EnumCell from "../table/cells/EnumCell";
-import Pagination from "features/table/Pagination";
+import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
+import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 type sections = {
   filter: boolean;
@@ -119,8 +120,14 @@ function rowRenderer(row: any, index: number, column: ColumnMetaData, columnInde
 function PaymentsPage() {
   const [limit, setLimit] = useLocalStorage("paymentsLimit", 100);
   const [offset, setOffset] = useState(0);
+  const [orderBy, setOrderBy] = useLocalStorage("paymentsOrderBy", [
+    {
+      key: "date",
+      direction: "asc",
+    },
+  ] as Array<OrderBy>);
 
-  const paymentsResponse = useGetPaymentsQuery({ limit: limit, offset: offset });
+  const paymentsResponse = useGetPaymentsQuery({ limit: limit, offset: offset, order: orderBy });
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -150,6 +157,7 @@ function PaymentsPage() {
     sort: false,
     columns: false,
   };
+
   const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
 
   const setSection = (section: keyof sections) => {
@@ -202,13 +210,19 @@ function PaymentsPage() {
     </TableControlSection>
   );
 
+  const handleSortUpdate = (updated: Array<OrderBy>) => {
+    console.log(updated);
+    setOrderBy(updated);
+    // dispatch(updateSortBy({ sortBy: updated }));
+  };
+
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
       <SidebarSection
         title={"Columns"}
         icon={ColumnsIcon}
         expanded={activeSidebarSections.columns}
-        sectionToggleHandler={sidebarSectionHandler("columns")}
+        handleToggle={sidebarSectionHandler("columns")}
       >
         {"Something"}
       </SidebarSection>
@@ -216,7 +230,7 @@ function PaymentsPage() {
         title={"Filter"}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
-        sectionToggleHandler={sidebarSectionHandler("filter")}
+        handleToggle={sidebarSectionHandler("filter")}
       >
         {"Something"}
       </SidebarSection>
@@ -224,9 +238,9 @@ function PaymentsPage() {
         title={"Sort"}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}
-        sectionToggleHandler={sidebarSectionHandler("sort")}
+        handleToggle={sidebarSectionHandler("sort")}
       >
-        {"Something"}
+        <SortSection columns={columns} orderBy={orderBy} updateHandler={handleSortUpdate} />
       </SidebarSection>
     </Sidebar>
   );

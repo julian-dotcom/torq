@@ -94,7 +94,7 @@ function InvoicesPage() {
         title={"Columns"}
         icon={ColumnsIcon}
         expanded={activeSidebarSections.columns}
-        sectionToggleHandler={sidebarSectionHandler("columns")}
+        handleToggle={sidebarSectionHandler("columns")}
       >
         {"Something"}
       </SidebarSection>
@@ -102,7 +102,7 @@ function InvoicesPage() {
         title={"Filter"}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
-        sectionToggleHandler={sidebarSectionHandler("filter")}
+        handleToggle={sidebarSectionHandler("filter")}
       >
         {"Something"}
       </SidebarSection>
@@ -110,7 +110,7 @@ function InvoicesPage() {
         title={"Sort"}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}
-        sectionToggleHandler={sidebarSectionHandler("sort")}
+        handleToggle={sidebarSectionHandler("sort")}
       >
         {"Something"}
       </SidebarSection>

@@ -38,13 +38,13 @@ type SidebarSectionProps = {
   icon: React.FC<FluentIconsProps>;
   children: React.ReactNode;
   expanded?: boolean;
-  sectionToggleHandler?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  handleToggle?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
 };
 
 export function SidebarSection(props: SidebarSectionProps) {
   return (
     <div className={styles.sectionContainer}>
-      <div className={styles.sectionTitleContainer} onClick={props.sectionToggleHandler}>
+      <div className={styles.sectionTitleContainer} onClick={props.handleToggle}>
         <div className={styles.sidebarIcon}>
           <props.icon />
         </div>
