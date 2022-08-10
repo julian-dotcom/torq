@@ -34,7 +34,7 @@ function NodeSettings({ localNodeId }: nodeProps) {
   const [updateLocalNode] = useUpdateLocalNodeMutation();
 
   const [localState, setLocalState] = useState({} as localNode);
-  const [collapsedState, setCollapsedState] = useState(false);
+  const [collapsedState, setCollapsedState] = useState(true);
   const [showModalState, setShowModalState] = useState(false);
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
   const [deleteEnabled, setDeleteEnabled] = useState(false);

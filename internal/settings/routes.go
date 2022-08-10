@@ -27,6 +27,7 @@ func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func()
 	r.GET("local-nodes", func(c *gin.Context) { getLocalNodesHandler(c, db) })
 	r.GET("local-node/:nodeId", func(c *gin.Context) { getLocalNodeHandler(c, db) })
 	r.PUT("local-node", func(c *gin.Context) { updateLocalNodeHandler(c, db, restartLNDSub) })
+	r.PUT("local-node/:nodeId/set-enabled", func(c *gin.Context) { updateLocalNodeDisabledHandler(c, db, restartLNDSub) })
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
@@ -75,8 +76,8 @@ type localNode struct {
 	UpdatedOn         *time.Time            `json:"updatedOn"  db:"updated_on"`
 	TLSDataBytes      []byte                `db:"tls_data"`
 	MacaroonDataBytes []byte                `db:"macaroon_data"`
-	Disabled          bool                  `db:"disabled"`
-	Deleted           bool                  `db:"deleted"`
+	Disabled          bool                  `json:"disabled" db:"disabled"`
+	Deleted           bool                  `json:"deleted" db:"deleted"`
 }
 
 func getLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
@@ -109,6 +110,8 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	localNode.LocalNodeId = 1
+
 	err := updateLocalNodeDetails(db, localNode)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -159,4 +162,32 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
 	restartLNDSub()
 
 	c.JSON(http.StatusOK, localNode)
+}
+
+type disabledJSON struct {
+	Disabled bool `json:"disabled"`
+}
+
+func updateLocalNodeDisabledHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
+	var disabledJSON disabledJSON
+
+	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	if err := c.Bind(&disabledJSON); err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	err = updateLocalNodeDisabledFlag(db, nodeId, disabledJSON.Disabled)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	restartLNDSub()
+
+	c.Status(http.StatusOK)
 }

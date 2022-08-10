@@ -112,7 +112,6 @@ function Settings() {
             {localNodes?.map((localNode) => (
               <NodeSettings localNodeId={localNode.localNodeId} />
             ))}
-            <NodeSettings localNodeId={1} />
             <Button variant={buttonVariants.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" />
           </div>
         </div>
