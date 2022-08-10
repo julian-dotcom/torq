@@ -1,6 +1,5 @@
 import Box from "./Box";
 import styles from "./NodeSettings.module.scss";
-import SubmitButton from "../forms/SubmitButton";
 import Select, { SelectOption } from "../forms/Select";
 import React, { useState } from "react";
 import {
@@ -14,7 +13,7 @@ import {
 import { toastCategory } from "../toast/Toasts";
 import ToastContext from "../toast/context";
 import File from "../forms/File";
-import TextInput from "../forms/TextInput";
+import TextInput from "features/forms/TextInput";
 import { useGetLocalNodeQuery, useUpdateLocalNodeMutation } from "apiSlice";
 import { localNode } from "apiTypes";
 import classNames from "classnames";
@@ -22,18 +21,36 @@ import Collapse from "features/collapse/Collapse";
 import Switch from "features/inputs/Slider/Switch";
 import Popover from "features/popover/Popover";
 import Button, { buttonVariants } from "features/buttons/Button";
+import Modal from "features/modal/Modal";
 
 interface nodeProps {
   localNodeId: number;
 }
 function NodeSettings({ localNodeId }: nodeProps) {
   const toastRef = React.useContext(ToastContext);
+  const popoverRef = React.useRef();
 
   const { data: localNodeData } = useGetLocalNodeQuery(localNodeId);
   const [updateLocalNode] = useUpdateLocalNodeMutation();
 
   const [localState, setLocalState] = useState({} as localNode);
   const [collapsedState, setCollapsedState] = useState(false);
+  const [showModalState, setShowModalState] = useState(false);
+  const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
+  const [deleteEnabled, setDeleteEnabled] = useState(false);
+
+  const handleModalClose = () => {
+    setShowModalState(false);
+    setDeleteConfirmationTextInputState("");
+    setDeleteEnabled(false);
+  };
+
+  const handleDeleteClick = () => {
+    if (popoverRef.current) {
+      (popoverRef.current as { close: Function }).close();
+    }
+    setShowModalState(true);
+  };
 
   const submitNodeSettings = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -72,6 +89,18 @@ function NodeSettings({ localNodeId }: nodeProps) {
     setCollapsedState(!collapsedState);
   };
 
+  const handleModalDeleteClick = () => {
+    setShowModalState(false);
+    setDeleteConfirmationTextInputState("");
+    setDeleteEnabled(false);
+    // delete node!!!
+  };
+
+  const handleDeleteConfirmationTextInputChange = (value: string) => {
+    setDeleteConfirmationTextInputState(value);
+    setDeleteEnabled(value.toLowerCase() === "delete");
+  };
+
   const implementationOptions = [{ value: "LND", label: "LND" } as SelectOption];
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
@@ -95,9 +124,14 @@ function NodeSettings({ localNodeId }: nodeProps) {
             <div className={styles.borderSection}>
               <div className={styles.detailHeader}>
                 <strong>Node Details</strong>
-                <Popover button={menuButton} className={"right"}>
+                <Popover button={menuButton} className={"right"} ref={popoverRef}>
                   <div style={{ padding: "10px" }}>
-                    <Button variant={buttonVariants.warning} text={"Delete node"} icon={<DeleteIcon />} />
+                    <Button
+                      variant={buttonVariants.warning}
+                      text={"Delete node"}
+                      icon={<DeleteIcon />}
+                      onClick={handleDeleteClick}
+                    />
                   </div>
                 </Popover>
               </div>
@@ -139,6 +173,29 @@ function NodeSettings({ localNodeId }: nodeProps) {
             </div>
           </>
         </Collapse>
+        <Modal title={"Are you sure?"} icon={<DeleteIcon />} onClose={handleModalClose} show={showModalState}>
+          <div className={styles.deleteConfirm}>
+            <p>
+              Deleting the node will prevent you from viewing it's data in Torq. Alternatively set node to disabled to
+              simply stop the data subscription but keep data collected so far.
+            </p>
+            <p>
+              This operation cannot be undone, type "<span className={styles.red}>delete</span>" to confirm.
+            </p>
+
+            <TextInput value={deleteConfirmationTextInputState} onChange={handleDeleteConfirmationTextInputChange} />
+            <div className={styles.deleteConfirmButtons}>
+              <a>Cancel</a>
+              <Button
+                variant={buttonVariants.warning}
+                text={"Delete node"}
+                icon={<DeleteIcon />}
+                onClick={handleModalDeleteClick}
+                disabled={!deleteEnabled}
+              />
+            </div>
+          </div>
+        </Modal>
       </>
     </Box>
   );

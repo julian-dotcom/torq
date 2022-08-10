@@ -18,8 +18,9 @@ function Button(props: {
   variant: buttonVariants;
   submit?: boolean;
   fullWidth?: boolean;
+  disabled?: boolean;
 }) {
-  const onClick = () => {
+  const handleClick = () => {
     if (props.onClick) {
       props.onClick();
     }
@@ -36,7 +37,8 @@ function Button(props: {
         [styles.green]: props.variant === buttonVariants.green,
         [styles.wide]: props.fullWidth,
       })}
-      onClick={onClick}
+      onClick={handleClick}
+      disabled={props.disabled}
     >
       {props.icon && <div className="icon">{props.icon}</div>}
       <div className="text">{props.text}</div>
