@@ -183,19 +183,19 @@ function ChannelPage() {
             </div>
             <div className={styles.card}>
               <div className={styles.heading}>Automation</div>
-              <div className={styles.cardRow}>
+              <div className={styles.sliderRow}>
                 <div className={styles.rowLabel}>
                   <Switch label={"Fees"} />
                 </div>
                 <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
-              <div className={styles.cardRow}>
+              <div className={styles.sliderRow}>
                 <div className={styles.rowLabel}>
                   <Switch label={"Rebalancing"} />
                 </div>
                 <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
-              <div className={styles.cardRow}>
+              <div className={styles.sliderRow}>
                 <div className={styles.rowLabel}>
                   <Switch label={"HTLC amount"} />
                 </div>

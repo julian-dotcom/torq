@@ -12,12 +12,32 @@
     align-items: center;
     justify-content: center;
   }
+  .collapseIcon {
+    margin-left: auto;
+    transition: 0.3s transform ease-in-out;
+    transform: rotate(0deg);
+    &.collapsed {
+      transform: rotate(90deg);
+    }
+  }
+  .title {
+    margin-left: 10px;
+  }
+  .title,
+  .collapseIcon {
+    margin-top: 4px;
+  }
+}
+.borderSection {
+  margin-top: 15px;
+  border-top: 1px solid var(--secondary-2-150);
+  padding-top: 15px;
 }
 
-.collapseIcon {
-  transition: 0.3s transform ease-in-out;
-  transform: rotate(0deg);
-  &.collapsed {
+.detailHeader {
+  display: flex;
+  justify-content: space-between;
+  .moreIcon {
     transform: rotate(90deg);
   }
 }

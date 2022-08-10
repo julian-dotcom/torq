@@ -143,10 +143,14 @@
   overflow: hidden;
 }
 
-.cardRow {
+.cardRow,
+.sliderRow {
   display: grid;
   grid-auto-flow: column;
   justify-content: space-between;
+}
+.sliderRow {
+  padding: 5px 0;
 }
 .rowLabel,
 rowValue {

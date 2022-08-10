@@ -12,7 +12,7 @@ function Box(props: boxProps) {
       backgroundColor: "var(--bg-default)",
       border: "1px solid var(--fg-subtle)",
       borderRadius: "3px",
-      padding: "20px 10px",
+      padding: "20px 16px",
       marginTop: "10px",
       width: "100%",
     },

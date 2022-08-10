@@ -10,6 +10,10 @@
   background-color: transparent;
   white-space: nowrap;
 
+  &.wide {
+    width: 100%;
+  }
+
   &:disabled {
     opacity: 50%;
   }

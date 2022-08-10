@@ -16,6 +16,8 @@ function Button(props: {
   className?: string;
   isOpen?: boolean;
   variant: buttonVariants;
+  submit?: boolean;
+  fullWidth?: boolean;
 }) {
   const onClick = () => {
     if (props.onClick) {
@@ -24,6 +26,7 @@ function Button(props: {
   };
   return (
     <button
+      type={props.submit ? "submit" : "button"}
       className={classNames(styles.button, props.className, {
         [styles.open]: props.isOpen,
         [styles.primary]: props.variant === buttonVariants.primary,
@@ -31,6 +34,7 @@ function Button(props: {
         [styles.ghost]: props.variant === buttonVariants.ghost,
         [styles.warning]: props.variant === buttonVariants.warning,
         [styles.green]: props.variant === buttonVariants.green,
+        [styles.wide]: props.fullWidth,
       })}
       onClick={onClick}
     >

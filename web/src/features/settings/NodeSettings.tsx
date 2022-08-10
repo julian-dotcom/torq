@@ -8,6 +8,8 @@ import {
   PlugConnected20Regular as ConnectedIcon,
   PlugDisconnected20Regular as DisconnectedIcon,
   ChevronDown20Regular as ChevronIcon,
+  MoreCircle20Regular as MoreIcon,
+  Delete20Regular as DeleteIcon,
 } from "@fluentui/react-icons";
 import { toastCategory } from "../toast/Toasts";
 import ToastContext from "../toast/context";
@@ -17,6 +19,9 @@ import { useGetLocalNodeQuery, useUpdateLocalNodeMutation } from "apiSlice";
 import { localNode } from "apiTypes";
 import classNames from "classnames";
 import Collapse from "features/collapse/Collapse";
+import Switch from "features/inputs/Slider/Switch";
+import Popover from "features/popover/Popover";
+import Button, { buttonVariants } from "features/buttons/Button";
 
 interface nodeProps {
   localNodeId: number;
@@ -68,55 +73,73 @@ function NodeSettings({ localNodeId }: nodeProps) {
   };
 
   const implementationOptions = [{ value: "LND", label: "LND" } as SelectOption];
+
+  const menuButton = <MoreIcon className={styles.moreIcon} />;
   return (
     <Box title="Node Settings">
-      <div className={styles.container}>
+      <>
         <div className={styles.header}>
           <div className={styles.connectionIcon}>
             <ConnectedIcon />
           </div>
-          <div>LN.Capital [1] LN Capital</div>
+          <div className={styles.title}>LN.Capital [1] LN Capital</div>
           <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
             <ChevronIcon onClick={handleCollapseClick} />
           </div>
         </div>
         <Collapse collapsed={collapsedState}>
-          <div className={styles.body}>
-            <form onSubmit={submitNodeSettings}>
-              <Select
-                label="Implementation"
-                onChange={() => {}}
-                options={implementationOptions}
-                value={implementationOptions.find((io) => io.value === localState?.implementation)}
-              />
-              <span id="address">
-                <TextInput
-                  label="GRPC Address (IP or Tor)"
-                  value={localState?.grpcAddress}
-                  onChange={handleAddressChange}
-                  placeholder="100.100.100.100:10009"
+          <>
+            <div className={styles.borderSection}>
+              <Switch label={"Enable Node"} labelPosition={"left"} />
+            </div>
+            <div className={styles.borderSection}>
+              <div className={styles.detailHeader}>
+                <strong>Node Details</strong>
+                <Popover button={menuButton} className={"right"}>
+                  <div style={{ padding: "10px" }}>
+                    <Button variant={buttonVariants.warning} text={"Delete node"} icon={<DeleteIcon />} />
+                  </div>
+                </Popover>
+              </div>
+            </div>
+            <div className={styles.borderSection}>
+              <form onSubmit={submitNodeSettings}>
+                <Select
+                  label="Implementation"
+                  onChange={() => {}}
+                  options={implementationOptions}
+                  value={implementationOptions.find((io) => io.value === localState?.implementation)}
                 />
-              </span>
-              <span id="tls">
-                <File label="TLS Certificate" onFileChange={handleTLSFileChange} fileName={localState?.tlsFileName} />
-              </span>
-              <span id="macaroon">
-                <File
-                  label="Macaroon"
-                  onFileChange={handleMacaroonFileChange}
-                  fileName={localState?.macaroonFileName}
+                <span id="address">
+                  <TextInput
+                    label="GRPC Address (IP or Tor)"
+                    value={localState?.grpcAddress}
+                    onChange={handleAddressChange}
+                    placeholder="100.100.100.100:10009"
+                  />
+                </span>
+                <span id="tls">
+                  <File label="TLS Certificate" onFileChange={handleTLSFileChange} fileName={localState?.tlsFileName} />
+                </span>
+                <span id="macaroon">
+                  <File
+                    label="Macaroon"
+                    onFileChange={handleMacaroonFileChange}
+                    fileName={localState?.macaroonFileName}
+                  />
+                </span>
+                <Button
+                  variant={buttonVariants.secondary}
+                  text={"Save node details"}
+                  icon={<SaveIcon />}
+                  submit={true}
+                  fullWidth={true}
                 />
-              </span>
-              <SubmitButton>
-                <React.Fragment>
-                  <SaveIcon />
-                  Save node details
-                </React.Fragment>
-              </SubmitButton>
-            </form>
-          </div>
+              </form>
+            </div>
+          </>
         </Collapse>
-      </div>
+      </>
     </Box>
   );
 }
