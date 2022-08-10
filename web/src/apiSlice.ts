@@ -38,14 +38,16 @@ export const torqApi = createApi({
     getFlow: builder.query<any, { from: string; to: string; chanId: string }>({
       query: ({ from, to, chanId }) => `flow?from=${from}&to=${to}&chan_id=${chanId}`,
     }),
+
     getChannelHistory: builder.query<any, { from: string; to: string; chanIds: string }>({
       query: ({ from, to, chanIds }) => `channels/${chanIds}?from=${from}&to=${to}`,
     }),
     getChannels: builder.query<any, { from: string; to: string }>({
       query: ({ from, to }) => `channels?from=${from}&to=${to}`,
     }),
-    getPayments: builder.query<any, {}>({
-      query: () => `payments?limit=100&order=[{"value": "date", "direction": "desc"}]`,
+    getPayments: builder.query<any, { limit: number; offset: number }>({
+      query: ({ limit, offset }) =>
+        `payments?limit=${limit || 100}&offset=${offset || 0}&order=[{"value": "date", "direction": "desc"}]`,
     }),
     getTableViews: builder.query<any, void>({
       query: () => `table-views`,

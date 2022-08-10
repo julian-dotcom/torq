@@ -22,4 +22,4 @@ function NumericCell({ current, previous, className }: numericCell) {
 }
 
 const NumericCellMemo = React.memo(NumericCell);
-export default NumericCell;
+export default NumericCellMemo;

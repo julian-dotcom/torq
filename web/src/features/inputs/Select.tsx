@@ -39,6 +39,10 @@ const customStyles = {
     ...provided,
     background: "#f9fafb",
   }),
+  menu: (provided: any, state: any) => ({
+    ...provided,
+    zIndex: "10",
+  }),
 };
 
 type TorqSelectProps = Props & {

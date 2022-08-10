@@ -178,7 +178,6 @@ function Table(props: TableProps) {
 
         {/* Header cells */}
         {props.activeColumns.map((column, index) => {
-          console.log(column.type);
           return (
             <HeaderCell
               heading={column.heading}

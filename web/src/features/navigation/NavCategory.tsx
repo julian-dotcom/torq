@@ -1,3 +1,4 @@
+import React from "react";
 import styles from "./nav.module.scss";
 import classNames from "classnames";
 import {
@@ -28,4 +29,4 @@ function NavCategory(props: { text: string; collapsed?: boolean; children: React
   );
 }
 
-export default NavCategory;
+export default React.memo(NavCategory);

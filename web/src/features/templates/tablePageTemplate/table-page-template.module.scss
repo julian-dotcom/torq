@@ -5,12 +5,13 @@
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: auto min-content;
-  grid-template-rows: min-content min-content min-content auto;
+  grid-template-rows: min-content min-content min-content auto min-content;
   grid-template-areas:
     "Controls Sidebar"
     "Totals Sidebar"
     "TableControls Sidebar"
-    "Table Sidebar";
+    "Table Sidebar"
+    "Pagination Sidebar";
   grid-column-gap: 32px;
   grid-row-gap: 0;
 }
@@ -22,7 +23,9 @@
 .leftWrapper {
 }
 .tableWrapper {
-  padding-bottom: 32px;
+  padding-bottom: 12px;
+  margin-right: -15px;
+  //margin-bottom: -15px;
   @media only screen and (max-width: 900px) {
     padding-bottom: 12px;
   }
@@ -36,7 +39,9 @@
   grid-area: Totals;
   display: grid;
 }
-
+.paginationWrapper {
+  grid-area: Pagination;
+}
 .pageSidebarWrapper {
   width: 0;
   background-color: var(--bg-default);

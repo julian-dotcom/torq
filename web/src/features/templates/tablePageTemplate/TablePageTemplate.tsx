@@ -10,6 +10,7 @@ type TablePageTemplateProps = {
   titleContent?: React.ReactNode;
   sidebarExpanded?: boolean;
   sidebar?: React.ReactNode;
+  pagination?: React.ReactNode;
   pageTotals?: React.ReactNode;
   tableControls?: React.ReactNode;
   breadcrumbs?: Array<any>;
@@ -32,6 +33,8 @@ export default function TablePageTemplate(props: TablePageTemplateProps) {
           <div className={styles.tableExpander}>{props.children}</div>
         </div>
       </div>
+
+      <div className={classNames(styles.paginationWrapper)}>{props.pagination}</div>
 
       <div className={classNames(styles.pageSidebarWrapper, { [styles.sidebarExpanded]: props.sidebarExpanded })}>
         {props.sidebar}

@@ -23,6 +23,8 @@ import BooleanCell from "../table/cells/BooleanCell";
 import BarCell from "../table/cells/BarCell";
 import TextCell from "../table/cells/TextCell";
 import EnumCell from "../table/cells/EnumCell";
+import Pagination from "features/table/Pagination";
+import useLocalStorage from "features/helpers/useLocalStorage";
 
 type sections = {
   filter: boolean;
@@ -115,7 +117,10 @@ function rowRenderer(row: any, index: number, column: ColumnMetaData, columnInde
 }
 
 function PaymentsPage() {
-  const paymentsResponse = useGetPaymentsQuery({});
+  const [limit, setLimit] = useLocalStorage("paymentsLimit", 100);
+  const [offset, setOffset] = useState(0);
+
+  const paymentsResponse = useGetPaymentsQuery({ limit: limit, offset: offset });
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -227,6 +232,16 @@ function PaymentsPage() {
   );
 
   const breadcrumbs = ["Transactions", <Link to={"/transactions/payments"}>Payments</Link>];
+
+  const pagination = (
+    <Pagination
+      limit={limit}
+      offset={offset}
+      total={paymentsResponse?.data?.pagination?.total}
+      perPageHandler={setLimit}
+      offsetHandler={setOffset}
+    />
+  );
   return (
     <TablePageTemplate
       title={"Payments"}
@@ -234,6 +249,7 @@ function PaymentsPage() {
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}
       tableControls={tableControls}
+      pagination={pagination}
     >
       <Table
         rowRenderer={rowRenderer}

@@ -1,0 +1,33 @@
+.paginationContainer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0px 0px 16px;
+  column-gap: 16px;
+}
+.perPageSelectWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0px 0px;
+  column-gap: 4px;
+}
+.limitSelector {
+  width: 100px;
+}
+.paginationButtons {
+  display: flex;
+  justify-content: flex-end;
+  column-gap: 16px;
+}
+.pageButton {
+  width: 32px;
+  height: 32px;
+  border-bottom: 1px solid var(--primary-250);
+}
+.current {
+  border-color: var(--content-default);
+}
+.disabled {
+  pointer-events: none;
+  color: var(--content-muted);
+}
