@@ -64,7 +64,6 @@ const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort 
             <ReOrderIcon />
           </div>
           <div className={styles.labelWrapper}>
-            {/*{selected.label}*/}
             <DropDown
               onChange={handleColumn}
               options={options}
@@ -202,4 +201,4 @@ const SortSection = (props: SortSectionProps) => {
   );
 };
 
-export default SortSection;
+export default memo(SortSection);

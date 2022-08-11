@@ -14,8 +14,9 @@ type Payment struct {
 	Date                    time.Time `json:"date" db:"date"`
 	DestinationPubKey       *string   `json:"destination_pub_key" db:"destination_pub_key"`
 	Status                  string    `json:"status" db:"status"`
-	ValueMsat               uint64    `json:"value_msat" db:"value_msat"`
-	FeeMsat                 uint64    `json:"fee_msat" db:"fee_msat"`
+	Value                   float64   `json:"value" db:"value"`
+	Fee                     float64   `json:"fee" db:"fee"`
+	PPM                     float64   `json:"ppm" db:"ppm"`
 	FailureReason           string    `json:"failure_reason" db:"failure_reason"`
 	PaymentHash             string    `json:"payment_hash" db:"payment_hash"`
 	PaymentPreimage         string    `json:"payment_preimage" db:"payment_preimage"`
@@ -70,8 +71,9 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				creation_timestamp as date,
 				destination_pub_key,
 				status,
-				value_msat,
-				fee_msat,
+				(value_msat / 1000) as value,
+				(fee_msat/1000) as fee,
+				coalesce(fee_msat/(NULLIF(value_msat, 0)/1000000), 0) as ppm,
 				failure_reason,
 				payment_hash,
 				payment_preimage,
@@ -80,7 +82,7 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				is_mpp,
 				count_successful_attempts,
 				count_failed_attempts,
-				extract(epoch from (to_timestamp(resolved_ns/1000000000)-creation_timestamp))::numeric seconds_in_flight
+				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000, 0))-creation_timestamp))::numeric as seconds_in_flight
 			`).
 				PlaceholderFormat(sq.Dollar).
 				From("payment"),
@@ -118,8 +120,9 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 			&p.Date,
 			&p.DestinationPubKey,
 			&p.Status,
-			&p.ValueMsat,
-			&p.FeeMsat,
+			&p.Value,
+			&p.Fee,
+			&p.PPM,
 			&p.FailureReason,
 			&p.PaymentHash,
 			&p.PaymentPreimage,
@@ -147,8 +150,9 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				creation_timestamp as date,
 				destination_pub_key,
 				status,
-				value_msat,
-				fee_msat,
+				(value_msat/1000) as value,
+				(fee_msat/1000) as fee,
+				coalesce(fee_msat/(NULLIF(value_msat, 0)/1000000), 0) as ppm,
 				failure_reason,
 				payment_hash,
 				payment_preimage,
@@ -157,7 +161,7 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				is_mpp,
 				count_successful_attempts,
 				count_failed_attempts,
-				extract(epoch from (to_timestamp(resolved_ns/1000000000)-creation_timestamp))::numeric seconds_in_flight
+				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000, 0))-creation_timestamp))::numeric as seconds_in_flight
 			`).
 				PlaceholderFormat(sq.Dollar).
 				From("payment"),
@@ -197,8 +201,9 @@ func getPaymentDetails(db *sqlx.DB, identifier string) (*PaymentDetails, error) 
 				creation_timestamp as date,
 				destination_pub_key,
 				status,
-				value_msat,
-				fee_msat,
+				(value_msat/1000) as value,
+				(fee_msat/1000) as fee,
+				coalesce(fee_msat/(NULLIF(value_msat, 0)/1000000), 0) as ppm,
 				failure_reason,
 				payment_hash,
 				payment_preimage,
@@ -207,7 +212,7 @@ func getPaymentDetails(db *sqlx.DB, identifier string) (*PaymentDetails, error) 
 				is_mpp,
 				count_successful_attempts,
 				count_failed_attempts,
-				extract(epoch from (to_timestamp(resolved_ns/1000000000)-creation_timestamp))::numeric seconds_in_flight,
+				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000,0))-creation_timestamp))::numeric as seconds_in_flight,
 				successful_routes,
 				failed_routes
 			`).
@@ -233,8 +238,9 @@ func getPaymentDetails(db *sqlx.DB, identifier string) (*PaymentDetails, error) 
 		&r.Date,
 		&r.DestinationPubKey,
 		&r.Status,
-		&r.ValueMsat,
-		&r.FeeMsat,
+		&r.Value,
+		&r.Fee,
+		&r.PPM,
 		&r.FailureReason,
 		&r.PaymentHash,
 		&r.PaymentPreimage,

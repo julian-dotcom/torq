@@ -38,17 +38,18 @@ const activeColumns: ColumnMetaData[] = [
   { key: "status", heading: "Status", type: "TextCell", valueType: "string" },
   { key: "value", heading: "Value", type: "NumericCell", valueType: "number" },
   { key: "fee", heading: "Fee", type: "NumericCell", valueType: "number" },
+  { key: "ppm", heading: "PPM", type: "NumericCell", valueType: "number" },
   { key: "is_rebalance", heading: "Rebalance", type: "BooleanCell", valueType: "string" },
   { key: "seconds_in_flight", heading: "Seconds In Flight", type: "BarCell", valueType: "number" },
   { key: "failueReason", heading: "Failure Reason", type: "TextCell", valueType: "string" },
   { key: "is_mpp", heading: "MPP", type: "BooleanCell", valueType: "string" },
+  { key: "count_failed_attempts", heading: "Failed Attempts", type: "NumericCell", valueType: "number" },
+  { key: "count_successful_attempts", heading: "Successful Attempts", type: "NumericCell", valueType: "number" },
+  { key: "destination_pub_key", heading: "Destination", type: "TextCell", valueType: "string" },
   // { key: "payment_hash", heading: "Payment Hash", type: "TextCell", valueType: "string" },
   // { key: "payment_index", heading: "Payment Index", type: "TextCell", valueType: "string" },
   // { key: "payment_preimage", heading: "Payment Preimage", type: "TextCell", valueType: "string" },
   // { key: "payment_request", heading: "Payment Request", type: "TextCell", valueType: "string" },
-  { key: "count_failed_attempts", heading: "Failed Attempts", type: "NumericCell", valueType: "number" },
-  { key: "count_successful_attempts", heading: "Successful Attempts", type: "NumericCell", valueType: "number" },
-  { key: "destination_pub_key", heading: "Destination", type: "TextCell", valueType: "string" },
 ];
 
 const statusTypes: any = {
@@ -133,11 +134,9 @@ function PaymentsPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   const data = paymentsResponse?.data?.data.map((payment: any) => {
-    const value = (payment?.value_msat || 0) / 1000;
-    const fee = (payment?.fee_msat || 0) / 1000;
     const failureReason = failureReasons[payment.failure_reason];
     const status = statusTypes[payment.status];
-    return { ...payment, fee, value, failureReason, status };
+    return { ...payment, failureReason, status };
   });
 
   const columns = activeColumns.map((column: ColumnMetaData, index: number) => {
@@ -210,8 +209,23 @@ function PaymentsPage() {
     </TableControlSection>
   );
 
+  const sortableColumns = columns.filter((column: ColumnMetaData) =>
+    [
+      "date",
+      "value",
+      "fee",
+      "ppm",
+      "status",
+      "is_rebalance",
+      "seconds_in_flight",
+      "failureReason",
+      "is_mpp",
+      "count_failed_attempts",
+      "count_successful_attempts",
+    ].includes(column.key)
+  );
+
   const handleSortUpdate = (updated: Array<OrderBy>) => {
-    console.log(updated);
     setOrderBy(updated);
     // dispatch(updateSortBy({ sortBy: updated }));
   };
@@ -240,7 +254,7 @@ function PaymentsPage() {
         expanded={activeSidebarSections.sort}
         handleToggle={sidebarSectionHandler("sort")}
       >
-        <SortSection columns={columns} orderBy={orderBy} updateHandler={handleSortUpdate} />
+        <SortSection columns={sortableColumns} orderBy={orderBy} updateHandler={handleSortUpdate} />
       </SidebarSection>
     </Sidebar>
   );
