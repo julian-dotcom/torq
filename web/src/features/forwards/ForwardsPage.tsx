@@ -59,7 +59,7 @@ function ForwardsPage() {
   const currentViewIndex = useAppSelector(selectedViewIndex);
   const [updateTableView] = useUpdateTableViewMutation();
   const [createTableView] = useCreateTableViewMutation();
-  const activeColumns = useAppSelector(selectActiveColumns) || [];
+  let activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
   const sortBy = useAppSelector(selectSortBy);
   const groupBy = useAppSelector(selectGroupBy) || "channels";

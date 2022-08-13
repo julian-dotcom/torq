@@ -34,9 +34,16 @@
 .filterKeyLabel {
   padding: 8px 8px 8px 8px;
   cursor: pointer;
+  overflow: hidden;
   &:hover {
     background-color: var(--secondary-1-100);
   }
+}
+.parameterLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.filterParameterContainer {
 }
 .childFilter {
   border: 1px solid var(--secondary-1-100);

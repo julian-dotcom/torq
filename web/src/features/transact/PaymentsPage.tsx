@@ -29,32 +29,22 @@ import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection
 import FilterSection from "../sidebar/sections/filter/FilterSection";
 import { Clause, FilterClause, FilterInterface } from "../sidebar/sections/filter/filter";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { selectPaymentsFilters, updatePaymentsFilters } from "./transactSlice";
+import {
+  selectActiveColumns,
+  selectAllColumns,
+  selectPaymentsFilters,
+  updateColumns,
+  updatePaymentsFilters,
+} from "./transactSlice";
 import { FilterCategoryType } from "../sidebar/sections/filter/filter";
+import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
+import clone from "../../clone";
 
 type sections = {
   filter: boolean;
   sort: boolean;
   columns: boolean;
 };
-
-const activeColumns: Array<ColumnMetaData> = [
-  { key: "date", heading: "Date", type: "DateCell", valueType: "date" },
-  { key: "status", heading: "Status", type: "TextCell", valueType: "string" },
-  { key: "value", heading: "Value", type: "NumericCell", valueType: "number" },
-  { key: "fee", heading: "Fee", type: "NumericCell", valueType: "number" },
-  { key: "ppm", heading: "PPM", type: "NumericCell", valueType: "number" },
-  { key: "is_rebalance", heading: "Rebalance", type: "BooleanCell", valueType: "boolean" },
-  { key: "seconds_in_flight", heading: "Seconds In Flight", type: "BarCell", valueType: "number" },
-  { key: "failure_reason", heading: "Failure Reason", type: "TextCell", valueType: "array" },
-  { key: "is_mpp", heading: "MPP", type: "BooleanCell", valueType: "boolean" },
-  { key: "count_failed_attempts", heading: "Failed Attempts", type: "NumericCell", valueType: "number" },
-  { key: "count_successful_attempts", heading: "Successful Attempts", type: "NumericCell", valueType: "number" },
-  { key: "destination_pub_key", heading: "Destination", type: "TextCell", valueType: "string" },
-  { key: "payment_hash", heading: "Payment Hash", type: "TextCell", valueType: "string" },
-  { key: "payment_index", heading: "Payment Index", type: "TextCell", valueType: "string" },
-  { key: "payment_preimage", heading: "Payment Preimage", type: "TextCell", valueType: "string" },
-];
 
 const statusTypes: any = {
   SUCCEEDED: "Succeeded",
@@ -131,6 +121,9 @@ function PaymentsPage() {
       direction: "asc",
     },
   ] as Array<OrderBy>);
+
+  const activeColumns = useAppSelector(selectActiveColumns) || [];
+  const allColumns = useAppSelector(selectAllColumns);
 
   const dispatch = useAppDispatch();
   const filters = useAppSelector(selectPaymentsFilters);
@@ -231,9 +224,9 @@ function PaymentsPage() {
     key: "value",
   };
 
-  const filterColumns = columns.map((column: any) => {
-    if (column.key === "failure_reason") {
-      column.selectOptions = Object.keys(failureReasons)
+  const filterColumns = clone(columns).map((c: any) => {
+    if (c.key === "failure_reason") {
+      c.selectOptions = Object.keys(failureReasons)
         .filter((key) => key !== "FAILURE_REASON_NONE")
         .map((key: any) => {
           return {
@@ -242,7 +235,7 @@ function PaymentsPage() {
           };
         });
     }
-    return column;
+    return c;
   });
 
   const handleFilterUpdate = (updated: Clause) => {
@@ -270,6 +263,10 @@ function PaymentsPage() {
     // dispatch(updateSortBy({ sortBy: updated }));
   };
 
+  const updateColumnsHandler = (columns: Array<any>) => {
+    dispatch(updateColumns({ columns: columns }));
+  };
+
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
       <SidebarSection
@@ -278,7 +275,7 @@ function PaymentsPage() {
         expanded={activeSidebarSections.columns}
         handleToggle={sidebarSectionHandler("columns")}
       >
-        {"Something"}
+        <ColumnsSection columns={allColumns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
       </SidebarSection>
       <SidebarSection
         title={"Filter"}

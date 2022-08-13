@@ -229,7 +229,9 @@ function FilterRow({
         <div className={styles.filterKeyLabel} onClick={() => setRowExpanded(!rowExpanded)}>
           {label}
           <span className={styles.filterFunctionLabel}> {funcOption?.label} </span>
-          {getParameter(rowValues.category, rowValues.parameter, handleParamChange)}
+          <span className={styles.parameterLabel}>
+            {getParameter(rowValues.category, rowValues.parameter, handleParamChange)}
+          </span>
         </div>
         <div className={classNames(styles.removeFilter, styles.desktopRemove)} onClick={() => onRemoveFilter(index)}>
           <RemoveIcon />
@@ -249,7 +251,7 @@ function FilterRow({
           />
         </div>
 
-        <div className="filter-parameter-container">
+        <div className={styles.filterParameterContainer}>
           {getInputField(rowValues.category, rowValues.parameter, handleParamChange)}
         </div>
       </div>

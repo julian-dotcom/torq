@@ -31,6 +31,8 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 			"count_successful_attempts",
 			"count_failed_attempts",
 			"seconds_in_flight",
+			"payment_hash",
+			"payment_preimage",
 		})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
