@@ -224,7 +224,7 @@ function PaymentsPage() {
     key: "value",
   };
 
-  const filterColumns = clone(columns).map((c: any) => {
+  const filterColumns = clone(allColumns).map((c: any) => {
     if (c.key === "failure_reason") {
       c.selectOptions = Object.keys(failureReasons)
         .filter((key) => key !== "FAILURE_REASON_NONE")
@@ -242,7 +242,7 @@ function PaymentsPage() {
     dispatch(updatePaymentsFilters({ filters: updated.toJSON() }));
   };
 
-  const sortableColumns = columns.filter((column: ColumnMetaData) =>
+  const sortableColumns = allColumns.filter((column: ColumnMetaData) =>
     [
       "date",
       "value",
