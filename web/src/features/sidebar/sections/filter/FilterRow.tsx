@@ -2,12 +2,15 @@ import classNames from "classnames";
 import { Delete16Regular as RemoveIcon } from "@fluentui/react-icons";
 import Select, { SelectOptionType } from "./FilterDropDown";
 
-import { FilterClause } from "./filter";
+import { FilterClause, FilterParameterType } from "./filter";
 import styles from "./filter-section.module.scss";
 import { FilterFunctions } from "./filter";
 import NumberFormat from "react-number-format";
+import { format as formatDate } from "date-fns";
 import { useState } from "react";
 import { format } from "d3";
+import { FilterCategoryType } from "./filter";
+import TorqSelect from "../../../inputs/Select";
 
 const formatterDetailed = format(",.2f");
 const formatter = format(",.0f");
@@ -23,16 +26,13 @@ const ffLabels = new Map<string, string>([
   ["gte", "is greater than or equal to"],
   ["lt", "is less than"],
   ["lte", "is less than or equal to"],
-  ["include", "includes"],
-  ["notInclude", "does not include"],
+  ["like", "contains"],
+  ["notLike", "does not contain"],
+  ["any", "does not contain"],
+  ["notAny", "does not contain"],
 ]);
 
-//   mapSelectOptionType[] = [
-//   { value: "and", label: "And" },
-//   { value: "or", label: "Or" },
-// ];
-
-function getFilterFunctions(filterCategory: "number" | "string") {
+function getFilterFunctions(filterCategory: FilterCategoryType) {
   const filterFuncs = FilterFunctions.get(filterCategory)?.entries();
   if (!filterFuncs) {
     throw new Error("Filter category not found in list of filters");
@@ -44,7 +44,7 @@ interface filterRowInterface {
   index: number;
   child: boolean;
   filterClause: FilterClause;
-  columnOptions: SelectOptionType[];
+  filterOptions: Array<{ label: string; value: any; valueType?: FilterCategoryType; selectOptions?: Array<any> }>;
   onUpdateFilter: Function;
   onRemoveFilter: Function;
   handleCombinerChange: Function;
@@ -55,26 +55,20 @@ function FilterRow({
   index,
   child,
   filterClause,
-  columnOptions,
+  filterOptions,
   onUpdateFilter,
   onRemoveFilter,
   handleCombinerChange,
   combiner,
 }: filterRowInterface) {
-  const [rowExpanded, setRowExpanded] = useState(false);
-
   const rowValues = filterClause.filter;
+
+  const [rowExpanded, setRowExpanded] = useState(!rowValues.key);
 
   let functionOptions = getFilterFunctions(rowValues.category);
 
-  const keyOption = columnOptions.find((item) => item.value === rowValues.key);
-  if (!keyOption) {
-    throw new Error("key option not found");
-  }
+  const keyOption = filterOptions.find((item) => item.value === rowValues.key);
   const funcOption = functionOptions.find((item) => item.value === rowValues.funcName);
-  if (!funcOption) {
-    throw new Error("func option not found");
-  }
 
   let selectData = {
     func: funcOption,
@@ -83,6 +77,33 @@ function FilterRow({
 
   const handleKeyChange = (item: any) => {
     rowValues.key = item.value;
+    const newCategory = filterOptions.find((item: any) => item.value === rowValues.key)?.valueType || "number";
+    switch (newCategory) {
+      case "number":
+        rowValues.parameter = 0;
+        rowValues.funcName = "gte";
+        break;
+      case "boolean":
+        if (newCategory !== rowValues.category) {
+          rowValues.parameter = true;
+        }
+        rowValues.funcName = "eq";
+        break;
+      case "date":
+        const nd = new Date().toISOString().slice(0, 10) + "T00:00:00";
+        console.log(nd);
+        rowValues.parameter = nd;
+        rowValues.funcName = "gte";
+        break;
+      case "array":
+        rowValues.parameter = "";
+        rowValues.funcName = "eq";
+        break;
+      default:
+        rowValues.parameter = "";
+        rowValues.funcName = "like";
+    }
+    rowValues.category = newCategory;
     onUpdateFilter();
   };
 
@@ -92,15 +113,105 @@ function FilterRow({
   };
 
   const handleParamChange = (e: any) => {
-    if (rowValues.category === "number") {
-      rowValues.parameter = e.floatValue;
-    } else {
-      rowValues.parameter = e.target.value ? e.target.value : "";
+    switch (rowValues.category) {
+      case "number":
+        rowValues.parameter = e.floatValue || 0;
+        break;
+      case "boolean":
+        rowValues.parameter = e.value;
+        break;
+      case "array":
+        rowValues.parameter = String(e.value);
+        break;
+      default:
+        rowValues.parameter = e.target.value ? e.target.value : "";
     }
     onUpdateFilter();
   };
 
-  const label = columnOptions.find((item) => item.value === rowValues.key)?.label;
+  const label = filterOptions.find((item) => item.value === rowValues.key)?.label;
+  const options = filterOptions.find((item) => item.value === rowValues.key)?.selectOptions;
+
+  const getInputField = (category: FilterCategoryType, parameter: FilterParameterType, handleParamChange: any) => {
+    switch (rowValues.category) {
+      case "number":
+        return (
+          <NumberFormat
+            className={classNames(styles.filterInputField, styles.small)}
+            thousandSeparator=","
+            value={rowValues.parameter as keyof FilterParameterType}
+            onValueChange={handleParamChange}
+          />
+        );
+        break;
+      case "boolean":
+        return (
+          <Select
+            selectProps={{
+              options: [
+                { label: "True", value: true },
+                { label: "False", value: false },
+              ],
+              value: { label: !rowValues.parameter ? "False" : "True", value: rowValues.parameter },
+              onChange: handleParamChange,
+            }}
+            child={child}
+          />
+        );
+        break;
+      case "array":
+        const label = options?.find((item) => {
+          return item.value === rowValues.parameter ? item : "";
+        })?.label;
+        return (
+          <Select
+            selectProps={{
+              options: options,
+              value: { value: rowValues.parameter, label: label },
+              onChange: handleParamChange,
+            }}
+            child={child}
+          />
+        );
+        break;
+      case "date":
+        return (
+          <input
+            type="datetime-local"
+            className={"torq-input-field"}
+            value={rowValues.parameter as string}
+            onChange={handleParamChange}
+          />
+        );
+      default:
+        return (
+          <input
+            type="text"
+            className={"torq-input-field"}
+            value={rowValues.parameter as keyof FilterParameterType}
+            onChange={handleParamChange}
+          />
+        );
+    }
+  };
+
+  const getParameter = (category: FilterCategoryType, parameter: FilterParameterType, handleParamChange: any) => {
+    switch (rowValues.category) {
+      case "number":
+        return formatParameter(rowValues.parameter as number);
+        break;
+      case "boolean":
+        return !rowValues.parameter ? "False" : "True";
+        break;
+      case "array":
+        return options?.find((item) => {
+          return item.value === rowValues.parameter ? item : "";
+        })?.label;
+        break;
+      default:
+        return rowValues.parameter;
+    }
+  };
 
   return (
     <div className={classNames(styles.filter, { [styles.first]: !index })}>
@@ -117,8 +228,8 @@ function FilterRow({
         )}
         <div className={styles.filterKeyLabel} onClick={() => setRowExpanded(!rowExpanded)}>
           {label}
-          <span className={styles.filterFunctionLabel}> {funcOption.label} </span>
-          {rowValues.category === "number" ? formatParameter(rowValues.parameter as number) : rowValues.parameter}
+          <span className={styles.filterFunctionLabel}> {funcOption?.label} </span>
+          {getParameter(rowValues.category, rowValues.parameter, handleParamChange)}
         </div>
         <div className={classNames(styles.removeFilter, styles.desktopRemove)} onClick={() => onRemoveFilter(index)}>
           <RemoveIcon />
@@ -127,7 +238,7 @@ function FilterRow({
 
       <div className={classNames(styles.filterOptions, { [styles.expanded]: rowExpanded })}>
         <Select
-          selectProps={{ options: columnOptions, value: selectData.key, onChange: handleKeyChange }}
+          selectProps={{ options: filterOptions, value: selectData.key, onChange: handleKeyChange }}
           child={child}
         />
 
@@ -139,21 +250,7 @@ function FilterRow({
         </div>
 
         <div className="filter-parameter-container">
-          {rowValues.category === "number" ? (
-            <NumberFormat
-              className={classNames(styles.filterInputField, styles.small)}
-              thousandSeparator=","
-              value={rowValues.parameter}
-              onValueChange={handleParamChange}
-            />
-          ) : (
-            <input
-              type="text"
-              className={"torq-input-field"}
-              value={rowValues.parameter}
-              onChange={handleParamChange}
-            />
-          )}
+          {getInputField(rowValues.category, rowValues.parameter, handleParamChange)}
         </div>
       </div>
     </div>

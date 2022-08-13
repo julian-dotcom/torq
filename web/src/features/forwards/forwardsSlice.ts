@@ -119,7 +119,7 @@ export const availableColumns: ColumnMetaData[] = [
     heading: "Open",
     type: "BooleanCell",
     key: "open",
-    valueType: "number",
+    valueType: "boolean",
   },
 ];
 

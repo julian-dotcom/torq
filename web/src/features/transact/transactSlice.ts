@@ -1,7 +1,7 @@
-import React from "react";
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { ColumnMetaData } from "../table/Table";
 import { SortByOptionType } from "../sidebar/sections/sort/SortSectionOld";
+import { RootState } from "../../store/store";
 
 export interface ViewInterface {
   title: string;
@@ -13,15 +13,32 @@ export interface ViewInterface {
 }
 
 export interface initialStateProps {
-  views: ViewInterface[];
+  paymentViews: ViewInterface[];
 }
 
 const initialState: initialStateProps = {
-  views: [],
+  paymentViews: [
+    {
+      title: "Default View",
+      saved: true,
+    },
+  ],
 };
 
 export const paymentsSlice = createSlice({
   name: "payments",
   initialState,
-  reducers: {},
+  reducers: {
+    updatePaymentsFilters: (state, actions: PayloadAction<{ filters: any }>) => {
+      state.paymentViews[0].filters = actions.payload.filters;
+    },
+  },
 });
+
+export const { updatePaymentsFilters } = paymentsSlice.actions;
+
+export const selectPaymentsFilters = (state: RootState) => {
+  return state.payments.paymentViews[0].filters;
+};
+
+export default paymentsSlice.reducer;

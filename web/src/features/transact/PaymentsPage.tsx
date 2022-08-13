@@ -26,6 +26,11 @@ import EnumCell from "../table/cells/EnumCell";
 import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
+import FilterSection from "../sidebar/sections/filter/FilterSection";
+import { Clause, FilterClause, FilterInterface } from "../sidebar/sections/filter/filter";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { selectPaymentsFilters, updatePaymentsFilters } from "./transactSlice";
+import { FilterCategoryType } from "../sidebar/sections/filter/filter";
 
 type sections = {
   filter: boolean;
@@ -33,23 +38,22 @@ type sections = {
   columns: boolean;
 };
 
-const activeColumns: ColumnMetaData[] = [
+const activeColumns: Array<ColumnMetaData> = [
   { key: "date", heading: "Date", type: "DateCell", valueType: "date" },
   { key: "status", heading: "Status", type: "TextCell", valueType: "string" },
   { key: "value", heading: "Value", type: "NumericCell", valueType: "number" },
   { key: "fee", heading: "Fee", type: "NumericCell", valueType: "number" },
   { key: "ppm", heading: "PPM", type: "NumericCell", valueType: "number" },
-  { key: "is_rebalance", heading: "Rebalance", type: "BooleanCell", valueType: "string" },
+  { key: "is_rebalance", heading: "Rebalance", type: "BooleanCell", valueType: "boolean" },
   { key: "seconds_in_flight", heading: "Seconds In Flight", type: "BarCell", valueType: "number" },
-  { key: "failueReason", heading: "Failure Reason", type: "TextCell", valueType: "string" },
-  { key: "is_mpp", heading: "MPP", type: "BooleanCell", valueType: "string" },
+  { key: "failure_reason", heading: "Failure Reason", type: "TextCell", valueType: "array" },
+  { key: "is_mpp", heading: "MPP", type: "BooleanCell", valueType: "boolean" },
   { key: "count_failed_attempts", heading: "Failed Attempts", type: "NumericCell", valueType: "number" },
   { key: "count_successful_attempts", heading: "Successful Attempts", type: "NumericCell", valueType: "number" },
   { key: "destination_pub_key", heading: "Destination", type: "TextCell", valueType: "string" },
-  // { key: "payment_hash", heading: "Payment Hash", type: "TextCell", valueType: "string" },
-  // { key: "payment_index", heading: "Payment Index", type: "TextCell", valueType: "string" },
-  // { key: "payment_preimage", heading: "Payment Preimage", type: "TextCell", valueType: "string" },
-  // { key: "payment_request", heading: "Payment Request", type: "TextCell", valueType: "string" },
+  { key: "payment_hash", heading: "Payment Hash", type: "TextCell", valueType: "string" },
+  { key: "payment_index", heading: "Payment Index", type: "TextCell", valueType: "string" },
+  { key: "payment_preimage", heading: "Payment Preimage", type: "TextCell", valueType: "string" },
 ];
 
 const statusTypes: any = {
@@ -128,16 +132,27 @@ function PaymentsPage() {
     },
   ] as Array<OrderBy>);
 
-  const paymentsResponse = useGetPaymentsQuery({ limit: limit, offset: offset, order: orderBy });
+  const dispatch = useAppDispatch();
+  const filters = useAppSelector(selectPaymentsFilters);
+
+  const paymentsResponse = useGetPaymentsQuery({
+    limit: limit,
+    offset: offset,
+    order: orderBy,
+    filter: filters,
+  });
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  let data: any = [];
 
-  const data = paymentsResponse?.data?.data.map((payment: any) => {
-    const failureReason = failureReasons[payment.failure_reason];
-    const status = statusTypes[payment.status];
-    return { ...payment, failureReason, status };
-  });
+  if (paymentsResponse?.data?.data) {
+    data = paymentsResponse?.data?.data.map((payment: any) => {
+      const fr = failureReasons[payment.failure_reason];
+      const status = statusTypes[payment.status];
+      return { ...payment, fr, status };
+    });
+  }
 
   const columns = activeColumns.map((column: ColumnMetaData, index: number) => {
     if (column.type === "number") {
@@ -209,6 +224,31 @@ function PaymentsPage() {
     </TableControlSection>
   );
 
+  const defaultFilter: FilterInterface = {
+    funcName: "gte",
+    category: "number" as FilterCategoryType,
+    parameter: 0,
+    key: "value",
+  };
+
+  const filterColumns = columns.map((column: any) => {
+    if (column.key === "failure_reason") {
+      column.selectOptions = Object.keys(failureReasons)
+        .filter((key) => key !== "FAILURE_REASON_NONE")
+        .map((key: any) => {
+          return {
+            value: key,
+            label: failureReasons[String(key)],
+          };
+        });
+    }
+    return column;
+  });
+
+  const handleFilterUpdate = (updated: Clause) => {
+    dispatch(updatePaymentsFilters({ filters: updated.toJSON() }));
+  };
+
   const sortableColumns = columns.filter((column: ColumnMetaData) =>
     [
       "date",
@@ -218,7 +258,7 @@ function PaymentsPage() {
       "status",
       "is_rebalance",
       "seconds_in_flight",
-      "failureReason",
+      "failure_reason",
       "is_mpp",
       "count_failed_attempts",
       "count_successful_attempts",
@@ -246,7 +286,12 @@ function PaymentsPage() {
         expanded={activeSidebarSections.filter}
         handleToggle={sidebarSectionHandler("filter")}
       >
-        {"Something"}
+        <FilterSection
+          columnsMeta={filterColumns}
+          filters={filters}
+          filterUpdateHandler={handleFilterUpdate}
+          defaultFilter={defaultFilter}
+        />
       </SidebarSection>
       <SidebarSection
         title={"Sort"}
@@ -281,7 +326,7 @@ function PaymentsPage() {
     >
       <Table
         rowRenderer={rowRenderer}
-        data={data || []}
+        data={data}
         activeColumns={columns || []}
         isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
       />

@@ -9,7 +9,7 @@ import {
 import Sidebar, { SidebarSection } from "../sidebar/Sidebar";
 import { useUpdateTableViewMutation, useCreateTableViewMutation, useGetTableViewsQuery } from "apiSlice";
 
-import { Clause } from "features/sidebar/sections/filter/filter";
+import { Clause, FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
 
 import TablePageTemplate, {
   TableControlSection,
@@ -163,7 +163,7 @@ function ForwardsPage() {
     </TableControlSection>
   );
 
-  const updateColumnsHandler = (columns: ColumnMetaData[]) => {
+  const updateColumnsHandler = (columns: Array<any>) => {
     dispatch(updateColumns({ columns: columns }));
   };
 
@@ -177,6 +177,13 @@ function ForwardsPage() {
 
   const handleGroupByUpdate = (updated: string) => {
     dispatch(updateGroupBy({ groupBy: updated }));
+  };
+
+  const defaultFilter: FilterInterface = {
+    funcName: "gte",
+    category: "number" as FilterCategoryType,
+    parameter: 0,
+    key: "capacity",
   };
 
   const sidebar = (
@@ -196,7 +203,12 @@ function ForwardsPage() {
         expanded={activeSidebarSections.filter}
         handleToggle={sidebarSectionHandler("filter")}
       >
-        <FilterSection filters={filters} filterUpdateHandler={handleFilterUpdate} />
+        <FilterSection
+          columnsMeta={columns}
+          filters={filters}
+          filterUpdateHandler={handleFilterUpdate}
+          defaultFilter={defaultFilter}
+        />
       </SidebarSection>
 
       <SidebarSection
