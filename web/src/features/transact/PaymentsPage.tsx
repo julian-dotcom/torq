@@ -39,6 +39,7 @@ import {
 import { FilterCategoryType } from "../sidebar/sections/filter/filter";
 import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
 import clone from "../../clone";
+import { formatDuration, intervalToDuration } from "date-fns";
 
 type sections = {
   filter: boolean;
@@ -143,7 +144,24 @@ function PaymentsPage() {
     data = paymentsResponse?.data?.data.map((payment: any) => {
       const failure_reason = failureReasons[payment.failure_reason];
       const status = statusTypes[payment.status];
-      return { ...payment, failure_reason, status };
+      let pif = "Unknown";
+      if (payment.seconds_in_flight > 0) {
+        const d = intervalToDuration({ start: 0, end: payment.seconds_in_flight * 1000 });
+        pif = formatDuration({
+          years: d.years,
+          months: d.months,
+          days: d.days,
+          hours: d.hours,
+          minutes: d.minutes,
+          seconds: d.seconds,
+        });
+      }
+      return {
+        ...payment,
+        failure_reason,
+        status,
+        seconds_in_flight: pif,
+      };
     });
   }
 
@@ -225,13 +243,22 @@ function PaymentsPage() {
   };
 
   const filterColumns = clone(allColumns).map((c: any) => {
-    if (c.key === "failure_reason") {
-      c.selectOptions = Object.keys(failureReasons)
-        .filter((key) => key !== "FAILURE_REASON_NONE")
-        .map((key: any) => {
+    switch (c.key) {
+      case "failure_reason":
+        c.selectOptions = Object.keys(failureReasons)
+          .filter((key) => key !== "FAILURE_REASON_NONE")
+          .map((key: any) => {
+            return {
+              value: key,
+              label: failureReasons[String(key)],
+            };
+          });
+        break;
+      case "status":
+        c.selectOptions = Object.keys(statusTypes).map((key: any) => {
           return {
             value: key,
-            label: failureReasons[String(key)],
+            label: statusTypes[String(key)],
           };
         });
     }
