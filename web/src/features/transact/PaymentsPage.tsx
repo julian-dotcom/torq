@@ -132,7 +132,7 @@ function PaymentsPage() {
     limit: limit,
     offset: offset,
     order: orderBy,
-    filter: deserialiseQuery(filters).length >= 1 ? filters : undefined,
+    filter: filters && deserialiseQuery(filters).length >= 1 ? filters : undefined,
   });
 
   // Logic for toggling the sidebar
@@ -141,9 +141,9 @@ function PaymentsPage() {
 
   if (paymentsResponse?.data?.data) {
     data = paymentsResponse?.data?.data.map((payment: any) => {
-      const fr = failureReasons[payment.failure_reason];
+      const failure_reason = failureReasons[payment.failure_reason];
       const status = statusTypes[payment.status];
-      return { ...payment, fr, status };
+      return { ...payment, failure_reason, status };
     });
   }
 

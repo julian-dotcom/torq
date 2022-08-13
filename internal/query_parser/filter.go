@@ -82,7 +82,7 @@ func (qp *QueryParser) ParseFilter(f Filter) (r sq.Sqlizer, err error) {
 	switch f.FuncName {
 	case "eq":
 		return sq.Eq{f.Key: param}, nil
-	case "ne":
+	case "neq":
 		return sq.NotEq{f.Key: param}, nil
 	case "gt":
 		return sq.Gt{f.Key: param}, nil
