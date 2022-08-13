@@ -40,7 +40,6 @@ import DefaultButton from "../buttons/Button";
 import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
 import classNames from "classnames";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import { ColumnMetaData } from "../table/Table";
 
 type sections = {
   filter: boolean;

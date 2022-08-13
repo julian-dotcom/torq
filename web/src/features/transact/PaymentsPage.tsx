@@ -27,7 +27,7 @@ import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import FilterSection from "../sidebar/sections/filter/FilterSection";
-import { Clause, FilterClause, FilterInterface } from "../sidebar/sections/filter/filter";
+import { Clause, deserialiseQuery, FilterClause, FilterInterface } from "../sidebar/sections/filter/filter";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   selectActiveColumns,
@@ -132,7 +132,7 @@ function PaymentsPage() {
     limit: limit,
     offset: offset,
     order: orderBy,
-    filter: filters,
+    filter: deserialiseQuery(filters).length >= 1 ? filters : undefined,
   });
 
   // Logic for toggling the sidebar
