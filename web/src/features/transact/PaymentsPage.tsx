@@ -40,6 +40,7 @@ import { FilterCategoryType } from "../sidebar/sections/filter/filter";
 import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
 import clone from "../../clone";
 import { formatDuration, intervalToDuration } from "date-fns";
+import { format } from "d3";
 
 type sections = {
   filter: boolean;
@@ -64,6 +65,8 @@ const failureReasons: any = {
   FAILURE_REASON_INCORRECT_PAYMENT_REQUEST: "Incorrect Payment Request",
   FAILURE_REASON_UNKNOWN: "Unknown",
 };
+
+const subSecFormat = format("0.2f");
 
 function rowRenderer(row: any, index: number, column: ColumnMetaData, columnIndex: number) {
   const key = column.key;
@@ -145,7 +148,7 @@ function PaymentsPage() {
       const failure_reason = failureReasons[payment.failure_reason];
       const status = statusTypes[payment.status];
       let pif = "Unknown";
-      if (payment.seconds_in_flight > 0) {
+      if (payment.seconds_in_flight >= 1) {
         const d = intervalToDuration({ start: 0, end: payment.seconds_in_flight * 1000 });
         pif = formatDuration({
           years: d.years,
@@ -155,6 +158,8 @@ function PaymentsPage() {
           minutes: d.minutes,
           seconds: d.seconds,
         });
+      } else if (payment.seconds_in_flight < 1 && payment.seconds_in_flight > 0) {
+        pif = `${subSecFormat(payment.seconds_in_flight)} seconds`;
       }
       return {
         ...payment,
