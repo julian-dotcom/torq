@@ -1,5 +1,5 @@
 import Table, { ColumnMetaData } from "features/table/Table";
-import { useGetPaymentsQuery } from "apiSlice";
+import { useGetInvoicesQuery } from "apiSlice";
 import { Link } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
@@ -23,10 +23,10 @@ import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import {
   selectActiveColumns,
   selectAllColumns,
-  selectPaymentsFilters,
+  selectInvoicesFilters,
   updateColumns,
-  updatePaymentsFilters,
-} from "../Payments/paymentsSlice";
+  updateInvoicesFilters,
+} from "../Invoices/invoicesSlice";
 import { FilterCategoryType } from "../../sidebar/sections/filter/filter";
 import ColumnsSection from "../../sidebar/sections/columns/ColumnsSection";
 import clone from "../../../clone";
@@ -37,236 +37,237 @@ type sections = {
   columns: boolean;
 };
 
+const statusTypes: any = {
+  OPEN: "Open",
+  SETTLED: "Settled",
+  EXPIRED: "Expired",
+};
+
 function InvoicesPage() {
-  // const [limit, setLimit] = useLocalStorage("invoicesLimit", 100);
-  // const [offset, setOffset] = useState(0);
-  // const [orderBy, setOrderBy] = useLocalStorage("invoicesOrderBy", [
-  //   {
-  //     key: "date",
-  //     direction: "asc",
-  //   },
-  // ] as Array<OrderBy>);
-  //
-  // const activeColumns = useAppSelector(selectActiveColumns) || [];
-  // const allColumns = useAppSelector(selectAllColumns);
-  //
-  // const dispatch = useAppDispatch();
-  // const filters = useAppSelector(selectPaymentsFilters);
-  //
-  // const paymentsResponse = useGetPaymentsQuery({
-  //   limit: limit,
-  //   offset: offset,
-  //   order: orderBy,
-  //   filter: filters && deserialiseQuery(filters).length >= 1 ? filters : undefined,
-  // });
-  //
-  // // Logic for toggling the sidebar
-  // const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  // let data: any = [];
-  //
-  // if (paymentsResponse?.data?.data) {
-  //   data = paymentsResponse?.data?.data.map((payment: any) => {
-  //     const failure_reason = failureReasons[payment.failure_reason];
-  //     const status = statusTypes[payment.status];
-  //
-  //     return {
-  //       ...payment,
-  //       failure_reason,
-  //       status,
-  //     };
-  //   });
-  // }
-  //
-  // const columns = activeColumns.map((column: ColumnMetaData, index: number) => {
-  //   if (column.type === "number") {
-  //     return {
-  //       ...column,
-  //       max: Math.max(column.max ?? 0, data[column.key].max ?? 0),
-  //     };
-  //   } else {
-  //     return column;
-  //   }
-  // });
-  //
-  // // General logic for toggling the sidebar sections
-  // const initialSectionState: sections = {
-  //   filter: false,
-  //   sort: false,
-  //   columns: false,
-  // };
-  //
-  // const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
-  //
-  // const setSection = (section: keyof sections) => {
-  //   return () => {
-  //     if (activeSidebarSections[section] && sidebarExpanded) {
-  //       setSidebarExpanded(false);
-  //       setActiveSidebarSections(initialSectionState);
-  //     } else {
-  //       setSidebarExpanded(true);
-  //       setActiveSidebarSections({
-  //         ...initialSectionState,
-  //         [section]: true,
-  //       });
-  //     }
-  //   };
-  // };
-  // const sidebarSectionHandler = (section: keyof sections) => {
-  //   return () => {
-  //     setActiveSidebarSections({
-  //       ...initialSectionState,
-  //       [section]: !activeSidebarSections[section],
-  //     });
-  //   };
-  // };
-  //
-  // const closeSidebarHandler = () => {
-  //   return () => {
-  //     setSidebarExpanded(false);
-  //     setActiveSidebarSections(initialSectionState);
-  //   };
-  // };
-  //
-  // const tableControls = (
-  //   <TableControlSection>
-  //     <TransactTabs />
-  //
-  //     <TableControlsButtonGroup>
-  //       <TableControlsButton
-  //         onClickHandler={setSection("columns")}
-  //         icon={ColumnsIcon}
-  //         active={activeSidebarSections.columns}
-  //       />
-  //       <TableControlsButton
-  //         onClickHandler={setSection("filter")}
-  //         icon={FilterIcon}
-  //         active={activeSidebarSections.filter}
-  //       />
-  //       <TableControlsButton onClickHandler={setSection("sort")} icon={SortIcon} active={activeSidebarSections.sort} />
-  //     </TableControlsButtonGroup>
-  //   </TableControlSection>
-  // );
-  //
-  // const defaultFilter: FilterInterface = {
-  //   funcName: "gte",
-  //   category: "number" as FilterCategoryType,
-  //   parameter: 0,
-  //   key: "value",
-  // };
-  //
-  // const filterColumns = clone(allColumns).map((c: any) => {
-  //   switch (c.key) {
-  //     case "failure_reason":
-  //       c.selectOptions = Object.keys(failureReasons)
-  //         .filter((key) => key !== "FAILURE_REASON_NONE")
-  //         .map((key: any) => {
-  //           return {
-  //             value: key,
-  //             label: failureReasons[String(key)],
-  //           };
-  //         });
-  //       break;
-  //     case "status":
-  //       c.selectOptions = Object.keys(statusTypes).map((key: any) => {
-  //         return {
-  //           value: key,
-  //           label: statusTypes[String(key)],
-  //         };
-  //       });
-  //   }
-  //   return c;
-  // });
-  //
-  // const handleFilterUpdate = (updated: Clause) => {
-  //   dispatch(updatePaymentsFilters({ filters: updated.toJSON() }));
-  // };
-  //
-  // const sortableColumns = allColumns.filter((column: ColumnMetaData) =>
-  //   [
-  //     "date",
-  //     "value",
-  //     "fee",
-  //     "ppm",
-  //     "status",
-  //     "is_rebalance",
-  //     "seconds_in_flight",
-  //     "failure_reason",
-  //     "is_mpp",
-  //     "count_failed_attempts",
-  //     "count_successful_attempts",
-  //   ].includes(column.key)
-  // );
-  //
-  // const handleSortUpdate = (updated: Array<OrderBy>) => {
-  //   setOrderBy(updated);
-  //   // dispatch(updateSortBy({ sortBy: updated }));
-  // };
-  //
-  // const updateColumnsHandler = (columns: Array<any>) => {
-  //   dispatch(updateColumns({ columns: columns }));
-  // };
-  //
-  // const sidebar = (
-  //   <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
-  //     <SidebarSection
-  //       title={"Columns"}
-  //       icon={ColumnsIcon}
-  //       expanded={activeSidebarSections.columns}
-  //       handleToggle={sidebarSectionHandler("columns")}
-  //     >
-  //       <ColumnsSection columns={allColumns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
-  //     </SidebarSection>
-  //     <SidebarSection
-  //       title={"Filter"}
-  //       icon={FilterIcon}
-  //       expanded={activeSidebarSections.filter}
-  //       handleToggle={sidebarSectionHandler("filter")}
-  //     >
-  //       <FilterSection
-  //         columnsMeta={filterColumns}
-  //         filters={filters}
-  //         filterUpdateHandler={handleFilterUpdate}
-  //         defaultFilter={defaultFilter}
-  //       />
-  //     </SidebarSection>
-  //     <SidebarSection
-  //       title={"Sort"}
-  //       icon={SortIcon}
-  //       expanded={activeSidebarSections.sort}
-  //       handleToggle={sidebarSectionHandler("sort")}
-  //     >
-  //       <SortSection columns={sortableColumns} orderBy={orderBy} updateHandler={handleSortUpdate} />
-  //     </SidebarSection>
-  //   </Sidebar>
-  // );
-  //
-  // const breadcrumbs = ["Transactions", <Link to={"/transactions/invoices"}>Invoices</Link>];
-  // const pagination = (
-  //   <Pagination
-  //     limit={limit}
-  //     offset={offset}
-  //     total={paymentsResponse?.data?.pagination?.total}
-  //     perPageHandler={setLimit}
-  //     offsetHandler={setOffset}
-  //   />
-  // );
-  // return (
-  //   <TablePageTemplate
-  //     title={"Payments"}
-  //     breadcrumbs={breadcrumbs}
-  //     sidebarExpanded={sidebarExpanded}
-  //     sidebar={sidebar}
-  //     tableControls={tableControls}
-  //     pagination={pagination}
-  //   >
-  //     <Table
-  //       data={data}
-  //       activeColumns={columns || []}
-  //       isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
-  //     />
-  //   </TablePageTemplate>
-  // );
-  return <div></div>;
+  const [limit, setLimit] = useLocalStorage("invoicesLimit", 100);
+  const [offset, setOffset] = useState(0);
+  const [orderBy, setOrderBy] = useLocalStorage("invoicesOrderBy", [
+    {
+      key: "creation_date",
+      direction: "desc",
+    },
+  ] as Array<OrderBy>);
+
+  const activeColumns = useAppSelector(selectActiveColumns) || [];
+  const allColumns = useAppSelector(selectAllColumns);
+
+  const dispatch = useAppDispatch();
+  const filters = useAppSelector(selectInvoicesFilters);
+
+  const invoicesResponse = useGetInvoicesQuery({
+    limit: limit,
+    offset: offset,
+    order: orderBy,
+    filter: filters && deserialiseQuery(filters).length >= 1 ? filters : undefined,
+  });
+
+  // Logic for toggling the sidebar
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  let data: any = [];
+
+  if (invoicesResponse?.data?.data) {
+    data = invoicesResponse?.data?.data.map((invoice: any) => {
+      const invoice_state = statusTypes[invoice.invoice_state];
+
+      return {
+        ...invoice,
+        invoice_state,
+      };
+    });
+  }
+
+  const columns = activeColumns.map((column: ColumnMetaData, index: number) => {
+    if (column.type === "number") {
+      return {
+        ...column,
+        max: Math.max(column.max ?? 0, data[column.key].max ?? 0),
+      };
+    } else {
+      return column;
+    }
+  });
+
+  // General logic for toggling the sidebar sections
+  const initialSectionState: sections = {
+    filter: false,
+    sort: false,
+    columns: false,
+  };
+
+  const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
+
+  const setSection = (section: keyof sections) => {
+    return () => {
+      if (activeSidebarSections[section] && sidebarExpanded) {
+        setSidebarExpanded(false);
+        setActiveSidebarSections(initialSectionState);
+      } else {
+        setSidebarExpanded(true);
+        setActiveSidebarSections({
+          ...initialSectionState,
+          [section]: true,
+        });
+      }
+    };
+  };
+  const sidebarSectionHandler = (section: keyof sections) => {
+    return () => {
+      setActiveSidebarSections({
+        ...initialSectionState,
+        [section]: !activeSidebarSections[section],
+      });
+    };
+  };
+
+  const closeSidebarHandler = () => {
+    return () => {
+      setSidebarExpanded(false);
+      setActiveSidebarSections(initialSectionState);
+    };
+  };
+
+  const tableControls = (
+    <TableControlSection>
+      <TransactTabs />
+
+      <TableControlsButtonGroup>
+        <TableControlsButton
+          onClickHandler={setSection("columns")}
+          icon={ColumnsIcon}
+          active={activeSidebarSections.columns}
+        />
+        <TableControlsButton
+          onClickHandler={setSection("filter")}
+          icon={FilterIcon}
+          active={activeSidebarSections.filter}
+        />
+        <TableControlsButton onClickHandler={setSection("sort")} icon={SortIcon} active={activeSidebarSections.sort} />
+      </TableControlsButtonGroup>
+    </TableControlSection>
+  );
+
+  const defaultFilter: FilterInterface = {
+    funcName: "gte",
+    category: "number" as FilterCategoryType,
+    parameter: 0,
+    key: "value",
+  };
+
+  const filterColumns = clone(allColumns).map((c: any) => {
+    switch (c.key) {
+      case "invoice_state":
+        c.selectOptions = Object.keys(statusTypes).map((key: any) => {
+          return {
+            value: key,
+            label: statusTypes[String(key)],
+          };
+        });
+        break;
+    }
+    return c;
+  });
+
+  const handleFilterUpdate = (updated: Clause) => {
+    dispatch(updateInvoicesFilters({ filters: updated.toJSON() }));
+  };
+
+  const sortableColumns = allColumns.filter((column: ColumnMetaData) =>
+    [
+      "creation_date",
+      "settle_date",
+      "invoice_state",
+      "amt_paid",
+      "memo",
+      "value",
+      "is_rebalance",
+      "is_keysend",
+      "destination_pub_key",
+      "is_amp",
+      "fallback_addr",
+      "payment_addr",
+      "payment_request",
+      "private",
+      "r_hash",
+      "r_preimage",
+      "expiry",
+      "cltv_expiry",
+      "updated_on",
+    ].includes(column.key)
+  );
+
+  const handleSortUpdate = (updated: Array<OrderBy>) => {
+    setOrderBy(updated);
+  };
+
+  const updateColumnsHandler = (columns: Array<any>) => {
+    dispatch(updateColumns({ columns: columns }));
+  };
+
+  const sidebar = (
+    <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
+      <SidebarSection
+        title={"Columns"}
+        icon={ColumnsIcon}
+        expanded={activeSidebarSections.columns}
+        handleToggle={sidebarSectionHandler("columns")}
+      >
+        <ColumnsSection columns={allColumns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
+      </SidebarSection>
+      <SidebarSection
+        title={"Filter"}
+        icon={FilterIcon}
+        expanded={activeSidebarSections.filter}
+        handleToggle={sidebarSectionHandler("filter")}
+      >
+        <FilterSection
+          columnsMeta={filterColumns}
+          filters={filters}
+          filterUpdateHandler={handleFilterUpdate}
+          defaultFilter={defaultFilter}
+        />
+      </SidebarSection>
+      <SidebarSection
+        title={"Sort"}
+        icon={SortIcon}
+        expanded={activeSidebarSections.sort}
+        handleToggle={sidebarSectionHandler("sort")}
+      >
+        <SortSection columns={sortableColumns} orderBy={orderBy} updateHandler={handleSortUpdate} />
+      </SidebarSection>
+    </Sidebar>
+  );
+
+  const breadcrumbs = ["Transactions", <Link to={"/transactions/invoices"}>Invoices</Link>];
+  const pagination = (
+    <Pagination
+      limit={limit}
+      offset={offset}
+      total={invoicesResponse?.data?.pagination?.total}
+      perPageHandler={setLimit}
+      offsetHandler={setOffset}
+    />
+  );
+  return (
+    <TablePageTemplate
+      title={"Invoices"}
+      breadcrumbs={breadcrumbs}
+      sidebarExpanded={sidebarExpanded}
+      sidebar={sidebar}
+      tableControls={tableControls}
+      pagination={pagination}
+    >
+      <Table
+        data={data}
+        activeColumns={activeColumns || []}
+        isLoading={invoicesResponse.isLoading || invoicesResponse.isFetching || invoicesResponse.isUninitialized}
+      />
+    </TablePageTemplate>
+  );
 }
 
 export default InvoicesPage;

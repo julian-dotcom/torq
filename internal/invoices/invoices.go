@@ -19,8 +19,8 @@ type Invoice struct {
 	RHash             *string    `json:"r_hash" db:"r_hash"`
 	RPreimage         *string    `json:"r_preimage" db:"r_preimage"`
 	Memo              *string    `json:"memo" db:"memo"`
-	ValueMsat         *string    `json:"value_msat" db:"value_msat"`
-	AmountPaidMsat    *string    `json:"amt_paid_msat" db:"amt_paid_msat"`
+	Value             *float64   `json:"value" db:"value"`
+	AmountPaid        *float64   `json:"amt_paid" db:"amt_paid"`
 	InvoiceState      *string    `json:"invoice_state" db:"invoice_state"`
 	IsRebalance       *bool      `json:"is_rebalance" db:"is_rebalance"`
 	IsKeysend         *bool      `json:"is_keysend" db:"is_keysend"`
@@ -46,8 +46,8 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				r_hash,
 				r_preimage,
 				memo,
-				value_msat,
-				amt_paid_msat,
+				(value_msat/1000) as value,
+				(amt_paid_msat/1000) as amt_paid,
 				invoice_state,
 				destination_pub_key = ANY(ARRAY[(table pub_keys)]) as is_rebalance,
 				is_keysend,
@@ -95,8 +95,8 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 			&i.RHash,
 			&i.RPreimage,
 			&i.Memo,
-			&i.ValueMsat,
-			&i.AmountPaidMsat,
+			&i.Value,
+			&i.AmountPaid,
 			&i.InvoiceState,
 			&i.IsRebalance,
 			&i.IsKeysend,
@@ -130,8 +130,8 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				r_hash,
 				r_preimage,
 				memo,
-				value_msat,
-				amt_paid_msat,
+				(value_msat/1000) as value,
+				(amt_paid_msat/1000) as amt_paid,
 				invoice_state,
 				destination_pub_key = ANY(ARRAY[(table pub_keys)]) as is_rebalance,
 				is_keysend,
@@ -167,13 +167,13 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 type Htlc struct {
 	State             *uint64 `json:"state" db:"state"`
 	LNDShortChannelId *uint64 `json:"chan_id" db:"lnd_short_channel_id"`
-	AmtMsat           *uint64 `json:"amt_msat" db:"amt_msat"`
+	Amt               *uint64 `json:"amt" db:"amt"`
 	HtlcIndex         *uint64 `json:"htlc_index" db:"htlc_index"`
 	AcceptTime        *uint64 `json:"accept_time" db:"accept_time"`
 	ResolveTime       *uint64 `json:"resolve_time" db:"resolve_time"`
 	AcceptHeight      *uint64 `json:"accept_height" db:"accept_height"`
 	ExpiryHeight      *uint64 `json:"expiry_height" db:"expiry_height"`
-	MppTotalAmtMsat   *uint64 `json:"mpp_total_amt_msat" db:"mpp_total_amt_msat"`
+	MppTotalAmt       *uint64 `json:"mpp_total_amt" db:"mpp_total_amt"`
 }
 
 type Feature struct {
@@ -195,7 +195,7 @@ type InvoiceDetails struct {
 type HopHint struct {
 	LNDShortChannelId *uint64 `json:"chan_id" db:"lnd_short_channel_id"`
 	NodeId            *string `json:"node_id" db:"node_id"`
-	FeeBaseMsat       *uint64 `json:"fee_base_msat" db:"fee_base_msat"`
+	FeeBase           *uint64 `json:"fee_base" db:"fee_base"`
 	CltvExpiryDelta   *uint64 `json:"cltv_expiry_delta" db:"cltv_expiry_delta"`
 	FeeProportional   *uint64 `json:"fee_proportional_millionths" db:"fee_proportional_millionths"`
 }
@@ -225,8 +225,8 @@ func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) 
 			r_hash,
 			r_preimage,
 			memo,
-			value_msat,
-			amt_paid_msat,
+			(value_msat/1000) as value,
+			(amt_paid_msat/1000) as amt_paid,
 			invoice_state,
 			is_keysend,
 			is_amp,
@@ -270,8 +270,8 @@ func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) 
 		&i.RHash,
 		&i.RPreimage,
 		&i.Memo,
-		&i.ValueMsat,
-		&i.AmountPaidMsat,
+		&i.Value,
+		&i.AmountPaid,
 		&i.InvoiceState,
 		&i.IsKeysend,
 		&i.IsAmp,

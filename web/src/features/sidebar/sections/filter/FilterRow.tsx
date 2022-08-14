@@ -91,7 +91,6 @@ function FilterRow({
         break;
       case "date":
         const nd = new Date().toISOString().slice(0, 10) + "T00:00:00";
-        console.log(nd);
         rowValues.parameter = nd;
         rowValues.funcName = "gte";
         break;

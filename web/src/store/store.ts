@@ -5,13 +5,15 @@ import tableReducer from "../features/forwards/forwardsSlice";
 import timeIntervalReducer from "../features/timeIntervalSelect/timeIntervalSlice";
 import { torqApi } from "apiSlice";
 import { setupListeners } from "@reduxjs/toolkit/query";
-import paymentsReducer from "../features/transact/Payments/paymentsSlice";
+import paymentsReducer from "features/transact/Payments/paymentsSlice";
+import invoicesReducer from "features/transact/Invoices/invoicesSlice";
 
 export const store = configureStore({
   reducer: {
     navigation: navReducer,
     table: tableReducer,
     payments: paymentsReducer,
+    invoices: invoicesReducer,
     timeInterval: timeIntervalReducer,
     channel: channelReducer,
     [torqApi.reducerPath]: torqApi.reducer,

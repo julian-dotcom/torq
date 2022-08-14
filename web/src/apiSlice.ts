@@ -54,6 +54,15 @@ export const torqApi = createApi({
           filter ? "&filter=" + JSON.stringify(filter) : ""
         }`,
     }),
+    getInvoices: builder.query<
+      any,
+      { limit: number; offset: number; order?: Array<{ key: string; direction: "asc" | "desc" }>; filter?: any }
+    >({
+      query: ({ limit, offset, order, filter }) =>
+        `invoices?limit=${limit || 100}&offset=${offset || 0}${order ? "&order=" + JSON.stringify(order) : ""}${
+          filter ? "&filter=" + JSON.stringify(filter) : ""
+        }`,
+    }),
     getTableViews: builder.query<any, void>({
       query: () => `table-views`,
       providesTags: ["tableView"],
@@ -142,6 +151,7 @@ export const {
   useGetChannelHistoryQuery,
   useGetChannelsQuery,
   useGetPaymentsQuery,
+  useGetInvoicesQuery,
   useGetTableViewsQuery,
   useUpdateTableViewMutation,
   useCreateTableViewMutation,

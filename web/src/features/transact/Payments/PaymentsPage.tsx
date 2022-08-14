@@ -61,7 +61,7 @@ function PaymentsPage() {
   const [orderBy, setOrderBy] = useLocalStorage("paymentsOrderBy", [
     {
       key: "date",
-      direction: "asc",
+      direction: "desc",
     },
   ] as Array<OrderBy>);
 
