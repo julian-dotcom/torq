@@ -5,7 +5,7 @@ import tableReducer from "../features/forwards/forwardsSlice";
 import timeIntervalReducer from "../features/timeIntervalSelect/timeIntervalSlice";
 import { torqApi } from "apiSlice";
 import { setupListeners } from "@reduxjs/toolkit/query";
-import paymentsReducer from "../features/transact/transactSlice";
+import paymentsReducer from "../features/transact/Payments/paymentsSlice";
 
 export const store = configureStore({
   reducer: {

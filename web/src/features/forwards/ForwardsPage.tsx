@@ -87,15 +87,6 @@ function ForwardsPage() {
 
   const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
 
-  // useEffect(() => {
-  //   if (viewId === "" && !viewResponse.isLoading) {
-  //     // window.history.replaceState(null, "", "/analyse/forwards/" + viewResponse.data[0].title);
-  //     navigate("/analyse/forwards/" + (viewResponse.data[0].view.title || "").replace(/\s+/g, "-").toLowerCase(), {
-  //       replace: true,
-  //     });
-  //   }
-  // }, [viewResponse.isLoading]);
-
   const setSection = (section: keyof sections) => {
     return () => {
       if (activeSidebarSections[section] && sidebarExpanded) {

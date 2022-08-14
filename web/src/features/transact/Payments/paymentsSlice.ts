@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { ColumnMetaData } from "../table/Table";
-import { SortByOptionType } from "../sidebar/sections/sort/SortSectionOld";
-import { RootState } from "../../store/store";
+import { ColumnMetaData } from "features/table/Table";
+import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
+import { RootState } from "features/../store/store";
 
 export interface ViewInterface {
   title: string;

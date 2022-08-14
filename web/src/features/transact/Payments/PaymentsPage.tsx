@@ -1,5 +1,4 @@
 import Table, { ColumnMetaData } from "features/table/Table";
-import cellStyles from "features/table/cells/cell.module.scss";
 import { useGetPaymentsQuery } from "apiSlice";
 import { Link } from "react-router-dom";
 import {
@@ -14,31 +13,23 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import TransactTabs from "./TransactTabs";
-import AliasCell from "../table/cells/AliasCell";
-import classNames from "classnames";
-import NumericCell from "../table/cells/NumericCell";
-import DateCell from "../table/cells/DateCell";
-import BooleanCell from "../table/cells/BooleanCell";
-import BarCell from "../table/cells/BarCell";
-import TextCell from "../table/cells/TextCell";
-import EnumCell from "../table/cells/EnumCell";
+import TransactTabs from "../TransactTabs";
 import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
-import FilterSection from "../sidebar/sections/filter/FilterSection";
-import { Clause, deserialiseQuery, FilterClause, FilterInterface } from "../sidebar/sections/filter/filter";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import FilterSection from "../../sidebar/sections/filter/FilterSection";
+import { Clause, deserialiseQuery, FilterClause, FilterInterface } from "../../sidebar/sections/filter/filter";
+import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import {
   selectActiveColumns,
   selectAllColumns,
   selectPaymentsFilters,
   updateColumns,
   updatePaymentsFilters,
-} from "./transactSlice";
-import { FilterCategoryType } from "../sidebar/sections/filter/filter";
-import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
-import clone from "../../clone";
+} from "./paymentsSlice";
+import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
+import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
+import clone from "clone";
 
 type sections = {
   filter: boolean;
