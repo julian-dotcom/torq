@@ -1,12 +1,13 @@
-import { Save20Regular as SaveIcon } from "@fluentui/react-icons";
+import { Save20Regular as SaveIcon, AddSquare20Regular as AddIcon } from "@fluentui/react-icons";
 import Page from "layout/Page";
 import Box from "./Box";
+import Button, { buttonVariants } from "features/buttons/Button";
 import style from "./settings.module.css";
 import Select, { SelectOption } from "../forms/Select";
 import SubmitButton from "../forms/SubmitButton";
 import React from "react";
 import { defaultStaticRangesFn } from "../timeIntervalSelect/customRanges";
-import { useGetSettingsQuery, useUpdateSettingsMutation, useGetTimeZonesQuery } from "apiSlice";
+import { useGetSettingsQuery, useUpdateSettingsMutation, useGetTimeZonesQuery, useGetLocalNodesQuery } from "apiSlice";
 import { settings } from "apiTypes";
 import { toastCategory } from "../toast/Toasts";
 import ToastContext from "../toast/context";
@@ -14,6 +15,7 @@ import NodeSettings from "./NodeSettings";
 
 function Settings() {
   const { data: settingsData } = useGetSettingsQuery();
+  const { data: localNodes } = useGetLocalNodesQuery();
   const { data: timeZones = [] } = useGetTimeZonesQuery();
   const [updateSettings] = useUpdateSettingsMutation();
   const toastRef = React.useContext(ToastContext);
@@ -68,6 +70,10 @@ function Settings() {
     toastRef?.current?.addToast("Settings saved", toastCategory.success);
   };
 
+  const addLocalNode = () => {
+    console.log("Adding additional node");
+  };
+
   return (
     <Page>
       <React.Fragment>
@@ -103,7 +109,10 @@ function Settings() {
                 </SubmitButton>
               </form>
             </Box>
-            <NodeSettings />
+            {localNodes?.map((localNode) => (
+              <NodeSettings localNodeId={localNode.localNodeId} />
+            ))}
+            <Button variant={buttonVariants.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" />
           </div>
         </div>
       </React.Fragment>

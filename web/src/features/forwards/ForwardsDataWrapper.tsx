@@ -1,4 +1,5 @@
-import React, { ReactElement, useMemo } from "react";
+import React, { useMemo } from "react";
+
 import { cloneDeep, orderBy } from "lodash";
 import { useAppSelector } from "store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";

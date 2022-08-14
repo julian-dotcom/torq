@@ -17,7 +17,7 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "../templates/tablePageTemplate/TablePageTemplate";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   updateColumns,
@@ -36,7 +36,7 @@ import FilterSection from "../sidebar/sections/filter/FilterSection";
 import SortSection, { SortByOptionType } from "../sidebar/sections/sort/SortSectionOld";
 import GroupBySection from "../sidebar/sections/group/GroupBySection";
 import ForwardsDataWrapper from "./ForwardsDataWrapper";
-import DefaultButton from "../buttons/Button";
+import Button, { buttonVariants } from "../buttons/Button";
 import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
 import classNames from "classnames";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
@@ -123,7 +123,8 @@ function ForwardsPage() {
       <TableControlsTabsGroup>
         {<ViewsPopover />}
 
-        <DefaultButton
+        <Button
+          variant={buttonVariants.ghost}
           icon={<SaveIcon />}
           text={"Save View"}
           onClick={saveView}

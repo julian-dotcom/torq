@@ -7,8 +7,8 @@ import {
   ArrowSortDownLines16Regular as SortDescIcon,
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
-import DefaultButton from "features/buttons/Button";
 import { ColumnMetaData } from "features/table/Table";
+import Button, { buttonVariants } from "features/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
@@ -37,7 +37,7 @@ type SortRowProps = {
 };
 
 const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort }: SortRowProps) => {
-  const handleColumn = (newValue: any, actionMeta: ActionMeta<unknown>) => {
+  const handleColumn = (newValue: any, _: ActionMeta<unknown>) => {
     handleUpdateSort({ key: newValue.value, direction: selected.direction }, index);
   };
   const updateDirection = (selected: OrderBy) => {
@@ -137,13 +137,14 @@ const SortSection = (props: SortSectionProps) => {
       ...props.orderBy.slice(0, index),
       ...props.orderBy.slice(index + 1, props.orderBy.length),
     ];
+
     props.updateHandler(updated);
   };
 
   const droppableContainerId = "sort-list-droppable";
 
   const onDragEnd = (result: any) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source } = result;
 
     // Dropped outside of container
     if (!destination || destination.droppableId !== droppableContainerId) {
@@ -194,7 +195,13 @@ const SortSection = (props: SortSectionProps) => {
         )}
 
         <div className={styles.buttonsRow}>
-          <DefaultButton className={"small"} onClick={() => handleAddSort()} text={"Add"} icon={<AddIcon />} />
+          <Button
+            variant={buttonVariants.ghost}
+            className={"small"}
+            onClick={() => handleAddSort()}
+            text={"Add"}
+            icon={<AddIcon />}
+          />
         </div>
       </div>
     </DragDropContext>

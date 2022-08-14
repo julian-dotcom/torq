@@ -1,38 +1,19 @@
-import React from "react";
 import styles from "./channel-page.module.scss";
 import * as d3 from "d3";
 import classNames from "classnames";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import ProfitsChart from "./revenueChart/ProfitsChart";
-import Button from "../buttons/Button";
 import Select from "../inputs/Select";
-import { Navigation20Regular as NavigationIcon, Gauge20Regular as DashboardIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
-import { toggleNav } from "../navigation/navSlice";
-import { useGetFlowQuery, useGetChannelHistoryQuery, useGetSettingsQuery } from "apiSlice";
+import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
 import { useParams } from "react-router";
 import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
-import {
-  selectEventChartKey,
-  selectFlowKeys,
-  selectProfitChartKey,
-  updateFlowKey,
-  updateProfitChartKey,
-} from "./channelSlice";
+import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartKey } from "./channelSlice";
 
 const ft = d3.format(",.0f");
-
-const eventNames = new Map([
-  ["fee_rate", "Fee rate"],
-  ["base_fee", "Base fee"],
-  ["min_htlc", "Min htlc"],
-  ["max_htlc", "Max htlc"],
-  ["enabled", "Enabled"],
-  ["disabled", "Disabled"],
-]);
 
 function ChannelPage() {
   const currentPeriod = useAppSelector(selectTimeInterval);
@@ -40,21 +21,6 @@ function ChannelPage() {
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
-  let [selectedEvents, setSelectedEvents] = React.useState(
-    new Map<string, boolean>([
-      ["fee_rate", true],
-      ["base_fee", true],
-      ["min_htlc", true],
-      ["max_htlc", true],
-      ["enabled", true],
-      ["disabled", true],
-    ])
-  );
-  const handleSelectEventUpdate = (type: string) => {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSelectedEvents(new Map(selectedEvents.set(type, e.target.checked)));
-    };
-  };
 
   let { chanId } = useParams();
   const { data, isLoading } = useGetFlowQuery({
@@ -70,18 +36,7 @@ function ChannelPage() {
 
   const flowKey = useAppSelector(selectFlowKeys);
   const profitKey = useAppSelector(selectProfitChartKey);
-  const eventKey = useAppSelector(selectEventChartKey);
 
-  let total_capacity: number = 0;
-  if (historyQuery?.data?.channels) {
-    total_capacity = historyQuery.data.channels
-      .map((d: { capacity: number }) => {
-        return d.capacity;
-      })
-      .reduce((partialSum: number, a: number) => partialSum + a, 0);
-  }
-
-  const selectedEventsCount = Array.from(selectedEvents).filter((d) => d[1]).length;
   const profit: number =
     historyQuery?.data?.revenue_out - historyQuery?.data?.on_chain_cost - historyQuery?.data?.rebalancing_cost / 1000;
 

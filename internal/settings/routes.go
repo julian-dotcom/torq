@@ -1,14 +1,14 @@
 package settings
 
 import (
-	"io"
-	"mime/multipart"
-	"net/http"
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/pkg/server_errors"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"strconv"
+	"time"
 )
 
 type settings struct {
@@ -24,10 +24,12 @@ type timeZone struct {
 func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func()) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
-	r.GET("local-node", func(c *gin.Context) { getLocalNodeHandler(c, db) })
+	r.GET("local-nodes", func(c *gin.Context) { getLocalNodesHandler(c, db) })
+	r.GET("local-node/:nodeId", func(c *gin.Context) { getLocalNodeHandler(c, db) })
 	r.PUT("local-node", func(c *gin.Context) { updateLocalNodeHandler(c, db, restartLNDSub) })
+	r.PUT("local-node/:nodeId/set-enabled", func(c *gin.Context) { updateLocalNodeDisabledHandler(c, db, restartLNDSub) })
 }
-func RegisterUnauthorisedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
+func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
 }
 
@@ -74,10 +76,26 @@ type localNode struct {
 	UpdatedOn         *time.Time            `json:"updatedOn"  db:"updated_on"`
 	TLSDataBytes      []byte                `db:"tls_data"`
 	MacaroonDataBytes []byte                `db:"macaroon_data"`
+	Disabled          bool                  `json:"disabled" db:"disabled"`
+	Deleted           bool                  `json:"deleted" db:"deleted"`
 }
 
 func getLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
-	localNode, err := getLocalNode(db)
+	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	localNode, err := getLocalNode(db, nodeId)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, localNode)
+}
+
+func getLocalNodesHandler(c *gin.Context, db *sqlx.DB) {
+	localNode, err := getLocalNodes(db)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -92,6 +110,8 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	localNode.LocalNodeId = 1
+
 	err := updateLocalNodeDetails(db, localNode)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -142,4 +162,32 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
 	restartLNDSub()
 
 	c.JSON(http.StatusOK, localNode)
+}
+
+type disabledJSON struct {
+	Disabled bool `json:"disabled"`
+}
+
+func updateLocalNodeDisabledHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
+	var disabledJSON disabledJSON
+
+	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	if err := c.Bind(&disabledJSON); err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	err = updateLocalNodeDisabledFlag(db, nodeId, disabledJSON.Disabled)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	restartLNDSub()
+
+	c.Status(http.StatusOK)
 }

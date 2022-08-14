@@ -1,9 +1,11 @@
 package server_errors
 
 import (
-	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
+
+	"github.com/cockroachdb/errors"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 /*
@@ -57,6 +59,11 @@ func SingleFieldError(field string, fieldError string) *ServerError {
 }
 
 func LogAndSendServerError(c *gin.Context, err error) {
-	log.Printf("Error: %+v\n", err)
+	log.Error().Err(err)
+	c.JSON(http.StatusInternalServerError, SingleServerError("Server error"))
+}
+
+func WrapLogAndSendServerError(c *gin.Context, err error, message string) {
+	log.Error().Err(errors.Wrap(err, message))
 	c.JSON(http.StatusInternalServerError, SingleServerError("Server error"))
 }

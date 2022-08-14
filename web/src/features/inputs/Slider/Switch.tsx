@@ -5,9 +5,11 @@ import React, { HTMLInputTypeAttribute, InputHTMLAttributes } from "react";
 export default function Switch({
   label,
   checkboxProps,
+  labelPosition,
 }: {
   label: string;
   checkboxProps?: InputHTMLAttributes<HTMLInputElement>;
+  labelPosition?: "left" | "right";
 }) {
   return (
     <label className={styles.switch}>
@@ -15,7 +17,13 @@ export default function Switch({
         <input {...checkboxProps} type="checkbox" />
         <span className={classNames(styles.slider, styles.round)}></span>
       </span>
-      <div>{label}</div>
+      <div
+        className={classNames({
+          [styles.left]: labelPosition && labelPosition === "left",
+        })}
+      >
+        {label}
+      </div>
     </label>
   );
 }

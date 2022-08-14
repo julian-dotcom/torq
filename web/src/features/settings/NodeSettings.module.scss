@@ -1,0 +1,57 @@
+.header {
+  display: flex;
+  .connectionIcon {
+    width: 28px;
+    height: 28px;
+    background-color: var(--secondary-2-500);
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .collapseIcon {
+    margin-left: auto;
+    transition: 0.3s transform ease-in-out;
+    transform: rotate(0deg);
+    &.collapsed {
+      transform: rotate(90deg);
+    }
+  }
+  .title {
+    margin-left: 10px;
+  }
+  .title,
+  .collapseIcon {
+    margin-top: 4px;
+  }
+}
+.borderSection {
+  margin-top: 15px;
+  border-top: 1px solid var(--primary-150);
+  padding-top: 15px;
+}
+
+.detailHeader {
+  display: flex;
+  justify-content: space-between;
+  .moreIcon {
+    transform: rotate(90deg);
+  }
+}
+.deleteConfirm {
+  p,
+  input {
+    margin: 10px 0;
+  }
+  .deleteConfirmButtons {
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    button {
+      margin-left: 30px;
+    }
+  }
+  .red {
+    color: var(--color-red);
+  }
+}

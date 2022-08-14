@@ -138,8 +138,12 @@ export const torqApi = createApi({
     getTimeZones: builder.query<timeZone[], void>({
       query: () => `settings/timezones`,
     }),
-    getLocalNode: builder.query<localNode, void>({
-      query: () => `settings/local-node`,
+    getLocalNodes: builder.query<localNode[], void>({
+      query: () => `settings/local-nodes`,
+      providesTags: ["localNode"],
+    }),
+    getLocalNode: builder.query<localNode, number>({
+      query: (nodeId) => `settings/local-node/${nodeId}`,
       providesTags: ["localNode"],
     }),
     updateLocalNode: builder.mutation<any, FormData>({
@@ -173,5 +177,6 @@ export const {
   useUpdateSettingsMutation,
   useGetTimeZonesQuery,
   useGetLocalNodeQuery,
+  useGetLocalNodesQuery,
   useUpdateLocalNodeMutation,
 } = torqApi;

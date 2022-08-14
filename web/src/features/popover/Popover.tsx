@@ -1,5 +1,5 @@
 import "./popover.scss";
-import { ReactChild, useEffect, useRef, useState } from "react";
+import React, { ReactChild, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 
 function useOutsideClose(ref: any, setIsPopoverOpen: Function) {
@@ -24,11 +24,17 @@ interface PopoverInterface {
   children?: ReactChild;
 }
 
-const PopoverButton = ({ className, button, children }: PopoverInterface) => {
+const PopoverButton = React.forwardRef(({ className, button, children }: PopoverInterface, ref) => {
   const wrapperRef = useRef(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   useOutsideClose(wrapperRef, setIsPopoverOpen);
+
+  React.useImperativeHandle(ref, () => ({
+    close() {
+      setIsPopoverOpen(false);
+    },
+  }));
 
   return (
     <div
@@ -57,5 +63,5 @@ const PopoverButton = ({ className, button, children }: PopoverInterface) => {
       </div>
     </div>
   );
-};
+});
 export default PopoverButton;

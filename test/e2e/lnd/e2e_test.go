@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 
 	ctx = context.Background()
 
-	cli, err = client.NewEnvClient()
+	cli, err = client.NewClientWithOpts()
 	if err != nil {
 		log.Fatalf("Getting new docker client: %v\n", err)
 	}
@@ -492,6 +492,10 @@ func payInvoice(ctx context.Context, cli *client.Client,
 		}
 		if len(stdout.Bytes()) == 0 {
 			log.Println("Standard out is empty, retrying")
+			return errors.New("Payment not sent")
+		}
+		if strings.Contains(strings.ToLower(stdout.String()), "error") {
+			log.Println("Word error was found in stdout, retrying")
 			return errors.New("Payment not sent")
 		}
 		log.Println("Pay invoice command complete")

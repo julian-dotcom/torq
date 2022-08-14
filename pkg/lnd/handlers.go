@@ -2,12 +2,17 @@ package lnd
 
 import (
 	"encoding/hex"
-	"github.com/gin-gonic/gin"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/cockroachdb/errors"
+	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/server_errors"
+	"github.com/rs/zerolog/log"
 )
 
 type OpenChanRequestBody struct {
@@ -25,60 +30,74 @@ type Response struct {
 	Response string
 }
 
-func OpenChannelHandler(c *gin.Context, client lnrpc.LightningClient) {
-	var requestBody OpenChanRequestBody
-	r := Response{}
-
-	//Get request body
-	if err := c.BindJSON(&requestBody); err != nil {
-		log.Error().Msgf("Error getting request body")
-		r.Response = "Error getting request body"
-		c.JSON(http.StatusInternalServerError, r)
+func OpenChannelHandler(c *gin.Context, db *sqlx.DB) {
+	connectionDetails, err := settings.GetConnectionDetails(db)
+	conn, err := Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Connecting to LND")
+		return
 	}
 
-	//pubkey to hex
+	defer conn.Close()
+
+	client := lnrpc.NewLightningClient(conn)
+	var requestBody OpenChanRequestBody
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		return
+	}
+
 	pubKeyHex, err := hex.DecodeString(requestBody.LndAddress)
 	if err != nil {
-		log.Error().Msgf("Unable to decode node public key: %v", err)
-		r.Response = "Error hexing pubkey"
-		c.JSON(http.StatusInternalServerError, r)
+		server_errors.WrapLogAndSendServerError(c, err, "Decoding public key hex")
+		return
 	}
 
 	resp, err := openChannel(client, pubKeyHex, requestBody.Amount, requestBody.SatPerVbyte)
 	if err != nil {
-		log.Error().Msgf("Error opening channel: %v", err)
-		r.Response = "Error opening channel"
-		c.JSON(http.StatusInternalServerError, r)
+		server_errors.WrapLogAndSendServerError(c, err, "Opening channel")
+		return
 	}
 
 	c.JSON(http.StatusOK, resp)
 
 }
 
-func CloseChannelHandler(c *gin.Context, client lnrpc.LightningClient) {
+func CloseChannelHandler(c *gin.Context, db *sqlx.DB) {
+	connectionDetails, err := settings.GetConnectionDetails(db)
+	conn, err := Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Connecting to LND")
+	}
+
+	defer conn.Close()
+
+	client := lnrpc.NewLightningClient(conn)
 	var requestBody closeChanRequestBody
-	r := Response{}
 
 	if err := c.BindJSON(&requestBody); err != nil {
-		log.Error().Msgf("Error getting request body")
+		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		return
 	}
 
 	splitChanPoint := strings.Split(requestBody.ChannelPoint, ":")
 	if len(splitChanPoint) != 2 {
-		log.Error().Msgf("Wrong chanpoint format")
-		r.Response = "Wrong chanpoint format"
-		c.JSON(http.StatusInternalServerError, r)
+		server_errors.LogAndSendServerError(c, errors.New("Channel point missing a colon"))
 		return
 	}
-	log.Debug().Msgf("split: %v - %v", splitChanPoint[0], splitChanPoint[1])
 
 	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: splitChanPoint[0]}
 
 	oIndxUint, err := strconv.ParseUint(splitChanPoint[1], 10, 1)
 	if err != nil {
-		log.Error().Msgf("Error parsing output index to uint: %v", err)
-		r.Response = "Error parsing output index to uint"
-		c.JSON(http.StatusInternalServerError, r)
+		server_errors.WrapLogAndSendServerError(c, err, "Parsing channel point output index")
 		return
 	}
 	outputIndex := uint32(oIndxUint)
@@ -86,11 +105,9 @@ func CloseChannelHandler(c *gin.Context, client lnrpc.LightningClient) {
 	log.Debug().Msgf("Funding: %v, index: %v", fundingTxid, outputIndex)
 
 	resp, err := closeChannel(client, fundingTxid, outputIndex, requestBody.SatPerVbyte)
-
 	if err != nil {
-		log.Error().Msgf("Error closing channel: %v", err)
-		r.Response = "Error closing channel"
-		c.JSON(http.StatusInternalServerError, r)
+		server_errors.WrapLogAndSendServerError(c, err, "Closing channel")
+		return
 	}
 
 	c.JSON(http.StatusOK, resp)
