@@ -5,9 +5,11 @@ import AliasCell from "./cells/AliasCell";
 import NumericCell from "./cells/NumericCell";
 import BarCell from "./cells/BarCell";
 import TextCell from "./cells/TextCell";
+import DurationCell from "./cells/DurationCell";
 import BooleanCell from "./cells/BooleanCell";
 import classNames from "classnames";
 import DateCell from "./cells/DateCell";
+import EnumCell from "./cells/EnumCell";
 
 export interface ColumnMetaData {
   heading: string;
@@ -70,6 +72,12 @@ function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, col
       return (
         <TextCell current={row[key] as string} className={classNames(column.key, index)} key={column.key + index} />
       );
+    case "DurationCell":
+      return (
+        <DurationCell seconds={row[key] as number} className={classNames(column.key, index)} key={column.key + index} />
+      );
+    case "EnumCell":
+      return <EnumCell value={row[key] as string} className={key} key={key + index + columnIndex} />;
     default:
       return <NumericCell current={row[key] as number} className={key} key={key + index + columnIndex} />;
   }
@@ -113,6 +121,14 @@ function defaultTotalsRowRenderer(column: ColumnMetaData, index: number) {
         />
       );
     case "TextCell":
+      return (
+        <TextCell
+          current={" "}
+          className={classNames(column.key, index, styles.textCell, cellStyles.totalCell, cellStyles.firstTotalCell)}
+          key={column.key + index}
+        />
+      );
+    case "DurationCell":
       return (
         <TextCell
           current={" "}

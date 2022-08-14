@@ -39,8 +39,6 @@ import {
 import { FilterCategoryType } from "../sidebar/sections/filter/filter";
 import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
 import clone from "../../clone";
-import { formatDuration, intervalToDuration } from "date-fns";
-import { format } from "d3";
 
 type sections = {
   filter: boolean;
@@ -65,56 +63,6 @@ const failureReasons: any = {
   FAILURE_REASON_INCORRECT_PAYMENT_REQUEST: "Incorrect Payment Request",
   FAILURE_REASON_UNKNOWN: "Unknown",
 };
-
-const subSecFormat = format("0.2f");
-
-function rowRenderer(row: any, index: number, column: ColumnMetaData, columnIndex: number) {
-  const key = column.key;
-  switch (column.type) {
-    case "AliasCell":
-      return (
-        <AliasCell
-          current={row[key] as string}
-          chanId={row["chan_id"]}
-          open={row["open"]}
-          className={classNames(key, index, cellStyles.locked)}
-          key={key + index + columnIndex}
-        />
-      );
-    case "NumericCell":
-      return <NumericCell current={row[key] as number} className={key} key={key + index + columnIndex} />;
-    case "EnumCell":
-      return <EnumCell value={row[key] as string} icon={ColumnsIcon} className={key} key={key + index + columnIndex} />;
-    case "DateCell":
-      return <DateCell value={row[key] as string} className={key} key={key + index + columnIndex} />;
-    case "BooleanCell":
-      return (
-        <BooleanCell
-          falseTitle={"Failure"}
-          trueTitle={"Success"}
-          value={row[key] as boolean}
-          className={classNames(key)}
-          key={key + index + columnIndex}
-        />
-      );
-    case "BarCell":
-      return (
-        <BarCell
-          current={row[key] as number}
-          previous={row[key] as number}
-          total={column.max as number}
-          className={key}
-          key={key + index + columnIndex}
-        />
-      );
-    case "TextCell":
-      return (
-        <TextCell current={row[key] as string} className={classNames(column.key, index)} key={column.key + index} />
-      );
-    default:
-      return <NumericCell current={row[key] as number} className={key} key={key + index + columnIndex} />;
-  }
-}
 
 function PaymentsPage() {
   const [limit, setLimit] = useLocalStorage("paymentsLimit", 100);
@@ -147,25 +95,11 @@ function PaymentsPage() {
     data = paymentsResponse?.data?.data.map((payment: any) => {
       const failure_reason = failureReasons[payment.failure_reason];
       const status = statusTypes[payment.status];
-      let pif = "Unknown";
-      if (payment.seconds_in_flight >= 1) {
-        const d = intervalToDuration({ start: 0, end: payment.seconds_in_flight * 1000 });
-        pif = formatDuration({
-          years: d.years,
-          months: d.months,
-          days: d.days,
-          hours: d.hours,
-          minutes: d.minutes,
-          seconds: d.seconds,
-        });
-      } else if (payment.seconds_in_flight < 1 && payment.seconds_in_flight > 0) {
-        pif = `${subSecFormat(payment.seconds_in_flight)} seconds`;
-      }
+
       return {
         ...payment,
         failure_reason,
         status,
-        seconds_in_flight: pif,
       };
     });
   }
@@ -354,7 +288,6 @@ function PaymentsPage() {
       pagination={pagination}
     >
       <Table
-        rowRenderer={rowRenderer}
         data={data}
         activeColumns={columns || []}
         isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}

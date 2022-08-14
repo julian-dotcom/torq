@@ -200,6 +200,9 @@ function FilterRow({
       case "number":
         return formatParameter(rowValues.parameter as number);
         break;
+      case "duration":
+        return formatParameter(rowValues.parameter as number);
+        break;
       case "boolean":
         return !rowValues.parameter ? "False" : "True";
         break;

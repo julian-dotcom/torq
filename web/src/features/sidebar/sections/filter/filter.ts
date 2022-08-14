@@ -3,13 +3,24 @@ import { SelectOption } from "features/forms/Select";
 
 // TODO: Create Documentation with examples
 
-export type FilterCategoryType = "number" | "string" | "date" | "boolean" | "array";
+export type FilterCategoryType = "number" | "string" | "date" | "boolean" | "array" | "duration";
 export type FilterParameterType = number | string | Date | boolean | Array<any>;
 
 // available filter types that can be picked in the UI and a filter function implementation to achieve that
 export const FilterFunctions = new Map<string, Map<string, Function>>([
   [
     "number",
+    new Map<string, Function>([
+      ["eq", (input: any, key: string, parameter: number) => input[key] === parameter],
+      ["neq", (input: any, key: string, parameter: number) => input[key] !== parameter],
+      ["gt", (input: any, key: string, parameter: number) => input[key] > parameter],
+      ["gte", (input: any, key: string, parameter: number) => input[key] >= parameter],
+      ["lt", (input: any, key: string, parameter: number) => input[key] < parameter],
+      ["lte", (input: any, key: string, parameter: number) => input[key] <= parameter],
+    ]),
+  ],
+  [
+    "duration",
     new Map<string, Function>([
       ["eq", (input: any, key: string, parameter: number) => input[key] === parameter],
       ["neq", (input: any, key: string, parameter: number) => input[key] !== parameter],

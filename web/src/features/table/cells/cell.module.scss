@@ -162,6 +162,10 @@
 .cell.TextCell {
   justify-items: start;
 }
+.header.DurationCell,
+.cell.DurationCell {
+  justify-items: start;
+}
 .cell:global(.alias),
 .header:global(.alias) {
   .text {

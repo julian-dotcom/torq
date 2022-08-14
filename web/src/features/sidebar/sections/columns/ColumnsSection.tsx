@@ -23,6 +23,15 @@ interface columnRow {
 
 const CellOptions: SelectOptionType[] = [
   { label: "Number", value: "NumericCell" },
+  { label: "Boolean", value: "BooleanCell" },
+  { label: "Array", value: "EnumCell" },
+  { label: "Bar", value: "BarCell" },
+  { label: "Text", value: "TextCell" },
+  { label: "Duration", value: "TextCell" },
+];
+
+const NumericCellOptions: SelectOptionType[] = [
+  { label: "Number", value: "NumericCell" },
   { label: "Bar", value: "BarCell" },
   { label: "Text", value: "TextCell" },
 ];
@@ -86,8 +95,8 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
           </div>
           <div className={styles.rowOptionsContainer}>
             <Select
-              isDisabled={column.valueType === "string"}
-              options={CellOptions}
+              isDisabled={["date", "array", "string", "boolean", "enum"].includes(column.valueType)}
+              options={NumericCellOptions}
               value={selectedOption}
               onChange={(newValue) => {
                 handleUpdateColumn(
