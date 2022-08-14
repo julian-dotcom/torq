@@ -16,7 +16,7 @@ import ChannelPage from "./features/channel/ChannelPage";
 import DashboardPage from "./features/channel/DashboardPage";
 import PaymentsPage from "./features/transact/Payments/PaymentsPage";
 import InvoicesPage from "./features/transact/Invoices/InvoicesPage";
-import OnChainPage from "./features/transact/OnChainPage";
+import OnChainPage from "./features/transact/OnChain/OnChainPage";
 import AllTxPage from "./features/transact/AllTxPage";
 import NoMatch from "./features/no_match/NoMatch";
 

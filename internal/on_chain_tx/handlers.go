@@ -22,8 +22,8 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 			"date",
 			"dest_addresses",
 			"dest_addresses_count",
-			"amount_msat",
-			"total_fees_msat",
+			"amount",
+			"total_fees",
 			"label",
 			"lnd_tx_type_label",
 			"lnd_short_chan_id",
@@ -42,9 +42,13 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 			sortParam,
 			[]string{
 				"date",
+				"dest_addresses",
 				"dest_addresses_count",
-				"amount_msat",
-				"total_fees_msat",
+				"amount",
+				"total_fees",
+				"label",
+				"lnd_tx_type_label",
+				"lnd_short_chan_id",
 			})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})

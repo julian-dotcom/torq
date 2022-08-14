@@ -13,8 +13,8 @@ type Transaction struct {
 	TxHash             string         `json:"tx_hash" db:"tx_hash"`
 	DestAddresses      pq.StringArray `json:"dest_addresses" db:"dest_addresses"`
 	DestAddressesCount string         `json:"dest_addresses_count" db:"dest_addresses_count"`
-	AmountMsat         int64          `json:"amount_msat" db:"amount_msat"`
-	TotalFeesMsat      int64          `json:"total_fees_msat" db:"total_fees_msat"`
+	AmountMsat         int64          `json:"amount" db:"amount"`
+	TotalFeesMsat      int64          `json:"total_fees" db:"total_fees"`
 	Label              *string        `json:"label" db:"label"`
 	LndTxTypeLabel     *string        `json:"lnd_tx_type_label" db:"lnd_tx_type_label"`
 	LndShortChannelId  *string        `json:"lnd_short_chan_id" db:"lnd_short_chan_id"`
@@ -38,8 +38,8 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 			   --raw_tx_hex,
 			   dest_addresses,
 			   array_length(dest_addresses, 1) as dest_addresses_count,
-			   amount * 1000 as amount_msat,
-			   total_fees * 1000 as total_fees_msat,
+			   amount,
+			   total_fees,
 			   label,
 			   (regexp_matches(label, '\d{1,}:(openchannel|closechannel|sweep)|$'))[1] as lnd_tx_type_label,
        		   (regexp_matches(label, '\d{1,}:(openchannel|closechannel):shortchanid-(\d{18,18})|$') )[2] as lnd_short_chan_id
@@ -99,8 +99,8 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 			   --raw_tx_hex,
 			   dest_addresses,
 			   array_length(dest_addresses, 1) as dest_addresses_count,
-			   amount * 1000 as amount_msat,
-			   total_fees * 1000 as total_fees_msat,
+			   amount,
+			   total_fees,
 			   label,
 			   (regexp_matches(label, '\d{1,}:(openchannel|closechannel|sweep)|$'))[1] as lnd_tx_type_label,
        		   (regexp_matches(label, '\d{1,}:(openchannel|closechannel):shortchanid-(\d{18,18})|$') )[2] as lnd_short_chan_id

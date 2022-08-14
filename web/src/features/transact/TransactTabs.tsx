@@ -5,7 +5,7 @@ import { TableControlsTabsGroup } from "features/templates/tablePageTemplate/Tab
 function TransactTabs() {
   return (
     <TableControlsTabsGroup>
-      <TabButton to={"/transactions/all"} title={"All"} />
+      {/*<TabButton to={"/transactions/all"} title={"All"} />*/}
       <TabButton to={"/transactions/payments"} title={"Payments"} />
       <TabButton to={"/transactions/invoices"} title={"Invoices"} />
       <TabButton to={"/transactions/onchain"} title={"On-Chain"} />

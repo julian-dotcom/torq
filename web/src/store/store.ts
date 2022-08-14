@@ -7,6 +7,7 @@ import { torqApi } from "apiSlice";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import paymentsReducer from "features/transact/Payments/paymentsSlice";
 import invoicesReducer from "features/transact/Invoices/invoicesSlice";
+import onChainReducer from "features/transact/OnChain/onChainSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     table: tableReducer,
     payments: paymentsReducer,
     invoices: invoicesReducer,
+    onChain: onChainReducer,
     timeInterval: timeIntervalReducer,
     channel: channelReducer,
     [torqApi.reducerPath]: torqApi.reducer,
