@@ -1146,6 +1146,25 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	page.Click("text=Save node details")
 
-	page.Click("text=Channels")
+	page.WaitForTimeout(5000)
+
+	page.Keyboard().Press("PageUp")
+	page.WaitForTimeout(100)
+
+	page.Click("text=Summary")
+
+	page.WaitForTimeout(1000)
+
+	page.Click("text=Forwards")
+
+	page.WaitForTimeout(1000)
+
+	page.Click("text=Default View")
+
+	page.WaitForTimeout(1000)
+
+	page.Click("text=Transactions")
+
+	page.WaitForTimeout(1000)
 
 }

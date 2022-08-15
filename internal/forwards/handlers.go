@@ -1,4 +1,4 @@
-package channels
+package forwards
 
 import (
 	"github.com/cockroachdb/errors"
@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func getChannelsTableHandler(c *gin.Context, db *sqlx.DB) {
+func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 	from, err := time.Parse("2006-01-02", c.Query("from"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -21,7 +21,7 @@ func getChannelsTableHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	r, err := getChannelsTableData(db, from, to)
+	r, err := getForwardsTableData(db, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -29,7 +29,7 @@ func getChannelsTableHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-type channelTableRow struct {
+type forwardsTableRow struct {
 	// Alias of remote peer
 	Alias null.String `json:"alias"`
 	// Database primary key of channel
@@ -78,7 +78,7 @@ type channelTableRow struct {
 	TurnoverTotal float32 `json:"turnover_total"`
 }
 
-func getChannelsTableData(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*channelTableRow, err error) {
+func getForwardsTableData(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*forwardsTableRow, err error) {
 	var sql = `
 select
     coalesce(ne.alias, ce.pub_key, '') as alias,
@@ -165,7 +165,7 @@ left join (
 	}
 
 	for rows.Next() {
-		c := &channelTableRow{}
+		c := &forwardsTableRow{}
 		err = rows.Scan(
 			&c.Alias,
 			&c.ChannelDBID,

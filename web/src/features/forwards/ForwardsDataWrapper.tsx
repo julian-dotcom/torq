@@ -4,7 +4,7 @@ import { cloneDeep, orderBy } from "lodash";
 import { useAppSelector } from "store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
-import { useGetChannelsQuery } from "../../apiSlice";
+import { useGetForwardsQuery } from "../../apiSlice";
 import { selectFilters, selectGroupBy, selectSortBy } from "./forwardsSlice";
 import { applyFilters, Clause, deserialiseQuery } from "../sidebar/sections/filter/filter";
 import { groupByFn } from "../sidebar/sections/group/groupBy";
@@ -20,7 +20,7 @@ function ForwardsDataWrapper(props: boxProps) {
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
 
-  const chanResponse = useGetChannelsQuery({ from: from, to: to });
+  const chanResponse = useGetForwardsQuery({ from: from, to: to });
 
   // const columns = useAppSelector(selectAllColumns);
   const sortBy = useAppSelector(selectSortBy);

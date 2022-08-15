@@ -3,7 +3,6 @@ package invoices
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"time"
@@ -75,8 +74,6 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 	if err != nil {
 		return nil, 0, err
 	}
-
-	fmt.Println(qs, args)
 
 	rows, err := db.Queryx(qs, args...)
 	if err != nil {
