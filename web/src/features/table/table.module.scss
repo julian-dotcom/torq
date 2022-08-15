@@ -3,7 +3,7 @@
   display: grid;
   grid-auto-flow: row;
   grid-column-gap: 0px;
-  overflow: scroll;
+  overflow: auto;
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
   border-radius: 3px;
