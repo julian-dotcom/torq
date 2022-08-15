@@ -7,7 +7,7 @@ import {
   ArrowSortDownLines16Regular as SortDescIcon,
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
-import DefaultButton from "features/buttons/Button";
+import Button, { buttonVariants } from "features/buttons/Button";
 import { ColumnMetaData } from "features/table/Table";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
@@ -205,7 +205,13 @@ const SortSectionOld = (props: SortSectionProps) => {
         )}
 
         <div className={styles.buttonsRow}>
-          <DefaultButton className={"small"} onClick={() => handleAddSort()} text={"Add"} icon={<AddIcon />} />
+          <Button
+            variant={buttonVariants.ghost}
+            className={"small"}
+            onClick={() => handleAddSort()}
+            text={"Add"}
+            icon={<AddIcon />}
+          />
         </div>
       </div>
     </DragDropContext>

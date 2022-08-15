@@ -19,9 +19,9 @@ func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 	var err error
 	if filterParam != "" {
 		filter, err = qp.ParseFilterParam(filterParam, []string{
+			"add_index",
 			"creation_date",
 			"settle_date",
-			"add_index",
 			"settle_index",
 			"payment_request",
 			"destination_pub_key",
@@ -62,6 +62,7 @@ func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 				"value",
 				"amt_paid",
 				"invoice_state",
+				"is_rebalance",
 				"is_keysend",
 				"is_amp",
 				"updated_on",

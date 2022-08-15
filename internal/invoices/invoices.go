@@ -12,7 +12,7 @@ import (
 type Invoice struct {
 	CreationDate      *time.Time `json:"creation_date" db:"creation_date"`
 	SettleDate        *time.Time `json:"settle_date" db:"settle_date"`
-	AddIndex          *uint64    `json:"add_index" db:"add_index"`
+	AddIndex          uint64     `json:"add_index" db:"add_index"`
 	SettleIndex       *uint64    `json:"settle_index" db:"settle_index"`
 	PaymentRequest    *string    `json:"payment_request" db:"payment_request"`
 	DestinationPubKey *string    `json:"destination_pub_key" db:"destination_pub_key"`
@@ -37,28 +37,28 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 	total uint64, err error) {
 
 	qb := sq.Select("*").FromSelect(sq.Select(`
+				distinct add_index,
 				creation_date,
 				settle_date,
-				add_index,
 				settle_index,
-				payment_request,
-				destination_pub_key,
+				invoice.payment_request,
+				invoice.destination_pub_key,
 				r_hash,
 				r_preimage,
 				memo,
-				(value_msat/1000) as value,
-				(amt_paid_msat/1000) as amt_paid,
+				(invoice.value_msat/1000) as value,
+				(invoice.amt_paid_msat/1000) as amt_paid,
 				invoice_state,
-				destination_pub_key = ANY(ARRAY[(table pub_keys)]) as is_rebalance,
+    			coalesce(invoice.r_hash = p.payment_hash, false) as is_rebalance,
 				is_keysend,
 				is_amp,
 				payment_addr,
 				fallback_addr,
-				updated_on,
+				invoice.updated_on,
 				expiry,
 				cltv_expiry,
 				private
-			`).From("invoice"), "subq").
+			`).From("invoice").LeftJoin("payment p on (invoice.r_hash = p.payment_hash)"), "subq").
 		PlaceholderFormat(sq.Dollar).
 		Where(filter).
 		OrderBy(order...).
@@ -86,9 +86,9 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 	for rows.Next() {
 		var i Invoice
 		err = rows.Scan(
+			&i.AddIndex,
 			&i.CreationDate,
 			&i.SettleDate,
-			&i.AddIndex,
 			&i.SettleIndex,
 			&i.PaymentRequest,
 			&i.DestinationPubKey,
@@ -121,29 +121,28 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 		PlaceholderFormat(sq.Dollar).
 		FromSelect(
 			sq.Select(`
+				distinct add_index,
 				creation_date,
 				settle_date,
-				add_index,
 				settle_index,
-				payment_request,
-				destination_pub_key,
+				invoice.payment_request,
+				invoice.destination_pub_key,
 				r_hash,
 				r_preimage,
 				memo,
-				(value_msat/1000) as value,
-				(amt_paid_msat/1000) as amt_paid,
+				(invoice.value_msat/1000) as value,
+				(invoice.amt_paid_msat/1000) as amt_paid,
 				invoice_state,
-				destination_pub_key = ANY(ARRAY[(table pub_keys)]) as is_rebalance,
+    			coalesce(invoice.r_hash = p.payment_hash, false) as is_rebalance,
 				is_keysend,
 				is_amp,
 				payment_addr,
 				fallback_addr,
-				updated_on,
+				invoice.updated_on,
 				expiry,
 				cltv_expiry,
 				private
-			`).From("invoice"),
-			"subquery").
+			`).From("invoice").LeftJoin("payment p on (invoice.r_hash = p.payment_hash)"), "subquery").
 		Where(filter).
 		Prefix(`WITH
 			tz AS (select preferred_timezone as tz from settings),
@@ -216,23 +215,24 @@ func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) 
 
 	//language=PostgreSQL
 	qb := sq.Select(`
+			distinct add_index,
 			creation_date,
 			settle_date,
-			add_index,
 			settle_index,
-			payment_request,
-			destination_pub_key,
+			invoice.payment_request,
+			invoice.destination_pub_key,
 			r_hash,
 			r_preimage,
 			memo,
-			(value_msat/1000) as value,
-			(amt_paid_msat/1000) as amt_paid,
+			(invoice.value_msat/1000) as value,
+			(invoice.amt_paid_msat/1000) as amt_paid,
 			invoice_state,
+			coalesce(invoice.r_hash = p.payment_hash, false) as is_rebalance,
 			is_keysend,
 			is_amp,
 			payment_addr,
 			fallback_addr,
-			updated_on,
+			invoice.updated_on,
 			expiry,
 			cltv_expiry,
 			private,
@@ -243,6 +243,7 @@ func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) 
 			`).
 		PlaceholderFormat(sq.Dollar).
 		From("invoice").
+		LeftJoin("payment p on (invoice.r_hash = p.payment_hash)").
 		Where(
 			sq.Or{
 				sq.Eq{"r_hash": identifier},
@@ -261,9 +262,9 @@ func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) 
 	var rh []byte
 
 	err = db.QueryRowx(qs, args...).Scan(
+		&i.AddIndex,
 		&i.CreationDate,
 		&i.SettleDate,
-		&i.AddIndex,
 		&i.SettleIndex,
 		&i.PaymentRequest,
 		&i.DestinationPubKey,
