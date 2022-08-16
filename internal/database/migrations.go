@@ -3,6 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -12,8 +16,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/database/migrations"
 	"github.com/lncapital/torq/internal/channels"
-	"log"
-	"net/http"
 )
 
 // newMigrationInstance fetches sql files and creates a new migration instance.
@@ -56,6 +58,7 @@ func MigrateUp(db *sqlx.DB) error {
 		}
 		return nil
 	}
+
 	// three migrations for converting between c-lightning and lnd short channel id formats
 	if version < 37 {
 		err = m.Migrate(37)
@@ -90,6 +93,7 @@ func convertShortChannelIds(db *sqlx.DB) error {
 
 	// channel table
 	{
+		log.Println("Converting channel table")
 		rows, err := db.Query("SELECT short_channel_id FROM channel;")
 		if err != nil {
 			return errors.Wrap(err, "Selecting short_channel_id from channel")
@@ -118,20 +122,22 @@ func convertShortChannelIds(db *sqlx.DB) error {
 
 	// channel_event table
 	{
-		rows, err := db.Query("SELECT lnd_short_channel_id FROM channel_event;")
+		log.Println("Converting channel_event table")
+		rows, err := db.Query("SELECT time, lnd_short_channel_id FROM channel_event;")
 		if err != nil {
-			return errors.Wrap(err, "Selecting lnd_short_channel_id from channel_event")
+			return errors.Wrap(err, "Selecting time, lnd_short_channel_id from channel_event")
 		}
 
 		for rows.Next() {
 			var lndShortChannelId uint64
-			err = rows.Scan(&lndShortChannelId)
+			var time time.Time
+			err = rows.Scan(&time, &lndShortChannelId)
 			if err != nil {
-				return errors.Wrap(err, "Scanning lnd short channel id from channel_event table")
+				return errors.Wrap(err, "Scanning time and lnd short channel id from channel_event table")
 			}
 			shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
-			updateStatement := "UPDATE channel_event SET short_channel_id = $1 WHERE lnd_short_channel_id = $2"
-			if _, err := db.Exec(updateStatement, shortChannelId, lndShortChannelId); err != nil {
+			updateStatement := "UPDATE channel_event SET short_channel_id = $1 WHERE lnd_short_channel_id = $2 AND time = $3"
+			if _, err := db.Exec(updateStatement, shortChannelId, lndShortChannelId, time); err != nil {
 				return errors.Wrap(err, "Updating short_channel_id on channel_event table")
 			}
 		}
@@ -143,23 +149,26 @@ func convertShortChannelIds(db *sqlx.DB) error {
 
 	// forward table
 	{
-		rows, err := db.Query("SELECT lnd_outgoing_short_channel_id, lnd_incoming_short_channel_id FROM forward;")
+		log.Println("Converting forward table")
+		rows, err := db.Query("SELECT time, lnd_outgoing_short_channel_id, lnd_incoming_short_channel_id FROM forward;")
 		if err != nil {
-			return errors.Wrap(err, "Selecting lnd_outgoing_short_channel_id and lnd_incoming_short_channel_id from forward")
+			return errors.Wrap(err, "Selecting time, lnd_outgoing_short_channel_id and lnd_incoming_short_channel_id from forward")
 		}
 
 		for rows.Next() {
 			var lndOutgoingShortChannelId uint64
 			var lndIncomingShortChannelId uint64
-			err = rows.Scan(&lndOutgoingShortChannelId, &lndIncomingShortChannelId)
+			var time time.Time
+			err = rows.Scan(&time, &lndOutgoingShortChannelId, &lndIncomingShortChannelId)
 			if err != nil {
-				return errors.Wrap(err, "Scanning lnd_outgoing_short_channel_id and lnd_incoming_short_channel_id from forward table")
+				return errors.Wrap(err, "Scanning time, lnd_outgoing_short_channel_id and lnd_incoming_short_channel_id from forward table")
 			}
 			outgoingShortChannelId := channels.ConvertLNDShortChannelID(lndOutgoingShortChannelId)
 			incomingShortChannelId := channels.ConvertLNDShortChannelID(lndIncomingShortChannelId)
 			updateStatement := `UPDATE forward SET outgoing_short_channel_id = $1, incoming_short_channel_id = $2
-WHERE lnd_outgoing_short_channel_id = $3 AND lnd_incoming_short_channel_id = $4`
-			if _, err := db.Exec(updateStatement, outgoingShortChannelId, incomingShortChannelId, lndOutgoingShortChannelId, lndIncomingShortChannelId); err != nil {
+WHERE lnd_outgoing_short_channel_id = $3 AND lnd_incoming_short_channel_id = $4 AND time = $5`
+			if _, err := db.Exec(updateStatement, outgoingShortChannelId, incomingShortChannelId,
+				lndOutgoingShortChannelId, lndIncomingShortChannelId, time); err != nil {
 				return errors.Wrap(err, "Updating outgoing_short_channel_id and incoming_short_channel_id on forward table")
 			}
 		}
@@ -171,23 +180,28 @@ WHERE lnd_outgoing_short_channel_id = $3 AND lnd_incoming_short_channel_id = $4`
 
 	// htlc_event table
 	{
-		rows, err := db.Query("SELECT lnd_outgoing_short_channel_id, lnd_incoming_short_channel_id FROM htlc_event;")
+
+		log.Println("Converting htlc_event table")
+		rows, err := db.Query("SELECT time, lnd_outgoing_short_channel_id, lnd_incoming_short_channel_id FROM htlc_event;")
 		if err != nil {
-			return errors.Wrap(err, "Selecting lnd_outgoing_short_channel_id and lnd_incoming_short_channel_id from htlc_event")
+			return errors.Wrap(err, "Selecting time, lnd_outgoing_short_channel_id and lnd_incoming_short_channel_id from htlc_event")
 		}
 
 		for rows.Next() {
 			var lndOutgoingShortChannelId uint64
 			var lndIncomingShortChannelId uint64
-			err = rows.Scan(&lndOutgoingShortChannelId, &lndIncomingShortChannelId)
+			var time time.Time
+
+			err = rows.Scan(&time, &lndOutgoingShortChannelId, &lndIncomingShortChannelId)
 			if err != nil {
 				return errors.Wrap(err, "Scanning lnd_outgoing_short_channel_id and lnd_incoming_short_channel_id from htlc_event table")
 			}
 			outgoingShortChannelId := channels.ConvertLNDShortChannelID(lndOutgoingShortChannelId)
 			incomingShortChannelId := channels.ConvertLNDShortChannelID(lndIncomingShortChannelId)
 			updateStatement := `UPDATE htlc_event SET outgoing_short_channel_id = $1, incoming_short_channel_id = $2
-WHERE lnd_outgoing_short_channel_id = $3 AND lnd_incoming_short_channel_id = $4`
-			if _, err := db.Exec(updateStatement, outgoingShortChannelId, incomingShortChannelId, lndOutgoingShortChannelId, lndIncomingShortChannelId); err != nil {
+WHERE lnd_outgoing_short_channel_id = $3 AND lnd_incoming_short_channel_id = $4 and time = $5`
+			if _, err := db.Exec(updateStatement, outgoingShortChannelId, incomingShortChannelId,
+				lndOutgoingShortChannelId, lndIncomingShortChannelId, time); err != nil {
 				return errors.Wrap(err, "Updating outgoing_short_channel_id and incoming_short_channel_id on htlc_event table")
 			}
 		}
@@ -199,6 +213,7 @@ WHERE lnd_outgoing_short_channel_id = $3 AND lnd_incoming_short_channel_id = $4`
 
 	// routing_policy table
 	{
+		log.Println("Converting routing_policy table")
 		rows, err := db.Query("SELECT lnd_short_channel_id FROM routing_policy;")
 		if err != nil {
 			return errors.Wrap(err, "Selecting lnd_short_channel_id from routing_policy")
