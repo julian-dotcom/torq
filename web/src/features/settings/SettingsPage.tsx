@@ -12,6 +12,7 @@ import { settings } from "apiTypes";
 import { toastCategory } from "../toast/Toasts";
 import ToastContext from "../toast/context";
 import NodeSettings from "./NodeSettings";
+import { localNode } from "apiTypes";
 
 function Settings() {
   const { data: settingsData } = useGetSettingsQuery();
@@ -21,12 +22,19 @@ function Settings() {
   const toastRef = React.useContext(ToastContext);
 
   const [settingsState, setSettingsState] = React.useState({} as settings);
+  const [localNodesState, setLocalNodesState] = React.useState([] as localNode[]);
 
   React.useEffect(() => {
     if (settingsData) {
       setSettingsState(settingsData);
     }
   }, [settingsData]);
+
+  React.useEffect(() => {
+    if (localNodes) {
+      setLocalNodesState(localNodes);
+    }
+  }, [localNodes]);
 
   const defaultDateRangeLabels: {
     label: string;
@@ -71,7 +79,9 @@ function Settings() {
   };
 
   const addLocalNode = () => {
-    console.log("Adding additional node");
+    if (!localNodesState.some((item) => item.localNodeId === undefined)) {
+      setLocalNodesState([...localNodesState, {} as localNode]);
+    }
   };
 
   return (
@@ -109,9 +119,15 @@ function Settings() {
                 </SubmitButton>
               </form>
             </Box>
-            {localNodes?.map((localNode) => (
-              <NodeSettings localNodeId={localNode.localNodeId} />
-            ))}
+            <span>Node Settings</span>
+            {localNodesState &&
+              localNodesState?.map((localNode) => (
+                <NodeSettings
+                  localNodeId={localNode.localNodeId}
+                  key={localNode.localNodeId ?? 0}
+                  collapsed={!!localNode.localNodeId}
+                />
+              ))}
             <Button variant={buttonVariants.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" />
           </div>
         </div>
