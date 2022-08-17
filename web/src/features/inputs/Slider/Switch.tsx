@@ -4,17 +4,24 @@ import React, { HTMLInputTypeAttribute, InputHTMLAttributes } from "react";
 
 export default function Switch({
   label,
-  checkboxProps,
+  checked,
+  onChange,
   labelPosition,
 }: {
   label: string;
-  checkboxProps?: InputHTMLAttributes<HTMLInputElement>;
+  checked?: boolean;
+  onChange?: (checked: boolean) => void;
   labelPosition?: "left" | "right";
 }) {
+  const handleChange = (value: React.ChangeEvent<HTMLInputElement>) => {
+    if (onChange) {
+      onChange(value.target.checked);
+    }
+  };
   return (
     <label className={styles.switch}>
       <span className={styles.innerSwitch}>
-        <input {...checkboxProps} type="checkbox" />
+        <input checked={checked} onChange={handleChange} type="checkbox" />
         <span className={classNames(styles.slider, styles.round)}></span>
       </span>
       <div
