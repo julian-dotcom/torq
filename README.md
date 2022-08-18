@@ -57,5 +57,7 @@ We would also love to hear your ideas for features or any other feedback you mig
 
 ![Torq - Flow](./Torq-Flow.png)
 
+![Torq - Balance over time](./balance-graph.png)
+
 ![Torq - Payments](./payments.png)
 

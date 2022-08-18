@@ -42,15 +42,6 @@ type SidebarSectionProps = {
 };
 
 export function SidebarSection(props: SidebarSectionProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [styleState, setStyleState] = useState({});
-
-  useLayoutEffect(() => {
-    if (ref.current) {
-      setStyleState({ height: props.expanded ? ref.current.scrollHeight + "px" : "0" });
-    }
-  }, [props]);
-
   return (
     <div className={styles.sectionContainer}>
       <div className={styles.sectionTitleContainer} onClick={props.handleToggle}>
@@ -60,7 +51,7 @@ export function SidebarSection(props: SidebarSectionProps) {
         <div className={styles.sidebarTitle}>{props.title}</div>
         <div className={styles.sidebarIcon}>{props.expanded ? <ExpandedIcon /> : <CollapsedIcon />}</div>
       </div>
-      <div className={styles.sidebarSectionContent} ref={ref} style={styleState}>
+      <div className={classNames(styles.sidebarSectionContent, { [styles.expanded]: props.expanded })}>
         {props.children}
       </div>
     </div>
