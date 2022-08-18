@@ -148,9 +148,9 @@ func main() {
 								goto Credentials
 							}
 							conn, err := lnd_connect.Connect(
-								connectionDetails.GRPCAddress,
-								connectionDetails.TLSFileBytes,
-								connectionDetails.MacaroonFileBytes)
+								connectionDetails[0].GRPCAddress,
+								connectionDetails[0].TLSFileBytes,
+								connectionDetails[0].MacaroonFileBytes)
 							if err != nil {
 								log.Printf("Failed to connect to lnd: %v\n", err)
 								stoppedchan <- struct{}{}
@@ -225,9 +225,9 @@ func main() {
 			}
 
 			conn, err := lnd_connect.Connect(
-				connectionDetails.GRPCAddress,
-				connectionDetails.TLSFileBytes,
-				connectionDetails.MacaroonFileBytes)
+				connectionDetails[0].GRPCAddress,
+				connectionDetails[0].TLSFileBytes,
+				connectionDetails[0].MacaroonFileBytes)
 			if err != nil {
 				return fmt.Errorf("failed to connect to lnd: %v", err)
 			}
