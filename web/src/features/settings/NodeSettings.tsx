@@ -25,19 +25,28 @@ import Modal from "features/modal/Modal";
 
 interface nodeProps {
   localNodeId: number;
+  collapsed?: boolean;
 }
-function NodeSettings({ localNodeId }: nodeProps) {
+function NodeSettings({ localNodeId, collapsed }: nodeProps) {
   const toastRef = React.useContext(ToastContext);
   const popoverRef = React.useRef();
 
-  const { data: localNodeData } = useGetLocalNodeQuery(localNodeId);
+  const { data: localNodeData } = useGetLocalNodeQuery(localNodeId, {
+    skip: !localNodeId,
+  });
   const [updateLocalNode] = useUpdateLocalNodeMutation();
 
   const [localState, setLocalState] = useState({} as localNode);
-  const [collapsedState, setCollapsedState] = useState(false);
+  const [collapsedState, setCollapsedState] = useState(true);
   const [showModalState, setShowModalState] = useState(false);
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
   const [deleteEnabled, setDeleteEnabled] = useState(false);
+
+  React.useEffect(() => {
+    if (collapsed != undefined) {
+      setCollapsedState(collapsed);
+    }
+  }, [collapsed]);
 
   const handleModalClose = () => {
     setShowModalState(false);
@@ -105,21 +114,22 @@ function NodeSettings({ localNodeId }: nodeProps) {
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
   return (
-    <Box title="Node Settings">
+    <Box>
       <>
-        <div className={styles.header}>
-          <div className={styles.connectionIcon}>
-            <ConnectedIcon />
+        {/* <div className={styles.header}>
+          <div className={classNames(styles.connectionIcon, { [styles.connected]: !!localNodeData })}>
+            {localNodeData && <ConnectedIcon />}
+            {!localNodeData && <DisconnectedIcon />}
           </div>
-          <div className={styles.title}>LN.Capital [1] LN Capital</div>
+          <div className={styles.title}>Node Details</div>
           <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
             <ChevronIcon onClick={handleCollapseClick} />
           </div>
-        </div>
+        </div> */}
         <Collapse collapsed={collapsedState}>
           <>
-            <div className={styles.borderSection}>
-              <Switch label={"Enable Node"} labelPosition={"left"} />
+            {/* <div className={styles.borderSection}>
+              <Switch checked={!localNodeData?.disabled} label={"Enable Node"} labelPosition={"left"} />
             </div>
             <div className={styles.borderSection}>
               <div className={styles.detailHeader}>
@@ -135,8 +145,8 @@ function NodeSettings({ localNodeId }: nodeProps) {
                   </div>
                 </Popover>
               </div>
-            </div>
-            <div className={styles.borderSection}>
+            </div> */}
+            <div className={""}>
               <form onSubmit={submitNodeSettings}>
                 <Select
                   label="Implementation"

@@ -20,4 +20,6 @@ export interface localNode {
   macaroonFile: File;
   createdOn?: Date;
   updatedOn?: Date;
+  disabled: boolean;
+  deleted: boolean;
 }

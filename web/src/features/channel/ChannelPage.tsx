@@ -58,8 +58,8 @@ function ChannelPage() {
     ])
   );
   const handleSelectEventUpdate = (type: string) => {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSelectedEvents(new Map(selectedEvents.set(type, e.target.checked)));
+    return (checked: boolean) => {
+      setSelectedEvents(new Map(selectedEvents.set(type, checked)));
     };
   };
 
@@ -374,21 +374,19 @@ function ChannelPage() {
                       <div className={styles.rowLabel}>
                         <Switch
                           label="Toggle all"
-                          checkboxProps={{
-                            checked: allToggle,
-                            onChange: (e) => {
-                              setAllToggle(e.target.checked);
-                              setSelectedEvents(
-                                new Map([
-                                  ["fee_rate", e.target.checked],
-                                  ["base_fee", e.target.checked],
-                                  ["min_htlc", e.target.checked],
-                                  ["max_htlc", e.target.checked],
-                                  ["enabled", e.target.checked],
-                                  ["disabled", e.target.checked],
-                                ])
-                              );
-                            },
+                          checked={allToggle}
+                          onChange={(checked) => {
+                            setAllToggle(checked);
+                            setSelectedEvents(
+                              new Map([
+                                ["fee_rate", checked],
+                                ["base_fee", checked],
+                                ["min_htlc", checked],
+                                ["max_htlc", checked],
+                                ["enabled", checked],
+                                ["disabled", checked],
+                              ])
+                            );
                           }}
                         />
                       </div>
@@ -400,10 +398,8 @@ function ChannelPage() {
                           <div className={styles.rowLabel}>
                             <Switch
                               label={eventNames.get(item[0]) || ""}
-                              checkboxProps={{
-                                checked: selectedEvents.get(item[0]),
-                                onChange: handleSelectEventUpdate(item[0]),
-                              }}
+                              checked={selectedEvents.get(item[0])}
+                              onChange={handleSelectEventUpdate(item[0])}
                             />
                           </div>
                         </div>

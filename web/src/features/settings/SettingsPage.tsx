@@ -12,6 +12,7 @@ import { settings } from "apiTypes";
 import { toastCategory } from "../toast/Toasts";
 import ToastContext from "../toast/context";
 import NodeSettings from "./NodeSettings";
+import { localNode } from "apiTypes";
 
 function Settings() {
   const { data: settingsData } = useGetSettingsQuery();
@@ -21,12 +22,19 @@ function Settings() {
   const toastRef = React.useContext(ToastContext);
 
   const [settingsState, setSettingsState] = React.useState({} as settings);
+  const [localNodesState, setLocalNodesState] = React.useState([] as localNode[]);
 
   React.useEffect(() => {
     if (settingsData) {
       setSettingsState(settingsData);
     }
   }, [settingsData]);
+
+  React.useEffect(() => {
+    if (localNodes) {
+      setLocalNodesState(localNodes);
+    }
+  }, [localNodes]);
 
   const defaultDateRangeLabels: {
     label: string;
@@ -71,7 +79,9 @@ function Settings() {
   };
 
   const addLocalNode = () => {
-    console.log("Adding additional node");
+    if (!localNodesState.some((item) => item.localNodeId === undefined)) {
+      setLocalNodesState([...localNodesState, {} as localNode]);
+    }
   };
 
   return (
@@ -79,40 +89,51 @@ function Settings() {
       <React.Fragment>
         <div>
           <div className={style.center}>
-            <Box title="Date & time settings">
-              <form onSubmit={submitPreferences}>
-                <Select
-                  label="Default date range"
-                  onChange={handleDefaultDateRangeChange}
-                  options={defaultDateRangeOptions}
-                  value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
-                />
-                <div>
+            <div>
+              <strong>Date & time settings</strong>
+              <Box>
+                <form onSubmit={submitPreferences}>
                   <Select
-                    label="Preferred timezone"
-                    onChange={handlePreferredTimezoneChange}
-                    options={preferredTimezoneOptions}
-                    value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
+                    label="Default date range"
+                    onChange={handleDefaultDateRangeChange}
+                    options={defaultDateRangeOptions}
+                    value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
                   />
-                </div>
-                <Select
-                  label="Week starts on"
-                  onChange={handleWeekStartsOnChange}
-                  options={weekStartsOnOptions}
-                  value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
-                />
-                <SubmitButton>
-                  <React.Fragment>
-                    <SaveIcon />
-                    Save
-                  </React.Fragment>
-                </SubmitButton>
-              </form>
-            </Box>
-            {localNodes?.map((localNode) => (
-              <NodeSettings localNodeId={localNode.localNodeId} />
-            ))}
-            <Button variant={buttonVariants.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" />
+                  <div>
+                    <Select
+                      label="Preferred timezone"
+                      onChange={handlePreferredTimezoneChange}
+                      options={preferredTimezoneOptions}
+                      value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
+                    />
+                  </div>
+                  <Select
+                    label="Week starts on"
+                    onChange={handleWeekStartsOnChange}
+                    options={weekStartsOnOptions}
+                    value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
+                  />
+                  <SubmitButton>
+                    <React.Fragment>
+                      <SaveIcon />
+                      Save
+                    </React.Fragment>
+                  </SubmitButton>
+                </form>
+              </Box>
+            </div>
+            <div>
+              <strong>Node</strong>
+              {localNodesState &&
+                localNodesState?.map((localNode) => (
+                  <NodeSettings
+                    localNodeId={localNode.localNodeId}
+                    key={localNode.localNodeId ?? 0}
+                    collapsed={false}
+                  />
+                ))}
+            </div>
+            {/* <Button variant={buttonVariants.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" /> */}
           </div>
         </div>
       </React.Fragment>
