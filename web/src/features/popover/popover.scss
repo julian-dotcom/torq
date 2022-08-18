@@ -97,3 +97,8 @@
     right: 0px;
   }
 }
+.no-padding .popover-wrapper.popover-open {
+  .popover-container {
+    padding: 0;
+  }
+}

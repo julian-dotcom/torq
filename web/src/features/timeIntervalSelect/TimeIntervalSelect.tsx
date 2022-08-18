@@ -99,7 +99,7 @@ function TimeIntervalSelect(props: { className?: string }) {
 
   return (
     <div className={classNames(dateRangeClass, props.className)}>
-      <Popover button={popOverButton} className={"right"}>
+      <Popover button={popOverButton} className={"no-padding"}>
         <div className="date-range-popover-content">
           <DateRangePicker
             renderStaticRangeLabel={renderCustomRangeLabel}

@@ -22,6 +22,8 @@
 }
 
 .titleContainer {
+  padding-top: 0.25em;
+  line-height: 1em;
   font-size: var(--font-XXL-regular);
   text-overflow: ellipsis;
   overflow: hidden;

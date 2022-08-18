@@ -107,7 +107,8 @@ function ForwardsPage() {
     <TableControlSection>
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
-          <TimeIntervalSelect />
+          {/*<TimeIntervalSelect />*/}
+          {<ViewsPopover />}
         </TableControlsTabsGroup>
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
@@ -187,6 +188,7 @@ function ForwardsPage() {
   return (
     <TablePageTemplate
       title={"Forwards"}
+      titleContent={<TimeIntervalSelect />}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}
