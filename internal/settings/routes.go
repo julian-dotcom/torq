@@ -126,7 +126,7 @@ func addLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
 		return
 	}
 
-	// restartLNDSub()
+	restartLNDSub()
 
 	c.JSON(http.StatusOK, localNode)
 }

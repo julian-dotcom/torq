@@ -88,6 +88,7 @@ ORDER BY local_node_id asc;`)
 func getLocalNodeConnectionDetails(db *sqlx.DB) (localNodeData []localNode, err error) {
 	err = db.Select(&localNodeData, `
 SELECT
+  local_node_id,
   grpc_address,
   tls_data,
   macaroon_data
@@ -153,7 +154,7 @@ func updateLocalNodeTLS(db *sqlx.DB, localNode localNode) (err error) {
 UPDATE local_node SET
   tls_file_name = $1,
   tls_data = $2,
-  updated_on = $3;
+  updated_on = $3
 WHERE local_node_id = $4;
 `, localNode.TLSFileName, localNode.TLSDataBytes, time.Now().UTC(), localNode.LocalNodeId)
 	if err != nil {
@@ -167,7 +168,7 @@ func updateLocalNodeMacaroon(db *sqlx.DB, localNode localNode) (err error) {
 UPDATE local_node SET
   macaroon_file_name = $1,
   macaroon_data = $2,
-  updated_on = $3;
+  updated_on = $3
 WHERE local_node_id = $4;
 `, localNode.MacaroonFileName, localNode.MacaroonDataBytes, time.Now().UTC(), localNode.LocalNodeId)
 	if err != nil {

@@ -11,10 +11,10 @@ import (
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
+	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 	"golang.org/x/sync/errgroup"
-	"log"
 	"os"
 	"time"
 )
@@ -31,7 +31,7 @@ func main() {
 
 	homedir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatalf("error finding home directory of user: %v", err)
+		log.Fatal().Msgf("error finding home directory of user: %v", err)
 	}
 
 	cmdFlags := []cli.Flag{
@@ -131,39 +131,44 @@ func main() {
 					for {
 						select {
 						case <-startchan:
-						Credentials:
-							connectionDetails, err := settings.GetConnectionDetails(db)
-							if err != nil && err.Error() != "Missing node details" {
-								fmt.Printf("failed to get node connection details: %v", err)
-								stoppedchan <- struct{}{}
-								continue
-							}
-							// TODO: Improve this. Simple retry I case of missing node details.
-							if err != nil && err.Error() == "Missing node details" {
-								fmt.Println("Missing node details. " +
-									"Go to settings and enter IP, port, macasoon and tls certificate. " +
-									"Retrying after a short delay")
-								time.Sleep(5 * time.Second)
-								log.Println("Retrying...")
-								goto Credentials
-							}
-							conn, err := lnd_connect.Connect(
-								connectionDetails[0].GRPCAddress,
-								connectionDetails[0].TLSFileBytes,
-								connectionDetails[0].MacaroonFileBytes)
-							if err != nil {
-								log.Printf("Failed to connect to lnd: %v\n", err)
-								stoppedchan <- struct{}{}
-								continue
+							var nodes []settings.ConnectionDetails
+							for {
+								nodes, err = settings.GetConnectionDetails(db)
+								if err != nil && err.Error() != "Missing node details" {
+									return errors.Wrap(err, "Getting connection details")
+								}
+								if err != nil && err.Error() == "Missing node details" {
+									log.Error().Msg("Missing node details. " +
+										"Go to settings and enter IP, port, macasoon and tls certificate. " +
+										"Retrying after a short delay")
+									time.Sleep(5 * time.Second)
+									log.Info().Msg("Retrying...")
+									continue
+								}
+								break
 							}
 
-							fmt.Println("Subscribing to LND")
-							err = subscribe.Start(ctx, conn, db, 1)
-							if err != nil {
-								fmt.Printf("%v", err)
+							for _, node := range nodes {
+								go (func(node settings.ConnectionDetails) {
+									conn, err := lnd_connect.Connect(
+										node.GRPCAddress,
+										node.TLSFileBytes,
+										node.MacaroonFileBytes)
+									if err != nil {
+										log.Error().Msgf("Failed to connect to lnd: %v", err)
+										stoppedchan <- struct{}{}
+										return
+									}
+
+									log.Info().Msgf("Subscribing to LND for node id: %v", node.LocalNodeId)
+									err = subscribe.Start(ctx, conn, db, node.LocalNodeId)
+									if err != nil {
+										log.Error().Err(err).Send()
+									}
+									log.Info().Msgf("LND Subscription stopped for node id: %v", node.LocalNodeId)
+									stoppedchan <- struct{}{}
+								})(node)
 							}
-							fmt.Println("LND Subscription stopped")
-							stoppedchan <- struct{}{}
 						}
 					}
 				})()
@@ -287,7 +292,7 @@ func main() {
 
 	err = app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Send()
 	}
 
 }
