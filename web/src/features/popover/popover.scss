@@ -84,6 +84,11 @@
     }
   }
 }
+.no-padding .popover-wrapper.popover-open {
+  .popover-container {
+    padding: 0;
+  }
+}
 .right .popover-wrapper.popover-open {
   right: 0px;
   left: initial;
