@@ -7,10 +7,11 @@
   grid-template-columns: min-content auto;
   grid-auto-flow: column;
   grid-column-gap: 16px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   align-items: center;
   border-radius: var(--radius-default);
   text-align: left;
+  font-size: var(--font-size-small);
 }
 .groupRowSelected {
   background-color: var(--accent1-300);

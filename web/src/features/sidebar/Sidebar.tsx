@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import {
   Options24Regular as SideBarIcon,
   DismissCircle24Regular as CloseIcon,
@@ -42,6 +42,15 @@ type SidebarSectionProps = {
 };
 
 export function SidebarSection(props: SidebarSectionProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [styleState, setStyleState] = useState({});
+
+  useLayoutEffect(() => {
+    if (ref.current) {
+      setStyleState({ height: props.expanded ? ref.current.scrollHeight + "px" : "0" });
+    }
+  }, [props]);
+
   return (
     <div className={styles.sectionContainer}>
       <div className={styles.sectionTitleContainer} onClick={props.handleToggle}>
@@ -51,7 +60,9 @@ export function SidebarSection(props: SidebarSectionProps) {
         <div className={styles.sidebarTitle}>{props.title}</div>
         <div className={styles.sidebarIcon}>{props.expanded ? <ExpandedIcon /> : <CollapsedIcon />}</div>
       </div>
-      {props.expanded && <div className={styles.SidebarSectionContent}>{props.children}</div>}
+      <div className={styles.sidebarSectionContent} ref={ref} style={styleState}>
+        {props.children}
+      </div>
     </div>
   );
 }

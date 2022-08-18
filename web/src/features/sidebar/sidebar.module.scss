@@ -43,6 +43,10 @@
 }
 .sidebarSectionContent {
   margin-bottom: 16px;
+  height: auto;
+  transition: 200ms;
+  overflow: hidden;
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .icon,

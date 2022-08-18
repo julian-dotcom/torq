@@ -44,10 +44,15 @@
 }
 .pageSidebarWrapper {
   width: 0;
+  transition: width 200ms;
   background-color: var(--bg-default);
   grid-area: Sidebar;
   position: relative;
   overflow: hidden;
+  border-left: 1px solid var(--primary-50);
+  > div {
+    width: 320px;
+  }
 }
 .pageSidebarWrapper.sidebarExpanded {
   width: 320px;

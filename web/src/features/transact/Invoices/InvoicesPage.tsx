@@ -192,8 +192,6 @@ function InvoicesPage() {
       "payment_addr",
       "payment_request",
       "private",
-      "r_hash",
-      "r_preimage",
       "expiry",
       "cltv_expiry",
       "updated_on",
