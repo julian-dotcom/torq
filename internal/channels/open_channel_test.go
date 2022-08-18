@@ -62,6 +62,23 @@ func (ml MockLOpenChannelClientRecv) RecvMsg(m interface{}) error {
 }
 
 func (ml MockLOpenChannelClientRecv) Recv() (*lnrpc.OpenStatusUpdate, error) {
+	txid := []byte{
+		220, 124, 38, 210, 37, 158, 171, 139, 138, 139, 42, 195, 254, 216, 159, 104, 118, 69, 251,
+		131, 10, 115, 198, 209, 55, 86, 139, 86, 238, 156, 192, 114,
+	}
+	fundingTxid := lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: txid}
+	channelPoint := lnrpc.ChannelPoint{
+		FundingTxid: &fundingTxid,
+		OutputIndex: 0,
+	}
+	chanOpenUpd := lnrpc.ChannelOpenUpdate{ChannelPoint: &channelPoint}
+	//
+
+	update := lnrpc.OpenStatusUpdate_ChanOpen{ChanOpen: &chanOpenUpd}
+	statusUpdate := lnrpc.OpenStatusUpdate{
+		Update:        &update,
+		PendingChanId: []byte("1"),
+	}
 
 	if ml.eof {
 		return nil, io.EOF
@@ -72,7 +89,7 @@ func (ml MockLOpenChannelClientRecv) Recv() (*lnrpc.OpenStatusUpdate, error) {
 	}
 	atomic.AddInt64(&counter, 1)
 
-	return nil, nil
+	return &statusUpdate, nil
 }
 
 // randPubKey generates a new secp keypair, and returns the public key.
@@ -92,8 +109,8 @@ func TestOpenChannel(t *testing.T) {
 	testAmt := int64(1)
 	client := MockOpenChannelLC{}
 	resp, _ := OpenChannel(client, testPubKey.SerializeCompressed(), testAmt, nil)
-	//fmt.Fprintf(os.Stderr, "%v\n", resp)
-	if resp != "Channel opening" {
+
+	if resp != "72c09cee568b5637d1c6730a83fb4576689fd8fec32a8b8a8bab9e25d2267cdc:0" {
 		t.Fatalf("Failed")
 	}
 }
@@ -102,8 +119,13 @@ func TestOpenRecvCalled(t *testing.T) {
 	counter = 0
 
 	recv := MockLOpenChannelClientRecv{eof: false, err: false}
+	respChan := make(chan string)
+	go func() {
+		err := receiveOpenResponse(&recv, ctxMain, respChan)
+		if err != nil {
 
-	go receiveOpenResponse(&recv, ctxMain)
+		}
+	}()
 	time.Sleep(5 * time.Millisecond)
 
 	if counter < 1 {
@@ -114,10 +136,16 @@ func TestOpenRecvCalled(t *testing.T) {
 func TestOpenRecvEOF(t *testing.T) {
 	tst := zltest.New(t)
 	logging.InitLogTest(tst)
-	//ctx := context.Background()
+
 	req := MockLOpenChannelClientRecv{eof: true, err: false}
 
-	go receiveOpenResponse(&req, ctxMain)
+	respChan := make(chan string)
+	go func() {
+		err := receiveOpenResponse(&req, ctxMain, respChan)
+		if err != nil {
+
+		}
+	}()
 	time.Sleep(10 * time.Millisecond)
 
 	ent := tst.LastEntry()
@@ -127,10 +155,15 @@ func TestOpenRecvEOF(t *testing.T) {
 func TestOpenRecvErr(t *testing.T) {
 	tst := zltest.New(t)
 	logging.InitLogTest(tst)
-	//ctx := context.Background()
-	req := MockLOpenChannelClientRecv{eof: false, err: true}
 
-	go receiveOpenResponse(&req, ctxMain)
+	req := MockLOpenChannelClientRecv{eof: false, err: true}
+	respChan := make(chan string)
+	go func() {
+		err := receiveOpenResponse(&req, ctxMain, respChan)
+		if err != nil {
+
+		}
+	}()
 	time.Sleep(5 * time.Millisecond)
 
 	ent := tst.LastEntry()
@@ -143,9 +176,14 @@ func TestOpenContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctxMain)
 
 	req := MockLOpenChannelClientRecv{eof: false, err: false}
-	go receiveOpenResponse(&req, ctx)
+	respChan := make(chan string)
+	go func() {
+		err := receiveOpenResponse(&req, ctx, respChan)
+		if err != nil {
 
-	time.Sleep(10 * time.Millisecond)
+		}
+	}()
+
 	cancel()
 	time.Sleep(100 * time.Millisecond)
 
