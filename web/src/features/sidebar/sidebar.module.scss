@@ -1,7 +1,8 @@
 @use "/src/styles/typography.scss";
 
 .sidebarWrapper {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   grid-auto-rows: min-content;
   position: absolute;
   top: 0;
@@ -31,6 +32,9 @@
   align-items: center;
   gap: 4px;
 }
+.titleContainer {
+  flex-grow: 0;
+}
 
 .sectionTitleContainer {
   border-bottom: 1px solid var(--content-subtle);
@@ -38,20 +42,27 @@
 }
 .sidebarContent {
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 2;
 }
 .sidebarContent,
 .sidebarSectionContent {
-  display: grid;
-  grid-row-gap: 12px;
+  display: flex;
+  flex-direction: column;
+  row-gap: 12px;
 }
 .sidebarSectionContent {
   margin-bottom: 16px;
-  height: auto;
-  transition: 200ms;
+  height: 0px;
+  transition: height 200ms;
   overflow: hidden;
   transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
-
+.expanded {
+  height: auto;
+  overflow: initial;
+}
 .icon,
 .sidebarIcon,
 .close {
