@@ -1,4 +1,4 @@
-package lnd
+package lnd_connect
 
 import (
 	"context"

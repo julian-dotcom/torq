@@ -1,4 +1,4 @@
-package lnd
+package channels
 
 import (
 	"context"
@@ -91,9 +91,9 @@ func TestOpenChannel(t *testing.T) {
 	testPubKey := randPubKey(t)
 	testAmt := int64(1)
 	client := MockOpenChannelLC{}
-	resp, _ := openChannel(client, testPubKey.SerializeCompressed(), testAmt, nil)
+	resp, _ := OpenChannel(client, testPubKey.SerializeCompressed(), testAmt, nil)
 	//fmt.Fprintf(os.Stderr, "%v\n", resp)
-	if resp.Response != "Channel opening" {
+	if resp != "Channel opening" {
 		t.Fatalf("Failed")
 	}
 }

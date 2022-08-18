@@ -1,4 +1,4 @@
-package lnd
+package channels
 
 import (
 	"github.com/gin-gonic/gin"

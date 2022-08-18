@@ -1,4 +1,4 @@
-package lnd
+package channels
 
 import (
 	"context"
@@ -12,7 +12,7 @@ type lndClientOpenChannel interface {
 	OpenChannel(ctx context.Context, in *lnrpc.OpenChannelRequest, opts ...grpc.CallOption) (lnrpc.Lightning_OpenChannelClient, error)
 }
 
-func openChannel(client lndClientOpenChannel, pubkey []byte, amt int64, satPerVbyte *uint64) (r Response, err error) {
+func OpenChannel(client lndClientOpenChannel, pubkey []byte, amt int64, satPerVbyte *uint64) (r string, err error) {
 
 	//open channel request
 	openChanReq := lnrpc.OpenChannelRequest{
@@ -30,13 +30,11 @@ func openChannel(client lndClientOpenChannel, pubkey []byte, amt int64, satPerVb
 	openChanRes, err := client.OpenChannel(ctx, &openChanReq)
 	if err != nil {
 		log.Error().Msgf("Err opening channel: %v", err)
-		r.Response = "Err opening channel"
-		return r, err
+		return "Err opening channel", err
 	}
 	go receiveOpenResponse(openChanRes, ctx)
 
-	r.Response = "Channel opening"
-	return r, nil
+	return "Channel opening", nil
 }
 
 //Get response for open channel request
@@ -58,10 +56,9 @@ func receiveOpenResponse(req lnrpc.Lightning_OpenChannelClient, ctx context.Cont
 			log.Error().Msgf("Err receive %v", err.Error())
 			return
 		}
-		//log.Debug().Msgf("Chan point pending: %v", resp.GetChanOpen().String())
+
 		if resp.GetChanOpen() != nil {
 			log.Info().Msgf("Chan point: %v", resp.GetChanOpen().GetChannelPoint().GetFundingTxidStr())
 		}
-		//log.Debug().Msgf("Channel opening status: %v", resp.String())
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channel_history"
+	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/forwards"
 	"github.com/lncapital/torq/internal/invoices"
@@ -15,7 +16,6 @@ import (
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/views"
-	"github.com/lncapital/torq/pkg/lnd"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
@@ -115,16 +115,12 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 		channelRoutes := api.Group("/channels")
 		{
 			channel_history.RegisterChannelHistoryRoutes(channelRoutes, db)
+			channels.RegisterControlChannelRoutes(channelRoutes, db)
 		}
 
 		forwardRoutes := api.Group("/forwards")
 		{
 			forwards.RegisterForwardsRoutes(forwardRoutes, db)
-		}
-
-		controlChannelRoutes := api.Group("/channel")
-		{
-			lnd.RegisterControlChannelRoutes(controlChannelRoutes, db)
 		}
 
 		flowRoutes := api.Group("/flow")

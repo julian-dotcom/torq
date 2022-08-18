@@ -1,4 +1,4 @@
-package lnd
+package channels
 
 import (
 	"context"
@@ -12,10 +12,10 @@ type lndClientCloseChannel interface {
 	CloseChannel(ctx context.Context, in *lnrpc.CloseChannelRequest, opts ...grpc.CallOption) (lnrpc.Lightning_CloseChannelClient, error)
 }
 
-func closeChannel(client lndClientCloseChannel,
+func CloseChannel(client lndClientCloseChannel,
 	fundingTxid *lnrpc.ChannelPoint_FundingTxidStr,
 	outputIndex uint32,
-	satPerVbyte *uint64) (r Response, err error) {
+	satPerVbyte *uint64) (r string, err error) {
 	ctx := context.Background()
 	channelPoint := lnrpc.ChannelPoint{
 		FundingTxid: fundingTxid,
@@ -41,8 +41,7 @@ func closeChannel(client lndClientCloseChannel,
 
 	go receiveCloseResponse(closeChanRes, ctx)
 
-	r.Response = "Channel closing"
-	return r, nil
+	return "Channel closing", nil
 }
 
 func receiveCloseResponse(req lnrpc.Lightning_CloseChannelClient, ctx context.Context) {
@@ -64,7 +63,5 @@ func receiveCloseResponse(req lnrpc.Lightning_CloseChannelClient, ctx context.Co
 			return
 		}
 		_ = resp
-		//log.Debug().Msgf("Channel closing status: %v", resp.String())
-
 	}
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/lnd"
+	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 	"golang.org/x/sync/errgroup"
@@ -147,7 +147,7 @@ func main() {
 								log.Println("Retrying...")
 								goto Credentials
 							}
-							conn, err := lnd.Connect(
+							conn, err := lnd_connect.Connect(
 								connectionDetails.GRPCAddress,
 								connectionDetails.TLSFileBytes,
 								connectionDetails.MacaroonFileBytes)
@@ -224,7 +224,7 @@ func main() {
 				return fmt.Errorf("failed to get node connection details: %v", err)
 			}
 
-			conn, err := lnd.Connect(
+			conn, err := lnd_connect.Connect(
 				connectionDetails.GRPCAddress,
 				connectionDetails.TLSFileBytes,
 				connectionDetails.MacaroonFileBytes)

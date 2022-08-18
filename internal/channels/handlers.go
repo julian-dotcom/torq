@@ -1,7 +1,8 @@
-package lnd
+package channels
 
 import (
 	"encoding/hex"
+	"github.com/lncapital/torq/pkg/lnd_connect"
 	"net/http"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ type Response struct {
 
 func OpenChannelHandler(c *gin.Context, db *sqlx.DB) {
 	connectionDetails, err := settings.GetConnectionDetails(db)
-	conn, err := Connect(
+	conn, err := lnd_connect.Connect(
 		connectionDetails.GRPCAddress,
 		connectionDetails.TLSFileBytes,
 		connectionDetails.MacaroonFileBytes)
@@ -57,7 +58,7 @@ func OpenChannelHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	resp, err := openChannel(client, pubKeyHex, requestBody.Amount, requestBody.SatPerVbyte)
+	resp, err := OpenChannel(client, pubKeyHex, requestBody.Amount, requestBody.SatPerVbyte)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Opening channel")
 		return
@@ -69,7 +70,7 @@ func OpenChannelHandler(c *gin.Context, db *sqlx.DB) {
 
 func CloseChannelHandler(c *gin.Context, db *sqlx.DB) {
 	connectionDetails, err := settings.GetConnectionDetails(db)
-	conn, err := Connect(
+	conn, err := lnd_connect.Connect(
 		connectionDetails.GRPCAddress,
 		connectionDetails.TLSFileBytes,
 		connectionDetails.MacaroonFileBytes)
@@ -104,7 +105,7 @@ func CloseChannelHandler(c *gin.Context, db *sqlx.DB) {
 
 	log.Debug().Msgf("Funding: %v, index: %v", fundingTxid, outputIndex)
 
-	resp, err := closeChannel(client, fundingTxid, outputIndex, requestBody.SatPerVbyte)
+	resp, err := CloseChannel(client, fundingTxid, outputIndex, requestBody.SatPerVbyte)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Closing channel")
 		return
