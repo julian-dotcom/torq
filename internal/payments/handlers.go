@@ -2,14 +2,28 @@ package payments
 
 import (
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	qp "github.com/lncapital/torq/internal/query_parser"
+	"github.com/lncapital/torq/internal/settings"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
+	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
 )
+
+type NewPaymentRequestBody struct {
+	Dest        []byte
+	Amt         int64
+	AmtMSat     int64
+	PaymentHash []byte
+	Invoice     string
+	TimeOutSecs int32
+}
 
 func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 
@@ -126,7 +140,64 @@ func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
+//newPaymentHandler - new payment handler
+//A new payment can be made either by providing an invoice or by providing:
+// - dest - the identity pubkey of the payment recipient
+// - amt(number of satoshis) or amt_msat(number of millisatoshis)
+// - amt and amt_msat are mutually exclusive
+// - payments hash - the hash to use within the payment's HTLC
+//Timeout seconds is mandatory for both ways
+func newPaymentHandler(c *gin.Context, db *sqlx.DB) {
+	connectionDetails, err := settings.GetConnectionDetails(db)
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Connecting to LND")
+	}
+	defer conn.Close()
+	client := routerrpc.NewRouterClient(conn)
+
+	var requestBody NewPaymentRequestBody
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		return
+	}
+
+	dest := requestBody.Dest
+	amt := requestBody.Amt
+	amtMSat := requestBody.AmtMSat
+	paymentHash := requestBody.PaymentHash
+	invoice := requestBody.Invoice
+	timeOutSecs := requestBody.TimeOutSecs
+
+	if len(invoice) == 0 {
+		if len(dest) == 0 && (amt == 0 || amtMSat == 0) && len(paymentHash) == 0 {
+			server_errors.LogAndSendServerError(c, errors.New("Payment destination missing"))
+			return
+		}
+	}
+
+	if timeOutSecs == 0 {
+		server_errors.LogAndSendServerError(c, errors.New("timeout_seconds must be specified"))
+		return
+	}
+
+	log.Debug().Msgf("Invoice: %v", invoice)
+
+	resp, err := SendNewPayment(dest, amt, amtMSat, paymentHash, invoice, timeOutSecs, client)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Sending payment")
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
 func RegisterPaymentsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("", func(c *gin.Context) { getPaymentsHandler(c, db) })
 	r.GET(":identifier", func(c *gin.Context) { getPaymentHandler(c, db) })
+	r.POST("newpayment", func(c *gin.Context) { newPaymentHandler(c, db) })
 }
