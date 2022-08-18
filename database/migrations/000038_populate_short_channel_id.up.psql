@@ -1,0 +1,21 @@
+update forward
+set outgoing_short_channel_id = lnd_outgoing_short_channel_id::bigint >> 40 || 'x' || ((lnd_outgoing_short_channel_id::bigint >> 16) & 16777215) || 'x' || lnd_outgoing_short_channel_id::bigint::bit(16)::int,
+incoming_short_channel_id = lnd_incoming_short_channel_id::bigint >> 40 || 'x' || (
+    (lnd_incoming_short_channel_id::bigint >> 16) & 16777215) || 'x' || lnd_incoming_short_channel_id::bigint::bit(16)::int;
+
+
+update channel_event
+set short_channel_id = lnd_short_channel_id::bigint >> 40 || 'x' || ((lnd_short_channel_id::bigint >> 16) & 16777215)
+                           || 'x' || lnd_short_channel_id::bigint::bit(16)::int;
+
+update routing_policy
+set short_channel_id = lnd_short_channel_id::bigint >> 40 || 'x' || ((lnd_short_channel_id::bigint >> 16) & 16777215)
+                           || 'x' || lnd_short_channel_id::bigint::bit(16)::int;
+
+update channel
+set short_channel_id = lnd_short_channel_id::bigint >> 40 || 'x' || ((lnd_short_channel_id::bigint >> 16) & 16777215)
+                           || 'x' || lnd_short_channel_id::bigint::bit(16)::int;
+
+update htlc_event
+set outgoing_short_channel_id = lnd_outgoing_short_channel_id::bigint >> 40 || 'x' || ((lnd_outgoing_short_channel_id::bigint >> 16) & 16777215) || 'x' || lnd_outgoing_short_channel_id::bigint::bit(16)::int,
+incoming_short_channel_id = lnd_incoming_short_channel_id::bigint >> 40 || 'x' || ((lnd_incoming_short_channel_id::bigint >> 16) & 16777215) || 'x' || lnd_incoming_short_channel_id::bigint::bit(16)::int
