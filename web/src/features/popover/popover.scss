@@ -17,12 +17,12 @@
     .popover-container {
       padding: 20px;
     }
-    @media only screen and (max-width: 900px) {
-      position: fixed;
-      left: 20px;
-      right: 20px;
-      top: -20000px;
-    }
+    //@media only screen and (max-width: 900px) {
+    //  position: fixed;
+    //  left: 20px;
+    //  right: 20px;
+    //  top: -20000px;
+    //}
 
     @media only screen and (max-width: 600px) {
       //position: fixed;
@@ -76,10 +76,10 @@
     transition: top 0ms 0ms, opacity 100ms 0ms;
     opacity: 1;
     @media only screen and (max-width: 900px) {
-      position: fixed;
       top: calc(100% + 10px);
     }
     @media only screen and (max-width: 600px) {
+      position: fixed;
       top: 0px;
     }
   }
@@ -95,10 +95,5 @@
   }
   @media only screen and (max-width: 600px) {
     right: 0px;
-  }
-}
-.no-padding .popover-wrapper.popover-open {
-  .popover-container {
-    padding: 0;
   }
 }
