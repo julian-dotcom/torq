@@ -19,7 +19,7 @@ interface selection {
   key: string;
 }
 
-function TimeIntervalSelect() {
+function TimeIntervalSelect(props: { className?: string }) {
   // triggers RTK Query to get settings which are intercepted in the timeIntervalSlice as an extra reducer
   useGetSettingsQuery();
 
@@ -98,7 +98,7 @@ function TimeIntervalSelect() {
   );
 
   return (
-    <div className={dateRangeClass}>
+    <div className={classNames(dateRangeClass, props.className)}>
       <Popover button={popOverButton} className={"right"}>
         <div className="date-range-popover-content">
           <DateRangePicker

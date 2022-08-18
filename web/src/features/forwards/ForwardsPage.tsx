@@ -5,6 +5,7 @@ import {
   ColumnTriple20Regular as ColumnsIcon,
   ArrowJoin20Regular as GroupIcon,
   Save20Regular as SaveIcon,
+  Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
 import Sidebar, { SidebarSection } from "../sidebar/Sidebar";
 import { useUpdateTableViewMutation, useCreateTableViewMutation, useGetTableViewsQuery } from "apiSlice";
@@ -64,6 +65,16 @@ function ForwardsPage() {
   const groupBy = useAppSelector(selectGroupBy) || "channels";
   const filters = useAppSelector(selectFilters);
 
+  const saveView = () => {
+    let viewMod = { ...currentView };
+    viewMod.saved = true;
+    if (currentView.id === undefined || null) {
+      createTableView({ view: viewMod, index: currentViewIndex });
+      return;
+    }
+    updateTableView(viewMod);
+  };
+
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
@@ -75,37 +86,12 @@ function ForwardsPage() {
     group: false,
   };
 
-  const saveView = () => {
-    let viewMod = { ...currentView };
-    viewMod.saved = true;
-    if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex });
-      return;
-    }
-    updateTableView(viewMod);
-  };
-
   const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
-
-  const setSection = (section: keyof sections) => {
-    return () => {
-      if (activeSidebarSections[section] && sidebarExpanded) {
-        setSidebarExpanded(false);
-        setActiveSidebarSections(initialSectionState);
-      } else {
-        setSidebarExpanded(true);
-        setActiveSidebarSections({
-          ...initialSectionState,
-          [section]: true,
-        });
-      }
-    };
-  };
 
   const sidebarSectionHandler = (section: keyof sections) => {
     return () => {
       setActiveSidebarSections({
-        ...initialSectionState,
+        ...activeSidebarSections,
         [section]: !activeSidebarSections[section],
       });
     };
@@ -114,42 +100,16 @@ function ForwardsPage() {
   const closeSidebarHandler = () => {
     return () => {
       setSidebarExpanded(false);
-      setActiveSidebarSections(initialSectionState);
     };
   };
 
   const tableControls = (
     <TableControlSection>
-      <TableControlsTabsGroup>
-        {<ViewsPopover />}
-
-        <Button
-          variant={buttonVariants.ghost}
-          icon={<SaveIcon />}
-          text={"Save View"}
-          onClick={saveView}
-          className={classNames("collapse-tablet disabled", {
-            danger: !currentView.saved,
-          })}
-        />
-      </TableControlsTabsGroup>
       <TableControlsButtonGroup>
-        <TableControlsButton
-          onClickHandler={setSection("columns")}
-          icon={ColumnsIcon}
-          active={activeSidebarSections.columns}
-        />
-        <TableControlsButton
-          onClickHandler={setSection("filter")}
-          icon={FilterIcon}
-          active={activeSidebarSections.filter}
-        />
-        <TableControlsButton onClickHandler={setSection("sort")} icon={SortIcon} active={activeSidebarSections.sort} />
-        <TableControlsButton
-          onClickHandler={setSection("group")}
-          icon={GroupIcon}
-          active={activeSidebarSections.group}
-        />
+        <TableControlsTabsGroup>
+          <TimeIntervalSelect />
+        </TableControlsTabsGroup>
+        <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>
   );
@@ -227,7 +187,7 @@ function ForwardsPage() {
   return (
     <TablePageTemplate
       title={"Forwards"}
-      titleContent={<TimeIntervalSelect />}
+      titleContent={<TimeIntervalSelect className={"hidden-on-mobile"} />}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}

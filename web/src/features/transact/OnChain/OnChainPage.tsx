@@ -5,6 +5,7 @@ import {
   Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
+  Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
 import Sidebar, { SidebarSection } from "features/sidebar/Sidebar";
 import TablePageTemplate, {
@@ -101,24 +102,10 @@ function OnChainPage() {
 
   const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
 
-  const setSection = (section: keyof sections) => {
-    return () => {
-      if (activeSidebarSections[section] && sidebarExpanded) {
-        setSidebarExpanded(false);
-        setActiveSidebarSections(initialSectionState);
-      } else {
-        setSidebarExpanded(true);
-        setActiveSidebarSections({
-          ...initialSectionState,
-          [section]: true,
-        });
-      }
-    };
-  };
   const sidebarSectionHandler = (section: keyof sections) => {
     return () => {
       setActiveSidebarSections({
-        ...initialSectionState,
+        ...activeSidebarSections,
         [section]: !activeSidebarSections[section],
       });
     };
@@ -127,26 +114,14 @@ function OnChainPage() {
   const closeSidebarHandler = () => {
     return () => {
       setSidebarExpanded(false);
-      setActiveSidebarSections(initialSectionState);
     };
   };
 
   const tableControls = (
     <TableControlSection>
       <TransactTabs />
-
       <TableControlsButtonGroup>
-        <TableControlsButton
-          onClickHandler={setSection("columns")}
-          icon={ColumnsIcon}
-          active={activeSidebarSections.columns}
-        />
-        <TableControlsButton
-          onClickHandler={setSection("filter")}
-          icon={FilterIcon}
-          active={activeSidebarSections.filter}
-        />
-        <TableControlsButton onClickHandler={setSection("sort")} icon={SortIcon} active={activeSidebarSections.sort} />
+        <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>
   );

@@ -14,6 +14,16 @@
     "Pagination Sidebar";
   grid-column-gap: 32px;
   grid-row-gap: 0;
+  @media only screen and (max-width: 900px) {
+    grid-template-columns: auto;
+    grid-template-rows: min-content min-content min-content auto min-content;
+    grid-template-areas:
+      "Controls"
+      "Totals"
+      "TableControls"
+      "Table"
+      "Pagination";
+  }
 }
 @media only screen and (max-width: 900px) {
   .contentWrapper {
@@ -28,6 +38,7 @@
   //margin-bottom: -15px;
   @media only screen and (max-width: 900px) {
     padding-bottom: 12px;
+    padding-right: 12px;
   }
 }
 .tableContainer {
@@ -41,6 +52,9 @@
 }
 .paginationWrapper {
   grid-area: Pagination;
+  @media only screen and (max-width: 900px) {
+    padding-right: 12px;
+  }
 }
 .pageSidebarWrapper {
   width: 0;
@@ -49,9 +63,16 @@
   grid-area: Sidebar;
   position: relative;
   overflow: hidden;
-  border-left: 1px solid var(--primary-50);
+  border-left: 1px solid var(--primary-150);
   > div {
     width: 320px;
+  }
+  @media only screen and (max-width: 900px) {
+    position: absolute;
+    right: 0px;
+    top: 0;
+    bottom: 0;
+    z-index: 20;
   }
 }
 .pageSidebarWrapper.sidebarExpanded {
@@ -84,11 +105,7 @@
 .tableControlsButtonGroup {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: min-content;
   grid-column-gap: 4px;
-  @media only screen and (max-width: 900px) {
-    display: none;
-  }
 }
 .tableControlsButtonWrapper {
   height: 44px;

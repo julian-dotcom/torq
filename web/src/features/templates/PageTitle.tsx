@@ -17,7 +17,7 @@ function PageTitle(props: PageTitleProps) {
         <Breadcrumbs breadcrumbs={props.breadcrumbs || []} />
         <h1 className={styles.titleContainer}>{props.title}</h1>
       </div>
-      <div className={styles.rightWrapper}>{props.children}</div>
+      {props.children && <div className={styles.rightWrapper}>{props.children}</div>}
     </div>
   );
 }

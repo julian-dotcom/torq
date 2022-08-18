@@ -73,30 +73,6 @@ function renderPages(
       </button>
     </div>
   );
-
-  // for (let i = start; i <= end; i++) {
-  //   if (i === currentPage) {
-  //     result.push(
-  //       <Select
-  //         options={pageSelectOptions}
-  //         menuPlacement={"top"}
-  //         className={styles.limitSelector}
-  //         value={{ value: offset / limit, label: offset / limit + 1 }}
-  //         onChange={(item: any) => {
-  //           offsetHandler(item.value * limit);
-  //         }}
-  //       />
-  //     );
-  //   } else {
-  //     result.push(
-  //       <button key={`button-${i}`} className={classNames(styles.pageButton)} onClick={(e) => offsetHandler(limit * i)}>
-  //         {i + 1}
-  //       </button>
-  //     );
-  //   }
-  // }
-
-  return result;
 }
 
 function Pagination(props: PaginationProps) {
@@ -114,7 +90,7 @@ function Pagination(props: PaginationProps) {
   return (
     <div className={styles.paginationContainer}>
       <div className={styles.perPageSelectWrapper}>
-        <span>Per page: </span>
+        <span className={styles.perPageText}>Per page: </span>
         <PaginationSelect
           options={limitOptions}
           menuPlacement={"top"}
