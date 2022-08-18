@@ -38,11 +38,6 @@
   }
 }
 
-@media only screen and (max-width: 1199px) {
-  .channelControls {
-    padding: 0px 0px 10px 0px;
-  }
-}
 @media only screen and (max-width: 600px) {
   .channelControls {
     grid-auto-flow: row;
@@ -69,20 +64,15 @@
   .lowerContainer {
     grid-column-gap: 5px;
   }
-  //.torq-popover-button-wrapper {
-  //  display: grid;
-  //  justify-items: left;
-  //}
-  //.mobile-options {
-  //  display: grid;
-  //}
 }
 .channelWrapper {
   display: grid;
   grid-auto-flow: row;
-  grid-row-gap: 20px;
+  grid-row-gap: 24px;
+  padding-bottom: 24px;
   @media only screen and (max-width: 900px) {
     grid-row-gap: 10px;
+    padding-bottom: 12px;
   }
 }
 .pageRow {

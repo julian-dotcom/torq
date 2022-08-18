@@ -187,7 +187,6 @@ function ForwardsPage() {
   return (
     <TablePageTemplate
       title={"Forwards"}
-      titleContent={<TimeIntervalSelect className={"hidden-on-mobile"} />}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}

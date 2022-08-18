@@ -29,6 +29,7 @@ import {
 } from "./channelSlice";
 import BalanceChart from "./balanceChart/BalanceChart";
 import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
+import { Link } from "react-router-dom";
 
 const ft = d3.format(",.0f");
 
@@ -114,9 +115,9 @@ function ChannelPage() {
       return { value: i, label: d.ChanId };
     });
   }
-
+  const breadcrumbs = ["Analyse", "Inspect", <Link to={`/analyse/inspect/${chanId}`}>{chanId}</Link>];
   return (
-    <DetailsPageTemplate title={title} titleContent={<TimeIntervalSelect />}>
+    <DetailsPageTemplate title={title} titleContent={<TimeIntervalSelect />} breadcrumbs={breadcrumbs}>
       <div className={styles.channelWrapper}>
         <div className={classNames(styles.pageRow, styles.channelSummary)}>
           <div className={styles.shortColumn}>

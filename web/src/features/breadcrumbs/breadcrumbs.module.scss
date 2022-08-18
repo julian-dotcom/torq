@@ -1,4 +1,8 @@
 .breadcrumbs {
+  max-width: 320px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
   color: var(--content-muted);
   a,
   a:link,
@@ -9,5 +13,8 @@
   a:active {
     color: var(--content-default);
     font-weight: 400;
+  }
+  @media only screen and (max-width: 700px) {
+    max-width: 320px;
   }
 }

@@ -12,6 +12,7 @@ import { addDays, format } from "date-fns";
 import { useParams } from "react-router";
 import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
 import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartKey } from "./channelSlice";
+import { Link } from "react-router-dom";
 
 const ft = d3.format(",.0f");
 
@@ -42,8 +43,9 @@ function ChannelPage() {
 
   const totalCost: number = historyQuery?.data?.on_chain_cost + historyQuery?.data?.rebalancing_cost / 1000;
 
+  const breadcrumbs = ["Analyse", <Link to={"analyse"}>"Summary"</Link>];
   return (
-    <DetailsPageTemplate title={"Forwards Summary"} titleContent={<TimeIntervalSelect />}>
+    <DetailsPageTemplate title={"Forwards Summary"} titleContent={<TimeIntervalSelect />} breadcrumbs={breadcrumbs}>
       <div className={styles.channelWrapper}>
         <div className={classNames(styles.pageRow, styles.channelSummary)}>
           <div className={styles.shortColumn}>
