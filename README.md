@@ -47,10 +47,15 @@ We would also love to hear your ideas for features or any other feedback you mig
 
 ## Preview
 
-![Torq - Inspect channel](./Torq-Inspect-channel.png)
+![Torq - Forwards](./forwards-table.png)
 
-![Torq - Inspect channel](./Torq-Events.png)
+![Torq - Forwards Summary](./forwards-summary.png)
 
-![Torq - Inspect channel](./Torq-Flow.png)
+![Torq - Inspect channel](./inspect-channel.png)
 
-![Torq - Inspect channel](./Torq-Channels-table.png)
+![Torq - Events](./Torq-Events.png)
+
+![Torq - Flow](./Torq-Flow.png)
+
+![Torq - Payments](./payments.png)
+
