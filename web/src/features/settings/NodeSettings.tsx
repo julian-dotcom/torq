@@ -114,9 +114,9 @@ function NodeSettings({ localNodeId, collapsed }: nodeProps) {
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
   return (
-    <Box title="">
+    <Box>
       <>
-        <div className={styles.header}>
+        {/* <div className={styles.header}>
           <div className={classNames(styles.connectionIcon, { [styles.connected]: !!localNodeData })}>
             {localNodeData && <ConnectedIcon />}
             {!localNodeData && <DisconnectedIcon />}
@@ -125,10 +125,10 @@ function NodeSettings({ localNodeId, collapsed }: nodeProps) {
           <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
             <ChevronIcon onClick={handleCollapseClick} />
           </div>
-        </div>
+        </div> */}
         <Collapse collapsed={collapsedState}>
           <>
-            <div className={styles.borderSection}>
+            {/* <div className={styles.borderSection}>
               <Switch checked={!localNodeData?.disabled} label={"Enable Node"} labelPosition={"left"} />
             </div>
             <div className={styles.borderSection}>
@@ -145,8 +145,8 @@ function NodeSettings({ localNodeId, collapsed }: nodeProps) {
                   </div>
                 </Popover>
               </div>
-            </div>
-            <div className={styles.borderSection}>
+            </div> */}
+            <div className={""}>
               <form onSubmit={submitNodeSettings}>
                 <Select
                   label="Implementation"

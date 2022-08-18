@@ -89,46 +89,51 @@ function Settings() {
       <React.Fragment>
         <div>
           <div className={style.center}>
-            <Box title="Date & time settings">
-              <form onSubmit={submitPreferences}>
-                <Select
-                  label="Default date range"
-                  onChange={handleDefaultDateRangeChange}
-                  options={defaultDateRangeOptions}
-                  value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
-                />
-                <div>
+            <div>
+              <strong>Date & time settings</strong>
+              <Box>
+                <form onSubmit={submitPreferences}>
                   <Select
-                    label="Preferred timezone"
-                    onChange={handlePreferredTimezoneChange}
-                    options={preferredTimezoneOptions}
-                    value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
+                    label="Default date range"
+                    onChange={handleDefaultDateRangeChange}
+                    options={defaultDateRangeOptions}
+                    value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
                   />
-                </div>
-                <Select
-                  label="Week starts on"
-                  onChange={handleWeekStartsOnChange}
-                  options={weekStartsOnOptions}
-                  value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
-                />
-                <SubmitButton>
-                  <React.Fragment>
-                    <SaveIcon />
-                    Save
-                  </React.Fragment>
-                </SubmitButton>
-              </form>
-            </Box>
-            <span>Node Settings</span>
-            {localNodesState &&
-              localNodesState?.map((localNode) => (
-                <NodeSettings
-                  localNodeId={localNode.localNodeId}
-                  key={localNode.localNodeId ?? 0}
-                  collapsed={!!localNode.localNodeId}
-                />
-              ))}
-            <Button variant={buttonVariants.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" />
+                  <div>
+                    <Select
+                      label="Preferred timezone"
+                      onChange={handlePreferredTimezoneChange}
+                      options={preferredTimezoneOptions}
+                      value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
+                    />
+                  </div>
+                  <Select
+                    label="Week starts on"
+                    onChange={handleWeekStartsOnChange}
+                    options={weekStartsOnOptions}
+                    value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
+                  />
+                  <SubmitButton>
+                    <React.Fragment>
+                      <SaveIcon />
+                      Save
+                    </React.Fragment>
+                  </SubmitButton>
+                </form>
+              </Box>
+            </div>
+            <div>
+              <strong>Node</strong>
+              {localNodesState &&
+                localNodesState?.map((localNode) => (
+                  <NodeSettings
+                    localNodeId={localNode.localNodeId}
+                    key={localNode.localNodeId ?? 0}
+                    collapsed={false}
+                  />
+                ))}
+            </div>
+            {/* <Button variant={buttonVariants.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" /> */}
           </div>
         </div>
       </React.Fragment>
