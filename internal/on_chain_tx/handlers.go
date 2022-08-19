@@ -2,14 +2,52 @@ package on_chain_tx
 
 import (
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc"
 	qp "github.com/lncapital/torq/internal/query_parser"
+	"github.com/lncapital/torq/internal/settings"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
+	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
 )
+
+type NewAddressRequestBody struct {
+	//AddressType has to be one of:
+	//- `p2wkh`: Pay to witness key hash (`WITNESS_PUBKEY_HASH` = 0)
+	//- `np2wkh`: Pay to nested witness key hash (`NESTED_PUBKEY_HASH` = 1)
+	//- `p2tr`: Pay to taproot pubkey (`TAPROOT_PUBKEY` = 4)
+	//WITNESS_PUBKEY_HASH = 0;
+	//NESTED_PUBKEY_HASH = 1;
+	//UNUSED_WITNESS_PUBKEY_HASH = 2;
+	//UNUSED_NESTED_PUBKEY_HASH = 3;
+	//TAPROOT_PUBKEY = 4;
+	//UNUSED_TAPROOT_PUBKEY = 5;
+	Type int32
+	//The name of the account to generate a new address for. If empty, the default wallet account is used.
+	Account string
+}
+
+type newAddressResponse struct {
+	Address     string
+	AddressType string
+}
+
+type sendCoinsRequestBody struct {
+	Addr        string
+	Amount      int64
+	SatPerVbyte *uint64
+}
+
+type sendCoinsResponse struct {
+	Address string
+	Amount  int64
+	Txid    string
+}
 
 func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 
@@ -116,7 +154,96 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 //	c.JSON(http.StatusOK, r)
 //}
 
+func newAddressHandler(c *gin.Context, db *sqlx.DB) {
+	var requestBody NewAddressRequestBody
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		log.Error().Msgf("JSON binding the request body")
+		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		return
+	}
+
+	addressType := requestBody.Type
+	account := requestBody.Account
+
+	connectionDetails, err := settings.GetConnectionDetails(db)
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Connecting to LND")
+	}
+
+	defer conn.Close()
+
+	client := lnrpc.NewLightningClient(conn)
+
+	//TODO
+	//
+	resp, err := newAddress(client, addressType, account)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Creating new address")
+		return
+	}
+
+	newAddressResp := newAddressResponse{
+		Address:     resp,
+		AddressType: lnrpc.AddressType(addressType).String(),
+	}
+
+	c.JSON(http.StatusOK, newAddressResp)
+}
+
+func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
+	var requestBody sendCoinsRequestBody
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		log.Error().Msgf("JSON binding the request body")
+		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		return
+	}
+
+	address := requestBody.Addr
+	amount := requestBody.Amount
+	satPerVbyte := requestBody.SatPerVbyte
+
+	if address == "" {
+		log.Error().Msgf("Address value not valid")
+		server_errors.LogAndSendServerError(c, errors.New("Invoice value and/or expiry time not valid"))
+		return
+	}
+
+	connectionDetails, err := settings.GetConnectionDetails(db)
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Connecting to LND")
+	}
+
+	defer conn.Close()
+
+	client := lnrpc.NewLightningClient(conn)
+
+	resp, err := sendCoins(client, address, amount, satPerVbyte)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Creating new address")
+		return
+	}
+
+	sendCoinsResp := sendCoinsResponse{
+		Address: resp,
+		Amount:  amount,
+		Txid:    resp,
+	}
+	c.JSON(http.StatusOK, sendCoinsResp)
+}
+
 func RegisterOnChainTxsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("", func(c *gin.Context) { getOnChainTxsHandler(c, db) })
 	//r.GET(":identifier", func(c *gin.Context) { getOnChainTxHandler(c, db) })
+	r.POST("newaddress", func(c *gin.Context) { newAddressHandler(c, db) })
+	r.POST("sendcoins", func(c *gin.Context) { sendCoinsHandler(c, db) })
 }
