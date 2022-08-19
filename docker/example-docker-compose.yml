@@ -12,9 +12,11 @@ services:
       - <YourDBPassword> # Must match db password below
       - --torq.password
       - <YourUIPassword> # Set password here to connect to login to the web ui
+      - --torq.port
+      - "<YourPort>"
       - start
     ports:
-      - "8080:8080"
+      - "<YourPort>:<YourPort>"
   db:
     image: "timescale/timescaledb:latest-pg14"
     environment:

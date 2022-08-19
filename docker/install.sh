@@ -30,6 +30,17 @@ stty echo
 printf "\n"
 printf "\n"
 
+printf "\n"
+echo Please choose a port for the web UI.
+echo NB! Umbrel users needs to use a different port than 8080. Try 8081.
+stty echo
+printf "Port (default: 8080):"
+read UI_PORT
+stty echo
+eval UI_PORT="${UI_PORT:=8080}"
+printf "\n"
+printf "\n"
+
 mkdir -p $TORQDIR
 
 [ -f docker-compose.yml ] && rm docker-compose.yml
@@ -53,6 +64,8 @@ chmod +x $TORQDIR/$DELETE_COMMAND
 # https://stackoverflow.com/questions/16745988/sed-command-with-i-option-in-place-editing-works-fine-on-ubuntu-but-not-mac
 sed -i.bak "s/<YourDBPassword>/$DBPASSWORD/" $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
 sed -i.bak "s/<YourUIPassword>/$UIPASSWORD/" $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
+sed -i.bak "s/<YourPort>/$UI_PORT/g" $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
+sed -i.bak "s/<YourPort>/$UI_PORT/g" $TORQDIR/start-torq && rm $TORQDIR/start-torq.bak
 
 echo 'Docker compose file (docker-compose.yml) created in '$TORQDIR
 
