@@ -5,6 +5,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channel_history"
@@ -20,12 +21,12 @@ import (
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
 	"log"
+	"net/http"
 	"strconv"
 )
 
 func Start(port int, apiPswd string, db *sqlx.DB, restartLNDSub func()) {
 	r := gin.Default()
-	applyCors(r)
 	registerRoutes(r, db, apiPswd, restartLNDSub)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
@@ -64,7 +65,22 @@ func apiPasswordMiddleware(apiPswd string) gin.HandlerFunc {
 	}
 }
 
+var wsUpgrad = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	//check origin will check the cross region source
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		return origin == "chrome-extension://cbcbkhdmedgianpaifchdaddpnmgnknn" || origin == "http://localhost:3000"
+	},
+}
+
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub func()) {
+
+	// Add websocket ping
+	r.GET("/ws", WebsocketHandler)
+
+	applyCors(r)
 	registerStaticRoutes(r)
 
 	// TODO: Generate this secret!
