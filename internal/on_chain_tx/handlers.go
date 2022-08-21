@@ -40,6 +40,7 @@ type newAddressResponse struct {
 type sendCoinsRequestBody struct {
 	Addr        string
 	Amount      int64
+	TargetConf  int32
 	SatPerVbyte *uint64
 }
 
@@ -206,11 +207,18 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 
 	address := requestBody.Addr
 	amount := requestBody.Amount
+	targetConf := requestBody.TargetConf
 	satPerVbyte := requestBody.SatPerVbyte
 
 	if address == "" {
 		log.Error().Msgf("Address value not valid")
 		server_errors.LogAndSendServerError(c, errors.New("Invoice value and/or expiry time not valid"))
+		return
+	}
+
+	if targetConf != 0 && satPerVbyte != nil {
+		log.Error().Msgf("Only one fee model accepted")
+		server_errors.LogAndSendServerError(c, errors.New("Only one fee model accepted"))
 		return
 	}
 
@@ -227,9 +235,9 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 
 	client := lnrpc.NewLightningClient(conn)
 
-	resp, err := sendCoins(client, address, amount, satPerVbyte)
+	resp, err := sendCoins(client, address, amount, targetConf, satPerVbyte)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Creating new address")
+		server_errors.WrapLogAndSendServerError(c, err, "Sending on-chain payment")
 		return
 	}
 

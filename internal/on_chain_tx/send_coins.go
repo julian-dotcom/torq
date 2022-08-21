@@ -11,7 +11,7 @@ type lndClientSendCoins interface {
 	SendCoins(ctx context.Context, in *lnrpc.SendCoinsRequest, opts ...grpc.CallOption) (*lnrpc.SendCoinsResponse, error)
 }
 
-func sendCoins(client lndClientSendCoins, address string, amount int64, satPerVbyte *uint64) (r string, err error) {
+func sendCoins(client lndClientSendCoins, address string, amount int64, targetConf int32, satPerVbyte *uint64) (r string, err error) {
 	ctx := context.Background()
 
 	sendCoinsReq := lnrpc.SendCoinsRequest{
@@ -19,9 +19,17 @@ func sendCoins(client lndClientSendCoins, address string, amount int64, satPerVb
 		Amount: amount,
 	}
 
-	if satPerVbyte != nil {
+	log.Debug().Msgf("before spvb in req: %v", sendCoinsReq.SatPerVbyte)
+
+	switch {
+	case satPerVbyte != nil:
 		sendCoinsReq.SatPerVbyte = *satPerVbyte
+	case targetConf != 0:
+		sendCoinsReq.TargetConf = targetConf
+	default:
 	}
+
+	//log.Debug().Msgf("after spvb in req: %v", sendCoinsReq.SatPerVbyte)
 
 	resp, err := client.SendCoins(ctx, &sendCoinsReq)
 	if err != nil {
