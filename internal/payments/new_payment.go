@@ -59,7 +59,6 @@ func SendNewPayment(dest []byte,
 
 //Get response for new payment request
 func receivePayResponse(req routerrpc.Router_SendPaymentClient, ctx context.Context) error {
-	//log.Debug().Msgf("receive pay response")
 	for {
 		select {
 		case <-ctx.Done():
@@ -73,6 +72,7 @@ func receivePayResponse(req routerrpc.Router_SendPaymentClient, ctx context.Cont
 			log.Info().Msgf("New payment EOF")
 			return nil
 		}
+
 		if err != nil {
 			log.Error().Msgf("Err receive %v", err.Error())
 			return err
