@@ -18,10 +18,11 @@ func (m MockSendCoinsLClnt) SendCoins(ctx context.Context, in *lnrpc.SendCoinsRe
 func TestSendCoins(t *testing.T) {
 	address := "test"
 	amount := 123
+	targetConf := 0
 	var satPerVbyte *uint64
 
 	client := MockSendCoinsLClnt{}
-	resp, err := sendCoins(client, address, int64(amount), satPerVbyte)
+	resp, err := sendCoins(client, address, int64(amount), int32(targetConf), satPerVbyte)
 
 	if err != nil {
 		t.Fail()

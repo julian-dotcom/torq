@@ -4,9 +4,14 @@ import (
 	"context"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
 )
 
-func newAddress(client lnrpc.LightningClient, addressType int32, account string) (r string, err error) {
+type lndNewAddrClient interface {
+	NewAddress(ctx context.Context, in *lnrpc.NewAddressRequest, opts ...grpc.CallOption) (*lnrpc.NewAddressResponse, error)
+}
+
+func newAddress(client lndNewAddrClient, addressType int32, account string) (r string, err error) {
 	ctx := context.Background()
 	lnAddressType := lnrpc.AddressType(addressType)
 	newAddressReq := lnrpc.NewAddressRequest{
