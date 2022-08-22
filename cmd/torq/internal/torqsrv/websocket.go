@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"github.com/rs/zerolog/log"
 )
 
 type wsRequest struct {
@@ -33,9 +32,12 @@ type wsError struct {
 	Error string `json:"error"`
 }
 
-func processWsReq(conn *websocket.Conn, req wsRequest) {
+func processWsReq(c *gin.Context, conn *websocket.Conn, req wsRequest) {
 	if req.Type == "ping" {
-		conn.WriteJSON(Pong{Message: "pong"})
+		err := conn.WriteJSON(Pong{Message: "pong"})
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+		}
 		return
 	}
 
@@ -46,7 +48,10 @@ func processWsReq(conn *websocket.Conn, req wsRequest) {
 			Type:  "Error",
 			Error: "Id cannot be empty",
 		}
-		conn.WriteJSON(wsr)
+		err := conn.WriteJSON(wsr)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+		}
 		return
 	}
 
@@ -58,7 +63,10 @@ func processWsReq(conn *websocket.Conn, req wsRequest) {
 				Type:  "Error",
 				Error: "newPaymentRequest cannot be empty",
 			}
-			conn.WriteJSON(wsr)
+			err := conn.WriteJSON(wsr)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, err)
+			}
 			break
 		}
 
@@ -66,7 +74,10 @@ func processWsReq(conn *websocket.Conn, req wsRequest) {
 			Id:     req.Id,
 			Amount: req.NewPaymentRequest.Amount,
 		}
-		conn.WriteJSON(wsr)
+		err := conn.WriteJSON(wsr)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+		}
 		break
 	default:
 		err := fmt.Errorf("Unknown request type: %s", req.Type)
@@ -75,7 +86,10 @@ func processWsReq(conn *websocket.Conn, req wsRequest) {
 			Type:  "Error",
 			Error: err.Error(),
 		}
-		conn.WriteJSON(wsr)
+		err = conn.WriteJSON(wsr)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+		}
 	}
 }
 
@@ -94,10 +108,10 @@ func WebsocketHandler(c *gin.Context) {
 			conn.Close()
 			return
 		case *websocket.HandshakeError:
-			log.Error().Msgf("%v", err)
+			server_errors.LogAndSendServerError(c, err)
 			return
 		case nil:
-			processWsReq(conn, req)
+			go processWsReq(c, conn, req)
 			continue
 		default:
 			wsr := wsError{
