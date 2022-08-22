@@ -4,22 +4,15 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/jmoiron/sqlx"
+	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 type wsRequest struct {
-	Id                 string `json:"id"`
-	Type               string `json:"type"`
-	*NewPaymentRequest `json:"newPaymentRequest"`
-}
-
-type NewPaymentRequest struct {
-	Amount float64 `json:"amount"`
-}
-
-type NewPaymentResponse struct {
-	Id     string  `json:"id"`
-	Amount float64 `json:"amount"`
+	Id                string                      `json:"id"`
+	Type              string                      `json:"type"`
+	NewPaymentRequest *payments.NewPaymentRequest `json:"newPaymentRequest"`
 }
 
 type Pong struct {
@@ -32,7 +25,7 @@ type wsError struct {
 	Error string `json:"error"`
 }
 
-func processWsReq(c *gin.Context, conn *websocket.Conn, req wsRequest) {
+func processWsReq(db *sqlx.DB, c *gin.Context, conn *websocket.Conn, req wsRequest) {
 	if req.Type == "ping" {
 		err := conn.WriteJSON(Pong{Message: "pong"})
 		if err != nil {
@@ -57,6 +50,8 @@ func processWsReq(c *gin.Context, conn *websocket.Conn, req wsRequest) {
 
 	switch req.Type {
 	case "newPayment":
+		fmt.Println("newPayment")
+
 		if req.NewPaymentRequest == nil {
 			wsr := wsError{
 				Id:    req.Id,
@@ -69,15 +64,8 @@ func processWsReq(c *gin.Context, conn *websocket.Conn, req wsRequest) {
 			}
 			break
 		}
-
-		wsr := NewPaymentResponse{
-			Id:     req.Id,
-			Amount: req.NewPaymentRequest.Amount,
-		}
-		err := conn.WriteJSON(wsr)
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-		}
+		// Process a valid payment request
+		payments.SendNewPayment(conn, db, c, *req.NewPaymentRequest)
 		break
 	default:
 		err := fmt.Errorf("Unknown request type: %s", req.Type)
@@ -93,7 +81,7 @@ func processWsReq(c *gin.Context, conn *websocket.Conn, req wsRequest) {
 	}
 }
 
-func WebsocketHandler(c *gin.Context) {
+func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
 	conn, err := wsUpgrad.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -111,7 +99,7 @@ func WebsocketHandler(c *gin.Context) {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		case nil:
-			go processWsReq(c, conn, req)
+			go processWsReq(db, c, conn, req)
 			continue
 		default:
 			wsr := wsError{

@@ -5,7 +5,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	qp "github.com/lncapital/torq/internal/query_parser"
 	"github.com/lncapital/torq/internal/settings"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
@@ -157,7 +156,7 @@ func newPaymentHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Connecting to LND")
 	}
 	defer conn.Close()
-	client := routerrpc.NewRouterClient(conn)
+	//client := routerrpc.NewRouterClient(conn)
 
 	var requestBody NewPaymentRequestBody
 
@@ -187,13 +186,13 @@ func newPaymentHandler(c *gin.Context, db *sqlx.DB) {
 
 	log.Debug().Msgf("Invoice: %v", invoice)
 
-	resp, err := SendNewPayment(dest, amt, amtMSat, paymentHash, invoice, timeOutSecs, client)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Sending payment")
-		return
-	}
-
-	c.JSON(http.StatusOK, resp)
+	//resp, err := SendNewPayment(dest, amt, amtMSat, paymentHash, invoice, timeOutSecs, client)
+	//if err != nil {
+	//	server_errors.WrapLogAndSendServerError(c, err, "Sending payment")
+	//	return
+	//}
+	//
+	//c.JSON(http.StatusOK, resp)
 }
 
 func RegisterPaymentsRoutes(r *gin.RouterGroup, db *sqlx.DB) {

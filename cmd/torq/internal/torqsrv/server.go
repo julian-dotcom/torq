@@ -76,9 +76,10 @@ var wsUpgrad = websocket.Upgrader{
 }
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub func()) {
-
-	// Add websocket ping
-	r.GET("/ws", WebsocketHandler)
+	// Websocket
+	ws := r.Group("/ws")
+	ws.Use(auth.AuthRequired)
+	ws.GET("/", func(c *gin.Context) { WebsocketHandler(c, db) })
 
 	applyCors(r)
 	registerStaticRoutes(r)

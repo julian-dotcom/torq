@@ -2,15 +2,37 @@ package payments
 
 import (
 	"context"
+	"github.com/cockroachdb/errors"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
-	"github.com/rs/zerolog/log"
-	"golang.org/x/sync/errgroup"
+	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/lnd_connect"
+	"github.com/lncapital/torq/pkg/server_errors"
 	"google.golang.org/grpc"
 	"io"
 )
 
 type rrpcClientSendPayment interface {
 	SendPayment(ctx context.Context, in *routerrpc.SendPaymentRequest, opts ...grpc.CallOption) (routerrpc.Router_SendPaymentClient, error)
+}
+
+type NewPaymentRequest struct {
+	Id          string  `json:"id"`
+	Type        string  `json:"type"`
+	Invoice     string  `json:"invoice"`
+	Dest        *[]byte `json:"dest"`
+	Amt         *int64  `json:"amt"`
+	AmtMSat     *int64  `json:"amtMsat"`
+	PaymentHash *[]byte `json:"payment_Hash"`
+	TimeOutSecs int32   `json:"timeoutSecs"`
+}
+
+type NewPaymentResponse struct {
+	Id     string  `json:"id"`
+	Type   string  `json:"type"`
+	Amount float64 `json:"amount"`
 }
 
 //SendNewPayment - send new payment
@@ -20,69 +42,51 @@ type rrpcClientSendPayment interface {
 //amt and amt_msat are mutually exclusive
 //payments hash - the hash to use within the payment's HTLC
 //timeout seconds is mandatory
-func SendNewPayment(dest []byte,
-	amt int64,
-	amtMSat int64,
-	paymentHash []byte,
-	invoice string,
-	timeOutSecs int32,
-	client rrpcClientSendPayment) (r string, err error) {
+func SendNewPayment(
+	wsConn *websocket.Conn,
+	db *sqlx.DB,
+	c *gin.Context,
+	npReq NewPaymentRequest,
+) (err error) {
+
+	connectionDetails, err := settings.GetConnectionDetails(db)
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Failed connecting to LND")
+	}
+	defer conn.Close()
+	client := routerrpc.NewRouterClient(conn)
 
 	ctx := context.Background()
-	errs, ctx := errgroup.WithContext(ctx)
 
 	newPayReq := routerrpc.SendPaymentRequest{
-		Dest:           dest,
-		Amt:            amt,
-		AmtMsat:        amtMSat,
-		PaymentHash:    paymentHash,
-		PaymentRequest: invoice,
-		TimeoutSeconds: timeOutSecs,
+		PaymentRequest: npReq.Invoice,
+		TimeoutSeconds: npReq.TimeOutSecs,
 	}
 
-	newPayRes, err := client.SendPayment(ctx, &newPayReq)
+	req, err := client.SendPaymentV2(ctx, &newPayReq)
 	if err != nil {
-		log.Error().Msgf("Err sending payment: %v", err)
-		r = "Err sending payment"
-		return r, err
+		return errors.Newf("Err sending payment: %v", err)
 	}
-	errs.Go(func() error {
-		err = receivePayResponse(newPayRes, ctx)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	r = "Payment sending"
-	return r, errs.Wait()
-}
-
-//Get response for new payment request
-func receivePayResponse(req routerrpc.Router_SendPaymentClient, ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Error().Msgf("%v", ctx.Err())
-			return ctx.Err()
+			return nil
 		default:
 		}
 
 		resp, err := req.Recv()
 		if err == io.EOF {
-			log.Info().Msgf("New payment EOF")
 			return nil
 		}
 
 		if err != nil {
-			log.Error().Msgf("Err receive %v", err.Error())
-			return err
+			return errors.Newf("Err sending payment: %v", err)
 		}
-
-		if resp.GetState().String() == "SUCCEEDED" {
-			log.Info().Msgf("Payment sent")
-			return nil
-		}
-
-		//log.Debug().Msgf("Sending payment: %v", resp.GetState().String())
+		// Write the payment status to the client
+		wsConn.WriteJSON(resp)
 	}
 }
