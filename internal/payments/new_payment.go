@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/lncapital/torq/internal/settings"
@@ -43,7 +42,7 @@ type NewPaymentResponse struct {
 //payments hash - the hash to use within the payment's HTLC
 //timeout seconds is mandatory
 func SendNewPayment(
-	wsConn *websocket.Conn,
+	wChan chan interface{},
 	db *sqlx.DB,
 	c *gin.Context,
 	npReq NewPaymentRequest,
@@ -66,7 +65,6 @@ func SendNewPayment(
 		PaymentRequest: npReq.Invoice,
 		TimeoutSeconds: npReq.TimeOutSecs,
 	}
-
 	req, err := client.SendPaymentV2(ctx, &newPayReq)
 	if err != nil {
 		return errors.Newf("Err sending payment: %v", err)
@@ -77,7 +75,6 @@ func SendNewPayment(
 			return nil
 		default:
 		}
-
 		resp, err := req.Recv()
 		if err == io.EOF {
 			return nil
@@ -86,7 +83,8 @@ func SendNewPayment(
 		if err != nil {
 			return errors.Newf("Err sending payment: %v", err)
 		}
+
 		// Write the payment status to the client
-		wsConn.WriteJSON(resp)
+		wChan <- resp
 	}
 }

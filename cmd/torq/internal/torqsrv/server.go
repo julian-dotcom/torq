@@ -78,6 +78,7 @@ var wsUpgrad = websocket.Upgrader{
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub func()) {
 	// Websocket
 	ws := r.Group("/ws")
+	// TODO: This authentication does not work. Implement ws auth.
 	ws.Use(auth.AuthRequired)
 	ws.GET("/", func(c *gin.Context) { WebsocketHandler(c, db) })
 

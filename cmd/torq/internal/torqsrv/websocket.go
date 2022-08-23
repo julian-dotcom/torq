@@ -25,58 +25,48 @@ type wsError struct {
 	Error string `json:"error"`
 }
 
-func processWsReq(db *sqlx.DB, c *gin.Context, conn *websocket.Conn, req wsRequest) {
+func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsRequest) {
 	if req.Type == "ping" {
-		err := conn.WriteJSON(Pong{Message: "pong"})
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-		}
+		wChan <- Pong{Message: "pong"}
 		return
 	}
 
 	// Validate request
 	if req.Id == "" {
-		wsr := wsError{
+		wChan <- wsError{
 			Id:    req.Id,
 			Type:  "Error",
 			Error: "Id cannot be empty",
-		}
-		err := conn.WriteJSON(wsr)
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
 		}
 		return
 	}
 
 	switch req.Type {
 	case "newPayment":
-		fmt.Println("newPayment")
-
 		if req.NewPaymentRequest == nil {
-			wsr := wsError{
+			wChan <- wsError{
 				Id:    req.Id,
 				Type:  "Error",
 				Error: "newPaymentRequest cannot be empty",
 			}
-			err := conn.WriteJSON(wsr)
-			if err != nil {
-				server_errors.LogAndSendServerError(c, err)
-			}
 			break
 		}
 		// Process a valid payment request
-		payments.SendNewPayment(conn, db, c, *req.NewPaymentRequest)
+		err := payments.SendNewPayment(wChan, db, c, *req.NewPaymentRequest)
+		if err != nil {
+			wChan <- wsError{
+				Id:    req.Id,
+				Type:  "Error",
+				Error: err.Error(),
+			}
+		}
 		break
 	default:
 		err := fmt.Errorf("Unknown request type: %s", req.Type)
-		wsr := wsError{
+		wChan <- wsError{
 			Id:    req.Id,
 			Type:  "Error",
 			Error: err.Error(),
-		}
-		err = conn.WriteJSON(wsr)
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
 		}
 	}
 }
@@ -88,6 +78,18 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	defer conn.Close()
+
+	wc := make(chan interface{})
+
+	go func(c *gin.Context) {
+		for {
+			err := conn.WriteJSON(<-wc)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, err)
+			}
+		}
+	}(c)
+
 	for {
 		req := wsRequest{}
 		err := conn.ReadJSON(&req)
@@ -99,15 +101,15 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		case nil:
-			go processWsReq(db, c, conn, req)
+			go processWsReq(db, c, wc, req)
 			continue
 		default:
 			wsr := wsError{
 				Id:    req.Id,
 				Type:  "Error",
-				Error: "Could not parse request, please check your JSON",
+				Error: fmt.Sprintf("Could not parse request, please check that your JSON is correctly formated"),
 			}
-			conn.WriteJSON(wsr)
+			wc <- wsr
 			continue
 		}
 
