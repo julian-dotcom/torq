@@ -24,11 +24,12 @@ type rrpcClientSendPayment interface {
 }
 
 type NewPaymentRequest struct {
-	Invoice      string  `json:"invoice"`
-	TimeOutSecs  int32   `json:"timeoutSecs"`
-	Dest         *[]byte `json:"dest"`
-	AmtMSat      *int64  `json:"amountMsat"`
-	FeeLimitMsat *int64  `json:"feeLimitMsat"`
+	Invoice          string  `json:"invoice"`
+	TimeOutSecs      int32   `json:"timeoutSecs"`
+	Dest             *[]byte `json:"dest"`
+	AmtMSat          *int64  `json:"amountMsat"`
+	FeeLimitMsat     *int64  `json:"feeLimitMsat"`
+	AllowSelfPayment *bool   `json:"allowSelfPayment"`
 }
 
 type MppRecord struct {
@@ -42,21 +43,29 @@ type hops struct {
 	AmtToForwardMsat int64
 	PubKey           string
 	MppRecord        MppRecord
+	// TODO: Imolement AMP record here when needed
 }
 
 type route struct {
 	TotalTimeLock uint32
-	Hops          []*hops
+	Hops          []hops
 	TotalAmtMsat  int64
 }
 
-type Attempt struct {
+type failureDetails struct {
+	Reason             string `json:"reason"`
+	FailureSourceIndex uint32 `json:"failure_source_index"`
+	Height             uint32 `json:"height,omitempty"`
+}
+
+type attempt struct {
 	AttemptId     uint64
 	Status        string
 	Route         route
 	AttemptTimeNs time.Time
 	ResolveTimeNs time.Time
 	Preimage      string
+	Failure       failureDetails
 }
 type NewPaymentResponse struct {
 	ReqId          string    `json:"reqId"`
@@ -66,8 +75,9 @@ type NewPaymentResponse struct {
 	Preimage       string    `json:"preimage"`
 	PaymentRequest string    `json:"paymentRequest"`
 	AmountMsat     int64     `json:"amountMsat"`
+	FeeLimitMsat   int64     `json:"amountMsat"`
 	CreationDate   time.Time `json:"creationDate"`
-	Attempt        Attempt   `json:"path"`
+	Attempt        attempt   `json:"path"`
 }
 
 //SendNewPayment - send new payment
@@ -101,9 +111,7 @@ func SendNewPayment(
 	return sendPayment(client, npReq, wChan, reqId)
 }
 
-func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan chan interface{},
-	reqId string) (err error) {
-
+func newSendPaymentRequest(npReq NewPaymentRequest) (r routerrpc.SendPaymentRequest) {
 	newPayReq := routerrpc.SendPaymentRequest{
 		PaymentRequest: npReq.Invoice,
 		TimeoutSeconds: npReq.TimeOutSecs,
@@ -121,22 +129,34 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 		newPayReq.AmtMsat = *npReq.AmtMSat
 	}
 
+	if npReq.AllowSelfPayment != nil {
+		newPayReq.AllowSelfPayment = *npReq.AllowSelfPayment
+	}
+	return newPayReq
+}
+
+func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan chan interface{}, reqId string) (err error) {
+
+	// Create and validate payment request details
+	newPayReq := newSendPaymentRequest(npReq)
+
 	ctx := context.Background()
 	req, err := client.SendPaymentV2(ctx, &newPayReq)
 	if err != nil {
 		return errors.Newf("Err sending payment: %v", err)
 	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
 		}
+
 		resp, err := req.Recv()
 		if err == io.EOF {
 			return nil
 		}
-
 		if err != nil {
 			return errors.Newf("Err sending payment: %v", err)
 		}
@@ -154,6 +174,7 @@ func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
 	r.Preimage = p.PaymentPreimage
 	r.AmountMsat = p.ValueMsat
 	r.CreationDate = time.Unix(0, p.CreationTimeNs)
+
 	for _, attempt := range p.GetHtlcs() {
 		r.Attempt.AttemptId = attempt.AttemptId
 		r.Attempt.Status = attempt.Status.String()
@@ -161,8 +182,14 @@ func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
 		r.Attempt.ResolveTimeNs = time.Unix(0, attempt.ResolveTimeNs)
 		r.Attempt.Preimage = hex.EncodeToString(attempt.Preimage)
 
+		if attempt.Failure != nil {
+			r.Attempt.Failure.Reason = attempt.Failure.Code.String()
+			r.Attempt.Failure.FailureSourceIndex = attempt.Failure.FailureSourceIndex
+			r.Attempt.Failure.Height = attempt.Failure.Height
+		}
+
 		for _, hop := range attempt.Route.Hops {
-			r.Attempt.Route.Hops = append(r.Attempt.Route.Hops, &hops{
+			r.Attempt.Route.Hops = append(r.Attempt.Route.Hops, hops{
 				ChanId:           channels.ConvertLNDShortChannelID(hop.ChanId),
 				AmtToForwardMsat: hop.AmtToForwardMsat,
 				Expiry:           hop.Expiry,
@@ -173,6 +200,7 @@ func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
 				},
 			})
 		}
+
 		r.Attempt.Route.TotalTimeLock = attempt.Route.TotalTimeLock
 		r.Attempt.Route.TotalAmtMsat = attempt.Route.TotalAmtMsat
 	}
