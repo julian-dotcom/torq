@@ -1,18 +1,13 @@
 package payments
 
-//
 //import (
 //	"context"
 //	"github.com/cockroachdb/errors"
 //	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
-//	"github.com/lncapital/torq/internal/logging"
-//	"github.com/rzajac/zltest"
 //	"google.golang.org/grpc"
-//	"google.golang.org/grpc/metadata"
 //	"io"
 //	"sync/atomic"
 //	"testing"
-//	"time"
 //)
 //
 //var payCounter int64
@@ -29,36 +24,6 @@ package payments
 //type MockSendPaymentClientRecv struct {
 //	eof bool
 //	err bool
-//}
-//
-//func (ml MockSendPaymentClientRecv) Header() (metadata.MD, error) {
-//	//TODO implement me
-//	panic("implement me")
-//}
-//
-//func (ml MockSendPaymentClientRecv) Trailer() metadata.MD {
-//	//TODO implement me
-//	panic("implement me")
-//}
-//
-//func (ml MockSendPaymentClientRecv) CloseSend() error {
-//	//TODO implement me
-//	panic("implement me")
-//}
-//
-//func (ml MockSendPaymentClientRecv) Context() context.Context {
-//	//TODO implement me
-//	panic("implement me")
-//}
-//
-//func (ml MockSendPaymentClientRecv) SendMsg(m interface{}) error {
-//	//TODO implement me
-//	panic("implement me")
-//}
-//
-//func (ml MockSendPaymentClientRecv) RecvMsg(m interface{}) error {
-//	//TODO implement me
-//	panic("implement me")
 //}
 //
 //func (ml MockSendPaymentClientRecv) Recv() (*routerrpc.PaymentStatus, error) {
@@ -89,7 +54,7 @@ package payments
 //		t.Fatalf("Failed")
 //	}
 //}
-//
+
 //func TestSendRecvCalled(t *testing.T) {
 //	payCounter = 0
 //

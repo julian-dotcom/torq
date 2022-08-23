@@ -10,7 +10,7 @@ import (
 )
 
 type wsRequest struct {
-	Id                string                      `json:"id"`
+	ReqId             string                      `json:"reqId"`
 	Type              string                      `json:"type"`
 	NewPaymentRequest *payments.NewPaymentRequest `json:"newPaymentRequest"`
 	Password          *string                     `json:"password"`
@@ -25,7 +25,7 @@ type AuthSuccess struct {
 }
 
 type wsError struct {
-	Id    string `json:"id"`
+	ReqId string `json:"id"`
 	Type  string `json:"type"`
 	Error string `json:"error"`
 }
@@ -37,11 +37,11 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 	}
 
 	// Validate request
-	if req.Id == "" {
+	if req.ReqId == "" {
 		wChan <- wsError{
-			Id:    req.Id,
+			ReqId: req.ReqId,
 			Type:  "Error",
-			Error: "Id cannot be empty",
+			Error: "ReqId cannot be empty",
 		}
 		return
 	}
@@ -49,24 +49,24 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 	switch req.Type {
 	case "auth":
 		wChan <- wsError{
-			Id:    req.Id,
+			ReqId: req.ReqId,
 			Type:  "Error",
 			Error: "You are already authenticated",
 		}
 	case "newPayment":
 		if req.NewPaymentRequest == nil {
 			wChan <- wsError{
-				Id:    req.Id,
+				ReqId: req.ReqId,
 				Type:  "Error",
 				Error: "newPaymentRequest cannot be empty",
 			}
 			break
 		}
 		// Process a valid payment request
-		err := payments.SendNewPayment(wChan, db, c, *req.NewPaymentRequest)
+		err := payments.SendNewPayment(wChan, db, c, *req.NewPaymentRequest, req.ReqId)
 		if err != nil {
 			wChan <- wsError{
-				Id:    req.Id,
+				ReqId: req.ReqId,
 				Type:  "Error",
 				Error: err.Error(),
 			}
@@ -75,7 +75,7 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 	default:
 		err := fmt.Errorf("Unknown request type: %s", req.Type)
 		wChan <- wsError{
-			Id:    req.Id,
+			ReqId: req.ReqId,
 			Type:  "Error",
 			Error: err.Error(),
 		}
@@ -84,13 +84,6 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 
 func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 
-	//username, password, ok := c.Request.BasicAuth()
-	//fmt.Println(username, password, ok)
-	//if !ok || username != "admin" || password != apiPwd {
-	//	c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication failed"})
-	//	return
-	//}
-
 	conn, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -98,8 +91,8 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 	}
 	defer conn.Close()
 
+	// Channel for writing responses to the client safely
 	wc := make(chan interface{})
-
 	go func(c *gin.Context) {
 		for {
 			err := conn.WriteJSON(<-wc)
@@ -109,6 +102,7 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 		}
 	}(c)
 
+	// Boolean indicating whether the client is authenticated
 	allowedUser := false
 
 	for {
@@ -122,10 +116,12 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		case nil:
+			
+			// Check if the client is authenticated
 			if allowedUser == false {
 				if req.Type != "auth" {
 					wc <- wsError{
-						Id:    req.Id,
+						ReqId: req.ReqId,
 						Type:  "Error",
 						Error: "Unauthorized. Please login first.",
 					}
@@ -137,7 +133,7 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 					continue
 				}
 				wc <- wsError{
-					Id:    req.Id,
+					ReqId: req.ReqId,
 					Type:  "Error",
 					Error: "Incorrect password",
 				}
@@ -148,7 +144,7 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 			continue
 		default:
 			wsr := wsError{
-				Id:    req.Id,
+				ReqId: req.ReqId,
 				Type:  "Error",
 				Error: fmt.Sprintf("Could not parse request, please check that your JSON is correctly formated"),
 			}
