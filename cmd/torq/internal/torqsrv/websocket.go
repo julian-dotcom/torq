@@ -13,10 +13,15 @@ type wsRequest struct {
 	Id                string                      `json:"id"`
 	Type              string                      `json:"type"`
 	NewPaymentRequest *payments.NewPaymentRequest `json:"newPaymentRequest"`
+	Password          *string                     `json:"password"`
 }
 
 type Pong struct {
 	Message string `json:"message"`
+}
+
+type AuthSuccess struct {
+	AuthSuccess bool `json:"authSuccess"`
 }
 
 type wsError struct {
@@ -42,6 +47,12 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 	}
 
 	switch req.Type {
+	case "auth":
+		wChan <- wsError{
+			Id:    req.Id,
+			Type:  "Error",
+			Error: "You are already authenticated",
+		}
 	case "newPayment":
 		if req.NewPaymentRequest == nil {
 			wChan <- wsError{
@@ -71,8 +82,16 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 	}
 }
 
-func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
-	conn, err := wsUpgrad.Upgrade(c.Writer, c.Request, nil)
+func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
+
+	//username, password, ok := c.Request.BasicAuth()
+	//fmt.Println(username, password, ok)
+	//if !ok || username != "admin" || password != apiPwd {
+	//	c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication failed"})
+	//	return
+	//}
+
+	conn, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -90,6 +109,8 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}(c)
 
+	allowedUser := false
+
 	for {
 		req := wsRequest{}
 		err := conn.ReadJSON(&req)
@@ -101,6 +122,28 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		case nil:
+			if allowedUser == false {
+				if req.Type != "auth" {
+					wc <- wsError{
+						Id:    req.Id,
+						Type:  "Error",
+						Error: "Unauthorized. Please login first.",
+					}
+					continue
+				}
+				if *req.Password == apiPwd {
+					allowedUser = true
+					wc <- AuthSuccess{AuthSuccess: true}
+					continue
+				}
+				wc <- wsError{
+					Id:    req.Id,
+					Type:  "Error",
+					Error: "Incorrect password",
+				}
+				continue
+			}
+
 			go processWsReq(db, c, wc, req)
 			continue
 		default:

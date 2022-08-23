@@ -3,6 +3,7 @@ package torqsrv
 import (
 	"fmt"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/contrib/gzip"
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -65,7 +66,7 @@ func apiPasswordMiddleware(apiPswd string) gin.HandlerFunc {
 	}
 }
 
-var wsUpgrad = websocket.Upgrader{
+var wsUpgrade = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	//check origin will check the cross region source
@@ -76,11 +77,10 @@ var wsUpgrad = websocket.Upgrader{
 }
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub func()) {
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	// Websocket
 	ws := r.Group("/ws")
-	// TODO: This authentication does not work. Implement ws auth.
-	ws.Use(auth.AuthRequired)
-	ws.GET("/", func(c *gin.Context) { WebsocketHandler(c, db) })
+	ws.GET("", func(c *gin.Context) { WebsocketHandler(c, db, apiPwd) })
 
 	applyCors(r)
 	registerStaticRoutes(r)

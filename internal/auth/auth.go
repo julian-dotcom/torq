@@ -7,12 +7,12 @@ import (
 	"strings"
 )
 
-const userkey = "user"
+const Userkey = "user"
 
 // AuthRequired is a simple middleware to check the session
 func AuthRequired(c *gin.Context) {
 	session := sessions.Default(c)
-	user := session.Get(userkey)
+	user := session.Get(Userkey)
 	if user == nil {
 		// Abort the request with the appropriate error code
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
@@ -43,7 +43,7 @@ func Login(apiPwd string) gin.HandlerFunc {
 
 		// Save the username in the session
 		// set this to the users ID when moving to multi users setup
-		session.Set(userkey, username)
+		session.Set(Userkey, username)
 		if err := session.Save(); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
 			return
@@ -55,7 +55,7 @@ func Login(apiPwd string) gin.HandlerFunc {
 func Logout(c *gin.Context) {
 	session := sessions.Default(c)
 
-	session.Delete(userkey)
+	session.Delete(Userkey)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
 }
