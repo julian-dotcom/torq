@@ -5,15 +5,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
+	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 type wsRequest struct {
-	ReqId             string                      `json:"reqId"`
-	Type              string                      `json:"type"`
-	NewPaymentRequest *payments.NewPaymentRequest `json:"newPaymentRequest"`
-	Password          *string                     `json:"password"`
+	ReqId              string                       `json:"reqId"`
+	Type               string                       `json:"type"`
+	NewPaymentRequest  *payments.NewPaymentRequest  `json:"newPaymentRequest"`
+	OpenChannelRequest *channels.OpenChannelRequest `json:"openChannelRequest"`
+	Password           *string                      `json:"password"`
 }
 
 type Pong struct {
@@ -72,6 +74,17 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 			}
 		}
 		break
+	// TODO: Must implement tests before uncommenting this
+	//case "openChannel":
+	//err := channels.OpenChannel(db, wChan, *req.OpenChannelRequest, req.ReqId)
+	//if err != nil {
+	//	wChan <- wsError{
+	//		ReqId: req.ReqId,
+	//		Type:  "Error",
+	//		Error: err.Error(),
+	//	}
+	//}
+	//    break
 	default:
 		err := fmt.Errorf("Unknown request type: %s", req.Type)
 		wChan <- wsError{
@@ -116,7 +129,6 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		case nil:
-			
 			// Check if the client is authenticated
 			if allowedUser == false {
 				if req.Type != "auth" {
