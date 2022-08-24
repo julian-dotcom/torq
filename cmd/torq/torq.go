@@ -193,67 +193,6 @@ func main() {
 		},
 	}
 
-	subscribe := &cli.Command{
-		Name:  "subscribe",
-		Usage: "Start the subscribe daemon, listening for data from LND",
-		Action: func(c *cli.Context) error {
-
-			// Print startup message
-			fmt.Printf("Starting Torq v%s\n", build.Version())
-
-			fmt.Println("Connecting to the Torq database")
-			db, err := database.PgConnect(c.String("db.name"), c.String("db.user"),
-				c.String("db.password"), c.String("db.host"), c.String("db.port"))
-			if err != nil {
-				return errors.Wrap(err, "subscribe cmd")
-			}
-
-			defer func() {
-				cerr := db.Close()
-				if err == nil {
-					err = cerr
-				}
-			}()
-
-			fmt.Println("Checking for migrations..")
-			// Check if the database needs to be migrated.
-			err = database.MigrateUp(db)
-			if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-				return err
-			}
-
-			fmt.Println("Connecting to lightning node")
-			// Connect to the node
-			connectionDetails, err := settings.GetConnectionDetails(db)
-			if err != nil {
-				return fmt.Errorf("failed to get node connection details: %v", err)
-			}
-
-			conn, err := lnd_connect.Connect(
-				connectionDetails[0].GRPCAddress,
-				connectionDetails[0].TLSFileBytes,
-				connectionDetails[0].MacaroonFileBytes)
-			if err != nil {
-				return fmt.Errorf("failed to connect to lnd: %v", err)
-			}
-
-			ctx := context.Background()
-			errs, ctx := errgroup.WithContext(ctx)
-
-			// Subscribe to data from the node
-			//   TODO: Attempt to restart subscriptions if they fail.
-			errs.Go(func() error {
-				err = subscribe.Start(ctx, conn, db, 1)
-				if err != nil {
-					return err
-				}
-				return nil
-			})
-
-			return errs.Wait()
-		},
-	}
-
 	migrateUp := &cli.Command{
 		Name:  "migrate_up",
 		Usage: "Migrates the database to the latest version",
@@ -286,7 +225,6 @@ func main() {
 
 	app.Commands = cli.Commands{
 		start,
-		subscribe,
 		migrateUp,
 	}
 
