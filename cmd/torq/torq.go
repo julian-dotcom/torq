@@ -14,14 +14,15 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
-	"golang.org/x/sync/errgroup"
 	"os"
+	"sync"
 	"time"
 )
 
 var startchan = make(chan struct{})
+var startedchan = make(chan int)
 var stopchan = make(chan struct{})
-var stoppedchan = make(chan struct{})
+var stoppedchan = make(chan int)
 
 func main() {
 	app := cli.NewApp()
@@ -175,6 +176,7 @@ func main() {
 				// starts LND subscription when Torq starts
 				startchan <- struct{}{}
 
+				// go routine that looks for stop signals and cancels the context
 				go (func() {
 					for {
 						select {
@@ -233,6 +235,23 @@ func main() {
 		log.Fatal().Err(err).Send()
 	}
 
+}
+
+type SensorData struct {
+	mu   sync.RWMutex
+	last float64
+}
+
+var runList []int
+
+func KeepTrackOfRunningSubscriptions() {
+	for {
+		select {
+		case stoppedId := <-stoppedchan:
+			cancel()
+			ctx, cancel = context.WithCancel(context.Background())
+		}
+	}
 }
 
 func RestartLNDSubscription() {
