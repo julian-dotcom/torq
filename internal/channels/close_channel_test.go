@@ -85,3 +85,81 @@ func Test_convertChannelPoint(t *testing.T) {
 		}
 	})
 }
+
+func Test_prepareCloseRequest(t *testing.T) {
+	fundTxidStr := "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c"
+	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: fundTxidStr}
+
+	var channelPoint = &lnrpc.ChannelPoint{FundingTxid: fundingTxid, OutputIndex: 1}
+	var force = true
+	var targetConf int32 = 12
+	var deliveryAddress = "test"
+	var satPerVbyte uint64 = 12
+
+	tests := []struct {
+		name    string
+		input   CloseChannelRequest
+		want    lnrpc.CloseChannelRequest
+		wantErr bool
+	}{
+		{
+			"Both targetConf & satPerVbyte provided",
+			CloseChannelRequest{
+				ChannelPoint:    "test",
+				Force:           nil,
+				TargetConf:      &targetConf,
+				DeliveryAddress: nil,
+				SatPerVbyte:     &satPerVbyte,
+			},
+			lnrpc.CloseChannelRequest{
+				ChannelPoint:    nil,
+				Force:           false,
+				TargetConf:      0,
+				DeliveryAddress: "",
+				SatPerVbyte:     0,
+			},
+			true,
+		},
+		{
+			"Just mandatory params",
+			CloseChannelRequest{
+				ChannelPoint: "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c:1",
+			},
+			lnrpc.CloseChannelRequest{
+				ChannelPoint: channelPoint,
+			},
+			false,
+		},
+		{
+			"All params provide",
+			CloseChannelRequest{
+				ChannelPoint:    "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c:1",
+				Force:           &force,
+				TargetConf:      &targetConf,
+				DeliveryAddress: &deliveryAddress,
+			},
+			lnrpc.CloseChannelRequest{
+				ChannelPoint:    channelPoint,
+				Force:           true,
+				TargetConf:      12,
+				DeliveryAddress: "test",
+			},
+			false,
+		},
+	}
+	for i, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := prepareCloseRequest(test.input)
+
+			if err != nil {
+				if test.wantErr {
+					return
+				}
+				t.Errorf("prepareOpenRequest error: %v", err)
+			}
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("%d: newSendPaymentRequest()\nGot:\n%v\nWant:\n%v\n", i, got, test.want)
+			}
+		})
+	}
+}

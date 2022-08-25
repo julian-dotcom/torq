@@ -46,14 +46,37 @@ type CloseChannelResponse struct {
 }
 
 func CloseChannel(wChan chan interface{}, db *sqlx.DB, c *gin.Context, ccReq CloseChannelRequest, reqId string) (err error) {
+	connectionDetails, err := settings.GetConnectionDetails(db)
+	if err != nil {
+		return errors.New("Error getting node connection details from the db")
+	}
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		//return errors.New("Failed connecting to LND")
+		server_errors.WrapLogAndSendServerError(c, err, "Failed connecting to LND")
+	}
+	defer conn.Close()
+	client := lnrpc.NewLightningClient(conn)
 
+	closeChanReq, err := prepareCloseRequest(ccReq)
+	if err != nil {
+		return err
+	}
+
+	return closeChannelResp(client, &closeChanReq, wChan, reqId)
+}
+
+func prepareCloseRequest(ccReq CloseChannelRequest) (r lnrpc.CloseChannelRequest, err error) {
 	if ccReq.SatPerVbyte != nil && ccReq.TargetConf != nil {
-		return errors.New("Cannot set both SatPerVbyte and TargetConf")
+		return r, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
 
 	channelPoint, err := convertChannelPoint(ccReq.ChannelPoint)
 	if err != nil {
-		return err
+		return r, err
 	}
 	//
 	//Make the close channel request
@@ -77,21 +100,7 @@ func CloseChannel(wChan chan interface{}, db *sqlx.DB, c *gin.Context, ccReq Clo
 		closeChanReq.DeliveryAddress = *ccReq.DeliveryAddress
 	}
 
-	connectionDetails, err := settings.GetConnectionDetails(db)
-	if err != nil {
-		return errors.New("Error getting node connection details from the db")
-	}
-	conn, err := lnd_connect.Connect(
-		connectionDetails.GRPCAddress,
-		connectionDetails.TLSFileBytes,
-		connectionDetails.MacaroonFileBytes)
-	if err != nil {
-		//return errors.New("Failed connecting to LND")
-		server_errors.WrapLogAndSendServerError(c, err, "Failed connecting to LND")
-	}
-	defer conn.Close()
-	client := lnrpc.NewLightningClient(conn)
-	return closeChannelResp(client, &closeChanReq, wChan, reqId)
+	return closeChanReq, nil
 }
 
 func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseChannelRequest, wChan chan interface{}, reqId string) error {
