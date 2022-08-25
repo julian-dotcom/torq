@@ -74,17 +74,24 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 			}
 		}
 		break
-	// TODO: Must implement tests before uncommenting this
-	//case "openChannel":
-	//err := channels.OpenChannel(db, wChan, *req.OpenChannelRequest, req.ReqId)
-	//if err != nil {
-	//	wChan <- wsError{
-	//		ReqId: req.ReqId,
-	//		Type:  "Error",
-	//		Error: err.Error(),
-	//	}
-	//}
-	//    break
+	case "openChannel":
+		if req.OpenChannelRequest == nil {
+			wChan <- wsError{
+				ReqId: req.ReqId,
+				Type:  "Error",
+				Error: "OpenChannelRequest cannot be empty",
+			}
+			break
+		}
+		err := channels.OpenChannel(db, wChan, *req.OpenChannelRequest, req.ReqId)
+		if err != nil {
+			wChan <- wsError{
+				ReqId: req.ReqId,
+				Type:  "Error",
+				Error: err.Error(),
+			}
+		}
+		break
 	default:
 		err := fmt.Errorf("Unknown request type: %s", req.Type)
 		wChan <- wsError{

@@ -15,10 +15,10 @@ import (
 )
 
 type OpenChannelRequest struct {
+	SatPerVbyte        *uint64 `json:"satPerVbyte"`
 	NodePubKey         string  `json:"nodePubKey"`
 	LocalFundingAmount int64   `json:"localFundingAmount"`
 	PushSat            *int64  `json:"pushSat"`
-	SatPerVbyte        *uint64 `json:"satPerVbyte"`
 	TargetConf         *int32  `json:"targetConf"`
 	Private            *bool   `json:"private"`
 	MinHtlcMsat        *int64  `json:"minHtlcMsat"`
@@ -43,61 +43,6 @@ type PsbtDetails struct {
 
 func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, reqId string) (err error) {
 
-	if req.SatPerVbyte != nil && req.TargetConf != nil {
-		return errors.New("Cannot set both SatPerVbyte and TargetConf")
-	}
-
-	pubKeyHex, err := hex.DecodeString(req.NodePubKey)
-	if err != nil {
-		return errors.New("error decoding public key hex")
-	}
-
-	//open channel request
-	openChanReq := lnrpc.OpenChannelRequest{
-		NodePubkey: pubKeyHex,
-
-		// This is the amount we are putting into the channel (channel size)
-		LocalFundingAmount: req.LocalFundingAmount,
-	}
-
-	// The amount to give the other node in the opening process.
-	// NB: This means you will give the other node this amount of sats
-	if req.PushSat != nil {
-		openChanReq.PushSat = *req.PushSat
-	}
-
-	if req.SatPerVbyte != nil {
-		openChanReq.SatPerVbyte = *req.SatPerVbyte
-	}
-
-	if req.TargetConf != nil {
-		openChanReq.TargetConf = *req.TargetConf
-	}
-
-	if req.Private != nil {
-		openChanReq.Private = *req.Private
-	}
-
-	if req.MinHtlcMsat != nil {
-		openChanReq.MinHtlcMsat = *req.MinHtlcMsat
-	}
-
-	if req.RemoteCsvDelay != nil {
-		openChanReq.RemoteCsvDelay = *req.RemoteCsvDelay
-	}
-
-	if req.MinConfs != nil {
-		openChanReq.MinConfs = *req.MinConfs
-	}
-
-	if req.SpendUnconfirmed != nil {
-		openChanReq.SpendUnconfirmed = *req.SpendUnconfirmed
-	}
-
-	if req.CloseAddress != nil {
-		openChanReq.CloseAddress = *req.CloseAddress
-	}
-
 	connectionDetails, err := settings.GetConnectionDetails(db)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
@@ -117,6 +62,12 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 	client := lnrpc.NewLightningClient(conn)
 
 	ctx := context.Background()
+
+	openChanReq, err := prepareOpenRequest(req)
+	if err != nil {
+		return err
+	}
+
 	//Send open channel request
 	openChanRes, err := client.OpenChannel(ctx, &openChanReq)
 	if err != nil {
@@ -150,6 +101,64 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 
 	}
 	return nil
+}
+
+func prepareOpenRequest(ocReq OpenChannelRequest) (r lnrpc.OpenChannelRequest, err error) {
+	if ocReq.SatPerVbyte != nil && ocReq.TargetConf != nil {
+		return r, errors.New("Cannot set both SatPerVbyte and TargetConf")
+	}
+
+	pubKeyHex, err := hex.DecodeString(ocReq.NodePubKey)
+	if err != nil {
+		return r, errors.New("error decoding public key hex")
+	}
+
+	//open channel request
+	openChanReq := lnrpc.OpenChannelRequest{
+		NodePubkey: pubKeyHex,
+
+		// This is the amount we are putting into the channel (channel size)
+		LocalFundingAmount: ocReq.LocalFundingAmount,
+	}
+
+	// The amount to give the other node in the opening process.
+	// NB: This means you will give the other node this amount of sats
+	if ocReq.PushSat != nil {
+		openChanReq.PushSat = *ocReq.PushSat
+	}
+
+	if ocReq.SatPerVbyte != nil {
+		openChanReq.SatPerVbyte = *ocReq.SatPerVbyte
+	}
+
+	if ocReq.TargetConf != nil {
+		openChanReq.TargetConf = *ocReq.TargetConf
+	}
+
+	if ocReq.Private != nil {
+		openChanReq.Private = *ocReq.Private
+	}
+
+	if ocReq.MinHtlcMsat != nil {
+		openChanReq.MinHtlcMsat = *ocReq.MinHtlcMsat
+	}
+
+	if ocReq.RemoteCsvDelay != nil {
+		openChanReq.RemoteCsvDelay = *ocReq.RemoteCsvDelay
+	}
+
+	if ocReq.MinConfs != nil {
+		openChanReq.MinConfs = *ocReq.MinConfs
+	}
+
+	if ocReq.SpendUnconfirmed != nil {
+		openChanReq.SpendUnconfirmed = *ocReq.SpendUnconfirmed
+	}
+
+	if ocReq.CloseAddress != nil {
+		openChanReq.CloseAddress = *ocReq.CloseAddress
+	}
+	return openChanReq, nil
 }
 
 func processOpenResponse(resp *lnrpc.OpenStatusUpdate) (*OpenChannelResponse, error) {
