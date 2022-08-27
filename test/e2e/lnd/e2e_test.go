@@ -35,19 +35,6 @@ const aliceVolumeName = aliceName
 const btcdVolumeName = "e2e-btcd"
 const carolVolumeName = "e2e-carol"
 
-//	const networkName = "e2e"
-//const torqName = "e2e-torq"
-//const torqDBName = "e2e-torq-db"
-//const aliceName = "e2e-alice"
-//const bobName = "e2e-bob"
-//const carolName = "e2e-carol"
-//const btcdName = "e2e-btcd"
-//const sharedVolumeName = "e2e-shared"
-//const btcdVolumeName = "e2e-btcd"
-//const aliceVolumeName = "e2e-lnd-alice"
-//const bobVolumeName = "e2e-lnd-bob"
-//const carolVolumeName = "e2e-lnd-carol"
-
 var ctx context.Context
 var cli *client.Client
 var torq dockercontainer.ContainerCreateCreatedBody

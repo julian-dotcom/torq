@@ -42,6 +42,7 @@ type PsbtDetails struct {
 }
 
 func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, reqId string) (err error) {
+	// TODO: Add support for batch opening channels
 
 	connectionDetails, err := settings.GetConnectionDetails(db)
 	if err != nil {
@@ -70,7 +71,11 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 
 	//Send open channel request
 	openChanRes, err := client.OpenChannel(ctx, &openChanReq)
-	if err != nil {
+	// TODO: Add automatic peer connection: https://api.lightning.community/#connectpeer
+	//   If the node is not connected and the user did not specify any connection details get the connection options and
+	//   ask the user to choose.
+	//   https://api.lightning.community/#getnodeinfo
+	if err != nil { // Use switch and check error type for peer not connected.
 		log.Error().Msgf("Err opening channel: %v", err)
 		return err
 	}
