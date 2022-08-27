@@ -1044,6 +1044,10 @@ func TestPlaywrightVideo(t *testing.T) {
 	page, err := browser.NewPage(playwright.BrowserNewContextOptions{
 		RecordVideo: &playwright.BrowserNewContextOptionsRecordVideo{
 			Dir: playwright.String("e2e_videos/"),
+			Size: &playwright.BrowserNewContextOptionsRecordVideoSize{
+				Width:  playwright.Int(1920),
+				Height: playwright.Int(1080),
+			},
 		},
 	})
 
@@ -1146,10 +1150,10 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	page.Click("text=Save node details")
 
-	page.WaitForTimeout(5000)
+	page.WaitForTimeout(500)
 
 	page.Keyboard().Press("PageUp")
-	page.WaitForTimeout(100)
+	page.WaitForTimeout(500)
 
 	page.Click("text=Summary")
 
@@ -1157,14 +1161,42 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	page.Click("text=Forwards")
 
-	page.WaitForTimeout(1000)
+	page.WaitForTimeout(500)
 
 	page.Click("text=Default View")
 
-	page.WaitForTimeout(1000)
+	page.WaitForTimeout(500)
 
 	page.Click("text=Transactions")
 
-	page.WaitForTimeout(1000)
+	page.WaitForTimeout(500)
+
+	page.Click("id=collapse-navigation")
+
+	page.WaitForTimeout(500)
+
+	page.Click("text=Invoices")
+
+	page.WaitForTimeout(500)
+
+	page.Click("text=On-Chain")
+
+	page.WaitForTimeout(500)
+
+	page.Click("_react=Options20Regular")
+
+	page.WaitForTimeout(300)
+
+	page.Click("text=Filter")
+
+	page.WaitForTimeout(500)
+
+	page.Click("text=Add filter")
+
+	page.WaitForTimeout(500)
+
+	page.Click("text=Sort")
+
+	page.WaitForTimeout(500)
 
 }
