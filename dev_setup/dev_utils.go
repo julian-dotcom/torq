@@ -33,6 +33,8 @@ type DockerDevEnvironment struct {
 func (de *DockerDevEnvironment) CleanupContainers(ctx context.Context) {
 	for _, container := range de.Containers {
 		de.FindAndRemoveContainer(ctx, container.Name)
+
+		// Also remove volumes with the same name as the container
 		de.FindAndRemoveVolume(ctx, container.Name)
 	}
 

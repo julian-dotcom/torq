@@ -28,12 +28,12 @@ const defautDelayMS = 2000          // 2s
 const defaultMaxDurationMS = 120000 // 60s
 
 const torqPort = "4927"
+
+const btcdName = "e2e-btcd"
+
 const bobName = "e2e-bob"
 const aliceName = "e2e-alice"
-const bobVolumeName = bobName
-const aliceVolumeName = aliceName
-const btcdVolumeName = "e2e-btcd"
-const carolVolumeName = "e2e-carol"
+const carolName = "e2e-carol"
 
 var ctx context.Context
 var cli *client.Client
@@ -102,11 +102,11 @@ func TestMain(m *testing.M) {
 
 	// Add config for btcd
 	btcdConf := de.AddContainer(
-		"e2e-btcd",
+		btcdName,
 		"e2e/btcd",
 		[]string{
 			de.SharedVolumeName + ":/rpc",
-			btcdVolumeName + ":/data",
+			btcdName + ":/data",
 		},
 		[]string{"NETWORK=simnet"},
 		nil,
@@ -115,11 +115,11 @@ func TestMain(m *testing.M) {
 
 	// Add config for alice
 	aliceConf := de.AddContainer(
-		"e2e-alice",
+		aliceName,
 		"e2e/lnd",
 		[]string{
 			de.SharedVolumeName + ":/rpc",
-			aliceVolumeName + ":/root/.lnd",
+			aliceName + ":/root/.lnd",
 		},
 		[]string{"NETWORK=simnet"},
 		nil,
@@ -132,7 +132,7 @@ func TestMain(m *testing.M) {
 		"e2e/lnd",
 		[]string{
 			de.SharedVolumeName + ":/rpc",
-			bobVolumeName + ":/root/.lnd",
+			bobName + ":/root/.lnd",
 		},
 		[]string{"NETWORK=simnet"},
 		nil,
@@ -141,17 +141,18 @@ func TestMain(m *testing.M) {
 
 	// Add config for carol
 	carolConf := de.AddContainer(
-		"e2e-carol",
+		carolName,
 		"e2e/lnd",
 		[]string{
 			de.SharedVolumeName + ":/rpc",
-			carolVolumeName + ":/root/.lnd",
+			carolName + ":/root/.lnd",
 		},
 		[]string{"NETWORK=simnet"},
 		nil,
 		"",
 	)
 
+	// Clean up old containers and network before initiating new ones.
 	de.CleanupContainers(ctx)
 	de.FindAndRemoveNetwork(ctx, de.NetworkName)
 
@@ -170,27 +171,17 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	//_ = createContainer(ctx, cli, "timescale/timescaledb:latest-pg14", torqDBName,
-	//	[]string{"POSTGRES_PASSWORD=password"},
-	//	nil, nil, "", networkingConfig)
-
 	log.Println("Building Torq image")
 	// path to Dockerfile in root of project
 	buildImage(ctx, cli, "../../../", "e2e/torq")
 
 	log.Println("Building btcd image from dockerfile")
 	buildImage(ctx, cli, "docker/btcd/", "e2e/btcd")
+
 	log.Println("Building lnd image from dockerfile")
 	buildImage(ctx, cli, "docker/lnd/", "e2e/lnd")
 
 	log.Println("Starting btcd")
-	//_ = createContainer(ctx, cli, "e2e/btcd", btcdName,
-	//	[]string{"NETWORK=simnet"},
-	//	[]string{
-	//		sharedVolumeName + ":/rpc",
-	//		btcdVolumeName + ":/data",
-	//	}, nil, "", networkingConfig)
-
 	err = de.InitContainer(ctx, btcdConf)
 	if err != nil {
 		log.Fatal(err)
@@ -198,9 +189,6 @@ func TestMain(m *testing.M) {
 	btcd = btcdConf.Instance
 
 	log.Println("Starting Alice")
-	//alice = createContainer(ctx, cli, "e2e/lnd", aliceName,
-	//	[]string{"NETWORK=simnet"}, nil, nil, "", networkingConfig)
-
 	err = de.InitContainer(ctx, aliceConf)
 	if err != nil {
 		log.Fatal(err)
@@ -253,15 +241,6 @@ func TestMain(m *testing.M) {
 	}
 	btcd = btcdConf.Instance
 
-	//btcd = createContainer(ctx, cli, "e2e/btcd", btcdName,
-	//	[]string{
-	//		"NETWORK=simnet",
-	//		"MINING_ADDRESS=" + aliceAddress},
-	//	[]string{
-	//		sharedVolumeName + ":/rpc",
-	//		btcdVolumeName + ":/data",
-	//	}, nil, "", networkingConfig)
-
 	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
 
 	err = mineBlocks(ctx, cli, btcd, 400)
@@ -273,19 +252,13 @@ func TestMain(m *testing.M) {
 
 	log.Println("Recreating Alice now that btcd is back online")
 
-	//alice = createContainer(ctx, cli, "e2e/lnd", aliceName,
-	//	[]string{"NETWORK=simnet"},
-	//	[]string{
-	//		sharedVolumeName + ":/rpc",
-	//		aliceVolumeName + ":/root/.lnd",
-	//	}, nil, "", networkingConfig)
-
-	//aliceConf.MappedPort = "10009"
 	const aliceVolumeName = "e2e-alice"
 	aliceConf.Binds = []string{
 		de.SharedVolumeName + ":/rpc",
 		aliceVolumeName + ":/root/.lnd",
 	}
+
+	// Initiation new Alice (based on the same configuration
 	err = de.InitContainer(ctx, aliceConf)
 	if err != nil {
 		log.Fatal(err)
@@ -293,7 +266,6 @@ func TestMain(m *testing.M) {
 	alice = aliceConf.Instance
 
 	log.Println("Checking that segwit is active")
-
 	err = retry(func() error {
 		var blockchainInfo struct {
 			Bip9Softforks struct {
@@ -326,14 +298,8 @@ func TestMain(m *testing.M) {
 
 	// log.Printf("Alice's onchain balance is: %s\n", aliceBalance)
 
+	// Starting carol
 	log.Println("Starting Carol")
-	//carol = createContainer(ctx, cli, "e2e/lnd", carolName,
-	//	[]string{"NETWORK=simnet"},
-	//	[]string{
-	//		sharedVolumeName + ":/rpc",
-	//		carolVolumeName + ":/root/.lnd",
-	//	}, nil, "", networkingConfig)
-
 	err = de.InitContainer(ctx, carolConf)
 	if err != nil {
 		log.Fatal(err)
@@ -342,13 +308,6 @@ func TestMain(m *testing.M) {
 
 	// start Bob and Carol AFTER btcd has restarted
 	log.Println("Starting Bob")
-	//bob = createContainer(ctx, cli, "e2e/lnd", bobName,
-	//	[]string{"NETWORK=simnet"},
-	//	[]string{
-	//		sharedVolumeName + ":/rpc",
-	//		bobVolumeName + ":/root/.lnd",
-	//	}, nil, "10009", networkingConfig)
-
 	err = de.InitContainer(ctx, bobConf)
 	if err != nil {
 		log.Fatal(err)
@@ -356,7 +315,6 @@ func TestMain(m *testing.M) {
 	bob = bobConf.Instance
 
 	log.Println("Get Bob's pubkey")
-
 	bobInspection, err := cli.ContainerInspect(ctx, bob.ID)
 	if err != nil {
 		log.Fatalf("Getting Bob's IP Address: %v", err)
