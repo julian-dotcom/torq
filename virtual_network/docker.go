@@ -1,15 +1,24 @@
-package dev_setup
+package virtual_network
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
+	"io"
 	"log"
+	"os"
+	"time"
 )
 
 type ContainerConfig struct {
@@ -193,4 +202,135 @@ func (de *DockerDevEnvironment) FindContainerByName(ctx context.Context, name st
 		}
 	}
 	return nil, nil
+}
+
+func (de *DockerDevEnvironment) BuildImage(ctx context.Context, path string, name string) {
+	tar, err := archive.TarWithOptions(path, &archive.TarOptions{ExcludePatterns: []string{"web/node_modules", ".git"}})
+	if err != nil {
+		log.Fatalf("Creating %s archive: %v", name, err)
+	}
+
+	opts := types.ImageBuildOptions{
+		Dockerfile: "Dockerfile",
+		Tags:       []string{name},
+		Remove:     true,
+	}
+
+	res, err := de.Client.ImageBuild(ctx, tar, opts)
+	if err != nil {
+		log.Fatalf("Building %s docker image: %v", name, err)
+	}
+	defer res.Body.Close()
+	err = printBuildOutput(res.Body)
+	if err != nil {
+		log.Fatalf("Printing build output for %s docker image: %v", name, err)
+	}
+}
+
+type ErrorLine struct {
+	Error       string      `json:"error"`
+	ErrorDetail ErrorDetail `json:"errorDetail"`
+}
+
+type ErrorDetail struct {
+	Message string `json:"message"`
+}
+
+func printBuildOutput(rd io.Reader) error {
+	var lastLine string
+
+	scanner := bufio.NewScanner(rd)
+	for scanner.Scan() {
+		lastLine = scanner.Text()
+		if len(os.Getenv("DEBUG")) > 0 {
+			fmt.Println(scanner.Text())
+		}
+	}
+
+	errLine := &ErrorLine{}
+	json.Unmarshal([]byte(lastLine), errLine)
+	if errLine.Error != "" {
+		return errors.New(errLine.Error)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ExecJSONReturningCommand(ctx context.Context, cli *client.Client,
+	container dockercontainer.ContainerCreateCreatedBody,
+	cmd []string, returnObject interface{}) error {
+
+	bufStdout, bufStderr, err := ExecCommand(ctx, cli, container, cmd)
+	if err != nil {
+		return errors.Wrap(err, "Exec command on container")
+	}
+	if len(bufStderr.Bytes()) > 0 {
+		log.Println("std error not empty")
+		return errors.New("Stderr not empty")
+	}
+
+	err = json.Unmarshal(bufStdout.Bytes(), returnObject)
+	if err != nil {
+		return errors.Wrap(err, "json unmarshal")
+	}
+	return nil
+}
+
+func ExecCommand(ctx context.Context, cli *client.Client,
+	container dockercontainer.ContainerCreateCreatedBody,
+	cmd []string) (bufStdout bytes.Buffer, bufStderr bytes.Buffer, err error) {
+
+	c := types.ExecConfig{AttachStdout: true, AttachStderr: true,
+		Cmd: cmd}
+	execID, _ := cli.ContainerExecCreate(ctx, container.ID, c)
+
+	res, err := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
+	if err != nil {
+		return bufStdout, bufStderr, errors.Wrap(err, "Container exec start")
+	}
+
+	err = cli.ContainerExecStart(ctx, execID.ID, types.ExecStartCheck{})
+	if err != nil {
+		return bufStdout, bufStderr, errors.Wrap(err, "Container exec start")
+	}
+
+	// stdcopy.StdCopy(os.Stdout, os.Stderr, res.Reader)
+	stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
+	// DEBUG Tip: uncomment below to see raw output of commands
+	if len(os.Getenv("DEBUG")) > 0 {
+		log.Printf("%s\n", string(bufStdout.Bytes()))
+		log.Printf("%s\n", string(bufStderr.Bytes()))
+	}
+	return bufStdout, bufStderr, nil
+}
+
+type noRetryError struct{}
+
+func (nre noRetryError) Error() string {
+	return "Skip retries"
+}
+
+func Retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds int) error {
+	totalWaited := 0
+	for {
+		if totalWaited > maxWaitMilliseconds {
+			return errors.New("Exceeded maximum wait period")
+		}
+		err := operation()
+		var noRetry noRetryError
+		if errors.As(err, &noRetry) {
+			return err
+		}
+		if err == nil {
+			break
+		}
+		log.Println("Checking...")
+		time.Sleep(time.Duration(delayMilliseconds) * time.Millisecond)
+		totalWaited += delayMilliseconds
+	}
+	return nil
 }
