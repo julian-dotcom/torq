@@ -126,7 +126,7 @@ func TestMain(m *testing.M) {
 		},
 		[]string{"NETWORK=simnet"},
 		nil,
-		"10009",
+		"10011",
 	)
 
 	// Add config for carol
@@ -579,7 +579,7 @@ func TestPlaywrightVideo(t *testing.T) {
 		t.Fatalf("Week starts on not found\n")
 	}
 
-	page.Fill("#address input[type=text]", bobIPAddress+":10009")
+	page.Fill("#address input[type=text]", bobIPAddress+":10011")
 
 	tlsFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/tls.cert")
 	if err != nil {

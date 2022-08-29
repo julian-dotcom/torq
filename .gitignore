@@ -19,6 +19,7 @@ cover.html
 ## Ignore builds
 ./torq
 torq
+torq_vn
 !/cmd/torq
 
 ## Ignore config file
