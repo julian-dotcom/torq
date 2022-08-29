@@ -39,14 +39,24 @@ type DockerDevEnvironment struct {
 	SharedVolumeName string
 }
 
-func (de *DockerDevEnvironment) CleanupContainers(ctx context.Context) {
+func (de *DockerDevEnvironment) CleanupContainers(ctx context.Context) error {
 	for _, container := range de.Containers {
-		de.FindAndRemoveContainer(ctx, container.Name)
-
-		// Also remove volumes with the same name as the container
-		de.FindAndRemoveVolume(ctx, container.Name)
+		err := de.FindAndRemoveContainer(ctx, container.Name)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
+func (de *DockerDevEnvironment) CleanupDefaultVolumes(ctx context.Context) error {
+	for _, container := range de.Containers {
+		err := de.FindAndRemoveVolume(ctx, container.Name)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (de *DockerDevEnvironment) AddContainer(name string, image string, binds []string, env []string, cmd []string,
@@ -67,8 +77,7 @@ func (de *DockerDevEnvironment) AddContainer(name string, image string, binds []
 	return de.Containers[name]
 }
 
-func (de *DockerDevEnvironment) InitContainer(ctx context.Context, container *ContainerConfig) (err error) {
-
+func (de *DockerDevEnvironment) CreateContainer(ctx context.Context, container *ContainerConfig) (err error) {
 	hostConfig := &dockercontainer.HostConfig{
 		Binds: container.Binds,
 	}
@@ -94,59 +103,91 @@ func (de *DockerDevEnvironment) InitContainer(ctx context.Context, container *Co
 		ExposedPorts: openPorts,
 	}, hostConfig, &de.NetworkingConfig, nil, container.Name)
 	if err != nil {
-		// log.Fatalf("Creating %s container: %v", name, err)
 		return errors.Newf("Creating %s container: %v", container.Name, err)
-	}
-	if err := de.Client.ContainerStart(ctx, r.ID, types.ContainerStartOptions{}); err != nil {
-		//log.Fatalf("Starting %s container: %v", name, err)
-		return errors.Newf("Starting %s container: %v", container.Name, err)
 	}
 	container.Instance = r
 	return nil
 }
 
+func (de *DockerDevEnvironment) InitContainer(ctx context.Context, container *ContainerConfig) error {
+	err := de.CreateContainer(ctx, container)
+	if err != nil {
+		return err
+	}
+	if err := de.Client.ContainerStart(ctx, container.Instance.ID, types.ContainerStartOptions{}); err != nil {
+		return errors.Newf("can't start %s container: %v", container.Name, err)
+	}
+	return nil
+}
+
+func (de *DockerDevEnvironment) StartContainer(ctx context.Context, cc *ContainerConfig) (err error) {
+	container, err := de.FindContainerByName(ctx, cc.Name)
+	if err != nil {
+		return errors.Newf("Can't find container with the name %s: %v", cc.Name, err)
+	}
+	if err := de.Client.ContainerStart(ctx, container.ID, types.ContainerStartOptions{}); err != nil {
+		return errors.Newf("can't start %s container: %v", cc.Name, err)
+	}
+	cc.Instance = dockercontainer.ContainerCreateCreatedBody{ID: container.ID}
+	return nil
+}
+
+func (de *DockerDevEnvironment) StopContainer(ctx context.Context, name string) (err error) {
+	container, err := de.FindContainerByName(ctx, name)
+	if err != nil {
+		return errors.Newf("can't find container with the name %s: %v", name, err)
+	}
+	timeout := 30 * time.Second
+	if err := de.Client.ContainerStop(ctx, container.ID, &timeout); err != nil {
+		return errors.Newf("can't stop %s container: %v", name, err)
+	}
+	return nil
+}
+
 func (de *DockerDevEnvironment) CreateNetwork(ctx context.Context) (nc network.NetworkingConfig, err error) {
-	e2eNetwork, err := de.Client.NetworkCreate(ctx, de.NetworkName, types.NetworkCreate{})
+	nw, err := de.Client.NetworkCreate(ctx, de.NetworkName, types.NetworkCreate{})
 	if err != nil {
 		return nc, errors.Newf("Creating %s network: %v", de.NetworkName, err)
 	}
 	nc = network.NetworkingConfig{
 		EndpointsConfig: map[string]*network.EndpointSettings{},
 	}
-	nc.EndpointsConfig[e2eNetwork.ID] = &network.EndpointSettings{Links: []string{"e2e-btcd:blockchain"}}
+	nc.EndpointsConfig[nw.ID] = &network.EndpointSettings{Links: []string{de.NetworkName + "-btcd:blockchain"}}
 	return nc, err
 }
 
-func (de *DockerDevEnvironment) FindAndRemoveContainer(ctx context.Context, name string) {
+func (de *DockerDevEnvironment) FindAndRemoveContainer(ctx context.Context, name string) error {
 	container, err := de.FindContainerByName(ctx, name)
 	if err != nil {
-		log.Fatalf("Removing %s container: %v", name, err)
+		return errors.Newf("Removing %s container: %v", name, err)
 	}
 	if container != nil {
 		log.Printf("%s container found; removing\n", name)
 
 		if container.State == "running" {
 			if err := de.Client.ContainerStop(ctx, container.ID, nil); err != nil {
-				log.Fatalf("Stopping %s container: %v", name, err)
+				return errors.Newf("Stopping %s container: %v", name, err)
 			}
 		}
 		if err := de.Client.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
-			log.Fatalf("Removing %s container: %v", name, err)
+			return errors.Newf("Removing %s container: %v", name, err)
 		}
 	}
+	return nil
 }
 
-func (de *DockerDevEnvironment) FindAndRemoveVolume(ctx context.Context, name string) {
+func (de *DockerDevEnvironment) FindAndRemoveVolume(ctx context.Context, name string) error {
 	volume, err := de.FindVolumeByName(ctx, name)
 	if err != nil {
-		log.Fatalf("Removing old %s volume: %v", name, err)
+		return errors.Newf("Removing old %s volume: %v", name, err)
 	}
 	if volume != nil {
 		log.Printf("Old %s volume found; removing\n", name)
 		if err := de.Client.VolumeRemove(ctx, volume.Name, false); err != nil {
-			log.Fatalf("Removing old %s volume: %v", name, err)
+			return errors.Newf("Removing old %s volume: %v", name, err)
 		}
 	}
+	return nil
 }
 
 func (de *DockerDevEnvironment) FindVolumeByName(ctx context.Context, name string) (*types.Volume, error) {
@@ -162,17 +203,18 @@ func (de *DockerDevEnvironment) FindVolumeByName(ctx context.Context, name strin
 	return nil, nil
 }
 
-func (de *DockerDevEnvironment) FindAndRemoveNetwork(ctx context.Context, name string) {
+func (de *DockerDevEnvironment) FindAndRemoveNetwork(ctx context.Context, name string) error {
 	network, err := de.FindNetworkByName(ctx, name)
 	if err != nil {
-		log.Fatalf("Removing old %s network: %v", name, err)
+		return errors.Newf("Removing old %s network: %v", name, err)
 	}
 	if network != nil {
 		log.Printf("Old %s network found; removing\n", name)
 		if err := de.Client.NetworkRemove(ctx, network.ID); err != nil {
-			log.Fatalf("Removing old %s network: %v", name, err)
+			return errors.Newf("Removing old %s network: %v", name, err)
 		}
 	}
+	return nil
 }
 
 func (de *DockerDevEnvironment) FindNetworkByName(ctx context.Context, name string) (*types.NetworkResource, error) {
@@ -204,10 +246,10 @@ func (de *DockerDevEnvironment) FindContainerByName(ctx context.Context, name st
 	return nil, nil
 }
 
-func (de *DockerDevEnvironment) BuildImage(ctx context.Context, path string, name string) {
+func (de *DockerDevEnvironment) BuildImage(ctx context.Context, path string, name string) error {
 	tar, err := archive.TarWithOptions(path, &archive.TarOptions{ExcludePatterns: []string{"web/node_modules", ".git"}})
 	if err != nil {
-		log.Fatalf("Creating %s archive: %v", name, err)
+		return errors.Newf("Creating %s archive: %v", name, err)
 	}
 
 	opts := types.ImageBuildOptions{
@@ -218,13 +260,14 @@ func (de *DockerDevEnvironment) BuildImage(ctx context.Context, path string, nam
 
 	res, err := de.Client.ImageBuild(ctx, tar, opts)
 	if err != nil {
-		log.Fatalf("Building %s docker image: %v", name, err)
+		return errors.Newf("Building %s docker image: %v", name, err)
 	}
 	defer res.Body.Close()
 	err = printBuildOutput(res.Body)
 	if err != nil {
-		log.Fatalf("Printing build output for %s docker image: %v", name, err)
+		return errors.Newf("Printing build output for %s docker image: %v", name, err)
 	}
+	return nil
 }
 
 type ErrorLine struct {

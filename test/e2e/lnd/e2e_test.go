@@ -144,6 +144,7 @@ func TestMain(m *testing.M) {
 
 	// Clean up old containers and network before initiating new ones.
 	de.CleanupContainers(ctx)
+	de.CleanupDefaultVolumes(ctx)
 	de.FindAndRemoveNetwork(ctx, de.NetworkName)
 
 	// Create the shared network
@@ -166,10 +167,10 @@ func TestMain(m *testing.M) {
 	de.BuildImage(ctx, "../../../", "e2e/torq")
 
 	log.Println("Building btcd image from dockerfile")
-	de.BuildImage(ctx, "docker/btcd/", "e2e/btcd")
+	de.BuildImage(ctx, "../../../virtual_network/docker/btcd/", "e2e/btcd")
 
 	log.Println("Building lnd image from dockerfile")
-	de.BuildImage(ctx, "docker/lnd/", "e2e/lnd")
+	de.BuildImage(ctx, "../../../virtual_network/docker/lnd/", "e2e/lnd")
 
 	log.Println("Starting btcd")
 	err = de.InitContainer(ctx, btcdConf)
