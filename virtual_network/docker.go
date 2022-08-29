@@ -1,6 +1,7 @@
 package virtual_network
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"context"
@@ -16,6 +17,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -375,5 +377,77 @@ func Retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds in
 		time.Sleep(time.Duration(delayMilliseconds) * time.Millisecond)
 		totalWaited += delayMilliseconds
 	}
+	return nil
+}
+
+func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string, nodeIp string) error {
+	// Copy bobs macaroon and tls file to local directory
+	tlsFileReader, _, err := cli.CopyFromContainer(ctx, name, "/root/.lnd/tls.cert")
+	if err != nil {
+		return errors.Newf("Copying tls file: %v\n", err)
+	}
+	// close fi on exit and check for its returned error
+	defer func() {
+		if err := tlsFileReader.Close(); err != nil {
+			panic(err)
+		}
+	}()
+
+	tlsTar := tar.NewReader(tlsFileReader)
+	// hdr gives you the header of the tar file
+	_, err = tlsTar.Next()
+	if err == io.EOF || err != nil {
+		// EOF == end of tar archive
+		return errors.Newf("Reading tls tar header: %v\n", err)
+	}
+	tlsBuf := new(bytes.Buffer)
+	_, err = tlsBuf.ReadFrom(tlsTar)
+	if err != nil {
+		return errors.Newf("Reading tls tar: %v\n", err)
+	}
+	// write the whole body at once
+	err = ioutil.WriteFile("virtual_network/generated_files/tls.cert", tlsBuf.Bytes(), 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	macaroonFileReader, _, err := cli.CopyFromContainer(ctx, name,
+		"/root/.lnd/data/chain/bitcoin/simnet/admin.macaroon")
+	if err != nil {
+		return errors.Newf("Copying tls file: %v\n", err)
+	}
+	// close fi on exit and check for its returned error
+	defer func() {
+		if err := macaroonFileReader.Close(); err != nil {
+			panic(err)
+		}
+	}()
+
+	// file comes out as a tar, untar it
+	macaroonTar := tar.NewReader(macaroonFileReader)
+	// hdr gives you the header of the tar file
+	_, err = macaroonTar.Next()
+	if err == io.EOF || err != nil {
+		// EOF == end of tar archive
+		return errors.Newf("Reading macaroon tar header: %v\n", err)
+	}
+	macaroonBuf := new(bytes.Buffer)
+	_, err = macaroonBuf.ReadFrom(macaroonTar)
+	if err != nil {
+		return errors.Newf("Reading macaroon tar: %v\n", err)
+	}
+
+	// write the whole body at once
+	err = ioutil.WriteFile("virtual_network/generated_files/admin.macaroon", macaroonBuf.Bytes(), 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	//// write the whole body at once
+	//err = ioutil.WriteFile("virtual_network/generated_files/conn_details.txt", []byte("Connect to localhost:10009"),
+	//	0644)
+	//if err != nil {
+	//	panic(err)
+	//}
 	return nil
 }

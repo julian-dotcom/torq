@@ -26,6 +26,10 @@ torq_vn
 torq.conf
 torq-d*.conf
 
+# Ignore virtual network generated files
+virtual_network/generated_files/*.macaroon
+virtual_network/generated_files/tls.cert
+
 # Ignore all editor configs
 .vscode
 .idea

@@ -2,6 +2,7 @@ package virtual_network
 
 import (
 	"context"
+	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/docker/docker/client"
 	"log"
@@ -30,9 +31,9 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 		de.AddContainer(name+"-torq-db",
 			"timescale/timescaledb:latest-pg14",
 			nil,
-			[]string{"POSTGRES_PASSWORD=password"},
+			[]string{"POSTGRES_PASSWORD=password", "PGPORT=5444"},
 			nil,
-			"")
+			"5444")
 	}
 
 	// Add config for btcd
@@ -233,6 +234,10 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 	if err != nil || !carolPeerExists {
 		return errors.Newf("Checking that Carol is a peer of Bob: %v", err)
 	}
+
+	WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress)
+
+	PrintInstructions()
 
 	return nil
 }
@@ -616,10 +621,26 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	log.Println("Cluster setup complete")
 
+	PrintInstructions()
 	//err = StopVirtualNetwork(name, createDatabase)
 	//if err != nil {
 	//	return errors.Newf("Stopping virtual network: %v", err)
 	//}
 
 	return nil
+}
+
+func PrintInstructions() {
+	fmt.Println("\nVirtual network is ready. Start Torq by running:")
+	fmt.Println("\n\tgo build ./cmd/torq && ./torq --torq.password password --db.user postgres --db.port 5444 " +
+		"--db.password password start")
+
+	fmt.Println("\nThe frontend password is 'password'.")
+
+	fmt.Println("\nRemember to upload the tls.cert and admin.macaroon files in the settings page. " +
+		"Set localhost:10009 as the lnd address")
+
+	fmt.Println("You can find the macaroon and tls files in /virtual_network/generated_files")
+
+	fmt.Println("\nYou might need to stop and start Torq after uploading the tls and macaroon files.")
 }

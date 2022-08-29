@@ -5,10 +5,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/lncapital/torq/virtual_network"
 	"github.com/playwright-community/playwright-go"
 	"io"
@@ -187,11 +185,11 @@ func TestMain(m *testing.M) {
 	alice = aliceConf.Instance
 
 	// Example looking at container logs
-	out, err := cli.ContainerLogs(ctx, btcd.ID, types.ContainerLogsOptions{ShowStdout: true})
-	if err != nil {
-		panic(err)
-	}
-	stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+	//out, err := cli.ContainerLogs(ctx, btcd.ID, types.ContainerLogsOptions{ShowStdout: true})
+	//if err != nil {
+	//	panic(err)
+	//}
+	//stdcopy.StdCopy(os.Stdout, os.Stderr, out)
 
 	log.Println("Creating new mining address on Alice")
 
@@ -602,7 +600,8 @@ func TestPlaywrightVideo(t *testing.T) {
 	pTlsFile := playwright.InputFile{Name: "tls.cert", Buffer: tlsBuf.Bytes()}
 	page.SetInputFiles("#tls input[type=file]", []playwright.InputFile{pTlsFile})
 
-	macaroonFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/data/chain/bitcoin/simnet/readonly.macaroon")
+	macaroonFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/data/chain/bitcoin/simnet/admin."+
+		"macaroon")
 	if err != nil {
 		t.Fatalf("Copying macaroon file: %v\n", err)
 	}
