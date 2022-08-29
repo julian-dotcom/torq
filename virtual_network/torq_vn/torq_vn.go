@@ -117,6 +117,9 @@ func main() {
 		},
 	}
 
+	// Add command for
+	// alice() { docker exec -it  dev-alice /bin/bash -c "lncli --macaroonpath=\"/root/.lnd/data/chain/bitcoin/simnet/admin.macaroon\" --network=simnet $@"};
+
 	app.Commands = cli.Commands{
 		createNetwork,
 		startNetwork,

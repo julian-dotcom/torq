@@ -643,4 +643,16 @@ func PrintInstructions() {
 	fmt.Println("You can find the macaroon and tls files in /virtual_network/generated_files")
 
 	fmt.Println("\nYou might need to stop and start Torq after uploading the tls and macaroon files.")
+
+	fmt.Println("\nIf you want to interact with the lnd nodes alice, bob and carol with a shortcut. Run this command:")
+	fmt.Println("\n" +
+		"alice() { docker exec -it  dev-alice /bin/bash -c \"lncli --macaroonpath=\"/root/." +
+		"lnd/data/chain/bitcoin/simnet/admin.macaroon\" --network=simnet $@\"}; \n" +
+		"bob() { docker exec -it  dev-bob /bin/bash -c \"lncli --macaroonpath=\"/root/." +
+		"lnd/data/chain/bitcoin/simnet/admin.macaroon\" --network=simnet $@\"}; \n" +
+		"carol() { docker exec -it  dev-carol /bin/bash -c \"lncli --macaroonpath=\"/root/." +
+		"lnd/data/chain/bitcoin/simnet/admin.macaroon\" --network=simnet $@\"};" +
+		"vbtcd() { docker exec -it  dev-btcd /bin/bash -c \"btcctl --simnet --rpcuser=devuser --rpcpass=devpass" +
+		" --rpccert=/rpc/rpc.cert --rpcserver=localhost $@\"};")
+
 }
