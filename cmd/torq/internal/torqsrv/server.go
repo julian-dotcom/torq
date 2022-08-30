@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channel_history"
+	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/forwards"
 	"github.com/lncapital/torq/internal/invoices"
@@ -132,6 +133,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 		channelRoutes := api.Group("/channels")
 		{
 			channel_history.RegisterChannelHistoryRoutes(channelRoutes, db)
+			channels.RegisterChannelRoutes(channelRoutes, db)
 		}
 
 		forwardRoutes := api.Group("/forwards")

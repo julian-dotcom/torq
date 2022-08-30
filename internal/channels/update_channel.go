@@ -3,79 +3,71 @@ package channels
 import (
 	"context"
 	"github.com/cockroachdb/errors"
+	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
 	"strconv"
 	"strings"
 )
 
-type failedUpdate struct {
-	outpoint struct {
-		txid    string
-		outIndx uint32
+//UpdateChannel
+//Returns status, failed updates array
+func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, err error) {
+
+	policyReq, err := createPolicyRequest(req)
+	if err != nil {
+		log.Error().Msgf("Err building policy request: %v", err)
+		r.Status = "Err building policy request"
+		return r, err
 	}
-	reason      string
-	updateError string
-}
 
-type updateChanRequestBody struct {
-	ChannelPoint  *string
-	FeeRatePpm    *uint32
-	BaseFeeMsat   *int64
-	MaxHtlcMsat   *uint64
-	MinHtlcMsat   *uint64
-	TimeLockDelta uint32
-}
+	connectionDetails, err := settings.GetConnectionDetails(db)
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
+		return r, errors.New("Error getting node connection details from the db")
+	}
 
-type lndClientUpdateChannel interface {
-	UpdateChannelPolicy(ctx context.Context, in *lnrpc.PolicyUpdateRequest, opts ...grpc.CallOption) (*lnrpc.PolicyUpdateResponse, error)
+	defer conn.Close()
+
+	ctx := context.Background()
+	client := lnrpc.NewLightningClient(conn)
+
+	resp, err := client.UpdateChannelPolicy(ctx, &policyReq)
+
+	if err != nil {
+		log.Error().Msgf("Err updating channel/s: %v", err)
+		return r, err
+	}
+
+	r = processUpdateResponse(resp)
+
+	return r, nil
 }
 
 func createPolicyRequest(req updateChanRequestBody) (r lnrpc.PolicyUpdateRequest, err error) {
 
-	var fundingTxid *string
-	var outputIndex *uint32
+	updChanReq := lnrpc.PolicyUpdateRequest{}
+
+	//Minimum supported value for TimeLockDelta is 18
+	if req.TimeLockDelta < 18 {
+		updChanReq.TimeLockDelta = 18
+	} else {
+		updChanReq.TimeLockDelta = req.TimeLockDelta
+	}
 
 	if req.ChannelPoint != nil {
-		splitChanPoint := strings.Split(*req.ChannelPoint, ":")
-		if len(splitChanPoint) != 2 {
-			return r, errors.New("channel point missing a colon")
-		}
-
-		fundingTxid = &splitChanPoint[0]
-
-		oIndxUint, err := strconv.ParseUint(splitChanPoint[1], 10, 1)
+		updChanReq.Scope, err = processChannelPoint(*req.ChannelPoint)
 		if err != nil {
-			return r, errors.Newf("parsing channel point output index: %v", err)
+			return r, err
 		}
-		outputIndexUint32 := uint32(oIndxUint)
-		outputIndex = &outputIndexUint32
-	}
-
-	timeLock := req.TimeLockDelta
-
-	//Minimum supported value for TimeLockDelta supported is 18
-	if timeLock < 18 {
-		timeLock = 18
-	}
-
-	updChanReq := lnrpc.PolicyUpdateRequest{
-		TimeLockDelta: timeLock,
-	}
-	if (fundingTxid == nil && outputIndex != nil) || (fundingTxid != nil && outputIndex == nil) {
-		return r, errors.New("Err updating channel: both fundTxid and outputIndex must be specified or none of them")
-	}
-
-	if fundingTxid != nil && outputIndex != nil {
-		fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: *fundingTxid}
-
-		channelPoint := lnrpc.ChannelPoint{
-			FundingTxid: fundingTxid,
-			OutputIndex: *outputIndex,
-		}
-
-		updChanReq.Scope = &lnrpc.PolicyUpdateRequest_ChanPoint{ChanPoint: &channelPoint}
+	} else {
+		updChanReq.Scope = &lnrpc.PolicyUpdateRequest_Global{Global: true}
 	}
 
 	if req.FeeRatePpm != nil {
@@ -94,51 +86,57 @@ func createPolicyRequest(req updateChanRequestBody) (r lnrpc.PolicyUpdateRequest
 	if req.BaseFeeMsat != nil {
 		updChanReq.BaseFeeMsat = *req.BaseFeeMsat
 	}
-	return r, nil
+	return updChanReq, nil
 }
 
-//UpdateChannel
-//Returns status, failed updates array
-func UpdateChannel(client lndClientUpdateChannel, req updateChanRequestBody) (r UpdateResponse, err error) {
+//processChannelPoint
+//Split received channel point string into fundingtxid and outputindex
+//Build PolicyUpdateRequest_ChanPoint: ChannelPoint_FundingTxidStr, ChannelPoint,
+//Return PolicyUpdateRequest_ChanPoint
+func processChannelPoint(chanPoint string) (cp *lnrpc.PolicyUpdateRequest_ChanPoint, err error) {
 
-	policyReq, err := createPolicyRequest(req)
-	if err != nil {
-		log.Error().Msgf("Err updating channel: %v", err)
-		r.Status = "Err updating channel"
-		return r, err
+	//Split string into funding txid and output index
+	splitChanPoint := strings.Split(chanPoint, ":")
+	if len(splitChanPoint) != 2 {
+		log.Error().Msgf("invalid channel point format: %v", err)
+		return cp, errors.New("invalid channel point format")
 	}
 
-	ctx := context.Background()
-	resp, err := client.UpdateChannelPolicy(ctx, &policyReq)
+	txid := splitChanPoint[0]
 
+	oIndxUint, err := strconv.ParseUint(splitChanPoint[1], 10, 1)
 	if err != nil {
-		log.Error().Msgf("Err updating channel: %v", err)
-		r.Status = "Err updating channel"
-		return r, err
+		log.Error().Msgf("parsing channel point output index: %v", err)
+		return cp, errors.Newf("parsing channel point output index: %v", err)
 	}
 
+	outputIndex := uint32(oIndxUint)
+
+	fundingTxid := lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: txid}
+
+	lnrpcCP := &lnrpc.ChannelPoint{FundingTxid: &fundingTxid, OutputIndex: outputIndex}
+	cp = &lnrpc.PolicyUpdateRequest_ChanPoint{ChanPoint: lnrpcCP}
+
+	return cp, nil
+}
+
+func processUpdateResponse(resp *lnrpc.PolicyUpdateResponse) (r updateResponse) {
 	var failedUpdSlice []failedUpdate
+	//log.Debug().Msgf("There are failed updates")
 	if len(resp.GetFailedUpdates()) > 0 {
-		//log.Debug().Msgf("There are failed updates")
 		for _, failUpdate := range resp.GetFailedUpdates() {
+			//log.Debug().Msgf("txid byte: %v", failUpdate.Outpoint.TxidBytes)
 			failedUpd := failedUpdate{}
-			failedUpd.reason = failUpdate.UpdateError
-			failedUpd.updateError = failUpdate.UpdateError
-			failedUpd.outpoint.outIndx = failUpdate.Outpoint.OutputIndex
-			failedUpd.outpoint.txid = failUpdate.Outpoint.TxidStr
+			failedUpd.Reason = failUpdate.UpdateError
+			failedUpd.UpdateError = failUpdate.UpdateError
+			failedUpd.OutPoint.OutIndx = failUpdate.Outpoint.OutputIndex
+			failedUpd.OutPoint.Txid = failUpdate.Outpoint.TxidStr
 			failedUpdSlice = append(failedUpdSlice, failedUpd)
 		}
-		return UpdateResponse{
-			Status:        "Channel update failed",
-			FailedUpdates: failedUpdSlice,
-		}, nil
+		r.Status = "Channel/s update failed"
+		r.FailedUpdates = failedUpdSlice
+	} else {
+		r.Status = "Channel/s updated"
 	}
-
-	updResp := UpdateResponse{
-		Status:        "Channel updated",
-		FailedUpdates: failedUpdSlice,
-	}
-	//log.Debug().Msgf("response: %v", updResp)
-
-	return updResp, nil
+	return r
 }
