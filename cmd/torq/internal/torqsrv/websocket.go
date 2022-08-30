@@ -11,11 +11,12 @@ import (
 )
 
 type wsRequest struct {
-	ReqId               string                        `json:"reqId"`
-	Type                string                        `json:"type"`
-	NewPaymentRequest   *payments.NewPaymentRequest   `json:"newPaymentRequest"`
-	CloseChannelRequest *channels.CloseChannelRequest `json:"closeChannelRequest"`
-	Password            *string                       `json:"password"`
+	ReqId                 string                          `json:"reqId"`
+	Type                  string                          `json:"type"`
+	NewPaymentRequest     *payments.NewPaymentRequest     `json:"newPaymentRequest"`
+	OpenChannelRequest    *channels.OpenChannelRequest    `json:"openChannelRequest"`
+  CloseChannelRequest   *channels.CloseChannelRequest   `json:"closeChannelRequest"`
+	Password              *string                         `json:"password"`
 }
 
 type Pong struct {
@@ -85,6 +86,16 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 		}
 		// Process a valid payment request
 		err := channels.CloseChannel(wChan, db, c, *req.CloseChannelRequest, req.ReqId)
+	case "openChannel":
+		if req.OpenChannelRequest == nil {
+			wChan <- wsError{
+				ReqId: req.ReqId,
+				Type:  "Error",
+				Error: "OpenChannelRequest cannot be empty",
+			}
+			break
+		}
+		err := channels.OpenChannel(db, wChan, *req.OpenChannelRequest, req.ReqId)
 		if err != nil {
 			wChan <- wsError{
 				ReqId: req.ReqId,
@@ -137,7 +148,6 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		case nil:
-
 			// Check if the client is authenticated
 			if allowedUser == false {
 				if req.Type != "auth" {
