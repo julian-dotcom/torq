@@ -1,14 +1,16 @@
 package settings
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
-	"github.com/lncapital/torq/pkg/server_errors"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
+	"github.com/lncapital/torq/pkg/server_errors"
+	"github.com/rs/zerolog/log"
 )
 
 type settings struct {
@@ -21,7 +23,7 @@ type timeZone struct {
 	Name string `json:"name" db:"name"`
 }
 
-func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func()) {
+func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func() error) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
 	r.GET("local-nodes", func(c *gin.Context) { getLocalNodesHandler(c, db) })
@@ -105,7 +107,7 @@ func getLocalNodesHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, localNode)
 }
 
-func addLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
+func addLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
 	var localNode localNode
 
 	if err := c.Bind(&localNode); err != nil {
@@ -126,12 +128,16 @@ func addLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
 		return
 	}
 
-	restartLNDSub()
+	go func() {
+		if err := restartLNDSub(); err != nil {
+			log.Warn().Msg("Already restarting subscriptions, discarding restart request")
+		}
+	}()
 
 	c.JSON(http.StatusOK, localNode)
 }
 
-func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
+func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
 	var localNode localNode
 	if err := c.Bind(&localNode); err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -157,7 +163,11 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
 		return
 	}
 
-	// restartLNDSub()
+	go func() {
+		if err := restartLNDSub(); err != nil {
+			log.Warn().Msg("Already restarting subscriptions, discarding restart request")
+		}
+	}()
 
 	c.JSON(http.StatusOK, localNode)
 }
@@ -204,7 +214,7 @@ type disabledJSON struct {
 	Disabled bool `json:"disabled"`
 }
 
-func updateLocalNodeDisabledHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
+func updateLocalNodeDisabledHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
 	var disabledJSON disabledJSON
 
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
@@ -223,12 +233,16 @@ func updateLocalNodeDisabledHandler(c *gin.Context, db *sqlx.DB, restartLNDSub f
 		return
 	}
 
-	// restartLNDSub()
+	go func() {
+		if err := restartLNDSub(); err != nil {
+			log.Warn().Msg("Already restarting subscriptions, discarding restart request")
+		}
+	}()
 
 	c.Status(http.StatusOK)
 }
 
-func updateLocalNodeDeletedHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func()) {
+func updateLocalNodeDeletedHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -241,7 +255,11 @@ func updateLocalNodeDeletedHandler(c *gin.Context, db *sqlx.DB, restartLNDSub fu
 		return
 	}
 
-	// restartLNDSub()
+	go func() {
+		if err := restartLNDSub(); err != nil {
+			log.Warn().Msg("Already restarting subscriptions, discarding restart request")
+		}
+	}()
 
 	c.Status(http.StatusOK)
 }

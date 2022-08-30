@@ -7,7 +7,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	// "github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/lncapital/torq/pkg/lnd"
-	"github.com/rs/zerolog/log"
+	// "github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -171,7 +171,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	// })
 
 	err = errs.Wait()
-	log.Info().Msg("Subscriptions all ended")
 
 	return err
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/channels"
+	// "github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 	"gopkg.in/guregu/null.v4"

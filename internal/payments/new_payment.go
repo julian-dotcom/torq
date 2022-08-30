@@ -99,10 +99,11 @@ func SendNewPayment(
 	if err != nil {
 		return errors.New("Error getting node connection details from the db")
 	}
+	// TODO: which node are you trying to send the payment from?
 	conn, err := lnd_connect.Connect(
-		connectionDetails.GRPCAddress,
-		connectionDetails.TLSFileBytes,
-		connectionDetails.MacaroonFileBytes)
+		connectionDetails[0].GRPCAddress,
+		connectionDetails[0].TLSFileBytes,
+		connectionDetails[0].MacaroonFileBytes)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Failed connecting to LND")
 	}

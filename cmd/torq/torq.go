@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/lncapital/torq/build"
@@ -14,17 +18,60 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
-	"os"
-	"sync"
-	"time"
 )
 
 var startchan = make(chan struct{})
-var startedchan = make(chan int)
 var stopchan = make(chan struct{})
-var stoppedchan = make(chan int)
+
+type subscriptions struct {
+	mu          sync.RWMutex
+	runningList map[int]func()
+}
+
+func (rs *subscriptions) AddSubscription(localNodeId int, cancelFunc func()) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	if rs.runningList == nil {
+		rs.runningList = make(map[int]func())
+	}
+
+	rs.runningList[localNodeId] = cancelFunc
+}
+
+func (rs *subscriptions) RemoveSubscription(localNodeId int) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	if rs.runningList == nil {
+		rs.runningList = make(map[int]func())
+	}
+	delete(rs.runningList, localNodeId)
+}
+
+func (rs *subscriptions) Contains(localNodeId int) bool {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	_, exists := rs.runningList[localNodeId]
+	return exists
+}
+
+func (rs *subscriptions) GetCancelFuncs() (funcs []func()) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	for _, v := range rs.runningList {
+		funcs = append(funcs, v)
+	}
+
+	return funcs
+}
+
+var runningSubscriptions subscriptions
 
 func main() {
+
 	app := cli.NewApp()
 	app.Name = "torq"
 	app.EnableBashCompletion = true
@@ -93,7 +140,6 @@ func main() {
 		Name:  "start",
 		Usage: "Start the main daemon",
 		Action: func(c *cli.Context) error {
-
 			// Print startup message
 			fmt.Printf("Starting Torq v%s\n", build.Version())
 
@@ -119,70 +165,62 @@ func main() {
 			}
 
 			if !c.Bool("torq.no-sub") {
+				// initialise package level var for keeping state of subsciptions
+				runningSubscriptions = subscriptions{}
 
-				fmt.Println("Connecting to lightning node")
-				// Connect to the node
-
-				ctx := context.Background()
-				ctx, cancel := context.WithCancel(ctx)
-
-				// Subscribe to data from the node
-				//   TODO: Attempt to restart subscriptions if they fail.
-				go (func() error {
+				// go routine that responds to start command and starts all subscriptions
+				go (func() {
 					for {
 						select {
 						case <-startchan:
-							var nodes []settings.ConnectionDetails
-							for {
-								nodes, err = settings.GetConnectionDetails(db)
-								if err != nil && err.Error() != "Missing node details" {
-									return errors.Wrap(err, "Getting connection details")
-								}
-								if err != nil && err.Error() == "Missing node details" {
-									log.Error().Msg("Missing node details. " +
-										"Go to settings and enter IP, port, macasoon and tls certificate. " +
-										"Retrying after a short delay")
-									time.Sleep(5 * time.Second)
-									log.Info().Msg("Retrying...")
-									continue
-								}
-								break
-							}
 
+							nodes, err := settings.GetConnectionDetails(db)
+							if err != nil {
+								log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
+								return
+							}
 							for _, node := range nodes {
 								go (func(node settings.ConnectionDetails) {
+
+									ctx := context.Background()
+									ctx, cancel := context.WithCancel(ctx)
+
+									log.Info().Msgf("Subscribing to LND for node id: %v", node.LocalNodeId)
+									runningSubscriptions.AddSubscription(node.LocalNodeId, cancel)
 									conn, err := lnd_connect.Connect(
 										node.GRPCAddress,
 										node.TLSFileBytes,
 										node.MacaroonFileBytes)
 									if err != nil {
-										log.Error().Msgf("Failed to connect to lnd: %v", err)
-										stoppedchan <- struct{}{}
+										log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.LocalNodeId)
+										runningSubscriptions.RemoveSubscription(node.LocalNodeId)
 										return
 									}
 
-									log.Info().Msgf("Subscribing to LND for node id: %v", node.LocalNodeId)
 									err = subscribe.Start(ctx, conn, db, node.LocalNodeId)
 									if err != nil {
 										log.Error().Err(err).Send()
+										// only log the error, don't return
 									}
 									log.Info().Msgf("LND Subscription stopped for node id: %v", node.LocalNodeId)
-									stoppedchan <- struct{}{}
+									runningSubscriptions.RemoveSubscription(node.LocalNodeId)
 								})(node)
 							}
 						}
 					}
 				})()
+
 				// starts LND subscription when Torq starts
 				startchan <- struct{}{}
 
-				// go routine that looks for stop signals and cancels the context
+				// go routine that looks for stop signals and cancels the context(s)
 				go (func() {
 					for {
 						select {
 						case <-stopchan:
-							cancel()
-							ctx, cancel = context.WithCancel(context.Background())
+							for _, cancelFunc := range runningSubscriptions.GetCancelFuncs() {
+								cancelFunc()
+							}
 						}
 					}
 				})()
@@ -237,30 +275,29 @@ func main() {
 
 }
 
-type SensorData struct {
-	mu   sync.RWMutex
-	last float64
-}
+var restartLock sync.RWMutex
 
-var runList []int
-
-func KeepTrackOfRunningSubscriptions() {
-	for {
-		select {
-		case stoppedId := <-stoppedchan:
-			cancel()
-			ctx, cancel = context.WithCancel(context.Background())
-		}
+func RestartLNDSubscription() error {
+	locked := restartLock.TryLock()
+	if !locked {
+		return errors.New("Already restarting")
 	}
-}
+	defer restartLock.Unlock()
 
-func RestartLNDSubscription() {
-	fmt.Println("Stopping")
+	log.Info().Msg("Stopping subscriptions")
 	stopchan <- struct{}{}
-	<-stoppedchan
-	fmt.Println("Stopped")
-	fmt.Println("Starting again")
+
+	for {
+		if len(runningSubscriptions.GetCancelFuncs()) == 0 {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	log.Info().Msg("All subscriptions stopped")
+	log.Info().Msg("Restarting subscriptions")
 	startchan <- struct{}{}
+	return nil
 }
 
 func loadFlags() func(context *cli.Context) (altsrc.InputSourceContext, error) {
