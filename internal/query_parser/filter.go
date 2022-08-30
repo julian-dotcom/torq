@@ -7,13 +7,33 @@ import (
 	"strings"
 )
 
-// TODO: Add fuzzy search
-// https://www.crunchydata.com/blog/fuzzy-name-matching-in-postgresql
-
-// Example of json
+// Examples of json input
+//
+// Example 1:
+// {"$filter":{"funcName":"eq","key":"status","parameter":"SUCCEEDED"}}
+//
+// Example 2:
 // {"$and":[
 //  {"$filter":{"funcName":"eq","key":"status","parameter":"SUCCEEDED"}},
 //  {"$filter":{"funcName":"gte","key":"amount_msat","parameter":2000}}
+// ]}
+//
+// Example 3:
+// {"$or":[
+//  {"$filter":{"funcName":"eq","key":"status","parameter":"SUCCEEDED"}},
+//  {"$filter":{"funcName":"gte","key":"amount_msat","parameter":2000}}
+// ]}
+//
+// Example 4:
+// {"$or":[
+//   {"$and":[
+//    {"$filter":{"funcName":"eq","key":"status","parameter":"SUCCEEDED"}},
+//    {"$filter":{"funcName":"gte","key":"amount_msat","parameter":2000}}
+//   ]},
+//   {"$and":[
+//    {"$filter":{"funcName":"eq","key":"status","parameter":"FAILED"}},
+//    {"$filter":{"funcName":"lt","key":"amount_msat","parameter":1000}}
+//   ]}
 // ]}
 
 func ParseFilterParam(params string, allowedColumns []string) (f sq.Sqlizer, err error) {
