@@ -236,7 +236,6 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 	}
 
 	WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress)
-
 	PrintInstructions()
 
 	return nil
@@ -621,6 +620,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	log.Println("Cluster setup complete")
 
+	WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress)
 	PrintInstructions()
 	//err = StopVirtualNetwork(name, createDatabase)
 	//if err != nil {
