@@ -30,13 +30,24 @@ func (m MockUpdateChannelLC) UpdateChannelPolicy(ctx context.Context, in *lnrpc.
 }
 
 func TestUpdateChannel(t *testing.T) {
-	fundingTxid := "test"
-	outIndx := uint32(0)
-	feeRate := float64(123)
+	fundingTxid := "test:0"
+	var feeRate uint32 = 123
+	var baseFee int64 = 1
+	var maxHtlcMsat uint64 = 1000
+	var minHtlcMsat uint64 = 1
 	timeLock := uint32(18)
 
+	reBody := updateChanRequestBody{
+		ChannelPoint:  &fundingTxid,
+		FeeRatePpm:    &feeRate,
+		BaseFeeMsat:   &baseFee,
+		MaxHtlcMsat:   &maxHtlcMsat,
+		MinHtlcMsat:   &minHtlcMsat,
+		TimeLockDelta: timeLock,
+	}
+
 	client := MockUpdateChannelLC{}
-	resp, err := UpdateChannel(client, fundingTxid, outIndx, feeRate, timeLock)
+	resp, err := UpdateChannel(client, reBody)
 
 	if err != nil {
 		t.Fail()
