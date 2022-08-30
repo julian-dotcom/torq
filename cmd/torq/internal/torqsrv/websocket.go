@@ -11,11 +11,12 @@ import (
 )
 
 type wsRequest struct {
-	ReqId              string                       `json:"reqId"`
-	Type               string                       `json:"type"`
-	NewPaymentRequest  *payments.NewPaymentRequest  `json:"newPaymentRequest"`
-	OpenChannelRequest *channels.OpenChannelRequest `json:"openChannelRequest"`
-	Password           *string                      `json:"password"`
+	ReqId                 string                          `json:"reqId"`
+	Type                  string                          `json:"type"`
+	NewPaymentRequest     *payments.NewPaymentRequest     `json:"newPaymentRequest"`
+	OpenChannelRequest    *channels.OpenChannelRequest    `json:"openChannelRequest"`
+  CloseChannelRequest   *channels.CloseChannelRequest   `json:"closeChannelRequest"`
+	Password              *string                         `json:"password"`
 }
 
 type Pong struct {
@@ -74,6 +75,17 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 			}
 		}
 		break
+	case "closeChannel":
+		if req.CloseChannelRequest == nil {
+			wChan <- wsError{
+				ReqId: req.ReqId,
+				Type:  "Error",
+				Error: "Close Channel request cannot be empty",
+			}
+			break
+		}
+		// Process a valid payment request
+		err := channels.CloseChannel(wChan, db, c, *req.CloseChannelRequest, req.ReqId)
 	case "openChannel":
 		if req.OpenChannelRequest == nil {
 			wChan <- wsError{
