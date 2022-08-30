@@ -11,12 +11,12 @@ import (
 )
 
 type wsRequest struct {
-	ReqId                 string                          `json:"reqId"`
-	Type                  string                          `json:"type"`
-	NewPaymentRequest     *payments.NewPaymentRequest     `json:"newPaymentRequest"`
-	OpenChannelRequest    *channels.OpenChannelRequest    `json:"openChannelRequest"`
-  CloseChannelRequest   *channels.CloseChannelRequest   `json:"closeChannelRequest"`
-	Password              *string                         `json:"password"`
+	ReqId               string                        `json:"reqId"`
+	Type                string                        `json:"type"`
+	NewPaymentRequest   *payments.NewPaymentRequest   `json:"newPaymentRequest"`
+	OpenChannelRequest  *channels.OpenChannelRequest  `json:"openChannelRequest"`
+	CloseChannelRequest *channels.CloseChannelRequest `json:"closeChannelRequest"`
+	Password            *string                       `json:"password"`
 }
 
 type Pong struct {
@@ -86,6 +86,13 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 		}
 		// Process a valid payment request
 		err := channels.CloseChannel(wChan, db, c, *req.CloseChannelRequest, req.ReqId)
+		if err != nil {
+			wChan <- wsError{
+				ReqId: req.ReqId,
+				Type:  "Error",
+				Error: err.Error(),
+			}
+		}
 	case "openChannel":
 		if req.OpenChannelRequest == nil {
 			wChan <- wsError{
@@ -142,7 +149,6 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 		err := conn.ReadJSON(&req)
 		switch err.(type) {
 		case *websocket.CloseError:
-			conn.Close()
 			return
 		case *websocket.HandshakeError:
 			server_errors.LogAndSendServerError(c, err)
