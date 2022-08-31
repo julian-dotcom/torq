@@ -2,52 +2,50 @@ package on_chain_tx
 
 import (
 	sq "github.com/Masterminds/squirrel"
-	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc"
 	qp "github.com/lncapital/torq/internal/query_parser"
-	"github.com/lncapital/torq/internal/settings"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
-	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
 )
 
-type NewAddressRequestBody struct {
-	//AddressType has to be one of:
-	//- `p2wkh`: Pay to witness key hash (`WITNESS_PUBKEY_HASH` = 0)
-	//- `np2wkh`: Pay to nested witness key hash (`NESTED_PUBKEY_HASH` = 1)
-	//- `p2tr`: Pay to taproot pubkey (`TAPROOT_PUBKEY` = 4)
-	//WITNESS_PUBKEY_HASH = 0;
-	//NESTED_PUBKEY_HASH = 1;
-	//UNUSED_WITNESS_PUBKEY_HASH = 2;
-	//UNUSED_NESTED_PUBKEY_HASH = 3;
-	//TAPROOT_PUBKEY = 4;
-	//UNUSED_TAPROOT_PUBKEY = 5;
-	Type int32
+//newAddressRequest
+//AddressType has to be one of:
+//- `p2wkh`: Pay to witness key hash (`WITNESS_PUBKEY_HASH` = 0)
+//- `np2wkh`: Pay to nested witness key hash (`NESTED_PUBKEY_HASH` = 1)
+//- `p2tr`: Pay to taproot pubkey (`TAPROOT_PUBKEY` = 4)
+//WITNESS_PUBKEY_HASH = 0;
+//NESTED_PUBKEY_HASH = 1;
+//UNUSED_WITNESS_PUBKEY_HASH = 2;
+//UNUSED_NESTED_PUBKEY_HASH = 3;
+//TAPROOT_PUBKEY = 4;
+//UNUSED_TAPROOT_PUBKEY = 5;
+type newAddressRequest struct {
+	Type int32 `json:"type"`
 	//The name of the account to generate a new address for. If empty, the default wallet account is used.
-	Account string
+	Account string `json:"account"`
+}
+
+type sendCoinsRequest struct {
+	Addr             string  `json:"addr"`
+	Amount           int64   `json:"amount"`
+	TargetConf       *int32  `json:"targetConf"`
+	SatPerVbyte      *uint64 `json:"satPerVbyte"`
+	SendAll          *bool   `json:"sendAll"`
+	Label            *string `json:"label"`
+	MinConfs         *int32  `json:"minConfs"`
+	SpendUnconfirmed *bool   `json:"spendUnconfirmed"`
 }
 
 type newAddressResponse struct {
-	Address     string
-	AddressType string
-}
-
-type sendCoinsRequestBody struct {
-	Addr        string
-	Amount      int64
-	TargetConf  int32
-	SatPerVbyte *uint64
+	Address string `json:"address"`
 }
 
 type sendCoinsResponse struct {
-	Address string
-	Amount  int64
-	Txid    string
+	TxId string `json:"txId"`
 }
 
 func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
@@ -156,7 +154,7 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 //}
 
 func newAddressHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody NewAddressRequestBody
+	var requestBody newAddressRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
 		log.Error().Msgf("JSON binding the request body")
@@ -164,40 +162,19 @@ func newAddressHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	addressType := requestBody.Type
-	account := requestBody.Account
-
-	connectionDetails, err := settings.GetConnectionDetails(db)
-	conn, err := lnd_connect.Connect(
-		connectionDetails.GRPCAddress,
-		connectionDetails.TLSFileBytes,
-		connectionDetails.MacaroonFileBytes)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Connecting to LND")
-	}
-
-	defer conn.Close()
-
-	client := lnrpc.NewLightningClient(conn)
-
-	//TODO
-	//
-	resp, err := newAddress(client, addressType, account)
+	resp, err := newAddress(db, requestBody)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Creating new address")
 		return
 	}
 
-	newAddressResp := newAddressResponse{
-		Address:     resp,
-		AddressType: lnrpc.AddressType(addressType).String(),
-	}
+	newAddressResp := newAddressResponse{Address: resp}
 
 	c.JSON(http.StatusOK, newAddressResp)
 }
 
 func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody sendCoinsRequestBody
+	var requestBody sendCoinsRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
 		log.Error().Msgf("JSON binding the request body")
@@ -205,47 +182,14 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	address := requestBody.Addr
-	amount := requestBody.Amount
-	targetConf := requestBody.TargetConf
-	satPerVbyte := requestBody.SatPerVbyte
-
-	if address == "" {
-		log.Error().Msgf("Address value not valid")
-		server_errors.LogAndSendServerError(c, errors.New("Invoice value and/or expiry time not valid"))
-		return
-	}
-
-	if targetConf != 0 && satPerVbyte != nil {
-		log.Error().Msgf("Only one fee model accepted")
-		server_errors.LogAndSendServerError(c, errors.New("Only one fee model accepted"))
-		return
-	}
-
-	connectionDetails, err := settings.GetConnectionDetails(db)
-	conn, err := lnd_connect.Connect(
-		connectionDetails.GRPCAddress,
-		connectionDetails.TLSFileBytes,
-		connectionDetails.MacaroonFileBytes)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Connecting to LND")
-	}
-
-	defer conn.Close()
-
-	client := lnrpc.NewLightningClient(conn)
-
-	resp, err := sendCoins(client, address, amount, targetConf, satPerVbyte)
+	resp, err := sendCoins(db, requestBody)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Sending on-chain payment")
 		return
 	}
 
-	sendCoinsResp := sendCoinsResponse{
-		Address: resp,
-		Amount:  amount,
-		Txid:    resp,
-	}
+	sendCoinsResp := sendCoinsResponse{TxId: resp}
+
 	c.JSON(http.StatusOK, sendCoinsResp)
 }
 

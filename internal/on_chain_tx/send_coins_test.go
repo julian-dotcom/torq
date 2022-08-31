@@ -1,34 +1,114 @@
 package on_chain_tx
 
 import (
-	"context"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"google.golang.org/grpc"
+	"reflect"
 	"testing"
 )
 
-type MockSendCoinsLClnt struct {
-}
+func Test_processSendRequest(t *testing.T) {
+	var targetConf int32 = 10
+	var satPerVbyte uint64 = 11
+	var amount int64 = 14
+	var sendAll = true
+	var label = "test"
+	var minConfs int32 = 15
+	var spendUnco = true
 
-func (m MockSendCoinsLClnt) SendCoins(ctx context.Context, in *lnrpc.SendCoinsRequest, opts ...grpc.CallOption) (*lnrpc.SendCoinsResponse, error) {
-	resp := lnrpc.SendCoinsResponse{Txid: "test"}
-	return &resp, nil
-}
-
-func TestSendCoins(t *testing.T) {
-	address := "test"
-	amount := 123
-	targetConf := 0
-	var satPerVbyte *uint64
-
-	client := MockSendCoinsLClnt{}
-	resp, err := sendCoins(client, address, int64(amount), int32(targetConf), satPerVbyte)
-
-	if err != nil {
-		t.Fail()
+	tests := []struct {
+		name    string
+		input   sendCoinsRequest
+		want    lnrpc.SendCoinsRequest
+		wantErr bool
+	}{
+		{
+			"Address not provided",
+			sendCoinsRequest{
+				Addr:   "",
+				Amount: 12,
+			},
+			lnrpc.SendCoinsRequest{
+				Addr:   "",
+				Amount: 12,
+			},
+			true,
+		},
+		{
+			"Invalid amount",
+			sendCoinsRequest{
+				Addr:   "test",
+				Amount: 0,
+			},
+			lnrpc.SendCoinsRequest{
+				Addr:   "test",
+				Amount: 0,
+			},
+			true,
+		},
+		{
+			"Both targetconf and satpervbyte provided",
+			sendCoinsRequest{
+				Addr:        "test",
+				Amount:      12,
+				TargetConf:  &targetConf,
+				SatPerVbyte: &satPerVbyte,
+			},
+			lnrpc.SendCoinsRequest{
+				Addr:        "",
+				Amount:      0,
+				TargetConf:  0,
+				SatPerVbyte: 0,
+			},
+			true,
+		},
+		{
+			"Only mandatory params",
+			sendCoinsRequest{
+				Addr:   "test",
+				Amount: amount,
+			},
+			lnrpc.SendCoinsRequest{
+				Addr:   "test",
+				Amount: 14,
+			},
+			false,
+		},
+		{
+			"Only mandatory params",
+			sendCoinsRequest{
+				Addr:             "test",
+				Amount:           amount,
+				TargetConf:       &targetConf,
+				SendAll:          &sendAll,
+				Label:            &label,
+				MinConfs:         &minConfs,
+				SpendUnconfirmed: &spendUnco,
+			},
+			lnrpc.SendCoinsRequest{
+				Addr:             "test",
+				Amount:           14,
+				TargetConf:       10,
+				SendAll:          true,
+				Label:            "test",
+				MinConfs:         15,
+				SpendUnconfirmed: true,
+			},
+			false,
+		},
 	}
+	for i, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := processSendRequest(test.input)
 
-	if resp != "test" {
-		t.Fail()
+			if err != nil {
+				if test.wantErr {
+					return
+				}
+				t.Errorf("processSendRequest: %v", err)
+			}
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("%d: processSendRequest()\nGot:\n%v\nWant:\n%v\n", i, got, test.want)
+			}
+		})
 	}
 }

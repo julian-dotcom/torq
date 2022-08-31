@@ -2,27 +2,40 @@ package on_chain_tx
 
 import (
 	"context"
+	"github.com/cockroachdb/errors"
+	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
 )
 
-type lndNewAddrClient interface {
-	NewAddress(ctx context.Context, in *lnrpc.NewAddressRequest, opts ...grpc.CallOption) (*lnrpc.NewAddressResponse, error)
-}
+func newAddress(db *sqlx.DB, req newAddressRequest) (r string, err error) {
+	addressType := req.Type
+	account := req.Account
 
-func newAddress(client lndNewAddrClient, addressType int32, account string) (r string, err error) {
-	ctx := context.Background()
-	lnAddressType := lnrpc.AddressType(addressType)
-	newAddressReq := lnrpc.NewAddressRequest{
-		Type:    lnAddressType,
-		Account: account,
+	connectionDetails, err := settings.GetConnectionDetails(db)
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
+		return r, errors.Newf("can't connect to LND")
 	}
-	resp, err := client.NewAddress(ctx, &newAddressReq)
 
+	defer conn.Close()
+
+	lnAddressType := lnrpc.AddressType(addressType)
+	newAddressReq := lnrpc.NewAddressRequest{Type: lnAddressType, Account: account}
+
+	client := lnrpc.NewLightningClient(conn)
+	ctx := context.Background()
+
+	resp, err := client.NewAddress(ctx, &newAddressReq)
 	if err != nil {
 		log.Error().Msgf("Err creating new address: %v", err)
-		return "Err creating new address", err
+		return r, err
 	}
 
 	//log.Debug().Msgf("New address : %v", resp.Address)
