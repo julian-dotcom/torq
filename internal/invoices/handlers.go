@@ -2,31 +2,31 @@ package invoices
 
 import (
 	sq "github.com/Masterminds/squirrel"
-	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc"
 	qp "github.com/lncapital/torq/internal/query_parser"
-	"github.com/lncapital/torq/internal/settings"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
-	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
 )
 
-type NewInvoiceRequestBody struct {
-	Memo      string
-	ValueMsat int64
-	Expiry    int64
-	Amp       bool
+type newInvoiceRequest struct {
+	Memo            *string `json:"memo"`
+	RPreImage       *string `json:"rPreImage"`
+	Value           *int64  `json:"value"`
+	ValueMsat       *int64  `json:"valueMsat"`
+	Expiry          *int64  `json:"expiry"`
+	FallBackAddress *string `json:"fallBackAddress"`
+	Private         *bool   `json:"private"`
+	IsAmp           *bool   `json:"isAmp"`
 }
 
 type newInvoiceResponse struct {
-	PaymentRequest string
-	ValueMsat      int64
-	Expiry         int64
+	PaymentRequest string `json:"paymentRequest"`
+	AddIndex       uint64 `json:"addIndex"`
+	PaymentAddress string `json:"paymentAddress"`
 }
 
 func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
@@ -159,7 +159,7 @@ func getInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 
 func newInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 
-	var requestBody NewInvoiceRequestBody
+	var requestBody newInvoiceRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
 		log.Error().Msgf("JSON binding the request body")
@@ -167,50 +167,13 @@ func newInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	memo := requestBody.Memo
-	valueMsat := requestBody.ValueMsat
-	//Not mandatory. Default value is 3600 seconds
-	expiry := requestBody.Expiry
-	amp := requestBody.Amp
-
-	//log.Debug().Msgf("Memo: %v, value: %v, expiry: %v, amp: %v", memo, valueMsat, expiry, amp)
-
-	if valueMsat <= 0 {
-		log.Error().Msgf("Invoice value not valid")
-		server_errors.LogAndSendServerError(c, errors.New("Invoice value and/or expiry time not valid"))
-		return
-	}
-
-	connectionDetails, err := settings.GetConnectionDetails(db)
-	conn, err := lnd_connect.Connect(
-		connectionDetails.GRPCAddress,
-		connectionDetails.TLSFileBytes,
-		connectionDetails.MacaroonFileBytes)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Connecting to LND")
-	}
-
-	defer conn.Close()
-
-	client := lnrpc.NewLightningClient(conn)
-
-	resp, err := newInvoice(client, memo, valueMsat, expiry, amp)
+	resp, err := newInvoice(db, requestBody)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Creating new invoice")
 		return
 	}
 
-	//If expiry time not provided,default value is 3600 seconds(1 hour)
-	if expiry == 0 {
-		expiry = 3600
-	}
-
-	invoiceResp := newInvoiceResponse{
-		PaymentRequest: resp,
-		ValueMsat:      valueMsat,
-		Expiry:         expiry,
-	}
-	c.JSON(http.StatusOK, invoiceResp)
+	c.JSON(http.StatusOK, resp)
 }
 
 func RegisterInvoicesRoutes(r *gin.RouterGroup, db *sqlx.DB) {
