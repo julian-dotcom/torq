@@ -50,11 +50,6 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 
 func processInvoiceReq(req newInvoiceRequest) (inv lnrpc.Invoice, err error) {
 
-	if req.Value != nil && req.ValueMsat != nil {
-		log.Error().Msgf("Invoice value not valid")
-		return inv, errors.New("Invoice value not valid")
-	}
-
 	if req.Memo != nil {
 		inv.Memo = *req.Memo
 	}
@@ -65,10 +60,6 @@ func processInvoiceReq(req newInvoiceRequest) (inv lnrpc.Invoice, err error) {
 			return inv, errors.New("error decoding preimage")
 		}
 		inv.RPreimage = rPreImage
-	}
-
-	if req.Value != nil {
-		inv.Value = *req.Value
 	}
 
 	if req.ValueMsat != nil {

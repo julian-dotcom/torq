@@ -15,7 +15,6 @@ import (
 type newInvoiceRequest struct {
 	Memo            *string `json:"memo"`
 	RPreImage       *string `json:"rPreImage"`
-	Value           *int64  `json:"value"`
 	ValueMsat       *int64  `json:"valueMsat"`
 	Expiry          *int64  `json:"expiry"`
 	FallBackAddress *string `json:"fallBackAddress"`

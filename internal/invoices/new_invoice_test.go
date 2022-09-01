@@ -7,7 +7,6 @@ import (
 )
 
 func Test_processInvoiceReq(t *testing.T) {
-	var value int64 = 10
 	var valueMsat int64 = 11
 	var memo = "test"
 	var rPreImage = "024bf894b017051472911cb3db5097a825e2fc9a5602c824ff7bbea2a625f40972"
@@ -24,15 +23,6 @@ func Test_processInvoiceReq(t *testing.T) {
 		want    lnrpc.Invoice
 		wantErr bool
 	}{
-		{
-			"Value and ValueMSat provided",
-			newInvoiceRequest{
-				Value:     &value,
-				ValueMsat: &valueMsat,
-			},
-			lnrpc.Invoice{},
-			true,
-		},
 		{
 			"Only ValueMSat provided",
 			newInvoiceRequest{
