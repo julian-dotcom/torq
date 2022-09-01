@@ -34,16 +34,22 @@ func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 func ImportTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
 
 	txheight, err := fetchLastTxHeight(db)
+	if err != nil {
+		return errors.Wrap(err, "Fetch Last Tx Height")
+	}
 
 	req := lnrpc.GetTransactionsRequest{
 		StartHeight: txheight,
 	}
 	res, err := client.GetTransactions(ctx, &req)
+	if err != nil {
+		return errors.Wrap(err, "Get Transactions")
+	}
 
 	for _, tx := range res.Transactions {
 		err = storeTransaction(db, tx)
 		if err != nil {
-			return errors.Wrapf(err, "ImportTransactions -> storeTransaction(%v, %v)", db, tx)
+			return errors.Wrap(err, "Store Transaction")
 		}
 	}
 
