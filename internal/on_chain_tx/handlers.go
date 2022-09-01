@@ -31,7 +31,7 @@ type newAddressRequest struct {
 
 type sendCoinsRequest struct {
 	Addr             string  `json:"addr"`
-	Amount           int64   `json:"amount"`
+	AmountSat        int64   `json:"amountSat"`
 	TargetConf       *int32  `json:"targetConf"`
 	SatPerVbyte      *uint64 `json:"satPerVbyte"`
 	SendAll          *bool   `json:"sendAll"`

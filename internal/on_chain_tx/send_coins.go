@@ -47,7 +47,7 @@ func processSendRequest(req sendCoinsRequest) (r lnrpc.SendCoinsRequest, err err
 		return r, errors.New("Address must be provided")
 	}
 
-	if req.Amount <= 0 {
+	if req.AmountSat <= 0 {
 		log.Error().Msgf("Invalid amount")
 		return r, errors.New("Invalid amount")
 	}
@@ -58,7 +58,7 @@ func processSendRequest(req sendCoinsRequest) (r lnrpc.SendCoinsRequest, err err
 	}
 
 	r.Addr = req.Addr
-	r.Amount = req.Amount
+	r.Amount = req.AmountSat
 
 	if req.TargetConf != nil {
 		r.TargetConf = *req.TargetConf

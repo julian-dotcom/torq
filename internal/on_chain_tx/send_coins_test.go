@@ -24,8 +24,8 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Address not provided",
 			sendCoinsRequest{
-				Addr:   "",
-				Amount: 12,
+				Addr:      "",
+				AmountSat: 12,
 			},
 			lnrpc.SendCoinsRequest{
 				Addr:   "",
@@ -36,8 +36,8 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Invalid amount",
 			sendCoinsRequest{
-				Addr:   "test",
-				Amount: 0,
+				Addr:      "test",
+				AmountSat: 0,
 			},
 			lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -49,7 +49,7 @@ func Test_processSendRequest(t *testing.T) {
 			"Both targetconf and satpervbyte provided",
 			sendCoinsRequest{
 				Addr:        "test",
-				Amount:      12,
+				AmountSat:   12,
 				TargetConf:  &targetConf,
 				SatPerVbyte: &satPerVbyte,
 			},
@@ -64,8 +64,8 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Only mandatory params",
 			sendCoinsRequest{
-				Addr:   "test",
-				Amount: amount,
+				Addr:      "test",
+				AmountSat: amount,
 			},
 			lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -77,7 +77,7 @@ func Test_processSendRequest(t *testing.T) {
 			"Only mandatory params",
 			sendCoinsRequest{
 				Addr:             "test",
-				Amount:           amount,
+				AmountSat:        amount,
 				TargetConf:       &targetConf,
 				SendAll:          &sendAll,
 				Label:            &label,
