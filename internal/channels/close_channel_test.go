@@ -2,7 +2,15 @@ package channels
 
 import (
 	"github.com/lightningnetwork/lnd/lnrpc"
+<<<<<<< HEAD
 	"reflect"
+=======
+	"github.com/lncapital/torq/internal/logging"
+	"github.com/rzajac/zltest"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"sync/atomic"
+>>>>>>> 032d443 (fix tests)
 	"testing"
 )
 
@@ -27,6 +35,7 @@ func Test_processResponse(t *testing.T) {
 				},
 			},
 
+<<<<<<< HEAD
 			want: &CloseChannelResponse{
 				ReqId:        "Test",
 				Status:       "PENDING",
@@ -52,6 +61,21 @@ func Test_processResponse(t *testing.T) {
 				ChanClose:    channelCloseUpdate{ClosingTxId: []byte("test"), Success: false},
 			},
 		},
+=======
+func (m MockCloseChannelLC) CloseChannel(ctx context.Context, in *lnrpc.CloseChannelRequest, opts ...grpc.CallOption) (lnrpc.Lightning_CloseChannelClient, error) {
+	req := MockCloseChannelClientRecv{}
+	return req, nil
+}
+
+type MockCloseChannelClientRecv struct {
+	eof bool
+	err bool
+}
+
+func (ml MockCloseChannelClientRecv) Recv() (*lnrpc.CloseStatusUpdate, error) {
+	if ml.eof {
+		return nil, context.Canceled
+>>>>>>> 032d443 (fix tests)
 	}
 
 	for i, test := range tests {
@@ -163,3 +187,35 @@ func Test_prepareCloseRequest(t *testing.T) {
 		})
 	}
 }
+<<<<<<< HEAD
+=======
+
+func TestCloseRecvErr(t *testing.T) {
+	tst := zltest.New(t)
+	logging.InitLogTest(tst)
+	//ctx := context.Background()
+	req := MockCloseChannelClientRecv{eof: false, err: true}
+
+	go receiveCloseResponse(&req, closeCtxMain)
+	time.Sleep(5 * time.Millisecond)
+
+	ent := tst.LastEntry()
+	ent.ExpStr("message", "Err receive error")
+}
+
+func TestCloseContextCanceled(t *testing.T) {
+	tst := zltest.New(t)
+	logging.InitLogTest(tst)
+	ctx, cancel := context.WithCancel(closeCtxMain)
+
+	req := MockCloseChannelClientRecv{eof: false, err: false}
+	go receiveCloseResponse(&req, ctx)
+
+	time.Sleep(10 * time.Millisecond)
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+
+	ent := tst.LastEntry()
+	ent.ExpStr("message", "context canceled")
+}
+>>>>>>> 032d443 (fix tests)

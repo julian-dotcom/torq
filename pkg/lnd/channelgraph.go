@@ -10,7 +10,6 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
-	"io"
 	"log"
 	"time"
 )
@@ -41,9 +40,6 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		gpu, err := stream.Recv()
-		if errors.Is(err, io.EOF) {
-			break
-		}
 
 		if err != nil {
 			if errors.As(err, &context.Canceled) {
