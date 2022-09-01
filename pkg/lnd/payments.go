@@ -206,10 +206,6 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 			for _, i := range inFlightindexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
-				//currently only used for testing
-				if errors.As(err, &io.EOF) {
-					return nil
-				}
 				if err != nil {
 					log.Printf("Subscribe and update payments: %v\n", err)
 					continue

@@ -36,7 +36,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil
 		default:
 		}
 
@@ -46,6 +46,9 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		if err != nil {
+			if errors.As(err, &context.Canceled) {
+				break
+			}
 			log.Printf("Subscribe channel graph stream receive: %v\n", err)
 			// rate limited resubscribe
 			log.Println("Attempting reconnect to channel graph")

@@ -9,7 +9,6 @@ import (
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"go.uber.org/ratelimit"
-	"io"
 	"log"
 	"time"
 )
@@ -72,40 +71,40 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil
 		default:
-		}
 
-		tx, err := stream.Recv()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			log.Printf("Subscribe transactions stream receive: %v\n", err)
-			// rate limited resubscribe
-			log.Println("Attempting reconnect to transactions")
-			for {
-				rl.Take()
-				stream, err = client.SubscribeTransactions(ctx, &req)
-				if err == nil {
-					log.Println("Reconnected to transactions")
+			tx, err := stream.Recv()
+
+			if err != nil {
+				if errors.As(err, &context.Canceled) {
 					break
 				}
-				log.Printf("Reconnecting to transactions: %v\n", err)
+				log.Printf("Subscribe transactions stream receive: %v\n", err)
+				// rate limited resubscribe
+				log.Println("Attempting reconnect to transactions")
+				for {
+					rl.Take()
+					stream, err = client.SubscribeTransactions(ctx, &req)
+					if err == nil {
+						log.Println("Reconnected to transactions")
+						break
+					}
+					log.Printf("Reconnecting to transactions: %v\n", err)
+				}
+				continue
 			}
-			continue
-		}
 
-		err = storeTransaction(db, tx)
-		if err != nil {
-			fmt.Printf("Subscribe transaction events store transaction error: %v", err)
-			// rate limit for caution but hopefully not needed
-			rl.Take()
-			continue
+			err = storeTransaction(db, tx)
+			if err != nil {
+				fmt.Printf("Subscribe transaction events store transaction error: %v", err)
+				// rate limit for caution but hopefully not needed
+				rl.Take()
+				continue
+			}
 		}
 	}
 
-	return nil
 }
 
 var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height,

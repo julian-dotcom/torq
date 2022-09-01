@@ -5,7 +5,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	// "github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/lncapital/torq/pkg/lnd"
 	// "github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
@@ -18,7 +18,7 @@ import (
 // of Torqs data collection
 func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId int) error {
 
-	// router := routerrpc.NewRouterClient(conn)
+	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
 
 	// Create an error group to catch errors from go routines.
@@ -85,94 +85,83 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	// Start listening for updates to the channel point list
 	go lnd.UpdateChanIdList(chanPointChan)
 
-	// // Transactions
-	// errs.Go(func() error {
-	// 	err := lnd.SubscribeAndStoreTransactions(ctx, client, db)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "Start->SubscribeAndStoreTransactions(%v, %v, %v)", ctx, client, db)
-	// 	}
-	// 	return nil
-	// })
+	// Transactions
+	errs.Go(func() error {
+		err := lnd.SubscribeAndStoreTransactions(ctx, client, db)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStoreTransactions(%v, %v, %v)", ctx, client, db)
+		}
+		return nil
+	})
 
-	// // Graph (Node updates, fee updates etc.)
-	// errs.Go(func() error {
-	// 	err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "Start->SubscribeAndStoreChannelGraph(%v, %v, %v)", ctx, client, db)
-	// 	}
-	// 	return nil
-	// })
+	// Graph (Node updates, fee updates etc.)
+	errs.Go(func() error {
+		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStoreChannelGraph(%v, %v, %v)", ctx, client, db)
+		}
+		return nil
+	})
 
 	// // HTLC events
-	// errs.Go(func() error {
-	// 	err := lnd.SubscribeAndStoreHtlcEvents(ctx, router, db)
-	// 	if err != nil {
-	// 		fmt.Printf("htlc subscribe error: %+v", err)
-	// 		return errors.Wrapf(err, "Start->SubscribeAndStoreHtlcEvents(%v, %v, %v)", ctx, router, db)
-	// 	}
-	// 	return nil
-	// })
+	errs.Go(func() error {
+		err := lnd.SubscribeAndStoreHtlcEvents(ctx, router, db)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStoreHtlcEvents(%v, %v, %v)", ctx, router, db)
+		}
+		return nil
+	})
 
 	// // Channel Events
-	// errs.Go(func() error {
-	// 	err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan, localNodeId)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "Start->SubscribeAndStoreChannelEvents(%v, %v, %v)", ctx, router, db)
-	// 	}
-	// 	return nil
-	// })
+	errs.Go(func() error {
+		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan, localNodeId)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStoreChannelEvents(%v, %v, %v)", ctx, router, db)
+		}
+		return nil
+	})
 
-	// // Forwarding history
-	// errs.Go(func() error {
+	// Forwarding history
+	errs.Go(func() error {
+		err := lnd.SubscribeForwardingEvents(ctx, client, db, nil)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeForwardingEvents(%v, %v, %v, %v)", ctx,
+				client, db, nil)
+		}
+		return nil
+	})
 
-	// 	err := lnd.SubscribeForwardingEvents(ctx, client, db, nil)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "Start->SubscribeForwardingEvents(%v, %v, %v, %v)", ctx,
-	// 			client, db, nil)
-	// 	}
+	// Invoices
+	errs.Go(func() error {
+		err := lnd.SubscribeAndStoreInvoices(ctx, client, db)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStoreInvoices(%v, %v, %v)", ctx,
+				client, db)
+		}
+		return nil
+	})
 
-	// 	return nil
-	// })
+	// Payments
+	errs.Go(func() error {
+		err := lnd.SubscribeAndStorePayments(ctx, client, db, nil)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStorePayments(%v, %v, %v)", ctx,
+				client, db)
+		}
+		return nil
+	})
 
-	// // Invoices
-	// errs.Go(func() error {
-
-	// 	err := lnd.SubscribeAndStoreInvoices(ctx, client, db)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "Start->SubscribeAndStoreInvoices(%v, %v, %v)", ctx,
-	// 			client, db)
-	// 	}
-
-	// 	return nil
-	// })
-
-	// // Payments
-	// errs.Go(func() error {
-
-	// 	err := lnd.SubscribeAndStorePayments(ctx, client, db, nil)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "Start->SubscribeAndStorePayments(%v, %v, %v)", ctx,
-	// 			client, db)
-	// 	}
-
-	// 	return nil
-	// })
-
-	// // Update in flight payments
-	// errs.Go(func() error {
-
-	// 	err := lnd.SubscribeAndUpdatePayments(ctx, client, db, nil)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "Start->SubscribeAndUpdatePayments(%v, %v, %v)", ctx,
-	// 			client, db)
-	// 	}
-
-	// 	return nil
-	// })
+	// Update in flight payments
+	errs.Go(func() error {
+		err := lnd.SubscribeAndUpdatePayments(ctx, client, db, nil)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndUpdatePayments(%v, %v, %v)", ctx,
+				client, db)
+		}
+		return nil
+	})
 
 	err = errs.Wait()
 
 	return err
 }
-
-// Fetch static channel state and store it.
