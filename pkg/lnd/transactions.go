@@ -78,7 +78,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 			tx, err := stream.Recv()
 
 			if err != nil {
-				if errors.As(err, &context.Canceled) {
+				if errors.Is(ctx.Err(), context.Canceled) {
 					break
 				}
 				log.Printf("Subscribe transactions stream receive: %v\n", err)

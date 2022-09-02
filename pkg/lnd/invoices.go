@@ -220,7 +220,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		invoice, err := invoiceStream.Recv()
 
 		if err != nil {
-			if errors.As(err, &context.Canceled) {
+			if errors.Is(ctx.Err(), context.Canceled) {
 				break
 			}
 			log.Error().Msgf("Subscribe and store invoice stream receive: %v\n", err)
