@@ -18,10 +18,12 @@ import (
 type stubLNDSubscribeChannelGraphRPC struct {
 	grpc.ClientStream
 	GraphTopologyUpdate []*lnrpc.GraphTopologyUpdate
+	CancelFunc          func()
 }
 
 func (s *stubLNDSubscribeChannelGraphRPC) Recv() (*lnrpc.GraphTopologyUpdate, error) {
 	if len(s.GraphTopologyUpdate) == 0 {
+		s.CancelFunc()
 		return nil, context.Canceled
 	}
 	var gtu interface{}
@@ -29,13 +31,14 @@ func (s *stubLNDSubscribeChannelGraphRPC) Recv() (*lnrpc.GraphTopologyUpdate, er
 	if u, ok := gtu.(*lnrpc.GraphTopologyUpdate); ok {
 		return u, nil
 	}
+	s.CancelFunc()
 	return nil, context.Canceled
 }
 
 func (s *stubLNDSubscribeChannelGraphRPC) SubscribeChannelGraph(ctx context.Context, in *lnrpc.GraphTopologySubscription,
 	opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeChannelGraphClient, error) {
 
-	return &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: s.GraphTopologyUpdate}, nil
+	return s, nil
 }
 
 func TestSubscribeChannelGraphUpdates(t *testing.T) {
@@ -276,7 +279,9 @@ type routingPolicyData struct {
 
 func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscribeChannelGraphRPC) (r []routingPolicyData) {
 	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 	errs, ctx := errgroup.WithContext(ctx)
+	client.CancelFunc = cancel
 
 	errs.Go(func() error {
 		err := SubscribeAndStoreChannelGraph(ctx, client, db)
