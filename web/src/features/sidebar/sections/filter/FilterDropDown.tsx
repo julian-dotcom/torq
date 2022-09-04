@@ -28,7 +28,7 @@ export default function TorqSelect({ selectProps, child }: TorqSelectProps) {
     }),
     dropdownIndicator: (provided: any, state: any) => ({
       ...provided,
-      color: "var(--secondary-1-500)",
+      color: "var(--secondary-1-600)",
       // padding: "0",
     }),
     control: (provided: any, state: any) => ({

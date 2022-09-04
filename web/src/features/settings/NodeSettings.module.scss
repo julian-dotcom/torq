@@ -1,34 +1,53 @@
 .header {
+  cursor: pointer;
   display: flex;
+  column-gap: 12px;
   .connectionIcon {
-    width: 28px;
-    height: 28px;
-    background-color: var(--color-red);
+    width: 32px;
+    height: 32px;
+    color: var(--color-red-500);
+    background-color: var(--color-red-300);
+    border: 1px solid var(--color-red-500);
     border-radius: 100%;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
+    //svg {
+    //  width: 16px;
+    //  height: 16px;
+    //}
     &.connected {
-      background-color: var(--secondary-2-500);
+      color: var(--secondary-2-600);
+      background-color: var(--secondary-2-150);
+      border: 1px solid var(--secondary-2-500);
     }
     &.disabled {
-      background-color: var(--primary-150) !important;
+      color: var(--content-muted);
+      background-color: var(--content-faded) !important;
+      border: 1px solid var(--content-subtle);
     }
   }
   .collapseIcon {
     margin-left: auto;
     transition: 0.3s transform ease-in-out;
     transform: rotate(0deg);
-    &.collapsed {
-      transform: rotate(90deg);
-    }
+    //&.collapsed {
+    //  transform: rotate(90deg);
+    //}
   }
   .title {
-    margin-left: 10px;
+    //margin-left: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: var(--font-size-default);
   }
   .title,
   .collapseIcon {
-    margin-top: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    //margin-top: 4px;
   }
 }
 .borderSection {
@@ -40,9 +59,32 @@
 .detailHeader {
   display: flex;
   justify-content: space-between;
-  .moreIcon {
-    transform: rotate(90deg);
+  align-items: center;
+  margin-top: 0px;
+  margin-bottom: 16px;
+}
+.moreButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: var(--content-faded);
+  border: 1px solid var(--content-subtle);
+  border-radius: 2px;
+  //margin-right: -8px;
+  cursor: pointer;
+  &:hover {
+    background-color: var(--primary-100);
+    color: var(--content-default);
   }
+}
+.moreIcon {
+  //transform: rotate(90deg);
+  width: 24px;
+  height: 24px;
+}
+.detailsTitle {
 }
 .deleteConfirm {
   p,

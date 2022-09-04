@@ -1,6 +1,6 @@
 import React from "react";
 import styles from "./Modal.module.scss";
-import { DismissCircle20Regular as DismissIcon } from "@fluentui/react-icons";
+import { DismissCircle24Regular as DismissIcon } from "@fluentui/react-icons";
 import classNames from "classnames";
 
 interface ModalProps {

@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
-import Select, { Props } from "react-select";
+import Select, { Props, components } from "react-select";
+import { ChevronDown16Regular as ChevronDownIcon } from "@fluentui/react-icons";
 
 export type SelectOptionType = { value: string; label: string };
 
@@ -14,12 +15,17 @@ const customStyles = {
   control: (provided: any, state: any) => ({
     ...provided,
     borderRadius: 2,
-    border: "1px solid transparent",
+    border: "1px solid var(--content-subtle)",
     boxShadow: "none",
     "&:hover": {
       border: "1px solid #8198a3",
       boxShadow: "none",
     },
+  }),
+  dropdownIndicator: (provided: any, state: any) => ({
+    ...provided,
+    color: "var(--content-default)",
+    // padding: "0",
   }),
   singleValue: (provided: any) => ({
     ...provided,
@@ -50,5 +56,12 @@ type TorqSelectProps = Props & {
 };
 
 export default function TorqSelect(props: Props) {
-  return <StyledSelect styles={customStyles} {...props} />;
+  const DropdownIndicator = (props: any) => {
+    return (
+      <components.DropdownIndicator {...props}>
+        <ChevronDownIcon />
+      </components.DropdownIndicator>
+    );
+  };
+  return <StyledSelect components={{ DropdownIndicator }} styles={customStyles} {...props} />;
 }

@@ -2,16 +2,18 @@ import Table, { ColumnMetaData } from "features/table/Table";
 import { useGetPaymentsQuery } from "apiSlice";
 import { Link } from "react-router-dom";
 import {
-  Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
+  Filter20Regular as FilterIcon,
   Options20Regular as OptionsIcon,
+  MoneyHand20Regular as TransactionIcon,
+  MoneyHand24Regular as TransactionIconModal,
 } from "@fluentui/react-icons";
 import Sidebar, { SidebarSection } from "features/sidebar/Sidebar";
 import TablePageTemplate, {
-  TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
+  TableControlSection,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TransactTabs from "../TransactTabs";
@@ -31,6 +33,8 @@ import {
 import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
+import Button, { buttonColor } from "features/buttons/Button";
+import Modal from "../../modal/Modal";
 
 type sections = {
   filter: boolean;
@@ -135,6 +139,14 @@ function PaymentsPage() {
     <TableControlSection>
       <TransactTabs />
       <TableControlsButtonGroup>
+        <Button
+          buttonColor={buttonColor.green}
+          text={"New"}
+          icon={<TransactionIcon />}
+          onClick={() => {
+            setShowModalState(true);
+          }}
+        />
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>
@@ -199,6 +211,12 @@ function PaymentsPage() {
     dispatch(updateColumns({ columns: columns }));
   };
 
+  const [showModalState, setShowModalState] = useState(false);
+
+  const handleModalClose = () => {
+    setShowModalState(false);
+  };
+
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
       <SidebarSection
@@ -253,11 +271,16 @@ function PaymentsPage() {
       tableControls={tableControls}
       pagination={pagination}
     >
-      <Table
-        data={data}
-        activeColumns={columns || []}
-        isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
-      />
+      <>
+        <Table
+          data={data}
+          activeColumns={columns || []}
+          isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
+        />
+        <Modal title={"New Payment"} show={showModalState} onClose={handleModalClose} icon={<TransactionIconModal />}>
+          <p>Are you sure you want to delete this payment?</p>
+        </Modal>
+      </>
     </TablePageTemplate>
   );
 }

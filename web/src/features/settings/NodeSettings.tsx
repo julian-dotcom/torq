@@ -4,10 +4,12 @@ import Select, { SelectOption } from "../forms/Select";
 import React, { useState } from "react";
 import {
   Save20Regular as SaveIcon,
-  PlugConnected20Regular as ConnectedIcon,
-  PlugDisconnected20Regular as DisconnectedIcon,
-  ChevronDown20Regular as ChevronIcon,
+  Play16Regular as ConnectedIcon,
+  Pause16Regular as DisconnectedIcon,
+  ChevronDown20Regular as CollapsedIcon,
+  LineHorizontal120Regular as ExpandedIcon,
   MoreCircle20Regular as MoreIcon,
+  Delete24Regular as DeleteIconHeader,
   Delete20Regular as DeleteIcon,
   Pause20Regular as PauseIcon,
   Play20Regular as PlayIcon,
@@ -28,7 +30,7 @@ import classNames from "classnames";
 import Collapse from "features/collapse/Collapse";
 import Switch from "features/inputs/Slider/Switch";
 import Popover from "features/popover/Popover";
-import Button, { buttonVariants } from "features/buttons/Button";
+import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
 import Modal from "features/modal/Modal";
 
 interface nodeProps {
@@ -152,7 +154,7 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
     <Box>
       <>
         {!addMode && (
-          <div className={styles.header}>
+          <div className={styles.header} onClick={handleCollapseClick}>
             <div
               className={classNames(styles.connectionIcon, {
                 [styles.connected]: true,
@@ -164,7 +166,7 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
             </div>
             <div className={styles.title}>{localNodeData?.grpcAddress}</div>
             <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
-              <ChevronIcon onClick={handleCollapseClick} />
+              {collapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
             </div>
           </div>
         )}
@@ -174,20 +176,22 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
               <>
                 <div className={styles.borderSection}>
                   <div className={styles.detailHeader}>
-                    <strong>Node Details</strong>
-                    <Popover button={menuButton} className={"right"} ref={popoverRef}>
+                    <h4 className={styles.detailsTitle}>Node Details</h4>
+                    <Popover button={menuButton} className={classNames("right", styles.moreButton)} ref={popoverRef}>
                       <div className={styles.nodeMenu}>
                         <Button
-                          variant={buttonVariants.secondary}
+                          buttonColor={buttonColor.secondary}
                           text={localState.disabled ? "Enable node" : "Disable node"}
                           icon={localState.disabled ? <PlayIcon /> : <PauseIcon />}
                           onClick={handleDisableClick}
+                          buttonPosition={buttonPosition.left}
                         />
                         <Button
-                          variant={buttonVariants.warning}
+                          buttonColor={buttonColor.warning}
                           text={"Delete node"}
                           icon={<DeleteIcon />}
                           onClick={handleDeleteClick}
+                          buttonPosition={buttonPosition.left}
                         />
                       </div>
                     </Popover>
@@ -222,17 +226,17 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
                   />
                 </span>
                 <Button
-                  variant={buttonVariants.secondary}
+                  buttonColor={buttonColor.green}
                   text={addMode ? "Add Node" : "Save node details"}
                   icon={<SaveIcon />}
                   onClick={submitNodeSettings}
-                  fullWidth={true}
+                  buttonPosition={buttonPosition.fullWidth}
                 />
               </form>
             </div>
           </>
         </Collapse>
-        <Modal title={"Are you sure?"} icon={<DeleteIcon />} onClose={handleModalClose} show={showModalState}>
+        <Modal title={"Are you sure?"} icon={<DeleteIconHeader />} onClose={handleModalClose} show={showModalState}>
           <div className={styles.deleteConfirm}>
             <p>
               Deleting the node will prevent you from viewing it's data in Torq. Alternatively set node to disabled to
@@ -244,9 +248,9 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
 
             <TextInput value={deleteConfirmationTextInputState} onChange={handleDeleteConfirmationTextInputChange} />
             <div className={styles.deleteConfirmButtons}>
-              <a>Cancel</a>
               <Button
-                variant={buttonVariants.warning}
+                buttonColor={buttonColor.warning}
+                buttonPosition={buttonPosition.fullWidth}
                 text={"Delete node"}
                 icon={<DeleteIcon />}
                 onClick={handleModalDeleteClick}

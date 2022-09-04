@@ -37,7 +37,7 @@ import FilterSection from "../sidebar/sections/filter/FilterSection";
 import SortSection, { SortByOptionType } from "../sidebar/sections/sort/SortSectionOld";
 import GroupBySection from "../sidebar/sections/group/GroupBySection";
 import ForwardsDataWrapper from "./ForwardsDataWrapper";
-import Button, { buttonVariants } from "../buttons/Button";
+import Button, { buttonColor } from "../buttons/Button";
 import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
 import classNames from "classnames";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";

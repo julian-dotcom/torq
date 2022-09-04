@@ -8,7 +8,7 @@ import { defaultStaticRangesFn } from "./customRanges";
 
 import Popover from "../popover/Popover";
 import classNames from "classnames";
-import Button, { buttonVariants } from "../buttons/Button";
+import Button, { buttonColor } from "../buttons/Button";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
 import { useGetSettingsQuery } from "apiSlice";
@@ -90,7 +90,7 @@ function TimeIntervalSelect(props: { className?: string }) {
       <div className="time-travel-arrow" onClick={moveBackwardInTime}>
         <LeftIcon />
       </div>
-      <Button variant={buttonVariants.ghost} text={buttonText()} className="time-interval-wrapper" />
+      <Button buttonColor={buttonColor.ghost} text={buttonText()} className="time-interval-wrapper" />
       <div className="time-travel-arrow" onClick={moveForwardInTime}>
         <RightIcon />
       </div>

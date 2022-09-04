@@ -8,7 +8,7 @@ import {
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
 import { ColumnMetaData } from "features/table/Table";
-import Button, { buttonVariants } from "features/buttons/Button";
+import Button, { buttonColor } from "features/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
@@ -196,7 +196,7 @@ const SortSection = (props: SortSectionProps) => {
 
         <div className={styles.buttonsRow}>
           <Button
-            variant={buttonVariants.ghost}
+            buttonColor={buttonColor.ghost}
             className={"small"}
             onClick={() => handleAddSort()}
             text={"Add"}

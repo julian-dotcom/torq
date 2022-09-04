@@ -8,7 +8,7 @@ import ProfitsChart from "./revenueChart/ProfitsChart";
 import EventsChart from "./eventsChart/EventsChart";
 import EventsCard from "../eventsCard/EventsCard";
 import Switch from "../inputs/Slider/Switch";
-import Button, { buttonVariants } from "../buttons/Button";
+import Button, { buttonColor } from "../buttons/Button";
 import Select from "../inputs/Select";
 import { Iot20Regular as ChannelIcon, Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
@@ -361,7 +361,7 @@ function ChannelPage() {
                 <Popover
                   button={
                     <Button
-                      variant={buttonVariants.ghost}
+                      buttonColor={buttonColor.ghost}
                       isOpen={selectedEventsCount > 0}
                       text={`${selectedEventsCount}`}
                       icon={<EventFlagIcon />}

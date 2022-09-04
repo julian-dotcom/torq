@@ -18,10 +18,11 @@ const customStyles = {
     ...provided,
     paddingLeft: "4px",
     borderRadius: "0px",
+    color: "var(--secondary-1-600)",
   }),
   dropdownIndicator: (provided: any, state: any) => ({
     ...provided,
-    color: "var(--secondary-1-500)",
+    color: "var(--secondary-1-600)",
     borderRadius: "0px",
     // padding: "0",
   }),
@@ -48,6 +49,8 @@ const customStyles = {
   }),
   singleValue: (provided: any) => ({
     ...provided,
+
+    color: "var(--secondary-1-600)",
     // fontSize: "var(--font-size-small)",
   }),
   option: (provided: any, state: any) => ({
