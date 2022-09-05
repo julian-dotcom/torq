@@ -2,6 +2,11 @@ package torqsrv
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/gzip"
 	"github.com/gin-gonic/contrib/sessions"
@@ -22,9 +27,6 @@ import (
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
-	"log"
-	"net/http"
-	"strconv"
 )
 
 func Start(port int, apiPswd string, db *sqlx.DB, restartLNDSub func() error) {
@@ -55,7 +57,7 @@ func NewLoginRateLimitMiddleware() gin.HandlerFunc {
 	// Define a limit rate to 10 requests per minute.
 	rate, err := limiter.NewRateFromFormatted("10-M")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Send()
 	}
 	store := memory.NewStore()
 	return mgin.NewMiddleware(limiter.New(store, rate), mgin.WithKeyGetter(loginKeyGetter))
@@ -168,19 +170,35 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 
 func registerStaticRoutes(r *gin.Engine) {
 	r.NoRoute(func(c *gin.Context) {
+		path := c.Request.URL.Path
+
+		knownAssetList := []string{
+			"/favicon.ico",
+			"/favicon-16x16.png",
+			"/favicon-32x32.png",
+			"/mstile-150x150.png",
+			"/safari-pinned-tab.svg",
+			"/android-chrome-192x192.png",
+			"/android-chrome-512x512.png",
+			"/apple-touch-icon.png",
+			"/browserconfig.xml",
+			"/manifest.json",
+			"/robots.txt"}
+
+		for _, knownAsset := range knownAssetList {
+			if strings.HasSuffix(path, knownAsset) {
+				c.File("./web/build" + knownAsset)
+				return
+			}
+		}
+
+		// probably a file, this might not be bulletproof
+		if strings.Contains(path, "/static/") && strings.Contains(path, ".") &&
+			(strings.Contains(path, "css") || strings.Contains(path, "js") || strings.Contains(path, "media")) {
+			parts := strings.Split(path, "/")
+			c.File("./web/build/static/" + parts[len(parts)-2] + "/" + parts[len(parts)-1])
+			return
+		}
 		c.File("./web/build/index.html")
 	})
-	r.StaticFile("/", "./web/build/index.html")
-	r.StaticFile("/favicon.ico", "./web/build/favicon.ico")
-	r.StaticFile("/favicon-16x16.png", "./web/build/favicon-16x16.png")
-	r.StaticFile("/favicon-32x32.png", "./web/build/favicon-32x32.png")
-	r.StaticFile("/mstile-150x150.png", "./web/build/mstile-150x150.png")
-	r.StaticFile("/safari-pinned-tab.svg", "./web/build/safari-pinned-tab.svg")
-	r.StaticFile("/android-chrome-192x192.png", "./web/build/android-chrome-192x192.png")
-	r.StaticFile("/android-chrome-512x512.png", "./web/build/android-chrome-512x512.png")
-	r.StaticFile("/apple-touch-icon.png", "./web/build/apple-touch-icon.png")
-	r.StaticFile("/browserconfig.xml", "./web/build/browserconfig.xml")
-	r.StaticFile("/manifest.json", "./web/build/manifest.json")
-	r.StaticFile("/robots.txt", "./web/build/robots.txt")
-	r.Static("/static", "./web/build/static")
 }
