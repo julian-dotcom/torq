@@ -208,7 +208,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 
 		chanEvent, err := stream.Recv()
 		if err != nil {
-			if errors.As(err, &context.Canceled) {
+			if errors.Is(ctx.Err(), context.Canceled) {
 				break
 			}
 

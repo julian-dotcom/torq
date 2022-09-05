@@ -18,16 +18,12 @@ import (
 type mockLightningClient_ListPayments struct {
 	Payments        []*lnrpc.Payment
 	LastIndexOffset uint64
-	Error           error
+	CancelFunc      func()
 }
 
 // _ListPayments mocks the response of LNDs lnrpc._ListPayments
 func (c *mockLightningClient_ListPayments) ListPayments(ctx context.Context, in *lnrpc.ListPaymentsRequest,
 	opts ...grpc.CallOption) (*lnrpc.ListPaymentsResponse, error) {
-
-	if c.Error != nil {
-		return nil, c.Error
-	}
 
 	r := lnrpc.ListPaymentsResponse{
 		Payments:        c.Payments,
@@ -39,6 +35,7 @@ func (c *mockLightningClient_ListPayments) ListPayments(ctx context.Context, in 
 		return &r, nil
 	}
 	c.Payments = nil
+	c.CancelFunc()
 	return nil, context.Canceled
 
 }
@@ -46,6 +43,8 @@ func (c *mockLightningClient_ListPayments) ListPayments(ctx context.Context, in 
 func TestSubscribePayments(t *testing.T) {
 
 	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
 	errs, ctx := errgroup.WithContext(ctx)
 	c := clock.NewMockClock(time.Unix(0, 0))
 
@@ -189,6 +188,7 @@ func TestSubscribePayments(t *testing.T) {
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 			},
 		},
+		CancelFunc: cancel,
 	}
 
 	// Start subscribing in a goroutine to allow the test to continue simulating time through the
@@ -236,7 +236,13 @@ func TestSubscribePayments(t *testing.T) {
 		}
 	})
 
+	// reset context
+	ctx = context.Background()
+	ctx, cancel = context.WithCancel(ctx)
+	errs, ctx = errgroup.WithContext(ctx)
+
 	mclientUpdate := mockLightningClient_ListPayments{}
+	mclientUpdate.CancelFunc = cancel
 	mclientUpdate.Payments = []*lnrpc.Payment{
 		{ // This payment is still in flight and should not be changed
 			PaymentIndex:    11,
@@ -319,10 +325,6 @@ func TestSubscribePayments(t *testing.T) {
 			FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 		},
 	}
-
-	// reset context
-	ctx = context.Background()
-	errs, ctx = errgroup.WithContext(ctx)
 
 	errs.Go(func() error {
 		err := SubscribeAndUpdatePayments(ctx, &mclientUpdate, db, &opt)

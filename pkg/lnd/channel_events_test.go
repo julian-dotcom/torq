@@ -16,10 +16,12 @@ import (
 type stubLNDSubscribeChannelEventRPC struct {
 	grpc.ClientStream
 	ChannelEvents []interface{}
+	CancelFunc    func()
 }
 
 func (s *stubLNDSubscribeChannelEventRPC) Recv() (*lnrpc.ChannelEventUpdate, error) {
 	if len(s.ChannelEvents) == 0 {
+		s.CancelFunc()
 		return nil, context.Canceled
 	}
 	var channelEvent interface{}
@@ -27,18 +29,20 @@ func (s *stubLNDSubscribeChannelEventRPC) Recv() (*lnrpc.ChannelEventUpdate, err
 	if eventUpdate, ok := channelEvent.(*lnrpc.ChannelEventUpdate); ok {
 		return eventUpdate, nil
 	}
+	s.CancelFunc()
 	return nil, context.Canceled
 }
 
 type stubLNDSubscribeChannelEvent struct {
 	ChannelEvents []interface{}
+	CancelFunc    func()
 }
 
 func (c *stubLNDSubscribeChannelEvent) SubscribeChannelEvents(
 	ctx context.Context, in *lnrpc.ChannelEventSubscription,
 	opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeChannelEventsClient, error) {
 
-	return &stubLNDSubscribeChannelEventRPC{ChannelEvents: c.ChannelEvents}, nil
+	return &stubLNDSubscribeChannelEventRPC{ChannelEvents: c.ChannelEvents, CancelFunc: c.CancelFunc}, nil
 }
 
 func TestSubscribeChannelEvents(t *testing.T) {
@@ -176,12 +180,13 @@ type channelEventData struct {
 
 func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, expected channelEventData) {
 	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 	errs, ctx := errgroup.WithContext(ctx)
 
 	pubKeyChan := make(chan string, 1)
 	chanPointChan := make(chan string, 1)
 
-	client := &stubLNDSubscribeChannelEvent{ChannelEvents: []interface{}{channelEvent}}
+	client := &stubLNDSubscribeChannelEvent{ChannelEvents: []interface{}{channelEvent}, CancelFunc: cancel}
 
 	errs.Go(func() error {
 		err := SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan, 1)

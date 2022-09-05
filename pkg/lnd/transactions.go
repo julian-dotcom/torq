@@ -2,7 +2,6 @@ package lnd
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -15,14 +14,10 @@ import (
 
 func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 
-	sqlLatest := `select max(block_height) from tx;`
+	sqlLatest := `select coalesce(max(block_height),1) from tx;`
 
 	row := db.QueryRow(sqlLatest)
 	err = row.Scan(&txHeight)
-
-	if err == sql.ErrNoRows {
-		return 1, nil
-	}
 
 	if err != nil {
 		return 1, err
@@ -83,7 +78,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 			tx, err := stream.Recv()
 
 			if err != nil {
-				if errors.As(err, &context.Canceled) {
+				if errors.Is(ctx.Err(), context.Canceled) {
 					break
 				}
 				log.Printf("Subscribe transactions stream receive: %v\n", err)

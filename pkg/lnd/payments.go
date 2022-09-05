@@ -57,7 +57,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 			for {
 
 				p, err := fetchPayments(ctx, client, last)
-				if errors.As(err, &context.Canceled) {
+				if errors.Is(ctx.Err(), context.Canceled) {
 					return nil
 				}
 				if err != nil {
@@ -204,7 +204,7 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 			for _, i := range inFlightindexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
-				if errors.As(err, &context.Canceled) {
+				if errors.Is(ctx.Err(), context.Canceled) {
 					return nil
 				}
 				if err != nil {

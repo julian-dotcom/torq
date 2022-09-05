@@ -8,9 +8,9 @@ import (
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
-	"log"
 	"time"
 )
 
@@ -42,17 +42,17 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		gpu, err := stream.Recv()
 
 		if err != nil {
-			if errors.As(err, &context.Canceled) {
+			if errors.Is(ctx.Err(), context.Canceled) {
 				break
 			}
-			log.Printf("Subscribe channel graph stream receive: %v\n", err)
+			log.Error().Msgf("Subscribe channel graph stream receive: %v\n", err)
 			// rate limited resubscribe
-			log.Println("Attempting reconnect to channel graph")
+			log.Info().Msg("Attempting reconnect to channel graph")
 			for {
 				rl.Take()
 				stream, err = client.SubscribeChannelGraph(ctx, &req)
 				if err == nil {
-					log.Println("Reconnected to channel graph")
+					log.Info().Msg("Reconnected to channel graph")
 					break
 				}
 				log.Printf("Reconnecting to channel graph: %v\n", err)
