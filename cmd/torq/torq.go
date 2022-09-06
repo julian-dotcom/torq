@@ -275,6 +275,7 @@ func main() {
 
 }
 
+// guards against running restart code whilst it's already running
 var restartLock sync.RWMutex
 
 func RestartLNDSubscription() error {

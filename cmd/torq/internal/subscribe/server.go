@@ -72,12 +72,9 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	if err != nil {
 		return errors.Wrapf(err, "start -> InitChanIdList(%v)", db)
 	}
-	// Create a channel to update the list of public key for nodes we have
-	// or have had channels with
-	pubKeyChan := make(chan string)
 
-	// Start listening for updates to the public key list
-	go lnd.UpdatePeerList(pubKeyChan)
+	// Start listening for updates to the peer public key list
+	go lnd.PeerPubKeyListMonitor()
 
 	// Create a channel to update the list of channel points for our currently active with
 	chanPointChan := make(chan string)

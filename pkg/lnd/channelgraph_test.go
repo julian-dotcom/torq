@@ -65,8 +65,9 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 	// Add our public key to the list
 	ourNodePubKeys = append(ourNodePubKeys, "ourNodePubkey")
 
-	// Add our public key to the list
-	pubKeyList = append(pubKeyList, "firstNodePubkey", "secondNodePubkey")
+	// Add our public keys to the list
+	AddPeerPubKey("firstNodePubkey")
+	AddPeerPubKey("secondNodePubkey")
 
 	// Add the channel to the list of relevant channels
 	chanPointList = append(chanPointList, chanPointStr)

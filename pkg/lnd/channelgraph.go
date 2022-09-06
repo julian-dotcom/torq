@@ -10,6 +10,7 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
 	"time"
 )
@@ -332,47 +333,40 @@ func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sql
 	return nil
 }
 
-// pubKeyList is used to store which node and channel updates to store. We only want to store
-// updates that are relevant to our channels and their nodes.
-var pubKeyList []string
-
 // InitPeerList fetches all public keys from the list of all channels. This is used to
 // filter out noise from the graph updates.
 func InitPeerList(db *sqlx.DB) error {
 	q := `select array_agg(distinct pub_key) as all_nodes from channel_event where event_type in (0, 1);`
-	err := db.QueryRow(q).Scan(pq.Array(&pubKeyList))
+	var peerPubKeyList []string
+	err := db.QueryRow(q).Scan(pq.Array(&peerPubKeyList))
 	if err != nil {
-		return errors.Wrapf(err, "InitPeerList -> db.QueryRow(%s).Scan(pq.Array(%v))", q, pubKeyList)
+		return errors.Wrap(err, "Selecting distinct pub keys from channel_event table")
+	}
+	for _, peerPubKey := range peerPubKeyList {
+		AddPeerPubKey(peerPubKey)
 	}
 
 	return nil
 }
 
-// UpdatePeerList is meant to run as a gorouting. It adds new public keys to the pubKeyList
-// and removes existing ones.
-func UpdatePeerList(c chan string) {
+func AddPeerPubKey(pubKey string) { addPeerPubKeyChan <- pubKey }
+func GetPeerPubKeys() []string    { return <-getPeerPubKeysChan }
 
-	var pubKey string
-	var present bool
+var addPeerPubKeyChan = make(chan string)
+var getPeerPubKeysChan = make(chan []string)
 
+func PeerPubKeyListMonitor() {
+	// pubKeyList is used to store which node and channel updates to store. We only want to store
+	// updates that are relevant to our channels and their nodes.
+	var pubKeyList []string
 	for {
-		// Wait for new peers to enter
-		pubKey = <-c
-		// Add it to the peer list, if not already present.
-		for _, p := range pubKeyList {
-			if p == pubKey {
-				present = true
-				break
+		select {
+		case pubKey := <-addPeerPubKeyChan:
+			if !slices.Contains(pubKeyList, pubKey) {
+				pubKeyList = append(pubKeyList, pubKey)
 			}
+		case getPeerPubKeysChan <- pubKeyList:
 		}
-
-		// If not present add it to the public key  list
-		if present == false {
-			pubKeyList = append(pubKeyList, pubKey)
-		}
-
-		// Reset to false in order to allow the next public key to be added.
-		present = false
 	}
 }
 
@@ -406,7 +400,7 @@ func isRelevantChannel(chanPoint string) bool {
 // isRelevant is used to check if any public key is in the pubKeyList.
 func isRelevant(pubKey string) bool {
 
-	for _, p := range pubKeyList {
+	for _, p := range GetPeerPubKeys() {
 
 		// Check if any of the provided public keys equals the current public key.
 		if p == pubKey {
