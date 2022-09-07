@@ -61,6 +61,9 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 		return errors.Wrapf(err, "Start -> ImportRoutingPolicies(%v, %v)", client, db)
 	}
 
+	// Start listening for updates to the peer public key list
+	go lnd.PeerPubKeyListMonitor(ctx)
+
 	// Initialize the peer list
 	err = lnd.InitPeerList(db)
 	if err != nil {
@@ -72,9 +75,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	if err != nil {
 		return errors.Wrapf(err, "start -> InitChanIdList(%v)", db)
 	}
-
-	// Start listening for updates to the peer public key list
-	go lnd.PeerPubKeyListMonitor(ctx)
 
 	// Create a channel to update the list of channel points for our currently active with
 	chanPointChan := make(chan string)
