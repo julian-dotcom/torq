@@ -6,6 +6,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/docker/docker/client"
 	"log"
+	"time"
 )
 
 func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvironment, err error) {
@@ -163,7 +164,7 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 		log.Fatal(err)
 	}
 
-	log.Println("Get Bob's pubkey")
+	log.Println("Get Bob's IP")
 	bobInspection, err := de.Client.ContainerInspect(ctx, bobConf.Instance.ID)
 	if err != nil {
 		return errors.Newf("Getting Bob's IP Address: %v", err)
@@ -372,9 +373,9 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	//	panic(err)
 	//}
 	//stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+	time.Sleep(100 * time.Millisecond)
 
 	log.Println("Creating new mining address on Alice")
-
 	aliceAddress, err := GetNewAddress(ctx, de.Client, aliceConf.Instance)
 	if err != nil {
 		return errors.Newf("Getting alice mining address: %v", err)
@@ -420,19 +421,123 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	}
 	log.Println("Segwit is active")
 
+	aliceInitBalance, err := GetOnchainBalance(ctx, de.Client, aliceConf.Instance)
+	if err != nil {
+		return errors.Newf("Getting Bob's balance: %v", err)
+	}
+	log.Printf("Alice's initial onchain balance: %s\n", aliceInitBalance)
+
 	// Starting carol
 	log.Println("Starting Carol")
 	err = de.InitContainer(ctx, carolConf)
 	if err != nil {
 		log.Fatal(err)
 	}
+	time.Sleep(100 * time.Millisecond)
+	log.Println("Creating new mining address on Carol")
+	carolAddress, err := GetNewAddress(ctx, de.Client, carolConf.Instance)
+	if err != nil {
+		return errors.Newf("Getting Carol mining address: %v", err)
+	}
+	log.Println("Carol receive address created")
+	log.Println(carolAddress)
 
-	// start Bob and Carol AFTER btcd has restarted
+	log.Println("Shutting Carol down before btcd restart")
+	de.FindAndRemoveContainer(ctx, carolConf.Name)
+
+	log.Println("Recreating btcd container with Carol's mining address")
+	de.FindAndRemoveContainer(ctx, btcdConf.Name)
+
+	log.Println("Starting new btcd container")
+	// Update the container config with the minind addres instead of adding a new one
+	btcdConf.Env = []string{"NETWORK=simnet", "MINING_ADDRESS=" + carolAddress}
+	err = de.InitContainer(ctx, btcdConf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
+	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 400)
+	if err != nil {
+		return errors.Newf("Mining blocks: %v", err)
+	}
+	log.Println("Blocks mined")
+
+	// Starting carol
+	log.Println("Recreating Carol now that btcd is back online")
+	err = de.InitContainer(ctx, carolConf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Checking that segwit is active")
+	err = SegWitActive(ctx, de.Client, btcdConf.Instance)
+	if err != nil {
+		return errors.Newf("btcd checking segwit is active: %v", err)
+	}
+	log.Println("Segwit is active")
+
+	carolInitBalance, err := GetOnchainBalance(ctx, de.Client, carolConf.Instance)
+	if err != nil {
+		return errors.Newf("Getting Bob's balance: %v", err)
+	}
+	log.Printf("Carol's initial onchain balance: %s\n", carolInitBalance)
+
+	// Start Bob
 	log.Println("Starting Bob")
 	err = de.InitContainer(ctx, bobConf)
 	if err != nil {
 		log.Fatal(err)
 	}
+	time.Sleep(200 * time.Millisecond)
+
+	log.Println("Creating new mining address on Carol")
+	bobAddress, err := GetNewAddress(ctx, de.Client, bobConf.Instance)
+	if err != nil {
+		return errors.Newf("Getting Bob mining address: %v", err)
+	}
+	log.Println("Bob receive address created")
+	log.Println(bobAddress)
+
+	log.Println("Shutting Bob down before btcd restart")
+	de.FindAndRemoveContainer(ctx, bobConf.Name)
+
+	log.Println("Recreating btcd container with Bob's mining address")
+	de.FindAndRemoveContainer(ctx, btcdConf.Name)
+
+	log.Println("Starting new btcd container")
+	// Update the container config with the minind addres instead of adding a new one
+	btcdConf.Env = []string{"NETWORK=simnet", "MINING_ADDRESS=" + bobAddress}
+	err = de.InitContainer(ctx, btcdConf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
+	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 400)
+	if err != nil {
+		return errors.Newf("Mining blocks: %v", err)
+	}
+	log.Println("Blocks mined")
+
+	log.Println("Recreating Bob now that btcd is back online")
+	err = de.InitContainer(ctx, bobConf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	bobInitBalance, err := GetOnchainBalance(ctx, de.Client, bobConf.Instance)
+	if err != nil {
+		return errors.Newf("Getting Bob's balance: %v", err)
+	}
+	log.Printf("Bob's initial onchain balance: %s\n", bobInitBalance)
+
+	log.Println("Checking that segwit is active")
+	err = SegWitActive(ctx, de.Client, btcdConf.Instance)
+	if err != nil {
+		return errors.Newf("btcd checking segwit is active: %v", err)
+	}
+	log.Println("Segwit is active")
 
 	log.Println("Get Bob's pubkey")
 	bobInspection, err := de.Client.ContainerInspect(ctx, bobConf.Instance.ID)
@@ -651,7 +756,7 @@ func PrintInstructions() {
 		"bob() { docker exec -it  dev-bob /bin/bash -c \"lncli --macaroonpath=\"/root/." +
 		"lnd/data/chain/bitcoin/simnet/admin.macaroon\" --network=simnet $@\"}; \n" +
 		"carol() { docker exec -it  dev-carol /bin/bash -c \"lncli --macaroonpath=\"/root/." +
-		"lnd/data/chain/bitcoin/simnet/admin.macaroon\" --network=simnet $@\"};" +
+		"lnd/data/chain/bitcoin/simnet/admin.macaroon\" --network=simnet $@\"}; \n" +
 		"vbtcd() { docker exec -it  dev-btcd /bin/bash -c \"btcctl --simnet --rpcuser=devuser --rpcpass=devpass" +
 		" --rpccert=/rpc/rpc.cert --rpcserver=localhost $@\"};")
 
