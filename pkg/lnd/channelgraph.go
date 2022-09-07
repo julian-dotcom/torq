@@ -369,7 +369,6 @@ func PeerPubKeyListMonitor(ctx context.Context) {
 				pubKeyList = append(pubKeyList, pubKey)
 			}
 		case getPeerPubKeysChan <- pubKeyList:
-		default:
 		}
 	}
 }
