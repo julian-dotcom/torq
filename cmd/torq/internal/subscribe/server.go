@@ -74,7 +74,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	}
 
 	// Start listening for updates to the peer public key list
-	go lnd.PeerPubKeyListMonitor()
+	go lnd.PeerPubKeyListMonitor(ctx)
 
 	// Create a channel to update the list of channel points for our currently active with
 	chanPointChan := make(chan string)
@@ -111,7 +111,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// // Channel Events
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, pubKeyChan, chanPointChan, localNodeId)
+		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, chanPointChan, localNodeId)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeAndStoreChannelEvents(%v, %v, %v)", ctx, router, db)
 		}

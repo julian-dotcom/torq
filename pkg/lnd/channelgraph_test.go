@@ -65,10 +65,6 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 	// Add our public key to the list
 	ourNodePubKeys = append(ourNodePubKeys, "ourNodePubkey")
 
-	// Add our public keys to the list
-	AddPeerPubKey("firstNodePubkey")
-	AddPeerPubKey("secondNodePubkey")
-
 	// Add the channel to the list of relevant channels
 	chanPointList = append(chanPointList, chanPointStr)
 
@@ -283,6 +279,11 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	ctx, cancel := context.WithCancel(ctx)
 	errs, ctx := errgroup.WithContext(ctx)
 	client.CancelFunc = cancel
+
+	// Add our public keys to the list
+	go PeerPubKeyListMonitor(ctx)
+	AddPeerPubKey("firstNodePubkey")
+	AddPeerPubKey("secondNodePubkey")
 
 	errs.Go(func() error {
 		err := SubscribeAndStoreChannelGraph(ctx, client, db)

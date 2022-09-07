@@ -32,7 +32,7 @@ func getChanPoint(cb []byte, oi uint32) (string, error) {
 // ChannelEvent and converts the original struct to json.
 // Then it's stored in the database in the channel_event table.
 func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
-	pubKeyChan chan string, chanPointChan chan string, localNodeId int) error {
+	chanPointChan chan string, localNodeId int) error {
 
 	timestampMs := time.Now().UTC()
 
@@ -48,7 +48,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 		PubKey = c.RemotePubkey
 
 		// Add the remote public key to the list to listen to for graph updates.
-		pubKeyChan <- c.RemotePubkey
+		AddPeerPubKey(c.RemotePubkey)
 
 		// Add the channel point to the chanPointList, this allows the
 		// channel graph to listen for routing policy updates
@@ -188,7 +188,7 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent,
-	db *sqlx.DB, pubKeyChan chan string, chanPoinChan chan string, localNodeId int) error {
+	db *sqlx.DB, chanPoinChan chan string, localNodeId int) error {
 
 	cesr := lnrpc.ChannelEventSubscription{}
 	stream, err := client.SubscribeChannelEvents(ctx, &cesr)
@@ -227,7 +227,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			continue
 		}
 
-		err = storeChannelEvent(db, chanEvent, pubKeyChan, chanPoinChan, localNodeId)
+		err = storeChannelEvent(db, chanEvent, chanPoinChan, localNodeId)
 		if err != nil {
 			fmt.Printf("Subscribe channel events store event error: %v", err)
 			// rate limit for caution but hopefully not needed

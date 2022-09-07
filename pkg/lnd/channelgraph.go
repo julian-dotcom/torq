@@ -355,17 +355,21 @@ func GetPeerPubKeys() []string    { return <-getPeerPubKeysChan }
 var addPeerPubKeyChan = make(chan string)
 var getPeerPubKeysChan = make(chan []string)
 
-func PeerPubKeyListMonitor() {
+func PeerPubKeyListMonitor(ctx context.Context) {
 	// pubKeyList is used to store which node and channel updates to store. We only want to store
 	// updates that are relevant to our channels and their nodes.
 	var pubKeyList []string
 	for {
 		select {
+		case <-ctx.Done():
+			log.Debug().Msg("Monitor is closing")
+			return
 		case pubKey := <-addPeerPubKeyChan:
 			if !slices.Contains(pubKeyList, pubKey) {
 				pubKeyList = append(pubKeyList, pubKey)
 			}
 		case getPeerPubKeysChan <- pubKeyList:
+		default:
 		}
 	}
 }
