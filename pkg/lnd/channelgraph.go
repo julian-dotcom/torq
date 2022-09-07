@@ -104,7 +104,7 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
 		// we have changed our the channel policy).
 		ourNode := isOurNode(cu.AdvertisingNode)
 
-		chanPoint, err := getChanPoint(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+		chanPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 		if err != nil {
 			return errors.Wrapf(err, "SubscribeChannelEvents ->getChanPoint(%b, %d)",
 				cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
@@ -165,7 +165,7 @@ WHERE NOT EXISTS (
 
 func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.ChannelEdgeUpdate) error {
 
-	cp, err := getChanPoint(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+	cp, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 	if err != nil {
 		return errors.Wrapf(err, "insertRoutingPolicy -> getChanPoint(%v, %d)",
 			cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
@@ -226,9 +226,36 @@ func insertNodeEvent(db *sqlx.DB, ts time.Time, pubKey string, alias string, col
 	return nil
 }
 
-var chanPointList []string
+func AddChanPoint(chanPoint string)    { addChanPointChan <- chanPoint }
+func RemoveChanPoint(chanPoint string) { removeChanPointChan <- chanPoint }
+func GetChanPoints() []string          { return <-getChanPointChan }
 
-func InitChanIdList(db *sqlx.DB) error {
+var addChanPointChan = make(chan string)
+var removeChanPointChan = make(chan string)
+var getChanPointChan = make(chan []string)
+
+func ChanPointListMonitor(ctx context.Context) {
+	var chanPointList []string
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug().Msg("Chan point list monitor is closing")
+			return
+		case chanPoint := <-addChanPointChan:
+			if !slices.Contains(chanPointList, chanPoint) {
+				chanPointList = append(chanPointList, chanPoint)
+			}
+		case chanPoint := <-removeChanPointChan:
+			index := slices.Index(chanPointList, chanPoint)
+			if index != -1 {
+				chanPointList = append(chanPointList[:index], chanPointList[index+1:]...)
+			}
+		case getChanPointChan <- chanPointList:
+		}
+	}
+}
+
+func InitChanPointList(db *sqlx.DB) error {
 	q := `
 		select array_agg(lnd_channel_point) as lnd_channel_point from (
 			select
@@ -240,36 +267,16 @@ func InitChanIdList(db *sqlx.DB) error {
 		) as t
 		where t.event_type = 0;`
 
+	var chanPointList []string
 	err := db.QueryRowx(q).Scan(pq.Array(&chanPointList))
 	if err != nil {
-		return errors.Wrapf(err, "InitChanIdList -> db.QueryRow(%s).Scan(pq.Array(%v))", q, chanPointList)
+		return errors.Wrap(err, "Query row into chanPointList")
+	}
+	for _, chanPoint := range chanPointList {
+		AddChanPoint(chanPoint)
 	}
 
 	return nil
-}
-
-func UpdateChanIdList(c chan string) {
-
-	var chanPoint string
-
-waitForUpdate:
-	for {
-		// Wait for new peers to enter
-		chanPoint = <-c
-
-		// Remove chanPoint to the list, if it's already present.
-		// continue the outer loop and wait for new update
-		for i, cp := range chanPointList {
-			if cp == chanPoint {
-				chanPointList = append(chanPointList[:i], chanPointList[i+1:]...)
-				continue waitForUpdate
-			}
-		}
-
-		// If not present add it to the chanID list
-		chanPointList = append(chanPointList, chanPoint)
-
-	}
 }
 
 func addMissingLocalPubkey(ctx context.Context, client lnrpc.LightningClient, grpcAddress string,
@@ -362,7 +369,7 @@ func PeerPubKeyListMonitor(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug().Msg("Monitor is closing")
+			log.Debug().Msg("Peer pub key list monitor is closing")
 			return
 		case pubKey := <-addPeerPubKeyChan:
 			if !slices.Contains(pubKeyList, pubKey) {
@@ -392,8 +399,8 @@ func isRelevantOrOurNode(pubKey string) (bool, bool) {
 }
 
 func isRelevantChannel(chanPoint string) bool {
-	for _, cid := range chanPointList {
-		if cid == chanPoint {
+	for _, c := range GetChanPoints() {
+		if c == chanPoint {
 			return true
 		}
 	}

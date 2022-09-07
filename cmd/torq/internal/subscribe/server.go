@@ -2,11 +2,14 @@ package subscribe
 
 import (
 	"context"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/lncapital/torq/pkg/lnd"
+	"github.com/rs/zerolog/log"
+
 	// "github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -61,41 +64,22 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 		return errors.Wrapf(err, "Start -> ImportRoutingPolicies(%v, %v)", client, db)
 	}
 
+	monitorContext, monitorCancel := context.WithCancel(context.Background())
 	// Start listening for updates to the peer public key list
-	go lnd.PeerPubKeyListMonitor(ctx)
+	go lnd.PeerPubKeyListMonitor(monitorContext)
 
 	// Initialize the peer list
 	err = lnd.InitPeerList(db)
 	if err != nil {
+		monitorCancel()
 		return errors.Wrapf(err, "start -> InitPeerList(%v)", db)
 	}
-
-	// Initialize the channel id list
-	err = lnd.InitChanIdList(db)
-	if err != nil {
-		return errors.Wrapf(err, "start -> InitChanIdList(%v)", db)
-	}
-
-	// Create a channel to update the list of channel points for our currently active with
-	chanPointChan := make(chan string)
-
-	// Start listening for updates to the channel point list
-	go lnd.UpdateChanIdList(chanPointChan)
 
 	// Transactions
 	errs.Go(func() error {
 		err := lnd.SubscribeAndStoreTransactions(ctx, client, db)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeAndStoreTransactions(%v, %v, %v)", ctx, client, db)
-		}
-		return nil
-	})
-
-	// Graph (Node updates, fee updates etc.)
-	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db)
-		if err != nil {
-			return errors.Wrapf(err, "Start->SubscribeAndStoreChannelGraph(%v, %v, %v)", ctx, client, db)
 		}
 		return nil
 	})
@@ -109,11 +93,30 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 		return nil
 	})
 
+	// Start listening for updates to the channel point list
+	go lnd.ChanPointListMonitor(monitorContext)
+	// Initialize the channel id list
+	err = lnd.InitChanPointList(db)
+	if err != nil {
+		monitorCancel()
+		return errors.Wrapf(err, "Init open channel point list")
+	}
+	log.Debug().Msg("Channel point list initialised")
+
 	// // Channel Events
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, chanPointChan, localNodeId)
+		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, localNodeId)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeAndStoreChannelEvents(%v, %v, %v)", ctx, router, db)
+		}
+		return nil
+	})
+
+	// Graph (Node updates, fee updates etc.)
+	errs.Go(func() error {
+		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db)
+		if err != nil {
+			return errors.Wrapf(err, "Start->SubscribeAndStoreChannelGraph(%v, %v, %v)", ctx, client, db)
 		}
 		return nil
 	})
@@ -159,6 +162,9 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	})
 
 	err = errs.Wait()
+
+	// Everything that will write to the PeerPubKeyList and ChanPointList has finised so we can cancel the monitor functions
+	monitorCancel()
 
 	return err
 }
