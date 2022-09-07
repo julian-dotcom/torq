@@ -226,31 +226,31 @@ func insertNodeEvent(db *sqlx.DB, ts time.Time, pubKey string, alias string, col
 	return nil
 }
 
-func AddChanPoint(chanPoint string)    { addChanPointChan <- chanPoint }
-func RemoveChanPoint(chanPoint string) { removeChanPointChan <- chanPoint }
-func GetChanPoints() []string          { return <-getChanPointChan }
+func AddOpenChanPoint(chanPoint string)      { addOpenChanPointChan <- chanPoint }
+func RemoveClosedChanPoint(chanPoint string) { removeClosedChanPointChan <- chanPoint }
+func GetOpenChanPoints() []string            { return <-getOpenChanPointsChan }
 
-var addChanPointChan = make(chan string)
-var removeChanPointChan = make(chan string)
-var getChanPointChan = make(chan []string)
+var addOpenChanPointChan = make(chan string)
+var removeClosedChanPointChan = make(chan string)
+var getOpenChanPointsChan = make(chan []string)
 
-func ChanPointListMonitor(ctx context.Context) {
-	var chanPointList []string
+func OpenChanPointListMonitor(ctx context.Context) {
+	var openChanPointList []string
 	for {
 		select {
 		case <-ctx.Done():
 			log.Debug().Msg("Chan point list monitor is closing")
 			return
-		case chanPoint := <-addChanPointChan:
-			if !slices.Contains(chanPointList, chanPoint) {
-				chanPointList = append(chanPointList, chanPoint)
+		case chanPoint := <-addOpenChanPointChan:
+			if !slices.Contains(openChanPointList, chanPoint) {
+				openChanPointList = append(openChanPointList, chanPoint)
 			}
-		case chanPoint := <-removeChanPointChan:
-			index := slices.Index(chanPointList, chanPoint)
+		case chanPoint := <-removeClosedChanPointChan:
+			index := slices.Index(openChanPointList, chanPoint)
 			if index != -1 {
-				chanPointList = append(chanPointList[:index], chanPointList[index+1:]...)
+				openChanPointList = append(openChanPointList[:index], openChanPointList[index+1:]...)
 			}
-		case getChanPointChan <- chanPointList:
+		case getOpenChanPointsChan <- openChanPointList:
 		}
 	}
 }
@@ -273,7 +273,7 @@ func InitChanPointList(db *sqlx.DB) error {
 		return errors.Wrap(err, "Query row into chanPointList")
 	}
 	for _, chanPoint := range chanPointList {
-		AddChanPoint(chanPoint)
+		AddOpenChanPoint(chanPoint)
 	}
 
 	return nil
@@ -399,7 +399,7 @@ func isRelevantOrOurNode(pubKey string) (bool, bool) {
 }
 
 func isRelevantChannel(chanPoint string) bool {
-	for _, c := range GetChanPoints() {
+	for _, c := range GetOpenChanPoints() {
 		if c == chanPoint {
 			return true
 		}

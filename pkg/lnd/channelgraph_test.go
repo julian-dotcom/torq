@@ -282,8 +282,8 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	AddPeerPubKey("firstNodePubkey")
 	AddPeerPubKey("secondNodePubkey")
 
-	go ChanPointListMonitor(ctx)
-	AddChanPoint(chanPointStr)
+	go OpenChanPointListMonitor(ctx)
+	AddOpenChanPoint(chanPointStr)
 
 	errs.Go(func() error {
 		err := SubscribeAndStoreChannelGraph(ctx, client, db)

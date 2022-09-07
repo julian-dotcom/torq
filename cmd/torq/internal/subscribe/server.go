@@ -94,7 +94,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	})
 
 	// Start listening for updates to the channel point list
-	go lnd.ChanPointListMonitor(monitorContext)
+	go lnd.OpenChanPointListMonitor(monitorContext)
 	// Initialize the channel id list
 	err = lnd.InitChanPointList(db)
 	if err != nil {

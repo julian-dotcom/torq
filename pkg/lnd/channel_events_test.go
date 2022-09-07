@@ -184,7 +184,7 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	errs, ctx := errgroup.WithContext(ctx)
 
 	go PeerPubKeyListMonitor(ctx)
-	go ChanPointListMonitor(ctx)
+	go OpenChanPointListMonitor(ctx)
 
 	client := &stubLNDSubscribeChannelEvent{ChannelEvents: []interface{}{channelEvent}, CancelFunc: cancel}
 

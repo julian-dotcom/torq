@@ -51,7 +51,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 
 		// Add the channel point to the chanPointList, this allows the
 		// channel graph to listen for routing policy updates
-		AddChanPoint(c.ChannelPoint)
+		AddOpenChanPoint(c.ChannelPoint)
 
 		channel := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
@@ -85,7 +85,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 
 		// Updates the channel point list by removing the channel point from the chanPointList.
 		// This stops the channel graph from listening for routing policy updates
-		RemoveChanPoint(c.ChannelPoint)
+		RemoveClosedChanPoint(c.ChannelPoint)
 
 		channel := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
