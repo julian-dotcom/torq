@@ -1,6 +1,6 @@
 import Table, { ColumnMetaData } from "features/table/Table";
 import { useGetPaymentsQuery } from "apiSlice";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
@@ -9,7 +9,7 @@ import {
   MoneyHand20Regular as TransactionIcon,
   MoneyHand24Regular as TransactionIconModal,
 } from "@fluentui/react-icons";
-import Sidebar, { SidebarSection } from "features/sidebar/Sidebar";
+import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
@@ -33,8 +33,13 @@ import {
 import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
-import Button, { buttonColor } from "features/buttons/Button";
-import Modal from "../../modal/Modal";
+import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
+import Modal from "features/modal/Modal";
+import TextInput from "features/forms/TextInput";
+import { SectionContainer } from "../../section/SectionContainer";
+import TextArea from "../../forms/TextArea";
+import NewPaymentModal from "./NewPaymentModal";
+import { useLocation } from "react-router";
 
 type sections = {
   filter: boolean;
@@ -60,7 +65,7 @@ const failureReasons: any = {
   FAILURE_REASON_UNKNOWN: "Unknown",
 };
 
-function PaymentsPage() {
+function PaymentsPage(props: { newPayment: boolean }) {
   const [limit, setLimit] = useLocalStorage("paymentsLimit", 100);
   const [offset, setOffset] = useState(0);
   const [orderBy, setOrderBy] = useLocalStorage("paymentsOrderBy", [
@@ -74,6 +79,7 @@ function PaymentsPage() {
   const allColumns = useAppSelector(selectAllColumns);
 
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const filters = useAppSelector(selectPaymentsFilters);
 
   const paymentsResponse = useGetPaymentsQuery({
@@ -135,6 +141,7 @@ function PaymentsPage() {
     };
   };
 
+  let location = useLocation();
   const tableControls = (
     <TableControlSection>
       <TransactTabs />
@@ -144,7 +151,7 @@ function PaymentsPage() {
           text={"New"}
           icon={<TransactionIcon />}
           onClick={() => {
-            setShowModalState(true);
+            navigate("/transactions/payments/new");
           }}
         />
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
@@ -214,20 +221,21 @@ function PaymentsPage() {
   const [showModalState, setShowModalState] = useState(false);
 
   const handleModalClose = () => {
-    setShowModalState(false);
+    // setShowModalState(false);
+    navigate("/transactions/payments");
   };
 
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
-      <SidebarSection
+      <SectionContainer
         title={"Columns"}
         icon={ColumnsIcon}
         expanded={activeSidebarSections.columns}
         handleToggle={sidebarSectionHandler("columns")}
       >
         <ColumnsSection columns={allColumns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
-      </SidebarSection>
-      <SidebarSection
+      </SectionContainer>
+      <SectionContainer
         title={"Filter"}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
@@ -239,15 +247,15 @@ function PaymentsPage() {
           filterUpdateHandler={handleFilterUpdate}
           defaultFilter={defaultFilter}
         />
-      </SidebarSection>
-      <SidebarSection
+      </SectionContainer>
+      <SectionContainer
         title={"Sort"}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}
         handleToggle={sidebarSectionHandler("sort")}
       >
         <SortSection columns={sortableColumns} orderBy={orderBy} updateHandler={handleSortUpdate} />
-      </SidebarSection>
+      </SectionContainer>
     </Sidebar>
   );
 
@@ -277,9 +285,7 @@ function PaymentsPage() {
           activeColumns={columns || []}
           isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
         />
-        <Modal title={"New Payment"} show={showModalState} onClose={handleModalClose} icon={<TransactionIconModal />}>
-          <p>Are you sure you want to delete this payment?</p>
-        </Modal>
+        <NewPaymentModal show={props.newPayment} modalCloseHandler={handleModalClose} />
       </>
     </TablePageTemplate>
   );

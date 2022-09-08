@@ -184,14 +184,12 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
                           text={localState.disabled ? "Enable node" : "Disable node"}
                           icon={localState.disabled ? <PlayIcon /> : <PauseIcon />}
                           onClick={handleDisableClick}
-                          buttonPosition={buttonPosition.left}
                         />
                         <Button
                           buttonColor={buttonColor.warning}
                           text={"Delete node"}
                           icon={<DeleteIcon />}
                           onClick={handleDeleteClick}
-                          buttonPosition={buttonPosition.left}
                         />
                       </div>
                     </Popover>

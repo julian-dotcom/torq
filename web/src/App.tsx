@@ -46,6 +46,7 @@ function App() {
       }
     }
   });
+
   const toastRef = React.useRef<addToastHandle>();
   return (
     <ToastContext.Provider value={toastRef}>
@@ -97,7 +98,15 @@ function App() {
                   path="payments"
                   element={
                     <RequireAuth>
-                      <PaymentsPage />
+                      <PaymentsPage newPayment={false} />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="payments/new"
+                  element={
+                    <RequireAuth>
+                      <PaymentsPage newPayment={true} />
                     </RequireAuth>
                   }
                 />

@@ -1,0 +1,53 @@
+.labelWrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.destinationLabel {
+  display: block;
+  color: var(--content-muted);
+  font-size: var(--font-size-small);
+  padding: 3px 0px 2px;
+}
+.destinationType {
+  color: var(--secondary-2-700);
+  font-size: var(--font-size-small);
+  background-color: var(--secondary-2-100);
+  border-radius: 11px;
+  padding: 3px 12px 2px;
+}
+.destinationTextArea {
+  border-radius: var(--radius-default);
+  border-width: 1px;
+  border-color: var(--fg-subtle);
+  width: 100%;
+  padding: 10px;
+}
+.amountWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.amount {
+  font-size: 40px;
+  text-align: center;
+  margin: 0px auto 8px;
+}
+.label {
+  color: var(--content-muted);
+  font-size: var(--font-size-small);
+  font-weight: 500;
+}
+.destination {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+.destinationPreview {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
