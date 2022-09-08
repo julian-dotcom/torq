@@ -21,7 +21,7 @@ type subscribeChannelGrpahClient interface {
 }
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
-func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB) error {
+func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB, ourNodePubKeys []string) error {
 
 	req := lnrpc.GraphTopologySubscription{}
 	stream, err := client.SubscribeChannelGraph(ctx, &req)
@@ -61,12 +61,12 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			continue
 		}
 
-		err = processNodeUpdates(gpu.NodeUpdates, db)
+		err = processNodeUpdates(gpu.NodeUpdates, db, ourNodePubKeys)
 		if err != nil {
 			return errors.Wrap(err, "Process node updates")
 		}
 
-		err = processChannelUpdates(gpu.ChannelUpdates, db)
+		err = processChannelUpdates(gpu.ChannelUpdates, db, ourNodePubKeys)
 		if err != nil {
 			return errors.Wrap(err, "Process channel updates")
 		}
@@ -76,11 +76,11 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	return nil
 }
 
-func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB) error {
+func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, ourNodePubKeys []string) error {
 
 	for _, nu := range nus {
 		// Check if this node update is relevant to a node we have or have had a channel with
-		relevant, _ := isRelevantOrOurNode(nu.IdentityKey)
+		relevant, _ := isRelevantOrOurNode(nu.IdentityKey, ourNodePubKeys)
 
 		if relevant {
 			ts := time.Now().UTC()
@@ -97,12 +97,12 @@ func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB) error {
 	return nil
 }
 
-func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
+func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB, ourNodePubKeys []string) error {
 	for _, cu := range cus {
 		// Check if this channel update is relevant to one of our channels
 		// And if one of our nodes is advertising the channel update (meaning
 		// we have changed our the channel policy).
-		ourNode := isOurNode(cu.AdvertisingNode)
+		ourNode := slices.Contains(ourNodePubKeys, cu.AdvertisingNode)
 
 		chanPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 		if err != nil {
@@ -308,9 +308,7 @@ func addMissingLocalPubkey(ctx context.Context, client lnrpc.LightningClient, gr
 	return &ni.IdentityPubkey, nil
 }
 
-var ourNodePubKeys []string
-
-func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
+func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) (ourNodePubKeys []string, err error) {
 
 	var pubKey *string
 	var grpcAddress string
@@ -318,26 +316,27 @@ func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sql
 	q := `select grpc_address, pub_key from local_node;`
 	r, err := db.Query(q)
 
+	ourNodePubKeys = []string{}
 	for r.Next() {
-		err := r.Scan(&grpcAddress, &pubKey)
+		err = r.Scan(&grpcAddress, &pubKey)
 		if err != nil {
-			return errors.Wrapf(err, "r.Scan(&grpcAddress, &pubKey)")
+			return []string{}, errors.Wrapf(err, "r.Scan(&grpcAddress, &pubKey)")
 		}
 
 		// If the pub key is missing from the local_node table, add it.
 		if pubKey == nil || len(*pubKey) == 0 {
 			pubKey, err = addMissingLocalPubkey(ctx, client, grpcAddress, db)
 			if err != nil {
-				return errors.Wrapf(err, "addMissingLocalPubkey(ctx, client, grpcAddress, db)")
+				return []string{}, errors.Wrapf(err, "addMissingLocalPubkey(ctx, client, grpcAddress, db)")
 			}
 		}
 		ourNodePubKeys = append(ourNodePubKeys, *pubKey)
 	}
 	if err != nil {
-		return errors.Wrapf(err, "db.Query(%s)", q)
+		return []string{}, errors.Wrapf(err, "db.Query(%s)", q)
 	}
 
-	return nil
+	return ourNodePubKeys, nil
 }
 
 // InitPeerList fetches all public keys from the list of all channels. This is used to
@@ -383,9 +382,9 @@ func PeerPubKeyListMonitor(ctx context.Context) {
 // isRelevantOrOurNode is used to check if any public key is in the pubKeyList.
 // The first boolean returned indicate if the key is relevant, the second boolean
 // indicates that it is one of our own nodes.
-func isRelevantOrOurNode(pubKey string) (bool, bool) {
+func isRelevantOrOurNode(pubKey string, ourNodePubKeys []string) (bool, bool) {
 
-	if isOurNode(pubKey) {
+	if slices.Contains(ourNodePubKeys, pubKey) {
 		// Is relevant (first boolean), _and_ our node (second boolean).
 		return true, true
 	}
@@ -420,20 +419,5 @@ func isRelevant(pubKey string) bool {
 
 	}
 
-	return false
-}
-
-// isOurNode is used to check if the public key is from one of our own nodes.
-func isOurNode(pubKey string) bool {
-
-	for _, p := range ourNodePubKeys {
-
-		// Check if the public key belongs to one of our nodes.
-		if p == pubKey {
-			// If found, no reason to search further, immediately return true, and true
-			return true
-		}
-
-	}
 	return false
 }

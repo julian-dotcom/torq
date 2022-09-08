@@ -61,8 +61,6 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Add our public key to the list
-	ourNodePubKeys = append(ourNodePubKeys, "ourNodePubkey")
 
 	t.Run("Irrelevant routing policy updates are ignored", func(t *testing.T) {
 
@@ -285,8 +283,11 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	go OpenChanPointListMonitor(ctx)
 	AddOpenChanPoint(chanPointStr)
 
+	// Add our public key to the list
+	ourNodePubKeys := []string{"ourNodePubkey"}
+
 	errs.Go(func() error {
-		err := SubscribeAndStoreChannelGraph(ctx, client, db)
+		err := SubscribeAndStoreChannelGraph(ctx, client, db, ourNodePubKeys)
 		if err != nil {
 			t.Fatalf("Problem subscribing to channel graph: %v", err)
 		}
