@@ -100,6 +100,7 @@ func Test_constructDecodedInvoice(t *testing.T) {
 					{
 						LNDShortChannelId: 72623859790382856,
 						NodeId:            "routing_hint_node_id_1",
+						ShortChannelId:    "66051x263430x1800",
 						FeeBase:           12,
 						CltvExpiryDelta:   3,
 						FeeProportional:   12000,
@@ -107,6 +108,7 @@ func Test_constructDecodedInvoice(t *testing.T) {
 					{
 						LNDShortChannelId: 72623859790382857,
 						NodeId:            "routing_hint_node_id_2",
+						ShortChannelId:    "66051x263430x1801",
 						FeeBase:           12,
 						CltvExpiryDelta:   3,
 						FeeProportional:   12000,

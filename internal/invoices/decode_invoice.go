@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
@@ -23,7 +24,8 @@ type feature struct {
 type featureMap map[uint32]feature
 
 type hopHint struct {
-	LNDShortChannelId uint64 `json:"chanId"`
+	LNDShortChannelId uint64 `json:"lndShortChannelId"`
+	ShortChannelId    string `json:"shortChannelId"`
 	NodeId            string `json:"nodeId"`
 	FeeBase           uint32 `json:"feeBase"`
 	CltvExpiryDelta   uint32 `json:"cltvExpiryDelta"`
@@ -58,6 +60,7 @@ func constructRouteHints(routeHints []*lnrpc.RouteHint) []routeHint {
 		for _, hh := range rh.HopHints {
 			hopHints = append(hopHints, hopHint{
 				LNDShortChannelId: hh.ChanId,
+				ShortChannelId:    channels.ConvertLNDShortChannelID(hh.ChanId),
 				NodeId:            hh.NodeId,
 				FeeBase:           hh.FeeBaseMsat,
 				CltvExpiryDelta:   hh.CltvExpiryDelta,
