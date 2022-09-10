@@ -17,7 +17,7 @@ type ProgressTabsProps = {
 };
 //
 const cssGridTemplate = (index: number) => {
-  return { transform: `translateX(-${index * 524}px)` };
+  return { transform: `translateX(calc(-${index * 100}% - ${index * 48}px))` };
 };
 
 function ProgressTabs(props: ProgressTabsProps) {

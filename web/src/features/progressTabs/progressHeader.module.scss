@@ -1,7 +1,12 @@
 .progressHeaderWrapper {
   display: grid;
   justify-items: center;
-  padding: 48px 36px 24px;
+  margin: 48px 36px 48px;
+}
+@media only screen and (max-width: 700px) {
+  .progressHeaderWrapper {
+    padding: 40px 24px 8px;
+  }
 }
 .progressHeaderContainer {
   display: grid;
@@ -15,11 +20,19 @@
 }
 .stepLabel {
   position: absolute;
+  display: flex;
+  justify-content: center;
   top: -24px;
   text-align: center;
   transform: translateX(calc(-50% + 12px));
   font-size: var(--font-size-small);
-  max-width: 100px;
+  width: 100px;
+}
+@media only screen and (max-width: 700px) {
+  .stepLabel {
+    width: 50px;
+    //transform: translateX(calc(-50% + 8px));
+  }
 }
 .step.active {
   .stepLabel {

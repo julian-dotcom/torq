@@ -45,6 +45,9 @@ export const torqApi = createApi({
     getForwards: builder.query<any, { from: string; to: string }>({
       query: ({ from, to }) => `forwards?from=${from}&to=${to}`,
     }),
+    getDecodedInvoice: builder.query<any, { invoice: string }>({
+      query: ({ invoice }) => `invoices/decode/?invoice=${invoice}`,
+    }),
     getPayments: builder.query<
       any,
       { limit: number; offset: number; order?: Array<{ key: string; direction: "asc" | "desc" }>; filter?: any }
@@ -186,6 +189,7 @@ export const {
   useGetFlowQuery,
   useGetChannelHistoryQuery,
   useGetForwardsQuery,
+  useGetDecodedInvoiceQuery,
   useGetPaymentsQuery,
   useGetInvoicesQuery,
   useGetOnChainTxQuery,

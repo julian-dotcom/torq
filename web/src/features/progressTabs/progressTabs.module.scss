@@ -10,10 +10,9 @@
   will-change: transform;
   transition: transform 200ms;
 }
-.progressTabWrapper {
-  flex-grow: 1;
-  //width: 500px;
-
-  //position: absolute;
-  //left: 200%;
+@media only screen and (max-width: 700px) {
+  .progressTabsContainer {
+    width: 100%;
+    grid-auto-columns: 100%;
+  }
 }

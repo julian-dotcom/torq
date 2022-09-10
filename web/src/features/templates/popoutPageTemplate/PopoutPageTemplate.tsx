@@ -23,7 +23,7 @@ const PopoutPageTemplate = (props: PopoutPageTemplateProps) => {
     <div className={classNames(styles.modal, { [styles.show]: props.show })} onClick={handleClose}>
       <div className={styles.modalBackdrop} />
 
-      <div className={styles.content} onClick={ignore}>
+      <div className={styles.popoutWrapper} onClick={ignore}>
         <div className={styles.header}>
           {props.icon && <span className={styles.icon}>{props.icon}</span>}
           <span className={styles.title}>{props.title}</span>
@@ -31,7 +31,7 @@ const PopoutPageTemplate = (props: PopoutPageTemplateProps) => {
             <DismissIcon />
           </span>
         </div>
-        {props.children}
+        <div className={styles.contentWrapper}>{props.children}</div>
       </div>
     </div>
   );
