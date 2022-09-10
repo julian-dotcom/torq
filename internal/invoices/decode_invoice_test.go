@@ -6,27 +6,6 @@ import (
 	"testing"
 )
 
-//[
-//        {
-//            "hop_hints": [
-//                {
-//                    "node_id": "029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255",
-//                    "chan_id": "72623859790382856",
-//                    "fee_base_msat": 1,
-//                    "fee_proportional_millionths": 20,
-//                    "cltv_expiry_delta": 3
-//                },
-//                {
-//                    "node_id": "039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255",
-//                    "chan_id": "217304205466536202",
-//                    "fee_base_msat": 2,
-//                    "fee_proportional_millionths": 30,
-//                    "cltv_expiry_delta": 4
-//                }
-//            ]
-//        }
-//    ]
-
 func Test_constructDecodedInvoice(t *testing.T) {
 	type args struct {
 		decoded *lnrpc.PayReq
@@ -43,7 +22,7 @@ func Test_constructDecodedInvoice(t *testing.T) {
 					Destination:     "test",
 					PaymentHash:     "payment_hash",
 					NumSatoshis:     100,
-					Timestamp:       0,
+					Timestamp:       1662812778,
 					Expiry:          120,
 					Description:     "Some description encoded in the invoice",
 					DescriptionHash: "",
@@ -84,6 +63,7 @@ func Test_constructDecodedInvoice(t *testing.T) {
 				RHash:             "payment_hash",
 				Memo:              "Some description encoded in the invoice",
 				ValueMsat:         100000,
+				CreatedAt:         1662812778,
 				PaymentAddr:       "a8d5d694e768fe7b3df2612dc5c19be6f078500e9af5765657fd0f87ec64e7b0",
 				FallbackAddr:      "something",
 				Expiry:            120,
@@ -123,7 +103,7 @@ func Test_constructDecodedInvoice(t *testing.T) {
 					Destination:     "test",
 					PaymentHash:     "payment_hash",
 					NumSatoshis:     100,
-					Timestamp:       0,
+					Timestamp:       1662812779,
 					Expiry:          120,
 					Description:     "Some description encoded in the invoice",
 					DescriptionHash: "",
@@ -142,6 +122,7 @@ func Test_constructDecodedInvoice(t *testing.T) {
 				RHash:             "payment_hash",
 				Memo:              "Some description encoded in the invoice",
 				ValueMsat:         100000,
+				CreatedAt:         1662812779,
 				PaymentAddr:       "a8d5d694e768fe7b3df2612dc5c19be6f078500e9af5765657fd0f87ec64e7b0",
 				FallbackAddr:      "something",
 				Expiry:            120,

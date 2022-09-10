@@ -37,14 +37,16 @@ type routeHint struct {
 }
 
 type DecodedInvoice struct {
+	NodeAlias         string      `json:"nodeAlias"`
 	PaymentRequest    string      `json:"paymentRequest"`
 	DestinationPubKey string      `json:"destinationPubKey"`
 	RHash             string      `json:"rHash"`
 	Memo              string      `json:"memo"`
-	ValueMsat         int64       `json:"value"`
+	ValueMsat         int64       `json:"valueMsat"`
 	PaymentAddr       string      `json:"paymentAddr"`
 	FallbackAddr      string      `json:"fallbackAddr"`
 	Expiry            int64       `json:"expiry"`
+	CreatedAt         int64       `json:"createdAt"`
 	CltvExpiry        int64       `json:"cltvExpiry"`
 	Private           bool        `json:"private"`
 	Features          featureMap  `json:"features"`
@@ -96,6 +98,7 @@ func constructDecodedInvoice(decodedInvoice *lnrpc.PayReq) *DecodedInvoice {
 		Memo:              decodedInvoice.Description,
 		ValueMsat:         decodedInvoice.NumMsat,
 		FallbackAddr:      decodedInvoice.FallbackAddr,
+		CreatedAt:         decodedInvoice.Timestamp,
 		Expiry:            decodedInvoice.Expiry,
 		CltvExpiry:        decodedInvoice.CltvExpiry,
 		RouteHints:        constructRouteHints(decodedInvoice.RouteHints),
@@ -135,7 +138,18 @@ func decodeInvoice(db *sqlx.DB, invoice string) (*DecodedInvoice, error) {
 		return nil, err
 	}
 
-	return constructDecodedInvoice(decodedInvoice), nil
+	nodeInfo, err := client.GetNodeInfo(ctx, &lnrpc.NodeInfoRequest{
+		PubKey:          decodedInvoice.Destination,
+		IncludeChannels: false,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	torqDecodedInvoice := constructDecodedInvoice(decodedInvoice)
+	torqDecodedInvoice.NodeAlias = nodeInfo.Node.Alias
+
+	return torqDecodedInvoice, nil
 }
 
 func decodeInvoiceHandler(c *gin.Context, db *sqlx.DB) {
