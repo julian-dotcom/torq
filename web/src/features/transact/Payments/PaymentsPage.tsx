@@ -139,14 +139,14 @@ function PaymentsPage() {
     <TableControlSection>
       <TransactTabs />
       <TableControlsButtonGroup>
-        <Button
-          buttonColor={buttonColor.green}
-          text={"New"}
-          icon={<TransactionIcon />}
-          onClick={() => {
-            setShowModalState(true);
-          }}
-        />
+        {/*<Button*/}
+        {/*  buttonColor={buttonColor.green}*/}
+        {/*  text={"New"}*/}
+        {/*  icon={<TransactionIcon />}*/}
+        {/*  onClick={() => {*/}
+        {/*    setShowModalState(true);*/}
+        {/*  }}*/}
+        {/*/>*/}
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>
@@ -277,9 +277,9 @@ function PaymentsPage() {
           activeColumns={columns || []}
           isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
         />
-        <Modal title={"New Payment"} show={showModalState} onClose={handleModalClose} icon={<TransactionIconModal />}>
-          <p>Are you sure you want to delete this payment?</p>
-        </Modal>
+        {/*<Modal title={"New Payment"} show={showModalState} onClose={handleModalClose} icon={<TransactionIconModal />}>*/}
+        {/*  <p>Are you sure you want to delete this payment?</p>*/}
+        {/*</Modal>*/}
       </>
     </TablePageTemplate>
   );
