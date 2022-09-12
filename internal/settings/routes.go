@@ -313,11 +313,21 @@ func updateLocalNodeDisabledHandler(c *gin.Context, db *sqlx.DB, restartLNDSub f
 		return
 	}
 
-	go func() {
-		if err := restartLNDSub(); err != nil {
-			log.Warn().Msg("Already restarting subscriptions, discarding restart request")
+	maxTries := 30
+	attempts := 0
+	for {
+		attempts++
+		if attempts > maxTries {
+			server_errors.LogAndSendServerError(c, errors.New("Failed to restart node subscriptions"))
+			return
 		}
-	}()
+		if err := restartLNDSub(); err != nil {
+			log.Warn().Msg("Already restarting subscriptions, retrying")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		break
+	}
 
 	c.Status(http.StatusOK)
 }

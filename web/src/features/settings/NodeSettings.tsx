@@ -59,6 +59,7 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
   const [deleteEnabled, setDeleteEnabled] = useState(false);
   const [saveEnabledState, setSaveEnabledState] = useState(true);
+  const [enableEnableButtonState, setEnableEnableButtonState] = useState(true);
 
   React.useEffect(() => {
     if (collapsed != undefined) {
@@ -152,7 +153,12 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
   };
 
   const handleDisableClick = () => {
-    setDisableLocalNode({ localNodeId: localState.localNodeId, disabled: !localState.disabled });
+    setEnableEnableButtonState(false);
+    setDisableLocalNode({ localNodeId: localState.localNodeId, disabled: !localState.disabled })
+      .unwrap()
+      .finally(() => {
+        setEnableEnableButtonState(true);
+      });
     if (popoverRef.current) {
       (popoverRef.current as { close: Function }).close();
     }
@@ -196,6 +202,7 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
                           icon={localState.disabled ? <PlayIcon /> : <PauseIcon />}
                           onClick={handleDisableClick}
                           buttonPosition={buttonPosition.left}
+                          disabled={!enableEnableButtonState}
                         />
                         <Button
                           buttonColor={buttonColor.warning}
