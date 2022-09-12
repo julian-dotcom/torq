@@ -82,7 +82,7 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
     submitNodeSettings();
   };
 
-  const submitNodeSettings = () => {
+  const submitNodeSettings = async () => {
     const form = new FormData();
     form.append("implementation", "LND");
     form.append("grpcAddress", localState.grpcAddress ?? "");
@@ -102,8 +102,12 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
       }
       return;
     }
-    updateLocalNode({ form, localNodeId: localState.localNodeId });
-    toastRef?.current?.addToast("Local node info saved", toastCategory.success);
+    updateLocalNode({ form, localNodeId: localState.localNodeId })
+      .unwrap()
+      .then((_) => toastRef?.current?.addToast("Local node info saved", toastCategory.error))
+      .catch((error) => {
+        toastRef?.current?.addToast(error.data["errors"]["server"][0], toastCategory.error);
+      });
   };
 
   React.useEffect(() => {
