@@ -60,10 +60,11 @@ func SingleFieldError(field string, fieldError string) *ServerError {
 
 func LogAndSendServerError(c *gin.Context, err error) {
 	log.Error().Err(err).Send()
-	c.JSON(http.StatusInternalServerError, SingleServerError("Server error"))
+	c.JSON(http.StatusInternalServerError, SingleServerError(err.Error()))
 }
 
 func WrapLogAndSendServerError(c *gin.Context, err error, message string) {
-	log.Error().Err(errors.Wrap(err, message)).Send()
-	c.JSON(http.StatusInternalServerError, SingleServerError("Server error"))
+	err = errors.Wrap(err, message)
+	log.Error().Err(err).Send()
+	c.JSON(http.StatusInternalServerError, SingleServerError(err.Error()))
 }
