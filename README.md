@@ -4,7 +4,7 @@ Torq is a capital management tool for routing nodes on the lightning network.
 
 ![All Tests](https://github.com/lncapital/torq/actions/workflows/test-on-push.yml/badge.svg)
 
-![Torq - Inspect channel](./Torq-Inspect-channel.png)
+![Torq - Forwards](./forwards-table.png)
 
 ## Quick start
 
