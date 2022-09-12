@@ -14,6 +14,7 @@ import {
   Pause20Regular as PauseIcon,
   Play20Regular as PlayIcon,
 } from "@fluentui/react-icons";
+import Spinny from "features/spinny/Spinny";
 import { toastCategory } from "../toast/Toasts";
 import ToastContext from "../toast/context";
 import File from "../forms/File";
@@ -57,6 +58,7 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
   const [showModalState, setShowModalState] = useState(false);
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
   const [deleteEnabled, setDeleteEnabled] = useState(false);
+  const [saveEnabledState, setSaveEnabledState] = useState(true);
 
   React.useEffect(() => {
     if (collapsed != undefined) {
@@ -83,6 +85,7 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
   };
 
   const submitNodeSettings = async () => {
+    setSaveEnabledState(false);
     const form = new FormData();
     form.append("implementation", "LND");
     form.append("grpcAddress", localState.grpcAddress ?? "");
@@ -104,9 +107,13 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
     }
     updateLocalNode({ form, localNodeId: localState.localNodeId })
       .unwrap()
-      .then((_) => toastRef?.current?.addToast("Local node info saved", toastCategory.error))
+      .then((_) => {
+        setSaveEnabledState(true);
+        toastRef?.current?.addToast("Local node info saved", toastCategory.success);
+      })
       .catch((error) => {
-        toastRef?.current?.addToast(error.data["errors"]["server"][0], toastCategory.error);
+        setSaveEnabledState(true);
+        toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
       });
   };
 
@@ -231,10 +238,11 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
                 </span>
                 <Button
                   buttonColor={buttonColor.green}
-                  text={addMode ? "Add Node" : "Save node details"}
-                  icon={<SaveIcon />}
+                  text={addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
+                  icon={saveEnabledState ? <SaveIcon /> : <Spinny />}
                   onClick={submitNodeSettings}
                   buttonPosition={buttonPosition.fullWidth}
+                  disabled={!saveEnabledState}
                 />
               </form>
             </div>
