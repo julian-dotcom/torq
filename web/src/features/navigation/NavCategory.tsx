@@ -3,7 +3,6 @@ import styles from "./nav.module.scss";
 import classNames from "classnames";
 import {
   ChevronDown20Regular as ExpandIcon,
-  ChevronLeft20Regular as ExpandedIcon,
   LineHorizontal120Regular as CollapseIcon,
 } from "@fluentui/react-icons";
 

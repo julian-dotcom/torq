@@ -3,8 +3,6 @@ import clone from "clone";
 import styles from "./filter-section.module.scss";
 import { deserialiseQuery, Clause, AndClause, FilterInterface } from "./filter";
 import FilterComponent from "./FilterComponent";
-import { useAppSelector } from "../../../../store/hooks";
-import { selectAllColumns } from "../../../forwards/forwardsSlice";
 import { ColumnMetaData } from "../../../table/Table";
 
 type FilterSectionProps = {

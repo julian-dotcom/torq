@@ -5,7 +5,7 @@ import React, { useEffect } from "react";
 import { NumberValue, Selection } from "d3";
 import ChartCanvas from "../../charts/chartCanvas";
 import "../../charts/chart.scss";
-import { AreaPlot, BarPlot, LinePlot } from "../../charts/charts";
+import { AreaPlot } from "../../charts/charts";
 import { selectProfitChartKey } from "../channelSlice";
 import { useAppSelector } from "../../../store/hooks";
 import clone from "../../../clone";

@@ -29,7 +29,6 @@ import {
 import { localNode } from "apiTypes";
 import classNames from "classnames";
 import Collapse from "features/collapse/Collapse";
-import Switch from "features/inputs/Slider/Switch";
 import Popover from "features/popover/Popover";
 import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
 import Modal from "features/modal/Modal";

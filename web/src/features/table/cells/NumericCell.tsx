@@ -2,7 +2,6 @@ import styles from "./cell.module.scss";
 
 import React from "react";
 import { format } from "d3";
-import { toNumber } from "lodash";
 const classNames = require("classnames");
 
 interface numericCell {

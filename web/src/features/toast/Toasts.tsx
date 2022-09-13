@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createRef } from "react";
+import React, { useEffect } from "react";
 import styles from "./toast.module.css";
 import {
   ThumbLike20Regular as SuccessIcon,

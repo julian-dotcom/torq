@@ -10,7 +10,7 @@ import EventsCard from "../eventsCard/EventsCard";
 import Switch from "../inputs/Slider/Switch";
 import Button, { buttonColor } from "../buttons/Button";
 import Select from "../inputs/Select";
-import { Iot20Regular as ChannelIcon, Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
+import { Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
 import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";

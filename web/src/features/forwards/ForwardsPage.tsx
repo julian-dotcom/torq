@@ -4,7 +4,6 @@ import {
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
   ArrowJoin20Regular as GroupIcon,
-  Save20Regular as SaveIcon,
   Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
 import Sidebar, { SidebarSection } from "../sidebar/Sidebar";
@@ -37,9 +36,7 @@ import FilterSection from "../sidebar/sections/filter/FilterSection";
 import SortSection, { SortByOptionType } from "../sidebar/sections/sort/SortSectionOld";
 import GroupBySection from "../sidebar/sections/group/GroupBySection";
 import ForwardsDataWrapper from "./ForwardsDataWrapper";
-import Button, { buttonColor } from "../buttons/Button";
 import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
-import classNames from "classnames";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 
 type sections = {

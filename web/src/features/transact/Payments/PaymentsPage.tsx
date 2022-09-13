@@ -6,8 +6,6 @@ import {
   ColumnTriple20Regular as ColumnsIcon,
   Filter20Regular as FilterIcon,
   Options20Regular as OptionsIcon,
-  MoneyHand20Regular as TransactionIcon,
-  MoneyHand24Regular as TransactionIconModal,
 } from "@fluentui/react-icons";
 import Sidebar, { SidebarSection } from "features/sidebar/Sidebar";
 import TablePageTemplate, {
@@ -21,7 +19,7 @@ import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import FilterSection from "../../sidebar/sections/filter/FilterSection";
-import { Clause, deserialiseQuery, FilterClause, FilterInterface } from "../../sidebar/sections/filter/filter";
+import { Clause, deserialiseQuery, FilterInterface } from "../../sidebar/sections/filter/filter";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import {
   selectActiveColumns,
@@ -33,8 +31,6 @@ import {
 import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
-import Button, { buttonColor } from "features/buttons/Button";
-import Modal from "../../modal/Modal";
 
 type sections = {
   filter: boolean;

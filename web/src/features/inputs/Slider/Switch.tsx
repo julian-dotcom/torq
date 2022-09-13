@@ -1,6 +1,6 @@
 import styles from "./switch.module.scss";
 import classNames from "classnames";
-import React, { HTMLInputTypeAttribute, InputHTMLAttributes } from "react";
+import React from "react";
 
 export default function Switch({
   label,

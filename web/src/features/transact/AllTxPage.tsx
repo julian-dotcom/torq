@@ -1,13 +1,9 @@
-import styles from "../table/table-page.module.scss";
-import TableControls from "../sidebar/sections/TableControls";
-import Table from "../table/Table";
 import { useGetTableViewsQuery } from "apiSlice";
 import { Link } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
-  ArrowJoin20Regular as GroupIcon,
 } from "@fluentui/react-icons";
 import Sidebar, { SidebarSection } from "../sidebar/Sidebar";
 import TablePageTemplate, {

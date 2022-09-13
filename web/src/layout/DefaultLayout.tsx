@@ -1,7 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
-import { selectHidden, toggleNav } from "../features/navigation/navSlice";
+import { selectHidden } from "../features/navigation/navSlice";
 import styles from "./default-layout.module.scss";
 import navStyles from "../features/navigation/nav.module.scss";
 

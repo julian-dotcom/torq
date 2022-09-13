@@ -1,7 +1,6 @@
 // import Reactfrom "react";
 import styles from "./pagination.module.scss";
 // import classNames from "classnames";
-import Select from "features/inputs/Select";
 import classNames from "classnames";
 import React, { useMemo } from "react";
 import { ChevronLeft20Filled as LeftIcon, ChevronRight20Filled as RightIcon } from "@fluentui/react-icons";

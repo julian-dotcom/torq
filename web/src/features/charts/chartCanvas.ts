@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
-import {addHours, subHours, fromUnixTime, differenceInDays, subDays, differenceInSeconds} from "date-fns";
-import {utcToZonedTime, zonedTimeToUtc} from "date-fns-tz";
+import {addHours, subHours, differenceInDays, subDays, differenceInSeconds} from "date-fns";
+import {utcToZonedTime} from "date-fns-tz";
 import { BarPlot } from "./plots/bar";
 import clone from "../../clone";
 

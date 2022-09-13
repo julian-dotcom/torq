@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React from "react";
 import {
   Options24Regular as SideBarIcon,
   DismissCircle24Regular as CloseIcon,
