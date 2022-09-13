@@ -40,6 +40,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "lint": "eslint --ignore-path .eslintignore --ext .js,.ts,.tsx,.jsx .",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -65,7 +66,12 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/react-transition-group": "^4.4.4",
     "@types/uuid": "^8.3.4",
+    "@typescript-eslint/eslint-plugin": "^5.37.0",
+    "@typescript-eslint/parser": "^5.37.0",
     "autoprefixer": "^10.4.4",
+    "eslint": "^8.23.1",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-react": "^7.31.8",
     "postcss": "^8.4.12",
     "postcss-scss": "^4.0.3",
     "prettier": "^2.6.2",
