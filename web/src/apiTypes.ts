@@ -1,4 +1,3 @@
-
 export interface settings {
   defaultDateRange: string;
   preferredTimezone: string;

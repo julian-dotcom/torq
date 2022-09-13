@@ -13,11 +13,6 @@ import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
 
-interface sortDirectionOption {
-  value: string;
-  label: string;
-}
-
 export type OrderBy = {
   key: string;
   direction: "asc" | "desc";
@@ -32,13 +27,13 @@ type SortRowProps = {
   selected: OrderBy;
   options: Array<OrderByOption>;
   index: number;
-  handleUpdateSort: Function;
-  handleRemoveSort: Function;
+  handleUpdateSort: (update: OrderBy, index: number) => void;
+  handleRemoveSort: (index: number) => void;
 };
 
 const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort }: SortRowProps) => {
-  const handleColumn = (newValue: any, _: ActionMeta<unknown>) => {
-    handleUpdateSort({ key: newValue.value, direction: selected.direction }, index);
+  const handleColumn = (newValue: unknown, _: ActionMeta<unknown>) => {
+    handleUpdateSort({ key: (newValue as OrderByOption).value, direction: selected.direction }, index);
   };
   const updateDirection = (selected: OrderBy) => {
     handleUpdateSort(
@@ -99,7 +94,7 @@ type SortSectionProps = {
 };
 
 const SortSection = (props: SortSectionProps) => {
-  const [options, selected] = useMemo(() => {
+  const [options, _] = useMemo(() => {
     const options: Array<OrderByOption> = [];
     const selected: Array<OrderByOption> = [];
 
@@ -163,11 +158,7 @@ const SortSection = (props: SortSectionProps) => {
   };
 
   return (
-    <DragDropContext
-      // onDragStart={}
-      // onDragUpdate={}
-      onDragEnd={onDragEnd}
-    >
+    <DragDropContext onDragEnd={onDragEnd}>
       <div className={styles.sortPopoverContent}>
         {!props.orderBy.length && <div className={styles.noFilters}>Not sorted</div>}
 

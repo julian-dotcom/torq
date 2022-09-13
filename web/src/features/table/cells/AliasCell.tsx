@@ -1,7 +1,7 @@
 import styles from "./cell.module.scss";
 import { Link } from "react-router-dom";
 import React from "react";
-const classNames = require("classnames");
+import classNames from "classnames";
 
 interface AliasCell {
   current: string;

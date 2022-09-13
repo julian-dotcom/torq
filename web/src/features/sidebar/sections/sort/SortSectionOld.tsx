@@ -23,12 +23,8 @@ interface sortRowInterface {
   selected: SortByOptionType;
   options: SortByOptionType[];
   index: number;
-  handleUpdateSort: Function;
-  handleRemoveSort: Function;
-}
-interface sortDirectionOption {
-  value: string;
-  label: string;
+  handleUpdateSort: (update: SortByOptionType, index: number) => void;
+  handleRemoveSort: (index: number) => void;
 }
 
 export type OrderType = {
@@ -38,14 +34,9 @@ export type OrderType = {
 
 export type KeyLabels = Map<string, string>;
 
-const directionLabels = new Map<string, string>([
-  ["asc", "Ascending"],
-  ["desc", "Descending"],
-]);
-
 const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort }: sortRowInterface) => {
-  const handleColumn = (newValue: unknown, actionMeta: ActionMeta<unknown>) => {
-    handleUpdateSort(newValue, index);
+  const handleColumn = (newValue: unknown, _: ActionMeta<unknown>) => {
+    handleUpdateSort(newValue as SortByOptionType, index);
   };
   const updateDirection = (selected: SortByOptionType) => {
     handleUpdateSort(
@@ -144,17 +135,10 @@ const SortSectionOld = (props: SortSectionProps) => {
     props.updateSortByHandler(updated);
   };
 
-  const buttonText = (): string => {
-    if (props.orderBy.length > 0) {
-      return props.orderBy.length + " Sorted";
-    }
-    return "Sort";
-  };
-
   const droppableContainerId = "sort-list-droppable";
 
   const onDragEnd = (result: any) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source } = result;
 
     // Dropped outside of container
     if (!destination || destination.droppableId !== droppableContainerId) {

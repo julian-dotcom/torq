@@ -1,6 +1,6 @@
 import styles from "./cell.module.scss";
 import React from "react";
-const classNames = require("classnames");
+import classNames from "classnames";
 
 interface textCell {
   current: string | Array<string>;

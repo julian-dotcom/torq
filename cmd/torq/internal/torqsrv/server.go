@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/gzip"
-	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
@@ -31,6 +30,9 @@ import (
 
 func Start(port int, apiPswd string, db *sqlx.DB, restartLNDSub func() error) {
 	r := gin.Default()
+
+	auth.CreateSession(r, apiPswd)
+
 	registerRoutes(r, db, apiPswd, restartLNDSub)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
@@ -87,10 +89,6 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 
 	applyCors(r)
 	registerStaticRoutes(r)
-
-	// TODO: Generate this secret!
-	var Secret = []byte("secret")
-	r.Use(sessions.Sessions("torq_session", sessions.NewCookieStore(Secret)))
 
 	api := r.Group("/api")
 

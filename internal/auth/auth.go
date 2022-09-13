@@ -9,6 +9,12 @@ import (
 
 const Userkey = "user"
 
+func CreateSession(r *gin.Engine, apiPwd string) {
+	store := sessions.NewCookieStore([]byte(apiPwd))
+	store.Options(sessions.Options{MaxAge: 86400, Path: "/"})
+	r.Use(sessions.Sessions("torq_session", store))
+}
+
 // AuthRequired is a simple middleware to check the session
 func AuthRequired(c *gin.Context) {
 	session := sessions.Default(c)
