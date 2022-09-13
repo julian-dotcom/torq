@@ -14,8 +14,8 @@ function DateCell(props: DateCellProps) {
   if (typeof props.value === "string") {
     date = new Date(props.value);
   }
-  let displayDate: string = "";
-  let displayTime: string = "";
+  let displayDate = "";
+  let displayTime = "";
   if (date != null && date.valueOf() !== 0) {
     displayDate = format(date as Date, "yyyy-MM-dd");
     displayTime = format(date as Date, "HH:mm:ss");

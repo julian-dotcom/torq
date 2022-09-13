@@ -97,7 +97,7 @@ export class BarPlot extends AbstractPlot {
     this.chart.data.forEach((data, i) => {
       this.chart.context.fillStyle = this.config.barColor;
 
-      let xIndex: number = -1;
+      let xIndex = -1;
       if (
         drawConfig?.xPosition &&
         addHours(this.chart.config.xScale.invert(drawConfig.xPosition), 12) > data.date &&
@@ -130,7 +130,7 @@ export class BarPlot extends AbstractPlot {
       );
     });
     this.chart.data.forEach((data, i) => {
-      let xIndex: number = -1;
+      let xIndex = -1;
       if (
         drawConfig?.xPosition &&
         addHours(this.chart.config.xScale.invert(drawConfig.xPosition), 12) > data.date &&

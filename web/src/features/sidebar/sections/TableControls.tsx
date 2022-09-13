@@ -12,7 +12,7 @@ function TableControls() {
   const [updateTableView] = useUpdateTableViewMutation();
   const [createTableView] = useCreateTableViewMutation();
   const saveView = () => {
-    let viewMod = { ...currentView };
+    const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
       createTableView({ view: viewMod, index: currentViewIndex });

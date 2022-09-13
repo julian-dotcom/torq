@@ -67,7 +67,7 @@ function TimeIntervalSelect(props: { className?: string }) {
 
   const moveBackwardInTime = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
-    let diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from));
+    const diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from));
     const interval = {
       from: startOfDay(subDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
       to: startOfDay(subDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
@@ -77,7 +77,7 @@ function TimeIntervalSelect(props: { className?: string }) {
 
   const moveForwardInTime = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
-    let diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from));
+    const diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from));
     const interval = {
       from: startOfDay(addDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
       to: startOfDay(addDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
@@ -85,7 +85,7 @@ function TimeIntervalSelect(props: { className?: string }) {
     dispatch(updateInterval(interval));
   };
 
-  let popOverButton = (
+  const popOverButton = (
     <div className={"date-range-button"}>
       <div className="time-travel-arrow" onClick={moveBackwardInTime}>
         <LeftIcon />

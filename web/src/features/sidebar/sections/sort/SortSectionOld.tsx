@@ -107,7 +107,7 @@ type SortSectionProps = {
 };
 
 const SortSectionOld = (props: SortSectionProps) => {
-  let options = props.columns.slice().map((column: { key: string; heading: string; valueType: string }) => {
+  const options = props.columns.slice().map((column: { key: string; heading: string; valueType: string }) => {
     return {
       value: column.key,
       label: column.heading,
@@ -166,7 +166,7 @@ const SortSectionOld = (props: SortSectionProps) => {
       return;
     }
 
-    let newSortsOrder = props.orderBy.slice();
+    const newSortsOrder = props.orderBy.slice();
     newSortsOrder.splice(source.index, 1);
     newSortsOrder.splice(destination.index, 0, props.orderBy[source.index]);
     props.updateSortByHandler(newSortsOrder);

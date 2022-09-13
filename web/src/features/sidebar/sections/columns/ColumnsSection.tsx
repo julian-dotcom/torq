@@ -58,7 +58,7 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
     }
   })[0];
 
-  let [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <Draggable draggableId={`draggable-column-id-${index}`} index={index}>
@@ -185,7 +185,7 @@ function ColumnsSection(props: ColumnsSectionProps) {
       return;
     }
 
-    let newColumns: ColumnMetaData[] = draggableColumns.slice();
+    const newColumns: ColumnMetaData[] = draggableColumns.slice();
     newColumns.splice(source.index, 1);
     newColumns.splice(destination.index, 0, draggableColumns[source.index]);
     props.handleUpdateColumn([props.columns[0], ...newColumns]);

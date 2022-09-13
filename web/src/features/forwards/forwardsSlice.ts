@@ -141,7 +141,7 @@ export interface TableState {
   status: "idle" | "loading" | "failed";
 }
 
-let defaultFilter = new AndClause();
+const defaultFilter = new AndClause();
 defaultFilter.addChildClause(
   new FilterClause({
     funcName: "gt",

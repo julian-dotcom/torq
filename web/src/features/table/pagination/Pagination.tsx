@@ -35,7 +35,7 @@ function renderPages(
   pageSelectOptions: Array<{ value: number; label: number | string }>,
   offsetHandler: (offset: number) => void
 ) {
-  let result = [];
+  const result = [];
   const start = Math.max(0, currentPage - 1);
   const end = Math.min(start + 2, pages - 1);
 

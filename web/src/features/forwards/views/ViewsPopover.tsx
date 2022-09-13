@@ -115,7 +115,7 @@ function ViewsPopover() {
   };
 
   const removeView = (index: number) => {
-    let confirmed = window.confirm("Are you sure you want to delete this view?");
+    const confirmed = window.confirm("Are you sure you want to delete this view?");
     if (!confirmed) {
       return;
     }
@@ -159,7 +159,7 @@ function ViewsPopover() {
       newCurrentIndex = selectedView + 1;
     }
 
-    let newViewsOrder: ViewInterface[] = views.slice();
+    const newViewsOrder: ViewInterface[] = views.slice();
     newViewsOrder.splice(source.index, 1);
     newViewsOrder.splice(destination.index, 0, views[source.index]);
 
@@ -171,7 +171,7 @@ function ViewsPopover() {
     updateTableViewsOrder(order);
   };
 
-  let button = <TabButton title={views[selectedView].title} dropDown={true} />;
+  const button = <TabButton title={views[selectedView].title} dropDown={true} />;
 
   const singleView = views.length <= 1;
   return (

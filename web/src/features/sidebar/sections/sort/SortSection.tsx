@@ -100,8 +100,8 @@ type SortSectionProps = {
 
 const SortSection = (props: SortSectionProps) => {
   const [options, selected] = useMemo(() => {
-    let options: Array<OrderByOption> = [];
-    let selected: Array<OrderByOption> = [];
+    const options: Array<OrderByOption> = [];
+    const selected: Array<OrderByOption> = [];
 
     props.columns.slice().forEach((column: { key: string; heading: string }) => {
       options.push({
@@ -156,7 +156,7 @@ const SortSection = (props: SortSectionProps) => {
       return;
     }
 
-    let newSortsOrder = props.orderBy.slice();
+    const newSortsOrder = props.orderBy.slice();
     newSortsOrder.splice(source.index, 1);
     newSortsOrder.splice(destination.index, 0, props.orderBy[source.index]);
     props.updateHandler(newSortsOrder);

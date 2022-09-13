@@ -24,7 +24,7 @@ function LoginPage() {
   }
 
   useEffect(() => {
-    let c = new Cookies();
+    const c = new Cookies();
     const cookies = c.get("torq_session");
     if (cookies !== undefined) {
       navigate(from, { replace: true });

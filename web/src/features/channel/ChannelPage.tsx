@@ -47,8 +47,8 @@ function ChannelPage() {
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
-  let [allToggle, setAllToggle] = React.useState(true);
-  let [selectedEvents, setSelectedEvents] = React.useState(
+  const [allToggle, setAllToggle] = React.useState(true);
+  const [selectedEvents, setSelectedEvents] = React.useState(
     new Map<string, boolean>([
       ["fee_rate", true],
       ["base_fee", true],
@@ -64,7 +64,7 @@ function ChannelPage() {
     };
   };
 
-  let { chanId } = useParams();
+  const { chanId } = useParams();
   const { data, isLoading } = useGetFlowQuery({
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
@@ -84,7 +84,7 @@ function ChannelPage() {
     balanceChanId = { value: 0, label: historyQuery?.data?.channel_balance[0]?.LNDShortChannelId || "" };
   }
 
-  let total_capacity: number = 0;
+  let total_capacity = 0;
   if (historyQuery?.data?.channels) {
     total_capacity = historyQuery.data.channels
       .map((d: { capacity: number }) => {

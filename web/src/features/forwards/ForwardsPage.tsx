@@ -59,14 +59,14 @@ function ForwardsPage() {
   const currentViewIndex = useAppSelector(selectedViewIndex);
   const [updateTableView] = useUpdateTableViewMutation();
   const [createTableView] = useCreateTableViewMutation();
-  let activeColumns = useAppSelector(selectActiveColumns) || [];
+  const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
   const sortBy = useAppSelector(selectSortBy);
   const groupBy = useAppSelector(selectGroupBy) || "channels";
   const filters = useAppSelector(selectFilters);
 
   const saveView = () => {
-    let viewMod = { ...currentView };
+    const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
       createTableView({ view: viewMod, index: currentViewIndex });

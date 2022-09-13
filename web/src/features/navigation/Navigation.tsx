@@ -24,7 +24,7 @@ import styles from "./nav.module.scss";
 function Navigation() {
   const dispatch = useAppDispatch();
 
-  let navCollapsed = true;
+  const navCollapsed = true;
 
   return (
     <div className={classNames(styles.navigation)}>

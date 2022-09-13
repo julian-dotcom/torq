@@ -65,12 +65,12 @@ function FilterRow({
 
   const [rowExpanded, setRowExpanded] = useState(!rowValues.key);
 
-  let functionOptions = getFilterFunctions(rowValues.category);
+  const functionOptions = getFilterFunctions(rowValues.category);
 
   const keyOption = filterOptions.find((item) => item.value === rowValues.key);
   const funcOption = functionOptions.find((item) => item.value === rowValues.funcName);
 
-  let selectData = {
+  const selectData = {
     func: funcOption,
     key: keyOption,
   };

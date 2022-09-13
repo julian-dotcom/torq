@@ -25,7 +25,7 @@ function Logout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    let c = new Cookies();
+    const c = new Cookies();
     c.remove("torq_session");
     logout();
     navigate("/login", { replace: true });
@@ -148,7 +148,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   const location = useLocation();
 
   useEffect(() => {
-    let c = new Cookies();
+    const c = new Cookies();
     const cookies = c.get("torq_session");
     if (cookies === undefined) {
       navigate("/login", { replace: true, state: location });

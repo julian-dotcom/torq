@@ -88,7 +88,7 @@ export function applyFilters(filters: Clause, data: Array<any>): any[] {
 }
 
 class FilterClause {
-  prefix: string = "$filter";
+  prefix = "$filter";
   constructor(public filter: FilterInterface) {}
   get length() {
     return 1;
@@ -99,7 +99,7 @@ class FilterClause {
 }
 
 class AndClause {
-  prefix: string = "$and";
+  prefix = "$and";
   childClauses: Clause[] = [];
   constructor(childClauses?: Clause[]) {
     if (childClauses) {
@@ -122,7 +122,7 @@ class AndClause {
 }
 
 class OrClause extends AndClause {
-  prefix: string = "$or";
+  prefix = "$or";
 }
 
 type Clause = FilterClause | OrClause | AndClause;

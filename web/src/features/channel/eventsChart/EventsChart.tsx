@@ -25,7 +25,7 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
   // Check and update the chart size if the navigation changes the container size
   const navCheck: Function = (container: Selection<HTMLDivElement, {}, HTMLElement, any>): Function => {
     return () => {
-      let boundingBox = container?.node()?.getBoundingClientRect();
+      const boundingBox = container?.node()?.getBoundingClientRect();
       if (currentSize[0] !== boundingBox?.width || currentSize[1] !== boundingBox?.height) {
         chart.resizeChart();
         chart.draw();
@@ -66,7 +66,7 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
         legendLabel: eventKey.label + " In",
         lineColor: "#FAAE93",
       });
-      let filteredEvents =
+      const filteredEvents =
         events?.filter((d) => {
           return selectedEventTypes.get(d.type); // selectedEventTypes
         }) || [];

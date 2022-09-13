@@ -4,7 +4,7 @@ import classNames from "classnames";
 import { NavLink } from "react-router-dom";
 
 function MenuItem(props: { text: string; icon?: any; routeTo: string }) {
-  let linkClasses = (p: { isActive: boolean }): string => {
+  const linkClasses = (p: { isActive: boolean }): string => {
     return classNames(styles.title, { [styles.selected]: p.isActive });
   };
 

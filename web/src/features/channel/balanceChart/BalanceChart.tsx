@@ -27,7 +27,7 @@ function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
   // Check and update the chart size if the navigation changes the container size
   const navCheck: Function = (container: Selection<HTMLDivElement, {}, HTMLElement, any>): Function => {
     return () => {
-      let boundingBox = container?.node()?.getBoundingClientRect();
+      const boundingBox = container?.node()?.getBoundingClientRect();
       if (currentSize[0] !== boundingBox?.width || currentSize[1] !== boundingBox?.height) {
         chart.resizeChart();
         chart.draw();
