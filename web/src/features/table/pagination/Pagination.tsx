@@ -28,21 +28,16 @@ const limitOptions = [
 function renderPages(
   limit: number,
   offset: number,
-  total: number,
   pages: number,
   currentPage: number,
   pageSelectOptions: Array<{ value: number; label: number | string }>,
   offsetHandler: (offset: number) => void
 ) {
-  const result = [];
-  const start = Math.max(0, currentPage - 1);
-  const end = Math.min(start + 2, pages - 1);
-
   return (
     <div className={styles.paginationButtons}>
       <button
         className={classNames(styles.pageButton, { [styles.disabled]: !(offset >= limit) })}
-        onClick={(e) => {
+        onClick={() => {
           if (offset >= limit) {
             offsetHandler(offset - limit);
           }
@@ -62,7 +57,7 @@ function renderPages(
 
       <button
         className={classNames(styles.pageButton, { [styles.disabled]: !(pages > currentPage + 1) })}
-        onClick={(e) => {
+        onClick={() => {
           if (pages > currentPage + 1) {
             offsetHandler(offset + limit);
           }
@@ -102,15 +97,7 @@ function Pagination(props: PaginationProps) {
         />
       </div>
       <div className={styles.paginationButtons}>
-        {renderPages(
-          props.limit,
-          props.offset,
-          props.total,
-          pages,
-          currentPage,
-          pageSelectOptions,
-          props.offsetHandler
-        )}
+        {renderPages(props.limit, props.offset, pages, currentPage, pageSelectOptions, props.offsetHandler)}
       </div>
     </div>
   );

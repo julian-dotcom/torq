@@ -114,7 +114,12 @@ function AllTxPage() {
     </Sidebar>
   );
 
-  const breadcrumbs = ["Transactions", <Link to={"/transactions/all"}>All</Link>];
+  const breadcrumbs = [
+    <span key="b1">Transactions</span>,
+    <Link key="b2" to={"/transactions/all"}>
+      All
+    </Link>,
+  ];
   return (
     <TablePageTemplate
       title={"All Transactions"}

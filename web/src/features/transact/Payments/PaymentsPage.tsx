@@ -96,7 +96,7 @@ function PaymentsPage() {
     });
   }
 
-  const columns = activeColumns.map((column: ColumnMetaData, index: number) => {
+  const columns = activeColumns.map((column: ColumnMetaData, _: number) => {
     if (column.type === "number") {
       return {
         ...column,
@@ -207,12 +207,6 @@ function PaymentsPage() {
     dispatch(updateColumns({ columns: columns }));
   };
 
-  const [showModalState, setShowModalState] = useState(false);
-
-  const handleModalClose = () => {
-    setShowModalState(false);
-  };
-
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
       <SidebarSection
@@ -247,7 +241,12 @@ function PaymentsPage() {
     </Sidebar>
   );
 
-  const breadcrumbs = ["Transactions", <Link to={"/transactions/payments"}>Payments</Link>];
+  const breadcrumbs = [
+    <span key="b1">Transactions</span>,
+    <Link key="b2" to={"/transactions/payments"}>
+      Payments
+    </Link>,
+  ];
 
   const pagination = (
     <Pagination
@@ -273,9 +272,6 @@ function PaymentsPage() {
           activeColumns={columns || []}
           isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
         />
-        {/*<Modal title={"New Payment"} show={showModalState} onClose={handleModalClose} icon={<TransactionIconModal />}>*/}
-        {/*  <p>Are you sure you want to delete this payment?</p>*/}
-        {/*</Modal>*/}
       </>
     </TablePageTemplate>
   );

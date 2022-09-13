@@ -82,17 +82,6 @@ function OnChainPage() {
     });
   }
 
-  const columns = activeColumns.map((column: ColumnMetaData, index: number) => {
-    if (column.type === "number") {
-      return {
-        ...column,
-        max: Math.max(column.max ?? 0, data[column.key].max ?? 0),
-      };
-    } else {
-      return column;
-    }
-  });
-
   // General logic for toggling the sidebar sections
   const initialSectionState: sections = {
     filter: false,
@@ -205,7 +194,12 @@ function OnChainPage() {
     </Sidebar>
   );
 
-  const breadcrumbs = ["Transactions", <Link to={"/transactions/on-chain"}>On-Chain Tx</Link>];
+  const breadcrumbs = [
+    <span key="b1">Transactions</span>,
+    <Link key="b2" to={"/transactions/on-chain"}>
+      On-Chain Tx
+    </Link>,
+  ];
   const pagination = (
     <Pagination
       limit={limit}
