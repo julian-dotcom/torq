@@ -123,11 +123,11 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
     }
   }, [localNodeData]);
 
-  const handleTLSFileChange = (file: File) => {
+  const handleTLSFileChange = (file: File | null) => {
     setLocalState({ ...localState, tlsFile: file, tlsFileName: file ? file.name : undefined });
   };
 
-  const handleMacaroonFileChange = (file: File) => {
+  const handleMacaroonFileChange = (file: File | null) => {
     setLocalState({ ...localState, macaroonFile: file, macaroonFileName: file ? file.name : undefined });
   };
 
