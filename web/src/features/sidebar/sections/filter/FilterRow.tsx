@@ -86,11 +86,12 @@ function FilterRow({
         }
         rowValues.funcName = "eq";
         break;
-      case "date":
+      case "date": {
         const nd = new Date().toISOString().slice(0, 10) + "T00:00:00";
         rowValues.parameter = nd;
         rowValues.funcName = "gte";
         break;
+      }
       case "array":
         rowValues.parameter = "";
         rowValues.funcName = "eq";
@@ -153,7 +154,7 @@ function FilterRow({
             child={child}
           />
         );
-      case "array":
+      case "array": {
         const label = options?.find((item) => {
           return item.value === rowValues.parameter ? item : "";
         })?.label;
@@ -167,6 +168,7 @@ function FilterRow({
             child={child}
           />
         );
+      }
       case "date":
         return (
           <input
