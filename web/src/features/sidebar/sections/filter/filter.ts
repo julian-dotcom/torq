@@ -91,7 +91,7 @@ export interface FilterInterface {
   category: FilterCategoryType;
   funcName: string;
   parameter: FilterParameterType;
-  key: string;
+  key?: string;
   selectOptions?: Array<SelectOption>;
   value?: any;
   label?: string;
@@ -153,7 +153,7 @@ const parseClause = (clause: ClauseWithResult, data: any) => {
       if (!filterFunc) {
         throw new Error("Filter function is not yet defined");
       }
-      clause.result = filterFunc(data, filterClause.filter.key, filterClause.filter.parameter);
+      clause.result = filterFunc(data, filterClause.filter.key ?? "", filterClause.filter.parameter);
       break;
     }
     case "$and": {
