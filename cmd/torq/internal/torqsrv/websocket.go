@@ -121,7 +121,7 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 	}
 }
 
-func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
+func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
 
 	conn, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -141,9 +141,6 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 		}
 	}(c)
 
-	// Boolean indicating whether the client is authenticated
-	allowedUser := false
-
 	for {
 		req := wsRequest{}
 		err := conn.ReadJSON(&req)
@@ -154,29 +151,6 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, apiPwd string) {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		case nil:
-			// Check if the client is authenticated
-			if allowedUser == false {
-				if req.Type != "auth" {
-					wc <- wsError{
-						ReqId: req.ReqId,
-						Type:  "Error",
-						Error: "Unauthorized. Please login first.",
-					}
-					continue
-				}
-				if *req.Password == apiPwd {
-					allowedUser = true
-					wc <- AuthSuccess{AuthSuccess: true}
-					continue
-				}
-				wc <- wsError{
-					ReqId: req.ReqId,
-					Type:  "Error",
-					Error: "Incorrect password",
-				}
-				continue
-			}
-
 			go processWsReq(db, c, wc, req)
 			continue
 		default:

@@ -77,7 +77,7 @@ var wsUpgrade = websocket.Upgrader{
 	//check origin will check the cross region source
 	CheckOrigin: func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
-		return origin == "chrome-extension://cbcbkhdmedgianpaifchdaddpnmgnknn" || origin == "http://localhost:3000"
+		return origin == "http://localhost:3000"
 	},
 }
 
@@ -85,9 +85,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub fun
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	// Websocket
 	ws := r.Group("/ws")
-	ws.GET("", func(c *gin.Context) { WebsocketHandler(c, db, apiPwd) })
+	ws.Use(auth.AuthRequired)
+	ws.GET("", func(c *gin.Context) {
+		WebsocketHandler(c, db)
+	})
 
-	applyCors(r)
 	registerStaticRoutes(r)
 
 	api := r.Group("/api")

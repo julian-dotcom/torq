@@ -131,6 +131,7 @@ func decodeInvoice(db *sqlx.DB, invoice string) (*DecodedInvoice, error) {
 	client := lnrpc.NewLightningClient(conn)
 	// Decode invoice
 	ctx := context.Background()
+	// TODO: Handle different error types like incorrect checksum etc to explain why the decode failed.
 	decodedInvoice, err := client.DecodePayReq(ctx, &lnrpc.PayReqString{
 		PayReq: invoice,
 	})
