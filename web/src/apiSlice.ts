@@ -18,15 +18,6 @@ const buildBaseUrl = () => {
     : "//" + window.location.host + prefix;
 };
 
-export type Channel = "redux" | "general";
-
-export interface Message {
-  id: number;
-  channel: Channel;
-  userName: string;
-  text: string;
-}
-
 const API_URL = buildBaseUrl() + "/api";
 
 const loc = window.location;
