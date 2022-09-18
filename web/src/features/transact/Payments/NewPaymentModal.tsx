@@ -14,13 +14,22 @@ import Switch from "../../inputs/Slider/Switch";
 import PopoutPageTemplate from "../../templates/popoutPageTemplate/PopoutPageTemplate";
 import ProgressHeader, { ProgressStepState, Step } from "../../progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "../../progressTabs/ProgressTab";
-import { useGetDecodedInvoiceQuery } from "../../../apiSlice";
+import { useGetDecodedInvoiceQuery } from "apiSlice";
 import { format } from "d3";
 import Note from "../../note/Note";
 import classNames from "classnames";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
 
 const fd = format(",.0f");
+
+export interface NewPaymentRequest {
+  invoice: string;
+  timeOutSecs: number;
+  dest: string;
+  amtMSat: number;
+  feeLimitMsat: number;
+  allowSelfPayment: boolean;
+}
 
 type NewPaymentModalProps = {
   show: boolean;
@@ -94,6 +103,7 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     PaymentType.LightningTestnet,
   ].includes(destinationType);
 
+  // TODO: Get the estimated fee as well
   const decodedInvRes = useGetDecodedInvoiceQuery(
     { invoice: destination },
     {
@@ -110,6 +120,12 @@ function NewPaymentModal(props: NewPaymentModalProps) {
   };
 
   const setDestinationHandler = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    if (e.target.value !== destination) {
+      setDestinationType(0);
+      decodedInvRes.data = undefined;
+      setPaymentDescription("");
+    }
+
     setDestination(e.target.value);
     if (e.target.value === "") {
       setDestinationType(0);
@@ -165,7 +181,11 @@ function NewPaymentModal(props: NewPaymentModalProps) {
           <span className={styles.destinationType}>{PaymentTypeLabel[destinationType] + " Detected"}</span>
         )}
         <div className={styles.amount}>
-          {fd(decodedInvRes.data ? decodedInvRes.data?.valueMsat / 1000 : 0) + " sat"}
+          {fd(
+            !decodedInvRes.isLoading && decodedInvRes.data && !decodedInvRes.error
+              ? decodedInvRes.data?.valueMsat / 1000
+              : 0
+          ) + " sat"}
         </div>
         <div className={styles.label}>To</div>
         <div className={styles.destinationPreview}>{decodedInvRes?.data?.nodeAlias}</div>
@@ -336,7 +356,7 @@ function NewPaymentModal(props: NewPaymentModalProps) {
               <textarea
                 id={"destination"}
                 name={"destination"}
-                placeholder={"E.g. Lightning Invoice, PubKey, On-chain Address"}
+                placeholder={"E.g. Lightning Invoice, PubKey or On-chain Address"}
                 className={styles.destinationTextArea}
                 value={destination}
                 onChange={setDestinationHandler}
@@ -346,8 +366,8 @@ function NewPaymentModal(props: NewPaymentModalProps) {
           </div>
           <Note title={"Note:"}>
             <span>
-              Torq will detect the transaction type based on the destination you have entered. The destinations can be a
-              bitcoin address, a lightning invoice or a Node public key (for keysend).
+              Torq will detect the transaction type based on the destination you enter. Valid destinations are on-chain
+              addresses, lightning invoices, and lightning node public keys for keysend.
             </span>
           </Note>
           <ButtonWrapper

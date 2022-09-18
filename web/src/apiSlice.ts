@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSlice";
 import { settings, timeZone, localNode } from "./apiTypes";
-
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 const buildBaseUrl = () => {
@@ -15,11 +14,24 @@ const buildBaseUrl = () => {
     }
   }
   return window.location.port === "3000"
-    ? "//" + window.location.hostname + ":8080" + prefix + "/api"
-    : "//" + window.location.host + prefix + "/api";
+    ? "//" + window.location.hostname + ":8080" + prefix
+    : "//" + window.location.host + prefix;
 };
 
-const API_URL = buildBaseUrl();
+export type Channel = "redux" | "general";
+
+export interface Message {
+  id: number;
+  channel: Channel;
+  userName: string;
+  text: string;
+}
+
+const API_URL = buildBaseUrl() + "/api";
+
+const loc = window.location;
+const prot = loc.protocol === "https:" ? "wss:" : "ws:";
+const WS_URL = prot + buildBaseUrl() + "/ws";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: API_URL,
