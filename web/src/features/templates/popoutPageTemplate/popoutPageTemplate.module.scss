@@ -46,6 +46,7 @@
   //width: 100%;
   max-width: 90%;
   min-width: 500px;
+  overflow: hidden;
 }
 @media only screen and (max-width: 700px) {
   .popoutWrapper {
@@ -66,6 +67,9 @@
 }
 .contentWrapper {
   padding: 8px 16px 16px;
+  overflow-y: scroll;
+  height: calc(100% - 48px);
+  position: relative;
 }
 
 .header {
