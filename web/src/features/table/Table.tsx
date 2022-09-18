@@ -62,7 +62,6 @@ function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, col
       return (
         <BarCell
           current={row[key] as number}
-          previous={row[key] as number}
           total={column.max as number}
           className={key}
           key={key + index + columnIndex}
@@ -114,7 +113,6 @@ function defaultTotalsRowRenderer(column: ColumnMetaData, index: number) {
       return (
         <BarCell
           current={column.total as number}
-          previous={column.total as number}
           total={column.max as number}
           className={classNames(column.key, index, cellStyles.totalCell)}
           key={`total-${column.key}-${index}`}

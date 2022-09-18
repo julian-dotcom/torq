@@ -1,14 +1,18 @@
 package settings
 
 import (
+	"context"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"github.com/rs/zerolog/log"
 )
@@ -80,6 +84,7 @@ type localNode struct {
 	UpdatedOn         *time.Time            `json:"updatedOn"  db:"updated_on"`
 	TLSDataBytes      []byte                `db:"tls_data"`
 	MacaroonDataBytes []byte                `db:"macaroon_data"`
+	PubKey            *string               `json:"pubKey" db:"pub_key"`
 	Disabled          bool                  `json:"disabled" db:"disabled"`
 	Deleted           bool                  `json:"deleted" db:"deleted"`
 }
@@ -150,6 +155,81 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() er
 		return
 	}
 	localNode.LocalNodeId = nodeId
+
+	existingNodeDetails, err := getLocalNodeConnectionDetailsById(db, nodeId)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	// if GRPC details have changed need to check that the public keys (if existing) match
+	if existingNodeDetails.GRPCAddress != localNode.GRPCAddress &&
+		(existingNodeDetails.PubKey != nil && len(*existingNodeDetails.PubKey) != 0) {
+
+		var TLSCert []byte
+		if localNode.TLSFile != nil {
+			tlsDataFile, err := localNode.TLSFile.Open()
+			if err != nil {
+				server_errors.LogAndSendServerError(c, err)
+				return
+			}
+			tlsData, err := io.ReadAll(tlsDataFile)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, err)
+				return
+			}
+			TLSCert = tlsData
+		}
+		if len(TLSCert) == 0 && len(existingNodeDetails.TLSDataBytes) != 0 {
+			TLSCert = existingNodeDetails.TLSDataBytes
+		}
+		if len(TLSCert) == 0 {
+			server_errors.LogAndSendServerError(c, errors.New("Can't check new GRPC details without TLS Cert"))
+			return
+		}
+
+		var macaroonFile []byte
+		if localNode.MacaroonFile != nil {
+			macaroonDataFile, err := localNode.MacaroonFile.Open()
+			if err != nil {
+				server_errors.LogAndSendServerError(c, err)
+				return
+			}
+			macaroonData, err := io.ReadAll(macaroonDataFile)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, err)
+				return
+			}
+			macaroonFile = macaroonData
+		}
+		if len(macaroonFile) == 0 && len(existingNodeDetails.MacaroonDataBytes) != 0 {
+			macaroonFile = existingNodeDetails.MacaroonDataBytes
+		}
+		if len(TLSCert) == 0 {
+			server_errors.LogAndSendServerError(c, errors.New("Can't check new GRPC details without Macaroon File"))
+			return
+		}
+
+		conn, err := lnd_connect.Connect(*localNode.GRPCAddress, TLSCert, macaroonFile)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Can't connect to node to verify public key, check all details including TLS Cert and Macaroon")
+			return
+		}
+		defer conn.Close()
+
+		client := lnrpc.NewLightningClient(conn)
+		ctx := context.Background()
+		info, err := client.GetInfo(ctx, &lnrpc.GetInfoRequest{})
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+
+		if info.IdentityPubkey != *existingNodeDetails.PubKey {
+			server_errors.LogAndSendServerError(c, errors.New("Pubkey does not match, create a new node instead of updating this one"))
+			return
+		}
+	}
 
 	err = updateLocalNodeDetails(db, localNode)
 	if err != nil {
@@ -233,11 +313,21 @@ func updateLocalNodeDisabledHandler(c *gin.Context, db *sqlx.DB, restartLNDSub f
 		return
 	}
 
-	go func() {
-		if err := restartLNDSub(); err != nil {
-			log.Warn().Msg("Already restarting subscriptions, discarding restart request")
+	maxTries := 30
+	attempts := 0
+	for {
+		attempts++
+		if attempts > maxTries {
+			server_errors.LogAndSendServerError(c, errors.New("Failed to restart node subscriptions"))
+			return
 		}
-	}()
+		if err := restartLNDSub(); err != nil {
+			log.Warn().Msg("Already restarting subscriptions, retrying")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		break
+	}
 
 	c.Status(http.StatusOK)
 }

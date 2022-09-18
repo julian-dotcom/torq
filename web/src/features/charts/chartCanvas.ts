@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
-import {addHours, subHours, fromUnixTime, differenceInDays, subDays, differenceInSeconds} from "date-fns";
-import {utcToZonedTime, zonedTimeToUtc} from "date-fns-tz";
+import {addHours, subHours, differenceInDays, subDays, differenceInSeconds} from "date-fns";
+import {utcToZonedTime} from "date-fns-tz";
 import { BarPlot } from "./plots/bar";
 import clone from "../../clone";
 
@@ -125,10 +125,10 @@ class ChartCanvas {
     this.config.width = this.getWidth();
     this.config.height = this.getHeight();
 
-    let timeOffset = differenceInSeconds(utcToZonedTime(new Date(), this.config.timezone), utcToZonedTime(new Date(), 'UTC'))
+    const timeOffset = differenceInSeconds(utcToZonedTime(new Date(), this.config.timezone), utcToZonedTime(new Date(), 'UTC'))
 
-    let start = utcToZonedTime(subHours(this.config.from.getTime() - timeOffset*1000, this.config.xAxisPadding), this.config.timezone);
-    let end = utcToZonedTime(addHours(subDays(this.config.to.getTime() - timeOffset*1000, 0), this.config.xAxisPadding), this.config.timezone);
+    const start = utcToZonedTime(subHours(this.config.from.getTime() - timeOffset*1000, this.config.xAxisPadding), this.config.timezone);
+    const end = utcToZonedTime(addHours(subDays(this.config.to.getTime() - timeOffset*1000, 0), this.config.xAxisPadding), this.config.timezone);
 
 
     // Creating a scale
@@ -306,13 +306,13 @@ class ChartCanvas {
   /**
    * nextCol keeps track of the next unique color used to identify figures (drawn objects) on the canvas.
    */
-  nextCol: number = 1;
+  nextCol = 1;
 
   /**
    * @remarks concept taken from https://www.freecodecamp.org/news/d3-and-canvas-in-3-steps-8505c8b27444/
    */
   genColor() {
-    let ret = [];
+    const ret = [];
     if (this.nextCol < 16777215) {
       ret.push(this.nextCol & 0xff);
       ret.push((this.nextCol & 0xff00) >> 8);
@@ -353,7 +353,7 @@ class ChartCanvas {
   addHoverListener() {
     this.canvas.on("mousemove", (event) => {
       const [xPosition, yPosition] = d3.pointer(event);
-      let figure = this.getFigure(xPosition, yPosition);
+      const figure = this.getFigure(xPosition, yPosition);
       this.clearCanvas();
 
       let xIndex: number | undefined = undefined;
@@ -367,20 +367,20 @@ class ChartCanvas {
       //   }
       // });
 
-      let closest = this.data
+      const closest = this.data
         .map((d) => {
           return d.date;
         })
         .reduce((prev, curr) => {
-          let currXPosition = this.config.xScale(curr) || 0;
-          let prevXPosition = this.config.xScale(prev) || 0;
+          const currXPosition = this.config.xScale(curr) || 0;
+          const prevXPosition = this.config.xScale(prev) || 0;
           return Math.abs(currXPosition - xPosition) < Math.abs(prevXPosition - xPosition) ? curr : prev;
         });
 
       xIndex = this.data.findIndex((d) => d.date === closest);
 
-      let leftYAxisValues: Array<number> = [];
-      let rightYAxisValues: Array<number> = [];
+      const leftYAxisValues: Array<number> = [];
+      const rightYAxisValues: Array<number> = [];
 
       this.config.rightYAxisKeys.forEach((key) => {
         // eslint-disable-next-line eqeqeq

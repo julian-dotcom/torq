@@ -13,11 +13,6 @@ import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
 
-interface sortDirectionOption {
-  value: string;
-  label: string;
-}
-
 export type OrderBy = {
   key: string;
   direction: "asc" | "desc";
@@ -32,13 +27,13 @@ type SortRowProps = {
   selected: OrderBy;
   options: Array<OrderByOption>;
   index: number;
-  handleUpdateSort: Function;
-  handleRemoveSort: Function;
+  handleUpdateSort: (update: OrderBy, index: number) => void;
+  handleRemoveSort: (index: number) => void;
 };
 
 const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort }: SortRowProps) => {
-  const handleColumn = (newValue: any, _: ActionMeta<unknown>) => {
-    handleUpdateSort({ key: newValue.value, direction: selected.direction }, index);
+  const handleColumn = (newValue: unknown, _: ActionMeta<unknown>) => {
+    handleUpdateSort({ key: (newValue as OrderByOption).value, direction: selected.direction }, index);
   };
   const updateDirection = (selected: OrderBy) => {
     handleUpdateSort(
@@ -99,9 +94,9 @@ type SortSectionProps = {
 };
 
 const SortSection = (props: SortSectionProps) => {
-  const [options, selected] = useMemo(() => {
-    let options: Array<OrderByOption> = [];
-    let selected: Array<OrderByOption> = [];
+  const [options, _] = useMemo(() => {
+    const options: Array<OrderByOption> = [];
+    const selected: Array<OrderByOption> = [];
 
     props.columns.slice().forEach((column: { key: string; heading: string }) => {
       options.push({
@@ -156,18 +151,14 @@ const SortSection = (props: SortSectionProps) => {
       return;
     }
 
-    let newSortsOrder = props.orderBy.slice();
+    const newSortsOrder = props.orderBy.slice();
     newSortsOrder.splice(source.index, 1);
     newSortsOrder.splice(destination.index, 0, props.orderBy[source.index]);
     props.updateHandler(newSortsOrder);
   };
 
   return (
-    <DragDropContext
-      // onDragStart={}
-      // onDragUpdate={}
-      onDragEnd={onDragEnd}
-    >
+    <DragDropContext onDragEnd={onDragEnd}>
       <div className={styles.sortPopoverContent}>
         {!props.orderBy.length && <div className={styles.noFilters}>Not sorted</div>}
 

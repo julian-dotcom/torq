@@ -104,6 +104,25 @@ ORDER BY local_node_id asc;`)
 	return localNodeData, nil
 }
 
+func getLocalNodeConnectionDetailsById(db *sqlx.DB, localNodeId int) (localNodeData localNode, err error) {
+	err = db.Get(&localNodeData, `
+SELECT
+  local_node_id,
+  grpc_address,
+  tls_data,
+  macaroon_data,
+  pub_key
+FROM local_node
+WHERE local_node_id = $1;`, localNodeId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return localNode{}, nil
+		}
+		return localNode{}, errors.Wrap(err, "Unable to execute SQL query")
+	}
+	return localNodeData, nil
+}
+
 func updateLocalNodeDisabledFlag(db *sqlx.DB, localNodeId int, disabled bool) (err error) {
 	_, err = db.Exec(` UPDATE local_node SET disabled = $1, updated_on = $2
 WHERE local_node_id = $3;`, disabled, time.Now().UTC(), localNodeId)

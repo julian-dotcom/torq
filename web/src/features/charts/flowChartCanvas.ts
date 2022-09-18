@@ -110,7 +110,7 @@ class FlowChartCanvas {
     // Filters out small channels
     this.data = clone(this.dataRaw);
 
-    let otherChannelsOut: FlowData = {
+    const otherChannelsOut: FlowData = {
       alias: "",
       chan_id: "",
       channel_point: "",
@@ -137,7 +137,7 @@ class FlowChartCanvas {
     otherChannelsOut.alias = `(${otherChanOutCount} small channels)`;
     this.data.push(otherChannelsOut);
 
-    let otherChannelsIn: FlowData = {
+    const otherChannelsIn: FlowData = {
       alias: "",
       chan_id: "",
       channel_point: "",
@@ -303,7 +303,7 @@ class FlowChartCanvas {
   addHoverListener() {
     this.canvas.on("mousemove", (event) => {
       const [xPosition, yPosition] = d3.pointer(event);
-      let figure = this.getFigure(xPosition, yPosition);
+      const figure = this.getFigure(xPosition, yPosition);
 
       if (figure) {
         this.mouseOver = figure;
@@ -464,7 +464,7 @@ class FlowChartCanvas {
     yOffset: number,
     index: number
   ) {
-    let hoverClass: string = "";
+    let hoverClass = "";
     if (index === this.mouseOver?.index && this.mouseOver.outbound === true) {
       hoverClass = "hover";
     }
@@ -504,7 +504,7 @@ class FlowChartCanvas {
     yOffset: number,
     index: number
   ) {
-    let hoverClass: string = "";
+    let hoverClass = "";
     if (index === this.mouseOver?.index && this.mouseOver.outbound === false) {
       hoverClass = "hover";
     }
@@ -541,13 +541,13 @@ class FlowChartCanvas {
   /**
    * nextCol keeps track of the next unique color used to identify figures (drawn objects) on the canvas.
    */
-  nextCol: number = 1;
+  nextCol = 1;
 
   /**
    * @remarks concept taken from https://www.freecodecamp.org/news/d3-and-canvas-in-3-steps-8505c8b27444/
    */
   genColor() {
-    let ret = [];
+    const ret = [];
     if (this.nextCol < 16777215) {
       ret.push(this.nextCol & 0xff);
       ret.push((this.nextCol & 0xff00) >> 8);
@@ -568,15 +568,15 @@ class FlowChartCanvas {
 
     let inboundSum = 0;
     let outboundSum = 0;
-    let yOffset = this.config.yScale.range()[1];
-    let outboundSumPosition = this.config.xScale.range()[1] / 2 - this.config.horizontalGap;
-    let inboundSumPosition = this.config.xScale.range()[1] / 2 + this.config.horizontalGap;
+    const yOffset = this.config.yScale.range()[1];
+    const outboundSumPosition = this.config.xScale.range()[1] / 2 - this.config.horizontalGap;
+    const inboundSumPosition = this.config.xScale.range()[1] / 2 + this.config.horizontalGap;
 
-    let hoverInboundClass: string = "";
+    let hoverInboundClass = "";
     if (this.mouseOver?.outbound === false) {
       hoverInboundClass = "hover";
     }
-    let hoverOutboundClass: string = "";
+    let hoverOutboundClass = "";
     if (this.mouseOver?.outbound === true) {
       hoverOutboundClass = "hover";
     }
@@ -663,7 +663,7 @@ class FlowChartCanvas {
         );
 
         //Draw the interaction context
-        let interactionColor = this.genColor();
+        const interactionColor = this.genColor();
         this.figures.set(interactionColor, { index: i, outbound: false });
         this.interactionContext.fillStyle = interactionColor;
         this.interactionContext.strokeStyle = interactionColor;

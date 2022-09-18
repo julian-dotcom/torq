@@ -1,13 +1,11 @@
 import styles from "./cell.module.scss";
-
 import { format } from "d3";
 import React from "react";
-const classNames = require("classnames");
+import classNames from "classnames";
 
 interface barCell {
   current: number;
   total: number;
-  previous: number;
   className?: string;
 }
 const formatterDetailed = format(",.2f");
@@ -15,7 +13,7 @@ const formatter = format(",.0f");
 
 // const percentFormatter = format(".2%");
 
-function BarCell({ current, total, previous, className }: barCell) {
+function BarCell({ current, total, className }: barCell) {
   // const previousPercent = Math.round((current / previous) * Math.random() * 200);
   const percent = (current || 0) / total;
   // const positive: number = Math.round(Math.random());

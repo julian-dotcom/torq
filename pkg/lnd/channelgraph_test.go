@@ -57,19 +57,10 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		FundingTxidBytes: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
 		OutputIndex: 1}
 
-	chanPointStr, err := getChanPoint([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, chanPoint.OutputIndex)
+	chanPointStr, err := chanPointFromByte([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, chanPoint.OutputIndex)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Add our public key to the list
-	ourNodePubKeys = append(ourNodePubKeys, "ourNodePubkey")
-
-	// Add our public key to the list
-	pubKeyList = append(pubKeyList, "firstNodePubkey", "secondNodePubkey")
-
-	// Add the channel to the list of relevant channels
-	chanPointList = append(chanPointList, chanPointStr)
 
 	t.Run("Irrelevant routing policy updates are ignored", func(t *testing.T) {
 
@@ -101,7 +92,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		result := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
-			GraphTopologyUpdate{&irrelecantUpdateEvent}})
+			GraphTopologyUpdate{&irrelecantUpdateEvent}}, chanPointStr)
 
 		if len(result) != 0 {
 			testutil.Fatalf(t, "Expected to find no routing policy record stored in the database. Found %d",
@@ -148,6 +139,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 
 		result := simulateChannelGraphUpdate(t, db,
 			&stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.GraphTopologyUpdate{&updateEvent}},
+			chanPointStr,
 		)
 
 		if len(result) != 1 {
@@ -201,7 +193,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		r2 := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
-			GraphTopologyUpdate{&updateEvent}})
+			GraphTopologyUpdate{&updateEvent}}, chanPointStr)
 
 		if len(r2) != 1 {
 			testutil.Fatalf(t, "Expected to find a single routing policy record stored in the database. Found %d",
@@ -248,7 +240,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		r3 := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
-			GraphTopologyUpdate{&secondUpdateEvent}})
+			GraphTopologyUpdate{&secondUpdateEvent}}, chanPointStr)
 
 		if r3[1].AnnouncingPubKey != e3.AnnouncingPubKey {
 			testutil.Errorf(t, "Incorrect announcing pub key. Expected: %v, got %v", e3.AnnouncingPubKey,
@@ -277,14 +269,25 @@ type routingPolicyData struct {
 	Disabled          bool   `db:"disabled"`
 }
 
-func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscribeChannelGraphRPC) (r []routingPolicyData) {
+func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscribeChannelGraphRPC, chanPointStr string) (r []routingPolicyData) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	errs, ctx := errgroup.WithContext(ctx)
 	client.CancelFunc = cancel
 
+	// Add our public keys to the list
+	go PeerPubKeyListMonitor(ctx)
+	AddPeerPubKey("firstNodePubkey")
+	AddPeerPubKey("secondNodePubkey")
+
+	go OpenChanPointListMonitor(ctx)
+	AddOpenChanPoint(chanPointStr)
+
+	// Add our public key to the list
+	ourNodePubKeys := []string{"ourNodePubkey"}
+
 	errs.Go(func() error {
-		err := SubscribeAndStoreChannelGraph(ctx, client, db)
+		err := SubscribeAndStoreChannelGraph(ctx, client, db, ourNodePubKeys)
 		if err != nil {
 			t.Fatalf("Problem subscribing to channel graph: %v", err)
 		}

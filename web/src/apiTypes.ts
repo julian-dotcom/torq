@@ -1,5 +1,3 @@
-import { isStringLiteral } from "typescript";
-
 export interface settings {
   defaultDateRange: string;
   preferredTimezone: string;

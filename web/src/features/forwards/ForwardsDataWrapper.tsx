@@ -34,13 +34,13 @@ function ForwardsDataWrapper(props: boxProps) {
       return [];
     }
     let channels = cloneDeep(chanResponse.data ? chanResponse.data : ([] as any[]));
-    let columns = clone<Array<ColumnMetaData>>(props.activeColumns) || [];
+    const columns = clone<Array<ColumnMetaData>>(props.activeColumns) || [];
 
     if (channels.length > 0) {
       channels = groupByFn(channels, groupBy || "channels");
     }
     if (filters) {
-      let f = deserialiseQuery(clone<Clause>(filters));
+      const f = deserialiseQuery(clone<Clause>(filters));
       channels = applyFilters(f, channels);
     }
     channels = orderBy(

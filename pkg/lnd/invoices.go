@@ -204,7 +204,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	})
 	if err != nil {
 		log.Error().Msgf("subscribe and store invoices - lnrpc subscribe:  %v", err)
-		return errors.Wrap(err, "subscribe and store invoices: lnrpc subscribe")
+		return errors.Wrap(err, "lnrpc subscribe invoices")
 	}
 
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
@@ -246,7 +246,6 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		if invoice.PaymentRequest != "" {
 			// Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
 			nodeNetwork := getNodeNetwork(invoice.PaymentRequest)
-			log.Debug().Msgf("Node network: %v", nodeNetwork)
 
 			inva, err := zpay32.Decode(invoice.PaymentRequest, nodeNetwork)
 			if err != nil {

@@ -19,7 +19,7 @@ import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
-import { Clause, deserialiseQuery, FilterClause, FilterInterface } from "features/sidebar/sections/filter/filter";
+import { Clause, deserialiseQuery, FilterInterface } from "features/sidebar/sections/filter/filter";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import {
   selectActiveColumns,
@@ -82,17 +82,6 @@ function OnChainPage() {
       };
     });
   }
-
-  const columns = activeColumns.map((column: ColumnMetaData, index: number) => {
-    if (column.type === "number") {
-      return {
-        ...column,
-        max: Math.max(column.max ?? 0, data[column.key].max ?? 0),
-      };
-    } else {
-      return column;
-    }
-  });
 
   // General logic for toggling the sidebar sections
   const initialSectionState: sections = {
@@ -206,7 +195,12 @@ function OnChainPage() {
     </Sidebar>
   );
 
-  const breadcrumbs = ["Transactions", <Link to={"/transactions/on-chain"}>On-Chain Tx</Link>];
+  const breadcrumbs = [
+    <span key="b1">Transactions</span>,
+    <Link key="b2" to={"/transactions/on-chain"}>
+      On-Chain Tx
+    </Link>,
+  ];
   const pagination = (
     <Pagination
       limit={limit}

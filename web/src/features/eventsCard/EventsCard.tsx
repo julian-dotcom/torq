@@ -2,10 +2,7 @@ import React from "react";
 import * as d3 from "d3";
 import styles from "../channel/channel-page.module.scss";
 import classNames from "classnames";
-import { useGetChannelHistoryQuery } from "apiSlice";
-import { useAppSelector, useAppDispatch } from "../../store/hooks";
-import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 import eventIcons from "../charts/plots/eventIcons";
 
 function fm(value: number): string | number {

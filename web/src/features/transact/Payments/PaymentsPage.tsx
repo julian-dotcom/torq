@@ -7,7 +7,6 @@ import {
   Filter20Regular as FilterIcon,
   Options20Regular as OptionsIcon,
   MoneyHand20Regular as TransactionIcon,
-  MoneyHand24Regular as TransactionIconModal,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
@@ -21,7 +20,7 @@ import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import FilterSection from "../../sidebar/sections/filter/FilterSection";
-import { Clause, deserialiseQuery, FilterClause, FilterInterface } from "../../sidebar/sections/filter/filter";
+import { Clause, deserialiseQuery, FilterInterface } from "../../sidebar/sections/filter/filter";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import {
   selectActiveColumns,
@@ -34,10 +33,7 @@ import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
 import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
-import Modal from "features/modal/Modal";
-import TextInput from "features/forms/TextInput";
 import { SectionContainer } from "../../section/SectionContainer";
-import TextArea from "../../forms/TextArea";
 import NewPaymentModal from "./NewPaymentModal";
 import { useLocation } from "react-router";
 
@@ -106,7 +102,7 @@ function PaymentsPage(props: { newPayment: boolean }) {
     });
   }
 
-  const columns = activeColumns.map((column: ColumnMetaData, index: number) => {
+  const columns = activeColumns.map((column: ColumnMetaData, _: number) => {
     if (column.type === "number") {
       return {
         ...column,
@@ -218,10 +214,7 @@ function PaymentsPage(props: { newPayment: boolean }) {
     dispatch(updateColumns({ columns: columns }));
   };
 
-  const [showModalState, setShowModalState] = useState(false);
-
   const handleModalClose = () => {
-    // setShowModalState(false);
     navigate("/transactions/payments");
   };
 
@@ -259,7 +252,12 @@ function PaymentsPage(props: { newPayment: boolean }) {
     </Sidebar>
   );
 
-  const breadcrumbs = ["Transactions", <Link to={"/transactions/payments"}>Payments</Link>];
+  const breadcrumbs = [
+    <span key="b1">Transactions</span>,
+    <Link key="b2" to={"/transactions/payments"}>
+      Payments
+    </Link>,
+  ];
 
   const pagination = (
     <Pagination

@@ -35,7 +35,7 @@ const FilterComponent = (props: filterProps) => {
   };
 
   const removeFilter = (index: number) => {
-    let filters = props.filters as AndClause | OrClause;
+    const filters = props.filters as AndClause | OrClause;
     filters.childClauses.splice(index, 1);
     if (filters.childClauses.length === 1) {
       filters.prefix = "$and";
@@ -58,7 +58,7 @@ const FilterComponent = (props: filterProps) => {
     if (!props.filters) {
       props.filters = new AndClause();
     }
-    let filters = props.filters as AndClause | OrClause;
+    const filters = props.filters as AndClause | OrClause;
     filters.addChildClause(new FilterClause(props.defaultFilter));
     props.onFilterUpdate();
   };
@@ -67,7 +67,7 @@ const FilterComponent = (props: filterProps) => {
     if (!props.filters) {
       props.filters = new AndClause();
     }
-    let filters = props.filters as AndClause | OrClause;
+    const filters = props.filters as AndClause | OrClause;
     filters.addChildClause(
       new AndClause([
         new FilterClause({
@@ -86,8 +86,8 @@ const FilterComponent = (props: filterProps) => {
     props.onFilterUpdate();
   };
 
-  let filterOptions = props.columnsMeta.slice().map((column: any) => {
-    let columnOption: any = {
+  const filterOptions = props.columnsMeta.slice().map((column: any) => {
+    const columnOption: any = {
       value: column.key,
       label: column.heading,
       valueType: column.valueType as "string" | "number" | "boolean" | "date" | "array",

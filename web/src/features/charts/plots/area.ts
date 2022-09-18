@@ -74,17 +74,17 @@ export class AreaPlot extends AbstractPlot {
     this.chart.context.fillStyle = this.config.areaColor;
 
     if (this.config.areaGradient) {
-      let gradient = this.chart.context.createLinearGradient(0, 0, 0, this.chart.config.yScale.range()[1] || 0);
+      const gradient = this.chart.context.createLinearGradient(0, 0, 0, this.chart.config.yScale.range()[1] || 0);
       gradient.addColorStop(0, this.config.areaGradient[1]);
       gradient.addColorStop(1, this.config.areaGradient[0]);
       this.chart.context.fillStyle = gradient;
     }
 
-    let data = this.chart.data;
+    const data = this.chart.data;
 
     if (data && this.config.addBuffer) {
-      let lastItem = clone(data[data.length - 1]);
-      let firstItem = clone(data[0]);
+      const lastItem = clone(data[data.length - 1]);
+      const firstItem = clone(data[0]);
       lastItem.date = addHours(lastItem.date, 16);
       data.push(lastItem);
       data.unshift(firstItem);

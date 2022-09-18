@@ -27,7 +27,7 @@ function BooleanCell(props: BooleanCellProps) {
   };
   return (
     <div className={classNames(styles.cell, styles.alignLeft, styles.BooleanCell, props.className)}>
-      <div className={styles.current}>{!!props.value ? checked() : unchecked()}</div>
+      <div className={styles.current}>{props.value ? checked() : unchecked()}</div>
     </div>
   );
 }

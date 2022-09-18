@@ -13,8 +13,9 @@ set short_channel_id = lnd_short_channel_id::bigint >> 40 || 'x' || ((lnd_short_
                            || 'x' || lnd_short_channel_id::bigint::bit(16)::int;
 
 update channel
-set short_channel_id = lnd_short_channel_id::bigint >> 40 || 'x' || ((lnd_short_channel_id::bigint >> 16) & 16777215)
-                           || 'x' || lnd_short_channel_id::bigint::bit(16)::int;
+set lnd_short_channel_id = (split_part(short_channel_id,'x', 1)::bigint << 40) +
+(split_part(short_channel_id,'x', 2)::bigint << 16) +
+(split_part(short_channel_id,'x', 3)::smallint);
 
 update htlc_event
 set outgoing_short_channel_id = lnd_outgoing_short_channel_id::bigint >> 40 || 'x' || ((lnd_outgoing_short_channel_id::bigint >> 16) & 16777215) || 'x' || lnd_outgoing_short_channel_id::bigint::bit(16)::int,

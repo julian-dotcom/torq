@@ -1,7 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSlice";
 import { settings, timeZone, localNode } from "./apiTypes";
-import { SortByOptionType } from "./features/sidebar/sections/sort/SortSectionOld";
+
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 const buildBaseUrl = () => {
   // checks to see if the app is running under /torq and if so prepends that to API paths
@@ -20,20 +21,33 @@ const buildBaseUrl = () => {
 
 const API_URL = buildBaseUrl();
 
+const baseQuery = fetchBaseQuery({
+  baseUrl: API_URL,
+  // prepareHeaders: (headers, _) => {
+  //   if (!headers.get("Content-Type")) {
+  //     headers.set("Content-Type", "application/json");
+  //   }
+  //   return headers;
+  // },
+  credentials: "include",
+  mode: "cors",
+});
+const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions
+) => {
+  let result = await baseQuery(args, api, extraOptions);
+  if (result.error && result.error.status === 401) {
+    window.location.href = "/login";
+  }
+  return result;
+};
+
 // Define a service using a base URL and expected endpoints
 export const torqApi = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_URL,
-    // prepareHeaders: (headers, _) => {
-    //   if (!headers.get("Content-Type")) {
-    //     headers.set("Content-Type", "application/json");
-    //   }
-    //   return headers;
-    // },
-    credentials: "include",
-    mode: "cors",
-  }),
+  baseQuery: baseQueryWithRedirect,
   tagTypes: ["settings", "tableView", "localNodes"],
   endpoints: (builder) => ({
     getFlow: builder.query<any, { from: string; to: string; chanId: string }>({

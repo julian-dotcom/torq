@@ -10,7 +10,7 @@ type TabButtonProps = {
 };
 
 function TabButton(props: TabButtonProps) {
-  let linkClasses = (p: { isActive: boolean }): string => {
+  const linkClasses = (p: { isActive: boolean }): string => {
     return classNames(styles.tabButton, { [styles.tabSelected]: p.isActive });
   };
   if (props.to) {

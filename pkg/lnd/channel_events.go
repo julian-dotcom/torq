@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func getChanPoint(cb []byte, oi uint32) (string, error) {
+func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 
 	ch, err := chainhash.NewHash(cb)
 	if err != nil {
@@ -31,8 +31,7 @@ func getChanPoint(cb []byte, oi uint32) (string, error) {
 // storeChannelEvent extracts the timestamp, channel ID and PubKey from the
 // ChannelEvent and converts the original struct to json.
 // Then it's stored in the database in the channel_event table.
-func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
-	pubKeyChan chan string, chanPointChan chan string, localNodeId int) error {
+func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId int) error {
 
 	timestampMs := time.Now().UTC()
 
@@ -48,11 +47,11 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 		PubKey = c.RemotePubkey
 
 		// Add the remote public key to the list to listen to for graph updates.
-		pubKeyChan <- c.RemotePubkey
+		AddPeerPubKey(c.RemotePubkey)
 
 		// Add the channel point to the chanPointList, this allows the
 		// channel graph to listen for routing policy updates
-		chanPointChan <- c.ChannelPoint
+		AddOpenChanPoint(c.ChannelPoint)
 
 		channel := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
@@ -85,7 +84,8 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 		PubKey = c.RemotePubkey
 
 		// Updates the channel point list by removing the channel point from the chanPointList.
-		chanPointChan <- c.ChannelPoint
+		// This stops the channel graph from listening for routing policy updates
+		RemoveClosedChanPoint(c.ChannelPoint)
 
 		channel := channels.Channel{
 			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
@@ -113,7 +113,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 
 	case lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL:
 		c := ce.GetFullyResolvedChannel()
-		ChannelPoint, err := getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		ChannelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
 			return err
 		}
@@ -128,7 +128,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 		}
 	case lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL:
 		c := ce.GetActiveChannel()
-		ChannelPoint, err := getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		ChannelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
 			return err
 		}
@@ -144,7 +144,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 		return nil
 	case lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL:
 		c := ce.GetInactiveChannel()
-		ChannelPoint, err := getChanPoint(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		ChannelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate,
 		return nil
 	case lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL:
 		c := ce.GetPendingOpenChannel()
-		ChannelPoint, err := getChanPoint(c.GetTxid(), c.GetOutputIndex())
+		ChannelPoint, err := chanPointFromByte(c.GetTxid(), c.GetOutputIndex())
 		if err != nil {
 			return err
 		}
@@ -188,7 +188,7 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent,
-	db *sqlx.DB, pubKeyChan chan string, chanPoinChan chan string, localNodeId int) error {
+	db *sqlx.DB, localNodeId int) error {
 
 	cesr := lnrpc.ChannelEventSubscription{}
 	stream, err := client.SubscribeChannelEvents(ctx, &cesr)
@@ -227,7 +227,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			continue
 		}
 
-		err = storeChannelEvent(db, chanEvent, pubKeyChan, chanPoinChan, localNodeId)
+		err = storeChannelEvent(db, chanEvent, localNodeId)
 		if err != nil {
 			fmt.Printf("Subscribe channel events store event error: %v", err)
 			// rate limit for caution but hopefully not needed
