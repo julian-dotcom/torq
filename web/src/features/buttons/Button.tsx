@@ -47,7 +47,7 @@ export default function Button(props: {
   text?: string;
   type?: string;
   icon?: any;
-  onClick?: Function | undefined;
+  onClick?: () => void;
   className?: string;
   isOpen?: boolean;
   buttonColor: buttonColor;
