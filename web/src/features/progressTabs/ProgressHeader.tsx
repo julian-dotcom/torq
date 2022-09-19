@@ -1,5 +1,5 @@
 import styles from "./progressHeader.module.scss";
-import React, { MouseEventHandler } from "react";
+import React, { MouseEventHandler, ReactEventHandler } from "react";
 import classNames from "classnames";
 import {
   Checkmark16Regular as CompletedIcon,
@@ -56,7 +56,7 @@ export function Step(props: ProgressStep) {
 }
 
 type progressHeaderProps = {
-  modalCloseHandler: Function;
+  modalCloseHandler: (e: ReactEventHandler) => void;
   children: Array<React.ReactNode> | React.ReactNode;
 };
 

@@ -30,14 +30,14 @@ import {
   useUpdateTableViewsOrderMutation,
 } from "apiSlice";
 
-interface viewRow {
+type viewRow = {
   title: string;
   index: number;
   handleUpdateView: (view: ViewInterface, index: number) => void;
   handleRemoveView: (index: number) => void;
   handleSelectView: (index: number) => void;
   singleView: boolean;
-}
+};
 
 function ViewRow({ title, index, handleUpdateView, handleRemoveView, handleSelectView, singleView }: viewRow) {
   const [editView, setEditView] = useState(false);

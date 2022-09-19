@@ -4,12 +4,10 @@ import {
   Options20Regular as OptionsIcon,
   CheckmarkRegular as SuccessIcon,
 } from "@fluentui/react-icons";
-
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import TextInput from "features/forms/TextInput";
 import { SectionContainer } from "../../section/SectionContainer";
-import TextArea from "../../forms/TextArea";
-import React, { ChangeEvent, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import Switch from "../../inputs/Slider/Switch";
 import PopoutPageTemplate from "../../templates/popoutPageTemplate/PopoutPageTemplate";
 import ProgressHeader, { ProgressStepState, Step } from "../../progressTabs/ProgressHeader";
@@ -22,18 +20,18 @@ import NumberFormat, { NumberFormatValues } from "react-number-format";
 
 const fd = format(",.0f");
 
-export interface NewPaymentRequest {
+export type NewPaymentRequest = {
   invoice: string;
   timeOutSecs: number;
   dest: string;
   amtMSat: number;
   feeLimitMsat: number;
   allowSelfPayment: boolean;
-}
+};
 
 type NewPaymentModalProps = {
   show: boolean;
-  modalCloseHandler: Function;
+  modalCloseHandler: () => void;
 };
 
 enum PaymentType {
@@ -81,7 +79,7 @@ const LightningNodePubkeyRegEx = /^[0-9a-fA-F]{66}$/gm; // Keysend / Lightning N
 function NewPaymentModal(props: NewPaymentModalProps) {
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
 
-  let handleAdvancedToggle = () => {
+  const handleAdvancedToggle = () => {
     setExpandAdvancedOptions(!expandAdvancedOptions);
   };
 
@@ -111,7 +109,7 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     }
   );
 
-  let closeAndReset = () => {
+  const closeAndReset = () => {
     setStepIndex(0);
     setDestState(ProgressStepState.active);
     setConfirmState(ProgressStepState.disabled);

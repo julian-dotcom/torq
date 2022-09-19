@@ -65,12 +65,6 @@ func NewLoginRateLimitMiddleware() gin.HandlerFunc {
 	return mgin.NewMiddleware(limiter.New(store, rate), mgin.WithKeyGetter(loginKeyGetter))
 }
 
-func apiPasswordMiddleware(apiPswd string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Set("apiPswd", apiPswd)
-	}
-}
-
 var wsUpgrade = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -83,6 +77,7 @@ var wsUpgrade = websocket.Upgrader{
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, restartLNDSub func() error) {
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
+	applyCors(r)
 	// Websocket
 	ws := r.Group("/ws")
 	ws.Use(auth.AuthRequired)

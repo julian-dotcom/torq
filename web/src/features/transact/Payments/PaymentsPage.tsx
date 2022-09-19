@@ -32,7 +32,7 @@ import {
 import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
-import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
+import Button, { buttonColor } from "features/buttons/Button";
 import { SectionContainer } from "../../section/SectionContainer";
 import NewPaymentModal from "./NewPaymentModal";
 import { useLocation } from "react-router";
@@ -137,7 +137,7 @@ function PaymentsPage(props: { newPayment: boolean }) {
     };
   };
 
-  let location = useLocation();
+  const location = useLocation();
   const tableControls = (
     <TableControlSection>
       <TransactTabs />

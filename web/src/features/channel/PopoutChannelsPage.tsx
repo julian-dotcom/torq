@@ -5,7 +5,7 @@ import ChannelPage from "features/channel/ChannelPage";
 
 type PopoutChannelsPageProps = {
   show: boolean;
-  modalCloseHandler: Function;
+  modalCloseHandler: () => void;
 };
 
 function PopoutChannelsPage(props: PopoutChannelsPageProps) {

@@ -3,13 +3,13 @@ import styles from "./popoutPageTemplate.module.scss";
 import { DismissCircle24Regular as DismissIcon } from "@fluentui/react-icons";
 import classNames from "classnames";
 
-interface PopoutPageTemplateProps {
+type PopoutPageTemplateProps = {
   children: React.ReactNode;
   show: boolean;
   title?: string;
   icon?: React.ReactNode;
-  onClose: Function;
-}
+  onClose: () => void;
+};
 
 const PopoutPageTemplate = (props: PopoutPageTemplateProps) => {
   const handleClose = () => {
