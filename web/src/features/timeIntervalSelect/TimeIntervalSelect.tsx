@@ -1,11 +1,12 @@
+// DateRange Picker
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
 import "./interval_select.scss";
 import React, { useState } from "react";
 import { format, startOfDay, addDays, subDays, differenceInDays } from "date-fns";
 import { DateRangePicker } from "react-date-range";
 import { ChevronLeft24Regular as LeftIcon, ChevronRight24Regular as RightIcon } from "@fluentui/react-icons";
-
 import { defaultStaticRangesFn } from "./customRanges";
-
 import Popover from "../popover/Popover";
 import classNames from "classnames";
 import Button, { buttonColor } from "../buttons/Button";
@@ -46,7 +47,7 @@ function TimeIntervalSelect(props: { className?: string }) {
   };
 
   const renderCustomRangeLabel = () => (
-    <div onClick={() => setIsMobile(true)} className="">
+    <div onClick={() => setIsMobile(true)} className="custom-mobile">
       Custom
     </div>
   );
