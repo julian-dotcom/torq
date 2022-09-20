@@ -85,7 +85,7 @@ ORDER BY local_node_id asc;`)
 	return localNodeData, nil
 }
 
-func getLocalNodeConnectionDetails(db *sqlx.DB) (localNodeData []localNode, err error) {
+func getLocalNodeConnectionDetails(db *sqlx.DB, includeDisabled bool) (localNodeData []localNode, err error) {
 	err = db.Select(&localNodeData, `
 SELECT
   local_node_id,
@@ -93,8 +93,8 @@ SELECT
   tls_data,
   macaroon_data
 FROM local_node
-WHERE deleted = False AND disabled = False
-ORDER BY local_node_id asc;`)
+WHERE deleted = False AND (disabled = False OR $1)
+ORDER BY local_node_id asc;`, includeDisabled)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []localNode{}, nil

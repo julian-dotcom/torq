@@ -120,6 +120,31 @@ func addLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error
 		return
 	}
 
+	if localNode.TLSFile == nil || localNode.MacaroonFile == nil ||
+		localNode.GRPCAddress == nil || *localNode.GRPCAddress == "" || localNode.Implementation == "" {
+		server_errors.LogAndSendServerError(c, errors.New("All node details are required to add a new node"))
+		return
+	}
+
+	// localNodes, err := getLocalNodeConnectionDetails(db, false)
+	// if err != nil {
+	// 	return []ConnectionDetails{}, err
+	// }
+	// connectionDetailsList := []ConnectionDetails{}
+
+	// for _, localNodeDetails := range localNodes {
+	// 	if (localNodeDetails.GRPCAddress == nil) || (localNodeDetails.TLSDataBytes == nil) || (localNodeDetails.
+	// 		MacaroonDataBytes == nil) {
+	// 		continue
+	// 	}
+	// 	connectionDetailsList = append(connectionDetailsList, ConnectionDetails{
+	// 		LocalNodeId:       localNodeDetails.LocalNodeId,
+	// 		GRPCAddress:       *localNodeDetails.GRPCAddress,
+	// 		TLSFileBytes:      localNodeDetails.TLSDataBytes,
+	// 		MacaroonFileBytes: localNodeDetails.MacaroonDataBytes})
+	// }
+	// return connectionDetailsList, nil
+
 	localNodeId, err := insertLocalNodeDetails(db, localNode)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -243,11 +268,21 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() er
 		return
 	}
 
-	go func() {
-		if err := restartLNDSub(); err != nil {
-			log.Warn().Msg("Already restarting subscriptions, discarding restart request")
+	maxTries := 30
+	attempts := 0
+	for {
+		attempts++
+		if attempts > maxTries {
+			server_errors.LogAndSendServerError(c, errors.New("Failed to restart node subscriptions"))
+			return
 		}
-	}()
+		if err := restartLNDSub(); err != nil {
+			log.Warn().Msg("Already restarting subscriptions, retrying")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		break
+	}
 
 	c.JSON(http.StatusOK, localNode)
 }
