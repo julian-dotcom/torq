@@ -3,6 +3,8 @@ import {
   MoneyHand24Regular as TransactionIconModal,
   Options20Regular as OptionsIcon,
   CheckmarkRegular as SuccessIcon,
+  DismissRegular as FailedIcon,
+  ArrowSyncFilled as ProcessingIcon,
 } from "@fluentui/react-icons";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import TextInput from "features/forms/TextInput";
@@ -17,6 +19,9 @@ import { format } from "d3";
 import Note from "../../note/Note";
 import classNames from "classnames";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
+import useWebSocket from "react-use-websocket";
+import { WS_URL } from "apiSlice";
+import { NewPaymentResponse, NewPaymentError } from "./paymentTypes";
 
 const fd = format(",.0f");
 
@@ -60,6 +65,18 @@ const PaymentTypeLabel = {
   [PaymentType.Keysend]: "Keysend",
 };
 
+const paymentStatusClass = {
+  IN_FLIGHT: styles.inFlight,
+  FAILED: styles.failed,
+  SUCCEEDED: styles.success,
+};
+
+const paymentStatusIcon = {
+  IN_FLIGHT: <ProcessingIcon />,
+  FAILED: <FailedIcon />,
+  SUCCEEDED: <SuccessIcon />,
+};
+
 // RegEx used to check what type of destination the user enters.
 // You can test them out here: https://regex101.com/r/OiXAlz/1
 const LnPayrequestMainnetRegEx = /lnbc[0-9][0-9a-zA-Z]*/gm;
@@ -78,11 +95,7 @@ const LightningNodePubkeyRegEx = /^[0-9a-fA-F]{66}$/gm; // Keysend / Lightning N
 
 function NewPaymentModal(props: NewPaymentModalProps) {
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
-
-  const handleAdvancedToggle = () => {
-    setExpandAdvancedOptions(!expandAdvancedOptions);
-  };
-
+  const [responses, setResponses] = useState<Array<NewPaymentResponse>>([]);
   const [destinationType, setDestinationType] = useState<PaymentType>(0);
   const [destination, setDestination] = useState("");
   const [destState, setDestState] = useState(ProgressStepState.active);
@@ -93,6 +106,36 @@ function NewPaymentModal(props: NewPaymentModalProps) {
   const [paymentDescription, setPaymentDescription] = useState("");
 
   const [onChainPaymentAmount, setOnChainPaymentAmount] = useState<number>();
+
+  // This can also be an async getter function. See notes below on Async Urls.
+  const { sendMessage, sendJsonMessage, lastMessage, lastJsonMessage, readyState, getWebSocket } = useWebSocket(
+    WS_URL,
+    {
+      onOpen: () => console.log("opened"),
+      //Will attempt to reconnect on all close events, such as server shutting down
+      shouldReconnect: (closeEvent) => true,
+      share: true,
+      onMessage: (event) => {
+        const respnse = JSON.parse(event.data) as NewPaymentResponse | NewPaymentError;
+        if (respnse?.type == "Error") {
+          console.log("error", event.data);
+          setProcessState(ProgressStepState.error);
+          return;
+        } else if (respnse?.type == "newPayment") {
+          setResponses((prev) => [...prev, respnse]);
+          if (respnse.status == "SUCCEEDED") {
+            setProcessState(ProgressStepState.completed);
+          } else if (respnse.status == "FAILED") {
+            setProcessState(ProgressStepState.error);
+          }
+        }
+      },
+    }
+  );
+
+  const handleAdvancedToggle = () => {
+    setExpandAdvancedOptions(!expandAdvancedOptions);
+  };
 
   const isLnInvoice = [
     PaymentType.LightningMainnet,
@@ -238,6 +281,11 @@ function NewPaymentModal(props: NewPaymentModalProps) {
               setStepIndex(2);
               setConfirmState(ProgressStepState.completed);
               setProcessState(ProgressStepState.processing);
+              sendJsonMessage({
+                reqId: "randId",
+                type: "newPayment",
+                NewPaymentRequest: { invoice: destination, timeOutSecs: 3600 },
+              });
             }}
             buttonColor={buttonColor.green}
           />
@@ -389,9 +437,16 @@ function NewPaymentModal(props: NewPaymentModalProps) {
         {isLnInvoice && lnStep}
         {!isLnInvoice && btcStep}
         <ProgressTabContainer>
-          <div className={styles.paymentProcessingIconWrapper}>
+          <div
+            className={classNames(
+              styles.paymentResultIconWrapper,
+              { [styles.failed]: responses.length === 0 },
+              paymentStatusClass[responses[responses.length - 1]?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]
+            )}
+          >
             {" "}
-            <SuccessIcon className={styles.paymentProcessingIcon} />
+            {responses.length === 0 && paymentStatusIcon["FAILED"]}
+            {paymentStatusIcon[responses[responses.length - 1]?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]}
           </div>
           <Button
             text={"New Payment"}
@@ -402,6 +457,7 @@ function NewPaymentModal(props: NewPaymentModalProps) {
               setConfirmState(ProgressStepState.disabled);
               setProcessState(ProgressStepState.disabled);
               setStepIndex(0);
+              setResponses([]);
             }}
             buttonColor={buttonColor.secondary}
           />

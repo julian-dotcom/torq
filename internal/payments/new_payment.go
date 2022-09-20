@@ -13,6 +13,9 @@ import (
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"google.golang.org/grpc"
+	"io"
+	"log"
+	"strings"
 	"time"
 )
 
@@ -37,34 +40,34 @@ type MppRecord struct {
 }
 
 type hops struct {
-	ChanId           string // Use the CLN format for short chan id
-	Expiry           uint32
-	AmtToForwardMsat int64
-	PubKey           string
-	MppRecord        MppRecord
+	ChanId           string    `json:"chanId"`
+	Expiry           uint32    `json:"expiry"`
+	AmtToForwardMsat int64     `json:"amtToForwardMsat"`
+	PubKey           string    `json:"pubKey"`
+	MppRecord        MppRecord `json:"mppRecord"`
 	// TODO: Imolement AMP record here when needed
 }
 
 type route struct {
-	TotalTimeLock uint32
-	Hops          []hops
-	TotalAmtMsat  int64
+	TotalTimeLock uint32 `json:"totalTimeLock"`
+	Hops          []hops `json:"hops"`
+	TotalAmtMsat  int64  `json:"totalAmtMsat"`
 }
 
 type failureDetails struct {
 	Reason             string `json:"reason"`
-	FailureSourceIndex uint32 `json:"failure_source_index"`
-	Height             uint32 `json:"height,omitempty"`
+	FailureSourceIndex uint32 `json:"failureSourceIndex"`
+	Height             uint32 `json:"height"`
 }
 
 type attempt struct {
-	AttemptId     uint64
-	Status        string
-	Route         route
-	AttemptTimeNs time.Time
-	ResolveTimeNs time.Time
-	Preimage      string
-	Failure       failureDetails
+	AttemptId     uint64         `json:"attemptId"`
+	Status        string         `json:"status"`
+	Route         route          `json:"route"`
+	AttemptTimeNs time.Time      `json:"attemptTimeNs"`
+	ResolveTimeNs time.Time      `json:"resolveTimeNs"`
+	Preimage      string         `json:"preimage"`
+	Failure       failureDetails `json:"failure"`
 }
 type NewPaymentResponse struct {
 	ReqId          string    `json:"reqId"`
@@ -77,6 +80,11 @@ type NewPaymentResponse struct {
 	FeeLimitMsat   int64     `json:"feeLimitMsat"`
 	CreationDate   time.Time `json:"creationDate"`
 	Attempt        attempt   `json:"path"`
+}
+
+type paymentComplete struct {
+	ReqId string `json:"id"`
+	Type  string `json:"type"`
 }
 
 //SendNewPayment - send new payment
@@ -143,7 +151,7 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 	ctx := context.Background()
 	req, err := client.SendPaymentV2(ctx, &newPayReq)
 	if err != nil {
-		return errors.Newf("Err sending payment: %v", err)
+		return errors.New("Error sending payment")
 	}
 
 	for {
@@ -154,8 +162,22 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 		}
 
 		resp, err := req.Recv()
-		if err != nil {
-			return errors.Newf("Err sending payment: %v", err)
+		switch true {
+		case err == nil:
+			break
+		case err == io.EOF:
+			return nil
+		case err != nil && strings.Contains(err.Error(), "AlreadyExists"):
+			return errors.New("ALREADY_PAID")
+		case err != nil && strings.Contains(err.Error(), "UnknownPaymentHash"):
+			return errors.New("INVALID_HASH")
+		case err != nil && strings.Contains(err.Error(), "InvalidPaymentRequest"):
+			return errors.New("INVALID_PAYMENT_REQUEST")
+		case err != nil && strings.Contains(err.Error(), "checksum failed"):
+			return errors.New("CHECKSUM_FAILED")
+		default:
+			log.Printf("Unknown payment error %v", err)
+			return errors.New("UNKNOWN_ERROR")
 		}
 
 		// Write the payment status to the client

@@ -50,12 +50,6 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 	}
 
 	switch req.Type {
-	case "auth":
-		wChan <- wsError{
-			ReqId: req.ReqId,
-			Type:  "Error",
-			Error: "You are already authenticated",
-		}
 	case "newPayment":
 		if req.NewPaymentRequest == nil {
 			wChan <- wsError{

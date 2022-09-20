@@ -22,7 +22,7 @@ const API_URL = buildBaseUrl() + "/api";
 
 const loc = window.location;
 const prot = loc.protocol === "https:" ? "wss:" : "ws:";
-const WS_URL = prot + buildBaseUrl() + "/ws";
+export const WS_URL = prot + buildBaseUrl() + "/ws";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: API_URL,
