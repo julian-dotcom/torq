@@ -66,10 +66,11 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
     }
   }, [collapsed]);
 
-  const handleModalClose = () => {
+  const handleConfirmationModalClose = () => {
     setShowModalState(false);
     setDeleteConfirmationTextInputState("");
     setDeleteEnabled(false);
+    setLocalState({} as localNode);
   };
 
   const handleDeleteClick = () => {
@@ -97,12 +98,21 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
     }
     // we are adding new node
     if (!localState.localNodeId) {
-      addLocalNode(form);
-      toastRef?.current?.addToast("Local node added", toastCategory.success);
-      setLocalState({} as localNode);
-      if (onAddSuccess) {
-        onAddSuccess();
-      }
+      addLocalNode(form)
+        .unwrap()
+        .then((_) => {
+          setSaveEnabledState(true);
+          toastRef?.current?.addToast("Local node added", toastCategory.success);
+          if (onAddSuccess) {
+            onAddSuccess();
+          }
+        })
+        .catch((error) => {
+          setSaveEnabledState(true);
+          toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
+        });
+
+      /* setLocalState({} as localNode); */
       return;
     }
     updateLocalNode({ form, localNodeId: localState.localNodeId })
@@ -256,7 +266,12 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
             </div>
           </>
         </Collapse>
-        <Modal title={"Are you sure?"} icon={<DeleteIconHeader />} onClose={handleModalClose} show={showModalState}>
+        <Modal
+          title={"Are you sure?"}
+          icon={<DeleteIconHeader />}
+          onClose={handleConfirmationModalClose}
+          show={showModalState}
+        >
           <div className={styles.deleteConfirm}>
             <p>
               Deleting the node will prevent you from viewing it&apos;s data in Torq. Alternatively set node to disabled
