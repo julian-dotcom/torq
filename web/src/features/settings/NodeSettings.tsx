@@ -40,7 +40,11 @@ interface nodeProps {
   onAddSuccess?: () => void;
   onAddFailure?: () => void;
 }
-function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodeProps) {
+
+const NodeSettings = React.forwardRef(function NodeSettings(
+  { localNodeId, collapsed, addMode, onAddSuccess }: nodeProps,
+  ref
+) {
   const toastRef = React.useContext(ToastContext);
   const popoverRef = React.useRef();
 
@@ -59,6 +63,16 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
   const [deleteEnabled, setDeleteEnabled] = useState(false);
   const [saveEnabledState, setSaveEnabledState] = useState(true);
   const [enableEnableButtonState, setEnableEnableButtonState] = useState(true);
+
+  React.useImperativeHandle(ref, () => ({
+    clear() {
+      clear();
+    },
+  }));
+
+  const clear = () => {
+    setLocalState({ grpcAddress: "", implementation: "" } as localNode);
+  };
 
   React.useEffect(() => {
     if (collapsed != undefined) {
@@ -112,7 +126,6 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
           toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
         });
 
-      /* setLocalState({} as localNode); */
       return;
     }
     updateLocalNode({ form, localNodeId: localState.localNodeId })
@@ -234,12 +247,12 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
                     return;
                   }}
                   options={implementationOptions}
-                  value={implementationOptions.find((io) => io.value === localState?.implementation)}
+                  value={implementationOptions.find((io) => io.value === localState.implementation)}
                 />
                 <span id="address">
                   <TextInput
                     label="GRPC Address (IP or Tor)"
-                    value={localState?.grpcAddress}
+                    value={localState.grpcAddress}
                     onChange={handleAddressChange}
                     placeholder="100.100.100.100:10009"
                   />
@@ -297,5 +310,5 @@ function NodeSettings({ localNodeId, collapsed, addMode, onAddSuccess }: nodePro
       </>
     </Box>
   );
-}
+});
 export default NodeSettings;
