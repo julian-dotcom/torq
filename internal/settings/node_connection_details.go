@@ -12,7 +12,7 @@ type ConnectionDetails struct {
 }
 
 func GetConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
-	localNodes, err := getLocalNodeConnectionDetails(db, false)
+	localNodes, err := getLocalNodeConnectionDetails(db)
 	if err != nil {
 		return []ConnectionDetails{}, err
 	}

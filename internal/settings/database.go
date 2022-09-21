@@ -71,6 +71,7 @@ SELECT
   grpc_address,
   tls_file_name,
   macaroon_file_name,
+  pub_key,
   disabled,
   deleted
 FROM local_node
@@ -85,16 +86,17 @@ ORDER BY local_node_id asc;`)
 	return localNodeData, nil
 }
 
-func getLocalNodeConnectionDetails(db *sqlx.DB, includeDisabled bool) (localNodeData []localNode, err error) {
+func getLocalNodeConnectionDetails(db *sqlx.DB) (localNodeData []localNode, err error) {
 	err = db.Select(&localNodeData, `
 SELECT
   local_node_id,
   grpc_address,
   tls_data,
-  macaroon_data
+  macaroon_data,
+  pub_key
 FROM local_node
-WHERE deleted = False AND (disabled = False OR $1)
-ORDER BY local_node_id asc;`, includeDisabled)
+WHERE deleted = False AND disabled = False
+ORDER BY local_node_id asc;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []localNode{}, nil

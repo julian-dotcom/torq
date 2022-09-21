@@ -122,28 +122,61 @@ func addLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error
 
 	if localNode.TLSFile == nil || localNode.MacaroonFile == nil ||
 		localNode.GRPCAddress == nil || *localNode.GRPCAddress == "" || localNode.Implementation == "" {
-		server_errors.LogAndSendServerError(c, errors.New("All node details are required to add a new node"))
+		server_errors.SendBadRequest(c, "All node details are required to add a new node")
 		return
 	}
 
-	// localNodes, err := getLocalNodeConnectionDetails(db, false)
-	// if err != nil {
-	// 	return []ConnectionDetails{}, err
-	// }
-	// connectionDetailsList := []ConnectionDetails{}
+	existingNodes, err := getLocalNodes(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
 
-	// for _, localNodeDetails := range localNodes {
-	// 	if (localNodeDetails.GRPCAddress == nil) || (localNodeDetails.TLSDataBytes == nil) || (localNodeDetails.
-	// 		MacaroonDataBytes == nil) {
-	// 		continue
-	// 	}
-	// 	connectionDetailsList = append(connectionDetailsList, ConnectionDetails{
-	// 		LocalNodeId:       localNodeDetails.LocalNodeId,
-	// 		GRPCAddress:       *localNodeDetails.GRPCAddress,
-	// 		TLSFileBytes:      localNodeDetails.TLSDataBytes,
-	// 		MacaroonFileBytes: localNodeDetails.MacaroonDataBytes})
-	// }
-	// return connectionDetailsList, nil
+	if len(existingNodes) > 0 {
+
+		tlsDataFile, err := localNode.TLSFile.Open()
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		tlsCert, err := io.ReadAll(tlsDataFile)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		if len(tlsCert) == 0 {
+			server_errors.SendBadRequest(c, "Can't check new GRPC details without TLS Cert")
+			return
+		}
+
+		macaroonDataFile, err := localNode.MacaroonFile.Open()
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		macaroonFile, err := io.ReadAll(macaroonDataFile)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		if len(macaroonFile) == 0 {
+			server_errors.SendBadRequest(c, "Can't check new GRPC details without Macaroon File")
+			return
+		}
+
+		publicKey, err := getPublicKeyFromNode(*localNode.GRPCAddress, tlsCert, macaroonFile)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		for _, existingNode := range existingNodes {
+			if *existingNode.PubKey == publicKey {
+
+				server_errors.SendUnprocessableEntity(c, "This node already exists")
+				return
+			}
+		}
+	}
 
 	localNodeId, err := insertLocalNodeDetails(db, localNode)
 	if err != nil {
@@ -209,7 +242,7 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() er
 			TLSCert = existingNodeDetails.TLSDataBytes
 		}
 		if len(TLSCert) == 0 {
-			server_errors.LogAndSendServerError(c, errors.New("Can't check new GRPC details without TLS Cert"))
+			server_errors.SendBadRequest(c, "Can't check new GRPC details without TLS Cert")
 			return
 		}
 
@@ -230,28 +263,19 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() er
 		if len(macaroonFile) == 0 && len(existingNodeDetails.MacaroonDataBytes) != 0 {
 			macaroonFile = existingNodeDetails.MacaroonDataBytes
 		}
-		if len(TLSCert) == 0 {
-			server_errors.LogAndSendServerError(c, errors.New("Can't check new GRPC details without Macaroon File"))
+		if len(macaroonFile) == 0 {
+			server_errors.SendBadRequest(c, "Can't check new GRPC details without Macaroon File")
 			return
 		}
 
-		conn, err := lnd_connect.Connect(*localNode.GRPCAddress, TLSCert, macaroonFile)
-		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Can't connect to node to verify public key, check all details including TLS Cert and Macaroon")
-			return
-		}
-		defer conn.Close()
-
-		client := lnrpc.NewLightningClient(conn)
-		ctx := context.Background()
-		info, err := client.GetInfo(ctx, &lnrpc.GetInfoRequest{})
+		publicKey, err := getPublicKeyFromNode(*localNode.GRPCAddress, TLSCert, macaroonFile)
 		if err != nil {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		}
 
-		if info.IdentityPubkey != *existingNodeDetails.PubKey {
-			server_errors.LogAndSendServerError(c, errors.New("Pubkey does not match, create a new node instead of updating this one"))
+		if publicKey != *existingNodeDetails.PubKey {
+			server_errors.SendUnprocessableEntity(c, "Pubkey does not match, create a new node instead of updating this one")
 			return
 		}
 	}
@@ -285,6 +309,22 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() er
 	}
 
 	c.JSON(http.StatusOK, localNode)
+}
+
+func getPublicKeyFromNode(grpcAddress string, tlsCert []byte, macaroonFile []byte) (publicKey string, err error) {
+	conn, err := lnd_connect.Connect(grpcAddress, tlsCert, macaroonFile)
+	if err != nil {
+		return "", errors.Wrap(err, "Can't connect to node to verify public key, check all details including TLS Cert and Macaroon")
+	}
+	defer conn.Close()
+
+	client := lnrpc.NewLightningClient(conn)
+	ctx := context.Background()
+	info, err := client.GetInfo(ctx, &lnrpc.GetInfoRequest{})
+	if err != nil {
+		return "", err
+	}
+	return info.IdentityPubkey, nil
 }
 
 func saveTLSAndMacaroon(localNode localNode, c *gin.Context, db *sqlx.DB) error {
