@@ -29,7 +29,7 @@ const Modal = (props: ModalProps) => {
             <DismissIcon />
           </span>
         </div>
-        {props.children}
+        {props.show && props.children}
       </div>
     </div>
   );
