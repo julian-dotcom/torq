@@ -22,7 +22,7 @@ function File({ label, onFileChange, fileName }: fileProps) {
 
   React.useEffect(() => {
     setMessage([
-      "Current file: " + fileName,
+      fileName ? "Current file: " + fileName : "",
       <br key="br1" />,
       <br key="br2" />,
       "To change, drop file or click to select",
