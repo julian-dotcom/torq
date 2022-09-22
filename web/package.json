@@ -6,8 +6,7 @@
   "dependencies": {
     "@emotion/react": "^11.8.2",
     "@emotion/styled": "^11.8.1",
-    "@fluentui/react-icons": "^2.0.163-rc.1",
-    "@fluentui/svg-icons": "^1.1.169",
+    "@fluentui/react-icons": "^2.0.182",
     "@griffel/react": "^1.0.2",
     "@reduxjs/toolkit": "^1.8.0",
     "@types/d3": "^7.1.0",
