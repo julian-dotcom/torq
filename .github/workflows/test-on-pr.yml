@@ -1,8 +1,8 @@
-name: All Tests
+name: All tests on PR
 on:
   pull_request:
     branches:
       - main
 jobs:
-  test:
+  run:
     uses: ./.github/workflows/run-all-tests.yml
