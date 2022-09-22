@@ -13,9 +13,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build cmd/torq/torq.go
 FROM node:lts-alpine as frontend-builder
 WORKDIR /app
 COPY web/package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 COPY web/. .
-RUN npm run build
+RUN TSX_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true npm run build
 
 # final stage
 FROM alpine
