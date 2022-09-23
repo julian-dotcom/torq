@@ -7,12 +7,12 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
-  # test:
-  #   uses: ./.github/workflows/run-all-tests.yml
+  test:
+    uses: ./.github/workflows/run-all-tests.yml
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
-    # needs: test
+    needs: test
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
