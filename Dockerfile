@@ -7,7 +7,7 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build cmd/torq/torq.go
+RUN CGO_ENABLED=0 GOOS=linux go build cmd/torq/torq.go
 
 # frontend build stage
 FROM node:lts-alpine as frontend-builder
