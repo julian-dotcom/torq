@@ -6,13 +6,25 @@ import App from "./App";
 import { store } from "./store/store";
 
 import "./styles/main.scss";
+import { BrowserRouter } from "react-router-dom";
+
+const resolveBasename = () => {
+  const path = window.location.pathname.split('/');
+  const topLevelPath = path.length > 1 && path[1];
+
+  return topLevelPath === 'torq' ? topLevelPath : '';
+}
+
+const basename = resolveBasename();
 
 ReactDOM.render(
-  <React.StrictMode>
-    <Provider store={store}>
-      <App />
-    </Provider>
-  </React.StrictMode>,
+  <BrowserRouter basename={basename}>
+    <React.StrictMode>
+      <Provider store={store}>
+        <App />
+      </Provider>
+    </React.StrictMode>
+  </BrowserRouter>,
   document.getElementById("root")
 );
 
