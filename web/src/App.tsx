@@ -18,7 +18,7 @@ import InvoicesPage from "features/transact/Invoices/InvoicesPage";
 import OnChainPage from "features/transact/OnChain/OnChainPage";
 import AllTxPage from "./features/transact/AllTxPage";
 import NoMatch from "./features/no_match/NoMatch";
-import NewPaymentModal from "features/transact/Payments/NewPaymentModal";
+import NewPaymentModal from "features/transact/Payments/newPayment/NewPaymentModal";
 import { CREATE_PAYMENT } from "constants/routes";
 
 function Logout() {
