@@ -99,6 +99,7 @@ function NewPaymentModal(props: NewPaymentModalProps) {
   const [responses, setResponses] = useState<Array<NewPaymentResponse>>([]);
   const [destinationType, setDestinationType] = useState<PaymentType>(0);
   const [destination, setDestination] = useState("");
+  const [paymentProcessingError, setPaymentProcessingError] = useState("");
   const [destState, setDestState] = useState(ProgressStepState.active);
   const [confirmState, setConfirmState] = useState(ProgressStepState.disabled);
   const [processState, setProcessState] = useState(ProgressStepState.disabled);
