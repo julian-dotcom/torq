@@ -11,7 +11,6 @@ import { Cookies } from "react-cookie";
 import { useLogoutMutation } from "apiSlice";
 import Toasts, { addToastHandle } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
-import { BrowserRouter } from "react-router-dom";
 import ChannelPage from "./features/channel/ChannelPage";
 import DashboardPage from "./features/channel/DashboardPage";
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
@@ -19,6 +18,8 @@ import InvoicesPage from "features/transact/Invoices/InvoicesPage";
 import OnChainPage from "features/transact/OnChain/OnChainPage";
 import AllTxPage from "./features/transact/AllTxPage";
 import NoMatch from "./features/no_match/NoMatch";
+import NewPaymentModal from "features/transact/Payments/NewPaymentModal";
+import { CREATE_PAYMENT } from "constants/routes";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -35,29 +36,21 @@ function Logout() {
 }
 
 function App() {
-  const [locationState, setLocationState] = React.useState("");
-
-  useEffect(() => {
-    const splitLocation = window.location.pathname.split("/");
-    if (splitLocation.length > 1) {
-      const path = splitLocation[1];
-      if (path === "torq") {
-        setLocationState(path);
-      }
-    }
-  });
+  const location = useLocation();
+  const background = location.state && location.state.background;
 
   const toastRef = React.useRef<addToastHandle>();
+
   return (
     <ToastContext.Provider value={toastRef}>
-      <BrowserRouter basename={locationState}>
         <div className={styles.app}>
           <Toasts ref={toastRef} />
-          <Routes>
+          <Routes location={background || location}>
             <Route element={<LoginLayout />}>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/logout" element={<Logout />} />
             </Route>
+
             <Route element={<DefaultLayout />}>
               <Route
                 path="/"
@@ -66,7 +59,9 @@ function App() {
                     <DashboardPage />
                   </RequireAuth>
                 }
-              />
+              >
+                <Route path={CREATE_PAYMENT} element={<NewPaymentModal />} />
+              </Route>
               <Route path="/analyse">
                 <Route
                   path="forwards"
@@ -99,14 +94,6 @@ function App() {
                   element={
                     <RequireAuth>
                       <PaymentsPage newPayment={false} />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="payments/new"
-                  element={
-                    <RequireAuth>
-                      <PaymentsPage newPayment={true} />
                     </RequireAuth>
                   }
                 />
@@ -146,8 +133,12 @@ function App() {
               <Route path="*" element={<NoMatch />} />
             </Route>
           </Routes>
+          {background && (
+            <Routes>
+              <Route path={CREATE_PAYMENT} element={<NewPaymentModal />} />
+            </Routes>
+          )}
         </div>
-      </BrowserRouter>
     </ToastContext.Provider>
   );
 }
