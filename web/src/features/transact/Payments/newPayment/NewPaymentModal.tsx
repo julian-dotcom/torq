@@ -8,20 +8,21 @@ import {
 } from "@fluentui/react-icons";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import TextInput from "features/forms/TextInput";
-import { SectionContainer } from "../../section/SectionContainer";
+import { SectionContainer } from "features/section/SectionContainer";
 import { ChangeEvent, useState } from "react";
-import Switch from "../../inputs/Slider/Switch";
-import PopoutPageTemplate from "../../templates/popoutPageTemplate/PopoutPageTemplate";
-import ProgressHeader, { ProgressStepState, Step } from "../../progressTabs/ProgressHeader";
-import ProgressTabs, { ProgressTabContainer } from "../../progressTabs/ProgressTab";
+import Switch from "features/inputs/Slider/Switch";
+import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
+import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
+import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import { useGetDecodedInvoiceQuery } from "apiSlice";
 import { format } from "d3";
-import Note from "../../note/Note";
+import Note from "features/note/Note";
 import classNames from "classnames";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
 import useWebSocket from "react-use-websocket";
 import { WS_URL } from "apiSlice";
-import { NewPaymentResponse, NewPaymentError } from "./paymentTypes";
+import { NewPaymentResponse, NewPaymentError } from "../paymentTypes";
+import { ProcessingPaymentErrors } from "./paymentErrorMessages";
 
 const fd = format(",.0f");
 
@@ -107,6 +108,30 @@ function NewPaymentModal(props: NewPaymentModalProps) {
 
   const [onChainPaymentAmount, setOnChainPaymentAmount] = useState<number>();
 
+  function onNewPaymentMessage(event: MessageEvent<string>) {
+    const response = JSON.parse(event.data);
+    if (response?.type == "Error") {
+      onNewPaymentError(response as NewPaymentError);
+      return;
+    }
+    onNewPaymentResponse(response as NewPaymentResponse);
+  }
+
+  function onNewPaymentResponse(message: NewPaymentResponse) {
+    setResponses((prev) => [...prev, message]);
+    if (message.status == "SUCCEEDED") {
+      setProcessState(ProgressStepState.completed);
+    } else if (message.status == "FAILED") {
+      setProcessState(ProgressStepState.error);
+    }
+  }
+
+  function onNewPaymentError(message: NewPaymentError) {
+    console.log(ProcessingPaymentErrors.get(message.error));
+    setProcessState(ProgressStepState.error);
+    console.log("error", message);
+  }
+
   // This can also be an async getter function. See notes below on Async Urls.
   const { sendMessage, sendJsonMessage, lastMessage, lastJsonMessage, readyState, getWebSocket } = useWebSocket(
     WS_URL,
@@ -115,21 +140,7 @@ function NewPaymentModal(props: NewPaymentModalProps) {
       //Will attempt to reconnect on all close events, such as server shutting down
       shouldReconnect: (closeEvent) => true,
       share: true,
-      onMessage: (event) => {
-        const respnse = JSON.parse(event.data) as NewPaymentResponse | NewPaymentError;
-        if (respnse?.type == "Error") {
-          console.log("error", event.data);
-          setProcessState(ProgressStepState.error);
-          return;
-        } else if (respnse?.type == "newPayment") {
-          setResponses((prev) => [...prev, respnse]);
-          if (respnse.status == "SUCCEEDED") {
-            setProcessState(ProgressStepState.completed);
-          } else if (respnse.status == "FAILED") {
-            setProcessState(ProgressStepState.error);
-          }
-        }
-      },
+      onMessage: onNewPaymentMessage,
     }
   );
 
@@ -287,6 +298,7 @@ function NewPaymentModal(props: NewPaymentModalProps) {
                 NewPaymentRequest: { invoice: destination, timeOutSecs: 3600 },
               });
             }}
+            disabled={!!decodedInvRes?.error}
             buttonColor={buttonColor.green}
           />
         }
@@ -297,12 +309,10 @@ function NewPaymentModal(props: NewPaymentModalProps) {
   const btcStep = (
     <ProgressTabContainer>
       <div className={styles.amountWrapper}>
-        {/*<div className={styles.label}>You are paying</div>*/}
         {destinationType && (
           <span className={styles.destinationType}>{PaymentTypeLabel[destinationType] + " Detected"}</span>
         )}
         <div className={styles.amount}>
-          {/*{fd(decodedInvRes.data ? decodedInvRes.data?.valueMsat / 1000 : 0) + " sat"}*/}
           <NumberFormat
             className={styles.amountInput}
             suffix={" sat"}
@@ -310,7 +320,6 @@ function NewPaymentModal(props: NewPaymentModalProps) {
             value={onChainPaymentAmount}
             placeholder={"0 sat"}
             onValueChange={(values: NumberFormatValues) => {
-              console.log(values);
               setOnChainPaymentAmount(values.floatValue || 0);
             }}
           />

@@ -73,6 +73,7 @@ type NewPaymentResponse struct {
 	ReqId          string    `json:"reqId"`
 	Type           string    `json:"type"`
 	Status         string    `json:"status"`
+	FailureReason  string    `json:"failureReason"`
 	Hash           string    `json:"hash"`
 	Preimage       string    `json:"preimage"`
 	PaymentRequest string    `json:"paymentRequest"`
@@ -193,6 +194,7 @@ func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
 	r.Preimage = p.PaymentPreimage
 	r.AmountMsat = p.ValueMsat
 	r.CreationDate = time.Unix(0, p.CreationTimeNs)
+	r.FailureReason = p.FailureReason.String()
 
 	for _, attempt := range p.GetHtlcs() {
 		r.Attempt.AttemptId = attempt.AttemptId

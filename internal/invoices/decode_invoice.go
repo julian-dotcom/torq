@@ -3,6 +3,7 @@ package invoices
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -13,6 +14,7 @@ import (
 	"github.com/lncapital/torq/pkg/server_errors"
 	"github.com/rs/zerolog/log"
 	"net/http"
+	"strings"
 )
 
 type feature struct {
@@ -159,6 +161,12 @@ func decodeInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 	di, err := decodeInvoice(db, invoice)
 
 	if err != nil {
+		fmt.Println(err)
+		if strings.Contains(err.Error(), "unable to decode payment request") {
+			errResponse := server_errors.SingleFieldError("invoice", "Unable to decode invoice")
+			c.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
 		server_errors.WrapLogAndSendServerError(c, err, "could not decode invoice")
 		return
 	}

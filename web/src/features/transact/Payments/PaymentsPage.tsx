@@ -34,7 +34,7 @@ import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
 import Button, { buttonColor } from "features/buttons/Button";
 import { SectionContainer } from "../../section/SectionContainer";
-import NewPaymentModal from "./NewPaymentModal";
+import NewPaymentModal from "./newPayment/NewPaymentModal";
 import { useLocation } from "react-router";
 
 type sections = {
