@@ -34,8 +34,8 @@ import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
 import Button, { buttonColor } from "features/buttons/Button";
 import { SectionContainer } from "../../section/SectionContainer";
-import NewPaymentModal from "./newPayment/NewPaymentModal";
 import { useLocation } from "react-router";
+import { CREATE_PAYMENT } from "constants/routes";
 
 type sections = {
   filter: boolean;
@@ -138,6 +138,7 @@ function PaymentsPage(props: { newPayment: boolean }) {
   };
 
   const location = useLocation();
+
   const tableControls = (
     <TableControlSection>
       <TransactTabs />
@@ -147,7 +148,7 @@ function PaymentsPage(props: { newPayment: boolean }) {
           text={"New"}
           icon={<TransactionIcon />}
           onClick={() => {
-            navigate("/transactions/payments/new");
+            navigate(CREATE_PAYMENT, { state: { background: location } });
           }}
         />
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
@@ -283,7 +284,6 @@ function PaymentsPage(props: { newPayment: boolean }) {
           activeColumns={columns || []}
           isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
         />
-        <NewPaymentModal show={props.newPayment} modalCloseHandler={handleModalClose} />
       </>
     </TablePageTemplate>
   );

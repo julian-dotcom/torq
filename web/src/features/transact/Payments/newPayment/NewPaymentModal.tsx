@@ -35,11 +35,6 @@ export type NewPaymentRequest = {
   allowSelfPayment: boolean;
 };
 
-type NewPaymentModalProps = {
-  show: boolean;
-  modalCloseHandler: () => void;
-};
-
 enum PaymentType {
   Unknown,
   Keysend,
@@ -94,7 +89,7 @@ const P2TRAddressSignetRegEx = /^sb1p[0-9a-zA-Z]*/gm; // Taproot address
 
 const LightningNodePubkeyRegEx = /^[0-9a-fA-F]{66}$/gm; // Keysend / Lightning Node Pubkey
 
-function NewPaymentModal(props: NewPaymentModalProps) {
+function NewPaymentModal() {
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
   const [responses, setResponses] = useState<Array<NewPaymentResponse>>([]);
   const [destinationType, setDestinationType] = useState<PaymentType>(0);
@@ -169,7 +164,6 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     setDestState(ProgressStepState.active);
     setConfirmState(ProgressStepState.disabled);
     setProcessState(ProgressStepState.disabled);
-    props.modalCloseHandler();
   };
 
   const setDestinationHandler = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -383,8 +377,10 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     </ProgressTabContainer>
   );
 
+  const navigate = useNavigate();
+
   return (
-    <PopoutPageTemplate title={"New Payment"} show={props.show} onClose={closeAndReset} icon={<TransactionIconModal />}>
+    <PopoutPageTemplate title={"New Payment"} show={true} onClose={() => navigate(-1)} icon={<TransactionIconModal />}>
       <ProgressHeader modalCloseHandler={closeAndReset}>
         <Step label={"Destination"} state={destState} last={false} />
         <Step label={"Confirm"} state={dynamicConfirmedState()} last={false} />
