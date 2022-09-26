@@ -320,7 +320,7 @@ func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sql
 	for r.Next() {
 		err = r.Scan(&grpcAddress, &pubKey)
 		if err != nil {
-			return []string{}, errors.Wrapf(err, "r.Scan(&grpcAddress, &pubKey)")
+			return []string{}, errors.Wrapf(err, "Reading grpc_address and pub_key from db")
 		}
 
 		// If the pub key is missing from the local_node table, add it.
