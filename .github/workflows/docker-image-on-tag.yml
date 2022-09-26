@@ -7,22 +7,22 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
-  test:
-    uses: ./.github/workflows/run-all-tests.yml
+  # test:
+  #   uses: ./.github/workflows/run-all-tests.yml
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
-    needs: test
+    # needs: test
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
           go-version-file: "go.mod"
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v2
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v2
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -44,6 +44,6 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          # platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
