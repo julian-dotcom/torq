@@ -21,8 +21,9 @@ FROM debian:buster-slim
 COPY --from=backend-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=backend-builder /app/torq /app/
 COPY --from=frontend-builder /app/build /app/web/build
-RUN apk add --no-cache bash
+RUN useradd -ms /bin/bash torq
+RUN apt-get install bash
 ENV GIN_MODE=release
 WORKDIR /app
-USER torq:torq
+USER torq
 ENTRYPOINT ["./torq"]
