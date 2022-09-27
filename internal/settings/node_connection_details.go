@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -14,7 +15,7 @@ type ConnectionDetails struct {
 func GetConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
 	localNodes, err := getLocalNodeConnectionDetails(db)
 	if err != nil {
-		return []ConnectionDetails{}, err
+		return []ConnectionDetails{}, errors.Wrap(err, "Getting local nodes from db")
 	}
 	connectionDetailsList := []ConnectionDetails{}
 
