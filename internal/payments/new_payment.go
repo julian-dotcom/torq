@@ -26,10 +26,10 @@ type rrpcClientSendPayment interface {
 }
 
 type NewPaymentRequest struct {
-	Invoice          string  `json:"invoice"`
+	Invoice          *string `json:"invoice"`
 	TimeOutSecs      int32   `json:"timeoutSecs"`
-	Dest             *[]byte `json:"dest"`
-	AmtMSat          *int64  `json:"amountMsat"`
+	Dest             *string `json:"dest"`
+	AmtMSat          *int64  `json:"amtMSat"`
 	FeeLimitMsat     *int64  `json:"feeLimitMsat"`
 	AllowSelfPayment *bool   `json:"allowSelfPayment"`
 }
@@ -120,18 +120,17 @@ func SendNewPayment(
 	return sendPayment(client, npReq, wChan, reqId)
 }
 
-func newSendPaymentRequest(npReq NewPaymentRequest) (r routerrpc.SendPaymentRequest) {
+func newSendPaymentRequest(npReq NewPaymentRequest) (r routerrpc.SendPaymentRequest, err error) {
 	newPayReq := routerrpc.SendPaymentRequest{
-		PaymentRequest: npReq.Invoice,
 		TimeoutSeconds: npReq.TimeOutSecs,
+	}
+
+	if npReq.Invoice != nil {
+		newPayReq.PaymentRequest = *npReq.Invoice
 	}
 
 	if npReq.FeeLimitMsat != nil {
 		newPayReq.FeeLimitMsat = *npReq.FeeLimitMsat
-	}
-
-	if npReq.Dest != nil {
-		newPayReq.Dest = *npReq.Dest
 	}
 
 	if npReq.AmtMSat != nil {
@@ -141,13 +140,28 @@ func newSendPaymentRequest(npReq NewPaymentRequest) (r routerrpc.SendPaymentRequ
 	if npReq.AllowSelfPayment != nil {
 		newPayReq.AllowSelfPayment = *npReq.AllowSelfPayment
 	}
-	return newPayReq
+
+	// TODO: Add support for Keysend, needs to solve issue related to payment hash generation
+	//if npReq.Dest != nil {
+	//	fmt.Println("It was a keysend")
+	//	destHex, err := hex.DecodeString(*npReq.Dest)
+	//	if err != nil {
+	//		return r, errors.New("Could not decode destination pubkey (keysend)")
+	//	}
+	//	newPayReq.Dest = destHex
+	// //	newPayReq.PaymentHash = make([]byte, 32)
+	//}
+
+	return newPayReq, nil
 }
 
 func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan chan interface{}, reqId string) (err error) {
 
 	// Create and validate payment request details
-	newPayReq := newSendPaymentRequest(npReq)
+	newPayReq, err := newSendPaymentRequest(npReq)
+	if err != nil {
+		return err
+	}
 
 	ctx := context.Background()
 	req, err := client.SendPaymentV2(ctx, &newPayReq)
@@ -176,6 +190,10 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 			return errors.New("INVALID_PAYMENT_REQUEST")
 		case err != nil && strings.Contains(err.Error(), "checksum failed"):
 			return errors.New("CHECKSUM_FAILED")
+		case err != nil && strings.Contains(err.Error(), "amount must be specified when paying a zero amount invoice"):
+			return errors.New("AMOUNT_REQUIRED")
+		case err != nil && strings.Contains(err.Error(), "amount must not be specified when paying a non-zero  amount invoice"):
+			return errors.New("AMOUNT_NOT_ALLOWED")
 		default:
 			log.Printf("Unknown payment error %v", err)
 			return errors.New("UNKNOWN_ERROR")

@@ -1,28 +1,25 @@
 import styles from "./newPayments.module.scss";
 import {
-  MoneyHand24Regular as TransactionIconModal,
-  Options20Regular as OptionsIcon,
+  ArrowSyncFilled as ProcessingIcon,
   CheckmarkRegular as SuccessIcon,
   DismissRegular as FailedIcon,
-  ArrowSyncFilled as ProcessingIcon,
+  MoneyHand24Regular as TransactionIconModal,
+  Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import TextInput from "features/forms/TextInput";
 import { SectionContainer } from "features/section/SectionContainer";
 import { ChangeEvent, useState } from "react";
-import Switch from "features/inputs/Slider/Switch";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
-import { useGetDecodedInvoiceQuery } from "apiSlice";
+import { useGetDecodedInvoiceQuery, WS_URL } from "apiSlice";
 import { format } from "d3";
-import Note from "features/note/Note";
 import classNames from "classnames";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
 import useWebSocket from "react-use-websocket";
-import { WS_URL } from "apiSlice";
-import { NewPaymentResponse, NewPaymentError } from "../paymentTypes";
-import { ProcessingPaymentErrors } from "./paymentErrorMessages";
+import { NewPaymentError, NewPaymentResponse } from "../paymentTypes";
+import { PaymentProcessingErrors } from "./paymentErrorMessages";
 
 const fd = format(",.0f");
 
@@ -84,7 +81,7 @@ const LnPayrequestMainnetRegEx = /lnbc[0-9][0-9a-zA-Z]*/gm;
 const LnPayrequestTestnetRegEx = /lntb[0-9][0-9a-zA-Z]*/gm;
 const LnPayrequestSignetRegEx = /lnsb[0-9][0-9a-zA-Z]*/gm;
 const LnPayrequestRegtestRegEx = /lnbcrt[0-9][0-9a-zA-Z]*/gm;
-const P2PKHAddressRegEx = /^1[0-9a-zA-Z]*/gm; // Legacy Adresses
+// const P2PKHAddressRegEx = /^1[0-9a-zA-Z]*/gm; // Legacy Adresses
 const P2SHAddressRegEx = /^[3/r][0-9a-zA-Z]*/gm; // Pay to Script Hash
 const P2WKHAddressRegEx = /^bc1q[0-9a-zA-Z]*/gm; // Segwit address
 const P2TRAddressRegEx = /^bc1p[0-9a-zA-Z]*/gm; // Taproot address
@@ -95,11 +92,12 @@ const P2TRAddressSignetRegEx = /^sb1p[0-9a-zA-Z]*/gm; // Taproot address
 const LightningNodePubkeyRegEx = /^[0-9a-fA-F]{66}$/gm; // Keysend / Lightning Node Pubkey
 
 function NewPaymentModal(props: NewPaymentModalProps) {
-  const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
   const [responses, setResponses] = useState<Array<NewPaymentResponse>>([]);
-  const [destinationType, setDestinationType] = useState<PaymentType>(0);
+
   const [destination, setDestination] = useState("");
+  const [destinationType, setDestinationType] = useState<PaymentType>(0);
   const [paymentProcessingError, setPaymentProcessingError] = useState("");
+
   const [destState, setDestState] = useState(ProgressStepState.active);
   const [confirmState, setConfirmState] = useState(ProgressStepState.disabled);
   const [processState, setProcessState] = useState(ProgressStepState.disabled);
@@ -107,11 +105,10 @@ function NewPaymentModal(props: NewPaymentModalProps) {
 
   const [paymentDescription, setPaymentDescription] = useState("");
 
-  const [onChainPaymentAmount, setOnChainPaymentAmount] = useState<number>();
-
   function onNewPaymentMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
     if (response?.type == "Error") {
+      setPaymentProcessingError(response.error);
       onNewPaymentError(response as NewPaymentError);
       return;
     }
@@ -123,12 +120,13 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     if (message.status == "SUCCEEDED") {
       setProcessState(ProgressStepState.completed);
     } else if (message.status == "FAILED") {
+      setPaymentProcessingError(message.failureReason);
       setProcessState(ProgressStepState.error);
     }
   }
 
   function onNewPaymentError(message: NewPaymentError) {
-    console.log(ProcessingPaymentErrors.get(message.error));
+    console.log(PaymentProcessingErrors.get(message.error), message.error);
     setProcessState(ProgressStepState.error);
     console.log("error", message);
   }
@@ -137,7 +135,6 @@ function NewPaymentModal(props: NewPaymentModalProps) {
   const { sendMessage, sendJsonMessage, lastMessage, lastJsonMessage, readyState, getWebSocket } = useWebSocket(
     WS_URL,
     {
-      onOpen: () => console.log("opened"),
       //Will attempt to reconnect on all close events, such as server shutting down
       shouldReconnect: (closeEvent) => true,
       share: true,
@@ -145,16 +142,30 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     }
   );
 
+  const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
   const handleAdvancedToggle = () => {
     setExpandAdvancedOptions(!expandAdvancedOptions);
   };
 
+  // LN advanced options
+  const [allowSelfPayment, setAllowSelfPayment] = useState(true);
+  const [feeLimit, setFeeLimit] = useState<number | undefined>(undefined);
+  const [timeOutSecs, setTimeOutSecs] = useState(3600);
+  const [amtSat, setAmtSat] = useState<number | undefined>(undefined);
+
+  // On Chain advanced options
+  const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>(undefined);
+  const [onChainPaymentAmount, setOnChainPaymentAmount] = useState<number>();
   const isLnInvoice = [
     PaymentType.LightningMainnet,
     PaymentType.LightningRegtest,
     PaymentType.LightningSimnet,
     PaymentType.LightningTestnet,
   ].includes(destinationType);
+
+  const isOnChain = [PaymentType.P2SH, PaymentType.P2TR, PaymentType.P2WKH, PaymentType.P2PKH].includes(
+    destinationType
+  );
 
   // TODO: Get the estimated fee as well
   const decodedInvRes = useGetDecodedInvoiceQuery(
@@ -182,6 +193,7 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     setDestination(e.target.value);
     if (e.target.value === "") {
       setDestinationType(0);
+      setDestState(ProgressStepState.active);
       return;
     } else if (e.target.value.match(LnPayrequestMainnetRegEx)) {
       setDestinationType(PaymentType.LightningMainnet);
@@ -191,19 +203,19 @@ function NewPaymentModal(props: NewPaymentModalProps) {
       setDestinationType(PaymentType.LightningSimnet);
     } else if (e.target.value.match(LnPayrequestRegtestRegEx)) {
       setDestinationType(PaymentType.LightningRegtest);
-    } else if (e.target.value.match(P2PKHAddressRegEx)) {
-      setDestinationType(PaymentType.P2PKH);
-    } else if (e.target.value.match(P2SHAddressRegEx)) {
-      // Pay to Script Hash
-      setDestinationType(PaymentType.P2SH);
-    } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
-      // Segwit address
-      setDestinationType(PaymentType.P2WKH);
-    } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
-      // Taproot
-      setDestinationType(PaymentType.P2TR);
-    } else if (e.target.value.match(LightningNodePubkeyRegEx)) {
-      setDestinationType(PaymentType.Keysend);
+      // } else if (e.target.value.match(P2PKHAddressRegEx)) {
+      //   setDestinationType(PaymentType.P2PKH);
+      // } else if (e.target.value.match(P2SHAddressRegEx)) {
+      //   // Pay to Script Hash
+      //   setDestinationType(PaymentType.P2SH);
+      // } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
+      //   // Segwit address
+      //   setDestinationType(PaymentType.P2WKH);
+      // } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
+      //   // Taproot
+      //   setDestinationType(PaymentType.P2TR);
+      //   // } else if (e.target.value.match(LightningNodePubkeyRegEx)) {
+      //   //   setDestinationType(PaymentType.Keysend);
     } else {
       setDestinationType(PaymentType.Unknown);
       return;
@@ -211,20 +223,45 @@ function NewPaymentModal(props: NewPaymentModalProps) {
 
     // Prevent accidentally adding additional characters to the destination field after
     // the user has entered a valid destination by unfocusing (bluring) the input field.
-    e.target.blur();
-    setStepIndex(1);
-    setConfirmState(ProgressStepState.active);
+    // e.target.blur();
+    //setStepIndex(1);
+    // setConfirmState(ProgressStepState.active);
     setDestState(ProgressStepState.completed);
   };
 
   const dynamicConfirmedState = () => {
     if (decodedInvRes.isLoading || decodedInvRes.isFetching) {
+      return ProgressStepState.disabled;
+    } else if (decodedInvRes.isError) {
+      return ProgressStepState.disabled;
+    }
+    return confirmState;
+  };
+
+  const dynamicDestinationState = () => {
+    if (decodedInvRes.isLoading || decodedInvRes.isFetching) {
       return ProgressStepState.processing;
     } else if (decodedInvRes.isError) {
       return ProgressStepState.error;
     }
-    return confirmState;
+    return destState;
   };
+
+  function lnAmountField(amount: number) {
+    if (amount > 0) {
+      return fd(decodedInvRes.data ? decodedInvRes.data.valueMsat / 1000 : 0) + " sat";
+    }
+    return (
+      <NumberFormat
+        className={styles.amountInput}
+        value={amtSat}
+        placeholder={"0 sat"}
+        onValueChange={(values) => setAmtSat(parseInt(values.value))}
+        thousandSeparator=","
+        suffix={" sat"}
+      />
+    );
+  }
 
   const lnStep = (
     <ProgressTabContainer>
@@ -233,44 +270,52 @@ function NewPaymentModal(props: NewPaymentModalProps) {
         {destinationType && (
           <span className={styles.destinationType}>{PaymentTypeLabel[destinationType] + " Detected"}</span>
         )}
-        <div className={styles.amount}>
-          {fd(
-            !decodedInvRes.isLoading && decodedInvRes.data && !decodedInvRes.error
-              ? decodedInvRes.data?.valueMsat / 1000
-              : 0
-          ) + " sat"}
-        </div>
+        <div className={styles.amount}>{lnAmountField(decodedInvRes.data?.valueMsat)}</div>
         <div className={styles.label}>To</div>
         <div className={styles.destinationPreview}>{decodedInvRes?.data?.nodeAlias}</div>
       </div>
-      <div className={styles.destinationWrapper}>
-        <div className={styles.labelWrapper}>
-          <label htmlFor={"destination"} className={styles.destinationLabel}>
-            Description (only seen by you)
-          </label>
-        </div>
-        <textarea
-          id={"lnDescription"}
-          name={"lnDescription"}
-          className={styles.destinationTextArea}
-          autoComplete="off"
-          value={paymentDescription}
-          onChange={(e) => {
-            setPaymentDescription(e.target.value);
-          }}
-          rows={3}
-        />
-      </div>
+      {/*<div className={styles.destinationWrapper}>*/}
+      {/*  <div className={styles.labelWrapper}>*/}
+      {/*    <label htmlFor={"destination"} className={styles.destinationLabel}>*/}
+      {/*      Description (only seen by you)*/}
+      {/*    </label>*/}
+      {/*  </div>*/}
+      {/*  <textarea*/}
+      {/*    id={"lnDescription"}*/}
+      {/*    name={"lnDescription"}*/}
+      {/*    className={styles.destinationTextArea}*/}
+      {/*    autoComplete="off"*/}
+      {/*    value={paymentDescription}*/}
+      {/*    onChange={(e) => {*/}
+      {/*      setPaymentDescription(e.target.value);*/}
+      {/*    }}*/}
+      {/*    rows={3}*/}
+      {/*  />*/}
+      {/*</div>*/}
       <SectionContainer
         title={"Advanced Options"}
         icon={OptionsIcon}
         expanded={expandAdvancedOptions}
         handleToggle={handleAdvancedToggle}
       >
-        <Switch label={"Allow self payment"} labelPosition={"left"} checked={true} />
-        <TextInput label={"Max fee"} />
-        <TextInput label={"Max fee rate"} />
-        <TextInput label={"Timeout"} />
+        {/*<Switch*/}
+        {/*  label={"Allow self payment"}*/}
+        {/*  // labelPosition={"left"}*/}
+        {/*  checked={allowSelfPayment}*/}
+        {/*  onChange={(checked) => {*/}
+        {/*    console.log("something");*/}
+        {/*    setAllowSelfPayment(checked);*/}
+        {/*  }}*/}
+        {/*/>*/}
+        <TextInput
+          label={"Fee limit"}
+          inputType={"number"}
+          value={feeLimit}
+          onChange={(e) => {
+            setFeeLimit(e as number);
+          }}
+        />
+        <TextInput label={"Timeout"} value={timeOutSecs} onChange={(e) => setTimeOutSecs(e as number)} />
       </SectionContainer>
 
       <ButtonWrapper
@@ -296,7 +341,16 @@ function NewPaymentModal(props: NewPaymentModalProps) {
               sendJsonMessage({
                 reqId: "randId",
                 type: "newPayment",
-                NewPaymentRequest: { invoice: destination, timeOutSecs: 3600 },
+                NewPaymentRequest: {
+                  // If the destination is not a pubkey, use it as an invoice
+                  invoice: destination.match(LightningNodePubkeyRegEx) ? undefined : destination,
+                  // If the destination is a pubkey send it as a dest input
+                  dest: destination.match(LightningNodePubkeyRegEx) ? destination : undefined,
+                  amtMSat: amtSat ? amtSat * 1000 : undefined, // 1 sat = 1000 msat
+                  timeOutSecs: timeOutSecs,
+                  feeLimitMsat: feeLimit ? feeLimit * 1000 : undefined,
+                  allowSelfPayment: allowSelfPayment,
+                },
               });
             }}
             disabled={!!decodedInvRes?.error}
@@ -352,7 +406,13 @@ function NewPaymentModal(props: NewPaymentModalProps) {
         expanded={expandAdvancedOptions}
         handleToggle={handleAdvancedToggle}
       >
-        <TextInput label={"Sat per vByte"} />
+        <TextInput
+          label={"Sat per vByte"}
+          value={satPerVbyte}
+          onChange={(value) => {
+            setSatPerVbyte(value as number);
+          }}
+        />
       </SectionContainer>
 
       <ButtonWrapper
@@ -383,12 +443,19 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     </ProgressTabContainer>
   );
 
+  function destiationLabel() {
+    if (decodedInvRes?.isError == false) {
+      return PaymentTypeLabel[destinationType] + " Detected";
+    }
+    return "Can't decode invoice";
+  }
+
   return (
     <PopoutPageTemplate title={"New Payment"} show={props.show} onClose={closeAndReset} icon={<TransactionIconModal />}>
       <ProgressHeader modalCloseHandler={closeAndReset}>
-        <Step label={"Destination"} state={destState} last={false} />
-        <Step label={"Confirm"} state={dynamicConfirmedState()} last={false} />
-        <Step label={"Paying"} state={processState} last={true} />
+        <Step label={"Destination"} state={dynamicDestinationState()} last={false} />
+        <Step label={"Details"} state={dynamicConfirmedState()} last={false} />
+        <Step label={"Process"} state={processState} last={true} />
       </ProgressHeader>
 
       <ProgressTabs showTabIndex={stepIndex}>
@@ -403,16 +470,17 @@ function NewPaymentModal(props: NewPaymentModalProps) {
                   <span
                     className={classNames(styles.destinationType, {
                       [styles.unknownAddressType]: destinationType === PaymentType.Unknown,
+                      [styles.errorDestination]: decodedInvRes.isError,
                     })}
                   >
-                    {PaymentTypeLabel[destinationType] + " Detected"}
+                    {destiationLabel()}
                   </span>
                 )}
               </div>
               <textarea
                 id={"destination"}
                 name={"destination"}
-                placeholder={"E.g. Lightning Invoice, PubKey or On-chain Address"}
+                placeholder={"E.g. Lightning Invoice"} // , PubKey or On-chain Address
                 className={styles.destinationTextArea}
                 value={destination}
                 onChange={setDestinationHandler}
@@ -420,18 +488,18 @@ function NewPaymentModal(props: NewPaymentModalProps) {
               />
             </div>
           </div>
-          <Note title={"Note:"}>
-            <span>
-              Torq will detect the transaction type based on the destination you enter. Valid destinations are on-chain
-              addresses, lightning invoices, and lightning node public keys for keysend.
-            </span>
-          </Note>
+          {/*<Note title={"Note:"}>*/}
+          {/*  <span>*/}
+          {/*    Torq will detect the transaction type based on the destination you enter. Valid destinations are on-chain*/}
+          {/*    addresses, lightning invoices, and lightning node public keys for keysend.*/}
+          {/*  </span>*/}
+          {/*</Note>*/}
           <ButtonWrapper
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
                 text={"Next"}
-                disabled={!destinationType}
+                disabled={!destinationType || decodedInvRes.isError}
                 onClick={() => {
                   if (destination) {
                     setStepIndex(1);
@@ -439,13 +507,13 @@ function NewPaymentModal(props: NewPaymentModalProps) {
                     setConfirmState(ProgressStepState.active);
                   }
                 }}
-                buttonColor={buttonColor.subtle}
+                buttonColor={decodedInvRes?.isError ? buttonColor.warning : buttonColor.subtle}
               />
             }
           />
         </ProgressTabContainer>
         {isLnInvoice && lnStep}
-        {!isLnInvoice && btcStep}
+        {isOnChain && btcStep}
         <ProgressTabContainer>
           <div
             className={classNames(
@@ -458,18 +526,29 @@ function NewPaymentModal(props: NewPaymentModalProps) {
             {responses.length === 0 && paymentStatusIcon["FAILED"]}
             {paymentStatusIcon[responses[responses.length - 1]?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]}
           </div>
-          <Button
-            text={"New Payment"}
-            onClick={() => {
-              setDestinationType(0);
-              setDestination("");
-              setDestState(ProgressStepState.active);
-              setConfirmState(ProgressStepState.disabled);
-              setProcessState(ProgressStepState.disabled);
-              setStepIndex(0);
-              setResponses([]);
-            }}
-            buttonColor={buttonColor.secondary}
+          <div className={classNames(styles.paymentStatusMessage)}>
+            {PaymentProcessingErrors.get(paymentProcessingError) || paymentProcessingError}
+          </div>
+          <ButtonWrapper
+            className={styles.customButtonWrapperStyles}
+            rightChildren={
+              <Button
+                text={"New Payment"}
+                onClick={() => {
+                  setDestinationType(0);
+                  setDestination("");
+                  setDestState(ProgressStepState.active);
+                  setConfirmState(ProgressStepState.disabled);
+                  setProcessState(ProgressStepState.disabled);
+                  setTimeOutSecs(3600);
+                  setAmtSat(undefined);
+                  setFeeLimit(undefined);
+                  setStepIndex(0);
+                  setResponses([]);
+                }}
+                buttonColor={buttonColor.subtle}
+              />
+            }
           />
         </ProgressTabContainer>
       </ProgressTabs>

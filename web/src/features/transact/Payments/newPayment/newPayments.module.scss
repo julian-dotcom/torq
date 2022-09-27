@@ -21,6 +21,10 @@
     background-color: var(--color-baige-400);
     color: var(--content-default);
   }
+  &.errorDestination {
+    background-color: var(--color-red-300);
+    color: var(--color-red-700);
+  }
 }
 .destinationTextArea {
   border-radius: var(--radius-default);
@@ -30,6 +34,10 @@
   padding: 10px;
   overflow: hidden;
   margin-bottom: 24px;
+  outline: none !important;
+  &:focus {
+    border-color: var(--primary-500);
+  }
 }
 .amountWrapper {
   display: flex;
@@ -46,12 +54,15 @@
 }
 .amountInput {
   display: inline;
-  width: min-content;
+  width: 100%;
   text-align: center;
   font-size: 40px;
   margin: 8px auto 8px;
+  //padding: 8px 10px 8px;
+  border: solid 1px var(--content-subtle);
   &:focus {
     outline: none;
+    border-color: var(--primary-200);
   }
 }
 .label {
@@ -75,6 +86,7 @@
 }
 .customButtonWrapperStyles {
   margin-top: 24px;
+  margin-bottom: 16px;
 }
 .paymentResultIconWrapper {
   padding: 8px;
@@ -109,6 +121,12 @@
 .failed {
   background-color: var(--color-red-300);
   color: var(--color-red-500);
+}
+.paymentStatusMessage {
+  font-size: var(--font-size-M);
+  text-align: center;
+  padding-top: 16px;
+  padding-bottom: 16px;
 }
 //.successfulPaymentIcon {
 //  font-size: 124px;

@@ -44,6 +44,7 @@ export type NewPaymentResponse = {
   amountMsat: number;
   feeLimitMsat: number;
   creationDate: Date;
+  failureReason: string;
   attempt: attempt;
 };
 

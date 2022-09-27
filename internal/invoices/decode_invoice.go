@@ -11,7 +11,6 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/lncapital/torq/pkg/server_errors"
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"strings"
@@ -162,12 +161,14 @@ func decodeInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 
 	if err != nil {
 		fmt.Println(err)
-		if strings.Contains(err.Error(), "unable to decode payment request") {
-			errResponse := server_errors.SingleFieldError("invoice", "Unable to decode invoice")
-			c.JSON(http.StatusBadRequest, errResponse)
+
+		if strings.Contains(err.Error(), "checksum failed") {
+			//errResponse := server_errors.SingleFieldError("invoice", "CHECKSUM_FAILED")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "CHECKSUM_FAILED"})
 			return
 		}
-		server_errors.WrapLogAndSendServerError(c, err, "could not decode invoice")
+		//server_errors.WrapLogAndSendServerError(c, err, "could not decode invoice")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "COULD_NOT_DECODE_INVOICE"})
 		return
 	}
 

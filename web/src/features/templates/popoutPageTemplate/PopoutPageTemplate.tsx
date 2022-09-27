@@ -20,8 +20,8 @@ const PopoutPageTemplate = (props: PopoutPageTemplateProps) => {
     e.preventDefault();
   };
   return (
-    <div className={classNames(styles.modal, { [styles.show]: props.show })} onClick={handleClose}>
-      <div className={styles.modalBackdrop} />
+    <div className={classNames(styles.modal, { [styles.show]: props.show })}>
+      <div className={styles.modalBackdrop} onClick={handleClose} />
 
       <div className={styles.popoutWrapper} onClick={ignore}>
         <div className={styles.header}>
