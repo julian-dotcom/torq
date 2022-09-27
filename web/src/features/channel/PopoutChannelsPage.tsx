@@ -11,9 +11,9 @@ type PopoutChannelsPageProps = {
 function PopoutChannelsPage(props: PopoutChannelsPageProps) {
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
 
-  let handleAdvancedToggle = () => {
-    setExpandAdvancedOptions(!expandAdvancedOptions);
-  };
+  // const handleAdvancedToggle = () => {
+  //   setExpandAdvancedOptions(!expandAdvancedOptions);
+  // };
 
   return (
     <PopoutPageTemplate
