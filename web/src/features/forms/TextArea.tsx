@@ -3,31 +3,34 @@ import React from "react";
 
 interface textInputProps {
   label?: string;
-  value?: string | number;
+  value?: string;
   placeholder?: string;
-  inputType?: "text" | "number" | "email" | "password" | "search";
-  onChange?: (value: string | number) => void;
+  className?: string;
+  onChange?: (value: string) => void;
 }
-function TextInput({ label, value, placeholder, inputType, onChange }: textInputProps) {
-  const [localValue, setLocalValue] = React.useState<string | number | undefined>("");
+function TextArea(props: textInputProps) {
+  const [localValue, setLocalValue] = React.useState("" as string | undefined);
   React.useEffect(() => {
-    if (value === undefined) {
+    if (props.value === undefined) {
       return;
     }
-    setLocalValue(value);
-  }, [value]);
+    setLocalValue(props.value);
+  }, [props.value]);
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     setLocalValue(e.target.value);
-    onChange && onChange(e.target.value);
+    props.onChange && props.onChange(e.target.value);
   };
+  const inputId = "input-" + Math.random().toString(36).substr(2, 9);
+
   return (
     <div style={{ marginBottom: "var(--form-margin-bottom)" }}>
       <div style={{ marginBottom: "var(--form-label-margin-bottom)" }}>
-        <span>{label}</span>
+        <label htmlFor={inputId}>{props.label}</label>
       </div>
-      <input
-        type={inputType}
-        placeholder={placeholder}
+      <textarea
+        id={inputId}
+        name={inputId}
+        placeholder={props.placeholder}
         className={styles.textInput}
         value={localValue}
         onChange={handleChange}
@@ -35,4 +38,4 @@ function TextInput({ label, value, placeholder, inputType, onChange }: textInput
     </div>
   );
 }
-export default TextInput;
+export default TextArea;
