@@ -1,5 +1,3 @@
-import "react-date-range/dist/styles.css";
-import "react-date-range/dist/theme/default.css";
 import "./interval_select.scss";
 import React, { useState } from "react";
 import { format, startOfDay, addDays, subDays, differenceInDays } from "date-fns";
