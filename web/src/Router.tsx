@@ -3,28 +3,24 @@ import { RouteObject, useRoutes } from "react-router";
 import { useNavigate } from "react-router-dom";
 import { Cookies } from "react-cookie";
 
-
-import * as routes from './constants/routes';
-import { useLogoutMutation } from "apiSlice";
+import RequireAuth from "./RequireAuth";
+import { useLogoutMutation } from "./apiSlice";
 
 import LoginLayout from "./layout/LoginLayout";
 import DefaultLayout from "./layout/DefaultLayout";
 
 import LoginPage from "./features/auth/LoginPage";
 import DashboardPage from "./features/channel/DashboardPage";
-
 import ForwardsPage from "./features/forwards/ForwardsPage";
 import ChannelPage from "./features/channel/ChannelPage";
-
-import PaymentsPage from "features/transact/Payments/PaymentsPage";
-import InvoicesPage from "features/transact/Invoices/InvoicesPage";
-import OnChainPage from "features/transact/OnChain/OnChainPage";
+import PaymentsPage from "./features/transact/Payments/PaymentsPage";
+import InvoicesPage from "./features/transact/Invoices/InvoicesPage";
+import OnChainPage from "./features/transact/OnChain/OnChainPage";
 import AllTxPage from "./features/transact/AllTxPage";
-
 import SettingsPage from "./features/settings/SettingsPage";
-
 import NoMatch from "./features/no_match/NoMatch";
-import RequireAuth from "RequireAuth";
+
+import * as routes from './constants/routes';
 
 function Logout() {
   const [logout] = useLogoutMutation();
