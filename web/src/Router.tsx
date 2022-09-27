@@ -51,28 +51,31 @@ const publicRoutes: RouteObject = {
 const authenticatedRoutes: RouteObject = {
   element: <DefaultLayout />,
   children: [
-    { element: <RequireAuth />, children: [
-      { path: routes.ROOT, element: <DashboardPage /> },
-      {
-        path: routes.ANALYSE,
-        children: [
-          { path: routes.FORWARDS, element: <ForwardsPage /> },
-          { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
-          { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
-        ],
-      },
-      {
-        path: routes.TRANSACTIONS,
-        children: [
-          { path: routes.PAYMENTS, element: <PaymentsPage /> },
-          { path: routes.INVOICES, element: <InvoicesPage /> },
-          { path: routes.ONCHAIN, element: <OnChainPage /> },
-          { path: routes.ALL, element: <AllTxPage /> },
-        ],
-      },
-      { path: routes.SETTINGS, element: <SettingsPage /> },
-      { path: '*', element: <NoMatch /> }
-    ]}
+    {
+      element: <RequireAuth />,
+      children: [
+        { path: routes.ROOT, element: <DashboardPage /> },
+        {
+          path: routes.ANALYSE,
+          children: [
+            { path: routes.FORWARDS, element: <ForwardsPage /> },
+            { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
+            { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
+          ],
+        },
+        {
+          path: routes.TRANSACTIONS,
+          children: [
+            { path: routes.PAYMENTS, element: <PaymentsPage /> },
+            { path: routes.INVOICES, element: <InvoicesPage /> },
+            { path: routes.ONCHAIN, element: <OnChainPage /> },
+            { path: routes.ALL, element: <AllTxPage /> },
+          ],
+        },
+        { path: routes.SETTINGS, element: <SettingsPage /> },
+        { path: '*', element: <NoMatch /> }
+      ]
+    }
   ],
 };
 
