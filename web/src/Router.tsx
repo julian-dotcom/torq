@@ -54,7 +54,7 @@ const authenticatedRoutes: RouteObject = {
     { element: <RequireAuth />, children: [
       { path: routes.ROOT, element: <DashboardPage /> },
       {
-        path: routes.ANALYZE,
+        path: routes.ANALYSE,
         children: [
           { path: routes.FORWARDS, element: <ForwardsPage /> },
           { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },

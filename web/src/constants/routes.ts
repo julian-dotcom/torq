@@ -3,7 +3,7 @@ export const ROOT = '/';
 export const LOGIN = 'login';
 export const LOGOUT = 'logout';
 
-export const ANALYZE = 'analyze';
+export const ANALYSE = 'analyse';
 export const FORWARDS = 'forwards';
 export const FORWARDS_CUSTOM_VIEW = `${FORWARDS}/:viewId`;
 export const INSPECT_CHANNEL = 'inspect/:chanId';
