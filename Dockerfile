@@ -1,6 +1,5 @@
 # build stage
 FROM golang:buster as backend-builder
-RUN apk --no-cache add ca-certificates
 ENV GO111MODULE=on
 WORKDIR /app
 COPY go.mod .
