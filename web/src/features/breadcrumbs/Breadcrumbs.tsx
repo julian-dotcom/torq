@@ -1,6 +1,5 @@
 import React from "react";
 import styles from "./breadcrumbs.module.scss";
-import TableControls from "../sidebar/sections/TableControls";
 
 type BreadcrumbsProps = {
   breadcrumbs: Array<string | React.ReactChildren>;
@@ -14,8 +13,10 @@ function Breadcrumbs(props: BreadcrumbsProps) {
         const isLast = i === totalLength;
         return (
           <span key={i + "-breadcrumb"}>
-            {breadcrumb}
-            {!isLast && <span className={styles.breadcrumbSeparator}> / </span>}
+            <>
+              {breadcrumb}
+              {!isLast && <span className={styles.breadcrumbSeparator}> / </span>}
+            </>
           </span>
         );
       })}

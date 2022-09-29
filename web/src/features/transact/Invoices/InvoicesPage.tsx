@@ -7,7 +7,7 @@ import {
   ColumnTriple20Regular as ColumnsIcon,
   Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
-import Sidebar, { SidebarSection } from "features/sidebar/Sidebar";
+import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -19,7 +19,7 @@ import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import FilterSection from "../../sidebar/sections/filter/FilterSection";
-import { Clause, deserialiseQuery, FilterClause, FilterInterface } from "../../sidebar/sections/filter/filter";
+import { Clause, deserialiseQuery, FilterInterface } from "../../sidebar/sections/filter/filter";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import {
   selectActiveColumns,
@@ -31,6 +31,7 @@ import {
 import { FilterCategoryType } from "../../sidebar/sections/filter/filter";
 import ColumnsSection from "../../sidebar/sections/columns/ColumnsSection";
 import clone from "../../../clone";
+import { SectionContainer } from "../../section/SectionContainer";
 
 type sections = {
   filter: boolean;
@@ -81,17 +82,6 @@ function InvoicesPage() {
       };
     });
   }
-
-  const columns = activeColumns.map((column: ColumnMetaData, index: number) => {
-    if (column.type === "number") {
-      return {
-        ...column,
-        max: Math.max(column.max ?? 0, data[column.key].max ?? 0),
-      };
-    } else {
-      return column;
-    }
-  });
 
   // General logic for toggling the sidebar sections
   const initialSectionState: sections = {
@@ -183,15 +173,15 @@ function InvoicesPage() {
 
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
-      <SidebarSection
+      <SectionContainer
         title={"Columns"}
         icon={ColumnsIcon}
         expanded={activeSidebarSections.columns}
         handleToggle={sidebarSectionHandler("columns")}
       >
         <ColumnsSection columns={allColumns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
-      </SidebarSection>
-      <SidebarSection
+      </SectionContainer>
+      <SectionContainer
         title={"Filter"}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
@@ -203,19 +193,24 @@ function InvoicesPage() {
           filterUpdateHandler={handleFilterUpdate}
           defaultFilter={defaultFilter}
         />
-      </SidebarSection>
-      <SidebarSection
+      </SectionContainer>
+      <SectionContainer
         title={"Sort"}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}
         handleToggle={sidebarSectionHandler("sort")}
       >
         <SortSection columns={sortableColumns} orderBy={orderBy} updateHandler={handleSortUpdate} />
-      </SidebarSection>
+      </SectionContainer>
     </Sidebar>
   );
 
-  const breadcrumbs = ["Transactions", <Link to={"/transactions/invoices"}>Invoices</Link>];
+  const breadcrumbs = [
+    <span key="b1">Transactions</span>,
+    <Link key="b2" to={"/transactions/invoices"}>
+      Invoices
+    </Link>,
+  ];
   const pagination = (
     <Pagination
       limit={limit}

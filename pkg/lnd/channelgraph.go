@@ -10,6 +10,7 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
 	"time"
 )
@@ -20,7 +21,7 @@ type subscribeChannelGrpahClient interface {
 }
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
-func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB) error {
+func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB, ourNodePubKeys []string) error {
 
 	req := lnrpc.GraphTopologySubscription{}
 	stream, err := client.SubscribeChannelGraph(ctx, &req)
@@ -60,12 +61,12 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			continue
 		}
 
-		err = processNodeUpdates(gpu.NodeUpdates, db)
+		err = processNodeUpdates(gpu.NodeUpdates, db, ourNodePubKeys)
 		if err != nil {
 			return errors.Wrap(err, "Process node updates")
 		}
 
-		err = processChannelUpdates(gpu.ChannelUpdates, db)
+		err = processChannelUpdates(gpu.ChannelUpdates, db, ourNodePubKeys)
 		if err != nil {
 			return errors.Wrap(err, "Process channel updates")
 		}
@@ -75,11 +76,11 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	return nil
 }
 
-func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB) error {
+func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, ourNodePubKeys []string) error {
 
 	for _, nu := range nus {
 		// Check if this node update is relevant to a node we have or have had a channel with
-		relevant, _ := isRelevantOrOurNode(nu.IdentityKey)
+		relevant, _ := isRelevantOrOurNode(nu.IdentityKey, ourNodePubKeys)
 
 		if relevant {
 			ts := time.Now().UTC()
@@ -96,14 +97,14 @@ func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB) error {
 	return nil
 }
 
-func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
+func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB, ourNodePubKeys []string) error {
 	for _, cu := range cus {
 		// Check if this channel update is relevant to one of our channels
 		// And if one of our nodes is advertising the channel update (meaning
 		// we have changed our the channel policy).
-		ourNode := isOurNode(cu.AdvertisingNode)
+		ourNode := slices.Contains(ourNodePubKeys, cu.AdvertisingNode)
 
-		chanPoint, err := getChanPoint(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+		chanPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 		if err != nil {
 			return errors.Wrapf(err, "SubscribeChannelEvents ->getChanPoint(%b, %d)",
 				cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
@@ -164,7 +165,7 @@ WHERE NOT EXISTS (
 
 func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.ChannelEdgeUpdate) error {
 
-	cp, err := getChanPoint(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+	cp, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 	if err != nil {
 		return errors.Wrapf(err, "insertRoutingPolicy -> getChanPoint(%v, %d)",
 			cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
@@ -225,9 +226,36 @@ func insertNodeEvent(db *sqlx.DB, ts time.Time, pubKey string, alias string, col
 	return nil
 }
 
-var chanPointList []string
+func AddOpenChanPoint(chanPoint string)      { addOpenChanPointChan <- chanPoint }
+func RemoveClosedChanPoint(chanPoint string) { removeClosedChanPointChan <- chanPoint }
+func GetOpenChanPoints() []string            { return <-getOpenChanPointsChan }
 
-func InitChanIdList(db *sqlx.DB) error {
+var addOpenChanPointChan = make(chan string)
+var removeClosedChanPointChan = make(chan string)
+var getOpenChanPointsChan = make(chan []string)
+
+func OpenChanPointListMonitor(ctx context.Context) {
+	var openChanPointList []string
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug().Msg("Chan point list monitor is closing")
+			return
+		case chanPoint := <-addOpenChanPointChan:
+			if !slices.Contains(openChanPointList, chanPoint) {
+				openChanPointList = append(openChanPointList, chanPoint)
+			}
+		case chanPoint := <-removeClosedChanPointChan:
+			index := slices.Index(openChanPointList, chanPoint)
+			if index != -1 {
+				openChanPointList = append(openChanPointList[:index], openChanPointList[index+1:]...)
+			}
+		case getOpenChanPointsChan <- openChanPointList:
+		}
+	}
+}
+
+func InitChanPointList(db *sqlx.DB) error {
 	q := `
 		select array_agg(lnd_channel_point) as lnd_channel_point from (
 			select
@@ -239,36 +267,16 @@ func InitChanIdList(db *sqlx.DB) error {
 		) as t
 		where t.event_type = 0;`
 
+	var chanPointList []string
 	err := db.QueryRowx(q).Scan(pq.Array(&chanPointList))
 	if err != nil {
-		return errors.Wrapf(err, "InitChanIdList -> db.QueryRow(%s).Scan(pq.Array(%v))", q, chanPointList)
+		return errors.Wrap(err, "Query row into chanPointList")
+	}
+	for _, chanPoint := range chanPointList {
+		AddOpenChanPoint(chanPoint)
 	}
 
 	return nil
-}
-
-func UpdateChanIdList(c chan string) {
-
-	var chanPoint string
-
-waitForUpdate:
-	for {
-		// Wait for new peers to enter
-		chanPoint = <-c
-
-		// Remove chanPoint to the list, if it's already present.
-		// continue the outer loop and wait for new update
-		for i, cp := range chanPointList {
-			if cp == chanPoint {
-				chanPointList = append(chanPointList[:i], chanPointList[i+1:]...)
-				continue waitForUpdate
-			}
-		}
-
-		// If not present add it to the chanID list
-		chanPointList = append(chanPointList, chanPoint)
-
-	}
 }
 
 func addMissingLocalPubkey(ctx context.Context, client lnrpc.LightningClient, grpcAddress string,
@@ -300,88 +308,86 @@ func addMissingLocalPubkey(ctx context.Context, client lnrpc.LightningClient, gr
 	return &ni.IdentityPubkey, nil
 }
 
-var ourNodePubKeys []string
-
-func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
+func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) (ourNodePubKeys []string, err error) {
 
 	var pubKey *string
-	var grpcAddress string
+	var grpcAddress *string
 
 	q := `select grpc_address, pub_key from local_node;`
 	r, err := db.Query(q)
 
+	ourNodePubKeys = []string{}
 	for r.Next() {
-		err := r.Scan(&grpcAddress, &pubKey)
+		err = r.Scan(&grpcAddress, &pubKey)
 		if err != nil {
-			return errors.Wrapf(err, "r.Scan(&grpcAddress, &pubKey)")
+			return []string{}, errors.Wrapf(err, "Reading grpc_address and pub_key from db")
 		}
 
+		if grpcAddress == nil || *grpcAddress == "" {
+			continue
+		}
 		// If the pub key is missing from the local_node table, add it.
 		if pubKey == nil || len(*pubKey) == 0 {
-			pubKey, err = addMissingLocalPubkey(ctx, client, grpcAddress, db)
+			pubKey, err = addMissingLocalPubkey(ctx, client, *grpcAddress, db)
 			if err != nil {
-				return errors.Wrapf(err, "addMissingLocalPubkey(ctx, client, grpcAddress, db)")
+				return []string{}, errors.Wrapf(err, "addMissingLocalPubkey(ctx, client, grpcAddress, db)")
 			}
 		}
 		ourNodePubKeys = append(ourNodePubKeys, *pubKey)
 	}
 	if err != nil {
-		return errors.Wrapf(err, "db.Query(%s)", q)
+		return []string{}, errors.Wrapf(err, "db.Query(%s)", q)
 	}
 
-	return nil
+	return ourNodePubKeys, nil
 }
-
-// pubKeyList is used to store which node and channel updates to store. We only want to store
-// updates that are relevant to our channels and their nodes.
-var pubKeyList []string
 
 // InitPeerList fetches all public keys from the list of all channels. This is used to
 // filter out noise from the graph updates.
 func InitPeerList(db *sqlx.DB) error {
 	q := `select array_agg(distinct pub_key) as all_nodes from channel_event where event_type in (0, 1);`
-	err := db.QueryRow(q).Scan(pq.Array(&pubKeyList))
+	var peerPubKeyList []string
+	err := db.QueryRow(q).Scan(pq.Array(&peerPubKeyList))
 	if err != nil {
-		return errors.Wrapf(err, "InitPeerList -> db.QueryRow(%s).Scan(pq.Array(%v))", q, pubKeyList)
+		return errors.Wrap(err, "Selecting distinct pub keys from channel_event table")
+	}
+	for _, peerPubKey := range peerPubKeyList {
+		AddPeerPubKey(peerPubKey)
 	}
 
 	return nil
 }
 
-// UpdatePeerList is meant to run as a gorouting. It adds new public keys to the pubKeyList
-// and removes existing ones.
-func UpdatePeerList(c chan string) {
+func AddPeerPubKey(pubKey string) { addPeerPubKeyChan <- pubKey }
+func GetPeerPubKeys() []string    { return <-getPeerPubKeysChan }
 
-	var pubKey string
-	var present bool
+var addPeerPubKeyChan = make(chan string)
+var getPeerPubKeysChan = make(chan []string)
 
+func PeerPubKeyListMonitor(ctx context.Context) {
+	// pubKeyList is used to store which node and channel updates to store. We only want to store
+	// updates that are relevant to our channels and their nodes.
+	var pubKeyList []string
 	for {
-		// Wait for new peers to enter
-		pubKey = <-c
-		// Add it to the peer list, if not already present.
-		for _, p := range pubKeyList {
-			if p == pubKey {
-				present = true
-				break
+		select {
+		case <-ctx.Done():
+			log.Debug().Msg("Peer pub key list monitor is closing")
+			return
+		case pubKey := <-addPeerPubKeyChan:
+			if !slices.Contains(pubKeyList, pubKey) {
+				pubKeyList = append(pubKeyList, pubKey)
 			}
+		case getPeerPubKeysChan <- pubKeyList:
 		}
-
-		// If not present add it to the public key  list
-		if present == false {
-			pubKeyList = append(pubKeyList, pubKey)
-		}
-
-		// Reset to false in order to allow the next public key to be added.
-		present = false
 	}
 }
 
 // isRelevantOrOurNode is used to check if any public key is in the pubKeyList.
 // The first boolean returned indicate if the key is relevant, the second boolean
 // indicates that it is one of our own nodes.
-func isRelevantOrOurNode(pubKey string) (bool, bool) {
+func isRelevantOrOurNode(pubKey string, ourNodePubKeys []string) (bool, bool) {
 
-	if isOurNode(pubKey) {
+	if slices.Contains(ourNodePubKeys, pubKey) {
 		// Is relevant (first boolean), _and_ our node (second boolean).
 		return true, true
 	}
@@ -395,8 +401,8 @@ func isRelevantOrOurNode(pubKey string) (bool, bool) {
 }
 
 func isRelevantChannel(chanPoint string) bool {
-	for _, cid := range chanPointList {
-		if cid == chanPoint {
+	for _, c := range GetOpenChanPoints() {
+		if c == chanPoint {
 			return true
 		}
 	}
@@ -406,7 +412,7 @@ func isRelevantChannel(chanPoint string) bool {
 // isRelevant is used to check if any public key is in the pubKeyList.
 func isRelevant(pubKey string) bool {
 
-	for _, p := range pubKeyList {
+	for _, p := range GetPeerPubKeys() {
 
 		// Check if any of the provided public keys equals the current public key.
 		if p == pubKey {
@@ -416,20 +422,5 @@ func isRelevant(pubKey string) bool {
 
 	}
 
-	return false
-}
-
-// isOurNode is used to check if the public key is from one of our own nodes.
-func isOurNode(pubKey string) bool {
-
-	for _, p := range ourNodePubKeys {
-
-		// Check if the public key belongs to one of our nodes.
-		if p == pubKey {
-			// If found, no reason to search further, immediately return true, and true
-			return true
-		}
-
-	}
 	return false
 }

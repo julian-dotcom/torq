@@ -71,6 +71,7 @@ SELECT
   grpc_address,
   tls_file_name,
   macaroon_file_name,
+  pub_key,
   disabled,
   deleted
 FROM local_node
@@ -91,7 +92,8 @@ SELECT
   local_node_id,
   grpc_address,
   tls_data,
-  macaroon_data
+  macaroon_data,
+  pub_key
 FROM local_node
 WHERE deleted = False AND disabled = False
 ORDER BY local_node_id asc;`)
@@ -100,6 +102,25 @@ ORDER BY local_node_id asc;`)
 			return []localNode{}, nil
 		}
 		return []localNode{}, errors.Wrap(err, "Unable to execute SQL query")
+	}
+	return localNodeData, nil
+}
+
+func getLocalNodeConnectionDetailsById(db *sqlx.DB, localNodeId int) (localNodeData localNode, err error) {
+	err = db.Get(&localNodeData, `
+SELECT
+  local_node_id,
+  grpc_address,
+  tls_data,
+  macaroon_data,
+  pub_key
+FROM local_node
+WHERE local_node_id = $1;`, localNodeId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return localNode{}, nil
+		}
+		return localNode{}, errors.Wrap(err, "Unable to execute SQL query")
 	}
 	return localNodeData, nil
 }

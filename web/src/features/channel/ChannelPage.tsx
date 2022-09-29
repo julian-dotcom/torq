@@ -8,9 +8,9 @@ import ProfitsChart from "./revenueChart/ProfitsChart";
 import EventsChart from "./eventsChart/EventsChart";
 import EventsCard from "../eventsCard/EventsCard";
 import Switch from "../inputs/Slider/Switch";
-import Button, { buttonVariants } from "../buttons/Button";
+import Button, { buttonColor, buttonSize } from "../buttons/Button";
 import Select from "../inputs/Select";
-import { Iot20Regular as ChannelIcon, Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
+import { Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
 import FlowChart from "./flowChart/FlowChart";
 import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
@@ -42,13 +42,17 @@ const eventNames = new Map([
   ["disabled", "Disabled"],
 ]);
 
-function ChannelPage() {
+type ChannelPageProps = {
+  chanId?: string;
+};
+
+function ChannelPage(props: ChannelPageProps) {
   const currentPeriod = useAppSelector(selectTimeInterval);
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
-  let [allToggle, setAllToggle] = React.useState(true);
-  let [selectedEvents, setSelectedEvents] = React.useState(
+  const [allToggle, setAllToggle] = React.useState(true);
+  const [selectedEvents, setSelectedEvents] = React.useState(
     new Map<string, boolean>([
       ["fee_rate", true],
       ["base_fee", true],
@@ -64,7 +68,7 @@ function ChannelPage() {
     };
   };
 
-  let { chanId } = useParams();
+  const { chanId } = useParams();
   const { data, isLoading } = useGetFlowQuery({
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
@@ -84,7 +88,7 @@ function ChannelPage() {
     balanceChanId = { value: 0, label: historyQuery?.data?.channel_balance[0]?.LNDShortChannelId || "" };
   }
 
-  let total_capacity: number = 0;
+  let total_capacity = 0;
   if (historyQuery?.data?.channels) {
     total_capacity = historyQuery.data.channels
       .map((d: { capacity: number }) => {
@@ -115,7 +119,13 @@ function ChannelPage() {
       return { value: i, label: d.ChanId };
     });
   }
-  const breadcrumbs = ["Analyse", "Inspect", <Link to={`/analyse/inspect/${chanId}`}>{chanId}</Link>];
+  const breadcrumbs = [
+    <span key="b1">&quot;Analyse&quot;</span>,
+    <span key="b2">&quot;Inspect&quot;</span>,
+    <Link key="b3" to={`/analyse/inspect/${chanId}`}>
+      {chanId}
+    </Link>,
+  ];
   return (
     <DetailsPageTemplate title={title} titleContent={<TimeIntervalSelect />} breadcrumbs={breadcrumbs}>
       <div className={styles.channelWrapper}>
@@ -361,7 +371,8 @@ function ChannelPage() {
                 <Popover
                   button={
                     <Button
-                      variant={buttonVariants.ghost}
+                      buttonColor={buttonColor.ghost}
+                      buttonSize={buttonSize.small}
                       isOpen={selectedEventsCount > 0}
                       text={`${selectedEventsCount}`}
                       icon={<EventFlagIcon />}

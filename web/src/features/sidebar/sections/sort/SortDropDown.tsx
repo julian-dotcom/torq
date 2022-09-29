@@ -8,31 +8,32 @@ const customStyles = {
   indicatorSeparator: () => {
     return {};
   },
-  input: (provided: any, state: any) => ({
+  input: (provided: any, _: any) => ({
     ...provided,
     borderRadius: "0px",
     padding: "0",
     margin: "0",
   }),
-  valueContainer: (provided: any, state: any) => ({
+  valueContainer: (provided: any, _: any) => ({
     ...provided,
     paddingLeft: "4px",
     borderRadius: "0px",
+    color: "var(--secondary-1-600)",
   }),
-  dropdownIndicator: (provided: any, state: any) => ({
+  dropdownIndicator: (provided: any, _: any) => ({
     ...provided,
-    color: "var(--secondary-1-500)",
+    color: "var(--secondary-1-600)",
     borderRadius: "0px",
     // padding: "0",
   }),
-  container: (provided: any, state: any) => ({
+  container: (provided: any, _: any) => ({
     ...provided,
     borderRadius: "0px",
     "&:hover": {
       borderRadius: "0px",
     },
   }),
-  control: (provided: any, state: any) => ({
+  control: (provided: any, _: any) => ({
     ...provided,
     border: "0px solid transparent",
     borderRadius: "0px",
@@ -48,6 +49,8 @@ const customStyles = {
   }),
   singleValue: (provided: any) => ({
     ...provided,
+
+    color: "var(--secondary-1-600)",
     // fontSize: "var(--font-size-small)",
   }),
   option: (provided: any, state: any) => ({
@@ -62,7 +65,7 @@ const customStyles = {
     },
     // fontSize: "var(--font-size-small)",
   }),
-  menuList: (provided: any, state: any) => ({
+  menuList: (provided: any, _: any) => ({
     ...provided,
     // background: "",
     border: "1px solid var(--secondary-1-150)",
@@ -70,14 +73,10 @@ const customStyles = {
     borderRadius: "2px",
     // background: "var(--secondary-1-500)",
   }),
-  menu: (provided: any, state: any) => ({
+  menu: (provided: any, _: any) => ({
     ...provided,
     boxShadow: "none",
   }),
-};
-
-type TorqSelectProps = Props & {
-  styles?: any;
 };
 
 export default function TorqSelect(props: Props) {

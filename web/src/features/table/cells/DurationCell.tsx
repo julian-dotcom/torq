@@ -2,7 +2,7 @@ import styles from "./cell.module.scss";
 import React from "react";
 import { format } from "d3";
 import { formatDuration, intervalToDuration } from "date-fns";
-const classNames = require("classnames");
+import classNames from "classnames";
 
 interface DurationCellProps {
   seconds: number;

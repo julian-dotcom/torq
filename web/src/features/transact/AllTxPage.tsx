@@ -1,15 +1,11 @@
-import styles from "../table/table-page.module.scss";
-import TableControls from "../sidebar/sections/TableControls";
-import Table from "../table/Table";
 import { useGetTableViewsQuery } from "apiSlice";
 import { Link } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
-  ArrowJoin20Regular as GroupIcon,
 } from "@fluentui/react-icons";
-import Sidebar, { SidebarSection } from "../sidebar/Sidebar";
+import Sidebar from "../sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -17,6 +13,7 @@ import TablePageTemplate, {
 } from "../templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TransactTabs from "./TransactTabs";
+import { SectionContainer } from "../section/SectionContainer";
 
 type sections = {
   filter: boolean;
@@ -91,34 +88,39 @@ function AllTxPage() {
 
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
-      <SidebarSection
+      <SectionContainer
         title={"Columns"}
         icon={ColumnsIcon}
         expanded={activeSidebarSections.columns}
         handleToggle={sidebarSectionHandler("columns")}
       >
         {"Something"}
-      </SidebarSection>
-      <SidebarSection
+      </SectionContainer>
+      <SectionContainer
         title={"Filter"}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
         handleToggle={sidebarSectionHandler("filter")}
       >
         {"Something"}
-      </SidebarSection>
-      <SidebarSection
+      </SectionContainer>
+      <SectionContainer
         title={"Sort"}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}
         handleToggle={sidebarSectionHandler("sort")}
       >
         {"Something"}
-      </SidebarSection>
+      </SectionContainer>
     </Sidebar>
   );
 
-  const breadcrumbs = ["Transactions", <Link to={"/transactions/all"}>All</Link>];
+  const breadcrumbs = [
+    <span key="b1">Transactions</span>,
+    <Link key="b2" to={"/transactions/all"}>
+      All
+    </Link>,
+  ];
   return (
     <TablePageTemplate
       title={"All Transactions"}

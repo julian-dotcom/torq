@@ -3,13 +3,15 @@ package lnd
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"time"
 )
 
 // For importing the latest routing policy at startup.
@@ -87,7 +89,7 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]lnrpc.ChannelE
 }
 
 // ImportRoutingPolicies imports routing policy information about all open channels if they don't already have
-func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB) error {
+func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePubKeys []string) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)
@@ -124,7 +126,7 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB) error {
 		for _, cu := range ceu {
 
 			ts = time.Now().UTC()
-			outbound = isOurNode(cu.AdvertisingNode)
+			outbound = slices.Contains(ourNodePubKeys, cu.AdvertisingNode)
 
 			err := insertRoutingPolicy(db, ts, outbound, &cu)
 			if err != nil {

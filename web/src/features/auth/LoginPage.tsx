@@ -1,9 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { ReactComponent as TorqLogo } from "../../icons/torq-logo.svg";
 import { LockOpen20Regular as UnlockIcon } from "@fluentui/react-icons";
 import "./login_page.scss";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Cookies } from "react-cookie";
 import { useLoginMutation } from "apiSlice";
 
 function LoginPage() {
@@ -19,17 +18,9 @@ function LoginPage() {
 
   let from = (location.state as LocationState)?.from?.pathname || "/";
   // Don't redirect back to logout.
-  if (from === "/logout" || "/login" || "logout" || "login" || "" || "/") {
+  if (from === "/logout" || from === "/login" || from === "logout" || from === "login" || from === "" || from === "/") {
     from = "/";
   }
-
-  useEffect(() => {
-    let c = new Cookies();
-    const cookies = c.get("torq_session");
-    if (cookies !== undefined) {
-      navigate(from, { replace: true });
-    }
-  });
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

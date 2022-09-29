@@ -19,9 +19,9 @@ type barInputConfig = Partial<barsConfig> & Required<Pick<barsConfig, "id" | "ke
 
 export class BarPlot extends AbstractPlot {
   config: barsConfig;
-  legend: Selection<HTMLDivElement, {}, HTMLElement, any>;
-  legendTextBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
-  legendColorBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legend: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  legendTextBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  legendColorBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
   /**
    * Plots bars on a chart canvas. To use it add it to the plots map on the Chart instance.
    *
@@ -74,7 +74,7 @@ export class BarPlot extends AbstractPlot {
   }
 
   barWidth(): number {
-    return (this.chart.tickWidth());
+    return this.chart.tickWidth();
   }
 
   drawBar(context: CanvasRenderingContext2D, dataPoint: any, fillColor: string) {
@@ -97,7 +97,7 @@ export class BarPlot extends AbstractPlot {
     this.chart.data.forEach((data, i) => {
       this.chart.context.fillStyle = this.config.barColor;
 
-      let xIndex: number = -1;
+      let xIndex = -1;
       if (
         drawConfig?.xPosition &&
         addHours(this.chart.config.xScale.invert(drawConfig.xPosition), 12) > data.date &&
@@ -130,7 +130,7 @@ export class BarPlot extends AbstractPlot {
       );
     });
     this.chart.data.forEach((data, i) => {
-      let xIndex: number = -1;
+      let xIndex = -1;
       if (
         drawConfig?.xPosition &&
         addHours(this.chart.config.xScale.invert(drawConfig.xPosition), 12) > data.date &&

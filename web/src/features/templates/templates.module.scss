@@ -4,7 +4,6 @@
   grid-auto-flow: column;
   grid-template-columns: 50% 50%;
   justify-content: space-between;
-  grid-area: Controls;
   padding-bottom: 16px;
   align-items: end;
   @media only screen and (max-width: 900px) {
@@ -24,6 +23,8 @@
 .titleContainer {
   padding-top: 0.25em;
   line-height: 1em;
+  padding-bottom: 0.25em;
+  margin-bottom: -0.25em;
   font-size: var(--font-XXL-regular);
   text-overflow: ellipsis;
   overflow: hidden;

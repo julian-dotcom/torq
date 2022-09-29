@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createRef } from "react";
+import React, { useEffect } from "react";
 import styles from "./toast.module.css";
 import {
   ThumbLike20Regular as SuccessIcon,
@@ -27,7 +27,7 @@ export type addToastHandle = {
   addToast: (message: string, category: toastCategory) => void;
 };
 
-const Toasts = React.forwardRef((_, ref) => {
+const Toasts = React.forwardRef(function Toasts(_, ref) {
   const [toasts, setToasts] = React.useState([] as toast[]);
 
   React.useImperativeHandle(ref, () => ({

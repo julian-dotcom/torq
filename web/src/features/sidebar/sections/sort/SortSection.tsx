@@ -1,22 +1,17 @@
 import { memo, useMemo } from "react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import {
-  Delete16Regular as DismissIcon,
-  ReOrder16Regular as ReOrderIcon,
   AddSquare20Regular as AddIcon,
   ArrowSortDownLines16Regular as SortDescIcon,
+  Delete16Regular as DismissIcon,
+  ReOrder16Regular as ReOrderIcon,
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
 import { ColumnMetaData } from "features/table/Table";
-import Button, { buttonVariants } from "features/buttons/Button";
+import Button, { buttonColor, buttonSize } from "features/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
-
-interface sortDirectionOption {
-  value: string;
-  label: string;
-}
 
 export type OrderBy = {
   key: string;
@@ -32,13 +27,13 @@ type SortRowProps = {
   selected: OrderBy;
   options: Array<OrderByOption>;
   index: number;
-  handleUpdateSort: Function;
-  handleRemoveSort: Function;
+  handleUpdateSort: (update: OrderBy, index: number) => void;
+  handleRemoveSort: (index: number) => void;
 };
 
 const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort }: SortRowProps) => {
-  const handleColumn = (newValue: any, _: ActionMeta<unknown>) => {
-    handleUpdateSort({ key: newValue.value, direction: selected.direction }, index);
+  const handleColumn = (newValue: unknown, _: ActionMeta<unknown>) => {
+    handleUpdateSort({ key: (newValue as OrderByOption).value, direction: selected.direction }, index);
   };
   const updateDirection = (selected: OrderBy) => {
     handleUpdateSort(
@@ -99,9 +94,9 @@ type SortSectionProps = {
 };
 
 const SortSection = (props: SortSectionProps) => {
-  const [options, selected] = useMemo(() => {
-    let options: Array<OrderByOption> = [];
-    let selected: Array<OrderByOption> = [];
+  const [options, _] = useMemo(() => {
+    const options: Array<OrderByOption> = [];
+    const selected: Array<OrderByOption> = [];
 
     props.columns.slice().forEach((column: { key: string; heading: string }) => {
       options.push({
@@ -156,18 +151,14 @@ const SortSection = (props: SortSectionProps) => {
       return;
     }
 
-    let newSortsOrder = props.orderBy.slice();
+    const newSortsOrder = props.orderBy.slice();
     newSortsOrder.splice(source.index, 1);
     newSortsOrder.splice(destination.index, 0, props.orderBy[source.index]);
     props.updateHandler(newSortsOrder);
   };
 
   return (
-    <DragDropContext
-      // onDragStart={}
-      // onDragUpdate={}
-      onDragEnd={onDragEnd}
-    >
+    <DragDropContext onDragEnd={onDragEnd}>
       <div className={styles.sortPopoverContent}>
         {!props.orderBy.length && <div className={styles.noFilters}>Not sorted</div>}
 
@@ -196,8 +187,8 @@ const SortSection = (props: SortSectionProps) => {
 
         <div className={styles.buttonsRow}>
           <Button
-            variant={buttonVariants.ghost}
-            className={"small"}
+            buttonColor={buttonColor.ghost}
+            buttonSize={buttonSize.small}
             onClick={() => handleAddSort()}
             text={"Add"}
             icon={<AddIcon />}

@@ -1,7 +1,7 @@
 dbContainer = timescale/timescaledb:latest-pg14
 testDbPort = 5433
 backendTest = go test ./... -v -count=1
-frontendTest = cd web && npm i && npm test -- --watchAll=false
+frontendTest = cd web && npm i --legacy-peer-deps && npm test -- --watchAll=false
 stopDevDb = ($(MAKE) stop-dev-db && false)
 #Virtual Network - Frequency(every x seconds; default 1) of creating and paying invoices
 virtual_network_invoice_freq = 1
@@ -9,9 +9,10 @@ virtual_network_invoice_freq = 1
 virtual_network_send_coins_freq = 30
 #Virtual Network - Frequency(every x minutes; default 10) of opening and closing random channels
 virtual_network_open_close_chan_freq = 10
+lint = cd web && npm i --legacy-peer-deps && npm run lint
 
 .PHONY: test
-test: start-dev-db wait-db test-backend-with-db-stop test-frontend-with-db-stop stop-dev-db
+test: lint start-dev-db wait-db test-backend-with-db-stop test-frontend-with-db-stop stop-dev-db
 	@echo All tests pass!
 
 .PHONY: test-backend-with-db-stop
@@ -84,3 +85,7 @@ purge-dev-env:
 .PHONY: start-dev-flow
 start-dev-flow:
 	go run ./virtual_network/torq_vn flow --virtual_network_invoice_freq $(virtual_network_invoice_freq) --virtual_network_send_coins_freq $(virtual_network_send_coins_freq) --virtual_network_open_close_chan_freq $(virtual_network_open_close_chan_freq)
+
+.PHONY: lint
+lint:
+	$(lint)

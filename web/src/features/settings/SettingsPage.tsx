@@ -1,18 +1,16 @@
-import { Save20Regular as SaveIcon, AddSquare20Regular as AddIcon } from "@fluentui/react-icons";
+import { AddSquare20Regular as AddIcon, Save20Regular as SaveIcon } from "@fluentui/react-icons";
 import Page from "layout/Page";
 import Box from "./Box";
-import Button, { buttonVariants } from "features/buttons/Button";
+import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
 import style from "./settings.module.css";
 import Select, { SelectOption } from "../forms/Select";
-import SubmitButton from "../forms/SubmitButton";
 import React from "react";
 import { defaultStaticRangesFn } from "../timeIntervalSelect/customRanges";
-import { useGetSettingsQuery, useUpdateSettingsMutation, useGetTimeZonesQuery, useGetLocalNodesQuery } from "apiSlice";
-import { settings } from "apiTypes";
+import { useGetLocalNodesQuery, useGetSettingsQuery, useGetTimeZonesQuery, useUpdateSettingsMutation } from "apiSlice";
+import { localNode, settings } from "apiTypes";
 import { toastCategory } from "../toast/Toasts";
 import ToastContext from "../toast/context";
 import NodeSettings from "./NodeSettings";
-import { localNode } from "apiTypes";
 import Modal from "features/modal/Modal";
 
 function Settings() {
@@ -21,6 +19,7 @@ function Settings() {
   const { data: timeZones = [] } = useGetTimeZonesQuery();
   const [updateSettings] = useUpdateSettingsMutation();
   const toastRef = React.useContext(ToastContext);
+  const addNodeRef = React.useRef(null);
 
   const [showAddNodeState, setShowAddNodeState] = React.useState(false);
   const [settingsState, setSettingsState] = React.useState({} as settings);
@@ -85,6 +84,9 @@ function Settings() {
   };
 
   const handleNewNodeModalOnClose = () => {
+    if (addNodeRef.current) {
+      (addNodeRef.current as { clear: () => void }).clear();
+    }
     setShowAddNodeState(false);
   };
 
@@ -98,7 +100,7 @@ function Settings() {
         <div>
           <div className={style.center}>
             <div>
-              <strong>Date & time settings</strong>
+              <h3>Date & time settings</h3>
               <Box>
                 <form onSubmit={submitPreferences}>
                   <Select
@@ -121,25 +123,32 @@ function Settings() {
                     options={weekStartsOnOptions}
                     value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
                   />
-                  <SubmitButton>
-                    <React.Fragment>
-                      <SaveIcon />
-                      Save
-                    </React.Fragment>
-                  </SubmitButton>
+                  <Button
+                    type={"submit"}
+                    text={"Save"}
+                    icon={<SaveIcon />}
+                    buttonColor={buttonColor.green}
+                    buttonPosition={buttonPosition.fullWidth}
+                  />
                 </form>
               </Box>
             </div>
             <div>
-              <strong>Nodes</strong>
+              <h3>Nodes</h3>
               {localNodesState &&
                 localNodesState?.map((localNode) => (
                   <NodeSettings localNodeId={localNode.localNodeId} key={localNode.localNodeId ?? 0} collapsed={true} />
                 ))}
             </div>
-            <Button variant={buttonVariants.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" />
+            <Button buttonColor={buttonColor.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" />
             <Modal title={"Add Node"} show={showAddNodeState} onClose={handleNewNodeModalOnClose}>
-              <NodeSettings addMode={true} localNodeId={0} collapsed={false} onAddSuccess={handleOnAddSuccess} />
+              <NodeSettings
+                ref={addNodeRef}
+                addMode={true}
+                localNodeId={0}
+                collapsed={false}
+                onAddSuccess={handleOnAddSuccess}
+              />
             </Modal>
           </div>
         </div>

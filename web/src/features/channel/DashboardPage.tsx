@@ -23,7 +23,7 @@ function ChannelPage() {
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
 
-  let { chanId } = useParams();
+  const { chanId } = useParams();
   const { data, isLoading } = useGetFlowQuery({
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
@@ -43,7 +43,12 @@ function ChannelPage() {
 
   const totalCost: number = historyQuery?.data?.on_chain_cost + historyQuery?.data?.rebalancing_cost / 1000;
 
-  const breadcrumbs = ["Analyse", <Link to={"analyse"}>Summary</Link>];
+  const breadcrumbs = [
+    <span key="b1">&quot;Analyse&quot;</span>,
+    <Link key="b2" to={"analyse"}>
+      Summary
+    </Link>,
+  ];
   return (
     <DetailsPageTemplate title={"Forwards Summary"} titleContent={<TimeIntervalSelect />} breadcrumbs={breadcrumbs}>
       <div className={styles.channelWrapper}>

@@ -7,7 +7,7 @@ import classNames from "classnames";
 
 interface fileProps {
   label?: string;
-  onFileChange?: Function;
+  onFileChange?: (file: File | null) => void;
   fileName?: string;
 }
 function File({ label, onFileChange, fileName }: fileProps) {
@@ -22,7 +22,7 @@ function File({ label, onFileChange, fileName }: fileProps) {
 
   React.useEffect(() => {
     setMessage([
-      "Current file: " + fileName,
+      fileName ? "Current file: " + fileName : "",
       <br key="br1" />,
       <br key="br2" />,
       "To change, drop file or click to select",
@@ -34,7 +34,7 @@ function File({ label, onFileChange, fileName }: fileProps) {
     e.stopPropagation();
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     hiddenFileRef.current?.click();
   };
 

@@ -10,7 +10,7 @@
   padding: 8px 8px 8px 8px;
   //padding-right: 0.5em;
   border-right: 1px solid var(--secondary-1-150);
-  color: var(--secondary-1-500);
+  color: var(--secondary-1-600);
   &:hover {
     background-color: var(--secondary-1-100);
   }
@@ -65,7 +65,7 @@
 }
 .removeFilter {
   padding: 8px 8px;
-  color: var(--secondary-1-500);
+  color: var(--secondary-1-600);
   border-left: 1px solid var(--secondary-1-150);
   &:hover {
     background-color: var(--secondary-1-100);
@@ -142,7 +142,7 @@
 .childWrapper {
   border-radius: 2px;
   > .filterKeyLabel {
-    color: var(--secondary-1-500);
+    color: var(--secondary-1-600);
     //&:hover {
     //  background-color: var(--secondary-1-50);
     //}

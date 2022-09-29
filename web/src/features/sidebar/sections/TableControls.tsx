@@ -1,6 +1,6 @@
 import styles from "./table_controls.module.scss";
 import { Save20Regular as SaveIcon } from "@fluentui/react-icons";
-import Button, { buttonVariants } from "../../buttons/Button";
+import Button, { buttonColor, buttonSize } from "../../buttons/Button";
 import { useAppSelector } from "../../../store/hooks";
 import { selectCurrentView, selectedViewIndex } from "../../forwards/forwardsSlice";
 import { useUpdateTableViewMutation, useCreateTableViewMutation } from "apiSlice";
@@ -12,7 +12,7 @@ function TableControls() {
   const [updateTableView] = useUpdateTableViewMutation();
   const [createTableView] = useCreateTableViewMutation();
   const saveView = () => {
-    let viewMod = { ...currentView };
+    const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
       createTableView({ view: viewMod, index: currentViewIndex });
@@ -27,7 +27,8 @@ function TableControls() {
           <ViewsPopover />
           {!currentView.saved && (
             <Button
-              variant={buttonVariants.ghost}
+              buttonColor={buttonColor.ghost}
+              buttonSize={buttonSize.small}
               icon={<SaveIcon />}
               text={"Save"}
               onClick={saveView}

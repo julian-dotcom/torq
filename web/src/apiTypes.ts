@@ -1,5 +1,3 @@
-import { isStringLiteral } from "typescript";
-
 export interface settings {
   defaultDateRange: string;
   preferredTimezone: string;
@@ -15,9 +13,9 @@ export interface localNode {
   implementation: string;
   grpcAddress?: string;
   tlsFileName?: string;
-  tlsFile: File;
+  tlsFile: File | null;
   macaroonFileName?: string;
-  macaroonFile: File;
+  macaroonFile: File | null;
   createdOn?: Date;
   updatedOn?: Date;
   disabled: boolean;

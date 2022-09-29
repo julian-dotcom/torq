@@ -4,6 +4,7 @@ import styles from "./table-page-template.module.scss";
 import classNames from "classnames";
 import { FluentIconsProps } from "@fluentui/react-icons";
 import PageTitle from "features/templates/PageTitle";
+import Button, { buttonColor } from "../../buttons/Button";
 
 type TablePageTemplateProps = {
   title: string;
@@ -45,19 +46,20 @@ export default function TablePageTemplate(props: TablePageTemplateProps) {
 
 type TableControlsButtonProps = {
   icon: React.FC<FluentIconsProps>;
-  onClickHandler?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  onClickHandler?: () => void;
   active?: boolean;
 };
 
 export function TableControlsButton(props: TableControlsButtonProps) {
   return (
-    <div
-      className={classNames(styles.tableControlsButtonWrapper, { [styles.active]: props.active })}
-      onClick={props.onClickHandler}
-    >
-      <div className={styles.tableControlsButtonIcon}>
-        <props.icon />
-      </div>
+    <div className={classNames(styles.tableControlsButtonWrapper, { [styles.active]: props.active })}>
+      <Button
+        text={""}
+        className={styles.tableControlsButtonIcon}
+        onClick={props.onClickHandler}
+        buttonColor={buttonColor.subtle}
+        icon={<props.icon />}
+      />
       {/*<div className={styles.title}>{props.title}</div>*/}
     </div>
   );

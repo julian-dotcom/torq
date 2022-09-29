@@ -1,9 +1,7 @@
 import { LockClosed12Regular as LockIcon } from "@fluentui/react-icons";
-import { inspect } from "util";
 import styles from "./cell.module.scss";
 import React from "react";
-
-const classNames = require("classnames");
+import classNames from "classnames";
 
 interface headerCell {
   heading: string;

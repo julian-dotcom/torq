@@ -1,18 +1,16 @@
 .button {
   border-radius: 2px;
   display: flex;
+
   align-items: center;
   justify-content: center;
   column-gap: 5px;
-  padding: 14px 7px;
+  padding: 11px 14px 10px;
   cursor: pointer;
   border: 1px solid transparent;
   background-color: transparent;
   white-space: nowrap;
-
-  &.wide {
-    width: 100%;
-  }
+  text-align: center;
 
   &:disabled {
     opacity: 50%;
@@ -43,7 +41,12 @@
   &.ghost {
     background-color: transparent;
     color: var(--content-default);
-    padding: 0px 7px;
+    // hover / active and disabled needs designing
+  }
+  &.subtle {
+    background-color: var(--primary-50);
+    color: var(--content-default);
+    border-color: var(--primary-250);
     // hover / active and disabled needs designing
   }
   &.warning {
@@ -52,8 +55,9 @@
     // hover / active and disabled needs designing
   }
   &.green {
-    color: var(--color-white);
-    background-color: var(--color-green);
+    color: var(--secondary-2-700);
+    background-color: var(--secondary-2-50);
+    border-color: var(--secondary-2-350);
     // hover / active and disabled needs designing
   }
 
@@ -62,14 +66,14 @@
     border: 1px solid var(--accent1-400);
   }
 
-  &:global(.small),
-  &:global(.small) :global(.icon) {
-    font-size: var(--font-size-small);
-  }
+  //&:global(.small),
+  //&:global(.small) :global(.icon) {
+  //  font-size: var(--font-size-small);
+  //}
 
-  &:global(.small) {
-    padding: 2px 4px;
-  }
+  //&:global(.small) {
+  //  padding: 2px 4px;
+  //}
 
   &:global(.disabled) {
     color: var(--fg-muted);
@@ -92,6 +96,15 @@
     text-overflow: ellipsis;
   }
 }
+
+.positionCenter {
+  margin-left: auto;
+  margin-right: auto;
+}
+.positionFullWidth {
+  width: 100%;
+}
+
 @media only screen and (max-width: 1000px) {
   .button:global(.small-tablet),
   .button:global(.small-tablet .icon) {
@@ -109,7 +122,8 @@
 Tab Button
 */
 .tabButton {
-  display: grid;
+  display: flex;
+  height: 44px;
   align-items: center;
   justify-items: center;
   grid-auto-flow: column;
@@ -126,4 +140,20 @@ Tab Button
   &.tabSelected {
     border-color: var(--content-default);
   }
+}
+
+.small {
+  font-size: var(--font-size-small);
+  padding: 0px 7px;
+}
+.medium {
+  font-size: var(--font-size-default);
+}
+.large {
+  font-size: var(--font-size-M);
+}
+.buttonWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }

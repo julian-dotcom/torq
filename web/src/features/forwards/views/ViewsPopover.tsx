@@ -22,7 +22,7 @@ import {
   updateViewsOrder,
 } from "features/forwards/forwardsSlice";
 import Popover from "features/popover/Popover";
-import Button, { buttonVariants } from "features/buttons/Button";
+import Button, { buttonColor, buttonSize } from "features/buttons/Button";
 import {
   useCreateTableViewMutation,
   useUpdateTableViewMutation,
@@ -30,14 +30,14 @@ import {
   useUpdateTableViewsOrderMutation,
 } from "apiSlice";
 
-interface viewRow {
+type viewRow = {
   title: string;
   index: number;
-  handleUpdateView: Function;
-  handleRemoveView: Function;
-  handleSelectView: Function;
+  handleUpdateView: (view: ViewInterface, index: number) => void;
+  handleRemoveView: (index: number) => void;
+  handleSelectView: (index: number) => void;
   singleView: boolean;
-}
+};
 
 function ViewRow({ title, index, handleUpdateView, handleRemoveView, handleSelectView, singleView }: viewRow) {
   const [editView, setEditView] = useState(false);
@@ -50,7 +50,7 @@ function ViewRow({ title, index, handleUpdateView, handleRemoveView, handleSelec
   function handleInputSubmit(e: any) {
     e.preventDefault();
     setEditView(false);
-    handleUpdateView({ title: localTitle }, index);
+    handleUpdateView({ title: localTitle } as ViewInterface, index);
   }
 
   return (
@@ -115,7 +115,7 @@ function ViewsPopover() {
   };
 
   const removeView = (index: number) => {
-    let confirmed = window.confirm("Are you sure you want to delete this view?");
+    const confirmed = window.confirm("Are you sure you want to delete this view?");
     if (!confirmed) {
       return;
     }
@@ -159,7 +159,7 @@ function ViewsPopover() {
       newCurrentIndex = selectedView + 1;
     }
 
-    let newViewsOrder: ViewInterface[] = views.slice();
+    const newViewsOrder: ViewInterface[] = views.slice();
     newViewsOrder.splice(source.index, 1);
     newViewsOrder.splice(destination.index, 0, views[source.index]);
 
@@ -171,7 +171,7 @@ function ViewsPopover() {
     updateTableViewsOrder(order);
   };
 
-  let button = <TabButton title={views[selectedView].title} dropDown={true} />;
+  const button = <TabButton title={views[selectedView].title} dropDown={true} />;
 
   const singleView = views.length <= 1;
   return (
@@ -199,7 +199,13 @@ function ViewsPopover() {
             )}
           </Droppable>
           <div className={styles.buttonsRow}>
-            <Button variant={buttonVariants.ghost} text={"Add View"} icon={<AddIcon />} onClick={addView} />
+            <Button
+              buttonColor={buttonColor.ghost}
+              buttonSize={buttonSize.small}
+              text={"Add View"}
+              icon={<AddIcon />}
+              onClick={addView}
+            />
           </div>
         </div>
       </DragDropContext>

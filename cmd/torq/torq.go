@@ -134,6 +134,20 @@ func main() {
 			Value: "password",
 			Usage: "Name of the postgres user with access to the database",
 		}),
+
+		// LND connection details
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "lnd.url",
+			Usage: "Host:Port of the LND node",
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "lnd.macaroon-path",
+			Usage: "Path on disk to LND Macaroon",
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "lnd.tls-path",
+			Usage: "Path on disk to LND TLS file",
+		}),
 	}
 
 	start := &cli.Command{
@@ -174,11 +188,51 @@ func main() {
 						select {
 						case <-startchan:
 
+							// if node specified on cmd flags then check if we already know about it
+							if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
+
+								macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
+								if err != nil {
+									log.Error().Err(err).Msg("Reading macaroon file from disk path from config")
+									return
+								}
+
+								tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
+								if err != nil {
+									log.Error().Err(err).Msg("Reading tls file from disk path from config")
+									return
+								}
+
+								localNodeFromConfig := settings.ConnectionDetails{
+									GRPCAddress:       c.String("lnd.url"),
+									MacaroonFileBytes: macaroonFile,
+									TLSFileBytes:      tlsFile}
+
+								nodeId, err := settings.GetNodeIdByGRPC(db, localNodeFromConfig)
+								if err != nil {
+									log.Error().Err(err).Msg("Checking if node specified in config exists")
+									return
+								}
+								// doesn't exist
+								if nodeId == -1 {
+									log.Debug().Msg("Node specified in config is not in DB, adding it")
+									err = settings.AddNodeToDB(db, localNodeFromConfig)
+									if err != nil {
+										log.Error().Err(err).Msg("Adding node specified in congig to database")
+										return
+									}
+								} else {
+									log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
+									settings.UpdateNodeFiles(db, localNodeFromConfig)
+								}
+							}
+
 							nodes, err := settings.GetConnectionDetails(db)
 							if err != nil {
 								log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
 								return
 							}
+
 							for _, node := range nodes {
 								go (func(node settings.ConnectionDetails) {
 
@@ -275,6 +329,7 @@ func main() {
 
 }
 
+// guards against running restart code whilst it's already running
 var restartLock sync.RWMutex
 
 func RestartLNDSubscription() error {

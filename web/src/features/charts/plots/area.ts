@@ -18,9 +18,9 @@ type areaPlotConfigInit = Partial<areaPlotConfig> & basePlotConfig;
 
 export class AreaPlot extends AbstractPlot {
   config: areaPlotConfig;
-  legend: Selection<HTMLDivElement, {}, HTMLElement, any>;
-  legendTextBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
-  legendColorBox: Selection<HTMLDivElement, {}, HTMLElement, any>;
+  legend: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  legendTextBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  legendColorBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
 
   constructor(chart: ChartCanvas, config: areaPlotConfigInit) {
     super(chart, config);
@@ -56,13 +56,13 @@ export class AreaPlot extends AbstractPlot {
   draw(drawConfig?: drawConfig) {
     const area = d3
       .area()
-      .x((d, i): number => {
+      .x((_, i): number => {
         return this.chart.config.xScale(this.chart.data[i].date) || 0;
       })
-      .y0((d, i): number => {
+      .y0((_, i): number => {
         return this.chart.config.yScale(this.chart.data[i][this.config.key]) || 0;
       })
-      .y1((d, i): number => {
+      .y1((_, __): number => {
         return this.chart.config.yScale(0) || 1;
       })
       .context(this.chart.context);
@@ -74,17 +74,17 @@ export class AreaPlot extends AbstractPlot {
     this.chart.context.fillStyle = this.config.areaColor;
 
     if (this.config.areaGradient) {
-      let gradient = this.chart.context.createLinearGradient(0, 0, 0, this.chart.config.yScale.range()[1] || 0);
+      const gradient = this.chart.context.createLinearGradient(0, 0, 0, this.chart.config.yScale.range()[1] || 0);
       gradient.addColorStop(0, this.config.areaGradient[1]);
       gradient.addColorStop(1, this.config.areaGradient[0]);
       this.chart.context.fillStyle = gradient;
     }
 
-    let data = this.chart.data;
+    const data = this.chart.data;
 
     if (data && this.config.addBuffer) {
-      let lastItem = clone(data[data.length - 1]);
-      let firstItem = clone(data[0]);
+      const lastItem = clone(data[data.length - 1]);
+      const firstItem = clone(data[0]);
       lastItem.date = addHours(lastItem.date, 16);
       data.push(lastItem);
       data.unshift(firstItem);
@@ -100,7 +100,7 @@ export class AreaPlot extends AbstractPlot {
       data.splice(0, 1);
     }
 
-    this.chart.data.forEach((d, i) => {
+    this.chart.data.forEach((d, _) => {
       if (this.config.labels) {
         this.chart.context.font = "12px Inter";
         this.chart.context.textAlign = "center";

@@ -1,6 +1,5 @@
-import React from "react";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { selectHidden, toggleNav } from "./navSlice";
+import { useAppDispatch } from "../../store/hooks";
+import { toggleNav } from "./navSlice";
 import classNames from "classnames";
 import { ReactComponent as TorqLogo } from "../../icons/torq-logo.svg";
 import { Navigation20Regular as CollapseIcon } from "@fluentui/react-icons";

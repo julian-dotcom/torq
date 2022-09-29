@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSlice";
 import { settings, timeZone, localNode } from "./apiTypes";
-import { SortByOptionType } from "./features/sidebar/sections/sort/SortSectionOld";
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 const buildBaseUrl = () => {
   // checks to see if the app is running under /torq and if so prepends that to API paths
@@ -14,26 +14,43 @@ const buildBaseUrl = () => {
     }
   }
   return window.location.port === "3000"
-    ? "//" + window.location.hostname + ":8080" + prefix + "/api"
-    : "//" + window.location.host + prefix + "/api";
+    ? "//" + window.location.hostname + ":8080" + prefix
+    : "//" + window.location.host + prefix;
 };
 
-const API_URL = buildBaseUrl();
+const API_URL = buildBaseUrl() + "/api";
+
+const loc = window.location;
+const prot = loc.protocol === "https:" ? "wss:" : "ws:";
+export const WS_URL = prot + buildBaseUrl() + "/ws";
+
+const baseQuery = fetchBaseQuery({
+  baseUrl: API_URL,
+  // prepareHeaders: (headers, _) => {
+  //   if (!headers.get("Content-Type")) {
+  //     headers.set("Content-Type", "application/json");
+  //   }
+  //   return headers;
+  // },
+  credentials: "include",
+  mode: "cors",
+});
+const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions
+) => {
+  const result = await baseQuery(args, api, extraOptions);
+  if (result.error && result.error.status === 401) {
+    window.location.href = "/login";
+  }
+  return result;
+};
 
 // Define a service using a base URL and expected endpoints
 export const torqApi = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_URL,
-    // prepareHeaders: (headers, _) => {
-    //   if (!headers.get("Content-Type")) {
-    //     headers.set("Content-Type", "application/json");
-    //   }
-    //   return headers;
-    // },
-    credentials: "include",
-    mode: "cors",
-  }),
+  baseQuery: baseQueryWithRedirect,
   tagTypes: ["settings", "tableView", "localNodes"],
   endpoints: (builder) => ({
     getFlow: builder.query<any, { from: string; to: string; chanId: string }>({
@@ -44,6 +61,9 @@ export const torqApi = createApi({
     }),
     getForwards: builder.query<any, { from: string; to: string }>({
       query: ({ from, to }) => `forwards?from=${from}&to=${to}`,
+    }),
+    getDecodedInvoice: builder.query<any, { invoice: string }>({
+      query: ({ invoice }) => `invoices/decode/?invoice=${invoice}`,
     }),
     getPayments: builder.query<
       any,
@@ -186,6 +206,7 @@ export const {
   useGetFlowQuery,
   useGetChannelHistoryQuery,
   useGetForwardsQuery,
+  useGetDecodedInvoiceQuery,
   useGetPaymentsQuery,
   useGetInvoicesQuery,
   useGetOnChainTxQuery,

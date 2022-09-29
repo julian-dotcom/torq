@@ -1,26 +1,17 @@
 import FilterRow from "./FilterRow";
 import classNames from "classnames";
 import { AddSquare20Regular as AddFilterIcon, AddSquareMultiple20Regular as AddGroupIcon } from "@fluentui/react-icons";
-import React from "react";
-import { SelectOptionType } from "../../../inputs/Select";
 
 import styles from "./filter-section.module.scss";
 import { AndClause, OrClause, Clause, FilterClause, FilterInterface } from "./filter";
 import { ColumnMetaData } from "features/table/Table";
 
-interface filterOptionsInterface {
-  key: string;
-  heading: string;
-  valueType: string;
-  arrayOptions?: Array<SelectOptionType>;
-}
-
 interface filterProps {
   columnsMeta: Array<ColumnMetaData>;
   filters: Clause;
   defaultFilter: FilterInterface;
-  onFilterUpdate: Function;
-  onNoChildrenLeft?: Function;
+  onFilterUpdate: () => void;
+  onNoChildrenLeft?: () => void;
   child: boolean;
 }
 
@@ -35,7 +26,7 @@ const FilterComponent = (props: filterProps) => {
   };
 
   const removeFilter = (index: number) => {
-    let filters = props.filters as AndClause | OrClause;
+    const filters = props.filters as AndClause | OrClause;
     filters.childClauses.splice(index, 1);
     if (filters.childClauses.length === 1) {
       filters.prefix = "$and";
@@ -58,7 +49,7 @@ const FilterComponent = (props: filterProps) => {
     if (!props.filters) {
       props.filters = new AndClause();
     }
-    let filters = props.filters as AndClause | OrClause;
+    const filters = props.filters as AndClause | OrClause;
     filters.addChildClause(new FilterClause(props.defaultFilter));
     props.onFilterUpdate();
   };
@@ -67,7 +58,7 @@ const FilterComponent = (props: filterProps) => {
     if (!props.filters) {
       props.filters = new AndClause();
     }
-    let filters = props.filters as AndClause | OrClause;
+    const filters = props.filters as AndClause | OrClause;
     filters.addChildClause(
       new AndClause([
         new FilterClause({
@@ -86,8 +77,8 @@ const FilterComponent = (props: filterProps) => {
     props.onFilterUpdate();
   };
 
-  let filterOptions = props.columnsMeta.slice().map((column: any) => {
-    let columnOption: any = {
+  const filterOptions = props.columnsMeta.slice().map((column: any) => {
+    const columnOption: any = {
       value: column.key,
       label: column.heading,
       valueType: column.valueType as "string" | "number" | "boolean" | "date" | "array",

@@ -1,6 +1,6 @@
 import React from "react";
 import styles from "./Modal.module.scss";
-import { DismissCircle20Regular as DismissIcon } from "@fluentui/react-icons";
+import { DismissCircle24Regular as DismissIcon } from "@fluentui/react-icons";
 import classNames from "classnames";
 
 interface ModalProps {
@@ -8,7 +8,7 @@ interface ModalProps {
   show: boolean;
   title?: string;
   icon?: React.ReactNode;
-  onClose: Function;
+  onClose: () => void;
 }
 
 const Modal = (props: ModalProps) => {
@@ -17,7 +17,6 @@ const Modal = (props: ModalProps) => {
   };
   const ignore = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    e.preventDefault();
   };
   return (
     <div className={classNames(styles.modal, { [styles.show]: props.show })} onClick={handleClose}>

@@ -1,18 +1,15 @@
 import classNames from "classnames";
 import { Delete16Regular as RemoveIcon } from "@fluentui/react-icons";
-import Select, { SelectOptionType } from "./FilterDropDown";
+import Select from "./FilterDropDown";
 
 import { FilterClause, FilterParameterType } from "./filter";
 import styles from "./filter-section.module.scss";
 import { FilterFunctions } from "./filter";
 import NumberFormat from "react-number-format";
-import { format as formatDate } from "date-fns";
 import { useState } from "react";
 import { format } from "d3";
 import { FilterCategoryType } from "./filter";
-import TorqSelect from "../../../inputs/Select";
 
-const formatterDetailed = format(",.2f");
 const formatter = format(",.0f");
 
 function formatParameter(value: number) {
@@ -45,9 +42,9 @@ interface filterRowInterface {
   child: boolean;
   filterClause: FilterClause;
   filterOptions: Array<{ label: string; value: any; valueType?: FilterCategoryType; selectOptions?: Array<any> }>;
-  onUpdateFilter: Function;
-  onRemoveFilter: Function;
-  handleCombinerChange: Function;
+  onUpdateFilter: () => void;
+  onRemoveFilter: (index: number) => void;
+  handleCombinerChange: () => void;
   combiner?: string;
 }
 
@@ -65,12 +62,12 @@ function FilterRow({
 
   const [rowExpanded, setRowExpanded] = useState(!rowValues.key);
 
-  let functionOptions = getFilterFunctions(rowValues.category);
+  const functionOptions = getFilterFunctions(rowValues.category);
 
   const keyOption = filterOptions.find((item) => item.value === rowValues.key);
   const funcOption = functionOptions.find((item) => item.value === rowValues.funcName);
 
-  let selectData = {
+  const selectData = {
     func: funcOption,
     key: keyOption,
   };
@@ -89,11 +86,12 @@ function FilterRow({
         }
         rowValues.funcName = "eq";
         break;
-      case "date":
+      case "date": {
         const nd = new Date().toISOString().slice(0, 10) + "T00:00:00";
         rowValues.parameter = nd;
         rowValues.funcName = "gte";
         break;
+      }
       case "array":
         rowValues.parameter = "";
         rowValues.funcName = "eq";
@@ -131,7 +129,7 @@ function FilterRow({
   const label = filterOptions.find((item) => item.value === rowValues.key)?.label;
   const options = filterOptions.find((item) => item.value === rowValues.key)?.selectOptions;
 
-  const getInputField = (category: FilterCategoryType, parameter: FilterParameterType, handleParamChange: any) => {
+  const getInputField = (handleParamChange: any) => {
     switch (rowValues.category) {
       case "number":
         return (
@@ -142,7 +140,6 @@ function FilterRow({
             onValueChange={handleParamChange}
           />
         );
-        break;
       case "boolean":
         return (
           <Select
@@ -157,8 +154,7 @@ function FilterRow({
             child={child}
           />
         );
-        break;
-      case "array":
+      case "array": {
         const label = options?.find((item) => {
           return item.value === rowValues.parameter ? item : "";
         })?.label;
@@ -172,7 +168,7 @@ function FilterRow({
             child={child}
           />
         );
-        break;
+      }
       case "date":
         return (
           <input
@@ -194,22 +190,18 @@ function FilterRow({
     }
   };
 
-  const getParameter = (category: FilterCategoryType, parameter: FilterParameterType, handleParamChange: any) => {
+  const getParameter = () => {
     switch (rowValues.category) {
       case "number":
         return formatParameter(rowValues.parameter as number);
-        break;
       case "duration":
         return formatParameter(rowValues.parameter as number);
-        break;
       case "boolean":
         return !rowValues.parameter ? "False" : "True";
-        break;
       case "array":
         return options?.find((item) => {
           return item.value === rowValues.parameter ? item : "";
         })?.label;
-        break;
       default:
         return rowValues.parameter;
     }
@@ -231,9 +223,7 @@ function FilterRow({
         <div className={styles.filterKeyLabel} onClick={() => setRowExpanded(!rowExpanded)}>
           {label}
           <span className={styles.filterFunctionLabel}> {funcOption?.label} </span>
-          <span className={styles.parameterLabel}>
-            {getParameter(rowValues.category, rowValues.parameter, handleParamChange)}
-          </span>
+          <span className={styles.parameterLabel}>{getParameter()}</span>
         </div>
         <div className={classNames(styles.removeFilter, styles.desktopRemove)} onClick={() => onRemoveFilter(index)}>
           <RemoveIcon />
@@ -253,9 +243,7 @@ function FilterRow({
           />
         </div>
 
-        <div className={styles.filterParameterContainer}>
-          {getInputField(rowValues.category, rowValues.parameter, handleParamChange)}
-        </div>
+        <div className={styles.filterParameterContainer}>{getInputField(handleParamChange)}</div>
       </div>
     </div>
   );
