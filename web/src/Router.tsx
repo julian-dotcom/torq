@@ -1,26 +1,27 @@
 import { useEffect } from "react";
-import { RouteObject, useRoutes } from "react-router";
-import { useNavigate } from "react-router-dom";
 import { Cookies } from "react-cookie";
+import { RouteObject, useRoutes } from "react-router";
+import { useLocation, useNavigate } from "react-router-dom";
 
-import RequireAuth from "./RequireAuth";
 import { useLogoutMutation } from "./apiSlice";
+import RequireAuth from "./RequireAuth";
 
-import LoginLayout from "./layout/LoginLayout";
 import DefaultLayout from "./layout/DefaultLayout";
+import LoginLayout from "./layout/LoginLayout";
 
 import LoginPage from "./features/auth/LoginPage";
+import ChannelPage from "./features/channel/ChannelPage";
 import DashboardPage from "./features/channel/DashboardPage";
 import ForwardsPage from "./features/forwards/ForwardsPage";
-import ChannelPage from "./features/channel/ChannelPage";
-import PaymentsPage from "./features/transact/Payments/PaymentsPage";
+import NoMatch from "./features/no_match/NoMatch";
+import SettingsPage from "./features/settings/SettingsPage";
+import AllTxPage from "./features/transact/AllTxPage";
 import InvoicesPage from "./features/transact/Invoices/InvoicesPage";
 import OnChainPage from "./features/transact/OnChain/OnChainPage";
-import AllTxPage from "./features/transact/AllTxPage";
-import SettingsPage from "./features/settings/SettingsPage";
-import NoMatch from "./features/no_match/NoMatch";
+import NewPaymentModal from "./features/transact/Payments/newPayment/NewPaymentModal";
+import PaymentsPage from "./features/transact/Payments/PaymentsPage";
 
-import * as routes from './constants/routes';
+import * as routes from "./constants/routes";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -40,8 +41,12 @@ const publicRoutes: RouteObject = {
   element: <LoginLayout />,
   children: [
     { path: routes.LOGIN, element: <LoginPage /> },
-    { path: routes.LOGOUT, element: <Logout /> }
-  ]
+    { path: routes.LOGOUT, element: <Logout /> },
+  ],
+};
+
+const modalRoutes: RouteObject = {
+  children: [{ path: routes.CREATE_PAYMENT, element: <NewPaymentModal /> }],
 };
 
 const authenticatedRoutes: RouteObject = {
@@ -50,7 +55,11 @@ const authenticatedRoutes: RouteObject = {
     {
       element: <RequireAuth />,
       children: [
-        { path: routes.ROOT, element: <DashboardPage /> },
+        {
+          path: routes.ROOT,
+          element: <DashboardPage />,
+          children: modalRoutes.children,
+        },
         {
           path: routes.ANALYSE,
           children: [
@@ -62,26 +71,35 @@ const authenticatedRoutes: RouteObject = {
         {
           path: routes.TRANSACTIONS,
           children: [
-            { path: routes.PAYMENTS, element: <PaymentsPage newPayment={false} /> }, // TODO: remove newPayment prop after merging the new modal component
+            { path: routes.PAYMENTS, element: <PaymentsPage /> },
             { path: routes.INVOICES, element: <InvoicesPage /> },
             { path: routes.ONCHAIN, element: <OnChainPage /> },
             { path: routes.ALL, element: <AllTxPage /> },
           ],
         },
         { path: routes.SETTINGS, element: <SettingsPage /> },
-        { path: '*', element: <NoMatch /> }
-      ]
-    }
+        { path: "*", element: <NoMatch /> },
+      ],
+    },
   ],
 };
 
 const Router = () => {
-  const router = useRoutes([
-    publicRoutes,
-    authenticatedRoutes,
-  ]);
+  const location = useLocation();
+  const background = location.state && location.state.background;
+  const currentLocation = background || location;
 
-  return router;
-}
+  const routes = [publicRoutes, authenticatedRoutes];
+
+  const router = useRoutes(routes, currentLocation);
+  const modalRouter = useRoutes([modalRoutes]);
+
+  return (
+    <>
+      {router}
+      {background && modalRouter}
+    </>
+  );
+};
 
 export default Router;

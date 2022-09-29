@@ -1,4 +1,3 @@
-import styles from "./newPayments.module.scss";
 import {
   ArrowSyncFilled as ProcessingIcon,
   CheckmarkRegular as SuccessIcon,
@@ -6,19 +5,21 @@ import {
   MoneyHand24Regular as TransactionIconModal,
   Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
+import { useGetDecodedInvoiceQuery, WS_URL } from "apiSlice";
+import classNames from "classnames";
+import { format } from "d3";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import TextInput from "features/forms/TextInput";
-import { SectionContainer } from "features/section/SectionContainer";
-import { ChangeEvent, useState } from "react";
-import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
-import { useGetDecodedInvoiceQuery, WS_URL } from "apiSlice";
-import { format } from "d3";
-import classNames from "classnames";
+import { SectionContainer } from "features/section/SectionContainer";
+import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
+import { ChangeEvent, useState } from "react";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
+import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
 import { NewPaymentError, NewPaymentResponse } from "../paymentTypes";
+import styles from "./newPayments.module.scss";
 import { PaymentProcessingErrors } from "./paymentErrorMessages";
 
 const fd = format(",.0f");
@@ -30,11 +31,6 @@ export type NewPaymentRequest = {
   amtMSat: number;
   feeLimitMsat: number;
   allowSelfPayment: boolean;
-};
-
-type NewPaymentModalProps = {
-  show: boolean;
-  modalCloseHandler: () => void;
 };
 
 enum PaymentType {
@@ -91,7 +87,7 @@ const P2TRAddressSignetRegEx = /^sb1p[0-9a-zA-Z]*/gm; // Taproot address
 
 const LightningNodePubkeyRegEx = /^[0-9a-fA-F]{66}$/gm; // Keysend / Lightning Node Pubkey
 
-function NewPaymentModal(props: NewPaymentModalProps) {
+function NewPaymentModal() {
   const [responses, setResponses] = useState<Array<NewPaymentResponse>>([]);
 
   const [destination, setDestination] = useState("");
@@ -180,7 +176,6 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     setDestState(ProgressStepState.active);
     setConfirmState(ProgressStepState.disabled);
     setProcessState(ProgressStepState.disabled);
-    props.modalCloseHandler();
   };
 
   const setDestinationHandler = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -443,6 +438,8 @@ function NewPaymentModal(props: NewPaymentModalProps) {
     </ProgressTabContainer>
   );
 
+  const navigate = useNavigate();
+
   function destiationLabel() {
     if (decodedInvRes?.isError == false) {
       return PaymentTypeLabel[destinationType] + " Detected";
@@ -451,7 +448,7 @@ function NewPaymentModal(props: NewPaymentModalProps) {
   }
 
   return (
-    <PopoutPageTemplate title={"New Payment"} show={props.show} onClose={closeAndReset} icon={<TransactionIconModal />}>
+    <PopoutPageTemplate title={"New Payment"} show={true} onClose={() => navigate(-1)} icon={<TransactionIconModal />}>
       <ProgressHeader modalCloseHandler={closeAndReset}>
         <Step label={"Destination"} state={dynamicDestinationState()} last={false} />
         <Step label={"Details"} state={dynamicConfirmedState()} last={false} />
