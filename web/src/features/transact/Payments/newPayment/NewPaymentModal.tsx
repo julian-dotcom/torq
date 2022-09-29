@@ -1,4 +1,3 @@
-import styles from "./newPayments.module.scss";
 import {
   ArrowSyncFilled as ProcessingIcon,
   CheckmarkRegular as SuccessIcon,
@@ -6,20 +5,21 @@ import {
   MoneyHand24Regular as TransactionIconModal,
   Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
+import { useGetDecodedInvoiceQuery, WS_URL } from "apiSlice";
+import classNames from "classnames";
+import { format } from "d3";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import TextInput from "features/forms/TextInput";
-import { SectionContainer } from "features/section/SectionContainer";
-import { ChangeEvent, useState } from "react";
-import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
-import { useGetDecodedInvoiceQuery, WS_URL } from "apiSlice";
-import { format } from "d3";
-import classNames from "classnames";
+import { SectionContainer } from "features/section/SectionContainer";
+import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
+import { ChangeEvent, useState } from "react";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
-import useWebSocket from "react-use-websocket";
-import { NewPaymentResponse, NewPaymentError } from "../paymentTypes";
 import { useNavigate } from "react-router";
+import useWebSocket from "react-use-websocket";
+import { NewPaymentError, NewPaymentResponse } from "../paymentTypes";
+import styles from "./newPayments.module.scss";
 import { PaymentProcessingErrors } from "./paymentErrorMessages";
 
 const fd = format(",.0f");
