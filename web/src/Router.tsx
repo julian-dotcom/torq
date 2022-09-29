@@ -71,7 +71,7 @@ const authenticatedRoutes: RouteObject = {
         {
           path: routes.TRANSACTIONS,
           children: [
-            { path: routes.PAYMENTS, element: <PaymentsPage /> }, // TODO: remove newPayment prop after merging the new modal component
+            { path: routes.PAYMENTS, element: <PaymentsPage /> },
             { path: routes.INVOICES, element: <InvoicesPage /> },
             { path: routes.ONCHAIN, element: <OnChainPage /> },
             { path: routes.ALL, element: <AllTxPage /> },
