@@ -131,16 +131,19 @@ func main() {
 				Usage:   "The name of the virtual network (used to name the containers)",
 			},
 			&cli.IntFlag{
-				Name:  "invfrq",
-				Usage: "Set invoice creation frequency - seconds",
+				Name:        "virtual_network_invoice_freq",
+				Usage:       "Set invoice creation frequency - seconds",
+				DefaultText: "1",
 			},
 			&cli.IntFlag{
-				Name:  "scofrq",
-				Usage: "Create address and send coins frequency - seconds",
+				Name:        "virtual_network_send_coins_freq",
+				Usage:       "Create address and send coins frequency - seconds",
+				DefaultText: "30",
 			},
 			&cli.IntFlag{
-				Name:  "ochfrq",
-				Usage: "Open channel between random nodes frequency - minutes",
+				Name:        "virtual_network_open_close_chan_freq",
+				Usage:       "Open channel between random nodes frequency - minutes",
+				DefaultText: "10",
 			},
 			//&cli.BoolFlag{
 			//	Name:  "clschan",
@@ -149,7 +152,12 @@ func main() {
 			//},
 		},
 		Action: func(c *cli.Context) error {
-			err := virtual_network.NodeFLowLoop(c.String("network_name"), c.Int("invfrq"), c.Int("scofrq"), c.Int("ochfrq"))
+			err := virtual_network.NodeFLowLoop(
+				c.String("network_name"),
+				c.Int("virtual_network_invoice_freq"),
+				c.Int("virtual_network_send_coins_freq"),
+				c.Int("virtual_network_open_close_chan_freq"),
+			)
 			if err != nil {
 				log.Fatal(err)
 			}

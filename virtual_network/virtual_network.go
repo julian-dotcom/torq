@@ -291,7 +291,7 @@ func PurgeVirtualNetwork(name string, withDatabase bool) error {
 }
 
 // CreateNewVirtualNetwork creates a new virtual network with the given name,
-//this is used for creating the development Lightning network and database.
+// this is used for creating the development Lightning network and database.
 func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error {
 
 	torqDbName := name + "-torq-db"
@@ -376,7 +376,6 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	//	panic(err)
 	//}
 	//stdcopy.StdCopy(os.Stdout, os.Stderr, out)
-	time.Sleep(100 * time.Millisecond)
 
 	log.Println("Creating new mining address on Alice")
 	aliceAddress, err := GetNewAddress(ctx, de.Client, aliceConf.Instance)
@@ -436,7 +435,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(100 * time.Millisecond)
+
 	log.Println("Creating new mining address on Carol")
 	carolAddress, err := GetNewAddress(ctx, de.Client, carolConf.Instance)
 	if err != nil {
@@ -492,7 +491,6 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(200 * time.Millisecond)
 
 	log.Println("Creating new mining address on Carol")
 	bobAddress, err := GetNewAddress(ctx, de.Client, bobConf.Instance)
@@ -766,14 +764,14 @@ func PrintInstructions() {
 }
 
 // NodeFLowLoop
-//Run a loop that
-//- creates and pays invoices to/from random nodes at a user defined interval
-//- creates addresses and sends coins from/to random nodes at a user defined interval
-//- opens a channel between random nodes at user defined interval -no more than 2 duplicate channels
-//- closes channels randomly
-//invfrq flag = invoice creation frequency - default to 1 time per second
-//sendcoins flag = create address and sencoins frequency - default to 1 time per 30 seconds
-//openChan flag = open channel frequency - default to 1 time per 10 minutes
+// Run a loop that
+// - creates and pays invoices to/from random nodes at a user defined interval
+// - creates addresses and sends coins from/to random nodes at a user defined interval
+// - opens a channel between random nodes at user defined interval -no more than 2 duplicate channels
+// - closes channels randomly
+// invfrq flag = invoice creation frequency - default to 1 time per second
+// sendcoins flag = create address and sencoins frequency - default to 1 time per 30 seconds
+// openChan flag = open channel frequency - default to 1 time per 10 minutes
 func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 	log.Printf("inv freq: %v\n", invfrq)
 	log.Printf("send coins freq: %v\n", scofrq)
@@ -825,6 +823,7 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 		return errors.Newf("Getting Alice's IP Address: %v", err)
 	}
 	log.Println(aliceInspection.NetworkSettings.Networks)
+
 	aliceIPAddress := aliceInspection.NetworkSettings.Networks[name].IPAddress
 	log.Println("Alice's IP address is:")
 	log.Println(aliceIPAddress)
@@ -980,10 +979,10 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 
 	WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress)
 
-	go openRandomChann(name, ochfrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
-	go closeRandomChann(name, ochfrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
+	//go openRandomChann(name, ochfrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
+	//go closeRandomChann(name, ochfrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
 	go createPayInvoice(name, invfrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
-	go addressSendCoins(name, scofrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
+	//go addressSendCoins(name, scofrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
 	select {}
 	return nil
 }
