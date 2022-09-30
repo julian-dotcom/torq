@@ -1,28 +1,11 @@
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSlice";
-import { settings, timeZone, localNode } from "./apiTypes";
-import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
+import { localNode, settings, timeZone } from "./apiTypes";
 
-const buildBaseUrl = () => {
-  // checks to see if the app is running under /torq and if so prepends that to API paths
-  const splitLocation = window.location.pathname.split("/");
-  let prefix = "";
-  if (splitLocation.length > 1) {
-    const path = splitLocation[1];
-    if (path === "torq") {
-      prefix = "/torq";
-    }
-  }
-  return window.location.port === "3000"
-    ? "//" + window.location.hostname + ":8080" + prefix
-    : "//" + window.location.host + prefix;
-};
-
-const API_URL = buildBaseUrl() + "/api";
-
-const loc = window.location;
-const prot = loc.protocol === "https:" ? "wss:" : "ws:";
-export const WS_URL = prot + buildBaseUrl() + "/ws";
+const API_URL = getRestEndpoint();
+export const WS_URL = getWsEndpoint();
 
 const baseQuery = fetchBaseQuery({
   baseUrl: API_URL,
