@@ -12,6 +12,7 @@ import type {
   GetOnChainTransactionsQueryParams,
   GetPaymentsQueryParams,
 } from "types/api";
+import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { localNode, settings, timeZone } from "./apiTypes";
 
 const API_URL = getRestEndpoint();
@@ -49,33 +50,26 @@ export const torqApi = createApi({
   endpoints: (builder) => ({
     getFlow: builder.query<any, GetFlowQueryParams>({
       query: ({ from, to, chanId }) => `flow?from=${from}&to=${to}&chan_id=${chanId}`,
+
+      /* query: (params) => queryParamsBuilder("flow", params), */
     }),
     getChannelHistory: builder.query<any, GetChannelHistoryQueryParams>({
       query: ({ from, to, chanIds }) => `channels/${chanIds}?from=${from}&to=${to}`,
     }),
     getForwards: builder.query<any, GetForwardsQueryParams>({
-      query: ({ from, to }) => `forwards?from=${from}&to=${to}`,
+      query: (params) => queryParamsBuilder("forwards", params, true),
     }),
     getDecodedInvoice: builder.query<any, GetDecodedInvoiceQueryParams>({
       query: ({ invoice }) => `invoices/decode/?invoice=${invoice}`,
     }),
     getPayments: builder.query<any, GetPaymentsQueryParams>({
-      query: ({ limit, offset, order, filter }) =>
-        `payments?limit=${limit || 100}&offset=${offset || 0}${order ? "&order=" + JSON.stringify(order) : ""}${
-          filter ? "&filter=" + JSON.stringify(filter) : ""
-        }`,
+      query: (params) => queryParamsBuilder("payments", params, true),
     }),
     getInvoices: builder.query<any, GetInvoicesQueryParams>({
-      query: ({ limit, offset, order, filter }) =>
-        `invoices?limit=${limit || 100}&offset=${offset || 0}${order ? "&order=" + JSON.stringify(order) : ""}${
-          filter ? "&filter=" + JSON.stringify(filter) : ""
-        }`,
+      query: (params) => queryParamsBuilder("invoices", params, true),
     }),
     getOnChainTx: builder.query<any, GetOnChainTransactionsQueryParams>({
-      query: ({ limit, offset, order, filter }) =>
-        `on-chain-tx?limit=${limit || 100}&offset=${offset || 0}${order ? "&order=" + JSON.stringify(order) : ""}${
-          filter ? "&filter=" + JSON.stringify(filter) : ""
-        }`,
+      query: (params) => queryParamsBuilder("on-chain-tx", params, true),
     }),
     getTableViews: builder.query<any, void>({
       query: () => `table-views`,
