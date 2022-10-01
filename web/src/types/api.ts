@@ -1,19 +1,24 @@
-type Flow = {
-  from: string;
-  to: string;
-};
-
 type Order = {
   key: string;
   direction: "asc" | "desc";
 };
 
-type BaseQueryParams = {
+type Paginable = {
   limit: number;
   offset: number;
-  order: Order;
-  filter?: Record<string, any>;
 };
+
+export type Flow = {
+  from: string;
+  to: string;
+};
+
+export type BaseQueryCollectionParams = Paginable & {
+  order?: Order;
+  filter?: Record<string, any> | undefined;
+};
+
+export type BaseQuery = Flow | BaseQueryCollectionParams;
 
 export type GetFlowQueryParams = Flow & {
   chanId: string;
@@ -29,8 +34,8 @@ export type GetDecodedInvoiceQueryParams = {
   invoice: string;
 };
 
-export type GetPaymentsQueryParams = BaseQueryParams;
+export type GetPaymentsQueryParams = BaseQueryCollectionParams;
 
-export type GetInvoicesQueryParams = BaseQueryParams;
+export type GetInvoicesQueryParams = BaseQueryCollectionParams;
 
-export type GetOnChainTransactionsQueryParams = BaseQueryParams;
+export type GetOnChainTransactionsQueryParams = BaseQueryCollectionParams;
