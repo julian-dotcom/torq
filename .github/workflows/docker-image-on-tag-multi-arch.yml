@@ -87,20 +87,17 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v3
+      - uses: olegtarasov/get-tag@v2.1
+        name: Get tag
+        id: tagName
         with:
-          images: lncapital/torq-arm
-          flavor: |
-            latest=false
-          tags: |
-            type=semver,pattern={{version}}
+          tagRegex: "v(.*)" # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
+          tagRegexGroup: 1 # Optional. Default is 1.
       - name: Docker create manifest
         run: >
           docker manifest create \
-          lncapital/torq:{{version}} \
-          --amend lncapital/torq:amd64-{{version}} \
-          --amend lncapital/torq:arm-{{version}} \
+          lncapital/torq:${{ steps.tagName.outputs.tag }} \
+          --amend lncapital/torq:amd64-${{ steps.tagName.outputs.tag }} \
+          --amend lncapital/torq:arm-${{ steps.tagName.outputs.tag }} \
       - name: Docker push manifest
-        run: docker manifest push lncaptial/torq:${{version}}
+        run: docker manifest push lncaptial/torq:${{ steps.tagName.outputs.tag }}
