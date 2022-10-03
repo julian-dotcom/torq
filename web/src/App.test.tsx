@@ -13,5 +13,12 @@ test("renders login page", () => {
     </BrowserRouter>
   );
 
-  expect(getByText(/login/i)).toBeInTheDocument();
+  const loading = getByText(/loading/i);
+  expect(loading).toBeInTheDocument();
+
+  //await waitForElementToBeRemoved(loading);
+
+  //await waitFor(() => {
+  //  expect(getByText(/login/i)).toBeInTheDocument()
+  //});
 });
