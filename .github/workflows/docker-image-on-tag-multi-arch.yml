@@ -91,7 +91,7 @@ jobs:
         name: Get tag
         id: tagName
         with:
-          tagRegex: "v(.*)" # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
+          tagRegex: "v?(.+)" # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
           tagRegexGroup: 1 # Optional. Default is 1.
       - name: Docker create manifest
         run: >
