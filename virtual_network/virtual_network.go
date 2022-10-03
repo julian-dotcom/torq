@@ -1112,7 +1112,7 @@ func createPayInvoice(name string, invfrq int, ctx context.Context, de DockerDev
 		log.Printf("%v paying invoice to %v", peer2.Name, peer1.Name)
 		err = PayInvoice(ctx, de.Client, peer2.Instance, newInvoice)
 		if err != nil {
-			log.Println("Sending payment: %v", err)
+			log.Printf("Sending payment: %v\n", err)
 			continue
 		}
 		err = MineBlocks(ctx, de.Client, btcdConf.Instance, 6)
