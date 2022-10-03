@@ -19,6 +19,7 @@ import (
 
 type settings struct {
 	DefaultDateRange  string `json:"defaultDateRange" db:"default_date_range"`
+	DefaultLanguage   string `json:"defaultLanguage" db:"default_language"`
 	PreferredTimezone string `json:"preferredTimezone" db:"preferred_timezone"`
 	WeekStartsOn      string `json:"weekStartsOn" db:"week_starts_on"`
 }

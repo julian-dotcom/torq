@@ -1,0 +1,19 @@
+{
+  "login": "Login",
+  "saturday": "Saturday",
+  "sunday": "Sunday",
+  "monday": "Monday",
+  "language": "Language",
+  "defaultDateRange": "Default date range",
+  "preferredTimezone": "Preferred timezone",
+  "weekStartsOn": "Week starts on",
+  "save": "Save",
+  "addNode": "Add Node",
+  "toast": {
+    "settingsSaved": "Settings saved"
+  },
+  "header": {
+    "settings": "Date & time settings",
+    "nodes": "Nodes"
+  }
+}
