@@ -38,12 +38,12 @@ jobs:
         if: always() && (steps.e2e.outcome == 'failure')
         run: docker logs e2e-torq-db
       # setup ssh access if e2e job fails
-      - name: Setup upterm session
-        if: always() && (steps.e2e.outcome == 'failure')
-        timeout-minutes: 30
-        uses: lhotari/action-upterm@v1
-        with:
-          # limits ssh access and adds the ssh public key for the user which triggered the workflow
-          limit-access-to-actor: true
-          # limits ssh access and adds the ssh public keys of the listed GitHub users
-          # limit-access-to-users: githubuser1,githubuser2
+      # - name: Setup upterm session
+      #   if: always() && (steps.e2e.outcome == 'failure')
+      #   timeout-minutes: 30
+      #   uses: lhotari/action-upterm@v1
+      #   with:
+      # limits ssh access and adds the ssh public key for the user which triggered the workflow
+      # limit-access-to-actor: true
+      # limits ssh access and adds the ssh public keys of the listed GitHub users
+      # limit-access-to-users: githubuser1,githubuser2
