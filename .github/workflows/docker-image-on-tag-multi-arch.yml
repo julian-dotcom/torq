@@ -100,4 +100,4 @@ jobs:
           --amend lncapital/torq:amd64-${{ steps.tagName.outputs.tag }}
           --amend lncapital/torq:arm-${{ steps.tagName.outputs.tag }}
       - name: Docker push manifest
-        run: docker manifest push lncaptial/torq:${{ steps.tagName.outputs.tag }}
+        run: docker manifest push lncapital/torq:${{ steps.tagName.outputs.tag }}
