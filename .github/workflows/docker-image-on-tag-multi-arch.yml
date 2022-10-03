@@ -10,8 +10,19 @@ jobs:
   # test:
   #   uses: ./.github/workflows/run-all-tests.yml
   amd64:
-    runs-on: buildjet-4vcpu-ubuntu-2204
-    name: Push AMD64 Docker image to Docker Hub
+    strategy:
+      matrix:
+        runs-on:
+          [
+            buildjet-2vcpu-ubuntu-2204,
+            buildjet-4vcpu-ubuntu-2204,
+            buildjet-8vcpu-ubuntu-2204,
+            buildjet-16vcpu-ubuntu-2204,
+          ]
+    # name: All Tests - ${{matrix.runs-on}}
+    runs-on: ${{matrix.runs-on}}
+    # runs-on: buildjet-4vcpu-ubuntu-2204
+    name: Push AMD64 Docker image to Docker Hub - ${{matrix.runs-on}}
     # needs: test
     steps:
       - name: Check out the repo
@@ -42,8 +53,19 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   arm:
-    runs-on: buildjet-4vcpu-ubuntu-2204-arm
-    name: Push ARM Docker image to Docker Hub
+    strategy:
+      matrix:
+        runs-on:
+          [
+            buildjet-2vcpu-ubuntu-2204-arm,
+            buildjet-4vcpu-ubuntu-2204-arm,
+            buildjet-8vcpu-ubuntu-2204-arm,
+            buildjet-16vcpu-ubuntu-2204-arm,
+          ]
+    # name: All Tests - ${{matrix.runs-on}}
+    runs-on: ${{matrix.runs-on}}
+    # runs-on: buildjet-4vcpu-ubuntu-2204-arm
+    name: Push ARM Docker image to Docker Hub - ${{matrix.runs-on}}
     # needs: test
     steps:
       - name: Check out the repo
@@ -75,8 +97,19 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   combine-manifests:
-    runs-on: buildjet-4vcpu-ubuntu-2204
-    name: Combine architectures into one manifest
+    strategy:
+      matrix:
+        runs-on:
+          [
+            buildjet-2vcpu-ubuntu-2204,
+            buildjet-4vcpu-ubuntu-2204,
+            buildjet-8vcpu-ubuntu-2204,
+            buildjet-16vcpu-ubuntu-2204,
+          ]
+    # name: All Tests - ${{matrix.runs-on}}
+    runs-on: ${{matrix.runs-on}}
+    # runs-on: buildjet-4vcpu-ubuntu-2204
+    name: Combine architectures into one manifest - ${{matrix.runs-on}}
     needs:
       - amd64
       - arm
