@@ -18,20 +18,21 @@ func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, e
 
 	policyReq, err := createPolicyRequest(req)
 	if err != nil {
-		log.Error().Msgf("Err building policy request: %v", err)
-		r.Status = "Err building policy request"
-		return r, err
+		return updateResponse{}, errors.Wrap(err, "Create policy request")
 	}
 
-	connectionDetails, err := settings.GetConnectionDetails(db)
-	// TODO: change to select which local node
-	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
-		return r, errors.New("Error getting node connection details from the db")
+		return updateResponse{}, errors.Wrap(err, "Getting node connection details from the db")
+	}
+
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		return updateResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}
 
 	defer conn.Close()
@@ -40,10 +41,8 @@ func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, e
 	client := lnrpc.NewLightningClient(conn)
 
 	resp, err := client.UpdateChannelPolicy(ctx, &policyReq)
-
 	if err != nil {
-		log.Error().Msgf("Err updating channel/s: %v", err)
-		return r, err
+		return updateResponse{}, errors.Wrap(err, "Updating channel policy")
 	}
 
 	r = processUpdateResponse(resp)
@@ -54,6 +53,10 @@ func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, e
 func createPolicyRequest(req updateChanRequestBody) (r lnrpc.PolicyUpdateRequest, err error) {
 
 	updChanReq := lnrpc.PolicyUpdateRequest{}
+
+	if req.NodeId == 0 {
+		return r, errors.New("Node id is missing")
+	}
 
 	//Minimum supported value for TimeLockDelta is 18
 	if req.TimeLockDelta < 18 {

@@ -3,7 +3,6 @@ package invoices
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -13,6 +12,7 @@ import (
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/rs/zerolog/log"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -109,23 +109,20 @@ func constructDecodedInvoice(decodedInvoice *lnrpc.PayReq) *DecodedInvoice {
 }
 
 // decodeInvoice Decode a lightning invoice
-func decodeInvoice(db *sqlx.DB, invoice string) (*DecodedInvoice, error) {
-	log.Info().Msgf("Decoding invoice: %s", invoice)
+func decodeInvoice(db *sqlx.DB, invoice string, nodeId int) (*DecodedInvoice, error) {
+	//log.Info().Msgf("Decoding invoice: %s", invoice)
 	// Get lnd client
-	connectionDetails, err := settings.GetConnectionDetails(db)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, nodeId)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
-		return nil, errors.New("Error getting node connection details from the db")
+		return nil, errors.Wrap(err, "Getting node connection details from the db")
 	}
 
-	// TODO: change to select which local node
 	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
 	if err != nil {
-		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
-		return nil, errors.Newf("can't connect to LND")
+		return nil, errors.Wrap(err, "Connecting to LND")
 	}
 	defer conn.Close()
 
@@ -137,7 +134,7 @@ func decodeInvoice(db *sqlx.DB, invoice string) (*DecodedInvoice, error) {
 		PayReq: invoice,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Decoding payment request")
 	}
 
 	nodeInfo, err := client.GetNodeInfo(ctx, &lnrpc.NodeInfoRequest{
@@ -145,7 +142,7 @@ func decodeInvoice(db *sqlx.DB, invoice string) (*DecodedInvoice, error) {
 		IncludeChannels: false,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Getting node info")
 	}
 
 	torqDecodedInvoice := constructDecodedInvoice(decodedInvoice)
@@ -157,10 +154,17 @@ func decodeInvoice(db *sqlx.DB, invoice string) (*DecodedInvoice, error) {
 func decodeInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 	invoice := c.Query("invoice")
 
-	di, err := decodeInvoice(db, invoice)
+	nodeId, err := strconv.Atoi(c.Query("nodeId"))
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting node id")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "node id not provided"})
+		return
+	}
+
+	di, err := decodeInvoice(db, invoice, nodeId)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Error().Err(err).Msgf("Error decoding invoice: %v", err)
 
 		if strings.Contains(err.Error(), "checksum failed") {
 			//errResponse := server_errors.SingleFieldError("invoice", "CHECKSUM_FAILED")

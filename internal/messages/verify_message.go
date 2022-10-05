@@ -7,24 +7,24 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
 )
 
 func verifyMessage(db *sqlx.DB, req VerifyMessageRequest) (r VerifyMessageResponse, err error) {
-	connectionDetails, err := settings.GetConnectionDetails(db)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
-		return r, errors.New("Error getting node connection details from the db")
+	if req.NodeId == 0 {
+		return VerifyMessageResponse{}, errors.Newf("Node Id missing")
 	}
 
-	// TODO: change to select which local node
-	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
 	if err != nil {
-		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
-		return r, errors.Newf("can't connect to LND")
+		return VerifyMessageResponse{}, errors.Wrap(err, "Getting node connection details from the db")
+	}
+
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		return VerifyMessageResponse{}, errors.Wrap(err, "Connecting to LND")
 	}
 	defer conn.Close()
 
@@ -39,8 +39,7 @@ func verifyMessage(db *sqlx.DB, req VerifyMessageRequest) (r VerifyMessageRespon
 
 	verifyMsgResp, err := client.VerifyMessage(ctx, &verifyMsgReq)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error verifying message: %v", err)
-		return r, errors.Newf("Error verifying message")
+		return VerifyMessageResponse{}, errors.Wrap(err, "Verifying message")
 	}
 
 	r.Valid = verifyMsgResp.GetValid()
