@@ -15,13 +15,11 @@ export type Flow = {
 
 export type BaseQueryCollectionParams = Paginable & {
   order?: Order;
-  filter?: Record<string, any> | undefined;
+  filter?: Record<string, unknown>;
 };
 
-export type BaseQuery = Flow | BaseQueryCollectionParams;
-
 export type GetFlowQueryParams = Flow & {
-  chanId: string;
+  chan_id: string;
 };
 
 export type GetChannelHistoryQueryParams = Flow & {

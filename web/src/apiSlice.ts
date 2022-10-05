@@ -49,18 +49,16 @@ export const torqApi = createApi({
   tagTypes: ["settings", "tableView", "localNodes"],
   endpoints: (builder) => ({
     getFlow: builder.query<any, GetFlowQueryParams>({
-      query: ({ from, to, chanId }) => `flow?from=${from}&to=${to}&chan_id=${chanId}`,
-
-      /* query: (params) => queryParamsBuilder("flow", params), */
+      query: (params) => queryParamsBuilder("flow", params), //
     }),
     getChannelHistory: builder.query<any, GetChannelHistoryQueryParams>({
-      query: ({ from, to, chanIds }) => `channels/${chanIds}?from=${from}&to=${to}`,
+      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds" }, params),
     }),
     getForwards: builder.query<any, GetForwardsQueryParams>({
       query: (params) => queryParamsBuilder("forwards", params, true),
     }),
     getDecodedInvoice: builder.query<any, GetDecodedInvoiceQueryParams>({
-      query: ({ invoice }) => `invoices/decode/?invoice=${invoice}`,
+      query: (params) => queryParamsBuilder("invoices/decode/", params),
     }),
     getPayments: builder.query<any, GetPaymentsQueryParams>({
       query: (params) => queryParamsBuilder("payments", params, true),

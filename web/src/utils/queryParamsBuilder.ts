@@ -1,28 +1,50 @@
-import { assign, mapValues, pickBy } from "lodash";
-import type { BaseQuery } from "types/api";
+import _, { assign, flowRight, mapValues, omit, partial, pickBy } from "lodash";
+import type { BaseQueryCollectionParams } from "types/api";
 
-const baseQueryDefaultPaginationParams: Partial<BaseQuery> = {
+type EndpointDefinition = {
+  endpoint: string;
+  baseParam: string;
+};
+
+const baseQueryDefaultPaginationParams: BaseQueryCollectionParams = {
   limit: 100,
   offset: 0,
 };
 
-const mergeQueryWithDefaultPaginationParams = (defaultParameters: Partial<BaseQuery>, customParameters: BaseQuery) =>
-  assign(defaultParameters, customParameters);
+const parseEndpointDefinition = <T extends { [s: string]: unknown }>(
+  { endpoint, baseParam }: EndpointDefinition,
+  params: T
+): string => `${endpoint}/${params[baseParam]}`;
 
-export const queryParamsBuilder = <T extends BaseQuery>(endpoint: string, params: T, isPaginable = false): string => {
-  const mergeDefaultPaginationParams = isPaginable
-    ? mergeQueryWithDefaultPaginationParams(baseQueryDefaultPaginationParams, params)
-    : params;
+const removeBaseParam = <T extends { [s: string]: string }>(endpoint: EndpointDefinition | string, params: T) =>
+  typeof endpoint === "object" ? omit(params, endpoint.baseParam) : params;
 
-  const stringifyNested = mapValues(mergeDefaultPaginationParams, (value) =>
-    typeof value === "object" ? JSON.stringify(value) : value
-  );
+const removeUndefinedParams = <T extends object>(params: T) => pickBy(params, (value) => value !== undefined);
 
-  const removeUndefined = pickBy(stringifyNested, (value) => value !== undefined);
+const mergeQueryWithDefaultPaginationParams = <T>(customParameters: T, isPaginable: boolean): T =>
+  isPaginable ? assign(baseQueryDefaultPaginationParams, customParameters) : customParameters;
 
-  const searchParameters = new URLSearchParams(removeUndefined as any);
+const stringifyNestedParams = <T extends object>(params: T) =>
+  mapValues(params, (value) => (typeof value === "object" ? JSON.stringify(value) : value));
 
-  const url = `${endpoint}?${searchParameters.toString()}`;
+const renderParams = <T>(endpoint: EndpointDefinition | string, params: T, isPaginable: boolean) =>
+  flowRight([
+    partial(removeBaseParam, endpoint),
+    removeUndefinedParams,
+    partial(mergeQueryWithDefaultPaginationParams, _, isPaginable),
+    stringifyNestedParams,
+  ])(params);
+
+export const queryParamsBuilder = <T extends { [s: string]: unknown }>(
+  endpoint: EndpointDefinition | string,
+  params: T,
+  isPaginable = false
+): string => {
+  const parsedEndpoint = typeof endpoint === "object" ? parseEndpointDefinition(endpoint, params) : endpoint;
+  const formattedParams = renderParams(parsedEndpoint, params, isPaginable);
+  const searchParameters = new URLSearchParams(formattedParams);
+
+  const url = `${parsedEndpoint}?${searchParameters.toString()}`;
 
   return url;
 };
