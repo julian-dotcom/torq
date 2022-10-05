@@ -11,10 +11,9 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/lncapital/torq/pkg/server_errors"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"io"
-	"log"
 	"strings"
 	"time"
 )
@@ -26,6 +25,7 @@ type rrpcClientSendPayment interface {
 }
 
 type NewPaymentRequest struct {
+	NodeId           int     `json:"nodeId"`
 	Invoice          *string `json:"invoice"`
 	TimeOutSecs      int32   `json:"timeoutSecs"`
 	Dest             *string `json:"dest"`
@@ -103,17 +103,20 @@ func SendNewPayment(
 	reqId string,
 ) (err error) {
 
-	connectionDetails, err := settings.GetConnectionDetails(db)
-	if err != nil {
-		return errors.New("Error getting node connection details from the db")
+	if npReq.NodeId == 0 {
+		return errors.New("Node id is missing")
 	}
-	// TODO: which node are you trying to send the payment from?
-	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, npReq.NodeId)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Failed connecting to LND")
+		return errors.Wrap(err, "Getting node connection details from the db")
+	}
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		return errors.Wrap(err, "Getting node connection details from the db")
 	}
 	defer conn.Close()
 	client := routerrpc.NewRouterClient(conn)
@@ -166,7 +169,7 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 	ctx := context.Background()
 	req, err := client.SendPaymentV2(ctx, &newPayReq)
 	if err != nil {
-		return errors.New("Error sending payment")
+		return errors.Wrap(err, "Sending payment")
 	}
 
 	for {
@@ -195,7 +198,7 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 		case err != nil && strings.Contains(err.Error(), "amount must not be specified when paying a non-zero  amount invoice"):
 			return errors.New("AMOUNT_NOT_ALLOWED")
 		default:
-			log.Printf("Unknown payment error %v", err)
+			log.Error().Msgf("Unknown payment error %v", err)
 			return errors.New("UNKNOWN_ERROR")
 		}
 

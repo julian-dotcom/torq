@@ -14,24 +14,20 @@ import (
 func batchOpenChannels(db *sqlx.DB, req BatchOpenRequest) (r BatchOpenResponse, err error) {
 	bOpenChanReq, err := checkPrepareReq(req)
 	if err != nil {
-		log.Error().Msgf("Error checkPrepareReq: %v", err)
-		return r, err
+		return BatchOpenResponse{}, err
 	}
 
-	connectionDetails, err := settings.GetConnectionDetails(db)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
-		return r, errors.New("Error getting node connection details from the db")
+		return BatchOpenResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}
 
-	// TODO: change to select which local node
 	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
 	if err != nil {
-		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
-		return r, errors.Newf("can't connect to LND")
+		return BatchOpenResponse{}, errors.Wrap(err, "Connecting to LND")
 	}
 	defer conn.Close()
 
@@ -40,21 +36,24 @@ func batchOpenChannels(db *sqlx.DB, req BatchOpenRequest) (r BatchOpenResponse, 
 
 	bocResponse, err := client.BatchOpenChannel(ctx, &bOpenChanReq)
 	if err != nil {
-		log.Error().Msgf("Error BatchOpenChannel: %v", err)
-		return r, err
+		return BatchOpenResponse{}, errors.Wrap(err, "Batch open channel")
 	}
 
-	resp, err := processBocResponse(bocResponse)
+	r, err = processBocResponse(bocResponse)
 	if err != nil {
-		log.Error().Msgf("Error processBocResponse: %v", err)
-		return r, err
+		return BatchOpenResponse{}, errors.Wrap(err, "Processing boc response")
 	}
 	//log.Info().Msgf("pending channels: %v", bocResponse.String())
-	return resp, nil
+	return r, nil
 
 }
 
 func checkPrepareReq(bocReq BatchOpenRequest) (req lnrpc.BatchOpenChannelRequest, err error) {
+
+	if bocReq.NodeId == 0 {
+		return req, errors.New("Node id is missing")
+	}
+
 	if len(bocReq.Channels) == 0 {
 		log.Debug().Msgf("channel array empty")
 		return req, errors.New("Channels array is empty")

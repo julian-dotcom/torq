@@ -11,9 +11,11 @@ import (
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/rs/zerolog/log"
+	"io"
 )
 
 type OpenChannelRequest struct {
+	NodeId             int     `json:"nodeId"`
 	SatPerVbyte        *uint64 `json:"satPerVbyte"`
 	NodePubKey         string  `json:"nodePubKey"`
 	LocalFundingAmount int64   `json:"localFundingAmount"`
@@ -43,31 +45,28 @@ type PsbtDetails struct {
 func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, reqId string) (err error) {
 	// TODO: Add support for batch opening channels
 
-	connectionDetails, err := settings.GetConnectionDetails(db)
+	openChanReq, err := prepareOpenRequest(req)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
-		return errors.New("Error getting node connection details from the db")
+		return errors.Wrap(err, "Preparing open request")
 	}
 
-	// TODO: Need to know for which node we are trying to open the channel
-	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
 	if err != nil {
-		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
-		return errors.Newf("can't connect to LND")
+		return errors.Wrap(err, "Getting node connection details from the db")
+	}
+
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		return errors.Wrap(err, "Connecting to LND")
 	}
 	defer conn.Close()
 
 	client := lnrpc.NewLightningClient(conn)
 
 	ctx := context.Background()
-
-	openChanReq, err := prepareOpenRequest(req)
-	if err != nil {
-		return err
-	}
 
 	//Send open channel request
 	openChanRes, err := client.OpenChannel(ctx, &openChanReq)
@@ -89,6 +88,11 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 
 		resp, err := openChanRes.Recv()
 
+		if err == io.EOF {
+			//log.Info().Msgf("Open channel EOF")
+			return nil
+		}
+
 		if err != nil {
 			log.Error().Msgf("could not open channel: %v", err)
 			wChan <- errors.Newf("could not open channel: %v", err)
@@ -105,6 +109,10 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 }
 
 func prepareOpenRequest(ocReq OpenChannelRequest) (r lnrpc.OpenChannelRequest, err error) {
+	if ocReq.NodeId == 0 {
+		return r, errors.New("Node id is missing")
+	}
+
 	if ocReq.SatPerVbyte != nil && ocReq.TargetConf != nil {
 		return r, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}

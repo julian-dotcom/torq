@@ -187,7 +187,6 @@ func main() {
 					for {
 						select {
 						case <-startchan:
-
 							// if node specified on cmd flags then check if we already know about it
 							if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
 
@@ -227,7 +226,7 @@ func main() {
 								}
 							}
 
-							nodes, err := settings.GetConnectionDetails(db)
+							nodes, err := settings.GetActiveNodesConnectionDetails(db)
 							if err != nil {
 								log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
 								return
