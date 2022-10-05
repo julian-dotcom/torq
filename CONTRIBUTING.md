@@ -13,7 +13,7 @@ You already discovered our code repository hosted in the [LN.capital Organizatio
 Let us know what you are missing so we can improve the software for everybody!
 
 ### Your First Code Contribution
-Unsure where to begin contributing to Atom? You can start by looking through these `Good first issue` and `Help wanted` issues:
+Unsure where to begin contributing to torq? You can start by looking through these `Good first issue` and `Help wanted` issues:
 
 * [Good first issue][good first issue] - issues which should only require a few lines of code, and a test or two.
 * [Help wanted issues][help wanted] - issues which should be a bit more involved than `Good first issue` issues.
@@ -74,12 +74,33 @@ Once the virtual environment is created:
 * to start run: `go build ./virtual_network/torq_vn &&  go run ./virtual_network/torq_vn start --db true`
 * to purge/delete run: `go build ./virtual_network/torq_vn &&  go run ./virtual_network/torq_vn purge --db true`
 
+#### Running torq compartments in isolation
+
+To run the database `docker run -d --name torqdb -p ${dbPort}:5432 -e POSTGRES_PASSWORD=${dbPassword} timescale/timescaledb:latest-pg14`
+
+To run the backend without LND/CLN event subscription on port 8080 `go run ./cmd/torq/torq.go --db.name ${dbName} --db.password ${dbPassword} --db.port ${dbPort} --torq.password ${torqPassword} --torq.no-sub start`
+
+To run the frontend in dev mode on port 3000 you can use `cd web && npm start`
+
+When your code requires a database change you can create a migration file with `migrate create -seq -ext psql -dir database/migrations add_enabled_deleted_to_local_node`
+You should not bother creating a rollback migration file. We will not be supporting that in this project. The migration itself will run once torq get booted.
+
 ****Note for Windows** When the you run the end-to-end tests in windows and the created docker containers are not working please try running the following commands first: `dos2unix.exe virtual_network/docker/btcd/* ; dos2unix.exe virtual_network/docker/lnd/*`
 
 ### Testing torq
 
-A partial test with npm is `cd web && npm test`
+To test the frontend with npm is `cd web && npm test` or via make `make test-frontend`
+
+To test the backend `make start-dev-db && make wait-db && make test-backend && make stop-dev-db`
+
+To run a specific backend test with verbose logging `make start-dev-db && make wait-db && go test -v -count=1 ./pkg/lnd -run TestSubscribeForwardingEvents && make stop-dev-db`
 
 To run our full end-to-end tests similar to our github actions pipeline the command (in git bash on Windows*) is `make test && make test-e2e-debug`
 
+When running `make test` fails potentially the dev database was still running so a consecutive run should work if that was the case.
+
 ***Note for Windows** When the you run the end-to-end tests in windows and the created docker containers are not working please try running the following commands first: `dos2unix.exe virtual_network/docker/btcd/* ; dos2unix.exe virtual_network/docker/lnd/*`
+
+### Creating a pull request
+
+When you reached a point where you want feedback. Then it's time to create your pull request. Make sure you pull request references a GitHub issue! When an issue does not exist then it's required for you to create one so it can be referenced.
