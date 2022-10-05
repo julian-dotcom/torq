@@ -1,10 +1,10 @@
-import {render, waitFor, waitForElementToBeRemoved} from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { store } from "./store/store";
 
-test("renders login page", async ()  => {
+test("renders login page", ()  => {
   const { getByText } = render(
     <BrowserRouter>
       <Provider store={store}>
@@ -13,12 +13,9 @@ test("renders login page", async ()  => {
     </BrowserRouter>
   );
 
-  const loading = getByText(/loading/i);
-  expect(loading).toBeInTheDocument();
+  expect(getByText(/loading/i)).toBeInTheDocument();
 
-  await waitForElementToBeRemoved(loading);
-
-  await waitFor(() => {
+  waitFor(() => {
     expect(getByText(/login/i)).toBeInTheDocument()
   });
 });
