@@ -51,6 +51,7 @@ The required software is:
 * docker
 * go
 * node + npm
+* make
 
 #### Windows extras
 
