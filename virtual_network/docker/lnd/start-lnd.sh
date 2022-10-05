@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env /bin/bash
 
 # Copied from: https://github.com/lightningnetwork/lnd/blob/master/docker/lnd/start-lnd.sh
 
@@ -70,4 +70,6 @@ exec lnd \
     "--rpclisten=localhost:10009" \
     "--trickledelay=1000" \
     --debuglevel="$DEBUG" \
+    --protocol.wumbo-channels \
+    "--maxchansize=100000000" \
     "$@"
