@@ -218,7 +218,7 @@ func main() {
 									log.Debug().Msg("Node specified in config is not in DB, adding it")
 									err = settings.AddNodeToDB(db, localNodeFromConfig)
 									if err != nil {
-										log.Error().Err(err).Msg("Adding node specified in congig to database")
+										log.Error().Err(err).Msg("Adding node specified in config to database")
 										return
 									}
 								} else {

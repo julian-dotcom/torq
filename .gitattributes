@@ -1,0 +1,3 @@
+# Enforce Unix style line endings for docker image creation on windows.
+virtual_network/docker/btcd/* text eol=lf
+virtual_network/docker/lnd/* text eol=lf
