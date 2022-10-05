@@ -1,9 +1,9 @@
 import { PROD_ENVIRONMENT_PORT, REST_API_PATHNAME } from "constants/backend";
-import { BASE_PATHNAME_PREFIX } from "constants/third-party-integration";
+import { BASE_PATHNAME_PREFIX } from "constants/subpath-support";
 
-const isRunningOnThirdParty = window.location.pathname.startsWith(BASE_PATHNAME_PREFIX);
+const isRunningOnSubpath = window.location.pathname.startsWith(BASE_PATHNAME_PREFIX);
 
-const basePathnamePrefix = isRunningOnThirdParty ? BASE_PATHNAME_PREFIX : "";
+const basePathnamePrefix = isRunningOnSubpath ? BASE_PATHNAME_PREFIX : "";
 
 const isRunningOnSecureConnection = window.location.protocol.startsWith("https");
 
