@@ -1,11 +1,6 @@
-import {
-  createSlice,
-  createAsyncThunk,
-} from "@reduxjs/toolkit";
-import {
-  defaultLang, supportedLangs,
-} from "../../config/i18nConfig";
-import { fetchTranslations } from "./i18nAPI";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { defaultLang, supportedLangs } from "config/i18nConfig";
+import { fetchTranslations } from "services/i18n/i18nAPI";
 
 const initialState = {
   status: "loading",

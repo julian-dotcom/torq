@@ -1,19 +1,19 @@
 import { AddSquare20Regular as AddIcon, Save20Regular as SaveIcon } from "@fluentui/react-icons";
 import Page from "layout/Page";
-import Box from "./Box";
+import Box from "features/settings/Box";
 import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
-import style from "./settings.module.css";
-import Select, { SelectOption } from "../forms/Select";
+import style from "features/settings/settings.module.css";
+import Select, { SelectOption } from "features/forms/Select";
 import React from "react";
-import { defaultStaticRangesFn } from "../timeIntervalSelect/customRanges";
+import { defaultStaticRangesFn } from "features/timeIntervalSelect/customRanges";
 import { useGetLocalNodesQuery, useGetSettingsQuery, useGetTimeZonesQuery, useUpdateSettingsMutation } from "apiSlice";
 import { localNode, settings } from "apiTypes";
-import { toastCategory } from "../toast/Toasts";
-import ToastContext from "../toast/context";
-import NodeSettings from "./NodeSettings";
+import { toastCategory } from "features/toast/Toasts";
+import ToastContext from "features/toast/context";
+import NodeSettings from "features/settings/NodeSettings";
 import Modal from "features/modal/Modal";
-import useTranslations from "../../services/i18n/useTranslations";
-import { supportedLangs } from "../../config/i18nConfig";
+import useTranslations from "services/i18n/useTranslations";
+import { supportedLangs } from "config/i18nConfig";
 
 function Settings() {
   const { t, setLang } = useTranslations();

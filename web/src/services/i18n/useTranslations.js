@@ -1,5 +1,6 @@
 import { useSelector, useDispatch } from "react-redux";
-import { setLangAsync } from "./i18nSlice";
+import { setLangAsync } from "services/i18n/i18nSlice";
+
 export default function useTranslations() {
   const dispatch = useDispatch();
   const t = useSelector((state) => state.i18n.translations);

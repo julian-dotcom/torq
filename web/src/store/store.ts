@@ -8,7 +8,7 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import paymentsReducer from "features/transact/Payments/paymentsSlice";
 import invoicesReducer from "features/transact/Invoices/invoicesSlice";
 import onChainReducer from "features/transact/OnChain/onChainSlice";
-import i18nReducer from "../services/i18n/i18nSlice";
+import i18nReducer from "services/i18n/i18nSlice";
 
 export const store = configureStore({
   reducer: {
