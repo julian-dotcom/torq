@@ -5,11 +5,11 @@ import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
-import {useCallback, useState} from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
 import styles from "features/transact/OnChain/newAddress/newAddress.module.scss";
-import Select, { SelectOption } from "features/forms/Select";
+import Select from "features/inputs/Select";
 import useTranslations from "services/i18n/useTranslations";
 
 export type NewAddressRequest = {
@@ -28,27 +28,23 @@ export type NewAddressResponse = {
 export type NewAddressError = { id: string; type: "Error"; error: string };
 
 export enum AddressType {
-  Unknown,
-  P2WPKH,
-  P2WKH,
-  NP2WKH,
-  P2TR,
+  P2WPKH = 1,
+  P2WKH = 2,
+  P2TR = 4,
 }
 
 function NewAddressModal() {
   const { t } = useTranslations();
 
-  const addressTypeOptions: SelectOption[] = [
-    { label: t.unknown, value: AddressType.Unknown.valueOf().toString() },
-    { label: t.p2wpkh, value: AddressType.P2WPKH.valueOf().toString() },
-    { label: t.p2wkh, value: AddressType.P2WKH.valueOf().toString() },
-    { label: t.np2wkh, value: AddressType.NP2WKH.valueOf().toString() },
-    { label: t.p2tr, value: AddressType.P2TR.valueOf().toString() }
+  const addressTypeOptions = [
+    { label: t.p2wpkh, value: AddressType.P2WPKH }, // Wrapped Segwit
+    { label: t.p2wkh, value: AddressType.P2WKH }, // Segwit
+    { label: t.p2tr, value: AddressType.P2TR }, // Taproot
   ];
 
   const [response, setResponse] = useState<NewAddressResponse>();
   const [newAddressError, setNewAddressError] = useState("");
-  const [addressType, setAddressType] = useState("0");
+  const [addressType, setAddressType] = useState(AddressType.P2WPKH);
 
   const [addressTypeState, setAddressTypeState] = useState(ProgressStepState.active);
   const [doneState, setDoneState] = useState(ProgressStepState.disabled);
@@ -96,37 +92,40 @@ function NewAddressModal() {
     setDoneState(ProgressStepState.disabled);
   };
 
+  // TODO: Need to remove use of "any"
   const handlerAddressTypeChange = (combiner: any) => {
-    if (combiner.value === "") {
-      setAddressType("0");
-    } else {
-      setAddressType(combiner.value);
-    }
+    // TODO: Not sure about this type conversion. Should be reviewed
+    console.log(combiner.value);
+    setAddressType(combiner.value as AddressType);
   };
 
-  const handleClickNext = useCallback(
-    () => {
-      setStepIndex(1);
-      setAddressTypeState(ProgressStepState.completed);
-      setDoneState(ProgressStepState.active);
-      sendJsonMessage({
-        reqId: "randId",
-        type: "newAddress",
-        newAddressRequest: {
-          // TODO: Don't just pick the first one!!!
-          nodeId: 1,
-          type: Number({addressType}),
-          // TODO: account empty so the default wallet account is used
-          // account: {account},
-        }
-      });
-    }, [sendJsonMessage]
-  );
+  const handleClickNext = useCallback(() => {
+    setStepIndex(1);
+    setAddressTypeState(ProgressStepState.completed);
+    setDoneState(ProgressStepState.active);
+    console.log(addressType);
+    sendJsonMessage({
+      reqId: "randId",
+      type: "newAddress",
+      newAddressRequest: {
+        // TODO: Don't just pick the first one!!!
+        nodeId: 1,
+        type: addressType,
+        // TODO: account empty so the default wallet account is used
+        // account: {account},
+      },
+    });
+  }, [addressType, sendJsonMessage]);
 
   const navigate = useNavigate();
 
   return (
-    <PopoutPageTemplate title={t.header.newAddress} show={true} onClose={() => navigate(-1)} icon={<TransactionIconModal />}>
+    <PopoutPageTemplate
+      title={t.header.newAddress}
+      show={true}
+      onClose={() => navigate(-1)}
+      icon={<TransactionIconModal />}
+    >
       <ProgressHeader modalCloseHandler={closeAndReset}>
         <Step label={"Type"} state={addressTypeState} last={false} />
         <Step label={"Done"} state={doneState} last={true} />
@@ -139,8 +138,7 @@ function NewAddressModal() {
               <Select
                 id={"addressType"}
                 name={"addressType"}
-                label={t.addressType}
-                value={addressType}
+                value={addressTypeOptions.find((dd) => dd.value === addressType)}
                 className={styles.addressType}
                 onChange={handlerAddressTypeChange}
                 options={addressTypeOptions}
@@ -150,33 +148,19 @@ function NewAddressModal() {
 
           <ButtonWrapper
             className={styles.customButtonWrapperStyles}
-            rightChildren={
-              <Button
-                text={t.next}
-                disabled={addressType === "0"}
-                onClick={handleClickNext}
-                buttonColor={buttonColor.ghost}
-              />
-            }
+            rightChildren={<Button text={t.confirm} onClick={handleClickNext} buttonColor={buttonColor.green} />}
           />
         </ProgressTabContainer>
 
         <ProgressTabContainer>
-          <div className={classNames(styles.newAddressError)}>
-            {newAddressError}
-          </div>
-          {response && (
-            <div className={classNames(styles.newAddressStatusMessage)}>
-              {response.address}
-            </div>
-          )}
+          <div className={classNames(styles.newAddressError)}>{newAddressError}</div>
+          {response && <div className={classNames(styles.newAddressStatusMessage)}>{response.address}</div>}
           <ButtonWrapper
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
                 text={t.newAddress}
-                  onClick={() => {
-                  setAddressType("0");
+                onClick={() => {
                   setAddressTypeState(ProgressStepState.active);
                   setDoneState(ProgressStepState.disabled);
                   setStepIndex(0);
