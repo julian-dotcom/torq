@@ -50,6 +50,7 @@ function NewAddressModal() {
 
   function onNewAddressMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
+    setDoneState(ProgressStepState.completed);
     if (response?.type == "Error") {
       setNewAddressError(response.error);
       onNewAddressError(response as NewAddressError);
@@ -93,7 +94,7 @@ function NewAddressModal() {
   const handleClickNext = (addType: AddressType) => {
     setStepIndex(1);
     setAddressTypeState(ProgressStepState.completed);
-    setDoneState(ProgressStepState.active);
+    setDoneState(ProgressStepState.processing);
     sendJsonMessage({
       reqId: "randId",
       type: "newAddress",
