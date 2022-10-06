@@ -5,11 +5,10 @@ import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
 import styles from "features/transact/OnChain/newAddress/newAddress.module.scss";
-import Select from "features/inputs/Select";
 import useTranslations from "services/i18n/useTranslations";
 
 export type NewAddressRequest = {
@@ -44,7 +43,6 @@ function NewAddressModal() {
 
   const [response, setResponse] = useState<NewAddressResponse>();
   const [newAddressError, setNewAddressError] = useState("");
-  const [addressType, setAddressType] = useState(AddressType.P2WPKH);
 
   const [addressTypeState, setAddressTypeState] = useState(ProgressStepState.active);
   const [doneState, setDoneState] = useState(ProgressStepState.disabled);
@@ -92,30 +90,22 @@ function NewAddressModal() {
     setDoneState(ProgressStepState.disabled);
   };
 
-  // TODO: Need to remove use of "any"
-  const handlerAddressTypeChange = (combiner: any) => {
-    // TODO: Not sure about this type conversion. Should be reviewed
-    console.log(combiner.value);
-    setAddressType(combiner.value as AddressType);
-  };
-
-  const handleClickNext = useCallback(() => {
+  const handleClickNext = (addType: AddressType) => {
     setStepIndex(1);
     setAddressTypeState(ProgressStepState.completed);
     setDoneState(ProgressStepState.active);
-    console.log(addressType);
     sendJsonMessage({
       reqId: "randId",
       type: "newAddress",
       newAddressRequest: {
         // TODO: Don't just pick the first one!!!
         nodeId: 1,
-        type: addressType,
+        type: addType,
         // TODO: account empty so the default wallet account is used
         // account: {account},
       },
     });
-  }, [addressType, sendJsonMessage]);
+  };
 
   const navigate = useNavigate();
 
@@ -127,34 +117,34 @@ function NewAddressModal() {
       icon={<TransactionIconModal />}
     >
       <ProgressHeader modalCloseHandler={closeAndReset}>
-        <Step label={"Type"} state={addressTypeState} last={false} />
+        <Step label={t.addressType} state={addressTypeState} last={false} />
         <Step label={"Done"} state={doneState} last={true} />
       </ProgressHeader>
 
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
           <div className={styles.addressTypeWrapper}>
-            <div className={styles.addressType}>
-              <Select
-                id={"addressType"}
-                name={"addressType"}
-                value={addressTypeOptions.find((dd) => dd.value === addressType)}
-                className={styles.addressType}
-                onChange={handlerAddressTypeChange}
-                options={addressTypeOptions}
-              />
+            <div className={styles.addressTypes}>
+              {addressTypeOptions.map((addType, index) => {
+                return (
+                  <div
+                    className={styles.addressTypeButtons}
+                    key={index + addType.label}
+                    onClick={() => {
+                      handleClickNext(addType.value);
+                    }}
+                  >
+                    {addType.label}
+                  </div>
+                );
+              })}
             </div>
           </div>
-
-          <ButtonWrapper
-            className={styles.customButtonWrapperStyles}
-            rightChildren={<Button text={t.confirm} onClick={handleClickNext} buttonColor={buttonColor.green} />}
-          />
         </ProgressTabContainer>
 
         <ProgressTabContainer>
           <div className={classNames(styles.newAddressError)}>{newAddressError}</div>
-          {response && <div className={classNames(styles.newAddressStatusMessage)}>{response.address}</div>}
+          {response && <div className={classNames(styles.destinationType)}>{response.address}</div>}
           <ButtonWrapper
             className={styles.customButtonWrapperStyles}
             rightChildren={

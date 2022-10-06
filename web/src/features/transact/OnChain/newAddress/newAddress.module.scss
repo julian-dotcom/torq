@@ -1,17 +1,36 @@
-
-.addressType {
-  color: var(--secondary-2-700);
-  font-size: var(--font-size-small);
-  background-color: var(--secondary-2-100);
-  border-radius: 11px;
-  padding: 3px 12px 12px;
+.addressTypes {
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
+}
+.addressTypeButtons {
+  background-color: var(--primary-50);
+  border: 1px solid var(--primary-250);
+  border-radius: 2px;
+  color: var(--primary-700);
+  padding: 8px 12px;
+  &:hover {
+    background-color: var(--primary-100);
+  }
+}
+.newAddressResult {
+  word-break: break-all;
+}
+.destinationType {
+  word-break: break-all;
+  text-align: center;
+  color: var(--content-default);
+  background-color: var(--content-faded);
+  border-radius: 2px;
+  padding: 8px 12px 8px;
   &.unknownAddressType {
     background-color: var(--color-baige-400);
     color: var(--content-default);
   }
-}
-.addressTypeWrapper {
-  padding: 3px 12px 120px;
+  &.errorDestination {
+    background-color: var(--color-red-300);
+    color: var(--color-red-700);
+  }
 }
 
 .customButtonWrapperStyles {
