@@ -8,7 +8,6 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
 )
 
 func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err error) {
@@ -17,15 +16,17 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 		return r, err
 	}
 
-	connectionDetails, err := settings.GetConnectionDetails(db)
-	// TODO: change to select which local node
-	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
 	if err != nil {
-		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
-		return r, errors.Newf("can't connect to LND")
+		return r, errors.Wrap(err, "Getting node connection details from the db")
+	}
+
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		return r, errors.Wrap(err, "Connecting to LND")
 	}
 
 	defer conn.Close()
@@ -36,8 +37,7 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 
 	resp, err := client.AddInvoice(ctx, &newInvoiceReq)
 	if err != nil {
-		log.Error().Msgf("Err creating new invoice: %v", err)
-		return r, err
+		return newInvoiceResponse{}, errors.Wrap(err, "Creating invoice on node")
 	}
 
 	//log.Debug().Msgf("Invoice : %v", resp.PaymentRequest)
@@ -50,6 +50,10 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 }
 
 func processInvoiceReq(req newInvoiceRequest) (inv lnrpc.Invoice, err error) {
+
+	if req.NodeId == 0 {
+		return inv, errors.New("Node id is missing")
+	}
 
 	if req.Memo != nil {
 		inv.Memo = *req.Memo

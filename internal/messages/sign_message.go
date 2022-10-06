@@ -7,24 +7,23 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
 )
 
 func signMessage(db *sqlx.DB, req SignMessageRequest) (r SignMessageResponse, err error) {
-	connectionDetails, err := settings.GetConnectionDetails(db)
+	if req.NodeId == 0 {
+		return SignMessageResponse{}, errors.New("Node Id missing")
+	}
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
-		return r, errors.New("Error getting node connection details from the db")
+		return SignMessageResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}
 
-	// TODO: change to select which local node
 	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
 	if err != nil {
-		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
-		return r, errors.Newf("can't connect to LND")
+		return SignMessageResponse{}, errors.Wrap(err, "Connecting to LND")
 	}
 	defer conn.Close()
 
@@ -42,8 +41,7 @@ func signMessage(db *sqlx.DB, req SignMessageRequest) (r SignMessageResponse, er
 
 	signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error signing message: %v", err)
-		return r, errors.Newf("Error signing message")
+		return SignMessageResponse{}, errors.Wrap(err, "Signing message")
 	}
 
 	r.Signature = signMsgResp.Signature

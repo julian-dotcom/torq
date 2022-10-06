@@ -14,17 +14,20 @@ func sendCoins(db *sqlx.DB, req sendCoinsRequest) (r string, err error) {
 
 	sendCoinsReq, err := processSendRequest(req)
 	if err != nil {
-		return r, err
+		return "", errors.Wrap(err, "Process send request")
 	}
-	connectionDetails, err := settings.GetConnectionDetails(db)
-	// TODO: change to select which local node
-	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
 	if err != nil {
-		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
-		return r, errors.Newf("can't connect to LND")
+		return "", errors.New("Error getting node connection details from the db")
+	}
+
+	conn, err := lnd_connect.Connect(
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
+	if err != nil {
+		return "", errors.Wrap(err, "Connecting to LND")
 	}
 
 	defer conn.Close()
@@ -34,8 +37,7 @@ func sendCoins(db *sqlx.DB, req sendCoinsRequest) (r string, err error) {
 
 	resp, err := client.SendCoins(ctx, &sendCoinsReq)
 	if err != nil {
-		log.Error().Msgf("Err sending coins: %v", err)
-		return "Err sending coins", err
+		return "", errors.Wrap(err, "Sending coins")
 	}
 
 	return resp.Txid, nil
@@ -43,6 +45,10 @@ func sendCoins(db *sqlx.DB, req sendCoinsRequest) (r string, err error) {
 }
 
 func processSendRequest(req sendCoinsRequest) (r lnrpc.SendCoinsRequest, err error) {
+	if req.NodeId == 0 {
+		return r, errors.New("Node id is missing")
+	}
+
 	if req.Addr == "" {
 		log.Error().Msgf("Address must be provided")
 		return r, errors.New("Address must be provided")

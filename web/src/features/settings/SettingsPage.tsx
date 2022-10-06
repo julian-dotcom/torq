@@ -125,6 +125,7 @@ function Settings() {
                   />
                   <Button
                     type={"submit"}
+                    submit={true}
                     text={"Save"}
                     icon={<SaveIcon />}
                     buttonColor={buttonColor.green}

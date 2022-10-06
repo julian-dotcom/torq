@@ -8,8 +8,6 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/lncapital/torq/pkg/server_errors"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"io"
 	"strconv"
@@ -21,6 +19,7 @@ type lndClientCloseChannel interface {
 }
 
 type CloseChannelRequest struct {
+	NodeId          int     `json:"nodeId"`
 	ChannelPoint    string  `json:"channelPoint"`
 	Force           *bool   `json:"force"`
 	TargetConf      *int32  `json:"targetConf"`
@@ -46,30 +45,35 @@ type CloseChannelResponse struct {
 }
 
 func CloseChannel(wChan chan interface{}, db *sqlx.DB, c *gin.Context, ccReq CloseChannelRequest, reqId string) (err error) {
-	connectionDetails, err := settings.GetConnectionDetails(db)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, ccReq.NodeId)
 	if err != nil {
-		return errors.New("Error getting node connection details from the db")
+		return errors.New("Getting node connection details from the db")
 	}
+
 	conn, err := lnd_connect.Connect(
-		connectionDetails[0].GRPCAddress,
-		connectionDetails[0].TLSFileBytes,
-		connectionDetails[0].MacaroonFileBytes)
+		connectionDetails.GRPCAddress,
+		connectionDetails.TLSFileBytes,
+		connectionDetails.MacaroonFileBytes)
 	if err != nil {
-		//return errors.New("Failed connecting to LND")
-		server_errors.WrapLogAndSendServerError(c, err, "Failed connecting to LND")
+		return errors.Wrap(err, "Connecting to LND")
 	}
 	defer conn.Close()
 	client := lnrpc.NewLightningClient(conn)
 
 	closeChanReq, err := prepareCloseRequest(ccReq)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Preparing close request")
 	}
 
 	return closeChannelResp(client, &closeChanReq, wChan, reqId)
 }
 
 func prepareCloseRequest(ccReq CloseChannelRequest) (r lnrpc.CloseChannelRequest, err error) {
+
+	if ccReq.NodeId == 0 {
+		return r, errors.New("Node id is missing")
+	}
+
 	if ccReq.SatPerVbyte != nil && ccReq.TargetConf != nil {
 		return r, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
@@ -108,8 +112,7 @@ func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseCha
 	ctx := context.Background()
 	closeChanRes, err := client.CloseChannel(ctx, closeChanReq)
 	if err != nil {
-		log.Error().Msgf("Err closing channel: %v", err)
-		return errors.Newf("Err closing channel: %v", err)
+		return errors.Wrap(err, "Closing channel")
 	}
 
 	for {
@@ -126,13 +129,12 @@ func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseCha
 			return nil
 		}
 		if err != nil {
-			log.Error().Msgf("Err receive %v", err.Error())
-			return err
+			return errors.Wrap(err, "Close channel request receive")
 		}
 
 		r, err := processCloseResponse(resp, reqId)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Process close response")
 		}
 		wChan <- r
 	}

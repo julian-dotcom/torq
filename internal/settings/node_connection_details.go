@@ -10,25 +10,44 @@ type ConnectionDetails struct {
 	GRPCAddress       string
 	TLSFileBytes      []byte
 	MacaroonFileBytes []byte
+	Disabled          bool
+	Deleted           bool
 }
 
-func GetConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
+func GetActiveNodesConnectionDetails(db *sqlx.DB) (activeNodes []ConnectionDetails, err error) {
+	//Get all nodes not disabled and not deleted
 	localNodes, err := getLocalNodeConnectionDetails(db)
 	if err != nil {
 		return []ConnectionDetails{}, errors.Wrap(err, "Getting local nodes from db")
 	}
-	connectionDetailsList := []ConnectionDetails{}
 
 	for _, localNodeDetails := range localNodes {
 		if (localNodeDetails.GRPCAddress == nil) || (localNodeDetails.TLSDataBytes == nil) || (localNodeDetails.
 			MacaroonDataBytes == nil) {
 			continue
 		}
-		connectionDetailsList = append(connectionDetailsList, ConnectionDetails{
+		activeNodes = append(activeNodes, ConnectionDetails{
 			LocalNodeId:       localNodeDetails.LocalNodeId,
 			GRPCAddress:       *localNodeDetails.GRPCAddress,
 			TLSFileBytes:      localNodeDetails.TLSDataBytes,
 			MacaroonFileBytes: localNodeDetails.MacaroonDataBytes})
 	}
-	return connectionDetailsList, nil
+
+	return activeNodes, nil
+}
+
+func GetNodeConnectionDetailsById(db *sqlx.DB, nodeId int) (connectionDetails ConnectionDetails, err error) {
+	// will still fetch details even if node is disabled or deleted
+	node, err := getLocalNodeConnectionDetailsById(db, nodeId)
+	if err != nil {
+		return ConnectionDetails{}, err
+	}
+	return ConnectionDetails{
+		LocalNodeId:       node.LocalNodeId,
+		GRPCAddress:       *node.GRPCAddress,
+		TLSFileBytes:      node.TLSDataBytes,
+		MacaroonFileBytes: node.MacaroonDataBytes,
+		Disabled:          node.Disabled,
+		Deleted:           node.Deleted,
+	}, nil
 }
