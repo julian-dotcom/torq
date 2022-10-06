@@ -4,7 +4,7 @@ export type Forward = {
   lndChannelPoint: string;
   pubKey: string;
   shortChannelId: string;
-  chanId: number;
+  channelId: number;
   color: string;
   open: number;
   capacity: number;

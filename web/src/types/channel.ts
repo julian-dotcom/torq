@@ -9,6 +9,18 @@ type Channel = {
   capacity: number;
 };
 
+type Balance = {
+  date: string;
+  inboundCapacity: number;
+  outboundCapacity: number;
+  capacityDiff: number;
+};
+
+type ChannelBalance = {
+  lndShortChannelId: string;
+  balances: Balance[];
+};
+
 type HistoryRecord = {
   alias: string;
   date: string;
@@ -56,8 +68,8 @@ export type ChannelHistory = {
   countIn: number;
   countTotal: number;
   rebalancing: Rebalancing;
-  channel_balance: null;
   channels: Channel[];
+  channelBalances: ChannelBalance[];
   history: HistoryRecord[];
   events: Event[];
 };

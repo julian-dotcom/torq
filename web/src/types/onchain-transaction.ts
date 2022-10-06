@@ -5,7 +5,7 @@ export type OnChainTransaction = {
   destinationAddressesCount: number;
   label: string;
   lndShortChannelId: string | null;
-  lndTxTypeLabel: string;
+  lndTransactionTypeLabel: string;
   totalFees: number;
-  txHash: string;
+  transactionHash: string;
 };
