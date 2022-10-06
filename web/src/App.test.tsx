@@ -13,8 +13,6 @@ test("renders login page", ()  => {
     </BrowserRouter>
   );
 
-  expect(getByText(/loading/i)).toBeInTheDocument();
-
   waitFor(() => {
     expect(getByText(/login/i)).toBeInTheDocument()
   });
