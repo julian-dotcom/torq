@@ -1,35 +1,35 @@
-import React from "react";
-import styles from "./channel-page.module.scss";
-import * as d3 from "d3";
+import { Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
+import { useGetChannelHistoryQuery, useGetFlowQuery } from "apiSlice";
 import classNames from "classnames";
+import * as d3 from "d3";
+import { addDays, format } from "date-fns";
+import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
+import React from "react";
+import { useParams } from "react-router";
+import { Link } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import Button, { buttonColor, buttonSize } from "../buttons/Button";
+import EventsCard from "../eventsCard/EventsCard";
+import Select from "../inputs/Select";
+import Switch from "../inputs/Slider/Switch";
 import Popover from "../popover/Popover";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import ProfitsChart from "./revenueChart/ProfitsChart";
-import EventsChart from "./eventsChart/EventsChart";
-import EventsCard from "../eventsCard/EventsCard";
-import Switch from "../inputs/Slider/Switch";
-import Button, { buttonColor, buttonSize } from "../buttons/Button";
-import Select from "../inputs/Select";
-import { Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
-import FlowChart from "./flowChart/FlowChart";
-import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
-import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
-import { addDays, format } from "date-fns";
-import { useParams } from "react-router";
+import BalanceChart from "./balanceChart/BalanceChart";
+import styles from "./channel-page.module.scss";
 import {
+  selectBalanceChanID,
   selectEventChartKey,
   selectFlowKeys,
   selectProfitChartKey,
+  updateBalanceChanID,
   updateEventChartKey,
   updateFlowKey,
   updateProfitChartKey,
-  updateBalanceChanID,
-  selectBalanceChanID,
 } from "./channelSlice";
-import BalanceChart from "./balanceChart/BalanceChart";
-import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
-import { Link } from "react-router-dom";
+import EventsChart from "./eventsChart/EventsChart";
+import FlowChart from "./flowChart/FlowChart";
+import ProfitsChart from "./revenueChart/ProfitsChart";
 
 const ft = d3.format(",.0f");
 
@@ -72,7 +72,7 @@ function ChannelPage(props: ChannelPageProps) {
   const { data, isLoading } = useGetFlowQuery({
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
-    chanId: chanId || "1",
+    chan_id: chanId || "1",
   });
   const historyQuery = useGetChannelHistoryQuery({
     from: from,

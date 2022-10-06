@@ -1,18 +1,18 @@
-import styles from "./channel-page.module.scss";
-import * as d3 from "d3";
+import { useGetChannelHistoryQuery, useGetFlowQuery } from "apiSlice";
 import classNames from "classnames";
-import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import ProfitsChart from "./revenueChart/ProfitsChart";
-import Select from "../inputs/Select";
-import FlowChart from "./flowChart/FlowChart";
-import { useGetFlowQuery, useGetChannelHistoryQuery } from "apiSlice";
-import { useAppSelector, useAppDispatch } from "../../store/hooks";
-import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import * as d3 from "d3";
 import { addDays, format } from "date-fns";
-import { useParams } from "react-router";
 import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
-import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartKey } from "./channelSlice";
+import { useParams } from "react-router";
 import { Link, Outlet } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import Select from "../inputs/Select";
+import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
+import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import styles from "./channel-page.module.scss";
+import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartKey } from "./channelSlice";
+import FlowChart from "./flowChart/FlowChart";
+import ProfitsChart from "./revenueChart/ProfitsChart";
 
 const ft = d3.format(",.0f");
 
@@ -27,7 +27,7 @@ function ChannelPage() {
   const { data, isLoading } = useGetFlowQuery({
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
-    chanId: chanId || "1",
+    chan_id: chanId || "1",
   });
   const historyQuery = useGetChannelHistoryQuery({
     from: from,

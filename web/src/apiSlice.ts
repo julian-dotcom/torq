@@ -1,28 +1,22 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSlice";
-import { settings, timeZone, localNode } from "./apiTypes";
+import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
+
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import type {
+  GetChannelHistoryQueryParams,
+  GetDecodedInvoiceQueryParams,
+  GetFlowQueryParams,
+  GetForwardsQueryParams,
+  GetInvoicesQueryParams,
+  GetOnChainTransactionsQueryParams,
+  GetPaymentsQueryParams,
+} from "types/api";
+import { queryParamsBuilder } from "utils/queryParamsBuilder";
+import type { localNode, settings, timeZone } from "./apiTypes";
 
-const buildBaseUrl = () => {
-  // checks to see if the app is running under /torq and if so prepends that to API paths
-  const splitLocation = window.location.pathname.split("/");
-  let prefix = "";
-  if (splitLocation.length > 1) {
-    const path = splitLocation[1];
-    if (path === "torq") {
-      prefix = "/torq";
-    }
-  }
-  return window.location.port === "3000"
-    ? "//" + window.location.hostname + ":8080" + prefix
-    : "//" + window.location.host + prefix;
-};
-
-const API_URL = buildBaseUrl() + "/api";
-
-const loc = window.location;
-const prot = loc.protocol === "https:" ? "wss:" : "ws:";
-export const WS_URL = prot + buildBaseUrl() + "/ws";
+const API_URL = getRestEndpoint();
+export const WS_URL = getWsEndpoint();
 
 const baseQuery = fetchBaseQuery({
   baseUrl: API_URL,
@@ -35,6 +29,7 @@ const baseQuery = fetchBaseQuery({
   credentials: "include",
   mode: "cors",
 });
+
 const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
   args,
   api,
@@ -53,44 +48,26 @@ export const torqApi = createApi({
   baseQuery: baseQueryWithRedirect,
   tagTypes: ["settings", "tableView", "localNodes"],
   endpoints: (builder) => ({
-    getFlow: builder.query<any, { from: string; to: string; chanId: string }>({
-      query: ({ from, to, chanId }) => `flow?from=${from}&to=${to}&chan_id=${chanId}`,
+    getFlow: builder.query<any, GetFlowQueryParams>({
+      query: (params) => queryParamsBuilder("flow", params), //
     }),
-    getChannelHistory: builder.query<any, { from: string; to: string; chanIds: string }>({
-      query: ({ from, to, chanIds }) => `channels/${chanIds}?from=${from}&to=${to}`,
+    getChannelHistory: builder.query<any, GetChannelHistoryQueryParams>({
+      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds" }, params),
     }),
-    getForwards: builder.query<any, { from: string; to: string }>({
-      query: ({ from, to }) => `forwards?from=${from}&to=${to}`,
+    getForwards: builder.query<any, GetForwardsQueryParams>({
+      query: (params) => queryParamsBuilder("forwards", params, true),
     }),
-    getDecodedInvoice: builder.query<any, { invoice: string }>({
-      query: ({ invoice }) => `invoices/decode/?invoice=${invoice}`,
+    getDecodedInvoice: builder.query<any, GetDecodedInvoiceQueryParams>({
+      query: (params) => queryParamsBuilder("invoices/decode/", params),
     }),
-    getPayments: builder.query<
-      any,
-      { limit: number; offset: number; order?: Array<{ key: string; direction: "asc" | "desc" }>; filter?: any }
-    >({
-      query: ({ limit, offset, order, filter }) =>
-        `payments?limit=${limit || 100}&offset=${offset || 0}${order ? "&order=" + JSON.stringify(order) : ""}${
-          filter ? "&filter=" + JSON.stringify(filter) : ""
-        }`,
+    getPayments: builder.query<any, GetPaymentsQueryParams>({
+      query: (params) => queryParamsBuilder("payments", params, true),
     }),
-    getInvoices: builder.query<
-      any,
-      { limit: number; offset: number; order?: Array<{ key: string; direction: "asc" | "desc" }>; filter?: any }
-    >({
-      query: ({ limit, offset, order, filter }) =>
-        `invoices?limit=${limit || 100}&offset=${offset || 0}${order ? "&order=" + JSON.stringify(order) : ""}${
-          filter ? "&filter=" + JSON.stringify(filter) : ""
-        }`,
+    getInvoices: builder.query<any, GetInvoicesQueryParams>({
+      query: (params) => queryParamsBuilder("invoices", params, true),
     }),
-    getOnChainTx: builder.query<
-      any,
-      { limit: number; offset: number; order?: Array<{ key: string; direction: "asc" | "desc" }>; filter?: any }
-    >({
-      query: ({ limit, offset, order, filter }) =>
-        `on-chain-tx?limit=${limit || 100}&offset=${offset || 0}${order ? "&order=" + JSON.stringify(order) : ""}${
-          filter ? "&filter=" + JSON.stringify(filter) : ""
-        }`,
+    getOnChainTx: builder.query<any, GetOnChainTransactionsQueryParams>({
+      query: (params) => queryParamsBuilder("on-chain-tx", params, true),
     }),
     getTableViews: builder.query<any, void>({
       query: () => `table-views`,

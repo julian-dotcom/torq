@@ -1,0 +1,23 @@
+export type Invoice = {
+  creationDate: string;
+  settleDate: string;
+  addIndex: number;
+  settleIndex: number;
+  paymentRequest: string;
+  destinationPubKey: string;
+  rHash: string;
+  rPreimage: string;
+  memo: string;
+  value: number;
+  amountPaid: number;
+  invoiceState: number;
+  isRebalance: boolean;
+  isKeysend: boolean;
+  isAmp: boolean;
+  paymentAddress: string;
+  fallbackAddress: string;
+  updatedOn: string;
+  expiry: number;
+  cltvExpiry: number;
+  isPrivate: boolean;
+};
