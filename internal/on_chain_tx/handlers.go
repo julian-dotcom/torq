@@ -12,24 +12,6 @@ import (
 	"strconv"
 )
 
-//newAddressRequest
-//AddressType has to be one of:
-//- `p2wkh`: Pay to witness key hash (`WITNESS_PUBKEY_HASH` = 0)
-//- `np2wkh`: Pay to nested witness key hash (`NESTED_PUBKEY_HASH` = 1)
-//- `p2tr`: Pay to taproot pubkey (`TAPROOT_PUBKEY` = 4)
-//WITNESS_PUBKEY_HASH = 0;
-//NESTED_PUBKEY_HASH = 1;
-//UNUSED_WITNESS_PUBKEY_HASH = 2;
-//UNUSED_NESTED_PUBKEY_HASH = 3;
-//TAPROOT_PUBKEY = 4;
-//UNUSED_TAPROOT_PUBKEY = 5;
-type newAddressRequest struct {
-	NodeId int   `json:"nodeId"`
-	Type   int32 `json:"type"`
-	//The name of the account to generate a new address for. If empty, the default wallet account is used.
-	Account string `json:"account"`
-}
-
 type sendCoinsRequest struct {
 	NodeId           int     `json:"nodeId"`
 	Addr             string  `json:"addr"`
@@ -40,10 +22,6 @@ type sendCoinsRequest struct {
 	Label            *string `json:"label"`
 	MinConfs         *int32  `json:"minConfs"`
 	SpendUnconfirmed *bool   `json:"spendUnconfirmed"`
-}
-
-type newAddressResponse struct {
-	Address string `json:"address"`
 }
 
 type sendCoinsResponse struct {
@@ -155,26 +133,6 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 //	c.JSON(http.StatusOK, r)
 //}
 
-func newAddressHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody newAddressRequest
-
-	if err := c.BindJSON(&requestBody); err != nil {
-		log.Error().Msgf("JSON binding the request body")
-		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
-		return
-	}
-
-	resp, err := newAddress(db, requestBody)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Creating new address")
-		return
-	}
-
-	newAddressResp := newAddressResponse{Address: resp}
-
-	c.JSON(http.StatusOK, newAddressResp)
-}
-
 func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 	var requestBody sendCoinsRequest
 
@@ -198,6 +156,5 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 func RegisterOnChainTxsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("", func(c *gin.Context) { getOnChainTxsHandler(c, db) })
 	//r.GET(":identifier", func(c *gin.Context) { getOnChainTxHandler(c, db) })
-	r.POST("newaddress", func(c *gin.Context) { newAddressHandler(c, db) })
 	r.POST("sendcoins", func(c *gin.Context) { sendCoinsHandler(c, db) })
 }

@@ -3,46 +3,115 @@ package on_chain_tx
 import (
 	"context"
 	"github.com/cockroachdb/errors"
+	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lightningnetwork/lnd/lnrpc/walletrpc"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
+	"google.golang.org/grpc"
 )
 
-func newAddress(db *sqlx.DB, req newAddressRequest) (r string, err error) {
-	if req.NodeId == 0 {
-		return "", errors.New("Node id is missing")
+const (
+	Unknown int32 = 0
+	P2WPKH        = 1
+	P2WKH         = 2
+	NP2WKH        = 3
+	P2TR          = 4
+)
+
+type NewAddressRequest struct {
+	NodeId int   `json:"nodeId"`
+	Type   int32 `json:"type"`
+	//The name of the account to generate a new address for. If empty, the default wallet account is used.
+	Account string `json:"account"`
+}
+
+type NewAddressResponse struct {
+	ReqId   string `json:"reqId"`
+	Type    string `json:"type"`
+	Address string `json:"address"`
+}
+
+type rpcClientNewAddress interface {
+	NextAddr(ctx context.Context, in *walletrpc.AddrRequest, opts ...grpc.CallOption) (*walletrpc.AddrResponse, error)
+}
+
+func NewAddress(
+	wChan chan interface{},
+	db *sqlx.DB,
+	context *gin.Context,
+	newAddressRequest NewAddressRequest,
+	reqId string,
+) (err error) {
+
+	if newAddressRequest.NodeId == 0 {
+		return errors.New("Node id is missing")
 	}
 
-	addressType := req.Type
-	account := req.Account
-
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, newAddressRequest.NodeId)
 	if err != nil {
-		return "", errors.Wrap(err, "Getting node connection details from the db")
+		return errors.Wrap(err, "Getting node connection details from the db")
 	}
-
 	conn, err := lnd_connect.Connect(
 		connectionDetails.GRPCAddress,
 		connectionDetails.TLSFileBytes,
 		connectionDetails.MacaroonFileBytes)
 	if err != nil {
-		return "", errors.Wrap(err, "Connecting to LND")
+		return errors.Wrap(err, "Getting node connection details from the db")
 	}
-
 	defer conn.Close()
+	client := walletrpc.NewWalletKitClient(conn)
+	return newAddress(client, newAddressRequest, wChan, reqId)
+}
 
-	lnAddressType := lnrpc.AddressType(addressType)
-	newAddressReq := lnrpc.NewAddressRequest{Type: lnAddressType, Account: account}
+func createLndAddressRequest(newAddressRequest NewAddressRequest) (r walletrpc.AddrRequest, err error) {
+	lndAddressRequest := walletrpc.AddrRequest{}
+	if newAddressRequest.Account != "" {
+		lndAddressRequest.Account = newAddressRequest.Account
+	}
+	switch newAddressRequest.Type {
+	case P2WPKH:
+		lndAddressRequest.Type = walletrpc.AddressType_WITNESS_PUBKEY_HASH
+	case P2WKH:
+		lndAddressRequest.Type = walletrpc.AddressType_NESTED_WITNESS_PUBKEY_HASH
+	case NP2WKH:
+		lndAddressRequest.Type = walletrpc.AddressType_HYBRID_NESTED_WITNESS_PUBKEY_HASH
+	case P2TR:
+		lndAddressRequest.Type = walletrpc.AddressType_TAPROOT_PUBKEY
+	}
+	return lndAddressRequest, nil
+}
 
-	client := lnrpc.NewLightningClient(conn)
-	ctx := context.Background()
-
-	resp, err := client.NewAddress(ctx, &newAddressReq)
+func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest, wChan chan interface{}, reqId string) (err error) {
+	// Create and validate payment request details
+	lndAddressRequest, err := createLndAddressRequest(newAddressRequest)
 	if err != nil {
-		return "", errors.Wrap(err, "Creating new address")
+		return err
 	}
 
-	//log.Debug().Msgf("New address : %v", resp.Address)
-	return resp.Address, nil
+	ctx := context.Background()
+	lndResponse, err := client.NextAddr(ctx, &lndAddressRequest)
+	if err != nil {
+		return errors.Wrap(err, "New address")
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
+		// Write the payment status to the client
+		wChan <- processResponse(lndResponse, reqId)
+		break
+	}
+	return
+}
+
+func processResponse(lndResponse *walletrpc.AddrResponse, reqId string) (r NewAddressResponse) {
+	r.ReqId = reqId
+	r.Type = "newAddress"
+	r.Address = lndResponse.GetAddr()
+	return r
 }

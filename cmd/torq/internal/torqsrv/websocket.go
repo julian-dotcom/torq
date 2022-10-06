@@ -6,17 +6,19 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 type wsRequest struct {
-	ReqId               string                        `json:"reqId"`
-	Type                string                        `json:"type"`
-	NewPaymentRequest   *payments.NewPaymentRequest   `json:"newPaymentRequest"`
-	OpenChannelRequest  *channels.OpenChannelRequest  `json:"openChannelRequest"`
-	CloseChannelRequest *channels.CloseChannelRequest `json:"closeChannelRequest"`
-	Password            *string                       `json:"password"`
+	ReqId               string                         `json:"reqId"`
+	Type                string                         `json:"type"`
+	NewPaymentRequest   *payments.NewPaymentRequest    `json:"newPaymentRequest"`
+	OpenChannelRequest  *channels.OpenChannelRequest   `json:"openChannelRequest"`
+	CloseChannelRequest *channels.CloseChannelRequest  `json:"closeChannelRequest"`
+	Password            *string                        `json:"password"`
+	NewAddressRequest   *on_chain_tx.NewAddressRequest `json:"newAddressRequest"`
 }
 
 type Pong struct {
@@ -61,6 +63,25 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 		}
 		// Process a valid payment request
 		err := payments.SendNewPayment(wChan, db, c, *req.NewPaymentRequest, req.ReqId)
+		if err != nil {
+			wChan <- wsError{
+				ReqId: req.ReqId,
+				Type:  "Error",
+				Error: err.Error(),
+			}
+		}
+		break
+	case "newAddress":
+		if req.NewAddressRequest == nil {
+			wChan <- wsError{
+				ReqId: req.ReqId,
+				Type:  "Error",
+				Error: "newAddressRequest cannot be empty",
+			}
+			break
+		}
+		// Process a valid payment request
+		err := on_chain_tx.NewAddress(wChan, db, c, *req.NewAddressRequest, req.ReqId)
 		if err != nil {
 			wChan <- wsError{
 				ReqId: req.ReqId,
