@@ -8,6 +8,7 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import paymentsReducer from "features/transact/Payments/paymentsSlice";
 import invoicesReducer from "features/transact/Invoices/invoicesSlice";
 import onChainReducer from "features/transact/OnChain/onChainSlice";
+import i18nReducer from "services/i18n/i18nSlice";
 
 export const store = configureStore({
   reducer: {
@@ -19,6 +20,7 @@ export const store = configureStore({
     timeInterval: timeIntervalReducer,
     channel: channelReducer,
     [torqApi.reducerPath]: torqApi.reducer,
+    i18n: i18nReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(torqApi.middleware),
 });

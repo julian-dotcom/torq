@@ -1,0 +1,19 @@
+{
+  "login": "Login",
+  "saturday": "Zaterdag",
+  "sunday": "Zondag",
+  "monday": "Maandag",
+  "language": "Taal",
+  "defaultDateRange": "Standaard tijdbereik",
+  "preferredTimezone": "Voorkeur Tijdzone",
+  "weekStartsOn": "Week begint op",
+  "save": "Opslaan",
+  "addNode": "Node toevoegen",
+  "toast": {
+    "settingsSaved": "Instellingen opgeslagen"
+  },
+  "header": {
+    "settings": "Datum & tijd instellingen",
+    "nodes": "Nodes"
+  }
+}

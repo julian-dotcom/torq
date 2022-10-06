@@ -8,7 +8,7 @@ import (
 )
 
 func getSettings(db *sqlx.DB) (settingsData settings, err error) {
-	err = db.Get(&settingsData, "SELECT default_date_range, preferred_timezone, week_starts_on FROM settings LIMIT 1;")
+	err = db.Get(&settingsData, "SELECT default_date_range, default_language, preferred_timezone, week_starts_on FROM settings LIMIT 1;")
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return settings{}, nil
@@ -33,10 +33,11 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 	_, err = db.Exec(`
 UPDATE settings SET
   default_date_range = $1,
-  preferred_timezone = $2,
-  week_starts_on = $3,
-  updated_on = $4;
-`, settings.DefaultDateRange, settings.PreferredTimezone, settings.WeekStartsOn, time.Now().UTC())
+  default_language = $2,
+  preferred_timezone = $3,
+  week_starts_on = $4,
+  updated_on = $5;
+`, settings.DefaultDateRange, settings.DefaultLanguage, settings.PreferredTimezone, settings.WeekStartsOn, time.Now().UTC())
 	if err != nil {
 		return errors.Wrap(err, "Unable to execute SQL statement")
 	}

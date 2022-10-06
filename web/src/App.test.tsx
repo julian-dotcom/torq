@@ -1,10 +1,10 @@
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { store } from "./store/store";
 
-test("renders login page", () => {
+test("renders login page", ()  => {
   const { getByText } = render(
     <BrowserRouter>
       <Provider store={store}>
@@ -13,5 +13,7 @@ test("renders login page", () => {
     </BrowserRouter>
   );
 
-  expect(getByText(/login/i)).toBeInTheDocument();
+  waitFor(() => {
+    expect(getByText(/login/i)).toBeInTheDocument()
+  });
 });

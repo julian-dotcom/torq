@@ -194,6 +194,14 @@ func registerStaticRoutes(r *gin.Engine) {
 			c.File("./web/build/static/" + parts[len(parts)-2] + "/" + parts[len(parts)-1])
 			return
 		}
+
+		// locales json files
+		if strings.Contains(path, "/locales/") && strings.Contains(path, ".json") {
+			parts := strings.Split(path, "/")
+			c.File("./web/build/locales/" + parts[len(parts)-1])
+			return
+		}
+
 		c.File("./web/build/index.html")
 	})
 }

@@ -86,8 +86,6 @@ To run the frontend in dev mode on port 3000 you can use `cd web && npm start`
 When your code requires a database change you can create a migration file with `migrate create -seq -ext psql -dir database/migrations add_enabled_deleted_to_local_node`
 You should not bother creating a rollback migration file. We will not be supporting that in this project. The migration itself will run once torq get booted.
 
-****Note for Windows** When the you run the end-to-end tests in windows and the created docker containers are not working please try running the following commands first: `dos2unix.exe virtual_network/docker/btcd/* ; dos2unix.exe virtual_network/docker/lnd/*`
-
 ### Testing torq
 
 To test the frontend with npm is `cd web && npm test` or via make `make test-frontend`
@@ -99,8 +97,6 @@ To run a specific backend test with verbose logging `make start-dev-db && make w
 To run our full end-to-end tests similar to our github actions pipeline the command (in git bash on Windows*) is `make test && make test-e2e-debug`
 
 When running `make test` fails potentially the dev database was still running so a consecutive run should work if that was the case.
-
-***Note for Windows** When the you run the end-to-end tests in windows and the created docker containers are not working please try running the following commands first: `dos2unix.exe virtual_network/docker/btcd/* ; dos2unix.exe virtual_network/docker/lnd/*`
 
 ### Creating a pull request
 
