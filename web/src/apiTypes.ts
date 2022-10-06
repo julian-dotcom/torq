@@ -1,5 +1,6 @@
 export interface settings {
   defaultDateRange: string;
+  defaultLanguage: "en" | "nl";
   preferredTimezone: string;
   weekStartsOn: "saturday" | "sunday" | "monday";
 }

@@ -1,19 +1,22 @@
 import { AddSquare20Regular as AddIcon, Save20Regular as SaveIcon } from "@fluentui/react-icons";
 import Page from "layout/Page";
-import Box from "./Box";
+import Box from "features/settings/Box";
 import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
-import style from "./settings.module.css";
-import Select, { SelectOption } from "../forms/Select";
+import style from "features/settings/settings.module.css";
+import Select, { SelectOption } from "features/forms/Select";
 import React from "react";
-import { defaultStaticRangesFn } from "../timeIntervalSelect/customRanges";
+import { defaultStaticRangesFn } from "features/timeIntervalSelect/customRanges";
 import { useGetLocalNodesQuery, useGetSettingsQuery, useGetTimeZonesQuery, useUpdateSettingsMutation } from "apiSlice";
 import { localNode, settings } from "apiTypes";
-import { toastCategory } from "../toast/Toasts";
-import ToastContext from "../toast/context";
-import NodeSettings from "./NodeSettings";
+import { toastCategory } from "features/toast/Toasts";
+import ToastContext from "features/toast/context";
+import NodeSettings from "features/settings/NodeSettings";
 import Modal from "features/modal/Modal";
+import useTranslations from "services/i18n/useTranslations";
+import { supportedLangs } from "config/i18nConfig";
 
 function Settings() {
+  const { t, setLang } = useTranslations();
   const { data: settingsData } = useGetSettingsQuery();
   const { data: localNodes } = useGetLocalNodesQuery();
   const { data: timeZones = [] } = useGetTimeZonesQuery();
@@ -53,13 +56,23 @@ function Settings() {
   }));
 
   const weekStartsOnOptions: SelectOption[] = [
-    { label: "Saturday", value: "saturday" },
-    { label: "Sunday", value: "sunday" },
-    { label: "Monday", value: "monday" },
+    { label: t.saturday, value: "saturday" },
+    { label: t.sunday, value: "sunday" },
+    { label: t.monday, value: "monday" },
+  ];
+
+  // When adding a language also add it to web/src/config/i18nConfig.js
+  const languageOptions: SelectOption[] = [
+    { label: supportedLangs.en, value: "en" },
+    { label: supportedLangs.nl, value: "nl" },
   ];
 
   const handleDefaultDateRangeChange = (combiner: any) => {
     setSettingsState({ ...settingsState, defaultDateRange: combiner.value });
+  };
+
+  const handleDefaultLanguageRangeChange = (combiner: any) => {
+    setSettingsState({ ...settingsState, defaultLanguage: combiner.value });
   };
 
   const handlePreferredTimezoneChange = (combiner: any) => {
@@ -76,7 +89,8 @@ function Settings() {
   const submitPreferences = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     updateSettings(settingsState);
-    toastRef?.current?.addToast("Settings saved", toastCategory.success);
+    setLang(settingsState?.defaultLanguage)
+    toastRef?.current?.addToast(t.toast.settingsSaved, toastCategory.success);
   };
 
   const addLocalNode = () => {
@@ -104,21 +118,27 @@ function Settings() {
               <Box>
                 <form onSubmit={submitPreferences}>
                   <Select
-                    label="Default date range"
+                    label={t.defaultDateRange}
                     onChange={handleDefaultDateRangeChange}
                     options={defaultDateRangeOptions}
                     value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
                   />
+                  <Select
+                    label={t.language}
+                    onChange={handleDefaultLanguageRangeChange}
+                    options={languageOptions}
+                    value={languageOptions.find((lo) => lo.value === settingsState?.defaultLanguage)}
+                  />
                   <div>
                     <Select
-                      label="Preferred timezone"
+                      label={t.preferredTimezone}
                       onChange={handlePreferredTimezoneChange}
                       options={preferredTimezoneOptions}
                       value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
                     />
                   </div>
                   <Select
-                    label="Week starts on"
+                    label={t.weekStartsOn}
                     onChange={handleWeekStartsOnChange}
                     options={weekStartsOnOptions}
                     value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
@@ -126,7 +146,7 @@ function Settings() {
                   <Button
                     type={"submit"}
                     submit={true}
-                    text={"Save"}
+                    text={t.save}
                     icon={<SaveIcon />}
                     buttonColor={buttonColor.green}
                     buttonPosition={buttonPosition.fullWidth}
@@ -135,14 +155,14 @@ function Settings() {
               </Box>
             </div>
             <div>
-              <h3>Nodes</h3>
+              <h3>{t.header.nodes}</h3>
               {localNodesState &&
                 localNodesState?.map((localNode) => (
                   <NodeSettings localNodeId={localNode.localNodeId} key={localNode.localNodeId ?? 0} collapsed={true} />
                 ))}
             </div>
-            <Button buttonColor={buttonColor.primary} onClick={addLocalNode} icon={<AddIcon />} text="Add Node" />
-            <Modal title={"Add Node"} show={showAddNodeState} onClose={handleNewNodeModalOnClose}>
+            <Button buttonColor={buttonColor.primary} onClick={addLocalNode} icon={<AddIcon />} text={t.addNode} />
+            <Modal title={t.addNode} show={showAddNodeState} onClose={handleNewNodeModalOnClose}>
               <NodeSettings
                 ref={addNodeRef}
                 addMode={true}
