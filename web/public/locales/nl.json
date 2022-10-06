@@ -9,10 +9,19 @@
   "weekStartsOn": "Week begint op",
   "save": "Opslaan",
   "addNode": "Node toevoegen",
+  "unknown": "Onbekend",
+  "p2wpkh": "Segwit",
+  "p2wkh": "Nested Segwit",
+  "np2wkh": "Hybrid Nested Segwit",
+  "p2tr": "Taproot",
+  "addressType": "Type adres",
+  "next": "Volgende",
+  "newAddress": "Nieuw Adres",
   "toast": {
     "settingsSaved": "Instellingen opgeslagen"
   },
   "header": {
+    "newAddress": "Nieuw Adres",
     "settings": "Datum & tijd instellingen",
     "nodes": "Nodes"
   }

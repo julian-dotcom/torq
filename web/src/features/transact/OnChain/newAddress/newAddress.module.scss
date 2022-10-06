@@ -1,0 +1,33 @@
+
+.addressType {
+  color: var(--secondary-2-700);
+  font-size: var(--font-size-small);
+  background-color: var(--secondary-2-100);
+  border-radius: 11px;
+  padding: 3px 12px 12px;
+  &.unknownAddressType {
+    background-color: var(--color-baige-400);
+    color: var(--content-default);
+  }
+}
+.addressTypeWrapper {
+  padding: 3px 12px 120px;
+}
+
+.customButtonWrapperStyles {
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+.newAddressStatusMessage {
+  padding: 8px;
+  width: min-content;
+  border-radius: 100%;
+  margin: 12px auto;
+  svg {
+    font-size: 124px;
+  }
+}
+.newAddressError {
+  background-color: var(--color-red-300);
+  color: var(--color-red-500);
+}

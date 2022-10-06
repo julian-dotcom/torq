@@ -88,13 +88,13 @@ type paymentComplete struct {
 	Type  string `json:"type"`
 }
 
-//SendNewPayment - send new payment
-//A new payment can be made either by providing an invoice or by providing:
-//dest - the identity pubkey of the payment recipient
-//amt(number of satoshi) or amt_msat(number of millisatoshi)
-//amt and amt_msat are mutually exclusive
-//payments hash - the hash to use within the payment's HTLC
-//timeout seconds is mandatory
+// SendNewPayment - send new payment
+// A new payment can be made either by providing an invoice or by providing:
+// dest - the identity pubkey of the payment recipient
+// amt(number of satoshi) or amt_msat(number of millisatoshi)
+// amt and amt_msat are mutually exclusive
+// payments hash - the hash to use within the payment's HTLC
+// timeout seconds is mandatory
 func SendNewPayment(
 	wChan chan interface{},
 	db *sqlx.DB,
@@ -204,7 +204,9 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 
 		// Write the payment status to the client
 		wChan <- processResponse(resp, reqId)
+		break
 	}
+	return
 }
 
 func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {

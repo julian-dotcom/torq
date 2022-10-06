@@ -3,25 +3,26 @@ import { Cookies } from "react-cookie";
 import { RouteObject, useRoutes } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { useLogoutMutation } from "./apiSlice";
-import RequireAuth from "./RequireAuth";
+import { useLogoutMutation } from "apiSlice";
+import RequireAuth from "RequireAuth";
 
-import DefaultLayout from "./layout/DefaultLayout";
-import LoginLayout from "./layout/LoginLayout";
+import DefaultLayout from "layout/DefaultLayout";
+import LoginLayout from "layout/LoginLayout";
 
-import LoginPage from "./features/auth/LoginPage";
-import ChannelPage from "./features/channel/ChannelPage";
-import DashboardPage from "./features/channel/DashboardPage";
-import ForwardsPage from "./features/forwards/ForwardsPage";
-import NoMatch from "./features/no_match/NoMatch";
-import SettingsPage from "./features/settings/SettingsPage";
-import AllTxPage from "./features/transact/AllTxPage";
-import InvoicesPage from "./features/transact/Invoices/InvoicesPage";
-import OnChainPage from "./features/transact/OnChain/OnChainPage";
-import NewPaymentModal from "./features/transact/Payments/newPayment/NewPaymentModal";
-import PaymentsPage from "./features/transact/Payments/PaymentsPage";
+import LoginPage from "features/auth/LoginPage";
+import ChannelPage from "features/channel/ChannelPage";
+import DashboardPage from "features/channel/DashboardPage";
+import ForwardsPage from "features/forwards/ForwardsPage";
+import NoMatch from "features/no_match/NoMatch";
+import SettingsPage from "features/settings/SettingsPage";
+import AllTxPage from "features/transact/AllTxPage";
+import InvoicesPage from "features/transact/Invoices/InvoicesPage";
+import OnChainPage from "features/transact/OnChain/OnChainPage";
+import NewPaymentModal from "features/transact/Payments/newPayment/NewPaymentModal";
+import NewAddressModal from "features/transact/OnChain/newAddress/NewAddressModal";
+import PaymentsPage from "features/transact/Payments/PaymentsPage";
 
-import * as routes from "./constants/routes";
+import * as routes from "constants/routes";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -46,7 +47,10 @@ const publicRoutes: RouteObject = {
 };
 
 const modalRoutes: RouteObject = {
-  children: [{ path: routes.CREATE_PAYMENT, element: <NewPaymentModal /> }],
+  children: [
+    { path: routes.CREATE_PAYMENT, element: <NewPaymentModal /> },
+    { path: routes.NEW_ADDRESS, element: <NewAddressModal /> },
+  ],
 };
 
 const authenticatedRoutes: RouteObject = {

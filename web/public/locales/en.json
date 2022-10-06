@@ -9,10 +9,19 @@
   "weekStartsOn": "Week starts on",
   "save": "Save",
   "addNode": "Add Node",
+  "unknown": "Unknown",
+  "p2wpkh": "Segwit",
+  "p2wkh": "Nested Segwit",
+  "np2wkh": "Hybrid Nested Segwit",
+  "p2tr": "Taproot",
+  "addressType": "Address type",
+  "next": "Next",
+  "newAddress": "New Address",
   "toast": {
     "settingsSaved": "Settings saved"
   },
   "header": {
+    "newAddress": "New Address",
     "settings": "Date & time settings",
     "nodes": "Nodes"
   }
