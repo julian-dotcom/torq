@@ -1,43 +1,42 @@
 package flow
 
 import (
-	"net/http"
-	"strings"
-	"time"
-
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"gopkg.in/guregu/null.v4"
+	"net/http"
+	"strings"
+	"time"
 )
 
 type channelFlowData struct {
 	// Alias of remote peer
 	Alias null.String `json:"alias"`
 	// The channel point
-	LNDChannelPoint null.String `json:"channelPoint"`
+	LNDChannelPoint null.String `json:"channel_point"`
 	// The remote public key
-	PubKey null.String `json:"pubKey"`
+	PubKey null.String `json:"pub_key"`
 	// Short channel id in c-lightning / BOLT format
-	LNDShortChannelId null.String `json:"channelId"`
+	LNDShortChannelId null.String `json:"chan_id"`
 
 	// The  outbound amount in sats (Satoshis)
-	AmountOut uint64 `json:"amountOut"`
+	AmountOut uint64 `json:"amount_out"`
 	// The inbound amount in sats (Satoshis)
-	AmountIn uint64 `json:"amountIn"`
+	AmountIn uint64 `json:"amount_in"`
 
 	// The outbound revenue in sats. This is what the channel has directly produced.
-	RevenueOut uint64 `json:"revenueOut"`
+	RevenueOut uint64 `json:"revenue_out"`
 	// The inbound revenue in sats. This is what the channel has indirectly produced.
 	// This revenue are not really earned by this channel/peer/group, but represents
 	// the channel/peer/group contribution to revenue earned by other channels.
-	RevenueIn uint64 `json:"revenueIn"`
+	RevenueIn uint64 `json:"revenue_in"`
 
 	// Number of outbound forwards.
-	CountOut uint64 `json:"countOut"`
+	CountOut uint64 `json:"count_out"`
 	// Number of inbound forwards.
-	CountIn uint64 `json:"countIn"`
+	CountIn uint64 `json:"count_in"`
 }
 
 func getFlowHandler(c *gin.Context, db *sqlx.DB) {

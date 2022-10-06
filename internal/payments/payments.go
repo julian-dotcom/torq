@@ -3,30 +3,29 @@ package payments
 import (
 	"database/sql"
 	"encoding/json"
-	"time"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+	"time"
 )
 
 type Payment struct {
-	PaymentIndex            uint64    `json:"paymentIndex" db:"payment_index"`
+	PaymentIndex            uint64    `json:"payment_index" db:"payment_index"`
 	Date                    time.Time `json:"date" db:"date"`
-	DestinationPubKey       *string   `json:"destinationPubKey" db:"destination_pub_key"`
+	DestinationPubKey       *string   `json:"destination_pub_key" db:"destination_pub_key"`
 	Status                  string    `json:"status" db:"status"`
 	Value                   float64   `json:"value" db:"value"`
 	Fee                     float64   `json:"fee" db:"fee"`
 	PPM                     float64   `json:"ppm" db:"ppm"`
-	FailureReason           string    `json:"failureReason" db:"failure_reason"`
-	PaymentHash             string    `json:"paymentHash" db:"payment_hash"`
-	PaymentPreimage         string    `json:"paymentPreimage" db:"payment_preimage"`
-	PaymentRequest          *string   `json:"paymentRequest" db:"payment_request"`
-	IsRebalance             *bool     `json:"isRebalance" db:"is_rebalance"`
-	IsMPP                   bool      `json:"isMpp" db:"is_mpp"`
-	CountSuccessfulAttempts int       `json:"countSuccessfulAttempts" db:"count_successful_attempts"`
-	CountFailedAttempts     int       `json:"countFailedAttempts" db:"count_failed_attempts"`
-	SecondsInFlight         *float32  `json:"secondsInFlight" db:"seconds_in_flight"`
+	FailureReason           string    `json:"failure_reason" db:"failure_reason"`
+	PaymentHash             string    `json:"payment_hash" db:"payment_hash"`
+	PaymentPreimage         string    `json:"payment_preimage" db:"payment_preimage"`
+	PaymentRequest          *string   `json:"payment_request" db:"payment_request"`
+	IsRebalance             *bool     `json:"is_rebalance" db:"is_rebalance"`
+	IsMPP                   bool      `json:"is_mpp" db:"is_mpp"`
+	CountSuccessfulAttempts int       `json:"count_successful_attempts" db:"count_successful_attempts"`
+	CountFailedAttempts     int       `json:"count_failed_attempts" db:"count_failed_attempts"`
+	SecondsInFlight         *float32  `json:"seconds_in_flight" db:"seconds_in_flight"`
 }
 
 type Hop struct {

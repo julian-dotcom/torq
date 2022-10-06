@@ -12,15 +12,15 @@ type channel struct {
 	// Database primary key of channel
 	ChannelDBID null.Int `json:"channelDbId"`
 	// The channel point
-	LNDChannelPoint null.String `json:"channelPoint"`
+	LNDChannelPoint null.String `json:"channel_point"`
 	// The remote public key
-	PubKey null.String `json:"pubKey"`
+	PubKey null.String `json:"pub_key"`
 	// Short channel id in c-lightning / BOLT format
 	ShortChannelID null.String `json:"shortChannelId"`
 	// The channel ID
-	LNDShortChannelId null.String `json:"channelId"`
+	LNDShortChannelId null.String `json:"chan_id"`
 	// Is the channel open
-	Open null.Bool `json:"isOpen"`
+	Open null.Bool `json:"open"`
 
 	// The channels total capacity (as created)
 	Capacity *uint64 `json:"capacity"`

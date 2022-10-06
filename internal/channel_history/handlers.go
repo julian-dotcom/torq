@@ -1,13 +1,12 @@
 package channel_history
 
 import (
-	"net/http"
-	"strings"
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/pkg/server_errors"
+	"net/http"
+	"strings"
+	"time"
 )
 
 type ChannelHistory struct {
@@ -17,37 +16,37 @@ type ChannelHistory struct {
 	// such as a tag.
 	Label string `json:"label"`
 
-	OnChainCost     *uint64 `json:"onChainCost"`
-	RebalancingCost *uint64 `json:"rebalancingCost"`
+	OnChainCost     *uint64 `json:"on_chain_cost"`
+	RebalancingCost *uint64 `json:"rebalancing_cost"`
 
 	// The  outbound amount in sats (Satoshis)
-	AmountOut *uint64 `json:"amountOut"`
+	AmountOut *uint64 `json:"amount_out"`
 	// The inbound amount in sats (Satoshis)
-	AmountIn *uint64 `json:"amountIn"`
+	AmountIn *uint64 `json:"amount_in"`
 	// The total amount in sats (Satoshis) forwarded
-	AmountTotal *uint64 `json:"amountTotal"`
+	AmountTotal *uint64 `json:"amount_total"`
 
 	// The outbound revenue in sats. This is what the channel has directly produced.
-	RevenueOut *uint64 `json:"revenueOut"`
+	RevenueOut *uint64 `json:"revenue_out"`
 	// The inbound revenue in sats. This is what the channel has indirectly produced.
 	// This revenue are not really earned by this channel/peer/group, but represents
 	// the channel/peer/group contribution to revenue earned by other channels.
-	RevenueIn *uint64 `json:"revenueIn"`
+	RevenueIn *uint64 `json:"revenue_in"`
 	// The total revenue in sats. This is what the channel has directly and indirectly produced.
-	RevenueTotal *uint64 `json:"revenueTotal"`
+	RevenueTotal *uint64 `json:"revenue_total"`
 
 	// Number of outbound forwards.
-	CountOut *uint64 `json:"countOut"`
+	CountOut *uint64 `json:"count_out"`
 	// Number of inbound forwards.
-	CountIn *uint64 `json:"countIn"`
+	CountIn *uint64 `json:"count_in"`
 	// Number of total forwards.
-	CountTotal *uint64 `json:"countTotal"`
+	CountTotal *uint64 `json:"count_total"`
 
 	// Aggregated details about successful rebalancing (i.g. amount, cost, counts)
 	RebalancingDetails RebalancingDetails `json:"rebalancing"`
 
 	// Channel balances over time
-	ChannelBalances []*ChannelBalance `json:"channelBalances"`
+	ChannelBalances []*ChannelBalance `json:"channel_balance"`
 
 	// A list of channels included in this response
 	Channels []*channel               `json:"channels"`

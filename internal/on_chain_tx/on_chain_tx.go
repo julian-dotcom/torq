@@ -1,24 +1,23 @@
 package on_chain_tx
 
 import (
-	"time"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
+	"time"
 )
 
 type Transaction struct {
 	Date               time.Time      `json:"date" db:"date"`
-	TxHash             string         `json:"transactionHash" db:"tx_hash"`
-	DestAddresses      pq.StringArray `json:"destinationAddresses" db:"dest_addresses"`
-	DestAddressesCount string         `json:"destinationAddressesCount" db:"dest_addresses_count"`
+	TxHash             string         `json:"tx_hash" db:"tx_hash"`
+	DestAddresses      pq.StringArray `json:"dest_addresses" db:"dest_addresses"`
+	DestAddressesCount string         `json:"dest_addresses_count" db:"dest_addresses_count"`
 	AmountMsat         int64          `json:"amount" db:"amount"`
-	TotalFeesMsat      int64          `json:"totalFees" db:"total_fees"`
+	TotalFeesMsat      int64          `json:"total_fees" db:"total_fees"`
 	Label              *string        `json:"label" db:"label"`
-	LndTxTypeLabel     *string        `json:"lndTransactionTypeLabel" db:"lnd_tx_type_label"`
-	LndShortChannelId  *string        `json:"lndShortChannelId" db:"lnd_short_chan_id"`
+	LndTxTypeLabel     *string        `json:"lnd_tx_type_label" db:"lnd_tx_type_label"`
+	LndShortChannelId  *string        `json:"lnd_short_chan_id" db:"lnd_short_chan_id"`
 	//BlockHash        *string   `json:"block_hash" db:"block_hash"`
 	//BlockHeight      uint64    `json:"block_height" db:"block_height"`
 	//RawTxHex         string    `json:"raw_tx_hex" db:"raw_tx_hex"`

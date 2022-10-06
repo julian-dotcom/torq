@@ -1,10 +1,9 @@
 package channel_history
 
 import (
-	"time"
-
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+	"time"
 )
 
 type ChannelHistoryRecords struct {
@@ -12,27 +11,27 @@ type ChannelHistoryRecords struct {
 
 	Date time.Time `json:"date"`
 	// The  outbound amount in sats (Satoshis)
-	AmountOut *uint64 `json:"amountOut"`
+	AmountOut *uint64 `json:"amount_out"`
 	// The inbound amount in sats (Satoshis)
-	AmountIn *uint64 `json:"amountIn"`
+	AmountIn *uint64 `json:"amount_in"`
 	// The total amount in sats (Satoshis) forwarded
-	AmountTotal *uint64 `json:"amountTotal"`
+	AmountTotal *uint64 `json:"amount_total"`
 
 	// The outbound revenue in sats. This is what the channel has directly produced.
-	RevenueOut *uint64 `json:"revenueOut"`
+	RevenueOut *uint64 `json:"revenue_out"`
 	// The inbound revenue in sats. This is what the channel has indirectly produced.
 	// This revenue are not really earned by this channel/peer/group, but represents
 	// the channel/peer/group contribution to revenue earned by other channels.
-	RevenueIn *uint64 `json:"revenueIn"`
+	RevenueIn *uint64 `json:"revenue_in"`
 	// The total revenue in sats. This is what the channel has directly and indirectly produced.
-	RevenueTotal *uint64 `json:"revenueTotal"`
+	RevenueTotal *uint64 `json:"revenue_total"`
 
 	// Number of outbound forwards.
-	CountOut *uint64 `json:"countOut"`
+	CountOut *uint64 `json:"count_out"`
 	// Number of inbound forwards.
-	CountIn *uint64 `json:"countIn"`
+	CountIn *uint64 `json:"count_in"`
 	// Number of total forwards.
-	CountTotal *uint64 `json:"countTotal"`
+	CountTotal *uint64 `json:"count_total"`
 }
 
 func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time,
