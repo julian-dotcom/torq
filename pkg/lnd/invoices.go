@@ -21,6 +21,15 @@ type invoicesClient interface {
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeInvoicesClient, error)
 }
 
+type wsInvoiceUpdate struct {
+	Type        string `json:"type"`
+	AddIndex    uint64 `json:"addIndex"`
+	ValueMSat   int64  `json:"valueMSat"`
+	State       string `json:"state"`
+	AmountPaid  int64  `json:"amountPaid,omitempty"`
+	SettledDate string `json:"settledDate,omitempty"`
+}
+
 type Invoice struct {
 
 	/*
@@ -174,7 +183,6 @@ type Invoice struct {
 }
 
 func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, err error) {
-	log.Info().Msgf("Fetch last invoice index")
 	// index starts at 1
 	sqlLatest := `select coalesce(max(add_index),1), coalesce(max(settle_index),1) from invoice;`
 
@@ -189,7 +197,7 @@ func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, 
 	return addIndex, settleIndex, nil
 }
 
-func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB) error {
+func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB, wsChan chan interface{}) error {
 
 	// Get the latest settle and add index to prevent duplicate entries.
 	addIndex, settleIndex, err := fetchLastInvoiceIndexes(db)
@@ -261,23 +269,44 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			// rate limit for caution but hopefully not needed
 			rl.Take()
 		}
+
+		invoiceUpdate := wsInvoiceUpdate{
+			Type:      "invoiceUpdate",
+			AddIndex:  invoice.AddIndex,
+			ValueMSat: invoice.ValueMsat,
+			State:     invoice.GetState().String(),
+		}
+
+		//Add other info for settled and accepted states
+		//	Invoice_OPEN     = 0
+		//	Invoice_SETTLED  = 1
+		//	Invoice_CANCELED = 2
+		//	Invoice_ACCEPTED = 3
+		if invoice.State == 1 || invoice.State == 3 {
+			invoiceUpdate.AmountPaid = invoice.AmtPaidMsat
+			invoiceUpdate.SettledDate = time.Unix(invoice.SettleDate, 0).Format(time.UnixDate)
+		}
+
+		wsChan <- invoiceUpdate
+
 	}
 
 	return nil
 }
 
-//getNodeNetwork
-//Obtained from invoice.PaymentRequest
-//MainNetParams           bc
-//RegressionNetParams     bcrt
-//SigNetParams            tbs
-//TestNet3Params          tb
-//SimNetParams            sb
-//Example: invoice.PaymentRequest = lnbcrt500u1p3vmd6upp5y7ndr6dmyehql..."
-//       - First two characters should be "ln"
-//       - Next 2+2 characters determine the network
-//       - Here the network is RegressionNetParams - bcrt
-//This values come from chaincfg.<Params>.Bech32HRPSegwit
+// getNodeNetwork
+// Obtained from invoice.PaymentRequest
+// MainNetParams           bc
+// RegressionNetParams     bcrt
+// SigNetParams            tbs
+// TestNet3Params          tb
+// SimNetParams            sb
+// Example: invoice.PaymentRequest = lnbcrt500u1p3vmd6upp5y7ndr6dmyehql..."
+//   - First two characters should be "ln"
+//   - Next 2+2 characters determine the network
+//   - Here the network is RegressionNetParams - bcrt
+//
+// This values come from chaincfg.<Params>.Bech32HRPSegwit
 func getNodeNetwork(pmntReq string) *chaincfg.Params {
 	nodeNetwork := &chaincfg.Params{}
 	nodeNetworkPrefix := pmntReq[2:4]
