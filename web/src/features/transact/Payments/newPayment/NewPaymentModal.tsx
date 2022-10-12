@@ -368,7 +368,6 @@ function NewPaymentModal() {
           <Select
             label={t.yourNode}
             onChange={(newValue: any) => {
-              console.log(newValue);
               setSelectedLocalNode(newValue?.value);
             }}
             options={localNodeOptions}
