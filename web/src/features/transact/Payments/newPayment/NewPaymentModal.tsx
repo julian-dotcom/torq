@@ -5,7 +5,7 @@ import {
   MoneyHand24Regular as TransactionIconModal,
   Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
-import { useGetDecodedInvoiceQuery, WS_URL } from "apiSlice";
+import { useGetDecodedInvoiceQuery, useGetLocalNodesQuery, WS_URL } from "apiSlice";
 import classNames from "classnames";
 import { format } from "d3";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
@@ -15,36 +15,19 @@ import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/Progre
 import { SectionContainer } from "features/section/SectionContainer";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import { ChangeEvent, useState } from "react";
-import NumberFormat, { NumberFormatValues } from "react-number-format";
+import NumberFormat from "react-number-format";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
 import { NewPaymentError, NewPaymentResponse } from "../paymentTypes";
 import styles from "./newPayments.module.scss";
 import { PaymentProcessingErrors } from "./paymentErrorMessages";
+import OnChanPaymentDetails from "./OnChanPaymentDetails";
+import { PaymentType } from "./types";
+import { localNode } from "apiTypes";
+import Select from "features/forms/Select";
+import useTranslations from "../../../../services/i18n/useTranslations";
 
 const fd = format(",.0f");
-
-export type NewPaymentRequest = {
-  invoice: string;
-  timeOutSecs: number;
-  dest: string;
-  amtMSat: number;
-  feeLimitMsat: number;
-  allowSelfPayment: boolean;
-};
-
-enum PaymentType {
-  Unknown,
-  Keysend,
-  P2PKH,
-  P2SH,
-  P2WKH,
-  P2TR,
-  LightningMainnet,
-  LightningTestnet,
-  LightningSimnet,
-  LightningRegtest,
-}
 
 const PaymentTypeLabel = {
   [PaymentType.Unknown]: "Unknown ",
@@ -88,8 +71,18 @@ const P2TRAddressSignetRegEx = /^sb1p[0-9a-zA-Z]*/gm; // Taproot address
 const LightningNodePubkeyRegEx = /^[0-9a-fA-F]{66}$/gm; // Keysend / Lightning Node Pubkey
 
 function NewPaymentModal() {
+  const { t } = useTranslations();
   const [responses, setResponses] = useState<Array<NewPaymentResponse>>([]);
 
+  const { data: localNodes } = useGetLocalNodesQuery();
+  let localNodeOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
+  if (localNodes !== undefined) {
+    localNodeOptions = localNodes.map((localNode: localNode) => {
+      return { value: localNode.localNodeId, label: localNode.grpcAddress };
+    });
+  }
+
+  const [selectedLocalNode, setSelectedLocalNode] = useState<number>(localNodeOptions[0].value);
   const [destination, setDestination] = useState("");
   const [destinationType, setDestinationType] = useState<PaymentType>(0);
   const [paymentProcessingError, setPaymentProcessingError] = useState("");
@@ -150,8 +143,6 @@ function NewPaymentModal() {
   const [amtSat, setAmtSat] = useState<number | undefined>(undefined);
 
   // On Chain advanced options
-  const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>(undefined);
-  const [onChainPaymentAmount, setOnChainPaymentAmount] = useState<number>();
   const isLnInvoice = [
     PaymentType.LightningMainnet,
     PaymentType.LightningRegtest,
@@ -165,7 +156,7 @@ function NewPaymentModal() {
 
   // TODO: Get the estimated fee as well
   const decodedInvRes = useGetDecodedInvoiceQuery(
-    { invoice: destination },
+    { invoice: destination, nodeId: selectedLocalNode },
     {
       skip: !isLnInvoice,
     }
@@ -198,19 +189,17 @@ function NewPaymentModal() {
       setDestinationType(PaymentType.LightningSimnet);
     } else if (e.target.value.match(LnPayrequestRegtestRegEx)) {
       setDestinationType(PaymentType.LightningRegtest);
-      // } else if (e.target.value.match(P2PKHAddressRegEx)) {
-      //   setDestinationType(PaymentType.P2PKH);
-      // } else if (e.target.value.match(P2SHAddressRegEx)) {
-      //   // Pay to Script Hash
-      //   setDestinationType(PaymentType.P2SH);
-      // } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
-      //   // Segwit address
-      //   setDestinationType(PaymentType.P2WKH);
-      // } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
-      //   // Taproot
-      //   setDestinationType(PaymentType.P2TR);
-      //   // } else if (e.target.value.match(LightningNodePubkeyRegEx)) {
-      //   //   setDestinationType(PaymentType.Keysend);
+    } else if (e.target.value.match(P2SHAddressRegEx)) {
+      // Pay to Script Hash
+      setDestinationType(PaymentType.P2SH);
+    } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
+      // Segwit address
+      setDestinationType(PaymentType.P2WKH);
+    } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
+      // Taproot
+      setDestinationType(PaymentType.P2TR);
+      // } else if (e.target.value.match(LightningNodePubkeyRegEx)) { // TODO: Add support for Keysend
+      //   setDestinationType(PaymentType.Keysend);
     } else {
       setDestinationType(PaymentType.Unknown);
       return;
@@ -337,6 +326,7 @@ function NewPaymentModal() {
                 reqId: "randId",
                 type: "newPayment",
                 NewPaymentRequest: {
+                  nodeId: selectedLocalNode,
                   // If the destination is not a pubkey, use it as an invoice
                   invoice: destination.match(LightningNodePubkeyRegEx) ? undefined : destination,
                   // If the destination is a pubkey send it as a dest input
@@ -349,88 +339,6 @@ function NewPaymentModal() {
               });
             }}
             disabled={!!decodedInvRes?.error}
-            buttonColor={buttonColor.green}
-          />
-        }
-      />
-    </ProgressTabContainer>
-  );
-
-  const btcStep = (
-    <ProgressTabContainer>
-      <div className={styles.amountWrapper}>
-        {destinationType && (
-          <span className={styles.destinationType}>{PaymentTypeLabel[destinationType] + " Detected"}</span>
-        )}
-        <div className={styles.amount}>
-          <NumberFormat
-            className={styles.amountInput}
-            suffix={" sat"}
-            thousandSeparator=","
-            value={onChainPaymentAmount}
-            placeholder={"0 sat"}
-            onValueChange={(values: NumberFormatValues) => {
-              setOnChainPaymentAmount(values.floatValue || 0);
-            }}
-          />
-        </div>
-        <div className={styles.label}>To</div>
-        <div className={styles.destinationPreview}>{destination}</div>
-      </div>
-      <div className={styles.destinationWrapper}>
-        <div className={styles.labelWrapper}>
-          <label htmlFor={"destination"} className={styles.destinationLabel}>
-            Description (only seen by you)
-          </label>
-        </div>
-        <textarea
-          id={"lnDescription"}
-          name={"lnDescription"}
-          className={styles.destinationTextArea}
-          autoComplete="off"
-          value={paymentDescription}
-          onChange={(e) => {
-            setPaymentDescription(e.target.value);
-          }}
-          rows={3}
-        />
-      </div>
-      <SectionContainer
-        title={"Advanced Options"}
-        icon={OptionsIcon}
-        expanded={expandAdvancedOptions}
-        handleToggle={handleAdvancedToggle}
-      >
-        <TextInput
-          label={"Sat per vByte"}
-          value={satPerVbyte}
-          onChange={(value) => {
-            setSatPerVbyte(value as number);
-          }}
-        />
-      </SectionContainer>
-
-      <ButtonWrapper
-        className={styles.customButtonWrapperStyles}
-        leftChildren={
-          <Button
-            text={"Back"}
-            onClick={() => {
-              setStepIndex(0);
-              setDestState(ProgressStepState.completed);
-              setConfirmState(ProgressStepState.active);
-            }}
-            buttonColor={buttonColor.ghost}
-          />
-        }
-        rightChildren={
-          <Button
-            text={"Confirm"}
-            onClick={() => {
-              setStepIndex(2);
-              setConfirmState(ProgressStepState.completed);
-              setProcessState(ProgressStepState.processing);
-            }}
             buttonColor={buttonColor.green}
           />
         }
@@ -457,6 +365,15 @@ function NewPaymentModal() {
 
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
+          <Select
+            label={t.yourNode}
+            onChange={(newValue: any) => {
+              console.log(newValue);
+              setSelectedLocalNode(newValue?.value);
+            }}
+            options={localNodeOptions}
+            value={localNodeOptions.find((option) => option.value === selectedLocalNode)}
+          />
           <div className={styles.destination}>
             <div className={styles.destinationWrapper}>
               <div className={styles.labelWrapper}>
@@ -510,7 +427,16 @@ function NewPaymentModal() {
           />
         </ProgressTabContainer>
         {isLnInvoice && lnStep}
-        {isOnChain && btcStep}
+        {isOnChain && (
+          <OnChanPaymentDetails
+            destination={destination}
+            destinationType={destinationType}
+            setConfirmState={setConfirmState}
+            setStepIndex={setStepIndex}
+            setProcessState={setProcessState}
+            setDestState={setDestState}
+          />
+        )}
         <ProgressTabContainer>
           <div
             className={classNames(

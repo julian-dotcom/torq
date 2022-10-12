@@ -30,6 +30,19 @@ export type GetForwardsQueryParams = Flow;
 
 export type GetDecodedInvoiceQueryParams = {
   invoice: string;
+  nodeId: number;
+};
+
+export type SendOnChainRequest = {
+  nodeId: number;
+  addr: string;
+  amountSat: number;
+  targetConf?: number;
+  satPerVbyte?: number;
+  sendAll?: boolean;
+  label?: string;
+  minConfs?: number;
+  spendUnconfirmed?: boolean;
 };
 
 export type GetPaymentsQueryParams = BaseQueryCollectionParams;
