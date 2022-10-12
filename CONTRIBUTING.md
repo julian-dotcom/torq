@@ -49,6 +49,10 @@ Internally we prefer to use the core lightning short channel id format (`777777x
 
 In the serverside code there are helper functions for converting between core lightning short channel ids and lnd short channel ids.
 
+#### Automated Formatters
+
+For the frontend code we use Prettier and for the backend code we use gofmt. We recommend installing plugins to your editor to run both of these formatters on save. We also have an .editorconfig file to specify tabbing and spacing and depending on editor you may need to install an editor config plugin to read it.
+
 ### Development guides
 
 #### All OS types
