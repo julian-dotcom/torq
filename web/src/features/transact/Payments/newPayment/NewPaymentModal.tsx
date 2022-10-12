@@ -139,7 +139,7 @@ function NewPaymentModal() {
   // LN advanced options
   const [allowSelfPayment, setAllowSelfPayment] = useState(true);
   const [feeLimit, setFeeLimit] = useState<number | undefined>(undefined);
-  const [timeOutSecs, setTimeOutSecs] = useState(3600);
+  const [timeOutSecs, setTimeOutSecs] = useState(60);
   const [amtSat, setAmtSat] = useState<number | undefined>(undefined);
 
   // On Chain advanced options
@@ -299,7 +299,11 @@ function NewPaymentModal() {
             setFeeLimit(e as number);
           }}
         />
-        <TextInput label={"Timeout"} value={timeOutSecs} onChange={(e) => setTimeOutSecs(e as number)} />
+        <TextInput
+          label={"Timeout (Seconds)"}
+          value={timeOutSecs}
+          onChange={(e) => setTimeOutSecs(parseInt(e as string))}
+        />
       </SectionContainer>
 
       <ButtonWrapper
@@ -462,7 +466,7 @@ function NewPaymentModal() {
                   setDestState(ProgressStepState.active);
                   setConfirmState(ProgressStepState.disabled);
                   setProcessState(ProgressStepState.disabled);
-                  setTimeOutSecs(3600);
+                  setTimeOutSecs(60);
                   setAmtSat(undefined);
                   setFeeLimit(undefined);
                   setStepIndex(0);

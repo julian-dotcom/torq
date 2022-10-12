@@ -242,7 +242,6 @@ func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
 				h.MppRecord.TotalAmtMsat = hop.MppRecord.TotalAmtMsat
 				h.MppRecord.PaymentAddr = hex.EncodeToString(hop.MppRecord.PaymentAddr)
 			}
-
 			r.Attempt.Route.Hops = append(r.Attempt.Route.Hops, h)
 		}
 
