@@ -34,7 +34,7 @@ We are aware we are currently violating some of the style guides but we are work
 | ------------------------------------------------------------------------------------------------------------------------------ | ---------- |
 | Database columns and tables<br>go folder and file names                                                                        | snake_case |
 | Javascript folder names<br>Sass file names **\*.scss**<br>Typescript file names **\*.ts**<br>JSON Keys<br>JavaScript variables | camelCase  |
-| Typescript using JSX **\*.tsx**                                                                                                | PascalCase |
+| Typescript file names using JSX **\*.tsx**                                                                                     | PascalCase |
 | MARKDOWN.md file names                                                                                                         | UPPERCASE  |
 
 #### Channel ID naming convention
