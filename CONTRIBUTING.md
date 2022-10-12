@@ -7,51 +7,59 @@ You already discovered our code repository hosted in the [LN.capital Organizatio
 ## How Can I Contribute?
 
 ### Reporting Bugs
+
 **Note:** If you find a **Closed** issue that seems like it is the same thing that you're experiencing, open a new issue and include a link to the original issue in the body of your new one.
 
 ### Suggesting Enhancements
+
 Let us know what you are missing so we can improve the software for everybody!
 
 ### Your First Code Contribution
+
 Unsure where to begin contributing to torq? You can start by looking through these `Good first issue` and `Help wanted` issues:
 
-* [Good first issue][good first issue] - issues which should only require a few lines of code, and a test or two.
-* [Help wanted issues][help wanted] - issues which should be a bit more involved than `Good first issue` issues.
+- [Good first issue][good first issue] - issues which should only require a few lines of code, and a test or two.
+- [Help wanted issues][help wanted] - issues which should be a bit more involved than `Good first issue` issues.
 
-[good first issue]:https://github.com/lncapital/torq/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22
-[help wanted]:https://github.com/lncapital/torq/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22
+[good first issue]: https://github.com/lncapital/torq/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22
+[help wanted]: https://github.com/lncapital/torq/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22
 
 ### Code style guides
+
 We are aware we are currently violating some of the style guides but we are working our way through the codebase to address this.
-#### snake_case:
-* Database columns and tables
 
-### camelCase:
-* Folder names
-* Sass style sheet ***.scss**
-* TypeScript files ***.ts**
-* JSON names
-* JavaScript variables
+#### Filename and variable casing
 
+| Item                                                                                                                           | Case       |
+| ------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| Database columns and tables<br>go folder and file names                                                                        | snake_case |
+| Javascript folder names<br>Sass file names **\*.scss**<br>Typescript file names **\*.ts**<br>JSON Keys<br>JavaScript variables | camelCase  |
+| Typescript using JSX **\*.tsx**                                                                                                | PascalCase |
+| MARKDOWN.md file names                                                                                                         | UPPERCASE  |
 
-### PascalCase:
-* TypeScript files written using JSX syntax ***.tsx**
+#### Channel ID naming convention
 
-### UPPERCASE:
-* MARKDOWN files
+Internally we prefer to use the core lightning short channel id format (`777777x666x1`) for representing channel ids. Naming of channel id variables and keys should be as follows:
 
-### golang specific:
-* camelCase for unexported
-* PascalCase for exported
+| Name              | Refers to                                                 |
+| ----------------- | --------------------------------------------------------- |
+| shortChannelId    | Core lightning format short channel id (preferred format) |
+| lndShortChannelId | LND's uint64 format                                       |
+| lndChannelPoint   | LND's channel point format                                |
+
+In the serverside code there are helper functions for converting between core lightning short channel ids and lnd short channel ids.
 
 ### Development guides
+
 #### All OS types
+
 The required software is:
-* git
-* docker
-* go
-* node + npm
-* make
+
+- git
+- docker
+- go
+- node + npm
+- make
 
 #### Windows extras
 
@@ -61,7 +69,7 @@ The required software is:
 
 ### Running torq
 
-Create a virtual **btcd**, **lnd** and **database** as development environment** for Alice, Carol and Bob: `go build ./virtual_network/torq_vn && go run ./virtual_network/torq_vn create --db true`
+Create a virtual **btcd**, **lnd** and **database** as development environment\*\* for Alice, Carol and Bob: `go build ./virtual_network/torq_vn && go run ./virtual_network/torq_vn create --db true`
 
 If you get an error regarding timescaledb please run the command: `docker pull timescale/timescaledb:latest-pg14`
 
@@ -73,15 +81,16 @@ When torq started should run the frontend in order to add Bob's node.
 Go on the folder web `cd /web` and install the dependencies with the command `npm install --legacy-peer-deps`. Once this is done run the frontend with `npm start`.
 
 You will be able to access torq on `localhost:3000`. Login with password: `password` and update the Settings section to add Bob's node with the following:
+
 - GRPC Address (IP or Tor): `localhost:10009`
 - TLS Certificate: `tls.cert`
 - Macaroon: `admin.macaroon`
 
 Once the virtual environment is created:
 
-* to stop run: `go build ./virtual_network/torq_vn &&  go run ./virtual_network/torq_vn stop --db true`
-* to start run: `go build ./virtual_network/torq_vn &&  go run ./virtual_network/torq_vn start --db true`
-* to purge/delete run: `go build ./virtual_network/torq_vn &&  go run ./virtual_network/torq_vn purge --db true`
+- to stop run: `go build ./virtual_network/torq_vn && go run ./virtual_network/torq_vn stop --db true`
+- to start run: `go build ./virtual_network/torq_vn && go run ./virtual_network/torq_vn start --db true`
+- to purge/delete run: `go build ./virtual_network/torq_vn && go run ./virtual_network/torq_vn purge --db true`
 
 #### Running torq compartments in isolation
 
@@ -102,7 +111,7 @@ To test the backend `make start-dev-db && make wait-db && make test-backend && m
 
 To run a specific backend test with verbose logging `make start-dev-db && make wait-db && go test -v -count=1 ./pkg/lnd -run TestSubscribeForwardingEvents && make stop-dev-db`
 
-To run our full end-to-end tests similar to our github actions pipeline the command (in git bash on Windows*) is `make test && make test-e2e-debug`
+To run our full end-to-end tests similar to our github actions pipeline the command (in git bash on Windows\*) is `make test && make test-e2e-debug`
 
 When running `make test` fails potentially the dev database was still running so a consecutive run should work if that was the case.
 
