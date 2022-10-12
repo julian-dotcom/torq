@@ -22,8 +22,8 @@ import (
 type wsChannelEvent struct {
 	Type             string `json:"type"`
 	ChannelEventType string `json:"channelEventType"`
-	ChannelId        uint64 `json:"chanId,omitempty"`
-	ChannelPoint     string `json:"channelPoint"`
+	ShortChannelId   string `json:"shortChannelId,omitempty"`
+	LNDChannelPoint  string `json:"lndChannelPoint"`
 	PubKey           string `json:"pubKey,omitempty"`
 }
 
@@ -88,8 +88,8 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
 		}
 
-		wsChanEvent.ChannelId = ChanID
-		wsChanEvent.ChannelPoint = ChannelPoint
+		wsChanEvent.ShortChannelId = channels.ConvertLNDShortChannelID(ChanID)
+		wsChanEvent.LNDChannelPoint = ChannelPoint
 		wsChanEvent.PubKey = PubKey
 		wsChan <- wsChanEvent
 
@@ -127,8 +127,8 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
 		}
 
-		wsChanEvent.ChannelId = ChanID
-		wsChanEvent.ChannelPoint = ChannelPoint
+		wsChanEvent.ShortChannelId = channels.ConvertLNDShortChannelID(ChanID)
+		wsChanEvent.LNDChannelPoint = ChannelPoint
 		wsChanEvent.PubKey = PubKey
 		wsChan <- wsChanEvent
 
@@ -150,7 +150,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
 		}
 
-		wsChanEvent.ChannelPoint = ChannelPoint
+		wsChanEvent.LNDChannelPoint = ChannelPoint
 		wsChan <- wsChanEvent
 
 	case lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL:
@@ -169,7 +169,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
 		}
 
-		wsChanEvent.ChannelPoint = ChannelPoint
+		wsChanEvent.LNDChannelPoint = ChannelPoint
 		wsChan <- wsChanEvent
 
 		return nil
@@ -189,7 +189,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
 		}
 
-		wsChanEvent.ChannelPoint = ChannelPoint
+		wsChanEvent.LNDChannelPoint = ChannelPoint
 		wsChan <- wsChanEvent
 
 		return nil
@@ -209,7 +209,7 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 				db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
 		}
 
-		wsChanEvent.ChannelPoint = ChannelPoint
+		wsChanEvent.LNDChannelPoint = ChannelPoint
 		wsChan <- wsChanEvent
 
 		return nil
