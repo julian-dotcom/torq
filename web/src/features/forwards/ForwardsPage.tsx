@@ -1,34 +1,36 @@
 import { Link } from "react-router-dom";
 import {
-  Filter20Regular as FilterIcon,
+  ArrowJoin20Regular as GroupIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
-  ArrowJoin20Regular as GroupIcon,
+  Filter20Regular as FilterIcon,
+  Save20Regular as SaveIcon,
   Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "../sidebar/Sidebar";
-import { useGetTableViewsQuery } from "apiSlice";
+import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation } from "apiSlice";
 
 import { Clause, FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
 
 import TablePageTemplate, {
-  TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
+  TableControlSection,
   TableControlsTabsGroup,
 } from "../templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
 import {
-  updateColumns,
   selectActiveColumns,
   selectAllColumns,
   selectFilters,
-  updateFilters,
-  selectSortBy,
-  updateSortBy,
   selectGroupBy,
+  selectSortBy,
+  updateColumns,
+  updateFilters,
   updateGroupBy,
+  updateSortBy,
 } from "./forwardsSlice";
 import ViewsPopover from "./views/ViewsPopover";
 import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
@@ -38,6 +40,7 @@ import GroupBySection from "../sidebar/sections/group/GroupBySection";
 import ForwardsDataWrapper from "./ForwardsDataWrapper";
 import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
 import { SectionContainer } from "../section/SectionContainer";
+import Button, { buttonColor } from "../buttons/Button";
 
 type sections = {
   filter: boolean;
@@ -84,12 +87,35 @@ function ForwardsPage() {
     };
   };
 
+  const [updateTableView] = useUpdateTableViewMutation();
+  const [createTableView] = useCreateTableViewMutation();
+  const currentViewIndex = useAppSelector(selectedViewIndex);
+
+  const currentView = useAppSelector(selectCurrentView);
+  const saveView = () => {
+    const viewMod = { ...currentView };
+    viewMod.saved = true;
+    if (currentView.id === undefined || null) {
+      createTableView({ view: viewMod, index: currentViewIndex });
+      return;
+    }
+    updateTableView(viewMod);
+  };
+
   const tableControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
-          {/*<TimeIntervalSelect />*/}
           {<ViewsPopover />}
+          {!currentView.saved && (
+            <Button
+              buttonColor={buttonColor.green}
+              icon={<SaveIcon />}
+              text={"Save"}
+              onClick={saveView}
+              className={"collapse-tablet"}
+            />
+          )}
         </TableControlsTabsGroup>
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
