@@ -1,6 +1,7 @@
 import { configureStore, ThunkAction, Action } from "@reduxjs/toolkit";
 import navReducer from "../features/navigation/navSlice";
 import channelReducer from "../features/channel/channelSlice";
+import channelsReducer from "../features/channels/ChannelsSlice";
 import tableReducer from "../features/forwards/forwardsSlice";
 import timeIntervalReducer from "../features/timeIntervalSelect/timeIntervalSlice";
 import { torqApi } from "apiSlice";
@@ -19,6 +20,7 @@ export const store = configureStore({
     onChain: onChainReducer,
     timeInterval: timeIntervalReducer,
     channel: channelReducer,
+    channels: channelsReducer,
     [torqApi.reducerPath]: torqApi.reducer,
     i18n: i18nReducer,
   },

@@ -11,6 +11,7 @@ import LoginLayout from "layout/LoginLayout";
 
 import LoginPage from "features/auth/LoginPage";
 import ChannelPage from "features/channel/ChannelPage";
+import ChannelsPage from "features/channels/ChannelsPage";
 import DashboardPage from "features/channel/DashboardPage";
 import ForwardsPage from "features/forwards/ForwardsPage";
 import NoMatch from "features/no_match/NoMatch";
@@ -67,6 +68,7 @@ const authenticatedRoutes: RouteObject = {
         {
           path: routes.ANALYSE,
           children: [
+            { path: routes.CHANNELS, element: <ChannelsPage /> },
             { path: routes.FORWARDS, element: <ForwardsPage /> },
             { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
             { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },

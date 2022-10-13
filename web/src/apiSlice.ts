@@ -14,7 +14,7 @@ import type {
   SendOnChainRequest,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import type { localNode, settings, timeZone } from "./apiTypes";
+import type { localNode, settings, timeZone, channel } from "./apiTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -47,7 +47,7 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
 export const torqApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRedirect,
-  tagTypes: ["settings", "tableView", "localNodes"],
+  tagTypes: ["settings", "tableView", "localNodes", "channels"],
   endpoints: (builder) => ({
     getFlow: builder.query<any, GetFlowQueryParams>({
       query: (params) => queryParamsBuilder("flow", params), //
@@ -57,6 +57,13 @@ export const torqApi = createApi({
     }),
     getForwards: builder.query<any, GetForwardsQueryParams>({
       query: (params) => queryParamsBuilder("forwards", params, true),
+    }),
+    getChannels: builder.query<channel[], void>({
+      query: () => ({
+        url: `channels`,
+        method: "GET",
+      }),
+      providesTags: ["channels"],
     }),
     getDecodedInvoice: builder.query<any, GetDecodedInvoiceQueryParams>({
       query: (params) => queryParamsBuilder("invoices/decode/", params),
@@ -191,6 +198,7 @@ export const {
   useGetFlowQuery,
   useGetChannelHistoryQuery,
   useGetForwardsQuery,
+  useGetChannelsQuery,
   useGetDecodedInvoiceQuery,
   useGetPaymentsQuery,
   useGetInvoicesQuery,
