@@ -182,19 +182,21 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	errs, ctx := errgroup.WithContext(ctx)
+	var wsChan = make(chan interface{})
 
 	go PeerPubKeyListMonitor(ctx)
 	go OpenChanPointListMonitor(ctx)
 
 	client := &stubLNDSubscribeChannelEvent{ChannelEvents: []interface{}{channelEvent}, CancelFunc: cancel}
-
 	errs.Go(func() error {
-		err := SubscribeAndStoreChannelEvents(ctx, client, db, 1)
+		err := SubscribeAndStoreChannelEvents(ctx, client, db, 1, wsChan)
 		if err != nil {
 			t.Fatalf("Problem subscribing to channel events: %v", err)
 		}
 		return err
 	})
+
+	<-wsChan
 
 	// Wait for subscriptions to complete
 	err := errs.Wait()

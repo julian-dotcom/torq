@@ -136,7 +136,7 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 	}
 }
 
-func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
+func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) {
 
 	conn, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -145,11 +145,9 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	defer conn.Close()
 
-	// Channel for writing responses to the client safely
-	wc := make(chan interface{})
 	go func(c *gin.Context) {
 		for {
-			err := conn.WriteJSON(<-wc)
+			err := conn.WriteJSON(<-wsChan)
 			if err != nil {
 				server_errors.LogAndSendServerError(c, err)
 			}
@@ -166,7 +164,7 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		case nil:
-			go processWsReq(db, c, wc, req)
+			go processWsReq(db, c, wsChan, req)
 			continue
 		default:
 			wsr := wsError{
@@ -174,7 +172,7 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB) {
 				Type:  "Error",
 				Error: fmt.Sprintf("Could not parse request, please check that your JSON is correctly formated"),
 			}
-			wc <- wsr
+			wsChan <- wsr
 			continue
 		}
 
