@@ -189,18 +189,19 @@ function NewPaymentModal() {
       setDestinationType(PaymentType.LightningSimnet);
     } else if (e.target.value.match(LnPayrequestRegtestRegEx)) {
       setDestinationType(PaymentType.LightningRegtest);
-    } else if (e.target.value.match(P2SHAddressRegEx)) {
-      // Pay to Script Hash
-      setDestinationType(PaymentType.P2SH);
-    } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
-      // Segwit address
-      setDestinationType(PaymentType.P2WKH);
-    } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
-      // Taproot
-      setDestinationType(PaymentType.P2TR);
-      // } else if (e.target.value.match(LightningNodePubkeyRegEx)) { // TODO: Add support for Keysend
-      //   setDestinationType(PaymentType.Keysend);
     } else {
+    /* else if (e.target.value.match(P2SHAddressRegEx)) {
+     *   // Pay to Script Hash
+     *   setDestinationType(PaymentType.P2SH);
+     * } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
+     *   // Segwit address
+     *   setDestinationType(PaymentType.P2WKH);
+     * } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
+     *   // Taproot
+     *   setDestinationType(PaymentType.P2TR);
+     *   // } else if (e.target.value.match(LightningNodePubkeyRegEx)) { // TODO: Add support for Keysend
+     *   //   setDestinationType(PaymentType.Keysend);
+     * } */
       setDestinationType(PaymentType.Unknown);
       return;
     }
