@@ -18,7 +18,6 @@ RUN TSX_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true npm run build
 
 # final stage
 FROM debian:buster-slim
-COPY --from=backend-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=backend-builder /app/torq /app/
 COPY --from=frontend-builder /app/build /app/web/build
 RUN useradd -ms /bin/bash torq
