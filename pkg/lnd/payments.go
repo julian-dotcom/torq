@@ -201,8 +201,6 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 
 			for _, i := range inFlightindexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
-				log.Info().Msgf("In_Flight payment: %v", i)
-				log.Info().Msgf("%v", ifPayIndex)
 				// we will only get one payment back. Might not be the right one.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -357,7 +355,6 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 					}
 				}
 			}
-			log.Info().Msgf("payment: %v", payment)
 
 			_, err = db.Exec(q,
 				payment.PaymentHash,
