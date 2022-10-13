@@ -14,7 +14,7 @@ jobs:
       - name: Run E2E Tests
         id: e2e
         run: make test-e2e-debug
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: ${{ failure() || success() }}
         with:
           name: E2E_Video_Recording
