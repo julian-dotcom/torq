@@ -214,6 +214,8 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 				}
 				if len(p.Payments) == 0 {
 					log.Info().Msgf("We had an inflight payment but nothing from LND: %v", i)
+					setPaymentToFailedDetailsUnavailable(db, i)
+					continue
 				}
 
 				if p.Payments[0].PaymentIndex != i {
