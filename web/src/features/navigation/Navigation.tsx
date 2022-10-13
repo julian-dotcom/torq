@@ -11,6 +11,7 @@ import {
   MoneyHand20Regular as TransactionIcon,
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
+  ArrowRouting20Regular as ChannelsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
 
@@ -38,6 +39,7 @@ function Navigation() {
 
         <NavCategory text={"Analyse"} collapsed={false}>
           <MenuItem text={"Summary"} icon={<SummaryIcon />} routeTo={"/"} />
+          <MenuItem text={"Channels"} icon={<ChannelsIcon />} routeTo={"/analyse/channels"} />
           <MenuItem text={"Forwards"} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
           {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
         </NavCategory>

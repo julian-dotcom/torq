@@ -3,11 +3,12 @@ package virtual_network
 import (
 	"bytes"
 	"context"
+	"log"
+	"strings"
+
 	"github.com/cockroachdb/errors"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"log"
-	"strings"
 )
 
 const defautDelayMS = 2000          // 2s

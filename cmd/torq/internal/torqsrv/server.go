@@ -3,12 +3,13 @@ package torqsrv
 import (
 	"fmt"
 	"github.com/lncapital/torq/internal/peers"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/gzip"

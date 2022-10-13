@@ -5,15 +5,16 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
-	"github.com/lncapital/torq/virtual_network"
-	"github.com/playwright-community/playwright-go"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"testing"
+
+	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
+	"github.com/lncapital/torq/virtual_network"
+	"github.com/playwright-community/playwright-go"
 )
 
 const torqPort = "4927"
@@ -637,53 +638,31 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	page.Click("text=Save node details")
 
-	page.WaitForTimeout(500)
-
 	page.Keyboard().Press("PageUp")
-	page.WaitForTimeout(500)
 
 	page.Click("text=Summary")
 
-	page.WaitForTimeout(1000)
-
-	page.Click("text=Forwards")
-
-	page.WaitForTimeout(500)
+	page.Click("text=Channels")
 
 	page.Click("text=Default View")
 
-	page.WaitForTimeout(500)
+	page.Click("text=Forwards")
+
+	page.Click("text=Default View")
 
 	page.Click("text=Transactions")
 
-	page.WaitForTimeout(500)
-
 	page.Click("id=collapse-navigation")
-
-	page.WaitForTimeout(500)
 
 	page.Click("text=Invoices")
 
-	page.WaitForTimeout(500)
-
 	page.Click("text=On-Chain")
-
-	page.WaitForTimeout(500)
 
 	page.Click("_react=Options20Regular")
 
-	page.WaitForTimeout(300)
-
 	page.Click("text=Filter")
-
-	page.WaitForTimeout(500)
 
 	page.Click("text=Add filter")
 
-	page.WaitForTimeout(500)
-
 	page.Click("text=Sort")
-
-	page.WaitForTimeout(500)
-
 }
