@@ -204,7 +204,6 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 
 		// Write the payment status to the client
 		wChan <- processResponse(resp, reqId)
-		break
 	}
 	return
 }
@@ -233,16 +232,17 @@ func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
 		}
 
 		for _, hop := range attempt.Route.Hops {
-			r.Attempt.Route.Hops = append(r.Attempt.Route.Hops, hops{
+			h := hops{
 				ChanId:           channels.ConvertLNDShortChannelID(hop.ChanId),
 				AmtToForwardMsat: hop.AmtToForwardMsat,
 				Expiry:           hop.Expiry,
 				PubKey:           hop.PubKey,
-				MppRecord: MppRecord{
-					PaymentAddr:  hex.EncodeToString(hop.MppRecord.PaymentAddr),
-					TotalAmtMsat: hop.MppRecord.TotalAmtMsat,
-				},
-			})
+			}
+			if hop.MppRecord != nil {
+				h.MppRecord.TotalAmtMsat = hop.MppRecord.TotalAmtMsat
+				h.MppRecord.PaymentAddr = hex.EncodeToString(hop.MppRecord.PaymentAddr)
+			}
+			r.Attempt.Route.Hops = append(r.Attempt.Route.Hops, h)
 		}
 
 		r.Attempt.Route.TotalTimeLock = attempt.Route.TotalTimeLock

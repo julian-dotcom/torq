@@ -11,6 +11,7 @@ import type {
   GetInvoicesQueryParams,
   GetOnChainTransactionsQueryParams,
   GetPaymentsQueryParams,
+  SendOnChainRequest,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { localNode, settings, timeZone } from "./apiTypes";
@@ -68,6 +69,13 @@ export const torqApi = createApi({
     }),
     getOnChainTx: builder.query<any, GetOnChainTransactionsQueryParams>({
       query: (params) => queryParamsBuilder("on-chain-tx", params, true),
+    }),
+    sendOnChain: builder.mutation<any, SendOnChainRequest>({
+      query: (data: SendOnChainRequest) => ({
+        url: "on-chain-tx/sendcoins",
+        method: "POST",
+        body: data,
+      }),
     }),
     getTableViews: builder.query<any, void>({
       query: () => `table-views`,
@@ -187,6 +195,7 @@ export const {
   useGetPaymentsQuery,
   useGetInvoicesQuery,
   useGetOnChainTxQuery,
+  useSendOnChainMutation,
   useGetTableViewsQuery,
   useUpdateTableViewMutation,
   useCreateTableViewMutation,

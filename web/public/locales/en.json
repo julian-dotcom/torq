@@ -15,6 +15,7 @@
   "np2wkh": "Hybrid Nested Segwit",
   "p2tr": "Taproot",
   "addressType": "Address type",
+  "yourNode": "Your Node",
   "next": "Next",
   "confirm": "Confirm",
   "newAddress": "New Address",

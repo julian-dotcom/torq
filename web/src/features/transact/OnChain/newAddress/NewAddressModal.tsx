@@ -1,5 +1,5 @@
 import { MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
-import { WS_URL } from "apiSlice";
+import { useGetLocalNodesQuery, WS_URL } from "apiSlice";
 import classNames from "classnames";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
@@ -10,6 +10,8 @@ import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
 import styles from "features/transact/OnChain/newAddress/newAddress.module.scss";
 import useTranslations from "services/i18n/useTranslations";
+import { localNode } from "apiTypes";
+import Select from "features/forms/Select";
 
 export type NewAddressRequest = {
   nodeId: number;
@@ -35,6 +37,15 @@ export enum AddressType {
 function NewAddressModal() {
   const { t } = useTranslations();
 
+  const { data: localNodes } = useGetLocalNodesQuery();
+
+  let localNodeOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
+  if (localNodes !== undefined) {
+    localNodeOptions = localNodes.map((localNode: localNode) => {
+      return { value: localNode.localNodeId, label: localNode.grpcAddress };
+    });
+  }
+
   const addressTypeOptions = [
     { label: t.p2wpkh, value: AddressType.P2WPKH }, // Wrapped Segwit
     { label: t.p2wkh, value: AddressType.P2WKH }, // Segwit
@@ -43,6 +54,7 @@ function NewAddressModal() {
 
   const [response, setResponse] = useState<NewAddressResponse>();
   const [newAddressError, setNewAddressError] = useState("");
+  const [selectedLocalNode, setSelectedLocalNode] = useState<number>(localNodeOptions[0].value);
 
   const [addressTypeState, setAddressTypeState] = useState(ProgressStepState.active);
   const [doneState, setDoneState] = useState(ProgressStepState.disabled);
@@ -100,7 +112,7 @@ function NewAddressModal() {
       type: "newAddress",
       newAddressRequest: {
         // TODO: Don't just pick the first one!!!
-        nodeId: 1,
+        nodeId: selectedLocalNode,
         type: addType,
         // TODO: account empty so the default wallet account is used
         // account: {account},
@@ -124,19 +136,28 @@ function NewAddressModal() {
 
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
+          <Select
+            label={t.yourNode}
+            onChange={(newValue: any) => {
+              setSelectedLocalNode(newValue?.value || 0);
+            }}
+            options={localNodeOptions}
+            value={localNodeOptions.find((option) => option.value === selectedLocalNode)}
+          />
           <div className={styles.addressTypeWrapper}>
             <div className={styles.addressTypes}>
               {addressTypeOptions.map((addType, index) => {
                 return (
-                  <div
-                    className={styles.addressTypeButtons}
+                  <Button
+                    text={addType.label}
+                    disabled={!selectedLocalNode}
+                    buttonColor={buttonColor.subtle}
+                    // className={styles.addressTypeButtons}
                     key={index + addType.label}
                     onClick={() => {
                       handleClickNext(addType.value);
                     }}
-                  >
-                    {addType.label}
-                  </div>
+                  />
                 );
               })}
             </div>
