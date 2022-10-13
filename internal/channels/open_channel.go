@@ -8,16 +8,19 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/internal/peers"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/rs/zerolog/log"
 	"io"
+	"strings"
 )
 
 type OpenChannelRequest struct {
 	NodeId             int     `json:"nodeId"`
 	SatPerVbyte        *uint64 `json:"satPerVbyte"`
 	NodePubKey         string  `json:"nodePubKey"`
+	Host               *string `json:"host"`
 	LocalFundingAmount int64   `json:"localFundingAmount"`
 	PushSat            *int64  `json:"pushSat"`
 	TargetConf         *int32  `json:"targetConf"`
@@ -43,8 +46,6 @@ type PsbtDetails struct {
 }
 
 func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, reqId string) (err error) {
-	// TODO: Add support for batch opening channels
-
 	openChanReq, err := prepareOpenRequest(req)
 	if err != nil {
 		return errors.Wrap(err, "Preparing open request")
@@ -68,13 +69,18 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 
 	ctx := context.Background()
 
+	//If host provided - check if peer and if needed connect peer
+	if req.NodePubKey != "" && req.Host != nil {
+		log.Debug().Msgf("Host provided. connect peer")
+		if err := checkConnectPeer(client, ctx, req.NodeId, req.NodePubKey, *req.Host); err != nil {
+			return err
+		}
+	}
+
 	//Send open channel request
 	openChanRes, err := client.OpenChannel(ctx, &openChanReq)
-	// TODO: Add automatic peer connection: https://api.lightning.community/#connectpeer
-	//   If the node is not connected and the user did not specify any connection details get the connection options and
-	//   ask the user to choose.
-	//   https://api.lightning.community/#getnodeinfo
-	if err != nil { // Use switch and check error type for peer not connected.
+
+	if err != nil {
 		log.Error().Msgf("Err opening channel: %v", err)
 		return err
 	}
@@ -94,6 +100,12 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 		}
 
 		if err != nil {
+			if strings.Contains(err.Error(), "is not online") {
+				log.Error().Msg("Peer is not online")
+				errNew := errors.New("Peer is not online. Provide full IP")
+				wChan <- errNew
+				return errNew
+			}
 			log.Error().Msgf("could not open channel: %v", err)
 			wChan <- errors.Newf("could not open channel: %v", err)
 			return err
@@ -219,4 +231,35 @@ func translateChanPoint(cb []byte, oi uint32) (string, error) {
 	}
 
 	return fmt.Sprintf("%s:%d", ch.String(), oi), nil
+}
+
+func checkConnectPeer(client lnrpc.LightningClient, ctx context.Context, nodeId int, remotePubkey string, host string) (err error) {
+
+	peerList, err := peers.ListPeers(client, ctx, "/le")
+	if err != nil {
+		return err
+	}
+
+	for _, peer := range peerList {
+		if peer.PubKey == remotePubkey {
+			// peer found
+			//log.Debug().Msgf("Peer is connected")
+			return nil
+		}
+	}
+
+	req := peers.ConnectPeerRequest{
+		NodeId: nodeId,
+		LndAddress: peers.LndAddress{
+			PubKey: remotePubkey,
+			Host:   host,
+		},
+	}
+
+	_, err = peers.ConnectPeer(client, ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
