@@ -158,7 +158,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// Update in flight payments
 	errs.Go(func() error {
-		err := lnd.SubscribeAndUpdatePayments(ctx, client, db, nil)
+		err := lnd.UpdateInFlightPayments(ctx, client, db, nil)
 		if err != nil {
 			return errors.Wrapf(err, "Start->SubscribeAndUpdatePayments(%v, %v, %v)", ctx,
 				client, db)

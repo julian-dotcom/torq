@@ -327,7 +327,7 @@ func TestSubscribePayments(t *testing.T) {
 	}
 
 	errs.Go(func() error {
-		err := SubscribeAndUpdatePayments(ctx, &mclientUpdate, db, &opt)
+		err := UpdateInFlightPayments(ctx, &mclientUpdate, db, &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeAndUpdatePayments(%v, %v, %v, %v)", ctx, mclientUpdate, db, &opt))
 		}

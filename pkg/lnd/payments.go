@@ -30,7 +30,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
-	ticker := c.Tick(10 * time.Second)
+	ticker := c.Tick(60 * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -171,11 +171,11 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 	return nil
 }
 
-func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB, opt *PayOptions) error {
+func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB, opt *PayOptions) error {
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
-	ticker := c.Tick(10 * time.Second)
+	ticker := c.Tick(60 * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -192,7 +192,6 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 			return nil
 		case <-ticker:
 
-			// Fetch the last payment index we have stored
 			inFlightindexes, err := fetchInFlightPaymentIndexes(db)
 
 			if err != nil {
@@ -200,9 +199,11 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 				continue
 			}
 
-			// Keep fetching until LND returns less than the max number of records requested.
 			for _, i := range inFlightindexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
+				log.Info().Msgf("In_Flight payment: %v", i)
+				log.Info().Msgf("%v", ifPayIndex)
+				// we will only get one payment back. Might not be the right one.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return nil
@@ -211,7 +212,15 @@ func SubscribeAndUpdatePayments(ctx context.Context, client lightningClient_List
 					log.Printf("Subscribe and update payments: %v\n", err)
 					continue
 				}
+				if len(p.Payments) == 0 {
+					log.Info().Msgf("We had an inflight payment but nothing from LND: %v", i)
+				}
 
+				if p.Payments[0].PaymentIndex != i {
+					log.Warn().Msgf("Payment data missing from LND for payment index: %v", i)
+					setPaymentToFailedDetailsUnavailable(db, i)
+					continue
+				}
 				// Store the payments
 				err = updatePayments(db, p.Payments)
 				if err != nil {
@@ -265,6 +274,27 @@ func fetchInFlightPaymentIndexes(db *sqlx.DB) (r []uint64, err error) {
 	return r, nil
 }
 
+func setPaymentToFailedDetailsUnavailable(db *sqlx.DB, paymentIndex uint64) error {
+	const q = `update payment set(
+				  status,
+				  failure_reason,
+				  updated_on)
+			  = ($1, $2, $3)
+				where payment_index = $4;`
+
+	_, err := db.Exec(q,
+		"FAILED",
+		"DETAILS_UNAVAILABLE",
+		time.Now().UTC(),
+		paymentIndex,
+	)
+	if err != nil {
+		return errors.Wrap(err, "Database exec")
+	}
+
+	return nil
+}
+
 func updatePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 
 	const q = `update payment set(
@@ -297,8 +327,8 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 			if status == "IN_FLIGHT" {
 				// Check expiry time for IN_FLIGHT payments
 
-				// Default expiry (1 week, just to be sure)
-				expiry := time.Duration(24 * 7 * time.Hour)
+				// Default expiry (1 day, just to be sure)
+				expiry := time.Duration(24 * time.Hour)
 
 				// Update the expiry time if the PaymentRequest is available
 				if payment.PaymentRequest != "" {
@@ -325,6 +355,7 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 					}
 				}
 			}
+			log.Info().Msgf("payment: %v", payment)
 
 			_, err = db.Exec(q,
 				payment.PaymentHash,
