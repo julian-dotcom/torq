@@ -4,19 +4,18 @@ import (
 	"context"
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"strings"
 )
 
 func ConnectPeer(client lnrpc.LightningClient, ctx context.Context, req ConnectPeerRequest) (r string, err error) {
 	connPeerReq, err := processRequest(req)
 
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "Processing request")
 	}
 
 	_, err = client.ConnectPeer(ctx, &connPeerReq)
 	if err != nil {
-		if strings.Contains(err.Error(), "already connected") {
+		if errors.As(err, "already connected") {
 			return "Peer already connected", nil
 		}
 		return "", errors.Wrap(err, "Connecting peer")
@@ -26,12 +25,9 @@ func ConnectPeer(client lnrpc.LightningClient, ctx context.Context, req ConnectP
 }
 
 func processRequest(req ConnectPeerRequest) (r lnrpc.ConnectPeerRequest, err error) {
-	if req.NodeId == 0 {
-		return lnrpc.ConnectPeerRequest{}, errors.Wrap(err, "Processing connect peer request")
-	}
 
 	if req.LndAddress.PubKey == "" || req.LndAddress.Host == "" {
-		return lnrpc.ConnectPeerRequest{}, errors.Wrap(err, "Missing LND Address or Host")
+		return lnrpc.ConnectPeerRequest{}, errors.New("Both LND Address and host must be provided")
 	}
 
 	addr := lnrpc.LightningAddress{

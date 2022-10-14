@@ -13,7 +13,6 @@ import (
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/rs/zerolog/log"
 	"io"
-	"strings"
 )
 
 type OpenChannelRequest struct {
@@ -69,9 +68,9 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 
 	ctx := context.Background()
 
-	//If host provided - check if peer and if needed connect peer
+	//If host provided - check if node is connected to peer and if not, connect peer
 	if req.NodePubKey != "" && req.Host != nil {
-		log.Debug().Msgf("Host provided. connect peer")
+		//log.Debug().Msgf("Host provided. connect peer")
 		if err := checkConnectPeer(client, ctx, req.NodeId, req.NodePubKey, *req.Host); err != nil {
 			return err
 		}
@@ -100,20 +99,13 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 		}
 
 		if err != nil {
-			if strings.Contains(err.Error(), "is not online") {
-				log.Error().Msg("Peer is not online")
-				errNew := errors.New("Peer is not online. Provide full IP")
-				wChan <- errNew
-				return errNew
-			}
-			log.Error().Msgf("could not open channel: %v", err)
-			wChan <- errors.Newf("could not open channel: %v", err)
-			return err
+			log.Error().Msgf("Opening channel: %v", err)
+			return errors.Wrapf(err, "Opening channel")
 		}
 
 		r, err := processOpenResponse(resp)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Processing open response")
 		}
 		wChan <- r
 
@@ -122,16 +114,16 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 
 func prepareOpenRequest(ocReq OpenChannelRequest) (r lnrpc.OpenChannelRequest, err error) {
 	if ocReq.NodeId == 0 {
-		return r, errors.New("Node id is missing")
+		return lnrpc.OpenChannelRequest{}, errors.New("Node id is missing")
 	}
 
 	if ocReq.SatPerVbyte != nil && ocReq.TargetConf != nil {
-		return r, errors.New("Cannot set both SatPerVbyte and TargetConf")
+		return lnrpc.OpenChannelRequest{}, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
 
 	pubKeyHex, err := hex.DecodeString(ocReq.NodePubKey)
 	if err != nil {
-		return r, errors.New("error decoding public key hex")
+		return lnrpc.OpenChannelRequest{}, errors.New("error decoding public key hex")
 	}
 
 	//open channel request
@@ -235,7 +227,7 @@ func translateChanPoint(cb []byte, oi uint32) (string, error) {
 
 func checkConnectPeer(client lnrpc.LightningClient, ctx context.Context, nodeId int, remotePubkey string, host string) (err error) {
 
-	peerList, err := peers.ListPeers(client, ctx, "/le")
+	peerList, err := peers.ListPeers(client, ctx, "true")
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"net/http"
 	"strconv"
@@ -28,12 +29,18 @@ type ConnectPeerRequest struct {
 
 func connectPeerHandler(c *gin.Context, db *sqlx.DB) {
 	var requestBody ConnectPeerRequest
-	//var errAlreadyConnected = errors.New("Already connected")
 
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
 		return
 	}
+
+	if requestBody.NodeId == 0 {
+		server_errors.WrapLogAndSendServerError(c, errors.New("Node ID not provided"), "Connect peer")
+		return
+	}
+
+	log.Info().Msgf("NODE ID: %v", requestBody.NodeId)
 
 	conn, err := connectLND(db, requestBody.NodeId)
 	if err != nil {
@@ -56,13 +63,15 @@ func connectPeerHandler(c *gin.Context, db *sqlx.DB) {
 
 func listPeersHandler(c *gin.Context, db *sqlx.DB) {
 
-	nodeId, err := strconv.Atoi(c.Param("nodeId"))
-	latestErr := c.Param("le")
-
+	nodeId, err := strconv.Atoi(c.Query("localNodeId"))
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting node id")
 		return
 	}
+
+	//should be true or false
+	///api/peers?localNodeId=1&latestErr=false
+	latestErr := c.Query("latestErr")
 
 	conn, err := connectLND(db, nodeId)
 	if err != nil {
@@ -103,6 +112,6 @@ func connectLND(db *sqlx.DB, nodeId int) (conn *grpc.ClientConn, err error) {
 }
 
 func RegisterPeersRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.POST("add", func(c *gin.Context) { connectPeerHandler(c, db) })
-	r.GET("list/:nodeId/*le", func(c *gin.Context) { listPeersHandler(c, db) })
+	r.POST("", func(c *gin.Context) { connectPeerHandler(c, db) })
+	r.GET("", func(c *gin.Context) { listPeersHandler(c, db) })
 }

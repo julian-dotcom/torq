@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"strconv"
 )
 
 type timeStampedError struct {
@@ -42,7 +43,13 @@ type peer struct {
 func ListPeers(client lnrpc.LightningClient, ctx context.Context, latestErr string) (r []peer, err error) {
 
 	listPeerReq := lnrpc.ListPeersRequest{}
-	if latestErr != "/" {
+
+	latestError, err := strconv.ParseBool(latestErr)
+	if err != nil {
+		return []peer{}, errors.New("Parsing latestErr to bool")
+	}
+
+	if latestError {
 		listPeerReq.LatestError = true
 	}
 
