@@ -13,6 +13,7 @@ import styles from "./columns-section.module.scss";
 import Select, { SelectOptionType } from "./ColumnDropDown";
 import { ColumnMetaData } from "features/table/Table";
 import { useState } from "react";
+import { useStrictDroppable } from "utils/UseStrictDroppable";
 
 interface columnRow {
   column: ColumnMetaData;
@@ -61,7 +62,7 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Draggable draggableId={`draggable-column-id-${index}`} index={index}>
+    <Draggable draggableId={`draggable-column-id-${column.key}`} index={index}>
       {(provided, snapshot) => (
         <div
           className={classNames(styles.rowContent, {
@@ -141,7 +142,7 @@ function UnselectedColumn({ name, index, handleAddColumn }: unselectedColumnRow)
 }
 
 type ColumnsSectionProps = {
-  activeColumns: ColumnMetaData[];
+  activeColumns: Array<ColumnMetaData>;
   columns: ColumnMetaData[];
   handleUpdateColumn: (updatedColumns: Array<ColumnMetaData>) => void;
 };
@@ -170,9 +171,18 @@ function ColumnsSection(props: ColumnsSectionProps) {
   };
 
   const droppableContainerId = "column-list-droppable";
-  const draggableColumns = props.activeColumns.slice(1, props.activeColumns.length);
+  const frozenColumns = props.activeColumns.map((column) => {
+    if (column.locked) {
+      return column;
+    }
+  });
+  const draggableColumns = props.activeColumns.filter((column) => {
+    if (!column.locked) {
+      return true;
+    }
+  });
 
-  const onDragEnd = (result: any) => {
+  const onDragEnd = (result: any, provided: any) => {
     const { destination, source } = result;
 
     // Dropped outside of container
@@ -185,41 +195,52 @@ function ColumnsSection(props: ColumnsSectionProps) {
       return;
     }
 
-    const newColumns: ColumnMetaData[] = draggableColumns.slice();
+    const newColumns = draggableColumns.slice();
     newColumns.splice(source.index, 1);
     newColumns.splice(destination.index, 0, draggableColumns[source.index]);
-    props.handleUpdateColumn([props.columns[0], ...newColumns]);
+    props.handleUpdateColumn(newColumns);
   };
+
+  // Workaround for incorrect handling of React.StrictMode by react-beautiful-dnd
+  // https://github.com/atlassian/react-beautiful-dnd/issues/2396#issuecomment-1248018320
+  const [strictDropEnabled] = useStrictDroppable(!props.activeColumns);
 
   return (
     <div>
       <DragDropContext onDragEnd={onDragEnd}>
         <div className={styles.columnsSectionContent}>
           <div className={styles.columnRows}>
-            <NameColumnRow column={props.activeColumns.slice(0, 1)[0]} key={"selected-0-name"} index={0} />
-
-            <Droppable droppableId={droppableContainerId}>
-              {(provided) => (
-                <div
-                  className={classNames(styles.draggableColumns, styles.columnRows)}
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                >
-                  {draggableColumns.map((column, index) => {
-                    return (
-                      <ColumnRow
-                        column={column}
-                        key={"selected-" + column.key + "-" + index}
-                        index={index}
-                        handleRemoveColumn={removeColumn}
-                        handleUpdateColumn={updateColumn}
-                      />
-                    );
-                  })}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
+            {frozenColumns.map((column, index) => {
+              if (column) {
+                return <NameColumnRow column={column} key={"selected-0-name"} index={0} />;
+              }
+            })}
+            {strictDropEnabled && (
+              <Droppable droppableId={droppableContainerId}>
+                {(provided) => (
+                  <div
+                    className={classNames(styles.draggableColumns, styles.columnRows)}
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                  >
+                    {draggableColumns.map((column, index) => {
+                      if (column) {
+                        return (
+                          <ColumnRow
+                            column={column}
+                            key={"selected-" + column.key + "-" + index}
+                            index={index}
+                            handleRemoveColumn={removeColumn}
+                            handleUpdateColumn={updateColumn}
+                          />
+                        );
+                      }
+                    })}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            )}
 
             <div className={styles.divider} />
 

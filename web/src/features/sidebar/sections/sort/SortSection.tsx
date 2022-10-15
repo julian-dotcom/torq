@@ -12,6 +12,7 @@ import Button, { buttonColor, buttonSize } from "features/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
+import { useStrictDroppable } from "../../../../utils/UseStrictDroppable";
 
 export type OrderBy = {
   key: string;
@@ -157,12 +158,16 @@ const SortSection = (props: SortSectionProps) => {
     props.updateHandler(newSortsOrder);
   };
 
+  // Workaround for incorrect handling of React.StrictMode by react-beautiful-dnd
+  // https://github.com/atlassian/react-beautiful-dnd/issues/2396#issuecomment-1248018320
+  const [strictDropEnabled] = useStrictDroppable(!props.orderBy);
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className={styles.sortPopoverContent}>
         {!props.orderBy.length && <div className={styles.noFilters}>Not sorted</div>}
 
-        {!!props.orderBy.length && (
+        {strictDropEnabled && (
           <Droppable droppableId={droppableContainerId}>
             {(provided) => (
               <div className={styles.sortRows} ref={provided.innerRef} {...provided.droppableProps}>

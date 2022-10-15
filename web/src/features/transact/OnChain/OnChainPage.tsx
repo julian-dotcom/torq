@@ -1,6 +1,6 @@
 import Table, { ColumnMetaData } from "features/table/Table";
 import { useGetOnChainTxQuery } from "apiSlice";
-import {Link, useNavigate} from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
@@ -32,12 +32,10 @@ import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
 import { SectionContainer } from "features/section/SectionContainer";
-import Button, {buttonColor} from "features/buttons/Button";
-import {
-  MoneyHand20Regular as TransactionIcon,
-} from "@fluentui/react-icons";
-import {NEW_ADDRESS} from "constants/routes";
-import {useLocation} from "react-router";
+import Button, { buttonColor } from "features/buttons/Button";
+import { MoneyHand20Regular as TransactionIcon } from "@fluentui/react-icons";
+import { NEW_ADDRESS } from "constants/routes";
+import { useLocation } from "react-router";
 
 type sections = {
   filter: boolean;
