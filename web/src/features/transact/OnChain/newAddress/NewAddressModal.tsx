@@ -111,7 +111,6 @@ function NewAddressModal() {
       reqId: "randId",
       type: "newAddress",
       newAddressRequest: {
-        // TODO: Don't just pick the first one!!!
         nodeId: selectedLocalNode,
         type: addType,
         // TODO: account empty so the default wallet account is used
