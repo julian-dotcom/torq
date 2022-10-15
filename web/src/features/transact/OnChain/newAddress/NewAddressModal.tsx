@@ -111,7 +111,6 @@ function NewAddressModal() {
       reqId: "randId",
       type: "newAddress",
       newAddressRequest: {
-        // TODO: Don't just pick the first one!!!
         nodeId: selectedLocalNode,
         type: addType,
         // TODO: account empty so the default wallet account is used
@@ -152,10 +151,11 @@ function NewAddressModal() {
                     text={addType.label}
                     disabled={!selectedLocalNode}
                     buttonColor={buttonColor.subtle}
-                    // className={styles.addressTypeButtons}
                     key={index + addType.label}
                     onClick={() => {
-                      handleClickNext(addType.value);
+                      if (selectedLocalNode) {
+                        handleClickNext(addType.value);
+                      }
                     }}
                   />
                 );

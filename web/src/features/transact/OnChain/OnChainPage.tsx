@@ -6,6 +6,7 @@ import {
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
   Options20Regular as OptionsIcon,
+  // LinkEdit20Regular as NewOnChainAddressIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
@@ -32,10 +33,10 @@ import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
 import { SectionContainer } from "features/section/SectionContainer";
-import Button, { buttonColor } from "features/buttons/Button";
-import { MoneyHand20Regular as TransactionIcon } from "@fluentui/react-icons";
-import { NEW_ADDRESS } from "constants/routes";
+// import Button, { buttonColor } from "features/buttons/Button";
+// import { NEW_ADDRESS } from "constants/routes";
 import { useLocation } from "react-router";
+import useTranslations from "../../../services/i18n/useTranslations";
 
 type sections = {
   filter: boolean;
@@ -113,19 +114,21 @@ function OnChainPage() {
   };
 
   const location = useLocation();
+  const { t } = useTranslations();
 
   const tableControls = (
     <TableControlSection>
       <TransactTabs />
       <TableControlsButtonGroup>
-        <Button
-          buttonColor={buttonColor.green}
-          text={"New"}
-          icon={<TransactionIcon />}
-          onClick={() => {
-            navigate(NEW_ADDRESS, { state: { background: location } });
-          }}
-        />
+        {/*<Button*/}
+        {/*  buttonColor={buttonColor.green}*/}
+        {/*  text={t.newAddress}*/}
+        {/*  icon={<NewOnChainAddressIcon />}*/}
+        {/*  className={"collapse-tablet"}*/}
+        {/*  onClick={() => {*/}
+        {/*    navigate(NEW_ADDRESS, { state: { background: location } });*/}
+        {/*  }}*/}
+        {/*/>*/}
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>
