@@ -152,10 +152,11 @@ function NewAddressModal() {
                     text={addType.label}
                     disabled={!selectedLocalNode}
                     buttonColor={buttonColor.subtle}
-                    // className={styles.addressTypeButtons}
                     key={index + addType.label}
                     onClick={() => {
-                      handleClickNext(addType.value);
+                      if (selectedLocalNode) {
+                        handleClickNext(addType.value);
+                      }
                     }}
                   />
                 );
