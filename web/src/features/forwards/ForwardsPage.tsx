@@ -191,7 +191,7 @@ function ForwardsPage() {
   );
 
   const breadcrumbs = [
-    <span key="b1">&quot;Analyse&quot;</span>,
+    <span key="b1">Analyse</span>,
     <Link key="b2" to={"/analyse/forwards"}>
       Forwards
     </Link>,

@@ -83,8 +83,7 @@ function ChannelsPage() {
   const tableControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-        </TableControlsTabsGroup>
+        <TableControlsTabsGroup></TableControlsTabsGroup>
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>
@@ -159,7 +158,7 @@ function ChannelsPage() {
   );
 
   const breadcrumbs = [
-    <span key="b1">&quot;Analyse&quot;</span>,
+    <span key="b1">Analyse</span>,
     <Link key="b2" to={"/analyse/channels"}>
       Channels
     </Link>,
@@ -181,4 +180,4 @@ function ChannelsPage() {
   );
 }
 
- export default ChannelsPage;
+export default ChannelsPage;

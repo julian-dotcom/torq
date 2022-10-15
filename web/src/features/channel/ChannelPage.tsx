@@ -120,8 +120,8 @@ function ChannelPage(props: ChannelPageProps) {
     });
   }
   const breadcrumbs = [
-    <span key="b1">&quot;Analyse&quot;</span>,
-    <span key="b2">&quot;Inspect&quot;</span>,
+    <span key="b1">Analyse;</span>,
+    <span key="b2">Inspect</span>,
     <Link key="b3" to={`/analyse/inspect/${chanId}`}>
       {chanId}
     </Link>,

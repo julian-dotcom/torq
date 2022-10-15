@@ -44,7 +44,7 @@ function ChannelPage() {
   const totalCost: number = historyQuery?.data?.on_chain_cost + historyQuery?.data?.rebalancing_cost / 1000;
 
   const breadcrumbs = [
-    <span key="b1">&quot;Analyse&quot;</span>,
+    <span key="b1">Analyse</span>,
     <Link key="b2" to={"analyse"}>
       Summary
     </Link>,
