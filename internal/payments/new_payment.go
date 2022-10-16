@@ -132,7 +132,7 @@ func newSendPaymentRequest(npReq NewPaymentRequest) (r routerrpc.SendPaymentRequ
 		newPayReq.PaymentRequest = *npReq.Invoice
 	}
 
-	if npReq.FeeLimitMsat != nil {
+	if npReq.FeeLimitMsat != nil && *npReq.FeeLimitMsat != 0 {
 		newPayReq.FeeLimitMsat = *npReq.FeeLimitMsat
 	}
 

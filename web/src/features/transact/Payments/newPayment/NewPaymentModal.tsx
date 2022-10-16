@@ -14,7 +14,7 @@ import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/P
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import { SectionContainer } from "features/section/SectionContainer";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
@@ -43,7 +43,7 @@ const PaymentTypeLabel = {
 };
 
 const paymentStatusClass = {
-  IN_FLIGHT: styles.inFlight,
+  IN_FLIGHT: styles.processing,
   FAILED: styles.failed,
   SUCCEEDED: styles.success,
 };
@@ -96,7 +96,7 @@ function NewPaymentModal() {
 
   function onNewPaymentMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
-    if (response?.type == "Error") {
+    if (response?.type === "Error") {
       setPaymentProcessingError(response.error);
       onNewPaymentError(response as NewPaymentError);
       return;
@@ -106,9 +106,9 @@ function NewPaymentModal() {
 
   function onNewPaymentResponse(message: NewPaymentResponse) {
     setResponses((prev) => [...prev, message]);
-    if (message.status == "SUCCEEDED") {
+    if (message.status === "SUCCEEDED") {
       setProcessState(ProgressStepState.completed);
-    } else if (message.status == "FAILED") {
+    } else if (message.status === "FAILED") {
       setPaymentProcessingError(message.failureReason);
       setProcessState(ProgressStepState.error);
     }
@@ -138,18 +138,16 @@ function NewPaymentModal() {
 
   // LN advanced options
   const [allowSelfPayment, setAllowSelfPayment] = useState(true);
-  const [feeLimit, setFeeLimit] = useState<number | undefined>(undefined);
   const [timeOutSecs, setTimeOutSecs] = useState(60);
   const [amtSat, setAmtSat] = useState<number | undefined>(undefined);
-
   // On Chain advanced options
+
   const isLnInvoice = [
     PaymentType.LightningMainnet,
     PaymentType.LightningRegtest,
     PaymentType.LightningSimnet,
     PaymentType.LightningTestnet,
   ].includes(destinationType);
-
   const isOnChain = [PaymentType.P2SH, PaymentType.P2TR, PaymentType.P2WKH, PaymentType.P2PKH].includes(
     destinationType
   );
@@ -161,6 +159,15 @@ function NewPaymentModal() {
       skip: !isLnInvoice,
     }
   );
+
+  const [feeLimit, setFeeLimit] = useState<number | undefined>(100);
+
+  useEffect(() => {
+    if (decodedInvRes.isSuccess && decodedInvRes.data?.valueMsat !== undefined) {
+      const suggestedFee = Math.floor(decodedInvRes.data?.valueMsat / 1000000);
+      setFeeLimit(suggestedFee);
+    }
+  }, [decodedInvRes.data]);
 
   const closeAndReset = () => {
     setStepIndex(0);
@@ -190,18 +197,18 @@ function NewPaymentModal() {
     } else if (e.target.value.match(LnPayrequestRegtestRegEx)) {
       setDestinationType(PaymentType.LightningRegtest);
     } else {
-    /* else if (e.target.value.match(P2SHAddressRegEx)) {
-     *   // Pay to Script Hash
-     *   setDestinationType(PaymentType.P2SH);
-     * } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
-     *   // Segwit address
-     *   setDestinationType(PaymentType.P2WKH);
-     * } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
-     *   // Taproot
-     *   setDestinationType(PaymentType.P2TR);
-     *   // } else if (e.target.value.match(LightningNodePubkeyRegEx)) { // TODO: Add support for Keysend
-     *   //   setDestinationType(PaymentType.Keysend);
-     * } */
+      /* else if (e.target.value.match(P2SHAddressRegEx)) {
+       *   // Pay to Script Hash
+       *   setDestinationType(PaymentType.P2SH);
+       * } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
+       *   // Segwit address
+       *   setDestinationType(PaymentType.P2WKH);
+       * } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
+       *   // Taproot
+       *   setDestinationType(PaymentType.P2TR);
+       *   // } else if (e.target.value.match(LightningNodePubkeyRegEx)) { // TODO: Add support for Keysend
+       *   //   setDestinationType(PaymentType.Keysend);
+       * } */
       setDestinationType(PaymentType.Unknown);
       return;
     }
@@ -338,7 +345,7 @@ function NewPaymentModal() {
                   dest: destination.match(LightningNodePubkeyRegEx) ? destination : undefined,
                   amtMSat: amtSat ? amtSat * 1000 : undefined, // 1 sat = 1000 msat
                   timeOutSecs: timeOutSecs,
-                  feeLimitMsat: feeLimit ? feeLimit * 1000 : undefined,
+                  feeLimitMsat: feeLimit ? feeLimit * 1000 : 1000 * 1000, // 1 sat = 1000 msat
                   allowSelfPayment: allowSelfPayment,
                 },
               });
@@ -354,7 +361,7 @@ function NewPaymentModal() {
   const navigate = useNavigate();
 
   function destiationLabel() {
-    if (decodedInvRes?.isError == false) {
+    if (decodedInvRes?.isError === false) {
       return PaymentTypeLabel[destinationType] + " Detected";
     }
     return "Can't decode invoice";
@@ -445,12 +452,12 @@ function NewPaymentModal() {
           <div
             className={classNames(
               styles.paymentResultIconWrapper,
-              { [styles.failed]: responses.length === 0 },
+              { [styles.processing]: responses.length === 0 },
               paymentStatusClass[responses[responses.length - 1]?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]
             )}
           >
             {" "}
-            {responses.length === 0 && paymentStatusIcon["FAILED"]}
+            {responses.length === 0 && paymentStatusIcon["IN_FLIGHT"]}
             {paymentStatusIcon[responses[responses.length - 1]?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]}
           </div>
           <div className={classNames(styles.paymentStatusMessage)}>
