@@ -638,17 +638,13 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	page.Click("text=Save node details")
 
-	page.Keyboard().Press("PageUp")
-
 	page.Click("text=Summary")
-
-	page.Click("text=Channels")
-
-	page.Click("text=Default View")
 
 	page.Click("text=Forwards")
 
 	page.Click("text=Default View")
+
+	page.Click("text=Channels")
 
 	page.Click("text=Transactions")
 
