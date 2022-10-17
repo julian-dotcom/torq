@@ -13,7 +13,7 @@ func main() {
 	if err != nil {
 		// This is the top level, log the problem. Can include words such as "error, problem with x, failed, etc"
 		// Use zerolog and not fmt or log packages
-    log.Error().Err(err).Msg("Problem doing some calculations")
+		log.Error().Err(err).Msg("Problem doing some calculations")
 		return
 	}
 }
@@ -25,8 +25,8 @@ func doSomeCalculations() error {
 		// if you want to detect and respond to specific error conditions use errors.Is or errors.As
 		// errors.Is checks the VALUE of the error matches, errors.As checks that the TYPE of the error is the same
 		// In this example, the error we want to check for is a generic error value so we can't use errors.As and have to use errors.Is
-    // If you want calling code to be able to easily respond to specific errors it would be better to create a dedicated error type and use errors.As
-    var divideByZero = errors.New("Divide by zero")
+		// If you want calling code to be able to easily respond to specific errors it would be better to create a dedicated error type and use errors.As
+		var divideByZero = errors.New("Divide by zero")
 		if errors.Is(err, divideByZero) {
 			log.Debug().Msg("We have had another one of those pesky divide by zero errors")
 		}
@@ -45,7 +45,7 @@ func divide(first int, second int) (int, error) {
 		// When returning error, set the return value to it's zero value which for int is zero and string would be "" etc etc
 		return 0, errors.New("Divide by zero")
 	}
-  // Explicitly return nil when there is no error
+	// Explicitly return nil when there is no error
 	return first / second, nil
 }
 ```
