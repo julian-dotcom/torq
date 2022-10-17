@@ -51,7 +51,7 @@ In the serverside code there are helper functions for converting between core li
 
 #### Automated Formatters
 
-For the frontend code we use Prettier and for the backend code we use gofmt. We recommend installing plugins to your editor to run both of these formatters on save. We also have an .editorconfig file to specify tabbing and spacing and depending on editor you may need to install an editor config plugin to read it.
+For the frontend code we use Prettier and for the backend code we use gofmt. We recommend installing plugins to your editor to run both of these formatters on save. We also have an .editorconfig file to specify tabbing and spacing and depending on editor you may need to install an editor config plugin to read it. VS Code for example doesn't automatically parse .editorconfig files without a plugin.
 
 ### Development guides
 
