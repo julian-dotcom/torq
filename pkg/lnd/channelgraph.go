@@ -3,6 +3,8 @@ package lnd
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -12,7 +14,6 @@ import (
 	"go.uber.org/ratelimit"
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
-	"time"
 )
 
 type subscribeChannelGrpahClient interface {
@@ -46,7 +47,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			if errors.Is(ctx.Err(), context.Canceled) {
 				break
 			}
-			log.Error().Msgf("Subscribe channel graph stream receive: %v\n", err)
+			log.Error().Msgf("Subscribe channel graph stream receive: %v", err)
 			// rate limited resubscribe
 			log.Info().Msg("Attempting reconnect to channel graph")
 			for {
