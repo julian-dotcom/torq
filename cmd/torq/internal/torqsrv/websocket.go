@@ -8,7 +8,7 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
-	"github.com/lncapital/torq/pkg/server_errors"
+	"golang.org/x/sync/errgroup"
 )
 
 type wsRequest struct {
@@ -108,6 +108,7 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 				Error: err.Error(),
 			}
 		}
+		break
 	case "openChannel":
 		if req.OpenChannelRequest == nil {
 			wChan <- wsError{
@@ -136,33 +137,33 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 	}
 }
 
-func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) {
+func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) error {
 
 	conn, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
+		return err
 	}
 	defer conn.Close()
 
-	go func(c *gin.Context) {
+	errs, _ := errgroup.WithContext(c)
+
+	errs.Go(func() error {
 		for {
 			err := conn.WriteJSON(<-wsChan)
 			if err != nil {
-				server_errors.LogAndSendServerError(c, err)
+				return err
 			}
 		}
-	}(c)
+	})
 
 	for {
 		req := wsRequest{}
 		err := conn.ReadJSON(&req)
 		switch err.(type) {
 		case *websocket.CloseError:
-			return
+			return err
 		case *websocket.HandshakeError:
-			server_errors.LogAndSendServerError(c, err)
-			return
+			return err
 		case nil:
 			go processWsReq(db, c, wsChan, req)
 			continue
@@ -177,4 +178,5 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) {
 		}
 
 	}
+	return errs.Wait()
 }

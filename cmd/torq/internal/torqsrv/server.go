@@ -119,7 +119,8 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, wsChan chan inter
 	ws := r.Group("/ws")
 	ws.Use(auth.AuthRequired)
 	ws.GET("", func(c *gin.Context) {
-		WebsocketHandler(c, db, wsChan)
+		err := WebsocketHandler(c, db, wsChan)
+		log.Debug().Msgf("WebsocketHandler: %v", err)
 	})
 
 	registerStaticRoutes(r)
