@@ -10,6 +10,7 @@ export const channelsColumns: ColumnMetaData[] = [
     type: "BooleanCell",
     key: "active",
     valueType: "boolean",
+      locked: true,
   },
   {
     heading: "Short Channel ID",
@@ -72,6 +73,24 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "number",
   },
   {
+      heading: "Base Fee Msat",
+      type: "NumericInputCell",
+      key: "baseFeeMsat",
+      valueType: "number",
+    },
+    {
+      heading: "Minimum HTLC",
+      type: "NumericCell",
+      key: "minHtlc",
+      valueType: "number",
+    },
+    {
+      heading: "Maximum HTLC Msat",
+      type: "NumericCell",
+      key: "maxHtlcMsat",
+      valueType: "number",
+    },
+    {
     heading: "LND Short Channel ID",
     type: "TextCell",
     key: "lndShortChannelId",
@@ -133,6 +152,9 @@ export const DefaultView: ViewInterface = {
       "unsettledBalance",
       "remoteBalance",
       "commitFee",
+        "baseFeeMsat",
+        "minHtlc",
+        "maxHtlcMsat",
       "localNodeId",
     ].includes(c.key)
   ),
@@ -191,5 +213,9 @@ export const selectFilters = (state: RootState) => {
 export const selectViews = (state: RootState) => state.channels.views;
 export const selectCurrentView = (state: RootState) => state.channels.views[0];
 export const selectStatus = (state: RootState) => state.channels.status;
+  // const handleBasefeeChange = (value: string) => {
+  //   setLocalState({ ...localState, grpcAddress: value });
+  // };
+
 
 export default channelsSlice.reducer;
