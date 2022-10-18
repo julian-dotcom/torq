@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"strings"
 )
 
 func ConnectPeer(client lnrpc.LightningClient, ctx context.Context, req ConnectPeerRequest) (r string, err error) {
@@ -15,7 +16,7 @@ func ConnectPeer(client lnrpc.LightningClient, ctx context.Context, req ConnectP
 
 	_, err = client.ConnectPeer(ctx, &connPeerReq)
 	if err != nil {
-		if errors.As(err, "already connected") {
+		if strings.Contains(err.Error(), "already connected") {
 			return "Peer already connected", nil
 		}
 		return "", errors.Wrap(err, "Connecting peer")

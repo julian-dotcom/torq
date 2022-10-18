@@ -80,7 +80,6 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 	openChanRes, err := client.OpenChannel(ctx, &openChanReq)
 
 	if err != nil {
-		log.Error().Msgf("Err opening channel: %v", err)
 		return err
 	}
 
@@ -99,7 +98,6 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 		}
 
 		if err != nil {
-			log.Error().Msgf("Opening channel: %v", err)
 			return errors.Wrapf(err, "Opening channel")
 		}
 
@@ -229,7 +227,7 @@ func checkConnectPeer(client lnrpc.LightningClient, ctx context.Context, nodeId 
 
 	peerList, err := peers.ListPeers(client, ctx, "true")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "List peers")
 	}
 
 	for _, peer := range peerList {
@@ -250,7 +248,7 @@ func checkConnectPeer(client lnrpc.LightningClient, ctx context.Context, nodeId 
 
 	_, err = peers.ConnectPeer(client, ctx, req)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Connect peer")
 	}
 
 	return nil

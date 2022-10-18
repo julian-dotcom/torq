@@ -54,7 +54,7 @@ func connectPeerHandler(c *gin.Context, db *sqlx.DB) {
 
 	resp, err := ConnectPeer(client, ctx, requestBody)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Connect peer")
+		server_errors.WrapLogAndSendServerError(c, err, "LND")
 		return
 	}
 
@@ -85,7 +85,7 @@ func listPeersHandler(c *gin.Context, db *sqlx.DB) {
 
 	resp, err := ListPeers(client, ctx, latestErr)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Listing peers")
+		server_errors.WrapLogAndSendServerError(c, err, "LND")
 		return
 	}
 
