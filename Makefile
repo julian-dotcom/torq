@@ -9,7 +9,8 @@ virtual_network_invoice_freq = 1
 virtual_network_send_coins_freq = 30
 #Virtual Network - Frequency(every x minutes; default 10) of opening and closing random channels
 virtual_network_open_close_chan_freq = 10
-lint = cd web && npm i --legacy-peer-deps && npm run lint
+lintFrontend = cd web && npm i --legacy-peer-deps && npm run lint
+lintBackend = go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && ~/go/bin/golangci-lint run
 
 .PHONY: test
 test: lint start-dev-db wait-db test-backend-with-db-stop test-frontend-with-db-stop stop-dev-db
@@ -86,6 +87,14 @@ purge-dev-env:
 start-dev-flow:
 	go run ./virtual_network/torq_vn flow --virtual_network_invoice_freq $(virtual_network_invoice_freq) --virtual_network_send_coins_freq $(virtual_network_send_coins_freq) --virtual_network_open_close_chan_freq $(virtual_network_open_close_chan_freq)
 
+.PHONY: lint-backend
+lint-backend:
+	$(lintBackend)
+
+.PHONY: lint-frontend
+lint-frontend:
+	$(lintFrontend)
+
 .PHONY: lint
-lint:
-	$(lint)
+lint: lint-backend lint-frontend
+	@echo Linting complete
