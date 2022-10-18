@@ -89,7 +89,7 @@ function Settings() {
   const submitPreferences = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     updateSettings(settingsState);
-    setLang(settingsState?.defaultLanguage)
+    setLang(settingsState?.defaultLanguage);
     toastRef?.current?.addToast(t.toast.settingsSaved, toastCategory.success);
   };
 

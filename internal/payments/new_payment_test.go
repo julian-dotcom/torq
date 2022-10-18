@@ -72,6 +72,7 @@ func Test_processResponse(t *testing.T) {
 			PaymentRequest: "",
 			AmountMsat:     12000,
 			CreationDate:   time.Unix(1661252258, 0),
+			FeePaidMsat:    100,
 			Attempt: attempt{
 				AttemptId: 1234,
 				Status:    "SUCCEEDED",
@@ -156,6 +157,7 @@ func Test_processResponse(t *testing.T) {
 				PaymentRequest: "",
 				AmountMsat:     12000,
 				CreationDate:   time.Unix(1661252258, 0),
+				FeePaidMsat:    100,
 				Attempt: attempt{
 					AttemptId: 12345,
 					Status:    "FAILED",

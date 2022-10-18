@@ -17,13 +17,13 @@ func Test_processSendRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   sendCoinsRequest
+		input   PayOnChainRequest
 		want    lnrpc.SendCoinsRequest
 		wantErr bool
 	}{
 		{
 			"Missing node ID",
-			sendCoinsRequest{
+			PayOnChainRequest{
 				Addr:      "adadsdas",
 				AmountSat: 12,
 			},
@@ -35,7 +35,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Address not provided",
-			sendCoinsRequest{
+			PayOnChainRequest{
 				NodeId:    1,
 				Addr:      "",
 				AmountSat: 12,
@@ -48,7 +48,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Invalid amount",
-			sendCoinsRequest{
+			PayOnChainRequest{
 				NodeId:    1,
 				Addr:      "test",
 				AmountSat: 0,
@@ -61,7 +61,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Both targetconf and satpervbyte provided",
-			sendCoinsRequest{
+			PayOnChainRequest{
 				NodeId:      1,
 				Addr:        "test",
 				AmountSat:   12,
@@ -78,7 +78,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Only mandatory params",
-			sendCoinsRequest{
+			PayOnChainRequest{
 				NodeId:    1,
 				Addr:      "test",
 				AmountSat: amount,
@@ -91,7 +91,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"All params",
-			sendCoinsRequest{
+			PayOnChainRequest{
 				NodeId:           1,
 				Addr:             "test",
 				AmountSat:        amount,

@@ -215,10 +215,6 @@ function PaymentsPage() {
     dispatch(updateColumns({ columns: columns }));
   };
 
-  const handleModalClose = () => {
-    navigate("/transactions/payments");
-  };
-
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
       <SectionContainer

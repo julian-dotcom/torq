@@ -42,12 +42,15 @@ func GetNodeConnectionDetailsById(db *sqlx.DB, nodeId int) (connectionDetails Co
 	if err != nil {
 		return ConnectionDetails{}, err
 	}
-	return ConnectionDetails{
+	cd := ConnectionDetails{
 		LocalNodeId:       node.LocalNodeId,
-		GRPCAddress:       *node.GRPCAddress,
 		TLSFileBytes:      node.TLSDataBytes,
 		MacaroonFileBytes: node.MacaroonDataBytes,
 		Disabled:          node.Disabled,
 		Deleted:           node.Deleted,
-	}, nil
+	}
+	if node.GRPCAddress != nil {
+		cd.GRPCAddress = *node.GRPCAddress
+	}
+	return cd, nil
 }

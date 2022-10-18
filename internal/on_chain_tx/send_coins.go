@@ -10,7 +10,23 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func sendCoins(db *sqlx.DB, req sendCoinsRequest) (r string, err error) {
+type PayOnChainRequest struct {
+	NodeId           int     `json:"nodeId"`
+	Addr             string  `json:"addr"`
+	AmountSat        int64   `json:"amountSat"`
+	TargetConf       *int32  `json:"targetConf"`
+	SatPerVbyte      *uint64 `json:"satPerVbyte"`
+	SendAll          *bool   `json:"sendAll"`
+	Label            *string `json:"label"`
+	MinConfs         *int32  `json:"minConfs"`
+	SpendUnconfirmed *bool   `json:"spendUnconfirmed"`
+}
+
+type PayOnChainResponse struct {
+	TxId string `json:"txId"`
+}
+
+func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 
 	sendCoinsReq, err := processSendRequest(req)
 	if err != nil {
@@ -44,7 +60,7 @@ func sendCoins(db *sqlx.DB, req sendCoinsRequest) (r string, err error) {
 
 }
 
-func processSendRequest(req sendCoinsRequest) (r lnrpc.SendCoinsRequest, err error) {
+func processSendRequest(req PayOnChainRequest) (r lnrpc.SendCoinsRequest, err error) {
 	if req.NodeId == 0 {
 		return r, errors.New("Node id is missing")
 	}

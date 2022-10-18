@@ -12,22 +12,6 @@ import (
 	"strconv"
 )
 
-type sendCoinsRequest struct {
-	NodeId           int     `json:"nodeId"`
-	Addr             string  `json:"addr"`
-	AmountSat        int64   `json:"amountSat"`
-	TargetConf       *int32  `json:"targetConf"`
-	SatPerVbyte      *uint64 `json:"satPerVbyte"`
-	SendAll          *bool   `json:"sendAll"`
-	Label            *string `json:"label"`
-	MinConfs         *int32  `json:"minConfs"`
-	SpendUnconfirmed *bool   `json:"spendUnconfirmed"`
-}
-
-type sendCoinsResponse struct {
-	TxId string `json:"txId"`
-}
-
 func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 
 	// Filter parser with whitelisted columns
@@ -134,7 +118,7 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 //}
 
 func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody sendCoinsRequest
+	var requestBody PayOnChainRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
 		log.Error().Msgf("JSON binding the request body")
@@ -142,13 +126,13 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	resp, err := sendCoins(db, requestBody)
+	resp, err := PayOnChain(db, requestBody)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Sending on-chain payment")
 		return
 	}
 
-	sendCoinsResp := sendCoinsResponse{TxId: resp}
+	sendCoinsResp := PayOnChainResponse{TxId: resp}
 
 	c.JSON(http.StatusOK, sendCoinsResp)
 }
