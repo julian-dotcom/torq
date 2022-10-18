@@ -15,12 +15,10 @@ const Modal = (props: ModalProps) => {
   const handleClose = () => {
     props.onClose();
   };
-  const ignore = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-  };
   return (
-    <div className={classNames(styles.modal, { [styles.show]: props.show })} onClick={handleClose}>
-      <div className={styles.content} onClick={ignore}>
+    <div className={classNames(styles.modal, { [styles.show]: props.show })}>
+      <div className={styles.modalBackdrop} onClick={handleClose} />
+      <div className={classNames(styles.content, { [styles.show]: props.show })}>
         <div className={styles.header}>
           {props.icon && <span className={styles.icon}>{props.icon}</span>}
           <span className={styles.title}>{props.title}</span>

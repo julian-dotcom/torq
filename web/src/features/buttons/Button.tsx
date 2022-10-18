@@ -44,6 +44,7 @@ const buttonSizeClass = {
 };
 
 export default function Button(props: {
+  id?: string;
   text?: string;
   type?: string;
   icon?: any;
@@ -63,6 +64,7 @@ export default function Button(props: {
   };
   return (
     <button
+      id={props.id}
       type={props.submit ? "submit" : "button"}
       className={classNames(
         styles.button,

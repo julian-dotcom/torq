@@ -266,6 +266,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   />
                 </span>
                 <Button
+                  id={"save-node"}
                   buttonColor={buttonColor.green}
                   text={addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
                   icon={saveEnabledState ? <SaveIcon /> : <Spinny />}

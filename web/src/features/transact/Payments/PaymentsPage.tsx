@@ -151,7 +151,11 @@ function PaymentsPage() {
             navigate(CREATE_PAYMENT, { state: { background: location } });
           }}
         />
-        <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
+        <TableControlsButton
+          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+          icon={OptionsIcon}
+          id={"tableControlsButton"}
+        />
       </TableControlsButtonGroup>
     </TableControlSection>
   );

@@ -615,6 +615,8 @@ func TestPlaywrightVideo(t *testing.T) {
 		t.Fatalf("Week starts on not found\n")
 	}
 
+	click("text=Add Node")
+
 	fill("#address input[type=text]", bobIPAddress+":10011")
 
 	tlsFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/tls.cert")
@@ -664,7 +666,7 @@ func TestPlaywrightVideo(t *testing.T) {
 		t.Fatalf("Couldn't set macaroon file on settings page: %v", err)
 	}
 
-	click("text=Save node details")
+	click("id=save-node")
 
 	click("text=Summary")
 
@@ -684,7 +686,7 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	click("text=On-Chain")
 
-	click("_react=Options20Regular")
+	click("id=tableControlsButton")
 
 	click("text=Filter")
 

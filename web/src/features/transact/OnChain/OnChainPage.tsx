@@ -129,7 +129,11 @@ function OnChainPage() {
             navigate(NEW_ADDRESS, { state: { background: location } });
           }}
         />
-        <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
+        <TableControlsButton
+          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+          icon={OptionsIcon}
+          id={"tableControlsButton"}
+        />
       </TableControlsButtonGroup>
     </TableControlSection>
   );

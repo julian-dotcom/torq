@@ -45,6 +45,7 @@ export default function TablePageTemplate(props: TablePageTemplateProps) {
 }
 
 type TableControlsButtonProps = {
+  id?: string;
   icon: React.FC<FluentIconsProps>;
   onClickHandler?: () => void;
   active?: boolean;
@@ -54,6 +55,7 @@ export function TableControlsButton(props: TableControlsButtonProps) {
   return (
     <div className={classNames(styles.tableControlsButtonWrapper, { [styles.active]: props.active })}>
       <Button
+        id={props.id}
         text={""}
         className={styles.tableControlsButtonIcon}
         onClick={props.onClickHandler}

@@ -111,7 +111,11 @@ function InvoicesPage() {
     <TableControlSection>
       <TransactTabs />
       <TableControlsButtonGroup>
-        <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
+        <TableControlsButton
+          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+          icon={OptionsIcon}
+          id={"tableControlsButton"}
+        />
       </TableControlsButtonGroup>
     </TableControlSection>
   );
