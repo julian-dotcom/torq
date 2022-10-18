@@ -16,6 +16,7 @@ type wsRequest struct {
 	ReqId               string                         `json:"reqId"`
 	Type                string                         `json:"type"`
 	NewPaymentRequest   *payments.NewPaymentRequest    `json:"newPaymentRequest"`
+	PayOnChainRequest   *on_chain_tx.PayOnChainRequest `json:"payOnChainRequest"`
 	OpenChannelRequest  *channels.OpenChannelRequest   `json:"openChannelRequest"`
 	CloseChannelRequest *channels.CloseChannelRequest  `json:"closeChannelRequest"`
 	Password            *string                        `json:"password"`

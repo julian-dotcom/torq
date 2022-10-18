@@ -8,10 +8,23 @@ import { SectionContainer } from "features/section/SectionContainer";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
 
 import styles from "./newPayments.module.scss";
-import { useSendOnChainMutation } from "apiSlice";
-import { PaymentType } from "./types";
+import { PaymentType, PaymentTypeLabel } from "./types";
+import { MutationTrigger } from "@reduxjs/toolkit/dist/query/react/buildHooks";
+import { BaseQueryFn, FetchArgs, FetchBaseQueryError, MutationDefinition } from "@reduxjs/toolkit/query";
+import { SendOnChainRequest } from "types/api";
 
 type BtcStepProps = {
+  sendCoinsMutation: MutationTrigger<
+    MutationDefinition<
+      SendOnChainRequest,
+      BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
+      "channels" | "settings" | "tableView" | "localNodes",
+      any,
+      "api"
+    >
+  >;
+  amount: number;
+  setAmount: (amount: number) => void;
   destinationType: PaymentType;
   destination: string;
   setStepIndex: (index: number) => void;
@@ -23,25 +36,21 @@ type BtcStepProps = {
 export default function OnChanPaymentDetails(props: BtcStepProps) {
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>(undefined);
-  const [amount, setAmount] = useState<number>(0);
   const [description, setDescription] = useState<string | undefined>(undefined);
-  // const [onChainPaymentResponse, setOnChainPaymentResponse] = useState<{ txId: string }>();
-
-  const [sendCoinsMutation, response] = useSendOnChainMutation();
 
   return (
     <ProgressTabContainer>
       <div className={styles.amountWrapper}>
-        <span className={styles.destinationType}>{props.destinationType + " Detected"}</span>
+        <span className={styles.destinationType}>{PaymentTypeLabel[props.destinationType] + " Detected"}</span>
         <div className={styles.amount}>
           <NumberFormat
             className={styles.amountInput}
             suffix={" sat"}
             thousandSeparator=","
-            value={amount}
+            value={props.amount}
             placeholder={"0 sat"}
             onValueChange={(values: NumberFormatValues) => {
-              setAmount(values.floatValue || 0);
+              props.setAmount(values.floatValue || 0);
             }}
           />
         </div>
@@ -103,10 +112,10 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
               props.setStepIndex(2);
               props.setConfirmState(ProgressStepState.completed);
               props.setProcessState(ProgressStepState.processing);
-              sendCoinsMutation({
-                addr: props.destination,
-                nodeId: 1,
-                amountSat: amount,
+              props.sendCoinsMutation({
+                address: props.destination,
+                localNodeId: 1,
+                amountSat: props.amount,
               });
             }}
             buttonColor={buttonColor.green}

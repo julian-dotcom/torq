@@ -10,14 +10,30 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func sendCoins(db *sqlx.DB, req sendCoinsRequest) (r string, err error) {
+type PayOnChainRequest struct {
+	LocalNodeId      int     `json:"localNodeId"`
+	Address          string  `json:"address"`
+	AmountSat        int64   `json:"amountSat"`
+	TargetConf       *int32  `json:"targetConf"`
+	SatPerVbyte      *uint64 `json:"satPerVbyte"`
+	SendAll          *bool   `json:"sendAll"`
+	Label            *string `json:"label"`
+	MinConfs         *int32  `json:"minConfs"`
+	SpendUnconfirmed *bool   `json:"spendUnconfirmed"`
+}
+
+type PayOnChainResponse struct {
+	TxId string `json:"txId"`
+}
+
+func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 
 	sendCoinsReq, err := processSendRequest(req)
 	if err != nil {
 		return "", errors.Wrap(err, "Process send request")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.LocalNodeId)
 	if err != nil {
 		return "", errors.New("Error getting node connection details from the db")
 	}
@@ -44,12 +60,12 @@ func sendCoins(db *sqlx.DB, req sendCoinsRequest) (r string, err error) {
 
 }
 
-func processSendRequest(req sendCoinsRequest) (r lnrpc.SendCoinsRequest, err error) {
-	if req.NodeId == 0 {
+func processSendRequest(req PayOnChainRequest) (r lnrpc.SendCoinsRequest, err error) {
+	if req.LocalNodeId == 0 {
 		return r, errors.New("Node id is missing")
 	}
 
-	if req.Addr == "" {
+	if req.Address == "" {
 		log.Error().Msgf("Address must be provided")
 		return r, errors.New("Address must be provided")
 	}
@@ -64,7 +80,7 @@ func processSendRequest(req sendCoinsRequest) (r lnrpc.SendCoinsRequest, err err
 		return r, errors.New("Either targetConf or satPerVbyte accepted")
 	}
 
-	r.Addr = req.Addr
+	r.Addr = req.Address
 	r.Amount = req.AmountSat
 
 	if req.TargetConf != nil {

@@ -10,16 +10,16 @@
   margin-right: 12px;
   box-shadow: var(--popover-box-shadow);
   border: 1px solid var(--bg-subtle);
-  padding: 10px;
   background-color: white;
   display: grid;
-  grid-template-columns: 30px 220px 30px;
+  grid-template-columns: min-content 220px min-content;
+  grid-column-gap: 24px;
   align-content: center;
 }
 
 .message {
-  padding: 10px 20px;
-  text-align: center;
+  padding: 12px 0px;
+  text-align: start;
 }
 
 .toast > div {
@@ -48,16 +48,21 @@
 }
 
 .close {
-  height: 30px;
-  width: 30px;
+  height: 44px;
+  width: 44px;
   cursor: pointer;
   display: grid;
   align-content: center;
+  justify-content: center;
+  margin-right: 12px;
 }
-
+.icon {
+margin-left: 24px;
+}
 .icon svg,
 .close svg {
   margin: auto;
+  align-self: center;
 }
 
 @keyframes toast-in-right {

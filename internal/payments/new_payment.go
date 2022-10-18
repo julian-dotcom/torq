@@ -25,7 +25,7 @@ type rrpcClientSendPayment interface {
 }
 
 type NewPaymentRequest struct {
-	NodeId           int     `json:"nodeId"`
+	LocalNodeId      int     `json:"localNodeId"`
 	Invoice          *string `json:"invoice"`
 	TimeOutSecs      int32   `json:"timeoutSecs"`
 	Dest             *string `json:"dest"`
@@ -79,6 +79,7 @@ type NewPaymentResponse struct {
 	PaymentRequest string    `json:"paymentRequest"`
 	AmountMsat     int64     `json:"amountMsat"`
 	FeeLimitMsat   int64     `json:"feeLimitMsat"`
+	FeePaidMsat    int64     `json:"feePaidMsat"`
 	CreationDate   time.Time `json:"creationDate"`
 	Attempt        attempt   `json:"path"`
 }
@@ -103,11 +104,11 @@ func SendNewPayment(
 	reqId string,
 ) (err error) {
 
-	if npReq.NodeId == 0 {
+	if npReq.LocalNodeId == 0 {
 		return errors.New("Node id is missing")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, npReq.NodeId)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, npReq.LocalNodeId)
 	if err != nil {
 		return errors.Wrap(err, "Getting node connection details from the db")
 	}
@@ -217,6 +218,7 @@ func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
 	r.AmountMsat = p.ValueMsat
 	r.CreationDate = time.Unix(0, p.CreationTimeNs)
 	r.FailureReason = p.FailureReason.String()
+	r.FeePaidMsat = p.FeeMsat
 
 	for _, attempt := range p.GetHtlcs() {
 		r.Attempt.AttemptId = attempt.AttemptId

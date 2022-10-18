@@ -30,12 +30,12 @@ export type GetForwardsQueryParams = Flow;
 
 export type GetDecodedInvoiceQueryParams = {
   invoice: string;
-  nodeId: number;
+  localNodeId: number;
 };
 
 export type SendOnChainRequest = {
-  nodeId: number;
-  addr: string;
+  localNodeId: number;
+  address: string;
   amountSat: number;
   targetConf?: number;
   satPerVbyte?: number;
@@ -45,8 +45,50 @@ export type SendOnChainRequest = {
   spendUnconfirmed?: boolean;
 };
 
+export type SendOnChainResponse = {
+  txId: string;
+};
+
 export type GetPaymentsQueryParams = BaseQueryCollectionParams;
 
 export type GetInvoicesQueryParams = BaseQueryCollectionParams;
 
 export type GetOnChainTransactionsQueryParams = BaseQueryCollectionParams;
+
+type InvoiceFeature = {
+  Name: string;
+  IsKnown: boolean;
+  IsRequired: boolean;
+};
+
+type FeatureMap = Map<number, InvoiceFeature>;
+
+type HopHint = {
+  lNDShortChannelId: number;
+  shortChannelId: string;
+  nodeId: string;
+  feeBase: number;
+  cltvExpiryDelta: number;
+  feeProportional: number;
+};
+
+type RouteHint = {
+  hopHints: Array<HopHint>;
+};
+
+export type DecodedInvoice = {
+  nodeAlias: string;
+  paymentRequest: string;
+  destinationPubKey: string;
+  rHash: string;
+  memo: string;
+  valueMsat: number;
+  paymentAddr: string;
+  fallbackAddr: string;
+  expiry: number;
+  createdAt: number;
+  cltvExpiry: number;
+  private: boolean;
+  features: FeatureMap;
+  routeHints: Array<RouteHint>;
+};

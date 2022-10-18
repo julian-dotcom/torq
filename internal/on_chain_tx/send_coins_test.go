@@ -17,14 +17,14 @@ func Test_processSendRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   sendCoinsRequest
+		input   PayOnChainRequest
 		want    lnrpc.SendCoinsRequest
 		wantErr bool
 	}{
 		{
 			"Missing node ID",
-			sendCoinsRequest{
-				Addr:      "adadsdas",
+			PayOnChainRequest{
+				Address:   "adadsdas",
 				AmountSat: 12,
 			},
 			lnrpc.SendCoinsRequest{
@@ -35,10 +35,10 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Address not provided",
-			sendCoinsRequest{
-				NodeId:    1,
-				Addr:      "",
-				AmountSat: 12,
+			PayOnChainRequest{
+				LocalNodeId: 1,
+				Address:     "",
+				AmountSat:   12,
 			},
 			lnrpc.SendCoinsRequest{
 				Addr:   "",
@@ -48,10 +48,10 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Invalid amount",
-			sendCoinsRequest{
-				NodeId:    1,
-				Addr:      "test",
-				AmountSat: 0,
+			PayOnChainRequest{
+				LocalNodeId: 1,
+				Address:     "test",
+				AmountSat:   0,
 			},
 			lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -61,9 +61,9 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Both targetconf and satpervbyte provided",
-			sendCoinsRequest{
-				NodeId:      1,
-				Addr:        "test",
+			PayOnChainRequest{
+				LocalNodeId: 1,
+				Address:     "test",
 				AmountSat:   12,
 				TargetConf:  &targetConf,
 				SatPerVbyte: &satPerVbyte,
@@ -78,10 +78,10 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Only mandatory params",
-			sendCoinsRequest{
-				NodeId:    1,
-				Addr:      "test",
-				AmountSat: amount,
+			PayOnChainRequest{
+				LocalNodeId: 1,
+				Address:     "test",
+				AmountSat:   amount,
 			},
 			lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -91,9 +91,9 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"All params",
-			sendCoinsRequest{
-				NodeId:           1,
-				Addr:             "test",
+			PayOnChainRequest{
+				LocalNodeId:      1,
+				Address:          "test",
 				AmountSat:        amount,
 				TargetConf:       &targetConf,
 				SendAll:          &sendAll,

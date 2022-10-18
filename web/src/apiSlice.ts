@@ -12,6 +12,7 @@ import type {
   GetOnChainTransactionsQueryParams,
   GetPaymentsQueryParams,
   SendOnChainRequest,
+  SendOnChainResponse,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { localNode, settings, timeZone, channel } from "./apiTypes";
@@ -77,7 +78,7 @@ export const torqApi = createApi({
     getOnChainTx: builder.query<any, GetOnChainTransactionsQueryParams>({
       query: (params) => queryParamsBuilder("on-chain-tx", params, true),
     }),
-    sendOnChain: builder.mutation<any, SendOnChainRequest>({
+    sendOnChain: builder.mutation<SendOnChainResponse, SendOnChainRequest>({
       query: (data: SendOnChainRequest) => ({
         url: "on-chain-tx/sendcoins",
         method: "POST",
@@ -155,7 +156,7 @@ export const torqApi = createApi({
       providesTags: ["localNodes"],
     }),
     getLocalNode: builder.query<localNode, number>({
-      query: (nodeId) => `settings/local-nodes/${nodeId}`,
+      query: (localNodeId) => `settings/local-nodes/${localNodeId}`,
       providesTags: ["localNodes"],
     }),
     addLocalNode: builder.mutation<any, FormData>({

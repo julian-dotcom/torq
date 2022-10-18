@@ -13,7 +13,7 @@ import (
 )
 
 type newInvoiceRequest struct {
-	NodeId          int     `json:"nodeId"`
+	LocalNodeId     int     `json:"localNodeId"`
 	Memo            *string `json:"memo"`
 	RPreImage       *string `json:"rPreImage"`
 	ValueMsat       *int64  `json:"valueMsat"`

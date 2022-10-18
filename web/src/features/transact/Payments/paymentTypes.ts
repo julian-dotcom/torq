@@ -34,15 +34,18 @@ type attempt = {
   failure: failureDetails;
 };
 
+export type InvoiceStatusType = "SUCCEEDED" | "FAILED" | "IN_FLIGHT";
+
 export type NewPaymentResponse = {
   reqId: string;
   type: string;
-  status: string;
+  status: InvoiceStatusType;
   hash: string;
   preimage: string;
   paymentRequest: string;
   amountMsat: number;
   feeLimitMsat: number;
+  feePaidMsat: number;
   creationDate: Date;
   failureReason: string;
   attempt: attempt;

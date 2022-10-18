@@ -14,7 +14,7 @@ import { localNode } from "apiTypes";
 import Select from "features/forms/Select";
 
 export type NewAddressRequest = {
-  nodeId: number;
+  localNodeId: number;
   addressType: string;
 };
 
@@ -87,15 +87,12 @@ function NewAddressModal() {
   }
 
   // This can also be an async getter function. See notes below on Async Urls.
-  const { sendMessage, sendJsonMessage, lastMessage, lastJsonMessage, readyState, getWebSocket } = useWebSocket(
-    WS_URL,
-    {
-      //Will attempt to reconnect on all close events, such as server shutting down
-      shouldReconnect: (closeEvent) => true,
-      share: true,
-      onMessage: onNewAddressMessage,
-    }
-  );
+  const { sendJsonMessage } = useWebSocket(WS_URL, {
+    //Will attempt to reconnect on all close events, such as server shutting down
+    shouldReconnect: () => true,
+    share: true,
+    onMessage: onNewAddressMessage,
+  });
 
   const closeAndReset = () => {
     setStepIndex(0);
@@ -111,7 +108,7 @@ function NewAddressModal() {
       reqId: "randId",
       type: "newAddress",
       newAddressRequest: {
-        nodeId: selectedLocalNode,
+        localNodeId: selectedLocalNode,
         type: addType,
         // TODO: account empty so the default wallet account is used
         // account: {account},
