@@ -223,7 +223,10 @@ func main() {
 									}
 								} else {
 									log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
-									settings.UpdateNodeFiles(db, localNodeFromConfig)
+									if err = settings.UpdateNodeFiles(db, localNodeFromConfig); err != nil {
+										log.Error().Err(err).Msg("Problem updating node files")
+										return
+									}
 								}
 							}
 
@@ -281,7 +284,9 @@ func main() {
 
 			}
 
-			torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, wsChan, RestartLNDSubscription)
+			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, wsChan, RestartLNDSubscription); err != nil {
+				return errors.Wrap(err, "Starting torq webserver")
+			}
 
 			return nil
 		},

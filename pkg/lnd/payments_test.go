@@ -208,7 +208,9 @@ func TestSubscribePayments(t *testing.T) {
 	}
 
 	// wait for context.Canceled and go routine to return
-	errs.Wait()
+	if err = errs.Wait(); err != nil {
+		t.Fatalf("Error group failure: %v", err)
+	}
 
 	t.Run("Last payment index is stored correctly", func(t *testing.T) {
 		var expected uint64 = 15
@@ -341,7 +343,7 @@ func TestSubscribePayments(t *testing.T) {
 	}
 
 	// wait for context.Canceled and go routine to return
-	errs.Wait()
+	err = errs.Wait()
 	if err != nil {
 		t.Fatal(err)
 	}

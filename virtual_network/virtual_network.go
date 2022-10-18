@@ -240,7 +240,9 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 		return errors.Newf("Checking that Carol is a peer of Bob: %v", err)
 	}
 
-	WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress)
+	if err = WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress); err != nil {
+		return errors.Wrap(err, "Write connection details")
+	}
 	PrintInstructions()
 
 	return nil
@@ -389,10 +391,14 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println(aliceAddress)
 
 	log.Println("Shutting Alice down before btcd restart")
-	de.FindAndRemoveContainer(ctx, aliceConf.Name)
+	if err = de.FindAndRemoveContainer(ctx, aliceConf.Name); err != nil {
+		log.Fatalf("Couldn't find and remove alice container: %v", err)
+	}
 
 	log.Println("Recreating btcd container with Alice's mining address")
-	de.FindAndRemoveContainer(ctx, btcdConf.Name)
+	if err = de.FindAndRemoveContainer(ctx, btcdConf.Name); err != nil {
+		log.Fatalf("Couldn't find and remove btcd container: %v", err)
+	}
 
 	log.Println("Starting new btcd container")
 	// Update the container config with the minind addres instead of adding a new one
@@ -448,10 +454,14 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println(carolAddress)
 
 	log.Println("Shutting Carol down before btcd restart")
-	de.FindAndRemoveContainer(ctx, carolConf.Name)
+	if err = de.FindAndRemoveContainer(ctx, carolConf.Name); err != nil {
+		log.Fatalf("Couldn't find and remove carol container: %v", err)
+	}
 
 	log.Println("Recreating btcd container with Carol's mining address")
-	de.FindAndRemoveContainer(ctx, btcdConf.Name)
+	if err = de.FindAndRemoveContainer(ctx, btcdConf.Name); err != nil {
+		log.Fatalf("Couldn't find and remove btcd container: %v", err)
+	}
 
 	log.Println("Starting new btcd container")
 	// Update the container config with the minind addres instead of adding a new one
@@ -504,10 +514,14 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println(bobAddress)
 
 	log.Println("Shutting Bob down before btcd restart")
-	de.FindAndRemoveContainer(ctx, bobConf.Name)
+	if err = de.FindAndRemoveContainer(ctx, bobConf.Name); err != nil {
+		log.Fatalf("Couldn't find and remove bob container: %v", err)
+	}
 
 	log.Println("Recreating btcd container with Bob's mining address")
-	de.FindAndRemoveContainer(ctx, btcdConf.Name)
+	if err = de.FindAndRemoveContainer(ctx, btcdConf.Name); err != nil {
+		log.Fatalf("Couldn't find and remove btcd container: %v", err)
+	}
 
 	log.Println("Starting new btcd container")
 	// Update the container config with the minind addres instead of adding a new one
@@ -729,7 +743,9 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	log.Println("Cluster setup complete")
 
-	WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress)
+	if err = WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress); err != nil {
+		log.Fatalf("Unable to write connection details: %v", err)
+	}
 	PrintInstructions()
 	//err = StopVirtualNetwork(name, createDatabase)
 	//if err != nil {
@@ -980,14 +996,15 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 		return errors.Newf("Mining blocks: %v\n", err)
 	}
 
-	WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress)
+	if err = WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress); err != nil {
+		log.Fatalf("Unable to write connection details: %v", err)
+	}
 
 	//go openRandomChann(name, ochfrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
 	//go closeRandomChann(name, ochfrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
 	go createPayInvoice(name, invfrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
 	//go addressSendCoins(name, scofrq, ctx, de, alicePubkey, bobPubkey, carolPubkey)
 	select {}
-	return nil
 }
 
 func openRandomChann(name string, ochfrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {

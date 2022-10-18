@@ -203,22 +203,26 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				// we will only get one payment back. Might not be the right one.
 				p, err := fetchPayments(ctx, client, ifPayIndex)
-				if errors.Is(ctx.Err(), context.Canceled) {
-					return nil
-				}
 				if err != nil {
-					log.Printf("Subscribe and update payments: %v\n", err)
+					if errors.Is(ctx.Err(), context.Canceled) {
+						return nil
+					}
+					log.Error().Err(err).Msg("Error with subscribe and update payments")
 					continue
 				}
 				if len(p.Payments) == 0 {
 					log.Info().Msgf("We had an inflight payment but nothing from LND: %v", i)
-					setPaymentToFailedDetailsUnavailable(db, i)
+					if err = setPaymentToFailedDetailsUnavailable(db, i); err != nil {
+						log.Error().Err(err).Msg("Error with Setting payment to failed details unavailable")
+					}
 					continue
 				}
 
 				if p.Payments[0].PaymentIndex != i {
 					log.Warn().Msgf("Payment data missing from LND for payment index: %v", i)
-					setPaymentToFailedDetailsUnavailable(db, i)
+					if err = setPaymentToFailedDetailsUnavailable(db, i); err != nil {
+						log.Error().Err(err).Msg("Error with Setting payment to failed details unavailable")
+					}
 					continue
 				}
 				// Store the payments

@@ -143,9 +143,15 @@ func TestMain(m *testing.M) {
 	)
 
 	// Clean up old containers and network before initiating new ones.
-	de.CleanupContainers(ctx)
-	de.CleanupDefaultVolumes(ctx)
-	de.FindAndRemoveNetwork(ctx, de.NetworkName)
+	if err = de.CleanupContainers(ctx); err != nil {
+		log.Fatalf("Couldn't cleanup containers: %v", err)
+	}
+	if err = de.CleanupDefaultVolumes(ctx); err != nil {
+		log.Fatalf("Couldn't cleanup volumes %v", err)
+	}
+	if err = de.FindAndRemoveNetwork(ctx, de.NetworkName); err != nil {
+		log.Fatalf("Couldn't cleanup network: %v", err)
+	}
 
 	// Create the shared network
 	networkingConfig, err := de.CreateNetwork(ctx)
@@ -215,10 +221,14 @@ func TestMain(m *testing.M) {
 	log.Println(aliceAddress)
 
 	log.Println("Shutting Alice down before btcd restart")
-	de.FindAndRemoveContainer(ctx, aliceConf.Name)
+	if err = de.FindAndRemoveContainer(ctx, aliceConf.Name); err != nil {
+		log.Fatalf("Unable to find and remove alice container: %v", err)
+	}
 
 	log.Println("Recreating btcd container with Alice's mining address")
-	de.FindAndRemoveContainer(ctx, btcdConf.Name)
+	if err = de.FindAndRemoveContainer(ctx, btcdConf.Name); err != nil {
+		log.Fatalf("Unable to find and remove btcd container: %v", err)
+	}
 
 	log.Println("Starting new btcd container")
 	// Update the container config with the minind addres instead of adding a new one
@@ -485,7 +495,9 @@ func TestMain(m *testing.M) {
 	// try to cleanup after run
 	// can't defer this as os.Exit doesn't care for defer
 	if code == 0 {
-		de.CleanupContainers(ctx)
+		if err = de.CleanupContainers(ctx); err != nil {
+			log.Fatalf("Unable to cleanup containers: %v", err)
+		}
 	}
 
 	os.Exit(code)
@@ -573,16 +585,28 @@ func TestPlaywrightVideo(t *testing.T) {
 	// 	log.Fatal(err)
 	// }
 
-	page.Fill(".login-form .password-field", "password")
+	click := func(target string) {
+		if err = page.Click(target); err != nil {
+			t.Fatalf("Couldn't find '%v' on page: %v", target, err)
+		}
+	}
 
-	page.Click(".login-form .submit-button")
+	fill := func(target string, value string) {
+		if err = page.Fill(target, value); err != nil {
+			t.Fatalf("Couldn't fill '%v' with value '%v': %v", target, value, err)
+		}
+	}
+
+	fill(".login-form .password-field", "password")
+
+	click(".login-form .submit-button")
 
 	_, err = page.Locator("text=Forwarding fees")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	page.Click("text=Settings")
+	click("text=Settings")
 	ws, err := page.IsVisible("text=Week starts on")
 	if err != nil {
 		t.Fatal(err)
@@ -591,7 +615,7 @@ func TestPlaywrightVideo(t *testing.T) {
 		t.Fatalf("Week starts on not found\n")
 	}
 
-	page.Fill("#address input[type=text]", bobIPAddress+":10011")
+	fill("#address input[type=text]", bobIPAddress+":10011")
 
 	tlsFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/tls.cert")
 	if err != nil {
@@ -612,7 +636,9 @@ func TestPlaywrightVideo(t *testing.T) {
 	}
 
 	pTlsFile := playwright.InputFile{Name: "tls.cert", Buffer: tlsBuf.Bytes()}
-	page.SetInputFiles("#tls input[type=file]", []playwright.InputFile{pTlsFile})
+	if err = page.SetInputFiles("#tls input[type=file]", []playwright.InputFile{pTlsFile}); err != nil {
+		t.Fatalf("Couldn't set tls file on settings page: %v", err)
+	}
 
 	macaroonFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/data/chain/bitcoin/simnet/admin."+
 		"macaroon")
@@ -634,31 +660,35 @@ func TestPlaywrightVideo(t *testing.T) {
 	}
 
 	pMacaroonFile := playwright.InputFile{Name: "readonly.macaroon", Buffer: macaroonBuf.Bytes()}
-	page.SetInputFiles("#macaroon input[type=file]", []playwright.InputFile{pMacaroonFile})
+	if err = page.SetInputFiles("#macaroon input[type=file]", []playwright.InputFile{pMacaroonFile}); err != nil {
+		t.Fatalf("Couldn't set macaroon file on settings page: %v", err)
+	}
 
-	page.Click("text=Save node details")
+	click("text=Save node details")
 
-	page.Click("text=Summary")
+	click("text=Summary")
 
-	page.Click("text=Forwards")
+	click("text=Forwards")
 
-	page.Click("text=Default View")
+	click("text=Default View")
 
-	page.Click("text=Channels")
+	click("text=Default View")
 
-	page.Click("text=Transactions")
+	click("text=Channels")
 
-	page.Click("id=collapse-navigation")
+	click("text=Transactions")
 
-	page.Click("text=Invoices")
+	click("id=collapse-navigation")
 
-	page.Click("text=On-Chain")
+	click("text=Invoices")
 
-	page.Click("_react=Options20Regular")
+	click("text=On-Chain")
 
-	page.Click("text=Filter")
+	click("_react=Options20Regular")
 
-	page.Click("text=Add filter")
+	click("text=Filter")
 
-	page.Click("text=Sort")
+	click("text=Add filter")
+
+	click("text=Sort")
 }

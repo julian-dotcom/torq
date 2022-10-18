@@ -293,7 +293,9 @@ func printBuildOutput(rd io.Reader) error {
 	}
 
 	errLine := &ErrorLine{}
-	json.Unmarshal([]byte(lastLine), errLine)
+	if err := json.Unmarshal([]byte(lastLine), errLine); err != nil {
+		return errors.Wrap(err, "JSON unmarshal of build output")
+	}
 	if errLine.Error != "" {
 		return errors.New(errLine.Error)
 	}
@@ -344,7 +346,9 @@ func ExecCommand(ctx context.Context, cli *client.Client,
 	}
 
 	// stdcopy.StdCopy(os.Stdout, os.Stderr, res.Reader)
-	stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader)
+	if _, err = stdcopy.StdCopy(&bufStdout, &bufStderr, res.Reader); err != nil {
+		return bufStdout, bufStderr, errors.Wrap(err, "Copying data to std out and std error")
+	}
 	// DEBUG Tip: uncomment below to see raw output of commands
 	if len(os.Getenv("DEBUG")) > 0 {
 		log.Printf("%s\n", string(bufStdout.Bytes()))

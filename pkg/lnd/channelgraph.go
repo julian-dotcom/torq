@@ -226,7 +226,9 @@ func insertNodeEvent(db *sqlx.DB, ts time.Time, pubKey string, alias string, col
 		return errors.Wrapf(err, "insertNodeEvent -> json.Marshal(%v)", f)
 	}
 
-	db.Exec(neQuery, ts, pubKey, alias, color, najb, fjb)
+	if _, err = db.Exec(neQuery, ts, pubKey, alias, color, najb, fjb); err != nil {
+		return errors.Wrap(err, "Executing SQL")
+	}
 
 	return nil
 }

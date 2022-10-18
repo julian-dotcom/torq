@@ -23,7 +23,7 @@ func MineBlocks(ctx context.Context, cli *client.Client, container dockercontain
 		return nil
 	}, defautDelayMS, defaultMaxDurationMS)
 	if err != nil {
-		errors.Wrap(err, "btcd mining blocks")
+		return errors.Wrap(err, "btcd mining blocks")
 	}
 	return nil
 }

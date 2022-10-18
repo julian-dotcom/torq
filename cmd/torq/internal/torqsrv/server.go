@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/gin-contrib/cors"
@@ -31,7 +32,7 @@ import (
 	"github.com/ulule/limiter/v3/drivers/store/memory"
 )
 
-func Start(port int, apiPswd string, db *sqlx.DB, wsChan chan interface{}, restartLNDSub func() error) {
+func Start(port int, apiPswd string, db *sqlx.DB, wsChan chan interface{}, restartLNDSub func() error) error {
 	r := gin.Default()
 
 	auth.CreateSession(r, apiPswd)
@@ -40,7 +41,10 @@ func Start(port int, apiPswd string, db *sqlx.DB, wsChan chan interface{}, resta
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
-	r.Run(":" + strconv.Itoa(port))
+	if err := r.Run(":" + strconv.Itoa(port)); err != nil {
+		return errors.Wrap(err, "Running gin webserver")
+	}
+	return nil
 }
 
 func applyCors(r *gin.Engine) {
