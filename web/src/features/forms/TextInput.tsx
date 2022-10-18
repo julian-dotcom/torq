@@ -26,7 +26,7 @@ function TextInput({ label, value, placeholder, inputType, onChange }: textInput
         <span>{label}</span>
       </div>
       <input
-        type={inputType}
+        type={inputType || "text"}
         placeholder={placeholder}
         className={styles.textInput}
         value={localValue}
