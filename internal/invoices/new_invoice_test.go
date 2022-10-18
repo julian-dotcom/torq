@@ -36,8 +36,8 @@ func Test_processInvoiceReq(t *testing.T) {
 		{
 			"Only ValueMSat provided",
 			newInvoiceRequest{
-				NodeId:    1,
-				ValueMsat: &valueMsat,
+				LocalNodeId: 1,
+				ValueMsat:   &valueMsat,
 			},
 			lnrpc.Invoice{
 				ValueMsat: 11,
@@ -47,7 +47,7 @@ func Test_processInvoiceReq(t *testing.T) {
 		{
 			"All params provided",
 			newInvoiceRequest{
-				NodeId:          1,
+				LocalNodeId:     1,
 				Memo:            &memo,
 				RPreImage:       &rPreImage,
 				ValueMsat:       &valueMsat,

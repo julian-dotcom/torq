@@ -11,8 +11,8 @@ import (
 )
 
 type PayOnChainRequest struct {
-	NodeId           int     `json:"nodeId"`
-	Addr             string  `json:"addr"`
+	LocalNodeId      int     `json:"localNodeId"`
+	Address          string  `json:"address"`
 	AmountSat        int64   `json:"amountSat"`
 	TargetConf       *int32  `json:"targetConf"`
 	SatPerVbyte      *uint64 `json:"satPerVbyte"`
@@ -33,7 +33,7 @@ func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 		return "", errors.Wrap(err, "Process send request")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.LocalNodeId)
 	if err != nil {
 		return "", errors.New("Error getting node connection details from the db")
 	}
@@ -61,11 +61,11 @@ func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 }
 
 func processSendRequest(req PayOnChainRequest) (r lnrpc.SendCoinsRequest, err error) {
-	if req.NodeId == 0 {
+	if req.LocalNodeId == 0 {
 		return r, errors.New("Node id is missing")
 	}
 
-	if req.Addr == "" {
+	if req.Address == "" {
 		log.Error().Msgf("Address must be provided")
 		return r, errors.New("Address must be provided")
 	}
@@ -80,7 +80,7 @@ func processSendRequest(req PayOnChainRequest) (r lnrpc.SendCoinsRequest, err er
 		return r, errors.New("Either targetConf or satPerVbyte accepted")
 	}
 
-	r.Addr = req.Addr
+	r.Addr = req.Address
 	r.Amount = req.AmountSat
 
 	if req.TargetConf != nil {

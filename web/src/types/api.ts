@@ -30,12 +30,12 @@ export type GetForwardsQueryParams = Flow;
 
 export type GetDecodedInvoiceQueryParams = {
   invoice: string;
-  nodeId: number;
+  localNodeId: number;
 };
 
 export type SendOnChainRequest = {
-  nodeId: number;
-  addr: string;
+  localNodeId: number;
+  address: string;
   amountSat: number;
   targetConf?: number;
   satPerVbyte?: number;

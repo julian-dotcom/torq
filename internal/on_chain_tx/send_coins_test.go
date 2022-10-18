@@ -24,7 +24,7 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Missing node ID",
 			PayOnChainRequest{
-				Addr:      "adadsdas",
+				Address:   "adadsdas",
 				AmountSat: 12,
 			},
 			lnrpc.SendCoinsRequest{
@@ -36,9 +36,9 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Address not provided",
 			PayOnChainRequest{
-				NodeId:    1,
-				Addr:      "",
-				AmountSat: 12,
+				LocalNodeId: 1,
+				Address:     "",
+				AmountSat:   12,
 			},
 			lnrpc.SendCoinsRequest{
 				Addr:   "",
@@ -49,9 +49,9 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Invalid amount",
 			PayOnChainRequest{
-				NodeId:    1,
-				Addr:      "test",
-				AmountSat: 0,
+				LocalNodeId: 1,
+				Address:     "test",
+				AmountSat:   0,
 			},
 			lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -62,8 +62,8 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Both targetconf and satpervbyte provided",
 			PayOnChainRequest{
-				NodeId:      1,
-				Addr:        "test",
+				LocalNodeId: 1,
+				Address:     "test",
 				AmountSat:   12,
 				TargetConf:  &targetConf,
 				SatPerVbyte: &satPerVbyte,
@@ -79,9 +79,9 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Only mandatory params",
 			PayOnChainRequest{
-				NodeId:    1,
-				Addr:      "test",
-				AmountSat: amount,
+				LocalNodeId: 1,
+				Address:     "test",
+				AmountSat:   amount,
 			},
 			lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -92,8 +92,8 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"All params",
 			PayOnChainRequest{
-				NodeId:           1,
-				Addr:             "test",
+				LocalNodeId:      1,
+				Address:          "test",
 				AmountSat:        amount,
 				TargetConf:       &targetConf,
 				SendAll:          &sendAll,

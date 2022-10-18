@@ -15,10 +15,6 @@ const PopoutPageTemplate = (props: PopoutPageTemplateProps) => {
   const handleClose = () => {
     props.onClose();
   };
-  // const ignore = (e: React.MouseEvent<HTMLDivElement>) => {
-  //   // e.stopPropagation();
-  //   // e.preventDefault();
-  // };
   return (
     <div className={classNames(styles.modal, { [styles.show]: props.show })}>
       <div className={styles.modalBackdrop} onClick={handleClose} />

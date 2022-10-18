@@ -14,8 +14,8 @@ import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { SerializedError } from "@reduxjs/toolkit";
 import { ProgressStepState } from "features/progressTabs/ProgressHeader";
 import { format } from "d3";
-import { toastCategory } from "../../../toast/Toasts";
-import ToastContext from "../../../toast/context";
+import { toastCategory } from "features/toast/Toasts";
+import ToastContext from "features/toast/context";
 
 const f = format(",.0f");
 
@@ -72,7 +72,6 @@ export function OnChainPaymentResponse(props: OnChainPaymentResponseProps) {
         {props.response?.isError && <FailedIcon />}
         {props.response?.isSuccess && <SuccessIcon />}
       </div>
-      {/*<div className={classNames(styles.paymentStatusMessage)}>{props.response?.data?.error}</div>*/}
       {props.response?.isSuccess && (
         <div className={styles.txDetailsContainer}>
           <div className={styles.txDetailsRow}>

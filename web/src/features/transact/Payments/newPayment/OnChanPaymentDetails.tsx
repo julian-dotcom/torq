@@ -11,7 +11,7 @@ import styles from "./newPayments.module.scss";
 import { PaymentType, PaymentTypeLabel } from "./types";
 import { MutationTrigger } from "@reduxjs/toolkit/dist/query/react/buildHooks";
 import { BaseQueryFn, FetchArgs, FetchBaseQueryError, MutationDefinition } from "@reduxjs/toolkit/query";
-import { SendOnChainRequest } from "../../../../types/api";
+import { SendOnChainRequest } from "types/api";
 
 type BtcStepProps = {
   sendCoinsMutation: MutationTrigger<
@@ -37,7 +37,6 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>(undefined);
   const [description, setDescription] = useState<string | undefined>(undefined);
-  // const [onChainPaymentResponse, setOnChainPaymentResponse] = useState<{ txId: string }>();
 
   return (
     <ProgressTabContainer>
@@ -114,8 +113,8 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
               props.setConfirmState(ProgressStepState.completed);
               props.setProcessState(ProgressStepState.processing);
               props.sendCoinsMutation({
-                addr: props.destination,
-                nodeId: 1,
+                address: props.destination,
+                localNodeId: 1,
                 amountSat: props.amount,
               });
             }}

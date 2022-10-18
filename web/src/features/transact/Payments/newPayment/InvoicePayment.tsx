@@ -10,7 +10,6 @@ import styles from "./newPayments.module.scss";
 import { PaymentType, PaymentTypeLabel } from "./types";
 import { DecodedInvoice } from "types/api";
 import { SendJsonMessage } from "react-use-websocket/dist/lib/types";
-// import { format } from "d3";
 
 type InvoicePaymentProps = {
   selectedLocalNode: number;
@@ -25,8 +24,6 @@ type InvoicePaymentProps = {
 };
 const DefualtTimeoutSeconds = 60;
 
-// const fd = format(",.0f");
-
 export default function InvoicePayment(props: InvoicePaymentProps) {
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
   const [amountSat, setAmountSat] = useState<number | undefined>(undefined);
@@ -34,8 +31,6 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
     Math.floor(props.decodedInvoice.valueMsat / 1000000) || 100
   );
   const [timeOutSecs, setTimeOutSecs] = useState(DefualtTimeoutSeconds);
-  // const [allowSelfPayment, setAllowSelfPayment] = useState(true);
-  // const [description, setDescription] = useState<string | undefined>(undefined);
 
   function lnAmountField() {
     if (props.decodedInvoice.valueMsat !== 0) {
@@ -58,7 +53,6 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
   return (
     <ProgressTabContainer>
       <div className={styles.amountWrapper}>
-        {/*<div className={styles.label}>You are paying</div>*/}
         {props.destinationType && (
           <span className={styles.destinationType}>{PaymentTypeLabel[props.destinationType] + " Detected"}</span>
         )}
@@ -66,39 +60,12 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
         <div className={styles.label}>To</div>
         <div className={styles.destinationPreview}>{props.decodedInvoice.nodeAlias}</div>
       </div>
-      {/*<div className={styles.destinationWrapper}>*/}
-      {/*  <div className={styles.labelWrapper}>*/}
-      {/*    <label htmlFor={"destination"} className={styles.destinationLabel}>*/}
-      {/*      Description (only seen by you)*/}
-      {/*    </label>*/}
-      {/*  </div>*/}
-      {/*  <textarea*/}
-      {/*    id={"lnDescription"}*/}
-      {/*    name={"lnDescription"}*/}
-      {/*    className={styles.destinationTextArea}*/}
-      {/*    autoComplete="off"*/}
-      {/*    value={paymentDescription}*/}
-      {/*    onChange={(e) => {*/}
-      {/*      setPaymentDescription(e.target.value);*/}
-      {/*    }}*/}
-      {/*    rows={3}*/}
-      {/*  />*/}
-      {/*</div>*/}
       <SectionContainer
         title={"Advanced Options"}
         icon={OptionsIcon}
         expanded={expandAdvancedOptions}
         handleToggle={() => setExpandAdvancedOptions(!expandAdvancedOptions)}
       >
-        {/*<Switch*/}
-        {/*  label={"Allow self payment"}*/}
-        {/*  // labelPosition={"left"}*/}
-        {/*  checked={allowSelfPayment}*/}
-        {/*  onChange={(checked) => {*/}
-        {/*    console.log("something");*/}
-        {/*    setAllowSelfPayment(checked);*/}
-        {/*  }}*/}
-        {/*/>*/}
         <TextInput
           label={"Fee limit"}
           inputType={"number"}
@@ -135,7 +102,7 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
                 reqId: "randId",
                 type: "newPayment",
                 NewPaymentRequest: {
-                  nodeId: props.selectedLocalNode,
+                  localNodeId: props.selectedLocalNode,
                   // If the destination is not a pubkey, use it as an invoice
                   invoice: props.destination,
                   // If the destination is a pubkey send it as a dest input

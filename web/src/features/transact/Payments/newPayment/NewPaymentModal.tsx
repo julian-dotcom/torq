@@ -19,6 +19,7 @@ import useTranslations from "services/i18n/useTranslations";
 import InvoicePayment from "./InvoicePayment";
 import { InvoicePaymentResponse } from "./InvoicePaymentResponse";
 import { OnChainPaymentResponse } from "./OnChainPaymentResponse";
+import Note from "features/note/Note";
 
 // RegEx used to check what type of destination the user enters.
 // You can test them out here: https://regex101.com/r/OiXAlz/1
@@ -26,7 +27,6 @@ const LnPayrequestMainnetRegEx = /lnbc[0-9][0-9a-zA-Z]*/gm;
 const LnPayrequestTestnetRegEx = /lntb[0-9][0-9a-zA-Z]*/gm;
 const LnPayrequestSignetRegEx = /lnsb[0-9][0-9a-zA-Z]*/gm;
 const LnPayrequestRegtestRegEx = /lnbcrt[0-9][0-9a-zA-Z]*/gm;
-// const P2PKHAddressRegEx = /^1[0-9a-zA-Z]*/gm; // Legacy Adresses
 const P2SHAddressRegEx = /^[3/r][0-9a-zA-Z]*/gm; // Pay to Script Hash
 const P2WKHAddressRegEx = /^bc1q[0-9a-zA-Z]*/gm; // Segwit address
 const P2TRAddressRegEx = /^bc1p[0-9a-zA-Z]*/gm; // Taproot address
@@ -117,7 +117,7 @@ function NewPaymentModal() {
 
   // TODO: Get the estimated fee as well
   const decodedInvRes = useGetDecodedInvoiceQuery(
-    { invoice: destination, nodeId: selectedLocalNode },
+    { invoice: destination, localNodeId: selectedLocalNode },
     {
       skip: !isLnInvoice,
     }
@@ -167,9 +167,6 @@ function NewPaymentModal() {
 
     // Prevent accidentally adding additional characters to the destination field after
     // the user has entered a valid destination by unfocusing (bluring) the input field.
-    // e.target.blur();
-    //setStepIndex(1);
-    // setConfirmState(ProgressStepState.active);
     setDestState(ProgressStepState.completed);
   };
 
@@ -257,12 +254,12 @@ function NewPaymentModal() {
               />
             </div>
           </div>
-          {/*<Note title={"Note:"}>*/}
-          {/*  <span>*/}
-          {/*    Torq will detect the transaction type based on the destination you enter. Valid destinations are on-chain*/}
-          {/*    addresses, lightning invoices, and lightning node public keys for keysend.*/}
-          {/*  </span>*/}
-          {/*</Note>*/}
+          <Note title={"Note:"}>
+            <span>
+              Torq will detect the transaction type based on the destination you enter. Valid destinations are on-chain
+              addresses and lightning invoices.
+            </span>
+          </Note>
           <ButtonWrapper
             className={styles.customButtonWrapperStyles}
             rightChildren={

@@ -16,7 +16,7 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 		return r, err
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.LocalNodeId)
 	if err != nil {
 		return r, errors.Wrap(err, "Getting node connection details from the db")
 	}
@@ -51,7 +51,7 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 
 func processInvoiceReq(req newInvoiceRequest) (inv lnrpc.Invoice, err error) {
 
-	if req.NodeId == 0 {
+	if req.LocalNodeId == 0 {
 		return inv, errors.New("Node id is missing")
 	}
 

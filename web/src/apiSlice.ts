@@ -156,7 +156,7 @@ export const torqApi = createApi({
       providesTags: ["localNodes"],
     }),
     getLocalNode: builder.query<localNode, number>({
-      query: (nodeId) => `settings/local-nodes/${nodeId}`,
+      query: (localNodeId) => `settings/local-nodes/${localNodeId}`,
       providesTags: ["localNodes"],
     }),
     addLocalNode: builder.mutation<any, FormData>({
