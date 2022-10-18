@@ -2,13 +2,14 @@ package torqsrv
 
 import (
 	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
-	"golang.org/x/sync/errgroup"
+	"github.com/rs/zerolog/log"
 )
 
 type wsRequest struct {
@@ -138,23 +139,20 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 }
 
 func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) error {
-
 	conn, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	errs, _ := errgroup.WithContext(c)
-
-	errs.Go(func() error {
+	go func() {
 		for {
 			err := conn.WriteJSON(<-wsChan)
 			if err != nil {
-				return err
+				log.Error().Err(err).Msg("Writing JSON to websocket failure")
 			}
 		}
-	})
+	}()
 
 	for {
 		req := wsRequest{}
@@ -178,5 +176,4 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) erro
 		}
 
 	}
-	return errs.Wait()
 }
