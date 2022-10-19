@@ -1,6 +1,7 @@
 .progressTabsWrapper {
   overflow-x: hidden;
   overflow-y: auto;
+  flex-grow: 1;
 }
 .progressTabsContainer {
   width: 476px;

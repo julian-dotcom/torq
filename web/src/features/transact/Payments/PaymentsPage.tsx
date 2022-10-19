@@ -7,7 +7,7 @@ import {
 } from "@fluentui/react-icons";
 import { useGetPaymentsQuery } from "apiSlice";
 import clone from "clone";
-import { CREATE_PAYMENT } from "constants/routes";
+import { NEW_PAYMENT } from "constants/routes";
 import Button, { buttonColor } from "features/buttons/Button";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
@@ -145,10 +145,11 @@ function PaymentsPage() {
       <TableControlsButtonGroup>
         <Button
           buttonColor={buttonColor.green}
-          text={"New"}
+          text={"New Payment"}
+          className={"collapse-tablet"}
           icon={<TransactionIcon />}
           onClick={() => {
-            navigate(CREATE_PAYMENT, { state: { background: location } });
+            navigate(NEW_PAYMENT, { state: { background: location } });
           }}
         />
         <TableControlsButton

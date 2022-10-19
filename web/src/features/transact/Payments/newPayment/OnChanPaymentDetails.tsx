@@ -5,13 +5,13 @@ import TextInput from "features/forms/TextInput";
 import { ProgressStepState } from "features/progressTabs/ProgressHeader";
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import { SectionContainer } from "features/section/SectionContainer";
-import NumberFormat, { NumberFormatValues } from "react-number-format";
 
 import styles from "./newPayments.module.scss";
 import { PaymentType, PaymentTypeLabel } from "./types";
 import { MutationTrigger } from "@reduxjs/toolkit/dist/query/react/buildHooks";
 import { BaseQueryFn, FetchArgs, FetchBaseQueryError, MutationDefinition } from "@reduxjs/toolkit/query";
 import { SendOnChainRequest } from "types/api";
+import LargeAmountInput from "../../../inputs/largeAmountInput/LargeAmountInput";
 
 type BtcStepProps = {
   sendCoinsMutation: MutationTrigger<
@@ -43,16 +43,22 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
       <div className={styles.amountWrapper}>
         <span className={styles.destinationType}>{PaymentTypeLabel[props.destinationType] + " Detected"}</span>
         <div className={styles.amount}>
-          <NumberFormat
-            className={styles.amountInput}
-            suffix={" sat"}
-            thousandSeparator=","
-            value={props.amount}
-            placeholder={"0 sat"}
-            onValueChange={(values: NumberFormatValues) => {
-              props.setAmount(values.floatValue || 0);
+          <LargeAmountInput
+            value={props.amount === 0 ? undefined : props.amount}
+            onChange={(values) => {
+              props.setAmount(values || 0);
             }}
           />
+          {/*<NumberFormat*/}
+          {/*  className={styles.amountInput}*/}
+          {/*  suffix={" sat"}*/}
+          {/*  thousandSeparator=","*/}
+          {/*  value={props.amount === 0 ? undefined : props.amount}*/}
+          {/*  placeholder={"0 sat"}*/}
+          {/*  onValueChange={(values: NumberFormatValues) => {*/}
+          {/*    props.setAmount(values.floatValue || 0);*/}
+          {/*  }}*/}
+          {/*/>*/}
         </div>
         <div className={styles.label}>To</div>
         <div className={styles.destinationPreview}>{props.destination}</div>

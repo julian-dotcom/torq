@@ -16,6 +16,7 @@ import type {
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { localNode, settings, timeZone, channel } from "./apiTypes";
+import { NewInvoiceRequest, NewInvoiceResponse } from "./features/transact/Invoices/newInvoice/newInvoiceTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -81,6 +82,13 @@ export const torqApi = createApi({
     sendOnChain: builder.mutation<SendOnChainResponse, SendOnChainRequest>({
       query: (data: SendOnChainRequest) => ({
         url: "on-chain-tx/sendcoins",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    newInvoice: builder.mutation<NewInvoiceResponse, NewInvoiceRequest>({
+      query: (data: NewInvoiceRequest) => ({
+        url: "invoices/newinvoice",
         method: "POST",
         body: data,
       }),
@@ -205,6 +213,7 @@ export const {
   useGetInvoicesQuery,
   useGetOnChainTxQuery,
   useSendOnChainMutation,
+  useNewInvoiceMutation,
   useGetTableViewsQuery,
   useUpdateTableViewMutation,
   useCreateTableViewMutation,

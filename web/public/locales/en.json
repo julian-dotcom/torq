@@ -23,8 +23,25 @@
     "settingsSaved": "Settings saved"
   },
   "header": {
+    "newInvoice": "New Invoice",
+    "newPayment": "New Payment",
     "newAddress": "New Address",
     "settings": "Date & time settings",
     "nodes": "Nodes"
+  },
+  "newInvoice": {
+    "title": "New Invoice",
+    "details": "Details",
+    "invoice": "Invoice",
+    "fallbackAddress": "Fallback address",
+    "expiry": "Expiry",
+    "amount": "Amount",
+    "description": "Description",
+    "descriptionPlaceholder": "Description (optional)",
+    "save": "Save",
+    "cancel": "Cancel",
+    "toast": {
+      "invoiceSaved": "Invoice saved"
+    }
   }
 }

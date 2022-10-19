@@ -149,7 +149,10 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) erro
 	go func() {
 		for {
 			err := conn.WriteJSON(<-wsChan)
-			if err != nil {
+			switch err.(type) {
+			case *websocket.CloseError:
+				continue
+			default:
 				log.Error().Err(err).Msg("Writing JSON to websocket failure")
 			}
 		}

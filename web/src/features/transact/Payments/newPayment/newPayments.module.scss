@@ -7,7 +7,6 @@
 }
 .destinationLabel {
   display: block;
-  //color: var(--content-muted);
   font-size: var(--font-size-small);
   padding: 3px 0px 2px;
 }
@@ -58,11 +57,9 @@
   text-align: center;
   font-size: 40px;
   margin: 8px auto 8px;
-  //padding: 8px 10px 8px;
-  border: solid 1px var(--content-subtle);
+  border: none;
   &:focus {
     outline: none;
-    border-color: var(--primary-200);
   }
 }
 .label {
