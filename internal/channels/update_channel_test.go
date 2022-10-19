@@ -201,7 +201,7 @@ func Test_processUpdateResponse(t *testing.T) {
 			"Update succeeded",
 			&lnrpc.PolicyUpdateResponse{FailedUpdates: []*lnrpc.FailedUpdate{}},
 			updateResponse{
-				Status:        "Channel/s updated",
+				Status:        "SUCCEEDED",
 				FailedUpdates: noFailedUpdSlice,
 			},
 		},
@@ -217,7 +217,7 @@ func Test_processUpdateResponse(t *testing.T) {
 				UpdateError: "not found",
 			}}},
 			updateResponse{
-				Status:        "Channel/s update failed",
+				Status:        "FAILED",
 				FailedUpdates: failedUpdSlice,
 			},
 		},
