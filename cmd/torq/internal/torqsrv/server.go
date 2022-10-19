@@ -2,6 +2,7 @@ package torqsrv
 
 import (
 	"fmt"
+	"github.com/lncapital/torq/internal/peers"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -194,6 +195,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, wsChan chan inter
 		settingRoutes := api.Group("settings")
 		{
 			settings.RegisterSettingRoutes(settingRoutes, db, restartLNDSub)
+		}
+
+		peerRoutes := api.Group("peers")
+		{
+			peers.RegisterPeersRoutes(peerRoutes, db)
 		}
 
 		api.GET("/ping", func(c *gin.Context) {
