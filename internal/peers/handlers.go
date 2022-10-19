@@ -31,12 +31,12 @@ func connectPeerHandler(c *gin.Context, db *sqlx.DB) {
 	var requestBody ConnectPeerRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, "JSON binding the request body"))
 		return
 	}
 
 	if requestBody.NodeId == 0 {
-		server_errors.WrapLogAndSendServerError(c, errors.New("Node ID not provided"), "Connect peer")
+		server_errors.SendUnprocessableEntity(c, "Node Id not provided")
 		return
 	}
 
@@ -65,7 +65,7 @@ func listPeersHandler(c *gin.Context, db *sqlx.DB) {
 
 	nodeId, err := strconv.Atoi(c.Query("localNodeId"))
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Getting node id")
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, "Getting node id"))
 		return
 	}
 
