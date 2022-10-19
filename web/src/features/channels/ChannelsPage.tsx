@@ -36,15 +36,16 @@ import GroupBySection from "features/sidebar/sections/group/GroupBySection";
 import ChannelsDataWrapper from "./ChannelsDataWrapper";
 import { SectionContainer } from "features/section/SectionContainer";
 import { ColumnMetaData } from "features/table/Table";
+import Button, { buttonColor } from "features/buttons/Button";
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router";
+import { UPDATE_CHANNEL } from "constants/routes";
+import { Sections } from "./channelsTypes"
 
-type sections = {
-  filter: boolean;
-  sort: boolean;
-  group: boolean;
-  columns: boolean;
-};
 function ChannelsPage() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
@@ -56,7 +57,7 @@ function ChannelsPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   // General logic for toggling the sidebar sections
-  const initialSectionState: sections = {
+  const initialSectionState: Sections = {
     filter: false,
     sort: false,
     columns: false,
@@ -65,7 +66,7 @@ function ChannelsPage() {
 
   const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
 
-  const sidebarSectionHandler = (section: keyof sections) => {
+  const sidebarSectionHandler = (section: keyof Sections) => {
     return () => {
       setActiveSidebarSections({
         ...activeSidebarSections,
@@ -82,8 +83,16 @@ function ChannelsPage() {
 
   const tableControls = (
     <TableControlSection>
+    <TableControlsTabsGroup></TableControlsTabsGroup>
       <TableControlsButtonGroup>
-        <TableControlsTabsGroup></TableControlsTabsGroup>
+        <Button
+          buttonColor={buttonColor.green}
+          text={"Adjust Fees"}
+          icon={<FilterIcon />}
+          onClick={() => {
+            navigate(UPDATE_CHANNEL, { state: { background: location } });
+          }}
+        />
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>

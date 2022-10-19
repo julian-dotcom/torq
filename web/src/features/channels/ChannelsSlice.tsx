@@ -74,7 +74,7 @@ export const channelsColumns: ColumnMetaData[] = [
   },
   {
       heading: "Base Fee Msat",
-      type: "NumericInputCell",
+      type: "NumericCell",
       key: "baseFeeMsat",
       valueType: "number",
     },
@@ -88,6 +88,18 @@ export const channelsColumns: ColumnMetaData[] = [
       heading: "Maximum HTLC Msat",
       type: "NumericCell",
       key: "maxHtlcMsat",
+      valueType: "number",
+    },
+    {
+      heading: "Time Lock Delta",
+      type: "NumericCell",
+      key: "timeLockDelta",
+      valueType: "number",
+    },
+    {
+      heading: "Fee rate (PPM)",
+      type: "NumericCell",
+      key: "feeRatePpm",
       valueType: "number",
     },
     {
@@ -120,6 +132,15 @@ export interface ViewInterface {
   groupBy?: string;
 }
 
+export interface PolicyInterface {
+  feeRatePpm: number;
+  timeLockDelta: number;
+  maxHtlcMsat: number;
+  minHtlcMsat: number;
+  baseFeeMsat: number;
+  channelPoint: string;
+  nodeId: number;
+}
 export interface TableChannelsState {
   channels: [];
   views: ViewInterface[];
@@ -213,9 +234,5 @@ export const selectFilters = (state: RootState) => {
 export const selectViews = (state: RootState) => state.channels.views;
 export const selectCurrentView = (state: RootState) => state.channels.views[0];
 export const selectStatus = (state: RootState) => state.channels.status;
-  // const handleBasefeeChange = (value: string) => {
-  //   setLocalState({ ...localState, grpcAddress: value });
-  // };
-
 
 export default channelsSlice.reducer;

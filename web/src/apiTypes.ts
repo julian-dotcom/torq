@@ -50,4 +50,7 @@ export interface channel {
   commitmentType: number;
   lifetime: number;
   totalSatoshisReceived: number;
+  localNodeId: number;
+  timeLockDelta: number;
+  feeRatePpm: number;
 }

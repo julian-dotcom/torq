@@ -3,7 +3,6 @@ import cellStyles from "./cells/cell.module.scss";
 import HeaderCell from "./cells/HeaderCell";
 import AliasCell from "./cells/AliasCell";
 import NumericCell from "./cells/NumericCell";
-import NumericInputCell from "./cells/NumericInputCell";
 import BarCell from "./cells/BarCell";
 import TextCell from "./cells/TextCell";
 import DurationCell from "./cells/DurationCell";
@@ -48,8 +47,6 @@ function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, col
       );
     case "NumericCell":
       return <NumericCell current={row[key] as number} className={key} key={key + index + columnIndex} />;
-    case "NumericInputCell":
-     return <NumericInputCell current={row[key] as number} className={key} key={key + index + columnIndex} onChange={column.handler} />;
     case "DateCell":
       return <DateCell value={row[key] as string} className={key} key={key + index + columnIndex} />;
     case "BooleanCell":

@@ -20,3 +20,4 @@ export const SETTINGS = "/settings";
 // modals
 export const CREATE_PAYMENT = "/create-payment";
 export const NEW_ADDRESS = "/new-address";
+export const UPDATE_CHANNEL = "/update-channel";
