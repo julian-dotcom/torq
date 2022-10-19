@@ -37,6 +37,9 @@ export interface channel {
   commitFee: number;
   commitWeight: number;
   feePerKw: number;
+  baseFeeMsat: number;
+  minHtlc: number;
+  maxHtlcMsat: number;
   pendingHtlcs: number;
   totalSatoshisSent: number;
   numUpdates: number;
@@ -47,4 +50,7 @@ export interface channel {
   commitmentType: number;
   lifetime: number;
   totalSatoshisReceived: number;
+  localNodeId: number;
+  timeLockDelta: number;
+  feeRatePpm: number;
 }

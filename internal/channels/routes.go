@@ -6,7 +6,7 @@ import (
 )
 
 func RegisterChannelRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.POST("update", func(c *gin.Context) { updateChannelsHandler(c, db) })
+	r.PUT("update", func(c *gin.Context) { updateChannelsHandler(c, db) })
 	r.POST("openbatch", func(c *gin.Context) { batchOpenHandler(c, db) })
 	r.GET("", func(c *gin.Context) { getChannelListhandler(c, db) })
 }

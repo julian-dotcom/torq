@@ -11,16 +11,17 @@ import (
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"github.com/rs/zerolog/log"
 )
 
 type failedUpdate struct {
-	OutPoint struct {
-		Txid    string
-		OutIndx uint32
-	}
-	Reason      string
-	UpdateError string
+	OutPoint    OutPoint `json:"outPoint"`
+	Reason      string   `json:"reason"`
+	UpdateError string   `json:"updateError"`
+}
+
+type OutPoint struct {
+	Txid        string `json:"txId"`
+	OutputIndex uint32 `json:"outputIndex"`
 }
 
 type updateResponse struct {
@@ -56,6 +57,11 @@ type channelBody struct {
 	CommitFee             int64                `json:"commitFee"`
 	CommitWeight          int64                `json:"commitWeight"`
 	FeePerKw              int64                `json:"feePerKw"`
+	BaseFeeMsat           int64                `json:"baseFeeMsat"`
+	MinHtlc               int64                `json:"minHtlc"`
+	MaxHtlcMsat           uint64               `json:"maxHtlcMsat"`
+	TimeLockDelta         uint32               `json:"timeLockDelta"`
+	FeeRatePpm            int64                `json:"feeRatePpm"`
 	PendingHtlcs          int64                `json:"pendingHtlcs"`
 	TotalSatoshisSent     int64                `json:"totalSatoshisSent"`
 	NumUpdates            uint64               `json:"numUpdates"`
@@ -72,11 +78,9 @@ func updateChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	requestBody := updateChanRequestBody{}
 
 	if err := c.BindJSON(&requestBody); err != nil {
-		log.Error().Msgf("JSON binding the request body")
 		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
 		return
 	}
-	//log.Debug().Msgf("Received request body: %v", requestBody)
 
 	response, err := updateChannels(db, requestBody)
 	if err != nil {
@@ -129,6 +133,7 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Get active nodes")
 		return
 	}
+
 	for _, node := range nodes {
 		conn, err := lnd_connect.Connect(
 			node.GRPCAddress,
@@ -139,7 +144,9 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 			server_errors.WrapLogAndSendServerError(c, err, errorMsg)
 			return
 		}
+
 		defer conn.Close()
+
 		client := lnrpc.NewLightningClient(conn)
 		r, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 		if err != nil {
@@ -147,31 +154,42 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 			return
 		}
 
-		for i := 0; i < len(r.Channels); i++ {
-			gauge := (float64(r.Channels[i].LocalBalance) / float64(r.Channels[i].Capacity)) * 100
+		for _, channel := range r.Channels {
+			channelFee, err := client.GetChanInfo(context.Background(), &lnrpc.ChanInfoRequest{ChanId: channel.ChanId})
+			if err != nil {
+				server_errors.WrapLogAndSendServerError(c, err, "Channel info")
+				return
+			}
+
+			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
 			chanBody := channelBody{
 				LocalNodeId:           node.LocalNodeId,
-				Active:                r.Channels[i].Active,
+				Active:                channel.Active,
 				Gauge:                 gauge,
-				RemotePubkey:          r.Channels[i].RemotePubkey,
-				LNDChannelPoint:       r.Channels[i].ChannelPoint,
-				LNDShortChannelId:     r.Channels[i].ChanId,
-				ShortChannelId:        ConvertLNDShortChannelID(r.Channels[i].ChanId),
-				Capacity:              r.Channels[i].Capacity,
-				LocalBalance:          r.Channels[i].LocalBalance,
-				RemoteBalance:         r.Channels[i].RemoteBalance,
-				UnsettledBalance:      r.Channels[i].UnsettledBalance,
-				TotalSatoshisSent:     r.Channels[i].TotalSatoshisSent,
-				TotalSatoshisReceived: r.Channels[i].TotalSatoshisReceived,
-				PendingHtlcs:          sumHTLCs(r.Channels[i].PendingHtlcs),
-				CommitFee:             r.Channels[i].CommitFee,
-				CommitWeight:          r.Channels[i].CommitWeight,
-				FeePerKw:              r.Channels[i].FeePerKw,
-				NumUpdates:            r.Channels[i].NumUpdates,
-				Initiator:             r.Channels[i].Initiator,
-				ChanStatusFlags:       r.Channels[i].ChanStatusFlags,
-				CommitmentType:        r.Channels[i].CommitmentType,
-				Lifetime:              r.Channels[i].Lifetime,
+				RemotePubkey:          channel.RemotePubkey,
+				LNDChannelPoint:       channel.ChannelPoint,
+				LNDShortChannelId:     channel.ChanId,
+				ShortChannelId:        ConvertLNDShortChannelID(channel.ChanId),
+				Capacity:              channel.Capacity,
+				LocalBalance:          channel.LocalBalance,
+				RemoteBalance:         channel.RemoteBalance,
+				UnsettledBalance:      channel.UnsettledBalance,
+				TotalSatoshisSent:     channel.TotalSatoshisSent,
+				TotalSatoshisReceived: channel.TotalSatoshisReceived,
+				PendingHtlcs:          sumHTLCs(channel.PendingHtlcs),
+				CommitFee:             channel.CommitFee,
+				CommitWeight:          channel.CommitWeight,
+				FeePerKw:              channel.FeePerKw,
+				BaseFeeMsat:           channelFee.Node1Policy.FeeBaseMsat,
+				MinHtlc:               channelFee.Node1Policy.MinHtlc,
+				MaxHtlcMsat:           channelFee.Node1Policy.MaxHtlcMsat,
+				TimeLockDelta:         channelFee.Node1Policy.TimeLockDelta,
+				FeeRatePpm:            channelFee.Node1Policy.FeeRateMilliMsat,
+				NumUpdates:            channel.NumUpdates,
+				Initiator:             channel.Initiator,
+				ChanStatusFlags:       channel.ChanStatusFlags,
+				CommitmentType:        channel.CommitmentType,
+				Lifetime:              channel.Lifetime,
 			}
 			channelsBody = append(channelsBody, chanBody)
 		}

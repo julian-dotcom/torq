@@ -1,6 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSlice";
+import { PolicyInterface } from "features/channels/ChannelsSlice"
 import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
+import { UpdatedChannelResponse } from "features/channels/channelsTypes"
 
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type {
@@ -65,6 +67,14 @@ export const torqApi = createApi({
         method: "GET",
       }),
       providesTags: ["channels"],
+    }),
+    updateChannel: builder.mutation<UpdatedChannelResponse, PolicyInterface>({
+      query: (data: PolicyInterface) => ({
+        url: "channels/update",
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["channels"],
     }),
     getDecodedInvoice: builder.query<any, GetDecodedInvoiceQueryParams>({
       query: (params) => queryParamsBuilder("invoices/decode/", params),
@@ -221,4 +231,5 @@ export const {
   useAddLocalNodeMutation,
   useUpdateLocalNodeSetDeletedMutation,
   useUpdateLocalNodeSetDisabledMutation,
+  useUpdateChannelMutation,
 } = torqApi;
