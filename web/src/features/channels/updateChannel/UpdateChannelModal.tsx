@@ -6,7 +6,7 @@ import {
 } from "@fluentui/react-icons";
 import { useGetLocalNodesQuery, useGetChannelsQuery, useUpdateChannelMutation } from "apiSlice";
 import type { channel } from "apiTypes";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -19,9 +19,8 @@ import Select, { SelectOptions } from "features/forms/Select";
 import { ActionMeta } from "react-select";
 import classNames from "classnames";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
-import { UpdatedChannelResponse } from "features/channels/channelsTypes"
 
-// import clone from "clone";
+import clone from "clone";
 
 const updateStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -37,7 +36,6 @@ const updateStatusIcon = {
 
 
 function NodechannelModal() {
-  let messages: unknown[] = []
   const [updateChannelMutation, response] = useUpdateChannelMutation();
 
   const { t } = useTranslations();
@@ -60,6 +58,8 @@ function NodechannelModal() {
 
   const [selectedLocalNode, setSelectedLocalNode] = useState<number>(localNodeOptions[0].value);
   const [selectedChannel, setSelectedChannel] = useState<number>(channelOptions[0].value);
+  const [resultState, setResultState] = useState(ProgressStepState.disabled);
+  const [errMessage, setErrorMEssage] = useState<any[]>([]);
 
   function handleNodeSelection(value: number) {
     setSelectedLocalNode(value)
@@ -81,35 +81,25 @@ function NodechannelModal() {
     })
   }
 
-  function handleUpdateResponse() {
-    updateChannelMutation({
-      feeRatePpm,
-      baseFeeMsat: baseFeeMsat,
-      timeLockDelta,
-      minHtlcMsat: minHtlcMsat,
-      maxHtlcMsat,
-      channelPoint: lndChannelPoint,
-      nodeId: selectedLocalNode,
-    }).then((res: any) =>{
-      const updateResponse: UpdatedChannelResponse = res
-      if (updateResponse.status == "SUCCEEDED") {
-        setResultState(ProgressStepState.completed);
-      } else {
+  useEffect(() => {
+    if (response.isSuccess) {
+      if (response.data.status == "FAILED") {
         setResultState(ProgressStepState.error);
-        if (updateResponse.failedUpdates?.length) {
-          for (let i = 0; i < updateResponse.failedUpdates.length; i++) {
-            messages.push(<div className={classNames(styles.updateChannelStatusMessage)}> {updateResponse.failedUpdates[i].reason} </div>)
+        const message = clone(errMessage) || [];
+        if (response.data?.failedUpdates?.length) {
+          for (let i = 0; i < response.data.failedUpdates.length; i++) {
+            message.push(<span key={i} className={classNames(styles.updateChannelStatusMessage)}> { response.data.failedUpdates[i].reason } </span>)
           }
+          setErrorMEssage(message)
         }
+      } else {
+        setResultState(ProgressStepState.completed);
       }
-    }).catch(e =>{
-      setResultState(ProgressStepState.error);
-    });
-  }
+    }
+  },[response])
 
   const [channelState, setChannelState] = useState(ProgressStepState.active);
   const [policyState, setPolicyState] = useState(ProgressStepState.disabled);
-  const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [feeRatePpm, setFeeRatePpm] = useState<number>(0);
   const [baseFeeMsat, setBaseFeeMsat] = useState<number>(0);
   const [minHtlcMsat, setMinHtlcMsat] = useState<number>(0);
@@ -125,7 +115,7 @@ function NodechannelModal() {
     setChannelState(ProgressStepState.active);
     setPolicyState(ProgressStepState.disabled);
     setResultState(ProgressStepState.disabled);
-    messages = [];
+    setErrorMEssage([]);
   };
 
   const dynamicChannelState = () => {
@@ -193,82 +183,107 @@ function NodechannelModal() {
           />
         </ProgressTabContainer>
           <ProgressTabContainer>
-        <div className={styles.activeColumns}>
-          <span className={styles.label}>{"Fee rate (PPM)"}</span>
-          <div className={styles.input}>
-            <NumberFormat
-              className={styles.input}
-              suffix={" ppm"}
-              thousandSeparator={false}
-              value={feeRatePpm}
-              onValueChange={(values: NumberFormatValues) => {
-                setFeeRatePpm(values.floatValue as number);
-              }}
-            />
-          </div>
-          <span className={styles.label}>{"Base fee"}</span>
-          <div className={styles.input}>
-            <NumberFormat
-              className={styles.input}
-              suffix={" sat"}
-              thousandSeparator={false}
-              value={baseFeeMsat}
-              onValueChange={(values: NumberFormatValues) => {
-                setBaseFeeMsat(values.floatValue as number);
-              }}
-            />
-          </div>
-          <span className={styles.label}>{"Min HTLC amount"}</span>
-          <div className={styles.input}>
-            <NumberFormat
-              className={styles.input}
-              suffix={" sat"}
-              thousandSeparator={false}
-              value={minHtlcMsat}
-              onValueChange={(values: NumberFormatValues) => {
-                setMinHtlcMsat(values.floatValue as number);
-              }}
-            />
-          </div>
-          <span className={styles.label}>{"Max HTLC amounte"}</span>
-          <div className={styles.input}>
-            <NumberFormat
-              className={styles.input}
-              suffix={" sat"}
-              thousandSeparator={true}
-              value={maxHtlcMsat}
-              onValueChange={(values: NumberFormatValues) => {
-                setMaxHtlcMsat(values.floatValue as number);
-              }}
-            />
-          </div>
-          <span className={styles.label}>{"Time Lock Delta"}</span>
-          <div className={styles.input}>
-            <NumberFormat
-              className={styles.input}
-              thousandSeparator={false}
-              value={timeLockDelta}
-              onValueChange={(values: NumberFormatValues) => {
-                setTimeLockDelta(values.floatValue as number);
-              }}
-            />
-          </div>
-            <ButtonWrapper
-              className={styles.customButtonWrapperStyles}
-              rightChildren={
-                <Button
-                  text={"Update Channel"}
-                  onClick={() => {
-                    setStepIndex(2);
-                    setPolicyState(ProgressStepState.completed);
-                    setResultState(ProgressStepState.processing);
-                    handleUpdateResponse()
-                  }}
+            <div className={styles.activeColumns}>
+              <div className={styles.updateChannelTableRow}>
+                <div className={styles.updateChannelTableDouble}>
+                  <span className={styles.label}>{"Fee rate (PPM)"}</span>
+                  <div className={styles.input}>
+                    <NumberFormat
+                      className={styles.double}
+                      suffix={" ppm"}
+                      thousandSeparator={false}
+                      value={feeRatePpm}
+                      onValueChange={(values: NumberFormatValues) => {
+                        setFeeRatePpm(values.floatValue as number);
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className={styles.updateChannelTableDouble}>
+                  <span className={styles.label}>{"Base fee"}</span>
+                  <div className={styles.input}>
+                    <NumberFormat
+                      className={styles.double}
+                      suffix={" sat"}
+                      thousandSeparator={false}
+                      value={baseFeeMsat}
+                      onValueChange={(values: NumberFormatValues) => {
+                        setBaseFeeMsat(values.floatValue as number);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className={styles.updateChannelTableRow}>
+                <div className={styles.updateChannelTableDouble}>
+                  <span className={styles.label}>{"Min HTLC amount"}</span>
+                  <div className={styles.input}>
+                    <NumberFormat
+                      className={styles.double}
+                      suffix={" sat"}
+                      thousandSeparator={false}
+                      value={minHtlcMsat}
+                      onValueChange={(values: NumberFormatValues) => {
+                        setMinHtlcMsat(values.floatValue as number);
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className={styles.updateChannelTableDouble}>
+                  <span className={styles.label}>{"Max HTLC amounte"}</span>
+                  <div className={styles.input}>
+                    <NumberFormat
+                      className={styles.double}
+                      suffix={" sat"}
+                      thousandSeparator={true}
+                      value={maxHtlcMsat}
+                      onValueChange={(values: NumberFormatValues) => {
+                        setMaxHtlcMsat(values.floatValue as number);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
 
-                  buttonColor={buttonColor.subtle}
-                />
-              }
-            />
+              <div className={styles.updateChannelTableRow}>
+                <div className={styles.updateChannelTableSingle}>
+                  <span className={styles.label}>{"Time Lock Delta"}</span>
+                  <div className={styles.input}>
+                    <NumberFormat
+                      className={styles.single}
+                      thousandSeparator={false}
+                      value={timeLockDelta}
+                      onValueChange={(values: NumberFormatValues) => {
+                        setTimeLockDelta(values.floatValue as number);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <ButtonWrapper
+                className={styles.customButtonWrapperStyles}
+                rightChildren={
+                  <Button
+                    text={"Update"}
+                    onClick={() => {
+                      setStepIndex(2);
+                      setPolicyState(ProgressStepState.completed);
+                      setResultState(ProgressStepState.processing);
+                      updateChannelMutation({
+                        feeRatePpm,
+                        baseFeeMsat: baseFeeMsat,
+                        timeLockDelta,
+                        minHtlcMsat: minHtlcMsat,
+                        maxHtlcMsat,
+                        channelPoint: lndChannelPoint,
+                        nodeId: selectedLocalNode,
+                      })
+                    }}
+
+                    buttonColor={buttonColor.green}
+                  />
+                }
+              />
           </div>
         </ProgressTabContainer>
         <ProgressTabContainer>
@@ -284,9 +299,9 @@ function NodechannelModal() {
             {updateStatusIcon[response.data?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]}
 
           </div>
-          <>
-            {messages}
-          </>
+          <div className="pop">
+            {errMessage}
+          </div>
         </ProgressTabContainer>
       </ProgressTabs>
     </PopoutPageTemplate>
