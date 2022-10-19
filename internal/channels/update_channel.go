@@ -134,14 +134,14 @@ func processUpdateResponse(resp *lnrpc.PolicyUpdateResponse) (r updateResponse) 
 			failedUpd := failedUpdate{}
 			failedUpd.Reason = failUpdate.UpdateError
 			failedUpd.UpdateError = failUpdate.UpdateError
-			failedUpd.OutPoint.OutIndx = failUpdate.Outpoint.OutputIndex
+			failedUpd.OutPoint.OutputIndex = failUpdate.Outpoint.OutputIndex
 			failedUpd.OutPoint.Txid = failUpdate.Outpoint.TxidStr
 			failedUpdSlice = append(failedUpdSlice, failedUpd)
 		}
-		r.Status = "Channel/s update failed"
+		r.Status = "FAILED"
 		r.FailedUpdates = failedUpdSlice
 	} else {
-		r.Status = "Channel/s updated"
+		r.Status = "SUCCEEDED"
 	}
 	return r
 }

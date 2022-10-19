@@ -1,9 +1,10 @@
 package channels
 
 import (
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"reflect"
 	"testing"
+
+	"github.com/lightningnetwork/lnd/lnrpc"
 )
 
 func Test_processChannelPoint(t *testing.T) {
@@ -183,10 +184,9 @@ func Test_processUpdateResponse(t *testing.T) {
 		3, 67, 142, 26, 122, 16, 45, 156, 23, 62, 240, 213, 240, 59, 228}
 	failedUpdSlice := []failedUpdate{
 		{
-			OutPoint: struct {
-				Txid    string
-				OutIndx uint32
-			}{"e43bf0d5f03e179c2d107a1a8e4303bca066e883f4dbc0d9394f0c5b0721c7ce", 0},
+			OutPoint: OutPoint{
+				Txid:        "e43bf0d5f03e179c2d107a1a8e4303bca066e883f4dbc0d9394f0c5b0721c7ce",
+				OutputIndex: 0},
 			Reason:      "not found",
 			UpdateError: "not found",
 		},

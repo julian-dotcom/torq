@@ -11,16 +11,17 @@ import (
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"github.com/rs/zerolog/log"
 )
 
 type failedUpdate struct {
-	OutPoint struct {
-		Txid    string
-		OutIndx uint32
-	}
-	Reason      string
-	UpdateError string
+	OutPoint    OutPoint `json:"outPoint"`
+	Reason      string   `json:"reason"`
+	UpdateError string   `json:"updateError"`
+}
+
+type OutPoint struct {
+	Txid        string `json:"txId"`
+	OutputIndex uint32 `json:"outputIndex"`
 }
 
 type updateResponse struct {
@@ -59,6 +60,8 @@ type channelBody struct {
 	BaseFeeMsat           int64                `json:"baseFeeMsat"`
 	MinHtlc               int64                `json:"minHtlc"`
 	MaxHtlcMsat           uint64               `json:"maxHtlcMsat"`
+	TimeLockDelta         uint32               `json:"timeLockDelta"`
+	FeeRatePpm            int64                `json:"feeRatePpm"`
 	PendingHtlcs          int64                `json:"pendingHtlcs"`
 	TotalSatoshisSent     int64                `json:"totalSatoshisSent"`
 	NumUpdates            uint64               `json:"numUpdates"`
@@ -75,11 +78,9 @@ func updateChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	requestBody := updateChanRequestBody{}
 
 	if err := c.BindJSON(&requestBody); err != nil {
-		log.Error().Msgf("JSON binding the request body")
 		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
 		return
 	}
-	//log.Debug().Msgf("Received request body: %v", requestBody)
 
 	response, err := updateChannels(db, requestBody)
 	if err != nil {
@@ -182,6 +183,8 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				BaseFeeMsat:           channelFee.Node1Policy.FeeBaseMsat,
 				MinHtlc:               channelFee.Node1Policy.MinHtlc,
 				MaxHtlcMsat:           channelFee.Node1Policy.MaxHtlcMsat,
+				TimeLockDelta:         channelFee.Node1Policy.TimeLockDelta,
+				FeeRatePpm:            channelFee.Node1Policy.FeeRateMilliMsat,
 				NumUpdates:            channel.NumUpdates,
 				Initiator:             channel.Initiator,
 				ChanStatusFlags:       channel.ChanStatusFlags,
