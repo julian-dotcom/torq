@@ -20,7 +20,6 @@ export interface ColumnMetaData {
   valueType: string;
   total?: number;
   max?: number;
-  handler?: (value: string | number) => void;
 }
 
 type TableProps = {
