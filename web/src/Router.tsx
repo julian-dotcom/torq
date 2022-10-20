@@ -25,6 +25,7 @@ import UpdateChannelModal from "features/channels/updateChannel/UpdateChannelMod
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
 
 import * as routes from "constants/routes";
+import NewInvoiceModal from "./features/transact/Invoices/newInvoice/NewInvoiceModal";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -50,7 +51,8 @@ const publicRoutes: RouteObject = {
 
 const modalRoutes: RouteObject = {
   children: [
-    { path: routes.CREATE_PAYMENT, element: <NewPaymentModal /> },
+    { path: routes.NEW_INVOICE, element: <NewInvoiceModal /> },
+    { path: routes.NEW_PAYMENT, element: <NewPaymentModal /> },
     { path: routes.NEW_ADDRESS, element: <NewAddressModal /> },
     { path: routes.UPDATE_CHANNEL, element: <UpdateChannelModal /> },
   ],

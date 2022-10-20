@@ -10,6 +10,24 @@ import (
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
+type newInvoiceRequest struct {
+	LocalNodeId     int     `json:"localNodeId"`
+	Memo            *string `json:"memo"`
+	RPreImage       *string `json:"rPreImage"`
+	ValueMsat       *int64  `json:"valueMsat"`
+	Expiry          *int64  `json:"expiry"`
+	FallBackAddress *string `json:"fallBackAddress"`
+	Private         *bool   `json:"private"`
+	IsAmp           *bool   `json:"isAmp"`
+}
+
+type newInvoiceResponse struct {
+	LocalNodeId    int    `json:"localNodeId"`
+	PaymentRequest string `json:"paymentRequest"`
+	AddIndex       uint64 `json:"addIndex"`
+	PaymentAddress string `json:"paymentAddress"`
+}
+
 func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err error) {
 	newInvoiceReq, err := processInvoiceReq(req)
 	if err != nil {
@@ -40,8 +58,7 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 		return newInvoiceResponse{}, errors.Wrap(err, "Creating invoice on node")
 	}
 
-	//log.Debug().Msgf("Invoice : %v", resp.PaymentRequest)
-
+	r.LocalNodeId = req.LocalNodeId
 	r.PaymentRequest = resp.GetPaymentRequest()
 	r.AddIndex = resp.GetAddIndex()
 	r.PaymentAddress = hex.EncodeToString(resp.GetPaymentAddr())
@@ -70,8 +87,7 @@ func processInvoiceReq(req newInvoiceRequest) (inv lnrpc.Invoice, err error) {
 	if req.ValueMsat != nil {
 		inv.ValueMsat = *req.ValueMsat
 	}
-
-	//Default value is 3600 seconds
+	
 	if req.Expiry != nil {
 		inv.Expiry = *req.Expiry
 	}

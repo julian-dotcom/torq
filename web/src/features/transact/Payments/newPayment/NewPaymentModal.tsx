@@ -167,7 +167,9 @@ function NewPaymentModal() {
 
     // Prevent accidentally adding additional characters to the destination field after
     // the user has entered a valid destination by unfocusing (bluring) the input field.
+    setStepIndex(1);
     setDestState(ProgressStepState.completed);
+    setConfirmState(ProgressStepState.active);
   };
 
   const clearPaymentFlow = () => {
@@ -209,7 +211,12 @@ function NewPaymentModal() {
   }
 
   return (
-    <PopoutPageTemplate title={"New Payment"} show={true} onClose={() => navigate(-1)} icon={<TransactionIconModal />}>
+    <PopoutPageTemplate
+      title={t.header.newPayment}
+      show={true}
+      onClose={() => navigate(-1)}
+      icon={<TransactionIconModal />}
+    >
       <ProgressHeader modalCloseHandler={closeAndReset}>
         <Step label={"Destination"} state={dynamicDestinationState()} last={false} />
         <Step label={"Details"} state={dynamicConfirmedState()} last={false} />
@@ -246,7 +253,8 @@ function NewPaymentModal() {
               <textarea
                 id={"destination"}
                 name={"destination"}
-                placeholder={"E.g. Lightning Invoice"} // , PubKey or On-chain Address
+                disabled={!selectedLocalNode}
+                placeholder={"E.g. Lightning Invoice or on-chain address"} // , PubKey or On-chain Address
                 className={styles.destinationTextArea}
                 value={destination}
                 onChange={setDestinationHandler}

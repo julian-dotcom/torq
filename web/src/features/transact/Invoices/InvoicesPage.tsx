@@ -1,11 +1,12 @@
 import Table, { ColumnMetaData } from "features/table/Table";
 import { useGetInvoicesQuery } from "apiSlice";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
   Options20Regular as OptionsIcon,
+  Check20Regular as InvoiceIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
@@ -18,20 +19,23 @@ import TransactTabs from "../TransactTabs";
 import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
-import FilterSection from "../../sidebar/sections/filter/FilterSection";
-import { Clause, deserialiseQuery, FilterInterface } from "../../sidebar/sections/filter/filter";
-import { useAppDispatch, useAppSelector } from "../../../store/hooks";
+import FilterSection from "features/sidebar/sections/filter/FilterSection";
+import { Clause, deserialiseQuery, FilterInterface } from "features/sidebar/sections/filter/filter";
+import { useAppDispatch, useAppSelector } from "features/../store/hooks";
 import {
   selectActiveColumns,
   selectAllColumns,
   selectInvoicesFilters,
   updateColumns,
   updateInvoicesFilters,
-} from "../Invoices/invoicesSlice";
-import { FilterCategoryType } from "../../sidebar/sections/filter/filter";
-import ColumnsSection from "../../sidebar/sections/columns/ColumnsSection";
-import clone from "../../../clone";
-import { SectionContainer } from "../../section/SectionContainer";
+} from "features/transact/Invoices/invoicesSlice";
+import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
+import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
+import clone from "clone";
+import { SectionContainer } from "features/section/SectionContainer";
+import Button, { buttonColor } from "features/buttons/Button";
+import { NEW_INVOICE } from "constants/routes";
+import useTranslations from "services/i18n/useTranslations";
 
 type sections = {
   filter: boolean;
@@ -46,6 +50,7 @@ const statusTypes: any = {
 };
 
 function InvoicesPage() {
+  const { t } = useTranslations();
   const [limit, setLimit] = useLocalStorage("invoicesLimit", 100);
   const [offset, setOffset] = useState(0);
   const [orderBy, setOrderBy] = useLocalStorage("invoicesOrderBy", [
@@ -55,6 +60,8 @@ function InvoicesPage() {
     },
   ] as Array<OrderBy>);
 
+  const navigate = useNavigate();
+  const location = useLocation();
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const allColumns = useAppSelector(selectAllColumns);
 
@@ -111,6 +118,15 @@ function InvoicesPage() {
     <TableControlSection>
       <TransactTabs />
       <TableControlsButtonGroup>
+        <Button
+          buttonColor={buttonColor.green}
+          text={t.header.newInvoice}
+          className={"collapse-tablet"}
+          icon={<InvoiceIcon />}
+          onClick={() => {
+            navigate(NEW_INVOICE, { state: { background: location } });
+          }}
+        />
         <TableControlsButton
           onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
           icon={OptionsIcon}

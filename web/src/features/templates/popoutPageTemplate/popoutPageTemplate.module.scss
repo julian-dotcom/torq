@@ -52,6 +52,8 @@
   overflow-y: auto;
   height: calc(100% - 48px);
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {

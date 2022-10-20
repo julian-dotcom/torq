@@ -1,0 +1,102 @@
+.addressTypes {
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
+}
+.addressTypeButtons {
+  background-color: var(--primary-50);
+  border: 1px solid var(--primary-250);
+  border-radius: 2px;
+  color: var(--primary-700);
+  padding: 8px 12px;
+  &:hover {
+    background-color: var(--primary-100);
+  }
+}
+.destinationType {
+  word-break: break-all;
+  text-align: center;
+  color: var(--content-default);
+  background-color: var(--content-faded);
+  border-radius: 2px;
+  padding: 8px 12px 8px;
+  &.unknownAddressType {
+    background-color: var(--color-baige-400);
+    color: var(--content-default);
+  }
+  &.errorDestination {
+    background-color: var(--color-red-300);
+    color: var(--color-red-700);
+  }
+}
+
+.customButtonWrapperStyles {
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+.invoiceStatusMessage {
+  font-size: var(--font-size-M);
+  text-align: center;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.amountWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.amountMessage {
+  color: var(--secondary-2-700);
+  font-size: var(--font-size-L);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.amountWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.amount {
+  font-size: 40px;
+  text-align: center;
+  margin: 0 auto 8px;
+}
+.amountLabel {
+  color: var(--content-muted);
+  text-align: center;
+}
+.amountInput {
+  display: inline;
+  width: 100%;
+  text-align: center;
+  font-size: 40px;
+  margin: 8px auto 8px;
+  //padding: 8px 10px 8px;
+  border: solid 1px var(--content-subtle);
+  &:focus {
+    outline: none;
+    border-color: var(--primary-200);
+  }
+}
+.textArea {
+  border-radius: var(--radius-default);
+  border-width: 1px;
+  border-color: var(--fg-subtle);
+  width: 100%;
+  padding: 10px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  outline: none !important;
+  &:focus {
+    border-color: var(--primary-500);
+  }
+}
+.invoiceString {
+  word-break: break-all;
+}

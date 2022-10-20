@@ -12,23 +12,6 @@ import (
 	"strconv"
 )
 
-type newInvoiceRequest struct {
-	LocalNodeId     int     `json:"localNodeId"`
-	Memo            *string `json:"memo"`
-	RPreImage       *string `json:"rPreImage"`
-	ValueMsat       *int64  `json:"valueMsat"`
-	Expiry          *int64  `json:"expiry"`
-	FallBackAddress *string `json:"fallBackAddress"`
-	Private         *bool   `json:"private"`
-	IsAmp           *bool   `json:"isAmp"`
-}
-
-type newInvoiceResponse struct {
-	PaymentRequest string `json:"paymentRequest"`
-	AddIndex       uint64 `json:"addIndex"`
-	PaymentAddress string `json:"paymentAddress"`
-}
-
 func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 
 	// Filter parser with whitelisted columns

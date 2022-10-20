@@ -1,0 +1,28 @@
+.amountWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.amount {
+  font-size: 40px;
+  text-align: center;
+  margin: 0px auto 8px;
+}
+.amountInput {
+  display: inline;
+  width: 100%;
+  text-align: center;
+  font-size: 40px;
+  margin: 8px auto 8px;
+  border: none;
+  &:focus {
+    outline: none;
+  }
+}
+.amountLabel {
+  color: var(--content-muted);
+  text-align: center;
+}

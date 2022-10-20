@@ -18,6 +18,7 @@ export const ALL = "all";
 export const SETTINGS = "/settings";
 
 // modals
-export const CREATE_PAYMENT = "/create-payment";
+export const NEW_INVOICE = "/new-invoice";
+export const NEW_PAYMENT = "/new-payment";
 export const NEW_ADDRESS = "/new-address";
 export const UPDATE_CHANNEL = "/update-channel";
