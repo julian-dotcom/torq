@@ -2,7 +2,7 @@ package torqsrv
 
 import (
 	"fmt"
-
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
@@ -142,39 +142,46 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) error {
 	conn, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "WebSocket upgrade.")
 	}
 	defer conn.Close()
 
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		for {
-			err := conn.WriteJSON(<-wsChan)
-			if err != nil {
-				log.Error().Err(err).Msg("Writing JSON to websocket failure")
+			req := wsRequest{}
+			err := conn.ReadJSON(&req)
+			switch err.(type) {
+			case *websocket.CloseError:
+				log.Debug().Err(err).Msg("WebSocket Close Error.")
+				return
+			case *websocket.HandshakeError:
+				log.Debug().Err(err).Msg("WebSocket Handshake Error.")
+				return
+			case nil:
+				go processWsReq(db, c, wsChan, req)
+			default:
+				wsr := wsError{
+					ReqId: req.ReqId,
+					Type:  "Error",
+					Error: fmt.Sprintf("Could not parse request, please check that your JSON is correctly formated."),
+				}
+				wsChan <- wsr
 			}
 		}
 	}()
 
 	for {
-		req := wsRequest{}
-		err := conn.ReadJSON(&req)
-		switch err.(type) {
-		case *websocket.CloseError:
-			return err
-		case *websocket.HandshakeError:
-			return err
-		case nil:
-			go processWsReq(db, c, wsChan, req)
-			continue
-		default:
-			wsr := wsError{
-				ReqId: req.ReqId,
-				Type:  "Error",
-				Error: fmt.Sprintf("Could not parse request, please check that your JSON is correctly formated"),
+		select {
+		case <-done:
+			return errors.New("WebSocket Terminated.")
+		case data := <-wsChan:
+			err := conn.WriteJSON(data)
+			if err != nil {
+				log.Error().Err(err).Msg("Writing JSON to WebSocket failure.")
+				return errors.New("Writing JSON to WebSocket failure.")
 			}
-			wsChan <- wsr
-			continue
 		}
-
 	}
 }
