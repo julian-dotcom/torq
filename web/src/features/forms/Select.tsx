@@ -5,6 +5,11 @@ type selectProps = {
   label: string;
 } & Props;
 
+export type SelectOptions = {
+  label?: string;
+  value: number;
+}
+
 function Select(props: selectProps) {
   return (
     <div style={{ marginBottom: "var(--form-margin-bottom)" }}>

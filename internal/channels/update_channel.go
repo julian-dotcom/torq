@@ -2,18 +2,19 @@ package channels
 
 import (
 	"context"
+	"strconv"
+	"strings"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/rs/zerolog/log"
-	"strconv"
-	"strings"
 )
 
-//UpdateChannel
-//Returns status, failed updates array
+// UpdateChannel
+// Returns status, failed updates array
 func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, err error) {
 
 	policyReq, err := createPolicyRequest(req)
@@ -93,10 +94,10 @@ func createPolicyRequest(req updateChanRequestBody) (r lnrpc.PolicyUpdateRequest
 	return updChanReq, nil
 }
 
-//processChannelPoint
-//Split received channel point string into fundingtxid and outputindex
-//Build PolicyUpdateRequest_ChanPoint: ChannelPoint_FundingTxidStr, ChannelPoint,
-//Return PolicyUpdateRequest_ChanPoint
+// processChannelPoint
+// Split received channel point string into fundingtxid and outputindex
+// Build PolicyUpdateRequest_ChanPoint: ChannelPoint_FundingTxidStr, ChannelPoint,
+// Return PolicyUpdateRequest_ChanPoint
 func processChannelPoint(chanPoint string) (cp *lnrpc.PolicyUpdateRequest_ChanPoint, err error) {
 
 	//Split string into funding txid and output index
@@ -133,14 +134,14 @@ func processUpdateResponse(resp *lnrpc.PolicyUpdateResponse) (r updateResponse) 
 			failedUpd := failedUpdate{}
 			failedUpd.Reason = failUpdate.UpdateError
 			failedUpd.UpdateError = failUpdate.UpdateError
-			failedUpd.OutPoint.OutIndx = failUpdate.Outpoint.OutputIndex
+			failedUpd.OutPoint.OutputIndex = failUpdate.Outpoint.OutputIndex
 			failedUpd.OutPoint.Txid = failUpdate.Outpoint.TxidStr
 			failedUpdSlice = append(failedUpdSlice, failedUpd)
 		}
-		r.Status = "Channel/s update failed"
+		r.Status = "FAILED"
 		r.FailedUpdates = failedUpdSlice
 	} else {
-		r.Status = "Channel/s updated"
+		r.Status = "SUCCEEDED"
 	}
 	return r
 }

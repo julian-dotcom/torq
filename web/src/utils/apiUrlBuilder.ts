@@ -1,4 +1,4 @@
-import { DEV_BACKEND_PORT, DEV_FRONTEND_PORT, REST_API_PATHNAME } from "constants/backend";
+import {DEV_BACKEND_PORT, DEV_FRONTEND_PORT, REST_API_PATHNAME, WS_API_PATHNAME} from "constants/backend";
 import { BASE_PATHNAME_PREFIX } from "constants/subpath-support";
 
 const isRunningOnSubpath = window.location.pathname.startsWith(BASE_PATHNAME_PREFIX);
@@ -12,20 +12,13 @@ const buildBaseUrl = () => {
     window.location.port === DEV_FRONTEND_PORT.toString()
       ? "//" + window.location.hostname + ":" + DEV_BACKEND_PORT.toString()
       : "//" + window.location.host;
-
-  const url = `//${address}${basePathnamePrefix}`;
-
-  return url;
+  return `//${address}${basePathnamePrefix}`;
 };
 
 export const getRestEndpoint = () => buildBaseUrl() + REST_API_PATHNAME;
 
 export const getWsEndpoint = () => {
   const protocol = isRunningOnSecureConnection ? "wss" : "ws";
-
   const baseApiUrl = buildBaseUrl();
-
-  const url = `${protocol}:${baseApiUrl}/ws`;
-
-  return url;
+  return `${protocol}:${baseApiUrl}${WS_API_PATHNAME}`;
 };

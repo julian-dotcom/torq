@@ -21,3 +21,4 @@ export const SETTINGS = "/settings";
 export const NEW_INVOICE = "/new-invoice";
 export const NEW_PAYMENT = "/new-payment";
 export const NEW_ADDRESS = "/new-address";
+export const UPDATE_CHANNEL = "/update-channel";

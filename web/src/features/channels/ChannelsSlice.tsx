@@ -10,6 +10,7 @@ export const channelsColumns: ColumnMetaData[] = [
     type: "BooleanCell",
     key: "active",
     valueType: "boolean",
+    locked: true,
   },
   {
     heading: "Short Channel ID",
@@ -72,6 +73,36 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "number",
   },
   {
+    heading: "Base Fee Msat",
+    type: "NumericCell",
+    key: "baseFeeMsat",
+    valueType: "number",
+  },
+  {
+    heading: "Minimum HTLC",
+    type: "NumericCell",
+    key: "minHtlc",
+    valueType: "number",
+  },
+  {
+    heading: "Maximum HTLC Msat",
+    type: "NumericCell",
+    key: "maxHtlcMsat",
+    valueType: "number",
+  },
+  {
+    heading: "Time Lock Delta",
+    type: "NumericCell",
+    key: "timeLockDelta",
+    valueType: "number",
+  },
+  {
+    heading: "Fee rate (PPM)",
+    type: "NumericCell",
+    key: "feeRatePpm",
+    valueType: "number",
+  },
+  {
     heading: "LND Short Channel ID",
     type: "TextCell",
     key: "lndShortChannelId",
@@ -101,6 +132,15 @@ export interface ViewInterface {
   groupBy?: string;
 }
 
+export interface PolicyInterface {
+  feeRatePpm: number;
+  timeLockDelta: number;
+  maxHtlcMsat: number;
+  minHtlcMsat: number;
+  baseFeeMsat: number;
+  channelPoint: string;
+  nodeId: number;
+}
 export interface TableChannelsState {
   channels: [];
   views: ViewInterface[];
@@ -131,8 +171,10 @@ export const DefaultView: ViewInterface = {
       "totalSatoshisReceived",
       "pendingHtlcs",
       "unsettledBalance",
-      "remoteBalance",
       "commitFee",
+      "baseFeeMsat",
+      "minHtlc",
+      "maxHtlcMsat",
       "localNodeId",
     ].includes(c.key)
   ),
