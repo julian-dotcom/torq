@@ -11,6 +11,12 @@ import classNames from "classnames";
 import { InvoiceStatusType, NewPaymentResponse } from "../paymentTypes";
 import { useEffect, useState } from "react";
 import { format } from "d3";
+import { StatusIcon } from "../../../templates/popoutPageTemplate/popoutDetails/StatusIcon";
+import {
+  DetailsContainer,
+  DetailsRow,
+  DetailsRowLinkAndCopy,
+} from "../../../templates/popoutPageTemplate/popoutDetails/PopoutDetails";
 
 const f = format(",.0f");
 
@@ -57,18 +63,26 @@ export function InvoicePaymentResponse(props: InvoicePaymentResponseProps) {
           <div className={styles.amountPaidText}>{`Sent to ${props.decodedInvoice.nodeAlias}`}</div>
         </div>
       )}
-      <div className={classNames(styles.paymentResultIconWrapper, paymentStatusClass[status])}>
-        {paymentStatusIcon[status]}
-      </div>
+      <StatusIcon state={status === "SUCCEEDED" ? "success" : status === "FAILED" ? "error" : "processing"} />
       {props.paymentProcessingError && (
         <div className={classNames(styles.paymentStatusMessage)}>{props.paymentProcessingError}</div>
       )}
       {status === "SUCCEEDED" && (
-        <div className={styles.txDetailsContainer}>
-          <div className={styles.txDetailsRow}>
-            <div className={styles.txDetailsLabel}>Fee:</div>
-            <div className={styles.txDetailsValue}>{lastResponse.feePaidMsat} sat</div>
-          </div>
+        // <div className={styles.txDetailsContainer}>
+        //   <div className={styles.txDetailsRow}>
+        //     <div className={styles.txDetailsLabel}>Fee:</div>
+        //     <div className={styles.txDetailsValue}>{lastResponse.feePaidMsat} sat</div>
+        //   </div>
+        // </div>
+        <div>
+          <DetailsContainer>
+            <DetailsRow label={"Fee:"}>{lastResponse.feePaidMsat / 1000}</DetailsRow>
+          </DetailsContainer>
+          <DetailsContainer>
+            <DetailsRowLinkAndCopy label={"Preimage:"} copy={lastResponse.preimage}>
+              {lastResponse.preimage}
+            </DetailsRowLinkAndCopy>
+          </DetailsContainer>
         </div>
       )}
       <ButtonWrapper

@@ -85,60 +85,11 @@
   margin-top: 24px;
   margin-bottom: 16px;
 }
-.paymentResultIconWrapper {
-  padding: 8px;
-  width: min-content;
-  border-radius: 100%;
-  margin: 12px auto;
-  svg {
-    font-size: 124px;
-  }
-}
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.processing {
-  color: var(--color-baige-700);
-  background-color: var(--color-baige-300);
-  svg {
-    font-size: 124px;
-    animation: rotate 1s infinite linear 0s;
-  }
-}
-.success {
-  background-color: var(--secondary-2-100);
-  color: var(--secondary-2-600);
-}
-.failed {
-  background-color: var(--color-red-300);
-  color: var(--color-red-500);
-}
 .paymentStatusMessage {
   font-size: var(--font-size-M);
   text-align: center;
   padding-top: 16px;
   padding-bottom: 16px;
-}
-.txDetailsContainer {
-  margin-top: 24px;
-  display: grid;
-  align-items: center;
-  justify-content: center;
-  row-gap: 24px;
-}
-.txDetailsRow {
-  display: grid;
-  grid-auto-flow: row;
-  align-content: center;
-  justify-content: center;
-  //margin-right: 24px;
-  //margin-left: 24px;
 }
 .amountPaid {
   color: var(--secondary-2-700);
@@ -146,50 +97,3 @@
   font-weight: 500;
   margin-bottom: 8px;
 }
-.txDetailsLabel {
-  color: var(--content-muted);
-  text-align: center;
-}
-.txDetailsValue {
-  margin-top: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-}
-.txDetailsButtonsContainer {
-  display: grid;
-  grid-template-columns: auto min-content min-content;
-  align-items: center;
-  column-gap: 8px;
-  //margin-right: 24px;
-  //margin-left: 24px;
-}
-.txDetailsLink a,
-.txDetailsLink a:visited,
-.txDetailsLink a:link,
-.txDetailsLink a:active,
-.txDetailsLink div {
-  cursor: pointer;
-  border: 1px solid var(--secondary-1-100);
-  background-color: var(--secondary-1-0);
-  border-radius: 100%;
-  width: 36px;
-  height: 36px;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--secondary-1-600);
-  &:hover {
-    background-color: var(--secondary-1-50);
-    border: 1px solid var(--secondary-1-250);
-  }
-}
-//.successfulPaymentIcon {
-//  font-size: 124px;
-//  color: var(--secondary-2-600);
-//}
-//.failedPaymentIcon {
-//  font-size: 124px;
-//  color: var(--color-red-500);
-//}

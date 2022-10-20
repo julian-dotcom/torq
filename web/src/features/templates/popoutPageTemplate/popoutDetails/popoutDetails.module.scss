@@ -1,0 +1,57 @@
+.txDetailsLabel {
+  color: var(--content-muted);
+  text-align: center;
+  margin-top: 16px;
+}
+.txDetailsButtonsContainer {
+  display: grid;
+  grid-template-columns: auto;
+  grid-auto-flow: column;
+  grid-auto-columns: min-content;
+  align-items: center;
+  justify-items: center;
+  column-gap: 8px;
+}
+.txDetailsValue,
+.txDetailsValueButtons {
+  margin-top: 4px;
+  //overflow: hidden;
+  //text-overflow: ellipsis;
+  text-align: center;
+  //width: calc(100% - 32px);
+}
+.txDetailsValueButtons {
+  word-break: break-word;
+  padding: 8px 12px;
+  border-radius: 2px;
+}
+.txDetailsLink a,
+.txDetailsLink a:visited,
+.txDetailsLink a:link,
+.txDetailsLink a:active,
+.txDetailsLink div {
+  cursor: pointer;
+  border: 1px solid var(--secondary-1-100);
+  background-color: var(--secondary-1-0);
+  border-radius: 100%;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--secondary-1-600);
+  &:hover {
+    background-color: var(--secondary-1-50);
+    border: 1px solid var(--secondary-1-250);
+  }
+}
+.txDetailsContainer {
+  display: flex;
+  margin: 0 auto;
+  text-align: center;
+}
+.txDetailsRow {
+  margin: 0 auto;
+  text-align: center;
+}

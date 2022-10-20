@@ -13,9 +13,6 @@
     background-color: var(--primary-100);
   }
 }
-.newAddressResult {
-  word-break: break-all;
-}
 .destinationType {
   word-break: break-all;
   text-align: center;
@@ -37,18 +34,25 @@
   margin-top: 24px;
   margin-bottom: 16px;
 }
-.newAddressStatusMessage {
-  padding: 8px;
-  width: min-content;
-  border-radius: 100%;
-  margin: 12px auto;
-  svg {
-    font-size: 124px;
-  }
+.invoiceStatusMessage {
+  font-size: var(--font-size-M);
+  text-align: center;
+  padding-top: 16px;
+  padding-bottom: 16px;
 }
-.newAddressError {
-  background-color: var(--color-red-300);
-  color: var(--color-red-500);
+.amountWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.amountMessage {
+  color: var(--secondary-2-700);
+  font-size: var(--font-size-L);
+  font-weight: 500;
+  margin-bottom: 8px;
 }
 .amountWrapper {
   display: flex;

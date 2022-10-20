@@ -1,0 +1,34 @@
+.statusWrapper {
+  padding: 8px;
+  width: min-content;
+  border-radius: 100%;
+  margin: 12px auto;
+  svg {
+    font-size: 124px;
+  }
+}
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.processing {
+  color: var(--color-baige-700);
+  background-color: var(--color-baige-300);
+  svg {
+    font-size: 124px;
+    animation: rotate 1s infinite linear 0s;
+  }
+}
+.success {
+  background-color: var(--secondary-2-100);
+  color: var(--secondary-2-600);
+}
+.error {
+  background-color: var(--color-red-300);
+  color: var(--color-red-500);
+}

@@ -1,21 +1,20 @@
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
-import { Copy20Regular as CopyIcon } from "@fluentui/react-icons";
-import {
-  ArrowSyncFilled as ProcessingIcon,
-  CheckmarkRegular as SuccessIcon,
-  DismissRegular as FailedIcon,
-} from "@fluentui/react-icons";
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
-import styles from "features/transact/Payments/newPayment/newPayments.module.scss";
+import styles from "./newInvoice.module.scss";
 import classNames from "classnames";
-import { useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { SerializedError } from "@reduxjs/toolkit";
 import { ProgressStepState } from "features/progressTabs/ProgressHeader";
 import { format } from "d3";
-import { toastCategory } from "features/toast/Toasts";
-import ToastContext from "features/toast/context";
 import { NewInvoiceResponse } from "./newInvoiceTypes";
+import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";
+import Note, { NoteType } from "../../../note/Note";
+import {
+  DetailsContainer,
+  DetailsRow,
+  DetailsRowLinkAndCopy,
+} from "../../../templates/popoutPageTemplate/popoutDetails/PopoutDetails";
 
 const f = format(",.0f");
 
@@ -35,7 +34,6 @@ type NewInvoiceResponseProps = {
 };
 
 export function NewInvoiceResponseStep(props: NewInvoiceResponseProps) {
-  const toastRef = useContext(ToastContext);
   useEffect(() => {
     if (props.response?.isSuccess) {
       props.setDoneState(ProgressStepState.completed);
@@ -47,54 +45,27 @@ export function NewInvoiceResponseStep(props: NewInvoiceResponseProps) {
   return (
     <ProgressTabContainer>
       {props.response?.isSuccess && (
-        <div className={classNames(styles.paymentStatusMessage)}>
-          <div className={styles.amountPaid}>{`${f(props.amount)} sat`}</div>
-          <div className={styles.amountPaidText}>{`On-chain payment broadcasted`}</div>
+        <div className={classNames(styles.amountWrapper)}>
+          <div className={styles.invoiceStatusMessage}>{`Invoice created`}</div>
+          <div className={styles.amountMessage}>{`${f(props.amount)} sat`}</div>
         </div>
       )}
+      <StatusIcon state={props.response?.isSuccess ? "success" : props.response?.isError ? "error" : "processing"} />
       {props.response?.isError && (
-        <div className={classNames(styles.paymentStatusMessage)}>
-          <div className={styles.amountPaidText}>{`Failed on-chain payment`}</div>
-        </div>
+        <Note title={"Error"} noteType={NoteType.error}>
+          {"Failed to create invoice"}
+        </Note>
       )}
-      <div
-        className={classNames(styles.paymentResultIconWrapper, {
-          [styles.processing]: props.response?.isLoading || props.response?.isUninitialized,
-          [styles.failed]: props.response?.isError,
-          [styles.success]: props.response?.isSuccess,
-        })}
-      >
-        {props.response?.isUninitialized && <ProcessingIcon />}
-        {props.response?.isLoading && <ProcessingIcon />}
-        {props.response?.isError && <FailedIcon />}
-        {props.response?.isSuccess && <SuccessIcon />}
-      </div>
       {props.response?.isSuccess && (
-        <div className={styles.txDetailsContainer}>
-          <div className={styles.txDetailsRow}>
-            <div className={styles.txDetailsLabel}>To node: </div>
-            <div className={styles.txDetailsValue}>{props.selectedLocalNode}</div>
-          </div>
-          <div className={styles.txDetailsRow}>
-            <div className={styles.txDetailsLabel}>Invoice: </div>
-            <div className={styles.txDetailsButtonsContainer}>
-              <div className={styles.txDetailsValue}>{props.response?.data?.paymentRequest}</div>
-              <div className={styles.txDetailsLink}>
-                <div className={styles.txDetailsLink}>
-                  <div
-                    onClick={() => {
-                      if (props.response?.data?.paymentRequest) {
-                        navigator.clipboard.writeText(props.response?.data?.paymentRequest);
-                        toastRef?.current?.addToast("Transaction ID copied to clipboard", toastCategory.success);
-                      }
-                    }}
-                  >
-                    <CopyIcon />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div>
+          <DetailsContainer>
+            <DetailsRow label={"Amount"}>{props.amount}</DetailsRow>
+          </DetailsContainer>
+          <DetailsContainer>
+            <DetailsRowLinkAndCopy label={"Invoice:"} copy={props.response?.data?.paymentRequest}>
+              {props.response?.data?.paymentRequest}
+            </DetailsRowLinkAndCopy>
+          </DetailsContainer>
         </div>
       )}
       <ButtonWrapper

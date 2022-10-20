@@ -4,6 +4,9 @@
   padding: 16px;
   //margin-bottom: 8px;
   //margin-top: 8px;
+  &.error {
+    background-color: var(--color-red-300);
+  }
 }
 .noteTitleWrapper {
   display: flex;
@@ -14,9 +17,12 @@
   margin-bottom: 8px;
   color: var(--secondary-1-700);
 }
+.error .noteTitleWrapper {
+  color: var(--color-red-500);
+}
 .noteContent {
   color: var(--secondary-1-700);
-  //opacity: 0.6;
-  //font-size: var(--font-size-small);
-  //line-height: 1.5;
+}
+.error .noteContent {
+  color: var(--content-default);
 }

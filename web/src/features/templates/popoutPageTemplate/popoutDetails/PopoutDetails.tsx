@@ -1,10 +1,5 @@
-import { Copy20Regular as CopyIcon } from "@fluentui/react-icons";
-import {
-  ArrowSyncFilled as ProcessingIcon,
-  CheckmarkRegular as SuccessIcon,
-  DismissRegular as FailedIcon,
-} from "@fluentui/react-icons";
-import styles from "features/Payments/newPayment/newPayments.module.scss";
+import { Copy20Regular as CopyIcon, Link20Regular as LinkIcon } from "@fluentui/react-icons";
+import styles from "./popoutDetails.module.scss";
 import { ReactNode, useContext } from "react";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
@@ -14,7 +9,7 @@ type PopoutDetailsContainer = {
 };
 
 export function DetailsContainer(props: PopoutDetailsContainer) {
-  return <div className={styles.txDetailsContainer}></div>;
+  return <div className={styles.txDetailsContainer}>{props.children}</div>;
 }
 
 type DetailsRowProps = {
@@ -25,7 +20,7 @@ type DetailsRowProps = {
 export function DetailsRow(props: DetailsRowProps) {
   return (
     <div className={styles.txDetailsRow}>
-      <div className={styles.txDetailsLabel}>To node:</div>
+      <div className={styles.txDetailsLabel}>{props.label}</div>
       <div className={styles.txDetailsValue}>{props.children}</div>
     </div>
   );
@@ -43,16 +38,15 @@ export function DetailsRowLinkAndCopy(props: DetailsRowLinkAndCopyProps) {
 
   return (
     <DetailsRow label={props.label}>
-      <div className={styles.txDetailsLabel}>To node:</div>
       <div className={styles.txDetailsButtonsContainer}>
-        <div className={styles.txDetailsValue}>{props.children}</div>
+        <div className={styles.txDetailsValueButtons}>{props.children}</div>
         {props.copy && (
           <div className={styles.txDetailsLink}>
             <div
               onClick={() => {
                 if (props.copy) {
                   navigator.clipboard.writeText(props.copy);
-                  toastRef?.current?.addToast("Transaction ID copied to clipboard", toastCategory.success);
+                  toastRef?.current?.addToast("Copied to clipboard", toastCategory.success);
                 }
               }}
             >
@@ -60,18 +54,11 @@ export function DetailsRowLinkAndCopy(props: DetailsRowLinkAndCopyProps) {
             </div>
           </div>
         )}
-        {props.copy && (
+        {props.link && (
           <div className={styles.txDetailsLink}>
-            <div
-              onClick={() => {
-                if (props.copy) {
-                  navigator.clipboard.writeText(props.copy);
-                  toastRef?.current?.addToast("Transaction ID copied to clipboard", toastCategory.success);
-                }
-              }}
-            >
-              <CopyIcon />
-            </div>
+            <a href={props.link} target="_blank" rel="noreferrer">
+              <LinkIcon />
+            </a>
           </div>
         )}
       </div>

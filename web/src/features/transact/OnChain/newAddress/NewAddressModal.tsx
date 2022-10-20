@@ -1,6 +1,5 @@
 import { MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
 import { useGetLocalNodesQuery, WS_URL } from "apiSlice";
-import classNames from "classnames";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -12,6 +11,12 @@ import styles from "features/transact/OnChain/newAddress/newAddress.module.scss"
 import useTranslations from "services/i18n/useTranslations";
 import { localNode } from "apiTypes";
 import Select from "features/forms/Select";
+import Note, { NoteType } from "features/note/Note";
+import {
+  DetailsContainer,
+  DetailsRowLinkAndCopy,
+} from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
+import { StatusIcon } from "../../../templates/popoutPageTemplate/popoutDetails/StatusIcon";
 
 export type NewAddressRequest = {
   localNodeId: number;
@@ -71,12 +76,13 @@ function NewAddressModal() {
     onNewAddressResponse(response as NewAddressResponse);
   }
 
-  function onNewAddressResponse(response: NewAddressResponse) {
-    setResponse(response);
-    if (response.status == "SUCCEEDED") {
+  function onNewAddressResponse(resp: NewAddressResponse) {
+    console.log(resp.address.length);
+    setResponse(resp);
+    if (resp.address.length) {
       setDoneState(ProgressStepState.completed);
-    } else if (response.status == "FAILED") {
-      setNewAddressError(response.failureReason);
+    } else {
+      setNewAddressError(resp.failureReason);
       setDoneState(ProgressStepState.error);
     }
   }
@@ -162,8 +168,17 @@ function NewAddressModal() {
         </ProgressTabContainer>
 
         <ProgressTabContainer>
-          <div className={classNames(styles.newAddressError)}>{newAddressError}</div>
-          {response && <div className={classNames(styles.destinationType)}>{response.address}</div>}
+          {newAddressError && (
+            <Note title={"Error"} noteType={NoteType.error}>
+              {newAddressError}
+            </Note>
+          )}
+          {!newAddressError && <StatusIcon state={response?.address ? "success" : "processing"} />}
+          <DetailsContainer>
+            <DetailsRowLinkAndCopy label={"Address:"} copy={response?.address}>
+              {response?.address}
+            </DetailsRowLinkAndCopy>
+          </DetailsContainer>
           <ButtonWrapper
             className={styles.customButtonWrapperStyles}
             rightChildren={
