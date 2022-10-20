@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -88,6 +89,7 @@ type localNode struct {
 	PubKey            *string               `json:"pubKey" db:"pub_key"`
 	Disabled          bool                  `json:"disabled" db:"disabled"`
 	Deleted           bool                  `json:"deleted" db:"deleted"`
+	Name              string                `json:"name" form:"name" db:"name"`
 }
 
 func getLocalNodeHandler(c *gin.Context, db *sqlx.DB) {
@@ -186,6 +188,15 @@ func addLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error
 	}
 	localNode.LocalNodeId = localNodeId
 
+	if strings.TrimSpace(localNode.Name) == "" {
+		localNode.Name = "Node " + strconv.Itoa(localNode.LocalNodeId)
+		err := updateLocalNodeName(db, localNode)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+	}
+
 	err = saveTLSAndMacaroon(localNode, c, db)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -213,7 +224,11 @@ func updateLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() er
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+
 	localNode.LocalNodeId = nodeId
+	if strings.TrimSpace(localNode.Name) == "" {
+		localNode.Name = "Node " + strconv.Itoa(localNode.LocalNodeId)
+	}
 
 	existingNodeDetails, err := getLocalNodeConnectionDetailsById(db, nodeId)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 
 type ConnectionDetails struct {
 	LocalNodeId       int
+	Name              string
 	GRPCAddress       string
 	TLSFileBytes      []byte
 	MacaroonFileBytes []byte
@@ -30,7 +31,8 @@ func GetActiveNodesConnectionDetails(db *sqlx.DB) (activeNodes []ConnectionDetai
 			LocalNodeId:       localNodeDetails.LocalNodeId,
 			GRPCAddress:       *localNodeDetails.GRPCAddress,
 			TLSFileBytes:      localNodeDetails.TLSDataBytes,
-			MacaroonFileBytes: localNodeDetails.MacaroonDataBytes})
+			MacaroonFileBytes: localNodeDetails.MacaroonDataBytes,
+			Name:              localNodeDetails.Name})
 	}
 
 	return activeNodes, nil
@@ -44,6 +46,7 @@ func GetNodeConnectionDetailsById(db *sqlx.DB, nodeId int) (connectionDetails Co
 	}
 	cd := ConnectionDetails{
 		LocalNodeId:       node.LocalNodeId,
+		Name:              node.Name,
 		TLSFileBytes:      node.TLSDataBytes,
 		MacaroonFileBytes: node.MacaroonDataBytes,
 		Disabled:          node.Disabled,

@@ -1,0 +1,1 @@
+UPDATE local_node SET name = concat('Node ',local_node_id) WHERE name IS NULL;

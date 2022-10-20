@@ -11,6 +11,7 @@ export interface timeZone {
 
 export interface localNode {
   localNodeId: number;
+  name?: string;
   implementation: string;
   grpcAddress?: string;
   tlsFileName?: string;

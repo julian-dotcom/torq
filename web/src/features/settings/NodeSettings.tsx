@@ -71,7 +71,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   }));
 
   const clear = () => {
-    setLocalState({ grpcAddress: "", implementation: "" } as localNode);
+    setLocalState({ grpcAddress: "", implementation: "", name: "" } as localNode);
   };
 
   React.useEffect(() => {
@@ -103,6 +103,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setSaveEnabledState(false);
     const form = new FormData();
     form.append("implementation", "LND");
+    form.append("name", localState.name ?? "");
     form.append("grpcAddress", localState.grpcAddress ?? "");
     if (localState.tlsFile) {
       form.append("tlsFile", localState.tlsFile, localState.tlsFileName);
@@ -158,6 +159,10 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setLocalState({ ...localState, grpcAddress: value });
   };
 
+  const handleNodeNameChange = (value: string) => {
+    setLocalState({ ...localState, name: value });
+  };
+
   const handleCollapseClick = () => {
     setCollapsedState(!collapsedState);
   };
@@ -203,7 +208,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               {!localState.disabled && <ConnectedIcon />}
               {localState.disabled && <DisconnectedIcon />}
             </div>
-            <div className={styles.title}>{localNodeData?.grpcAddress}</div>
+            <div className={styles.title}>{localNodeData?.name}</div>
             <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
               {collapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
             </div>
@@ -247,6 +252,15 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   options={implementationOptions}
                   value={implementationOptions.find((io) => io.value === localState.implementation)}
                 />
+                <span id="name">
+                  <TextInput
+                    label="Node Name"
+                    value={localState.name}
+                    inputType="text"
+                    onChange={(e) => handleNodeNameChange(e as string)}
+                    placeholder="Node 1"
+                  />
+                </span>
                 <span id="address">
                   <TextInput
                     label="GRPC Address (IP or Tor)"

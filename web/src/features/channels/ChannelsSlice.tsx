@@ -115,6 +115,12 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "string",
   },
   {
+    heading: "Local Node Name",
+    type: "TextCell",
+    key: "localNodeName",
+    valueType: "string",
+  },
+  {
     heading: "Local Node ID",
     type: "NumericCell",
     key: "localNodeId",
@@ -175,7 +181,7 @@ export const DefaultView: ViewInterface = {
       "baseFeeMsat",
       "minHtlc",
       "maxHtlcMsat",
-      "localNodeId",
+      "localNodeName",
     ].includes(c.key)
   ),
   filters: defaultFilter.toJSON(),
