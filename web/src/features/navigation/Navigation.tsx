@@ -1,9 +1,9 @@
-import { useAppDispatch } from "../../store/hooks";
+import { useAppDispatch } from "store/hooks";
 import { toggleNav } from "./navSlice";
 import classNames from "classnames";
 import MenuItem from "./MenuItem";
 import NavCategory from "./NavCategory";
-import { ReactComponent as TorqLogo } from "../../icons/torq-logo.svg";
+import { ReactComponent as TorqLogo } from "icons/torq-logo.svg";
 import {
   Navigation20Regular as CollapseIcon,
   AppsListDetail20Regular as ForwardsIcon,

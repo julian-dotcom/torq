@@ -1,15 +1,14 @@
 import React, { useMemo } from "react";
-
 import { cloneDeep, orderBy } from "lodash";
 import { useAppSelector } from "store/hooks";
-import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
-import { useGetForwardsQuery } from "../../apiSlice";
+import { useGetForwardsQuery } from "apiSlice";
 import { selectFilters, selectGroupBy, selectSortBy } from "./forwardsSlice";
-import { applyFilters, Clause, deserialiseQuery } from "../sidebar/sections/filter/filter";
-import { groupByFn } from "../sidebar/sections/group/groupBy";
-import clone from "../../clone";
-import Table, { ColumnMetaData } from "../table/Table";
+import { applyFilters, Clause, deserialiseQuery } from "features/sidebar/sections/filter/filter";
+import { groupByFn } from "features/sidebar/sections/group/groupBy";
+import clone from "clone";
+import Table, { ColumnMetaData } from "features/table/Table";
 
 interface boxProps {
   activeColumns: ColumnMetaData[];

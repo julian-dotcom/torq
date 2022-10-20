@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import { ScaleLinear, Selection } from "d3";
-import clone from "../../clone";
+import clone from "clone";
 
 type chartConfig = {
   margin: {

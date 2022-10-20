@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { RootState } from "../../store/store";
+import { RootState } from "store/store";
 
 type keyOption = { value: "revenue" | "amount" | "count"; label: string };
 

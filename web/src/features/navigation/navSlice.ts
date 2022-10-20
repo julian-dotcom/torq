@@ -1,5 +1,5 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { RootState } from '../../store/store';
+import { createSlice } from "@reduxjs/toolkit";
+import { RootState } from "store/store";
 
 export interface NavState {
   hidden: boolean;
@@ -10,7 +10,7 @@ const initialState: NavState = {
 };
 
 export const navSlice = createSlice({
-  name: 'navigation',
+  name: "navigation",
   initialState,
 
   // The `reducers` field lets us define reducers and generate associated actions

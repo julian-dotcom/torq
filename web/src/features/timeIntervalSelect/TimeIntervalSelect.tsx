@@ -6,10 +6,10 @@ import { ChevronLeft24Regular as LeftIcon, ChevronRight24Regular as RightIcon } 
 
 import { defaultStaticRangesFn } from "./customRanges";
 
-import Popover from "../popover/Popover";
+import Popover from "features/popover/Popover";
 import classNames from "classnames";
-import Button, { buttonColor } from "../buttons/Button";
-import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import Button, { buttonColor } from "features/buttons/Button";
+import { useAppSelector, useAppDispatch } from "store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
 import { useGetSettingsQuery } from "apiSlice";
 

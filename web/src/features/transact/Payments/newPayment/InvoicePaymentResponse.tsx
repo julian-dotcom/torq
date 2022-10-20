@@ -11,12 +11,12 @@ import classNames from "classnames";
 import { InvoiceStatusType, NewPaymentResponse } from "../paymentTypes";
 import { useEffect, useState } from "react";
 import { format } from "d3";
-import { StatusIcon } from "../../../templates/popoutPageTemplate/popoutDetails/StatusIcon";
+import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";
 import {
   DetailsContainer,
   DetailsRow,
   DetailsRowLinkAndCopy,
-} from "../../../templates/popoutPageTemplate/popoutDetails/PopoutDetails";
+} from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
 
 const f = format(",.0f");
 

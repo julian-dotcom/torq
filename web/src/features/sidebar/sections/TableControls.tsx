@@ -1,10 +1,10 @@
 import styles from "./table_controls.module.scss";
 import { Save20Regular as SaveIcon } from "@fluentui/react-icons";
-import Button, { buttonColor, buttonSize } from "../../buttons/Button";
-import { useAppSelector } from "../../../store/hooks";
-import { selectCurrentView, selectedViewIndex } from "../../forwards/forwardsSlice";
+import Button, { buttonColor, buttonSize } from "features/buttons/Button";
+import { useAppSelector } from "store/hooks";
+import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
 import { useUpdateTableViewMutation, useCreateTableViewMutation } from "apiSlice";
-import ViewsPopover from "../../forwards/views/ViewsPopover";
+import ViewsPopover from "features/forwards/views/ViewsPopover";
 
 function TableControls() {
   const currentView = useAppSelector(selectCurrentView);

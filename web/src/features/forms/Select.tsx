@@ -1,4 +1,4 @@
-import RawSelect, { SelectOptionType } from "../inputs/Select";
+import RawSelect, { SelectOptionType } from "features/inputs/Select";
 import { Props } from "react-select";
 
 type selectProps = {
@@ -8,7 +8,7 @@ type selectProps = {
 export type SelectOptions = {
   label?: string;
   value: number;
-}
+};
 
 function Select(props: selectProps) {
   return (

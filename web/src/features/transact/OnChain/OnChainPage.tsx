@@ -36,7 +36,7 @@ import { SectionContainer } from "features/section/SectionContainer";
 import Button, { buttonColor } from "features/buttons/Button";
 import { NEW_ADDRESS } from "constants/routes";
 import { useLocation } from "react-router";
-import useTranslations from "../../../services/i18n/useTranslations";
+import useTranslations from "services/i18n/useTranslations";
 
 type sections = {
   filter: boolean;

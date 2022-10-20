@@ -21,7 +21,7 @@ import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
 import { Clause, deserialiseQuery, FilterInterface } from "features/sidebar/sections/filter/filter";
-import { useAppDispatch, useAppSelector } from "features/../store/hooks";
+import { useAppDispatch, useAppSelector } from "store/hooks";
 import {
   selectActiveColumns,
   selectAllColumns,

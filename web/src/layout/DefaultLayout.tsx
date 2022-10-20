@@ -1,11 +1,11 @@
 import { Outlet } from "react-router-dom";
-import { useAppSelector } from "../store/hooks";
-import { selectHidden } from "../features/navigation/navSlice";
+import { useAppSelector } from "store/hooks";
+import { selectHidden } from "features/navigation/navSlice";
 import styles from "./default-layout.module.scss";
-import navStyles from "../features/navigation/nav.module.scss";
+import navStyles from "features/navigation/nav.module.scss";
 
-import Navigation from "../features/navigation/Navigation";
-import TopNavigation from "../features/navigation/TopNavigation";
+import Navigation from "features/navigation/Navigation";
+import TopNavigation from "features/navigation/TopNavigation";
 import classNames from "classnames";
 
 function DefaultLayout() {
