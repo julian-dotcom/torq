@@ -6,17 +6,23 @@ import { ColumnMetaData } from "features/table/Table";
 
 export const channelsColumns: ColumnMetaData[] = [
   {
-    heading: "Status",
+    heading: "Active",
     type: "BooleanCell",
     key: "active",
     valueType: "boolean",
-    locked: true,
+    locked: false,
   },
   {
     heading: "Short Channel ID",
     type: "TextCell",
     key: "shortChannelId",
     valueType: "string",
+  },
+  {
+    heading: "Remote Balance",
+    type: "NumericCell",
+    key: "remoteBalance",
+    valueType: "number",
   },
   {
     heading: "Gauge",
@@ -37,39 +43,9 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "number",
   },
   {
-    heading: "Satoshis Sent",
+    heading: "Fee rate (PPM)",
     type: "NumericCell",
-    key: "totalSatoshisSent",
-    valueType: "number",
-  },
-  {
-    heading: "Satoshis Received",
-    type: "NumericCell",
-    key: "totalSatoshisReceived",
-    valueType: "number",
-  },
-  {
-    heading: "Remote Balance",
-    type: "NumericCell",
-    key: "remoteBalance",
-    valueType: "number",
-  },
-  {
-    heading: "Pending HTLCs",
-    type: "NumericCell",
-    key: "pendingHtlcs",
-    valueType: "number",
-  },
-  {
-    heading: "Unsettled Balance",
-    type: "NumericCell",
-    key: "unsettledBalance",
-    valueType: "number",
-  },
-  {
-    heading: "Commit Fee",
-    type: "NumericCell",
-    key: "commitFee",
+    key: "feeRatePpm",
     valueType: "number",
   },
   {
@@ -97,12 +73,6 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "number",
   },
   {
-    heading: "Fee rate (PPM)",
-    type: "NumericCell",
-    key: "feeRatePpm",
-    valueType: "number",
-  },
-  {
     heading: "LND Short Channel ID",
     type: "TextCell",
     key: "lndShortChannelId",
@@ -115,16 +85,46 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "string",
   },
   {
-    heading: "Local Node Name",
-    type: "TextCell",
-    key: "localNodeName",
-    valueType: "string",
+    heading: "Unsettled Balance",
+    type: "NumericCell",
+    key: "unsettledBalance",
+    valueType: "number",
+  },
+  {
+    heading: "Satoshis Sent",
+    type: "NumericCell",
+    key: "totalSatoshisSent",
+    valueType: "number",
+  },
+  {
+    heading: "Satoshis Received",
+    type: "NumericCell",
+    key: "totalSatoshisReceived",
+    valueType: "number",
+  },
+  {
+    heading: "Pending HTLCs",
+    type: "NumericCell",
+    key: "pendingHtlcs",
+    valueType: "number",
+  },
+  {
+    heading: "Commit Fee",
+    type: "NumericCell",
+    key: "commitFee",
+    valueType: "number",
   },
   {
     heading: "Local Node ID",
     type: "NumericCell",
     key: "localNodeId",
     valueType: "number",
+  },
+  {
+    heading: "Local Node Name",
+    type: "TextCell",
+    key: "localNodeName",
+    valueType: "string",
   },
 ];
 
@@ -170,6 +170,8 @@ export const DefaultView: ViewInterface = {
     [
       "active",
       "shortChannelId",
+      "feeRatePpm",
+      "remoteBalance",
       "gauge",
       "localBalance",
       "capacity",
@@ -185,7 +187,7 @@ export const DefaultView: ViewInterface = {
     ].includes(c.key)
   ),
   filters: defaultFilter.toJSON(),
-  sortBy: [{ value: "Capacity", label: "Capacity", direction: "desc" }],
+  sortBy: [],
   groupBy: undefined,
 };
 
