@@ -29,6 +29,7 @@ export const channelsColumns: ColumnMetaData[] = [
     type: "BarCell",
     key: "gauge",
     valueType: "number",
+    percent: true,
   },
   {
     heading: "Local Balance",
@@ -124,6 +125,24 @@ export const channelsColumns: ColumnMetaData[] = [
     heading: "Local Node Name",
     type: "TextCell",
     key: "localNodeName",
+    valueType: "string",
+  },
+  {
+    heading: "Mempool",
+    type: "LinkCell",
+    key: "mempoolSpace",
+    valueType: "string",
+  },
+  {
+    heading: "Amboss",
+    type: "LinkCell",
+    key: "ambossSpace",
+    valueType: "string",
+  },
+  {
+    heading: "1ML",
+    type: "LinkCell",
+    key: "1ml",
     valueType: "string",
   },
 ];

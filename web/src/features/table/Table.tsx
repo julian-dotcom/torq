@@ -10,6 +10,7 @@ import BooleanCell from "./cells/BooleanCell";
 import classNames from "classnames";
 import DateCell from "./cells/DateCell";
 import EnumCell from "./cells/EnumCell";
+import LinkCell from "./cells/LinkCell";
 
 export interface ColumnMetaData {
   heading: string;
@@ -20,6 +21,7 @@ export interface ColumnMetaData {
   valueType: string;
   total?: number;
   max?: number;
+  percent?: boolean
 }
 
 type TableProps = {
@@ -33,6 +35,8 @@ type TableProps = {
 
 function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, columnIndex: number) {
   const key = column.key;
+  const heading = column.heading;
+  const percent = column.percent;
   switch (column.type) {
     case "AliasCell":
       return (
@@ -41,6 +45,15 @@ function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, col
           chanId={row["chan_id"]}
           open={row["open"]}
           className={classNames(key, index, cellStyles.locked)}
+          key={key + index + columnIndex}
+        />
+      );
+    case "LinkCell":
+      return (
+        <LinkCell
+          current={`Check in ${heading}`}
+          link={row[key]}
+          className={classNames(key, index)}
           key={key + index + columnIndex}
         />
       );
@@ -64,6 +77,7 @@ function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, col
           current={row[key] as number}
           total={column.max as number}
           className={key}
+          showPercent={percent}
           key={key + index + columnIndex}
         />
       );

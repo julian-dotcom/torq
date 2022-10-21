@@ -16,6 +16,10 @@
     align-items: start;
     min-width: 200px;
   }
+  &.alignRight {
+    align-items: flex-end;
+    min-width: 170px;
+  }
   .past {
     color: var(--fg-muted);
     font-size: var(--font-size-small);
@@ -214,6 +218,10 @@
   svg {
     color: var(--content-muted);
   }
+}
+
+.link {
+  color: var(--primary-600);
 }
 
 .noTotalsRow {

@@ -7,20 +7,31 @@ interface barCell {
   current: number;
   total: number;
   className?: string;
+  showPercent?: boolean;
 }
+
+function formatPercent(num: number) {
+  return new Intl.NumberFormat('default', {
+    style: 'percent',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num / 100);
+}
+
 const formatterDetailed = format(",.2f");
 const formatter = format(",.0f");
 
-// const percentFormatter = format(".2%");
-
-function BarCell({ current, total, className }: barCell) {
-  // const previousPercent = Math.round((current / previous) * Math.random() * 200);
+function BarCell({ current, total, className, showPercent }: barCell) {
   const percent = (current || 0) / total;
-  // const positive: number = Math.round(Math.random());
+  let data = current % 1 != 0 ? formatterDetailed(current) : formatter(current)
+
+  if (showPercent) {
+    data = formatPercent(current)
+  }
 
   return (
     <div className={classNames(styles.cell, styles.barCell, className)}>
-      <div className={styles.current}>{current % 1 != 0 ? formatterDetailed(current) : formatter(current)}</div>
+      <div className={styles.current}>{data}</div>
       <div className={styles.barWrapper}>
         <div className={styles.bar} style={{ width: percent * 100 + "%" }} />
         <div className={styles.totalBar} />

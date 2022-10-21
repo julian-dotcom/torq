@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -63,7 +64,7 @@ type channelBody struct {
 	MaxHtlcMsat           uint64               `json:"maxHtlcMsat"`
 	TimeLockDelta         uint32               `json:"timeLockDelta"`
 	FeeRatePpm            int64                `json:"feeRatePpm"`
-	PendingHtlcs          int64                `json:"pendingHtlcs"`
+	PendingHtlcs          int                  `json:"pendingHtlcs"`
 	TotalSatoshisSent     int64                `json:"totalSatoshisSent"`
 	NumUpdates            uint64               `json:"numUpdates"`
 	Initiator             bool                 `json:"initiator"`
@@ -73,7 +74,16 @@ type channelBody struct {
 	CommitmentType        lnrpc.CommitmentType `json:"commitmentType"`
 	Lifetime              int64                `json:"lifetime"`
 	TotalSatoshisReceived int64                `json:"totalSatoshisReceived"`
+	MempoolSpace          string               `json:"mempoolSpace"`
+	AmbossSpace           string               `json:"ambossSpace"`
+	OneMl                 string               `json:"1ml"`
 }
+
+const (
+	MEMPOOL string = "https://mempool.space/lightning/channel/"
+	AMBOSS  string = "https://amboss.space/edge/"
+	ONEML   string = "https://1ml.com/channel/"
+)
 
 func updateChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	requestBody := updateChanRequestBody{}
@@ -157,6 +167,8 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 
 		for _, channel := range r.Channels {
 			channelFee, err := client.GetChanInfo(context.Background(), &lnrpc.ChanInfoRequest{ChanId: channel.ChanId})
+			shortChannelId := ConvertLNDShortChannelID(channel.ChanId)
+			stringLNDShortChannelId := strconv.FormatUint(channel.ChanId, 10)
 			if err != nil {
 				server_errors.WrapLogAndSendServerError(c, err, "Channel info")
 				return
@@ -171,14 +183,14 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				RemotePubkey:          channel.RemotePubkey,
 				LNDChannelPoint:       channel.ChannelPoint,
 				LNDShortChannelId:     channel.ChanId,
-				ShortChannelId:        ConvertLNDShortChannelID(channel.ChanId),
+				ShortChannelId:        shortChannelId,
 				Capacity:              channel.Capacity,
 				LocalBalance:          channel.LocalBalance,
 				RemoteBalance:         channel.RemoteBalance,
 				UnsettledBalance:      channel.UnsettledBalance,
 				TotalSatoshisSent:     channel.TotalSatoshisSent,
 				TotalSatoshisReceived: channel.TotalSatoshisReceived,
-				PendingHtlcs:          sumHTLCs(channel.PendingHtlcs),
+				PendingHtlcs:          countHTLCs(channel.PendingHtlcs),
 				CommitFee:             channel.CommitFee,
 				CommitWeight:          channel.CommitWeight,
 				FeePerKw:              channel.FeePerKw,
@@ -192,6 +204,9 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				ChanStatusFlags:       channel.ChanStatusFlags,
 				CommitmentType:        channel.CommitmentType,
 				Lifetime:              channel.Lifetime,
+				MempoolSpace:          MEMPOOL + stringLNDShortChannelId,
+				AmbossSpace:           AMBOSS + shortChannelId,
+				OneMl:                 ONEML + stringLNDShortChannelId,
 			}
 			channelsBody = append(channelsBody, chanBody)
 		}
@@ -199,8 +214,8 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, channelsBody)
 }
 
-func sumHTLCs(htlcs []*lnrpc.HTLC) int64 {
-	var pendingHtlc int64
+func countHTLCs(htlcs []*lnrpc.HTLC) int {
+	var pendingHtlc int
 	if len(htlcs) < 1 {
 		return pendingHtlc
 	} else {
@@ -208,7 +223,7 @@ func sumHTLCs(htlcs []*lnrpc.HTLC) int64 {
 			if htlc.ForwardingHtlcIndex == 0 {
 				continue
 			}
-			pendingHtlc += htlc.Amount
+			pendingHtlc++
 		}
 	}
 
