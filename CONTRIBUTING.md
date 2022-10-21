@@ -111,7 +111,8 @@ To run the backend without LND/CLN event subscription on port 8080 `go run ./cmd
 
 To run the frontend in dev mode on port 3000 you can use `cd web && npm start`
 
-When your code requires a database change you can create a migration file with `migrate create -seq -ext psql -dir database/migrations add_enabled_deleted_to_local_node`
+When your code requires a database change  you can create a migration file with `migrate create -seq -ext psql -dir database/migrations add_enabled_deleted_to_local_node`
+Make sure to have [golang-migrate](https://github.com/golang-migrate/migrate/tree/v4.15.2/cmd/migrate) CLI installed
 You should not bother creating a rollback migration file. We will not be supporting that in this project. The migration itself will run once torq get booted.
 
 ### Testing torq
