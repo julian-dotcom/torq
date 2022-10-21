@@ -47,7 +47,7 @@ function NewAddressModal() {
   let localNodeOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
   if (localNodes !== undefined) {
     localNodeOptions = localNodes.map((localNode: localNode) => {
-      return { value: localNode.localNodeId, label: localNode.grpcAddress };
+      return { value: localNode.localNodeId, label: localNode.name };
     });
   }
 

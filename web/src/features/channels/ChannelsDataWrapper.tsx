@@ -15,7 +15,6 @@ interface boxProps {
 }
 
 function ChannelsDataWrapper(props: boxProps) {
-
   const chanResponse = useGetChannelsQuery();
 
   const sortBy = useAppSelector(selectSortBy);
@@ -27,7 +26,7 @@ function ChannelsDataWrapper(props: boxProps) {
       return [];
     }
 
-    let channels = clone<channel[]>(chanResponse.data as channel[]) || []
+    let channels = clone<channel[]>(chanResponse.data as channel[]) || [];
     const columns = clone<ColumnMetaData[]>(props.activeColumns) || [];
 
     if (channels.length > 0) {

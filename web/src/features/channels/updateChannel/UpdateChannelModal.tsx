@@ -46,7 +46,7 @@ function NodechannelModal() {
   let localNodeOptions: SelectOptions[] = [{ value: 0, label: "Select a local node" }];
   if (localNodes !== undefined) {
     localNodeOptions = localNodes.map((localNode: localNode) => {
-      return { value: localNode.localNodeId, label: localNode.grpcAddress };
+      return { value: localNode.localNodeId, label: localNode.name };
     });
   }
   let channelOptions: SelectOptions[] = [{ value: 0, label: "Select your channel" }];
@@ -290,7 +290,7 @@ function NodechannelModal() {
           <div
             className={classNames(
               styles.updateChannelResultIconWrapper,
-              { [styles.failed]: response.data },
+              { [styles.failed]: !response.data  },
               updateStatusClass[response.data?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]
             )}
           >

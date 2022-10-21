@@ -2,9 +2,10 @@ package settings
 
 import (
 	"database/sql"
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"time"
 )
 
 func getSettings(db *sqlx.DB) (settingsData settings, err error) {
@@ -48,6 +49,7 @@ func getLocalNode(db *sqlx.DB, localNodeId int) (localNodeData localNode, err er
 	err = db.Get(&localNodeData, `
 SELECT
   local_node_id,
+  name,
   implementation,
   grpc_address,
   tls_file_name,
@@ -68,6 +70,7 @@ func getLocalNodes(db *sqlx.DB) (localNodeData []localNode, err error) {
 	err = db.Select(&localNodeData, `
 SELECT
   local_node_id,
+  name,
   implementation,
   grpc_address,
   tls_file_name,
@@ -91,6 +94,7 @@ func getLocalNodeConnectionDetails(db *sqlx.DB) (localNodeData []localNode, err 
 	err = db.Select(&localNodeData, `
 SELECT
   local_node_id,
+  name,
   grpc_address,
   tls_data,
   macaroon_data,
@@ -111,6 +115,7 @@ func getLocalNodeConnectionDetailsById(db *sqlx.DB, localNodeId int) (localNodeD
 	err = db.Get(&localNodeData, `
 SELECT
   local_node_id,
+  name,
   grpc_address,
   tls_data,
   macaroon_data,
@@ -151,9 +156,10 @@ func updateLocalNodeDetails(db *sqlx.DB, localNode localNode) (err error) {
 UPDATE local_node SET
   implementation = $1,
   grpc_address = $2,
-  updated_on = $3
-WHERE local_node_id = $4;
-`, localNode.Implementation, localNode.GRPCAddress, time.Now().UTC(), localNode.LocalNodeId)
+  updated_on = $3,
+  name = $4
+WHERE local_node_id = $5;
+`, localNode.Implementation, localNode.GRPCAddress, time.Now().UTC(), localNode.Name, localNode.LocalNodeId)
 	if err != nil {
 		return errors.Wrap(err, "Unable to execute SQL statement")
 	}
@@ -165,12 +171,26 @@ func insertLocalNodeDetails(db *sqlx.DB, localNode localNode) (localNodeId int, 
 INSERT INTO local_node (
   implementation,
   grpc_address,
-  created_on ) VALUES ($1, $2, $3)
-RETURNING local_node_id;`, localNode.Implementation, localNode.GRPCAddress, time.Now().UTC()).Scan(&localNodeId)
+  created_on,
+  name ) VALUES ($1, $2, $3, $4)
+RETURNING local_node_id;`, localNode.Implementation, localNode.GRPCAddress, time.Now().UTC(), localNode.Name).Scan(&localNodeId)
 	if err != nil {
 		return 0, errors.Wrap(err, "Unable to execute SQL statement")
 	}
 	return localNodeId, nil
+}
+
+func updateLocalNodeName(db *sqlx.DB, localNode localNode) (err error) {
+	_, err = db.Exec(`
+UPDATE local_node SET
+  name = $1,
+  updated_on = $2
+WHERE local_node_id = $3;
+`, localNode.Name, time.Now().UTC(), localNode.LocalNodeId)
+	if err != nil {
+		return errors.Wrap(err, "Unable to execute SQL statement")
+	}
+	return nil
 }
 
 func updateLocalNodeTLS(db *sqlx.DB, localNode localNode) (err error) {
