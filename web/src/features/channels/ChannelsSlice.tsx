@@ -128,6 +128,12 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "string",
   },
   {
+    heading: "Peer Alias",
+    type: "TextCell",
+    key: "peerAlias",
+    valueType: "string",
+  },
+  {
     heading: "Mempool",
     type: "LinkCell",
     key: "mempoolSpace",

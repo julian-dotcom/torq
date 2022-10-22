@@ -77,6 +77,7 @@ type channelBody struct {
 	MempoolSpace          string               `json:"mempoolSpace"`
 	AmbossSpace           string               `json:"ambossSpace"`
 	OneMl                 string               `json:"1ml"`
+	PeerAlias             string               `json:"peerAlias"`
 }
 
 const (
@@ -159,6 +160,12 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 		defer conn.Close()
 
 		client := lnrpc.NewLightningClient(conn)
+
+		nodeInfo, _ := client.GetNodeInfo(context.Background(), &lnrpc.NodeInfoRequest{IncludeChannels: true, PubKey: *node.PubKey})
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Node info")
+			return
+		}
 		r, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "List channels")
@@ -176,6 +183,7 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 
 			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
 			chanBody := channelBody{
+				PeerAlias:             nodeInfo.Node.Alias,
 				LocalNodeId:           node.LocalNodeId,
 				LocalNodeName:         node.Name,
 				Active:                channel.Active,

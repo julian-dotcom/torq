@@ -183,7 +183,7 @@ export const torqApi = createApi({
         method: "POST",
         body: localNode,
       }),
-      invalidatesTags: ["localNodes"],
+      invalidatesTags: ["localNodes","channels"],
     }),
     updateLocalNode: builder.mutation<any, { form: FormData; localNodeId: number }>({
       query: (localNode) => ({
@@ -191,7 +191,7 @@ export const torqApi = createApi({
         method: "PUT",
         body: localNode.form,
       }),
-      invalidatesTags: ["localNodes"],
+      invalidatesTags: ["localNodes","channels"],
     }),
     updateLocalNodeSetDisabled: builder.mutation<any, { localNodeId: number; disabled: boolean }>({
       query: (localNode) => ({
@@ -199,14 +199,14 @@ export const torqApi = createApi({
         method: "PUT",
         body: localNode,
       }),
-      invalidatesTags: ["localNodes"],
+      invalidatesTags: ["localNodes","channels"],
     }),
     updateLocalNodeSetDeleted: builder.mutation<any, { localNodeId: number }>({
       query: (localNode) => ({
         url: `settings/local-nodes/${localNode.localNodeId}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["localNodes"],
+      invalidatesTags: ["localNodes","channels"],
     }),
   }),
 });
