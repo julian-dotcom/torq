@@ -17,7 +17,7 @@ func Test_processRequest(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   ConnectPeerRequest
-		want    lnrpc.ConnectPeerRequest
+		want    *lnrpc.ConnectPeerRequest
 		wantErr bool
 	}{
 		{
@@ -27,7 +27,7 @@ func Test_processRequest(t *testing.T) {
 				Perm:       &perm,
 				TimeOut:    &timeOut,
 			},
-			lnrpc.ConnectPeerRequest{},
+			&lnrpc.ConnectPeerRequest{},
 			true,
 		},
 		{
@@ -41,7 +41,7 @@ func Test_processRequest(t *testing.T) {
 				Perm:    nil,
 				TimeOut: nil,
 			},
-			lnrpc.ConnectPeerRequest{},
+			&lnrpc.ConnectPeerRequest{},
 			true,
 		},
 		{
@@ -55,7 +55,7 @@ func Test_processRequest(t *testing.T) {
 				Perm:    nil,
 				TimeOut: nil,
 			},
-			lnrpc.ConnectPeerRequest{},
+			&lnrpc.ConnectPeerRequest{},
 			true,
 		},
 		{
@@ -66,7 +66,7 @@ func Test_processRequest(t *testing.T) {
 				Perm:       &perm,
 				TimeOut:    &timeOut,
 			},
-			lnrpc.ConnectPeerRequest{
+			&lnrpc.ConnectPeerRequest{
 				Addr: &lnrpc.LightningAddress{
 					Pubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0",
 					Host:   "127.0.0.1:10010",

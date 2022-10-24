@@ -14,7 +14,7 @@ func ConnectPeer(client lnrpc.LightningClient, ctx context.Context, req ConnectP
 		return "", errors.Wrap(err, "Processing request")
 	}
 
-	_, err = client.ConnectPeer(ctx, &connPeerReq)
+	_, err = client.ConnectPeer(ctx, connPeerReq)
 	if err != nil {
 		if strings.Contains(err.Error(), "already connected") {
 			return "Peer already connected", nil
@@ -25,10 +25,10 @@ func ConnectPeer(client lnrpc.LightningClient, ctx context.Context, req ConnectP
 	return "Peer connected", nil
 }
 
-func processRequest(req ConnectPeerRequest) (r lnrpc.ConnectPeerRequest, err error) {
+func processRequest(req ConnectPeerRequest) (r *lnrpc.ConnectPeerRequest, err error) {
 
 	if req.LndAddress.PubKey == "" || req.LndAddress.Host == "" {
-		return lnrpc.ConnectPeerRequest{}, errors.New("Both LND Address and host must be provided")
+		return &lnrpc.ConnectPeerRequest{}, errors.New("Both LND Address and host must be provided")
 	}
 
 	addr := lnrpc.LightningAddress{
