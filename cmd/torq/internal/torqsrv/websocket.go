@@ -72,7 +72,6 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 				Error: err.Error(),
 			}
 		}
-		break
 	case "newAddress":
 		if req.NewAddressRequest == nil {
 			wChan <- wsError{
@@ -91,7 +90,6 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 				Error: err.Error(),
 			}
 		}
-		break
 	case "closeChannel":
 		if req.CloseChannelRequest == nil {
 			wChan <- wsError{
@@ -110,7 +108,6 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 				Error: err.Error(),
 			}
 		}
-		break
 	case "openChannel":
 		if req.OpenChannelRequest == nil {
 			wChan <- wsError{
@@ -128,7 +125,6 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 				Error: err.Error(),
 			}
 		}
-		break
 	default:
 		err := fmt.Errorf("Unknown request type: %s", req.Type)
 		wChan <- wsError{
