@@ -13,6 +13,7 @@ type ConnectionDetails struct {
 	MacaroonFileBytes []byte
 	Disabled          bool
 	Deleted           bool
+	PubKey            *string
 }
 
 func GetActiveNodesConnectionDetails(db *sqlx.DB) (activeNodes []ConnectionDetails, err error) {
@@ -32,7 +33,8 @@ func GetActiveNodesConnectionDetails(db *sqlx.DB) (activeNodes []ConnectionDetai
 			GRPCAddress:       *localNodeDetails.GRPCAddress,
 			TLSFileBytes:      localNodeDetails.TLSDataBytes,
 			MacaroonFileBytes: localNodeDetails.MacaroonDataBytes,
-			Name:              localNodeDetails.Name})
+			Name:              localNodeDetails.Name,
+			PubKey:            localNodeDetails.PubKey})
 	}
 
 	return activeNodes, nil

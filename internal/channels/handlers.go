@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -43,37 +44,61 @@ type pendingChannel struct {
 }
 
 type channelBody struct {
-	LocalNodeId           int                  `json:"localNodeId"`
-	LocalNodeName         string               `json:"localNodeName"`
-	Active                bool                 `json:"active"`
-	Gauge                 float64              `json:"gauge"`
-	RemotePubkey          string               `json:"remotePubkey"`
-	LNDChannelPoint       string               `json:"lndChannelPoint"`
-	LNDShortChannelId     uint64               `json:"lndShortChannelId"`
-	ShortChannelId        string               `json:"shortChannelId"`
-	Capacity              int64                `json:"capacity"`
-	LocalBalance          int64                `json:"localBalance"`
-	RemoteBalance         int64                `json:"remoteBalance"`
-	UnsettledBalance      int64                `json:"unsettledBalance"`
-	CommitFee             int64                `json:"commitFee"`
-	CommitWeight          int64                `json:"commitWeight"`
-	FeePerKw              int64                `json:"feePerKw"`
-	BaseFeeMsat           int64                `json:"baseFeeMsat"`
-	MinHtlc               int64                `json:"minHtlc"`
-	MaxHtlcMsat           uint64               `json:"maxHtlcMsat"`
-	TimeLockDelta         uint32               `json:"timeLockDelta"`
-	FeeRatePpm            int64                `json:"feeRatePpm"`
-	PendingHtlcs          int64                `json:"pendingHtlcs"`
-	TotalSatoshisSent     int64                `json:"totalSatoshisSent"`
-	NumUpdates            uint64               `json:"numUpdates"`
-	Initiator             bool                 `json:"initiator"`
-	ChanStatusFlags       string               `json:"chanStatusFlags"`
-	LocalChanReserveSat   int64                `json:"localChanReserveSat"`
-	RemoteChanReserveSat  int64                `json:"remoteChanReserveSat"`
-	CommitmentType        lnrpc.CommitmentType `json:"commitmentType"`
-	Lifetime              int64                `json:"lifetime"`
-	TotalSatoshisReceived int64                `json:"totalSatoshisReceived"`
+	LocalNodeId                  int                  `json:"localNodeId"`
+	LocalNodeName                string               `json:"localNodeName"`
+	Active                       bool                 `json:"active"`
+	Gauge                        float64              `json:"gauge"`
+	RemotePubkey                 string               `json:"remotePubkey"`
+	LNDChannelPoint              string               `json:"lndChannelPoint"`
+	LNDShortChannelId            uint64               `json:"lndShortChannelId"`
+	ShortChannelId               string               `json:"shortChannelId"`
+	Capacity                     int64                `json:"capacity"`
+	LocalBalance                 int64                `json:"localBalance"`
+	RemoteBalance                int64                `json:"remoteBalance"`
+	UnsettledBalance             int64                `json:"unsettledBalance"`
+	CommitFee                    int64                `json:"commitFee"`
+	CommitWeight                 int64                `json:"commitWeight"`
+	FeePerKw                     int64                `json:"feePerKw"`
+	BaseFeeMsat                  int64                `json:"baseFeeMsat"`
+	MinHtlc                      int64                `json:"minHtlc"`
+	MaxHtlcMsat                  uint64               `json:"maxHtlcMsat"`
+	TimeLockDelta                uint32               `json:"timeLockDelta"`
+	FeeRatePpm                   int64                `json:"feeRatePpm"`
+	PendingForwardingHTLCsCount  int                  `json:"pendingForwardingHTLCsCount"`
+	PendingForwardingHTLCsAmount int64                `json:"pendingForwardingHTLCsAmount"`
+	PendingLocalHTLCsCount       int                  `json:"pendingLocalHTLCsCount"`
+	PendingLocalHTLCsAmount      int64                `json:"pendingLocalHTLCsAmount"`
+	PendingTotalHTLCsCount       int                  `json:"pendingTotalHTLCsCount"`
+	PendingTotalHTLCsAmount      int64                `json:"pendingTotalHTLCsAmount"`
+	TotalSatoshisSent            int64                `json:"totalSatoshisSent"`
+	NumUpdates                   uint64               `json:"numUpdates"`
+	Initiator                    bool                 `json:"initiator"`
+	ChanStatusFlags              string               `json:"chanStatusFlags"`
+	LocalChanReserveSat          int64                `json:"localChanReserveSat"`
+	RemoteChanReserveSat         int64                `json:"remoteChanReserveSat"`
+	CommitmentType               lnrpc.CommitmentType `json:"commitmentType"`
+	Lifetime                     int64                `json:"lifetime"`
+	TotalSatoshisReceived        int64                `json:"totalSatoshisReceived"`
+	MempoolSpace                 string               `json:"mempoolSpace"`
+	AmbossSpace                  string               `json:"ambossSpace"`
+	OneMl                        string               `json:"1ml"`
+	PeerAlias                    string               `json:"peerAlias"`
 }
+
+type PendingHtlcs struct {
+	ForwardingCount  int   `json:"forwardingCount"`
+	ForwardingAmount int64 `json:"forwardingAmount"`
+	LocalCount       int   `json:"localCount"`
+	LocalAmount      int64 `json:"localAmount"`
+	TotalCount       int   `json:"toalCount"`
+	TotalAmount      int64 `json:"totalAmount"`
+}
+
+const (
+	MEMPOOL string = "https://mempool.space/lightning/channel/"
+	AMBOSS  string = "https://amboss.space/edge/"
+	ONEML   string = "https://1ml.com/channel/"
+)
 
 func updateChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	requestBody := updateChanRequestBody{}
@@ -149,6 +174,13 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 		defer conn.Close()
 
 		client := lnrpc.NewLightningClient(conn)
+
+		nodeInfo, err := client.GetNodeInfo(context.Background(), &lnrpc.NodeInfoRequest{IncludeChannels: true, PubKey: *node.PubKey})
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Node info")
+			return
+		}
+
 		r, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "List channels")
@@ -161,37 +193,50 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				server_errors.WrapLogAndSendServerError(c, err, "Channel info")
 				return
 			}
+			shortChannelId := ConvertLNDShortChannelID(channel.ChanId)
+			stringLNDShortChannelId := strconv.FormatUint(channel.ChanId, 10)
+
+			pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
 
 			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
 			chanBody := channelBody{
-				LocalNodeId:           node.LocalNodeId,
-				LocalNodeName:         node.Name,
-				Active:                channel.Active,
-				Gauge:                 gauge,
-				RemotePubkey:          channel.RemotePubkey,
-				LNDChannelPoint:       channel.ChannelPoint,
-				LNDShortChannelId:     channel.ChanId,
-				ShortChannelId:        ConvertLNDShortChannelID(channel.ChanId),
-				Capacity:              channel.Capacity,
-				LocalBalance:          channel.LocalBalance,
-				RemoteBalance:         channel.RemoteBalance,
-				UnsettledBalance:      channel.UnsettledBalance,
-				TotalSatoshisSent:     channel.TotalSatoshisSent,
-				TotalSatoshisReceived: channel.TotalSatoshisReceived,
-				PendingHtlcs:          sumHTLCs(channel.PendingHtlcs),
-				CommitFee:             channel.CommitFee,
-				CommitWeight:          channel.CommitWeight,
-				FeePerKw:              channel.FeePerKw,
-				BaseFeeMsat:           channelFee.Node1Policy.FeeBaseMsat,
-				MinHtlc:               channelFee.Node1Policy.MinHtlc,
-				MaxHtlcMsat:           channelFee.Node1Policy.MaxHtlcMsat,
-				TimeLockDelta:         channelFee.Node1Policy.TimeLockDelta,
-				FeeRatePpm:            channelFee.Node1Policy.FeeRateMilliMsat,
-				NumUpdates:            channel.NumUpdates,
-				Initiator:             channel.Initiator,
-				ChanStatusFlags:       channel.ChanStatusFlags,
-				CommitmentType:        channel.CommitmentType,
-				Lifetime:              channel.Lifetime,
+				PeerAlias:                    nodeInfo.Node.Alias,
+				LocalNodeId:                  node.LocalNodeId,
+				LocalNodeName:                node.Name,
+				Active:                       channel.Active,
+				Gauge:                        gauge,
+				RemotePubkey:                 channel.RemotePubkey,
+				LNDChannelPoint:              channel.ChannelPoint,
+				LNDShortChannelId:            channel.ChanId,
+				ShortChannelId:               shortChannelId,
+				Capacity:                     channel.Capacity,
+				LocalBalance:                 channel.LocalBalance,
+				RemoteBalance:                channel.RemoteBalance,
+				UnsettledBalance:             channel.UnsettledBalance,
+				TotalSatoshisSent:            channel.TotalSatoshisSent,
+				TotalSatoshisReceived:        channel.TotalSatoshisReceived,
+				PendingForwardingHTLCsCount:  pendingHTLCs.ForwardingCount,
+				PendingForwardingHTLCsAmount: pendingHTLCs.ForwardingAmount,
+				PendingLocalHTLCsCount:       pendingHTLCs.LocalCount,
+				PendingLocalHTLCsAmount:      pendingHTLCs.LocalAmount,
+				PendingTotalHTLCsCount:       pendingHTLCs.TotalCount,
+				PendingTotalHTLCsAmount:      pendingHTLCs.TotalAmount,
+				CommitFee:                    channel.CommitFee,
+				CommitWeight:                 channel.CommitWeight,
+				FeePerKw:                     channel.FeePerKw,
+				BaseFeeMsat:                  channelFee.Node1Policy.FeeBaseMsat,
+				MinHtlc:                      channelFee.Node1Policy.MinHtlc,
+				MaxHtlcMsat:                  channelFee.Node1Policy.MaxHtlcMsat,
+				TimeLockDelta:                channelFee.Node1Policy.TimeLockDelta,
+				FeeRatePpm:                   channelFee.Node1Policy.FeeRateMilliMsat,
+				NumUpdates:                   channel.NumUpdates,
+				Initiator:                    channel.Initiator,
+				ChanStatusFlags:              channel.ChanStatusFlags,
+				CommitmentType:               channel.CommitmentType,
+				Lifetime:                     channel.Lifetime,
+				MempoolSpace:                 MEMPOOL + stringLNDShortChannelId,
+				AmbossSpace:                  AMBOSS + shortChannelId,
+				OneMl:                        ONEML + stringLNDShortChannelId,
 			}
 			channelsBody = append(channelsBody, chanBody)
 		}
@@ -199,18 +244,23 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, channelsBody)
 }
 
-func sumHTLCs(htlcs []*lnrpc.HTLC) int64 {
-	var pendingHtlc int64
+func calculateHTLCs(htlcs []*lnrpc.HTLC) PendingHtlcs {
+	var pendingHTLCs PendingHtlcs
 	if len(htlcs) < 1 {
-		return pendingHtlc
+		return pendingHTLCs
 	} else {
 		for _, htlc := range htlcs {
 			if htlc.ForwardingHtlcIndex == 0 {
-				continue
+				pendingHTLCs.LocalCount++
+				pendingHTLCs.LocalAmount += htlc.Amount
+			} else {
+				pendingHTLCs.ForwardingCount++
+				pendingHTLCs.ForwardingAmount += htlc.Amount
 			}
-			pendingHtlc += htlc.Amount
 		}
+		pendingHTLCs.TotalAmount = pendingHTLCs.ForwardingAmount + pendingHTLCs.ForwardingAmount
+		pendingHTLCs.TotalCount = pendingHTLCs.ForwardingCount + pendingHTLCs.LocalCount
 	}
 
-	return pendingHtlc
+	return pendingHTLCs
 }

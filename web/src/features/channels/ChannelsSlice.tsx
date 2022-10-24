@@ -13,6 +13,12 @@ export const channelsColumns: ColumnMetaData[] = [
     locked: false,
   },
   {
+    heading: "Peer Alias",
+    type: "TextCell",
+    key: "peerAlias",
+    valueType: "string",
+  },
+  {
     heading: "Short Channel ID",
     type: "TextCell",
     key: "shortChannelId",
@@ -29,6 +35,7 @@ export const channelsColumns: ColumnMetaData[] = [
     type: "BarCell",
     key: "gauge",
     valueType: "number",
+    percent: true,
   },
   {
     heading: "Local Balance",
@@ -103,9 +110,39 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "number",
   },
   {
-    heading: "Pending HTLCs",
+    heading: "Pending Forwarding HTLCs count",
     type: "NumericCell",
-    key: "pendingHtlcs",
+    key: "pendingForwardingHTLCsCount",
+    valueType: "number",
+  },
+  {
+    heading: "Pending Forwarding HTLCs",
+    type: "NumericCell",
+    key: "pendingForwardingHTLCsAmount",
+    valueType: "number",
+  },
+  {
+    heading: "Pending Forwarding HTLCs count",
+    type: "NumericCell",
+    key: "pendingLocalHTLCsCount",
+    valueType: "number",
+  },
+  {
+    heading: "Pending Forwarding HTLCs",
+    type: "NumericCell",
+    key: "pendingLocalHTLCsAmount",
+    valueType: "number",
+  },
+  {
+    heading: "Total Pending Forwarding HTLCs count",
+    type: "NumericCell",
+    key: "pendingTotalHTLCsCount",
+    valueType: "number",
+  },
+  {
+    heading: "Total Pending Forwarding HTLCs",
+    type: "NumericCell",
+    key: "pendingTotalHTLCsAmount",
     valueType: "number",
   },
   {
@@ -124,6 +161,24 @@ export const channelsColumns: ColumnMetaData[] = [
     heading: "Local Node Name",
     type: "TextCell",
     key: "localNodeName",
+    valueType: "string",
+  },
+  {
+    heading: "Mempool",
+    type: "LinkCell",
+    key: "mempoolSpace",
+    valueType: "string",
+  },
+  {
+    heading: "Amboss",
+    type: "LinkCell",
+    key: "ambossSpace",
+    valueType: "string",
+  },
+  {
+    heading: "1ML",
+    type: "LinkCell",
+    key: "1ml",
     valueType: "string",
   },
 ];
@@ -169,6 +224,7 @@ export const DefaultView: ViewInterface = {
   columns: channelsColumns.filter((c) =>
     [
       "active",
+      "peerAlias",
       "shortChannelId",
       "feeRatePpm",
       "remoteBalance",
@@ -177,7 +233,7 @@ export const DefaultView: ViewInterface = {
       "capacity",
       "totalSatoshisSent",
       "totalSatoshisReceived",
-      "pendingHtlcs",
+      "totalCount",
       "unsettledBalance",
       "commitFee",
       "baseFeeMsat",
