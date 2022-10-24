@@ -94,7 +94,6 @@ func (qp *QueryParser) ParseFilter(f Filter) (r sq.Sqlizer, err error) {
 			paramList = append(paramList, fmt.Sprintf("%v", v))
 		}
 		param = paramList
-		break
 	default:
 		return r, fmt.Errorf("unsupported parameter type: %T", f.Parameter)
 	}
