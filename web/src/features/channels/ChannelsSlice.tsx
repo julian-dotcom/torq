@@ -13,6 +13,12 @@ export const channelsColumns: ColumnMetaData[] = [
     locked: false,
   },
   {
+    heading: "Peer Alias",
+    type: "TextCell",
+    key: "peerAlias",
+    valueType: "string",
+  },
+  {
     heading: "Short Channel ID",
     type: "TextCell",
     key: "shortChannelId",
@@ -158,12 +164,6 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "string",
   },
   {
-    heading: "Peer Alias",
-    type: "TextCell",
-    key: "peerAlias",
-    valueType: "string",
-  },
-  {
     heading: "Mempool",
     type: "LinkCell",
     key: "mempoolSpace",
@@ -224,6 +224,7 @@ export const DefaultView: ViewInterface = {
   columns: channelsColumns.filter((c) =>
     [
       "active",
+      "peerAlias",
       "shortChannelId",
       "feeRatePpm",
       "remoteBalance",
