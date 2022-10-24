@@ -351,8 +351,8 @@ func ExecCommand(ctx context.Context, cli *client.Client,
 	}
 	// DEBUG Tip: uncomment below to see raw output of commands
 	if len(os.Getenv("DEBUG")) > 0 {
-		log.Printf("%s\n", string(bufStdout.Bytes()))
-		log.Printf("%s\n", string(bufStderr.Bytes()))
+		log.Printf("%s\n", string(bufStdout.String()))
+		log.Printf("%s\n", string(bufStderr.String()))
 	}
 	return bufStdout, bufStderr, nil
 }
