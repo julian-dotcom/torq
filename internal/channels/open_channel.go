@@ -77,7 +77,7 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 	}
 
 	//Send open channel request
-	openChanRes, err := client.OpenChannel(ctx, &openChanReq)
+	openChanRes, err := client.OpenChannel(ctx, openChanReq)
 
 	if err != nil {
 		return err
@@ -110,22 +110,22 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 	}
 }
 
-func prepareOpenRequest(ocReq OpenChannelRequest) (r lnrpc.OpenChannelRequest, err error) {
+func prepareOpenRequest(ocReq OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
 	if ocReq.NodeId == 0 {
-		return lnrpc.OpenChannelRequest{}, errors.New("Node id is missing")
+		return &lnrpc.OpenChannelRequest{}, errors.New("Node id is missing")
 	}
 
 	if ocReq.SatPerVbyte != nil && ocReq.TargetConf != nil {
-		return lnrpc.OpenChannelRequest{}, errors.New("Cannot set both SatPerVbyte and TargetConf")
+		return &lnrpc.OpenChannelRequest{}, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
 
 	pubKeyHex, err := hex.DecodeString(ocReq.NodePubKey)
 	if err != nil {
-		return lnrpc.OpenChannelRequest{}, errors.New("error decoding public key hex")
+		return &lnrpc.OpenChannelRequest{}, errors.New("error decoding public key hex")
 	}
 
 	//open channel request
-	openChanReq := lnrpc.OpenChannelRequest{
+	openChanReq := &lnrpc.OpenChannelRequest{
 		NodePubkey: pubKeyHex,
 
 		// This is the amount we are putting into the channel (channel size)
