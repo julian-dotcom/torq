@@ -135,7 +135,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 		return nil, errors.Wrapf(err, "sqlx.Open(\"postgres\", %s)", dns)
 	}
 
-	if migrate == true {
+	if migrate {
 		// Migrate the new test database
 		err = database.MigrateUp(db)
 		if err != nil {
