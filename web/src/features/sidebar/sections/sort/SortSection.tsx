@@ -12,7 +12,7 @@ import Button, { buttonColor, buttonSize } from "features/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
-import { useStrictDroppable } from "../../../../utils/UseStrictDroppable";
+import { useStrictDroppable } from "utils/UseStrictDroppable";
 
 export type OrderBy = {
   key: string;

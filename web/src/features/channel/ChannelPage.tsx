@@ -7,14 +7,14 @@ import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsP
 import React from "react";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import Button, { buttonColor, buttonSize } from "../buttons/Button";
-import EventsCard from "../eventsCard/EventsCard";
-import Select from "../inputs/Select";
-import Switch from "../inputs/Slider/Switch";
-import Popover from "../popover/Popover";
-import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import { useAppDispatch, useAppSelector } from "store/hooks";
+import Button, { buttonColor, buttonSize } from "features/buttons/Button";
+import EventsCard from "features/eventsCard/EventsCard";
+import Select from "features/inputs/Select";
+import Switch from "features/inputs/Slider/Switch";
+import Popover from "features/popover/Popover";
+import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
+import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import BalanceChart from "./balanceChart/BalanceChart";
 import styles from "./channel-page.module.scss";
 import {

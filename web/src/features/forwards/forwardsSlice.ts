@@ -1,9 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { RootState } from "../../store/store";
-import { AndClause, FilterClause } from "../sidebar/sections/filter/filter";
-import { SortByOptionType } from "../sidebar/sections/sort/SortSectionOld";
+import { RootState } from "store/store";
+import { AndClause, FilterClause } from "features/sidebar/sections/filter/filter";
+import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
 import { torqApi } from "apiSlice";
-import { ColumnMetaData } from "../table/Table";
+import { ColumnMetaData } from "features/table/Table";
 
 export const availableColumns: ColumnMetaData[] = [
   {

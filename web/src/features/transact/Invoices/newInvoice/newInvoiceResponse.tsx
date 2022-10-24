@@ -9,12 +9,12 @@ import { ProgressStepState } from "features/progressTabs/ProgressHeader";
 import { format } from "d3";
 import { NewInvoiceResponse } from "./newInvoiceTypes";
 import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";
-import Note, { NoteType } from "../../../note/Note";
+import Note, { NoteType } from "features/note/Note";
 import {
   DetailsContainer,
   DetailsRow,
   DetailsRowLinkAndCopy,
-} from "../../../templates/popoutPageTemplate/popoutDetails/PopoutDetails";
+} from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
 
 const f = format(",.0f");
 

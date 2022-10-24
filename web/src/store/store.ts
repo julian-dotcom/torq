@@ -1,9 +1,9 @@
 import { configureStore, ThunkAction, Action } from "@reduxjs/toolkit";
-import navReducer from "../features/navigation/navSlice";
-import channelReducer from "../features/channel/channelSlice";
-import channelsReducer from "../features/channels/ChannelsSlice";
-import tableReducer from "../features/forwards/forwardsSlice";
-import timeIntervalReducer from "../features/timeIntervalSelect/timeIntervalSlice";
+import navReducer from "features/navigation/navSlice";
+import channelReducer from "features/channel/channelSlice";
+import channelsReducer from "features/channels/ChannelsSlice";
+import tableReducer from "features/forwards/forwardsSlice";
+import timeIntervalReducer from "features/timeIntervalSelect/timeIntervalSlice";
 import { torqApi } from "apiSlice";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import paymentsReducer from "features/transact/Payments/paymentsSlice";

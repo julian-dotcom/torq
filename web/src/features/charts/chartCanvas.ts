@@ -3,7 +3,7 @@ import { NumberValue, ScaleLinear, ScaleTime, Selection } from "d3";
 import { addHours, subHours, differenceInDays, subDays, differenceInSeconds } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
 import { BarPlot } from "./plots/bar";
-import clone from "../../clone";
+import clone from "clone";
 
 type chartConfig = {
   yScaleKey: string;

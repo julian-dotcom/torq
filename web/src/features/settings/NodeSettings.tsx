@@ -1,6 +1,6 @@
 import Box from "./Box";
 import styles from "./NodeSettings.module.scss";
-import Select, { SelectOption } from "../forms/Select";
+import Select, { SelectOption } from "features/forms/Select";
 import React, { useState } from "react";
 import {
   Save20Regular as SaveIcon,
@@ -15,9 +15,9 @@ import {
   Play20Regular as PlayIcon,
 } from "@fluentui/react-icons";
 import Spinny from "features/spinny/Spinny";
-import { toastCategory } from "../toast/Toasts";
-import ToastContext from "../toast/context";
-import File from "../forms/File";
+import { toastCategory } from "features/toast/Toasts";
+import ToastContext from "features/toast/context";
+import File from "features/forms/File";
 import TextInput from "features/forms/TextInput";
 import {
   useGetLocalNodeQuery,

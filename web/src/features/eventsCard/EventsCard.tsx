@@ -1,9 +1,9 @@
 import React from "react";
 import * as d3 from "d3";
-import styles from "../channel/channel-page.module.scss";
+import styles from "features/channel/channel-page.module.scss";
 import classNames from "classnames";
 import { format } from "date-fns";
-import eventIcons from "../charts/plots/eventIcons";
+import eventIcons from "features/charts/plots/eventIcons";
 
 function fm(value: number): string | number {
   if (value > 1) {

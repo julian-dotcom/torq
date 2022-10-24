@@ -7,7 +7,7 @@ import {
   Save20Regular as SaveIcon,
   Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
-import Sidebar from "../sidebar/Sidebar";
+import Sidebar from "features/sidebar/Sidebar";
 import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation } from "apiSlice";
 
 import { Clause, FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
@@ -17,9 +17,9 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlSection,
   TableControlsTabsGroup,
-} from "../templates/tablePageTemplate/TablePageTemplate";
+} from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { useAppDispatch, useAppSelector } from "store/hooks";
 import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
 import {
   selectActiveColumns,
@@ -33,14 +33,14 @@ import {
   updateSortBy,
 } from "./forwardsSlice";
 import ViewsPopover from "./views/ViewsPopover";
-import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
-import FilterSection from "../sidebar/sections/filter/FilterSection";
-import SortSection, { SortByOptionType } from "../sidebar/sections/sort/SortSectionOld";
-import GroupBySection from "../sidebar/sections/group/GroupBySection";
+import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
+import FilterSection from "features/sidebar/sections/filter/FilterSection";
+import SortSection, { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
+import GroupBySection from "features/sidebar/sections/group/GroupBySection";
 import ForwardsDataWrapper from "./ForwardsDataWrapper";
-import TimeIntervalSelect from "../timeIntervalSelect/TimeIntervalSelect";
-import { SectionContainer } from "../section/SectionContainer";
-import Button, { buttonColor } from "../buttons/Button";
+import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
+import { SectionContainer } from "features/section/SectionContainer";
+import Button, { buttonColor } from "features/buttons/Button";
 
 type sections = {
   filter: boolean;

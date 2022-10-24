@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { RootState } from "../../store/store";
+import { RootState } from "store/store";
 import { defineds, getCompareRanges, defaultStaticRangesFn } from "./customRanges";
 import { torqApi } from "apiSlice";
 import { Draft } from "immer";

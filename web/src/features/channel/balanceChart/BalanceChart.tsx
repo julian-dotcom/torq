@@ -1,15 +1,15 @@
 // https://www.pluralsight.com/guides/using-d3.js-inside-a-react-app
-import { useD3 } from "../../charts/useD3";
+import { useD3 } from "features/charts/useD3";
 import * as d3 from "d3";
 import { useEffect } from "react";
 import { NumberValue, Selection } from "d3";
-import ChartCanvas from "../../charts/chartCanvas";
-import "../../charts/chart.scss";
-import { AreaPlot } from "../../charts/charts";
+import ChartCanvas from "features/charts/chartCanvas";
+import "features/charts/chart.scss";
+import { AreaPlot } from "features/charts/charts";
 import { selectProfitChartKey } from "../channelSlice";
-import { useAppSelector } from "../../../store/hooks";
-import clone from "../../../clone";
-import { useGetSettingsQuery } from "../../../apiSlice";
+import { useAppSelector } from "store/hooks";
+import clone from "clone";
+import { useGetSettingsQuery } from "apiSlice";
 
 type BalanceChart = {
   data: any[];

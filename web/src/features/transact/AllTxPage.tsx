@@ -5,15 +5,15 @@ import {
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
 } from "@fluentui/react-icons";
-import Sidebar from "../sidebar/Sidebar";
+import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
-} from "../templates/tablePageTemplate/TablePageTemplate";
+} from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TransactTabs from "./TransactTabs";
-import { SectionContainer } from "../section/SectionContainer";
+import { SectionContainer } from "features/section/SectionContainer";
 
 type sections = {
   filter: boolean;

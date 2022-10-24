@@ -16,7 +16,7 @@ import {
   DetailsContainer,
   DetailsRowLinkAndCopy,
 } from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
-import { StatusIcon } from "../../../templates/popoutPageTemplate/popoutDetails/StatusIcon";
+import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";
 
 export type NewAddressRequest = {
   localNodeId: number;

@@ -15,7 +15,7 @@ import {
   DetailsRow,
   DetailsRowLinkAndCopy,
 } from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
-import { StatusIcon } from "../../../templates/popoutPageTemplate/popoutDetails/StatusIcon";
+import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";
 
 const f = format(",.0f");
 
