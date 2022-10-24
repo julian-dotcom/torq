@@ -99,7 +99,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   CloseChannelRequest
-		want    lnrpc.CloseChannelRequest
+		want    *lnrpc.CloseChannelRequest
 		wantErr bool
 	}{
 		{
@@ -107,7 +107,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 			CloseChannelRequest{
 				ChannelPoint: "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c:1",
 			},
-			lnrpc.CloseChannelRequest{
+			&lnrpc.CloseChannelRequest{
 				ChannelPoint: channelPoint,
 			},
 			true,
@@ -122,7 +122,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 				DeliveryAddress: nil,
 				SatPerVbyte:     &satPerVbyte,
 			},
-			lnrpc.CloseChannelRequest{
+			&lnrpc.CloseChannelRequest{
 				ChannelPoint:    nil,
 				Force:           false,
 				TargetConf:      0,
@@ -137,7 +137,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 				NodeId:       1,
 				ChannelPoint: "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c:1",
 			},
-			lnrpc.CloseChannelRequest{
+			&lnrpc.CloseChannelRequest{
 				ChannelPoint: channelPoint,
 			},
 			false,
@@ -151,7 +151,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 				TargetConf:      &targetConf,
 				DeliveryAddress: &deliveryAddress,
 			},
-			lnrpc.CloseChannelRequest{
+			&lnrpc.CloseChannelRequest{
 				ChannelPoint:    channelPoint,
 				Force:           true,
 				TargetConf:      12,

@@ -65,10 +65,10 @@ func CloseChannel(wChan chan interface{}, db *sqlx.DB, c *gin.Context, ccReq Clo
 		return errors.Wrap(err, "Preparing close request")
 	}
 
-	return closeChannelResp(client, &closeChanReq, wChan, reqId)
+	return closeChannelResp(client, closeChanReq, wChan, reqId)
 }
 
-func prepareCloseRequest(ccReq CloseChannelRequest) (r lnrpc.CloseChannelRequest, err error) {
+func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelRequest, err error) {
 
 	if ccReq.NodeId == 0 {
 		return r, errors.New("Node id is missing")
@@ -84,7 +84,7 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r lnrpc.CloseChannelRequest
 	}
 	//
 	//Make the close channel request
-	closeChanReq := lnrpc.CloseChannelRequest{
+	closeChanReq := &lnrpc.CloseChannelRequest{
 		ChannelPoint: channelPoint,
 	}
 
