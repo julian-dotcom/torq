@@ -1,6 +1,5 @@
 on:
   workflow_call:
-    secrets: inherit
 jobs:
   all-tests:
     name: All Tests

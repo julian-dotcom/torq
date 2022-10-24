@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/run-all-tests.yml
+    secrets: inherit
+
   amd64:
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Push AMD64 Docker image to Docker Hub
