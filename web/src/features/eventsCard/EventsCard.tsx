@@ -4,6 +4,7 @@ import styles from "features/channel/channel-page.module.scss";
 import classNames from "classnames";
 import { format } from "date-fns";
 import eventIcons from "features/charts/plots/eventIcons";
+import { ChannelEventResponse, ChannelHistoryResponse, Channel, Event } from "features/channel/channelTypes"
 
 function fm(value: number): string | number {
   if (value > 1) {
@@ -35,31 +36,32 @@ function formatEventText(type: string, value: number, prev: number, outbound: bo
 }
 
 type eventCardType = {
-  events: any;
+  events: ChannelEventResponse;
+  channels: ChannelHistoryResponse
   selectedEvents: Map<string, boolean>;
 };
 
-function EventsCard({ events, selectedEvents }: eventCardType) {
+function EventsCard({ events, selectedEvents, channels }: eventCardType) {
   let prev: string;
   let prevAlias: string;
 
   return (
     <div className={classNames(styles.card, styles.scroll)} style={{ height: "600px" }}>
       <div className={styles.eventRowsWrapper}>
-        {!events?.data?.events && <div className={styles.eventRowName}>No events</div>}
-        {events?.data?.events &&
-          events.data.events
-            .filter((d: any) => {
+        {!events?.events && <div className={styles.eventRowName}>No events</div>}
+        {events?.events &&
+          events.events
+            .filter((d: Event) => {
               return selectedEvents.get(d.type); // selectedEventTypes
             })
-            .map((event: any, index: number) => {
+            .map((event: Event, index: number) => {
               const icon = eventIcons.get(event.type);
-              const newDate = prev !== event.date;
-              const newAlias = prevAlias !== event.channel_point;
+              const newDate = prev !== event.date as string;
+              const newAlias = prevAlias !== event.lndChannelPoint;
               prev = event.date;
-              prevAlias = event.channel_point;
-              const chan =
-                (events?.data?.channels || []).find((c: any) => c.channel_point === event.channel_point) || {};
+              prevAlias = event.lndChannelPoint;
+              const chan: Channel =
+                (channels?.channels || []).find((c: Channel) => c.channelPoint === event.lndChannelPoint) as Channel || {};
 
               return (
                 <React.Fragment key={"empty-wrapper-" + index}>
@@ -72,7 +74,7 @@ function EventsCard({ events, selectedEvents }: eventCardType) {
                     <div key={"name-row" + index} className={styles.eventRowName}>
                       <div className={styles.channelAlias}>{chan.alias}</div>
                       <div>|</div>
-                      <div className={styles.channelPoint}>{chan.channel_point}</div>
+                      <div className={styles.channelPoint}>{chan.channelPoint}</div>
                     </div>
                   )}
                   <div
@@ -83,7 +85,7 @@ function EventsCard({ events, selectedEvents }: eventCardType) {
                       <div className={styles.datetime}>{format(new Date(event.datetime), "hh:mm")}</div>
                       <div className={"event-type"} dangerouslySetInnerHTML={{ __html: icon as string }} />
                       <div className={"event-type-label"}>
-                        {formatEventText(event.type, event.value, event.previous_value, event.outbound)}
+                        {formatEventText(event.type, event.value, event.previousValue, event.outbound)}
                       </div>
                     </div>
                   </div>

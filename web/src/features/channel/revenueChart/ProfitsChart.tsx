@@ -42,14 +42,14 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
           from: new Date(from),
           to: new Date(to),
           timezone: settings?.data?.preferredTimezone || "UTC",
-          yScaleKey: profitKey.value + "_out",
-          rightYScaleKey: profitKey.value + "_out",
-          rightYAxisKeys: [profitKey.value + "_out"],
+          yScaleKey: profitKey.value + "Out",
+          rightYScaleKey: profitKey.value + "Out",
+          rightYAxisKeys: [profitKey.value + "Out"],
           xAxisPadding: 12,
         });
         chart.plot(BarPlot, {
-          id: profitKey.value + "_out",
-          key: profitKey.value + "_out",
+          id: profitKey.value + "Out",
+          key: profitKey.value + "Out",
           legendLabel: profitKey.label + " out",
           barColor: "rgba(133, 196, 255, 0.5)",
           // areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
@@ -60,27 +60,27 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
           from: new Date(from),
           to: new Date(to),
           timezone: settings?.data?.preferredTimezone || "UTC",
-          yScaleKey: profitKey.value + "_total",
-          rightYScaleKey: profitKey.value + "_total",
-          rightYAxisKeys: [profitKey.value + "_out", profitKey.value + "_in"],
+          yScaleKey: profitKey.value + "Total",
+          rightYScaleKey: profitKey.value + "Total",
+          rightYAxisKeys: [profitKey.value + "Out", profitKey.value + "In"],
           xAxisPadding: 12,
         });
         chart.plot(BarPlot, {
-          id: profitKey.value + "_total",
-          key: profitKey.value + "_total",
+          id: profitKey.value + "Total",
+          key: profitKey.value + "Total",
           legendLabel: profitKey.label + " total",
           // areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
           barColor: "rgba(133, 196, 255, 0.5)",
         });
         chart.plot(LinePlot, {
-          id: profitKey.value + "_out",
-          key: profitKey.value + "_out",
+          id: profitKey.value + "Out",
+          key: profitKey.value + "Out",
           legendLabel: profitKey.label + " out",
           lineColor: "#BA93FA",
         });
         chart.plot(LinePlot, {
-          id: profitKey.value + "_in",
-          key: profitKey.value + "_in",
+          id: profitKey.value + "In",
+          key: profitKey.value + "In",
           legendLabel: profitKey.label + " in",
           lineColor: "#FAAE93",
         });

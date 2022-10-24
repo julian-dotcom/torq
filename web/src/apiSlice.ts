@@ -3,12 +3,18 @@ import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSli
 import { PolicyInterface } from "features/channels/ChannelsSlice"
 import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
 import { UpdatedChannelResponse } from "features/channels/channelsTypes"
+import {
+  ChannelOnchainCostResponse,
+  ChannelHistoryResponse,
+  ChannelRebalancingResponse,
+  ChannelBalanceResponse,
+  ChannelEventResponse,
+} from "features/channel/channelTypes"
 
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type {
   GetChannelHistoryQueryParams,
   GetDecodedInvoiceQueryParams,
-  GetFlowQueryParams,
   GetForwardsQueryParams,
   GetInvoicesQueryParams,
   GetOnChainTransactionsQueryParams,
@@ -53,11 +59,23 @@ export const torqApi = createApi({
   baseQuery: baseQueryWithRedirect,
   tagTypes: ["settings", "tableView", "localNodes", "channels"],
   endpoints: (builder) => ({
-    getFlow: builder.query<any, GetFlowQueryParams>({
-      query: (params) => queryParamsBuilder("flow", params), //
+    getFlow: builder.query<any, GetChannelHistoryQueryParams>({
+      query: (params) => queryParamsBuilder("flow", params),
     }),
-    getChannelHistory: builder.query<any, GetChannelHistoryQueryParams>({
-      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds" }, params),
+    getChannelHistory: builder.query<ChannelHistoryResponse, GetChannelHistoryQueryParams>({
+      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "history" }, params),
+    }),
+    getChannelEvent: builder.query<ChannelEventResponse, GetChannelHistoryQueryParams>({
+      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "event" }, params),
+    }),
+    getChannelBalance: builder.query<ChannelBalanceResponse, GetChannelHistoryQueryParams>({
+      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "balance" }, params),
+    }),
+    getChannelRebalancing: builder.query<ChannelRebalancingResponse, GetChannelHistoryQueryParams>({
+      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "rebalancing" }, params),
+    }),
+    getChannelOnChainCost: builder.query<ChannelOnchainCostResponse, GetChannelHistoryQueryParams>({
+      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "onchaincost" }, params),
     }),
     getForwards: builder.query<any, GetForwardsQueryParams>({
       query: (params) => queryParamsBuilder("forwards", params, true),
@@ -216,6 +234,10 @@ export const torqApi = createApi({
 export const {
   useGetFlowQuery,
   useGetChannelHistoryQuery,
+  useGetChannelEventQuery,
+  useGetChannelBalanceQuery,
+  useGetChannelRebalancingQuery,
+  useGetChannelOnChainCostQuery,
   useGetForwardsQuery,
   useGetChannelsQuery,
   useGetDecodedInvoiceQuery,

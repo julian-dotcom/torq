@@ -17,42 +17,32 @@ type ChannelHistory struct {
 	// such as a tag.
 	Label string `json:"label"`
 
-	// OnChainCost     *uint64 `json:"on_chain_cost"`
-	// RebalancingCost *uint64 `json:"rebalancing_cost"`
-
 	// The  outbound amount in sats (Satoshis)
-	AmountOut *uint64 `json:"amount_out"`
+	AmountOut *uint64 `json:"amountOut"`
 	// The inbound amount in sats (Satoshis)
-	AmountIn *uint64 `json:"amount_in"`
+	AmountIn *uint64 `json:"amountIn"`
 	// The total amount in sats (Satoshis) forwarded
-	AmountTotal *uint64 `json:"amount_total"`
+	AmountTotal *uint64 `json:"amountTotal"`
 
 	// The outbound revenue in sats. This is what the channel has directly produced.
-	RevenueOut *uint64 `json:"revenue_out"`
+	RevenueOut *uint64 `json:"revenueOut"`
 	// The inbound revenue in sats. This is what the channel has indirectly produced.
 	// This revenue are not really earned by this channel/peer/group, but represents
 	// the channel/peer/group contribution to revenue earned by other channels.
-	RevenueIn *uint64 `json:"revenue_in"`
+	RevenueIn *uint64 `json:"revenueIn"`
 	// The total revenue in sats. This is what the channel has directly and indirectly produced.
-	RevenueTotal *uint64 `json:"revenue_total"`
+	RevenueTotal *uint64 `json:"revenueTotal"`
 
 	// Number of outbound forwards.
-	CountOut *uint64 `json:"count_out"`
+	CountOut *uint64 `json:"countOut"`
 	// Number of inbound forwards.
-	CountIn *uint64 `json:"count_in"`
+	CountIn *uint64 `json:"countIn"`
 	// Number of total forwards.
-	CountTotal *uint64 `json:"count_total"`
-
-	// Aggregated details about successful rebalancing (i.g. amount, cost, counts)
-	// RebalancingDetails RebalancingDetails `json:"rebalancing"`
-
-	// // Channel balances over time
-	// ChannelBalances []*ChannelBalance `json:"channel_balance"`
+	CountTotal *uint64 `json:"countTotal"`
 
 	// A list of channels included in this response
 	Channels []*channel               `json:"channels"`
 	History  []*ChannelHistoryRecords `json:"history"`
-	// Events   []*ChannelEvent          `json:"events"`
 }
 
 func getChannelFrom(queryFrom string) (time.Time, error) {
@@ -112,60 +102,10 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	r.History = chanHistory
 
-	// chanEventHistory, err := getChannelEventHistory(db, chanIds, from, to)
-	// if err != nil {
-	// 	server_errors.LogAndSendServerError(c, err)
-	// 	return
-	// }
-	// r.Events = chanEventHistory
-
-	// if chanIds[0] == "1" {
-	// 	r.OnChainCost, err = getTotalOnChainCost(db, from, to)
-	// } else {
-	// 	r.OnChainCost, err = getChannelOnChainCost(db, chanIds)
-	// }
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-
-	// if chanIds[0] == "1" {
-	// 	reb, err := getRebalancingCost(db, from, to)
-	// 	r.RebalancingCost = &reb.TotalCostMsat
-	// 	r.RebalancingDetails = reb
-	// 	if err != nil {
-	// 		server_errors.LogAndSendServerError(c, err)
-	// 		return
-	// 	}
-	// } else {
-	// 	r.OnChainCost, err = getChannelOnChainCost(db, chanIds)
-	// 	reb, err := getChannelRebalancing(db, chanIds, from, to)
-	// 	r.RebalancingCost = &reb.SplitCostMsat
-	// 	r.RebalancingDetails = reb
-	// 	if err != nil {
-	// 		server_errors.LogAndSendServerError(c, err)
-	// 		return
-	// 	}
-	// }
-
-	// if chanIds[0] != "1" {
-
-	// 	for _, chanId := range chanIds {
-	// 		cb, err := getChannelBalance(db, string(chanId), from, to)
-	// 		if err != nil {
-	// 			server_errors.LogAndSendServerError(c, err)
-	// 			return
-	// 		}
-
-	// 		if len(r.ChannelBalances) == 0 {
-	// 			r.ChannelBalances = []*ChannelBalance{&cb}
-	// 		} else {
-	// 			r.ChannelBalances = append(r.ChannelBalances, &cb)
-	// 		}
-
-	// 	}
-
-	// }
 
 	c.JSON(http.StatusOK, r)
 }
@@ -200,12 +140,11 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 
 type ChannelBalanceHistory struct {
 	// Channel balances over time
-	ChannelBalances []*ChannelBalance `json:"channel_balance"`
+	ChannelBalances []*ChannelBalance `json:"channelBalance"`
 }
 
 func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 	var r ChannelBalanceHistory
-	//var chanBalance []*ChannelBalance
 	from, err := getChannelFrom(c.Query("from"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -241,7 +180,7 @@ func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 type ChannelReBalancing struct {
-	RebalancingCost *uint64 `json:"rebalancing_cost"`
+	RebalancingCost *uint64 `json:"rebalancingCost"`
 	// Aggregated details about successful rebalancing (i.g. amount, cost, counts)
 	RebalancingDetails RebalancingDetails `json:"rebalancing"`
 }
@@ -282,7 +221,7 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 type ChannelOnChainCost struct {
-	OnChainCost *uint64 `json:"on_chain_cost"`
+	OnChainCost *uint64 `json:"onChainCost"`
 }
 
 func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {

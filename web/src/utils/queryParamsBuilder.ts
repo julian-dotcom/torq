@@ -4,6 +4,7 @@ import type { BaseQueryCollectionParams } from "types/api";
 type EndpointDefinition = {
   endpoint: string;
   baseParam: string;
+  suffixEndpoint?: string;
 };
 
 const baseQueryDefaultPaginationParams: BaseQueryCollectionParams = {
@@ -12,9 +13,12 @@ const baseQueryDefaultPaginationParams: BaseQueryCollectionParams = {
 };
 
 const parseEndpointDefinition = <T extends { [s: string]: unknown }>(
-  { endpoint, baseParam }: EndpointDefinition,
+  { endpoint, baseParam, suffixEndpoint }: EndpointDefinition,
   params: T
-): string => `${endpoint}/${params[baseParam]}`;
+): string => {
+ if (!suffixEndpoint) return `${endpoint}/${params[baseParam]}`
+ return  `${endpoint}/${params[baseParam]}/${suffixEndpoint}`
+};
 
 const removeBaseParam = <T extends { [s: string]: unknown }>(endpoint: EndpointDefinition | string, params: T) =>
   typeof endpoint === "object" ? omit(params, endpoint.baseParam) : params;

@@ -46,14 +46,14 @@ function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
         paddedData.unshift({
           capacity_diff: 0,
           date: from,
-          inbound_capacity: data[0].inbound_capacity,
-          outbound_capacity: data[0].outbound_capacity,
+          inboundCapacity: data[0].inboundCapacity,
+          outboundCapacity: data[0].outboundCapacity,
         });
         paddedData.push({
           capacity_diff: 0,
           date: to,
-          inbound_capacity: data[Math.max(data.length - 1, 0)].inbound_capacity,
-          outbound_capacity: data[Math.max(data.length - 1, 0)].outbound_capacity,
+          inboundCapacity: data[Math.max(data.length - 1, 0)].inboundCapacity,
+          outboundCapacity: data[Math.max(data.length - 1, 0)].outboundCapacity,
         });
       }
 
@@ -61,17 +61,17 @@ function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
         from: new Date(from),
         to: new Date(to),
         timezone: settings?.data?.preferredTimezone || "UTC",
-        yScaleKey: "outbound_capacity",
-        rightYScaleKey: "outbound_capacity",
-        rightYAxisKeys: ["outbound_capacity"],
+        yScaleKey: "outboundCapacity",
+        rightYScaleKey: "outboundCapacity",
+        rightYAxisKeys: ["outboundCapacity"],
         yAxisMaxOverride: totalCapacity,
         rightYAxisMaxOverride: totalCapacity,
         xAxisLabelFormatter: d3.timeFormat("%d %b - %H:%M") as (domainValue: NumberValue) => string,
       });
 
       chart.plot(AreaPlot, {
-        id: "outbound_capacity",
-        key: "outbound_capacity",
+        id: "outboundCapacity",
+        key: "outboundCapacity",
         legendLabel: "Outbound capacity",
         curveFunction: d3.curveStepAfter,
         areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.6)"],

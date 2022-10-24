@@ -1,14 +1,15 @@
 package flow
 
 import (
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/pkg/server_errors"
 	"gopkg.in/guregu/null.v4"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type channelFlowData struct {
@@ -50,8 +51,8 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	// TODO: Correct this to chand_ids here and in the frontend
-	chanIds := strings.Split(c.Query("chan_id"), ",")
+
+	chanIds := strings.Split(c.Query("chanIds"), ",")
 
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
