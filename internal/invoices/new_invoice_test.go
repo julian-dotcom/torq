@@ -20,7 +20,7 @@ func Test_processInvoiceReq(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   newInvoiceRequest
-		want    lnrpc.Invoice
+		want    *lnrpc.Invoice
 		wantErr bool
 	}{
 		{
@@ -28,7 +28,7 @@ func Test_processInvoiceReq(t *testing.T) {
 			newInvoiceRequest{
 				ValueMsat: &valueMsat,
 			},
-			lnrpc.Invoice{
+			&lnrpc.Invoice{
 				ValueMsat: 11,
 			},
 			true,
@@ -39,7 +39,7 @@ func Test_processInvoiceReq(t *testing.T) {
 				LocalNodeId: 1,
 				ValueMsat:   &valueMsat,
 			},
-			lnrpc.Invoice{
+			&lnrpc.Invoice{
 				ValueMsat: 11,
 			},
 			false,
@@ -56,7 +56,7 @@ func Test_processInvoiceReq(t *testing.T) {
 				Private:         &private,
 				IsAmp:           &amp,
 			},
-			lnrpc.Invoice{
+			&lnrpc.Invoice{
 				Memo:         "test",
 				RPreimage:    rPreImageByte,
 				ValueMsat:    11,

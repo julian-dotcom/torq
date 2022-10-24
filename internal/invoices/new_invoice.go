@@ -53,7 +53,7 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 
 	ctx := context.Background()
 
-	resp, err := client.AddInvoice(ctx, &newInvoiceReq)
+	resp, err := client.AddInvoice(ctx, newInvoiceReq)
 	if err != nil {
 		return newInvoiceResponse{}, errors.Wrap(err, "Creating invoice on node")
 	}
@@ -66,10 +66,10 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 	return r, nil
 }
 
-func processInvoiceReq(req newInvoiceRequest) (inv lnrpc.Invoice, err error) {
+func processInvoiceReq(req newInvoiceRequest) (inv *lnrpc.Invoice, err error) {
 
 	if req.LocalNodeId == 0 {
-		return inv, errors.New("Node id is missing")
+		return &lnrpc.Invoice{}, errors.New("Node id is missing")
 	}
 
 	if req.Memo != nil {
@@ -79,7 +79,7 @@ func processInvoiceReq(req newInvoiceRequest) (inv lnrpc.Invoice, err error) {
 	if req.RPreImage != nil {
 		rPreImage, err := hex.DecodeString(*req.RPreImage)
 		if err != nil {
-			return inv, errors.New("error decoding preimage")
+			return &lnrpc.Invoice{}, errors.New("error decoding preimage")
 		}
 		inv.RPreimage = rPreImage
 	}
@@ -87,7 +87,7 @@ func processInvoiceReq(req newInvoiceRequest) (inv lnrpc.Invoice, err error) {
 	if req.ValueMsat != nil {
 		inv.ValueMsat = *req.ValueMsat
 	}
-	
+
 	if req.Expiry != nil {
 		inv.Expiry = *req.Expiry
 	}
@@ -104,5 +104,5 @@ func processInvoiceReq(req newInvoiceRequest) (inv lnrpc.Invoice, err error) {
 		inv.IsAmp = *req.IsAmp
 	}
 
-	return inv, nil
+	return &lnrpc.Invoice{}, nil
 }
