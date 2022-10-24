@@ -167,7 +167,7 @@ func ConnectPeer(ctx context.Context, cli *client.Client, container dockercontai
 			return errors.Wrapf(err, "Running exec command on %s", container.ID)
 		}
 		if len(stderr.Bytes()) > 0 {
-			if !strings.Contains(string(stderr.Bytes()), "already connected to peer") {
+			if !strings.Contains(string(stderr.String()), "already connected to peer") {
 				return errors.New("Peer didn't connect")
 			}
 		}
