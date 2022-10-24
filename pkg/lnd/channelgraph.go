@@ -26,9 +26,8 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 
 	req := lnrpc.GraphTopologySubscription{}
 	stream, err := client.SubscribeChannelGraph(ctx, &req)
-
 	if err != nil {
-		return errors.Wrapf(err, "SubscribeAndStoreChannelGraph -> client.SubscribeChannelGraph(%v, %v)", ctx, req)
+		return errors.Wrap(err, "LND Subscribe Channel Graph")
 	}
 
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
@@ -47,7 +46,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			if errors.Is(ctx.Err(), context.Canceled) {
 				break
 			}
-			log.Error().Msgf("Subscribe channel graph stream receive: %v", err)
+			log.Error().Err(err).Msgf("Subscribe channel graph stream receive")
 			// rate limited resubscribe
 			log.Info().Msg("Attempting reconnect to channel graph")
 			for {
@@ -57,7 +56,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 					log.Info().Msg("Reconnected to channel graph")
 					break
 				}
-				log.Printf("Reconnecting to channel graph: %v\n", err)
+				log.Debug().Err(err).Msg("Reconnecting to channel graph")
 			}
 			continue
 		}
@@ -88,8 +87,7 @@ func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, ourNodePubKeys []s
 			err := insertNodeEvent(db, ts, nu.IdentityKey, nu.Alias, nu.Color,
 				nu.NodeAddresses, nu.Features)
 			if err != nil {
-				return errors.Wrapf(err, "processNodeUpdates ->insertNodeEvent(%v, %s, %s, %s, %s, %v, %v)",
-					db, ts, nu.IdentityKey, nu.Alias, nu.Color, nu.NodeAddresses, nu.Features)
+				return errors.Wrapf(err, "Insert node event")
 			}
 		}
 
@@ -107,8 +105,7 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB, ourNodeP
 
 		chanPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 		if err != nil {
-			return errors.Wrapf(err, "SubscribeChannelEvents ->getChanPoint(%b, %d)",
-				cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+			return errors.Wrapf(err, "Creating channel point from byte")
 		}
 		relevantChannel := isRelevantChannel(chanPoint)
 
@@ -116,8 +113,7 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB, ourNodeP
 			ts := time.Now().UTC()
 			err := insertRoutingPolicy(db, ts, ourNode, cu)
 			if err != nil {
-				return errors.Wrapf(err, "SubscribeChannelEvents ->insertRoutingPolicy(%v, %s, %t, %v)",
-					db, ts, ourNode, cu)
+				return errors.Wrap(err, "Insert routing policy")
 			}
 		}
 
@@ -173,8 +169,7 @@ func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.Cha
 
 	cp, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 	if err != nil {
-		return errors.Wrapf(err, "insertRoutingPolicy -> getChanPoint(%v, %d)",
-			cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+		return errors.Wrap(err, "Creating channel point from byte")
 	}
 
 	shortChannelId := channels.ConvertLNDShortChannelID(cu.ChanId)
@@ -188,7 +183,7 @@ func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.Cha
 		cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat)
 
 	if err != nil {
-		return errors.Wrapf(err, "insertRoutingPolicy -> db.Exec(%s)", rpQuery)
+		return errors.Wrapf(err, "DB Exec")
 	}
 
 	return nil
@@ -218,13 +213,13 @@ func insertNodeEvent(db *sqlx.DB, ts time.Time, pubKey string, alias string, col
 	// Create json byte object from node address map
 	najb, err := json.Marshal(na)
 	if err != nil {
-		return errors.Wrapf(err, "insertNodeEvent -> json.Marshal(%v)", na)
+		return errors.Wrap(err, "JSON Marshall node address map")
 	}
 
 	// Create json byte object from features list
 	fjb, err := json.Marshal(f)
 	if err != nil {
-		return errors.Wrapf(err, "insertNodeEvent -> json.Marshal(%v)", f)
+		return errors.Wrap(err, "JSON Marshal feature list")
 	}
 
 	if _, err = db.Exec(neQuery, ts, pubKey, alias, color, najb, fjb); err != nil {
@@ -294,7 +289,7 @@ func addMissingLocalPubkey(ctx context.Context, client lnrpc.LightningClient, gr
 	// TODO: Update this when adding support for multiple nodes
 	ni, err := client.GetInfo(ctx, &lnrpc.GetInfoRequest{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "client.GetNodeInfo(ctx, &lnrpc.NodeInfoRequest{})")
+		return nil, errors.Wrap(err, "LND Get node info")
 	}
 
 	const q = `update local_node set(pub_key, updated_on) = ($1, $2) where grpc_address = $3`
@@ -305,12 +300,7 @@ func addMissingLocalPubkey(ctx context.Context, client lnrpc.LightningClient, gr
 		grpcAddress,
 	)
 	if err != nil {
-		return nil, errors.Wrapf(err, "tx.Exec(%v, %v, %v, %v)",
-			q,
-			ni.IdentityPubkey,
-			time.Now().UTC(),
-			grpcAddress,
-		)
+		return nil, errors.Wrapf(err, "DB Exec")
 	}
 
 	return &ni.IdentityPubkey, nil
@@ -323,12 +313,15 @@ func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sql
 
 	q := `select grpc_address, pub_key from local_node;`
 	r, err := db.Query(q)
+	if err != nil {
+		return []string{}, errors.Wrap(err, "DB Query")
+	}
 
 	ourNodePubKeys = []string{}
 	for r.Next() {
 		err = r.Scan(&grpcAddress, &pubKey)
 		if err != nil {
-			return []string{}, errors.Wrapf(err, "Reading grpc_address and pub_key from db")
+			return []string{}, errors.Wrap(err, "Reading grpc_address and pub_key from db")
 		}
 
 		if grpcAddress == nil || *grpcAddress == "" {
@@ -338,13 +331,10 @@ func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sql
 		if pubKey == nil || len(*pubKey) == 0 {
 			pubKey, err = addMissingLocalPubkey(ctx, client, *grpcAddress, db)
 			if err != nil {
-				return []string{}, errors.Wrapf(err, "addMissingLocalPubkey(ctx, client, grpcAddress, db)")
+				return []string{}, errors.Wrap(err, "Adding Missing Local Pubkey")
 			}
 		}
 		ourNodePubKeys = append(ourNodePubKeys, *pubKey)
-	}
-	if err != nil {
-		return []string{}, errors.Wrapf(err, "db.Query(%s)", q)
 	}
 
 	return ourNodePubKeys, nil
