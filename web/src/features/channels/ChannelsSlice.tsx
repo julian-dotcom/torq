@@ -31,7 +31,7 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "number",
   },
   {
-    heading: "Gauge",
+    heading: "Balance Gauge",
     type: "BarCell",
     key: "gauge",
     valueType: "number",

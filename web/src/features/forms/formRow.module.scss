@@ -1,0 +1,7 @@
+.formRowWrapper {
+  display: grid;
+  grid-template-columns: auto;
+  grid-auto-flow: column;
+  margin-bottom: 16px;
+  column-gap: 12px;
+}

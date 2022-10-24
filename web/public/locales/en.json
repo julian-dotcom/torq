@@ -20,6 +20,30 @@
   "next": "Next",
   "confirm": "Confirm",
   "newAddress": "New Address",
+  "columns": "Columns",
+  "search": "Search",
+  "filter": "Filter",
+  "sort": "Sort",
+  "group": "Group",
+  "channels": "Channels",
+  "channelPolicy": "Channel policy",
+  "analyse": "Analyse",
+  "tableLayout": {
+    "tableOptions": "Table options"
+  },
+  "updateChannelPolicy": {
+    "title": "Update Channel Policy",
+    "back": "Back",
+    "newUpdate": "New",
+    "baseFeeMsat": "Base Fee (msat)",
+    "feeRatePpm": "Fee Rate (ppm)",
+    "timeLockDelta": "Time Lock Delta",
+    "minHtlcSat": "Min HTLC amount",
+    "maxHtlcSat": "Max HTLC amount",
+    "update": "Update",
+    "maxHtlcSatPlaceholder": "Leave empty for no limit",
+    "minHtlcSatPlaceholder": "Leave empty for no limit"
+  },
   "toast": {
     "settingsSaved": "Settings saved"
   },
