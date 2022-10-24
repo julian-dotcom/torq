@@ -34,7 +34,7 @@ func batchOpenChannels(db *sqlx.DB, req BatchOpenRequest) (r BatchOpenResponse, 
 	client := lnrpc.NewLightningClient(conn)
 	ctx := context.Background()
 
-	bocResponse, err := client.BatchOpenChannel(ctx, &bOpenChanReq)
+	bocResponse, err := client.BatchOpenChannel(ctx, bOpenChanReq)
 	if err != nil {
 		return BatchOpenResponse{}, errors.Wrap(err, "Batch open channel")
 	}
@@ -48,7 +48,7 @@ func batchOpenChannels(db *sqlx.DB, req BatchOpenRequest) (r BatchOpenResponse, 
 
 }
 
-func checkPrepareReq(bocReq BatchOpenRequest) (req lnrpc.BatchOpenChannelRequest, err error) {
+func checkPrepareReq(bocReq BatchOpenRequest) (req *lnrpc.BatchOpenChannelRequest, err error) {
 
 	if bocReq.NodeId == 0 {
 		return req, errors.New("Node id is missing")
@@ -95,7 +95,7 @@ func checkPrepareReq(bocReq BatchOpenRequest) (req lnrpc.BatchOpenChannelRequest
 		boChannels = append(boChannels, &boChannel)
 	}
 
-	batchOpnReq := lnrpc.BatchOpenChannelRequest{
+	batchOpnReq := &lnrpc.BatchOpenChannelRequest{
 		Channels: boChannels,
 	}
 

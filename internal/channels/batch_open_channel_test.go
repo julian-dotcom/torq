@@ -20,7 +20,7 @@ func Test_checkPrepareReq(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   BatchOpenRequest
-		want    lnrpc.BatchOpenChannelRequest
+		want    *lnrpc.BatchOpenChannelRequest
 		wantErr bool
 	}{
 		{
@@ -31,7 +31,7 @@ func Test_checkPrepareReq(t *testing.T) {
 					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 250000},
 				},
 			},
-			lnrpc.BatchOpenChannelRequest{Channels: []*lnrpc.BatchOpenChannel{
+			&lnrpc.BatchOpenChannelRequest{Channels: []*lnrpc.BatchOpenChannel{
 				{NodePubkey: bobPKbyte, LocalFundingAmount: 250000},
 				{NodePubkey: davePKbyte, LocalFundingAmount: 250000},
 			}},
@@ -45,7 +45,7 @@ func Test_checkPrepareReq(t *testing.T) {
 				TargetConf:  nil,
 				SatPerVbyte: nil,
 			},
-			lnrpc.BatchOpenChannelRequest{},
+			&lnrpc.BatchOpenChannelRequest{},
 			true,
 		},
 		{
@@ -58,7 +58,7 @@ func Test_checkPrepareReq(t *testing.T) {
 				TargetConf:  &tgConf,
 				SatPerVbyte: &satpvb,
 			},
-			lnrpc.BatchOpenChannelRequest{},
+			&lnrpc.BatchOpenChannelRequest{},
 			true,
 		},
 		{
@@ -70,7 +70,7 @@ func Test_checkPrepareReq(t *testing.T) {
 				},
 				TargetConf: &tgConf,
 			},
-			lnrpc.BatchOpenChannelRequest{},
+			&lnrpc.BatchOpenChannelRequest{},
 			true,
 		},
 		{
@@ -82,7 +82,7 @@ func Test_checkPrepareReq(t *testing.T) {
 					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 250000},
 				},
 			},
-			lnrpc.BatchOpenChannelRequest{Channels: []*lnrpc.BatchOpenChannel{
+			&lnrpc.BatchOpenChannelRequest{Channels: []*lnrpc.BatchOpenChannel{
 				{NodePubkey: bobPKbyte, LocalFundingAmount: 250000},
 				{NodePubkey: davePKbyte, LocalFundingAmount: 250000},
 			}},
@@ -110,7 +110,7 @@ func Test_checkPrepareReq(t *testing.T) {
 				},
 				TargetConf: &tgConf,
 			},
-			lnrpc.BatchOpenChannelRequest{
+			&lnrpc.BatchOpenChannelRequest{
 				Channels: []*lnrpc.BatchOpenChannel{
 					{
 						NodePubkey:         bobPKbyte,
