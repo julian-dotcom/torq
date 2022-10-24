@@ -72,16 +72,12 @@ func createLndAddressRequest(newAddressRequest NewAddressRequest) (r *walletrpc.
 	switch newAddressRequest.Type {
 	case P2WPKH:
 		lndAddressRequest.Type = walletrpc.AddressType_WITNESS_PUBKEY_HASH
-		break
 	case P2WKH:
 		lndAddressRequest.Type = walletrpc.AddressType_NESTED_WITNESS_PUBKEY_HASH
-		break
 	case NP2WKH:
 		lndAddressRequest.Type = walletrpc.AddressType_HYBRID_NESTED_WITNESS_PUBKEY_HASH
-		break
 	case P2TR:
 		lndAddressRequest.Type = walletrpc.AddressType_TAPROOT_PUBKEY
-		break
 	}
 	return lndAddressRequest, nil
 }
