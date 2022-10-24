@@ -37,12 +37,12 @@ func createChanPoint(scp string) (*lnrpc.ChannelPoint, error) {
 	outIndex := uint32(0)
 	_, err := fmt.Sscanf(scp, "%64s:%d", &txId, &outIndex)
 	if err != nil {
-		return &lnrpc.ChannelPoint{}, errors.Wrapf(err, "fmt.Sscanf(scp, ..., %s, %d)", txId, outIndex)
+		return &lnrpc.ChannelPoint{}, errors.Wrap(err, "fmt sscanf")
 	}
 
 	h, err := chainhash.NewHashFromStr(txId)
 	if err != nil {
-		return &lnrpc.ChannelPoint{}, errors.Wrapf(err, "chainhash.NewHashFromStr(%s)", txId)
+		return &lnrpc.ChannelPoint{}, errors.Wrap(err, "New hash from str")
 	}
 
 	cp := &lnrpc.ChannelPoint{
@@ -60,12 +60,12 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 	// Create the channel point struct
 	cp1, err := createChanPoint(chanEdge.ChanPoint)
 	if err != nil {
-		return [2]*lnrpc.ChannelEdgeUpdate{}, errors.Wrapf(err, "ImportRoutingPolicies -> createChanPoint(%s)", chanEdge.ChanPoint)
+		return [2]*lnrpc.ChannelEdgeUpdate{}, errors.Wrap(err, "Create channel point")
 	}
 
 	cp2, err := createChanPoint(chanEdge.ChanPoint)
 	if err != nil {
-		return [2]*lnrpc.ChannelEdgeUpdate{}, errors.Wrapf(err, "ImportRoutingPolicies -> createChanPoint(%s)", chanEdge.ChanPoint)
+		return [2]*lnrpc.ChannelEdgeUpdate{}, errors.Wrap(err, "Create channel point")
 	}
 
 	r := [2]*lnrpc.ChannelEdgeUpdate{
@@ -94,7 +94,7 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePub
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)
 	if err != nil {
-		return errors.Wrapf(err, "ImportRoutingPolicies -> getOpenChanIds(client)")
+		return errors.Wrap(err, "Get open chan ids")
 	}
 
 	ctx := context.Background()
@@ -107,17 +107,14 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePub
 				case codes.NotFound:
 					continue
 				default:
-					return errors.Wrapf(err, "ImportRoutingPolicies -> "+
-						"client.GetChanInfo(ctx, &lnrpc.ChanInfoRequest{ChanId: %d})",
-						cid)
+					return errors.Wrap(err, "Get chan info")
 				}
 			}
 		}
 
 		ceu, err := constructChannelEdgeUpdates(ce)
 		if err != nil {
-			return errors.Wrapf(err, "ImportRoutingPolicies -> "+
-				"constructChannelEdgeUpdates(%v)", ce)
+			return errors.Wrap(err, "Construct Channel Edge Updates")
 		}
 
 		var ts time.Time
