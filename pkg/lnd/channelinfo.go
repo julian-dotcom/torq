@@ -32,20 +32,20 @@ func getOpenChanIds(client lnrpc.LightningClient) ([]uint64, error) {
 	return chanIdList, nil
 }
 
-func createChanPoint(scp string) (lnrpc.ChannelPoint, error) {
+func createChanPoint(scp string) (*lnrpc.ChannelPoint, error) {
 	var txId string
 	outIndex := uint32(0)
 	_, err := fmt.Sscanf(scp, "%64s:%d", &txId, &outIndex)
 	if err != nil {
-		return lnrpc.ChannelPoint{}, errors.Wrapf(err, "fmt.Sscanf(scp, ..., %s, %d)", txId, outIndex)
+		return &lnrpc.ChannelPoint{}, errors.Wrapf(err, "fmt.Sscanf(scp, ..., %s, %d)", txId, outIndex)
 	}
 
 	h, err := chainhash.NewHashFromStr(txId)
 	if err != nil {
-		return lnrpc.ChannelPoint{}, errors.Wrapf(err, "chainhash.NewHashFromStr(%s)", txId)
+		return &lnrpc.ChannelPoint{}, errors.Wrapf(err, "chainhash.NewHashFromStr(%s)", txId)
 	}
 
-	cp := lnrpc.ChannelPoint{
+	cp := &lnrpc.ChannelPoint{
 		FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{
 			FundingTxidBytes: h.CloneBytes(),
 		},
@@ -55,30 +55,30 @@ func createChanPoint(scp string) (lnrpc.ChannelPoint, error) {
 	return cp, nil
 }
 
-func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]lnrpc.ChannelEdgeUpdate, error) {
+func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.ChannelEdgeUpdate, error) {
 
 	// Create the channel point struct
 	cp1, err := createChanPoint(chanEdge.ChanPoint)
 	if err != nil {
-		return [2]lnrpc.ChannelEdgeUpdate{}, errors.Wrapf(err, "ImportRoutingPolicies -> createChanPoint(%s)", chanEdge.ChanPoint)
+		return [2]*lnrpc.ChannelEdgeUpdate{}, errors.Wrapf(err, "ImportRoutingPolicies -> createChanPoint(%s)", chanEdge.ChanPoint)
 	}
 
 	cp2, err := createChanPoint(chanEdge.ChanPoint)
 	if err != nil {
-		return [2]lnrpc.ChannelEdgeUpdate{}, errors.Wrapf(err, "ImportRoutingPolicies -> createChanPoint(%s)", chanEdge.ChanPoint)
+		return [2]*lnrpc.ChannelEdgeUpdate{}, errors.Wrapf(err, "ImportRoutingPolicies -> createChanPoint(%s)", chanEdge.ChanPoint)
 	}
 
-	r := [2]lnrpc.ChannelEdgeUpdate{
+	r := [2]*lnrpc.ChannelEdgeUpdate{
 		{
 			ChanId:          chanEdge.ChannelId,
-			ChanPoint:       &cp1,
+			ChanPoint:       cp1,
 			Capacity:        chanEdge.Capacity,
 			RoutingPolicy:   chanEdge.Node1Policy,
 			AdvertisingNode: chanEdge.Node1Pub,
 		},
 		{
 			ChanId:          chanEdge.ChannelId,
-			ChanPoint:       &cp2,
+			ChanPoint:       cp2,
 			Capacity:        chanEdge.Capacity,
 			RoutingPolicy:   chanEdge.Node2Policy,
 			AdvertisingNode: chanEdge.Node2Pub,
@@ -128,9 +128,9 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePub
 			ts = time.Now().UTC()
 			outbound = slices.Contains(ourNodePubKeys, cu.AdvertisingNode)
 
-			err := insertRoutingPolicy(db, ts, outbound, &cu)
+			err := insertRoutingPolicy(db, ts, outbound, cu)
 			if err != nil {
-				return errors.Wrapf(err, "ImportRoutingPolicies -> insertRoutingPolicy(%v, %s, %t, %v)", db, ts, outbound, &cu)
+				return errors.Wrap(err, "Insert routing policy")
 			}
 
 		}
