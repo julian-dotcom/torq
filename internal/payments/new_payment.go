@@ -124,8 +124,8 @@ func SendNewPayment(
 	return sendPayment(client, npReq, wChan, reqId)
 }
 
-func newSendPaymentRequest(npReq NewPaymentRequest) (r routerrpc.SendPaymentRequest, err error) {
-	newPayReq := routerrpc.SendPaymentRequest{
+func newSendPaymentRequest(npReq NewPaymentRequest) (r *routerrpc.SendPaymentRequest, err error) {
+	newPayReq := &routerrpc.SendPaymentRequest{
 		TimeoutSeconds: npReq.TimeOutSecs,
 	}
 
@@ -168,7 +168,7 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 	}
 
 	ctx := context.Background()
-	req, err := client.SendPaymentV2(ctx, &newPayReq)
+	req, err := client.SendPaymentV2(ctx, newPayReq)
 	if err != nil {
 		return errors.Wrap(err, "Sending payment")
 	}
@@ -206,7 +206,6 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 		// Write the payment status to the client
 		wChan <- processResponse(resp, reqId)
 	}
-	return
 }
 
 func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {

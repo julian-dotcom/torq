@@ -210,7 +210,7 @@ func Test_newSendPaymentRequest(t *testing.T) {
 		name  string
 		reqId string
 		input NewPaymentRequest
-		want  routerrpc.SendPaymentRequest
+		want  *routerrpc.SendPaymentRequest
 	}{
 		{
 			name: "with allow self and fee limit",
@@ -222,7 +222,7 @@ func Test_newSendPaymentRequest(t *testing.T) {
 				FeeLimitMsat:     &feeLimitMsat,
 				AllowSelfPayment: &allowSelfPayment,
 			},
-			want: routerrpc.SendPaymentRequest{
+			want: &routerrpc.SendPaymentRequest{
 				AmtMsat:          amount,
 				PaymentRequest:   destination,
 				TimeoutSeconds:   3600,
@@ -237,7 +237,7 @@ func Test_newSendPaymentRequest(t *testing.T) {
 				Invoice:     &destination,
 				TimeOutSecs: 3600,
 			},
-			want: routerrpc.SendPaymentRequest{
+			want: &routerrpc.SendPaymentRequest{
 				PaymentRequest: destination,
 				TimeoutSeconds: 3600,
 			},
