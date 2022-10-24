@@ -165,7 +165,7 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) erro
 				wsr := wsError{
 					ReqId: req.ReqId,
 					Type:  "Error",
-					Error: fmt.Sprintf("Could not parse request, please check that your JSON is correctly formated."),
+					Error: "Could not parse request, please check that your JSON is correctly formated.",
 				}
 				wsChan <- wsr
 			}
