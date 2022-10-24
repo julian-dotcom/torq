@@ -41,7 +41,7 @@ func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, e
 	ctx := context.Background()
 	client := lnrpc.NewLightningClient(conn)
 
-	resp, err := client.UpdateChannelPolicy(ctx, &policyReq)
+	resp, err := client.UpdateChannelPolicy(ctx, policyReq)
 	if err != nil {
 		return updateResponse{}, errors.Wrap(err, "Updating channel policy")
 	}
@@ -51,9 +51,9 @@ func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, e
 	return r, nil
 }
 
-func createPolicyRequest(req updateChanRequestBody) (r lnrpc.PolicyUpdateRequest, err error) {
+func createPolicyRequest(req updateChanRequestBody) (r *lnrpc.PolicyUpdateRequest, err error) {
 
-	updChanReq := lnrpc.PolicyUpdateRequest{}
+	updChanReq := &lnrpc.PolicyUpdateRequest{}
 
 	if req.NodeId == 0 {
 		return r, errors.New("Node id is missing")

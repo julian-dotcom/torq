@@ -70,7 +70,7 @@ func Test_createPolicyRequest(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   updateChanRequestBody
-		want    lnrpc.PolicyUpdateRequest
+		want    *lnrpc.PolicyUpdateRequest
 		wantErr bool
 	}{
 		{
@@ -80,7 +80,7 @@ func Test_createPolicyRequest(t *testing.T) {
 				ChannelPoint:  noChanPoint,
 				TimeLockDelta: 18,
 			},
-			lnrpc.PolicyUpdateRequest{
+			&lnrpc.PolicyUpdateRequest{
 				Scope:         &lnrpc.PolicyUpdateRequest_Global{Global: true},
 				TimeLockDelta: 18,
 			},
@@ -93,7 +93,7 @@ func Test_createPolicyRequest(t *testing.T) {
 				ChannelPoint:  noChanPoint,
 				TimeLockDelta: 18,
 			},
-			lnrpc.PolicyUpdateRequest{
+			&lnrpc.PolicyUpdateRequest{
 				Scope:         &lnrpc.PolicyUpdateRequest_Global{Global: true},
 				TimeLockDelta: 18,
 			},
@@ -106,7 +106,7 @@ func Test_createPolicyRequest(t *testing.T) {
 				ChannelPoint:  &chanPoint,
 				TimeLockDelta: 18,
 			},
-			lnrpc.PolicyUpdateRequest{
+			&lnrpc.PolicyUpdateRequest{
 				Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
 					ChanPoint: &lnrpc.ChannelPoint{
 						FundingTxid: &lnrpc.ChannelPoint_FundingTxidStr{
@@ -126,7 +126,7 @@ func Test_createPolicyRequest(t *testing.T) {
 				ChannelPoint:  noChanPoint,
 				TimeLockDelta: 0,
 			},
-			lnrpc.PolicyUpdateRequest{
+			&lnrpc.PolicyUpdateRequest{
 				Scope:         &lnrpc.PolicyUpdateRequest_Global{Global: true},
 				TimeLockDelta: 18,
 			},
@@ -143,7 +143,7 @@ func Test_createPolicyRequest(t *testing.T) {
 				MinHtlcMsat:   &minHtlcMsat,
 				TimeLockDelta: 18,
 			},
-			lnrpc.PolicyUpdateRequest{
+			&lnrpc.PolicyUpdateRequest{
 				Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
 					ChanPoint: &lnrpc.ChannelPoint{
 						FundingTxid: &lnrpc.ChannelPoint_FundingTxidStr{
