@@ -135,7 +135,7 @@ func newRollingFile(config Config) io.Writer {
 // ConfigureCallerMarshalFunc - truncate caller path
 func ConfigureCallerMarshalFunc() {
 	zerolog.CallerMarshalFunc = func(file string, line int) string {
-		r, _ := regexp.Compile("[^\\\\/]+[\\\\/][^\\\\/]+$")
+		r, _ := regexp.Compile(`[^\\/]+[\\/][^\\/]+$`)
 		shortPath := r.FindString(file)
 		if shortPath != "" {
 			file = shortPath
