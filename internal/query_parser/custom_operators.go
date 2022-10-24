@@ -15,18 +15,18 @@ func Overlap(param interface{}, key string, notEq bool) (r sq.Sqlizer, err error
 		equalOpr = "!="
 	}
 
-	switch param.(type) {
+	switch param := param.(type) {
 	case nil:
 		return sq.Eq{key: nil}, nil
 	case []float64:
 		sa := sq.Or{}
-		for _, value := range param.([]float64) {
+		for _, value := range param {
 			sa = append(sa, sq.Expr(fmt.Sprintf("? %s ANY(%s)", equalOpr, key), value))
 		}
 		return sa, nil
 	case []string:
 		sa := sq.Or{}
-		for _, value := range param.([]string) {
+		for _, value := range param {
 			sa = append(sa, sq.Expr(fmt.Sprintf("? %s ANY(%s)", equalOpr, key), value))
 		}
 		return sa, nil
