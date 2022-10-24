@@ -186,85 +186,84 @@ func main() {
 				// go routine that responds to start command and starts all subscriptions
 				go (func() {
 					for {
-						select {
-						case <-startchan:
-							// if node specified on cmd flags then check if we already know about it
-							if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
+						<-startchan
+						// if node specified on cmd flags then check if we already know about it
+						if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
 
-								macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
-								if err != nil {
-									log.Error().Err(err).Msg("Reading macaroon file from disk path from config")
-									return
-								}
-
-								tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
-								if err != nil {
-									log.Error().Err(err).Msg("Reading tls file from disk path from config")
-									return
-								}
-
-								localNodeFromConfig := settings.ConnectionDetails{
-									GRPCAddress:       c.String("lnd.url"),
-									MacaroonFileBytes: macaroonFile,
-									TLSFileBytes:      tlsFile}
-
-								nodeId, err := settings.GetNodeIdByGRPC(db, localNodeFromConfig)
-								if err != nil {
-									log.Error().Err(err).Msg("Checking if node specified in config exists")
-									return
-								}
-								// doesn't exist
-								if nodeId == -1 {
-									log.Debug().Msg("Node specified in config is not in DB, adding it")
-									err = settings.AddNodeToDB(db, localNodeFromConfig)
-									if err != nil {
-										log.Error().Err(err).Msg("Adding node specified in config to database")
-										return
-									}
-								} else {
-									log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
-									if err = settings.UpdateNodeFiles(db, localNodeFromConfig); err != nil {
-										log.Error().Err(err).Msg("Problem updating node files")
-										return
-									}
-								}
-							}
-
-							nodes, err := settings.GetActiveNodesConnectionDetails(db)
+							macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
 							if err != nil {
-								log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
+								log.Error().Err(err).Msg("Reading macaroon file from disk path from config")
 								return
 							}
 
-							for _, node := range nodes {
-								go (func(node settings.ConnectionDetails) {
+							tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
+							if err != nil {
+								log.Error().Err(err).Msg("Reading tls file from disk path from config")
+								return
+							}
 
-									ctx := context.Background()
-									ctx, cancel := context.WithCancel(ctx)
+							localNodeFromConfig := settings.ConnectionDetails{
+								GRPCAddress:       c.String("lnd.url"),
+								MacaroonFileBytes: macaroonFile,
+								TLSFileBytes:      tlsFile}
 
-									log.Info().Msgf("Subscribing to LND for node id: %v", node.LocalNodeId)
-									runningSubscriptions.AddSubscription(node.LocalNodeId, cancel)
-									conn, err := lnd_connect.Connect(
-										node.GRPCAddress,
-										node.TLSFileBytes,
-										node.MacaroonFileBytes)
-									if err != nil {
-										log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.LocalNodeId)
-										runningSubscriptions.RemoveSubscription(node.LocalNodeId)
-										return
-									}
-
-									err = subscribe.Start(ctx, conn, db, node.LocalNodeId, wsChan)
-									if err != nil {
-										log.Error().Err(err).Send()
-										// only log the error, don't return
-									}
-									log.Info().Msgf("LND Subscription stopped for node id: %v", node.LocalNodeId)
-									runningSubscriptions.RemoveSubscription(node.LocalNodeId)
-								})(node)
+							nodeId, err := settings.GetNodeIdByGRPC(db, localNodeFromConfig)
+							if err != nil {
+								log.Error().Err(err).Msg("Checking if node specified in config exists")
+								return
+							}
+							// doesn't exist
+							if nodeId == -1 {
+								log.Debug().Msg("Node specified in config is not in DB, adding it")
+								err = settings.AddNodeToDB(db, localNodeFromConfig)
+								if err != nil {
+									log.Error().Err(err).Msg("Adding node specified in config to database")
+									return
+								}
+							} else {
+								log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
+								if err = settings.UpdateNodeFiles(db, localNodeFromConfig); err != nil {
+									log.Error().Err(err).Msg("Problem updating node files")
+									return
+								}
 							}
 						}
+
+						nodes, err := settings.GetActiveNodesConnectionDetails(db)
+						if err != nil {
+							log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
+							return
+						}
+
+						for _, node := range nodes {
+							go (func(node settings.ConnectionDetails) {
+
+								ctx := context.Background()
+								ctx, cancel := context.WithCancel(ctx)
+
+								log.Info().Msgf("Subscribing to LND for node id: %v", node.LocalNodeId)
+								runningSubscriptions.AddSubscription(node.LocalNodeId, cancel)
+								conn, err := lnd_connect.Connect(
+									node.GRPCAddress,
+									node.TLSFileBytes,
+									node.MacaroonFileBytes)
+								if err != nil {
+									log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.LocalNodeId)
+									runningSubscriptions.RemoveSubscription(node.LocalNodeId)
+									return
+								}
+
+								err = subscribe.Start(ctx, conn, db, node.LocalNodeId, wsChan)
+								if err != nil {
+									log.Error().Err(err).Send()
+									// only log the error, don't return
+								}
+								log.Info().Msgf("LND Subscription stopped for node id: %v", node.LocalNodeId)
+								runningSubscriptions.RemoveSubscription(node.LocalNodeId)
+							})(node)
+						}
 					}
+
 				})()
 
 				// starts LND subscription when Torq starts
@@ -273,11 +272,9 @@ func main() {
 				// go routine that looks for stop signals and cancels the context(s)
 				go (func() {
 					for {
-						select {
-						case <-stopchan:
-							for _, cancelFunc := range runningSubscriptions.GetCancelFuncs() {
-								cancelFunc()
-							}
+						<-stopchan
+						for _, cancelFunc := range runningSubscriptions.GetCancelFuncs() {
+							cancelFunc()
 						}
 					}
 				})()
