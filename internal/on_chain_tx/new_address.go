@@ -64,8 +64,8 @@ func NewAddress(
 	return newAddress(client, newAddressRequest, wChan, reqId)
 }
 
-func createLndAddressRequest(newAddressRequest NewAddressRequest) (r walletrpc.AddrRequest, err error) {
-	lndAddressRequest := walletrpc.AddrRequest{}
+func createLndAddressRequest(newAddressRequest NewAddressRequest) (r *walletrpc.AddrRequest, err error) {
+	lndAddressRequest := &walletrpc.AddrRequest{}
 	if newAddressRequest.Account != "" {
 		lndAddressRequest.Account = newAddressRequest.Account
 	}
@@ -94,7 +94,7 @@ func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest,
 	}
 
 	ctx := context.Background()
-	lndResponse, err := client.NextAddr(ctx, &lndAddressRequest)
+	lndResponse, err := client.NextAddr(ctx, lndAddressRequest)
 	if err != nil {
 		return errors.Wrap(err, "New address")
 	}
