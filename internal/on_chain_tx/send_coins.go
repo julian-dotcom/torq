@@ -51,7 +51,7 @@ func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 	client := lnrpc.NewLightningClient(conn)
 	ctx := context.Background()
 
-	resp, err := client.SendCoins(ctx, &sendCoinsReq)
+	resp, err := client.SendCoins(ctx, sendCoinsReq)
 	if err != nil {
 		return "", errors.Wrap(err, "Sending coins")
 	}
@@ -60,24 +60,24 @@ func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 
 }
 
-func processSendRequest(req PayOnChainRequest) (r lnrpc.SendCoinsRequest, err error) {
+func processSendRequest(req PayOnChainRequest) (r *lnrpc.SendCoinsRequest, err error) {
 	if req.LocalNodeId == 0 {
-		return r, errors.New("Node id is missing")
+		return &lnrpc.SendCoinsRequest{}, errors.New("Node id is missing")
 	}
 
 	if req.Address == "" {
 		log.Error().Msgf("Address must be provided")
-		return r, errors.New("Address must be provided")
+		return &lnrpc.SendCoinsRequest{}, errors.New("Address must be provided")
 	}
 
 	if req.AmountSat <= 0 {
 		log.Error().Msgf("Invalid amount")
-		return r, errors.New("Invalid amount")
+		return &lnrpc.SendCoinsRequest{}, errors.New("Invalid amount")
 	}
 
 	if req.TargetConf != nil && req.SatPerVbyte != nil {
 		log.Error().Msgf("Either targetConf or satPerVbyte accepted")
-		return r, errors.New("Either targetConf or satPerVbyte accepted")
+		return &lnrpc.SendCoinsRequest{}, errors.New("Either targetConf or satPerVbyte accepted")
 	}
 
 	r.Addr = req.Address

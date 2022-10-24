@@ -18,7 +18,7 @@ func Test_processSendRequest(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   PayOnChainRequest
-		want    lnrpc.SendCoinsRequest
+		want    *lnrpc.SendCoinsRequest
 		wantErr bool
 	}{
 		{
@@ -27,7 +27,7 @@ func Test_processSendRequest(t *testing.T) {
 				Address:   "adadsdas",
 				AmountSat: 12,
 			},
-			lnrpc.SendCoinsRequest{
+			&lnrpc.SendCoinsRequest{
 				Addr:   "adadsdas",
 				Amount: 12,
 			},
@@ -40,7 +40,7 @@ func Test_processSendRequest(t *testing.T) {
 				Address:     "",
 				AmountSat:   12,
 			},
-			lnrpc.SendCoinsRequest{
+			&lnrpc.SendCoinsRequest{
 				Addr:   "",
 				Amount: 12,
 			},
@@ -53,7 +53,7 @@ func Test_processSendRequest(t *testing.T) {
 				Address:     "test",
 				AmountSat:   0,
 			},
-			lnrpc.SendCoinsRequest{
+			&lnrpc.SendCoinsRequest{
 				Addr:   "test",
 				Amount: 0,
 			},
@@ -68,7 +68,7 @@ func Test_processSendRequest(t *testing.T) {
 				TargetConf:  &targetConf,
 				SatPerVbyte: &satPerVbyte,
 			},
-			lnrpc.SendCoinsRequest{
+			&lnrpc.SendCoinsRequest{
 				Addr:        "",
 				Amount:      0,
 				TargetConf:  0,
@@ -83,7 +83,7 @@ func Test_processSendRequest(t *testing.T) {
 				Address:     "test",
 				AmountSat:   amount,
 			},
-			lnrpc.SendCoinsRequest{
+			&lnrpc.SendCoinsRequest{
 				Addr:   "test",
 				Amount: 14,
 			},
@@ -101,7 +101,7 @@ func Test_processSendRequest(t *testing.T) {
 				MinConfs:         &minConfs,
 				SpendUnconfirmed: &spendUnco,
 			},
-			lnrpc.SendCoinsRequest{
+			&lnrpc.SendCoinsRequest{
 				Addr:             "test",
 				Amount:           14,
 				TargetConf:       10,
