@@ -41,7 +41,7 @@ export interface channel {
   baseFeeMsat: number;
   minHtlc: number;
   maxHtlcMsat: number;
-  pendingHtlcs: number;
+  pendingHtlcs: PendingHTLC;
   totalSatoshisSent: number;
   numUpdates: number;
   initiator: boolean;
@@ -54,4 +54,13 @@ export interface channel {
   localNodeId: number;
   timeLockDelta: number;
   feeRatePpm: number;
+}
+
+interface PendingHTLC {
+  forwardingCount: number;
+  forwardingAmount: number;
+  localCount: number;
+  localAmount: number;
+  toalCount: number;
+  totalAmount: number;
 }
