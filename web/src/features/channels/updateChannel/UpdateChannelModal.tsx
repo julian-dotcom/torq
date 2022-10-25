@@ -21,7 +21,7 @@ import classNames from "classnames";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
 
 import clone from "clone";
-import FormRow from "../../forms/FormWrappers";
+import FormRow from "features/forms/FormWrappers";
 
 const updateStatusClass = {
   IN_FLIGHT: styles.inFlight,

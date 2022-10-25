@@ -42,7 +42,7 @@ import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
 import { UPDATE_CHANNEL } from "constants/routes";
 import { Sections } from "./channelsTypes";
-import useTranslations from "../../services/i18n/useTranslations";
+import useTranslations from "services/i18n/useTranslations";
 
 function ChannelsPage() {
   const { t } = useTranslations();
