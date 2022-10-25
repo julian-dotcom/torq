@@ -70,24 +70,24 @@ type ChannelBalance = {
 }
 
 type Balance = {
-	date: Date
-	inboundCapacity:  number;
-	outboundCapacity: number;
-	capacityDiff:     number;
+  date: Date
+  inboundCapacity:  number;
+  outboundCapacity: number;
+  capacityDiff: number;
 }
 
 export type ChannelEventResponse = {
-	events: Event[] | null;
+  events: Event[] | null;
 }
 
 export type Event = {
-	date: string;
-	datetime: Date;
-	lndChannelPoint: string;
-	shortChannelId: string
-	type: string;
-	outbound: boolean;
-	announcingPubKey: string;
-	value: number;
-	previousValue: number;
+  date: string;
+  datetime: Date;
+  lndChannelPoint: string;
+  shortChannelId: string
+  type: string;
+  outbound: boolean;
+  announcingPubKey: string;
+  value: number;
+  previousValue: number;
 }
