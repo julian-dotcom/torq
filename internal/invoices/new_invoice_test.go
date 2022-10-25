@@ -78,8 +78,14 @@ func Test_processInvoiceReq(t *testing.T) {
 				}
 				t.Errorf("processInvoiceReq error: %v", err)
 			}
+			if got == nil {
+				t.Log("Got is null\n")
+			}
 			if !reflect.DeepEqual(got, test.want) {
-				t.Errorf("%d: processInvoiceReq()\nGot:\n%v\nWant:\n%v\n", i, got, test.want)
+				t.Logf("%v\n", got.ValueMsat)
+				t.Logf("%v\n", test.want.ValueMsat)
+				t.Log("got ^\n")
+				t.Errorf("%d: processInvoiceReq()\nGotf:\n %v\nWant:\n %v\n", i, got, test.want)
 			}
 
 		})

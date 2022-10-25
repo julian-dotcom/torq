@@ -3,6 +3,7 @@ package invoices
 import (
 	"context"
 	"encoding/hex"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -67,6 +68,7 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 }
 
 func processInvoiceReq(req newInvoiceRequest) (inv *lnrpc.Invoice, err error) {
+	inv = &lnrpc.Invoice{}
 
 	if req.LocalNodeId == 0 {
 		return &lnrpc.Invoice{}, errors.New("Node id is missing")
@@ -104,5 +106,5 @@ func processInvoiceReq(req newInvoiceRequest) (inv *lnrpc.Invoice, err error) {
 		inv.IsAmp = *req.IsAmp
 	}
 
-	return &lnrpc.Invoice{}, nil
+	return inv, nil
 }
