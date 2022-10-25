@@ -66,18 +66,18 @@ func getChannelIDs(chanIds string) []string {
 }
 
 func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
-	from, err := getChannelFrom(c.Query("from")) //time.Parse("2006-01-02", c.Query("from"))
+	from, err := time.Parse("2006-01-02", c.Query("from"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	to, err := getChannelTo(c.Query("to"))
+	to, err := time.Parse("2006-01-02", c.Query("to"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	chanIds := getChannelIDs(c.Param("chanIds")) //strings.Split(c.Param("chanIds"), ",")
+	chanIds := strings.Split(c.Param("chanIds"), ",")
 
 	// Get the total values for the whole requested time range (from - to)
 	r, err := getChannelTotal(db, chanIds, from, to)
@@ -116,18 +116,18 @@ type ChannelEventHistory struct {
 
 func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	var r ChannelEventHistory
-	from, err := getChannelFrom(c.Query("from"))
+	from, err := time.Parse("2006-01-02", c.Query("from"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	to, err := getChannelTo(c.Query("to"))
+	to, err := time.Parse("2006-01-02", c.Query("to"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	chanIds := getChannelIDs(c.Param("chanIds"))
+	chanIds := strings.Split(c.Param("chanIds"), ",")
 
 	r.Events, err = getChannelEventHistory(db, chanIds, from, to)
 	if err != nil {
@@ -145,18 +145,18 @@ type ChannelBalanceHistory struct {
 
 func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 	var r ChannelBalanceHistory
-	from, err := getChannelFrom(c.Query("from"))
+	from, err := time.Parse("2006-01-02", c.Query("from"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	to, err := getChannelTo(c.Query("to"))
+	to, err := time.Parse("2006-01-02", c.Query("to"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	chanIds := getChannelIDs(c.Param("chanIds"))
+	chanIds := strings.Split(c.Param("chanIds"), ",")
 
 	if chanIds[0] != "1" {
 
@@ -187,18 +187,18 @@ type ChannelReBalancing struct {
 
 func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 	var r ChannelReBalancing
-	from, err := getChannelFrom(c.Query("from"))
+	from, err := time.Parse("2006-01-02", c.Query("from"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	to, err := getChannelTo(c.Query("to"))
+	to, err := time.Parse("2006-01-02", c.Query("to"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	chanIds := getChannelIDs(c.Param("chanIds"))
+	chanIds := strings.Split(c.Param("chanIds"), ",")
 
 	if chanIds[0] == "1" {
 		reb, err := getRebalancingCost(db, from, to)
@@ -226,18 +226,18 @@ type ChannelOnChainCost struct {
 
 func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 	var r ChannelOnChainCost
-	from, err := getChannelFrom(c.Query("from"))
+	from, err := time.Parse("2006-01-02", c.Query("from"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	to, err := getChannelTo(c.Query("to"))
+	to, err := time.Parse("2006-01-02", c.Query("to"))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	chanIds := getChannelIDs(c.Param("chanIds"))
+	chanIds := strings.Split(c.Param("chanIds"), ",")
 
 	if chanIds[0] == "1" {
 		r.OnChainCost, err = getTotalOnChainCost(db, from, to)
