@@ -26,6 +26,7 @@ func ConnectPeer(client lnrpc.LightningClient, ctx context.Context, req ConnectP
 }
 
 func processRequest(req ConnectPeerRequest) (r *lnrpc.ConnectPeerRequest, err error) {
+	r = &lnrpc.ConnectPeerRequest{}
 
 	if req.LndAddress.PubKey == "" || req.LndAddress.Host == "" {
 		return &lnrpc.ConnectPeerRequest{}, errors.New("Both LND Address and host must be provided")
