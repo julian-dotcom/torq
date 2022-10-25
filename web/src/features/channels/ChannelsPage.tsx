@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import {
+  MoneySettings20Regular as AdjustFeesIcon,
   Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
@@ -40,9 +41,11 @@ import Button, { buttonColor } from "features/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
 import { UPDATE_CHANNEL } from "constants/routes";
-import { Sections } from "./channelsTypes"
+import { Sections } from "./channelsTypes";
+import useTranslations from "services/i18n/useTranslations";
 
 function ChannelsPage() {
+  const { t } = useTranslations();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -83,12 +86,12 @@ function ChannelsPage() {
 
   const tableControls = (
     <TableControlSection>
-    <TableControlsTabsGroup></TableControlsTabsGroup>
+      <TableControlsTabsGroup></TableControlsTabsGroup>
       <TableControlsButtonGroup>
         <Button
           buttonColor={buttonColor.green}
-          text={"Adjust Fees"}
-          icon={<FilterIcon />}
+          text={t.updateChannelPolicy.title}
+          icon={<AdjustFeesIcon />}
           onClick={() => {
             navigate(UPDATE_CHANNEL, { state: { background: location } });
           }}
@@ -122,9 +125,9 @@ function ChannelsPage() {
   };
 
   const sidebar = (
-    <Sidebar title={"Table Options"} closeSidebarHandler={closeSidebarHandler()}>
+    <Sidebar title={t.tableLayout.tableOptionsTitle} closeSidebarHandler={closeSidebarHandler()}>
       <SectionContainer
-        title={"Columns"}
+        title={t.columns}
         icon={ColumnsIcon}
         expanded={activeSidebarSections.columns}
         handleToggle={sidebarSectionHandler("columns")}
@@ -133,7 +136,7 @@ function ChannelsPage() {
       </SectionContainer>
 
       <SectionContainer
-        title={"Filter"}
+        title={t.filter}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
         handleToggle={sidebarSectionHandler("filter")}
@@ -147,7 +150,7 @@ function ChannelsPage() {
       </SectionContainer>
 
       <SectionContainer
-        title={"Sort"}
+        title={t.sort}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}
         handleToggle={sidebarSectionHandler("sort")}
@@ -156,7 +159,7 @@ function ChannelsPage() {
       </SectionContainer>
 
       <SectionContainer
-        title={"Group"}
+        title={t.group}
         icon={GroupIcon}
         expanded={activeSidebarSections.group}
         handleToggle={sidebarSectionHandler("group")}
@@ -169,13 +172,13 @@ function ChannelsPage() {
   const breadcrumbs = [
     <span key="b1">Analyse</span>,
     <Link key="b2" to={"/analyse/channels"}>
-      Channels
+      {t.channels}
     </Link>,
   ];
 
   return (
     <TablePageTemplate
-      title={"Channels"}
+      title={t.channels}
       titleContent={""}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}

@@ -175,12 +175,6 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 
 		client := lnrpc.NewLightningClient(conn)
 
-		nodeInfo, err := client.GetNodeInfo(context.Background(), &lnrpc.NodeInfoRequest{IncludeChannels: true, PubKey: *node.PubKey})
-		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Node info")
-			return
-		}
-
 		r, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "List channels")
@@ -200,7 +194,6 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 
 			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
 			chanBody := channelBody{
-				PeerAlias:                    nodeInfo.Node.Alias,
 				LocalNodeId:                  node.LocalNodeId,
 				LocalNodeName:                node.Name,
 				Active:                       channel.Active,
@@ -238,6 +231,15 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				AmbossSpace:                  AMBOSS + shortChannelId,
 				OneMl:                        ONEML + stringLNDShortChannelId,
 			}
+
+			peerInfo, err := client.GetNodeInfo(context.Background(),
+				&lnrpc.NodeInfoRequest{IncludeChannels: true, PubKey: channel.RemotePubkey})
+			if err != nil {
+				server_errors.WrapLogAndSendServerError(c, err, "Node info")
+				return
+			}
+			chanBody.PeerAlias = peerInfo.Node.Alias
+
 			channelsBody = append(channelsBody, chanBody)
 		}
 	}

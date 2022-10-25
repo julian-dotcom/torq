@@ -25,6 +25,7 @@ export interface localNode {
 }
 
 export interface channel {
+  peerAlias: string;
   active: boolean;
   gauge: number;
   remotePubkey: string;

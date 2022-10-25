@@ -21,6 +21,7 @@ import classNames from "classnames";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
 
 import clone from "clone";
+import FormRow from "features/forms/FormWrappers";
 
 const updateStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -33,7 +34,6 @@ const updateStatusIcon = {
   FAILED: <FailedIcon />,
   SUCCEEDED: <SuccessIcon />,
 };
-
 
 function NodechannelModal() {
   const [updateChannelMutation, response] = useUpdateChannelMutation();
@@ -52,7 +52,10 @@ function NodechannelModal() {
   let channelOptions: SelectOptions[] = [{ value: 0, label: "Select your channel" }];
   if (channels !== undefined) {
     channelOptions = channels.map((channel: channel) => {
-      return { value: channel.lndShortChannelId, label: channel.lndShortChannelId.toString() };
+      return {
+        value: channel.lndShortChannelId,
+        label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
+      };
     });
   }
 
@@ -62,23 +65,23 @@ function NodechannelModal() {
   const [errMessage, setErrorMEssage] = useState<any[]>([]);
 
   function handleNodeSelection(value: number) {
-    setSelectedLocalNode(value)
-    channels = channels?.filter((channel: { localNodeId: number; }) => channel.localNodeId == value )
+    setSelectedLocalNode(value);
+    channels = channels?.filter((channel: { localNodeId: number }) => channel.localNodeId == value);
   }
 
   function handleChannelSelection(value: number) {
-    setSelectedChannel(value)
+    setSelectedChannel(value);
     channels?.map((channel: channel) => {
       if (channel.lndShortChannelId == value) {
-        setTimeLockDelta(channel.timeLockDelta)
-        setBaseFeeMsat(channel.baseFeeMsat)
-        setMinHtlcMsat(channel.minHtlc)
-        setMaxHtlcMsat(channel.maxHtlcMsat)
-        setFeeRatePpm(channel.feeRatePpm)
-        setLndChannelPoint(channel.lndChannelPoint)
-        return channel
+        setTimeLockDelta(channel.timeLockDelta);
+        setBaseFeeMsat(channel.baseFeeMsat);
+        setMinHtlcSat(channel.minHtlc / 1000);
+        setMaxHtlcSat(channel.maxHtlcMsat / 1000);
+        setFeeRatePpm(channel.feeRatePpm);
+        setLndChannelPoint(channel.lndChannelPoint);
+        return channel;
       }
-    })
+    });
   }
 
   useEffect(() => {
@@ -88,30 +91,35 @@ function NodechannelModal() {
         const message = clone(errMessage) || [];
         if (response.data?.failedUpdates?.length) {
           for (let i = 0; i < response.data.failedUpdates.length; i++) {
-            message.push(<span key={i} className={classNames(styles.updateChannelStatusMessage)}> { response.data.failedUpdates[i].reason } </span>)
+            message.push(
+              <span key={i} className={classNames(styles.updateChannelStatusMessage)}>
+                {" "}
+                {response.data.failedUpdates[i].reason}{" "}
+              </span>
+            );
           }
-          setErrorMEssage(message)
+          setErrorMEssage(message);
         }
       } else {
         setResultState(ProgressStepState.completed);
       }
     }
-  },[response])
+  }, [response]);
 
   const [channelState, setChannelState] = useState(ProgressStepState.active);
   const [policyState, setPolicyState] = useState(ProgressStepState.disabled);
   const [feeRatePpm, setFeeRatePpm] = useState<number>(0);
   const [baseFeeMsat, setBaseFeeMsat] = useState<number>(0);
-  const [minHtlcMsat, setMinHtlcMsat] = useState<number>(0);
-  const [maxHtlcMsat, setMaxHtlcMsat] = useState<number>(0);
+  const [minHtlcSat, setMinHtlcSat] = useState<number>(0);
+  const [maxHtlcSat, setMaxHtlcSat] = useState<number>(0);
   const [timeLockDelta, setTimeLockDelta] = useState<number>(0);
   const [lndChannelPoint, setLndChannelPoint] = useState<string>("");
   const [stepIndex, setStepIndex] = useState(0);
 
   const closeAndReset = () => {
     setStepIndex(0);
-    setSelectedLocalNode(0)
-    setSelectedChannel(0)
+    setSelectedLocalNode(0);
+    setSelectedChannel(0);
     setChannelState(ProgressStepState.active);
     setPolicyState(ProgressStepState.disabled);
     setResultState(ProgressStepState.disabled);
@@ -147,7 +155,7 @@ function NodechannelModal() {
           <Select
             label={t.yourNode}
             onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-              const selectOptions = newValue as SelectOptions
+              const selectOptions = newValue as SelectOptions;
               handleNodeSelection(selectOptions?.value);
             }}
             options={localNodeOptions}
@@ -156,13 +164,12 @@ function NodechannelModal() {
           <Select
             label={t.yourChannel}
             onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-              const selectOptions = newValue as SelectOptions
+              const selectOptions = newValue as SelectOptions;
               handleChannelSelection(selectOptions?.value);
             }}
             options={channelOptions}
             value={channelOptions.find((option) => option.value === selectedChannel)}
             isDisabled={true}
-
           />
           <ButtonWrapper
             className={styles.customButtonWrapperStyles}
@@ -182,70 +189,72 @@ function NodechannelModal() {
             }
           />
         </ProgressTabContainer>
-          <ProgressTabContainer>
-            <div className={styles.activeColumns}>
-              <div className={styles.updateChannelTableRow}>
-                <div className={styles.updateChannelTableDouble}>
-                  <span className={styles.label}>{"Fee rate (PPM)"}</span>
-                  <div className={styles.input}>
-                    <NumberFormat
-                      className={styles.double}
-                      suffix={" ppm"}
-                      thousandSeparator={false}
-                      value={feeRatePpm}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setFeeRatePpm(values.floatValue as number);
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className={styles.updateChannelTableDouble}>
-                  <span className={styles.label}>{"Base fee"}</span>
-                  <div className={styles.input}>
-                    <NumberFormat
-                      className={styles.double}
-                      suffix={" sat"}
-                      thousandSeparator={false}
-                      value={baseFeeMsat}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setBaseFeeMsat(values.floatValue as number);
-                      }}
-                    />
-                  </div>
+        <ProgressTabContainer>
+          <div className={styles.activeColumns}>
+            <FormRow>
+              <div className={styles.updateChannelTableDouble}>
+                <span className={styles.label}>{t.updateChannelPolicy.feeRatePpm}</span>
+                <div className={styles.input}>
+                  <NumberFormat
+                    className={styles.double}
+                    suffix={" ppm"}
+                    thousandSeparator={false}
+                    value={feeRatePpm}
+                    onValueChange={(values: NumberFormatValues) => {
+                      setFeeRatePpm(values.floatValue as number);
+                    }}
+                  />
                 </div>
               </div>
-              <div className={styles.updateChannelTableRow}>
-                <div className={styles.updateChannelTableDouble}>
-                  <span className={styles.label}>{"Min HTLC amount"}</span>
-                  <div className={styles.input}>
-                    <NumberFormat
-                      className={styles.double}
-                      suffix={" sat"}
-                      thousandSeparator={false}
-                      value={minHtlcMsat}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setMinHtlcMsat(values.floatValue as number);
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className={styles.updateChannelTableDouble}>
-                  <span className={styles.label}>{"Max HTLC amounte"}</span>
-                  <div className={styles.input}>
-                    <NumberFormat
-                      className={styles.double}
-                      suffix={" sat"}
-                      thousandSeparator={true}
-                      value={maxHtlcMsat}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setMaxHtlcMsat(values.floatValue as number);
-                      }}
-                    />
-                  </div>
+              <div className={styles.updateChannelTableDouble}>
+                <span className={styles.label}>{t.updateChannelPolicy.baseFeeMsat}</span>
+                <div className={styles.input}>
+                  <NumberFormat
+                    className={styles.double}
+                    suffix={" milli sat"}
+                    thousandSeparator={false}
+                    value={baseFeeMsat}
+                    onValueChange={(values: NumberFormatValues) => {
+                      setBaseFeeMsat(values.floatValue as number);
+                    }}
+                  />
                 </div>
               </div>
+            </FormRow>
 
-              <div className={styles.updateChannelTableRow}>
+            <FormRow>
+              <div className={styles.updateChannelTableDouble}>
+                <span className={styles.label}>{t.updateChannelPolicy.minHtlcSat}</span>
+                <div className={styles.input}>
+                  <NumberFormat
+                    className={styles.double}
+                    suffix={" sat"}
+                    thousandSeparator={false}
+                    value={minHtlcSat}
+                    onValueChange={(values: NumberFormatValues) => {
+                      setMinHtlcSat(values.floatValue as number);
+                    }}
+                  />
+                </div>
+              </div>
+              <div className={styles.updateChannelTableDouble}>
+                <span className={styles.label}>{t.updateChannelPolicy.maxHtlcSat}</span>
+                <div className={styles.input}>
+                  <NumberFormat
+                    className={styles.double}
+                    suffix={" sat"}
+                    thousandSeparator={true}
+                    value={maxHtlcSat}
+                    onValueChange={(values: NumberFormatValues) => {
+                      setMaxHtlcSat(values.floatValue as number);
+                    }}
+                  />
+                </div>
+              </div>
+            </FormRow>
+
+            <div className={styles.updateChannelTableRow}>
+              <FormRow>
                 <div className={styles.updateChannelTableSingle}>
                   <span className={styles.label}>{"Time Lock Delta"}</span>
                   <div className={styles.input}>
@@ -259,49 +268,59 @@ function NodechannelModal() {
                     />
                   </div>
                 </div>
-              </div>
-              <ButtonWrapper
-                className={styles.customButtonWrapperStyles}
-                rightChildren={
-                  <Button
-                    text={"Update"}
-                    onClick={() => {
-                      setStepIndex(2);
-                      setPolicyState(ProgressStepState.completed);
-                      setResultState(ProgressStepState.processing);
-                      updateChannelMutation({
-                        feeRatePpm,
-                        baseFeeMsat: baseFeeMsat,
-                        timeLockDelta,
-                        minHtlcMsat: minHtlcMsat,
-                        maxHtlcMsat,
-                        channelPoint: lndChannelPoint,
-                        nodeId: selectedLocalNode,
-                      })
-                    }}
-
-                    buttonColor={buttonColor.green}
-                  />
-                }
-              />
+              </FormRow>
+            </div>
+            <ButtonWrapper
+              rightChildren={
+                <Button
+                  text={t.updateChannelPolicy.update}
+                  onClick={() => {
+                    setStepIndex(2);
+                    setPolicyState(ProgressStepState.completed);
+                    setResultState(ProgressStepState.processing);
+                    updateChannelMutation({
+                      feeRatePpm,
+                      baseFeeMsat: baseFeeMsat,
+                      timeLockDelta,
+                      minHtlcMsat: minHtlcSat * 1000,
+                      maxHtlcMsat: maxHtlcSat * 1000,
+                      channelPoint: lndChannelPoint,
+                      nodeId: selectedLocalNode,
+                    });
+                  }}
+                  buttonColor={buttonColor.green}
+                />
+              }
+            />
           </div>
         </ProgressTabContainer>
         <ProgressTabContainer>
           <div
             className={classNames(
               styles.updateChannelResultIconWrapper,
-              { [styles.failed]: !response.data  },
+              { [styles.failed]: !response.data },
               updateStatusClass[response.data?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]
             )}
           >
             {" "}
             {!response.data && updateStatusIcon["FAILED"]}
             {updateStatusIcon[response.data?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]}
-
           </div>
-          <div className="pop">
-            {errMessage}
-          </div>
+          <div className="pop">{errMessage}</div>
+          <ButtonWrapper
+            rightChildren={
+              <Button
+                text={t.updateChannelPolicy.newUpdate}
+                onClick={() => {
+                  setStepIndex(0);
+                  setChannelState(ProgressStepState.active);
+                  setPolicyState(ProgressStepState.disabled);
+                  setResultState(ProgressStepState.disabled);
+                }}
+                buttonColor={buttonColor.subtle}
+              />
+            }
+          />
         </ProgressTabContainer>
       </ProgressTabs>
     </PopoutPageTemplate>
