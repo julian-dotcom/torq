@@ -61,6 +61,8 @@ func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 }
 
 func processSendRequest(req PayOnChainRequest) (r *lnrpc.SendCoinsRequest, err error) {
+	r = &lnrpc.SendCoinsRequest{}
+
 	if req.LocalNodeId == 0 {
 		return &lnrpc.SendCoinsRequest{}, errors.New("Node id is missing")
 	}
