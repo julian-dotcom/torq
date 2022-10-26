@@ -8,7 +8,7 @@ linters:
     - errcheck
     - govet
     - gosimple
-    # - ineffassign
+    - ineffassign
     # - staticcheck
     # - typecheck
     # - unused

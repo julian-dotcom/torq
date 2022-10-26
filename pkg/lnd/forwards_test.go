@@ -207,6 +207,9 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 
 	var returnedDate time.Time
 	err = db.QueryRow("select \"time\" from forward order by time_ns desc limit 1;").Scan(&returnedDate)
+	if err != nil {
+		t.Fatalf("Problem querying row: %v\n", err)
+	}
 	var expectedDate, _ = time.Parse("2006-01-02 15:04:05-0700 MST", "1970-01-01 00:00:01+0000 UTC")
 	if returnedDate != expectedDate {
 		t.Errorf("Time on the latest forward record (%v) isn't as expected (%v)", returnedDate, expectedDate)

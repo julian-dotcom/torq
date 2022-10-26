@@ -458,7 +458,7 @@ func TestMain(m *testing.M) {
 
 	log.Println("Recreate the Alice<->Bob channel")
 
-	aliceBobChannelPoint, err = virtual_network.CreateChannel(ctx, cli, alice, bobPubkey, "1000000", btcd)
+	_, err = virtual_network.CreateChannel(ctx, cli, alice, bobPubkey, "1000000", btcd)
 	if err != nil {
 		log.Fatalf("Creating Alice<->Bob channel: %v", err)
 	}

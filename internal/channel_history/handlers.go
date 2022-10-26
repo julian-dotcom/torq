@@ -118,6 +118,10 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	} else {
 		r.OnChainCost, err = getChannelOnChainCost(db, chanIds)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
 		reb, err := getChannelRebalancing(db, chanIds, from, to)
 		r.RebalancingCost = &reb.SplitCostMsat
 		r.RebalancingDetails = reb

@@ -3,10 +3,12 @@ package payments
 import (
 	"database/sql"
 	"encoding/json"
+	"time"
+
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
-	"time"
 )
 
 type Payment struct {
@@ -229,6 +231,9 @@ func getPaymentDetails(db *sqlx.DB, identifier string) (*PaymentDetails, error) 
 		`)
 
 	qs, args, err := qb.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "Select builder to SQL")
+	}
 	r := PaymentDetails{}
 	var sr []byte
 	var fr []byte

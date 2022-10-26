@@ -308,7 +308,6 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 //
 // This values come from chaincfg.<Params>.Bech32HRPSegwit
 func getNodeNetwork(pmntReq string) *chaincfg.Params {
-	nodeNetwork := &chaincfg.Params{}
 	nodeNetworkPrefix := pmntReq[2:4]
 	nodeNetworkSuffix := ""
 
@@ -316,24 +315,22 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 	case nodeNetworkPrefix == "bc":
 		nodeNetworkSuffix = pmntReq[4:6]
 		if nodeNetworkSuffix == "rt" {
-			nodeNetwork = &chaincfg.RegressionNetParams
+			return &chaincfg.RegressionNetParams
 		} else {
-			nodeNetwork = &chaincfg.MainNetParams
+			return &chaincfg.MainNetParams
 		}
 	case nodeNetworkPrefix == "tb":
 		nodeNetworkSuffix = pmntReq[4:5]
 		if nodeNetworkSuffix == "s" {
-			nodeNetwork = &chaincfg.SigNetParams
+			return &chaincfg.SigNetParams
 		} else {
-			nodeNetwork = &chaincfg.TestNet3Params
+			return &chaincfg.TestNet3Params
 		}
 	case nodeNetworkPrefix == "sb":
-		nodeNetwork = &chaincfg.SimNetParams
+		return &chaincfg.SimNetParams
 	default:
-		nodeNetwork = &chaincfg.MainNetParams
+		return &chaincfg.MainNetParams
 	}
-
-	return nodeNetwork
 }
 
 func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string) error {

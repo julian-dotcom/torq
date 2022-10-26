@@ -23,6 +23,9 @@ func newMigrationInstance(db *sql.DB) (*migrate.Migrate, error) {
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("could not create migration driver: %v", err)
+	}
 	m, err := migrate.NewWithInstance("httpfs", sourceInstance, "postgres", driver)
 	if err != nil {
 		return nil, fmt.Errorf("could not create migration instance: %v", err)

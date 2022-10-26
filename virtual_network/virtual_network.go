@@ -304,6 +304,9 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	carolName := name + "-carol"
 
 	de, err := createDockerEnvironment(name, createDatabase)
+	if err != nil {
+		return errors.Wrap(err, "Creating docker environment")
+	}
 
 	var torqDbCont *ContainerConfig
 	if createDatabase {
@@ -710,8 +713,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	log.Println("Recreate the Alice<->Bob channel")
 
-	aliceBobChannelPoint, err = CreateChannel(ctx, de.Client, aliceConf.Instance, bobPubkey, "1000000",
-		btcdConf.Instance)
+	_, err = CreateChannel(ctx, de.Client, aliceConf.Instance, bobPubkey, "1000000", btcdConf.Instance)
 	if err != nil {
 		return errors.Newf("Creating Alice<->Bob channel: %v", err)
 	}

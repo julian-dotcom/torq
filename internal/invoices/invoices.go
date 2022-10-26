@@ -3,9 +3,11 @@ package invoices
 import (
 	"database/sql"
 	"encoding/json"
-	sq "github.com/Masterminds/squirrel"
-	"github.com/jmoiron/sqlx"
 	"time"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/cockroachdb/errors"
+	"github.com/jmoiron/sqlx"
 )
 
 type Invoice struct {
@@ -253,6 +255,9 @@ func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) 
 		`)
 
 	qs, args, err := qb.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "Select builder to SQL")
+	}
 	i := InvoiceDetails{}
 	var h []byte
 	var fm []byte
