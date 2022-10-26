@@ -84,11 +84,6 @@ type NewPaymentResponse struct {
 	Attempt        attempt   `json:"path"`
 }
 
-type paymentComplete struct {
-	ReqId string `json:"id"`
-	Type  string `json:"type"`
-}
-
 // SendNewPayment - send new payment
 // A new payment can be made either by providing an invoice or by providing:
 // dest - the identity pubkey of the payment recipient

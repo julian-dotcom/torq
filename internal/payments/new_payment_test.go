@@ -9,9 +9,6 @@ import (
 )
 
 func Test_processResponse(t *testing.T) {
-	type args struct {
-		response []byte
-	}
 	tests := []struct {
 		name    string
 		reqId   string

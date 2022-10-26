@@ -15,34 +15,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-type dbForwardEvent struct {
-
-	// The microseconds' version of TimestampNs, used by TimescaleDB
-	Time time.Time `db:"time"`
-
-	// The number of nanoseconds elapsed since January 1, 1970 UTC when this
-	// circuit was completed.
-	TimeNs uint64 `db:"time_ns"`
-
-	// The incoming channel ID that carried the HTLC that created the circuit.
-	LNDIncomingShortChannelId uint64 `db:"lnd_incoming_short_channel_id"`
-
-	// The outgoing channel ID that carried the preimage that completed the
-	// circuit.
-	LNDOutgoingShortChannelId uint64 `db:"lnd_outgoing_short_channel_id"`
-
-	// The total fee (in milli-satoshis) that this payment circuit carried.
-	FeeMsat uint64 `db:"fee_msat"`
-
-	// The total amount (in milli-satoshis) of the incoming HTLC that created
-	// half the circuit.
-	AmtInMsat uint64 `db:"incoming_amount_msat"`
-
-	// The total amount (in milli-satoshis) of the outgoing HTLC that created
-	// the second half of the circuit.
-	AmtOutMsat uint64 `db:"outgoing_amount_msat"`
-}
-
 func convMicro(ns uint64) time.Time {
 	return time.Unix(0, int64(ns)).Round(time.Microsecond).UTC()
 }

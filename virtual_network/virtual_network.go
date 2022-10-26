@@ -1009,96 +1009,96 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 	select {}
 }
 
-func openRandomChann(name string, ochfrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
-	log.Println("Opening random channel")
-	freq := time.Duration(ochfrq)
-	ticker := time.NewTicker(freq * time.Minute)
+// func openRandomChann(name string, ochfrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
+// 	log.Println("Opening random channel")
+// 	freq := time.Duration(ochfrq)
+// 	ticker := time.NewTicker(freq * time.Minute)
 
-	btcdName := name + "-btcd"
-	btcdConf := de.Containers[btcdName]
+// 	btcdName := name + "-btcd"
+// 	btcdConf := de.Containers[btcdName]
 
-	var cnt int
-	for range ticker.C {
-		cnt++
-		peer1, peer2PK, peer2 := pickRandomNodes(de, name, alicePK, bobPK, carolPK)
+// 	var cnt int
+// 	for range ticker.C {
+// 		cnt++
+// 		peer1, peer2PK, peer2 := pickRandomNodes(de, name, alicePK, bobPK, carolPK)
 
-		log.Printf("%v opening channel to %v\n", peer1.Name, peer2.Name)
+// 		log.Printf("%v opening channel to %v\n", peer1.Name, peer2.Name)
 
-		channels, err := ListNodeChannels(ctx, de.Client, peer1.Instance, peer2PK)
-		if err != nil {
-			continue
-		}
+// 		channels, err := ListNodeChannels(ctx, de.Client, peer1.Instance, peer2PK)
+// 		if err != nil {
+// 			continue
+// 		}
 
-		if len(channels) >= 2 {
-			log.Println("There are already 2 active channels.Skipping!")
-			continue
-		}
+// 		if len(channels) >= 2 {
+// 			log.Println("There are already 2 active channels.Skipping!")
+// 			continue
+// 		}
 
-		var min int
-		var max int
-		var size string
+// 		var min int
+// 		var max int
+// 		var size string
 
-		rand.Seed(time.Now().UnixNano())
-		if cnt == 4 {
-			min = 40000000
-			max = 100000000
-			size = strconv.Itoa(rand.Intn(max-min) + min)
-			cnt = 0
-		} else {
-			min = 500000
-			max = 15000000
-			size = strconv.Itoa(rand.Intn(max-min) + min)
-		}
+// 		rand.Seed(time.Now().UnixNano())
+// 		if cnt == 4 {
+// 			min = 40000000
+// 			max = 100000000
+// 			size = strconv.Itoa(rand.Intn(max-min) + min)
+// 			cnt = 0
+// 		} else {
+// 			min = 500000
+// 			max = 15000000
+// 			size = strconv.Itoa(rand.Intn(max-min) + min)
+// 		}
 
-		_, err = CreateChannel(ctx, de.Client, peer1.Instance, peer2PK, size, btcdConf.Instance)
-		if err != nil {
-			continue
-		}
-		log.Println("Channel size: ", size)
-	}
-}
+// 		_, err = CreateChannel(ctx, de.Client, peer1.Instance, peer2PK, size, btcdConf.Instance)
+// 		if err != nil {
+// 			continue
+// 		}
+// 		log.Println("Channel size: ", size)
+// 	}
+// }
 
-func closeRandomChann(name string, ochfrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
-	freq := time.Duration(ochfrq)
-	ticker := time.NewTicker(freq * time.Minute)
+// func closeRandomChann(name string, ochfrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
+// 	freq := time.Duration(ochfrq)
+// 	ticker := time.NewTicker(freq * time.Minute)
 
-	btcdName := name + "-btcd"
-	btcdConf := de.Containers[btcdName]
+// 	btcdName := name + "-btcd"
+// 	btcdConf := de.Containers[btcdName]
 
-	for range ticker.C {
-		log.Println("Closing random channel")
-		peer1, peer2PK, peer2 := pickRandomNodes(de, name, alicePK, bobPK, carolPK)
+// 	for range ticker.C {
+// 		log.Println("Closing random channel")
+// 		peer1, peer2PK, peer2 := pickRandomNodes(de, name, alicePK, bobPK, carolPK)
 
-		log.Printf("%v closing channel to %v\n", peer1.Name, peer2.Name)
+// 		log.Printf("%v closing channel to %v\n", peer1.Name, peer2.Name)
 
-		channels, err := ListNodeChannels(ctx, de.Client, peer1.Instance, peer2PK)
-		if err != nil {
-			continue
-		}
+// 		channels, err := ListNodeChannels(ctx, de.Client, peer1.Instance, peer2PK)
+// 		if err != nil {
+// 			continue
+// 		}
 
-		if len(channels) == 0 {
-			log.Println("0 active channels. Skipping!")
-			continue
-		}
+// 		if len(channels) == 0 {
+// 			log.Println("0 active channels. Skipping!")
+// 			continue
+// 		}
 
-		rand.Seed(time.Now().UnixNano())
-		randomIndex := rand.Intn(len(channels))
-		channelPoint := channels[randomIndex]
+// 		rand.Seed(time.Now().UnixNano())
+// 		randomIndex := rand.Intn(len(channels))
+// 		channelPoint := channels[randomIndex]
 
-		closeTxid, err := CloseChannel(ctx, de.Client, peer1.Instance, channelPoint)
-		//err = CreateChannel(ctx, de.Client, peer1.Instance, peer2, amt, btcdConf.Instance)
-		if err != nil {
-			continue
-		}
-		log.Println("Channel closed. Txid: ", closeTxid)
-		err = MineBlocks(ctx, de.Client, btcdConf.Instance, 1)
-		if err != nil {
-			continue
-		}
+// 		closeTxid, err := CloseChannel(ctx, de.Client, peer1.Instance, channelPoint)
+// 		//err = CreateChannel(ctx, de.Client, peer1.Instance, peer2, amt, btcdConf.Instance)
+// 		if err != nil {
+// 			continue
+// 		}
+// 		log.Println("Channel closed. Txid: ", closeTxid)
+// 		err = MineBlocks(ctx, de.Client, btcdConf.Instance, 1)
+// 		if err != nil {
+// 			continue
+// 		}
 
-		log.Println("Blocks mined")
-	}
-}
+// 		log.Println("Blocks mined")
+// 	}
+// }
 
 func createPayInvoice(name string, invfrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
 	freq := time.Duration(invfrq)
@@ -1155,59 +1155,59 @@ func createPayInvoice(name string, invfrq int, ctx context.Context, de DockerDev
 	}
 }
 
-func addressSendCoins(name string, scofrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
-	freq := time.Duration(scofrq)
-	ticker := time.NewTicker(freq * time.Second)
+// func addressSendCoins(name string, scofrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
+// 	freq := time.Duration(scofrq)
+// 	ticker := time.NewTicker(freq * time.Second)
 
-	btcdName := name + "-btcd"
-	btcdConf := de.Containers[btcdName]
+// 	btcdName := name + "-btcd"
+// 	btcdConf := de.Containers[btcdName]
 
-	for range ticker.C {
-		log.Println("Creating new address and sending coins to this address")
-		peer1, _, peer2 := pickRandomNodes(de, name, alicePK, bobPK, carolPK)
-		log.Println("Creating new mining address on", peer1.Name)
+// 	for range ticker.C {
+// 		log.Println("Creating new address and sending coins to this address")
+// 		peer1, _, peer2 := pickRandomNodes(de, name, alicePK, bobPK, carolPK)
+// 		log.Println("Creating new mining address on", peer1.Name)
 
-		log.Println("Getting on-chain balance for:", peer1.Name)
-		peer1OnChainBal, err := GetOnchainBalance(ctx, de.Client, peer1.Instance)
-		if err != nil {
-			log.Println("Err getting before on-chain balance")
-		}
-		log.Printf("Before on-chain balance of %v: %s", peer1.Name, peer1OnChainBal)
+// 		log.Println("Getting on-chain balance for:", peer1.Name)
+// 		peer1OnChainBal, err := GetOnchainBalance(ctx, de.Client, peer1.Instance)
+// 		if err != nil {
+// 			log.Println("Err getting before on-chain balance")
+// 		}
+// 		log.Printf("Before on-chain balance of %v: %s", peer1.Name, peer1OnChainBal)
 
-		peer1NewAddr, err := GetNewAddress(ctx, de.Client, peer1.Instance)
-		if err != nil {
-			log.Println("Error creating new addres for ", peer1.Name, ". Skipping")
-			continue
-		}
+// 		peer1NewAddr, err := GetNewAddress(ctx, de.Client, peer1.Instance)
+// 		if err != nil {
+// 			log.Println("Error creating new addres for ", peer1.Name, ". Skipping")
+// 			continue
+// 		}
 
-		rand.Seed(time.Now().UnixNano())
-		min := 200000
-		max := 100000000
-		amt := strconv.Itoa(rand.Intn(max-min) + min)
+// 		rand.Seed(time.Now().UnixNano())
+// 		min := 200000
+// 		max := 100000000
+// 		amt := strconv.Itoa(rand.Intn(max-min) + min)
 
-		log.Printf("%v sending %s on-chain to %v\n", peer2.Name, amt, peer1.Name)
-		txId, err := AddressSendCoins(ctx, de.Client, peer2.Instance, peer1NewAddr, amt)
-		if err != nil {
-			log.Println("Payment failed")
-			continue
-		}
+// 		log.Printf("%v sending %s on-chain to %v\n", peer2.Name, amt, peer1.Name)
+// 		txId, err := AddressSendCoins(ctx, de.Client, peer2.Instance, peer1NewAddr, amt)
+// 		if err != nil {
+// 			log.Println("Payment failed")
+// 			continue
+// 		}
 
-		err = MineBlocks(ctx, de.Client, btcdConf.Instance, 6)
-		if err != nil {
-			continue
-		}
-		log.Println("Blocks mined")
+// 		err = MineBlocks(ctx, de.Client, btcdConf.Instance, 6)
+// 		if err != nil {
+// 			continue
+// 		}
+// 		log.Println("Blocks mined")
 
-		peer1OnChainBal, err = GetOnchainBalance(ctx, de.Client, peer1.Instance)
-		if err != nil {
-			log.Println("Err getting after on-chain balance")
-		}
+// 		peer1OnChainBal, err = GetOnchainBalance(ctx, de.Client, peer1.Instance)
+// 		if err != nil {
+// 			log.Println("Err getting after on-chain balance")
+// 		}
 
-		log.Println("Coins sent. TxId: ", txId)
-		log.Printf("After on-chain balance of %v: %s", peer1.Name, peer1OnChainBal)
-	}
+// 		log.Println("Coins sent. TxId: ", txId)
+// 		log.Printf("After on-chain balance of %v: %s", peer1.Name, peer1OnChainBal)
+// 	}
 
-}
+// }
 
 func pickRandomNodes(de DockerDevEnvironment, name string, alicePK string, bobPK string, carolPK string) (peer1 *ContainerConfig, peer2PK string, peer2 *ContainerConfig) {
 	//1 = alice
