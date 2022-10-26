@@ -1,14 +1,15 @@
 package views
 
 import (
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx/types"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type TableView struct {
@@ -17,8 +18,8 @@ type TableView struct {
 }
 
 func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
-
-	r, err := getTableViews(db)
+	page := c.Query("page")
+	r, err := getTableViews(db, page)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -26,10 +27,10 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func getTableViews(db *sqlx.DB) (r []*TableView, err error) {
-	sql := `Select id, view from table_view order by view_order;`
+func getTableViews(db *sqlx.DB, page string) (r []*TableView, err error) {
+	sql := `SELECT id, view FROM table_view WHERE page = $1 ORDER BY view_order;`
 
-	rows, err := db.Query(sql)
+	rows, err := db.Query(sql, page)
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +51,7 @@ func getTableViews(db *sqlx.DB) (r []*TableView, err error) {
 
 type NewTableView struct {
 	View types.JSONText `json:"view" db:"view"`
+	Page string         `json:"page" db:"page"`
 }
 
 func insertTableViewsHandler(c *gin.Context, db *sqlx.DB) {
@@ -72,11 +74,10 @@ func insertTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 func insertTableView(db *sqlx.DB, view *NewTableView) (r TableView, err error) {
 
 	sql := `
-		INSERT INTO table_view (view, created_on) values ($1, $2)
+		INSERT INTO table_view (view, page, created_on) values ($1, $2, $3)
 		RETURNING id, view;
 	`
-
-	err = db.QueryRowx(sql, &view.View, time.Now().UTC()).Scan(&r.Id, &r.View)
+	err = db.QueryRowx(sql, &view.View, &view.Page, time.Now().UTC()).Scan(&r.Id, &r.View)
 	if err != nil {
 		return TableView{}, errors.Wrap(err, "Unable to create view. SQL statement error")
 	}

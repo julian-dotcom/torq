@@ -18,7 +18,7 @@ import {
   selectedViewIndex,
   DefaultView,
   updateViewsOrder,
-} from "features/forwards/forwardsSlice";
+} from "features/channels/ChannelsSlice";
 import Popover from "features/popover/Popover";
 
 import Button, { buttonColor, buttonSize } from "features/buttons/Button";
@@ -123,7 +123,7 @@ function ViewsPopover() {
   };
 
   const addView = () => {
-    createTableView({ view: DefaultView, index: views.length, page: 'forwards' });
+    createTableView({ view: DefaultView, index: views.length, page: 'channels' });
   };
 
   const selectView = (index: number) => {

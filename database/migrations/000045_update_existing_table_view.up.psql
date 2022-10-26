@@ -1,0 +1,1 @@
+UPDATE table_view SET page = 'forwards' WHERE page IS NULL;

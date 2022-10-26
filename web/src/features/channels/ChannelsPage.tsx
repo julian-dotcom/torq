@@ -6,11 +6,11 @@ import {
   ColumnTriple20Regular as ColumnsIcon,
   ArrowJoin20Regular as GroupIcon,
   Options20Regular as OptionsIcon,
+  Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
-
+import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation } from "apiSlice";
 import { Clause, FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
-
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -19,6 +19,7 @@ import TablePageTemplate, {
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "store/hooks";
+import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
 import {
   updateColumns,
   selectActiveColumns,
@@ -30,6 +31,7 @@ import {
   selectGroupBy,
   updateGroupBy,
 } from "./ChannelsSlice";
+import ViewsPopover from "./views/ViewsPopover";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
 import SortSection, { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
@@ -49,6 +51,7 @@ function ChannelsPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  useGetTableViewsQuery({page: 'channels'});
 
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
@@ -84,8 +87,34 @@ function ChannelsPage() {
     };
   };
 
+  const [updateTableView] = useUpdateTableViewMutation();
+  const [createTableView] = useCreateTableViewMutation();
+  const currentViewIndex = useAppSelector(selectedViewIndex);
+  const currentView = useAppSelector(selectCurrentView);
+  const saveView = () => {
+    const viewMod = { ...currentView };
+    viewMod.saved = true;
+    if (currentView.id === undefined || null) {
+      createTableView({ view: viewMod, index: currentViewIndex, page: 'channels' });
+      return;
+    }
+    updateTableView(viewMod);
+  };
+
   const tableControls = (
     <TableControlSection>
+      <TableControlsButtonGroup>
+        {<ViewsPopover />}
+        {/*!currentView.saved && */(
+          <Button
+            buttonColor={buttonColor.green}
+            icon={<SaveIcon />}
+            text={"Save"}
+            onClick={saveView}
+            className={"collapse-tablet"}
+          />
+        )}
+      </TableControlsButtonGroup>
       <TableControlsTabsGroup></TableControlsTabsGroup>
       <TableControlsButtonGroup>
         <Button

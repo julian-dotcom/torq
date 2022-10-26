@@ -51,7 +51,7 @@ type sections = {
 function ForwardsPage() {
   const dispatch = useAppDispatch();
 
-  useGetTableViewsQuery();
+  useGetTableViewsQuery({page: 'forwards'});
 
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
@@ -96,7 +96,7 @@ function ForwardsPage() {
     const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex });
+      createTableView({ view: viewMod, index: currentViewIndex, page: 'forwards' });
       return;
     }
     updateTableView(viewMod);

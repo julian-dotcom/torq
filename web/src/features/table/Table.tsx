@@ -11,6 +11,7 @@ import classNames from "classnames";
 import DateCell from "./cells/DateCell";
 import EnumCell from "./cells/EnumCell";
 import LinkCell from "./cells/LinkCell";
+import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
 
 export interface ColumnMetaData {
   heading: string;
@@ -22,6 +23,22 @@ export interface ColumnMetaData {
   total?: number;
   max?: number;
   percent?: boolean
+}
+
+export interface ViewInterface {
+  title: string;
+  id?: number;
+  saved: boolean;
+  filters?: any;
+  columns: ColumnMetaData[];
+  sortBy: SortByOptionType[];
+  groupBy?: string;
+  page: string
+}
+
+export interface viewOrderInterface {
+  id: number | undefined;
+  view_order: number;
 }
 
 type TableProps = {

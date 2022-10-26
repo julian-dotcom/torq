@@ -15,7 +15,7 @@ function TableControls() {
     const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex });
+      createTableView({ view: viewMod, index: currentViewIndex, page: 'forwards' });
       return;
     }
     updateTableView(viewMod);

@@ -3,7 +3,7 @@ import { RootState } from "store/store";
 import { AndClause, FilterClause } from "features/sidebar/sections/filter/filter";
 import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
 import { torqApi } from "apiSlice";
-import { ColumnMetaData } from "features/table/Table";
+import { ColumnMetaData, ViewInterface } from "features/table/Table";
 
 export const availableColumns: ColumnMetaData[] = [
   {
@@ -123,16 +123,6 @@ export const availableColumns: ColumnMetaData[] = [
   },
 ];
 
-export interface ViewInterface {
-  title: string;
-  id?: number;
-  saved: boolean;
-  filters?: any;
-  columns: ColumnMetaData[];
-  sortBy: SortByOptionType[];
-  groupBy?: string;
-}
-
 export interface TableState {
   channels: [];
   modChannels: [];
@@ -169,6 +159,7 @@ export const DefaultView: ViewInterface = {
   filters: defaultFilter.toJSON(),
   sortBy: [{ value: "revenue_out", label: "Revenue", direction: "desc" }],
   groupBy: undefined,
+  page: 'forwards',
 };
 
 const initialState: TableState = {
@@ -183,11 +174,6 @@ const initialState: TableState = {
   ],
   status: "idle",
 };
-
-export interface viewOrderInterface {
-  id: number | undefined;
-  view_order: number;
-}
 
 export const forwardsSlice = createSlice({
   name: "table",
@@ -272,10 +258,6 @@ export const forwardsSlice = createSlice({
         view.saved = true;
       }
     });
-
-    // builder.addMatcher(torqApi.endpoints.logout.matchFulfilled, (state) => {
-    //   Object.assign(state, initialState);
-    // });
   },
 });
 
