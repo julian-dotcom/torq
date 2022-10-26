@@ -1,6 +1,8 @@
 import * as d3 from "d3";
+import { FlowData } from "features/channel/channelTypes";
 import { ScaleLinear, Selection } from "d3";
 import clone from "clone";
+
 
 type chartConfig = {
   margin: {
@@ -9,8 +11,8 @@ type chartConfig = {
     bottom: number;
     left: number;
   };
-  keyOut: keyof Omit<FlowData, "alias" | "chan_id" | "pub_key" | "channel_point">;
-  keyIn: keyof Omit<FlowData, "alias" | "chan_id" | "pub_key" | "channel_point">;
+  keyOut: keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "lndChannelPoint">;
+  keyIn: keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "lndChannelPoint">;
   totalInbound: number;
   totalOutbound: number;
   verticalGap: number;
@@ -26,18 +28,6 @@ type chartConfig = {
   xScale: ScaleLinear<number, number, number | undefined>;
 };
 
-export type FlowData = {
-  alias: string;
-  chan_id: string;
-  pub_key: string;
-  channel_point: string;
-  amount_out: number;
-  revenue_out: number;
-  count_out: number;
-  amount_in: number;
-  revenue_in: number;
-  count_in: number;
-};
 
 class FlowChartCanvas {
   config: chartConfig = {
@@ -47,8 +37,8 @@ class FlowChartCanvas {
       bottom: 0,
       left: 0,
     },
-    keyOut: "amount_out",
-    keyIn: "amount_in",
+    keyOut: "amountOut",
+    keyIn: "amountIn",
     totalInbound: 0,
     totalOutbound: 0,
     verticalGap: 5,
@@ -112,25 +102,25 @@ class FlowChartCanvas {
 
     const otherChannelsOut: FlowData = {
       alias: "",
-      chan_id: "",
-      channel_point: "",
-      pub_key: "",
-      amount_in: 0,
-      revenue_in: 0,
-      count_in: 0,
-      amount_out: 0,
-      revenue_out: 0,
-      count_out: 0,
+      lndShortChannelId: "",
+      lndChannelPoint: "",
+      pubKey: "",
+      amountIn: 0,
+      revenueIn: 0,
+      countIn: 0,
+      amountOut: 0,
+      revenueOut: 0,
+      countOut: 0,
     };
     let otherChanOutCount = 0;
     this.data.forEach((d, _) => {
       if ((d[this.config.keyOut] as number) && (d[this.config.keyOut] as number) < threshold) {
-        otherChannelsOut.amount_out += d["amount_out"];
-        otherChannelsOut.revenue_out += d["revenue_out"];
-        otherChannelsOut.count_out += d["count_out"];
-        d["amount_out"] = 0;
-        d["revenue_out"] = 0;
-        d["count_out"] = 0;
+        otherChannelsOut.amountOut += d["amountOut"];
+        otherChannelsOut.revenueOut += d["revenueOut"];
+        otherChannelsOut.countOut += d["countOut"];
+        d["amountOut"] = 0;
+        d["revenueOut"] = 0;
+        d["countOut"] = 0;
         otherChanOutCount++;
       }
     });
@@ -139,25 +129,25 @@ class FlowChartCanvas {
 
     const otherChannelsIn: FlowData = {
       alias: "",
-      chan_id: "",
-      channel_point: "",
-      pub_key: "",
-      amount_in: 0,
-      revenue_in: 0,
-      count_in: 0,
-      amount_out: 0,
-      revenue_out: 0,
-      count_out: 0,
+      lndShortChannelId: "",
+      lndChannelPoint: "",
+      pubKey: "",
+      amountIn: 0,
+      revenueIn: 0,
+      countIn: 0,
+      amountOut: 0,
+      revenueOut: 0,
+      countOut: 0,
     };
     let otherChanInCount = 0;
     this.data.forEach((d, _) => {
       if ((d[this.config.keyIn] as number) && (d[this.config.keyIn] as number) < threshold) {
-        otherChannelsIn.amount_in += d["amount_in"];
-        otherChannelsIn.revenue_in += d["revenue_in"];
-        otherChannelsIn.count_in += d["count_in"];
-        d["amount_in"] = 0;
-        d["revenue_in"] = 0;
-        d["count_in"] = 0;
+        otherChannelsIn.amountIn += d["amountIn"];
+        otherChannelsIn.revenueIn += d["revenueIn"];
+        otherChannelsIn.countIn += d["countIn"];
+        d["amountIn"] = 0;
+        d["revenueIn"] = 0;
+        d["countIn"] = 0;
         otherChanInCount++;
       }
     });

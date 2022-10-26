@@ -14,6 +14,7 @@ import {
   ChannelBalanceResponse,
   ChannelEventResponse,
   Channel,
+  FlowData,
 } from "features/channel/channelTypes"
 import type { GetChannelHistoryQueryParams } from "types/api";
 import classNames from "classnames";
@@ -93,17 +94,17 @@ function ChannelPage(props: ChannelPageProps) {
   }
   const { data, isLoading } = useGetFlowQuery(queryParams);
 
-  const { data: balanceResponse } = useGetChannelBalanceQuery(queryParams);
-  const balance = clone<ChannelBalanceResponse>(balanceResponse as ChannelBalanceResponse) || null;
+  const balance = useGetChannelBalanceQuery(queryParams)?.data as ChannelBalanceResponse;
+  // const balance = clone<ChannelBalanceResponse>(balanceResponse as ChannelBalanceResponse) || null;
 
-  const { data: onChainCostResponse } = useGetChannelOnChainCostQuery(queryParams);
-  const onChainCost = clone<ChannelOnchainCostResponse>(onChainCostResponse as ChannelOnchainCostResponse) || 0;
+  const onChainCost = useGetChannelOnChainCostQuery(queryParams)?.data as ChannelOnchainCostResponse;
 
-  const { data: historyResponse } = useGetChannelHistoryQuery(queryParams);
-  const history = clone<ChannelHistoryResponse>(historyResponse as ChannelHistoryResponse) || null;
+  //This fix the complains
+  // const history = useGetChannelHistoryQuery(queryParams).data as ChannelHistoryResponse;
+  // This cause all the issues that can be fixed
+  const { data: history } = useGetChannelHistoryQuery(queryParams);
 
-  const { data: rebalancingResponse } = useGetChannelRebalancingQuery(queryParams);
-  const rebalancing = clone<ChannelRebalancingResponse>(rebalancingResponse as ChannelRebalancingResponse) || null;
+  const rebalancing = useGetChannelRebalancingQuery(queryParams).data as ChannelRebalancingResponse;
 
   const { data: eventResponse } = useGetChannelEventQuery(queryParams);
   const event = clone<ChannelEventResponse>(eventResponse as ChannelEventResponse) || null;
@@ -113,7 +114,7 @@ function ChannelPage(props: ChannelPageProps) {
   const eventKey = useAppSelector(selectEventChartKey);
   let balanceChanId = useAppSelector(selectBalanceChanID);
   if (balanceChanId.label === "") {
-    balanceChanId = { value: 0, label: balance?.channelBalance ? balance.channelBalance[0]?.LndShortChannelId : "" };
+    balanceChanId = { value: 0, label: balance?.channelBalances ? balance.channelBalances[0]?.lndShortChannelId : "" };
   }
 
   let totalCapacity = 0;
@@ -142,8 +143,8 @@ function ChannelPage(props: ChannelPageProps) {
       })
       .join(", ");
   let channelBalanceOptions = [{ value: 0, label: "" }];
-  if (balance?.channelBalance) {
-    channelBalanceOptions = balance.channelBalance.map((d: any, i: number) => {
+  if (balance?.channelBalances) {
+    channelBalanceOptions = balance.channelBalances.map((d: any, i: number) => {
       return { value: i, label: d.ChanId };
     });
   }
@@ -476,7 +477,7 @@ function ChannelPage(props: ChannelPageProps) {
                         updateBalanceChanID({
                           key: (newValue as { value: string; label: string }) || {
                             value: 0,
-                            label: balance?.channelBalance ? balance.channelBalance[0]?.LndShortChannelId : "",
+                            label: balance?.channelBalances ? balance.channelBalances[0]?.lndShortChannelId : "",
                           },
                         })
                       );
@@ -488,9 +489,9 @@ function ChannelPage(props: ChannelPageProps) {
               </div>
             </div>
             <div className={classNames(styles.chartContainer)}>
-              {!isLoading && balance?.channelBalance?.length && (
+              {!isLoading && balance?.channelBalances?.length && (
                 <BalanceChart
-                  data={balance.channelBalance[balanceChanId.value].balances}
+                  data={balance.channelBalances[balanceChanId.value].balances}
                   totalCapacity={history?.channels[balanceChanId.value].capacity}
                   from={from}
                   to={to}
@@ -541,7 +542,7 @@ function ChannelPage(props: ChannelPageProps) {
               <div className="destinations">Destinations</div>
             </div>
             <div className={classNames(styles.chartWrapper, styles.flowChartWrapper)}>
-              {!isLoading && data && <FlowChart data={data} />}
+              {!isLoading && data && <FlowChart data={data.flows as FlowData[]} />}
             </div>
           </div>
         </div>

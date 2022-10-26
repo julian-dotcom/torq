@@ -45,6 +45,11 @@ type ChannelHistory struct {
 	History  []*ChannelHistoryRecords `json:"history"`
 }
 
+const (
+	FROM_ERROR = "Invalid 'from' date."
+	TO_ERROR   = "Invalid 'to' date."
+)
+
 func getChannelFrom(queryFrom string) (time.Time, error) {
 	from, err := time.Parse("2006-01-02", queryFrom)
 	if err != nil {
@@ -66,14 +71,14 @@ func getChannelIDs(chanIds string) []string {
 }
 
 func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
-	from, err := time.Parse("2006-01-02", c.Query("from"))
+	from, err := getChannelFrom(c.Query("from"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, FROM_ERROR)
 		return
 	}
-	to, err := time.Parse("2006-01-02", c.Query("to"))
+	to, err := getChannelTo(c.Query("to"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, TO_ERROR)
 		return
 	}
 
@@ -116,14 +121,14 @@ type ChannelEventHistory struct {
 
 func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	var r ChannelEventHistory
-	from, err := time.Parse("2006-01-02", c.Query("from"))
+	from, err := getChannelFrom(c.Query("from"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, FROM_ERROR)
 		return
 	}
-	to, err := time.Parse("2006-01-02", c.Query("to"))
+	to, err := getChannelTo(c.Query("to"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, TO_ERROR)
 		return
 	}
 
@@ -140,19 +145,19 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 
 type ChannelBalanceHistory struct {
 	// Channel balances over time
-	ChannelBalances []*ChannelBalance `json:"channelBalance"`
+	ChannelBalances []*ChannelBalance `json:"channelBalances"`
 }
 
 func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 	var r ChannelBalanceHistory
-	from, err := time.Parse("2006-01-02", c.Query("from"))
+	from, err := getChannelFrom(c.Query("from"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, FROM_ERROR)
 		return
 	}
-	to, err := time.Parse("2006-01-02", c.Query("to"))
+	to, err := getChannelTo(c.Query("to"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, TO_ERROR)
 		return
 	}
 
@@ -161,7 +166,7 @@ func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 	if chanIds[0] != "1" {
 
 		for _, chanId := range chanIds {
-			cb, err := getChannelBalance(db, string(chanId), from, to)
+			cb, err := getChannelBalance(db, chanId, from, to)
 			if err != nil {
 				server_errors.LogAndSendServerError(c, err)
 				return
@@ -182,19 +187,19 @@ func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 type ChannelReBalancing struct {
 	RebalancingCost *uint64 `json:"rebalancingCost"`
 	// Aggregated details about successful rebalancing (i.g. amount, cost, counts)
-	RebalancingDetails RebalancingDetails `json:"rebalancing"`
+	RebalancingDetails RebalancingDetails `json:"rebalancingDetails"`
 }
 
 func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 	var r ChannelReBalancing
-	from, err := time.Parse("2006-01-02", c.Query("from"))
+	from, err := getChannelFrom(c.Query("from"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, FROM_ERROR)
 		return
 	}
-	to, err := time.Parse("2006-01-02", c.Query("to"))
+	to, err := getChannelTo(c.Query("to"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, TO_ERROR)
 		return
 	}
 
@@ -226,14 +231,14 @@ type ChannelOnChainCost struct {
 
 func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 	var r ChannelOnChainCost
-	from, err := time.Parse("2006-01-02", c.Query("from"))
+	from, err := getChannelFrom(c.Query("from"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, FROM_ERROR)
 		return
 	}
-	to, err := time.Parse("2006-01-02", c.Query("to"))
+	to, err := getChannelTo(c.Query("to"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, TO_ERROR)
 		return
 	}
 

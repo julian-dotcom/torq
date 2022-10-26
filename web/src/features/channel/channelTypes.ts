@@ -61,13 +61,30 @@ export type ChannelOnchainCostResponse = {
 }
 
 export type ChannelBalanceResponse = {
-  channelBalance: ChannelBalance[] | null;
+  channelBalances: ChannelBalance[] | null;
 }
 
 type ChannelBalance = {
-  LndShortChannelId: string;
+  lndShortChannelId: string;
   balances: Balance[];
 }
+
+export type FlowResponse = {
+  flows: FlowData[] | null;
+}
+
+export type FlowData = {
+  alias: string;
+  lndShortChannelId: string;
+  pubKey: string;
+  lndChannelPoint: string;
+  amountOut: number;
+  revenueOut: number;
+  countOut: number;
+  amountIn: number;
+  revenueIn: number;
+  countIn: number;
+};
 
 type Balance = {
   date: Date

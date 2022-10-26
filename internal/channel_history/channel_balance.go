@@ -14,7 +14,7 @@ type Balance struct {
 }
 
 type ChannelBalance struct {
-	LNDShortChannelId string     `json:"LndShortChannelId"`
+	LNDShortChannelId string     `json:"lndShortChannelId"`
 	Balances          []*Balance `json:"balances"`
 }
 
