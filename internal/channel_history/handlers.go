@@ -66,10 +66,6 @@ func getChannelTo(queryTo string) (time.Time, error) {
 	return to, nil
 }
 
-func getChannelIDs(chanIds string) []string {
-	return strings.Split(chanIds, ",")
-}
-
 func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	from, err := getChannelFrom(c.Query("from"))
 	if err != nil {

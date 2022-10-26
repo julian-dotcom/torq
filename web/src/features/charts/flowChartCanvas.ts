@@ -89,11 +89,9 @@ class FlowChartCanvas {
     this.config.width = this.getWidth();
     this.config.height = this.getHeight();
 
-    this.config.totalInbound = data
-      .map((d) => d[this.config.keyIn] as number)
+    this.config.totalInbound = data?.map((d) => d[this.config.keyIn] as number)
       .reduce((partialSum, a) => partialSum + a, 0);
-    this.config.totalOutbound = data
-      .map((d) => d[this.config.keyOut] as number)
+    this.config.totalOutbound = data?.map((d) => d[this.config.keyOut] as number)
       .reduce((partialSum, a) => partialSum + a, 0);
     const threshold = Math.max(this.config.totalOutbound, this.config.totalInbound) * 0.02;
 
@@ -113,7 +111,8 @@ class FlowChartCanvas {
       countOut: 0,
     };
     let otherChanOutCount = 0;
-    this.data.forEach((d, _) => {
+
+    this.data?.forEach((d, _) => {
       if ((d[this.config.keyOut] as number) && (d[this.config.keyOut] as number) < threshold) {
         otherChannelsOut.amountOut += d["amountOut"];
         otherChannelsOut.revenueOut += d["revenueOut"];
@@ -124,8 +123,9 @@ class FlowChartCanvas {
         otherChanOutCount++;
       }
     });
+
     otherChannelsOut.alias = `(${otherChanOutCount} small channels)`;
-    this.data.push(otherChannelsOut);
+    this.data?.push(otherChannelsOut);
 
     const otherChannelsIn: FlowData = {
       alias: "",
@@ -140,7 +140,7 @@ class FlowChartCanvas {
       countOut: 0,
     };
     let otherChanInCount = 0;
-    this.data.forEach((d, _) => {
+    this.data?.forEach((d, _) => {
       if ((d[this.config.keyIn] as number) && (d[this.config.keyIn] as number) < threshold) {
         otherChannelsIn.amountIn += d["amountIn"];
         otherChannelsIn.revenueIn += d["revenueIn"];
@@ -152,7 +152,7 @@ class FlowChartCanvas {
       }
     });
     otherChannelsIn.alias = `(${otherChanInCount} small channels)`;
-    this.data.push(otherChannelsIn);
+    this.data?.push(otherChannelsIn);
 
     this.config.xScale = d3
       .scaleLinear()
@@ -164,8 +164,8 @@ class FlowChartCanvas {
       .domain([0, Math.max(this.config.totalInbound, this.config.totalOutbound)]);
 
     const longestIndex = Math.max(
-      this.data.filter((d) => (d[this.config.keyOut] as number) !== 0).length,
-      this.data.filter((d) => (d[this.config.keyIn] as number) !== 0).length
+      this.data?.filter((d) => (d[this.config.keyOut] as number) !== 0).length,
+      this.data?.filter((d) => (d[this.config.keyIn] as number) !== 0).length
     );
 
     this.config.yScale.domain([
@@ -244,16 +244,14 @@ class FlowChartCanvas {
 
     this.config.height = this.getHeight();
 
-    this.config.totalInbound = this.data
-      .map((d) => d[this.config.keyIn] as number)
+    this.config.totalInbound = this.data?.map((d) => d[this.config.keyIn] as number)
       .reduce((partialSum, a) => partialSum + a, 0);
-    this.config.totalOutbound = this.data
-      .map((d) => d[this.config.keyOut] as number)
+    this.config.totalOutbound = this.data?.map((d) => d[this.config.keyOut] as number)
       .reduce((partialSum, a) => partialSum + a, 0);
 
     const longestIndex = Math.max(
-      this.data.filter((d) => (d[this.config.keyOut] as number) !== 0).length,
-      this.data.filter((d) => (d[this.config.keyIn] as number) !== 0).length
+      this.data?.filter((d) => (d[this.config.keyOut] as number) !== 0).length,
+      this.data?.filter((d) => (d[this.config.keyIn] as number) !== 0).length
     );
 
     this.config.yScale
@@ -571,8 +569,7 @@ class FlowChartCanvas {
       hoverOutboundClass = "hover";
     }
 
-    this.data
-      .filter((d) => (d[this.config.keyOut] as number) !== 0)
+    this.data?.filter((d) => (d[this.config.keyOut] as number) !== 0)
       .sort((a, b) => {
         return (b[this.config.keyOut] as number) - (a[this.config.keyOut] as number);
       })
@@ -629,8 +626,7 @@ class FlowChartCanvas {
         outboundSum += d[this.config.keyOut] as number;
       });
 
-    this.data
-      .filter((d) => (d[this.config.keyIn] as number) !== 0)
+    this.data?.filter((d) => (d[this.config.keyIn] as number) !== 0)
       .sort((a, b) => {
         return (b[this.config.keyIn] as number) - (a[this.config.keyIn] as number);
       })

@@ -9,7 +9,7 @@ import {
   ChannelRebalancingResponse,
   ChannelBalanceResponse,
   ChannelEventResponse,
-  FlowResponse,
+  FlowData,
 } from "features/channel/channelTypes"
 
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
@@ -60,7 +60,7 @@ export const torqApi = createApi({
   baseQuery: baseQueryWithRedirect,
   tagTypes: ["settings", "tableView", "localNodes", "channels"],
   endpoints: (builder) => ({
-    getFlow: builder.query<FlowResponse, GetChannelHistoryQueryParams>({
+    getFlow: builder.query<FlowData[], GetChannelHistoryQueryParams>({
       query: (params) => queryParamsBuilder("flow", params),
     }),
     getChannelHistory: builder.query<ChannelHistoryResponse, GetChannelHistoryQueryParams>({

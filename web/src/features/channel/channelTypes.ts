@@ -69,10 +69,6 @@ type ChannelBalance = {
   balances: Balance[];
 }
 
-export type FlowResponse = {
-  flows: FlowData[] | null;
-}
-
 export type FlowData = {
   alias: string;
   lndShortChannelId: string;

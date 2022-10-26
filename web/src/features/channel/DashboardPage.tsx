@@ -4,11 +4,6 @@ import {
   useGetChannelOnChainCostQuery,
   useGetFlowQuery
 } from "apiSlice";
-import {
-  ChannelOnchainCostResponse,
-  ChannelHistoryResponse,
-  ChannelRebalancingResponse,
-} from "features/channel/channelTypes"
 import type { GetChannelHistoryQueryParams } from "types/api";
 import classNames from "classnames";
 import * as d3 from "d3";
@@ -24,7 +19,6 @@ import styles from "./channel-page.module.scss";
 import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartKey } from "./channelSlice";
 import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
-import clone from "clone";
 
 const ft = d3.format(",.0f");
 
@@ -43,22 +37,26 @@ function ChannelPage() {
   }
 
   const { data, isLoading } = useGetFlowQuery(queryParams);
-  const { data: onChainCostResponse } = useGetChannelOnChainCostQuery(queryParams);
-  const onChainCost = clone<ChannelOnchainCostResponse>(onChainCostResponse as ChannelOnchainCostResponse) || 0;
-
-  const { data: historyQueryResponse } = useGetChannelHistoryQuery(queryParams);
-  const historyQuery = clone<ChannelHistoryResponse>(historyQueryResponse as ChannelHistoryResponse) || null;
-
-  const { data: rebalancingResponse } = useGetChannelRebalancingQuery(queryParams);
-  const rebalancing = clone<ChannelRebalancingResponse>(rebalancingResponse as ChannelRebalancingResponse) || null;
+  const { data: onChainCost } = useGetChannelOnChainCostQuery(queryParams);
+  const { data: history } = useGetChannelHistoryQuery(queryParams);
+  const { data: rebalancing } = useGetChannelRebalancingQuery(queryParams);
 
   const flowKey = useAppSelector(selectFlowKeys);
   const profitKey = useAppSelector(selectProfitChartKey);
 
-  const profit: number =
-    historyQuery?.revenueOut - onChainCost?.onChainCost - rebalancing?.rebalancingCost / 1000;
+  const profit: number = history?.revenueOut && onChainCost?.onChainCost && rebalancing?.rebalancingCost ?
+  history?.revenueOut - onChainCost?.onChainCost - rebalancing?.rebalancingCost / 1000 : 0;
 
-  const totalCost: number = onChainCost?.onChainCost + rebalancing?.rebalancingCost / 1000;
+  const totalCost: number = onChainCost?.onChainCost && rebalancing?.rebalancingCost ?
+  onChainCost?.onChainCost + rebalancing?.rebalancingCost / 1000 : 0;
+  const historyRevenueOut = history?.revenueOut || 0;
+  const rebalancingCostBy1000 = rebalancing?.rebalancingCost ? rebalancing?.rebalancingCost / 1000 : 0;
+  const onchainCost = onChainCost?.onChainCost || 0;
+  const historyReveueOutMinusCost = history?.revenueOut ? (history?.revenueOut - totalCost) / history?.revenueOut : 0;
+  const historyAmountOut = history?.amountOut || 0;
+  const historyCountOut = history?.countOut || 0;
+  const historyRevenueOutAmountOut = history?.revenueOut && history?.amountOut ? (history?.revenueOut / history?.amountOut ) * 1000 * 1000 : 0;
+
 
   const breadcrumbs = [
     <span key="b1">Analyse</span>,
@@ -75,7 +73,7 @@ function ChannelPage() {
               <div className={styles.heading}>Revenue</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Forwarding fees</div>
-                <div className={styles.rowValue}>{ft(historyQuery?.revenueOut)}</div>
+                <div className={styles.rowValue}>{ft(historyRevenueOut)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Channel Leases</div>
@@ -83,18 +81,18 @@ function ChannelPage() {
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
-                <div className={styles.rowValue}>{ft(historyQuery?.revenueOut)}</div>
+                <div className={styles.rowValue}>{ft(historyRevenueOut)}</div>
               </div>
             </div>
             <div className={styles.card}>
               <div className={styles.heading}>Expenses</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Rebalancing</div>
-                <div className={classNames(styles.rowValue)}>{ft(rebalancing?.rebalancingCost / 1000)}</div>
+                <div className={classNames(styles.rowValue)}>{ft(rebalancingCostBy1000)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Open & Close</div>
-                <div className={classNames(styles.rowValue)}>{ft(onChainCost?.onChainCost)}</div>
+                <div className={classNames(styles.rowValue)}>{ft(onchainCost)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
@@ -110,27 +108,27 @@ function ChannelPage() {
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Gross Profit Margin</div>
                 <div className={classNames(styles.rowValue)}>
-                  {d3.format(".2%")((historyQuery?.revenueOut - totalCost) / historyQuery?.revenueOut)}
+                  {d3.format(".2%")(historyReveueOutMinusCost)}
                 </div>
               </div>
             </div>
             <div className={styles.card}>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Revenue</div>
-                <div className={styles.rowValue}>{ft(historyQuery?.revenueOut)}</div>
+                <div className={styles.rowValue}>{ft(historyRevenueOut)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Amount</div>
-                <div className={classNames(styles.rowValue)}>{ft(historyQuery?.amountOut)}</div>
+                <div className={classNames(styles.rowValue)}>{ft(historyAmountOut)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Transactions</div>
-                <div className={styles.rowValue}>{ft(historyQuery?.countOut)}</div>
+                <div className={styles.rowValue}>{ft(historyCountOut)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Average fee</div>
                 <div className={classNames(styles.rowValue)}>
-                  {d3.format(",.1f")((historyQuery?.revenueOut / historyQuery?.amountOut) * 1000 * 1000)}
+                  {d3.format(",.1f")(historyRevenueOutAmountOut)}
                 </div>
               </div>
             </div>
@@ -167,8 +165,8 @@ function ChannelPage() {
               {/*</div>*/}
             </div>
             <div className={styles.chartContainer}>
-              {historyQuery && (
-                <ProfitsChart data={historyQuery.history} dashboard={true} from={from} to={to} />
+              {history && (
+                <ProfitsChart data={history.history} dashboard={true} from={from} to={to} />
               )}
             </div>
           </div>
@@ -215,6 +213,7 @@ function ChannelPage() {
               <div className="destinations">Destinations</div>
             </div>
             <div className={classNames(styles.chartWrapper, styles.flowChartWrapper)}>
+
               {!isLoading && data && <FlowChart data={data} />}
             </div>
           </div>
