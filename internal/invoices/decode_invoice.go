@@ -3,17 +3,20 @@ package invoices
 import (
 	"context"
 	"encoding/hex"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
-	"net/http"
-	"strconv"
-	"strings"
+	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 type feature struct {
@@ -112,7 +115,7 @@ func constructDecodedInvoice(decodedInvoice *lnrpc.PayReq) *DecodedInvoice {
 func decodeInvoice(db *sqlx.DB, invoice string, localNodeId int) (*DecodedInvoice, error) {
 	//log.Info().Msgf("Decoding invoice: %s", invoice)
 	// Get lnd client
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, localNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, localNodeId)
 	if err != nil {
 		return nil, errors.Wrap(err, "Getting node connection details from the db")
 	}
@@ -156,8 +159,7 @@ func decodeInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 
 	localNodeId, err := strconv.Atoi(c.Query("localNodeId"))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting node id")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "node id not provided"})
+		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
 		return
 	}
 

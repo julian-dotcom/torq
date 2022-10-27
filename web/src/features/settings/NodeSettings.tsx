@@ -102,7 +102,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const submitNodeSettings = async () => {
     setSaveEnabledState(false);
     const form = new FormData();
-    form.append("implementation", "LND");
+    form.append("implementation", "0");
     form.append("name", localState.name ?? "");
     form.append("grpcAddress", localState.grpcAddress ?? "");
     if (localState.tlsFile) {
@@ -191,7 +191,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
   };
 
-  const implementationOptions = [{ value: "LND", label: "LND" } as SelectOption];
+  const implementationOptions = [{ value: "1", label: "LND" } as SelectOption];
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
   return (

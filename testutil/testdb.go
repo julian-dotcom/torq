@@ -3,12 +3,15 @@ package testutil
 import (
 	"database/sql"
 	"fmt"
-	"github.com/cockroachdb/errors"
-	"github.com/jmoiron/sqlx"
-	"github.com/lncapital/torq/internal/database"
 	"math/rand"
 	"net/url"
 	"time"
+
+	"github.com/cockroachdb/errors"
+	"github.com/jmoiron/sqlx"
+
+	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 const superuserName = "postgres"
@@ -56,9 +59,9 @@ func InitTestDBConn() (*Server, error) {
 func (srv *Server) Cleanup() error {
 
 	killConnSql := `
-		SELECT pg_terminate_backend(pid) 
-		FROM pg_stat_activity 
-		WHERE 
+		SELECT pg_terminate_backend(pid)
+		FROM pg_stat_activity
+		WHERE
 			-- don't kill my own connection!
 			pid <> pg_backend_pid()
 			-- don't kill the connections to other databases
@@ -142,9 +145,18 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 			return nil, err
 		}
 
-		_, err = db.Exec("INSERT INTO local_node (implementation, created_on) VALUES ('LND', $1);", time.Now())
+		var nodeId int
+		err := db.QueryRowx("INSERT INTO node (public_key, created_on) VALUES ($1, $2) RETURNING node_id;",
+			"PublicKey123", time.Now().UTC()).Scan(&nodeId)
 		if err != nil {
-			return nil, errors.Wrap(err, "Inserting default local_node for testing")
+			return nil, errors.Wrap(err, "Inserting default node_connection_details for testing")
+		}
+		_, err = db.Exec(`INSERT INTO node_connection_details
+			(node_id, name, implementation, status_id, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6);`,
+			nodeId, "Node_test", commons.LND, commons.Active, time.Now().UTC(), time.Now().UTC())
+		if err != nil {
+			return nil, errors.Wrap(err, "Inserting default node_connection_details for testing")
 		}
 	}
 

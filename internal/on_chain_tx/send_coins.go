@@ -2,12 +2,14 @@ package on_chain_tx
 
 import (
 	"context"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
 )
 
 type PayOnChainRequest struct {
@@ -33,7 +35,7 @@ func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 		return "", errors.Wrap(err, "Process send request")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.LocalNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, req.LocalNodeId)
 	if err != nil {
 		return "", errors.New("Error getting node connection details from the db")
 	}

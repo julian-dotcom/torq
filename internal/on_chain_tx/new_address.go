@@ -2,13 +2,15 @@ package on_chain_tx
 
 import (
 	"context"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/walletrpc"
+	"google.golang.org/grpc"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -48,7 +50,7 @@ func NewAddress(
 		return errors.New("Node id is missing")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, newAddressRequest.LocalNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, newAddressRequest.LocalNodeId)
 	if err != nil {
 		return errors.Wrap(err, "Getting node connection details from the db")
 	}

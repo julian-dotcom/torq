@@ -8,7 +8,9 @@ import (
 
 type channel struct {
 	// Node Alias
-	Alias null.String `json:"alias"`
+	Alias        null.String `json:"alias"`
+	FirstNodeId  null.String `json:"firstNodeId"`
+	SecondNodeId null.String `json:"secondNodeId"`
 	// Database primary key of channel
 	ChannelDBID null.Int `json:"channelDbId"`
 	// The channel point

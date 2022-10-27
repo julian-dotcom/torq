@@ -14,6 +14,11 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gopkg.in/guregu/null.v4"
+
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/nodes"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 // For importing the latest routing policy at startup.
@@ -91,7 +96,7 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 }
 
 // ImportRoutingPolicies imports routing policy information about all open channels if they don't already have
-func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePubKeys []string) error {
+func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)
@@ -101,7 +106,6 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePub
 
 	ctx := context.Background()
 	for _, cid := range chanIdList {
-
 		ce, err := client.GetChanInfo(ctx, &lnrpc.ChanInfoRequest{ChanId: cid})
 		if err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "edge not found") {
@@ -118,28 +122,68 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePub
 				}
 			}
 		}
-
 		ceu, err := constructChannelEdgeUpdates(ce)
 		if err != nil {
 			return errors.Wrap(err, "Construct Channel Edge Updates")
 		}
-
-		var ts time.Time
-		var outbound bool
-
 		for _, cu := range ceu {
+			torqNodeId := commons.GetActiveTorqNodeIdFromPublicKey(cu.AdvertisingNode)
+			channelPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+			if err != nil {
+				return errors.Wrap(err, "Creating channel point from byte")
+			}
 
-			ts = time.Now().UTC()
-			outbound = slices.Contains(ourNodePubKeys, cu.AdvertisingNode)
+			announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode)
+			if announcingNodeId == 0 {
+				announcingNode := nodes.Node{
+					PublicKey: cu.AdvertisingNode,
+				}
+				_, err = nodes.AddNodeWhenNew(db, announcingNode)
+				if err != nil {
+					return errors.Wrap(err, "Adding new announcingNode")
+				}
+			}
 
-			err := insertRoutingPolicy(db, ts, outbound, cu)
+			connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode)
+			if connectingNodeId == 0 {
+				connectingNode := nodes.Node{
+					PublicKey: cu.ConnectingNode,
+				}
+				_, err = nodes.AddNodeWhenNew(db, connectingNode)
+				if err != nil {
+					return errors.Wrap(err, "Adding new connectingNode")
+				}
+			}
+
+			channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
+			if channelId == 0 {
+				channel := channels.Channel{
+					FirstNodeId:       announcingNodeId,
+					SecondNodeId:      connectingNodeId,
+					ShortChannelID:    channels.ConvertLNDShortChannelID(cu.ChanId),
+					LNDShortChannelID: cu.ChanId,
+					LNDChannelPoint:   null.StringFrom(channelPoint),
+					Status:            channels.Open,
+				}
+				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
+				if err != nil {
+					return errors.Wrap(err, "Adding new channel")
+				}
+			} else {
+				channelStatusId := commons.GetChannelStatusIdFromChannelId(channelId)
+				if channels.Status(channelStatusId) != channels.Open {
+					err := channels.UpdateChannelStatus(db, channelId, channels.Open)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to update channel status for channelId: %v", channelId)
+					}
+				}
+			}
+			err = insertRoutingPolicy(db, time.Now().UTC(), torqNodeId != 0, channelId, cu)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}
 
 		}
-
 	}
-
 	return nil
 }

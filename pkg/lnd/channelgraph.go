@@ -7,13 +7,14 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
-	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/nodes"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type subscribeChannelGrpahClient interface {
@@ -22,7 +23,7 @@ type subscribeChannelGrpahClient interface {
 }
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
-func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB, ourNodePubKeys []string) error {
+func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB) error {
 
 	req := lnrpc.GraphTopologySubscription{}
 	stream, err := client.SubscribeChannelGraph(ctx, &req)
@@ -61,12 +62,12 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			continue
 		}
 
-		err = processNodeUpdates(gpu.NodeUpdates, db, ourNodePubKeys)
+		err = processNodeUpdates(gpu.NodeUpdates, db)
 		if err != nil {
 			return errors.Wrap(err, "Process node updates")
 		}
 
-		err = processChannelUpdates(gpu.ChannelUpdates, db, ourNodePubKeys)
+		err = processChannelUpdates(gpu.ChannelUpdates, db)
 		if err != nil {
 			return errors.Wrap(err, "Process channel updates")
 		}
@@ -76,49 +77,37 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	return nil
 }
 
-func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, ourNodePubKeys []string) error {
-
+func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB) error {
 	for _, nu := range nus {
-		// Check if this node update is relevant to a node we have or have had a channel with
-		relevant, _ := isRelevantOrOurNode(nu.IdentityKey, ourNodePubKeys)
-
-		if relevant {
-			ts := time.Now().UTC()
-			err := insertNodeEvent(db, ts, nu.IdentityKey, nu.Alias, nu.Color,
-				nu.NodeAddresses, nu.Features)
+		nodeId := commons.GetNodeIdFromPublicKey(nu.IdentityKey)
+		if nodeId != 0 {
+			err := insertNodeEvent(db, time.Now().UTC(), nodeId, nu.IdentityKey, nu.Alias, nu.Color, nu.NodeAddresses,
+				nu.Features)
 			if err != nil {
 				return errors.Wrapf(err, "Insert node event")
 			}
 		}
-
 	}
-
 	return nil
 }
 
-func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB, ourNodePubKeys []string) error {
+func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
 	for _, cu := range cus {
-		// Check if this channel update is relevant to one of our channels
-		// And if one of our nodes is advertising the channel update (meaning
-		// we have changed our the channel policy).
-		ourNode := slices.Contains(ourNodePubKeys, cu.AdvertisingNode)
-
-		chanPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+		channelPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 		if err != nil {
-			return errors.Wrapf(err, "Creating channel point from byte")
+			return errors.Wrap(err, "Creating channel point from byte")
 		}
-		relevantChannel := isRelevantChannel(chanPoint)
 
-		if relevantChannel {
-			ts := time.Now().UTC()
-			err := insertRoutingPolicy(db, ts, ourNode, cu)
+		channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
+		if channelId != 0 {
+			// If one of our nodes is advertising the channel update
+			// (meaning we have changed our the channel policy so outbound).
+			err := insertRoutingPolicy(db, time.Now().UTC(), commons.GetActiveTorqNodeIdFromPublicKey(cu.AdvertisingNode) != 0, channelId, cu)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}
 		}
-
 	}
-
 	return nil
 }
 
@@ -134,8 +123,11 @@ INSERT INTO routing_policy (ts,
 	min_htlc,
 	max_htlc_msat,
 	fee_base_msat,
-	fee_rate_mill_msat)
-select $1, $2, $3,$4, $5, $6, $7, $8, $9, $10, $11, $12
+	fee_rate_mill_msat,
+    channel_id,
+    announcing_node_id,
+    connecting_node_id)
+select $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 WHERE NOT EXISTS (
 	select true
 	from (select
@@ -150,17 +142,23 @@ WHERE NOT EXISTS (
 			last(fee_rate_mill_msat, ts) fee_rate_mill_msat
 		from routing_policy
 		group by lnd_short_channel_id, announcing_pub_key) as a
-	where a.lnd_short_channel_id = $13 and
-		  a.announcing_pub_key = $14 and
-		  a.disabled = $15 and
-		  a.time_lock_delta = $16 and
-		  a.min_htlc = $17 and
-		  a.max_htlc_msat = $18 and
-		  a.fee_base_msat = $19 and
-		  a.fee_rate_mill_msat = $20
+	where a.lnd_short_channel_id = $2 and
+		  a.short_channel_id = $3 and
+		  a.announcing_pub_key = $4 and
+		  a.disabled = $7 and
+		  a.time_lock_delta = $8 and
+		  a.min_htlc = $9 and
+		  a.max_htlc_msat = $10 and
+		  a.fee_base_msat = $11 and
+		  a.fee_rate_mill_msat = $12
 );`
 
-func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.ChannelEdgeUpdate) error {
+func insertRoutingPolicy(
+	db *sqlx.DB,
+	eventTime time.Time,
+	outbound bool,
+	channelId int,
+	cu *lnrpc.ChannelEdgeUpdate) error {
 
 	if cu == nil || cu.RoutingPolicy == nil {
 		log.Warn().Msg("Routing policy nil, skipping")
@@ -173,14 +171,31 @@ func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.Cha
 	}
 
 	shortChannelId := channels.ConvertLNDShortChannelID(cu.ChanId)
-	// Check if the routing policy is unchanged
+	announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode)
+	if announcingNodeId == 0 {
+		newNode := nodes.Node{
+			PublicKey: cu.AdvertisingNode,
+		}
+		announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+		if err != nil {
+			return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", cu.AdvertisingNode, shortChannelId)
+		}
+	}
+	connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode)
+	if connectingNodeId == 0 {
+		newNode := nodes.Node{
+			PublicKey: cu.ConnectingNode,
+		}
+		connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+		if err != nil {
+			return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", cu.ConnectingNode, shortChannelId)
+		}
+	}
 
-	_, err = db.Exec(rpQuery, ts, cu.ChanId, shortChannelId, cu.AdvertisingNode, cp, outbound,
+	_, err = db.Exec(rpQuery, eventTime, cu.ChanId, shortChannelId, cu.AdvertisingNode, cp, outbound,
 		cu.RoutingPolicy.Disabled, cu.RoutingPolicy.TimeLockDelta, cu.RoutingPolicy.MinHtlc,
 		cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat,
-		// Variables to check if it exists
-		cu.ChanId, cu.AdvertisingNode, cu.RoutingPolicy.Disabled, cu.RoutingPolicy.TimeLockDelta, cu.RoutingPolicy.MinHtlc,
-		cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat)
+		channelId, announcingNodeId, connectingNodeId)
 
 	if err != nil {
 		return errors.Wrapf(err, "DB Exec")
@@ -189,8 +204,8 @@ func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.Cha
 	return nil
 }
 
-const neQuery = `INSERT INTO node_event (timestamp, pub_key, alias, color, node_addresses, features)
-SELECT $1,$2,$3,$4,$5,$6
+const neQuery = `INSERT INTO node_event (timestamp, node_id, pub_key, alias, color, node_addresses, features)
+SELECT $1,$2,$3,$4,$5,$6,$7
 WHERE NOT EXISTS (
 select true
 from (select pub_key,
@@ -200,14 +215,14 @@ from (select pub_key,
         last(features,timestamp) as features
     from node_event
     group by pub_key) as a
-where a.pub_key = $2 and
-      a.alias = $3 and
-      a.color = $4 and
-      a.node_addresses = $5 and
-      a.features = $6
+where a.pub_key = $3 and
+      a.alias = $4 and
+      a.color = $5 and
+      a.node_addresses = $6 and
+      a.features = $7
 );`
 
-func insertNodeEvent(db *sqlx.DB, ts time.Time, pubKey string, alias string, color string,
+func insertNodeEvent(db *sqlx.DB, ts time.Time, nodeId int, pubKey string, alias string, color string,
 	na []*lnrpc.NodeAddress, f map[uint32]*lnrpc.Feature) error {
 
 	// Create json byte object from node address map
@@ -222,203 +237,9 @@ func insertNodeEvent(db *sqlx.DB, ts time.Time, pubKey string, alias string, col
 		return errors.Wrap(err, "JSON Marshal feature list")
 	}
 
-	if _, err = db.Exec(neQuery, ts, pubKey, alias, color, najb, fjb); err != nil {
+	if _, err = db.Exec(neQuery, ts, nodeId, pubKey, alias, color, najb, fjb); err != nil {
 		return errors.Wrap(err, "Executing SQL")
 	}
 
 	return nil
-}
-
-func AddOpenChanPoint(chanPoint string)      { addOpenChanPointChan <- chanPoint }
-func RemoveClosedChanPoint(chanPoint string) { removeClosedChanPointChan <- chanPoint }
-func GetOpenChanPoints() []string            { return <-getOpenChanPointsChan }
-
-var addOpenChanPointChan = make(chan string)      //nolint:gochecknoglobals
-var removeClosedChanPointChan = make(chan string) //nolint:gochecknoglobals
-var getOpenChanPointsChan = make(chan []string)   //nolint:gochecknoglobals
-
-func OpenChanPointListMonitor(ctx context.Context) {
-	var openChanPointList []string
-	for {
-		select {
-		case <-ctx.Done():
-			log.Debug().Msg("Chan point list monitor is closing")
-			return
-		case chanPoint := <-addOpenChanPointChan:
-			if !slices.Contains(openChanPointList, chanPoint) {
-				openChanPointList = append(openChanPointList, chanPoint)
-			}
-		case chanPoint := <-removeClosedChanPointChan:
-			index := slices.Index(openChanPointList, chanPoint)
-			if index != -1 {
-				openChanPointList = append(openChanPointList[:index], openChanPointList[index+1:]...)
-			}
-		case getOpenChanPointsChan <- openChanPointList:
-		}
-	}
-}
-
-func InitChanPointList(db *sqlx.DB) error {
-	q := `
-		select array_agg(lnd_channel_point) as lnd_channel_point from (
-			select
-				last(event_type, time) as event_type,
-				last(lnd_channel_point,time) as lnd_channel_point
-			from channel_event
-			where event_type in(0,1)
-			group by lnd_channel_point
-		) as t
-		where t.event_type = 0;`
-
-	var chanPointList []string
-	err := db.QueryRowx(q).Scan(pq.Array(&chanPointList))
-	if err != nil {
-		return errors.Wrap(err, "Query row into chanPointList")
-	}
-	for _, chanPoint := range chanPointList {
-		AddOpenChanPoint(chanPoint)
-	}
-
-	return nil
-}
-
-func addMissingLocalPubkey(ctx context.Context, client lnrpc.LightningClient, grpcAddress string,
-	db *sqlx.DB) (r *string, err error) {
-
-	// Get the public key of our node
-	// TODO: Update this when adding support for multiple nodes
-	ni, err := client.GetInfo(ctx, &lnrpc.GetInfoRequest{})
-	if err != nil {
-		return nil, errors.Wrap(err, "LND Get node info")
-	}
-
-	const q = `update local_node set(pub_key, updated_on) = ($1, $2) where grpc_address = $3`
-
-	_, err = db.Exec(q,
-		ni.IdentityPubkey,
-		time.Now().UTC(),
-		grpcAddress,
-	)
-	if err != nil {
-		return nil, errors.Wrapf(err, "DB Exec")
-	}
-
-	return &ni.IdentityPubkey, nil
-}
-
-func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) (ourNodePubKeys []string, err error) {
-
-	var pubKey *string
-	var grpcAddress *string
-
-	q := `select grpc_address, pub_key from local_node;`
-	r, err := db.Query(q)
-	if err != nil {
-		return []string{}, errors.Wrap(err, "DB Query")
-	}
-
-	ourNodePubKeys = []string{}
-	for r.Next() {
-		err = r.Scan(&grpcAddress, &pubKey)
-		if err != nil {
-			return []string{}, errors.Wrap(err, "Reading grpc_address and pub_key from db")
-		}
-
-		if grpcAddress == nil || *grpcAddress == "" {
-			continue
-		}
-		// If the pub key is missing from the local_node table, add it.
-		if pubKey == nil || len(*pubKey) == 0 {
-			pubKey, err = addMissingLocalPubkey(ctx, client, *grpcAddress, db)
-			if err != nil {
-				return []string{}, errors.Wrap(err, "Adding Missing Local Pubkey")
-			}
-		}
-		ourNodePubKeys = append(ourNodePubKeys, *pubKey)
-	}
-
-	return ourNodePubKeys, nil
-}
-
-// InitPeerList fetches all public keys from the list of all channels. This is used to
-// filter out noise from the graph updates.
-func InitPeerList(db *sqlx.DB) error {
-	q := `select array_agg(distinct pub_key) as all_nodes from channel_event where event_type in (0, 1);`
-	var peerPubKeyList []string
-	err := db.QueryRow(q).Scan(pq.Array(&peerPubKeyList))
-	if err != nil {
-		return errors.Wrap(err, "Selecting distinct pub keys from channel_event table")
-	}
-	for _, peerPubKey := range peerPubKeyList {
-		AddPeerPubKey(peerPubKey)
-	}
-
-	return nil
-}
-
-func AddPeerPubKey(pubKey string) { addPeerPubKeyChan <- pubKey }
-func GetPeerPubKeys() []string    { return <-getPeerPubKeysChan }
-
-var addPeerPubKeyChan = make(chan string)    //nolint:gochecknoglobals
-var getPeerPubKeysChan = make(chan []string) //nolint:gochecknoglobals
-
-func PeerPubKeyListMonitor(ctx context.Context) {
-	// pubKeyList is used to store which node and channel updates to store. We only want to store
-	// updates that are relevant to our channels and their nodes.
-	var pubKeyList []string
-	for {
-		select {
-		case <-ctx.Done():
-			log.Debug().Msg("Peer pub key list monitor is closing")
-			return
-		case pubKey := <-addPeerPubKeyChan:
-			if !slices.Contains(pubKeyList, pubKey) {
-				pubKeyList = append(pubKeyList, pubKey)
-			}
-		case getPeerPubKeysChan <- pubKeyList:
-		}
-	}
-}
-
-// isRelevantOrOurNode is used to check if any public key is in the pubKeyList.
-// The first boolean returned indicate if the key is relevant, the second boolean
-// indicates that it is one of our own nodes.
-func isRelevantOrOurNode(pubKey string, ourNodePubKeys []string) (bool, bool) {
-
-	if slices.Contains(ourNodePubKeys, pubKey) {
-		// Is relevant (first boolean), _and_ our node (second boolean).
-		return true, true
-	}
-
-	if isRelevant(pubKey) {
-		// Is relevant (first boolean), _but not_ our node (second boolean).
-		return true, false
-	}
-
-	return false, false
-}
-
-func isRelevantChannel(chanPoint string) bool {
-	for _, c := range GetOpenChanPoints() {
-		if c == chanPoint {
-			return true
-		}
-	}
-	return false
-}
-
-// isRelevant is used to check if any public key is in the pubKeyList.
-func isRelevant(pubKey string) bool {
-
-	for _, p := range GetPeerPubKeys() {
-
-		// Check if any of the provided public keys equals the current public key.
-		if p == pubKey {
-			// If found, no reason to search further, immediately return true.
-			return true
-		}
-
-	}
-
-	return false
 }

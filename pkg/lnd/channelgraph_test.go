@@ -4,15 +4,20 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/testutil"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"testing"
-	"time"
+
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/testutil"
 )
 
 type stubLNDSubscribeChannelGraphRPC struct {
@@ -275,19 +280,38 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	errs, ctx := errgroup.WithContext(ctx)
 	client.CancelFunc = cancel
 
-	// Add our public keys to the list
-	go PeerPubKeyListMonitor(ctx)
-	AddPeerPubKey("firstNodePubkey")
-	AddPeerPubKey("secondNodePubkey")
+	err := settings.InitializeManagedNodeCache(db)
+	if err != nil {
+		t.Fatalf("Problem initializing ManagedNode cache: %v", err)
+	}
+	managedNode1 := commons.ManagedNode{
+		PublicKey: "firstNodePubkey",
+		NodeId:    1,
+		Type:      commons.WRITE_ACTIVE_TORQ_NODE,
+	}
+	commons.ManagedNodeChannel <- managedNode1
+	managedNode2 := commons.ManagedNode{
+		PublicKey: "secondNodePubkey",
+		NodeId:    1,
+		Type:      commons.WRITE_ACTIVE_TORQ_NODE,
+	}
+	commons.ManagedNodeChannel <- managedNode2
 
-	go OpenChanPointListMonitor(ctx)
-	AddOpenChanPoint(chanPointStr)
-
-	// Add our public key to the list
-	ourNodePubKeys := []string{"ourNodePubkey"}
+	err = channels.InitializeManagedChannelCache(db)
+	if err != nil {
+		t.Fatalf("Problem initializing ManagedChannel cache: %v", err)
+	}
+	managedChannel := commons.ManagedChannel{
+		ChannelId:       1,
+		ShortChannelId:  "1",
+		LndChannelPoint: chanPointStr,
+		StatusId:        int(channels.Open),
+		Type:            commons.WRITE_CHANNEL,
+	}
+	commons.ManagedChannelChannel <- managedChannel
 
 	errs.Go(func() error {
-		err := SubscribeAndStoreChannelGraph(ctx, client, db, ourNodePubKeys)
+		err := SubscribeAndStoreChannelGraph(ctx, client, db)
 		if err != nil {
 			t.Fatalf("Problem subscribing to channel graph: %v", err)
 		}
@@ -295,7 +319,7 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	})
 
 	// Wait for subscriptions to complete
-	err := errs.Wait()
+	err = errs.Wait()
 	if err != nil {
 		t.Fatal(err)
 	}

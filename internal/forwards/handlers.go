@@ -1,13 +1,15 @@
 package forwards
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/lncapital/torq/pkg/server_errors"
 	"gopkg.in/guregu/null.v4"
-	"net/http"
-	"time"
+
+	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
@@ -32,6 +34,10 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 type forwardsTableRow struct {
 	// Alias of remote peer
 	Alias null.String `json:"alias"`
+	// Semicolon seperated list of tagIds
+	TagIds       null.String `json:"tagIds"`
+	FirstNodeId  int         `json:"firstNodeId"`
+	SecondNodeId int         `json:"secondNodeId"`
 	// Database primary key of channel
 	ChannelDBID null.Int `json:"channelDbId"`
 	// The channel point
@@ -79,9 +85,12 @@ type forwardsTableRow struct {
 }
 
 func getForwardsTableData(db *sqlx.DB, fromTime time.Time, toTime time.Time) (r []*forwardsTableRow, err error) {
-	var sql = `
+	var sqlString = `
 select
     coalesce(ne.alias, ce.pub_key, '') as alias,
+    coalesce(ct.tag_ids, '') as tag_ids,
+    coalesce(c.first_node_id, 0) as first_node_id,
+    coalesce(c.second_node_id, 0) as second_node_id,
     coalesce(c.channel_db_id, 0) as channel_db_id,
     coalesce(ce.lnd_channel_point, 'Channel point missing') as lnd_channel_point,
     coalesce(ce.pub_key, 'Public key missing') as pub_key,
@@ -110,6 +119,11 @@ select
     coalesce(round((fw.amount_in + fw.amount_out) / ce.capacity::numeric, 2), 0) as turnover_total
 
 from channel as c
+left join (
+    select channel_id, string_agg(tag_id::text, ';') AS tag_ids
+    from channel_tag
+    group by channel_id
+) as ct on c.channel_db_id = ct.channel_id
 left join (
     select
         lnd_short_channel_id,
@@ -159,7 +173,7 @@ left join (
 ) as fw on fw.lnd_short_channel_id = ce.lnd_short_channel_id
 `
 
-	rows, err := db.Query(sql, fromTime, toTime)
+	rows, err := db.Query(sqlString, fromTime, toTime)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running aggregated forwards query")
 	}
@@ -168,6 +182,9 @@ left join (
 		c := &forwardsTableRow{}
 		err = rows.Scan(
 			&c.Alias,
+			&c.TagIds,
+			&c.FirstNodeId,
+			&c.SecondNodeId,
 			&c.ChannelDBID,
 			&c.LNDChannelPoint,
 			&c.PubKey,

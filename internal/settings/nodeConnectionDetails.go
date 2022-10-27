@@ -1,0 +1,87 @@
+package settings
+
+import (
+	"fmt"
+	"mime/multipart"
+	"time"
+
+	"github.com/cockroachdb/errors"
+	"github.com/jmoiron/sqlx"
+
+	"github.com/lncapital/torq/internal/nodes"
+	"github.com/lncapital/torq/pkg/commons"
+)
+
+type nodeConnectionDetails struct {
+	NodeId            int                    `json:"nodeId" form:"nodeId" db:"node_id"`
+	Name              string                 `json:"name" form:"name" db:"name"`
+	Implementation    commons.Implementation `json:"implementation" form:"implementation" db:"implementation"`
+	GRPCAddress       *string                `json:"grpcAddress" form:"grpcAddress" db:"grpc_address"`
+	TLSFileName       *string                `json:"tlsFileName" db:"tls_file_name"`
+	TLSDataBytes      []byte                 `db:"tls_data"`
+	TLSFile           *multipart.FileHeader  `form:"tlsFile"`
+	MacaroonFileName  *string                `json:"macaroonFileName" db:"macaroon_file_name"`
+	MacaroonDataBytes []byte                 `db:"macaroon_data"`
+	MacaroonFile      *multipart.FileHeader  `form:"macaroonFile"`
+	Status            commons.Status         `json:"status" db:"status_id"`
+	CreateOn          time.Time              `json:"createdOn" db:"created_on"`
+	UpdatedOn         *time.Time             `json:"updatedOn"  db:"updated_on"`
+}
+
+func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
+	allNodeConnectionDetails, err := getAllNodeConnectionDetails(db, true)
+	if err != nil {
+		return 0, errors.Wrap(err, "Getting local nodes from db")
+	}
+	for _, nodeConnectionDetailsData := range allNodeConnectionDetails {
+		if nodeConnectionDetailsData.GRPCAddress != nil &&
+			*nodeConnectionDetailsData.GRPCAddress == grpcAddress {
+			return nodeConnectionDetailsData.NodeId, nil
+		}
+	}
+	return 0, nil
+}
+
+func AddNodeToDB(db *sqlx.DB, grpcAddress string, tlsDataBytes []byte, macaroonDataBytes []byte) error {
+	publicKey, err := getPublicKeyFromNode(grpcAddress, tlsDataBytes, macaroonDataBytes)
+	if err != nil {
+		return errors.Wrap(err, "Getting public key from node")
+	}
+	newNodeFromConfig := nodes.Node{
+		PublicKey: publicKey,
+	}
+	nodeId, err := nodes.AddNodeWhenNew(db, newNodeFromConfig)
+	if err != nil {
+		return errors.Wrap(err, "Getting node from db")
+	}
+	existingNodeConnectionDetails, err := getNodeConnectionDetails(db, nodeId)
+	if err != nil {
+		return errors.Wrap(err, "Getting all existing node connection details from db")
+	}
+
+	if existingNodeConnectionDetails.NodeId == nodeId {
+		existingNodeConnectionDetails.GRPCAddress = &grpcAddress
+		existingNodeConnectionDetails.TLSDataBytes = tlsDataBytes
+		existingNodeConnectionDetails.MacaroonDataBytes = macaroonDataBytes
+		_, err = setNodeConnectionDetails(db, existingNodeConnectionDetails)
+		if err != nil {
+			return errors.Wrap(err, "Updating node connection details in the database")
+		}
+		return nil
+	}
+
+	nodeConnectionDetailsData := nodeConnectionDetails{
+		NodeId:            nodeId,
+		Name:              fmt.Sprintf("Node_%v", nodeId),
+		Implementation:    commons.LND,
+		GRPCAddress:       &grpcAddress,
+		Status:            commons.Active,
+		TLSDataBytes:      tlsDataBytes,
+		MacaroonDataBytes: macaroonDataBytes,
+	}
+	_, err = addNodeConnectionDetails(db, nodeConnectionDetailsData)
+	if err != nil {
+		return errors.Wrap(err, "Inserting node connection details in the database")
+	}
+	return nil
+}

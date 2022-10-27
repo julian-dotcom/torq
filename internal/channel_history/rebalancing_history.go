@@ -6,6 +6,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type RebalancingDetails struct {
@@ -15,28 +17,26 @@ type RebalancingDetails struct {
 	Count         uint64 `db:"count" json:"count"`
 }
 
-func getRebalancingCost(db *sqlx.DB, from time.Time, to time.Time) (cost RebalancingDetails,
-	err error) {
+func getRebalancingCost(db *sqlx.DB, from time.Time, to time.Time) (RebalancingDetails, error) {
+	allTorqPublicKeys := commons.GetAllTorqPublicKeys()
+	settings := commons.GetSettings()
 
-	q := `WITH
-			tz AS (select preferred_timezone from settings),
-			pub_keys as (select array_agg(pub_key) from local_node)
-		select coalesce(round(sum(amount_msat)),0) as amount_msat,
-			   coalesce(round(sum(total_fee_msat)),0) as total_cost_msat,
-			   coalesce(count(*), 0) as count
-		from (
-			select creation_timestamp at time zone (table tz),
+	row := db.QueryRow(`
+		SELECT COALESCE(ROUND(SUM(amount_msat)),0) AS amount_msat,
+			   COALESCE(ROUND(SUM(total_fee_msat)),0) AS total_cost_msat,
+			   COALESCE(COUNT(*), 0) AS count
+		FROM (
+			SELECT creation_timestamp at time zone ($4),
 				   value_msat as amount_msat,
 				   fee_msat as total_fee_msat
-			from payment p
-			where status = 'SUCCEEDED'
-			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY(ARRAY[(table pub_keys)])
-			and creation_timestamp::timestamp AT TIME ZONE (table tz) >= $1::timestamp
-			and creation_timestamp::timestamp AT TIME ZONE (table tz) <= $2::timestamp
-		) as a;`
-
-	row := db.QueryRow(q, from, to)
-	err = row.Scan(
+			FROM payment p
+			WHERE status = 'SUCCEEDED' AND
+				htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY($1) AND
+				creation_timestamp::timestamp AT TIME ZONE ($4) >= $2::timestamp AND
+				creation_timestamp::timestamp AT TIME ZONE ($4) <= $3::timestamp
+		) AS a;`, pq.Array(allTorqPublicKeys), from, to, settings.PreferredTimeZone)
+	var cost RebalancingDetails
+	err := row.Scan(
 		&cost.AmountMsat,
 		&cost.TotalCostMsat,
 		&cost.Count,
@@ -54,49 +54,98 @@ func getRebalancingCost(db *sqlx.DB, from time.Time, to time.Time) (cost Rebalan
 
 }
 
-func getChannelRebalancing(db *sqlx.DB, chanIds []string, from time.Time,
-	to time.Time) (cost RebalancingDetails,
-	err error) {
+//
+//func getChannelRebalancingAllTime(db *sqlx.DB, chanIds []string) (RebalancingDetails, error) {
+//	allTorqPublicKeys := commons.GetAllTorqPublicKeys()
+//	settings := commons.GetSettings()
+//
+//	row := db.QueryRow(`
+//		SELECT COALESCE(ROUND(SUM(amount_msat)),0) AS amount_msat,
+//			   COALESCE(ROUND(SUM(total_fee_msat)),0) AS total_cost_msat,
+//			   COALESCE(ROUND(SUM(split_fee_msat)),0) AS split_cost_msat,
+//			   COALESCE(COUNT(*), 0) AS count
+//		FROM (
+//			select creation_timestamp at time zone ($3),
+//				   value_msat as amount_msat,
+//				   fee_msat as total_fee_msat,
+//				   case
+//				   when
+//					   -- When two channels in the same group is involved, return the full rebalancing cost.
+//					   htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY($1) and
+//					   htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY($1)
+//					   then fee_msat
+//				   when
+//					   -- When only one channel in the group is involved, return half the rebalancing cost.
+//					   htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY($1) or
+//					   htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY($1)
+//					   then fee_msat/2
+//				   end as split_fee_msat
+//			from payment p
+//			where status = 'SUCCEEDED'
+//			and (
+//				htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY($1)
+//				or htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY($1)
+//			)
+//			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY($2)
+//		) as a;`, pq.Array(chanIds), pq.Array(allTorqPublicKeys), settings.PreferredTimeZone)
+//	var cost RebalancingDetails
+//	err := row.Scan(
+//		&cost.AmountMsat,
+//		&cost.TotalCostMsat,
+//		&cost.SplitCostMsat,
+//		&cost.Count,
+//	)
+//
+//	if err == sql.ErrNoRows {
+//		return cost, nil
+//	}
+//
+//	if err != nil {
+//		return cost, err
+//	}
+//
+//	return cost, nil
+//
+//}
 
-	q := `WITH
-			tz AS (select preferred_timezone from settings),
-			chan_ids as (select $1::text[]),
-			pub_keys as (select array_agg(pub_key) from local_node),
-			fromDate AS (VALUES ($2)),
-			toDate AS (VALUES ($3))
-		select coalesce(round(sum(amount_msat)),0) as amount_msat,
-			   coalesce(round(sum(total_fee_msat)),0) as total_cost_msat,
-			   coalesce(round(sum(split_fee_msat)),0) as split_cost_msat,
-			   coalesce(count(*), 0) as count
+func getChannelRebalancing(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (RebalancingDetails, error) {
+	allTorqPublicKeys := commons.GetAllTorqPublicKeys()
+	settings := commons.GetSettings()
+
+	row := db.QueryRow(`
+		SELECT COALESCE(ROUND(SUM(amount_msat)),0) AS amount_msat,
+			   COALESCE(ROUND(SUM(total_fee_msat)),0) AS total_cost_msat,
+			   COALESCE(ROUND(SUM(split_fee_msat)),0) AS split_cost_msat,
+			   COALESCE(COUNT(*), 0) AS count
 		from (
-			select creation_timestamp at time zone (table tz),
+			select creation_timestamp at time zone ($5),
 				   value_msat as amount_msat,
 				   fee_msat as total_fee_msat,
 				   case
 				   when
 					   -- When two channels in the same group is involved, return the full rebalancing cost.
-					   htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY(ARRAY[(table chan_ids)]) and
-					   htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY(ARRAY[(table chan_ids)])
+					   htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY($1) and
+					   htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY($1)
 					   then fee_msat
 				   when
 					   -- When only one channel in the group is involved, return half the rebalancing cost.
-					   htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY(ARRAY[(table chan_ids)]) or
-					   htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY(ARRAY[(table chan_ids)])
+					   htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY($1) or
+					   htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY($1)
 					   then fee_msat/2
 				   end as split_fee_msat
 			from payment p
 			where status = 'SUCCEEDED'
 			and (
-				htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY(ARRAY[(table chan_ids)])
-				or htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY(ARRAY[(table chan_ids)])
+				htlcs->-1->'route'->'hops'->0->>'chan_id' = ANY($1)
+				or htlcs->-1->'route'->'hops'->-1->>'chan_id' = ANY($1)
 			)
-			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY(ARRAY[(table pub_keys)])
-			and creation_timestamp::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
-			and creation_timestamp::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
-		) as a;`
+			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY($4)
+			and creation_timestamp::timestamp AT TIME ZONE ($5) >= ($2)::timestamp
+			and creation_timestamp::timestamp AT TIME ZONE ($5) <= ($3)::timestamp
+		) AS a;`, pq.Array(chanIds), from, to, pq.Array(allTorqPublicKeys), settings.PreferredTimeZone)
 
-	row := db.QueryRow(q, pq.Array(chanIds), from, to)
-	err = row.Scan(
+	var cost RebalancingDetails
+	err := row.Scan(
 		&cost.AmountMsat,
 		&cost.TotalCostMsat,
 		&cost.SplitCostMsat,

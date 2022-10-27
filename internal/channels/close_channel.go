@@ -2,16 +2,18 @@ package channels
 
 import (
 	"context"
+	"io"
+	"strconv"
+	"strings"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"google.golang.org/grpc"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"google.golang.org/grpc"
-	"io"
-	"strconv"
-	"strings"
 )
 
 type lndClientCloseChannel interface {
@@ -45,7 +47,7 @@ type CloseChannelResponse struct {
 }
 
 func CloseChannel(wChan chan interface{}, db *sqlx.DB, c *gin.Context, ccReq CloseChannelRequest, reqId string) (err error) {
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, ccReq.NodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, ccReq.NodeId)
 	if err != nil {
 		return errors.New("Getting node connection details from the db")
 	}

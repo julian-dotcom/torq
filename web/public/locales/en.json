@@ -9,6 +9,8 @@
   "weekStartsOn": "Week starts on",
   "save": "Save",
   "addNode": "Add Node",
+  "addTag": "Add Tag",
+  "deleteTag": "Delete Tag",
   "unknown": "Unknown",
   "p2wpkh": "Segwit",
   "p2wkh": "Nested Segwit",
@@ -20,6 +22,12 @@
   "next": "Next",
   "confirm": "Confirm",
   "newAddress": "New Address",
+  "style": "Style",
+  "name": "Name",
+  "drain": "Drain",
+  "saving": "Saving...",
+  "red": "red",
+  "yellow": "yellow",
   "columns": "Columns",
   "search": "Search",
   "filter": "Filter",
@@ -45,14 +53,20 @@
     "minHtlcSatPlaceholder": "Leave empty for no limit"
   },
   "toast": {
-    "settingsSaved": "Settings saved"
+    "settingsSaved": "Settings saved",
+    "tagAdded": "Tag added",
+    "tagSaved": "Tag saved",
+    "cannotBeUndone": "This operation cannot be undone, type delete to confirm."
   },
   "header": {
     "newInvoice": "New Invoice",
     "newPayment": "New Payment",
     "newAddress": "New Address",
     "settings": "Date & time settings",
-    "nodes": "Nodes"
+    "nodes": "Nodes",
+    "tags": "Tags",
+    "peerTag": "Peer tag",
+    "channelTag": "Channel tag"
   },
   "newInvoice": {
     "title": "New Invoice",
@@ -67,6 +81,16 @@
     "cancel": "Cancel",
     "toast": {
       "invoiceSaved": "Invoice saved"
+    }
+  },
+  "info": {
+    "peerTag": "Tag assigned to the peer.\nIncluding all it&apos;s current and future channels.",
+    "channelTag": "Tag assigned to this channel.\nOnly on this channel.\nNot to other current or future channels from the same peer."
+  },
+  "modal": {
+    "title": {
+      "areYouSure": "Are you sure?",
+      "addTag": "Add tag"
     }
   }
 }

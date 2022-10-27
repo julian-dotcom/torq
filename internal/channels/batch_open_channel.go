@@ -3,12 +3,14 @@ package channels
 import (
 	"context"
 	"encoding/hex"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
 )
 
 func batchOpenChannels(db *sqlx.DB, req BatchOpenRequest) (r BatchOpenResponse, err error) {
@@ -17,7 +19,7 @@ func batchOpenChannels(db *sqlx.DB, req BatchOpenRequest) (r BatchOpenResponse, 
 		return BatchOpenResponse{}, err
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 	if err != nil {
 		return BatchOpenResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}

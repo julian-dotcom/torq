@@ -2,13 +2,17 @@ package lnd
 
 import (
 	"context"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"time"
+
+	"github.com/lncapital/torq/internal/nodes"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 // getMissingNodePubKeys creates a string slice with all the PubKey of all nodes
@@ -48,8 +52,18 @@ func ImportMissingNodeEvents(client lnrpc.LightningClient, db *sqlx.DB) error {
 				}
 			}
 		}
+		nodeId := commons.GetNodeIdFromPublicKey(rsp.Node.PubKey)
+		if nodeId == 0 {
+			node := nodes.Node{
+				PublicKey: rsp.Node.PubKey,
+			}
+			nodeId, err = nodes.AddNodeWhenNew(db, node)
+			if err != nil {
+				return errors.Wrap(err, "Adding new node")
+			}
+		}
 		ts := time.Now().UTC()
-		err = insertNodeEvent(db, ts, rsp.Node.PubKey, rsp.Node.Alias, rsp.Node.Color,
+		err = insertNodeEvent(db, ts, nodeId, rsp.Node.PubKey, rsp.Node.Alias, rsp.Node.Color,
 			rsp.Node.Addresses, rsp.Node.Features)
 		if err != nil {
 			return errors.Wrapf(err, "ImportMissingNodeEvents -> insertNodeEvent(db, %s, %s, %s, %s, %v, %v)",

@@ -25,6 +25,10 @@ Error structure expected by the front end
 }
 */
 
+const (
+	JsonParseError = "Parsing JSON"
+)
+
 type ServerError struct {
 	Errors struct {
 		Fields map[string][]string `json:"fields"`

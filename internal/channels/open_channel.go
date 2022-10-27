@@ -4,15 +4,17 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"io"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/internal/peers"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
-	"io"
 )
 
 type OpenChannelRequest struct {
@@ -50,7 +52,7 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 		return errors.Wrap(err, "Preparing open request")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 	if err != nil {
 		return errors.Wrap(err, "Getting node connection details from the db")
 	}

@@ -1,14 +1,17 @@
 package payments
 
 import (
-	"database/sql"
 	"encoding/json"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type Payment struct {
@@ -64,6 +67,8 @@ type PaymentDetails struct {
 func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Payment,
 	total uint64, err error) {
 
+	allTorqPublicKeys := commons.GetAllTorqPublicKeys()
+
 	//language=PostgreSQL
 	qb := sq.Select("*").
 		PlaceholderFormat(sq.Dollar).
@@ -91,10 +96,7 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 			"subquery").
 		Where(filter).
 		OrderBy(order...).
-		Prefix(`WITH
-			tz AS (select preferred_timezone as tz from settings),
-			pub_keys as (select array_agg(pub_key) from local_node)
-		`)
+		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(allTorqPublicKeys))
 
 	if limit > 0 {
 		qb = qb.Limit(limit).Offset(offset)
@@ -169,10 +171,7 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				From("payment"),
 			"subquery").
 		Where(filter).
-		Prefix(`WITH
-			tz AS (select preferred_timezone as tz from settings),
-			pub_keys as (select array_agg(pub_key) from local_node)
-		`)
+		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(allTorqPublicKeys))
 
 	totalQs, args, err := totalQb.ToSql()
 	if err != nil {
@@ -196,89 +195,72 @@ func (e ErrPaymentNotFound) Error() string {
 }
 
 func getPaymentDetails(db *sqlx.DB, identifier string) (*PaymentDetails, error) {
+	allTorqPublicKeys := commons.GetAllTorqPublicKeys()
+	row := db.QueryRow(`
+		SELECT
+			payment_index,
+			creation_timestamp as date,
+			destination_pub_key,
+			status,
+			(value_msat/1000) as value,
+			(fee_msat/1000) as fee,
+			coalesce(fee_msat/(NULLIF(value_msat, 0)/1000000), 0) as ppm,
+			failure_reason,
+			payment_hash,
+			payment_preimage,
+			payment_request,
+			destination_pub_key = ANY($1) as is_rebalance,
+			is_mpp,
+			count_successful_attempts,
+			count_failed_attempts,
+			extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000,0))-creation_timestamp))::numeric as seconds_in_flight,
+			successful_routes,
+			failed_routes
+		FROM payment
+		WHERE payment_hash=$2 OR payment_request=$2 OR payment_preimage=$2
+		LIMIT 1;`, pq.Array(allTorqPublicKeys), identifier)
+	if row != nil {
+		r := PaymentDetails{}
+		var sr []byte
+		var fr []byte
+		err := row.Scan(
+			&r.PaymentIndex,
+			&r.Date,
+			&r.DestinationPubKey,
+			&r.Status,
+			&r.Value,
+			&r.Fee,
+			&r.PPM,
+			&r.FailureReason,
+			&r.PaymentHash,
+			&r.PaymentPreimage,
+			&r.PaymentRequest,
+			&r.IsRebalance,
+			&r.IsMPP,
+			&r.CountSuccessfulAttempts,
+			&r.CountFailedAttempts,
+			&r.SecondsInFlight,
+			&sr,
+			&fr,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, database.SqlScanResulSetError)
+		}
 
-	//language=PostgreSQL
-	qb := sq.Select(`
-				payment_index,
-				creation_timestamp as date,
-				destination_pub_key,
-				status,
-				(value_msat/1000) as value,
-				(fee_msat/1000) as fee,
-				coalesce(fee_msat/(NULLIF(value_msat, 0)/1000000), 0) as ppm,
-				failure_reason,
-				payment_hash,
-				payment_preimage,
-				payment_request,
-				destination_pub_key = ANY(ARRAY[(table pub_keys)]) as is_rebalance,
-				is_mpp,
-				count_successful_attempts,
-				count_failed_attempts,
-				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000,0))-creation_timestamp))::numeric as seconds_in_flight,
-				successful_routes,
-				failed_routes
-			`).
-		PlaceholderFormat(sq.Dollar).
-		From("payment").
-		Where(
-			sq.Or{
-				sq.Eq{"payment_hash": identifier},
-				sq.Eq{"payment_request": identifier},
-				sq.Eq{"payment_preimage": identifier},
-			}).
-		Prefix(`WITH
-			pub_keys as (select array_agg(pub_key) from local_node)
-		`)
+		// Unmarshal the Successful routes json byte array
+		err = json.Unmarshal(sr, &r.SuccessfulRoutes)
+		if err != nil {
+			return nil, err
+		}
 
-	qs, args, err := qb.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "Select builder to SQL")
-	}
-	r := PaymentDetails{}
-	var sr []byte
-	var fr []byte
+		// Unmarshal the Failed routes json byte array
+		err = json.Unmarshal(fr, &r.FailedRoutes)
+		if err != nil {
+			return nil, err
+		}
 
-	err = db.QueryRowx(qs, args...).Scan(
-		&r.PaymentIndex,
-		&r.Date,
-		&r.DestinationPubKey,
-		&r.Status,
-		&r.Value,
-		&r.Fee,
-		&r.PPM,
-		&r.FailureReason,
-		&r.PaymentHash,
-		&r.PaymentPreimage,
-		&r.PaymentRequest,
-		&r.IsRebalance,
-		&r.IsMPP,
-		&r.CountSuccessfulAttempts,
-		&r.CountFailedAttempts,
-		&r.SecondsInFlight,
-		&sr,
-		&fr,
-	)
-
-	switch err {
-	case nil:
-		break
-	case sql.ErrNoRows:
+		return &r, nil
+	} else {
 		return nil, ErrPaymentNotFound{identifier}
-	default:
-		return nil, err
 	}
-
-	// Unmarshal the Successful routes json byte array
-	err = json.Unmarshal(sr, &r.SuccessfulRoutes)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal the Failed routes json byte array
-	err = json.Unmarshal(fr, &r.FailedRoutes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &r, nil
 }

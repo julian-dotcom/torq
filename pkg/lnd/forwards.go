@@ -3,16 +3,18 @@ package lnd
 import (
 	"context"
 	"database/sql"
-	"log"
 	"time"
 
 	"github.com/benbjohnson/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/internal/channels"
+	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 func convMicro(ns uint64) time.Time {
@@ -25,8 +27,8 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent) error {
 	const querySfwh = `INSERT INTO forward(time, time_ns, fee_msat,
 		lnd_incoming_short_channel_id, lnd_outgoing_short_channel_id,
 		incoming_short_channel_id, outgoing_short_channel_id,
-		incoming_amount_msat, outgoing_amount_msat)
-	VALUES ($1, $2, $3,$4, $5, $6, $7, $8, $9)
+		incoming_amount_msat, outgoing_amount_msat, incoming_channel_id, outgoing_channel_id)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	ON CONFLICT (time, time_ns) DO NOTHING;`
 
 	if len(fwh) > 0 {
@@ -35,13 +37,23 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent) error {
 		for _, event := range fwh {
 
 			incomingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdIn)
+			incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+			if incomingChannelId == 0 {
+				log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
+					incomingShortChannelId)
+			}
+			
 			outgoingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdOut)
+			outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+			if outgoingChannelId == 0 {
+				log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
+					outgoingShortChannelId)
+			}
 
 			if _, err := tx.Exec(querySfwh, convMicro(event.TimestampNs), event.TimestampNs,
-				event.FeeMsat, event.ChanIdIn, event.ChanIdOut, incomingShortChannelId, outgoingShortChannelId, event.AmtInMsat,
-				event.AmtOutMsat); err != nil {
-				return errors.Wrapf(err, "storeForwardingHistory->tx.Exec(%v)",
-					querySfwh)
+				event.FeeMsat, event.ChanIdIn, event.ChanIdOut, incomingShortChannelId, outgoingShortChannelId,
+				event.AmtInMsat, event.AmtOutMsat, incomingChannelId, outgoingChannelId); err != nil {
+				return errors.Wrapf(err, "storeForwardingHistory->tx.Exec(%v)", querySfwh)
 			}
 		}
 		err := tx.Commit()

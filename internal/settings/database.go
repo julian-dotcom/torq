@@ -6,17 +6,44 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/nodes"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
-func getSettings(db *sqlx.DB) (settingsData settings, err error) {
-	err = db.Get(&settingsData, "SELECT default_date_range, default_language, preferred_timezone, week_starts_on FROM settings LIMIT 1;")
+func getSettings(db *sqlx.DB) (settings, error) {
+	var settingsData settings
+	err := db.Get(&settingsData, `
+		SELECT default_date_range, default_language, preferred_timezone, week_starts_on
+		FROM settings
+		LIMIT 1;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return settings{}, nil
 		}
-		return settings{}, errors.Wrap(err, "Unable to execute SQL query")
+		return settings{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return settingsData, nil
+}
+
+func InitializeManagedSettingsCache(db *sqlx.DB) error {
+	settingsData, err := getSettings(db)
+	if err == nil {
+		log.Debug().Msg("Pushing settings to ManagedSettings cache.")
+		managedSettings := commons.ManagedSettings{
+			DefaultDateRange:  settingsData.DefaultDateRange,
+			DefaultLanguage:   settingsData.DefaultLanguage,
+			WeekStartsOn:      settingsData.WeekStartsOn,
+			PreferredTimeZone: settingsData.PreferredTimezone,
+			Type:              commons.WRITE,
+		}
+		commons.ManagedSettingsChannel <- managedSettings
+	} else {
+		log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
+	}
+	return nil
 }
 
 func getTimeZones(db *sqlx.DB) (timeZones []timeZone, err error) {
@@ -25,198 +52,198 @@ func getTimeZones(db *sqlx.DB) (timeZones []timeZone, err error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return make([]timeZone, 0), nil
 		}
-		return make([]timeZone, 0), errors.Wrap(err, "Unable to execute SQL query")
+		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return timeZones, nil
 }
 
 func updateSettings(db *sqlx.DB, settings settings) (err error) {
 	_, err = db.Exec(`
-UPDATE settings SET
-  default_date_range = $1,
-  default_language = $2,
-  preferred_timezone = $3,
-  week_starts_on = $4,
-  updated_on = $5;
-`, settings.DefaultDateRange, settings.DefaultLanguage, settings.PreferredTimezone, settings.WeekStartsOn, time.Now().UTC())
+		UPDATE settings SET
+		  default_date_range = $1,
+		  default_language = $2,
+		  preferred_timezone = $3,
+		  week_starts_on = $4,
+		  updated_on = $5;`,
+		settings.DefaultDateRange, settings.DefaultLanguage, settings.PreferredTimezone, settings.WeekStartsOn,
+		time.Now().UTC())
 	if err != nil {
-		return errors.Wrap(err, "Unable to execute SQL statement")
+		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nil
 }
 
-func getLocalNode(db *sqlx.DB, localNodeId int) (localNodeData localNode, err error) {
-	err = db.Get(&localNodeData, `
-SELECT
-  local_node_id,
-  name,
-  implementation,
-  grpc_address,
-  tls_file_name,
-  macaroon_file_name,
-  disabled,
-  deleted
-FROM local_node WHERE local_node_id = $1;`, localNodeId)
+func getNodeConnectionDetails(db *sqlx.DB, nodeId int) (nodeConnectionDetails, error) {
+	var nodeConnectionDetailsData nodeConnectionDetails
+	err := db.Get(&nodeConnectionDetailsData, `SELECT * FROM node_connection_details WHERE node_id = $1;`, nodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return localNode{}, nil
+			return nodeConnectionDetails{}, nil
 		}
-		return localNode{}, errors.Wrap(err, "Unable to execute SQL query")
+		return nodeConnectionDetails{}, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return localNodeData, nil
+	return nodeConnectionDetailsData, nil
 }
-
-func getLocalNodes(db *sqlx.DB) (localNodeData []localNode, err error) {
-	err = db.Select(&localNodeData, `
-SELECT
-  local_node_id,
-  name,
-  implementation,
-  grpc_address,
-  tls_file_name,
-  macaroon_file_name,
-  pub_key,
-  disabled,
-  deleted
-FROM local_node
-WHERE deleted = False
-ORDER BY local_node_id asc;`)
+func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]nodeConnectionDetails, error) {
+	var nodeConnectionDetailsArray []nodeConnectionDetails
+	var err error
+	if includeDeleted {
+		err = db.Select(&nodeConnectionDetailsArray, `SELECT * FROM node_connection_details ORDER BY node_id;`)
+	} else {
+		err = db.Select(&nodeConnectionDetailsArray, `
+			SELECT *
+			FROM node_connection_details
+			WHERE status_id != $1
+			ORDER BY node_id;`, commons.Deleted)
+	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []localNode{}, nil
+			return []nodeConnectionDetails{}, nil
 		}
-		return []localNode{}, errors.Wrap(err, "Unable to execute SQL query")
+		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return localNodeData, nil
+	return nodeConnectionDetailsArray, nil
 }
 
-func getLocalNodeConnectionDetails(db *sqlx.DB) (localNodeData []localNode, err error) {
-	err = db.Select(&localNodeData, `
-SELECT
-  local_node_id,
-  name,
-  grpc_address,
-  tls_data,
-  macaroon_data,
-  pub_key
-FROM local_node
-WHERE deleted = False AND disabled = False
-ORDER BY local_node_id asc;`)
+func InitializeManagedNodeCache(db *sqlx.DB) error {
+	nodeConnectionDetailsArray, err := getAllNodeConnectionDetails(db, true)
+	if err == nil {
+		log.Debug().Msg("Pushing torq nodes to ManagedNodes cache.")
+		for _, torqNode := range nodeConnectionDetailsArray {
+			if torqNode.Status == commons.Active {
+				node, err := nodes.GetNodeById(db, torqNode.NodeId)
+				if err == nil {
+					if torqNode.Status == commons.Active {
+						managedNode := commons.ManagedNode{
+							PublicKey: node.PublicKey,
+							NodeId:    node.NodeId,
+							Type:      commons.WRITE_ACTIVE_TORQ_NODE,
+						}
+						commons.ManagedNodeChannel <- managedNode
+					} else {
+						managedNode := commons.ManagedNode{
+							PublicKey: node.PublicKey,
+							NodeId:    node.NodeId,
+							Type:      commons.WRITE_INACTIVE_TORQ_NODE,
+						}
+						commons.ManagedNodeChannel <- managedNode
+					}
+				} else {
+					log.Error().Err(err).Msg("Failed to obtain torq node for ManagedNodes cache.")
+				}
+			}
+		}
+	} else {
+		log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNodes cache.")
+	}
+
+	log.Debug().Msg("Pushing channel nodes to ManagedNodes cache.")
+	rows, err := db.Query(`
+		SELECT n.public_key, n.node_id
+		FROM node n
+		JOIN channel c ON c.status_id IN ($1,$2,$3) AND ( c.first_node_id=n.node_id OR c.second_node_id=n.node_id );`,
+		1, 2, 3)
+	if err != nil {
+		return errors.Wrap(err, "Obtaining nodeIds and publicKeys")
+	}
+	for rows.Next() {
+		var publicKey string
+		var nodeId int
+		err = rows.Scan(&publicKey, &nodeId)
+		if err != nil {
+			return errors.Wrap(err, "Obtaining nodeId and publicKey from the resultSet")
+		}
+		managedNode := commons.ManagedNode{
+			PublicKey: publicKey,
+			NodeId:    nodeId,
+			Type:      commons.WRITE_CHANNEL_NODE,
+		}
+		commons.ManagedNodeChannel <- managedNode
+	}
+	return nil
+}
+
+func getNodeConnectionDetailsByStatus(db *sqlx.DB, status commons.Status) ([]nodeConnectionDetails, error) {
+	var nodeConnectionDetailsArray []nodeConnectionDetails
+	err := db.Select(&nodeConnectionDetailsArray, `
+		SELECT * FROM node_connection_details WHERE status_id = $1 ORDER BY node_id;`, status)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []localNode{}, nil
+			return []nodeConnectionDetails{}, nil
 		}
-		return []localNode{}, errors.Wrap(err, "Unable to execute SQL query")
+		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return localNodeData, nil
+	return nodeConnectionDetailsArray, nil
 }
 
-func getLocalNodeConnectionDetailsById(db *sqlx.DB, localNodeId int) (localNodeData localNode, err error) {
-	err = db.Get(&localNodeData, `
-SELECT
-  local_node_id,
-  name,
-  grpc_address,
-  tls_data,
-  macaroon_data,
-  pub_key,
-  disabled,
-  deleted
-FROM local_node
-WHERE local_node_id = $1;`, localNodeId)
+func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Status) error {
+	_, err := db.Exec(`
+		UPDATE node_connection_details SET status_id = $1, updated_on = $2 WHERE node_id = $3;`,
+		status, time.Now().UTC(), nodeId)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return localNode{}, nil
-		}
-		return localNode{}, errors.Wrap(err, "Unable to execute SQL query")
-	}
-	return localNodeData, nil
-}
-
-func updateLocalNodeDisabledFlag(db *sqlx.DB, localNodeId int, disabled bool) (err error) {
-	_, err = db.Exec(` UPDATE local_node SET disabled = $1, updated_on = $2
-WHERE local_node_id = $3;`, disabled, time.Now().UTC(), localNodeId)
-	if err != nil {
-		return errors.Wrap(err, "Unable to execute SQL statement")
+		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nil
 }
 
-func updateLocalNodeSetDeleted(db *sqlx.DB, localNodeId int) (err error) {
-	_, err = db.Exec(` UPDATE local_node SET deleted = true, updated_on = $1
-WHERE local_node_id = $2;`, time.Now().UTC(), localNodeId)
+func setNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
+	updatedOn := time.Now().UTC()
+	ncd.UpdatedOn = &updatedOn
+	_, err := db.Exec(`
+		UPDATE node_connection_details
+		SET implementation = $1, name = $2, grpc_address = $3, tls_file_name = $4, tls_data = $5,
+		    macaroon_file_name = $6, macaroon_data = $7, status_id = $8, updated_on = $9
+		WHERE node_id = $10;`,
+		ncd.Implementation, ncd.Name, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
+		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.UpdatedOn, ncd.NodeId)
 	if err != nil {
-		return errors.Wrap(err, "Unable to execute SQL statement")
+		return ncd, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return ncd, nil
+}
+
+func SetNodeConnectionDetailsByConnectionDetails(
+	db *sqlx.DB,
+	nodeId int,
+	grpcAddress string,
+	tlsDataBytes []byte,
+	macaroonDataBytes []byte) error {
+
+	ncd, err := getNodeConnectionDetails(db, nodeId)
+	if err != nil {
+		return errors.Wrap(err, "Obtaining existing node connection details")
+	}
+	updatedOn := time.Now().UTC()
+	ncd.UpdatedOn = &updatedOn
+	ncd.MacaroonDataBytes = macaroonDataBytes
+	ncd.TLSDataBytes = tlsDataBytes
+	ncd.GRPCAddress = &grpcAddress
+	_, err = setNodeConnectionDetails(db, ncd)
+	return err
+}
+
+func setNodeConnectionDetailsName(db *sqlx.DB, nodeId int, name string) error {
+	_, err := db.Exec(`
+		UPDATE node_connection_details SET name = $1, updated_on = $2 WHERE node_id = $3;`,
+		name, time.Now().UTC(), nodeId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nil
 }
 
-func updateLocalNodeDetails(db *sqlx.DB, localNode localNode) (err error) {
-	_, err = db.Exec(`
-UPDATE local_node SET
-  implementation = $1,
-  grpc_address = $2,
-  updated_on = $3,
-  name = $4
-WHERE local_node_id = $5;
-`, localNode.Implementation, localNode.GRPCAddress, time.Now().UTC(), localNode.Name, localNode.LocalNodeId)
+func addNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
+	updatedOn := time.Now().UTC()
+	ncd.UpdatedOn = &updatedOn
+	_, err := db.Exec(`
+		INSERT INTO node_connection_details
+		    (node_id, name, implementation, grpc_address, tls_file_name, tls_data, macaroon_file_name, macaroon_data,
+		     status_id, created_on, updated_on)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11);`,
+		ncd.NodeId, ncd.Name, ncd.Implementation, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
+		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.CreateOn, ncd.UpdatedOn)
 	if err != nil {
-		return errors.Wrap(err, "Unable to execute SQL statement")
+		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return nil
-}
-
-func insertLocalNodeDetails(db *sqlx.DB, localNode localNode) (localNodeId int, err error) {
-	err = db.QueryRowx(`
-INSERT INTO local_node (
-  implementation,
-  grpc_address,
-  created_on,
-  name ) VALUES ($1, $2, $3, $4)
-RETURNING local_node_id;`, localNode.Implementation, localNode.GRPCAddress, time.Now().UTC(), localNode.Name).Scan(&localNodeId)
-	if err != nil {
-		return 0, errors.Wrap(err, "Unable to execute SQL statement")
-	}
-	return localNodeId, nil
-}
-
-func updateLocalNodeName(db *sqlx.DB, localNode localNode) (err error) {
-	_, err = db.Exec(`
-UPDATE local_node SET
-  name = $1,
-  updated_on = $2
-WHERE local_node_id = $3;
-`, localNode.Name, time.Now().UTC(), localNode.LocalNodeId)
-	if err != nil {
-		return errors.Wrap(err, "Unable to execute SQL statement")
-	}
-	return nil
-}
-
-func updateLocalNodeTLS(db *sqlx.DB, localNode localNode) (err error) {
-	_, err = db.Exec(`
-UPDATE local_node SET
-  tls_file_name = $1,
-  tls_data = $2,
-  updated_on = $3
-WHERE local_node_id = $4;
-`, localNode.TLSFileName, localNode.TLSDataBytes, time.Now().UTC(), localNode.LocalNodeId)
-	if err != nil {
-		return errors.Wrap(err, "Unable to execute SQL statement")
-	}
-	return nil
-}
-
-func updateLocalNodeMacaroon(db *sqlx.DB, localNode localNode) (err error) {
-	_, err = db.Exec(`
-UPDATE local_node SET
-  macaroon_file_name = $1,
-  macaroon_data = $2,
-  updated_on = $3
-WHERE local_node_id = $4;
-`, localNode.MacaroonFileName, localNode.MacaroonDataBytes, time.Now().UTC(), localNode.LocalNodeId)
-	if err != nil {
-		return errors.Wrap(err, "Unable to execute SQL statement")
-	}
-	return nil
+	return ncd, nil
 }

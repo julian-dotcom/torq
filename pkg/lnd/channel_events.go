@@ -5,16 +5,21 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/nodes"
+	"github.com/lncapital/torq/pkg/commons"
+
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 	"gopkg.in/guregu/null.v4"
-	"time"
 )
 
 // websocket channel event
@@ -39,13 +44,13 @@ func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 // storeChannelEvent extracts the timestamp, channel ID and PubKey from the
 // ChannelEvent and converts the original struct to json.
 // Then it's stored in the database in the channel_event table.
-func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId int, wsChan chan interface{}) error {
+func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, nodeId int, wsChan chan interface{}) error {
 
 	timestampMs := time.Now().UTC()
 
-	var ChanID uint64
-	var ChannelPoint string
-	var PubKey string
+	var chanID uint64
+	var channelPoint string
+	var publicKey string
 	var wsChanEvent wsChannelEvent
 
 	wsChanEvent.Type = "channelEvent"
@@ -54,26 +59,48 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 	switch ce.Type {
 	case lnrpc.ChannelEventUpdate_OPEN_CHANNEL:
 		c := ce.GetOpenChannel()
-		ChanID = c.ChanId
-		ChannelPoint = c.ChannelPoint
-		PubKey = c.RemotePubkey
+		chanID = c.ChanId
+		channelPoint = c.ChannelPoint
+		publicKey = c.RemotePubkey
+		shortChannelId := channels.ConvertLNDShortChannelID(chanID)
 
-		// Add the remote public key to the list to listen to for graph updates.
-		AddPeerPubKey(c.RemotePubkey)
-
-		// Add the channel point to the chanPointList, this allows the
-		// channel graph to listen for routing policy updates
-		AddOpenChanPoint(c.ChannelPoint)
-
-		channel := channels.Channel{
-			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
-			LNDChannelPoint:   null.StringFrom(ChannelPoint),
-			DestinationPubKey: null.StringFrom(PubKey),
-			LocalNodeId:       localNodeId,
-			LNDShortChannelID: ChanID,
+		node := nodes.Node{
+			PublicKey: c.RemotePubkey,
+		}
+		remoteNodeId, err := nodes.AddNodeWhenNew(db, node)
+		if err != nil {
+			return errors.Wrap(err, "Adding node")
 		}
 
-		err := channels.AddChannelRecordIfDoesntExist(db, channel)
+		// This allows torq to listen to the graph for node updates
+		commons.ManagedNodeChannel <- commons.ManagedNode{
+			NodeId:    remoteNodeId,
+			PublicKey: c.RemotePubkey,
+			Type:      commons.WRITE_CHANNEL_NODE,
+		}
+
+		channel := channels.Channel{
+			ShortChannelID:    shortChannelId,
+			LNDChannelPoint:   null.StringFrom(channelPoint),
+			FirstNodeId:       nodeId,
+			SecondNodeId:      remoteNodeId,
+			LNDShortChannelID: chanID,
+			Status:            channels.Open,
+		}
+		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
+		if err != nil {
+			return errors.Wrap(err, "Adding channel")
+		}
+
+		// This allows torq to listen to the graph for channel updates
+		commons.ManagedChannelChannel <- commons.ManagedChannel{
+			ChannelId:       channelId,
+			ShortChannelId:  channel.ShortChannelID,
+			LndChannelPoint: channelPoint,
+			StatusId:        int(channels.Open),
+			Type:            commons.WRITE_CHANNEL,
+		}
+
 		if err != nil {
 			return err
 		}
@@ -81,59 +108,92 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 		if err != nil {
 			return errors.Wrap(err, "JSON Marshall")
 		}
-		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		err = insertChannelEvent(db, timestampMs, ce.Type, channelId, false, chanID, channelPoint, publicKey, jb)
 		if err != nil {
 			return errors.Wrap(err, "Insert Open Channel Event")
 		}
 
-		wsChanEvent.ShortChannelId = channels.ConvertLNDShortChannelID(ChanID)
-		wsChanEvent.LNDChannelPoint = ChannelPoint
-		wsChanEvent.PubKey = PubKey
+		wsChanEvent.ShortChannelId = shortChannelId
+		wsChanEvent.LNDChannelPoint = channelPoint
+		wsChanEvent.PubKey = publicKey
 		wsChan <- wsChanEvent
 
 		return nil
 
 	case lnrpc.ChannelEventUpdate_CLOSED_CHANNEL:
 		c := ce.GetClosedChannel()
-		ChanID = c.ChanId
-		ChannelPoint = c.ChannelPoint
-		PubKey = c.RemotePubkey
+		chanID = c.ChanId
+		channelPoint = c.ChannelPoint
+		publicKey = c.RemotePubkey
+		shortChannelId := channels.ConvertLNDShortChannelID(c.ChanId)
+		channelId := commons.GetChannelIdFromShortChannelId(shortChannelId)
 
-		// Updates the channel point list by removing the channel point from the chanPointList.
-		// This stops the channel graph from listening for routing policy updates
-		RemoveClosedChanPoint(c.ChannelPoint)
+		// This stops the graph from listening to channel updates
+		managedChannel := commons.ManagedChannel{
+			ShortChannelId:  shortChannelId,
+			LndChannelPoint: channelPoint,
+			ChannelId:       channelId,
+			Type:            commons.DELETE_CHANNEL,
+		}
+		commons.ManagedChannelChannel <- managedChannel
+
+		var err error
+		remoteNodeId := commons.GetNodeIdFromPublicKey(publicKey)
+		if remoteNodeId == 0 {
+			newNode := nodes.Node{
+				PublicKey: publicKey,
+			}
+			remoteNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			if err != nil {
+				return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", publicKey, shortChannelId)
+			}
+		}
 
 		channel := channels.Channel{
-			ShortChannelID:    channels.ConvertLNDShortChannelID(ChanID),
-			LNDChannelPoint:   null.StringFrom(ChannelPoint),
-			DestinationPubKey: null.StringFrom(PubKey),
-			LocalNodeId:       localNodeId,
-			LNDShortChannelID: ChanID,
+			ShortChannelID:    shortChannelId,
+			LNDChannelPoint:   null.StringFrom(channelPoint),
+			FirstNodeId:       nodeId,
+			SecondNodeId:      remoteNodeId,
+			LNDShortChannelID: chanID,
+			Status:            channels.GetClosureStatus(c.CloseType),
 		}
-		err := channels.AddChannelRecordIfDoesntExist(db, channel)
+		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Adding or updating channel (channelId: %v, shortChannelId: %v)", channelId, shortChannelId)
 		}
-
 		jb, err := json.Marshal(c)
 		if err != nil {
 			return errors.Wrap(err, "JSON Marshall")
 		}
-		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		err = insertChannelEvent(db, timestampMs, ce.Type, channelId, false, chanID, channelPoint, publicKey, jb)
 		if err != nil {
 			return errors.Wrap(err, "Insert Closed Channel Event")
 		}
 
-		wsChanEvent.ShortChannelId = channels.ConvertLNDShortChannelID(ChanID)
-		wsChanEvent.LNDChannelPoint = ChannelPoint
-		wsChanEvent.PubKey = PubKey
+		// This stops the graph from listening to node updates
+		chans, err := channels.GetChannelsForNodeId(db, remoteNodeId)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to verify if remote node still has open channels: %v", remoteNodeId)
+		}
+		if len(chans) == 0 {
+			managedNode := commons.ManagedNode{
+				PublicKey: publicKey,
+				Type:      commons.DELETE_CHANNEL_NODE,
+			}
+			commons.ManagedNodeChannel <- managedNode
+		}
+
+		wsChanEvent.ShortChannelId = shortChannelId
+		wsChanEvent.LNDChannelPoint = channelPoint
+		wsChanEvent.PubKey = publicKey
 		wsChan <- wsChanEvent
 
 		return nil
 
 	case lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL:
 		c := ce.GetFullyResolvedChannel()
-		ChannelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
 		if err != nil {
 			return err
 		}
@@ -141,17 +201,18 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 		if err != nil {
 			return errors.Wrap(err, "JSON Marshall")
 		}
-		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		err = insertChannelEvent(db, timestampMs, ce.Type, channelId, false, chanID, channelPoint, "", jb)
 		if err != nil {
 			return errors.Wrap(err, "Insert Fully Resolved Channel Event")
 		}
 
-		wsChanEvent.LNDChannelPoint = ChannelPoint
+		wsChanEvent.LNDChannelPoint = channelPoint
 		wsChan <- wsChanEvent
 
 	case lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL:
 		c := ce.GetActiveChannel()
-		ChannelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
 		if err != nil {
 			return err
 		}
@@ -159,18 +220,19 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 		if err != nil {
 			return errors.Wrap(err, "JSON Marshall")
 		}
-		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		err = insertChannelEvent(db, timestampMs, ce.Type, channelId, false, 0, channelPoint, "", jb)
 		if err != nil {
 			return errors.Wrap(err, "Insert Active Channel Event")
 		}
 
-		wsChanEvent.LNDChannelPoint = ChannelPoint
+		wsChanEvent.LNDChannelPoint = channelPoint
 		wsChan <- wsChanEvent
 
 		return nil
 	case lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL:
 		c := ce.GetInactiveChannel()
-		ChannelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
+		channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
 		if err != nil {
 			return err
 		}
@@ -178,18 +240,19 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 		if err != nil {
 			return errors.Wrap(err, "JSON Marshall")
 		}
-		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		err = insertChannelEvent(db, timestampMs, ce.Type, channelId, false, 0, channelPoint, "", jb)
 		if err != nil {
 			return errors.Wrap(err, "Insert Inactive Channel Event")
 		}
 
-		wsChanEvent.LNDChannelPoint = ChannelPoint
+		wsChanEvent.LNDChannelPoint = channelPoint
 		wsChan <- wsChanEvent
 
 		return nil
 	case lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL:
 		c := ce.GetPendingOpenChannel()
-		ChannelPoint, err := chanPointFromByte(c.GetTxid(), c.GetOutputIndex())
+		channelPoint, err := chanPointFromByte(c.GetTxid(), c.GetOutputIndex())
+		channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
 		if err != nil {
 			return err
 		}
@@ -197,12 +260,12 @@ func storeChannelEvent(db *sqlx.DB, ce *lnrpc.ChannelEventUpdate, localNodeId in
 		if err != nil {
 			return errors.Wrap(err, "JSON Marshall")
 		}
-		err = insertChannelEvent(db, timestampMs, ce.Type, false, ChanID, ChannelPoint, PubKey, jb)
+		err = insertChannelEvent(db, timestampMs, ce.Type, channelId, false, 0, channelPoint, "", jb)
 		if err != nil {
 			return errors.Wrap(err, "Insert Pending Open Channel Event")
 		}
 
-		wsChanEvent.LNDChannelPoint = ChannelPoint
+		wsChanEvent.LNDChannelPoint = channelPoint
 		wsChan <- wsChanEvent
 
 		return nil
@@ -220,7 +283,7 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent,
-	db *sqlx.DB, localNodeId int, wsChan chan interface{}) error {
+	db *sqlx.DB, nodeId int, wsChan chan interface{}) error {
 
 	cesr := lnrpc.ChannelEventSubscription{}
 	stream, err := client.SubscribeChannelEvents(ctx, &cesr)
@@ -258,7 +321,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			continue
 		}
 
-		err = storeChannelEvent(db, chanEvent, localNodeId, wsChan)
+		err = storeChannelEvent(db, chanEvent, nodeId, wsChan)
 		if err != nil {
 			log.Error().Err(err).Msg("Subscribe channel events store event error")
 			// rate limit for caution but hopefully not needed
@@ -271,7 +334,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 	return nil
 }
 
-func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, client lnrpc.LightningClient, localNodeId int) error {
+func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, client lnrpc.LightningClient, nodeId int) error {
 
 	ctx := context.Background()
 	switch t {
@@ -282,7 +345,7 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 			return errors.Wrap(err, "LND: List channels")
 		}
 
-		err = storeImportedOpenChannels(db, r.Channels, localNodeId)
+		err = storeImportedOpenChannels(db, r.Channels, nodeId)
 		if err != nil {
 			return errors.Wrap(err, "Store imported open channels")
 		}
@@ -294,7 +357,7 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 			return errors.Wrap(err, "LND: Get closed channels")
 		}
 
-		err = storeImportedClosedChannels(db, r.Channels, localNodeId)
+		err = storeImportedClosedChannels(db, r.Channels, nodeId)
 		if err != nil {
 			return errors.Wrap(err, "Store imported closed channels")
 		}
@@ -333,20 +396,21 @@ func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB
 	return ecp, nil
 }
 
-func enrichAndInsertChannelEvent(db *sqlx.DB, eventType lnrpc.ChannelEventUpdate_UpdateType, imported bool, chanId uint64, chanPoint string, pubKey string, jb []byte) error {
+func enrichAndInsertChannelEvent(db *sqlx.DB, eventType lnrpc.ChannelEventUpdate_UpdateType,
+	channelId int, imported bool, chanId uint64, chanPoint string, pubKey string, jb []byte) error {
 
 	// Use current time for imported channel events (open/close).
 	// The time used to open/close events is the timestamp of the opening transaction.
 	timestampMs := time.Now().UTC()
 
-	err := insertChannelEvent(db, timestampMs, eventType, imported, chanId, chanPoint, pubKey, jb)
+	err := insertChannelEvent(db, timestampMs, eventType, channelId, imported, chanId, chanPoint, pubKey, jb)
 	if err != nil {
 		return errors.Wrap(err, "Insert channel event")
 	}
 	return nil
 }
 
-func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, localNodeId int) error {
+func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeId int) error {
 
 	if len(c) == 0 {
 		return nil
@@ -365,20 +429,31 @@ func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, localNodeId int)
 
 icoLoop:
 	for _, channel := range c {
+		shortChannelId := channels.ConvertLNDShortChannelID(channel.ChanId)
+		remoteNodeId := commons.GetNodeIdFromPublicKey(channel.RemotePubkey)
+		if remoteNodeId == 0 {
+			newNode := nodes.Node{
+				PublicKey: channel.RemotePubkey,
+			}
+			remoteNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			if err != nil {
+				return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", channel.RemotePubkey, shortChannelId)
+			}
+		}
 
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
-			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
+			ShortChannelID:    shortChannelId,
 			LNDChannelPoint:   null.StringFrom(channel.ChannelPoint),
-			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
-			LocalNodeId:       localNodeId,
+			FirstNodeId:       nodeId,
+			SecondNodeId:      remoteNodeId,
 			LNDShortChannelID: channel.ChanId,
+			Status:            channels.Open,
 		}
-		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
+		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channelRecord)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Adding or updating channel status (channelId: %v shortChannelId: %v)", channelId, shortChannelId)
 		}
-
 		// skip if we have an existing channel open channel event
 		for _, e := range ecp {
 			if channel.ChannelPoint == e {
@@ -391,7 +466,7 @@ icoLoop:
 			return errors.Wrap(err, "JSON Marshal")
 		}
 
-		err = enrichAndInsertChannelEvent(db, lnrpc.ChannelEventUpdate_OPEN_CHANNEL,
+		err = enrichAndInsertChannelEvent(db, lnrpc.ChannelEventUpdate_OPEN_CHANNEL, channelId,
 			true, channel.ChanId, channel.ChannelPoint, channel.RemotePubkey, jb)
 		if err != nil {
 			return errors.Wrap(err, "Enrich and insert channel event")
@@ -400,7 +475,7 @@ icoLoop:
 	return nil
 }
 
-func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary, localNodeId int) error {
+func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary, nodeId int) error {
 
 	if len(c) == 0 {
 		return nil
@@ -418,20 +493,31 @@ func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary, lo
 
 icoLoop:
 	for _, channel := range c {
+		shortChannelId := channels.ConvertLNDShortChannelID(channel.ChanId)
+		remoteNodeId := commons.GetNodeIdFromPublicKey(channel.RemotePubkey)
+		if remoteNodeId == 0 {
+			newNode := nodes.Node{
+				PublicKey: channel.RemotePubkey,
+			}
+			remoteNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			if err != nil {
+				return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", channel.RemotePubkey, shortChannelId)
+			}
+		}
 
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
-			ShortChannelID:    channels.ConvertLNDShortChannelID(channel.ChanId),
+			ShortChannelID:    shortChannelId,
 			LNDChannelPoint:   null.StringFrom(channel.ChannelPoint),
-			DestinationPubKey: null.StringFrom(channel.RemotePubkey),
-			LocalNodeId:       localNodeId,
+			FirstNodeId:       nodeId,
+			SecondNodeId:      remoteNodeId,
 			LNDShortChannelID: channel.ChanId,
+			Status:            channels.GetClosureStatus(channel.CloseType),
 		}
-		err = channels.AddChannelRecordIfDoesntExist(db, channelRecord)
+		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channelRecord)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Adding or updating channel status (channelId: %v shortChannelId: %v)", channelId, shortChannelId)
 		}
-
 		// skip if we already have channel close channel event for this channel
 		for _, e := range ecp {
 			if channel.ChannelPoint == e {
@@ -444,7 +530,7 @@ icoLoop:
 			return errors.Wrap(err, "JSON Marshal")
 		}
 
-		err = enrichAndInsertChannelEvent(db, lnrpc.ChannelEventUpdate_CLOSED_CHANNEL,
+		err = enrichAndInsertChannelEvent(db, lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, channelId,
 			true, channel.ChanId, channel.ChannelPoint, channel.RemotePubkey, jb)
 		if err != nil {
 			return errors.Wrap(err, "Enrich and insert channel event")
@@ -453,15 +539,16 @@ icoLoop:
 	return nil
 }
 
-func insertChannelEvent(db *sqlx.DB, ts time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,
-	imported bool, lndShortChannelId uint64, lndChannelPoint string, pubKey string, jb []byte) error {
+func insertChannelEvent(db *sqlx.DB, eventTime time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,
+	channelId int, imported bool, lndShortChannelId uint64, lndChannelPoint string, pubKey string, jb []byte) error {
 
 	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
 
-	var sqlStm = `INSERT INTO channel_event (time, event_type, imported, short_channel_id, lnd_short_channel_id, lnd_channel_point, pub_key,
-	event) VALUES($1, $2, $3, $4, $5, $6, $7, $8);`
+	var sqlStm = `INSERT INTO channel_event
+		(time, event_type, channel_id, imported, short_channel_id, lnd_short_channel_id, lnd_channel_point, pub_key, event)
+		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9);`
 
-	_, err := db.Exec(sqlStm, ts, eventType, imported, shortChannelId, lndShortChannelId, lndChannelPoint, pubKey, jb)
+	_, err := db.Exec(sqlStm, eventTime, eventType, channelId, imported, shortChannelId, lndShortChannelId, lndChannelPoint, pubKey, jb)
 	if err != nil {
 		return errors.Wrap(err, "DB Exec")
 	}

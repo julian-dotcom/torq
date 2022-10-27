@@ -1,6 +1,8 @@
 package tags
 
 import (
+	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/pkg/server_errors"
@@ -9,61 +11,94 @@ import (
 )
 
 func RegisterTagRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("", func(c *gin.Context) { getTagsHandler(c, db) })
-	r.POST("", func(c *gin.Context) { postTagHandler(c, db) })
-	r.DELETE(":tagId", func(c *gin.Context) { deleteTagHandler(c, db) })
+	r.GET("get/:tagId", func(c *gin.Context) { getTagHandler(c, db) })
+	r.GET("all", func(c *gin.Context) { getTagsHandler(c, db) })
+	r.GET("forChannel/:channelId", func(c *gin.Context) { getTagsForChannelHandler(c, db) })
+	r.POST("add", func(c *gin.Context) { addTagHandler(c, db) })
+	r.PUT("set", func(c *gin.Context) { setTagHandler(c, db) })
+	r.DELETE(":tagId", func(c *gin.Context) { removeTagHandler(c, db) })
 }
 
-func getTagsHandler(c *gin.Context, db *sqlx.DB) {
-	channelDBID, err := strconv.Atoi(c.Param("channelDbId"))
+func getTagsForChannelHandler(c *gin.Context, db *sqlx.DB) {
+	channelId, err := strconv.Atoi(c.Param("channelId"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, "Failed to find/parse channelId in the request.")
 		return
 	}
-	tags, err := getTags(db, channelDBID)
+	tags, err := getTagsForChannel(db, channelId)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting tags for channelId: %v", channelId))
 		return
 	}
 	c.JSON(http.StatusOK, tags)
 }
 
-func postTagHandler(c *gin.Context, db *sqlx.DB) {
-	channelDBID, err := strconv.Atoi(c.Param("channelDbId"))
+func getTagHandler(c *gin.Context, db *sqlx.DB) {
+	tagId, err := strconv.Atoi(c.Param("tagId"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, "Failed to find/parse tagId in the request.")
 		return
 	}
-	var tag tag
-	if err := c.BindJSON(&tag); err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-	tag.ChannelDBID = channelDBID
-	tagID, err := insertTag(db, tag)
+	tag, err := GetTag(db, tagId)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting tag for tagId: %v", tagId))
 		return
 	}
-
-	c.JSON(http.StatusOK, map[string]interface{}{"tagId": tagID})
+	c.JSON(http.StatusOK, tag)
 }
 
-func deleteTagHandler(c *gin.Context, db *sqlx.DB) {
-	channelDBID, err := strconv.Atoi(c.Param("channelDbId"))
+func getTagsHandler(c *gin.Context, db *sqlx.DB) {
+	tags, err := GetTags(db)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.WrapLogAndSendServerError(c, err, "Getting tags.")
 		return
 	}
-	tagID, err := strconv.Atoi(c.Param("tagId"))
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+	c.JSON(http.StatusOK, tags)
+}
+
+func addTagHandler(c *gin.Context, db *sqlx.DB) {
+	var t Tag
+	if err := c.BindJSON(&t); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	err = deleteTag(db, channelDBID, tagID)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+	if t.Name == "" {
+		server_errors.SendUnprocessableEntity(c, "Failed to find name in the request.")
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully deleted tag"})
+	storedTag, err := addTag(db, t)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Adding tag.")
+		return
+	}
+	c.JSON(http.StatusOK, storedTag)
+}
+
+func setTagHandler(c *gin.Context, db *sqlx.DB) {
+	var t Tag
+	if err := c.BindJSON(&t); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+	storedTag, err := setTag(db, t)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting tag for tagId: %v", t.TagId))
+		return
+	}
+
+	c.JSON(http.StatusOK, storedTag)
+}
+
+func removeTagHandler(c *gin.Context, db *sqlx.DB) {
+	tagId, err := strconv.Atoi(c.Param("tagId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse tagId in the request.")
+		return
+	}
+	count, err := removeTag(db, tagId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing tag for tagId: %v", tagId))
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully deleted %v tag(s).", count)})
 }

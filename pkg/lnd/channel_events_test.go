@@ -3,14 +3,18 @@ package lnd
 import (
 	"context"
 	"database/sql"
+	"testing"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/testutil"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"testing"
+
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/testutil"
 )
 
 type stubLNDSubscribeChannelEventRPC struct {
@@ -184,8 +188,15 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	errs, ctx := errgroup.WithContext(ctx)
 	var wsChan = make(chan interface{})
 
-	go PeerPubKeyListMonitor(ctx)
-	go OpenChanPointListMonitor(ctx)
+	err := settings.InitializeManagedNodeCache(db)
+	if err != nil {
+		t.Fatalf("Problem initializing ManagedNode cache: %v", err)
+	}
+
+	err = channels.InitializeManagedChannelCache(db)
+	if err != nil {
+		t.Fatalf("Problem initializing ManagedChannel cache: %v", err)
+	}
 
 	client := &stubLNDSubscribeChannelEvent{ChannelEvents: []interface{}{channelEvent}, CancelFunc: cancel}
 	errs.Go(func() error {
@@ -199,7 +210,7 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	<-wsChan
 
 	// Wait for subscriptions to complete
-	err := errs.Wait()
+	err = errs.Wait()
 	if err != nil {
 		t.Fatal(err)
 	}

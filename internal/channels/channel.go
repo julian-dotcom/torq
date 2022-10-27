@@ -7,7 +7,11 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/guregu/null.v4"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 //type pendingHtlc struct {
@@ -60,67 +64,92 @@ import (
 //	RemoteConstraints     channelConstraints `json:"remoteConstraints"`
 //}
 //
-//func getChannelList(db *sqlx.DB) ([]Channel, error) {
-//
-//	// TODO: change to select which local node
-//	connectionDetails, err := settings.GetConnectionDetails(db)
-//	if err != nil {
-//		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
-//		return nil, errors.New("Error getting node connection details from the db")
-//	}
-//
-//	conn, err := lnd_connect.Connect(
-//		connectionDetails[0].GRPCAddress,
-//		connectionDetails[0].TLSFileBytes,
-//		connectionDetails[0].MacaroonFileBytes)
-//	if err != nil {
-//		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
-//		return nil, errors.Newf("can't connect to LND %s", err.Error())
-//	}
-//	defer conn.Close()
-//
-//	client := lnrpc.NewLightningClient(conn)
-//
-//	ctx := context.Background()
-//	req := lnrpc.ListChannelsRequest{}
-//	r, err := client.ListChannels(ctx, &req)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//}
-//
-//func getChannelsFromSourceHandler(c *gin.Context, db *sqlx.DB) {
-//
-//	c.JSON(http.StatusOK, r)
-//}
+
+type Status int
+
+const (
+	Opening = Status(iota)
+	Open
+	Closing
+	CooperativeClosed      = 100
+	LocalForceClosed       = 101
+	RemoteForceClosed      = 102
+	BreachClosed           = 103
+	FundingCancelledClosed = 104
+	AbandonedClosed        = 105
+)
+
+// GetClosureStatus returns Closing when our API is outdated and a new lnrpc.ChannelCloseSummary_ClosureType is added
+func GetClosureStatus(lndClosureType lnrpc.ChannelCloseSummary_ClosureType) Status {
+	switch lndClosureType {
+	case lnrpc.ChannelCloseSummary_COOPERATIVE_CLOSE:
+		return CooperativeClosed
+	case lnrpc.ChannelCloseSummary_LOCAL_FORCE_CLOSE:
+		return LocalForceClosed
+	case lnrpc.ChannelCloseSummary_REMOTE_FORCE_CLOSE:
+		return RemoteForceClosed
+	case lnrpc.ChannelCloseSummary_BREACH_CLOSE:
+		return BreachClosed
+	case lnrpc.ChannelCloseSummary_FUNDING_CANCELED:
+		return FundingCancelledClosed
+	case lnrpc.ChannelCloseSummary_ABANDONED:
+		return AbandonedClosed
+	}
+	return Closing
+}
 
 type Channel struct {
-	// A database primary key. NOT a channel_id as specified in BOLT 2
+	// ChannelDBID A database primary key. NOT a channel_id as specified in BOLT 2
 	ChannelDBID int `json:"channelDBId" db:"channel_db_id"`
-	// In the c-lighting and BOLT format e.g. 505580:1917:1
+	// ShortChannelID In the c-lighting and BOLT format e.g. 505580:1917:1
 	ShortChannelID string `json:"shortChannelId" db:"short_channel_id"`
-	// At the moment only used by LND. Format is "funding tx id : output id"
+	// LNDChannelPoint At the moment only used by LND. Format is "funding tx id : output id"
 	LNDChannelPoint   null.String `json:"lndChannelPoint" db:"lnd_channel_point"`
-	Alias             null.String `json:"alias" db:"alias"`
-	DestinationPubKey null.String `json:"destinationPubKey" db:"destination_pub_key"`
-	LocalNodeId       int         `json:"localNodeId" db:"local_node_id"`
+	FirstNodeId       int         `json:"firstNodeId" db:"first_node_id"`
+	SecondNodeId      int         `json:"secondNodeId" db:"second_node_id"`
 	CreatedOn         time.Time   `json:"createdOn" db:"created_on"`
 	UpdateOn          null.Time   `json:"updatedOn" db:"updated_on"`
 	LNDShortChannelID uint64      `json:"lndShortChannelId" db:"lnd_short_channel_id"`
+	Status            Status      `json:"status" db:"status_id"`
 }
 
-func AddChannelRecordIfDoesntExist(db *sqlx.DB, channel Channel) error {
-	dbChannel, err := getChannel(db, channel.ShortChannelID)
-	if err != nil {
-		return err
+func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) {
+	existingChannelId := commons.GetChannelIdFromShortChannelId(channel.ShortChannelID)
+	if existingChannelId == 0 {
+		channelId, err := getChannelIdByShortChannelId(db, channel.ShortChannelID)
+		if err != nil {
+			return 0, errors.Wrap(err, "Getting channelId by ShortChannelID.")
+		}
+		if channelId == 0 {
+			storedChannel, err := addChannel(db, channel)
+			if err != nil {
+				return 0, errors.Wrap(err, "Adding channel.")
+			}
+			channelId = storedChannel.ChannelDBID
+		} else {
+			log.Error().Msgf("Impossible cache miss (except for torq bootstap)!!! shortChannelId: %v", channel.ShortChannelID)
+			err = updateChannelStatus(db, channelId, channel.Status)
+			if err != nil {
+				return 0, errors.Wrap(err, "Updating channel status.")
+			}
+		}
+		return channelId, nil
+	} else {
+		statusId := commons.GetChannelStatusIdFromChannelId(existingChannelId)
+		if Status(statusId) != Open {
+			err := UpdateChannelStatus(db, existingChannelId, Open)
+			if err != nil {
+				return 0, errors.Wrap(err, "Updating channel status.")
+			}
+		}
+		return existingChannelId, nil
 	}
-	if dbChannel != nil {
-		return nil
-	}
-	err = insertChannel(db, channel)
+}
+
+func UpdateChannelStatus(db *sqlx.DB, channelId int, status Status) error {
+	err := updateChannelStatus(db, channelId, status)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Updating channel status.")
 	}
 	return nil
 }

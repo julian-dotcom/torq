@@ -5,12 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/pkg/commons"
+
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
-	"time"
 )
 
 func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.LinkFailEvent) error {
@@ -21,8 +25,7 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 	}
 
 	stm := `
-	INSERT INTO
-	htlc_event (
+	INSERT INTO htlc_event (
 		time,
 		event_origin,
 		lnd_outgoing_short_channel_id,
@@ -40,15 +43,27 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 		incoming_htlc_id,
 		bolt_failure_code,
 		bolt_failure_string,
-		lnd_failure_detail
+		lnd_failure_detail,
+	    incoming_channel_id,
+	    outgoing_channel_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 19, 20)
 	`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
 
 	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
 	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
+	incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+	if incomingChannelId == 0 {
+		log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
+			incomingShortChannelId)
+	}
+	outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+	if outgoingChannelId == 0 {
+		log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
+			outgoingShortChannelId)
+	}
 
 	_, err = db.Exec(stm,
 		timestampMs,
@@ -69,6 +84,8 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 		fwe.WireFailure.String(),
 		fwe.FailureString,
 		fwe.FailureDetail.String(),
+		incomingChannelId,
+		outgoingChannelId,
 	)
 
 	if err != nil {
@@ -87,8 +104,7 @@ func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Settle
 	}
 
 	stm := `
-	INSERT INTO
-	htlc_event (
+	INSERT INTO htlc_event (
 		time,
 		event_origin,
 		lnd_outgoing_short_channel_id,
@@ -99,14 +115,25 @@ func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Settle
 		data,
 		event_type,
 		outgoing_htlc_id,
-		incoming_htlc_id
+		incoming_htlc_id,
+	    incoming_channel_id,
+	    outgoing_channel_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
 	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
 	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
+	incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+	if incomingChannelId == 0 {
+		log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
+			incomingShortChannelId)
+	}
+	outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+	if outgoingChannelId == 0 {
+		log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
+			outgoingShortChannelId)
+	}
 
 	_, err = db.Exec(stm,
 		timestampMs,
@@ -120,6 +147,8 @@ func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Settle
 		"SettleEvent",
 		h.OutgoingHtlcId,
 		h.IncomingHtlcId,
+		incomingChannelId,
+		outgoingChannelId,
 	)
 
 	if err != nil {
@@ -138,8 +167,7 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
 	}
 
 	stm := `
-	INSERT INTO
-	htlc_event (
+	INSERT INTO htlc_event (
 		time,
 		event_origin,
 		lnd_outgoing_short_channel_id,
@@ -150,15 +178,26 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
 		data,
 		event_type,
 		outgoing_htlc_id,
-		incoming_htlc_id
+		incoming_htlc_id,
+		incoming_channel_id,
+		outgoing_channel_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+
 	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
 	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-
+	incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+	if incomingChannelId == 0 {
+		log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
+			incomingShortChannelId)
+	}
+	outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+	if outgoingChannelId == 0 {
+		log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
+			outgoingShortChannelId)
+	}
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
@@ -171,6 +210,8 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
 		"ForwardFailEvent",
 		h.OutgoingHtlcId,
 		h.IncomingHtlcId,
+		incomingChannelId,
+		outgoingChannelId,
 	)
 
 	if err != nil {
@@ -189,8 +230,7 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 	}
 
 	stm := `
-	INSERT INTO
-	htlc_event (
+	INSERT INTO htlc_event (
 		time,
 		event_origin,
 		lnd_outgoing_short_channel_id,
@@ -205,15 +245,26 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 		incoming_timelock,
 		Outgoing_timelock,
 		outgoing_htlc_id,
-		incoming_htlc_id
+		incoming_htlc_id,
+	    incoming_channel_id,
+	    outgoing_channel_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-	`
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17);`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+
 	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
 	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-
+	incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+	if incomingChannelId == 0 {
+		log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
+			incomingShortChannelId)
+	}
+	outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+	if outgoingChannelId == 0 {
+		log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
+			outgoingShortChannelId)
+	}
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
@@ -230,6 +281,8 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 		fwe.Info.OutgoingTimelock,
 		h.OutgoingHtlcId,
 		h.IncomingHtlcId,
+		incomingChannelId,
+		outgoingChannelId,
 	)
 
 	if err != nil {

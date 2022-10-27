@@ -3,19 +3,21 @@ package payments
 import (
 	"context"
 	"encoding/hex"
+	"io"
+	"strings"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
-	"io"
-	"strings"
-	"time"
 )
 
 type rrpcClientSendPayment interface {
@@ -103,7 +105,7 @@ func SendNewPayment(
 		return errors.New("Node id is missing")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, npReq.LocalNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, npReq.LocalNodeId)
 	if err != nil {
 		return errors.Wrap(err, "Getting node connection details from the db")
 	}

@@ -186,16 +186,16 @@ export const torqApi = createApi({
       query: () => `settings/timezones`,
     }),
     getLocalNodes: builder.query<localNode[], void>({
-      query: () => `settings/local-nodes`,
+      query: () => `settings/nodeConnectionDetails`,
       providesTags: ["localNodes"],
     }),
     getLocalNode: builder.query<localNode, number>({
-      query: (localNodeId) => `settings/local-nodes/${localNodeId}`,
+      query: (localNodeId) => `settings/nodeConnectionDetails/${localNodeId}`,
       providesTags: ["localNodes"],
     }),
     addLocalNode: builder.mutation<any, FormData>({
       query: (localNode) => ({
-        url: "settings/local-nodes",
+        url: "settings/nodeConnectionDetails",
         method: "POST",
         body: localNode,
       }),
@@ -203,7 +203,7 @@ export const torqApi = createApi({
     }),
     updateLocalNode: builder.mutation<any, { form: FormData; localNodeId: number }>({
       query: (localNode) => ({
-        url: `settings/local-nodes/${localNode.localNodeId}`,
+        url: `settings/nodeConnectionDetails/${localNode.localNodeId}`,
         method: "PUT",
         body: localNode.form,
       }),
@@ -211,16 +211,15 @@ export const torqApi = createApi({
     }),
     updateLocalNodeSetDisabled: builder.mutation<any, { localNodeId: number; disabled: boolean }>({
       query: (localNode) => ({
-        url: `settings/local-nodes/${localNode.localNodeId}/set-disabled`,
+        url: `settings/nodeConnectionDetails/${localNode.localNodeId}/1`,
         method: "PUT",
-        body: localNode,
       }),
       invalidatesTags: ["localNodes", "channels"],
     }),
     updateLocalNodeSetDeleted: builder.mutation<any, { localNodeId: number }>({
       query: (localNode) => ({
-        url: `settings/local-nodes/${localNode.localNodeId}`,
-        method: "DELETE",
+        url: `settings/nodeConnectionDetails/${localNode.localNodeId}/3`,
+        method: "PUT",
       }),
       invalidatesTags: ["localNodes", "channels"],
     }),

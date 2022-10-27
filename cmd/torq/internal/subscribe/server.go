@@ -7,6 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+
 	"github.com/lncapital/torq/pkg/lnd"
 
 	// "github.com/rs/zerolog/log"
@@ -18,29 +19,9 @@ import (
 // fetches data as needed and stores it in the database.
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
-func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId int, wsChan chan interface{}) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, wsChan chan interface{}) error {
 
-	monitorContext, monitorCancel := context.WithCancel(context.Background())
-
-	// Start listening for updates to the peer public key list
-	go lnd.PeerPubKeyListMonitor(monitorContext)
-
-	// Initialize the peer list
-	err := lnd.InitPeerList(db)
-	if err != nil {
-		monitorCancel()
-		return errors.Wrapf(err, "start -> InitPeerList(%v)", db)
-	}
-
-	// Start listening for updates to the channel point list
-	go lnd.OpenChanPointListMonitor(monitorContext)
-
-	// Initialize the channel id list
-	err = lnd.InitChanPointList(db)
-	if err != nil {
-		monitorCancel()
-		return errors.Wrapf(err, "Init open channel point list")
-	}
+	_, monitorCancel := context.WithCancel(context.Background())
 
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
@@ -53,22 +34,15 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	//   gRPC server of Torq
 	errs, ctx := errgroup.WithContext(ctx)
 
-	// Store a list of public keys belonging to our nodes
-	ourNodePubKeys, err := lnd.InitOurNodesList(ctx, client, db)
-	if err != nil {
-		monitorCancel()
-		return err
-	}
-
 	//Import Open channels
-	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, localNodeId)
+	err := lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, nodeId)
 	if err != nil {
 		monitorCancel()
 		return errors.Wrap(err, "LND import channels list - open chanel")
 	}
 
 	// Import Closed channels
-	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, localNodeId)
+	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, nodeId)
 	if err != nil {
 		monitorCancel()
 		return errors.Wrap(err, "LND import channels list - closed chanel")
@@ -82,7 +56,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	}
 
 	// Import routing policies from open channels
-	err = lnd.ImportRoutingPolicies(client, db, ourNodePubKeys)
+	err = lnd.ImportRoutingPolicies(client, db)
 	if err != nil {
 		monitorCancel()
 		return errors.Wrap(err, "LND import routing policies")
@@ -108,7 +82,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// // Channel Events
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, localNodeId, wsChan)
+		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeId, wsChan)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store channel events")
 		}
@@ -117,7 +91,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// Graph (Node updates, fee updates etc.)
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db, ourNodePubKeys)
+		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store channel graph")
 		}

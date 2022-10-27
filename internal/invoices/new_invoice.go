@@ -7,6 +7,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
@@ -35,7 +36,7 @@ func newInvoice(db *sqlx.DB, req newInvoiceRequest) (r newInvoiceResponse, err e
 		return r, err
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.LocalNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, req.LocalNodeId)
 	if err != nil {
 		return r, errors.Wrap(err, "Getting node connection details from the db")
 	}
