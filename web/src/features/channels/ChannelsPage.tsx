@@ -70,7 +70,7 @@ function ChannelsPage() {
 
       dispatch(updateViews({ views, index: 0 }));
     } else {
-      dispatch(updateViews({ views: [DefaultView], index: 0 }));
+      dispatch(updateViews({ views: [{...DefaultView, title: "Default View"}], index: 0 }));
     }
   }, [channelsViews, isLoading]);
 
