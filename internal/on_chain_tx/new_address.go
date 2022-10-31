@@ -13,10 +13,10 @@ import (
 
 const (
 	Unknown int32 = 0
-	P2WPKH        = 1
-	P2WKH         = 2
-	NP2WKH        = 3
-	P2TR          = 4
+	P2WPKH  int32 = 1
+	P2WKH   int32 = 2
+	NP2WKH  int32 = 3
+	P2TR    int32 = 4
 )
 
 type NewAddressRequest struct {
@@ -95,18 +95,8 @@ func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest,
 		return errors.Wrap(err, "New address")
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		// Write the payment status to the client
-		wChan <- processResponse(lndResponse, reqId)
-		break
-	}
-	return
+	wChan <- processResponse(lndResponse, reqId)
+	return nil
 }
 
 func processResponse(lndResponse *walletrpc.AddrResponse, reqId string) (r NewAddressResponse) {
