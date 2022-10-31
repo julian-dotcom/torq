@@ -88,7 +88,7 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
             <div
               className={styles.removeColumn}
               onClick={() => {
-                handleRemoveColumn(index + 1);
+                handleRemoveColumn(index);
               }}
             >
               <RemoveIcon />
@@ -105,7 +105,7 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
                     ...column,
                     type: (newValue as { value: string; label: string }).value,
                   },
-                  index + 1
+                  index
                 );
               }}
             />
@@ -158,6 +158,8 @@ function ColumnsSection(props: ColumnsSectionProps) {
   };
 
   const removeColumn = (index: number) => {
+    console.log('index', index)
+    console.log('props.activeColumns', props.activeColumns)
     const updatedColumns: ColumnMetaData[] = [
       ...props.activeColumns.slice(0, index),
       ...props.activeColumns.slice(index + 1, props.activeColumns.length),

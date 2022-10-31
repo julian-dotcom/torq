@@ -12,7 +12,6 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import TransactTabs from "./TransactTabs";
 import { SectionContainer } from "features/section/SectionContainer";
 
 type sections = {
@@ -68,7 +67,7 @@ function AllTxPage() {
 
   const tableControls = (
     <TableControlSection>
-      <TransactTabs />
+
 
       <TableControlsButtonGroup>
         <TableControlsButton

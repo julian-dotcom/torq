@@ -1,5 +1,5 @@
 import Table, { ColumnMetaData } from "features/table/Table";
-import { useGetOnChainTxQuery } from "apiSlice";
+import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation, useGetOnChainTxQuery } from "apiSlice";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
@@ -7,6 +7,7 @@ import {
   ColumnTriple20Regular as ColumnsIcon,
   Options20Regular as OptionsIcon,
   LinkEdit20Regular as NewOnChainAddressIcon,
+  Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
@@ -14,7 +15,7 @@ import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TransactTabs from "features/transact/TransactTabs";
 import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
@@ -23,21 +24,28 @@ import FilterSection from "features/sidebar/sections/filter/FilterSection";
 import { Clause, deserialiseQuery, FilterInterface } from "features/sidebar/sections/filter/filter";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import {
-  selectActiveColumns,
+  selectViews,
+  updateViews,
+  updateSelectedView,
+  updateViewsOrder,
+  DefaultView,
   selectAllColumns,
   selectOnChainFilters,
   updateColumns,
   updateOnChainFilters,
+  selectCurrentView,
+  selectedViewIndex,
+  selectActiveColumns,
 } from "features/transact/OnChain/onChainSlice";
 import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
-import clone from "clone";
 import { SectionContainer } from "features/section/SectionContainer";
 import Button, { buttonColor } from "features/buttons/Button";
 import { NEW_ADDRESS } from "constants/routes";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
-
+import { ViewInterface } from "features/table/Table";
+import { ViewResponse } from "features/viewManagement/ViewsPopover";
 type sections = {
   filter: boolean;
   sort: boolean;
@@ -49,8 +57,26 @@ const statusTypes: any = {
   SETTLED: "Settled",
   EXPIRED: "Expired",
 };
-
 function OnChainPage() {
+  const dispatch = useAppDispatch();
+
+  const { data: onchainViews, isLoading } = useGetTableViewsQuery({page: 'onChain'});
+
+  useEffect(() => {
+    const views: ViewInterface[] = [];
+    if (!isLoading) {
+      if (onchainViews) {
+        onchainViews?.map((v: ViewResponse) => {
+          views.push(v.view)
+        });
+
+        dispatch(updateViews({ views, index: 0 }));
+      } else {
+        dispatch(updateViews({ views: [DefaultView], index: 0 }));
+      }
+    }
+  }, [onchainViews, isLoading]);
+
   const [limit, setLimit] = useLocalStorage("onchainLimit", 100);
   const [offset, setOffset] = useState(0);
   const [orderBy, setOrderBy] = useLocalStorage("onchainOrderBy", [
@@ -58,12 +84,11 @@ function OnChainPage() {
       key: "date",
       direction: "desc",
     },
-  ] as Array<OrderBy>);
+  ] as OrderBy[]);
 
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const allColumns = useAppSelector(selectAllColumns);
 
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const filters = useAppSelector(selectOnChainFilters);
 
@@ -116,9 +141,40 @@ function OnChainPage() {
   const location = useLocation();
   const { t } = useTranslations();
 
+  const [updateTableView] = useUpdateTableViewMutation();
+  const [createTableView] = useCreateTableViewMutation();
+  const currentViewIndex = useAppSelector(selectedViewIndex);
+  const currentView = useAppSelector(selectCurrentView);
+  const saveView = () => {
+    const viewMod = { ...currentView };
+    viewMod.saved = true;
+    if (currentView.id === undefined || null) {
+      createTableView({ view: viewMod, index: currentViewIndex, page: 'onChain' });
+      return;
+    }
+    updateTableView(viewMod);
+  };
+
   const tableControls = (
     <TableControlSection>
-      <TransactTabs />
+      <TransactTabs
+        page="onChain"
+        selectViews={selectViews}
+        updateViews={updateViews}
+        updateSelectedView={updateSelectedView}
+        selectedViewIndex={selectedViewIndex}
+        updateViewsOrder={updateViewsOrder}
+        DefaultView={DefaultView}
+      />
+      {!currentView.saved && (
+        <Button
+          buttonColor={buttonColor.green}
+          icon={<SaveIcon />}
+          text={"Save"}
+          onClick={saveView}
+          className={"collapse-tablet"}
+        />
+      )}
       <TableControlsButtonGroup>
         <Button
           buttonColor={buttonColor.green}
@@ -144,19 +200,7 @@ function OnChainPage() {
     parameter: 0,
     key: "amount",
   };
-
-  const filterColumns = clone(allColumns).filter(({ key }) =>
-    [
-      "date",
-      "dest_addresses",
-      "dest_addresses_count",
-      "amount",
-      "total_fees",
-      "label",
-      "lnd_tx_type_label",
-      "lnd_short_chan_id",
-    ].includes(key)
-  );
+  const filterColumns = useAppSelector(selectAllColumns);
 
   const handleFilterUpdate = (updated: Clause) => {
     dispatch(updateOnChainFilters({ filters: updated.toJSON() }));

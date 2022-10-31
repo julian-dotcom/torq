@@ -141,21 +141,24 @@ defaultFilter.addChildClause(
   })
 );
 
+export const activeForwardsColumns = availableColumns.filter((c) =>
+  [
+    "alias",
+    "revenue_out",
+    "count_total",
+    "amount_out",
+    "amount_in",
+    "amount_total",
+    "turnover_total",
+    "capacity",
+  ].includes(c.key)
+);
+
+
 export const DefaultView: ViewInterface = {
   title: "Untitled View",
   saved: true,
-  columns: availableColumns.filter((c) =>
-    [
-      "alias",
-      "revenue_out",
-      "count_total",
-      "amount_out",
-      "amount_in",
-      "amount_total",
-      "turnover_total",
-      "capacity",
-    ].includes(c.key)
-  ),
+  columns: activeForwardsColumns,
   filters: defaultFilter.toJSON(),
   sortBy: [{ value: "revenue_out", label: "Revenue", direction: "desc" }],
   groupBy: undefined,

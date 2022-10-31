@@ -1,5 +1,5 @@
 import Table, { ColumnMetaData } from "features/table/Table";
-import { useGetInvoicesQuery } from "apiSlice";
+import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation, useGetInvoicesQuery } from "apiSlice";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
@@ -7,6 +7,7 @@ import {
   ColumnTriple20Regular as ColumnsIcon,
   Options20Regular as OptionsIcon,
   Check20Regular as InvoiceIcon,
+  Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
@@ -14,7 +15,7 @@ import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TransactTabs from "../TransactTabs";
 import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
@@ -23,11 +24,18 @@ import FilterSection from "features/sidebar/sections/filter/FilterSection";
 import { Clause, deserialiseQuery, FilterInterface } from "features/sidebar/sections/filter/filter";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import {
+  selectViews,
+  updateViews,
+  updateSelectedView,
+  updateViewsOrder,
+  DefaultView,
   selectActiveColumns,
   selectAllColumns,
   selectInvoicesFilters,
   updateColumns,
   updateInvoicesFilters,
+  selectCurrentView,
+  selectedViewIndex,
 } from "features/transact/Invoices/invoicesSlice";
 import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
@@ -36,6 +44,8 @@ import { SectionContainer } from "features/section/SectionContainer";
 import Button, { buttonColor } from "features/buttons/Button";
 import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
+import { ViewResponse } from "features/viewManagement/ViewsPopover";
+import { ViewInterface } from "features/table/Table";
 
 type sections = {
   filter: boolean;
@@ -50,6 +60,24 @@ const statusTypes: any = {
 };
 
 function InvoicesPage() {
+
+  const { data: invoicesViews, isLoading } = useGetTableViewsQuery({page: 'invoices'});
+
+  useEffect(() => {
+    const views: ViewInterface[] = [];
+    if (!isLoading) {
+      if (invoicesViews) {
+        invoicesViews?.map((v: ViewResponse) => {
+          views.push(v.view)
+        });
+
+        dispatch(updateViews({ views, index: 0 }));
+      } else {
+        dispatch(updateViews({ views: [DefaultView], index: 0 }));
+      }
+    }
+  }, [invoicesViews, isLoading]);
+
   const { t } = useTranslations();
   const [limit, setLimit] = useLocalStorage("invoicesLimit", 100);
   const [offset, setOffset] = useState(0);
@@ -58,7 +86,7 @@ function InvoicesPage() {
       key: "creation_date",
       direction: "desc",
     },
-  ] as Array<OrderBy>);
+  ] as OrderBy[]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -114,9 +142,40 @@ function InvoicesPage() {
     };
   };
 
+  const [updateTableView] = useUpdateTableViewMutation();
+  const [createTableView] = useCreateTableViewMutation();
+  const currentViewIndex = useAppSelector(selectedViewIndex);
+  const currentView = useAppSelector(selectCurrentView);
+  const saveView = () => {
+    const viewMod = { ...currentView };
+    viewMod.saved = true;
+    if (currentView.id === undefined || null) {
+      createTableView({ view: viewMod, index: currentViewIndex, page: 'invoices' });
+      return;
+    }
+    updateTableView(viewMod);
+  };
+
   const tableControls = (
     <TableControlSection>
-      <TransactTabs />
+      <TransactTabs
+        page="invoices"
+        selectViews={selectViews}
+        updateViews={updateViews}
+        updateSelectedView={updateSelectedView}
+        selectedViewIndex={selectedViewIndex}
+        updateViewsOrder={updateViewsOrder}
+        DefaultView={DefaultView}
+      />
+      {!currentView.saved && (
+        <Button
+          buttonColor={buttonColor.green}
+          icon={<SaveIcon />}
+          text={"Save"}
+          onClick={saveView}
+          className={"collapse-tablet"}
+        />
+      )}
       <TableControlsButtonGroup>
         <Button
           buttonColor={buttonColor.green}

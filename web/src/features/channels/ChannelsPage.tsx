@@ -17,10 +17,15 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "store/hooks";
-import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
+import { selectCurrentView, selectedViewIndex } from "features/channels/ChannelsSlice";
 import {
+  selectViews,
+  updateViews,
+  updateSelectedView,
+  updateViewsOrder,
+  DefaultView,
   updateColumns,
   selectActiveColumns,
   selectAllColumns,
@@ -31,7 +36,7 @@ import {
   selectGroupBy,
   updateGroupBy,
 } from "./ChannelsSlice";
-import ViewsPopover from "./views/ViewsPopover";
+import ViewsPopover from "features/viewManagement/ViewsPopover";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
 import SortSection, { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
@@ -45,13 +50,29 @@ import { useLocation } from "react-router";
 import { UPDATE_CHANNEL } from "constants/routes";
 import { Sections } from "./channelsTypes";
 import useTranslations from "services/i18n/useTranslations";
+import { ViewResponse } from "features/viewManagement/ViewsPopover";
+import { ViewInterface } from "features/table/Table";
 
 function ChannelsPage() {
-  const { t } = useTranslations();
   const dispatch = useAppDispatch();
+  const { t } = useTranslations();
   const navigate = useNavigate();
   const location = useLocation();
-  useGetTableViewsQuery({page: 'channels'});
+
+  const { data: channelsViews, isLoading } = useGetTableViewsQuery({page: 'channels'});
+
+  useEffect(() => {
+    const views: ViewInterface[] = [];
+    if (channelsViews) {
+      channelsViews?.map((v: ViewResponse) => {
+        views.push(v.view)
+      });
+
+      dispatch(updateViews({ views, index: 0 }));
+    } else {
+      dispatch(updateViews({ views: [DefaultView], index: 0 }));
+    }
+  }, [channelsViews, isLoading]);
 
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
@@ -104,18 +125,27 @@ function ChannelsPage() {
   const tableControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
-        {<ViewsPopover />}
-        {/*!currentView.saved && */(
-          <Button
-            buttonColor={buttonColor.green}
-            icon={<SaveIcon />}
-            text={"Save"}
-            onClick={saveView}
-            className={"collapse-tablet"}
+        <TableControlsTabsGroup>
+          <ViewsPopover
+            page="channels"
+            selectViews={selectViews}
+            updateViews={updateViews}
+            updateSelectedView={updateSelectedView}
+            selectedViewIndex={selectedViewIndex}
+            updateViewsOrder={updateViewsOrder}
+            DefaultView={DefaultView}
           />
-        )}
+          {!currentView.saved && (
+            <Button
+              buttonColor={buttonColor.green}
+              icon={<SaveIcon />}
+              text={"Save"}
+              onClick={saveView}
+              className={"collapse-tablet"}
+            />
+          )}
+        </TableControlsTabsGroup>
       </TableControlsButtonGroup>
-      <TableControlsTabsGroup></TableControlsTabsGroup>
       <TableControlsButtonGroup>
         <Button
           buttonColor={buttonColor.green}

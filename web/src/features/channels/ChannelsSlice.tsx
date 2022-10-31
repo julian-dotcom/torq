@@ -189,8 +189,8 @@ export interface PolicyInterface {
   maxHtlcMsat: number;
   minHtlcMsat: number;
   baseFeeMsat: number;
-  channelPoint: string;
-  nodeId: number;
+  lndChannelPoint: string;
+  localNodeId: number;
 }
 export interface TableChannelsState {
   channels: [];
@@ -209,34 +209,36 @@ defaultFilter.addChildClause(
   })
 );
 
+export const activeChannelsColumns = channelsColumns.filter((c) =>
+  [
+    "active",
+    "peerAlias",
+    "shortChannelId",
+    "feeRatePpm",
+    "remoteBalance",
+    "gauge",
+    "localBalance",
+    "capacity",
+    "totalSatoshisSent",
+    "totalSatoshisReceived",
+    "unsettledBalance",
+    "commitFee",
+    "baseFeeMsat",
+    "minHtlc",
+    "maxHtlcMsat",
+    "localNodeName",
+  ].includes(c.key)
+);
+
+
 export const DefaultView: ViewInterface = {
   title: "Untitled View",
   saved: true,
-  columns: channelsColumns.filter((c) =>
-    [
-      "active",
-      "peerAlias",
-      "shortChannelId",
-      "feeRatePpm",
-      "remoteBalance",
-      "gauge",
-      "localBalance",
-      "capacity",
-      "totalSatoshisSent",
-      "totalSatoshisReceived",
-      "totalCount",
-      "unsettledBalance",
-      "commitFee",
-      "baseFeeMsat",
-      "minHtlc",
-      "maxHtlcMsat",
-      "localNodeName",
-    ].includes(c.key)
-  ),
+  columns: activeChannelsColumns,
   filters: defaultFilter.toJSON(),
   sortBy: [],
   groupBy: undefined,
-  page: 'forwards'
+  page: 'channels'
 };
 
 const initialState: TableChannelsState = {
@@ -293,13 +295,12 @@ export const channelsSlice = createSlice({
     builder.addMatcher(
       (action) => {
         return (
-          ["table/updateFilters", "table/updateSortBy", "table/updateColumns", "table/updateGroupBy"].findIndex(
+          ["channels/updateFilters", "channels/updateSortBy", "channels/updateColumns", "channels/updateGroupBy"].findIndex(
             (item) => action.type === item
           ) !== -1
         );
       },
       (state, _) => {
-        // TODO: create compare version to indicate it view is saved or not.
         state.views[state.selectedViewIndex].saved = false;
       }
     );

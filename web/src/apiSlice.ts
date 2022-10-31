@@ -137,6 +137,7 @@ export const torqApi = createApi({
         view: response,
         index: arg.index,
       }),
+      // invalidatesTags: ["tableView"],
     }),
     updateTableView: builder.mutation<any, ViewInterface>({
       query: (view: ViewInterface) => ({
@@ -144,6 +145,7 @@ export const torqApi = createApi({
         method: "PUT",
         body: { id: view.id, view: view },
       }),
+      // invalidatesTags: ["tableView"],
     }),
     deleteTableView: builder.mutation<any, { view: ViewInterface; index: number }>({
       query: (data) => ({
@@ -151,6 +153,7 @@ export const torqApi = createApi({
         method: "DELETE",
       }),
       transformResponse: (_, __, arg) => ({ index: arg.index }),
+      // invalidatesTags: ["tableView"],
     }),
     updateTableViewsOrder: builder.mutation<any, viewOrderInterface[]>({
       query: (order: viewOrderInterface[]) => ({

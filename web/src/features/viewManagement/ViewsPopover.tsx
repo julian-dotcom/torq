@@ -11,16 +11,8 @@ import { useState } from "react";
 import classNames from "classnames";
 import TabButton from "features/buttons/TabButton";
 import { useAppDispatch, useAppSelector } from "store/hooks";
-import {
-  selectViews,
-  updateViews,
-  updateSelectedView,
-  selectedViewIndex,
-  DefaultView,
-  updateViewsOrder,
-} from "features/channels/ChannelsSlice";
 import Popover from "features/popover/Popover";
-
+import { RootState } from "store/store";
 import Button, { buttonColor, buttonSize } from "features/buttons/Button";
 import { ViewInterface, viewOrderInterface } from "features/table/Table";
 import {
@@ -29,6 +21,7 @@ import {
   useDeleteTableViewMutation,
   useUpdateTableViewsOrderMutation,
 } from "apiSlice";
+import { ActionCreatorWithPayload } from '@reduxjs/toolkit';
 
 type viewRow = {
   title: string;
@@ -38,6 +31,30 @@ type viewRow = {
   handleSelectView: (index: number) => void;
   singleView: boolean;
 };
+
+type ViewsPopover = {
+  page: string,
+  selectViews: (state: RootState) => ViewInterface[],
+  // selectViews: ViewInterface[],
+  updateViews: ActionCreatorWithPayload<{
+    views: ViewInterface[];
+    index: number;
+}, string>,
+  updateSelectedView: ActionCreatorWithPayload<{
+    index: number;
+  }, string>,
+  selectedViewIndex: (state: RootState) => number,
+  DefaultView: ViewInterface,
+  updateViewsOrder: ActionCreatorWithPayload<{
+    views: ViewInterface[];
+    index: number;
+  }, string>,
+};
+
+export type ViewResponse = {
+  id: number;
+  view: ViewInterface;
+}
 
 function ViewRow({ title, index, handleUpdateView, handleRemoveView, handleSelectView, singleView }: viewRow) {
   const [editView, setEditView] = useState(false);
@@ -95,7 +112,7 @@ function ViewRow({ title, index, handleUpdateView, handleRemoveView, handleSelec
   );
 }
 
-function ViewsPopover() {
+function ViewsPopover({ page, selectViews, updateViews, updateSelectedView, selectedViewIndex, updateViewsOrder, DefaultView  }: ViewsPopover) {
   const views = useAppSelector(selectViews);
   const selectedView = useAppSelector(selectedViewIndex);
   const dispatch = useAppDispatch();
@@ -110,7 +127,7 @@ function ViewsPopover() {
       { ...views[index], ...view },
       ...views.slice(index + 1, views.length),
     ];
-    dispatch(updateViews({ views: updatedViews, index: index }));
+    dispatch(updateViews({ views: updatedViews, index }));
     updateTableView({ ...views[index], ...view });
   };
 
@@ -123,7 +140,7 @@ function ViewsPopover() {
   };
 
   const addView = () => {
-    createTableView({ view: DefaultView, index: views.length, page: 'channels' });
+    createTableView({ view: DefaultView, index: views.length, page });
   };
 
   const selectView = (index: number) => {
@@ -171,7 +188,7 @@ function ViewsPopover() {
     updateTableViewsOrder(order);
   };
 
-  const button = <TabButton title={views[selectedView].title} dropDown={true} />;
+  const button = <TabButton title={views[selectedView]?.title} dropDown={true} />;
 
   const singleView = views.length <= 1;
   return (
