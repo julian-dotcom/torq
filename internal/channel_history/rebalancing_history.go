@@ -2,15 +2,16 @@ package channel_history
 
 import (
 	"database/sql"
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-	"time"
 )
 
 type RebalancingDetails struct {
-	AmountMsat    uint64 `db:"amount_msat" json:"amount_msat"`
-	TotalCostMsat uint64 `db:"total_cost_msat" json:"total_cost_msat"`
-	SplitCostMsat uint64 `db:"split_cost_msat" json:"split_cost_msat"`
+	AmountMsat    uint64 `db:"amount_msat" json:"amountMsat"`
+	TotalCostMsat uint64 `db:"total_cost_msat" json:"totalCostMsat"`
+	SplitCostMsat uint64 `db:"split_cost_msat" json:"splitCostMsat"`
 	Count         uint64 `db:"count" json:"count"`
 }
 

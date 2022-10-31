@@ -2,7 +2,8 @@
 import { useD3 } from "features/charts/useD3";
 import { useEffect } from "react";
 import { Selection } from "d3";
-import FlowChartCanvas, { FlowData } from "features/charts/flowChartCanvas";
+import FlowChartCanvas from "features/charts/flowChartCanvas";
+import { FlowData } from "features/channel/channelTypes";
 import { useAppSelector } from "store/hooks";
 import { selectFlowKeys } from "../channelSlice";
 
@@ -29,11 +30,11 @@ function FlowChart({ data }: FlowChart) {
 
   const ref = useD3(
     (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
-      const keyOut = (flowKey.value + "_out") as keyof Omit<
+      const keyOut = (flowKey.value + "Out") as keyof Omit<
         FlowData,
-        "alias" | "chan_id" | "pub_key" | "channel_point"
+        "alias" | "lndShortChannelId" | "pubKey" | "lndChannelPoint"
       >;
-      const keyIn = (flowKey.value + "_in") as keyof Omit<FlowData, "alias" | "chan_id" | "pub_key" | "channel_point">;
+      const keyIn = (flowKey.value + "In") as keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "lndChannelPoint">;
       flowChart = new FlowChartCanvas(container, data, { keyOut: keyOut, keyIn: keyIn });
       flowChart.draw();
       setInterval(navCheck(container), 200);

@@ -7,10 +7,11 @@ import "features/charts/chart.scss";
 import { useAppSelector } from "store/hooks";
 import { selectEventChartKey } from "../channelSlice";
 import { useGetSettingsQuery } from "apiSlice";
+import { ChannelEventResponse } from "features/channel/channelTypes"
 
 type EventsChart = {
   data: any[];
-  events: any[];
+  events: ChannelEventResponse;
   selectedEventTypes: Map<string, boolean>;
   from: string;
   to: string;
@@ -41,33 +42,33 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
         from: new Date(from),
         to: new Date(to),
         timezone: settings?.data?.preferredTimezone || "UTC",
-        yScaleKey: eventKey.value + "_total",
-        rightYScaleKey: eventKey.value + "_total",
-        rightYAxisKeys: [eventKey.value + "_out", eventKey.value + "_in", eventKey.value + "_total"],
+        yScaleKey: eventKey.value + "Total",
+        rightYScaleKey: eventKey.value + "Total",
+        rightYAxisKeys: [eventKey.value + "Out", eventKey.value + "In", eventKey.value + "Total"],
         xAxisPadding: 12,
       });
       chart.plot(BarPlot, {
-        id: eventKey.value + "_total",
-        key: eventKey.value + "_total",
+        id: eventKey.value + "Total",
+        key: eventKey.value + "Total",
         legendLabel: eventKey.label + " Total",
         barColor: "rgba(133, 196, 255, 0.5)",
         // areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
       });
       chart.plot(LinePlot, {
-        id: eventKey.value + "_out",
-        key: eventKey.value + "_out",
+        id: eventKey.value + "Out",
+        key: eventKey.value + "Out",
         legendLabel: eventKey.label + " Out",
         lineColor: "#BA93FA",
         // rightAxis: true,
       });
       chart.plot(LinePlot, {
-        id: eventKey.value + "_in",
-        key: eventKey.value + "_in",
+        id: eventKey.value + "In",
+        key: eventKey.value + "In",
         legendLabel: eventKey.label + " In",
         lineColor: "#FAAE93",
       });
       const filteredEvents =
-        events?.filter((d) => {
+        events?.events?.filter((d) => {
           return selectedEventTypes.get(d.type); // selectedEventTypes
         }) || [];
       chart.plot(EventsPlot, { id: "events", key: "events", events: filteredEvents });

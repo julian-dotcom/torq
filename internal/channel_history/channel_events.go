@@ -1,9 +1,10 @@
 package channel_history
 
 import (
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"time"
 )
 
 type ChannelEvent struct {
@@ -20,12 +21,12 @@ type ChannelEvent struct {
 	// Was this changed by our node (outbound) or their node (inbound)
 	Outbound *bool `json:"outbound"`
 	// The node that announced the change
-	AnnouncingPubKey *string `json:"announcing_pub_key"`
+	AnnouncingPubKey *string `json:"announcingPubKey"`
 	// The value, in cases where there is a value change,
 	//like with fee rate etc. Not used by disable/enable and channel open/close
 	Value *uint64 `json:"value"`
 	// The previous value
-	PreviousValue *uint64 `json:"previous_value"`
+	PreviousValue *uint64 `json:"previousValue"`
 }
 
 func getChannelEventHistory(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r []*ChannelEvent, err error) {

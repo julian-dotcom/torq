@@ -1,20 +1,21 @@
 package channel_history
 
 import (
-	"github.com/jmoiron/sqlx"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type Balance struct {
 	Date             time.Time `db:"date" json:"date"`
-	InboundCapacity  int64     `db:"inbound_capacity" json:"inbound_capacity"`
-	OutboundCapacity int64     `db:"outbound_capacity" json:"outbound_capacity"`
-	CapacityDiff     *int64    `db:"capacity_diff" json:"capacity_diff"`
+	InboundCapacity  int64     `db:"inbound_capacity" json:"inboundCapacity"`
+	OutboundCapacity int64     `db:"outbound_capacity" json:"outboundCapacity"`
+	CapacityDiff     *int64    `db:"capacity_diff" json:"capacityDiff"`
 }
 
 type ChannelBalance struct {
-	LNDShortChannelId string
-	Balances          []*Balance
+	LNDShortChannelId string     `json:"lndShortChannelId"`
+	Balances          []*Balance `json:"balances"`
 }
 
 func getChannelBalance(db *sqlx.DB, lndShortChannelId string, from time.Time, to time.Time) (ChannelBalance, error) {
