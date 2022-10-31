@@ -44,7 +44,7 @@ func TestStoreTransaction(t *testing.T) {
 		},
 	}
 
-	storeTransaction(db, &lnrpc.Transaction{
+	err = storeTransaction(db, &lnrpc.Transaction{
 		TxHash:           "test",
 		Amount:           expected.Amount,
 		NumConfirmations: expected.NumConfirmations,
@@ -75,6 +75,10 @@ func TestStoreTransaction(t *testing.T) {
 		PreviousOutpoints: nil,
 	})
 
+	if err != nil {
+		testutil.Fatalf(t, "storeTransaction", err)
+	}
+
 	row := db.QueryRowx(`select
 		amount,
 		num_confirmations,
@@ -85,9 +89,9 @@ func TestStoreTransaction(t *testing.T) {
 		label
 	from tx LIMIT 1;`)
 
-	//if row.Err() != nil {
-	//	testutil.Fatalf(t, "querying tx table", err)
-	//}
+	if row.Err() != nil {
+		testutil.Fatalf(t, "querying tx table", err)
+	}
 
 	got := Transaction{}
 	err = row.StructScan(&got)
@@ -96,8 +100,7 @@ func TestStoreTransaction(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(got, expected) {
-		//testutil.Errorf(t, "%v: newSendPaymentRequest()\nGot:\n%v\nWant:\n%v\n", got, expected)
-		t.Errorf("Got:\n%v\nWant:\n%v\n", got, expected)
+		testutil.Errorf(t, "Got:\n%v\nWant:\n%v\n", got, expected)
 	}
 
 }
