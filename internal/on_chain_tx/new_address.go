@@ -95,18 +95,8 @@ func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest,
 		return errors.Wrap(err, "New address")
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		// Write the payment status to the client
-		wChan <- processResponse(lndResponse, reqId)
-		break
-	}
-	return
+	wChan <- processResponse(lndResponse, reqId)
+	return nil
 }
 
 func processResponse(lndResponse *walletrpc.AddrResponse, reqId string) (r NewAddressResponse) {
