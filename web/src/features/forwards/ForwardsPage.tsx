@@ -18,10 +18,15 @@ import TablePageTemplate, {
   TableControlSection,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import { selectCurrentView, selectedViewIndex } from "features/forwards/forwardsSlice";
 import {
+  selectViews,
+  updateViews,
+  updateSelectedView,
+  updateViewsOrder,
+  DefaultView,
   selectActiveColumns,
   selectAllColumns,
   selectFilters,
@@ -32,7 +37,7 @@ import {
   updateGroupBy,
   updateSortBy,
 } from "./forwardsSlice";
-import ViewsPopover from "./views/ViewsPopover";
+import ViewsPopover from "features/viewManagement/ViewsPopover";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
 import SortSection, { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
@@ -41,6 +46,8 @@ import ForwardsDataWrapper from "./ForwardsDataWrapper";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import { SectionContainer } from "features/section/SectionContainer";
 import Button, { buttonColor } from "features/buttons/Button";
+import { ViewResponse } from "features/viewManagement/ViewsPopover";
+import { ViewInterface } from "features/table/Table";
 
 type sections = {
   filter: boolean;
@@ -51,7 +58,20 @@ type sections = {
 function ForwardsPage() {
   const dispatch = useAppDispatch();
 
-  useGetTableViewsQuery();
+   const { data: forwardsViews, isLoading } = useGetTableViewsQuery({page: 'forwards'});
+
+    useEffect(() => {
+      const views: ViewInterface[] = [];
+      if (forwardsViews) {
+        forwardsViews?.map((v: ViewResponse) => {
+          views.push(v.view)
+        });
+
+        dispatch(updateViews({ views, index: 0 }));
+      } else {
+        dispatch(updateViews({ views: [{...DefaultView, title: "Default View"}], index: 0 }));
+      }
+    }, [forwardsViews, isLoading]);
 
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
@@ -96,7 +116,7 @@ function ForwardsPage() {
     const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex });
+      createTableView({ view: viewMod, index: currentViewIndex, page: 'forwards' });
       return;
     }
     updateTableView(viewMod);
@@ -106,7 +126,15 @@ function ForwardsPage() {
     <TableControlSection>
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
-          {<ViewsPopover />}
+          <ViewsPopover
+            page="forwards"
+            selectViews={selectViews}
+            updateViews={updateViews}
+            updateSelectedView={updateSelectedView}
+            selectedViewIndex={selectedViewIndex}
+            updateViewsOrder={updateViewsOrder}
+            DefaultView={DefaultView}
+          />
           {!currentView.saved && (
             <Button
               buttonColor={buttonColor.green}

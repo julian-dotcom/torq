@@ -12,7 +12,6 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import TransactTabs from "./TransactTabs";
 import { SectionContainer } from "features/section/SectionContainer";
 
 type sections = {
@@ -23,7 +22,7 @@ type sections = {
 
 function AllTxPage() {
   // initial getting of the table views from the database
-  useGetTableViewsQuery();
+  useGetTableViewsQuery({page: 'transactions'});
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -68,7 +67,7 @@ function AllTxPage() {
 
   const tableControls = (
     <TableControlSection>
-      <TransactTabs />
+
 
       <TableControlsButtonGroup>
         <TableControlsButton

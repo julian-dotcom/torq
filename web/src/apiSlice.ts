@@ -1,8 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { ViewInterface, viewOrderInterface } from "features/forwards/forwardsSlice";
 import { PolicyInterface } from "features/channels/ChannelsSlice"
 import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
 import { UpdatedChannelResponse } from "features/channels/channelsTypes"
+import { ViewInterface, viewOrderInterface } from "features/table/Table";
 import {
   ChannelOnchainCostResponse,
   ChannelHistoryResponse,
@@ -22,6 +22,7 @@ import type {
   GetPaymentsQueryParams,
   SendOnChainRequest,
   SendOnChainResponse,
+  GetTableViewQueryParams,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { localNode, settings, timeZone, channel } from "./apiTypes";
@@ -122,15 +123,15 @@ export const torqApi = createApi({
         body: data,
       }),
     }),
-    getTableViews: builder.query<any, void>({
-      query: () => `table-views`,
+    getTableViews: builder.query<any, GetTableViewQueryParams>({
+      query: (params) => queryParamsBuilder("table-views" , params),
       providesTags: ["tableView"],
     }),
-    createTableView: builder.mutation<any, { view: ViewInterface; index: number }>({
+    createTableView: builder.mutation<any, { view: ViewInterface; index: number, page: string }>({
       query: (data) => ({
         url: "table-views",
         method: "POST",
-        body: { id: null, view: data.view },
+        body: { id: null, view: data.view, page: data.page },
       }),
       transformResponse: (response: { view: ViewInterface }, _, arg) => ({
         view: response,
@@ -163,14 +164,12 @@ export const torqApi = createApi({
         url: "logout",
         method: "POST",
       }),
-      invalidatesTags: ["tableView"],
     }),
     login: builder.mutation<any, FormData>({
       query: (form) => ({
         url: "login",
         method: "POST",
         body: new URLSearchParams(form as any),
-        // headers: { "Content-Type": "application/x-www-form-urlencoded" },
       }),
     }),
     getSettings: builder.query<settings, void>({

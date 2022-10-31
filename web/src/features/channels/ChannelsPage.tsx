@@ -6,20 +6,26 @@ import {
   ColumnTriple20Regular as ColumnsIcon,
   ArrowJoin20Regular as GroupIcon,
   Options20Regular as OptionsIcon,
+  Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
-
+import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation } from "apiSlice";
 import { Clause, FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
-
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "store/hooks";
+import { selectCurrentView, selectedViewIndex } from "features/channels/ChannelsSlice";
 import {
+  selectViews,
+  updateViews,
+  updateSelectedView,
+  updateViewsOrder,
+  DefaultView,
   updateColumns,
   selectActiveColumns,
   selectAllColumns,
@@ -30,6 +36,7 @@ import {
   selectGroupBy,
   updateGroupBy,
 } from "./ChannelsSlice";
+import ViewsPopover from "features/viewManagement/ViewsPopover";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
 import SortSection, { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
@@ -43,12 +50,29 @@ import { useLocation } from "react-router";
 import { UPDATE_CHANNEL } from "constants/routes";
 import { Sections } from "./channelsTypes";
 import useTranslations from "services/i18n/useTranslations";
+import { ViewResponse } from "features/viewManagement/ViewsPopover";
+import { ViewInterface } from "features/table/Table";
 
 function ChannelsPage() {
-  const { t } = useTranslations();
   const dispatch = useAppDispatch();
+  const { t } = useTranslations();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { data: channelsViews, isLoading } = useGetTableViewsQuery({page: 'channels'});
+
+  useEffect(() => {
+    const views: ViewInterface[] = [];
+    if (channelsViews) {
+      channelsViews?.map((v: ViewResponse) => {
+        views.push(v.view)
+      });
+
+      dispatch(updateViews({ views, index: 0 }));
+    } else {
+      dispatch(updateViews({ views: [{...DefaultView, title: "Default View"}], index: 0 }));
+    }
+  }, [channelsViews, isLoading]);
 
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
@@ -84,9 +108,44 @@ function ChannelsPage() {
     };
   };
 
+  const [updateTableView] = useUpdateTableViewMutation();
+  const [createTableView] = useCreateTableViewMutation();
+  const currentViewIndex = useAppSelector(selectedViewIndex);
+  const currentView = useAppSelector(selectCurrentView);
+  const saveView = () => {
+    const viewMod = { ...currentView };
+    viewMod.saved = true;
+    if (currentView.id === undefined || null) {
+      createTableView({ view: viewMod, index: currentViewIndex, page: 'channels' });
+      return;
+    }
+    updateTableView(viewMod);
+  };
+
   const tableControls = (
     <TableControlSection>
-      <TableControlsTabsGroup></TableControlsTabsGroup>
+      <TableControlsButtonGroup>
+        <TableControlsTabsGroup>
+          <ViewsPopover
+            page="channels"
+            selectViews={selectViews}
+            updateViews={updateViews}
+            updateSelectedView={updateSelectedView}
+            selectedViewIndex={selectedViewIndex}
+            updateViewsOrder={updateViewsOrder}
+            DefaultView={DefaultView}
+          />
+          {!currentView.saved && (
+            <Button
+              buttonColor={buttonColor.green}
+              icon={<SaveIcon />}
+              text={"Save"}
+              onClick={saveView}
+              className={"collapse-tablet"}
+            />
+          )}
+        </TableControlsTabsGroup>
+      </TableControlsButtonGroup>
       <TableControlsButtonGroup>
         <Button
           buttonColor={buttonColor.green}

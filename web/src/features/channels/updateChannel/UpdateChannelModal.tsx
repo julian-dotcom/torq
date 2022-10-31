@@ -284,8 +284,8 @@ function NodechannelModal() {
                       timeLockDelta,
                       minHtlcMsat: minHtlcSat * 1000,
                       maxHtlcMsat: maxHtlcSat * 1000,
-                      channelPoint: lndChannelPoint,
-                      nodeId: selectedLocalNode,
+                      lndChannelPoint: lndChannelPoint,
+                      localNodeId: selectedLocalNode,
                     });
                   }}
                   buttonColor={buttonColor.green}

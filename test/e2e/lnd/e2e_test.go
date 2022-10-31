@@ -674,9 +674,9 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	click("text=Default View")
 
-	click("text=Default View")
-
 	click("text=Channels")
+
+	click("text=Default View")
 
 	click("text=Transactions")
 

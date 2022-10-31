@@ -55,6 +55,10 @@ export type GetInvoicesQueryParams = BaseQueryCollectionParams;
 
 export type GetOnChainTransactionsQueryParams = BaseQueryCollectionParams;
 
+export type GetTableViewQueryParams = {
+  page: string;
+}
+
 type InvoiceFeature = {
   Name: string;
   IsKnown: boolean;

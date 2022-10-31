@@ -1,0 +1,2 @@
+ALTER TABLE table_view ADD COLUMN IF NOT EXISTS page TEXT NOT NULL;
+UPDATE table_view SET page = 'forwards' WHERE page IS NULL;
