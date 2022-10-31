@@ -17,9 +17,13 @@ type RebalancingDetails struct {
 	Count         uint64 `db:"count" json:"count"`
 }
 
-func getRebalancingCost(db *sqlx.DB, from time.Time, to time.Time) (RebalancingDetails, error) {
-	allTorqPublicKeys := commons.GetAllTorqPublicKeys()
+func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time) (RebalancingDetails, error) {
 	settings := commons.GetSettings()
+
+	publicKeys := make([]string, len(nodeIds))
+	for nodeId := range nodeIds {
+		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
+	}
 
 	row := db.QueryRow(`
 		SELECT COALESCE(ROUND(SUM(amount_msat)),0) AS amount_msat,
@@ -34,7 +38,7 @@ func getRebalancingCost(db *sqlx.DB, from time.Time, to time.Time) (RebalancingD
 				htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY($1) AND
 				creation_timestamp::timestamp AT TIME ZONE ($4) >= $2::timestamp AND
 				creation_timestamp::timestamp AT TIME ZONE ($4) <= $3::timestamp
-		) AS a;`, pq.Array(allTorqPublicKeys), from, to, settings.PreferredTimeZone)
+		) AS a;`, pq.Array(publicKeys), from, to, settings.PreferredTimeZone)
 	var cost RebalancingDetails
 	err := row.Scan(
 		&cost.AmountMsat,
@@ -108,8 +112,14 @@ func getRebalancingCost(db *sqlx.DB, from time.Time, to time.Time) (RebalancingD
 //
 //}
 
-func getChannelRebalancing(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (RebalancingDetails, error) {
-	allTorqPublicKeys := commons.GetAllTorqPublicKeys()
+func getChannelRebalancing(db *sqlx.DB, nodeIds []int, chanIds []string,
+	from time.Time, to time.Time) (RebalancingDetails, error) {
+
+	publicKeys := make([]string, len(nodeIds))
+	for nodeId := range nodeIds {
+		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
+	}
+
 	settings := commons.GetSettings()
 
 	row := db.QueryRow(`
@@ -142,7 +152,8 @@ func getChannelRebalancing(db *sqlx.DB, chanIds []string, from time.Time, to tim
 			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY($4)
 			and creation_timestamp::timestamp AT TIME ZONE ($5) >= ($2)::timestamp
 			and creation_timestamp::timestamp AT TIME ZONE ($5) <= ($3)::timestamp
-		) AS a;`, pq.Array(chanIds), from, to, pq.Array(allTorqPublicKeys), settings.PreferredTimeZone)
+			and node_id IN ($6)
+		) AS a;`, pq.Array(chanIds), from, to, pq.Array(publicKeys), settings.PreferredTimeZone, pq.Array(nodeIds))
 
 	var cost RebalancingDetails
 	err := row.Scan(

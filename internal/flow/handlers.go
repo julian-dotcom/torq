@@ -8,8 +8,9 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/lncapital/torq/pkg/server_errors"
 	"gopkg.in/guregu/null.v4"
+
+	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 type channelFlowData struct {
@@ -74,9 +75,9 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 	const sql = `
 		select
 			ne.alias,
-			fw.lnd_short_channel_id,
-			ce.lnd_channel_point,
-			ne.pub_key,
+			fw.channel_id,
+			c.lnd_channel_point,
+			n.pub_key,
 
 			coalesce(fw.amount_in, 0) as amount_in,
 			coalesce(fw.revenue_in, 0) as revenue_in,
@@ -87,52 +88,56 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 			coalesce(fw.count_out, 0) as count_out
 		from (
 			select
-				coalesce(o.lnd_outgoing_short_channel_id, i.lnd_incoming_short_channel_id) as lnd_short_channel_id,
+				coalesce(o.outgoing_channel_id, i.incoming_channel_id) as channel_id,
 				i.amount as amount_in,
 				o.amount as amount_out,
 				i.revenue as revenue_in,
 				o.revenue as revenue_out,
 				i.count as count_in,
 				o.count as count_out
-				from
-						 (select
-					lnd_outgoing_short_channel_id,
-					floor(sum(outgoing_amount_msat)/1000) as amount,
-					floor(sum(fee_msat)/1000) as revenue,
-					count(time) as count
-				from forward as fw
-				where time >= ?
-            		and time <= ?
-					and ((?) or (lnd_incoming_short_channel_id in (?)))
-				group by lnd_outgoing_short_channel_id) as o
-				full outer join (
+			from (
 				select
-					lnd_incoming_short_channel_id,
+					outgoing_channel_id,
 					floor(sum(outgoing_amount_msat)/1000) as amount,
 					floor(sum(fee_msat)/1000) as revenue,
 					count(time) as count
 				from forward as fw
 				where time >= ?
-            		and time <= ?
-					and ((?) or (lnd_outgoing_short_channel_id in (?)))
-				group by lnd_incoming_short_channel_id) as i on o.lnd_outgoing_short_channel_id = i.lnd_incoming_short_channel_id) as fw
+					and time <= ?
+					and (? or incoming_channel_id in (?))
+				group by outgoing_channel_id
+			) as o
+			full outer join (
+				select
+					incoming_channel_id,
+					floor(sum(outgoing_amount_msat)/1000) as amount,
+					floor(sum(fee_msat)/1000) as revenue,
+					count(time) as count
+				from forward as fw
+				where time >= ?
+					and time <= ?
+					and (? or outgoing_channel_id in (?))
+				group by incoming_channel_id
+			) as i
+				on o.outgoing_channel_id = i.incoming_channel_id) as fw
 			left join (
-			select
-				lnd_short_channel_id,
-				lnd_channel_point,
-				pub_key,
-				last(event->'capacity', time) as capacity,
-				(1-last(event_type, time)) as open
-			from channel_event where event_type in (0,1)
-		   group by lnd_short_channel_id, lnd_channel_point, pub_key
-		) as ce on fw.lnd_short_channel_id = ce.lnd_short_channel_id
-		left join (
-			select
-				pub_key,
-				last(alias, timestamp) as alias
-			from node_event
-			group by pub_key
-		) as ne on ce.pub_key = ne.pub_key
+				select
+					channel_id,
+					last(event->'capacity', time) as capacity,
+					(1-last(event_type, time)) as open
+				from channel_event
+				where event_type in (0,1)
+			    group by channel_id
+			) as ce
+			    on fw.channel_id = ce.channel_id
+			left join (
+				select last(alias, timestamp) as alias
+				from node_event
+				group by node_id
+			) as ne
+				on ce.node_id = ne.node_id
+			left join node n on ne.node_id = n.node_id
+			left join channel c on ce.channel_id = c.channel_id
 	`
 
 	// TODO: Clean up

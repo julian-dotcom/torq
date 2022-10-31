@@ -15,3 +15,19 @@ const (
 	LND = Implementation(iota)
 	CLN
 )
+
+type Chain int
+
+const (
+	Bitcoin = Chain(iota)
+	Litecoin
+)
+
+type Network int
+
+const (
+	MainNet = Network(iota)
+	SigNet
+	RegTest
+	TestNet
+)

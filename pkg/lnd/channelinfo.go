@@ -96,7 +96,7 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 }
 
 // ImportRoutingPolicies imports routing policy information about all open channels if they don't already have
-func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB) error {
+func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)
@@ -127,16 +127,19 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB) error {
 			return errors.Wrap(err, "Construct Channel Edge Updates")
 		}
 		for _, cu := range ceu {
-			torqNodeId := commons.GetActiveTorqNodeIdFromPublicKey(cu.AdvertisingNode)
+			// TODO FIXME shouldn't we check if announcingNodeId == nodeId || connectingNodeId == nodeId ???
+			// We don't want our other torqNode updates in here???
 			channelPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 			if err != nil {
 				return errors.Wrap(err, "Creating channel point from byte")
 			}
 
-			announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode)
+			announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
 			if announcingNodeId == 0 {
 				announcingNode := nodes.Node{
 					PublicKey: cu.AdvertisingNode,
+					Chain:     nodeSettings.Chain,
+					Network:   nodeSettings.Network,
 				}
 				_, err = nodes.AddNodeWhenNew(db, announcingNode)
 				if err != nil {
@@ -144,10 +147,12 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB) error {
 				}
 			}
 
-			connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode)
+			connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
 			if connectingNodeId == 0 {
 				connectingNode := nodes.Node{
 					PublicKey: cu.ConnectingNode,
+					Chain:     nodeSettings.Chain,
+					Network:   nodeSettings.Network,
 				}
 				_, err = nodes.AddNodeWhenNew(db, connectingNode)
 				if err != nil {
@@ -178,7 +183,7 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB) error {
 					}
 				}
 			}
-			err = insertRoutingPolicy(db, time.Now().UTC(), torqNodeId != 0, channelId, cu)
+			err = insertRoutingPolicy(db, time.Now().UTC(), announcingNodeId != 0, channelId, nodeSettings, cu)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}

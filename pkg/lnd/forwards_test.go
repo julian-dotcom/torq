@@ -2,15 +2,18 @@ package lnd
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/testutil"
 	"github.com/mixer/clock"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"testing"
-	"time"
+
+	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/testutil"
 )
 
 // mockLightningClientForwardingHistory is used to moc responses from GetNodeInfo
@@ -150,7 +153,9 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 	// Start subscribing in a goroutine to allow the test to continue simulating time through the
 	// mocked time object.
 	errs.Go(func() error {
-		err := SubscribeForwardingEvents(ctx, &mclient, db, &opt)
+		err := SubscribeForwardingEvents(ctx, &mclient, db,
+			commons.GetNodeSettingsByNodeId(
+				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeForwardingEvents(%v, %v, %v, %v)", ctx,
 				mclient, db, &opt))

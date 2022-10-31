@@ -32,14 +32,8 @@ func InitializeManagedSettingsCache(db *sqlx.DB) error {
 	settingsData, err := getSettings(db)
 	if err == nil {
 		log.Debug().Msg("Pushing settings to ManagedSettings cache.")
-		managedSettings := commons.ManagedSettings{
-			DefaultDateRange:  settingsData.DefaultDateRange,
-			DefaultLanguage:   settingsData.DefaultLanguage,
-			WeekStartsOn:      settingsData.WeekStartsOn,
-			PreferredTimeZone: settingsData.PreferredTimezone,
-			Type:              commons.WRITE,
-		}
-		commons.ManagedSettingsChannel <- managedSettings
+		commons.SetSettings(settingsData.DefaultDateRange, settingsData.DefaultLanguage, settingsData.WeekStartsOn,
+			settingsData.PreferredTimezone)
 	} else {
 		log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
 	}
@@ -110,27 +104,15 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 	if err == nil {
 		log.Debug().Msg("Pushing torq nodes to ManagedNodes cache.")
 		for _, torqNode := range nodeConnectionDetailsArray {
-			if torqNode.Status == commons.Active {
-				node, err := nodes.GetNodeById(db, torqNode.NodeId)
-				if err == nil {
-					if torqNode.Status == commons.Active {
-						managedNode := commons.ManagedNode{
-							PublicKey: node.PublicKey,
-							NodeId:    node.NodeId,
-							Type:      commons.WRITE_ACTIVE_TORQ_NODE,
-						}
-						commons.ManagedNodeChannel <- managedNode
-					} else {
-						managedNode := commons.ManagedNode{
-							PublicKey: node.PublicKey,
-							NodeId:    node.NodeId,
-							Type:      commons.WRITE_INACTIVE_TORQ_NODE,
-						}
-						commons.ManagedNodeChannel <- managedNode
-					}
+			node, err := nodes.GetNodeById(db, torqNode.NodeId)
+			if err == nil {
+				if torqNode.Status == commons.Active {
+					commons.SetActiveTorqNode(node.NodeId, node.PublicKey, node.Chain, node.Network)
 				} else {
-					log.Error().Err(err).Msg("Failed to obtain torq node for ManagedNodes cache.")
+					commons.SetInactiveTorqNode(node.NodeId, node.PublicKey, node.Chain, node.Network)
 				}
+			} else {
+				log.Error().Err(err).Msg("Failed to obtain torq node for ManagedNodes cache.")
 			}
 		}
 	} else {
@@ -139,7 +121,7 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 
 	log.Debug().Msg("Pushing channel nodes to ManagedNodes cache.")
 	rows, err := db.Query(`
-		SELECT n.public_key, n.node_id
+		SELECT DISTINCT n.public_key, n.chain, n.network, n.node_id
 		FROM node n
 		JOIN channel c ON c.status_id IN ($1,$2,$3) AND ( c.first_node_id=n.node_id OR c.second_node_id=n.node_id );`,
 		1, 2, 3)
@@ -149,16 +131,13 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 	for rows.Next() {
 		var publicKey string
 		var nodeId int
-		err = rows.Scan(&publicKey, &nodeId)
+		var chain commons.Chain
+		var network commons.Network
+		err = rows.Scan(&publicKey, &chain, &network, &nodeId)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining nodeId and publicKey from the resultSet")
 		}
-		managedNode := commons.ManagedNode{
-			PublicKey: publicKey,
-			NodeId:    nodeId,
-			Type:      commons.WRITE_CHANNEL_NODE,
-		}
-		commons.ManagedNodeChannel <- managedNode
+		commons.SetChannelNode(nodeId, publicKey, chain, network)
 	}
 	return nil
 }

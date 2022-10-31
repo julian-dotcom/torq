@@ -3,7 +3,6 @@ package lnd
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
@@ -13,9 +12,9 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"gopkg.in/guregu/null.v4"
 
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
 )
@@ -90,7 +89,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 					MaxHtlcMsat:      1000,
 					LastUpdate:       0,
 				},
-				AdvertisingNode: "secondNodePubkey",
+				AdvertisingNode: testutil.TestPublicKey2,
 				ConnectingNode:  "secondIrrelevantPubkey",
 			}},
 			ClosedChans: nil,
@@ -123,7 +122,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 					LastUpdate:       0,
 				},
 				AdvertisingNode: "theirNodePubkey",
-				ConnectingNode:  "ourNodePubkey",
+				ConnectingNode:  testutil.TestPublicKey1,
 			}},
 			ClosedChans: nil,
 		}
@@ -131,7 +130,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		expected := routingPolicyData{
 			Ts:                time.Now(),
 			LNDChannelPoint:   chanPointStr,
-			LNDShortChannelId: fmt.Sprint(updateEvent.ChannelUpdates[0].ChanId),
+			LNDShortChannelId: updateEvent.ChannelUpdates[0].ChanId,
 			Outbound:          false,
 			AnnouncingPubKey:  updateEvent.ChannelUpdates[0].AdvertisingNode,
 			FeeRateMillMsat:   updateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
@@ -224,7 +223,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 					MaxHtlcMsat:      1000,
 					LastUpdate:       0,
 				},
-				AdvertisingNode: "ourNodePubkey",
+				AdvertisingNode: testutil.TestPublicKey1,
 				ConnectingNode:  "secondIrrelevantPubkey",
 			}},
 			ClosedChans: nil,
@@ -233,9 +232,9 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		e3 := routingPolicyData{
 			Ts:                time.Now(),
 			LNDChannelPoint:   chanPointStr,
-			LNDShortChannelId: fmt.Sprint(secondUpdateEvent.ChannelUpdates[0].ChanId),
+			LNDShortChannelId: secondUpdateEvent.ChannelUpdates[0].ChanId,
 			Outbound:          true,
-			AnnouncingPubKey:  "ourNodePubkey",
+			AnnouncingPubKey:  testutil.TestPublicKey1,
 			FeeRateMillMsat:   secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
 			FeeBaseMsat:       secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
 			MaxHtlcMsat:       secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MaxHtlcMsat,
@@ -262,16 +261,21 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 
 type routingPolicyData struct {
 	Ts                time.Time
-	LNDChannelPoint   string `db:"lnd_channel_point"`
-	LNDShortChannelId string `db:"lnd_short_channel_id"`
 	Outbound          bool   `db:"outbound"`
-	AnnouncingPubKey  string `db:"announcing_pub_key"`
 	FeeRateMillMsat   int64  `db:"fee_rate_mill_msat"`
 	FeeBaseMsat       int64  `db:"fee_base_msat"`
 	MaxHtlcMsat       uint64 `db:"max_htlc_msat"`
 	MinHtlc           int64  `db:"min_htlc"`
 	TimeLockDelta     uint32 `db:"time_lock_delta"`
 	Disabled          bool   `db:"disabled"`
+	ChannelId         int    `db:"channel_id"`
+	AnnouncingNodeId  int    `db:"announcing_node_id"`
+	AnnouncingPubKey  string `db:"announcing_public_key"`
+	ConnectingNodeId  int    `db:"connecting_node_id"`
+	ConnectingPubKey  string `db:"connecting_public_key"`
+	NodeId            int    `db:"node_id"`
+	LNDChannelPoint   string `db:"lnd_channel_point"`
+	LNDShortChannelId uint64 `db:"lnd_short_channel_id"`
 }
 
 func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscribeChannelGraphRPC, chanPointStr string) (r []routingPolicyData) {
@@ -280,38 +284,24 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	errs, ctx := errgroup.WithContext(ctx)
 	client.CancelFunc = cancel
 
-	err := settings.InitializeManagedNodeCache(db)
+	channel := channels.Channel{
+		ShortChannelID:    "1",
+		FirstNodeId:       commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+		SecondNodeId:      commons.GetNodeIdFromPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
+		LNDShortChannelID: 1,
+		LNDChannelPoint:   null.StringFrom(chanPointStr),
+		Status:            channels.Open,
+	}
+	channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 	if err != nil {
-		t.Fatalf("Problem initializing ManagedNode cache: %v", err)
+		t.Fatalf("Problem adding channel %v", channel)
 	}
-	managedNode1 := commons.ManagedNode{
-		PublicKey: "firstNodePubkey",
-		NodeId:    1,
-		Type:      commons.WRITE_ACTIVE_TORQ_NODE,
-	}
-	commons.ManagedNodeChannel <- managedNode1
-	managedNode2 := commons.ManagedNode{
-		PublicKey: "secondNodePubkey",
-		NodeId:    1,
-		Type:      commons.WRITE_ACTIVE_TORQ_NODE,
-	}
-	commons.ManagedNodeChannel <- managedNode2
-
-	err = channels.InitializeManagedChannelCache(db)
-	if err != nil {
-		t.Fatalf("Problem initializing ManagedChannel cache: %v", err)
-	}
-	managedChannel := commons.ManagedChannel{
-		ChannelId:       1,
-		ShortChannelId:  "1",
-		LndChannelPoint: chanPointStr,
-		StatusId:        int(channels.Open),
-		Type:            commons.WRITE_CHANNEL,
-	}
-	commons.ManagedChannelChannel <- managedChannel
+	t.Logf("channel added with channelId: %v", channelId)
 
 	errs.Go(func() error {
-		err := SubscribeAndStoreChannelGraph(ctx, client, db)
+		err := SubscribeAndStoreChannelGraph(ctx, client, db,
+			commons.GetNodeSettingsByNodeId(
+				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)))
 		if err != nil {
 			t.Fatalf("Problem subscribing to channel graph: %v", err)
 		}
@@ -327,17 +317,25 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	var result []routingPolicyData
 	err = db.Select(&result, `
 			select ts,
-				   lnd_channel_point,
-				   lnd_short_channel_id,
 				   outbound,
-				   announcing_pub_key,
 				   fee_rate_mill_msat,
 				   fee_base_msat,
 				   max_htlc_msat,
 				   min_htlc,
 				   time_lock_delta,
-				   disabled
-			from routing_policy;`)
+				   disabled,
+				   channel_id,
+				   announcing_node_id,
+				   connecting_node_id,
+				   node_id,
+				   an.public_key AS announcing_public_key,
+				   cn.public_key AS connecting_public_key,
+				   c.lnd_short_channel_id,
+				   c.lnd_channel_point
+			from routing_policy rp
+			JOIN channel c ON c.channel_id=rp.channel_id
+			JOIN node an ON rp.announcing_node_id=an.node_id
+			JOIN node cn ON rp.connecting_node_id=cn.node_id;`)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

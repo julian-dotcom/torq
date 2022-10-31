@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -13,7 +15,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
-	"time"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type invoicesClient interface {
@@ -178,6 +181,7 @@ type Invoice struct {
 	*/
 	//map<string, AMPInvoiceState> amp_invoice_state = 28;
 	AmpInvoiceState []byte    `db:"amp_invoice_state" json:"amp_invoice_state"`
+	NodeId          int       `db:"node_id" json:"nodeId"`
 	CreatedOn       time.Time `db:"created_on" json:"created_on"`
 	UpdatedOn       time.Time `db:"updated_on" json:"updated_on"`
 }
@@ -197,7 +201,8 @@ func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, 
 	return addIndex, settleIndex, nil
 }
 
-func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB, wsChan chan interface{}) error {
+func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, wsChan chan interface{}) error {
 
 	// Get the latest settle and add index to prevent duplicate entries.
 	addIndex, settleIndex, err := fetchLastInvoiceIndexes(db)
@@ -263,7 +268,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			}
 		}
 
-		err = insertInvoice(db, invoice, destinationPublicKey)
+		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId)
 		if err != nil {
 			log.Error().Msgf("Subscribe and store invoices: %v", err)
 			// rate limit for caution but hopefully not needed
@@ -333,7 +338,7 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 	}
 }
 
-func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string) error {
+func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, nodeId int) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {
@@ -385,6 +390,7 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string) erro
 		PaymentAddr:     hex.EncodeToString(invoice.PaymentAddr),
 		IsAmp:           invoice.IsAmp,
 		AmpInvoiceState: aisJson,
+		NodeId:          nodeId,
 		CreatedOn:       time.Now().UTC(),
 		UpdatedOn:       time.Time{},
 	}
@@ -421,6 +427,7 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string) erro
     payment_addr,
     is_amp,
     amp_invoice_state,
+    node_id,
     created_on,
     updated_on
 ) VALUES(
@@ -448,6 +455,7 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string) erro
     :payment_addr,
     :is_amp,
     :amp_invoice_state,
+	:node_id,
     :created_on,
     :updated_on
 );`

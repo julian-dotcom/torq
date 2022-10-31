@@ -108,11 +108,12 @@ func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 //}
 
 func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
-	nodeId := commons.GetNodeIdFromPublicKey(node.PublicKey)
+	nodeId := commons.GetNodeIdFromPublicKey(node.PublicKey, node.Chain, node.Network)
 	if nodeId == 0 {
 		node.CreatedOn = time.Now().UTC()
-		err := db.QueryRowx("INSERT INTO node (public_key, created_on) VALUES ($1, $2) RETURNING node_id;",
-			node.PublicKey, node.CreatedOn).Scan(&node.NodeId)
+		err := db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)
+			VALUES ($1, $2, $3, $4) RETURNING node_id;`,
+			node.PublicKey, node.Chain, node.Network, node.CreatedOn).Scan(&node.NodeId)
 		if err != nil {
 			if err, ok := err.(*pq.Error); ok {
 				if err.Code == "23505" {

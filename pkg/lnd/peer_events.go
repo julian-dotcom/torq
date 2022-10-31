@@ -2,11 +2,14 @@ package lnd
 
 import (
 	"context"
+
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type peerEventUpdate struct {
@@ -15,10 +18,12 @@ type peerEventUpdate struct {
 }
 
 type peerEventsClient interface {
-	SubscribePeerEvents(ctx context.Context, in *lnrpc.PeerEventSubscription, opts ...grpc.CallOption) (lnrpc.Lightning_SubscribePeerEventsClient, error)
+	SubscribePeerEvents(ctx context.Context, in *lnrpc.PeerEventSubscription,
+		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribePeerEventsClient, error)
 }
 
-func SubscribePeerEvents(ctx context.Context, client peerEventsClient, wsChan chan interface{}) error {
+func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
+	nodeSettings commons.ManagedNodeSettings, wsChan chan interface{}) error {
 
 	peerEventStream, err := client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
 

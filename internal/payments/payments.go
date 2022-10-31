@@ -64,10 +64,13 @@ type PaymentDetails struct {
 	FailedRoutes     []*Route `json:"failed_routes" db:"failed_routes"`
 }
 
-func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Payment,
-	total uint64, err error) {
+func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
+	limit uint64, offset uint64) (r []*Payment, total uint64, err error) {
 
-	allTorqPublicKeys := commons.GetAllTorqPublicKeys()
+	publicKeys := make([]string, len(nodeIds))
+	for nodeId := range nodeIds {
+		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
+	}
 
 	//language=PostgreSQL
 	qb := sq.Select("*").
@@ -96,7 +99,7 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 			"subquery").
 		Where(filter).
 		OrderBy(order...).
-		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(allTorqPublicKeys))
+		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(publicKeys))
 
 	if limit > 0 {
 		qb = qb.Limit(limit).Offset(offset)
@@ -171,7 +174,7 @@ func getPayments(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				From("payment"),
 			"subquery").
 		Where(filter).
-		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(allTorqPublicKeys))
+		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(publicKeys))
 
 	totalQs, args, err := totalQb.ToSql()
 	if err != nil {
@@ -194,8 +197,13 @@ func (e ErrPaymentNotFound) Error() string {
 	return "Payment not found"
 }
 
-func getPaymentDetails(db *sqlx.DB, identifier string) (*PaymentDetails, error) {
-	allTorqPublicKeys := commons.GetAllTorqPublicKeys()
+func getPaymentDetails(db *sqlx.DB, nodeIds []int, identifier string) (*PaymentDetails, error) {
+
+	publicKeys := make([]string, len(nodeIds))
+	for nodeId := range nodeIds {
+		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
+	}
+
 	row := db.QueryRow(`
 		SELECT
 			payment_index,
@@ -218,7 +226,7 @@ func getPaymentDetails(db *sqlx.DB, identifier string) (*PaymentDetails, error) 
 			failed_routes
 		FROM payment
 		WHERE payment_hash=$2 OR payment_request=$2 OR payment_preimage=$2
-		LIMIT 1;`, pq.Array(allTorqPublicKeys), identifier)
+		LIMIT 1;`, pq.Array(publicKeys), identifier)
 	if row != nil {
 		r := PaymentDetails{}
 		var sr []byte

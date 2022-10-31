@@ -233,7 +233,7 @@ func main() {
 							// doesn't exist
 							if nodeId == -1 {
 								log.Debug().Msg("Node specified in config is not in DB, adding it")
-								err = settings.AddNodeToDB(db, grpcAddress, tlsFile, macaroonFile)
+								err = settings.AddNodeToDB(db, commons.LND, grpcAddress, tlsFile, macaroonFile)
 								if err != nil {
 									log.Error().Err(err).Msg("Adding node specified in config to database")
 									return

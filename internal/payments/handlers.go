@@ -1,14 +1,17 @@
 package payments
 
 import (
+	"net/http"
+	"strconv"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+
 	qp "github.com/lncapital/torq/internal/query_parser"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"net/http"
-	"strconv"
 )
 
 func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
@@ -95,7 +98,8 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	r, total, err := getPayments(db, filter, sort, limit, offset)
+	// TODO FIXME We currently have hardcoded bitcoin/mainnet (that is why we also incorrectly have this in test cases)
+	r, total, err := getPayments(db, commons.GetAllTorqNodeIds(commons.Bitcoin, commons.MainNet), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -111,7 +115,8 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 
 func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
 
-	r, err := getPaymentDetails(db, c.Param("identifier"))
+	// TODO FIXME We currently have hardcoded bitcoin/mainnet (that is why we also incorrectly have this in test cases)
+	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(commons.Bitcoin, commons.MainNet), c.Param("identifier"))
 	switch err.(type) {
 	case nil:
 		break

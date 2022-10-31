@@ -1,5 +1,7 @@
 DROP TABLE channel_tag;
 
+ALTER TABLE channel RENAME COLUMN channel_db_id TO channel_id;
+
 CREATE TABLE tag (
   tag_id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -13,6 +15,8 @@ CREATE TABLE tag (
 CREATE TABLE node (
   node_id SERIAL PRIMARY KEY,
   public_key TEXT NOT NULL,
+  chain INTEGER NOT NULL,
+  network INTEGER NOT NULL,
   created_on TIMESTAMPTZ NOT NULL,
   UNIQUE (public_key)
 );
@@ -22,15 +26,19 @@ CREATE TABLE channel_tag (
   channel_tag_id SERIAL PRIMARY KEY,
   from_node_id INTEGER NOT NULL REFERENCES node(node_id),
   to_node_id INTEGER NOT NULL REFERENCES node(node_id),
-  channel_id INTEGER NOT NULL REFERENCES channel(channel_db_id),
+  channel_id INTEGER NOT NULL REFERENCES channel(channel_id),
   tag_origin_id INTEGER NOT NULL,
   tag_id INTEGER NOT NULL REFERENCES tag(tag_id),
   created_on TIMESTAMPTZ NOT NULL,
   UNIQUE (channel_id, tag_id)
 );
 
-INSERT INTO node (public_key, created_on)
-SELECT public_keys.public_key, MIN(public_keys.created_on)
+--TODO FIXME set bitcoin/mainnet by default and update directly after this migration by obtain the information from LND
+--TODO FIXME WHEN MULTIPLE NODES FROM DIFFERENT NETWORKS THEN THRASH ALL DATA
+--TODO FIXME WHEN MULTIPLE NODES FROM THE SAME NETWORK THEN ASK FOR THE PRIMARY NODE AND ASSIGN ALL DATA TO IT OR THRASH
+
+INSERT INTO node (public_key, chain, network, created_on)
+SELECT public_keys.public_key, 0, 0, MIN(public_keys.created_on)
 FROM (
 	SELECT DISTINCT destination_pub_key AS public_key, MIN(created_on) AS created_on
 	FROM channel
@@ -64,7 +72,7 @@ CREATE TABLE node_connection_details (
 
 INSERT INTO node_connection_details
     (node_id,name,implementation,grpc_address,tls_file_name,tls_data,macaroon_file_name,macaroon_data,status_id,created_on,updated_on)
-SELECT n.node_id,COALESCE(ln.name, CONCAT('Node_', n.node_id::text)),1,ln.grpc_address,ln.tls_file_name,ln.tls_data,ln.macaroon_file_name,ln.macaroon_data,
+SELECT n.node_id,COALESCE(ln.name, CONCAT('Node_', n.node_id::text)),0,ln.grpc_address,ln.tls_file_name,ln.tls_data,ln.macaroon_file_name,ln.macaroon_data,
        CASE
             WHEN ln.disabled THEN 1
             WHEN ln.deleted THEN 3
@@ -74,48 +82,56 @@ FROM local_node ln
 JOIN node n ON n.public_key=ln.pub_key;
 
 
-ALTER TABLE payment ADD COLUMN node_id INTEGER;
-
-UPDATE payment p1
-SET node_id=n.node_id
-FROM payment p2
-JOIN node n ON n.public_key=p2.destination_pub_key
-WHERE p1.payment_index=p2.payment_index AND p1.creation_timestamp=p2.creation_timestamp;
-
-ALTER TABLE payment ALTER COLUMN node_id SET NOT NULL;
-
-ALTER TABLE payment ADD CONSTRAINT fk_payment_node_id FOREIGN KEY (node_id) REFERENCES node(node_id);
-
-
+--DELETE FROM channel (that would brake routing policy)
 ALTER TABLE channel ADD COLUMN first_node_id INTEGER;
 ALTER TABLE channel ADD COLUMN second_node_id INTEGER;
+ALTER TABLE channel ADD COLUMN status_id INTEGER;
 
 UPDATE channel c1
 SET second_node_id=n.node_id
 FROM channel c2
 JOIN node n ON n.public_key=c2.destination_pub_key
-WHERE c1.channel_db_id=c2.channel_db_id;
+WHERE c1.channel_id=c2.channel_id;
 
 UPDATE channel c1
 SET first_node_id=n.node_id
 FROM channel c2
 JOIN local_node ln ON ln.local_node_id=c2.local_node_id
 JOIN node n ON n.public_key=ln.pub_key
-WHERE c1.channel_db_id=c2.channel_db_id;
+WHERE c1.channel_id=c2.channel_id;
+
+--UPDATE channel c
+--SET status_id=0
+--FROM (
+--    SELECT channel_id
+--    FROM (
+--        SELECT LAST(event_type, time) AS latest_event_type,
+--               ce.channel_id
+--        FROM channel_event ce
+--        WHERE ce.event_type IN (0, 1)
+--        GROUP BY ce.channel_id
+--    ) AS lce
+--    WHERE lce.latest_event_type = 0
+--) AS channelIds;
+--SETTING ALL CHANNELS TO OPENING. When Torq boots it will update to the correct status.
+UPDATE channel SET status_id=0;
 
 ALTER TABLE channel ALTER COLUMN first_node_id SET NOT NULL;
 ALTER TABLE channel ALTER COLUMN second_node_id SET NOT NULL;
+ALTER TABLE channel ALTER COLUMN status_id SET NOT NULL;
 
 ALTER TABLE channel ADD CONSTRAINT fk_channel_first_node_id FOREIGN KEY (first_node_id) REFERENCES node(node_id);
 ALTER TABLE channel ADD CONSTRAINT fk_channel_second_node_id FOREIGN KEY (second_node_id) REFERENCES node(node_id);
 
 
+
 ALTER TABLE routing_policy ADD COLUMN channel_id INTEGER;
 ALTER TABLE routing_policy ADD COLUMN announcing_node_id INTEGER;
 ALTER TABLE routing_policy ADD COLUMN connecting_node_id INTEGER;
+ALTER TABLE routing_policy ADD COLUMN node_id INTEGER;
 
 UPDATE routing_policy rp1
-SET channel_id=c.channel_db_id
+SET channel_id=c.channel_id
 FROM routing_policy rp2
 JOIN channel c ON c.short_channel_id=rp2.short_channel_id
 WHERE rp1.short_channel_id=rp2.short_channel_id;
@@ -138,105 +154,112 @@ FROM routing_policy rp2
 JOIN channel c ON c.short_channel_id=rp2.short_channel_id AND c.second_node_id=rp2.announcing_node_id
 WHERE rp1.short_channel_id=rp2.short_channel_id;
 
+UPDATE routing_policy SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
+
 ALTER TABLE routing_policy ALTER COLUMN channel_id SET NOT NULL;
 ALTER TABLE routing_policy ALTER COLUMN announcing_node_id SET NOT NULL;
 ALTER TABLE routing_policy ALTER COLUMN connecting_node_id SET NOT NULL;
+ALTER TABLE routing_policy ALTER COLUMN node_id SET NOT NULL;
 
-ALTER TABLE routing_policy ADD CONSTRAINT fk_routing_policy_channel_id FOREIGN KEY (channel_id) REFERENCES channel(channel_db_id);
+ALTER TABLE routing_policy ADD CONSTRAINT fk_routing_policy_channel_id FOREIGN KEY (channel_id) REFERENCES channel(channel_id);
 ALTER TABLE routing_policy ADD CONSTRAINT fk_routing_policy_announcing_node_id FOREIGN KEY (announcing_node_id) REFERENCES node(node_id);
 ALTER TABLE routing_policy ADD CONSTRAINT fk_routing_policy_connecting_node_id FOREIGN KEY (connecting_node_id) REFERENCES node(node_id);
+ALTER TABLE routing_policy ADD CONSTRAINT fk_routing_policy_node_id FOREIGN KEY (node_id) REFERENCES node(node_id);
 
 
 ALTER TABLE channel_event ADD COLUMN channel_id INTEGER;
+ALTER TABLE channel_event ADD COLUMN node_id INTEGER;
 
 UPDATE channel_event ce1
-SET channel_id=c.channel_db_id
+SET channel_id=c.channel_id
 FROM channel_event ce2
 JOIN channel c ON c.short_channel_id=ce2.short_channel_id
 WHERE ce1.short_channel_id=ce2.short_channel_id;
 
+UPDATE channel_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
+
 ALTER TABLE channel_event ALTER COLUMN channel_id SET NOT NULL;
+ALTER TABLE channel_event ALTER COLUMN node_id SET NOT NULL;
 
-ALTER TABLE channel_event ADD CONSTRAINT fk_channel_event_channel_id FOREIGN KEY (channel_id) REFERENCES channel(channel_db_id);
-
-
-ALTER TABLE forward ADD COLUMN incoming_channel_id INTEGER;
-ALTER TABLE forward ADD COLUMN outgoing_channel_id INTEGER;
-
-UPDATE forward f1
-SET incoming_channel_id=c.channel_db_id
-FROM forward f2
-JOIN channel c ON c.short_channel_id=f2.incoming_short_channel_id
-WHERE f1.incoming_short_channel_id=f2.incoming_short_channel_id;
-
-UPDATE forward f1
-SET outgoing_channel_id=c.channel_db_id
-FROM forward f2
-JOIN channel c ON c.short_channel_id=f2.outgoing_short_channel_id
-WHERE f1.outgoing_short_channel_id=f2.outgoing_short_channel_id;
-
-ALTER TABLE forward ALTER COLUMN incoming_channel_id SET NOT NULL;
-ALTER TABLE forward ALTER COLUMN outgoing_channel_id SET NOT NULL;
-
-ALTER TABLE forward ADD CONSTRAINT fk_forward_incoming_channel_id FOREIGN KEY (incoming_channel_id) REFERENCES channel(channel_db_id);
-ALTER TABLE forward ADD CONSTRAINT fk_forward_outgoing_channel_id FOREIGN KEY (outgoing_channel_id) REFERENCES channel(channel_db_id);
+ALTER TABLE channel_event ADD CONSTRAINT fk_channel_event_channel_id FOREIGN KEY (channel_id) REFERENCES channel(channel_id);
+ALTER TABLE channel_event ADD CONSTRAINT fk_channel_event_node_id FOREIGN KEY (node_id) REFERENCES node(node_id);
 
 
 ALTER TABLE htlc_event ADD COLUMN incoming_channel_id INTEGER;
 ALTER TABLE htlc_event ADD COLUMN outgoing_channel_id INTEGER;
+ALTER TABLE htlc_event ADD COLUMN node_id INTEGER;
 
 UPDATE htlc_event he1
-SET incoming_channel_id=c.channel_db_id
+SET incoming_channel_id=c.channel_id
 FROM htlc_event he2
 JOIN channel c ON c.short_channel_id=he2.incoming_short_channel_id
 WHERE he1.incoming_short_channel_id=he2.incoming_short_channel_id;
 
 UPDATE htlc_event he1
-SET outgoing_channel_id=c.channel_db_id
+SET outgoing_channel_id=c.channel_id
 FROM htlc_event he2
 JOIN channel c ON c.short_channel_id=he2.outgoing_short_channel_id
 WHERE he1.outgoing_short_channel_id=he2.outgoing_short_channel_id;
 
+UPDATE htlc_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
+
 ALTER TABLE htlc_event ALTER COLUMN incoming_channel_id SET NOT NULL;
 ALTER TABLE htlc_event ALTER COLUMN outgoing_channel_id SET NOT NULL;
+ALTER TABLE htlc_event ALTER COLUMN node_id SET NOT NULL;
 
-ALTER TABLE htlc_event ADD CONSTRAINT fk_htlc_event_incoming_channel_id FOREIGN KEY (incoming_channel_id) REFERENCES channel(channel_db_id);
-ALTER TABLE htlc_event ADD CONSTRAINT fk_htlc_event_outgoing_channel_id FOREIGN KEY (outgoing_channel_id) REFERENCES channel(channel_db_id);
-
-
-ALTER TABLE channel ADD COLUMN status_id INTEGER;
-
-UPDATE channel c
-SET status_id=1
-FROM (
-    SELECT channel_id
-    FROM (
-        SELECT LAST(event_type, time) AS latest_event_type,
-               ce.channel_id
-        FROM channel_event ce
-        WHERE ce.event_type IN (0, 1)
-        GROUP BY ce.channel_id
-    ) AS lce
-    WHERE lce.latest_event_type = 0
-) AS channelIds;
-
---TODO FIXME add the others!!! Opening, Closing, CooperativeClosed, LocalForceClosed, RemoteForceClosed, BreachClosed, FundingCancelledClosed, AbandonedClosed
-
-ALTER TABLE channel ALTER COLUMN status_id SET NOT NULL;
+ALTER TABLE htlc_event ADD CONSTRAINT fk_htlc_event_incoming_channel_id FOREIGN KEY (incoming_channel_id) REFERENCES channel(channel_id);
+ALTER TABLE htlc_event ADD CONSTRAINT fk_htlc_event_outgoing_channel_id FOREIGN KEY (outgoing_channel_id) REFERENCES channel(channel_id);
+ALTER TABLE htlc_event ADD CONSTRAINT fk_htlc_event_node_id FOREIGN KEY (node_id) REFERENCES node(node_id);
 
 
 
 ALTER TABLE node_event ADD COLUMN node_id INTEGER;
+ALTER TABLE node_event ADD COLUMN event_node_id INTEGER;
 
 UPDATE node_event ne1
-SET node_id=n.node_id
+SET event_node_id=n.node_id
 FROM node_event ne2
-JOIN node n ON n.public_key=ne2.pub_key
+         JOIN node n ON n.public_key=ne2.pub_key
 WHERE ne1.pub_key=ne2.pub_key;
 
+UPDATE node_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
+
 ALTER TABLE node_event ALTER COLUMN node_id SET NOT NULL;
+ALTER TABLE node_event ALTER COLUMN event_node_id SET NOT NULL;
 
 ALTER TABLE node_event ADD CONSTRAINT fk_node_event_node_id FOREIGN KEY (node_id) REFERENCES node(node_id);
+ALTER TABLE node_event ADD CONSTRAINT fk_node_event_event_node_id FOREIGN KEY (event_node_id) REFERENCES node(node_id);
+
+
+
+DELETE FROM payment;
+ALTER TABLE payment ADD COLUMN node_id INTEGER;
+ALTER TABLE payment ALTER COLUMN node_id SET NOT NULL;
+ALTER TABLE payment ADD CONSTRAINT fk_payment_node_id FOREIGN KEY (node_id) REFERENCES node(node_id);
+
+
+DELETE FROM forward;
+ALTER TABLE forward ADD COLUMN incoming_channel_id INTEGER;
+ALTER TABLE forward ADD COLUMN outgoing_channel_id INTEGER;
+ALTER TABLE forward ADD COLUMN node_id INTEGER;
+ALTER TABLE forward ALTER COLUMN incoming_channel_id SET NOT NULL;
+ALTER TABLE forward ALTER COLUMN outgoing_channel_id SET NOT NULL;
+ALTER TABLE forward ALTER COLUMN node_id SET NOT NULL;
+ALTER TABLE forward ADD CONSTRAINT fk_forward_incoming_channel_id FOREIGN KEY (incoming_channel_id) REFERENCES channel(channel_id);
+ALTER TABLE forward ADD CONSTRAINT fk_forward_outgoing_channel_id FOREIGN KEY (outgoing_channel_id) REFERENCES channel(channel_id);
+ALTER TABLE forward ADD CONSTRAINT fk_forward_node_id FOREIGN KEY (node_id) REFERENCES node(node_id);
+
+
+DELETE FROM invoice;
+ALTER TABLE invoice ADD COLUMN node_id INTEGER;
+ALTER TABLE invoice ALTER COLUMN node_id SET NOT NULL;
+ALTER TABLE invoice ADD CONSTRAINT fk_invoice_node_id FOREIGN KEY (node_id) REFERENCES node(node_id);
+
+
+DELETE FROM tx;
+ALTER TABLE tx ADD COLUMN node_id INTEGER;
+ALTER TABLE tx ALTER COLUMN node_id SET NOT NULL;
+ALTER TABLE tx ADD CONSTRAINT fk_tx_node_id FOREIGN KEY (node_id) REFERENCES node(node_id);
 
 
 
@@ -251,14 +274,38 @@ CREATE TABLE corridor (
   from_node_id INTEGER NULL REFERENCES node(node_id),
   to_tag_id INTEGER NULL REFERENCES tag(tag_id),
   to_node_id INTEGER NULL REFERENCES node(node_id),
-  channel_id INTEGER NULL REFERENCES channel(channel_db_id),
+  channel_id INTEGER NULL REFERENCES channel(channel_id),
   created_on TIMESTAMPTZ NOT NULL,
   updated_on TIMESTAMPTZ NOT NULL
 );
 
---TODO FIXME doesn't work in current postgres...
+--TODO FIXME doesn't work in current postgres (it will work in the next version: 15)
 --ALTER TABLE corridor ADD CONSTRAINT corridor_unique UNIQUE NULLS NOT DISTINCT (corridor_type_id,reference_id,inverse,node_id,from_tag_id,from_peer_id,channel_id,to_tag_id,to_peer_id);
 
 ALTER TABLE channel DROP COLUMN alias;
 ALTER TABLE channel DROP COLUMN local_node_id;
 ALTER TABLE channel DROP COLUMN destination_pub_key;
+
+ALTER TABLE channel_event DROP COLUMN lnd_short_channel_id;
+ALTER TABLE channel_event DROP COLUMN lnd_channel_point;
+ALTER TABLE channel_event DROP COLUMN pub_key;
+ALTER TABLE channel_event DROP COLUMN short_channel_id;
+
+ALTER TABLE node_event DROP COLUMN pub_key;
+
+ALTER TABLE htlc_event DROP COLUMN lnd_outgoing_short_channel_id;
+ALTER TABLE htlc_event DROP COLUMN lnd_incoming_short_channel_id;
+ALTER TABLE htlc_event DROP COLUMN outgoing_short_channel_id;
+ALTER TABLE htlc_event DROP COLUMN incoming_short_channel_id;
+
+ALTER TABLE routing_policy DROP COLUMN lnd_short_channel_id;
+ALTER TABLE routing_policy DROP COLUMN announcing_pub_key;
+ALTER TABLE routing_policy DROP COLUMN lnd_channel_point;
+ALTER TABLE routing_policy DROP COLUMN short_channel_id;
+
+ALTER TABLE forward DROP COLUMN lnd_outgoing_short_channel_id;
+ALTER TABLE forward DROP COLUMN lnd_incoming_short_channel_id;
+ALTER TABLE forward DROP COLUMN outgoing_short_channel_id;
+ALTER TABLE forward DROP COLUMN incoming_short_channel_id;
+
+DROP TABLE local_node;

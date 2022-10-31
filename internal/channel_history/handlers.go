@@ -7,6 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -202,7 +204,8 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 	chanIds := strings.Split(c.Param("chanIds"), ",")
 
 	if chanIds[0] == "1" {
-		reb, err := getRebalancingCost(db, from, to)
+		// TODO FIXME We currently have hardcoded bitcoin/mainnet (that is why we also incorrectly have this in test cases)
+		reb, err := getRebalancingCost(db, commons.GetAllTorqNodeIds(commons.Bitcoin, commons.MainNet), from, to)
 		r.RebalancingCost = &reb.TotalCostMsat
 		r.RebalancingDetails = reb
 		if err != nil {
@@ -210,7 +213,13 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 			return
 		}
 	} else {
-		reb, err := getChannelRebalancing(db, chanIds, from, to)
+		r.OnChainCost, err = getChannelOnChainCost(db, chanIds)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		// TODO FIXME We currently have hardcoded bitcoin/mainnet (that is why we also incorrectly have this in test cases)
+		reb, err := getChannelRebalancing(db, commons.GetAllTorqNodeIds(commons.Bitcoin, commons.MainNet), chanIds, from, to)
 		r.RebalancingCost = &reb.SplitCostMsat
 		r.RebalancingDetails = reb
 		if err != nil {

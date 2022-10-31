@@ -42,13 +42,16 @@ func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
 	return 0, nil
 }
 
-func AddNodeToDB(db *sqlx.DB, grpcAddress string, tlsDataBytes []byte, macaroonDataBytes []byte) error {
-	publicKey, err := getPublicKeyFromNode(grpcAddress, tlsDataBytes, macaroonDataBytes)
+func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
+	grpcAddress string, tlsDataBytes []byte, macaroonDataBytes []byte) error {
+	publicKey, chain, network, err := getInformationFromLndNode(grpcAddress, tlsDataBytes, macaroonDataBytes)
 	if err != nil {
 		return errors.Wrap(err, "Getting public key from node")
 	}
 	newNodeFromConfig := nodes.Node{
 		PublicKey: publicKey,
+		Chain:     chain,
+		Network:   network,
 	}
 	nodeId, err := nodes.AddNodeWhenNew(db, newNodeFromConfig)
 	if err != nil {
@@ -73,7 +76,7 @@ func AddNodeToDB(db *sqlx.DB, grpcAddress string, tlsDataBytes []byte, macaroonD
 	nodeConnectionDetailsData := nodeConnectionDetails{
 		NodeId:            nodeId,
 		Name:              fmt.Sprintf("Node_%v", nodeId),
-		Implementation:    commons.LND,
+		Implementation:    implementation,
 		GRPCAddress:       &grpcAddress,
 		Status:            commons.Active,
 		TLSDataBytes:      tlsDataBytes,

@@ -5,7 +5,9 @@ var ManagedSettingsChannel = make(chan ManagedSettings)
 type ManagedSettingsCacheOperationType uint
 
 const (
+	// READ please provide Out
 	READ ManagedSettingsCacheOperationType = iota
+	// WRITE please provide defaultLanguage, preferredTimeZone, defaultDateRange and weekStartsOn
 	WRITE
 )
 
@@ -53,4 +55,15 @@ func GetSettings() ManagedSettings {
 	}
 	ManagedSettingsChannel <- managedSettings
 	return <-settingsResponseChannel
+}
+
+func SetSettings(defaultDateRange, defaultLanguage, weekStartsOn, preferredTimeZone string) {
+	managedSettings := ManagedSettings{
+		DefaultDateRange:  defaultDateRange,
+		DefaultLanguage:   defaultLanguage,
+		WeekStartsOn:      weekStartsOn,
+		PreferredTimeZone: preferredTimeZone,
+		Type:              WRITE,
+	}
+	ManagedSettingsChannel <- managedSettings
 }

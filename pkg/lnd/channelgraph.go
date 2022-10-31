@@ -12,7 +12,6 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -23,7 +22,8 @@ type subscribeChannelGrpahClient interface {
 }
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
-func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB) error {
+func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings) error {
 
 	req := lnrpc.GraphTopologySubscription{}
 	stream, err := client.SubscribeChannelGraph(ctx, &req)
@@ -62,12 +62,12 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			continue
 		}
 
-		err = processNodeUpdates(gpu.NodeUpdates, db)
+		err = processNodeUpdates(gpu.NodeUpdates, db, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "Process node updates")
 		}
 
-		err = processChannelUpdates(gpu.ChannelUpdates, db)
+		err = processChannelUpdates(gpu.ChannelUpdates, db, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "Process channel updates")
 		}
@@ -77,12 +77,12 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	return nil
 }
 
-func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB) error {
+func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 	for _, nu := range nus {
-		nodeId := commons.GetNodeIdFromPublicKey(nu.IdentityKey)
-		if nodeId != 0 {
-			err := insertNodeEvent(db, time.Now().UTC(), nodeId, nu.IdentityKey, nu.Alias, nu.Color, nu.NodeAddresses,
-				nu.Features)
+		eventNodeId := commons.GetNodeIdFromPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
+		if eventNodeId != 0 {
+			err := insertNodeEvent(db, time.Now().UTC(), eventNodeId, nu.Alias, nu.Color,
+				nu.NodeAddresses, nu.Features, nodeSettings.NodeId)
 			if err != nil {
 				return errors.Wrapf(err, "Insert node event")
 			}
@@ -91,7 +91,8 @@ func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB) error {
 	return nil
 }
 
-func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
+func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings) error {
 	for _, cu := range cus {
 		channelPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 		if err != nil {
@@ -102,7 +103,9 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
 		if channelId != 0 {
 			// If one of our nodes is advertising the channel update
 			// (meaning we have changed our the channel policy so outbound).
-			err := insertRoutingPolicy(db, time.Now().UTC(), commons.GetActiveTorqNodeIdFromPublicKey(cu.AdvertisingNode) != 0, channelId, cu)
+			err := insertRoutingPolicy(db, time.Now().UTC(),
+				commons.GetActiveTorqNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network) != 0,
+				channelId, nodeSettings, cu)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}
@@ -113,10 +116,6 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB) error {
 
 const rpQuery = `
 INSERT INTO routing_policy (ts,
-	lnd_short_channel_id,
-	short_channel_id,
-	announcing_pub_key,
-	lnd_channel_point,
 	outbound,
 	disabled,
 	time_lock_delta,
@@ -126,14 +125,12 @@ INSERT INTO routing_policy (ts,
 	fee_rate_mill_msat,
     channel_id,
     announcing_node_id,
-    connecting_node_id)
-select $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+    connecting_node_id,
+    node_id)
+select $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 WHERE NOT EXISTS (
 	select true
 	from (select
-            last(lnd_short_channel_id,ts) lnd_short_channel_id,
-            last(short_channel_id,ts) short_channel_id,
-			last(announcing_pub_key, ts) as announcing_pub_key,
 			last(disabled,ts) disabled,
 			last(time_lock_delta,ts) time_lock_delta,
 			last(min_htlc,ts) min_htlc,
@@ -141,16 +138,13 @@ WHERE NOT EXISTS (
 			last(fee_base_msat,ts) fee_base_msat,
 			last(fee_rate_mill_msat, ts) fee_rate_mill_msat
 		from routing_policy
-		group by lnd_short_channel_id, announcing_pub_key) as a
-	where a.lnd_short_channel_id = $2 and
-		  a.short_channel_id = $3 and
-		  a.announcing_pub_key = $4 and
-		  a.disabled = $7 and
-		  a.time_lock_delta = $8 and
-		  a.min_htlc = $9 and
-		  a.max_htlc_msat = $10 and
-		  a.fee_base_msat = $11 and
-		  a.fee_rate_mill_msat = $12
+		group by channel_id) as a
+	where a.disabled = $3 and
+		  a.time_lock_delta = $4 and
+		  a.min_htlc = $5 and
+		  a.max_htlc_msat = $6 and
+		  a.fee_base_msat = $7 and
+		  a.fee_rate_mill_msat = $8
 );`
 
 func insertRoutingPolicy(
@@ -158,44 +152,44 @@ func insertRoutingPolicy(
 	eventTime time.Time,
 	outbound bool,
 	channelId int,
+	nodeSettings commons.ManagedNodeSettings,
 	cu *lnrpc.ChannelEdgeUpdate) error {
 
+	var err error
 	if cu == nil || cu.RoutingPolicy == nil {
 		log.Warn().Msg("Routing policy nil, skipping")
 		return nil
 	}
 
-	cp, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
-	if err != nil {
-		return errors.Wrap(err, "Creating channel point from byte")
-	}
-
-	shortChannelId := channels.ConvertLNDShortChannelID(cu.ChanId)
-	announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode)
+	announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
 	if announcingNodeId == 0 {
 		newNode := nodes.Node{
 			PublicKey: cu.AdvertisingNode,
+			Chain:     nodeSettings.Chain,
+			Network:   nodeSettings.Network,
 		}
 		announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
 		if err != nil {
-			return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", cu.AdvertisingNode, shortChannelId)
+			return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.AdvertisingNode)
 		}
 	}
-	connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode)
+	connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
 	if connectingNodeId == 0 {
 		newNode := nodes.Node{
 			PublicKey: cu.ConnectingNode,
+			Chain:     nodeSettings.Chain,
+			Network:   nodeSettings.Network,
 		}
 		connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
 		if err != nil {
-			return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", cu.ConnectingNode, shortChannelId)
+			return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", cu.ConnectingNode)
 		}
 	}
 
-	_, err = db.Exec(rpQuery, eventTime, cu.ChanId, shortChannelId, cu.AdvertisingNode, cp, outbound,
+	_, err = db.Exec(rpQuery, eventTime, outbound,
 		cu.RoutingPolicy.Disabled, cu.RoutingPolicy.TimeLockDelta, cu.RoutingPolicy.MinHtlc,
 		cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat,
-		channelId, announcingNodeId, connectingNodeId)
+		channelId, announcingNodeId, connectingNodeId, nodeSettings.NodeId)
 
 	if err != nil {
 		return errors.Wrapf(err, "DB Exec")
@@ -204,26 +198,25 @@ func insertRoutingPolicy(
 	return nil
 }
 
-const neQuery = `INSERT INTO node_event (timestamp, node_id, pub_key, alias, color, node_addresses, features)
+const neQuery = `
+INSERT INTO node_event (timestamp, event_node_id, alias, color, node_addresses, features, node_id)
 SELECT $1,$2,$3,$4,$5,$6,$7
 WHERE NOT EXISTS (
 select true
-from (select pub_key,
-        last(alias, timestamp) as  alias,
+from (select last(alias, timestamp) as  alias,
         last(color,timestamp) as color,
         last(node_addresses,timestamp) as node_addresses,
         last(features,timestamp) as features
     from node_event
     group by pub_key) as a
-where a.pub_key = $3 and
-      a.alias = $4 and
+where a.alias = $4 and
       a.color = $5 and
       a.node_addresses = $6 and
       a.features = $7
 );`
 
-func insertNodeEvent(db *sqlx.DB, ts time.Time, nodeId int, pubKey string, alias string, color string,
-	na []*lnrpc.NodeAddress, f map[uint32]*lnrpc.Feature) error {
+func insertNodeEvent(db *sqlx.DB, ts time.Time, eventNodeId int, alias string, color string,
+	na []*lnrpc.NodeAddress, f map[uint32]*lnrpc.Feature, nodeId int) error {
 
 	// Create json byte object from node address map
 	najb, err := json.Marshal(na)
@@ -237,7 +230,7 @@ func insertNodeEvent(db *sqlx.DB, ts time.Time, nodeId int, pubKey string, alias
 		return errors.Wrap(err, "JSON Marshal feature list")
 	}
 
-	if _, err = db.Exec(neQuery, ts, nodeId, pubKey, alias, color, najb, fjb); err != nil {
+	if _, err = db.Exec(neQuery, ts, eventNodeId, alias, color, najb, fjb, nodeId); err != nil {
 		return errors.Wrap(err, "Executing SQL")
 	}
 

@@ -151,7 +151,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		return
 	}
 
-	publicKey, err := getPublicKeyFromNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
+	publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting public key from node")
 		return
@@ -161,7 +161,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		server_errors.WrapLogAndSendServerError(c, err, "Getting existing node by public key")
 		return
 	}
-	if node.PublicKey == publicKey {
+	if node.PublicKey == publicKey && node.Chain == chain && node.Network == network {
 		server_errors.SendUnprocessableEntity(c, "This node already exists")
 		return
 	}
@@ -177,10 +177,12 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		return
 	}
 
-	nodeId := commons.GetNodeIdFromPublicKey(publicKey)
+	nodeId := commons.GetNodeIdFromPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
 		newNode := nodes.Node{
 			PublicKey: publicKey,
+			Network:   network,
+			Chain:     chain,
 		}
 		nodeId, err = nodes.AddNodeWhenNew(db, newNode)
 		if err != nil {
@@ -283,14 +285,14 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 			return
 		}
 
-		publicKey, err := getPublicKeyFromNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
+		publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
 		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey from grpc")
+			server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from grpc")
 			return
 		}
 
-		if existingNode.PublicKey != publicKey {
-			server_errors.SendUnprocessableEntity(c, "PublicKey does not match, create a new node instead of updating this one")
+		if existingNode.PublicKey != publicKey || existingNode.Chain != chain || existingNode.Network != network {
+			server_errors.SendUnprocessableEntity(c, "PublicKey/chain/network does not match, create a new node instead of updating this one")
 			return
 		}
 	}
@@ -385,10 +387,12 @@ func GetConnectionDetailsById(db *sqlx.DB, nodeId int) (ConnectionDetails, error
 	return cd, nil
 }
 
-func getPublicKeyFromNode(grpcAddress string, tlsCert []byte, macaroonFile []byte) (string, error) {
+func getInformationFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile []byte) (
+	string, commons.Chain, commons.Network, error) {
 	conn, err := lnd_connect.Connect(grpcAddress, tlsCert, macaroonFile)
 	if err != nil {
-		return "", errors.Wrap(err, "Can't connect to node to verify public key, check all details including TLS Cert and Macaroon")
+		return "", 0, 0, errors.Wrap(err,
+			"Can't connect to node to verify public key, check all details including TLS Cert and Macaroon")
 	}
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
@@ -401,9 +405,36 @@ func getPublicKeyFromNode(grpcAddress string, tlsCert []byte, macaroonFile []byt
 	ctx := context.Background()
 	info, err := client.GetInfo(ctx, &lnrpc.GetInfoRequest{})
 	if err != nil {
-		return "", err
+		return "", 0, 0, errors.Wrap(err, "Obtaining information from LND")
 	}
-	return info.IdentityPubkey, nil
+	if len(info.Chains) != 1 {
+		return "", 0, 0, errors.Wrapf(err, "Obtaining chains from LND %v", info.Chains)
+	}
+
+	var chain commons.Chain
+	switch info.Chains[0].Chain {
+	case "bitcoin":
+		chain = commons.Bitcoin
+	case "litecoin":
+		chain = commons.Litecoin
+	default:
+		return "", 0, 0, errors.Wrapf(err, "Obtaining chain from LND %v", info.Chains[0].Chain)
+	}
+
+	var network commons.Network
+	switch info.Chains[0].Network {
+	case "mainnet":
+		network = commons.MainNet
+	case "testnet":
+		network = commons.MainNet
+	case "signet":
+		network = commons.MainNet
+	case "regtest":
+		network = commons.MainNet
+	default:
+		return "", 0, 0, errors.Wrapf(err, "Obtaining network from LND %v", info.Chains[0].Network)
+	}
+	return info.IdentityPubkey, chain, network, nil
 }
 
 func processTLS(ncd nodeConnectionDetails) (nodeConnectionDetails, error) {

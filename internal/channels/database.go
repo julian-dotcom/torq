@@ -40,7 +40,7 @@ func GetChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err erro
 func InitializeManagedChannelCache(db *sqlx.DB) error {
 	log.Debug().Msg("Pushing channels to ManagedChannel cache.")
 	rows, err := db.Query(`
-		SELECT channel_db_id, short_channel_id, lnd_channel_point, status_id
+		SELECT channel_id, short_channel_id, lnd_channel_point, status_id
 		FROM channel
 		WHERE status_id IN ($1,$2);`, Open, Opening)
 	if err != nil {
@@ -55,20 +55,26 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		if err != nil {
 			return errors.Wrap(err, "Obtaining channelId and shortChannelId from the resultSet")
 		}
-		managedChannel := commons.ManagedChannel{
-			ShortChannelId:  shortChannelId,
-			ChannelId:       channelId,
-			LndChannelPoint: lndChannelPoint,
-			StatusId:        statusId,
-			Type:            commons.WRITE_CHANNEL,
-		}
-		commons.ManagedChannelChannel <- managedChannel
+		commons.SetChannel(channelId, shortChannelId, statusId, lndChannelPoint)
 	}
 	return nil
 }
 
-func getChannelIdByShortChannelId(db *sqlx.DB, shortChannelId string) (channelId int, err error) {
-	err = db.Get(&channelId, "SELECT channel_db_id FROM channel WHERE short_channel_id = $1 LIMIT 1;", shortChannelId)
+func getChannelIdByShortChannelId(db *sqlx.DB, shortChannelId string) (int, error) {
+	var channelId int
+	err := db.Get(&channelId, "SELECT channel_id FROM channel WHERE short_channel_id = $1 LIMIT 1;", shortChannelId)
+	if err != nil {
+		if errors.As(err, &sql.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return channelId, nil
+}
+
+func getChannelIdByLndChannelPoint(db *sqlx.DB, lndChannelPoint string) (int, error) {
+	var channelId int
+	err := db.Get(&channelId, "SELECT channel_id FROM channel WHERE lnd_channel_point = $1 LIMIT 1;", lndChannelPoint)
 	if err != nil {
 		if errors.As(err, &sql.ErrNoRows) {
 			return 0, nil
@@ -93,21 +99,11 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 		  updated_on
 		) values (
 		  $1, $2, $3, $4, $5, $6, $7, $8
-		) RETURNING channel_db_id;`,
+		) RETURNING channel_id;`,
 		channel.ShortChannelID, channel.LNDChannelPoint, channel.LNDShortChannelID, channel.FirstNodeId,
 		channel.SecondNodeId, channel.Status, channel.CreatedOn, channel.UpdateOn).Scan(&channel.ChannelDBID)
 	if err != nil {
 		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return channel, nil
-}
-
-func updateChannelStatus(db *sqlx.DB, channelId int, status Status) error {
-	_, err := db.Exec(`
-		UPDATE channel SET status_id=$1, updated_on=$2 WHERE channel_db_id=$3 AND status_id!=$1`,
-		status, time.Now().UTC(), channelId)
-	if err != nil {
-		return errors.Wrap(err, database.SqlExecutionError)
-	}
-	return nil
 }

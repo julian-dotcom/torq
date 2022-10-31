@@ -4,57 +4,39 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/guregu/null.v4"
+
+	"github.com/lncapital/torq/internal/channels"
 )
 
 type channel struct {
-	// Node Alias
-	Alias        null.String `json:"alias"`
-	FirstNodeId  null.String `json:"firstNodeId"`
-	SecondNodeId null.String `json:"secondNodeId"`
+	FirstNodeId  null.String `json:"firstNodeId" db:"first_node_id"`
+	SecondNodeId null.String `json:"secondNodeId" db:"second_node_id"`
 	// Database primary key of channel
-	ChannelDBID null.Int `json:"channelDbId"`
+	ChannelDBID null.Int `json:"channelDbId" db:"channel_id"`
 	// The channel point
-	LNDChannelPoint null.String `json:"channelPoint"`
-	// The remote public key
-	PubKey null.String `json:"pubKey"`
+	LNDChannelPoint null.String `json:"channelPoint" db:"lnd_channel_point"`
 	// Short channel id in c-lightning / BOLT format
-	ShortChannelID null.String `json:"shortChannelId"`
+	ShortChannelID null.String `json:"shortChannelId" db:"short_channel_id"`
 	// The channel ID
-	LNDShortChannelId null.String `json:"chanId"`
-	// Is the channel open
-	Open null.Bool `json:"open"`
+	LNDShortChannelId null.String     `json:"chanId" db:"lnd_short_channel_id"`
+	Status            channels.Status `json:"status" db:"status_id"`
 
-	// The channels total capacity (as created)
-	Capacity *uint64 `json:"capacity"`
+	// TODO FIXME Capacity shouldn't require a JOIN and should be included in channel table
+	// Capacity The channels total capacity (as created). Obtained via join from channel_event
+	Capacity *uint64 `json:"capacity" db:"capacity"`
 }
 
 func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 
 	sql := `
-		select ne.alias,
-		       ce.lnd_short_channel_id,
-		       ce.lnd_channel_point,
-		       ce.pub_key,
-		       capacity,
-		       open,
-		       c.short_channel_id,
-		       channel_db_id
-		from (select
-				last(lnd_short_channel_id, time) as lnd_short_channel_id,
-				last(lnd_channel_point, time) as lnd_channel_point,
-				last(pub_key, time) as pub_key,
-				last(event->'capacity', time) as capacity,
-				(last(event_type, time)) = 0 as open
-			from channel_event
-			where event_type in (0,1)
-				and (? or lnd_short_channel_id in (?))
-			group by lnd_short_channel_id) as ce
-		left join channel as c on c.lnd_channel_point = ce.lnd_channel_point
-		left join (
-			select pub_key,
-			       last(alias, timestamp) as alias
-			from node_event
-			group by pub_key) as ne on ne.pub_key = ce.pub_key;
+		select ce.capacity, c.*
+		from (
+			select last(event->'capacity', time) as capacity
+			from channel_event ce
+			where event_type in (0,1) and ($1 or channel_id in ($1))
+			group by channel_id
+		) as ce
+		join channel as c on c.channel_id = ce.channel_id;
 	`
 
 	// TODO: Clean up
@@ -71,23 +53,14 @@ func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
 
 	qsr := db.Rebind(qs)
 
-	rows, err := db.Query(qsr, args...)
+	rows, err := db.Queryx(qsr, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running getChannelsByPubkey query")
 	}
 
 	for rows.Next() {
 		c := &channel{}
-		err = rows.Scan(
-			&c.Alias,
-			&c.LNDShortChannelId,
-			&c.LNDChannelPoint,
-			&c.PubKey,
-			&c.Capacity,
-			&c.Open,
-			&c.ShortChannelID,
-			&c.ChannelDBID,
-		)
+		err = rows.StructScan(&c)
 		if err != nil {
 			return r, err
 		}

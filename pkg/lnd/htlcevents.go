@@ -17,7 +17,7 @@ import (
 	"go.uber.org/ratelimit"
 )
 
-func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.LinkFailEvent) error {
+func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.LinkFailEvent, nodeId int) error {
 
 	jb, err := json.Marshal(h)
 	if err != nil {
@@ -28,10 +28,6 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 	INSERT INTO htlc_event (
 		time,
 		event_origin,
-		lnd_outgoing_short_channel_id,
-		lnd_incoming_short_channel_id,
-		outgoing_short_channel_id,
-		incoming_short_channel_id,
 		timestamp_ns,
 		data,
 		event_type,
@@ -45,9 +41,10 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 		bolt_failure_string,
 		lnd_failure_detail,
 	    incoming_channel_id,
-	    outgoing_channel_id
+	    outgoing_channel_id,
+	    node_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 19, 20)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 	`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
@@ -68,10 +65,6 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
-		h.OutgoingChannelId,
-		h.IncomingChannelId,
-		outgoingShortChannelId,
-		incomingShortChannelId,
 		h.TimestampNs,
 		jb,
 		"LinkFailEvent",
@@ -86,6 +79,7 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 		fwe.FailureDetail.String(),
 		incomingChannelId,
 		outgoingChannelId,
+		nodeId,
 	)
 
 	if err != nil {
@@ -96,7 +90,7 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 	return nil
 }
 
-func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.SettleEvent) error {
+func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.SettleEvent, nodeId int) error {
 
 	jb, err := json.Marshal(h)
 	if err != nil {
@@ -107,19 +101,16 @@ func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Settle
 	INSERT INTO htlc_event (
 		time,
 		event_origin,
-		lnd_outgoing_short_channel_id,
-		lnd_incoming_short_channel_id,
-		outgoing_short_channel_id,
-		incoming_short_channel_id,
 		timestamp_ns,
 		data,
 		event_type,
 		outgoing_htlc_id,
 		incoming_htlc_id,
 	    incoming_channel_id,
-	    outgoing_channel_id
+	    outgoing_channel_id,
+	    node_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
 	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
@@ -138,10 +129,6 @@ func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Settle
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
-		h.OutgoingChannelId,
-		h.IncomingChannelId,
-		outgoingShortChannelId,
-		incomingShortChannelId,
 		h.TimestampNs,
 		jb,
 		"SettleEvent",
@@ -149,6 +136,7 @@ func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Settle
 		h.IncomingHtlcId,
 		incomingChannelId,
 		outgoingChannelId,
+		nodeId,
 	)
 
 	if err != nil {
@@ -159,7 +147,7 @@ func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Settle
 	return nil
 }
 
-func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
+func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) error {
 
 	jb, err := json.Marshal(h)
 	if err != nil {
@@ -170,19 +158,16 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
 	INSERT INTO htlc_event (
 		time,
 		event_origin,
-		lnd_outgoing_short_channel_id,
-		lnd_incoming_short_channel_id,
-		outgoing_short_channel_id,
-		incoming_short_channel_id,
 		timestamp_ns,
 		data,
 		event_type,
 		outgoing_htlc_id,
 		incoming_htlc_id,
 		incoming_channel_id,
-		outgoing_channel_id
+		outgoing_channel_id,
+	    node_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
 
@@ -201,10 +186,6 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
-		h.OutgoingChannelId,
-		h.IncomingChannelId,
-		outgoingShortChannelId,
-		incomingShortChannelId,
 		h.TimestampNs,
 		jb,
 		"ForwardFailEvent",
@@ -212,6 +193,7 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
 		h.IncomingHtlcId,
 		incomingChannelId,
 		outgoingChannelId,
+		nodeId,
 	)
 
 	if err != nil {
@@ -222,7 +204,7 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent) error {
 	return nil
 }
 
-func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.ForwardEvent) error {
+func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.ForwardEvent, nodeId int) error {
 
 	jb, err := json.Marshal(h)
 	if err != nil {
@@ -233,10 +215,6 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 	INSERT INTO htlc_event (
 		time,
 		event_origin,
-		lnd_outgoing_short_channel_id,
-		lnd_incoming_short_channel_id,
-		outgoing_short_channel_id,
-		incoming_short_channel_id,
 		timestamp_ns,
 		data,
 		event_type,
@@ -247,9 +225,10 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 		outgoing_htlc_id,
 		incoming_htlc_id,
 	    incoming_channel_id,
-	    outgoing_channel_id
+	    outgoing_channel_id,
+	    node_id
 	)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17);`
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
 
@@ -268,10 +247,6 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
-		h.OutgoingChannelId,
-		h.IncomingChannelId,
-		outgoingShortChannelId,
-		incomingShortChannelId,
 		h.TimestampNs,
 		jb,
 		"ForwardEvent",
@@ -283,6 +258,7 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 		h.IncomingHtlcId,
 		incomingChannelId,
 		outgoingChannelId,
+		nodeId,
 	)
 
 	if err != nil {
@@ -296,7 +272,8 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 // SubscribeAndStoreHtlcEvents subscribes to HTLC events from LND and stores them in the database as time series.
 // NB: LND has marked HTLC event streaming as experimental. Delivery is not guaranteed, so dataset might not be complete
 // HTLC events is primarily used to diagnose how good a channel / node is. And if the channel allocation should change.
-func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterClient, db *sqlx.DB) error {
+func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterClient, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings) error {
 
 	htlcStream, err := router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 	if err != nil {
@@ -338,28 +315,28 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 
 		switch htlcEvent.Event.(type) {
 		case *routerrpc.HtlcEvent_ForwardEvent:
-			err = storeForwardEvent(db, htlcEvent, htlcEvent.GetForwardEvent())
+			err = storeForwardEvent(db, htlcEvent, htlcEvent.GetForwardEvent(), nodeSettings.NodeId)
 			if err != nil {
 				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_ForwardFailEvent:
-			err = storeForwardFailEvent(db, htlcEvent)
+			err = storeForwardFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_LinkFailEvent:
-			err = storeLinkFailEvent(db, htlcEvent, htlcEvent.GetLinkFailEvent())
+			err = storeLinkFailEvent(db, htlcEvent, htlcEvent.GetLinkFailEvent(), nodeSettings.NodeId)
 			if err != nil {
 				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_SettleEvent:
-			err = storeSettleEvent(db, htlcEvent, htlcEvent.GetSettleEvent())
+			err = storeSettleEvent(db, htlcEvent, htlcEvent.GetSettleEvent(), nodeSettings.NodeId)
 			if err != nil {
 				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
