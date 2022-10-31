@@ -188,7 +188,7 @@ function ViewsPopover({ page, selectViews, updateViews, updateSelectedView, sele
     updateTableViewsOrder(order);
   };
 
-  const button = <TabButton title={views[selectedView]?.title} dropDown={true} />;
+  const button = <TabButton title={views[selectedView].title} dropDown={true} />;
 
   const singleView = views.length <= 1;
   return (
