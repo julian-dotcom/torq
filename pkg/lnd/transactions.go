@@ -129,6 +129,17 @@ var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, b
 
 func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction) error {
 
+	if tx == nil {
+		return nil
+	}
+
+	// Here we're only storing the output addresses, not the output index, amount or if these
+	// transactions are ours or not. We might want to add this.
+	var destinationAddresses []string
+	for _, output := range tx.OutputDetails {
+		destinationAddresses = append(destinationAddresses, output.Address)
+	}
+
 	_, err := db.Exec(insertTx,
 		time.Unix(tx.TimeStamp, 0).UTC(),
 		tx.TxHash,
@@ -137,24 +148,14 @@ func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction) error {
 		tx.BlockHash,
 		tx.BlockHeight,
 		tx.TotalFees,
-		pq.Array(tx.DestAddresses),
+		pq.Array(destinationAddresses),
 		tx.RawTxHex,
 		tx.Label,
 	)
 
 	if err != nil {
-		return errors.Wrapf(err, `storeTransaction -> db.Exec(%s, %s, %s, %d, %d, %s, %d, %d, %v, %s, %s)`, insertTx,
-			time.Unix(tx.TimeStamp, 0).UTC(),
-			tx.TxHash,
-			tx.Amount,
-			tx.NumConfirmations,
-			tx.BlockHash,
-			tx.BlockHeight,
-			tx.TotalFees,
-			pq.Array(tx.DestAddresses),
-			tx.RawTxHex,
-			tx.Label)
+		return errors.Wrapf(err, `inserting transaction`)
 	}
-	return nil
 
+	return nil
 }
