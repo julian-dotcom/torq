@@ -1,0 +1,2 @@
+UPDATE settings SET preferred_timezone = 'UTC' WHERE preferred_timezone = 'Universal';
+ALTER TABLE settings ALTER COLUMN preferred_timezone SET DEFAULT 'UTC';
