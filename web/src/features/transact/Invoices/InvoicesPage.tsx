@@ -21,7 +21,7 @@ import Pagination from "features/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
-import { Clause, deserialiseQuery, FilterInterface } from "features/sidebar/sections/filter/filter";
+import { Clause, FilterInterface } from "features/sidebar/sections/filter/filter";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import {
   selectViews,
@@ -100,7 +100,6 @@ function InvoicesPage() {
     limit: limit,
     offset: offset,
     order: orderBy,
-    filter: filters && deserialiseQuery(filters).length >= 1 ? filters : undefined,
   });
 
   // Logic for toggling the sidebar

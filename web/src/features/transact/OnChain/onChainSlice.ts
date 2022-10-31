@@ -29,18 +29,15 @@ export const DefaultView: ViewInterface = {
   saved: true,
   columns: ActiveOnChainColumns,
   page: 'onChain',
-  sortBy: []
+  sortBy: [],
 };
 
 export const initialState: TableOnChainState = {
   selectedViewIndex: 0,
   onChainViews: [
     {
+      ...DefaultView,
       title: "Default View",
-      saved: true,
-      columns: ActiveOnChainColumns,
-      sortBy: [],
-      page: 'onChain'
     },
   ],
 };

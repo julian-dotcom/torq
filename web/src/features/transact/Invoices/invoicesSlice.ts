@@ -51,18 +51,15 @@ export const DefaultView: ViewInterface = {
   saved: true,
   columns: ActiveInvoicesColumns,
   page: 'invoices',
-  sortBy: []
+  sortBy: [],
 };
 
 const initialState: TableInvoiceState = {
   selectedViewIndex: 0,
   invoiceViews: [
     {
+      ...DefaultView,
       title: "Default View",
-      saved: true,
-      columns: ActiveInvoicesColumns,
-      sortBy: [],
-      page: 'invoices'
     },
   ],
 };
@@ -155,11 +152,11 @@ export const {
 } = invoicesSlice.actions;
 
 export const selectInvoicesFilters = (state: RootState) => {
-  return state.invoices.invoiceViews[0].filters;
+  return state.invoices.invoiceViews[state.invoices.selectedViewIndex].filters;
 };
 
 export const selectActiveColumns = (state: RootState) => {
-  return state.invoices.invoiceViews[0].columns || [];
+  return state.invoices.invoiceViews[state.invoices.selectedViewIndex].columns || [];
 };
 
 export const selectAllColumns = (_: RootState) => AllInvoicesColumns;
