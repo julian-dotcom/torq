@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { PolicyInterface } from "features/channels/ChannelsSlice"
+import { PolicyInterface } from "features/channels/ChannelsSlice";
 import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
-import { UpdatedChannelResponse } from "features/channels/channelsTypes"
+import { UpdatedChannelResponse } from "features/channels/channelsTypes";
 import { ViewInterface, viewOrderInterface } from "features/table/Table";
 import {
   ChannelOnchainCostResponse,
@@ -10,11 +10,10 @@ import {
   ChannelBalanceResponse,
   ChannelEventResponse,
   FlowData,
-} from "features/channel/channelTypes"
+} from "features/channel/channelTypes";
 
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type {
-  GetChannelHistoryQueryParams,
   GetDecodedInvoiceQueryParams,
   GetForwardsQueryParams,
   GetInvoicesQueryParams,
@@ -23,6 +22,8 @@ import type {
   SendOnChainRequest,
   SendOnChainResponse,
   GetTableViewQueryParams,
+  GetFlowQueryParams,
+  GetChannelHistoryData,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { localNode, settings, timeZone, channel } from "./apiTypes";
@@ -61,26 +62,26 @@ export const torqApi = createApi({
   baseQuery: baseQueryWithRedirect,
   tagTypes: ["settings", "tableView", "localNodes", "channels"],
   endpoints: (builder) => ({
-    getFlow: builder.query<FlowData[], GetChannelHistoryQueryParams>({
-      query: (params) => queryParamsBuilder("flow", params),
+    getFlow: builder.query<FlowData[], GetFlowQueryParams>({
+      query: (params) => "flow" + queryParamsBuilder(params),
     }),
-    getChannelHistory: builder.query<ChannelHistoryResponse, GetChannelHistoryQueryParams>({
-      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "history" }, params),
+    getChannelHistory: builder.query<ChannelHistoryResponse, GetChannelHistoryData>({
+      query: (data) => `channels/${data.params.chanId}/history` + queryParamsBuilder(data.queryParams),
     }),
-    getChannelEvent: builder.query<ChannelEventResponse, GetChannelHistoryQueryParams>({
-      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "event" }, params),
+    getChannelEvent: builder.query<ChannelEventResponse, GetChannelHistoryData>({
+      query: (data) => `channels/${data.params.chanId}/event` + queryParamsBuilder(data.queryParams),
     }),
-    getChannelBalance: builder.query<ChannelBalanceResponse, GetChannelHistoryQueryParams>({
-      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "balance" }, params),
+    getChannelBalance: builder.query<ChannelBalanceResponse, GetChannelHistoryData>({
+      query: (data) => `channels/${data.params.chanId}/balance` + queryParamsBuilder(data.queryParams),
     }),
-    getChannelRebalancing: builder.query<ChannelRebalancingResponse, GetChannelHistoryQueryParams>({
-      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "rebalancing" }, params),
+    getChannelRebalancing: builder.query<ChannelRebalancingResponse, GetChannelHistoryData>({
+      query: (data) => `channels/${data.params.chanId}/rebalancing` + queryParamsBuilder(data.queryParams),
     }),
-    getChannelOnChainCost: builder.query<ChannelOnchainCostResponse, GetChannelHistoryQueryParams>({
-      query: (params) => queryParamsBuilder({ endpoint: "channels", baseParam: "chanIds", suffixEndpoint: "onchaincost" }, params),
+    getChannelOnChainCost: builder.query<ChannelOnchainCostResponse, GetChannelHistoryData>({
+      query: (data) => `channels/${data.params.chanId}/onchaincost` + queryParamsBuilder(data.queryParams),
     }),
     getForwards: builder.query<any, GetForwardsQueryParams>({
-      query: (params) => queryParamsBuilder("forwards", params, true),
+      query: (params) => "forwards" + queryParamsBuilder(params, true),
     }),
     getChannels: builder.query<channel[], void>({
       query: () => ({
@@ -98,16 +99,16 @@ export const torqApi = createApi({
       invalidatesTags: ["channels"],
     }),
     getDecodedInvoice: builder.query<any, GetDecodedInvoiceQueryParams>({
-      query: (params) => queryParamsBuilder("invoices/decode/", params),
+      query: (params) => "invoices/decode" + queryParamsBuilder(params),
     }),
     getPayments: builder.query<any, GetPaymentsQueryParams>({
-      query: (params) => queryParamsBuilder("payments", params, true),
+      query: (params) => "payments" + queryParamsBuilder(params, true),
     }),
     getInvoices: builder.query<any, GetInvoicesQueryParams>({
-      query: (params) => queryParamsBuilder("invoices", params, true),
+      query: (params) => "invoices" + queryParamsBuilder(params, true),
     }),
     getOnChainTx: builder.query<any, GetOnChainTransactionsQueryParams>({
-      query: (params) => queryParamsBuilder("on-chain-tx", params, true),
+      query: (params) => "on-chain-tx" + queryParamsBuilder(params, true),
     }),
     sendOnChain: builder.mutation<SendOnChainResponse, SendOnChainRequest>({
       query: (data: SendOnChainRequest) => ({
@@ -124,10 +125,10 @@ export const torqApi = createApi({
       }),
     }),
     getTableViews: builder.query<any, GetTableViewQueryParams>({
-      query: (params) => queryParamsBuilder("table-views" , params),
+      query: (params) => "table-views" + queryParamsBuilder(params),
       providesTags: ["tableView"],
     }),
-    createTableView: builder.mutation<any, { view: ViewInterface; index: number, page: string }>({
+    createTableView: builder.mutation<any, { view: ViewInterface; index: number; page: string }>({
       query: (data) => ({
         url: "table-views",
         method: "POST",
@@ -201,7 +202,7 @@ export const torqApi = createApi({
         method: "POST",
         body: localNode,
       }),
-      invalidatesTags: ["localNodes","channels"],
+      invalidatesTags: ["localNodes", "channels"],
     }),
     updateLocalNode: builder.mutation<any, { form: FormData; localNodeId: number }>({
       query: (localNode) => ({
@@ -209,7 +210,7 @@ export const torqApi = createApi({
         method: "PUT",
         body: localNode.form,
       }),
-      invalidatesTags: ["localNodes","channels"],
+      invalidatesTags: ["localNodes", "channels"],
     }),
     updateLocalNodeSetDisabled: builder.mutation<any, { localNodeId: number; disabled: boolean }>({
       query: (localNode) => ({
@@ -217,14 +218,14 @@ export const torqApi = createApi({
         method: "PUT",
         body: localNode,
       }),
-      invalidatesTags: ["localNodes","channels"],
+      invalidatesTags: ["localNodes", "channels"],
     }),
     updateLocalNodeSetDeleted: builder.mutation<any, { localNodeId: number }>({
       query: (localNode) => ({
         url: `settings/local-nodes/${localNode.localNodeId}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["localNodes","channels"],
+      invalidatesTags: ["localNodes", "channels"],
     }),
   }),
 });
