@@ -182,19 +182,19 @@ func main() {
 				return err
 			}
 
-			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel)
+			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, context.Background())
 			err = settings.InitializeManagedSettingsCache(db)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
 			}
 
-			go commons.ManagedNodeCache(commons.ManagedNodeChannel)
+			go commons.ManagedNodeCache(commons.ManagedNodeChannel, context.Background())
 			err = settings.InitializeManagedNodeCache(db)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNode cache.")
 			}
 
-			go commons.ManagedChannelCache(commons.ManagedChannelChannel)
+			go commons.ManagedChannelCache(commons.ManagedChannelChannel, context.Background())
 			err = channels.InitializeManagedChannelCache(db)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")

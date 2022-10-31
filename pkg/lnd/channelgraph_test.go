@@ -51,7 +51,10 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		panic(err)
 	}
 
-	db, err := srv.NewTestDatabase(true)
+	db, cancel, err := srv.NewTestDatabase(true)
+	// TODO FIXME WHY?
+	defer time.Sleep(1 * time.Second)
+	defer cancel()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +93,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 					LastUpdate:       0,
 				},
 				AdvertisingNode: testutil.TestPublicKey2,
-				ConnectingNode:  "secondIrrelevantPubkey",
+				ConnectingNode:  testutil.TestPublicKey1,
 			}},
 			ClosedChans: nil,
 		}
@@ -109,7 +112,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		updateEvent := lnrpc.GraphTopologyUpdate{
 			NodeUpdates: nil,
 			ChannelUpdates: []*lnrpc.ChannelEdgeUpdate{{
-				ChanId:    1234567,
+				ChanId:    1111,
 				ChanPoint: chanPoint,
 				Capacity:  1000000,
 				RoutingPolicy: &lnrpc.RoutingPolicy{
@@ -121,7 +124,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 					MaxHtlcMsat:      1000,
 					LastUpdate:       0,
 				},
-				AdvertisingNode: "theirNodePubkey",
+				AdvertisingNode: testutil.TestPublicKey2,
 				ConnectingNode:  testutil.TestPublicKey1,
 			}},
 			ClosedChans: nil,
@@ -211,7 +214,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		secondUpdateEvent := lnrpc.GraphTopologyUpdate{
 			NodeUpdates: nil,
 			ChannelUpdates: []*lnrpc.ChannelEdgeUpdate{{
-				ChanId:    12345678,
+				ChanId:    1111,
 				ChanPoint: chanPoint,
 				Capacity:  2000000,
 				RoutingPolicy: &lnrpc.RoutingPolicy{
@@ -224,7 +227,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 					LastUpdate:       0,
 				},
 				AdvertisingNode: testutil.TestPublicKey1,
-				ConnectingNode:  "secondIrrelevantPubkey",
+				ConnectingNode:  testutil.TestPublicKey2,
 			}},
 			ClosedChans: nil,
 		}
@@ -285,10 +288,10 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	client.CancelFunc = cancel
 
 	channel := channels.Channel{
-		ShortChannelID:    "1",
+		ShortChannelID:    "1111",
 		FirstNodeId:       commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
 		SecondNodeId:      commons.GetNodeIdFromPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
-		LNDShortChannelID: 1,
+		LNDShortChannelID: 1111,
 		LNDChannelPoint:   null.StringFrom(chanPointStr),
 		Status:            channels.Open,
 	}
@@ -316,18 +319,18 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 
 	var result []routingPolicyData
 	err = db.Select(&result, `
-			select ts,
-				   outbound,
-				   fee_rate_mill_msat,
-				   fee_base_msat,
-				   max_htlc_msat,
-				   min_htlc,
-				   time_lock_delta,
-				   disabled,
-				   channel_id,
-				   announcing_node_id,
-				   connecting_node_id,
-				   node_id,
+			select rp.ts,
+				   rp.outbound,
+				   rp.fee_rate_mill_msat,
+				   rp.fee_base_msat,
+				   rp.max_htlc_msat,
+				   rp.min_htlc,
+				   rp.time_lock_delta,
+				   rp.disabled,
+				   c.channel_id,
+				   rp.announcing_node_id,
+				   rp.connecting_node_id,
+				   rp.node_id,
 				   an.public_key AS announcing_public_key,
 				   cn.public_key AS connecting_public_key,
 				   c.lnd_short_channel_id,

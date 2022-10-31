@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"math/rand"
@@ -128,6 +129,7 @@ func (srv *Server) createDatabase() (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "srv.conn.ExecContext(ctx, \"CREATE DATABASE %s;\"", dbName)
 	}
+	log.Debug().Msgf("Created database: %v", dbName)
 
 	// Store all database names so that they can be easily dropped (deleted)
 	srv.dbNames = append(srv.dbNames, dbName)
@@ -135,41 +137,45 @@ func (srv *Server) createDatabase() (string, error) {
 }
 
 // NewTestDatabase opens a connection to a freshly created database on the server.
-func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
+func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, error) {
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 
 	// Create the new test database based on the main server connection
 	dns, err := srv.createDatabase()
 	if err != nil {
-		return nil, errors.Wrap(err, "srv.createDatabase(ctx)")
+		return nil, nil, errors.Wrap(err, "srv.createDatabase(ctx)")
 	}
 
 	// Connect to the new test database
 	db, err := sqlx.Open("postgres", dns)
 	if err != nil {
-		return nil, errors.Wrapf(err, "sqlx.Open(\"postgres\", %s)", dns)
+		return nil, nil, errors.Wrapf(err, "sqlx.Open(\"postgres\", %s)", dns)
 	}
 
 	if migrate {
 		// Migrate the new test database
 		err = database.MigrateUp(db)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		var testNodeId1 int
 		err = db.QueryRowx("INSERT INTO node (public_key, chain, network, created_on) VALUES ($1, $2, $3, $4) RETURNING node_id;",
 			TestPublicKey1, commons.Bitcoin, commons.SigNet, time.Now().UTC()).Scan(&testNodeId1)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
+			cancel()
+			return nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
 		}
 		log.Debug().Msgf("Added test node with publicKey: %v nodeId: %v", TestPublicKey1, testNodeId1)
 
-		log.Debug().Msgf("Adding test node with publicKey: %v", TestPublicKey2)
 		var testNodeId2 int
 		err = db.QueryRowx("INSERT INTO node (public_key, chain, network, created_on) VALUES ($1, $2, $3, $4) RETURNING node_id;",
 			TestPublicKey2, commons.Bitcoin, commons.SigNet, time.Now().UTC()).Scan(&testNodeId2)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey2)
+			cancel()
+			return nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey2)
 		}
 		log.Debug().Msgf("Added test node with publicKey: %v nodeId: %v", TestPublicKey2, testNodeId2)
 
@@ -178,7 +184,8 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 			VALUES ($1, $2, $3, $4, $5, $6);`,
 			testNodeId1, "Node_1", commons.LND, commons.Active, time.Now().UTC(), time.Now().UTC())
 		if err != nil {
-			return nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
+			cancel()
+			return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
 		}
 		log.Debug().Msgf("Added test active node connection details with nodeId: %v", testNodeId1)
 
@@ -187,21 +194,24 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 			VALUES ($1, $2, $3, $4, $5, $6);`,
 			testNodeId2, "Node_2", commons.LND, commons.Active, time.Now().UTC(), time.Now().UTC())
 		if err != nil {
-			return nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
+			cancel()
+			return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
 		}
 		log.Debug().Msgf("Added test active node connection details with nodeId: %v", testNodeId2)
 
-		go commons.ManagedSettingsCache(commons.ManagedSettingsChannel)
-		go commons.ManagedNodeCache(commons.ManagedNodeChannel)
-		go commons.ManagedChannelCache(commons.ManagedChannelChannel)
+		go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctx)
+		go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
+		go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)
 
 		err = settings.InitializeManagedSettingsCache(db)
 		if err != nil {
+			cancel()
 			log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
 		}
 
 		err = settings.InitializeManagedNodeCache(db)
 		if err != nil {
+			cancel()
 			log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
 		}
 		log.Debug().Msgf("All Torq publicKeys: %v", commons.GetAllTorqPublicKeys(commons.Bitcoin, commons.SigNet))
@@ -209,6 +219,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 
 		err = channels.InitializeManagedChannelCache(db)
 		if err != nil {
+			cancel()
 			log.Fatal().Msgf("Problem initializing ManagedChannel cache: %v", err)
 		}
 		log.Debug().Msgf("Channel publicKeys: %v", commons.GetChannelPublicKeys(commons.Bitcoin, commons.SigNet))
@@ -226,6 +237,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, testChannel1)
 		if err != nil {
+			cancel()
 			log.Fatal().Msgf("Problem adding channel %v", testChannel1)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
@@ -241,6 +253,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 		}
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel2)
 		if err != nil {
+			cancel()
 			log.Fatal().Msgf("Problem adding channel %v", testChannel2)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
@@ -256,6 +269,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 		}
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel3)
 		if err != nil {
+			cancel()
 			log.Fatal().Msgf("Problem adding channel %v", testChannel3)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
@@ -265,17 +279,18 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, error) {
 			ShortChannelID:    shortChannelId,
 			FirstNodeId:       commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
 			SecondNodeId:      commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
-			LNDShortChannelID: 3333,
+			LNDShortChannelID: 4444,
 			LNDChannelPoint:   null.StringFrom(TestChannelPoint4),
 			Status:            channels.Opening,
 		}
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel4)
 		if err != nil {
+			cancel()
 			log.Fatal().Msgf("Problem adding channel %v", testChannel4)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
 	}
 
-	return db, nil
+	return db, cancel, nil
 }

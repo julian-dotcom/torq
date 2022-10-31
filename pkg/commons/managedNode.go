@@ -1,6 +1,10 @@
 package commons
 
-import "github.com/rs/zerolog/log"
+import (
+	"context"
+
+	"github.com/rs/zerolog/log"
+)
 
 var ManagedNodeChannel = make(chan ManagedNode)
 
@@ -42,12 +46,19 @@ type ManagedNodeSettings struct {
 	PublicKey string
 }
 
-func ManagedNodeCache(ch chan ManagedNode) {
+// ManagedNodeCache parameter Context is for test cases...
+func ManagedNodeCache(ch chan ManagedNode, ctx context.Context) {
 	allTorqNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
 	nodeSettingsByNodeIdCache := make(map[int]ManagedNodeSettings, 0)
 	activeTorqNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
 	channelNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		managedNode := <-ch
 		switch managedNode.Type {
 		case READ_ALL_TORQ_NODE:

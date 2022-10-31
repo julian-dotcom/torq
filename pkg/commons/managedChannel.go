@@ -1,6 +1,8 @@
 package commons
 
 import (
+	"context"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -45,12 +47,19 @@ type ManagedChannelSettings struct {
 	StatusId        int
 }
 
-func ManagedChannelCache(ch chan ManagedChannel) {
+// ManagedChannelCache parameter Context is for test cases...
+func ManagedChannelCache(ch chan ManagedChannel, ctx context.Context) {
 	channelSettingsByChannelIdCache := make(map[int]ManagedChannelSettings, 0)
 	shortChannelIdCache := make(map[string]int, 0)
 	lndChannelPointCache := make(map[string]int, 0)
 	channelStatusIdCache := make(map[int]int, 0)
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		managedChannel := <-ch
 		switch managedChannel.Type {
 		case READ_CHANNELID_BY_SHORTCHANNELID:

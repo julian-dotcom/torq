@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -100,7 +101,10 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		panic(err)
 	}
 
-	db, err := srv.NewTestDatabase(true)
+	db, cancel, err := srv.NewTestDatabase(true)
+	// TODO FIXME WHY?
+	defer time.Sleep(1 * time.Second)
+	defer cancel()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +188,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 			LND_Channel_point string
 		}
 		var channels []channel
-		err = db.Select(&channels, `SELECT short_channel_id, lnd_channel_point FROM channel;`)
+		err = db.Select(&channels, `
+			SELECT short_channel_id, lnd_channel_point FROM channel WHERE short_channel_id=$1;`, "0x0x1337")
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				// t.Fatalf("Error was %v", err)
@@ -206,7 +211,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Closed Channel Event", func(t *testing.T) {
-		expected := channelEventData{LNDShortChannelId: 1337, LNDChannelPoint: "closed_point_break", SecondNodePublicKey: "closed_remote_pub_key",
+		expected := channelEventData{LNDShortChannelId: 1337, LNDChannelPoint: "point_break", SecondNodePublicKey: "remote_pub_key",
 			EventType: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL), Capacity: 100000000}
 		channel := &lnrpc.ChannelCloseSummary{ChanId: expected.LNDShortChannelId, ChannelPoint: expected.LNDChannelPoint,
 			RemotePubkey: expected.SecondNodePublicKey, Capacity: expected.Capacity}
@@ -253,6 +258,7 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	var channelEvents []channelEventData
 	err = db.Select(&channelEvents, `
 			SELECT c.lnd_short_channel_id,
+			       c.lnd_channel_point,
 			       fn.public_key AS first_node_public_key,
 			       sn.public_key AS second_node_public_key,
 			       event_type,

@@ -1,5 +1,9 @@
 package commons
 
+import (
+	"context"
+)
+
 var ManagedSettingsChannel = make(chan ManagedSettings)
 
 type ManagedSettingsCacheOperationType uint
@@ -20,12 +24,19 @@ type ManagedSettings struct {
 	Out               chan ManagedSettings
 }
 
-func ManagedSettingsCache(ch chan ManagedSettings) {
+// ManagedSettingsCache parameter Context is for test cases...
+func ManagedSettingsCache(ch chan ManagedSettings, ctx context.Context) {
 	var defaultLanguage string
 	var preferredTimeZone string
 	var defaultDateRange string
 	var weekStartsOn string
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		managedSettings := <-ch
 		switch managedSettings.Type {
 		case READ:
