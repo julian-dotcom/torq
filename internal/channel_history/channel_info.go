@@ -1,8 +1,11 @@
 package channel_history
 
 import (
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"gopkg.in/guregu/null.v4"
 
 	"github.com/lncapital/torq/internal/channels"
@@ -20,40 +23,30 @@ type channel struct {
 	// The channel ID
 	LNDShortChannelId null.String     `json:"chanId" db:"lnd_short_channel_id"`
 	Status            channels.Status `json:"status" db:"status_id"`
+	CreatedOn         time.Time       `json:"createdOn" db:"created_on"`
+	UpdatedOn         *time.Time      `json:"updatedOn" db:"updated_on"`
 
 	// TODO FIXME Capacity shouldn't require a JOIN and should be included in channel table
 	// Capacity The channels total capacity (as created). Obtained via join from channel_event
 	Capacity *uint64 `json:"capacity" db:"capacity"`
 }
 
-func getChannels(db *sqlx.DB, chanIds []string) (r []*channel, err error) {
+func getChannels(db *sqlx.DB, all bool, channelIds []int) (r []*channel, err error) {
 
 	sql := `
 		select ce.capacity, c.*
 		from (
-			select last(event->'capacity', time) as capacity
-			from channel_event ce
-			where event_type in (0,1) and ($1 or channel_id in ($1))
+			select
+			    channel_id,
+			    last(event->'capacity', time) as capacity
+			from channel_event
+			where event_type in (0,1) and ($1 or channel_id = ANY ($2))
 			group by channel_id
 		) as ce
 		join channel as c on c.channel_id = ce.channel_id;
 	`
 
-	// TODO: Clean up
-	// Quick hack to simplify logic for fetching all channels
-	var getAll = false
-	if chanIds[0] == "1" {
-		getAll = true
-	}
-
-	qs, args, err := sqlx.In(sql, getAll, chanIds)
-	if err != nil {
-		return r, errors.Wrapf(err, "sqlx.In(%s, %v)", sql, chanIds)
-	}
-
-	qsr := db.Rebind(qs)
-
-	rows, err := db.Queryx(qsr, args...)
+	rows, err := db.Queryx(sql, all, pq.Array(channelIds))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running getChannelsByPubkey query")
 	}

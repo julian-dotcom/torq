@@ -22,8 +22,8 @@ const (
 )
 
 type NewAddressRequest struct {
-	LocalNodeId int   `json:"localNodeId"`
-	Type        int32 `json:"type"`
+	NodeId int   `json:"nodeId"`
+	Type   int32 `json:"type"`
 	//The name of the account to generate a new address for. If empty, the default wallet account is used.
 	Account string `json:"account"`
 }
@@ -46,11 +46,11 @@ func NewAddress(
 	reqId string,
 ) (err error) {
 
-	if newAddressRequest.LocalNodeId == 0 {
+	if newAddressRequest.NodeId == 0 {
 		return errors.New("Node id is missing")
 	}
 
-	connectionDetails, err := settings.GetConnectionDetailsById(db, newAddressRequest.LocalNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, newAddressRequest.NodeId)
 	if err != nil {
 		return errors.Wrap(err, "Getting node connection details from the db")
 	}

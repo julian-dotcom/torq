@@ -18,7 +18,7 @@ type BtcStepProps = {
     MutationDefinition<
       SendOnChainRequest,
       BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
-      "channels" | "settings" | "tableView" | "localNodes",
+      "channels" | "settings" | "tableView" | "nodeConfigurations",
       any,
       "api"
     >
@@ -120,7 +120,7 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
               props.setProcessState(ProgressStepState.processing);
               props.sendCoinsMutation({
                 address: props.destination,
-                localNodeId: 1,
+                nodeId: 1,
                 amountSat: props.amount,
               });
             }}

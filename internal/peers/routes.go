@@ -70,14 +70,14 @@ func connectPeerHandler(c *gin.Context, db *sqlx.DB) {
 
 func listPeersHandler(c *gin.Context, db *sqlx.DB) {
 
-	nodeId, err := strconv.Atoi(c.Query("localNodeId"))
+	nodeId, err := strconv.Atoi(c.Query("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, "Getting node id"))
 		return
 	}
 
 	//should be true or false
-	///api/peers?localNodeId=1&latestErr=false
+	///api/peers?nodeId=1&latestErr=false
 	latestErr := c.Query("latestErr")
 
 	conn, err := connectLND(db, nodeId)

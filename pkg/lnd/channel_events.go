@@ -118,7 +118,6 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		channelPoint := c.ChannelPoint
 		publicKey := c.RemotePubkey
 		shortChannelId := channels.ConvertLNDShortChannelID(c.ChanId)
-		channelId := commons.GetChannelIdFromShortChannelId(shortChannelId)
 
 		var err error
 		remoteNodeId := commons.GetNodeIdFromPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network)
@@ -142,7 +141,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			LNDShortChannelID: chanID,
 			Status:            channels.GetClosureStatus(c.CloseType),
 		}
-		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
+		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 		if err != nil {
 			return errors.Wrapf(err, "Adding or updating channel (channelId: %v, shortChannelId: %v)", channelId, shortChannelId)
 		}

@@ -35,11 +35,11 @@ export type GetForwardsQueryParams = FromAndTo;
 
 export type GetDecodedInvoiceQueryParams = {
   invoice: string;
-  localNodeId: number;
+  nodeId: number;
 };
 
 export type SendOnChainRequest = {
-  localNodeId: number;
+  nodeId: number;
   address: string;
   amountSat: number;
   targetConf?: number;

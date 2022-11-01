@@ -12,7 +12,7 @@ import { DecodedInvoice } from "types/api";
 import { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 
 type InvoicePaymentProps = {
-  selectedLocalNode: number;
+  selectedNodeId: number;
   decodedInvoice: DecodedInvoice;
   destinationType: PaymentType;
   destination: string;
@@ -102,7 +102,7 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
                 reqId: "randId",
                 type: "newPayment",
                 NewPaymentRequest: {
-                  localNodeId: props.selectedLocalNode,
+                  nodeId: props.selectedNodeId,
                   // If the destination is not a pubkey, use it as an invoice
                   invoice: props.destination,
                   // If the destination is a pubkey send it as a dest input

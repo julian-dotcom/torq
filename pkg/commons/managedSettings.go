@@ -31,27 +31,38 @@ func ManagedSettingsCache(ch chan ManagedSettings, ctx context.Context) {
 	var defaultDateRange string
 	var weekStartsOn string
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		managedSettings := <-ch
-		switch managedSettings.Type {
-		case READ:
-			managedSettings.DefaultLanguage = defaultLanguage
-			managedSettings.PreferredTimeZone = preferredTimeZone
-			managedSettings.DefaultDateRange = defaultDateRange
-			managedSettings.WeekStartsOn = weekStartsOn
-			go SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
-		case WRITE:
-			defaultLanguage = managedSettings.DefaultLanguage
-			preferredTimeZone = managedSettings.PreferredTimeZone
-			defaultDateRange = managedSettings.DefaultDateRange
-			weekStartsOn = managedSettings.WeekStartsOn
+		// TODO FIXME FEELS VERY WRONG?
+		if ctx == nil {
+			managedSettings := <-ch
+			defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn =
+				processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn)
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			case managedSettings := <-ch:
+				defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn =
+					processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn)
+			}
 		}
 	}
+}
+
+func processManagedSettings(managedSettings ManagedSettings, defaultLanguage string, preferredTimeZone string, defaultDateRange string, weekStartsOn string) (string, string, string, string) {
+	switch managedSettings.Type {
+	case READ:
+		managedSettings.DefaultLanguage = defaultLanguage
+		managedSettings.PreferredTimeZone = preferredTimeZone
+		managedSettings.DefaultDateRange = defaultDateRange
+		managedSettings.WeekStartsOn = weekStartsOn
+		go SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
+	case WRITE:
+		defaultLanguage = managedSettings.DefaultLanguage
+		preferredTimeZone = managedSettings.PreferredTimeZone
+		defaultDateRange = managedSettings.DefaultDateRange
+		weekStartsOn = managedSettings.WeekStartsOn
+	}
+	return defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn
 }
 
 func SendToManagedSettingsChannel(ch chan ManagedSettings, managedSettings ManagedSettings) {

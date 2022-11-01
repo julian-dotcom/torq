@@ -96,7 +96,7 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 
 	var sqlString = `
 		select
-			coalesce(ne.alias, ce.pub_key, '') as alias,
+			coalesce(ne.second_node_alias, ne.second_node_pub_key, '') as alias,
 			coalesce(ct.tag_ids, '') as tag_ids,
 			coalesce(c.first_node_id, 0) as first_node_id,
 			coalesce(c.second_node_id, 0) as second_node_id,
@@ -143,12 +143,12 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			select event_node_id, last(alias, timestamp) as first_node_alias, last(color, timestamp) as first_node_color
 			from node_event
 			group by event_node_id
-		) as ne on ce.first_node_id = ne.event_node_id
+		) as fcne on c.first_node_id = fcne.event_node_id
 		left join (
 			select event_node_id, last(alias, timestamp) as second_node_alias, last(color, timestamp) as second_node_color
 			from node_event
 			group by event_node_id
-		) as ne on ce.second_node_id = ne.event_node_id
+		) as scne on c.second_node_id = scne.event_node_id
 		left join (
 			select coalesce(o.lnd_short_channel_id, i.lnd_short_channel_id, 0) as lnd_short_channel_id,
 				coalesce(o.amount,0) as amount_out,
@@ -162,9 +162,9 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 					   floor(sum(outgoing_amount_msat)/1000) as amount,
 					   floor(sum(fee_msat)/1000) as revenue,
 					   count(time) as count
-				from forward, settings
-				where time::timestamp AT TIME ZONE settings.preferred_timezone >= $1::timestamp AT TIME ZONE settings.preferred_timezone
-					and time::timestamp AT TIME ZONE settings.preferred_timezone <= $2::timestamp AT TIME ZONE settings.preferred_timezone
+				from forward
+				where time::timestamp AT TIME ZONE $4 >= $1::timestamp AT TIME ZONE $4
+					and time::timestamp AT TIME ZONE $4 <= $2::timestamp AT TIME ZONE $4
 				group by lnd_outgoing_short_channel_id
 				) as o
 			full outer join (
@@ -172,15 +172,15 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 					   floor(sum(incoming_amount_msat)/1000) as amount,
 					   floor(sum(fee_msat)/1000) as revenue,
 					   count(time) as count
-				from forward, settings
-				where time::timestamp AT TIME ZONE settings.preferred_timezone >= $1::timestamp AT TIME ZONE settings.preferred_timezone
-					and time::timestamp AT TIME ZONE settings.preferred_timezone <= $2::timestamp AT TIME ZONE settings.preferred_timezone
+				from forward
+				where time::timestamp AT TIME ZONE $4 >= $1::timestamp AT TIME ZONE $4
+					and time::timestamp AT TIME ZONE $4 <= $2::timestamp AT TIME ZONE $4
 				group by lnd_incoming_short_channel_id) as i
 			on i.lnd_short_channel_id = o.lnd_short_channel_id
 		) as fw on fw.lnd_short_channel_id = ce.lnd_short_channel_id
 `
 
-	rows, err := db.Query(sqlString, fromTime, toTime)
+	rows, err := db.Query(sqlString, fromTime, toTime, commons.GetSettings().PreferredTimeZone)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running aggregated forwards query")
 	}

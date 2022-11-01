@@ -54,80 +54,88 @@ func ManagedChannelCache(ch chan ManagedChannel, ctx context.Context) {
 	lndChannelPointCache := make(map[string]int, 0)
 	channelStatusIdCache := make(map[int]int, 0)
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
+		// TODO FIXME FEELS WRONG?
+		if ctx == nil {
+			managedChannel := <-ch
+			processManagedChannel(managedChannel, shortChannelIdCache, lndChannelPointCache, channelStatusIdCache, channelSettingsByChannelIdCache)
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			case managedChannel := <-ch:
+				processManagedChannel(managedChannel, shortChannelIdCache, lndChannelPointCache, channelStatusIdCache, channelSettingsByChannelIdCache)
+			}
 		}
+	}
+}
 
-		managedChannel := <-ch
-		switch managedChannel.Type {
-		case READ_CHANNELID_BY_SHORTCHANNELID:
-			managedChannel.ChannelId = shortChannelIdCache[managedChannel.ShortChannelId]
-			go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
-		case READ_CHANNELID_BY_CHANNELPOINT:
-			managedChannel.ChannelId = lndChannelPointCache[managedChannel.LndChannelPoint]
-			go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
-		case READ_STATUSID_BY_CHANNELID:
-			managedChannel.StatusId = channelStatusIdCache[managedChannel.ChannelId]
-			go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
-		case READ_ALL_LNDCHANNELPOINTS:
-			allChannelPoints := make([]string, 0, len(lndChannelPointCache))
-			for lndChannelPoint := range lndChannelPointCache {
-				allChannelPoints = append(allChannelPoints, lndChannelPoint)
-			}
-			go SendToManagedChannelIdsChannel(managedChannel.ChannelPointsOut, allChannelPoints)
-		case READ_CHANNEL_SETTINGS:
-			go SendToManagedChannelSettingsChannel(managedChannel.ChannelIdSettingsOut, channelSettingsByChannelIdCache[managedChannel.ChannelId])
-		case WRITE_CHANNEL:
-			if managedChannel.ChannelId == 0 || managedChannel.LndChannelPoint == "" {
-				log.Error().Msgf("No empty ChannelId (%v) or LndChannelPoint (%v) allowed", managedChannel.ChannelId, managedChannel.LndChannelPoint)
-			} else {
-				if managedChannel.ShortChannelId != "" {
-					shortChannelIdCache[managedChannel.ShortChannelId] = managedChannel.ChannelId
-				}
-				lndChannelPointCache[managedChannel.LndChannelPoint] = managedChannel.ChannelId
-				channelStatusIdCache[managedChannel.ChannelId] = managedChannel.StatusId
-				channelSettingsByChannelIdCache[managedChannel.ChannelId] = ManagedChannelSettings{
-					ChannelId:       managedChannel.ChannelId,
-					ShortChannelId:  managedChannel.ShortChannelId,
-					StatusId:        managedChannel.StatusId,
-					LndChannelPoint: managedChannel.LndChannelPoint,
-				}
-			}
-		case WRITE_CHANNELSTATUSID:
-			if managedChannel.ChannelId == 0 {
-				log.Error().Msgf("No empty ChannelId (%v) allowed", managedChannel.ChannelId)
-			} else {
-				channelStatusIdCache[managedChannel.ChannelId] = managedChannel.StatusId
-				settings := channelSettingsByChannelIdCache[managedChannel.ChannelId]
-				settings.StatusId = managedChannel.StatusId
-				channelSettingsByChannelIdCache[managedChannel.ChannelId] = settings
-			}
-		case DELETE_CHANNEL:
-			var matchingShortChannelId string
-			for shortChannelId, channelId := range shortChannelIdCache {
-				if channelId == managedChannel.ChannelId {
-					matchingShortChannelId = shortChannelId
-					break
-				}
-			}
-			if matchingShortChannelId != "" {
-				delete(shortChannelIdCache, matchingShortChannelId)
-			}
-			var matchingChannelPoint string
-			for lndChannelPoint, channelId := range lndChannelPointCache {
-				if channelId == managedChannel.ChannelId {
-					matchingChannelPoint = lndChannelPoint
-					break
-				}
-			}
-			if matchingChannelPoint != "" {
-				delete(lndChannelPointCache, matchingChannelPoint)
-			}
-			delete(channelStatusIdCache, managedChannel.ChannelId)
-			delete(channelSettingsByChannelIdCache, managedChannel.ChannelId)
+func processManagedChannel(managedChannel ManagedChannel, shortChannelIdCache map[string]int, lndChannelPointCache map[string]int, channelStatusIdCache map[int]int, channelSettingsByChannelIdCache map[int]ManagedChannelSettings) {
+	switch managedChannel.Type {
+	case READ_CHANNELID_BY_SHORTCHANNELID:
+		managedChannel.ChannelId = shortChannelIdCache[managedChannel.ShortChannelId]
+		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
+	case READ_CHANNELID_BY_CHANNELPOINT:
+		managedChannel.ChannelId = lndChannelPointCache[managedChannel.LndChannelPoint]
+		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
+	case READ_STATUSID_BY_CHANNELID:
+		managedChannel.StatusId = channelStatusIdCache[managedChannel.ChannelId]
+		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
+	case READ_ALL_LNDCHANNELPOINTS:
+		allChannelPoints := make([]string, 0, len(lndChannelPointCache))
+		for lndChannelPoint := range lndChannelPointCache {
+			allChannelPoints = append(allChannelPoints, lndChannelPoint)
 		}
+		go SendToManagedChannelIdsChannel(managedChannel.ChannelPointsOut, allChannelPoints)
+	case READ_CHANNEL_SETTINGS:
+		go SendToManagedChannelSettingsChannel(managedChannel.ChannelIdSettingsOut, channelSettingsByChannelIdCache[managedChannel.ChannelId])
+	case WRITE_CHANNEL:
+		if managedChannel.ChannelId == 0 || managedChannel.LndChannelPoint == "" {
+			log.Error().Msgf("No empty ChannelId (%v) or LndChannelPoint (%v) allowed", managedChannel.ChannelId, managedChannel.LndChannelPoint)
+		} else {
+			if managedChannel.ShortChannelId != "" {
+				shortChannelIdCache[managedChannel.ShortChannelId] = managedChannel.ChannelId
+			}
+			lndChannelPointCache[managedChannel.LndChannelPoint] = managedChannel.ChannelId
+			channelStatusIdCache[managedChannel.ChannelId] = managedChannel.StatusId
+			channelSettingsByChannelIdCache[managedChannel.ChannelId] = ManagedChannelSettings{
+				ChannelId:       managedChannel.ChannelId,
+				ShortChannelId:  managedChannel.ShortChannelId,
+				StatusId:        managedChannel.StatusId,
+				LndChannelPoint: managedChannel.LndChannelPoint,
+			}
+		}
+	case WRITE_CHANNELSTATUSID:
+		if managedChannel.ChannelId == 0 {
+			log.Error().Msgf("No empty ChannelId (%v) allowed", managedChannel.ChannelId)
+		} else {
+			channelStatusIdCache[managedChannel.ChannelId] = managedChannel.StatusId
+			settings := channelSettingsByChannelIdCache[managedChannel.ChannelId]
+			settings.StatusId = managedChannel.StatusId
+			channelSettingsByChannelIdCache[managedChannel.ChannelId] = settings
+		}
+	case DELETE_CHANNEL:
+		var matchingShortChannelId string
+		for shortChannelId, channelId := range shortChannelIdCache {
+			if channelId == managedChannel.ChannelId {
+				matchingShortChannelId = shortChannelId
+				break
+			}
+		}
+		if matchingShortChannelId != "" {
+			delete(shortChannelIdCache, matchingShortChannelId)
+		}
+		var matchingChannelPoint string
+		for lndChannelPoint, channelId := range lndChannelPointCache {
+			if channelId == managedChannel.ChannelId {
+				matchingChannelPoint = lndChannelPoint
+				break
+			}
+		}
+		if matchingChannelPoint != "" {
+			delete(lndChannelPointCache, matchingChannelPoint)
+		}
+		delete(channelStatusIdCache, managedChannel.ChannelId)
+		delete(channelSettingsByChannelIdCache, managedChannel.ChannelId)
 	}
 }
 

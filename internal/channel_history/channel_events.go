@@ -1,13 +1,12 @@
 package channel_history
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -28,16 +27,7 @@ type ChannelEvent struct {
 	PreviousValue *uint64 `json:"previousValue"`
 }
 
-func getChannelEventHistory(db *sqlx.DB, lndShortChannelIds []string, from time.Time, to time.Time) (r []*ChannelEvent, err error) {
-	channelIds := make([]int, len(lndShortChannelIds))
-	for _, lndShortChannelIdString := range lndShortChannelIds {
-		lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Converting LND short channel id %v", lndShortChannelId)
-		}
-		shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
-		channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(shortChannelId))
-	}
+func getChannelEventHistory(db *sqlx.DB, channelIds []int, from time.Time, to time.Time) (r []*ChannelEvent, err error) {
 
 	sql := `
 -- disabled changes
@@ -54,7 +44,7 @@ from (SELECT ts,
              disabled,
              lag(disabled, 1, false) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
-      where channel_id in ($4)
+      where channel_id = ANY ($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
         and ts::timestamp AT TIME ZONE ($1) <= ($3)::timestamp
 ) as o
@@ -75,7 +65,7 @@ from (SELECT ts as ts,
              fee_rate_mill_msat as fee_rate,
              lag(fee_rate_mill_msat, 1, 0) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
-      where channel_id in ($4)
+      where channel_id = ANY($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
         and ts::timestamp AT TIME ZONE ($1) <= ($3)::timestamp
 ) as o
@@ -96,7 +86,7 @@ from (SELECT ts as ts,
              fee_base_msat as fee_base,
              lag(fee_base_msat, 1, 0) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
-      where channel_id in ($4)
+      where channel_id = ANY($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
         and ts::timestamp AT TIME ZONE ($1) <= ($3)::timestamp
 ) as o
@@ -117,7 +107,7 @@ from (SELECT ts as ts,
              max_htlc_msat,
              lag(max_htlc_msat, 1, 0) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
-      where channel_id in ($4)
+      where channel_id = ANY($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
         and ts::timestamp AT TIME ZONE ($1) <= ($3)::timestamp
 ) as o
@@ -138,7 +128,7 @@ from (SELECT ts as ts,
              min_htlc,
              lag(min_htlc, 1, 0) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
-      where channel_id in ($4)
+      where channel_id = ANY($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
         and ts::timestamp AT TIME ZONE ($1) <= ($3)::timestamp
 ) as o
@@ -146,18 +136,11 @@ where prev  != min_htlc
 order by datetime desc;
 `
 	preferredTimeZone := commons.GetSettings().PreferredTimeZone
-	qs, args, err := sqlx.In(sql, preferredTimeZone, from, to, channelIds)
+	rows, err := db.Queryx(sql, preferredTimeZone, from, to, pq.Array(channelIds))
 	if err != nil {
 		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v, %v, %v)",
 			sql, preferredTimeZone, from, to, channelIds)
 	}
-
-	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args...)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error running getChannelEventHistory query")
-	}
-
 	for rows.Next() {
 		c := &ChannelEvent{}
 		err = rows.Scan(

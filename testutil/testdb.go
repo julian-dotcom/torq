@@ -139,9 +139,6 @@ func (srv *Server) createDatabase() (string, error) {
 // NewTestDatabase opens a connection to a freshly created database on the server.
 func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, error) {
 
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-
 	// Create the new test database based on the main server connection
 	dns, err := srv.createDatabase()
 	if err != nil {
@@ -154,10 +151,14 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		return nil, nil, errors.Wrapf(err, "sqlx.Open(\"postgres\", %s)", dns)
 	}
 
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
 	if migrate {
 		// Migrate the new test database
 		err = database.MigrateUp(db)
 		if err != nil {
+			cancel()
 			return nil, nil, err
 		}
 

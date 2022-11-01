@@ -2,12 +2,16 @@ package channel_history
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -80,17 +84,46 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chanIds := strings.Split(c.Param("chanIds"), ",")
+	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
+
+	details, err := settings.GetActiveNodesConnectionDetails(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	nodeIds := make([]int, len(details))
+	for _, nodeConnectionDetail := range details {
+		nodeIds = append(nodeIds, nodeConnectionDetail.NodeId)
+	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+
+	var channelIds []int
+	var all = false
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+		// TODO: Clean up Quick hack to simplify logic for fetching all channels
+		channelIds = []int{0}
+		all = true
+	} else {
+		channelIds = make([]int, len(lndShortChannelIdStrings))
+		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
+			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
+				return
+			}
+			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+		}
+	}
 
 	// Get the total values for the whole requested time range (from - to)
-	r, err := getChannelTotal(db, chanIds, from, to)
+	r, err := getChannelTotal(db, all, channelIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
 	// Get the details for the requested channels
-	channels, err := getChannels(db, chanIds)
+	channels, err := getChannels(db, all, channelIds)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -98,7 +131,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	r.Channels = channels
 
 	// Get the daily values
-	chanHistory, err := getChannelHistory(db, chanIds, from, to)
+	chanHistory, err := getChannelHistory(db, all, channelIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -132,7 +165,25 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 
 	chanIds := strings.Split(c.Param("chanIds"), ",")
 
-	r.Events, err = getChannelEventHistory(db, chanIds, from, to)
+	var channelIds []int
+	var all = false
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+		// TODO: Clean up Quick hack to simplify logic for fetching all channels
+		channelIds = []int{0}
+		all = true
+	} else {
+		channelIds = make([]int, len(lndShortChannelIdStrings))
+		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
+			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
+				return
+			}
+			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+		}
+	}
+
+	r.Events, err = getChannelEventHistory(db, channelIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -161,9 +212,26 @@ func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 
 	chanIds := strings.Split(c.Param("chanIds"), ",")
 
-	if chanIds[0] != "1" {
+	var channelIds []int
+	var all = false
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+		// TODO: Clean up Quick hack to simplify logic for fetching all channels
+		channelIds = []int{0}
+		all = true
+	} else {
+		channelIds = make([]int, len(lndShortChannelIdStrings))
+		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
+			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
+				return
+			}
+			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+		}
+	}
 
-		for _, chanId := range chanIds {
+	if !all {
+		for _, chanId := range lndShortChannelIdStrings {
 			cb, err := getChannelBalance(db, chanId, from, to)
 			if err != nil {
 				server_errors.LogAndSendServerError(c, err)
@@ -203,9 +271,26 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 
 	chanIds := strings.Split(c.Param("chanIds"), ",")
 
-	if chanIds[0] == "1" {
-		// TODO FIXME We currently have hardcoded bitcoin/mainnet (that is why we also incorrectly have this in test cases)
-		reb, err := getRebalancingCost(db, commons.GetAllTorqNodeIds(commons.Bitcoin, commons.MainNet), from, to)
+	var channelIds []int
+	var all = false
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+		// TODO: Clean up Quick hack to simplify logic for fetching all channels
+		channelIds = []int{0}
+		all = true
+	} else {
+		channelIds = make([]int, len(lndShortChannelIdStrings))
+		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
+			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
+				return
+			}
+			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+		}
+	}
+
+	if all {
+		reb, err := getRebalancingCost(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), from, to)
 		r.RebalancingCost = &reb.TotalCostMsat
 		r.RebalancingDetails = reb
 		if err != nil {
@@ -213,13 +298,12 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 			return
 		}
 	} else {
-		r.OnChainCost, err = getChannelOnChainCost(db, chanIds)
+		r.OnChainCost, err = getChannelOnChainCost(db, lndShortChannelIdStrings)
 		if err != nil {
 			server_errors.LogAndSendServerError(c, err)
 			return
 		}
-		// TODO FIXME We currently have hardcoded bitcoin/mainnet (that is why we also incorrectly have this in test cases)
-		reb, err := getChannelRebalancing(db, commons.GetAllTorqNodeIds(commons.Bitcoin, commons.MainNet), chanIds, from, to)
+		reb, err := getChannelRebalancing(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), lndShortChannelIdStrings, from, to)
 		r.RebalancingCost = &reb.SplitCostMsat
 		r.RebalancingDetails = reb
 		if err != nil {
@@ -249,10 +333,28 @@ func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 
 	chanIds := strings.Split(c.Param("chanIds"), ",")
 
-	if chanIds[0] == "1" {
+	var channelIds []int
+	var all = false
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+		// TODO: Clean up Quick hack to simplify logic for fetching all channels
+		channelIds = []int{0}
+		all = true
+	} else {
+		channelIds = make([]int, len(lndShortChannelIdStrings))
+		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
+			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+			if err != nil {
+				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
+				return
+			}
+			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+		}
+	}
+
+	if all {
 		r.OnChainCost, err = getTotalOnChainCost(db, from, to)
 	} else {
-		r.OnChainCost, err = getChannelOnChainCost(db, chanIds)
+		r.OnChainCost, err = getChannelOnChainCost(db, channelIds)
 	}
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)

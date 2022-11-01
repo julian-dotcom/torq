@@ -112,10 +112,10 @@ func constructDecodedInvoice(decodedInvoice *lnrpc.PayReq) *DecodedInvoice {
 }
 
 // decodeInvoice Decode a lightning invoice
-func decodeInvoice(db *sqlx.DB, invoice string, localNodeId int) (*DecodedInvoice, error) {
+func decodeInvoice(db *sqlx.DB, invoice string, nodeId int) (*DecodedInvoice, error) {
 	//log.Info().Msgf("Decoding invoice: %s", invoice)
 	// Get lnd client
-	connectionDetails, err := settings.GetConnectionDetailsById(db, localNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, nodeId)
 	if err != nil {
 		return nil, errors.Wrap(err, "Getting node connection details from the db")
 	}
@@ -157,13 +157,13 @@ func decodeInvoice(db *sqlx.DB, invoice string, localNodeId int) (*DecodedInvoic
 func decodeInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 	invoice := c.Query("invoice")
 
-	localNodeId, err := strconv.Atoi(c.Query("localNodeId"))
+	nodeId, err := strconv.Atoi(c.Query("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
 		return
 	}
 
-	di, err := decodeInvoice(db, invoice, localNodeId)
+	di, err := decodeInvoice(db, invoice, nodeId)
 
 	if err != nil {
 		log.Error().Err(err).Msgf("Error decoding invoice: %v", err)

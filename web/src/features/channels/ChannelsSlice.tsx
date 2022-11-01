@@ -153,15 +153,15 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "number",
   },
   {
-    heading: "Local Node ID",
+    heading: "Node ID",
     type: "NumericCell",
-    key: "localNodeId",
+    key: "nodeId",
     valueType: "number",
   },
   {
-    heading: "Local Node Name",
+    heading: "Node Name",
     type: "TextCell",
-    key: "localNodeName",
+    key: "nodeName",
     valueType: "string",
   },
   {

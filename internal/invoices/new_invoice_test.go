@@ -1,9 +1,10 @@
 package invoices
 
 import (
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"reflect"
 	"testing"
+
+	"github.com/lightningnetwork/lnd/lnrpc"
 )
 
 func Test_processInvoiceReq(t *testing.T) {
@@ -36,8 +37,8 @@ func Test_processInvoiceReq(t *testing.T) {
 		{
 			"Only ValueMSat provided",
 			newInvoiceRequest{
-				LocalNodeId: 1,
-				ValueMsat:   &valueMsat,
+				NodeId:    1,
+				ValueMsat: &valueMsat,
 			},
 			&lnrpc.Invoice{
 				ValueMsat: 11,
@@ -47,7 +48,7 @@ func Test_processInvoiceReq(t *testing.T) {
 		{
 			"All params provided",
 			newInvoiceRequest{
-				LocalNodeId:     1,
+				NodeId:          1,
 				Memo:            &memo,
 				RPreImage:       &rPreImage,
 				ValueMsat:       &valueMsat,

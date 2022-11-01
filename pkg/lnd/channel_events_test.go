@@ -103,7 +103,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 
 	db, cancel, err := srv.NewTestDatabase(true)
 	// TODO FIXME WHY?
-	defer time.Sleep(1 * time.Second)
+	defer time.Sleep(5 * time.Second)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)

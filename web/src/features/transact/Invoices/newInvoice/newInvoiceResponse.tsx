@@ -28,7 +28,7 @@ type NewInvoiceResponseProps = {
     error?: FetchBaseQueryError | SerializedError;
   };
   amount: number;
-  selectedLocalNode: number;
+  selectedNodeId: number;
   setDoneState: (state: ProgressStepState) => void;
   clearFlow: () => void;
 };

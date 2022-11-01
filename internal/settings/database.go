@@ -106,11 +106,7 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 		for _, torqNode := range nodeConnectionDetailsArray {
 			node, err := nodes.GetNodeById(db, torqNode.NodeId)
 			if err == nil {
-				if torqNode.Status == commons.Active {
-					commons.SetActiveTorqNode(node.NodeId, node.PublicKey, node.Chain, node.Network)
-				} else {
-					commons.SetInactiveTorqNode(node.NodeId, node.PublicKey, node.Chain, node.Network)
-				}
+				commons.SetTorqNode(node.NodeId, torqNode.Status, node.PublicKey, node.Chain, node.Network)
 			} else {
 				log.Error().Err(err).Msg("Failed to obtain torq node for ManagedNodes cache.")
 			}
@@ -199,16 +195,6 @@ func SetNodeConnectionDetailsByConnectionDetails(
 	ncd.GRPCAddress = &grpcAddress
 	_, err = setNodeConnectionDetails(db, ncd)
 	return err
-}
-
-func setNodeConnectionDetailsName(db *sqlx.DB, nodeId int, name string) error {
-	_, err := db.Exec(`
-		UPDATE node_connection_details SET name = $1, updated_on = $2 WHERE node_id = $3;`,
-		name, time.Now().UTC(), nodeId)
-	if err != nil {
-		return errors.Wrap(err, database.SqlExecutionError)
-	}
-	return nil
 }
 
 func addNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {

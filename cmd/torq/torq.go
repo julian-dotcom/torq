@@ -32,7 +32,7 @@ type subscriptions struct {
 	runningList map[int]func()
 }
 
-func (rs *subscriptions) AddSubscription(localNodeId int, cancelFunc func()) {
+func (rs *subscriptions) AddSubscription(nodeId int, cancelFunc func()) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -40,24 +40,24 @@ func (rs *subscriptions) AddSubscription(localNodeId int, cancelFunc func()) {
 		rs.runningList = make(map[int]func())
 	}
 
-	rs.runningList[localNodeId] = cancelFunc
+	rs.runningList[nodeId] = cancelFunc
 }
 
-func (rs *subscriptions) RemoveSubscription(localNodeId int) {
+func (rs *subscriptions) RemoveSubscription(nodeId int) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
 	if rs.runningList == nil {
 		rs.runningList = make(map[int]func())
 	}
-	delete(rs.runningList, localNodeId)
+	delete(rs.runningList, nodeId)
 }
 
-func (rs *subscriptions) Contains(localNodeId int) bool {
+func (rs *subscriptions) Contains(nodeId int) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	_, exists := rs.runningList[localNodeId]
+	_, exists := rs.runningList[nodeId]
 	return exists
 }
 
@@ -182,19 +182,19 @@ func main() {
 				return err
 			}
 
-			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, context.Background())
+			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, nil)
 			err = settings.InitializeManagedSettingsCache(db)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
 			}
 
-			go commons.ManagedNodeCache(commons.ManagedNodeChannel, context.Background())
+			go commons.ManagedNodeCache(commons.ManagedNodeChannel, nil)
 			err = settings.InitializeManagedNodeCache(db)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNode cache.")
 			}
 
-			go commons.ManagedChannelCache(commons.ManagedChannelChannel, context.Background())
+			go commons.ManagedChannelCache(commons.ManagedChannelChannel, nil)
 			err = channels.InitializeManagedChannelCache(db)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")

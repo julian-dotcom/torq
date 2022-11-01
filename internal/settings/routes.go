@@ -87,12 +87,12 @@ func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getAllNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
-	localNode, err := getAllNodeConnectionDetails(db, false)
+	node, err := getAllNodeConnectionDetails(db, false)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, localNode)
+	c.JSON(http.StatusOK, node)
 }
 
 func getNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
@@ -190,19 +190,15 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		}
 	}
 	ncd.NodeId = nodeId
+	if strings.TrimSpace(ncd.Name) == "" {
+		ncd.Name = fmt.Sprintf("Node_%v", ncd.NodeId)
+	}
 	ncd, err = addNodeConnectionDetails(db, ncd)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Adding node connection details")
 		return
 	}
-	if strings.TrimSpace(ncd.Name) == "" {
-		ncd.Name = fmt.Sprintf("Node_%v", ncd.NodeId)
-		err := setNodeConnectionDetailsName(db, ncd.NodeId, ncd.Name)
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
-		}
-	}
+	commons.SetTorqNode(nodeId, ncd.Status, publicKey, chain, network)
 
 	go func() {
 		if err := restartLNDSub(); err != nil {
@@ -426,11 +422,13 @@ func getInformationFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile 
 	case "mainnet":
 		network = commons.MainNet
 	case "testnet":
-		network = commons.MainNet
+		network = commons.TestNet
 	case "signet":
-		network = commons.MainNet
+		network = commons.SigNet
+	case "simnet":
+		network = commons.SimNet
 	case "regtest":
-		network = commons.MainNet
+		network = commons.RegTest
 	default:
 		return "", 0, 0, errors.Wrapf(err, "Obtaining network from LND %v", info.Chains[0].Network)
 	}

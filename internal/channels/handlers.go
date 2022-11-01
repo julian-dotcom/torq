@@ -47,8 +47,8 @@ type pendingChannel struct {
 }
 
 type channelBody struct {
-	LocalNodeId                  int                  `json:"localNodeId"`
-	LocalNodeName                string               `json:"localNodeName"`
+	NodeId                       int                  `json:"nodeId"`
+	NodeName                     string               `json:"nodeName"`
 	Active                       bool                 `json:"active"`
 	Gauge                        float64              `json:"gauge"`
 	RemotePubkey                 string               `json:"remotePubkey"`
@@ -197,8 +197,8 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 
 			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
 			chanBody := channelBody{
-				LocalNodeId:                  node.NodeId,
-				LocalNodeName:                node.Name,
+				NodeId:                       node.NodeId,
+				NodeName:                     node.Name,
 				Active:                       channel.Active,
 				Gauge:                        gauge,
 				RemotePubkey:                 channel.RemotePubkey,

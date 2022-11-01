@@ -112,7 +112,7 @@ func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time
 //
 //}
 
-func getChannelRebalancing(db *sqlx.DB, nodeIds []int, chanIds []string,
+func getChannelRebalancing(db *sqlx.DB, nodeIds []int, lndShortChannelIdStrings []string,
 	from time.Time, to time.Time) (RebalancingDetails, error) {
 
 	publicKeys := make([]string, len(nodeIds))
@@ -152,8 +152,8 @@ func getChannelRebalancing(db *sqlx.DB, nodeIds []int, chanIds []string,
 			and htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY($4)
 			and creation_timestamp::timestamp AT TIME ZONE ($5) >= ($2)::timestamp
 			and creation_timestamp::timestamp AT TIME ZONE ($5) <= ($3)::timestamp
-			and node_id IN ($6)
-		) AS a;`, pq.Array(chanIds), from, to, pq.Array(publicKeys), settings.PreferredTimeZone, pq.Array(nodeIds))
+			and node_id = ANY ($6)
+		) AS a;`, pq.Array(lndShortChannelIdStrings), from, to, pq.Array(publicKeys), settings.PreferredTimeZone, pq.Array(nodeIds))
 
 	var cost RebalancingDetails
 	err := row.Scan(

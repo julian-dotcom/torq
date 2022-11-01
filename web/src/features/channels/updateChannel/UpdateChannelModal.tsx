@@ -4,7 +4,7 @@ import {
   DismissRegular as FailedIcon,
   ArrowRouting20Regular as ChannelsIcon,
 } from "@fluentui/react-icons";
-import { useGetLocalNodesQuery, useGetChannelsQuery, useUpdateChannelMutation } from "apiSlice";
+import { useGetNodeConfigurationsQuery, useGetChannelsQuery, useUpdateChannelMutation } from "apiSlice";
 import type { channel } from "apiTypes";
 import { useState, useEffect } from "react";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
@@ -14,7 +14,7 @@ import styles from "./updateChannel.module.scss";
 import { useNavigate } from "react-router";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import useTranslations from "services/i18n/useTranslations";
-import { localNode } from "apiTypes";
+import { nodeConfiguration } from "apiTypes";
 import Select, { SelectOptions } from "features/forms/Select";
 import { ActionMeta } from "react-select";
 import classNames from "classnames";
@@ -40,13 +40,13 @@ function NodechannelModal() {
 
   const { t } = useTranslations();
 
-  const { data: localNodes } = useGetLocalNodesQuery();
+  const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
   let { data: channels } = useGetChannelsQuery();
 
-  let localNodeOptions: SelectOptions[] = [{ value: 0, label: "Select a local node" }];
-  if (localNodes !== undefined) {
-    localNodeOptions = localNodes.map((localNode: localNode) => {
-      return { value: localNode.localNodeId, label: localNode.name };
+  let nodeConfigurationOptions: SelectOptions[] = [{ value: 0, label: "Select a local node" }];
+  if (nodeConfigurations !== undefined) {
+    nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
+      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
     });
   }
   let channelOptions: SelectOptions[] = [{ value: 0, label: "Select your channel" }];
@@ -59,14 +59,14 @@ function NodechannelModal() {
     });
   }
 
-  const [selectedLocalNode, setSelectedLocalNode] = useState<number>(localNodeOptions[0].value);
+  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value);
   const [selectedChannel, setSelectedChannel] = useState<number>(channelOptions[0].value);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<any[]>([]);
 
   function handleNodeSelection(value: number) {
-    setSelectedLocalNode(value);
-    channels = channels?.filter((channel: { localNodeId: number }) => channel.localNodeId == value);
+    setSelectedNodeId(value);
+    channels = channels?.filter((channel: { firstNodeId: number, secondNodeId: number }) => channel.firstNodeId == value || channel.secondNodeId == value);
   }
 
   function handleChannelSelection(value: number) {
@@ -118,7 +118,7 @@ function NodechannelModal() {
 
   const closeAndReset = () => {
     setStepIndex(0);
-    setSelectedLocalNode(0);
+    setSelectedNodeId(0);
     setSelectedChannel(0);
     setChannelState(ProgressStepState.active);
     setPolicyState(ProgressStepState.disabled);
@@ -158,8 +158,8 @@ function NodechannelModal() {
               const selectOptions = newValue as SelectOptions;
               handleNodeSelection(selectOptions?.value);
             }}
-            options={localNodeOptions}
-            value={localNodeOptions.find((option) => option.value === selectedLocalNode)}
+            options={nodeConfigurationOptions}
+            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
           />
           <Select
             label={t.yourChannel}
@@ -176,7 +176,7 @@ function NodechannelModal() {
             rightChildren={
               <Button
                 text={"Next"}
-                disabled={selectedLocalNode == 0 || selectedChannel == 0}
+                disabled={selectedNodeId == 0 || selectedChannel == 0}
                 onClick={() => {
                   if (selectedChannel) {
                     setStepIndex(1);
@@ -285,7 +285,7 @@ function NodechannelModal() {
                       minHtlcMsat: minHtlcSat * 1000,
                       maxHtlcMsat: maxHtlcSat * 1000,
                       lndChannelPoint: lndChannelPoint,
-                      localNodeId: selectedLocalNode,
+                      nodeId: selectedNodeId,
                     });
                   }}
                   buttonColor={buttonColor.green}

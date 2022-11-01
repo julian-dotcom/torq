@@ -2,14 +2,18 @@ package flow
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"gopkg.in/guregu/null.v4"
 
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -68,16 +72,33 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
+func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 	toTime time.Time) (r []*channelFlowData,
 	err error) {
+
+	var channelIds []int
+	var getAll = false
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+		// TODO: Clean up Quick hack to simplify logic for fetching all channels
+		channelIds = []int{0}
+		getAll = true
+	} else {
+		channelIds = make([]int, len(lndShortChannelIdStrings))
+		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
+			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Converting LND short channel id from string")
+			}
+			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+		}
+	}
 
 	const sql = `
 		select
 			ne.alias,
 			fw.channel_id,
 			c.lnd_channel_point,
-			n.pub_key,
+			n.public_key,
 
 			coalesce(fw.amount_in, 0) as amount_in,
 			coalesce(fw.revenue_in, 0) as revenue_in,
@@ -101,10 +122,10 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 					floor(sum(outgoing_amount_msat)/1000) as amount,
 					floor(sum(fee_msat)/1000) as revenue,
 					count(time) as count
-				from forward as fw
-				where time >= ?
-					and time <= ?
-					and (? or incoming_channel_id in (?))
+				from forward
+				where time >= $1
+					and time <= $2
+					and ($3 or incoming_channel_id = ANY($4))
 				group by outgoing_channel_id
 			) as o
 			full outer join (
@@ -113,48 +134,38 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 					floor(sum(outgoing_amount_msat)/1000) as amount,
 					floor(sum(fee_msat)/1000) as revenue,
 					count(time) as count
-				from forward as fw
-				where time >= ?
-					and time <= ?
-					and (? or outgoing_channel_id in (?))
+				from forward
+				where time >= $1
+					and time <= $2
+					and ($3 or outgoing_channel_id = ANY($4))
 				group by incoming_channel_id
 			) as i
-				on o.outgoing_channel_id = i.incoming_channel_id) as fw
-			left join (
-				select
-					channel_id,
-					last(event->'capacity', time) as capacity,
-					(1-last(event_type, time)) as open
-				from channel_event
-				where event_type in (0,1)
-			    group by channel_id
-			) as ce
-			    on fw.channel_id = ce.channel_id
-			left join (
-				select last(alias, timestamp) as alias
-				from node_event
-				group by node_id
-			) as ne
-				on ce.node_id = ne.node_id
-			left join node n on ne.node_id = n.node_id
-			left join channel c on ce.channel_id = c.channel_id
+				on o.outgoing_channel_id = i.incoming_channel_id
+		) as fw
+		left join (
+			select
+				channel_id,
+				node_id,
+				last(event->'capacity', time) as capacity,
+				(1-last(event_type, time)) as open
+			from channel_event
+			where event_type in (0,1)
+			group by channel_id, node_id
+		) as ce
+			on fw.channel_id = ce.channel_id
+		left join (
+			select
+				node_id,
+				last(alias, timestamp) as alias
+			from node_event
+			group by node_id
+		) as ne
+			on ce.node_id = ne.node_id
+		left join node n on ne.node_id = n.node_id
+		left join channel c on ce.channel_id = c.channel_id
 	`
 
-	// TODO: Clean up
-	// Quick hack to simplify logic for fetching flow for all channels
-	var getAll = false
-	if chanIds[0] == "1" {
-		getAll = true
-	}
-
-	qs, args, err := sqlx.In(sql, fromTime, toTime, getAll, chanIds, fromTime, toTime, getAll, chanIds)
-	if err != nil {
-		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v, %v, %v)",
-			sql, fromTime, toTime, getAll, chanIds, fromTime, toTime, getAll, chanIds)
-	}
-
-	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args...)
+	rows, err := db.Queryx(sql, fromTime, toTime, getAll, pq.Array(channelIds))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running flow query")
 	}

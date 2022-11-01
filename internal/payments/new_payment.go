@@ -27,7 +27,7 @@ type rrpcClientSendPayment interface {
 }
 
 type NewPaymentRequest struct {
-	LocalNodeId      int     `json:"localNodeId"`
+	NodeId           int     `json:"nodeId"`
 	Invoice          *string `json:"invoice"`
 	TimeOutSecs      int32   `json:"timeoutSecs"`
 	Dest             *string `json:"dest"`
@@ -101,11 +101,11 @@ func SendNewPayment(
 	reqId string,
 ) (err error) {
 
-	if npReq.LocalNodeId == 0 {
+	if npReq.NodeId == 0 {
 		return errors.New("Node id is missing")
 	}
 
-	connectionDetails, err := settings.GetConnectionDetailsById(db, npReq.LocalNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, npReq.NodeId)
 	if err != nil {
 		return errors.Wrap(err, "Getting node connection details from the db")
 	}

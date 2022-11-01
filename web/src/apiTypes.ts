@@ -9,8 +9,8 @@ export interface timeZone {
   name: string;
 }
 
-export interface localNode {
-  localNodeId: number;
+export interface nodeConfiguration {
+  nodeId: number;
   name?: string;
   implementation: string;
   grpcAddress?: string;
@@ -20,11 +20,11 @@ export interface localNode {
   macaroonFile: File | null;
   createdOn?: Date;
   updatedOn?: Date;
-  disabled: boolean;
-  deleted: boolean;
+  status: number;
 }
 
 export interface channel {
+  channelId: number;
   peerAlias: string;
   active: boolean;
   gauge: number;
@@ -52,9 +52,10 @@ export interface channel {
   commitmentType: number;
   lifetime: number;
   totalSatoshisReceived: number;
-  localNodeId: number;
   timeLockDelta: number;
   feeRatePpm: number;
+  firstNodeId: number;
+  secondNodeId: number;
 }
 
 interface PendingHTLC {

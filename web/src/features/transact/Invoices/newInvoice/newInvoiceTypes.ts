@@ -1,5 +1,5 @@
 export type NewInvoiceRequest = {
-  localNodeId: number;
+  nodeId: number;
   memo?: string;
   rPreImage?: string;
   valueMsat?: number;
@@ -10,7 +10,7 @@ export type NewInvoiceRequest = {
 };
 
 export type NewInvoiceResponse = {
-  localNodeId: number;
+  nodeId: number;
   paymentRequest: string;
   addIndex: number;
   paymentAddress: string;

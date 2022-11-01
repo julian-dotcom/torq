@@ -5,6 +5,9 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type ChannelHistoryRecords struct {
@@ -35,17 +38,13 @@ type ChannelHistoryRecords struct {
 	CountTotal *uint64 `json:"countTotal"`
 }
 
-func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time,
+func getChannelHistory(db *sqlx.DB, all bool, channelIds []int, from time.Time,
 	to time.Time) (r []*ChannelHistoryRecords,
 	err error) {
 
-	sql := `WITH
-		fromDate AS (VALUES (?)),
-		toDate AS (VALUES (?)),
-		allChannels as (VALUES(?)),
-		tz AS (select preferred_timezone as tz from settings)
+	sql := `
 		select
-		    (coalesce(i.date, o.date)::timestamp AT TIME ZONE (table tz)) as date,
+		    (coalesce(i.date, o.date)::timestamp AT TIME ZONE ($5)) as date,
 
 			sum(coalesce(i.amount,0)) as amount_in,
 			sum(coalesce(o.amount,0)) as amount_out,
@@ -57,52 +56,38 @@ func getChannelHistory(db *sqlx.DB, chanIds []string, from time.Time,
 			sum(coalesce(o.count,0)) as count_out,
 			sum(coalesce((coalesce(i.count,0) + coalesce(o.count,0)), 0)) as count_total
 		from settings, (
-			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE (table tz), ?, ?) as date,
-				   lnd_outgoing_short_channel_id lnd_short_channel_id,
+			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE ($5), $1, $2) as date,
+				   outgoing_channel_id channel_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where ((table allChannels)::boolean or lnd_outgoing_short_channel_id in (?))
-				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
-				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
-			group by date, lnd_outgoing_short_channel_id
+			where ($3 or outgoing_channel_id = ANY ($4))
+				and time::timestamp AT TIME ZONE ($5) >= $1::timestamp
+				and time::timestamp AT TIME ZONE ($5) <= $2::timestamp
+			group by date, outgoing_channel_id
 			) as o
 		full outer join (
-			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE (table tz), ?, ?) as date,
-				   lnd_incoming_short_channel_id as lnd_short_channel_id,
+			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE ($5), $1, $2) as date,
+				   incoming_channel_id as channel_id,
 				   floor(sum(incoming_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
 			from forward, settings
-			where ((table allChannels)::boolean or lnd_incoming_short_channel_id in (?))
-				and time::timestamp AT TIME ZONE (table tz) >= (table fromDate)::timestamp
-				and time::timestamp AT TIME ZONE (table tz) <= (table toDate)::timestamp
-			group by date, lnd_incoming_short_channel_id)  as i
-		on (i.lnd_short_channel_id = o.lnd_short_channel_id) and (i.date = o.date)
-		group by (coalesce(i.date, o.date)), (table tz)
+			where ($3 or incoming_channel_id = ANY ($4))
+				and time::timestamp AT TIME ZONE ($5) >= $1::timestamp
+				and time::timestamp AT TIME ZONE ($5) <= $2::timestamp
+			group by date, incoming_channel_id)  as i
+		on (i.channel_id = o.channel_id) and (i.date = o.date)
+		group by (coalesce(i.date, o.date)), ($5)
 		order by date;
 	`
 
-	// TODO: Clean up
-	// Quick hack to simplify logic for fetching flow for all channels
-	var getAll = false
-	if chanIds[0] == "1" {
-		getAll = true
-	}
-
-	qs, args, err := sqlx.In(sql, from, to, getAll, from, to, chanIds, from, to, chanIds)
+	rows, err := db.Queryx(sql, from, to, all, pq.Array(channelIds), commons.GetSettings().PreferredTimeZone)
 	if err != nil {
-		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v, %v, %v, %v, %v)",
-			sql, from, to, getAll, from, to, chanIds, from, to, chanIds)
+		return r, errors.Wrapf(err, "db.Queryx(%s, %v, %v, %v, %v, %v)",
+			sql, from, to, all, pq.Array(channelIds), commons.GetSettings().PreferredTimeZone)
 	}
-
-	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args...)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error running getChannelHistory query")
-	}
-
 	for rows.Next() {
 		c := &ChannelHistoryRecords{}
 		err = rows.Scan(

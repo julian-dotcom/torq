@@ -28,6 +28,7 @@ type Network int
 const (
 	MainNet = Network(iota)
 	SigNet
+	SimNet
 	RegTest
 	TestNet
 )
