@@ -101,7 +101,7 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 		  $1, $2, $3, $4, $5, $6, $7, $8
 		) RETURNING channel_id;`,
 		channel.ShortChannelID, channel.LNDChannelPoint, channel.LNDShortChannelID, channel.FirstNodeId,
-		channel.SecondNodeId, channel.Status, channel.CreatedOn, channel.UpdateOn).Scan(&channel.ChannelDBID)
+		channel.SecondNodeId, channel.Status, channel.CreatedOn, channel.UpdateOn).Scan(&channel.ChannelID)
 	if err != nil {
 		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
 	}

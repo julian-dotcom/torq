@@ -74,11 +74,11 @@ func GenerateChannelTag(db *sqlx.DB) error {
 			if corridors.GetBestCorridorStatus(
 				corridors.CorridorKey{
 					CorridorType: corridors.Tag(), ReferenceId: tag.TagId, FromNodeId: channel.FirstNodeId,
-					ToNodeId: channel.SecondNodeId, ChannelId: channel.ChannelDBID}) {
+					ToNodeId: channel.SecondNodeId, ChannelId: channel.ChannelID}) {
 				_, err = tx.Exec(`
 					INSERT INTO channel_tag(from_node_id,to_node_id,channel_id,tag_origin_id,tag_id,created_on)
 					VALUES ($1, $2, $3, $4, $5, $6);`,
-					channel.FirstNodeId, channel.SecondNodeId, channel.ChannelDBID, corridor, tag.TagId,
+					channel.FirstNodeId, channel.SecondNodeId, channel.ChannelID, corridor, tag.TagId,
 					time.Now().UTC())
 				if err != nil {
 					if rb := tx.Rollback(); rb != nil {
@@ -90,11 +90,11 @@ func GenerateChannelTag(db *sqlx.DB) error {
 			if corridors.GetBestCorridorStatus(
 				corridors.CorridorKey{
 					CorridorType: corridors.Tag(), ReferenceId: tag.TagId, FromNodeId: channel.SecondNodeId,
-					ToNodeId: channel.FirstNodeId, ChannelId: channel.ChannelDBID}) {
+					ToNodeId: channel.FirstNodeId, ChannelId: channel.ChannelID}) {
 				_, err = tx.Exec(`
 					INSERT INTO channel_tag(from_node_id,to_node_id,channel_id,tag_origin_id,tag_id,created_on)
 					VALUES ($1, $2, $3, $4, $5, $6);`,
-					channel.SecondNodeId, channel.FirstNodeId, channel.ChannelDBID, corridor, tag.TagId,
+					channel.SecondNodeId, channel.FirstNodeId, channel.ChannelID, corridor, tag.TagId,
 					time.Now().UTC())
 				if err != nil {
 					if rb := tx.Rollback(); rb != nil {

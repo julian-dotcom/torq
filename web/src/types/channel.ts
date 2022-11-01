@@ -1,10 +1,9 @@
 type Channel = {
   alias: string;
-  channelDbId: number;
+  channelId: number;
   channelPoint: string;
   pubKey: string;
   shortChannelId: string;
-  channelId: string;
   isOpen: boolean;
   capacity: number;
 };

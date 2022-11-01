@@ -49,8 +49,8 @@ func GetClosureStatus(lndClosureType lnrpc.ChannelCloseSummary_ClosureType) Stat
 }
 
 type Channel struct {
-	// ChannelDBID A database primary key. NOT a channel_id as specified in BOLT 2
-	ChannelDBID int `json:"channelDBId" db:"channel_id"`
+	// ChannelID A database primary key. NOT a channel_id as specified in BOLT 2
+	ChannelID int `json:"channelId" db:"channel_id"`
 	// ShortChannelID In the c-lighting and BOLT format e.g. 505580:1917:1
 	ShortChannelID string `json:"shortChannelId" db:"short_channel_id"`
 	// LNDChannelPoint At the moment only used by LND. Format is "funding tx id : output id"
@@ -81,8 +81,8 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 			if err != nil {
 				return 0, errors.Wrapf(err, "Adding channel channelPoint: %v", channel.LNDChannelPoint.String)
 			}
-			commons.SetOpeningChannel(storedChannel.ChannelDBID, storedChannel.LNDChannelPoint.String, int(Opening))
-			return storedChannel.ChannelDBID, nil
+			commons.SetOpeningChannel(storedChannel.ChannelID, storedChannel.LNDChannelPoint.String, int(Opening))
+			return storedChannel.ChannelID, nil
 		} else {
 			log.Error().Msgf("Impossible cache miss (except for torq bootstap)!!! channelPoint: %v", channel.LNDChannelPoint.String)
 			err = UpdateChannelStatus(db, existingChannelId, channel.Status)
@@ -118,10 +118,10 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 							channel.LNDChannelPoint.String)
 					}
 					if channel.Status == Opening || channel.Status == Open || channel.Status == Closing {
-						commons.SetChannel(storedChannel.ChannelDBID, storedChannel.ShortChannelID,
+						commons.SetChannel(storedChannel.ChannelID, storedChannel.ShortChannelID,
 							int(storedChannel.Status), storedChannel.LNDChannelPoint.String)
 					}
-					return storedChannel.ChannelDBID, nil
+					return storedChannel.ChannelID, nil
 				} else {
 					err = updateChannelStatusAndLndIds(db, existingChannelId, channel.Status, channel.ShortChannelID,
 						channel.LNDShortChannelID)

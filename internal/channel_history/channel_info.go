@@ -15,7 +15,7 @@ type channel struct {
 	FirstNodeId  null.String `json:"firstNodeId" db:"first_node_id"`
 	SecondNodeId null.String `json:"secondNodeId" db:"second_node_id"`
 	// Database primary key of channel
-	ChannelDBID null.Int `json:"channelDbId" db:"channel_id"`
+	ChannelID null.Int `json:"channelId" db:"channel_id"`
 	// The channel point
 	LNDChannelPoint null.String `json:"channelPoint" db:"lnd_channel_point"`
 	// Short channel id in c-lightning / BOLT format

@@ -41,7 +41,7 @@ type forwardsTableRow struct {
 	FirstNodeId  int         `json:"firstNodeId"`
 	SecondNodeId int         `json:"secondNodeId"`
 	// Database primary key of channel
-	ChannelDBID null.Int `json:"channelDbId"`
+	ChannelID null.Int `json:"channelId"`
 	// The channel point
 	LNDChannelPoint null.String `json:"lndChannelPoint"`
 	// The remote public key
@@ -53,7 +53,7 @@ type forwardsTableRow struct {
 	// Color of remote peer (Vanity)
 	Color null.String `json:"color"`
 	// Is the channel open
-	Open null.Int `json:"open"`
+	StatusId null.Int `json:"statusId"`
 
 	// The channels total capacity (as created)
 	Capacity uint64 `json:"capacity"`
@@ -96,17 +96,17 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 
 	var sqlString = `
 		select
-			coalesce(ne.second_node_alias, ne.second_node_pub_key, '') as alias,
+			coalesce(scne.node_alias, '') as alias,
 			coalesce(ct.tag_ids, '') as tag_ids,
 			coalesce(c.first_node_id, 0) as first_node_id,
 			coalesce(c.second_node_id, 0) as second_node_id,
 			coalesce(c.channel_id, 0) as channel_id,
-			coalesce(ce.lnd_channel_point, 'Channel point missing') as lnd_channel_point,
-			coalesce(ce.pub_key, 'Public key missing') as pub_key,
+			coalesce(c.lnd_channel_point, 'Channel point missing') as lnd_channel_point,
+			coalesce(fcn.public_key, 'Public key missing') as pub_key,
 			coalesce(c.short_channel_id, 'Short channel ID missing') as short_channel_id,
-			coalesce(ce.lnd_short_channel_id::text, 'LND short channel id missing') as lnd_short_channel_id,
-			coalesce(ne.color, 'Color missing') as color,
-			coalesce(ce.open, 0) as open,
+			coalesce(c.lnd_short_channel_id::text, 'LND short channel id missing') as lnd_short_channel_id,
+			coalesce(fcne.node_color, 'Color missing') as color,
+			coalesce(c.status_id, 0) as status_id,
 
 
 			coalesce(ce.capacity::numeric, 0) as capacity,
@@ -140,17 +140,25 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 		    group by channel_id
 		) as ce on c.channel_id = ce.channel_id
 		left join (
-			select event_node_id, last(alias, timestamp) as first_node_alias, last(color, timestamp) as first_node_color
+			select event_node_id, last(alias, timestamp) as node_alias, last(color, timestamp) as node_color
 			from node_event
 			group by event_node_id
 		) as fcne on c.first_node_id = fcne.event_node_id
 		left join (
-			select event_node_id, last(alias, timestamp) as second_node_alias, last(color, timestamp) as second_node_color
+			select node_id, public_key
+			from node
+		) as fcn on c.first_node_id = fcn.node_id
+		left join (
+			select event_node_id, last(alias, timestamp) as node_alias, last(color, timestamp) as node_color
 			from node_event
 			group by event_node_id
 		) as scne on c.second_node_id = scne.event_node_id
 		left join (
-			select coalesce(o.lnd_short_channel_id, i.lnd_short_channel_id, 0) as lnd_short_channel_id,
+			select node_id, public_key
+			from node
+		) as scn on c.second_node_id = scn.node_id
+		left join (
+			select coalesce(o.channel_id, i.channel_id, 0) as channel_id,
 				coalesce(o.amount,0) as amount_out,
 				coalesce(o.revenue,0) as revenue_out,
 				coalesce(o.count,0) as count_out,
@@ -158,29 +166,30 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 				coalesce(i.revenue,0) as revenue_in,
 				coalesce(i.count,0) as count_in
 			from (
-				select lnd_outgoing_short_channel_id lnd_short_channel_id,
+				select outgoing_channel_id channel_id,
 					   floor(sum(outgoing_amount_msat)/1000) as amount,
 					   floor(sum(fee_msat)/1000) as revenue,
 					   count(time) as count
 				from forward
-				where time::timestamp AT TIME ZONE $4 >= $1::timestamp AT TIME ZONE $4
-					and time::timestamp AT TIME ZONE $4 <= $2::timestamp AT TIME ZONE $4
-				group by lnd_outgoing_short_channel_id
-				) as o
+				where time::timestamp AT TIME ZONE $3 >= $1::timestamp AT TIME ZONE $3
+					and time::timestamp AT TIME ZONE $3 <= $2::timestamp AT TIME ZONE $3
+				group by outgoing_channel_id
+			) as o
 			full outer join (
-				select lnd_incoming_short_channel_id as lnd_short_channel_id,
+				select incoming_channel_id as channel_id,
 					   floor(sum(incoming_amount_msat)/1000) as amount,
 					   floor(sum(fee_msat)/1000) as revenue,
 					   count(time) as count
 				from forward
-				where time::timestamp AT TIME ZONE $4 >= $1::timestamp AT TIME ZONE $4
-					and time::timestamp AT TIME ZONE $4 <= $2::timestamp AT TIME ZONE $4
-				group by lnd_incoming_short_channel_id) as i
-			on i.lnd_short_channel_id = o.lnd_short_channel_id
-		) as fw on fw.lnd_short_channel_id = ce.lnd_short_channel_id
+				where time::timestamp AT TIME ZONE $3 >= $1::timestamp AT TIME ZONE $3
+					and time::timestamp AT TIME ZONE $3 <= $2::timestamp AT TIME ZONE $3
+				group by incoming_channel_id
+			) as i
+			on i.channel_id = o.channel_id
+		) as fw on fw.channel_id = ce.channel_id
 `
 
-	rows, err := db.Query(sqlString, fromTime, toTime, commons.GetSettings().PreferredTimeZone)
+	rows, err := db.Queryx(sqlString, fromTime, toTime, commons.GetSettings().PreferredTimeZone)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running aggregated forwards query")
 	}
@@ -192,13 +201,13 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			&c.TagIds,
 			&c.FirstNodeId,
 			&c.SecondNodeId,
-			&c.ChannelDBID,
+			&c.ChannelID,
 			&c.LNDChannelPoint,
 			&c.PubKey,
 			&c.ShortChannelID,
 			&c.LNDShortChannelId,
 			&c.Color,
-			&c.Open,
+			&c.StatusId,
 
 			&c.Capacity,
 
