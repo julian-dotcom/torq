@@ -1114,7 +1114,7 @@ func createPayInvoice(name string, invfrq int, ctx context.Context, de DockerDev
 		rand.Seed(time.Now().UnixNano())
 		min := 1
 		max := 1000000
-		amt := strconv.Itoa(rand.Intn(max-min) + min)
+		amt := strconv.Itoa(rand.Intn(max-min) + min) //nolint:gosec
 
 		newInvoice, err := GenerateInvoice(ctx, de.Client, peer1.Instance, amt)
 		if err != nil {
@@ -1215,7 +1215,7 @@ func pickRandomNodes(de DockerDevEnvironment, name string, alicePK string, bobPK
 	//3 = carol
 	nodeCombo := []string{"1-2", "1-3", "2-3", "2-1", "3-1", "3-2"}
 	rand.Seed(time.Now().UnixNano())
-	randomIndex := rand.Intn(len(nodeCombo))
+	randomIndex := rand.Intn(len(nodeCombo)) //nolint:gosec
 	pick := nodeCombo[randomIndex]
 
 	combo := strings.Split(pick, "-")

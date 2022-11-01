@@ -97,7 +97,7 @@ func randString(n int) string {
 
 	b := make([]rune, n)
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+		b[i] = letters[rand.Intn(len(letters))] //nolint:gosec
 	}
 	return string(b)
 }

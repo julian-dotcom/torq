@@ -13,3 +13,4 @@ linters:
     - typecheck
     - unused
     - gochecknoglobals
+    - gosec

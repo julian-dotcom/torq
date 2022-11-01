@@ -409,7 +409,7 @@ func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string
 		return errors.Newf("Reading tls tar: %v\n", err)
 	}
 	// write the whole body at once
-	err = os.WriteFile("virtual_network/generated_files/tls.cert", tlsBuf.Bytes(), 0644)
+	err = os.WriteFile("virtual_network/generated_files/tls.cert", tlsBuf.Bytes(), 0600)
 	if err != nil {
 		panic(err)
 	}
@@ -441,7 +441,7 @@ func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string
 	}
 
 	// write the whole body at once
-	err = os.WriteFile("virtual_network/generated_files/admin.macaroon", macaroonBuf.Bytes(), 0644)
+	err = os.WriteFile("virtual_network/generated_files/admin.macaroon", macaroonBuf.Bytes(), 0600)
 	if err != nil {
 		panic(err)
 	}
