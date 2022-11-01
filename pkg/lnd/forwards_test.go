@@ -106,8 +106,8 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 		CancelFunc: stopSubFwE,
 		ForwardingEvents: []*lnrpc.ForwardingEvent{
 			{
-				ChanIdIn:    1234,
-				ChanIdOut:   2345,
+				ChanIdIn:    1111,
+				ChanIdOut:   2222,
 				AmtIn:       11,
 				AmtOut:      10,
 				Fee:         1,
@@ -117,8 +117,8 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 				TimestampNs: uint64(c.Now().UnixNano()),
 			},
 			{
-				ChanIdIn:    1234,
-				ChanIdOut:   2345,
+				ChanIdIn:    1111,
+				ChanIdOut:   2222,
 				AmtIn:       11,
 				AmtOut:      10,
 				Fee:         1,
@@ -128,8 +128,8 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 				TimestampNs: uint64(c.Now().UnixNano()) + 500000000,
 			},
 			{ // Duplicate record used for testing
-				ChanIdIn:    1234,
-				ChanIdOut:   2345,
+				ChanIdIn:    1111,
+				ChanIdOut:   2222,
 				AmtIn:       11,
 				AmtOut:      10,
 				Fee:         1,
@@ -139,8 +139,8 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 				TimestampNs: uint64(c.Now().UnixNano()) + 500000000,
 			},
 			{
-				ChanIdIn:    1234,
-				ChanIdOut:   2345,
+				ChanIdIn:    1111,
+				ChanIdOut:   2222,
 				AmtIn:       11,
 				AmtOut:      10,
 				Fee:         1,
