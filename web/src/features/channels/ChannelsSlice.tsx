@@ -190,7 +190,7 @@ export interface PolicyInterface {
   minHtlcMsat: number;
   baseFeeMsat: number;
   lndChannelPoint: string;
-  localNodeId: number;
+  nodeId: number;
 }
 export interface TableChannelsState {
   channels: [];
@@ -226,7 +226,7 @@ export const activeChannelsColumns = channelsColumns.filter((c) =>
     "baseFeeMsat",
     "minHtlc",
     "maxHtlcMsat",
-    "localNodeName",
+    "nodeName",
   ].includes(c.key)
 );
 

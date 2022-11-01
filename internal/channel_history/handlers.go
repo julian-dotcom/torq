@@ -86,17 +86,6 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 
 	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
 
-	details, err := settings.GetActiveNodesConnectionDetails(db)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-	nodeIds := make([]int, len(details))
-	for _, nodeConnectionDetail := range details {
-		nodeIds = append(nodeIds, nodeConnectionDetail.NodeId)
-	}
-	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
-
 	var channelIds []int
 	var all = false
 	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
@@ -163,14 +152,12 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chanIds := strings.Split(c.Param("chanIds"), ",")
+	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
 
 	var channelIds []int
-	var all = false
 	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
 		// TODO: Clean up Quick hack to simplify logic for fetching all channels
 		channelIds = []int{0}
-		all = true
 	} else {
 		channelIds = make([]int, len(lndShortChannelIdStrings))
 		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
@@ -210,29 +197,16 @@ func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chanIds := strings.Split(c.Param("chanIds"), ",")
+	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
 
-	var channelIds []int
 	var all = false
 	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
-		// TODO: Clean up Quick hack to simplify logic for fetching all channels
-		channelIds = []int{0}
 		all = true
-	} else {
-		channelIds = make([]int, len(lndShortChannelIdStrings))
-		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
-			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
-			if err != nil {
-				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
-				return
-			}
-			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
-		}
 	}
 
 	if !all {
-		for _, chanId := range lndShortChannelIdStrings {
-			cb, err := getChannelBalance(db, chanId, from, to)
+		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
+			cb, err := getChannelBalance(db, lndShortChannelIdString, from, to)
 			if err != nil {
 				server_errors.LogAndSendServerError(c, err)
 				return
@@ -243,9 +217,7 @@ func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 			} else {
 				r.ChannelBalances = append(r.ChannelBalances, &cb)
 			}
-
 		}
-
 	}
 	c.JSON(http.StatusOK, r)
 }
@@ -269,24 +241,23 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chanIds := strings.Split(c.Param("chanIds"), ",")
+	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
 
-	var channelIds []int
+	// TODO FIXME We need node selection
+	details, err := settings.GetActiveNodesConnectionDetails(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	nodeIds := make([]int, len(details))
+	for _, nodeConnectionDetail := range details {
+		nodeIds = append(nodeIds, nodeConnectionDetail.NodeId)
+	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+
 	var all = false
 	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
-		// TODO: Clean up Quick hack to simplify logic for fetching all channels
-		channelIds = []int{0}
 		all = true
-	} else {
-		channelIds = make([]int, len(lndShortChannelIdStrings))
-		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
-			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
-			if err != nil {
-				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
-				return
-			}
-			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
-		}
 	}
 
 	if all {
@@ -298,11 +269,6 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 			return
 		}
 	} else {
-		r.OnChainCost, err = getChannelOnChainCost(db, lndShortChannelIdStrings)
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
-		}
 		reb, err := getChannelRebalancing(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), lndShortChannelIdStrings, from, to)
 		r.RebalancingCost = &reb.SplitCostMsat
 		r.RebalancingDetails = reb
@@ -331,30 +297,28 @@ func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chanIds := strings.Split(c.Param("chanIds"), ",")
+	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
 
-	var channelIds []int
+	// TODO FIXME We need node selection
+	details, err := settings.GetActiveNodesConnectionDetails(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	nodeIds := make([]int, len(details))
+	for _, nodeConnectionDetail := range details {
+		nodeIds = append(nodeIds, nodeConnectionDetail.NodeId)
+	}
+
 	var all = false
 	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
-		// TODO: Clean up Quick hack to simplify logic for fetching all channels
-		channelIds = []int{0}
 		all = true
-	} else {
-		channelIds = make([]int, len(lndShortChannelIdStrings))
-		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
-			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
-			if err != nil {
-				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
-				return
-			}
-			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
-		}
 	}
 
 	if all {
-		r.OnChainCost, err = getTotalOnChainCost(db, from, to)
+		r.OnChainCost, err = getTotalOnChainCost(db, nodeIds, from, to)
 	} else {
-		r.OnChainCost, err = getChannelOnChainCost(db, channelIds)
+		r.OnChainCost, err = getChannelOnChainCost(db, lndShortChannelIdStrings)
 	}
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)

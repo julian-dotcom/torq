@@ -2,13 +2,9 @@ package torqsrv
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/lncapital/torq/internal/peers"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/cors"
