@@ -24,6 +24,7 @@ import type {
   GetTableViewQueryParams,
   GetFlowQueryParams,
   GetChannelHistoryData,
+  LoginResponse,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { localNode, settings, timeZone, channel } from "./apiTypes";
@@ -49,11 +50,7 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
   api,
   extraOptions
 ) => {
-  const result = await baseQuery(args, api, extraOptions);
-  if (result.error && result.error.status === 401) {
-    window.location.href = "/login";
-  }
-  return result;
+  return await baseQuery(args, api, extraOptions);
 };
 
 // Define a service using a base URL and expected endpoints
@@ -166,7 +163,7 @@ export const torqApi = createApi({
         method: "POST",
       }),
     }),
-    login: builder.mutation<any, FormData>({
+    login: builder.mutation<LoginResponse, FormData>({
       query: (form) => ({
         url: "login",
         method: "POST",
