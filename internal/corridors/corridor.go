@@ -90,7 +90,7 @@ func (cc *corridorCacheByType) getBestCorridor(key CorridorKey) Corridor {
 	return Corridor{CorridorTypeId: key.CorridorType.CorridorTypeId, Flag: key.CorridorType.DefaultFlag}
 }
 
-var corridorCache = map[CorridorType]*corridorCacheByType{
+var corridorCache = map[CorridorType]*corridorCacheByType{ //nolint:gochecknoglobals
 	Tag(): {
 		sync.RWMutex{},
 		make(map[int]map[CorridorKey]Corridor, 0),

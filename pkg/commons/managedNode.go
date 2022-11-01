@@ -6,7 +6,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var ManagedNodeChannel = make(chan ManagedNode)
+var ManagedNodeChannel = make(chan ManagedNode) //nolint:gochecknoglobals
 
 type ManagedNodeCacheOperationType uint
 

@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	qp "github.com/lncapital/torq/internal/query_parser"
+	"github.com/lncapital/torq/internal/settings"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
@@ -98,8 +99,15 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	// TODO FIXME We currently have hardcoded bitcoin/mainnet (that is why we also incorrectly have this in test cases)
-	r, total, err := getPayments(db, commons.GetAllTorqNodeIds(commons.Bitcoin, commons.MainNet), filter, sort, limit, offset)
+	// TODO FIXME We need node selection
+	details, err := settings.GetActiveNodesConnectionDetails(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+
+	r, total, err := getPayments(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -115,8 +123,15 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 
 func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
 
-	// TODO FIXME We currently have hardcoded bitcoin/mainnet (that is why we also incorrectly have this in test cases)
-	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(commons.Bitcoin, commons.MainNet), c.Param("identifier"))
+	// TODO FIXME We need node selection
+	details, err := settings.GetActiveNodesConnectionDetails(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+
+	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), c.Param("identifier"))
 	switch err.(type) {
 	case nil:
 		break

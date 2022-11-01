@@ -7,8 +7,10 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"gopkg.in/guregu/null.v4"
 
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -24,8 +26,16 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	// TODO FIXME We currently have hardcoded bitcoin/mainnet (that is why we also incorrectly have this in test cases)
-	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(commons.Bitcoin, commons.MainNet), from, to)
+
+	// TODO FIXME We need node selection
+	details, err := settings.GetActiveNodesConnectionDetails(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+
+	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -88,11 +98,6 @@ type forwardsTableRow struct {
 
 func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 	fromTime time.Time, toTime time.Time) (r []*forwardsTableRow, err error) {
-
-	publicKeys := make([]string, len(nodeIds))
-	for nodeId := range nodeIds {
-		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
-	}
 
 	var sqlString = `
 		select
@@ -187,9 +192,10 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			) as i
 			on i.channel_id = o.channel_id
 		) as fw on fw.channel_id = ce.channel_id
+		WHERE ( c.first_node_id = ANY($4) OR c.second_node_id = ANY($4) )
 `
 
-	rows, err := db.Queryx(sqlString, fromTime, toTime, commons.GetSettings().PreferredTimeZone)
+	rows, err := db.Queryx(sqlString, fromTime, toTime, commons.GetSettings().PreferredTimeZone, pq.Array(nodeIds))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running aggregated forwards query")
 	}

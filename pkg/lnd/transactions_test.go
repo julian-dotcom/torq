@@ -1,12 +1,15 @@
 package lnd
 
 import (
-	"github.com/lib/pq"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/testutil"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/lib/pq"
+	"github.com/lightningnetwork/lnd/lnrpc"
+
+	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/testutil"
 )
 
 type Transaction struct {
@@ -26,7 +29,10 @@ func TestStoreTransaction(t *testing.T) {
 		panic(err)
 	}
 
-	db, err := srv.NewTestDatabase(true)
+	db, cancel, err := srv.NewTestDatabase(true)
+	// TODO FIXME WHY?
+	defer time.Sleep(5 * time.Second)
+	defer cancel()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +79,7 @@ func TestStoreTransaction(t *testing.T) {
 		RawTxHex:          "",
 		Label:             expected.Label,
 		PreviousOutpoints: nil,
-	})
+	}, commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet))
 
 	if err != nil {
 		testutil.Fatalf(t, "storeTransaction", err)

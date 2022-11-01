@@ -249,10 +249,6 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	nodeIds := make([]int, len(details))
-	for _, nodeConnectionDetail := range details {
-		nodeIds = append(nodeIds, nodeConnectionDetail.NodeId)
-	}
 	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
 
 	var all = false

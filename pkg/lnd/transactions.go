@@ -127,11 +127,6 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 	}
 }
 
-var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height,
-                total_fees, dest_addresses, raw_tx_hex, label, node_id)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                ON CONFLICT (timestamp, tx_hash) DO NOTHING;`
-
 func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction, nodeId int) error {
 	if tx == nil {
 		return nil
@@ -143,6 +138,11 @@ func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction, nodeId int) error {
 	for _, output := range tx.OutputDetails {
 		destinationAddresses = append(destinationAddresses, output.Address)
 	}
+
+	var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height,
+                total_fees, dest_addresses, raw_tx_hex, label, node_id)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ON CONFLICT (timestamp, tx_hash) DO NOTHING;`
 
 	_, err := db.Exec(insertTx,
 		time.Unix(tx.TimeStamp, 0).UTC(),

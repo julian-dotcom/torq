@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-var ManagedSettingsChannel = make(chan ManagedSettings)
+var ManagedSettingsChannel = make(chan ManagedSettings) //nolint:gochecknoglobals
 
 type ManagedSettingsCacheOperationType uint
 
