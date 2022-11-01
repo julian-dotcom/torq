@@ -8,7 +8,7 @@ type Paginable = {
   offset: number;
 };
 
-export type Flow = {
+export type FromAndTo = {
   from: string;
   to: string;
 };
@@ -18,15 +18,20 @@ export type BaseQueryCollectionParams = Paginable & {
   filter?: Record<string, unknown>;
 };
 
-export type GetFlowQueryParams = Flow & {
-  chan_id: string;
-};
-
-export type GetChannelHistoryQueryParams = Flow & {
+export type GetFlowQueryParams = FromAndTo & {
   chanIds: string;
 };
 
-export type GetForwardsQueryParams = Flow;
+export type GetChannelHistoryParams = {
+  chanId: string;
+};
+export type GetChannelHistoryQueryParams = FromAndTo;
+export type GetChannelHistoryData = {
+  params: GetChannelHistoryParams;
+  queryParams: GetChannelHistoryQueryParams;
+};
+
+export type GetForwardsQueryParams = FromAndTo;
 
 export type GetDecodedInvoiceQueryParams = {
   invoice: string;
@@ -57,7 +62,7 @@ export type GetOnChainTransactionsQueryParams = BaseQueryCollectionParams;
 
 export type GetTableViewQueryParams = {
   page: string;
-}
+};
 
 type InvoiceFeature = {
   Name: string;

@@ -2,9 +2,9 @@ import {
   useGetChannelHistoryQuery,
   useGetChannelRebalancingQuery,
   useGetChannelOnChainCostQuery,
-  useGetFlowQuery
+  useGetFlowQuery,
 } from "apiSlice";
-import type { GetChannelHistoryQueryParams } from "types/api";
+import type { GetChannelHistoryData, GetFlowQueryParams } from "types/api";
 import classNames from "classnames";
 import * as d3 from "d3";
 import { addDays, format } from "date-fns";
@@ -30,33 +30,46 @@ function ChannelPage() {
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
   const { chanId } = useParams();
 
-  const queryParams: GetChannelHistoryQueryParams = {
+  const flowQueryParams: GetFlowQueryParams = {
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
     chanIds: chanId || "1",
-  }
+  };
 
-  const { data, isLoading } = useGetFlowQuery(queryParams);
-  const { data: onChainCost } = useGetChannelOnChainCostQuery(queryParams);
-  const { data: history } = useGetChannelHistoryQuery(queryParams);
-  const { data: rebalancing } = useGetChannelRebalancingQuery(queryParams);
+  const { data, isLoading } = useGetFlowQuery(flowQueryParams);
+
+  const getChannelHistoryData: GetChannelHistoryData = {
+    params: { chanId: chanId || "1" },
+    queryParams: {
+      from: from,
+      to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
+    },
+  };
+
+  const { data: onChainCost } = useGetChannelOnChainCostQuery(getChannelHistoryData);
+  const { data: history } = useGetChannelHistoryQuery(getChannelHistoryData);
+  const { data: rebalancing } = useGetChannelRebalancingQuery(getChannelHistoryData);
 
   const flowKey = useAppSelector(selectFlowKeys);
   const profitKey = useAppSelector(selectProfitChartKey);
 
-  const profit: number = history?.revenueOut && onChainCost?.onChainCost && rebalancing?.rebalancingCost ?
-  history?.revenueOut - onChainCost?.onChainCost - rebalancing?.rebalancingCost / 1000 : 0;
+  const profit: number =
+    history?.revenueOut && onChainCost?.onChainCost && rebalancing?.rebalancingCost
+      ? history?.revenueOut - onChainCost?.onChainCost - rebalancing?.rebalancingCost / 1000
+      : 0;
 
-  const totalCost: number = onChainCost?.onChainCost && rebalancing?.rebalancingCost ?
-  onChainCost?.onChainCost + rebalancing?.rebalancingCost / 1000 : 0;
+  const totalCost: number =
+    onChainCost?.onChainCost && rebalancing?.rebalancingCost
+      ? onChainCost?.onChainCost + rebalancing?.rebalancingCost / 1000
+      : 0;
   const historyRevenueOut = history?.revenueOut || 0;
   const rebalancingCostBy1000 = rebalancing?.rebalancingCost ? rebalancing?.rebalancingCost / 1000 : 0;
   const onchainCost = onChainCost?.onChainCost || 0;
   const historyReveueOutMinusCost = history?.revenueOut ? (history?.revenueOut - totalCost) / history?.revenueOut : 0;
   const historyAmountOut = history?.amountOut || 0;
   const historyCountOut = history?.countOut || 0;
-  const historyRevenueOutAmountOut = history?.revenueOut && history?.amountOut ? (history?.revenueOut / history?.amountOut ) * 1000 * 1000 : 0;
-
+  const historyRevenueOutAmountOut =
+    history?.revenueOut && history?.amountOut ? (history?.revenueOut / history?.amountOut) * 1000 * 1000 : 0;
 
   const breadcrumbs = [
     <span key="b1">Analyse</span>,
@@ -107,9 +120,7 @@ function ChannelPage() {
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Gross Profit Margin</div>
-                <div className={classNames(styles.rowValue)}>
-                  {d3.format(".2%")(historyReveueOutMinusCost)}
-                </div>
+                <div className={classNames(styles.rowValue)}>{d3.format(".2%")(historyReveueOutMinusCost)}</div>
               </div>
             </div>
             <div className={styles.card}>
@@ -127,9 +138,7 @@ function ChannelPage() {
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Average fee</div>
-                <div className={classNames(styles.rowValue)}>
-                  {d3.format(",.1f")(historyRevenueOutAmountOut)}
-                </div>
+                <div className={classNames(styles.rowValue)}>{d3.format(",.1f")(historyRevenueOutAmountOut)}</div>
               </div>
             </div>
           </div>
@@ -165,9 +174,7 @@ function ChannelPage() {
               {/*</div>*/}
             </div>
             <div className={styles.chartContainer}>
-              {history && (
-                <ProfitsChart data={history.history} dashboard={true} from={from} to={to} />
-              )}
+              {history && <ProfitsChart data={history.history} dashboard={true} from={from} to={to} />}
             </div>
           </div>
         </div>
@@ -213,7 +220,6 @@ function ChannelPage() {
               <div className="destinations">Destinations</div>
             </div>
             <div className={classNames(styles.chartWrapper, styles.flowChartWrapper)}>
-
               {!isLoading && data && <FlowChart data={data} />}
             </div>
           </div>

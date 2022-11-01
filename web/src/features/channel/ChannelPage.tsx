@@ -5,14 +5,10 @@ import {
   useGetChannelOnChainCostQuery,
   useGetChannelRebalancingQuery,
   useGetChannelEventQuery,
-  useGetFlowQuery
+  useGetFlowQuery,
 } from "apiSlice";
-import {
-  ChannelHistoryResponse,
-  ChannelEventResponse,
-  Channel,
-} from "features/channel/channelTypes"
-import type { GetChannelHistoryQueryParams } from "types/api";
+import { ChannelHistoryResponse, ChannelEventResponse, Channel } from "features/channel/channelTypes";
+import type { GetChannelHistoryData, GetFlowQueryParams } from "types/api";
 import classNames from "classnames";
 import * as d3 from "d3";
 import { addDays, format } from "date-fns";
@@ -59,7 +55,7 @@ type ChannelPageProps = {
   chanId?: string;
 };
 
-function ChannelPage(props: ChannelPageProps) {
+function ChannelPage(_: ChannelPageProps) {
   const currentPeriod = useAppSelector(selectTimeInterval);
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
@@ -82,22 +78,30 @@ function ChannelPage(props: ChannelPageProps) {
   };
 
   const { chanId } = useParams();
-  const queryParams: GetChannelHistoryQueryParams = {
+  const flowQueryParams: GetFlowQueryParams = {
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
     chanIds: chanId || "1",
-  }
-  const { data, isLoading } = useGetFlowQuery(queryParams);
+  };
+  const { data, isLoading } = useGetFlowQuery(flowQueryParams);
 
-  const { data: balance } = useGetChannelBalanceQuery(queryParams);
+  const channelHistoryQueryData: GetChannelHistoryData = {
+    params: { chanId: chanId || "1" },
+    queryParams: {
+      from: from,
+      to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
+    },
+  };
 
-  const { data: onChainCost } = useGetChannelOnChainCostQuery(queryParams);
+  const { data: balance } = useGetChannelBalanceQuery(channelHistoryQueryData);
 
-  const { data: history } = useGetChannelHistoryQuery(queryParams);
+  const { data: onChainCost } = useGetChannelOnChainCostQuery(channelHistoryQueryData);
 
-  const { data: rebalancing } = useGetChannelRebalancingQuery(queryParams);
+  const { data: history } = useGetChannelHistoryQuery(channelHistoryQueryData);
 
-  const { data: event } = useGetChannelEventQuery(queryParams);
+  const { data: rebalancing } = useGetChannelRebalancingQuery(channelHistoryQueryData);
+
+  const { data: event } = useGetChannelEventQuery(channelHistoryQueryData);
 
   const flowKey = useAppSelector(selectFlowKeys);
   const profitKey = useAppSelector(selectProfitChartKey);
@@ -115,11 +119,15 @@ function ChannelPage(props: ChannelPageProps) {
       })
       .reduce((partialSum: number, a: number) => partialSum + a, 0);
   }
-  const profit: number = history?.revenueOut && onChainCost?.onChainCost && rebalancing?.rebalancingCost ?
-    history?.revenueOut - onChainCost?.onChainCost - rebalancing?.rebalancingCost / 1000 : 0;
+  const profit: number =
+    history?.revenueOut && onChainCost?.onChainCost && rebalancing?.rebalancingCost
+      ? history?.revenueOut - onChainCost?.onChainCost - rebalancing?.rebalancingCost / 1000
+      : 0;
 
-  const totalCost: number = onChainCost?.onChainCost && rebalancing?.rebalancingCost ?
-    onChainCost?.onChainCost + rebalancing?.rebalancingCost / 1000 : 0;
+  const totalCost: number =
+    onChainCost?.onChainCost && rebalancing?.rebalancingCost
+      ? onChainCost?.onChainCost + rebalancing?.rebalancingCost / 1000
+      : 0;
 
   const selectedEventsCount = Array.from(selectedEvents).filter((d) => d[1]).length;
   const historyAmountIn = history?.amountIn || 0;
@@ -131,23 +139,28 @@ function ChannelPage(props: ChannelPageProps) {
   const historyCountIn = history?.countIn || 0;
   const historyCountOut = history?.countOut || 0;
   const historyCountTotal = history?.countTotal || 0;
-  const historyRevenueOutAmountOut = history?.revenueOut && history?.amountOut ? (history?.revenueOut / history?.amountOut ) * 1000 * 1000 : 0;
-  const historyRevenueInAmountIn = history?.revenueIn && history?.amountIn ? (history?.revenueIn / history?.amountIn ) * 1000 * 1000 : 0;
-  const historyRevenueTotalAmountTotal = history?.revenueTotal && history?.amountTotal ? (history?.revenueTotal / history?.amountTotal ) * 1000 * 1000 : 0;
+  const historyRevenueOutAmountOut =
+    history?.revenueOut && history?.amountOut ? (history?.revenueOut / history?.amountOut) * 1000 * 1000 : 0;
+  const historyRevenueInAmountIn =
+    history?.revenueIn && history?.amountIn ? (history?.revenueIn / history?.amountIn) * 1000 * 1000 : 0;
+  const historyRevenueTotalAmountTotal =
+    history?.revenueTotal && history?.amountTotal ? (history?.revenueTotal / history?.amountTotal) * 1000 * 1000 : 0;
   const rebalancingCostBy1000 = rebalancing?.rebalancingCost ? rebalancing?.rebalancingCost / 1000 : 0;
-  const onchainPlusRebalancingCostBy1000 =  onChainCost?.onChainCost && rebalancing?.rebalancingCost ?
-    onChainCost?.onChainCost + rebalancing?.rebalancingCost / 1000 : 0;
+  const onchainPlusRebalancingCostBy1000 =
+    onChainCost?.onChainCost && rebalancing?.rebalancingCost
+      ? onChainCost?.onChainCost + rebalancing?.rebalancingCost / 1000
+      : 0;
   const onchainCost = onChainCost?.onChainCost || 0;
   const historyReveueOutMinusCost = history?.revenueOut ? (history?.revenueOut - totalCost) / history?.revenueOut : 0;
   const historyAmountTotalCapacity = history?.amountTotal ? history?.amountTotal / totalCapacity : 0;
-  const historyAmountInOut = history?.amountIn && history?.amountOut ?
-    Math.min(history?.amountIn, history?.amountOut) /
-    Math.max(history?.amountIn, history?.amountOut)
-    : 0;
-  const historyCountInOut = history?.countIn && history?.countOut ?
-    Math.min(history?.countIn, history?.countOut) /
-    Math.max(history?.countIn, history?.countOut)
-    : 0;
+  const historyAmountInOut =
+    history?.amountIn && history?.amountOut
+      ? Math.min(history?.amountIn, history?.amountOut) / Math.max(history?.amountIn, history?.amountOut)
+      : 0;
+  const historyCountInOut =
+    history?.countIn && history?.countOut
+      ? Math.min(history?.countIn, history?.countOut) / Math.max(history?.countIn, history?.countOut)
+      : 0;
   const historyCapacity = history?.channels.length ? history?.channels[balanceChanId.value].capacity : 0;
 
   const title =
@@ -206,9 +219,7 @@ function ChannelPage(props: ChannelPageProps) {
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
-                <div className={classNames(styles.rowValue)}>
-                  {ft(onchainPlusRebalancingCostBy1000)}
-                </div>
+                <div className={classNames(styles.rowValue)}>{ft(onchainPlusRebalancingCostBy1000)}</div>
               </div>
             </div>
             <div className={styles.card}>
@@ -219,15 +230,11 @@ function ChannelPage(props: ChannelPageProps) {
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Gross Profit Margin</div>
-                <div className={classNames(styles.rowValue)}>
-                  {d3.format(".2%")(historyReveueOutMinusCost)}
-                </div>
+                <div className={classNames(styles.rowValue)}>{d3.format(".2%")(historyReveueOutMinusCost)}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Turnover</div>
-                <div className={classNames(styles.rowValue)}>
-                  {d3.format(",.2")(historyAmountTotalCapacity)}
-                </div>
+                <div className={classNames(styles.rowValue)}>{d3.format(",.2")(historyAmountTotalCapacity)}</div>
               </div>
             </div>
             <div className={styles.card}>
@@ -310,15 +317,11 @@ function ChannelPage(props: ChannelPageProps) {
             </div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>Turnover</div>
-              <div className={classNames(styles.rowValue)}>
-                {d3.format(",.2")(historyAmountTotalCapacity)}
-              </div>
+              <div className={classNames(styles.rowValue)}>{d3.format(",.2")(historyAmountTotalCapacity)}</div>
             </div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>Balance score</div>
-              <div className={classNames(styles.rowValue)}>
-                {d3.format(".1%")(historyAmountInOut)}
-              </div>
+              <div className={classNames(styles.rowValue)}>{d3.format(".1%")(historyAmountInOut)}</div>
             </div>
           </div>
 
@@ -338,21 +341,15 @@ function ChannelPage(props: ChannelPageProps) {
             </div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>Average fee out</div>
-              <div className={classNames(styles.rowValue)}>
-                {d3.format(",.1f")(historyRevenueOutAmountOut)}
-              </div>
+              <div className={classNames(styles.rowValue)}>{d3.format(",.1f")(historyRevenueOutAmountOut)}</div>
             </div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>Average fee in</div>
-              <div className={classNames(styles.rowValue)}>
-                {d3.format(",.1f")(historyRevenueInAmountIn)}
-              </div>
+              <div className={classNames(styles.rowValue)}>{d3.format(",.1f")(historyRevenueInAmountIn)}</div>
             </div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>Average fee</div>
-              <div className={classNames(styles.rowValue)}>
-                {d3.format(",.1f")(historyRevenueTotalAmountTotal)}
-              </div>
+              <div className={classNames(styles.rowValue)}>{d3.format(",.1f")(historyRevenueTotalAmountTotal)}</div>
             </div>
           </div>
 
@@ -372,16 +369,18 @@ function ChannelPage(props: ChannelPageProps) {
             </div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>Balance score (Nb. Tx)</div>
-              <div className={classNames(styles.rowValue)}>
-                {d3.format(".1%")(historyCountInOut)}
-              </div>
+              <div className={classNames(styles.rowValue)}>{d3.format(".1%")(historyCountInOut)}</div>
             </div>
           </div>
         </div>
 
         <div className={classNames(styles.pageRow, styles.eventSummary)}>
           <div className={styles.shortColumn}>
-            <EventsCard events={event as ChannelEventResponse} selectedEvents={selectedEvents} channels={history as ChannelHistoryResponse} />
+            <EventsCard
+              events={event as ChannelEventResponse}
+              selectedEvents={selectedEvents}
+              channels={history as ChannelHistoryResponse}
+            />
           </div>
           <div className={classNames(styles.card, styles.channelSummaryChart)} style={{ height: "600px" }}>
             <div className={styles.profitChartControls}>
