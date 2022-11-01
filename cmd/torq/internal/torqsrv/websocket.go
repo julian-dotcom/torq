@@ -2,6 +2,9 @@ package torqsrv
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -136,6 +139,26 @@ func processWsReq(db *sqlx.DB, c *gin.Context, wChan chan interface{}, req wsReq
 }
 
 func WebsocketHandler(c *gin.Context, db *sqlx.DB, wsChan chan interface{}) error {
+	var wsUpgrade = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			if r.Header.Get("Origin") == "http://localhost:3000" {
+				return true
+			}
+
+			origin := r.Header["Origin"]
+			if len(origin) == 0 {
+				return true
+			}
+			u, err := url.Parse(origin[0])
+			if err != nil {
+				return false
+			}
+			return equalASCIIFold(u.Host, r.Host)
+		},
+	}
+
 	conn, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return errors.Wrap(err, "WebSocket upgrade.")

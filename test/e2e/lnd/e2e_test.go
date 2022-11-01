@@ -25,14 +25,14 @@ const bobName = "e2e-bob"
 const aliceName = "e2e-alice"
 const carolName = "e2e-carol"
 
-var ctx context.Context
-var cli *client.Client
-var torq dockercontainer.ContainerCreateCreatedBody
-var btcd dockercontainer.ContainerCreateCreatedBody
-var alice dockercontainer.ContainerCreateCreatedBody
-var bob dockercontainer.ContainerCreateCreatedBody
-var carol dockercontainer.ContainerCreateCreatedBody
-var bobIPAddress string
+var ctx context.Context                              //nolint:gochecknoglobals
+var cli *client.Client                               //nolint:gochecknoglobals
+var torq dockercontainer.ContainerCreateCreatedBody  //nolint:gochecknoglobals
+var btcd dockercontainer.ContainerCreateCreatedBody  //nolint:gochecknoglobals
+var alice dockercontainer.ContainerCreateCreatedBody //nolint:gochecknoglobals
+var bob dockercontainer.ContainerCreateCreatedBody   //nolint:gochecknoglobals
+var carol dockercontainer.ContainerCreateCreatedBody //nolint:gochecknoglobals
+var bobIPAddress string                              //nolint:gochecknoglobals
 
 func TestMain(m *testing.M) {
 

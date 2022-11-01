@@ -233,9 +233,9 @@ func AddOpenChanPoint(chanPoint string)      { addOpenChanPointChan <- chanPoint
 func RemoveClosedChanPoint(chanPoint string) { removeClosedChanPointChan <- chanPoint }
 func GetOpenChanPoints() []string            { return <-getOpenChanPointsChan }
 
-var addOpenChanPointChan = make(chan string)
-var removeClosedChanPointChan = make(chan string)
-var getOpenChanPointsChan = make(chan []string)
+var addOpenChanPointChan = make(chan string)      //nolint:gochecknoglobals
+var removeClosedChanPointChan = make(chan string) //nolint:gochecknoglobals
+var getOpenChanPointsChan = make(chan []string)   //nolint:gochecknoglobals
 
 func OpenChanPointListMonitor(ctx context.Context) {
 	var openChanPointList []string
@@ -359,8 +359,8 @@ func InitPeerList(db *sqlx.DB) error {
 func AddPeerPubKey(pubKey string) { addPeerPubKeyChan <- pubKey }
 func GetPeerPubKeys() []string    { return <-getPeerPubKeysChan }
 
-var addPeerPubKeyChan = make(chan string)
-var getPeerPubKeysChan = make(chan []string)
+var addPeerPubKeyChan = make(chan string)    //nolint:gochecknoglobals
+var getPeerPubKeysChan = make(chan []string) //nolint:gochecknoglobals
 
 func PeerPubKeyListMonitor(ctx context.Context) {
 	// pubKeyList is used to store which node and channel updates to store. We only want to store

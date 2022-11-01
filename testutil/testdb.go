@@ -90,11 +90,11 @@ func (srv *Server) dbUrl(dbName string) string {
 	return srv.baseURL + dbName + "?sslmode=disable"
 }
 
-// rune used as source for random database names
-var letters = []rune("abcdefghijklmnopqrstuvwxyz")
-
 // randomString is used to generate a unique database names.
 func randString(n int) string {
+	// rune used as source for random database names
+	var letters = []rune("abcdefghijklmnopqrstuvwxyz")
+
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]

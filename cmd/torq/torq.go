@@ -20,9 +20,9 @@ import (
 	"github.com/urfave/cli/v2/altsrc"
 )
 
-var startchan = make(chan struct{})
-var stopchan = make(chan struct{})
-var wsChan = make(chan interface{})
+var startchan = make(chan struct{}) //nolint:gochecknoglobals
+var stopchan = make(chan struct{})  //nolint:gochecknoglobals
+var wsChan = make(chan interface{}) //nolint:gochecknoglobals
 
 type subscriptions struct {
 	mu          sync.RWMutex
@@ -69,7 +69,7 @@ func (rs *subscriptions) GetCancelFuncs() (funcs []func()) {
 	return funcs
 }
 
-var runningSubscriptions subscriptions
+var runningSubscriptions subscriptions //nolint:gochecknoglobals
 
 func main() {
 
@@ -332,7 +332,7 @@ func main() {
 }
 
 // guards against running restart code whilst it's already running
-var restartLock sync.RWMutex
+var restartLock sync.RWMutex //nolint:gochecknoglobals
 
 func RestartLNDSubscription() error {
 	locked := restartLock.TryLock()

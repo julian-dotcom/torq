@@ -2,12 +2,11 @@ package torqsrv
 
 import (
 	"fmt"
-	"github.com/lncapital/torq/internal/peers"
-	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/lncapital/torq/internal/peers"
 
 	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
@@ -15,7 +14,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channel_history"
@@ -95,26 +93,6 @@ func equalASCIIFold(s, t string) bool {
 		}
 	}
 	return s == t
-}
-
-var wsUpgrade = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		if r.Header.Get("Origin") == "http://localhost:3000" {
-			return true
-		}
-
-		origin := r.Header["Origin"]
-		if len(origin) == 0 {
-			return true
-		}
-		u, err := url.Parse(origin[0])
-		if err != nil {
-			return false
-		}
-		return equalASCIIFold(u.Host, r.Host)
-	},
 }
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, wsChan chan interface{}, restartLNDSub func() error) {

@@ -14,16 +14,10 @@ import (
 	"time"
 )
 
-var (
-	err  = os.Stderr
-	warn = os.Stderr
-	info = io.Discard
-)
-
 // Connect connects to LND using gRPC.
 func Connect(host string, tlsCert []byte, macaroonBytes []byte) (*grpc.ClientConn, error) {
 
-	grpclog.SetLoggerV2(grpclog.NewLoggerV2(info, warn, err))
+	grpclog.SetLoggerV2(grpclog.NewLoggerV2(io.Discard, os.Stderr, os.Stderr))
 
 	cp := x509.NewCertPool()
 	if !cp.AppendCertsFromPEM(tlsCert) {

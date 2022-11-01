@@ -12,3 +12,4 @@ linters:
     - staticcheck
     - typecheck
     - unused
+    - gochecknoglobals
