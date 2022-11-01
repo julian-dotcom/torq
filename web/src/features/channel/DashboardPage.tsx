@@ -3,10 +3,17 @@ import {
   useGetChannelRebalancingQuery,
   useGetChannelOnChainCostQuery,
   useGetFlowQuery,
+  useGetLocalNodesQuery,
 } from "apiSlice";
+import {
+  Question20Regular as QuestionIcon,
+  Checkmark20Regular as CheckmarkIcon,
+  Dismiss20Regular as DismissIcon,
+} from "@fluentui/react-icons";
 import type { GetChannelHistoryData, GetFlowQueryParams } from "types/api";
 import classNames from "classnames";
 import * as d3 from "d3";
+import { useEffect, useState } from "react";
 import { addDays, format } from "date-fns";
 import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
 import { useParams } from "react-router";
@@ -19,10 +26,30 @@ import styles from "./channel-page.module.scss";
 import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartKey } from "./channelSlice";
 import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
+import Modal from "features/modal/Modal";
+import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
+import { useNavigate } from "react-router-dom";
 
 const ft = d3.format(",.0f");
 
 function ChannelPage() {
+  const { data: localNodes, isLoading: nodesLoading } = useGetLocalNodesQuery();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!nodesLoading && !localNodes?.length) {
+      setShowModalState(true);
+    }
+  }, [localNodes, nodesLoading]);
+
+  const handleConfirmationModalClose = () => {
+    setShowModalState(false);
+  };
+
+  const handleModalSettingsClick = () => {
+    setShowModalState(false);
+    navigate("/settings", { replace: true });
+  };
+
   const currentPeriod = useAppSelector(selectTimeInterval);
 
   const dispatch = useAppDispatch();
@@ -49,6 +76,7 @@ function ChannelPage() {
   const { data: onChainCost } = useGetChannelOnChainCostQuery(getChannelHistoryData);
   const { data: history } = useGetChannelHistoryQuery(getChannelHistoryData);
   const { data: rebalancing } = useGetChannelRebalancingQuery(getChannelHistoryData);
+  const [showModalState, setShowModalState] = useState(false);
 
   const flowKey = useAppSelector(selectFlowKeys);
   const profitKey = useAppSelector(selectProfitChartKey);
@@ -226,6 +254,39 @@ function ChannelPage() {
         </div>
       </div>
       <Outlet />
+      <Modal
+        title={"Local Node not found"}
+        icon={<QuestionIcon className={styles.settingsConfirmationIcon} />}
+        onClose={handleConfirmationModalClose}
+        show={showModalState}
+      >
+        <div className={styles.deleteConfirm}>
+          <p>
+            It seems that you didn&apos;t configure a node. In order to use Torq, you will have to configure at least
+            one Node.
+          </p>
+          <p>Do you want to go to the Settings page and add your Node now?</p>
+
+          <div className={styles.settingsConfirmation}>
+            <Button
+              buttonColor={buttonColor.green}
+              buttonPosition={buttonPosition.fullWidth}
+              text={"Yes"}
+              icon={<CheckmarkIcon />}
+              onClick={handleModalSettingsClick}
+              className={styles.settingsConfirmationButton}
+            />
+            <Button
+              buttonColor={buttonColor.warning}
+              buttonPosition={buttonPosition.fullWidth}
+              text={"No"}
+              icon={<DismissIcon />}
+              onClick={handleConfirmationModalClose}
+              className={styles.settingsConfirmationButton}
+            />
+          </div>
+        </div>
+      </Modal>
     </DetailsPageTemplate>
   );
 }

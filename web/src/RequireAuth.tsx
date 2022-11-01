@@ -15,6 +15,6 @@ const RequireAuth = () => {
   });
 
   return <Outlet />;
-}
+};
 
-export default RequireAuth
+export default RequireAuth;
