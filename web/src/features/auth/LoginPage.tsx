@@ -4,6 +4,11 @@ import { LockOpen20Regular as UnlockIcon } from "@fluentui/react-icons";
 import "./login_page.scss";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLoginMutation } from "apiSlice";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
+import type {
+  LoginResponse,
+} from "types/api";
 
 function LoginPage() {
   const [login] = useLoginMutation();
@@ -15,7 +20,7 @@ function LoginPage() {
       pathname: string;
     };
   }
-
+  const toastRef = React.useContext(ToastContext);
   let from = (location.state as LocationState)?.from?.pathname || "/";
   // Don't redirect back to logout.
   if (from === "/logout" || from === "/login" || from === "logout" || from === "login" || from === "" || from === "/") {
@@ -26,8 +31,13 @@ function LoginPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     formData.append("username", "admin");
-    await login(formData);
-    navigate(from, { replace: true });
+    const res = await login(formData) as LoginResponse;
+    if (res?.error) {
+      const errorMessage =  res.error?.data?.error ? "Incorrect Password!" : "Api not reacheable!"
+      toastRef?.current?.addToast(errorMessage, toastCategory.error);
+    } else {
+      navigate(from, { replace: true });
+    }
   };
 
   // TODO: unify the styling here once standardised button styles are done.

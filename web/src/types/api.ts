@@ -54,6 +54,20 @@ export type SendOnChainResponse = {
   txId: string;
 };
 
+export type LoginResponse = {
+  error?: LoginFail;
+  data?: LoginSuccess;
+}
+
+type LoginFail = {
+  data?: { error: string };
+  error?: string;
+  status: number;
+}
+type LoginSuccess = {
+  message: string;
+}
+
 export type GetPaymentsQueryParams = BaseQueryCollectionParams;
 
 export type GetInvoicesQueryParams = BaseQueryCollectionParams;
