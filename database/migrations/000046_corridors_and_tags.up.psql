@@ -203,8 +203,10 @@ WHERE he1.outgoing_short_channel_id=he2.outgoing_short_channel_id;
 
 UPDATE htlc_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
 
-ALTER TABLE htlc_event ALTER COLUMN incoming_channel_id SET NOT NULL;
-ALTER TABLE htlc_event ALTER COLUMN outgoing_channel_id SET NOT NULL;
+--ALTER TABLE htlc_event ALTER COLUMN incoming_channel_id SET NOT NULL;
+--For payments there is no incoming_channel_id
+--ALTER TABLE htlc_event ALTER COLUMN outgoing_channel_id SET NOT NULL;
+--For Link failures there is no outgoing_channel_id
 ALTER TABLE htlc_event ALTER COLUMN node_id SET NOT NULL;
 
 ALTER TABLE htlc_event ADD CONSTRAINT fk_htlc_event_incoming_channel_id FOREIGN KEY (incoming_channel_id) REFERENCES channel(channel_id);

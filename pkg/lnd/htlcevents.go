@@ -17,7 +17,7 @@ import (
 	"go.uber.org/ratelimit"
 )
 
-func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.LinkFailEvent, nodeId int) error {
+func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) error {
 
 	jb, err := json.Marshal(h)
 	if err != nil {
@@ -49,17 +49,18 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
 
+	var incomingChannelId *int
 	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
-	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-	incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
-	if incomingChannelId == 0 {
-		log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
-			incomingShortChannelId)
+	tempIncomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+	if tempIncomingChannelId != 0 {
+		incomingChannelId = &tempIncomingChannelId
 	}
-	outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
-	if outgoingChannelId == 0 {
-		log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
-			outgoingShortChannelId)
+
+	var outgoingChannelId *int
+	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
+	tempOutgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+	if tempOutgoingChannelId != 0 {
+		outgoingChannelId = &tempOutgoingChannelId
 	}
 
 	_, err = db.Exec(stm,
@@ -68,15 +69,15 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 		h.TimestampNs,
 		jb,
 		"LinkFailEvent",
-		fwe.Info.IncomingAmtMsat,
-		fwe.Info.OutgoingAmtMsat,
-		fwe.Info.IncomingTimelock,
-		fwe.Info.OutgoingTimelock,
+		h.GetLinkFailEvent().Info.IncomingAmtMsat,
+		h.GetLinkFailEvent().Info.OutgoingAmtMsat,
+		h.GetLinkFailEvent().Info.IncomingTimelock,
+		h.GetLinkFailEvent().Info.OutgoingTimelock,
 		h.OutgoingHtlcId,
 		h.IncomingHtlcId,
-		fwe.WireFailure.String(),
-		fwe.FailureString,
-		fwe.FailureDetail.String(),
+		h.GetLinkFailEvent().WireFailure.String(),
+		h.GetLinkFailEvent().FailureString,
+		h.GetLinkFailEvent().FailureDetail.String(),
 		incomingChannelId,
 		outgoingChannelId,
 		nodeId,
@@ -90,7 +91,7 @@ func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Link
 	return nil
 }
 
-func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.SettleEvent, nodeId int) error {
+func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) error {
 
 	jb, err := json.Marshal(h)
 	if err != nil {
@@ -113,17 +114,19 @@ func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Settle
 	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+
+	var incomingChannelId *int
 	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
-	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-	incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
-	if incomingChannelId == 0 {
-		log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
-			incomingShortChannelId)
+	tempIncomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+	if tempIncomingChannelId != 0 {
+		incomingChannelId = &tempIncomingChannelId
 	}
-	outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
-	if outgoingChannelId == 0 {
-		log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
-			outgoingShortChannelId)
+
+	var outgoingChannelId *int
+	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
+	tempOutgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+	if tempOutgoingChannelId != 0 {
+		outgoingChannelId = &tempOutgoingChannelId
 	}
 
 	_, err = db.Exec(stm,
@@ -171,18 +174,20 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) erro
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
 
+	var incomingChannelId *int
 	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
+	tempIncomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+	if tempIncomingChannelId != 0 {
+		incomingChannelId = &tempIncomingChannelId
+	}
+
+	var outgoingChannelId *int
 	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-	incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
-	if incomingChannelId == 0 {
-		log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
-			incomingShortChannelId)
+	tempOutgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+	if tempOutgoingChannelId != 0 {
+		outgoingChannelId = &tempOutgoingChannelId
 	}
-	outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
-	if outgoingChannelId == 0 {
-		log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
-			outgoingShortChannelId)
-	}
+
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
@@ -204,7 +209,7 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) erro
 	return nil
 }
 
-func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.ForwardEvent, nodeId int) error {
+func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) error {
 
 	jb, err := json.Marshal(h)
 	if err != nil {
@@ -232,28 +237,30 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, fwe *routerrpc.Forwa
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
 
+	var incomingChannelId *int
 	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
+	tempIncomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+	if tempIncomingChannelId != 0 {
+		incomingChannelId = &tempIncomingChannelId
+	}
+
+	var outgoingChannelId *int
 	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-	incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
-	if incomingChannelId == 0 {
-		log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
-			incomingShortChannelId)
+	tempOutgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+	if tempOutgoingChannelId != 0 {
+		outgoingChannelId = &tempOutgoingChannelId
 	}
-	outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
-	if outgoingChannelId == 0 {
-		log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
-			outgoingShortChannelId)
-	}
+
 	_, err = db.Exec(stm,
 		timestampMs,
 		h.EventType,
 		h.TimestampNs,
 		jb,
 		"ForwardEvent",
-		fwe.Info.IncomingAmtMsat,
-		fwe.Info.OutgoingAmtMsat,
-		fwe.Info.IncomingTimelock,
-		fwe.Info.OutgoingTimelock,
+		h.GetForwardEvent().Info.IncomingAmtMsat,
+		h.GetForwardEvent().Info.OutgoingAmtMsat,
+		h.GetForwardEvent().Info.IncomingTimelock,
+		h.GetForwardEvent().Info.OutgoingTimelock,
 		h.OutgoingHtlcId,
 		h.IncomingHtlcId,
 		incomingChannelId,
@@ -315,7 +322,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 
 		switch htlcEvent.Event.(type) {
 		case *routerrpc.HtlcEvent_ForwardEvent:
-			err = storeForwardEvent(db, htlcEvent, htlcEvent.GetForwardEvent(), nodeSettings.NodeId)
+			err = storeForwardEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
@@ -329,22 +336,20 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_LinkFailEvent:
-			err = storeLinkFailEvent(db, htlcEvent, htlcEvent.GetLinkFailEvent(), nodeSettings.NodeId)
+			err = storeLinkFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_SettleEvent:
-			err = storeSettleEvent(db, htlcEvent, htlcEvent.GetSettleEvent(), nodeSettings.NodeId)
+			err = storeSettleEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				log.Printf("Subscribe htlc events stream: %v", err)
 				// rate limit for caution but hopefully not needed
 				rl.Take()
 			}
 		}
-
 	}
-
 	return nil
 }
