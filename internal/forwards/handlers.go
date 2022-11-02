@@ -56,9 +56,9 @@ type forwardsTableRow struct {
 	FirstNodeId  int         `json:"firstNodeId"`
 	SecondNodeId int         `json:"secondNodeId"`
 	// Database primary key of channel
-	ChannelID null.Int `json:"channelId"`
-	// The channel point
-	LNDChannelPoint null.String `json:"lndChannelPoint"`
+	ChannelID              null.Int `json:"channelId"`
+	FundingTransactionHash string   `json:"fundingTransactionHash"`
+	FundingOutputIndex     string   `json:"fundingOutputIndex"`
 	// The remote public key
 	PubKey null.String `json:"pub_key"`
 	// Short channel id in c-lightning / BOLT format
@@ -111,7 +111,8 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			coalesce(c.first_node_id, 0) as first_node_id,
 			coalesce(c.second_node_id, 0) as second_node_id,
 			coalesce(c.channel_id, 0) as channel_id,
-			coalesce(c.lnd_channel_point, 'Channel point missing') as lnd_channel_point,
+			coalesce(c.funding_transaction_hash, 'Funding tansaction missing') as funding_transaction_hash,
+			coalesce(c.funding_output_index, 0) as funding_output_index,
 			coalesce(fcn.public_key, 'Public key missing') as pub_key,
 			coalesce(c.short_channel_id, 'Short channel ID missing') as short_channel_id,
 			coalesce(c.lnd_short_channel_id::text, 'LND short channel id missing') as lnd_short_channel_id,
@@ -213,7 +214,8 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			&c.FirstNodeId,
 			&c.SecondNodeId,
 			&c.ChannelID,
-			&c.LNDChannelPoint,
+			&c.FundingTransactionHash,
+			&c.FundingOutputIndex,
 			&c.PubKey,
 			&c.ShortChannelID,
 			&c.LNDShortChannelId,

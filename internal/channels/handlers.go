@@ -52,7 +52,8 @@ type channelBody struct {
 	Active                       bool                 `json:"active"`
 	Gauge                        float64              `json:"gauge"`
 	RemotePubkey                 string               `json:"remotePubkey"`
-	LNDChannelPoint              string               `json:"lndChannelPoint"`
+	FundingTransactionHash       string               `json:"fundingTransactionHash"`
+	FundingOutputIndex           int                  `json:"fundingOutputIndex"`
 	LNDShortChannelId            uint64               `json:"lndShortChannelId"`
 	ShortChannelId               string               `json:"shortChannelId"`
 	Capacity                     int64                `json:"capacity"`
@@ -196,13 +197,15 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 			pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
 
 			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
+			fundingTransactionHash, fundingOutputIndex := ParseChannelPoint(channel.ChannelPoint)
 			chanBody := channelBody{
 				NodeId:                       node.NodeId,
 				NodeName:                     node.Name,
 				Active:                       channel.Active,
 				Gauge:                        gauge,
 				RemotePubkey:                 channel.RemotePubkey,
-				LNDChannelPoint:              channel.ChannelPoint,
+				FundingTransactionHash:       fundingTransactionHash,
+				FundingOutputIndex:           fundingOutputIndex,
 				LNDShortChannelId:            channel.ChanId,
 				ShortChannelId:               shortChannelId,
 				Capacity:                     channel.Capacity,

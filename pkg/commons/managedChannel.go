@@ -2,6 +2,7 @@ package commons
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/rs/zerolog/log"
 )
@@ -13,12 +14,10 @@ type ManagedChannelCacheOperationType uint
 const (
 	// READ_CHANNELID_BY_SHORTCHANNELID please provide ShortChannelId and Out
 	READ_CHANNELID_BY_SHORTCHANNELID ManagedChannelCacheOperationType = iota
-	// READ_CHANNELID_BY_CHANNELPOINT please provide LndChannelPoint and Out
-	READ_CHANNELID_BY_CHANNELPOINT
+	// READ_CHANNELID_BY_FUNDING_TRANSACTION please provide FundingTransactionHash, FundingOutputIndex and Out
+	READ_CHANNELID_BY_FUNDING_TRANSACTION
 	// READ_STATUSID_BY_CHANNELID please provide ChannelId and Out
 	READ_STATUSID_BY_CHANNELID
-	// READ_ALL_LNDCHANNELPOINTS please provide ChannelPointsOut
-	READ_ALL_LNDCHANNELPOINTS
 	// READ_CHANNEL_SETTINGS please provide ChannelId and ChannelIdSettingsOut
 	READ_CHANNEL_SETTINGS
 	// WRITE_CHANNEL Please provide ChannelId and StatusId (other values are optional in case of pending open channel)
@@ -30,78 +29,74 @@ const (
 )
 
 type ManagedChannel struct {
-	Type                 ManagedChannelCacheOperationType
-	ChannelId            int
-	ShortChannelId       string
-	LndChannelPoint      string
-	StatusId             int
-	Out                  chan ManagedChannel
-	ChannelPointsOut     chan []string
-	ChannelIdSettingsOut chan ManagedChannelSettings
+	Type                   ManagedChannelCacheOperationType
+	ChannelId              int
+	ShortChannelId         string
+	FundingTransactionHash string
+	FundingOutputIndex     int
+	StatusId               int
+	Out                    chan ManagedChannel
+	ChannelIdSettingsOut   chan ManagedChannelSettings
 }
 
 type ManagedChannelSettings struct {
-	ChannelId       int
-	ShortChannelId  string
-	LndChannelPoint string
-	StatusId        int
+	ChannelId              int
+	ShortChannelId         string
+	FundingTransactionHash string
+	FundingOutputIndex     int
+	StatusId               int
 }
 
 // ManagedChannelCache parameter Context is for test cases...
 func ManagedChannelCache(ch chan ManagedChannel, ctx context.Context) {
 	channelSettingsByChannelIdCache := make(map[int]ManagedChannelSettings, 0)
 	shortChannelIdCache := make(map[string]int, 0)
-	lndChannelPointCache := make(map[string]int, 0)
+	channelPointCache := make(map[string]int, 0)
 	channelStatusIdCache := make(map[int]int, 0)
 	for {
 		// TODO FIXME FEELS WRONG?
 		if ctx == nil {
 			managedChannel := <-ch
-			processManagedChannel(managedChannel, shortChannelIdCache, lndChannelPointCache, channelStatusIdCache, channelSettingsByChannelIdCache)
+			processManagedChannel(managedChannel, shortChannelIdCache, channelPointCache, channelStatusIdCache, channelSettingsByChannelIdCache)
 		} else {
 			select {
 			case <-ctx.Done():
 				return
 			case managedChannel := <-ch:
-				processManagedChannel(managedChannel, shortChannelIdCache, lndChannelPointCache, channelStatusIdCache, channelSettingsByChannelIdCache)
+				processManagedChannel(managedChannel, shortChannelIdCache, channelPointCache, channelStatusIdCache, channelSettingsByChannelIdCache)
 			}
 		}
 	}
 }
 
-func processManagedChannel(managedChannel ManagedChannel, shortChannelIdCache map[string]int, lndChannelPointCache map[string]int, channelStatusIdCache map[int]int, channelSettingsByChannelIdCache map[int]ManagedChannelSettings) {
+func processManagedChannel(managedChannel ManagedChannel, shortChannelIdCache map[string]int, channelPointCache map[string]int, channelStatusIdCache map[int]int, channelSettingsByChannelIdCache map[int]ManagedChannelSettings) {
 	switch managedChannel.Type {
 	case READ_CHANNELID_BY_SHORTCHANNELID:
 		managedChannel.ChannelId = shortChannelIdCache[managedChannel.ShortChannelId]
 		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
-	case READ_CHANNELID_BY_CHANNELPOINT:
-		managedChannel.ChannelId = lndChannelPointCache[managedChannel.LndChannelPoint]
+	case READ_CHANNELID_BY_FUNDING_TRANSACTION:
+		managedChannel.ChannelId = channelPointCache[createChannelPoint(managedChannel)]
 		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
 	case READ_STATUSID_BY_CHANNELID:
 		managedChannel.StatusId = channelStatusIdCache[managedChannel.ChannelId]
 		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
-	case READ_ALL_LNDCHANNELPOINTS:
-		allChannelPoints := make([]string, 0, len(lndChannelPointCache))
-		for lndChannelPoint := range lndChannelPointCache {
-			allChannelPoints = append(allChannelPoints, lndChannelPoint)
-		}
-		go SendToManagedChannelIdsChannel(managedChannel.ChannelPointsOut, allChannelPoints)
 	case READ_CHANNEL_SETTINGS:
 		go SendToManagedChannelSettingsChannel(managedChannel.ChannelIdSettingsOut, channelSettingsByChannelIdCache[managedChannel.ChannelId])
 	case WRITE_CHANNEL:
-		if managedChannel.ChannelId == 0 || managedChannel.LndChannelPoint == "" {
-			log.Error().Msgf("No empty ChannelId (%v) or LndChannelPoint (%v) allowed", managedChannel.ChannelId, managedChannel.LndChannelPoint)
+		if managedChannel.ChannelId == 0 || managedChannel.FundingTransactionHash == "" || managedChannel.FundingOutputIndex == 0 {
+			log.Error().Msgf("No empty ChannelId (%v) or FundingTransactionHash (%v) or FundingOutputIndex (%v) allowed", managedChannel.ChannelId, managedChannel.FundingTransactionHash, managedChannel.FundingOutputIndex)
 		} else {
 			if managedChannel.ShortChannelId != "" {
 				shortChannelIdCache[managedChannel.ShortChannelId] = managedChannel.ChannelId
 			}
-			lndChannelPointCache[managedChannel.LndChannelPoint] = managedChannel.ChannelId
+			channelPointCache[createChannelPoint(managedChannel)] = managedChannel.ChannelId
 			channelStatusIdCache[managedChannel.ChannelId] = managedChannel.StatusId
 			channelSettingsByChannelIdCache[managedChannel.ChannelId] = ManagedChannelSettings{
-				ChannelId:       managedChannel.ChannelId,
-				ShortChannelId:  managedChannel.ShortChannelId,
-				StatusId:        managedChannel.StatusId,
-				LndChannelPoint: managedChannel.LndChannelPoint,
+				ChannelId:              managedChannel.ChannelId,
+				ShortChannelId:         managedChannel.ShortChannelId,
+				StatusId:               managedChannel.StatusId,
+				FundingTransactionHash: managedChannel.FundingTransactionHash,
+				FundingOutputIndex:     managedChannel.FundingOutputIndex,
 			}
 		}
 	case WRITE_CHANNELSTATUSID:
@@ -125,38 +120,39 @@ func processManagedChannel(managedChannel ManagedChannel, shortChannelIdCache ma
 			delete(shortChannelIdCache, matchingShortChannelId)
 		}
 		var matchingChannelPoint string
-		for lndChannelPoint, channelId := range lndChannelPointCache {
+		for channelPoint, channelId := range channelPointCache {
 			if channelId == managedChannel.ChannelId {
-				matchingChannelPoint = lndChannelPoint
+				matchingChannelPoint = channelPoint
 				break
 			}
 		}
 		if matchingChannelPoint != "" {
-			delete(lndChannelPointCache, matchingChannelPoint)
+			delete(channelPointCache, matchingChannelPoint)
 		}
 		delete(channelStatusIdCache, managedChannel.ChannelId)
 		delete(channelSettingsByChannelIdCache, managedChannel.ChannelId)
 	}
 }
 
-func SendToManagedChannelChannel(ch chan ManagedChannel, managedChannel ManagedChannel) {
-	ch <- managedChannel
+func createChannelPoint(managedChannel ManagedChannel) string {
+	return fmt.Sprintf("%s:%v", managedChannel.FundingTransactionHash, managedChannel.FundingOutputIndex)
 }
 
-func SendToManagedChannelIdsChannel(ch chan []string, lndChannelPoints []string) {
-	ch <- lndChannelPoints
+func SendToManagedChannelChannel(ch chan ManagedChannel, managedChannel ManagedChannel) {
+	ch <- managedChannel
 }
 
 func SendToManagedChannelSettingsChannel(ch chan ManagedChannelSettings, channelSettings ManagedChannelSettings) {
 	ch <- channelSettings
 }
 
-func GetChannelIdFromChannelPoint(lndChannelPoint string) int {
+func GetChannelIdFromFundingTransaction(fundingTransactionHash string, fundingOutputIndex int) int {
 	channelResponseChannel := make(chan ManagedChannel)
 	managedChannel := ManagedChannel{
-		LndChannelPoint: lndChannelPoint,
-		Type:            READ_CHANNELID_BY_CHANNELPOINT,
-		Out:             channelResponseChannel,
+		FundingTransactionHash: fundingTransactionHash,
+		FundingOutputIndex:     fundingOutputIndex,
+		Type:                   READ_CHANNELID_BY_FUNDING_TRANSACTION,
+		Out:                    channelResponseChannel,
 	}
 	ManagedChannelChannel <- managedChannel
 	channelResponse := <-channelResponseChannel
@@ -199,33 +195,16 @@ func GetChannelSettingsFromChannelId(channelId int) ManagedChannelSettings {
 	return channelResponse
 }
 
-func GetAllLndChannelPoints() []string {
-	channelResponseChannel := make(chan []string)
+func SetChannel(channelId int, shortChannelId string, statusId int, fundingTransactionHash string, fundingOutputIndex int) {
 	managedChannel := ManagedChannel{
-		Type:             READ_ALL_LNDCHANNELPOINTS,
-		ChannelPointsOut: channelResponseChannel,
+		ChannelId:              channelId,
+		FundingTransactionHash: fundingTransactionHash,
+		FundingOutputIndex:     fundingOutputIndex,
+		StatusId:               statusId,
+		Type:                   WRITE_CHANNEL,
 	}
-	ManagedChannelChannel <- managedChannel
-	return <-channelResponseChannel
-}
-
-func SetOpeningChannel(channelId int, lndChannelPoint string, statusId int) {
-	managedChannel := ManagedChannel{
-		ChannelId:       channelId,
-		LndChannelPoint: lndChannelPoint,
-		StatusId:        statusId,
-		Type:            WRITE_CHANNEL,
-	}
-	ManagedChannelChannel <- managedChannel
-}
-
-func SetChannel(channelId int, shortChannelId string, statusId int, lndChannelPoint string) {
-	managedChannel := ManagedChannel{
-		ChannelId:       channelId,
-		ShortChannelId:  shortChannelId,
-		LndChannelPoint: lndChannelPoint,
-		StatusId:        statusId,
-		Type:            WRITE_CHANNEL,
+	if shortChannelId != "" {
+		managedChannel.ShortChannelId = shortChannelId
 	}
 	ManagedChannelChannel <- managedChannel
 }

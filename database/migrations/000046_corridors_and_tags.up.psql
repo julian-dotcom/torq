@@ -86,6 +86,9 @@ JOIN node n ON n.public_key=ln.pub_key;
 ALTER TABLE channel ADD COLUMN first_node_id INTEGER;
 ALTER TABLE channel ADD COLUMN second_node_id INTEGER;
 ALTER TABLE channel ADD COLUMN status_id INTEGER;
+ALTER TABLE channel ADD COLUMN funding_transaction_hash TEXT;
+ALTER TABLE channel ADD COLUMN funding_output_index INTEGER;
+ALTER TABLE channel ADD COLUMN closing_transaction_hash TEXT;
 
 UPDATE channel c1
 SET second_node_id=n.node_id
@@ -115,10 +118,14 @@ WHERE c1.channel_id=c2.channel_id;
 --) AS channelIds;
 --SETTING ALL CHANNELS TO OPENING. When Torq boots it will update to the correct status.
 UPDATE channel SET status_id=0;
+UPDATE channel SET funding_transaction_hash=split_part(lnd_channel_point, ':', 1);
+UPDATE channel SET funding_output_index=split_part(lnd_channel_point, ':', 2)::INTEGER;
 
 ALTER TABLE channel ALTER COLUMN first_node_id SET NOT NULL;
 ALTER TABLE channel ALTER COLUMN second_node_id SET NOT NULL;
 ALTER TABLE channel ALTER COLUMN status_id SET NOT NULL;
+ALTER TABLE channel ALTER COLUMN funding_transaction_hash SET NOT NULL;
+ALTER TABLE channel ALTER COLUMN funding_output_index SET NOT NULL;
 
 ALTER TABLE channel ADD CONSTRAINT fk_channel_first_node_id FOREIGN KEY (first_node_id) REFERENCES node(node_id);
 ALTER TABLE channel ADD CONSTRAINT fk_channel_second_node_id FOREIGN KEY (second_node_id) REFERENCES node(node_id);
@@ -287,6 +294,7 @@ CREATE TABLE corridor (
 ALTER TABLE channel DROP COLUMN alias;
 ALTER TABLE channel DROP COLUMN local_node_id;
 ALTER TABLE channel DROP COLUMN destination_pub_key;
+ALTER TABLE channel DROP COLUMN lnd_channel_point;
 
 ALTER TABLE channel_event DROP COLUMN lnd_short_channel_id;
 ALTER TABLE channel_event DROP COLUMN lnd_channel_point;

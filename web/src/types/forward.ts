@@ -1,6 +1,7 @@
 export type Forward = {
   alias: string;
-  lndChannelPoint: string;
+  fundingTransactionHash: string;
+  fundingOutputIndex: number;
   pubKey: string;
   shortChannelId: string;
   channelId: number;

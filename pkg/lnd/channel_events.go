@@ -18,25 +18,23 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
-	"gopkg.in/guregu/null.v4"
 )
 
 // websocket channel event
 type wsChannelEvent struct {
-	Type             string `json:"type"`
-	ChannelEventType string `json:"channelEventType"`
-	ShortChannelId   string `json:"shortChannelId,omitempty"`
-	LNDChannelPoint  string `json:"lndChannelPoint"`
-	PubKey           string `json:"pubKey,omitempty"`
+	Type                   string `json:"type"`
+	ChannelEventType       string `json:"channelEventType"`
+	ShortChannelId         string `json:"shortChannelId,omitempty"`
+	FundingTransactionHash string `json:"fundingTransactionHash"`
+	FundingOutputIndex     int    `json:"fundingOutputIndex"`
+	PubKey                 string `json:"pubKey,omitempty"`
 }
 
 func chanPointFromByte(cb []byte, oi uint32) (string, error) {
-
 	ch, err := chainhash.NewHash(cb)
 	if err != nil {
 		return "", err
 	}
-
 	return fmt.Sprintf("%s:%d", ch.String(), oi), nil
 }
 
@@ -61,6 +59,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		channelPoint := c.ChannelPoint
 		publicKey := c.RemotePubkey
 		shortChannelId := channels.ConvertLNDShortChannelID(chanID)
+		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
 
 		node := nodes.Node{
 			PublicKey: c.RemotePubkey,
@@ -76,12 +75,13 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		commons.SetChannelNode(remoteNodeId, c.RemotePubkey, nodeSettings.Chain, nodeSettings.Network)
 
 		channel := channels.Channel{
-			ShortChannelID:    shortChannelId,
-			LNDChannelPoint:   null.StringFrom(channelPoint),
-			FirstNodeId:       nodeSettings.NodeId,
-			SecondNodeId:      remoteNodeId,
-			LNDShortChannelID: chanID,
-			Status:            channels.Open,
+			ShortChannelID:         shortChannelId,
+			FundingTransactionHash: fundingTransactionHash,
+			FundingOutputIndex:     fundingOutputIndex,
+			FirstNodeId:            nodeSettings.NodeId,
+			SecondNodeId:           remoteNodeId,
+			LNDShortChannelID:      chanID,
+			Status:                 channels.Open,
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 		if err != nil {
@@ -89,7 +89,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 
 		// This allows torq to listen to the graph for channel updates
-		commons.SetChannel(channelId, channel.ShortChannelID, int(channels.Open), channelPoint)
+		commons.SetChannel(channelId, channel.ShortChannelID, int(channels.Open), fundingTransactionHash, fundingOutputIndex)
 
 		if err != nil {
 			return err
@@ -105,7 +105,8 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 
 		if wsChan != nil {
 			wsChanEvent.ShortChannelId = shortChannelId
-			wsChanEvent.LNDChannelPoint = channelPoint
+			wsChanEvent.FundingTransactionHash = fundingTransactionHash
+			wsChanEvent.FundingOutputIndex = fundingOutputIndex
 			wsChanEvent.PubKey = publicKey
 			wsChan <- wsChanEvent
 		}
@@ -118,6 +119,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		channelPoint := c.ChannelPoint
 		publicKey := c.RemotePubkey
 		shortChannelId := channels.ConvertLNDShortChannelID(c.ChanId)
+		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
 
 		var err error
 		remoteNodeId := commons.GetNodeIdFromPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network)
@@ -134,12 +136,14 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 
 		channel := channels.Channel{
-			ShortChannelID:    shortChannelId,
-			LNDChannelPoint:   null.StringFrom(channelPoint),
-			FirstNodeId:       nodeSettings.NodeId,
-			SecondNodeId:      remoteNodeId,
-			LNDShortChannelID: chanID,
-			Status:            channels.GetClosureStatus(c.CloseType),
+			ShortChannelID:         shortChannelId,
+			FundingTransactionHash: fundingTransactionHash,
+			FundingOutputIndex:     fundingOutputIndex,
+			ClosingTransactionHash: &c.ClosingTxHash,
+			FirstNodeId:            nodeSettings.NodeId,
+			SecondNodeId:           remoteNodeId,
+			LNDShortChannelID:      chanID,
+			Status:                 channels.GetClosureStatus(c.CloseType),
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 		if err != nil {
@@ -168,7 +172,8 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 
 		if wsChan != nil {
 			wsChanEvent.ShortChannelId = shortChannelId
-			wsChanEvent.LNDChannelPoint = channelPoint
+			wsChanEvent.FundingTransactionHash = fundingTransactionHash
+			wsChanEvent.FundingOutputIndex = fundingOutputIndex
 			wsChanEvent.PubKey = publicKey
 			wsChan <- wsChanEvent
 		}
@@ -178,7 +183,8 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 	case lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL:
 		c := ce.GetActiveChannel()
 		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
-		channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
+		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
+		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if err != nil {
 			return err
 		}
@@ -192,7 +198,8 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 
 		if wsChan != nil {
-			wsChanEvent.LNDChannelPoint = channelPoint
+			wsChanEvent.FundingTransactionHash = fundingTransactionHash
+			wsChanEvent.FundingOutputIndex = fundingOutputIndex
 			wsChan <- wsChanEvent
 		}
 
@@ -200,7 +207,8 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 	case lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL:
 		c := ce.GetInactiveChannel()
 		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
-		channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
+		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
+		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if err != nil {
 			return err
 		}
@@ -214,7 +222,8 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 
 		if wsChan != nil {
-			wsChanEvent.LNDChannelPoint = channelPoint
+			wsChanEvent.FundingTransactionHash = fundingTransactionHash
+			wsChanEvent.FundingOutputIndex = fundingOutputIndex
 			wsChan <- wsChanEvent
 		}
 
@@ -242,8 +251,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 
 	case lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL:
 		c := ce.GetPendingOpenChannel()
-		channelId, err := processPendingOpenChannel(ctx, db, client,
-			c.GetTxid(), c.GetOutputIndex(), nodeSettings)
+		channelId, err := processPendingOpenChannel(ctx, db, client, c.GetTxid(), c.GetOutputIndex(), nodeSettings)
 		if err != nil {
 			return err
 		}
@@ -276,7 +284,8 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 		return 0, err
 	}
 
-	channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
+	fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
+	channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 	if channelId == 0 {
 		pendingChannelsRequest := lnrpc.PendingChannelsRequest{}
 		pendingChannelsResponse, err := client.PendingChannels(ctx, &pendingChannelsRequest)
@@ -299,12 +308,13 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 				}
 				// TODO FIXME ShortChannelID and LNDShortChannelID should be nullable
 				newChannel := channels.Channel{
-					ShortChannelID:    "",
-					LNDChannelPoint:   null.StringFrom(channelPoint),
-					FirstNodeId:       nodeSettings.NodeId,
-					SecondNodeId:      remoteNodeId,
-					Status:            channels.Opening,
-					LNDShortChannelID: 0,
+					ShortChannelID:         "",
+					FundingTransactionHash: fundingTransactionHash,
+					FundingOutputIndex:     fundingOutputIndex,
+					FirstNodeId:            nodeSettings.NodeId,
+					SecondNodeId:           remoteNodeId,
+					Status:                 channels.Opening,
+					LNDShortChannelID:      0,
 				}
 				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, newChannel)
 				if err != nil {
@@ -445,7 +455,8 @@ func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeSettings com
 
 	channelIds := make([]int, len(c))
 	for _, channel := range c {
-		channelId := commons.GetChannelIdFromChannelPoint(channel.ChannelPoint)
+		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
+		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if channelId != 0 {
 			channelIds = append(channelIds, channelId)
 		}
@@ -459,6 +470,7 @@ func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeSettings com
 icoLoop:
 	for _, channel := range c {
 		shortChannelId := channels.ConvertLNDShortChannelID(channel.ChanId)
+		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
 		remoteNodeId := commons.GetNodeIdFromPublicKey(channel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network)
 		if remoteNodeId == 0 {
 			newNode := nodes.Node{
@@ -474,12 +486,13 @@ icoLoop:
 
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
-			ShortChannelID:    shortChannelId,
-			LNDChannelPoint:   null.StringFrom(channel.ChannelPoint),
-			FirstNodeId:       nodeSettings.NodeId,
-			SecondNodeId:      remoteNodeId,
-			LNDShortChannelID: channel.ChanId,
-			Status:            channels.Open,
+			ShortChannelID:         shortChannelId,
+			FundingTransactionHash: fundingTransactionHash,
+			FundingOutputIndex:     fundingOutputIndex,
+			FirstNodeId:            nodeSettings.NodeId,
+			SecondNodeId:           remoteNodeId,
+			LNDShortChannelID:      channel.ChanId,
+			Status:                 channels.Open,
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channelRecord)
 		if err != nil {
@@ -512,7 +525,8 @@ func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary,
 
 	channelIds := make([]int, len(c))
 	for _, channel := range c {
-		channelId := commons.GetChannelIdFromChannelPoint(channel.ChannelPoint)
+		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
+		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if channelId != 0 {
 			channelIds = append(channelIds, channelId)
 		}
@@ -526,6 +540,7 @@ func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary,
 icoLoop:
 	for _, channel := range c {
 		shortChannelId := channels.ConvertLNDShortChannelID(channel.ChanId)
+		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
 		remoteNodeId := commons.GetNodeIdFromPublicKey(channel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network)
 		if remoteNodeId == 0 {
 			newNode := nodes.Node{
@@ -541,12 +556,14 @@ icoLoop:
 
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
-			ShortChannelID:    shortChannelId,
-			LNDChannelPoint:   null.StringFrom(channel.ChannelPoint),
-			FirstNodeId:       nodeSettings.NodeId,
-			SecondNodeId:      remoteNodeId,
-			LNDShortChannelID: channel.ChanId,
-			Status:            channels.GetClosureStatus(channel.CloseType),
+			ShortChannelID:         shortChannelId,
+			FundingTransactionHash: fundingTransactionHash,
+			FundingOutputIndex:     fundingOutputIndex,
+			ClosingTransactionHash: &channel.ClosingTxHash,
+			FirstNodeId:            nodeSettings.NodeId,
+			SecondNodeId:           remoteNodeId,
+			LNDShortChannelID:      channel.ChanId,
+			Status:                 channels.GetClosureStatus(channel.CloseType),
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channelRecord)
 		if err != nil {

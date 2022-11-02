@@ -44,7 +44,8 @@ type Rebalancing = {
 type Event = {
   date: string;
   datetime: string;
-  lndChannelPoint: string;
+  fundingTransactionHash: string;
+  fundingOutputIndex: number;
   shortChannelId: string;
   type: string;
   isOutbound: boolean;

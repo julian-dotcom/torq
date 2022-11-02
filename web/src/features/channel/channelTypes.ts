@@ -35,8 +35,9 @@ type History = {
 
 export type Channel = {
   alias: string;
-  channelDbId: string;
-  channelPoint: string;
+  channelId: string;
+  fundingTransactionHash: string;
+  fundingOutputIndex: string;
   pubKey: string;
   shortChannelId: string;
   chanId: string;
@@ -73,7 +74,8 @@ export type FlowData = {
   alias: string;
   lndShortChannelId: string;
   pubKey: string;
-  lndChannelPoint: string;
+  fundingTransactionHash: string;
+  fundingOutputIndex: number;
   amountOut: number;
   revenueOut: number;
   countOut: number;
@@ -96,7 +98,8 @@ export type ChannelEventResponse = {
 export type Event = {
   date: string;
   datetime: Date;
-  lndChannelPoint: string;
+  fundingTransactionHash: string;
+  fundingOutputIndex: number;
   shortChannelId: string
   type: string;
   outbound: boolean;

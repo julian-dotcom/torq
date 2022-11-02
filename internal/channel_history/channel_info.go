@@ -15,9 +15,10 @@ type channel struct {
 	FirstNodeId  null.String `json:"firstNodeId" db:"first_node_id"`
 	SecondNodeId null.String `json:"secondNodeId" db:"second_node_id"`
 	// Database primary key of channel
-	ChannelID null.Int `json:"channelId" db:"channel_id"`
-	// The channel point
-	LNDChannelPoint null.String `json:"channelPoint" db:"lnd_channel_point"`
+	ChannelID              null.Int `json:"channelId" db:"channel_id"`
+	FundingTransactionHash string   `json:"fundingTransactionHash" db:"funding_transaction_hash"`
+	FundingOutputIndex     string   `json:"fundingOutputIndex" db:"funding_output_index"`
+	ClosingTransactionHash *string  `json:"closingTransactionHash" db:"closing_transaction_hash"`
 	// Short channel id in c-lightning / BOLT format
 	ShortChannelID null.String `json:"shortChannelId" db:"short_channel_id"`
 	// The channel ID

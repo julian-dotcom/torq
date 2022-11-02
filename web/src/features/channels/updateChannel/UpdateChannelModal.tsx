@@ -78,7 +78,8 @@ function NodechannelModal() {
         setMinHtlcSat(channel.minHtlc / 1000);
         setMaxHtlcSat(channel.maxHtlcMsat / 1000);
         setFeeRatePpm(channel.feeRatePpm);
-        setLndChannelPoint(channel.lndChannelPoint);
+        setFundingTransactionHash(channel.fundingTransactionHash);
+        setFundingOutputIndex(channel.fundingOutputIndex);
         return channel;
       }
     });
@@ -113,7 +114,8 @@ function NodechannelModal() {
   const [minHtlcSat, setMinHtlcSat] = useState<number>(0);
   const [maxHtlcSat, setMaxHtlcSat] = useState<number>(0);
   const [timeLockDelta, setTimeLockDelta] = useState<number>(0);
-  const [lndChannelPoint, setLndChannelPoint] = useState<string>("");
+  const [fundingTransactionHash, setFundingTransactionHash] = useState<string>("");
+  const [fundingOutputIndex, setFundingOutputIndex] = useState<number>(0);
   const [stepIndex, setStepIndex] = useState(0);
 
   const closeAndReset = () => {
@@ -284,7 +286,8 @@ function NodechannelModal() {
                       timeLockDelta,
                       minHtlcMsat: minHtlcSat * 1000,
                       maxHtlcMsat: maxHtlcSat * 1000,
-                      lndChannelPoint: lndChannelPoint,
+                      fundingTransactionHash: fundingTransactionHash,
+                      fundingOutputIndex: fundingOutputIndex,
                       nodeId: selectedNodeId,
                     });
                   }}

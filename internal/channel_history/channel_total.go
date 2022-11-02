@@ -49,7 +49,7 @@ func getChannelTotal(db *sqlx.DB, all bool, channelIds []int, from time.Time, to
 
 	rows, err := db.Queryx(sql, all, pq.Array(channelIds), from, to)
 	if err != nil {
-		return r, errors.Wrapf(err, "db.Queryx(%s, %v, %v, %v, %v)", sql, all, channelIds, from, to)
+		return ChannelHistory{}, errors.Wrap(err, "Getting channel total")
 	}
 	for rows.Next() {
 		err = rows.Scan(

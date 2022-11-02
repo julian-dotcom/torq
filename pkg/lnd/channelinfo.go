@@ -14,7 +14,6 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"gopkg.in/guregu/null.v4"
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/nodes"
@@ -133,6 +132,7 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettin
 			if err != nil {
 				return errors.Wrap(err, "Creating channel point from byte")
 			}
+			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
 
 			announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
 			if announcingNodeId == 0 {
@@ -160,15 +160,16 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettin
 				}
 			}
 
-			channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
+			channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 			if channelId == 0 {
 				channel := channels.Channel{
-					FirstNodeId:       announcingNodeId,
-					SecondNodeId:      connectingNodeId,
-					ShortChannelID:    channels.ConvertLNDShortChannelID(cu.ChanId),
-					LNDShortChannelID: cu.ChanId,
-					LNDChannelPoint:   null.StringFrom(channelPoint),
-					Status:            channels.Open,
+					FirstNodeId:            announcingNodeId,
+					SecondNodeId:           connectingNodeId,
+					ShortChannelID:         channels.ConvertLNDShortChannelID(cu.ChanId),
+					LNDShortChannelID:      cu.ChanId,
+					FundingTransactionHash: fundingTransactionHash,
+					FundingOutputIndex:     fundingOutputIndex,
+					Status:                 channels.Open,
 				}
 				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
 				if err != nil {

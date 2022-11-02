@@ -11,7 +11,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/guregu/null.v4"
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/database"
@@ -24,11 +23,16 @@ const testDbPort = 5433
 const testDBPrefix = "torq_test_"
 const TestPublicKey1 = "PublicKey1"
 const TestPublicKey2 = "PublicKey2"
-const TestChannelPoint1 = "0101010101010101010101010101010101010101010101010101010101010101:3"
-const TestChannelPoint2 = "0101010101010101010101010101010101010101010101010101010101010102:3"
-const TestChannelPoint3 = "0101010101010101010101010101010101010101010101010101010101010103:3"
-const TestChannelPoint4 = "0101010101010101010101010101010101010101010101010101010101010104:3"
-const TestChannelPoint5_NOTINDB = "0101010101010101010101010101010101010101010101010101010101010105:3"
+const TestFundingTransactionHash1 = "0101010101010101010101010101010101010101010101010101010101010101"
+const TestChannelPoint1 = TestFundingTransactionHash1 + ":3"
+const TestFundingTransactionHash2 = "0101010101010101010101010101010101010101010101010101010101010102"
+const TestChannelPoint2 = TestFundingTransactionHash2 + ":3"
+const TestFundingTransactionHash3 = "0101010101010101010101010101010101010101010101010101010101010103"
+const TestChannelPoint3 = TestFundingTransactionHash3 + ":3"
+const TestFundingTransactionHash4 = "0101010101010101010101010101010101010101010101010101010101010104"
+const TestChannelPoint4 = TestFundingTransactionHash4 + ":3"
+const TestFundingTransactionHash5_NOTINDB = "0101010101010101010101010101010101010101010101010101010101010105"
+const TestChannelPoint5_NOTINDB = TestFundingTransactionHash5_NOTINDB + ":3"
 
 func init() {
 	// Set the seed for the random database name
@@ -225,16 +229,16 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		}
 		log.Debug().Msgf("Channel publicKeys: %v", commons.GetChannelPublicKeys(commons.Bitcoin, commons.SigNet))
 		log.Debug().Msgf("Channel nodeIds: %v", commons.GetChannelNodeIds(commons.Bitcoin, commons.SigNet))
-		log.Debug().Msgf("All Channelpoints: %v", commons.GetAllLndChannelPoints())
 
 		shortChannelId := channels.ConvertLNDShortChannelID(1111)
 		testChannel1 := channels.Channel{
-			ShortChannelID:    shortChannelId,
-			FirstNodeId:       commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
-			SecondNodeId:      commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
-			LNDShortChannelID: 1111,
-			LNDChannelPoint:   null.StringFrom(TestChannelPoint1),
-			Status:            channels.Opening,
+			ShortChannelID:         shortChannelId,
+			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
+			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			LNDShortChannelID:      1111,
+			FundingTransactionHash: TestFundingTransactionHash1,
+			FundingOutputIndex:     3,
+			Status:                 channels.Opening,
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, testChannel1)
 		if err != nil {
@@ -245,12 +249,13 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 
 		shortChannelId = channels.ConvertLNDShortChannelID(2222)
 		testChannel2 := channels.Channel{
-			ShortChannelID:    shortChannelId,
-			FirstNodeId:       commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
-			SecondNodeId:      commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
-			LNDShortChannelID: 2222,
-			LNDChannelPoint:   null.StringFrom(TestChannelPoint2),
-			Status:            channels.Opening,
+			ShortChannelID:         shortChannelId,
+			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
+			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			LNDShortChannelID:      2222,
+			FundingTransactionHash: TestFundingTransactionHash2,
+			FundingOutputIndex:     3,
+			Status:                 channels.Opening,
 		}
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel2)
 		if err != nil {
@@ -261,12 +266,13 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 
 		shortChannelId = channels.ConvertLNDShortChannelID(3333)
 		testChannel3 := channels.Channel{
-			ShortChannelID:    shortChannelId,
-			FirstNodeId:       commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
-			SecondNodeId:      commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
-			LNDShortChannelID: 3333,
-			LNDChannelPoint:   null.StringFrom(TestChannelPoint3),
-			Status:            channels.Opening,
+			ShortChannelID:         shortChannelId,
+			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
+			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			LNDShortChannelID:      3333,
+			FundingTransactionHash: TestFundingTransactionHash3,
+			FundingOutputIndex:     3,
+			Status:                 channels.Opening,
 		}
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel3)
 		if err != nil {
@@ -277,12 +283,13 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 
 		shortChannelId = channels.ConvertLNDShortChannelID(4444)
 		testChannel4 := channels.Channel{
-			ShortChannelID:    shortChannelId,
-			FirstNodeId:       commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
-			SecondNodeId:      commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
-			LNDShortChannelID: 4444,
-			LNDChannelPoint:   null.StringFrom(TestChannelPoint4),
-			Status:            channels.Opening,
+			ShortChannelID:         shortChannelId,
+			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
+			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			LNDShortChannelID:      4444,
+			FundingTransactionHash: TestFundingTransactionHash4,
+			FundingOutputIndex:     3,
+			Status:                 channels.Opening,
 		}
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel4)
 		if err != nil {

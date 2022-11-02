@@ -85,8 +85,7 @@ func getChannelHistory(db *sqlx.DB, all bool, channelIds []int, from time.Time,
 
 	rows, err := db.Queryx(sql, from, to, all, pq.Array(channelIds), commons.GetSettings().PreferredTimeZone)
 	if err != nil {
-		return r, errors.Wrapf(err, "db.Queryx(%s, %v, %v, %v, %v, %v)",
-			sql, from, to, all, pq.Array(channelIds), commons.GetSettings().PreferredTimeZone)
+		return nil, errors.Wrapf(err, "Getting channel history")
 	}
 	for rows.Next() {
 		c := &ChannelHistoryRecords{}

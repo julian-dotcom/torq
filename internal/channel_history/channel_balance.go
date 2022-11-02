@@ -37,7 +37,7 @@ func getChannelBalance(db *sqlx.DB, lndShortChannelIdString string, from time.Ti
 				select coalesce((-t.amount)-t.total_fees, 0) as initial_balance
 				from channel_event ce
 				JOIN channel c ON c.channel_id=ce.channel_id
-				left join tx t on split_part(c.lnd_channel_point, ':', 1) = t.tx_hash
+				left join tx t on c.funding_transaction_hash = t.tx_hash
 				where ce.event_type in (0,1) and
 					  c.channel_id = $1
 				limit 1
@@ -52,7 +52,7 @@ func getChannelBalance(db *sqlx.DB, lndShortChannelIdString string, from time.Ti
 				(select time,
 				   -outgoing_amount_msat as amt
 				from forward
-				where incoming_channel_id = $1
+				where outgoing_channel_id = $1
 				order by time)
 				UNION
 				(select time,

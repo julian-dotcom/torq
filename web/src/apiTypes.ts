@@ -29,7 +29,8 @@ export interface channel {
   active: boolean;
   gauge: number;
   remotePubkey: string;
-  lndChannelPoint: string;
+  fundingTransactionHash: string;
+  fundingOutputIndex: number;
   lndShortChannelId: number;
   shortChannelId: string;
   capacity: number;

@@ -87,9 +87,9 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "string",
   },
   {
-    heading: "LND Channel Point",
+    heading: "Funding Transaction",
     type: "TextCell",
-    key: "lndChannelPoint",
+    key: "fundingTransactionHash",
     valueType: "string",
   },
   {
@@ -189,7 +189,8 @@ export interface PolicyInterface {
   maxHtlcMsat: number;
   minHtlcMsat: number;
   baseFeeMsat: number;
-  lndChannelPoint: string;
+  fundingTransactionHash: string;
+  fundingOutputIndex: number;
   nodeId: number;
 }
 export interface TableChannelsState {
