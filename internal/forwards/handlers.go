@@ -48,11 +48,11 @@ type forwardsTableRow struct {
 	FundingTransactionHash string   `json:"fundingTransactionHash"`
 	FundingOutputIndex     string   `json:"fundingOutputIndex"`
 	// The remote public key
-	PubKey null.String `json:"pub_key"`
+	PubKey null.String `json:"pubKey"`
 	// Short channel id in c-lightning / BOLT format
 	ShortChannelID null.String `json:"shortChannelId"`
 	// The channel ID
-	LNDShortChannelId null.String `json:"chan_id"`
+	LNDShortChannelId null.String `json:"lndShortChannelId"`
 	// Color of remote peer (Vanity)
 	Color null.String `json:"color"`
 	// Is the channel open
@@ -62,31 +62,31 @@ type forwardsTableRow struct {
 	Capacity uint64 `json:"capacity"`
 
 	// The  outbound amount in sats (Satoshis)
-	AmountOut uint64 `json:"amount_out"`
+	AmountOut uint64 `json:"amountOut"`
 	// The inbound amount in sats (Satoshis)
-	AmountIn uint64 `json:"amount_in"`
+	AmountIn uint64 `json:"amountIn"`
 	// The total amount in sats (Satoshis) forwarded
-	AmountTotal uint64 `json:"amount_total"`
+	AmountTotal uint64 `json:"amountTotal"`
 
 	// The outbound revenue in sats. This is what the channel has directly produced.
-	RevenueOut uint64 `json:"revenue_out"`
+	RevenueOut uint64 `json:"revenueOut"`
 	// The inbound revenue in sats. This is what the channel has indirectly produced.
 	// This revenue are not really earned by this channel/peer/group, but represents
 	// the channel/peer/group contribution to revenue earned by other channels.
-	RevenueIn uint64 `json:"revenue_in"`
+	RevenueIn uint64 `json:"revenueIn"`
 	// The total revenue in sats. This is what the channel has directly and indirectly produced.
-	RevenueTotal uint64 `json:"revenue_total"`
+	RevenueTotal uint64 `json:"revenueTotal"`
 
 	// Number of outbound forwards.
-	CountOut uint64 `json:"count_out"`
+	CountOut uint64 `json:"countOut"`
 	// Number of inbound forwards.
-	CountIn uint64 `json:"count_in"`
+	CountIn uint64 `json:"countIn"`
 	// Number of total forwards.
-	CountTotal uint64 `json:"count_total"`
+	CountTotal uint64 `json:"countTotal"`
 
-	TurnoverOut   float32 `json:"turnover_out"`
-	TurnoverIn    float32 `json:"turnover_in"`
-	TurnoverTotal float32 `json:"turnover_total"`
+	TurnoverOut   float32 `json:"turnoverOut"`
+	TurnoverIn    float32 `json:"turnoverIn"`
+	TurnoverTotal float32 `json:"turnoverTotal"`
 }
 
 func getForwardsTableData(db *sqlx.DB, nodeIds []int,

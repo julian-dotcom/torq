@@ -21,12 +21,9 @@ function ForwardsDataWrapper(props: boxProps) {
 
   const chanResponse = useGetForwardsQuery({ from: from, to: to });
 
-  // const columns = useAppSelector(selectAllColumns);
   const sortBy = useAppSelector(selectSortBy);
   const groupBy = useAppSelector(selectGroupBy) || "channels";
   const filters = useAppSelector(selectFilters);
-
-  // const data = chanResponse.data || [];
 
   const [channels, columns] = useMemo(() => {
     if (chanResponse.data?.length == 0) {
@@ -48,7 +45,6 @@ function ForwardsDataWrapper(props: boxProps) {
       sortBy.map((s) => s.direction) as ["asc" | "desc"]
     );
 
-    /* const channels = chanResponse.data || []; */
     if (channels.length > 0) {
       for (const channel of channels) {
         for (const column of columns) {
@@ -57,12 +53,12 @@ function ForwardsDataWrapper(props: boxProps) {
         }
       }
 
-      const turnover_total_col = columns.find((col) => col.key === "turnover_total");
-      const turnover_out_col = columns.find((col) => col.key === "turnover_out");
-      const turnover_in_col = columns.find((col) => col.key === "turnover_in");
-      const amount_total_col = columns.find((col) => col.key === "amount_total");
-      const amount_out_col = columns.find((col) => col.key === "amount_out");
-      const amount_in_col = columns.find((col) => col.key === "amount_in");
+      const turnover_total_col = columns.find((col) => col.key === "turnoverTotal");
+      const turnover_out_col = columns.find((col) => col.key === "turnoverOut");
+      const turnover_in_col = columns.find((col) => col.key === "turnoverIn");
+      const amount_total_col = columns.find((col) => col.key === "amountTotal");
+      const amount_out_col = columns.find((col) => col.key === "amountOut");
+      const amount_in_col = columns.find((col) => col.key === "amountIn");
       const capacity_col = columns.find((col) => col.key === "capacity");
 
       if (turnover_total_col) {
