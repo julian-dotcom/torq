@@ -283,6 +283,7 @@ function ChannelPage() {
               icon={<DismissIcon />}
               onClick={handleConfirmationModalClose}
               className={styles.settingsConfirmationButton}
+              id="no-settings-confirmation"
             />
           </div>
         </div>

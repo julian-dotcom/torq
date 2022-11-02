@@ -601,6 +601,8 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	click(".login-form .submit-button")
 
+	click("#no-settings-confirmation")
+
 	_, err = page.Locator("text=Forwarding fees")
 	if err != nil {
 		t.Fatal(err)
