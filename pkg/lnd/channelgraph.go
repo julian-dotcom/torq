@@ -2,6 +2,7 @@ package lnd
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -101,11 +103,7 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
 
 		channelId := commons.GetChannelIdFromChannelPoint(channelPoint)
 		if channelId != 0 {
-			// If one of our nodes is advertising the channel update
-			// (meaning we have changed our the channel policy so outbound).
-			err := insertRoutingPolicy(db, time.Now().UTC(),
-				commons.GetActiveTorqNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network) != 0,
-				channelId, nodeSettings, cu)
+			err := insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}
@@ -114,43 +112,9 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
 	return nil
 }
 
-const rpQuery = `
-INSERT INTO routing_policy (ts,
-	outbound,
-	disabled,
-	time_lock_delta,
-	min_htlc,
-	max_htlc_msat,
-	fee_base_msat,
-	fee_rate_mill_msat,
-    channel_id,
-    announcing_node_id,
-    connecting_node_id,
-    node_id)
-select $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-WHERE NOT EXISTS (
-	select true
-	from (select
-			last(disabled,ts) disabled,
-			last(time_lock_delta,ts) time_lock_delta,
-			last(min_htlc,ts) min_htlc,
-			last(max_htlc_msat,ts) max_htlc_msat,
-			last(fee_base_msat,ts) fee_base_msat,
-			last(fee_rate_mill_msat, ts) fee_rate_mill_msat
-		from routing_policy
-		group by channel_id) as a
-	where a.disabled = $3 and
-		  a.time_lock_delta = $4 and
-		  a.min_htlc = $5 and
-		  a.max_htlc_msat = $6 and
-		  a.fee_base_msat = $7 and
-		  a.fee_rate_mill_msat = $8
-);`
-
 func insertRoutingPolicy(
 	db *sqlx.DB,
 	eventTime time.Time,
-	outbound bool,
 	channelId int,
 	nodeSettings commons.ManagedNodeSettings,
 	cu *lnrpc.ChannelEdgeUpdate) error {
@@ -186,53 +150,85 @@ func insertRoutingPolicy(
 		}
 	}
 
-	_, err = db.Exec(rpQuery, eventTime, outbound,
-		cu.RoutingPolicy.Disabled, cu.RoutingPolicy.TimeLockDelta, cu.RoutingPolicy.MinHtlc,
-		cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat,
-		channelId, announcingNodeId, connectingNodeId, nodeSettings.NodeId)
-
+	channelEvent := graph_events.ChannelEventFromGraph{}
+	err = db.Get(&channelEvent, `
+				SELECT *
+				FROM routing_policy
+				WHERE channel_id=$1 AND announcing_node_id=$2 AND connecting_node_id=$3
+				ORDER BY ts DESC
+				LIMIT 1;`, channelId, announcingNodeId, connectingNodeId)
 	if err != nil {
-		return errors.Wrapf(err, "DB Exec")
+		if !errors.Is(err, sql.ErrNoRows) {
+			return errors.Wrapf(err, "insertNodeEvent -> getPreviousChannelEvent.")
+		}
 	}
 
+	// If one of our active torq nodes is announcing_node_id then the channel update was by our node
+	// TODO FIXME ignore if previous update was from the same node so if announcing_node_id=node_id on previous record
+	// and the current parameters are announcing_node_id!=node_id
+	if cu.RoutingPolicy.Disabled != channelEvent.Disabled ||
+		cu.RoutingPolicy.FeeBaseMsat != channelEvent.FeeBaseMsat ||
+		cu.RoutingPolicy.FeeRateMilliMsat != channelEvent.FeeRateMilliMsat ||
+		cu.RoutingPolicy.MaxHtlcMsat != channelEvent.MaxHtlcMsat ||
+		cu.RoutingPolicy.MinHtlc != channelEvent.MinHtlc ||
+		cu.RoutingPolicy.TimeLockDelta != channelEvent.TimeLockDelta {
+
+		_, err := db.Exec(`
+		INSERT INTO routing_policy
+			(ts,disabled,time_lock_delta,min_htlc,max_htlc_msat,fee_base_msat,fee_rate_mill_msat,
+			 channel_id,announcing_node_id,connecting_node_id,node_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`, eventTime,
+			cu.RoutingPolicy.Disabled, cu.RoutingPolicy.TimeLockDelta, cu.RoutingPolicy.MinHtlc,
+			cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat,
+			channelId, announcingNodeId, connectingNodeId, nodeSettings.NodeId)
+		if err != nil {
+			return errors.Wrapf(err, "insertRoutingPolicy")
+		}
+	}
 	return nil
 }
 
-const neQuery = `
-INSERT INTO node_event (timestamp, event_node_id, alias, color, node_addresses, features, node_id)
-SELECT $1,$2,$3,$4,$5,$6,$7
-WHERE NOT EXISTS (
-select true
-from (select last(alias, timestamp) as  alias,
-        last(color,timestamp) as color,
-        last(node_addresses,timestamp) as node_addresses,
-        last(features,timestamp) as features
-    from node_event
-    group by pub_key) as a
-where a.alias = $4 and
-      a.color = $5 and
-      a.node_addresses = $6 and
-      a.features = $7
-);`
-
-func insertNodeEvent(db *sqlx.DB, ts time.Time, eventNodeId int, alias string, color string,
-	na []*lnrpc.NodeAddress, f map[uint32]*lnrpc.Feature, nodeId int) error {
+func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias string, color string,
+	nodeAddress []*lnrpc.NodeAddress, features map[uint32]*lnrpc.Feature, nodeId int) error {
 
 	// Create json byte object from node address map
-	najb, err := json.Marshal(na)
+	najb, err := json.Marshal(nodeAddress)
 	if err != nil {
 		return errors.Wrap(err, "JSON Marshall node address map")
 	}
 
 	// Create json byte object from features list
-	fjb, err := json.Marshal(f)
+	fjb, err := json.Marshal(features)
 	if err != nil {
 		return errors.Wrap(err, "JSON Marshal feature list")
 	}
 
-	if _, err = db.Exec(neQuery, ts, eventNodeId, alias, color, najb, fjb, nodeId); err != nil {
-		return errors.Wrap(err, "Executing SQL")
+	nodeEvent := graph_events.NodeEventFromGraph{}
+	err = db.Get(&nodeEvent, `
+				SELECT *
+				FROM node_event
+				WHERE event_node_id=$1
+				ORDER BY timestamp DESC
+				LIMIT 1;`, eventNodeId)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return errors.Wrapf(err, "insertNodeEvent -> getPreviousNodeEvent.")
+		}
 	}
+	// TODO FIXME ignore if previous update was from the same node so if event_node_id=node_id on previous record
+	// and the current parameters are event_node_id!=node_id
+	if alias != nodeEvent.Alias ||
+		color != nodeEvent.Color ||
+		string(najb) != nodeEvent.NodeAddresses ||
+		string(fjb) != nodeEvent.Features {
 
+		_, err = db.Exec(`INSERT INTO node_event
+    		(timestamp, event_node_id, alias, color, node_addresses, features, node_id)
+			VALUES ($1,$2,$3,$4,$5,$6,$7);`,
+			eventTime, eventNodeId, alias, color, najb, fjb, nodeId)
+		if err != nil {
+			return errors.Wrap(err, "Executing SQL")
+		}
+	}
 	return nil
 }

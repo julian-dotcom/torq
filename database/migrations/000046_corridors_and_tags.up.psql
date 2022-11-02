@@ -302,6 +302,7 @@ ALTER TABLE routing_policy DROP COLUMN lnd_short_channel_id;
 ALTER TABLE routing_policy DROP COLUMN announcing_pub_key;
 ALTER TABLE routing_policy DROP COLUMN lnd_channel_point;
 ALTER TABLE routing_policy DROP COLUMN short_channel_id;
+ALTER TABLE routing_policy DROP COLUMN outbound;
 
 ALTER TABLE forward DROP COLUMN lnd_outgoing_short_channel_id;
 ALTER TABLE forward DROP COLUMN lnd_incoming_short_channel_id;

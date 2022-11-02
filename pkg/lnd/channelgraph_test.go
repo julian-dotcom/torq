@@ -134,7 +134,6 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			Ts:                time.Now(),
 			LNDChannelPoint:   chanPointStr,
 			LNDShortChannelId: updateEvent.ChannelUpdates[0].ChanId,
-			Outbound:          false,
 			AnnouncingPubKey:  updateEvent.ChannelUpdates[0].AdvertisingNode,
 			FeeRateMillMsat:   updateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
 			FeeBaseMsat:       updateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
@@ -190,10 +189,6 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			testutil.Errorf(t, "Incorrect max htlc. Expected: %v, got %v", expected.MaxHtlcMsat, result[0].MaxHtlcMsat)
 		}
 
-		if result[0].Outbound != expected.Outbound {
-			testutil.Errorf(t, "Incorrect outbound state. Expected: %v, got %v", expected.Outbound, result[0].Outbound)
-		}
-
 		if result[0].TimeLockDelta != expected.TimeLockDelta {
 			testutil.Errorf(t, "Incorrect timelock delta. Expected: %v, got %v", expected.TimeLockDelta,
 				result[0].TimeLockDelta)
@@ -236,7 +231,6 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			Ts:                time.Now(),
 			LNDChannelPoint:   chanPointStr,
 			LNDShortChannelId: secondUpdateEvent.ChannelUpdates[0].ChanId,
-			Outbound:          true,
 			AnnouncingPubKey:  testutil.TestPublicKey1,
 			FeeRateMillMsat:   secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
 			FeeBaseMsat:       secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
@@ -253,18 +247,12 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			testutil.Errorf(t, "Incorrect announcing pub key. Expected: %v, got %v", e3.AnnouncingPubKey,
 				r3[1].AnnouncingPubKey)
 		}
-
-		if r3[1].Outbound != e3.Outbound {
-			testutil.Errorf(t, "Incorrect outbound state. Expected: %v, got %v", e3.Outbound, r3[1].Outbound)
-		}
-
 	})
 
 }
 
 type routingPolicyData struct {
 	Ts                time.Time
-	Outbound          bool   `db:"outbound"`
 	FeeRateMillMsat   int64  `db:"fee_rate_mill_msat"`
 	FeeBaseMsat       int64  `db:"fee_base_msat"`
 	MaxHtlcMsat       uint64 `db:"max_htlc_msat"`
@@ -320,7 +308,6 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	var result []routingPolicyData
 	err = db.Select(&result, `
 			select rp.ts,
-				   rp.outbound,
 				   rp.fee_rate_mill_msat,
 				   rp.fee_base_msat,
 				   rp.max_htlc_msat,

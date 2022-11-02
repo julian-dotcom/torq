@@ -170,7 +170,15 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	r.Events, err = getChannelEventHistory(db, channelIds, from, to)
+	// TODO FIXME We need node selection
+	details, err := settings.GetActiveNodesConnectionDetails(db)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+
+	r.Events, err = getChannelEventHistory(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), channelIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

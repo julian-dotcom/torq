@@ -52,13 +52,13 @@ func getChannelBalance(db *sqlx.DB, lndShortChannelIdString string, from time.Ti
 				(select time,
 				   -outgoing_amount_msat as amt
 				from forward
-				where incomming_channel_id = $1
+				where incoming_channel_id = $1
 				order by time)
 				UNION
 				(select time,
 					   incoming_amount_msat as amt
 				from forward
-				where incomming_channel_id = $1
+				where incoming_channel_id = $1
 				order by time)
 				UNION
 				(select creation_timestamp as time,
