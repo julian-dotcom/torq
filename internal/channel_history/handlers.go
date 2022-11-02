@@ -173,18 +173,22 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	// TODO FIXME We need node selection
 	details, err := settings.GetActiveNodesConnectionDetails(db)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
 		return
 	}
-	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+	if len(details) > 0 {
+		nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
 
-	r.Events, err = getChannelEventHistory(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), channelIds, from, to)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		r.Events, err = getChannelEventHistory(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), channelIds, from, to)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, r)
+	} else {
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
 		return
 	}
-
-	c.JSON(http.StatusOK, r)
 }
 
 type ChannelBalanceHistory struct {
@@ -254,34 +258,39 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 	// TODO FIXME We need node selection
 	details, err := settings.GetActiveNodesConnectionDetails(db)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
 		return
 	}
-	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+	if len(details) > 0 {
+		nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
 
-	var all = false
-	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
-		all = true
-	}
-
-	if all {
-		reb, err := getRebalancingCost(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), from, to)
-		r.RebalancingCost = &reb.TotalCostMsat
-		r.RebalancingDetails = reb
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
+		var all = false
+		if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+			all = true
 		}
+
+		if all {
+			reb, err := getRebalancingCost(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), from, to)
+			r.RebalancingCost = &reb.TotalCostMsat
+			r.RebalancingDetails = reb
+			if err != nil {
+				server_errors.LogAndSendServerError(c, err)
+				return
+			}
+		} else {
+			reb, err := getChannelRebalancing(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), lndShortChannelIdStrings, from, to)
+			r.RebalancingCost = &reb.SplitCostMsat
+			r.RebalancingDetails = reb
+			if err != nil {
+				server_errors.LogAndSendServerError(c, err)
+				return
+			}
+		}
+		c.JSON(http.StatusOK, r)
 	} else {
-		reb, err := getChannelRebalancing(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), lndShortChannelIdStrings, from, to)
-		r.RebalancingCost = &reb.SplitCostMsat
-		r.RebalancingDetails = reb
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
-		}
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
+		return
 	}
-	c.JSON(http.StatusOK, r)
 }
 
 type ChannelOnChainCost struct {
@@ -306,27 +315,32 @@ func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 	// TODO FIXME We need node selection
 	details, err := settings.GetActiveNodesConnectionDetails(db)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
 		return
 	}
-	nodeIds := make([]int, len(details))
-	for _, nodeConnectionDetail := range details {
-		nodeIds = append(nodeIds, nodeConnectionDetail.NodeId)
-	}
+	if len(details) > 0 {
+		nodeIds := make([]int, len(details))
+		for _, nodeConnectionDetail := range details {
+			nodeIds = append(nodeIds, nodeConnectionDetail.NodeId)
+		}
 
-	var all = false
-	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
-		all = true
-	}
+		var all = false
+		if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+			all = true
+		}
 
-	if all {
-		r.OnChainCost, err = getTotalOnChainCost(db, nodeIds, from, to)
+		if all {
+			r.OnChainCost, err = getTotalOnChainCost(db, nodeIds, from, to)
+		} else {
+			r.OnChainCost, err = getChannelOnChainCost(db, lndShortChannelIdStrings)
+		}
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, r)
 	} else {
-		r.OnChainCost, err = getChannelOnChainCost(db, lndShortChannelIdStrings)
-	}
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
 		return
 	}
-	c.JSON(http.StatusOK, r)
 }

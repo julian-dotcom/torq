@@ -30,17 +30,22 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 	// TODO FIXME We need node selection
 	details, err := settings.GetActiveNodesConnectionDetails(db)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
 		return
 	}
-	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+	if len(details) > 0 {
+		nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
 
-	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), from, to)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), from, to)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, r)
+	} else {
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
 		return
 	}
-	c.JSON(http.StatusOK, r)
 }
 
 type forwardsTableRow struct {

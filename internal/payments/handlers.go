@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
@@ -102,23 +103,28 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 	// TODO FIXME We need node selection
 	details, err := settings.GetActiveNodesConnectionDetails(db)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
 		return
 	}
-	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+	if len(details) > 0 {
+		nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
 
-	r, total, err := getPayments(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), filter, sort, limit, offset)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		r, total, err := getPayments(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), filter, sort, limit, offset)
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+
+		c.JSON(http.StatusOK, ah.ApiResponse{
+			Data: r, Pagination: ah.Pagination{
+				Total:  total,
+				Limit:  limit,
+				Offset: offset,
+			}})
+	} else {
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
 		return
 	}
-
-	c.JSON(http.StatusOK, ah.ApiResponse{
-		Data: r, Pagination: ah.Pagination{
-			Total:  total,
-			Limit:  limit,
-			Offset: offset,
-		}})
 }
 
 func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
@@ -126,24 +132,29 @@ func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
 	// TODO FIXME We need node selection
 	details, err := settings.GetActiveNodesConnectionDetails(db)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
 		return
 	}
-	nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
+	if len(details) > 0 {
+		nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
 
-	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), c.Param("identifier"))
-	switch err.(type) {
-	case nil:
-		break
-	case ErrPaymentNotFound:
-		c.JSON(http.StatusNotFound, gin.H{"Error": err.Error(), "Identifier": c.Param("identifier")})
-		return
-	default:
-		server_errors.LogAndSendServerError(c, err)
+		r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), c.Param("identifier"))
+		switch err.(type) {
+		case nil:
+			break
+		case ErrPaymentNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"Error": err.Error(), "Identifier": c.Param("identifier")})
+			return
+		default:
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+
+		c.JSON(http.StatusOK, r)
+	} else {
+		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
 		return
 	}
-
-	c.JSON(http.StatusOK, r)
 }
 
 func RegisterPaymentsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
