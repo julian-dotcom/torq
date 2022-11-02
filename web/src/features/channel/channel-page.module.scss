@@ -37,6 +37,19 @@
     }
   }
 }
+.settingsConfirmation {
+  margin: auto;
+  width: 50%;
+}
+
+.settingsConfirmationButton {
+  float: left;
+  margin: 15px;
+}
+
+.settingsConfirmationIcon {
+  margin-bottom: 10px;
+}
 
 @media only screen and (max-width: 600px) {
   .channelControls {
@@ -304,7 +317,8 @@ rowValue {
     background-clip: padding-box;
     background-color: rgba(0, 0, 0, 0.2);
     -webkit-border-radius: 7px;
-    -webkit-box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05), inset 1px 1px 0px rgba(0, 0, 0, 0.05);
+    -webkit-box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05),
+      inset 1px 1px 0px rgba(0, 0, 0, 0.05);
   }
 
   .card.scroll:global(::-webkit-scrollbar-button) {

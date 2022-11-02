@@ -6,9 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useLoginMutation } from "apiSlice";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
-import type {
-  LoginResponse,
-} from "types/api";
+import type { LoginResponse } from "types/api";
 
 function LoginPage() {
   const [login] = useLoginMutation();
@@ -31,9 +29,9 @@ function LoginPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     formData.append("username", "admin");
-    const res = await login(formData) as LoginResponse;
+    const res = (await login(formData)) as LoginResponse;
     if (res?.error) {
-      const errorMessage =  res.error?.data?.error ? "Incorrect Password!" : "Api not reacheable!"
+      const errorMessage = res.error?.data?.error ? "Incorrect Password!" : "Api not reacheable!";
       toastRef?.current?.addToast(errorMessage, toastCategory.error);
     } else {
       navigate(from, { replace: true });
