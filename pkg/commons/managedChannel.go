@@ -58,13 +58,14 @@ func ManagedChannelCache(ch chan ManagedChannel, ctx context.Context) {
 	allChannelPointCache := make(map[string]int, 0)
 	allChannelStatusCache := make(map[int]ChannelStatus, 0)
 	for {
-		// TODO FIXME FEELS WRONG?
 		if ctx == nil {
 			managedChannel := <-ch
 			processManagedChannel(managedChannel,
 				shortChannelIdCache, allShortChannelIdCache,
 				channelPointCache, allChannelPointCache, allChannelStatusCache, allChannelSettingsByChannelIdCache)
 		} else {
+			// TODO: The code itself is fine here but special case only for test cases?
+			// Running Torq we don't have nor need to be able to cancel but we do for test cases because global var is shared
 			select {
 			case <-ctx.Done():
 				return

@@ -10,7 +10,6 @@ import (
 	"github.com/lib/pq"
 	"gopkg.in/guregu/null.v4"
 
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -26,26 +25,15 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	network := c.Query("network")
+	chain := c.Query("chain")
 
-	// TODO FIXME We need node selection
-	details, err := settings.GetActiveNodesConnectionDetails(db)
+	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), from, to)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
+		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	if len(details) > 0 {
-		nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
-
-		r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), from, to)
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
-		}
-		c.JSON(http.StatusOK, r)
-	} else {
-		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
-		return
-	}
+	c.JSON(http.StatusOK, r)
 }
 
 type forwardsTableRow struct {

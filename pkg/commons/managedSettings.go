@@ -31,12 +31,13 @@ func ManagedSettingsCache(ch chan ManagedSettings, ctx context.Context) {
 	var defaultDateRange string
 	var weekStartsOn string
 	for {
-		// TODO FIXME FEELS VERY WRONG?
 		if ctx == nil {
 			managedSettings := <-ch
 			defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn =
 				processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn)
 		} else {
+			// TODO: The code itself is fine here but special case only for test cases?
+			// Running Torq we don't have nor need to be able to cancel but we do for test cases because global var is shared
 			select {
 			case <-ctx.Done():
 				return

@@ -11,7 +11,6 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -169,26 +168,15 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
 		}
 	}
+	network := c.Query("network")
+	chain := c.Query("chain")
 
-	// TODO FIXME We need node selection
-	details, err := settings.GetActiveNodesConnectionDetails(db)
+	r.Events, err = getChannelEventHistory(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), channelIds, from, to)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
+		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	if len(details) > 0 {
-		nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
-
-		r.Events, err = getChannelEventHistory(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), channelIds, from, to)
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
-		}
-		c.JSON(http.StatusOK, r)
-	} else {
-		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
-		return
-	}
+	c.JSON(http.StatusOK, r)
 }
 
 type ChannelBalanceHistory struct {
@@ -255,42 +243,32 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 
 	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
 
-	// TODO FIXME We need node selection
-	details, err := settings.GetActiveNodesConnectionDetails(db)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
-		return
+	network := c.Query("network")
+	chain := c.Query("chain")
+
+	var all = false
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+		all = true
 	}
-	if len(details) > 0 {
-		nodeSettings := commons.GetNodeSettingsByNodeId(details[0].NodeId)
 
-		var all = false
-		if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
-			all = true
+	if all {
+		reb, err := getRebalancingCost(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), from, to)
+		r.RebalancingCost = &reb.TotalCostMsat
+		r.RebalancingDetails = reb
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
 		}
-
-		if all {
-			reb, err := getRebalancingCost(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), from, to)
-			r.RebalancingCost = &reb.TotalCostMsat
-			r.RebalancingDetails = reb
-			if err != nil {
-				server_errors.LogAndSendServerError(c, err)
-				return
-			}
-		} else {
-			reb, err := getChannelRebalancing(db, commons.GetAllTorqNodeIds(nodeSettings.Chain, nodeSettings.Network), lndShortChannelIdStrings, from, to)
-			r.RebalancingCost = &reb.SplitCostMsat
-			r.RebalancingDetails = reb
-			if err != nil {
-				server_errors.LogAndSendServerError(c, err)
-				return
-			}
-		}
-		c.JSON(http.StatusOK, r)
 	} else {
-		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
-		return
+		reb, err := getChannelRebalancing(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), lndShortChannelIdStrings, from, to)
+		r.RebalancingCost = &reb.SplitCostMsat
+		r.RebalancingDetails = reb
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
 	}
+	c.JSON(http.StatusOK, r)
 }
 
 type ChannelOnChainCost struct {
@@ -312,35 +290,22 @@ func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 
 	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
 
-	// TODO FIXME We need node selection
-	details, err := settings.GetActiveNodesConnectionDetails(db)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Obtaining active Torq node."))
-		return
+	network := c.Query("network")
+	chain := c.Query("chain")
+
+	var all = false
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+		all = true
 	}
-	if len(details) > 0 {
-		nodeIds := make([]int, len(details))
-		for _, nodeConnectionDetail := range details {
-			nodeIds = append(nodeIds, nodeConnectionDetail.NodeId)
-		}
 
-		var all = false
-		if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
-			all = true
-		}
-
-		if all {
-			r.OnChainCost, err = getTotalOnChainCost(db, nodeIds, from, to)
-		} else {
-			r.OnChainCost, err = getChannelOnChainCost(db, lndShortChannelIdStrings)
-		}
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
-		}
-		c.JSON(http.StatusOK, r)
+	if all {
+		r.OnChainCost, err = getTotalOnChainCost(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), from, to)
 	} else {
-		server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Searching for active node."))
+		r.OnChainCost, err = getChannelOnChainCost(db, lndShortChannelIdStrings)
+	}
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	c.JSON(http.StatusOK, r)
 }
