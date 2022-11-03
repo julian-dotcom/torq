@@ -156,10 +156,10 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 			on fw.channel_id = ce.channel_id
 		left join (
 			select
-				node_id,
+				event_node_id,
 				last(alias, timestamp) as alias
 			from node_event
-			group by node_id
+			group by event_node_id
 		) as ne
 			on ce.node_id = ne.node_id
 		left join node n on ne.node_id = n.node_id

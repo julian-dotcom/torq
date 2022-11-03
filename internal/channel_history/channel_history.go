@@ -61,7 +61,7 @@ func getChannelHistory(db *sqlx.DB, all bool, channelIds []int, from time.Time,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
-			from forward, settings
+			from forward
 			where ($3 or outgoing_channel_id = ANY ($4))
 				and time::timestamp AT TIME ZONE ($5) >= $1::timestamp
 				and time::timestamp AT TIME ZONE ($5) <= $2::timestamp
@@ -73,7 +73,7 @@ func getChannelHistory(db *sqlx.DB, all bool, channelIds []int, from time.Time,
 				   floor(sum(incoming_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
-			from forward, settings
+			from forward
 			where ($3 or incoming_channel_id = ANY ($4))
 				and time::timestamp AT TIME ZONE ($5) >= $1::timestamp
 				and time::timestamp AT TIME ZONE ($5) <= $2::timestamp

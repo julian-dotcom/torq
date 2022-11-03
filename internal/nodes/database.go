@@ -79,7 +79,7 @@ func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 	err := db.Select(&nodeEvent, `
 		SELECT *
 		FROM node_event
-		WHERE node_id = ?
+		WHERE event_node_id = ?
 		ORDER BY timestamp DESC
 		LIMIT 1`, nodeId)
 	if err != nil {
@@ -90,22 +90,6 @@ func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 	}
 	return nodeEvent, nil
 }
-
-//func getLatestNodeEvents(db *sqlx.DB) ([]NodeEvent, error) {
-//	var nodeEvents []NodeEvent
-//	err := db.Select(&nodeEvents, `
-//		WITH lne AS (SELECT row_number() OVER (PARTITION BY node_id ORDER BY timestamp DESC) AS rn, ne.* from node_event ne )
-//		SELECT *
-//		FROM lne
-//		WHERE rn=1;`)
-//	if err != nil {
-//		if errors.Is(err, sql.ErrNoRows) {
-//			return []NodeEvent{}, nil
-//		}
-//		return nil, errors.Wrap(err, database.SqlExecutionError)
-//	}
-//	return nodeEvents, nil
-//}
 
 func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
 	nodeId := commons.GetNodeIdFromPublicKey(node.PublicKey, node.Chain, node.Network)

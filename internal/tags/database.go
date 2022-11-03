@@ -18,7 +18,7 @@ func getTagsForChannel(db *sqlx.DB, channelId int) ([]Tag, error) {
 	err := db.Select(&tags, `
 		SELECT t.*
 		FROM tag t
-		JOIN channel_tag ct ON t.tad_id = ct.tag_id
+		JOIN channel_tag ct ON t.tag_id = ct.tag_id
         WHERE ct.channel_id = $1;`, channelId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

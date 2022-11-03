@@ -320,3 +320,38 @@ ALTER TABLE forward DROP COLUMN outgoing_short_channel_id;
 ALTER TABLE forward DROP COLUMN incoming_short_channel_id;
 
 DROP TABLE local_node;
+
+--PERFORMANCE BOOSTERS:
+CREATE INDEX channel_funding_transaction_hash_output_index_ix ON
+    channel(funding_transaction_hash, funding_output_index, channel_id);
+CREATE INDEX channel_first_node_status_ix ON channel(first_node_id, status_id);
+CREATE INDEX channel_second_node_status_ix ON channel(second_node_id, status_id);
+CREATE INDEX channel_event_event_node_timestamp_ix ON node_event(event_node_id, "timestamp" DESC);
+
+CREATE INDEX channel_event_event_type_channel_node_capacity_ix ON
+    channel_event(event_type, channel_id, node_id, (event->'capacity'));
+
+CREATE INDEX channel_tag_tag_origin_ix ON channel_tag(tag_origin_id);
+CREATE INDEX channel_tag_channel_ix ON channel_tag(channel_id);
+
+CREATE INDEX forward_incoming_channel_ix ON forward(incoming_channel_id);
+CREATE INDEX forward_outgoing_channel_ix ON forward(outgoing_channel_id);
+
+CREATE INDEX invoice_invoice_state_ix ON invoice(invoice_state);
+
+ALTER TABLE node DROP CONSTRAINT node_public_key_key;
+CREATE UNIQUE INDEX node_public_key_channel_network_uix ON node (public_key, chain, network) INCLUDE (node_id);
+
+CREATE INDEX node_event_event_node_timestamp_ix ON node_event(event_node_id, "timestamp" DESC);
+
+CREATE INDEX payment_status_node ON payment(status, creation_timestamp, node_id);
+
+CREATE INDEX routing_policy_channel_announcing_node_ts_ix ON routing_policy(channel_id, announcing_node_id, ts DESC);
+CREATE INDEX routing_policy_channel_connecting_node_ts_ix ON routing_policy(channel_id, connecting_node_id, ts DESC);
+
+CREATE INDEX table_view_page_view_order_id ON table_view(page, view_order, id);
+
+CREATE INDEX tx_tx_hash_total_fees_amount ON tx(tx_hash, total_fees, amount);
+CREATE INDEX tx_node_timestamp_total_fees ON tx(node_id, "timestamp", total_fees);
+CREATE INDEX tx_block_height ON tx(block_height);
+CREATE INDEX tx_label_total_fees ON tx((split_part(label, '-', 2)), total_fees);

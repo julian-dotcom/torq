@@ -6,19 +6,21 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 func getTotalOnChainCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time) (*uint64, error) {
 	var Cost uint64
 
-	q := `WITH tz AS (select preferred_timezone as tz from settings)
+	q := `
 		select coalesce(sum(total_fees), 0) as cost
 		from tx
-		where timestamp::timestamp AT TIME ZONE (table tz) >= $1::timestamp
-			and timestamp::timestamp AT TIME ZONE (table tz) <= $2::timestamp
+		where timestamp::timestamp AT TIME ZONE ($4) >= $1::timestamp
+			and timestamp::timestamp AT TIME ZONE ($4) <= $2::timestamp
 			AND node_id = ANY ($3)`
 
-	row := db.QueryRowx(q, from, to, pq.Array(nodeIds))
+	row := db.QueryRowx(q, from, to, pq.Array(nodeIds), commons.GetSettings().PreferredTimeZone)
 	err := row.Scan(&Cost)
 
 	if err != nil {
