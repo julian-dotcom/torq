@@ -64,6 +64,7 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
+	commons.SetSettings(settings.DefaultDateRange, settings.DefaultLanguage, settings.WeekStartsOn, settings.PreferredTimezone)
 	return nil
 }
 

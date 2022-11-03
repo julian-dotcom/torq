@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"testing"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -102,8 +101,6 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	}
 
 	db, cancel, err := srv.NewTestDatabase(true)
-	// TODO FIXME WHY?
-	defer time.Sleep(5 * time.Second)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)

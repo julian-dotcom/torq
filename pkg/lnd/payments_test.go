@@ -56,8 +56,6 @@ func TestSubscribePayments(t *testing.T) {
 	}
 
 	db, dbCancel, err := srv.NewTestDatabase(true)
-	// TODO FIXME WHY?
-	defer time.Sleep(5 * time.Second)
 	defer dbCancel()
 	if err != nil {
 		t.Fatal(err)
