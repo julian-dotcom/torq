@@ -13,8 +13,9 @@ import (
 
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/lncapital/torq/virtual_network"
 	"github.com/playwright-community/playwright-go"
+
+	"github.com/lncapital/torq/virtual_network"
 )
 
 const torqPort = "4927"
@@ -22,8 +23,11 @@ const torqPort = "4927"
 const btcdName = "e2e-btcd"
 
 const bobName = "e2e-bob"
+const bobColor = "#BB0000"
 const aliceName = "e2e-alice"
+const aliceColor = "#AA0000"
 const carolName = "e2e-carol"
+const carolColor = "#CC0000"
 
 var ctx context.Context                              //nolint:gochecknoglobals
 var cli *client.Client                               //nolint:gochecknoglobals
@@ -111,7 +115,7 @@ func TestMain(m *testing.M) {
 			de.SharedVolumeName + ":/rpc",
 			aliceName + ":/root/.lnd",
 		},
-		[]string{"NETWORK=simnet"},
+		[]string{"NETWORK=simnet", "COLOR=" + aliceColor},
 		nil,
 		"",
 	)
@@ -124,7 +128,7 @@ func TestMain(m *testing.M) {
 			de.SharedVolumeName + ":/rpc",
 			bobName + ":/root/.lnd",
 		},
-		[]string{"NETWORK=simnet"},
+		[]string{"NETWORK=simnet", "COLOR=" + bobColor},
 		nil,
 		"10011",
 	)
@@ -137,7 +141,7 @@ func TestMain(m *testing.M) {
 			de.SharedVolumeName + ":/rpc",
 			carolName + ":/root/.lnd",
 		},
-		[]string{"NETWORK=simnet"},
+		[]string{"NETWORK=simnet", "COLOR=" + carolColor},
 		nil,
 		"",
 	)

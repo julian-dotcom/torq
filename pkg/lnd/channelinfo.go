@@ -169,16 +169,16 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettin
 					LNDShortChannelID:      cu.ChanId,
 					FundingTransactionHash: fundingTransactionHash,
 					FundingOutputIndex:     fundingOutputIndex,
-					Status:                 channels.Open,
+					Status:                 commons.Open,
 				}
 				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
 				if err != nil {
 					return errors.Wrap(err, "Adding new channel")
 				}
 			} else {
-				channelStatusId := commons.GetChannelStatusIdFromChannelId(channelId)
-				if channels.Status(channelStatusId) != channels.Open {
-					err := channels.UpdateChannelStatus(db, channelId, channels.Open)
+				channelStatus := commons.GetChannelStatusFromChannelId(channelId)
+				if channelStatus != commons.Open {
+					err := channels.UpdateChannelStatus(db, channelId, commons.Open)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to update channel status for channelId: %v", channelId)
 					}

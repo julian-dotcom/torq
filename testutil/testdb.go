@@ -238,7 +238,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 			LNDShortChannelID:      1111,
 			FundingTransactionHash: TestFundingTransactionHash1,
 			FundingOutputIndex:     3,
-			Status:                 channels.Opening,
+			Status:                 commons.Opening,
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, testChannel1)
 		if err != nil {
@@ -255,7 +255,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 			LNDShortChannelID:      2222,
 			FundingTransactionHash: TestFundingTransactionHash2,
 			FundingOutputIndex:     3,
-			Status:                 channels.Opening,
+			Status:                 commons.Opening,
 		}
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel2)
 		if err != nil {
@@ -272,7 +272,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 			LNDShortChannelID:      3333,
 			FundingTransactionHash: TestFundingTransactionHash3,
 			FundingOutputIndex:     3,
-			Status:                 channels.Opening,
+			Status:                 commons.Opening,
 		}
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel3)
 		if err != nil {
@@ -289,7 +289,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 			LNDShortChannelID:      4444,
 			FundingTransactionHash: TestFundingTransactionHash4,
 			FundingOutputIndex:     3,
-			Status:                 channels.Opening,
+			Status:                 commons.Opening,
 		}
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel4)
 		if err != nil {

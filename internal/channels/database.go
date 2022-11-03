@@ -23,11 +23,12 @@ func GetAllChannels(db *sqlx.DB) (channels []Channel, err error) {
 	return channels, nil
 }
 
-func GetChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err error) {
+func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err error) {
 	err = db.Select(&channels, `
 		SELECT *
 		FROM channel
-		WHERE status_id IN ($1,$2,$3) AND ( first_node_id=$4 OR second_node_id=$4 );`, Opening, Open, Closing, nodeId)
+		WHERE status_id IN ($1,$2,$3) AND ( first_node_id=$4 OR second_node_id=$4 );`,
+		commons.Opening, commons.Open, commons.Closing, nodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return channels, nil
@@ -40,9 +41,7 @@ func GetChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err erro
 func InitializeManagedChannelCache(db *sqlx.DB) error {
 	log.Debug().Msg("Pushing channels to ManagedChannel cache.")
 	rows, err := db.Query(`
-		SELECT channel_id, short_channel_id, funding_transaction_hash, funding_output_index, status_id
-		FROM channel
-		WHERE status_id IN ($1,$2);`, Open, Opening)
+		SELECT channel_id, short_channel_id, funding_transaction_hash, funding_output_index, status_id FROM channel;`)
 	if err != nil {
 		return errors.Wrap(err, "Obtaining channelIds and shortChannelIds")
 	}
@@ -51,12 +50,12 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		var shortChannelId string
 		var fundingTransactionHash string
 		var fundingOutputIndex int
-		var statusId int
-		err = rows.Scan(&channelId, &shortChannelId, &fundingTransactionHash, &fundingOutputIndex, &statusId)
+		var status commons.ChannelStatus
+		err = rows.Scan(&channelId, &shortChannelId, &fundingTransactionHash, &fundingOutputIndex, &status)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining channelId and shortChannelId from the resultSet")
 		}
-		commons.SetChannel(channelId, shortChannelId, statusId, fundingTransactionHash, fundingOutputIndex)
+		commons.SetChannel(channelId, shortChannelId, status, fundingTransactionHash, fundingOutputIndex)
 	}
 	return nil
 }
@@ -112,11 +111,7 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	if err != nil {
 		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
 	}
-	if channel.Status == Opening || channel.Status == Open || channel.Status == Closing {
-		commons.SetChannel(channel.ChannelID, channel.ShortChannelID,
-			int(channel.Status), channel.FundingTransactionHash, channel.FundingOutputIndex)
-	} else {
-		commons.RemoveChannel(channel.ChannelID)
-	}
+	commons.SetChannel(channel.ChannelID, channel.ShortChannelID,
+		channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex)
 	return channel, nil
 }

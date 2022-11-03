@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -15,37 +16,23 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-type Status int
-
-const (
-	Opening = Status(iota)
-	Open
-	Closing
-	CooperativeClosed      = 100
-	LocalForceClosed       = 101
-	RemoteForceClosed      = 102
-	BreachClosed           = 103
-	FundingCancelledClosed = 104
-	AbandonedClosed        = 105
-)
-
 // GetClosureStatus returns Closing when our API is outdated and a new lnrpc.ChannelCloseSummary_ClosureType is added
-func GetClosureStatus(lndClosureType lnrpc.ChannelCloseSummary_ClosureType) Status {
+func GetClosureStatus(lndClosureType lnrpc.ChannelCloseSummary_ClosureType) commons.ChannelStatus {
 	switch lndClosureType {
 	case lnrpc.ChannelCloseSummary_COOPERATIVE_CLOSE:
-		return CooperativeClosed
+		return commons.CooperativeClosed
 	case lnrpc.ChannelCloseSummary_LOCAL_FORCE_CLOSE:
-		return LocalForceClosed
+		return commons.LocalForceClosed
 	case lnrpc.ChannelCloseSummary_REMOTE_FORCE_CLOSE:
-		return RemoteForceClosed
+		return commons.RemoteForceClosed
 	case lnrpc.ChannelCloseSummary_BREACH_CLOSE:
-		return BreachClosed
+		return commons.BreachClosed
 	case lnrpc.ChannelCloseSummary_FUNDING_CANCELED:
-		return FundingCancelledClosed
+		return commons.FundingCancelledClosed
 	case lnrpc.ChannelCloseSummary_ABANDONED:
-		return AbandonedClosed
+		return commons.AbandonedClosed
 	}
-	return Closing
+	return commons.Closing
 }
 
 func ParseChannelPoint(channelPoint string) (string, int) {
@@ -61,26 +48,30 @@ func ParseChannelPoint(channelPoint string) (string, int) {
 	return "", 0
 }
 
+func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) string {
+	return fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)
+}
+
 type Channel struct {
 	// ChannelID A database primary key. NOT a channel_id as specified in BOLT 2
 	ChannelID int `json:"channelId" db:"channel_id"`
 	// ShortChannelID In the c-lighting and BOLT format e.g. 505580:1917:1
-	ShortChannelID         string    `json:"shortChannelId" db:"short_channel_id"`
-	FundingTransactionHash string    `json:"fundingTransactionHash" db:"funding_transaction_hash"`
-	FundingOutputIndex     int       `json:"fundingOutputIndex" db:"funding_output_index"`
-	ClosingTransactionHash *string   `json:"closingTransactionHash" db:"closing_transaction_hash"`
-	FirstNodeId            int       `json:"firstNodeId" db:"first_node_id"`
-	SecondNodeId           int       `json:"secondNodeId" db:"second_node_id"`
-	CreatedOn              time.Time `json:"createdOn" db:"created_on"`
-	UpdateOn               null.Time `json:"updatedOn" db:"updated_on"`
-	LNDShortChannelID      uint64    `json:"lndShortChannelId" db:"lnd_short_channel_id"`
-	Status                 Status    `json:"status" db:"status_id"`
+	ShortChannelID         string                `json:"shortChannelId" db:"short_channel_id"`
+	FundingTransactionHash string                `json:"fundingTransactionHash" db:"funding_transaction_hash"`
+	FundingOutputIndex     int                   `json:"fundingOutputIndex" db:"funding_output_index"`
+	ClosingTransactionHash *string               `json:"closingTransactionHash" db:"closing_transaction_hash"`
+	FirstNodeId            int                   `json:"firstNodeId" db:"first_node_id"`
+	SecondNodeId           int                   `json:"secondNodeId" db:"second_node_id"`
+	CreatedOn              time.Time             `json:"createdOn" db:"created_on"`
+	UpdateOn               null.Time             `json:"updatedOn" db:"updated_on"`
+	LNDShortChannelID      uint64                `json:"lndShortChannelId" db:"lnd_short_channel_id"`
+	Status                 commons.ChannelStatus `json:"status" db:"status_id"`
 }
 
 func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) {
 	if channel.ShortChannelID == "" {
 		// This is a new channel that is in a pending state
-		channel.Status = Opening
+		channel.Status = commons.Opening
 		// The channelPoint should be available (for LND)
 		existingChannelId := commons.GetChannelIdFromFundingTransaction(channel.FundingTransactionHash, channel.FundingOutputIndex)
 		var err error
@@ -102,7 +93,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 		} else {
 			log.Error().Msgf("Impossible cache miss (except for torq bootstap)!!! FundingTransactionHash %v, FundingOutputIndex %v",
 				channel.FundingTransactionHash, channel.FundingOutputIndex)
-			if channel.Status >= CooperativeClosed && channel.ClosingTransactionHash != nil {
+			if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
 				err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)
 				if err != nil {
 					return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
@@ -148,13 +139,9 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 						return 0, errors.Wrapf(err, "Updating existing channel with FundingTransactionHash %v, FundingOutputIndex %v",
 							channel.FundingTransactionHash, channel.FundingOutputIndex)
 					}
-					if channel.Status == Opening || channel.Status == Open || channel.Status == Closing {
-						commons.SetChannel(existingChannelId, channel.ShortChannelID,
-							int(channel.Status), channel.FundingTransactionHash, channel.FundingOutputIndex)
-					} else {
-						commons.RemoveChannel(existingChannelId)
-					}
-					if channel.Status >= CooperativeClosed && channel.ClosingTransactionHash != nil {
+					commons.SetChannel(existingChannelId, channel.ShortChannelID,
+						channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex)
+					if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
 						err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)
 						if err != nil {
 							return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
@@ -167,9 +154,9 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 					channel.FundingTransactionHash, channel.FundingOutputIndex)
 			}
 		} else {
-			statusId := commons.GetChannelStatusIdFromChannelId(existingChannelId)
-			if Status(statusId) != channel.Status {
-				if channel.Status >= CooperativeClosed && channel.ClosingTransactionHash != nil {
+			status := commons.GetChannelStatusFromChannelId(existingChannelId)
+			if status != channel.Status {
+				if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
 					err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)
 					if err != nil {
 						return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
@@ -186,37 +173,29 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 	}
 }
 
-func UpdateChannelStatus(db *sqlx.DB, channelId int, status Status) error {
+func UpdateChannelStatus(db *sqlx.DB, channelId int, status commons.ChannelStatus) error {
 	_, err := db.Exec(`
 		UPDATE channel SET status_id=$1, updated_on=$2 WHERE channel_id=$3 AND status_id!=$1`,
 		status, time.Now().UTC(), channelId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
-	if status == Opening || status == Open || status == Closing {
-		commons.SetChannelStatus(channelId, int(status))
-	} else {
-		commons.RemoveChannel(channelId)
-	}
+	commons.SetChannelStatus(channelId, status)
 	return nil
 }
 
-func updateChannelStatusAndClosingTransactionHash(db *sqlx.DB, channelId int, status Status, closingTransactionHash string) error {
+func updateChannelStatusAndClosingTransactionHash(db *sqlx.DB, channelId int, status commons.ChannelStatus, closingTransactionHash string) error {
 	_, err := db.Exec(`
 		UPDATE channel SET status_id=$1, closing_transaction_hash=$2, updated_on=$3 WHERE channel_id=$4 AND (status_id!=$1 OR closing_transaction_hash!=$2)`,
 		status, closingTransactionHash, time.Now().UTC(), channelId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
-	if status == Opening || status == Open || status == Closing {
-		commons.SetChannelStatus(channelId, int(status))
-	} else {
-		commons.RemoveChannel(channelId)
-	}
+	commons.SetChannelStatus(channelId, status)
 	return nil
 }
 
-func updateChannelStatusAndLndIds(db *sqlx.DB, channelId int, status Status, shortChannelId string,
+func updateChannelStatusAndLndIds(db *sqlx.DB, channelId int, status commons.ChannelStatus, shortChannelId string,
 	lndShortChannelId uint64) error {
 	_, err := db.Exec(`
 		UPDATE channel

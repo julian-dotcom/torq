@@ -7,6 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
@@ -16,10 +21,6 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
-	"io"
-	"log"
-	"os"
-	"time"
 )
 
 type ContainerConfig struct {
@@ -98,6 +99,7 @@ func (de *DockerDevEnvironment) CreateContainer(ctx context.Context, container *
 	}
 
 	r, err := de.Client.ContainerCreate(ctx, &dockercontainer.Config{
+		Hostname:     container.Name,
 		Image:        container.Image,
 		Env:          container.Env,
 		Cmd:          container.Cmd,

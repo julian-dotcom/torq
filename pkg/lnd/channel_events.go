@@ -71,9 +71,6 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			return errors.Wrap(err, "Adding node")
 		}
 
-		// This allows torq to listen to the graph for node updates
-		commons.SetChannelNode(remoteNodeId, c.RemotePubkey, nodeSettings.Chain, nodeSettings.Network)
-
 		channel := channels.Channel{
 			ShortChannelID:         shortChannelId,
 			FundingTransactionHash: fundingTransactionHash,
@@ -81,15 +78,18 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			FirstNodeId:            nodeSettings.NodeId,
 			SecondNodeId:           remoteNodeId,
 			LNDShortChannelID:      chanID,
-			Status:                 channels.Open,
+			Status:                 commons.Open,
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 		if err != nil {
 			return errors.Wrap(err, "Adding channel")
 		}
 
+		// This allows torq to listen to the graph for node updates
+		commons.SetChannelNode(remoteNodeId, c.RemotePubkey, nodeSettings.Chain, nodeSettings.Network, channel.Status)
+
 		// This allows torq to listen to the graph for channel updates
-		commons.SetChannel(channelId, channel.ShortChannelID, int(channels.Open), fundingTransactionHash, fundingOutputIndex)
+		commons.SetChannel(channelId, channel.ShortChannelID, channel.Status, fundingTransactionHash, fundingOutputIndex)
 
 		if err != nil {
 			return err
@@ -159,15 +159,15 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 
 		// This stops the graph from listening to node updates
-		chans, err := channels.GetChannelsForNodeId(db, remoteNodeId)
+		chans, err := channels.GetOpenChannelsForNodeId(db, remoteNodeId)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to verify if remote node still has open channels: %v", remoteNodeId)
 		}
 
 		// This stops the graph from listening to channel updates
-		commons.RemoveChannel(channelId)
+		commons.SetChannelStatus(channelId, channel.Status)
 		if len(chans) == 0 {
-			commons.RemoveChannelNode(publicKey, nodeSettings.Chain, nodeSettings.Network)
+			commons.InactivateChannelNode(publicKey, nodeSettings.Chain, nodeSettings.Network)
 		}
 
 		if wsChan != nil {
@@ -313,7 +313,7 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 					FundingOutputIndex:     fundingOutputIndex,
 					FirstNodeId:            nodeSettings.NodeId,
 					SecondNodeId:           remoteNodeId,
-					Status:                 channels.Opening,
+					Status:                 commons.Opening,
 					LNDShortChannelID:      0,
 				}
 				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, newChannel)
@@ -492,7 +492,7 @@ icoLoop:
 			FirstNodeId:            nodeSettings.NodeId,
 			SecondNodeId:           remoteNodeId,
 			LNDShortChannelID:      channel.ChanId,
-			Status:                 channels.Open,
+			Status:                 commons.Open,
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channelRecord)
 		if err != nil {

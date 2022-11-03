@@ -289,7 +289,7 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 		LNDShortChannelID:      1111,
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
-		Status:                 channels.Open,
+		Status:                 commons.Open,
 	}
 	channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 	if err != nil {

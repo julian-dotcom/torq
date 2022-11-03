@@ -117,10 +117,9 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 
 	log.Debug().Msg("Pushing channel nodes to ManagedNodes cache.")
 	rows, err := db.Query(`
-		SELECT DISTINCT n.public_key, n.chain, n.network, n.node_id
+		SELECT DISTINCT n.public_key, n.chain, n.network, n.node_id, c.status_id
 		FROM node n
-		JOIN channel c ON c.status_id IN ($1,$2,$3) AND ( c.first_node_id=n.node_id OR c.second_node_id=n.node_id );`,
-		1, 2, 3)
+		JOIN channel c ON ( c.first_node_id=n.node_id OR c.second_node_id=n.node_id );`)
 	if err != nil {
 		return errors.Wrap(err, "Obtaining nodeIds and publicKeys")
 	}
@@ -129,11 +128,12 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 		var nodeId int
 		var chain commons.Chain
 		var network commons.Network
-		err = rows.Scan(&publicKey, &chain, &network, &nodeId)
+		var channelStatus commons.ChannelStatus
+		err = rows.Scan(&publicKey, &chain, &network, &nodeId, &channelStatus)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining nodeId and publicKey from the resultSet")
 		}
-		commons.SetChannelNode(nodeId, publicKey, chain, network)
+		commons.SetChannelNode(nodeId, publicKey, chain, network, channelStatus)
 	}
 	return nil
 }

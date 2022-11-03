@@ -82,7 +82,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 
 func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 	for _, nu := range nus {
-		eventNodeId := commons.GetNodeIdFromPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
+		eventNodeId := commons.GetActiveNodeIdFromPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
 			err := insertNodeEvent(db, time.Now().UTC(), eventNodeId, nu.Alias, nu.Color,
 				nu.NodeAddresses, nu.Features, nodeSettings.NodeId)
@@ -103,7 +103,7 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
 		}
 		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
 
-		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetActiveChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if channelId != 0 {
 			err := insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu)
 			if err != nil {

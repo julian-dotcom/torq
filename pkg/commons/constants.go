@@ -32,3 +32,17 @@ const (
 	RegTest
 	TestNet
 )
+
+type ChannelStatus int
+
+const (
+	Opening = ChannelStatus(iota)
+	Open
+	Closing
+	CooperativeClosed      = 100
+	LocalForceClosed       = 101
+	RemoteForceClosed      = 102
+	BreachClosed           = 103
+	FundingCancelledClosed = 104
+	AbandonedClosed        = 105
+)

@@ -8,7 +8,7 @@ import (
 	"github.com/lib/pq"
 	"gopkg.in/guregu/null.v4"
 
-	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type channel struct {
@@ -22,10 +22,10 @@ type channel struct {
 	// Short channel id in c-lightning / BOLT format
 	ShortChannelID null.String `json:"shortChannelId" db:"short_channel_id"`
 	// The channel ID
-	LNDShortChannelId null.String     `json:"chanId" db:"lnd_short_channel_id"`
-	Status            channels.Status `json:"status" db:"status_id"`
-	CreatedOn         time.Time       `json:"createdOn" db:"created_on"`
-	UpdatedOn         *time.Time      `json:"updatedOn" db:"updated_on"`
+	LNDShortChannelId null.String           `json:"chanId" db:"lnd_short_channel_id"`
+	Status            commons.ChannelStatus `json:"status" db:"status_id"`
+	CreatedOn         time.Time             `json:"createdOn" db:"created_on"`
+	UpdatedOn         *time.Time            `json:"updatedOn" db:"updated_on"`
 
 	// TODO FIXME Capacity shouldn't require a JOIN and should be included in channel table
 	// Capacity The channels total capacity (as created). Obtained via join from channel_event
