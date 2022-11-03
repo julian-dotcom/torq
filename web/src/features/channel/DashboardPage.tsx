@@ -3,7 +3,7 @@ import {
   useGetChannelRebalancingQuery,
   useGetChannelOnChainCostQuery,
   useGetFlowQuery,
-  useGetLocalNodesQuery,
+  useGetNodeConfigurationsQuery,
 } from "apiSlice";
 import {
   Question20Regular as QuestionIcon,
@@ -33,13 +33,13 @@ import { useNavigate } from "react-router-dom";
 const ft = d3.format(",.0f");
 
 function ChannelPage() {
-  const { data: localNodes, isLoading: nodesLoading } = useGetLocalNodesQuery();
+  const { data: nodeConfigurations, isLoading: nodeConfigurationsLoading } = useGetNodeConfigurationsQuery();
   const navigate = useNavigate();
   useEffect(() => {
-    if (!nodesLoading && !localNodes?.length) {
+    if (!nodeConfigurationsLoading && !nodeConfigurations?.length) {
       setShowModalState(true);
     }
-  }, [localNodes, nodesLoading]);
+  }, [nodeConfigurations, nodeConfigurationsLoading]);
 
   const handleConfirmationModalClose = () => {
     setShowModalState(false);
