@@ -92,30 +92,15 @@ ALTER TABLE channel ADD COLUMN closing_transaction_hash TEXT;
 
 UPDATE channel c1
 SET second_node_id=n.node_id
-FROM channel c2
-JOIN node n ON n.public_key=c2.destination_pub_key
-WHERE c1.channel_id=c2.channel_id;
+FROM node n
+WHERE n.public_key=c1.destination_pub_key;
 
 UPDATE channel c1
 SET first_node_id=n.node_id
-FROM channel c2
-JOIN local_node ln ON ln.local_node_id=c2.local_node_id
+FROM local_node ln
 JOIN node n ON n.public_key=ln.pub_key
-WHERE c1.channel_id=c2.channel_id;
+WHERE ln.local_node_id=c1.local_node_id;
 
---UPDATE channel c
---SET status_id=0
---FROM (
---    SELECT channel_id
---    FROM (
---        SELECT LAST(event_type, time) AS latest_event_type,
---               ce.channel_id
---        FROM channel_event ce
---        WHERE ce.event_type IN (0, 1)
---        GROUP BY ce.channel_id
---    ) AS lce
---    WHERE lce.latest_event_type = 0
---) AS channelIds;
 --SETTING ALL CHANNELS TO OPENING. When Torq boots it will update to the correct status.
 UPDATE channel SET status_id=0;
 UPDATE channel SET funding_transaction_hash=split_part(lnd_channel_point, ':', 1);
@@ -130,6 +115,9 @@ ALTER TABLE channel ALTER COLUMN funding_output_index SET NOT NULL;
 ALTER TABLE channel ADD CONSTRAINT fk_channel_first_node_id FOREIGN KEY (first_node_id) REFERENCES node(node_id);
 ALTER TABLE channel ADD CONSTRAINT fk_channel_second_node_id FOREIGN KEY (second_node_id) REFERENCES node(node_id);
 
+DROP INDEX channel_short_channel_id_idx;
+CREATE INDEX channel_short_channel_id_channel_id_ix ON channel (short_channel_id, channel_id);
+
 
 
 ALTER TABLE routing_policy ADD COLUMN channel_id INTEGER;
@@ -139,27 +127,23 @@ ALTER TABLE routing_policy ADD COLUMN node_id INTEGER;
 
 UPDATE routing_policy rp1
 SET channel_id=c.channel_id
-FROM routing_policy rp2
-JOIN channel c ON c.short_channel_id=rp2.short_channel_id
-WHERE rp1.short_channel_id=rp2.short_channel_id;
+FROM channel c
+WHERE c.short_channel_id=rp1.short_channel_id;
 
 UPDATE routing_policy rp1
 SET announcing_node_id=n.node_id
-FROM routing_policy rp2
-JOIN node n ON n.public_key=rp2.announcing_pub_key
-WHERE rp1.short_channel_id=rp2.short_channel_id;
+FROM node n
+WHERE n.public_key=rp1.announcing_pub_key;
 
 UPDATE routing_policy rp1
 SET connecting_node_id=c.second_node_id
-FROM routing_policy rp2
-JOIN channel c ON c.short_channel_id=rp2.short_channel_id AND c.first_node_id=rp2.announcing_node_id
-WHERE rp1.short_channel_id=rp2.short_channel_id;
+FROM channel c
+WHERE c.short_channel_id=rp1.short_channel_id AND c.first_node_id=rp1.announcing_node_id;
 
 UPDATE routing_policy rp1
 SET connecting_node_id=c.first_node_id
-FROM routing_policy rp2
-JOIN channel c ON c.short_channel_id=rp2.short_channel_id AND c.second_node_id=rp2.announcing_node_id
-WHERE rp1.short_channel_id=rp2.short_channel_id;
+FROM channel c
+WHERE c.short_channel_id=rp1.short_channel_id AND c.second_node_id=rp1.announcing_node_id;
 
 UPDATE routing_policy SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
 
@@ -177,11 +161,11 @@ ALTER TABLE routing_policy ADD CONSTRAINT fk_routing_policy_node_id FOREIGN KEY 
 ALTER TABLE channel_event ADD COLUMN channel_id INTEGER;
 ALTER TABLE channel_event ADD COLUMN node_id INTEGER;
 
+--Query returned successfully in 2 min 49 secs: 14174 UPDATES
 UPDATE channel_event ce1
 SET channel_id=c.channel_id
-FROM channel_event ce2
-JOIN channel c ON c.short_channel_id=ce2.short_channel_id
-WHERE ce1.short_channel_id=ce2.short_channel_id;
+FROM channel c
+WHERE c.short_channel_id=ce1.short_channel_id;
 
 UPDATE channel_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
 
@@ -196,18 +180,41 @@ ALTER TABLE htlc_event ADD COLUMN incoming_channel_id INTEGER;
 ALTER TABLE htlc_event ADD COLUMN outgoing_channel_id INTEGER;
 ALTER TABLE htlc_event ADD COLUMN node_id INTEGER;
 
-UPDATE htlc_event he1
-SET incoming_channel_id=c.channel_id
-FROM htlc_event he2
-JOIN channel c ON c.short_channel_id=he2.incoming_short_channel_id
-WHERE he1.incoming_short_channel_id=he2.incoming_short_channel_id;
+CREATE OR REPLACE PROCEDURE updateIncomingChannelIdProc() LANGUAGE plpgsql AS $$
+DECLARE
+    htlc_event_incoming_short_channel_id TEXT;
+BEGIN
+    FOR htlc_event_incoming_short_channel_id IN SELECT DISTINCT incoming_short_channel_id FROM htlc_event WHERE incoming_channel_id IS NULL LOOP
+        UPDATE htlc_event he1
+        SET incoming_channel_id=c.channel_id
+        FROM channel c
+        WHERE c.short_channel_id=he1.incoming_short_channel_id AND
+                he1.incoming_short_channel_id = htlc_event_incoming_short_channel_id;
+        COMMIT;
+    END LOOP;
+END;
+$$;
 
-UPDATE htlc_event he1
-SET outgoing_channel_id=c.channel_id
-FROM htlc_event he2
-JOIN channel c ON c.short_channel_id=he2.outgoing_short_channel_id
-WHERE he1.outgoing_short_channel_id=he2.outgoing_short_channel_id;
+call updateIncomingChannelIdProc();
 
+CREATE OR REPLACE PROCEDURE updateOutgoingChannelIdProc() LANGUAGE plpgsql AS $$
+DECLARE
+    htlc_event_outgoing_short_channel_id TEXT;
+BEGIN
+    FOR htlc_event_outgoing_short_channel_id IN SELECT DISTINCT outgoing_short_channel_id FROM htlc_event WHERE outgoing_channel_id IS NULL LOOP
+        UPDATE htlc_event he1
+        SET outgoing_channel_id=c.channel_id
+        FROM channel c
+        WHERE c.short_channel_id=he1.outgoing_short_channel_id AND
+                he1.outgoing_short_channel_id = htlc_event_outgoing_short_channel_id;
+        COMMIT;
+    END LOOP;
+END;
+$$;
+
+call updateOutgoingChannelIdProc();
+
+--Query returned successfully in 1 min 43 secs: 3437900 UPDATES
 UPDATE htlc_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
 
 --ALTER TABLE htlc_event ALTER COLUMN incoming_channel_id SET NOT NULL;
@@ -227,9 +234,8 @@ ALTER TABLE node_event ADD COLUMN event_node_id INTEGER;
 
 UPDATE node_event ne1
 SET event_node_id=n.node_id
-FROM node_event ne2
-         JOIN node n ON n.public_key=ne2.pub_key
-WHERE ne1.pub_key=ne2.pub_key;
+FROM node n
+WHERE n.public_key=ne1.pub_key;
 
 UPDATE node_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
 
