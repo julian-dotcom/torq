@@ -208,13 +208,13 @@ function OnChainPage() {
   const sortableColumns = allColumns.filter((column: ColumnMetaData) =>
     [
       "date",
-      "dest_addresses",
-      "dest_addresses_count",
+      "destAddresses",
+      "destAddressesCount",
       "amount",
-      "total_fees",
+      "totalFees",
       "label",
-      "lnd_tx_type_label",
-      "lnd_short_chan_id",
+      "lndTxTypeLabel",
+      "lndShortChanId",
     ].includes(column.key)
   );
 

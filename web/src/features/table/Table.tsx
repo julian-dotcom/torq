@@ -22,7 +22,7 @@ export interface ColumnMetaData {
   valueType: string;
   total?: number;
   max?: number;
-  percent?: boolean
+  percent?: boolean;
 }
 
 export interface ViewInterface {
@@ -33,7 +33,7 @@ export interface ViewInterface {
   columns: ColumnMetaData[];
   sortBy: SortByOptionType[];
   groupBy?: string;
-  page: string
+  page: string;
 }
 
 export interface viewOrderInterface {
@@ -202,10 +202,6 @@ function Table(props: TableProps) {
     ",  min-content) auto;" +
     rowGridStyle(numRows) +
     "}";
-
-  // if (props.isLoading == true) {
-  //   return <div className={styles.tableWrapper}>No data</div>;
-  // }
 
   return (
     <div className={styles.tableWrapper}>

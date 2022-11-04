@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { cloneDeep, orderBy } from "lodash";
+import { orderBy } from "lodash";
 import { useAppSelector } from "store/hooks";
 import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
@@ -9,6 +9,7 @@ import { applyFilters, Clause, deserialiseQuery } from "features/sidebar/section
 import { groupByFn } from "features/sidebar/sections/group/groupBy";
 import clone from "clone";
 import Table, { ColumnMetaData } from "features/table/Table";
+import { ForwardResponse } from "types/api";
 
 interface boxProps {
   activeColumns: ColumnMetaData[];
@@ -29,8 +30,8 @@ function ForwardsDataWrapper(props: boxProps) {
     if (chanResponse.data?.length == 0) {
       return [];
     }
-    let channels = cloneDeep(chanResponse.data ? chanResponse.data : ([] as any[]));
-    const columns = clone<Array<ColumnMetaData>>(props.activeColumns) || [];
+    let channels = clone<ForwardResponse[]>(chanResponse.data ? chanResponse.data : ([]));
+    const columns = clone<ColumnMetaData[]>(props.activeColumns) || [];
 
     if (channels.length > 0) {
       channels = groupByFn(channels, groupBy || "channels");
@@ -48,8 +49,14 @@ function ForwardsDataWrapper(props: boxProps) {
     if (channels.length > 0) {
       for (const channel of channels) {
         for (const column of columns) {
-          column.total = (column.total ?? 0) + channel[column.key];
-          column.max = Math.max(column.max ?? 0, channel[column.key] ?? 0);
+          if (typeof channel[column.key as keyof ForwardResponse] == "number") {
+            if (!column.total) column.total = 0
+            column.total += channel[column.key as keyof ForwardResponse] as number || 0;
+            column.max = Math.max(column.max ?? 0 , channel[column.key as keyof ForwardResponse] as number || 0);
+          } else {
+            column.total = 0;
+            column.max = 0;
+          }
         }
       }
 
@@ -79,7 +86,7 @@ function ForwardsDataWrapper(props: boxProps) {
   return (
     <Table
       activeColumns={columns || []}
-      data={channels}
+      data={channels || []}
       isLoading={chanResponse.isLoading || chanResponse.isFetching || chanResponse.isUninitialized}
       showTotals={true}
     />

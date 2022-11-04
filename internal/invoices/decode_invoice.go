@@ -30,7 +30,7 @@ type featureMap map[uint32]feature
 type hopHint struct {
 	LNDShortChannelId uint64 `json:"lndShortChannelId"`
 	ShortChannelId    string `json:"shortChannelId"`
-	NodeId            string `json:"nodeId"`
+	NodeId            string `json:"localNodeId"`
 	FeeBase           uint32 `json:"feeBase"`
 	CltvExpiryDelta   uint32 `json:"cltvExpiryDelta"`
 	FeeProportional   uint32 `json:"feeProportionalMillionths"`

@@ -12,16 +12,16 @@ export interface TableOnChainState {
 export const AllOnChainColumns: Array<ColumnMetaData> = [
   { key: "date", heading: "Date", type: "DateCell", valueType: "date" },
   { key: "amount", heading: "Amount", type: "NumericCell", valueType: "number" },
-  { key: "total_fees", heading: "Fees", type: "NumericCell", valueType: "number" },
-  { key: "tx_hash", heading: "Tx Hash", type: "TextCell", valueType: "string" },
-  { key: "lnd_short_chan_id", heading: "LND Short Channel ID", type: "TextCell", valueType: "string" },
-  { key: "lnd_tx_type_label", heading: "LND Tx type label", type: "TextCell", valueType: "string" },
-  { key: "dest_addresses_count", heading: "Destination Addresses Count", type: "NumericCell", valueType: "number" },
+  { key: "totalFees", heading: "Fees", type: "NumericCell", valueType: "number" },
+  { key: "txHash", heading: "Tx Hash", type: "TextCell", valueType: "string" },
+  { key: "lndShortChanId", heading: "LND Short Channel ID", type: "TextCell", valueType: "string" },
+  { key: "lndTxTypeLabel", heading: "LND Tx type label", type: "TextCell", valueType: "string" },
+  { key: "destAddressesCount", heading: "Destination Addresses Count", type: "NumericCell", valueType: "number" },
   { key: "label", heading: "Label", type: "TextCell", valueType: "string" },
 ];
 
 export const ActiveOnChainColumns = AllOnChainColumns.filter((c) =>
-  ["date", "amount", "total_fees", "lnd_short_chan_id", "lnd_tx_type_label", "tx_hash", "label"].includes(c.key)
+  ["date", "amount", "totalFees", "lndShortChanId", "lndTxTypeLabel", "txHash", "label"].includes(c.key)
 );
 
 export const DefaultView: ViewInterface = {

@@ -57,16 +57,16 @@ export type SendOnChainResponse = {
 export type LoginResponse = {
   error?: LoginFail;
   data?: LoginSuccess;
-}
+};
 
 type LoginFail = {
   data?: { error: string };
   error?: string;
   status: number;
-}
+};
 type LoginSuccess = {
   message: string;
-}
+};
 
 export type GetPaymentsQueryParams = BaseQueryCollectionParams;
 
@@ -114,4 +114,28 @@ export type DecodedInvoice = {
   private: boolean;
   features: FeatureMap;
   routeHints: Array<RouteHint>;
+};
+
+export type ForwardResponse = {
+  alias: string;
+  channelDbId: number;
+  lndChannelPoint: string;
+  pubKey: string;
+  shortChannelId: string;
+  lndShortChannelId: string;
+  color: string;
+  open: number;
+  capacity: number;
+  amountOut: number;
+  amountIn: number;
+  amountTotal: number;
+  revenueOut: number;
+  revenueIn: number;
+  revenueTotal: number;
+  countOut: number;
+  countIn: number;
+  countTotal: number;
+  turnoverOut: number;
+  turnoverIn: number;
+  turnoverTotal: number;
 };
