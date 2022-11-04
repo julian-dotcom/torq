@@ -184,7 +184,11 @@ CREATE OR REPLACE PROCEDURE updateIncomingChannelIdProc() LANGUAGE plpgsql AS $$
 DECLARE
     htlc_event_incoming_short_channel_id TEXT;
 BEGIN
-    FOR htlc_event_incoming_short_channel_id IN SELECT DISTINCT incoming_short_channel_id FROM htlc_event WHERE incoming_channel_id IS NULL LOOP
+    FOR htlc_event_incoming_short_channel_id IN SELECT DISTINCT incoming_short_channel_id
+                                                FROM htlc_event
+                                                WHERE incoming_channel_id IS NULL AND
+                                                        lnd_incoming_short_channel_id != 0
+    LOOP
         UPDATE htlc_event he1
         SET incoming_channel_id=c.channel_id
         FROM channel c
@@ -201,7 +205,11 @@ CREATE OR REPLACE PROCEDURE updateOutgoingChannelIdProc() LANGUAGE plpgsql AS $$
 DECLARE
     htlc_event_outgoing_short_channel_id TEXT;
 BEGIN
-    FOR htlc_event_outgoing_short_channel_id IN SELECT DISTINCT outgoing_short_channel_id FROM htlc_event WHERE outgoing_channel_id IS NULL LOOP
+    FOR htlc_event_outgoing_short_channel_id IN SELECT DISTINCT outgoing_short_channel_id
+                                                FROM htlc_event
+                                                WHERE outgoing_channel_id IS NULL AND
+                                                    lnd_outgoing_short_channel_id != 0
+    LOOP
         UPDATE htlc_event he1
         SET outgoing_channel_id=c.channel_id
         FROM channel c
