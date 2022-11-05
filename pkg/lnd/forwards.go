@@ -43,13 +43,15 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 
 			outgoingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdOut)
 			outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+			outgoingChannelIdP := &outgoingChannelId
 			if outgoingChannelId == 0 {
-				log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
+				log.Debug().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
 					outgoingShortChannelId)
+				outgoingChannelIdP = nil
 			}
 
 			if _, err := tx.Exec(querySfwh, convMicro(event.TimestampNs), event.TimestampNs, event.FeeMsat,
-				event.AmtInMsat, event.AmtOutMsat, incomingChannelId, outgoingChannelId, nodeId); err != nil {
+				event.AmtInMsat, event.AmtOutMsat, incomingChannelId, outgoingChannelIdP, nodeId); err != nil {
 				return errors.Wrapf(err, "storeForwardingHistory->tx.Exec(%v)", querySfwh)
 			}
 		}

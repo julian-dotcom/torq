@@ -194,7 +194,6 @@ BEGIN
         FROM channel c
         WHERE c.short_channel_id=he1.incoming_short_channel_id AND
                 he1.incoming_short_channel_id = htlc_event_incoming_short_channel_id;
-        COMMIT;
     END LOOP;
 END;
 $$;
@@ -215,7 +214,6 @@ BEGIN
         FROM channel c
         WHERE c.short_channel_id=he1.outgoing_short_channel_id AND
                 he1.outgoing_short_channel_id = htlc_event_outgoing_short_channel_id;
-        COMMIT;
     END LOOP;
 END;
 $$;
@@ -266,7 +264,7 @@ ALTER TABLE forward ADD COLUMN incoming_channel_id INTEGER;
 ALTER TABLE forward ADD COLUMN outgoing_channel_id INTEGER;
 ALTER TABLE forward ADD COLUMN node_id INTEGER;
 ALTER TABLE forward ALTER COLUMN incoming_channel_id SET NOT NULL;
-ALTER TABLE forward ALTER COLUMN outgoing_channel_id SET NOT NULL;
+--ALTER TABLE forward ALTER COLUMN outgoing_channel_id SET NOT NULL;
 ALTER TABLE forward ALTER COLUMN node_id SET NOT NULL;
 ALTER TABLE forward ADD CONSTRAINT fk_forward_incoming_channel_id FOREIGN KEY (incoming_channel_id) REFERENCES channel(channel_id);
 ALTER TABLE forward ADD CONSTRAINT fk_forward_outgoing_channel_id FOREIGN KEY (outgoing_channel_id) REFERENCES channel(channel_id);

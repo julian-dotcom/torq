@@ -170,7 +170,7 @@ func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) erro
 		outgoing_channel_id,
 	    node_id
 	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);`
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
 
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
 
