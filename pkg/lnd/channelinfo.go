@@ -165,11 +165,14 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettin
 				channel := channels.Channel{
 					FirstNodeId:            announcingNodeId,
 					SecondNodeId:           connectingNodeId,
-					ShortChannelID:         channels.ConvertLNDShortChannelID(cu.ChanId),
-					LNDShortChannelID:      cu.ChanId,
 					FundingTransactionHash: fundingTransactionHash,
 					FundingOutputIndex:     fundingOutputIndex,
 					Status:                 commons.Open,
+				}
+				if cu.ChanId != 0 {
+					shortChannelId := channels.ConvertLNDShortChannelID(cu.ChanId)
+					channel.ShortChannelID = &shortChannelId
+					channel.LNDShortChannelID = &cu.ChanId
 				}
 				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
 				if err != nil {

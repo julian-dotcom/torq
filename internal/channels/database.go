@@ -47,7 +47,7 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 	}
 	for rows.Next() {
 		var channelId int
-		var shortChannelId string
+		var shortChannelId *string
 		var fundingTransactionHash string
 		var fundingOutputIndex int
 		var status commons.ChannelStatus
@@ -60,7 +60,10 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 	return nil
 }
 
-func getChannelIdByShortChannelId(db *sqlx.DB, shortChannelId string) (int, error) {
+func getChannelIdByShortChannelId(db *sqlx.DB, shortChannelId *string) (int, error) {
+	if shortChannelId == nil || *shortChannelId == "" || *shortChannelId == "0x0x0" {
+		return 0, nil
+	}
 	var channelId int
 	err := db.Get(&channelId, "SELECT channel_id FROM channel WHERE short_channel_id = $1 LIMIT 1;", shortChannelId)
 	if err != nil {
@@ -90,6 +93,12 @@ func getChannelIdByFundingTransaction(db *sqlx.DB, fundingTransactionHash string
 func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	channel.CreatedOn = time.Now().UTC()
 	channel.UpdateOn.Time = channel.CreatedOn
+	if channel.ShortChannelID != nil && *channel.ShortChannelID == "" || *channel.ShortChannelID == "0x0x0" {
+		channel.ShortChannelID = nil
+	}
+	if channel.LNDShortChannelID != nil && *channel.LNDShortChannelID == 0 {
+		channel.LNDShortChannelID = nil
+	}
 	err := db.QueryRowx(`
 		INSERT INTO channel (
 		  short_channel_id,

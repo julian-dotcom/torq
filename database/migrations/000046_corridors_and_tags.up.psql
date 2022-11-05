@@ -90,6 +90,12 @@ ALTER TABLE channel ADD COLUMN funding_transaction_hash TEXT;
 ALTER TABLE channel ADD COLUMN funding_output_index INTEGER;
 ALTER TABLE channel ADD COLUMN closing_transaction_hash TEXT;
 
+ALTER TABLE channel ALTER COLUMN short_channel_id DROP NOT NULL;
+ALTER TABLE channel ALTER COLUMN lnd_short_channel_id DROP NOT NULL;
+
+UPDATE channel SET short_channel_id=NULL WHERE short_channel_id='0x0x0';
+UPDATE channel SET lnd_short_channel_id=NULL WHERE lnd_short_channel_id=0;
+
 UPDATE channel c1
 SET second_node_id=n.node_id
 FROM node n
@@ -307,6 +313,7 @@ ALTER TABLE channel DROP COLUMN alias;
 ALTER TABLE channel DROP COLUMN local_node_id;
 ALTER TABLE channel DROP COLUMN destination_pub_key;
 ALTER TABLE channel DROP COLUMN lnd_channel_point;
+
 
 ALTER TABLE channel_event DROP COLUMN lnd_short_channel_id;
 ALTER TABLE channel_event DROP COLUMN lnd_channel_point;

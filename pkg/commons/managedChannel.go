@@ -197,6 +197,9 @@ func GetChannelIdFromFundingTransaction(fundingTransactionHash string, fundingOu
 }
 
 func GetActiveChannelIdFromShortChannelId(shortChannelId string) int {
+	if shortChannelId == "" || shortChannelId == "0x0x0" {
+		return 0
+	}
 	channelResponseChannel := make(chan ManagedChannel)
 	managedChannel := ManagedChannel{
 		ShortChannelId: shortChannelId,
@@ -209,6 +212,9 @@ func GetActiveChannelIdFromShortChannelId(shortChannelId string) int {
 }
 
 func GetChannelIdFromShortChannelId(shortChannelId string) int {
+	if shortChannelId == "" || shortChannelId == "0x0x0" {
+		return 0
+	}
 	channelResponseChannel := make(chan ManagedChannel)
 	managedChannel := ManagedChannel{
 		ShortChannelId: shortChannelId,
@@ -244,7 +250,7 @@ func GetChannelSettingsFromChannelId(channelId int) ManagedChannelSettings {
 	return channelResponse
 }
 
-func SetChannel(channelId int, shortChannelId string, status ChannelStatus, fundingTransactionHash string, fundingOutputIndex int) {
+func SetChannel(channelId int, shortChannelId *string, status ChannelStatus, fundingTransactionHash string, fundingOutputIndex int) {
 	managedChannel := ManagedChannel{
 		ChannelId:              channelId,
 		FundingTransactionHash: fundingTransactionHash,
@@ -252,8 +258,8 @@ func SetChannel(channelId int, shortChannelId string, status ChannelStatus, fund
 		Status:                 status,
 		Type:                   WRITE_CHANNEL,
 	}
-	if shortChannelId != "" {
-		managedChannel.ShortChannelId = shortChannelId
+	if shortChannelId != nil && *shortChannelId != "" {
+		managedChannel.ShortChannelId = *shortChannelId
 	}
 	ManagedChannelChannel <- managedChannel
 }

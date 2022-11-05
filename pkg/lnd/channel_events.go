@@ -72,13 +72,17 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 
 		channel := channels.Channel{
-			ShortChannelID:         shortChannelId,
 			FundingTransactionHash: fundingTransactionHash,
 			FundingOutputIndex:     fundingOutputIndex,
 			FirstNodeId:            nodeSettings.NodeId,
 			SecondNodeId:           remoteNodeId,
-			LNDShortChannelID:      chanID,
 			Status:                 commons.Open,
+		}
+		if chanID != 0 {
+			channel.LNDShortChannelID = &chanID
+		}
+		if shortChannelId != "" {
+			channel.ShortChannelID = &shortChannelId
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 		if err != nil {
@@ -136,14 +140,18 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 
 		channel := channels.Channel{
-			ShortChannelID:         shortChannelId,
 			FundingTransactionHash: fundingTransactionHash,
 			FundingOutputIndex:     fundingOutputIndex,
 			ClosingTransactionHash: &c.ClosingTxHash,
 			FirstNodeId:            nodeSettings.NodeId,
 			SecondNodeId:           remoteNodeId,
-			LNDShortChannelID:      chanID,
 			Status:                 channels.GetClosureStatus(c.CloseType),
+		}
+		if chanID != 0 {
+			channel.LNDShortChannelID = &chanID
+		}
+		if shortChannelId != "" {
+			channel.ShortChannelID = &shortChannelId
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 		if err != nil {
@@ -306,15 +314,12 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 						return 0, errors.Wrap(err, "Registering new node for new channel")
 					}
 				}
-				// TODO FIXME ShortChannelID and LNDShortChannelID should be nullable
 				newChannel := channels.Channel{
-					ShortChannelID:         "",
 					FundingTransactionHash: fundingTransactionHash,
 					FundingOutputIndex:     fundingOutputIndex,
 					FirstNodeId:            nodeSettings.NodeId,
 					SecondNodeId:           remoteNodeId,
 					Status:                 commons.Opening,
-					LNDShortChannelID:      0,
 				}
 				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, newChannel)
 				if err != nil {
@@ -486,13 +491,17 @@ icoLoop:
 
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
-			ShortChannelID:         shortChannelId,
 			FundingTransactionHash: fundingTransactionHash,
 			FundingOutputIndex:     fundingOutputIndex,
 			FirstNodeId:            nodeSettings.NodeId,
 			SecondNodeId:           remoteNodeId,
-			LNDShortChannelID:      channel.ChanId,
 			Status:                 commons.Open,
+		}
+		if channel.ChanId != 0 {
+			channelRecord.LNDShortChannelID = &channel.ChanId
+		}
+		if shortChannelId != "" {
+			channelRecord.ShortChannelID = &shortChannelId
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channelRecord)
 		if err != nil {
@@ -556,14 +565,18 @@ icoLoop:
 
 		// check if we have seen this channel before and if not store in the channel table
 		channelRecord := channels.Channel{
-			ShortChannelID:         shortChannelId,
 			FundingTransactionHash: fundingTransactionHash,
 			FundingOutputIndex:     fundingOutputIndex,
 			ClosingTransactionHash: &channel.ClosingTxHash,
 			FirstNodeId:            nodeSettings.NodeId,
 			SecondNodeId:           remoteNodeId,
-			LNDShortChannelID:      channel.ChanId,
 			Status:                 channels.GetClosureStatus(channel.CloseType),
+		}
+		if channel.ChanId != 0 {
+			channelRecord.LNDShortChannelID = &channel.ChanId
+		}
+		if shortChannelId != "" {
+			channelRecord.ShortChannelID = &shortChannelId
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channelRecord)
 		if err != nil {

@@ -56,7 +56,7 @@ type Channel struct {
 	// ChannelID A database primary key. NOT a channel_id as specified in BOLT 2
 	ChannelID int `json:"channelId" db:"channel_id"`
 	// ShortChannelID In the c-lighting and BOLT format e.g. 505580:1917:1
-	ShortChannelID         string                `json:"shortChannelId" db:"short_channel_id"`
+	ShortChannelID         *string               `json:"shortChannelId" db:"short_channel_id"`
 	FundingTransactionHash string                `json:"fundingTransactionHash" db:"funding_transaction_hash"`
 	FundingOutputIndex     int                   `json:"fundingOutputIndex" db:"funding_output_index"`
 	ClosingTransactionHash *string               `json:"closingTransactionHash" db:"closing_transaction_hash"`
@@ -64,12 +64,12 @@ type Channel struct {
 	SecondNodeId           int                   `json:"secondNodeId" db:"second_node_id"`
 	CreatedOn              time.Time             `json:"createdOn" db:"created_on"`
 	UpdateOn               null.Time             `json:"updatedOn" db:"updated_on"`
-	LNDShortChannelID      uint64                `json:"lndShortChannelId" db:"lnd_short_channel_id"`
+	LNDShortChannelID      *uint64               `json:"lndShortChannelId" db:"lnd_short_channel_id"`
 	Status                 commons.ChannelStatus `json:"status" db:"status_id"`
 }
 
 func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) {
-	if channel.ShortChannelID == "" {
+	if channel.ShortChannelID == nil || *channel.ShortChannelID == "" || *channel.ShortChannelID == "0x0x0" {
 		// This is a new channel that is in a pending state
 		channel.Status = commons.Opening
 		// The channelPoint should be available (for LND)
@@ -108,7 +108,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 		}
 	} else {
 		var err error
-		existingChannelId := commons.GetChannelIdFromShortChannelId(channel.ShortChannelID)
+		existingChannelId := commons.GetChannelIdFromShortChannelId(*channel.ShortChannelID)
 		if existingChannelId == 0 {
 			existingChannelId, err = getChannelIdByShortChannelId(db, channel.ShortChannelID)
 			if err != nil {
@@ -195,8 +195,14 @@ func updateChannelStatusAndClosingTransactionHash(db *sqlx.DB, channelId int, st
 	return nil
 }
 
-func updateChannelStatusAndLndIds(db *sqlx.DB, channelId int, status commons.ChannelStatus, shortChannelId string,
-	lndShortChannelId uint64) error {
+func updateChannelStatusAndLndIds(db *sqlx.DB, channelId int, status commons.ChannelStatus, shortChannelId *string,
+	lndShortChannelId *uint64) error {
+	if shortChannelId != nil && *shortChannelId == "" || *shortChannelId == "0x0x0" {
+		shortChannelId = nil
+	}
+	if lndShortChannelId != nil && *lndShortChannelId == 0 {
+		lndShortChannelId = nil
+	}
 	_, err := db.Exec(`
 		UPDATE channel
 		SET status_id=$2, short_channel_id=$3, lnd_short_channel_id=$4, updated_on=$5
