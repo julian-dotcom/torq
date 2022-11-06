@@ -58,6 +58,14 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		return errors.Wrap(err, "LND import routing policies")
 	}
 
+	// TODO FIXME channels with short_channel_id = null and status IN (1,2,100,101,102,103) should be fixed somehow???
+	//  Open                   = 1
+	//  Closing                = 2
+	//	CooperativeClosed      = 100
+	//	LocalForceClosed       = 101
+	//	RemoteForceClosed      = 102
+	//	BreachClosed           = 103
+
 	// Transactions
 	errs.Go(func() error {
 		err := lnd.SubscribeAndStoreTransactions(ctx, client, db, nodeSettings, wsChan)
