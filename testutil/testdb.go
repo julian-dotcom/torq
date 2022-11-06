@@ -229,13 +229,13 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		}
 		log.Debug().Msgf("Channel publicKeys: %v", commons.GetChannelPublicKeys(commons.Bitcoin, commons.SigNet))
 		log.Debug().Msgf("Channel nodeIds: %v", commons.GetChannelNodeIds(commons.Bitcoin, commons.SigNet))
-
-		shortChannelId := channels.ConvertLNDShortChannelID(1111)
+		lndShortChannelId := uint64(1111)
+		shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel1 := channels.Channel{
-			ShortChannelID:         shortChannelId,
+			ShortChannelID:         &shortChannelId,
 			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
 			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
-			LNDShortChannelID:      1111,
+			LNDShortChannelID:      &lndShortChannelId,
 			FundingTransactionHash: TestFundingTransactionHash1,
 			FundingOutputIndex:     3,
 			Status:                 commons.Opening,
@@ -247,12 +247,13 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
-		shortChannelId = channels.ConvertLNDShortChannelID(2222)
+		lndShortChannelId = 2222
+		shortChannelId = channels.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel2 := channels.Channel{
-			ShortChannelID:         shortChannelId,
+			ShortChannelID:         &shortChannelId,
 			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
 			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
-			LNDShortChannelID:      2222,
+			LNDShortChannelID:      &lndShortChannelId,
 			FundingTransactionHash: TestFundingTransactionHash2,
 			FundingOutputIndex:     3,
 			Status:                 commons.Opening,
@@ -264,12 +265,13 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
-		shortChannelId = channels.ConvertLNDShortChannelID(3333)
+		lndShortChannelId = 3333
+		shortChannelId = channels.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel3 := channels.Channel{
-			ShortChannelID:         shortChannelId,
+			ShortChannelID:         &shortChannelId,
 			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
 			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
-			LNDShortChannelID:      3333,
+			LNDShortChannelID:      &lndShortChannelId,
 			FundingTransactionHash: TestFundingTransactionHash3,
 			FundingOutputIndex:     3,
 			Status:                 commons.Opening,
@@ -281,12 +283,13 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
-		shortChannelId = channels.ConvertLNDShortChannelID(4444)
+		lndShortChannelId = 4444
+		shortChannelId = channels.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel4 := channels.Channel{
-			ShortChannelID:         shortChannelId,
+			ShortChannelID:         &shortChannelId,
 			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
 			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
-			LNDShortChannelID:      4444,
+			LNDShortChannelID:      &lndShortChannelId,
 			FundingTransactionHash: TestFundingTransactionHash4,
 			FundingOutputIndex:     3,
 			Status:                 commons.Opening,

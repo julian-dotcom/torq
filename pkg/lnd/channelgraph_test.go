@@ -59,7 +59,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 	chanPoint := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.
 		ChannelPoint_FundingTxidBytes{
 		FundingTxidBytes: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
-		OutputIndex: 1}
+		OutputIndex: 3}
 
 	chanPointStr, err := chanPointFromByte([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, chanPoint.OutputIndex)
 	if err != nil {
@@ -132,7 +132,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			Ts:                     time.Now(),
 			FundingTransactionHash: fundingTransactionHash,
 			FundingOutputIndex:     fundingOutputIndex,
-			LNDShortChannelId:      updateEvent.ChannelUpdates[0].ChanId,
+			LNDShortChannelId:      &updateEvent.ChannelUpdates[0].ChanId,
 			AnnouncingPubKey:       updateEvent.ChannelUpdates[0].AdvertisingNode,
 			FeeRateMillMsat:        updateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
 			FeeBaseMsat:            updateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
@@ -164,8 +164,8 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			testutil.Errorf(t, "Incorrect Funding Output Index. Expected: %v, got %v", expected.FundingOutputIndex, result[0].FundingOutputIndex)
 		}
 
-		if result[0].LNDShortChannelId != expected.LNDShortChannelId {
-			testutil.Errorf(t, "Incorrect channel id. Expected: %v, got %v", expected.LNDShortChannelId, result[0].LNDShortChannelId)
+		if *result[0].LNDShortChannelId != *expected.LNDShortChannelId {
+			testutil.Errorf(t, "Incorrect channel id. Expected: %v, got %v", *expected.LNDShortChannelId, *result[0].LNDShortChannelId)
 		}
 
 		if result[0].Disabled != expected.Disabled {
@@ -233,7 +233,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			Ts:                     time.Now(),
 			FundingTransactionHash: fundingTransactionHash,
 			FundingOutputIndex:     fundingOutputIndex,
-			LNDShortChannelId:      secondUpdateEvent.ChannelUpdates[0].ChanId,
+			LNDShortChannelId:      &secondUpdateEvent.ChannelUpdates[0].ChanId,
 			AnnouncingPubKey:       testutil.TestPublicKey1,
 			FeeRateMillMsat:        secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
 			FeeBaseMsat:            secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
@@ -256,21 +256,21 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 
 type routingPolicyData struct {
 	Ts                     time.Time
-	FeeRateMillMsat        int64  `db:"fee_rate_mill_msat"`
-	FeeBaseMsat            int64  `db:"fee_base_msat"`
-	MaxHtlcMsat            uint64 `db:"max_htlc_msat"`
-	MinHtlc                int64  `db:"min_htlc"`
-	TimeLockDelta          uint32 `db:"time_lock_delta"`
-	Disabled               bool   `db:"disabled"`
-	ChannelId              int    `db:"channel_id"`
-	AnnouncingNodeId       int    `db:"announcing_node_id"`
-	AnnouncingPubKey       string `db:"announcing_public_key"`
-	ConnectingNodeId       int    `db:"connecting_node_id"`
-	ConnectingPubKey       string `db:"connecting_public_key"`
-	NodeId                 int    `db:"node_id"`
-	FundingTransactionHash string `db:"funding_transaction_hash"`
-	FundingOutputIndex     int    `db:"funding_output_index"`
-	LNDShortChannelId      uint64 `db:"lnd_short_channel_id"`
+	FeeRateMillMsat        int64   `db:"fee_rate_mill_msat"`
+	FeeBaseMsat            int64   `db:"fee_base_msat"`
+	MaxHtlcMsat            uint64  `db:"max_htlc_msat"`
+	MinHtlc                int64   `db:"min_htlc"`
+	TimeLockDelta          uint32  `db:"time_lock_delta"`
+	Disabled               bool    `db:"disabled"`
+	ChannelId              int     `db:"channel_id"`
+	AnnouncingNodeId       int     `db:"announcing_node_id"`
+	AnnouncingPubKey       string  `db:"announcing_public_key"`
+	ConnectingNodeId       int     `db:"connecting_node_id"`
+	ConnectingPubKey       string  `db:"connecting_public_key"`
+	NodeId                 int     `db:"node_id"`
+	FundingTransactionHash string  `db:"funding_transaction_hash"`
+	FundingOutputIndex     int     `db:"funding_output_index"`
+	LNDShortChannelId      *uint64 `db:"lnd_short_channel_id"`
 }
 
 func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscribeChannelGraphRPC,
@@ -280,11 +280,13 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	errs, ctx := errgroup.WithContext(ctx)
 	client.CancelFunc = cancel
 
+	lndShortChannelId := uint64(1111)
+	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
 	channel := channels.Channel{
-		ShortChannelID:         "1111",
+		ShortChannelID:         &shortChannelId,
 		FirstNodeId:            commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
 		SecondNodeId:           commons.GetNodeIdFromPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
-		LNDShortChannelID:      1111,
+		LNDShortChannelID:      &lndShortChannelId,
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
 		Status:                 commons.Open,

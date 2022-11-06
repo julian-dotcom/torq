@@ -116,10 +116,11 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	// defer testDBCleanup()
 
 	t.Run("Open Channel Event", func(t *testing.T) {
-		expected := channelEventData{LNDShortChannelId: 1337, FundingTransactionHash: "point_break", FundingOutputIndex: 3,
+		lndShortChannelId := uint64(1337)
+		expected := channelEventData{LNDShortChannelId: &lndShortChannelId, FundingTransactionHash: "point_break", FundingOutputIndex: 3,
 			FirstNodePublicKey: testutil.TestPublicKey1, SecondNodePublicKey: "remote_pub_key",
 			EventType: int(lnrpc.ChannelEventUpdate_OPEN_CHANNEL), Capacity: 100000000}
-		channel := &lnrpc.Channel{ChanId: expected.LNDShortChannelId, ChannelPoint: "point_break:3",
+		channel := &lnrpc.Channel{ChanId: *expected.LNDShortChannelId, ChannelPoint: "point_break:3",
 			RemotePubkey: expected.SecondNodePublicKey, Capacity: expected.Capacity}
 		channelEvent := lnrpc.ChannelEventUpdate_OpenChannel{OpenChannel: channel}
 		channelEventUpdate := &lnrpc.ChannelEventUpdate{
@@ -141,7 +142,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Active Channel Event", func(t *testing.T) {
-		expected := channelEventData{LNDShortChannelId: 2222, FundingTransactionHash: testutil.TestFundingTransactionHash2, FundingOutputIndex: 3,
+		lndShortChannelId := uint64(2222)
+		expected := channelEventData{LNDShortChannelId: &lndShortChannelId, FundingTransactionHash: testutil.TestFundingTransactionHash2, FundingOutputIndex: 3,
 			FirstNodePublicKey: testutil.TestPublicKey1, SecondNodePublicKey: testutil.TestPublicKey2, EventType: int(lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL)}
 		fundingTxBytes := []byte{2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 		channel := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: fundingTxBytes}, OutputIndex: 3}
@@ -153,7 +155,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Inactive Channel Event", func(t *testing.T) {
-		expected := channelEventData{LNDShortChannelId: 3333, FundingTransactionHash: testutil.TestFundingTransactionHash3, FundingOutputIndex: 3,
+		lndShortChannelId := uint64(3333)
+		expected := channelEventData{LNDShortChannelId: &lndShortChannelId, FundingTransactionHash: testutil.TestFundingTransactionHash3, FundingOutputIndex: 3,
 			FirstNodePublicKey: testutil.TestPublicKey1, SecondNodePublicKey: testutil.TestPublicKey2, EventType: int(lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL)}
 		fundingTxBytes := []byte{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 		channel := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: fundingTxBytes}, OutputIndex: 3}
@@ -165,7 +168,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	})
 
 	t.Run("Pending Open Channel Event", func(t *testing.T) {
-		expected := channelEventData{LNDShortChannelId: 4444, FundingTransactionHash: testutil.TestFundingTransactionHash4, FundingOutputIndex: 3,
+		lndShortChannelId := uint64(4444)
+		expected := channelEventData{LNDShortChannelId: &lndShortChannelId, FundingTransactionHash: testutil.TestFundingTransactionHash4, FundingOutputIndex: 3,
 			FirstNodePublicKey: testutil.TestPublicKey1, SecondNodePublicKey: testutil.TestPublicKey2, EventType: int(lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL)}
 		TxBytes := []byte{4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 		channel := &lnrpc.PendingUpdate{Txid: TxBytes, OutputIndex: 3}
@@ -181,7 +185,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		// so a single new channel record should have been created
 
 		type channel struct {
-			Short_channel_id         string
+			Short_channel_id         *string
 			Funding_transaction_hash string
 		}
 		var channels []channel
@@ -199,7 +203,8 @@ func TestSubscribeChannelEvents(t *testing.T) {
 			t.Fatal("Expected to find a single channel record stored in the database for these channel event updates")
 		}
 
-		if channels[0].Short_channel_id != "0x0x1337" ||
+		if (channels[0].Short_channel_id != nil &&
+			*channels[0].Short_channel_id != "0x0x1337") ||
 			channels[0].Funding_transaction_hash != "point_break" {
 
 			t.Fatal("Channel data not stored correctly")
@@ -209,10 +214,11 @@ func TestSubscribeChannelEvents(t *testing.T) {
 
 	t.Run("Closed Channel Event", func(t *testing.T) {
 		closingTransactionHash := "closing_point_break"
-		expected := channelEventData{LNDShortChannelId: 1337, FundingTransactionHash: "point_break", FundingOutputIndex: 3,
-			FirstNodePublicKey: testutil.TestPublicKey1, SecondNodePublicKey: "remote_pub_key", EventType: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL),
+		lndShortChannelId := uint64(4444)
+		expected := channelEventData{LNDShortChannelId: &lndShortChannelId, FundingTransactionHash: testutil.TestFundingTransactionHash4, FundingOutputIndex: 3,
+			FirstNodePublicKey: testutil.TestPublicKey1, SecondNodePublicKey: testutil.TestPublicKey2, EventType: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL),
 			Capacity: 100000000, ClosingTransactionHash: &closingTransactionHash}
-		channel := &lnrpc.ChannelCloseSummary{ChanId: expected.LNDShortChannelId, ChannelPoint: "point_break:3",
+		channel := &lnrpc.ChannelCloseSummary{ChanId: *expected.LNDShortChannelId, ChannelPoint: testutil.TestChannelPoint4,
 			RemotePubkey: expected.SecondNodePublicKey, Capacity: expected.Capacity, ClosingTxHash: closingTransactionHash}
 		channelEvent := lnrpc.ChannelEventUpdate_ClosedChannel{ClosedChannel: channel}
 		channelEventUpdate := &lnrpc.ChannelEventUpdate{
@@ -224,7 +230,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 }
 
 type channelEventData struct {
-	LNDShortChannelId      uint64  `db:"lnd_short_channel_id"`
+	LNDShortChannelId      *uint64 `db:"lnd_short_channel_id"`
 	FundingTransactionHash string  `db:"funding_transaction_hash"`
 	FundingOutputIndex     int     `db:"funding_output_index"`
 	ClosingTransactionHash *string `db:"closing_transaction_hash"`
@@ -282,10 +288,10 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	}
 
 	if len(channelEvents) != 1 {
-		t.Fatal("Expected to find a single channel event record stored in the database for this channel event update")
+		t.Fatalf("Expected to find a single channel event record stored in the database for this channel event update but found %d", len(channelEvents))
 	}
 
-	if channelEvents[0].LNDShortChannelId != expected.LNDShortChannelId ||
+	if channelEvents[0].LNDShortChannelId != nil && *channelEvents[0].LNDShortChannelId != *expected.LNDShortChannelId ||
 		channelEvents[0].SecondNodePublicKey != expected.SecondNodePublicKey {
 		t.Fatal("Channel event data not stored correctly")
 	}

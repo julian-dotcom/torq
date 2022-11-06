@@ -210,6 +210,8 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 		} else {
 			initializeIdCache(allTorqNodeIdCache, *managedNode.Chain, *managedNode.Network)
 			allTorqNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey] = managedNode.NodeId
+			initializeIdCache(allChannelNodeIdCache, *managedNode.Chain, *managedNode.Network)
+			allChannelNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey] = managedNode.NodeId
 			nodeSettingsByNodeIdCache[managedNode.NodeId] = ManagedNodeSettings{
 				NodeId:    managedNode.NodeId,
 				Network:   *managedNode.Network,
@@ -229,6 +231,8 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			allTorqNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey] = managedNode.NodeId
 			initializeIdCache(channelNodeIdCache, *managedNode.Chain, *managedNode.Network)
 			channelNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey] = managedNode.NodeId
+			initializeIdCache(allChannelNodeIdCache, *managedNode.Chain, *managedNode.Network)
+			allChannelNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey] = managedNode.NodeId
 			nodeSettingsByNodeIdCache[managedNode.NodeId] = ManagedNodeSettings{
 				NodeId:    managedNode.NodeId,
 				Network:   *managedNode.Network,

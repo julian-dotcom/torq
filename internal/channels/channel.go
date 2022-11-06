@@ -163,7 +163,7 @@ func updateChannelStatusAndClosingTransactionHash(db *sqlx.DB, channelId int, st
 
 func updateChannelStatusAndLndIds(db *sqlx.DB, channelId int, status commons.ChannelStatus, shortChannelId *string,
 	lndShortChannelId *uint64) error {
-	if shortChannelId != nil && *shortChannelId == "" || *shortChannelId == "0x0x0" {
+	if shortChannelId != nil && (*shortChannelId == "" || *shortChannelId == "0x0x0") {
 		shortChannelId = nil
 	}
 	if lndShortChannelId != nil && *lndShortChannelId == 0 {
