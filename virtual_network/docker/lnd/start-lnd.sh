@@ -48,7 +48,7 @@ NETWORK=$(set_default "$NETWORK" "simnet")
 CHAIN=$(set_default "$CHAIN" "bitcoin")
 BACKEND="btcd"
 HOSTNAME=$(hostname)
-ALIAS=$(set_default "ALIAS" "$HOSTNAME")
+ALIAS=$(set_default "$ALIAS" "$HOSTNAME")
 COLOR=$(set_default "$COLOR" "#000000")
 if [[ "$CHAIN" == "litecoin" ]]; then
     BACKEND="ltcd"

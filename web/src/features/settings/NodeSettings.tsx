@@ -194,7 +194,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
   };
 
-  const implementationOptions = [{ value: "1", label: "LND" } as SelectOption];
+  const implementationOptions = [{ value: "0", label: "LND" } as SelectOption];
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
   return (
