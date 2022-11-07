@@ -23,19 +23,19 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 	if filterParam != "" {
 		filter, err = qp.ParseFilterParam(filterParam, []string{
 			"date",
-			"destination_pub_key",
+			"destinationPubKey",
 			"status",
 			"value",
 			"fee",
 			"ppm",
-			"failure_reason",
-			"is_rebalance",
-			"is_mpp",
-			"count_successful_attempts",
-			"count_failed_attempts",
-			"seconds_in_flight",
-			"payment_hash",
-			"payment_preimage",
+			"failureReason",
+			"isRebalance",
+			"isMpp",
+			"countSuccessfulAttempts",
+			"countFailedAttempts",
+			"secondsInFlight",
+			"paymentHash",
+			"paymentPreimage",
 		})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
@@ -55,10 +55,10 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 				"value",
 				"fee",
 				"ppm",
-				"failure_reason",
-				"count_successful_attempts",
-				"count_failed_attempts",
-				"seconds_in_flight",
+				"failureReason",
+				"countSuccessfulAttempts",
+				"countFailedAttempts",
+				"secondsInFlight",
 			})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
@@ -132,9 +132,4 @@ func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	c.JSON(http.StatusOK, r)
-}
-
-func RegisterPaymentsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("", func(c *gin.Context) { getPaymentsHandler(c, db) })
-	r.GET(":identifier", func(c *gin.Context) { getPaymentHandler(c, db) })
 }

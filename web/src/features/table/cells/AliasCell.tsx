@@ -5,7 +5,7 @@ import classNames from "classnames";
 
 interface AliasCell {
   current: string;
-  chanId: string;
+  lndShortChannelId: string;
   open?: number;
   className?: string;
 }
@@ -20,9 +20,9 @@ function OpenText(open: number) {
   }
 }
 
-function AliasCell({ current, chanId, open, className }: AliasCell) {
+function AliasCell({ current, lndShortChannelId, open, className }: AliasCell) {
   return (
-    <Link className={classNames(styles.cell, styles.alignLeft, className)} to={"/analyse/inspect/" + chanId}>
+    <Link className={classNames(styles.cell, styles.alignLeft, className)} to={"/analyse/inspect/" + lndShortChannelId}>
       <div className={classNames(styles.current, styles.text)}>{current}</div>
       {open !== undefined && (
         <div className={classNames(styles.past, { [styles.positive]: open, [styles.negative]: !open })}>

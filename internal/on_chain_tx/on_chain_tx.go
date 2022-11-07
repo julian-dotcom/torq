@@ -13,7 +13,7 @@ type Transaction struct {
 	Date               time.Time      `json:"date" db:"date"`
 	TxHash             string         `json:"txHash" db:"tx_hash"`
 	DestAddresses      pq.StringArray `json:"destAddresses" db:"dest_addresses"`
-	DestAddressesCount string         `json:"destAddresses_count" db:"dest_addresses_count"`
+	DestAddressesCount string         `json:"destAddressesCount" db:"dest_addresses_count"`
 	AmountMsat         int64          `json:"amount" db:"amount"`
 	TotalFeesMsat      int64          `json:"totalFees" db:"total_fees"`
 	Label              *string        `json:"label" db:"label"`

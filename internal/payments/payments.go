@@ -15,53 +15,53 @@ import (
 )
 
 type Payment struct {
-	PaymentIndex            uint64    `json:"payment_index" db:"payment_index"`
+	PaymentIndex            uint64    `json:"paymentIndex" db:"payment_index"`
 	Date                    time.Time `json:"date" db:"date"`
-	DestinationPubKey       *string   `json:"destination_pub_key" db:"destination_pub_key"`
+	DestinationPubKey       *string   `json:"destinationPubKey" db:"destination_pub_key"`
 	Status                  string    `json:"status" db:"status"`
 	Value                   float64   `json:"value" db:"value"`
 	Fee                     float64   `json:"fee" db:"fee"`
 	PPM                     float64   `json:"ppm" db:"ppm"`
-	FailureReason           string    `json:"failure_reason" db:"failure_reason"`
-	PaymentHash             string    `json:"payment_hash" db:"payment_hash"`
-	PaymentPreimage         string    `json:"payment_preimage" db:"payment_preimage"`
-	PaymentRequest          *string   `json:"payment_request" db:"payment_request"`
-	IsRebalance             *bool     `json:"is_rebalance" db:"is_rebalance"`
-	IsMPP                   bool      `json:"is_mpp" db:"is_mpp"`
-	CountSuccessfulAttempts int       `json:"count_successful_attempts" db:"count_successful_attempts"`
-	CountFailedAttempts     int       `json:"count_failed_attempts" db:"count_failed_attempts"`
-	SecondsInFlight         *float32  `json:"seconds_in_flight" db:"seconds_in_flight"`
+	FailureReason           string    `json:"failureReason" db:"failure_reason"`
+	PaymentHash             string    `json:"paymentHash" db:"payment_hash"`
+	PaymentPreimage         string    `json:"paymentPreimage" db:"payment_preimage"`
+	PaymentRequest          *string   `json:"paymentRequest" db:"payment_request"`
+	IsRebalance             *bool     `json:"isREebalance" db:"is_rebalance"`
+	IsMPP                   bool      `json:"isMpp" db:"is_mpp"`
+	CountSuccessfulAttempts int       `json:"countSuccessful_attempts" db:"count_successful_attempts"`
+	CountFailedAttempts     int       `json:"countFailedAttempts" db:"count_failed_attempts"`
+	SecondsInFlight         *float32  `json:"secondsInFlight" db:"seconds_in_flight"`
 }
 
 type Hop struct {
 	Expiry            uint64 `json:"expiry" db:"expiry"`
-	LNDShortChannelId uint64 `json:"chan_id" db:"lnd_short_channel_id"`
-	PubKey            string `json:"pub_key" db:"pub_key"`
-	FeeMsat           uint64 `json:"fee_msat" db:"fee_msat"`
-	TlvPayload        bool   `json:"tlv_payload" db:"tlv_payload"`
-	ChanCapacity      uint64 `json:"chan_capacity" db:"chan_capacity"`
-	AmtToForwardMsat  uint64 `json:"amt_to_forward_msat" db:"amt_to_forward_msat"`
+	LNDShortChannelId uint64 `json:"lndShortChannelId" db:"lnd_short_channel_id"`
+	PubKey            string `json:"pubKey" db:"pub_key"`
+	FeeMsat           uint64 `json:"feeMsat" db:"fee_msat"`
+	TlvPayload        bool   `json:"tlvPayload" db:"tlv_payload"`
+	ChanCapacity      uint64 `json:"chanCapacity" db:"chan_capacity"`
+	AmtToForwardMsat  uint64 `json:"amtToForwardMsat" db:"amt_to_forward_msat"`
 }
 
 type Route struct {
 	Hops          []*Hop `json:"hops" db:"hops"`
-	TotalAmt      uint64 `json:"total_amt" db:"total_amt"`
-	TotalFees     uint64 `json:"total_fees" db:"total_fees"`
-	TotalAmtMsat  uint64 `json:"total_amt_msat" db:"total_amt_msat"`
-	TotalFeesMsat uint64 `json:"total_fees_msat" db:"total_fees_msat"`
-	TotalTimeLock uint64 `json:"total_time_lock" db:"total_time_lock"`
+	TotalAmt      uint64 `json:"totalAmt" db:"total_amt"`
+	TotalFees     uint64 `json:"totalFees" db:"total_fees"`
+	TotalAmtMsat  uint64 `json:"totalAmtMsat" db:"total_amt_msat"`
+	TotalFeesMsat uint64 `json:"totalFeesMsat" db:"total_fees_msat"`
+	TotalTimeLock uint64 `json:"totalTimeLock" db:"total_time_lock"`
 }
 
 type PaymentDetailsRaw struct {
 	Payment
 	SuccessfulRoutes []byte `json:"successful_routes" db:"successful_routes"`
-	FailedRoutes     []byte `json:"failed_routes" db:"failed_routes"`
+	FailedRoutes     []byte `json:"failedRoutes" db:"failed_routes"`
 }
 
 type PaymentDetails struct {
 	Payment
-	SuccessfulRoutes []*Route `json:"successful_routes" db:"successful_routes"`
-	FailedRoutes     []*Route `json:"failed_routes" db:"failed_routes"`
+	SuccessfulRoutes []*Route `json:"successfulRoutes" db:"successful_routes"`
+	FailedRoutes     []*Route `json:"failedRoutes" db:"failed_routes"`
 }
 
 func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,

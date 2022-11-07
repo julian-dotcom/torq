@@ -29,7 +29,11 @@ import type {
   GetFlowQueryParams,
   GetChannelHistoryData,
   LoginResponse,
-  ForwardResponse
+  ForwardResponse,
+  OnchainResponse,
+  PaymentsResponse,
+  InvoicesResponse,
+  DecodedInvoice,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { nodeConfiguration, settings, timeZone, channel } from "apiTypes";
@@ -101,16 +105,16 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["channels"],
     }),
-    getDecodedInvoice: builder.query<any, GetDecodedInvoiceQueryParams>({
+    getDecodedInvoice: builder.query<DecodedInvoice, GetDecodedInvoiceQueryParams>({
       query: (params) => "invoices/decode" + queryParamsBuilder(params),
     }),
-    getPayments: builder.query<any, GetPaymentsQueryParams>({
+    getPayments: builder.query<PaymentsResponse, GetPaymentsQueryParams>({
       query: (params) => "payments" + queryParamsBuilder(params, true),
     }),
-    getInvoices: builder.query<any, GetInvoicesQueryParams>({
+    getInvoices: builder.query<InvoicesResponse, GetInvoicesQueryParams>({
       query: (params) => "invoices" + queryParamsBuilder(params, true),
     }),
-    getOnChainTx: builder.query<any, GetOnChainTransactionsQueryParams>({
+    getOnChainTx: builder.query<OnchainResponse, GetOnChainTransactionsQueryParams>({
       query: (params) => "on-chain-tx" + queryParamsBuilder(params, true),
     }),
     sendOnChain: builder.mutation<SendOnChainResponse, SendOnChainRequest>({

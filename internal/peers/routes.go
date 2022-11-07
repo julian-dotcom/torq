@@ -15,6 +15,11 @@ import (
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
+<<<<<<<< HEAD:internal/peers/routes.go
+========
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+>>>>>>>> add response types:internal/peers/handlers.go
 )
 
 type LndAddress struct {
@@ -117,3 +122,7 @@ func connectLND(db *sqlx.DB, nodeId int) (conn *grpc.ClientConn, err error) {
 	return conn, nil
 
 }
+<<<<<<<< HEAD:internal/peers/routes.go
+========
+
+>>>>>>>> add response types:internal/peers/handlers.go

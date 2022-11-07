@@ -203,7 +203,7 @@ function InvoicesPage() {
 
   const filterColumns = clone(allColumns).map((c: any) => {
     switch (c.key) {
-      case "invoice_state":
+      case "invoiceState":
         c.selectOptions = Object.keys(statusTypes).map((key: any) => {
           return {
             value: key,
@@ -293,7 +293,7 @@ function InvoicesPage() {
     <Pagination
       limit={limit}
       offset={offset}
-      total={invoicesResponse?.data?.pagination?.total}
+      total={invoicesResponse?.data?.pagination?.total || 0}
       perPageHandler={setLimit}
       offsetHandler={setOffset}
     />

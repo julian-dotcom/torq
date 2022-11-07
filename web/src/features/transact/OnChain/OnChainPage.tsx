@@ -270,7 +270,7 @@ function OnChainPage() {
     <Pagination
       limit={limit}
       offset={offset}
-      total={onchainResponse?.data?.pagination?.total}
+      total={onchainResponse?.data?.pagination?.total || 0}
       perPageHandler={setLimit}
       offsetHandler={setOffset}
     />

@@ -139,3 +139,72 @@ export type ForwardResponse = {
   turnoverIn: number;
   turnoverTotal: number;
 };
+
+export type OnchainResponse = {
+  data: OnchainData[];
+  pagination: Pagination;
+}
+
+type Pagination = {
+  limit: number;
+  offset: number;
+  total: number;
+}
+
+type OnchainData = {
+  date: string;
+  amount: number;
+  destAddresses: string[];
+  destAddressesCount: string;
+  label: string;
+  lndShortChanId: string;
+  lndTxTypeLabel: string;
+  totalFees: number;
+  txHash: number;
+}
+
+export type PaymentsResponse = {
+  data: PaymentData[];
+  pagination: Pagination;
+}
+
+type PaymentData = {
+  paymentIndex: number;
+  date: string;
+  destinationPubKey: string;
+  status: string;
+  value: number;
+  fee: number;
+  ppm: number;
+  failureReason: string;
+  txHash: number;
+}
+
+export type InvoicesResponse = {
+  data : InvoiceData[];
+  pagination: Pagination;
+}
+
+type InvoiceData = {
+  creationDate: string;
+  settleDate: string;
+  addIndex: number;
+  settleIndex: number;
+  paymentRequest: string;
+  destinationPubKey: string;
+  rHash: string;
+  rPreimage: string;
+  memo: string;
+  value: number;
+  amtPaid: number;
+  invoiceState: string;
+  isRebalance: boolean;
+  isKeysend: boolean;
+  isAmp: boolean;
+  paymentAddr: string;
+  fallbackAddr: string;
+  updatedOn: string;
+  expiry: number;
+  cltvExpiry: number;
+  private: boolean;
+}
