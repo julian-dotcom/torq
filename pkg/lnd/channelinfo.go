@@ -10,6 +10,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -104,11 +105,13 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePub
 		ce, err := client.GetChanInfo(ctx, &lnrpc.ChanInfoRequest{ChanId: cid})
 		if err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "edge not found") {
+				log.Debug().Err(err).Msgf("Edge wasn't found when importing routing policies for channel id: %v", cid)
 				continue
 			}
 			if e, ok := status.FromError(err); ok {
 				switch e.Code() {
 				case codes.NotFound:
+					log.Debug().Err(err).Msgf("Chan info not found error when importing routing policies for channel id: %v", cid)
 					continue
 				default:
 					return errors.Wrap(err, "Get chan info")
