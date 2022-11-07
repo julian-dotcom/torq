@@ -49,14 +49,14 @@ We would also love to hear your ideas for features or any other feedback you mig
 
 ## Preview
 
-![Torq - Forwards](./forwards-table.png)
+![Torq - Forwards](./docs/images/forwards-table.png)
 
-![Torq - Forwards Summary](./forwards-summary.png)
+![Torq - Forwards Summary](./docs/images/forwards-summary.png)
 
-![Torq - Events](./Torq-Events.png)
+![Torq - Events](./docs/images/Torq-Events.png)
 
-![Torq - Flow](./Torq-Flow.png)
+![Torq - Flow](./docs/images/Torq-Flow.png)
 
-![Torq - Balance over time](./balance-graph.png)
+![Torq - Balance over time](./docs/images/balance-graph.png)
 
-![Torq - Payments](./payments.png)
+![Torq - Payments](./docs/images/payments.png)
