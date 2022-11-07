@@ -497,10 +497,10 @@ icoLoop:
 			SecondNodeId:           remoteNodeId,
 			Status:                 commons.Open,
 		}
-		if channel.ChanId != 0 {
+		if channel.ChanId == 0 {
+			log.Error().Msgf("Failed to obtain shortChannelId for open channel with channel point %v:%v", fundingTransactionHash, fundingOutputIndex)
+		} else {
 			channelRecord.LNDShortChannelID = &channel.ChanId
-		}
-		if shortChannelId != "" {
 			channelRecord.ShortChannelID = &shortChannelId
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channelRecord)
@@ -572,10 +572,10 @@ icoLoop:
 			SecondNodeId:           remoteNodeId,
 			Status:                 channels.GetClosureStatus(channel.CloseType),
 		}
-		if channel.ChanId != 0 {
+		if channel.ChanId == 0 {
+			log.Error().Msgf("Failed to obtain shortChannelId for closed channel with channel point %v:%v", fundingTransactionHash, fundingOutputIndex)
+		} else {
 			channelRecord.LNDShortChannelID = &channel.ChanId
-		}
-		if shortChannelId != "" {
 			channelRecord.ShortChannelID = &shortChannelId
 		}
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channelRecord)
