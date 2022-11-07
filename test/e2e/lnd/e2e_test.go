@@ -130,7 +130,7 @@ func TestMain(m *testing.M) {
 		},
 		[]string{"NETWORK=simnet", "COLOR=" + bobColor},
 		nil,
-		"10011",
+		"",
 	)
 
 	// Add config for carol
@@ -623,7 +623,7 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	click("text=Add Node")
 
-	fill("#address input[type=text]", bobIPAddress+":10011")
+	fill("#address input[type=text]", bobIPAddress+":10009")
 
 	tlsFileReader, _, err := cli.CopyFromContainer(ctx, bobName, "/root/.lnd/tls.cert")
 	if err != nil {
