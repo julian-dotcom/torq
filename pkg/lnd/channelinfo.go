@@ -3,6 +3,7 @@ package lnd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -102,6 +103,9 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePub
 
 		ce, err := client.GetChanInfo(ctx, &lnrpc.ChanInfoRequest{ChanId: cid})
 		if err != nil {
+			if strings.Contains(strings.ToLower(err.Error()), "edge not found") {
+				continue
+			}
 			if e, ok := status.FromError(err); ok {
 				switch e.Code() {
 				case codes.NotFound:
