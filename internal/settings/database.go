@@ -180,13 +180,13 @@ RETURNING local_node_id;`, localNode.Implementation, localNode.GRPCAddress, time
 	return localNodeId, nil
 }
 
-func updateLocalNodeName(db *sqlx.DB, localNode localNode) (err error) {
+func UpdateLocalNodeName(db *sqlx.DB, localNodeName string, localNodeId int) (err error) {
 	_, err = db.Exec(`
 UPDATE local_node SET
   name = $1,
   updated_on = $2
 WHERE local_node_id = $3;
-`, localNode.Name, time.Now().UTC(), localNode.LocalNodeId)
+`, localNodeName, time.Now().UTC(), localNodeId)
 	if err != nil {
 		return errors.Wrap(err, "Unable to execute SQL statement")
 	}

@@ -189,8 +189,7 @@ func addLocalNodeHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error
 	localNode.LocalNodeId = localNodeId
 
 	if strings.TrimSpace(localNode.Name) == "" {
-		localNode.Name = "Node " + strconv.Itoa(localNode.LocalNodeId)
-		err := updateLocalNodeName(db, localNode)
+		err := UpdateLocalNodeName(db, "Node "+strconv.Itoa(localNode.LocalNodeId), localNode.LocalNodeId)
 		if err != nil {
 			server_errors.LogAndSendServerError(c, err)
 			return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -179,6 +180,47 @@ func main() {
 				return err
 			}
 
+			// if node specified on cmd flags then check if we already know about it
+			if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
+
+				macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
+				if err != nil {
+					return errors.Wrap(err, "Reading macaroon file from disk path from config")
+				}
+
+				tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
+				if err != nil {
+					return errors.Wrap(err, "Reading tls file from disk path from config")
+				}
+
+				localNodeFromConfig := settings.ConnectionDetails{
+					GRPCAddress:       c.String("lnd.url"),
+					MacaroonFileBytes: macaroonFile,
+					TLSFileBytes:      tlsFile}
+
+				nodeId, err := settings.GetNodeIdByGRPC(db, localNodeFromConfig)
+				if err != nil {
+					return errors.Wrap(err, "Checking if node specified in config exists")
+				}
+				// doesn't exist
+				if nodeId == -1 {
+					log.Debug().Msg("Node specified in config is not in DB, adding it")
+					localNodeId, err := settings.AddNodeToDB(db, localNodeFromConfig)
+					if err != nil {
+						return errors.Wrap(err, "Adding node specified in config to database")
+					}
+					err = settings.UpdateLocalNodeName(db, "Auto configured node "+strconv.Itoa(localNodeId), localNodeId)
+					if err != nil {
+						return errors.Wrap(err, "Updating node name")
+					}
+				} else {
+					log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
+					if err = settings.UpdateNodeFiles(db, localNodeFromConfig); err != nil {
+						return errors.Wrap(err, "Problem updating node files")
+					}
+				}
+			}
+
 			if !c.Bool("torq.no-sub") {
 				// initialise package level var for keeping state of subsciptions
 				runningSubscriptions = subscriptions{}
@@ -187,47 +229,6 @@ func main() {
 				go (func() {
 					for {
 						<-startchan
-						// if node specified on cmd flags then check if we already know about it
-						if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
-
-							macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
-							if err != nil {
-								log.Error().Err(err).Msg("Reading macaroon file from disk path from config")
-								return
-							}
-
-							tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
-							if err != nil {
-								log.Error().Err(err).Msg("Reading tls file from disk path from config")
-								return
-							}
-
-							localNodeFromConfig := settings.ConnectionDetails{
-								GRPCAddress:       c.String("lnd.url"),
-								MacaroonFileBytes: macaroonFile,
-								TLSFileBytes:      tlsFile}
-
-							nodeId, err := settings.GetNodeIdByGRPC(db, localNodeFromConfig)
-							if err != nil {
-								log.Error().Err(err).Msg("Checking if node specified in config exists")
-								return
-							}
-							// doesn't exist
-							if nodeId == -1 {
-								log.Debug().Msg("Node specified in config is not in DB, adding it")
-								err = settings.AddNodeToDB(db, localNodeFromConfig)
-								if err != nil {
-									log.Error().Err(err).Msg("Adding node specified in config to database")
-									return
-								}
-							} else {
-								log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
-								if err = settings.UpdateNodeFiles(db, localNodeFromConfig); err != nil {
-									log.Error().Err(err).Msg("Problem updating node files")
-									return
-								}
-							}
-						}
 
 						nodes, err := settings.GetActiveNodesConnectionDetails(db)
 						if err != nil {

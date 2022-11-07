@@ -19,16 +19,16 @@ func GetNodeIdByGRPC(db *sqlx.DB, nodeConnectionDetails ConnectionDetails) (int,
 	return index, nil
 }
 
-func AddNodeToDB(db *sqlx.DB, nodeConnectionDetails ConnectionDetails) error {
+func AddNodeToDB(db *sqlx.DB, nodeConnectionDetails ConnectionDetails) (int, error) {
 
 	publicKey, err := getPublicKeyFromNode(nodeConnectionDetails.GRPCAddress, nodeConnectionDetails.TLSFileBytes,
 		nodeConnectionDetails.MacaroonFileBytes)
 	if err != nil {
-		return errors.Wrap(err, "Getting public key from node")
+		return 0, errors.Wrap(err, "Getting public key from node")
 	}
 	existingNodes, err := getLocalNodeConnectionDetails(db)
 	if err != nil {
-		return errors.Wrap(err, "Getting local nodes from db")
+		return 0, errors.Wrap(err, "Getting local nodes from db")
 	}
 	localNodeFromConfig := localNode{
 		Implementation: "LND",
@@ -40,28 +40,28 @@ func AddNodeToDB(db *sqlx.DB, nodeConnectionDetails ConnectionDetails) error {
 		if existingNode.PubKey != nil && *existingNode.PubKey == publicKey {
 			err = updateLocalNodeDetails(db, localNodeFromConfig)
 			if err != nil {
-				return errors.Wrap(err, "Inserting local node to database")
+				return 0, errors.Wrap(err, "Inserting local node to database")
 			}
 			nodeConnectionDetails.LocalNodeId = existingNode.LocalNodeId
 			err = UpdateNodeFiles(db, nodeConnectionDetails)
 			if err != nil {
-				return err
+				return 0, err
 			}
-			return nil
+			return 0, nil
 		}
 	}
 
 	id, err := insertLocalNodeDetails(db, localNodeFromConfig)
 	if err != nil {
-		return errors.Wrap(err, "Inserting local node to database")
+		return 0, errors.Wrap(err, "Inserting local node to database")
 	}
 	nodeConnectionDetails.LocalNodeId = id
 	err = UpdateNodeFiles(db, nodeConnectionDetails)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return id, nil
 }
 
 func UpdateNodeFiles(db *sqlx.DB, nodeConnectionDetails ConnectionDetails) error {
