@@ -7,9 +7,9 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
-  test:
-    uses: ./.github/workflows/run-all-tests.yml
-    secrets: inherit
+  # test:
+  #   uses: ./.github/workflows/run-all-tests.yml
+  #   secrets: inherit
 
   amd64:
     runs-on: buildjet-4vcpu-ubuntu-2204
@@ -44,7 +44,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BUILD_VER={{ steps.meta.outputs.version }}
+            BUILD_VER=${{ steps.meta.outputs.version }}
   arm:
     runs-on: buildjet-4vcpu-ubuntu-2204-arm
     name: Push ARM Docker image to Docker Hub
@@ -79,7 +79,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BUILD_VER={{ steps.meta.outputs.version }}
+            BUILD_VER=${{ steps.meta.outputs.version }}
   combine-manifests:
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Combine architectures into one manifest
