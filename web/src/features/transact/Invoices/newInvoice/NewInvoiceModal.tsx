@@ -1,5 +1,5 @@
 import { Options20Regular as OptionsIcon, MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
-import { useGetLocalNodesQuery, useNewInvoiceMutation } from "apiSlice";
+import { useGetNodeConfigurationsQuery, useNewInvoiceMutation } from "apiSlice";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -8,7 +8,7 @@ import { ChangeEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import styles from "./newInvoice.module.scss";
 import useTranslations from "services/i18n/useTranslations";
-import { localNode } from "apiTypes";
+import { nodeConfiguration } from "apiTypes";
 import Select from "features/forms/Select";
 import LargeAmountInput from "features/inputs/largeAmountInput/LargeAmountInput";
 import { SectionContainer } from "features/section/SectionContainer";
@@ -20,19 +20,19 @@ function NewInvoiceModal() {
   const { t } = useTranslations();
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
 
-  const { data: localNodes } = useGetLocalNodesQuery();
+  const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
   const [newInvoiceMutation, newInvoiceResponse] = useNewInvoiceMutation();
 
-  let localNodeOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
-  if (localNodes !== undefined) {
-    localNodeOptions = localNodes.map((localNode: localNode) => {
-      return { value: localNode.localNodeId, label: localNode.grpcAddress };
+  let nodeConfigurationOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
+  if (nodeConfigurations !== undefined) {
+    nodeConfigurationOptions = nodeConfigurations.map((node: nodeConfiguration) => {
+      return { value: node.nodeId, label: node.grpcAddress };
     });
   }
 
   useEffect(() => {
-    if (localNodeOptions !== undefined) {
-      setSelectedLocalNode(localNodeOptions[0].value);
+    if (nodeConfigurationOptions !== undefined) {
+      setSelectedNodeId(nodeConfigurationOptions[0].value);
     }
     if (newInvoiceResponse.isSuccess) {
       setDoneState(ProgressStepState.completed);
@@ -43,9 +43,9 @@ function NewInvoiceModal() {
     if (newInvoiceResponse.isLoading) {
       setDoneState(ProgressStepState.processing);
     }
-  }, [localNodeOptions, newInvoiceResponse]);
+  }, [nodeConfigurationOptions, newInvoiceResponse]);
 
-  const [selectedLocalNode, setSelectedLocalNode] = useState<number>(localNodeOptions[0].value);
+  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value);
   const [amountSat, setAmountSat] = useState<number | undefined>(undefined);
   const [expirySeconds, setExpirySeconds] = useState<number | undefined>(undefined);
   const [memo, setMemo] = useState<string | undefined>(undefined);
@@ -66,7 +66,7 @@ function NewInvoiceModal() {
     setDetailsState(ProgressStepState.completed);
     setDoneState(ProgressStepState.processing);
     newInvoiceMutation({
-      localNodeId: selectedLocalNode,
+      nodeId: selectedNodeId,
       valueMsat: amountSat ? amountSat * 1000 : undefined, // msat = 1000*sat
       expiry: expirySeconds,
       memo: memo,
@@ -110,10 +110,10 @@ function NewInvoiceModal() {
           <Select
             label={t.yourNode}
             onChange={(newValue: any) => {
-              setSelectedLocalNode(newValue?.value || 0);
+              setSelectedNodeId(newValue?.value || 0);
             }}
-            options={localNodeOptions}
-            value={localNodeOptions.find((option) => option.value === selectedLocalNode)}
+            options={nodeConfigurationOptions}
+            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
           />
           <textarea
             id={"destination"}
@@ -168,7 +168,7 @@ function NewInvoiceModal() {
 
         <ProgressTabContainer>
           <NewInvoiceResponseStep
-            selectedLocalNode={selectedLocalNode}
+            selectedNodeId={selectedNodeId}
             amount={amountSat ? amountSat : 0}
             clearFlow={() => {
               setDetailsState(ProgressStepState.active);

@@ -3,16 +3,18 @@ package lnd
 import (
 	"context"
 	"database/sql"
-	"log"
 	"time"
 
 	"github.com/benbjohnson/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/internal/channels"
+	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 func convMicro(ns uint64) time.Time {
@@ -20,31 +22,44 @@ func convMicro(ns uint64) time.Time {
 }
 
 // storeForwardingHistory
-func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent) error {
-
-	const querySfwh = `INSERT INTO forward(time, time_ns, fee_msat,
-		lnd_incoming_short_channel_id, lnd_outgoing_short_channel_id,
-		incoming_short_channel_id, outgoing_short_channel_id,
-		incoming_amount_msat, outgoing_amount_msat)
-	VALUES ($1, $2, $3,$4, $5, $6, $7, $8, $9)
-	ON CONFLICT (time, time_ns) DO NOTHING;`
-
+func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int) error {
 	if len(fwh) > 0 {
 		tx := db.MustBegin()
-
+		stmt, err := tx.Prepare(`INSERT INTO forward(time, time_ns, fee_msat,
+				incoming_amount_msat, outgoing_amount_msat, incoming_channel_id, outgoing_channel_id, node_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			ON CONFLICT (time, time_ns) DO NOTHING;`)
+		if err != nil {
+			return err
+		}
 		for _, event := range fwh {
-
 			incomingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdIn)
+			incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
+			incomingShortChannelIdP := &incomingChannelId
+			if incomingChannelId == 0 {
+				log.Error().Msgf("Forward received for a non existing channel (incomingShortChannelId: %v)",
+					incomingShortChannelId)
+				incomingShortChannelIdP = nil
+			}
 			outgoingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdOut)
-
-			if _, err := tx.Exec(querySfwh, convMicro(event.TimestampNs), event.TimestampNs,
-				event.FeeMsat, event.ChanIdIn, event.ChanIdOut, incomingShortChannelId, outgoingShortChannelId, event.AmtInMsat,
-				event.AmtOutMsat); err != nil {
-				return errors.Wrapf(err, "storeForwardingHistory->tx.Exec(%v)",
-					querySfwh)
+			outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
+			outgoingChannelIdP := &outgoingChannelId
+			if outgoingChannelId == 0 {
+				log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
+					outgoingShortChannelId)
+				outgoingChannelIdP = nil
+			}
+			_, err = stmt.Exec(convMicro(event.TimestampNs), event.TimestampNs, event.FeeMsat,
+				event.AmtInMsat, event.AmtOutMsat, incomingShortChannelIdP, outgoingChannelIdP, nodeId)
+			if err != nil {
+				return errors.Wrapf(err, "storeForwardingHistory->tx.Exec(%v)", event)
 			}
 		}
-		err := tx.Commit()
+		err = stmt.Close()
+		if err != nil {
+			return err
+		}
+		err = tx.Commit()
 		if err != nil {
 			return err
 		}
@@ -110,8 +125,8 @@ type FwhOptions struct {
 
 // SubscribeForwardingEvents repeatedly requests forwarding history starting after the last
 // forwarding stored in the database and stores new forwards.
-func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwardingHistory,
-	db *sqlx.DB, opt *FwhOptions) error {
+func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwardingHistory, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *FwhOptions) error {
 
 	me := MAXEVENTS
 
@@ -141,17 +156,17 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 		case <-ctx.Done():
 			return nil
 		case <-ticker:
-
-			// Fetch the nanosecond timestamp of the most recent record we have.
-			lastNs, err := fetchLastForwardTime(db)
-			if err != nil {
-				log.Printf("Subscribe forwarding events: %v\n", err)
-			}
-			lastTimestamp := lastNs / uint64(time.Second)
-
 			// Keep fetching until LND returns less than the max number of records requested.
 			for {
 				rl.Take() // rate limited to 1 per second, when caught up will normally be 1 every 10 seconds
+
+				// Fetch the nanosecond timestamp of the most recent record we have.
+				lastNs, err := fetchLastForwardTime(db)
+				if err != nil {
+					log.Printf("Subscribe forwarding events: %v\n", err)
+				}
+				lastTimestamp := lastNs / uint64(time.Second)
+
 				fwh, err := fetchForwardingHistory(ctx, client, lastTimestamp, me)
 				if err != nil {
 					log.Printf("Subscribe forwarding events: %v\n", err)
@@ -159,7 +174,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				}
 
 				// Store the forwarding history
-				err = storeForwardingHistory(db, fwh.ForwardingEvents)
+				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId)
 				if err != nil {
 					log.Printf("Subscribe forwarding events: %v\n", err)
 				}

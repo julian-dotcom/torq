@@ -1,5 +1,5 @@
 import { MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
-import { useGetDecodedInvoiceQuery, useGetLocalNodesQuery, useSendOnChainMutation, WS_URL } from "apiSlice";
+import { useGetDecodedInvoiceQuery, useGetNodeConfigurationsQuery, useSendOnChainMutation, WS_URL } from "apiSlice";
 import classNames from "classnames";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
@@ -13,7 +13,7 @@ import styles from "./newPayments.module.scss";
 import { PaymentProcessingErrors } from "./paymentErrorMessages";
 import OnChanPaymentDetails from "./OnChanPaymentDetails";
 import { PaymentType, PaymentTypeLabel } from "./types";
-import { localNode } from "apiTypes";
+import { nodeConfiguration } from "apiTypes";
 import Select from "features/forms/Select";
 import useTranslations from "services/i18n/useTranslations";
 import InvoicePayment from "./InvoicePayment";
@@ -40,15 +40,15 @@ function NewPaymentModal() {
   const [lnInvoiceResponses, setLnInvoiceResponses] = useState<Array<NewPaymentResponse>>([]);
   const [sendCoinsMutation, response] = useSendOnChainMutation();
 
-  const { data: localNodes } = useGetLocalNodesQuery();
-  let localNodeOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
-  if (localNodes !== undefined) {
-    localNodeOptions = localNodes.map((localNode: localNode) => {
-      return { value: localNode.localNodeId, label: localNode.name };
+  const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
+  let nodeConfigurationOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
+  if (nodeConfigurations !== undefined) {
+    nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
+      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
     });
   }
 
-  const [selectedLocalNode, setSelectedLocalNode] = useState<number>(0);
+  const [selectedNodeId, setSelectedNodeId] = useState<number>(0);
   const [destination, setDestination] = useState("");
   const [destinationType, setDestinationType] = useState<PaymentType>(0);
 
@@ -63,10 +63,10 @@ function NewPaymentModal() {
   const [amount, setAmount] = useState<number>(0);
 
   useEffect(() => {
-    if (localNodeOptions !== undefined) {
-      setSelectedLocalNode(localNodeOptions[0].value);
+    if (nodeConfigurationOptions !== undefined) {
+      setSelectedNodeId(nodeConfigurationOptions[0].value);
     }
-  }, [localNodeOptions]);
+  }, [nodeConfigurationOptions]);
 
   function onNewPaymentMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
@@ -117,7 +117,7 @@ function NewPaymentModal() {
 
   // TODO: Get the estimated fee as well
   const decodedInvRes = useGetDecodedInvoiceQuery(
-    { invoice: destination, localNodeId: selectedLocalNode },
+    { invoice: destination, nodeId: selectedNodeId },
     {
       skip: !isLnInvoice,
     }
@@ -228,10 +228,10 @@ function NewPaymentModal() {
           <Select
             label={t.yourNode}
             onChange={(newValue: any) => {
-              setSelectedLocalNode(newValue?.value);
+              setSelectedNodeId(newValue?.value);
             }}
-            options={localNodeOptions}
-            value={localNodeOptions.find((option) => option.value === selectedLocalNode)}
+            options={nodeConfigurationOptions}
+            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
           />
           <div className={styles.destination}>
             <div className={styles.destinationWrapper}>
@@ -253,7 +253,7 @@ function NewPaymentModal() {
               <textarea
                 id={"destination"}
                 name={"destination"}
-                disabled={!selectedLocalNode}
+                disabled={!selectedNodeId}
                 placeholder={"E.g. Lightning Invoice or on-chain address"} // , PubKey or On-chain Address
                 className={styles.destinationTextArea}
                 value={destination}
@@ -295,7 +295,7 @@ function NewPaymentModal() {
             setProcessState={setProcessState}
             setStepIndex={setStepIndex}
             setDestState={setDestState}
-            selectedLocalNode={selectedLocalNode}
+            selectedNodeId={selectedNodeId}
             sendJsonMessage={sendJsonMessage}
           />
         )}
@@ -314,7 +314,7 @@ function NewPaymentModal() {
         )}
         {isLnInvoice && decodedInvRes.data && (
           <InvoicePaymentResponse
-            selectedLocalNode={selectedLocalNode}
+            selectedNodeId={selectedNodeId}
             paymentProcessingError={PaymentProcessingErrors.get(paymentProcessingError) || paymentProcessingError}
             decodedInvoice={decodedInvRes.data}
             destination={destination}
@@ -325,7 +325,7 @@ function NewPaymentModal() {
         {isOnChain && response.data && (
           <OnChainPaymentResponse
             amount={amount}
-            selectedLocalNode={selectedLocalNode}
+            selectedNodeId={selectedNodeId}
             setProcessState={setProcessState}
             response={{
               data: response.data,

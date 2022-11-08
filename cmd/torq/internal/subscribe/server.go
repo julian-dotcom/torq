@@ -7,6 +7,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd"
 
 	// "github.com/rs/zerolog/log"
@@ -18,29 +20,9 @@ import (
 // fetches data as needed and stores it in the database.
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
-func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId int, wsChan chan interface{}) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, eventChannel chan interface{}) error {
 
-	monitorContext, monitorCancel := context.WithCancel(context.Background())
-
-	// Start listening for updates to the peer public key list
-	go lnd.PeerPubKeyListMonitor(monitorContext)
-
-	// Initialize the peer list
-	err := lnd.InitPeerList(db)
-	if err != nil {
-		monitorCancel()
-		return errors.Wrapf(err, "start -> InitPeerList(%v)", db)
-	}
-
-	// Start listening for updates to the channel point list
-	go lnd.OpenChanPointListMonitor(monitorContext)
-
-	// Initialize the channel id list
-	err = lnd.InitChanPointList(db)
-	if err != nil {
-		monitorCancel()
-		return errors.Wrapf(err, "Init open channel point list")
-	}
+	_, monitorCancel := context.WithCancel(context.Background())
 
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
@@ -53,44 +35,47 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 	//   gRPC server of Torq
 	errs, ctx := errgroup.WithContext(ctx)
 
-	// Store a list of public keys belonging to our nodes
-	ourNodePubKeys, err := lnd.InitOurNodesList(ctx, client, db)
-	if err != nil {
-		monitorCancel()
-		return err
-	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 
 	//Import Open channels
-	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, localNodeId)
+	err := lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, nodeSettings)
 	if err != nil {
 		monitorCancel()
 		return errors.Wrap(err, "LND import channels list - open chanel")
 	}
 
 	// Import Closed channels
-	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, localNodeId)
+	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, nodeSettings)
 	if err != nil {
 		monitorCancel()
 		return errors.Wrap(err, "LND import channels list - closed chanel")
 	}
 
-	// Import Node info (based on channels)
-	err = lnd.ImportMissingNodeEvents(client, db)
-	if err != nil {
-		monitorCancel()
-		return errors.Wrap(err, "LND import missing node events")
-	}
-
 	// Import routing policies from open channels
-	err = lnd.ImportRoutingPolicies(client, db, ourNodePubKeys)
+	err = lnd.ImportRoutingPolicies(client, db, nodeSettings)
 	if err != nil {
 		monitorCancel()
 		return errors.Wrap(err, "LND import routing policies")
 	}
 
+	// Import node info from nodes with channels
+	err = lnd.ImportNodeInfo(client, db, nodeSettings)
+	if err != nil {
+		monitorCancel()
+		return errors.Wrap(err, "LND import node info")
+	}
+
+	// TODO FIXME channels with short_channel_id = null and status IN (1,2,100,101,102,103) should be fixed somehow???
+	//  Open                   = 1
+	//  Closing                = 2
+	//	CooperativeClosed      = 100
+	//	LocalForceClosed       = 101
+	//	RemoteForceClosed      = 102
+	//	BreachClosed           = 103
+
 	// Transactions
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreTransactions(ctx, client, db, wsChan)
+		err := lnd.SubscribeAndStoreTransactions(ctx, client, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store transactions")
 		}
@@ -99,7 +84,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// // HTLC events
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreHtlcEvents(ctx, router, db)
+		err := lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store HTLC events")
 		}
@@ -108,7 +93,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// // Channel Events
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, localNodeId, wsChan)
+		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store channel events")
 		}
@@ -117,7 +102,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// Graph (Node updates, fee updates etc.)
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db, ourNodePubKeys)
+		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store channel graph")
 		}
@@ -126,7 +111,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// Forwarding history
 	errs.Go(func() error {
-		err := lnd.SubscribeForwardingEvents(ctx, client, db, nil)
+		err := lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, nil)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe forwarding events")
 		}
@@ -135,7 +120,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// Invoices
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreInvoices(ctx, client, db, wsChan)
+		err := lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store invoices")
 		}
@@ -144,7 +129,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// Payments
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStorePayments(ctx, client, db, nil)
+		err := lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, nil)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store payments")
 		}
@@ -153,7 +138,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// Update in flight payments
 	errs.Go(func() error {
-		err := lnd.UpdateInFlightPayments(ctx, client, db, nil)
+		err := lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, nil)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and update payments")
 		}
@@ -162,7 +147,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, localNodeId 
 
 	// Peer Events
 	errs.Go(func() error {
-		err := lnd.SubscribePeerEvents(ctx, client, wsChan)
+		err := lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe peer events")
 		}

@@ -1,126 +1,181 @@
 package channels
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/guregu/null.v4"
+
+	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
-//type pendingHtlc struct {
-//	Incoming          bool   `json:"incoming"`
-//	Amount            int64  `json:"amount"`
-//	HashLock          []byte `json:"hashLock"`
-//	ExpirationHeight  uint32 `json:"expirationHeight"`
-//	ForwardingChannel uint64 `json:"forwardingChannel"`
-//}
-//
-//type channelConstraints struct {
-//	CsvDelay          uint32 `json:"csvDelay"`
-//	ChanReserveMsat   uint64 `json:"chanReserveMsat"`
-//	DustLimitMsat     uint64 `json:"dustLimitMsat"`
-//	MaxPendingAmtMsat uint64 `json:"maxPendingAmtMsat"`
-//	MinHtlcMsat       uint64 `json:"minHtlcMsat"`
-//	MaxAcceptedHtlcs  uint32 `json:"maxAcceptedHtlcs"`
-//}
-//
-//type ChannelState struct {
-//	Active                bool               `json:"active"`
-//	RemotePubKey          string             `json:"remotePubkey"`
-//	ChannelPoint          string             `json:"channelPoint"`
-//	ChanId                uint64             `json:"chanId"`
-//	Capacity              int64              `json:"capacity"`
-//	LocalBalance          int64              `json:"localBalance"`
-//	RemoteBalance         int64              `json:"remoteBalance"`
-//	CommitFee             int64              `json:"commitFee"`
-//	CommitWeight          int64              `json:"commitWeight"`
-//	FeePerKw              int64              `json:"feePerKw"`
-//	UnsettledBalance      int64              `json:"unsettledBalance"`
-//	TotalSatoshisSent     int64              `json:"totalSatoshisSent"`
-//	TotalSatoshisReceived int64              `json:"totalSatoshisReceived"`
-//	NumUpdates            uint64             `json:"numUpdates"`
-//	PendingHtlcs          []*pendingHtlc     `json:"pendingHtlcs"`
-//	CsvDelay              uint32             `json:"csvDelay"`
-//	Private               bool               `json:"private"`
-//	Initiator             bool               `json:"initiator"`
-//	ChanStatusFlags       string             `json:"chanStatusFlags"`
-//	LocalChanReserveSat   int64              `json:"localChanReserveSat"`
-//	RemoteChanReserveSat  int64              `json:"remoteChanReserveSat"`
-//	StaticRemoteKey       bool               `json:"staticRemoteKey"`
-//	CommitmentType        string             `json:"commitmentType"`
-//	Lifetime              int64              `json:"lifetime"`
-//	Uptime                int64              `json:"uptime"`
-//	CloseAddress          string             `json:"closeAddress"`
-//	PushAmountSat         uint64             `json:"pushAmountSat"`
-//	ThawHeight            uint32             `json:"thawHeight"`
-//	LocalConstraints      channelConstraints `json:"localConstraints"`
-//	RemoteConstraints     channelConstraints `json:"remoteConstraints"`
-//}
-//
-//func getChannelList(db *sqlx.DB) ([]Channel, error) {
-//
-//	// TODO: change to select which local node
-//	connectionDetails, err := settings.GetConnectionDetails(db)
-//	if err != nil {
-//		log.Error().Err(err).Msgf("Error getting node connection details from the db: %s", err.Error())
-//		return nil, errors.New("Error getting node connection details from the db")
-//	}
-//
-//	conn, err := lnd_connect.Connect(
-//		connectionDetails[0].GRPCAddress,
-//		connectionDetails[0].TLSFileBytes,
-//		connectionDetails[0].MacaroonFileBytes)
-//	if err != nil {
-//		log.Error().Err(err).Msgf("can't connect to LND: %s", err.Error())
-//		return nil, errors.Newf("can't connect to LND %s", err.Error())
-//	}
-//	defer conn.Close()
-//
-//	client := lnrpc.NewLightningClient(conn)
-//
-//	ctx := context.Background()
-//	req := lnrpc.ListChannelsRequest{}
-//	r, err := client.ListChannels(ctx, &req)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//}
-//
-//func getChannelsFromSourceHandler(c *gin.Context, db *sqlx.DB) {
-//
-//	c.JSON(http.StatusOK, r)
-//}
-
-type Channel struct {
-	// A database primary key. NOT a channel_id as specified in BOLT 2
-	ChannelDBID int `json:"channelDBId" db:"channel_db_id"`
-	// In the c-lighting and BOLT format e.g. 505580:1917:1
-	ShortChannelID string `json:"shortChannelId" db:"short_channel_id"`
-	// At the moment only used by LND. Format is "funding tx id : output id"
-	LNDChannelPoint   null.String `json:"lndChannelPoint" db:"lnd_channel_point"`
-	Alias             null.String `json:"alias" db:"alias"`
-	DestinationPubKey null.String `json:"destinationPubKey" db:"destination_pub_key"`
-	LocalNodeId       int         `json:"localNodeId" db:"local_node_id"`
-	CreatedOn         time.Time   `json:"createdOn" db:"created_on"`
-	UpdateOn          null.Time   `json:"updatedOn" db:"updated_on"`
-	LNDShortChannelID uint64      `json:"lndShortChannelId" db:"lnd_short_channel_id"`
+// GetClosureStatus returns Closing when our API is outdated and a new lnrpc.ChannelCloseSummary_ClosureType is added
+func GetClosureStatus(lndClosureType lnrpc.ChannelCloseSummary_ClosureType) commons.ChannelStatus {
+	switch lndClosureType {
+	case lnrpc.ChannelCloseSummary_COOPERATIVE_CLOSE:
+		return commons.CooperativeClosed
+	case lnrpc.ChannelCloseSummary_LOCAL_FORCE_CLOSE:
+		return commons.LocalForceClosed
+	case lnrpc.ChannelCloseSummary_REMOTE_FORCE_CLOSE:
+		return commons.RemoteForceClosed
+	case lnrpc.ChannelCloseSummary_BREACH_CLOSE:
+		return commons.BreachClosed
+	case lnrpc.ChannelCloseSummary_FUNDING_CANCELED:
+		return commons.FundingCancelledClosed
+	case lnrpc.ChannelCloseSummary_ABANDONED:
+		return commons.AbandonedClosed
+	}
+	return commons.Closing
 }
 
-func AddChannelRecordIfDoesntExist(db *sqlx.DB, channel Channel) error {
-	dbChannel, err := getChannel(db, channel.ShortChannelID)
-	if err != nil {
-		return err
+func ParseChannelPoint(channelPoint string) (string, int) {
+	parts := strings.Split(channelPoint, ":")
+	if channelPoint != "" && strings.Contains(channelPoint, ":") && len(parts) == 2 {
+		outputIndex, err := strconv.Atoi(parts[1])
+		if err == nil {
+			return parts[0], outputIndex
+		} else {
+			log.Debug().Err(err).Msgf("Failed to parse channelPoint %v", channelPoint)
+		}
 	}
-	if dbChannel != nil {
-		return nil
+	return "", 0
+}
+
+func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) string {
+	return fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)
+}
+
+type Channel struct {
+	// ChannelID A database primary key. NOT a channel_id as specified in BOLT 2
+	ChannelID int `json:"channelId" db:"channel_id"`
+	// ShortChannelID In the c-lighting and BOLT format e.g. 505580:1917:1
+	ShortChannelID         *string               `json:"shortChannelId" db:"short_channel_id"`
+	FundingTransactionHash string                `json:"fundingTransactionHash" db:"funding_transaction_hash"`
+	FundingOutputIndex     int                   `json:"fundingOutputIndex" db:"funding_output_index"`
+	ClosingTransactionHash *string               `json:"closingTransactionHash" db:"closing_transaction_hash"`
+	FirstNodeId            int                   `json:"firstNodeId" db:"first_node_id"`
+	SecondNodeId           int                   `json:"secondNodeId" db:"second_node_id"`
+	CreatedOn              time.Time             `json:"createdOn" db:"created_on"`
+	UpdateOn               null.Time             `json:"updatedOn" db:"updated_on"`
+	LNDShortChannelID      *uint64               `json:"lndShortChannelId" db:"lnd_short_channel_id"`
+	Status                 commons.ChannelStatus `json:"status" db:"status_id"`
+}
+
+func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) {
+	var err error
+	var existingChannelId int
+	if channel.ShortChannelID == nil || *channel.ShortChannelID == "" || *channel.ShortChannelID == "0x0x0" {
+		existingChannelId = 0
+	} else {
+		existingChannelId = commons.GetChannelIdFromShortChannelId(*channel.ShortChannelID)
+		if existingChannelId == 0 {
+			existingChannelId, err = getChannelIdByShortChannelId(db, channel.ShortChannelID)
+			if err != nil {
+				return 0, errors.Wrapf(err, "Getting channelId by ShortChannelID %v", channel.ShortChannelID)
+			}
+		}
 	}
-	err = insertChannel(db, channel)
+	if existingChannelId == 0 {
+		if channel.FundingTransactionHash != "" {
+			existingChannelId = commons.GetChannelIdFromFundingTransaction(channel.FundingTransactionHash, channel.FundingOutputIndex)
+			if existingChannelId == 0 {
+				existingChannelId, err = getChannelIdByFundingTransaction(db, channel.FundingTransactionHash, channel.FundingOutputIndex)
+				if err != nil {
+					return 0, errors.Wrapf(err, "Getting channelId by FundingTransactionHash %v, FundingOutputIndex %v",
+						channel.FundingTransactionHash, channel.FundingOutputIndex)
+				}
+			}
+			if existingChannelId == 0 {
+				storedChannel, err := addChannel(db, channel)
+				if err != nil {
+					return 0, errors.Wrapf(err, "Adding channel FundingTransactionHash %v, FundingOutputIndex %v",
+						channel.FundingTransactionHash, channel.FundingOutputIndex)
+				}
+				return storedChannel.ChannelID, nil
+			} else {
+				err = updateChannelStatusAndLndIds(db, existingChannelId, channel.Status, channel.ShortChannelID,
+					channel.LNDShortChannelID)
+				if err != nil {
+					return 0, errors.Wrapf(err, "Updating existing channel with FundingTransactionHash %v, FundingOutputIndex %v",
+						channel.FundingTransactionHash, channel.FundingOutputIndex)
+				}
+				commons.SetChannel(existingChannelId, channel.ShortChannelID,
+					channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex)
+				if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
+					err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)
+					if err != nil {
+						return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
+					}
+				}
+				return existingChannelId, nil
+			}
+		} else {
+			return 0, errors.Wrapf(err, "No valid FundingTransactionHash %v, FundingOutputIndex %v",
+				channel.FundingTransactionHash, channel.FundingOutputIndex)
+		}
+	} else {
+		status := commons.GetChannelStatusFromChannelId(existingChannelId)
+		if status != channel.Status {
+			if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
+				err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)
+				if err != nil {
+					return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
+				}
+			} else {
+				err := UpdateChannelStatus(db, existingChannelId, channel.Status)
+				if err != nil {
+					return 0, errors.Wrapf(err, "Updating channel status %v.", existingChannelId)
+				}
+			}
+		}
+		return existingChannelId, nil
+	}
+}
+
+func UpdateChannelStatus(db *sqlx.DB, channelId int, status commons.ChannelStatus) error {
+	_, err := db.Exec(`
+		UPDATE channel SET status_id=$1, updated_on=$2 WHERE channel_id=$3 AND status_id!=$1`,
+		status, time.Now().UTC(), channelId)
 	if err != nil {
-		return err
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	commons.SetChannelStatus(channelId, status)
+	return nil
+}
+
+func updateChannelStatusAndClosingTransactionHash(db *sqlx.DB, channelId int, status commons.ChannelStatus, closingTransactionHash string) error {
+	_, err := db.Exec(`
+		UPDATE channel SET status_id=$1, closing_transaction_hash=$2, updated_on=$3 WHERE channel_id=$4 AND (status_id!=$1 OR closing_transaction_hash!=$2)`,
+		status, closingTransactionHash, time.Now().UTC(), channelId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	commons.SetChannelStatus(channelId, status)
+	return nil
+}
+
+func updateChannelStatusAndLndIds(db *sqlx.DB, channelId int, status commons.ChannelStatus, shortChannelId *string,
+	lndShortChannelId *uint64) error {
+	if shortChannelId != nil && (*shortChannelId == "" || *shortChannelId == "0x0x0") {
+		shortChannelId = nil
+	}
+	if lndShortChannelId != nil && *lndShortChannelId == 0 {
+		lndShortChannelId = nil
+	}
+	_, err := db.Exec(`
+		UPDATE channel
+		SET status_id=$2, short_channel_id=$3, lnd_short_channel_id=$4, updated_on=$5
+		WHERE channel_id=$1 AND (status_id!=$2 OR short_channel_id!=$3 OR lnd_short_channel_id!=$4)`,
+		channelId, status, shortChannelId, lndShortChannelId, time.Now().UTC())
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nil
 }

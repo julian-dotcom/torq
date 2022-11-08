@@ -3,7 +3,7 @@ import {groupByFn} from "./groupBy";
 const testData: Array<any> = [
   {
     "alias": "Some Node",
-    "channelDbId": 32,
+    "channelId": 32,
     "channel_point": "448e5a0842cc46ccd16eba686a9ff312ac5f3d27ba67e43b25c91e008a92e288:0",
     "pub_key": "02ab38160e8f24f9cce8d851a091ec927748e78507adc7f7ee01664728a981a597",
     "shortChannelId": "699616:2052:0",
@@ -17,7 +17,7 @@ const testData: Array<any> = [
   },
   {
     "alias": "Another Node",
-    "channelDbId": 40,
+    "channelId": 40,
     "channel_point": "f1c17e33b03bb3722eee187d5cceaaeab7b1e3e72d6efcbebf263747122a770f:0",
     "pub_key": "033f405aae705d96d4338efb236645a61c9b0a2303e3185211ed3b02c0803a4a2a",
     "shortChannelId": "707781:900:1",
@@ -31,7 +31,7 @@ const testData: Array<any> = [
   },
   {
     "alias": "Some Node",
-    "channelDbId": 33,
+    "channelId": 33,
     "channel_point": "448e5a0842cc46ccd16eba686a9ff312ac5f3d27ba67e43b25c91e008a92e289:0",
     "pub_key": "02ab38160e8f24f9cce8d851a091ec927748e78507adc7f7ee01664728a981a597",
     "shortChannelId": "699616:2053:0",
@@ -45,7 +45,7 @@ const testData: Array<any> = [
   },
   {
     "alias": "Some Node",
-    "channelDbId": 34,
+    "channelId": 34,
     "channel_point": "448e5a0842cc46ccd16eba686a9ff312ac5f3d27ba67e43b25c91e008a92e290:0",
     "pub_key": "02ab38160e8f24f9cce8d851a091ec927748e78507adc7f7ee01664728a981a597",
     "shortChannelId": "699616:2054:0",
@@ -78,7 +78,7 @@ test('grouping by peers returns correctly grouped channels', () => {
   const expected: Array<any> = [
   {
     "alias": "Some Node",
-    "channelDbId": [
+    "channelId": [
       32,
       33,
       34,
@@ -108,7 +108,7 @@ test('grouping by peers returns correctly grouped channels', () => {
   },
   {
     "alias": "Another Node",
-    "channelDbId": 40,
+    "channelId": 40,
     "channel_point": "f1c17e33b03bb3722eee187d5cceaaeab7b1e3e72d6efcbebf263747122a770f:0",
     "pub_key": "033f405aae705d96d4338efb236645a61c9b0a2303e3185211ed3b02c0803a4a2a",
     "shortChannelId": "707781:900:1",

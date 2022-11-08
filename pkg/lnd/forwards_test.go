@@ -2,15 +2,18 @@ package lnd
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/testutil"
 	"github.com/mixer/clock"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"testing"
-	"time"
+
+	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/testutil"
 )
 
 // mockLightningClientForwardingHistory is used to moc responses from GetNodeInfo
@@ -83,7 +86,8 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 		panic(err)
 	}
 
-	db, err := srv.NewTestDatabase(true)
+	db, cancel, err := srv.NewTestDatabase(true)
+	defer cancel()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,8 +104,8 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 		CancelFunc: stopSubFwE,
 		ForwardingEvents: []*lnrpc.ForwardingEvent{
 			{
-				ChanIdIn:    1234,
-				ChanIdOut:   2345,
+				ChanIdIn:    1111,
+				ChanIdOut:   2222,
 				AmtIn:       11,
 				AmtOut:      10,
 				Fee:         1,
@@ -111,8 +115,8 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 				TimestampNs: uint64(c.Now().UnixNano()),
 			},
 			{
-				ChanIdIn:    1234,
-				ChanIdOut:   2345,
+				ChanIdIn:    1111,
+				ChanIdOut:   2222,
 				AmtIn:       11,
 				AmtOut:      10,
 				Fee:         1,
@@ -122,8 +126,8 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 				TimestampNs: uint64(c.Now().UnixNano()) + 500000000,
 			},
 			{ // Duplicate record used for testing
-				ChanIdIn:    1234,
-				ChanIdOut:   2345,
+				ChanIdIn:    1111,
+				ChanIdOut:   2222,
 				AmtIn:       11,
 				AmtOut:      10,
 				Fee:         1,
@@ -133,8 +137,8 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 				TimestampNs: uint64(c.Now().UnixNano()) + 500000000,
 			},
 			{
-				ChanIdIn:    1234,
-				ChanIdOut:   2345,
+				ChanIdIn:    1111,
+				ChanIdOut:   2222,
 				AmtIn:       11,
 				AmtOut:      10,
 				Fee:         1,
@@ -150,7 +154,9 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 	// Start subscribing in a goroutine to allow the test to continue simulating time through the
 	// mocked time object.
 	errs.Go(func() error {
-		err := SubscribeForwardingEvents(ctx, &mclient, db, &opt)
+		err := SubscribeForwardingEvents(ctx, &mclient, db,
+			commons.GetNodeSettingsByNodeId(
+				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeForwardingEvents(%v, %v, %v, %v)", ctx,
 				mclient, db, &opt))

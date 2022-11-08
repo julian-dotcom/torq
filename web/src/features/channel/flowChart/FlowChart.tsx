@@ -32,9 +32,9 @@ function FlowChart({ data }: FlowChart) {
     (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
       const keyOut = (flowKey.value + "Out") as keyof Omit<
         FlowData,
-        "alias" | "lndShortChannelId" | "pubKey" | "lndChannelPoint"
+        "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash"
       >;
-      const keyIn = (flowKey.value + "In") as keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "lndChannelPoint">;
+      const keyIn = (flowKey.value + "In") as keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash">;
       flowChart = new FlowChartCanvas(container, data, { keyOut: keyOut, keyIn: keyIn });
       flowChart.draw();
       setInterval(navCheck(container), 200);

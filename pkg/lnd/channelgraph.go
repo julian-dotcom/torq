@@ -2,18 +2,22 @@ package lnd
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
-	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/graph_events"
+	"github.com/lncapital/torq/internal/nodes"
+	"github.com/lncapital/torq/pkg/broadcast"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type subscribeChannelGrpahClient interface {
@@ -22,7 +26,8 @@ type subscribeChannelGrpahClient interface {
 }
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
-func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB, ourNodePubKeys []string) error {
+func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
 
 	req := lnrpc.GraphTopologySubscription{}
 	stream, err := client.SubscribeChannelGraph(ctx, &req)
@@ -61,12 +66,12 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			continue
 		}
 
-		err = processNodeUpdates(gpu.NodeUpdates, db, ourNodePubKeys)
+		err = processNodeUpdates(gpu.NodeUpdates, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Process node updates")
 		}
 
-		err = processChannelUpdates(gpu.ChannelUpdates, db, ourNodePubKeys)
+		err = processChannelUpdates(gpu.ChannelUpdates, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Process channel updates")
 		}
@@ -76,349 +81,221 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	return nil
 }
 
-func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, ourNodePubKeys []string) error {
-
+func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
+	eventChannel chan interface{}) error {
 	for _, nu := range nus {
-		// Check if this node update is relevant to a node we have or have had a channel with
-		relevant, _ := isRelevantOrOurNode(nu.IdentityKey, ourNodePubKeys)
-
-		if relevant {
-			ts := time.Now().UTC()
-			err := insertNodeEvent(db, ts, nu.IdentityKey, nu.Alias, nu.Color,
-				nu.NodeAddresses, nu.Features)
+		eventNodeId := commons.GetActiveNodeIdFromPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
+		if eventNodeId != 0 {
+			err := insertNodeEvent(db, time.Now().UTC(), eventNodeId, nu.Alias, nu.Color,
+				nu.NodeAddresses, nu.Features, nodeSettings.NodeId, eventChannel)
 			if err != nil {
 				return errors.Wrapf(err, "Insert node event")
 			}
 		}
-
 	}
-
 	return nil
 }
 
-func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB, ourNodePubKeys []string) error {
+func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
 	for _, cu := range cus {
-		// Check if this channel update is relevant to one of our channels
-		// And if one of our nodes is advertising the channel update (meaning
-		// we have changed our the channel policy).
-		ourNode := slices.Contains(ourNodePubKeys, cu.AdvertisingNode)
-
-		chanPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+		channelPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 		if err != nil {
-			return errors.Wrapf(err, "Creating channel point from byte")
+			return errors.Wrap(err, "Creating channel point from byte")
 		}
-		relevantChannel := isRelevantChannel(chanPoint)
+		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
 
-		if relevantChannel {
-			ts := time.Now().UTC()
-			err := insertRoutingPolicy(db, ts, ourNode, cu)
+		channelId := commons.GetActiveChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		if channelId != 0 {
+			err := insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu, eventChannel)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}
 		}
-
 	}
-
 	return nil
 }
 
-const rpQuery = `
-INSERT INTO routing_policy (ts,
-	lnd_short_channel_id,
-	short_channel_id,
-	announcing_pub_key,
-	lnd_channel_point,
-	outbound,
-	disabled,
-	time_lock_delta,
-	min_htlc,
-	max_htlc_msat,
-	fee_base_msat,
-	fee_rate_mill_msat)
-select $1, $2, $3,$4, $5, $6, $7, $8, $9, $10, $11, $12
-WHERE NOT EXISTS (
-	select true
-	from (select
-            last(lnd_short_channel_id,ts) lnd_short_channel_id,
-            last(short_channel_id,ts) short_channel_id,
-			last(announcing_pub_key, ts) as announcing_pub_key,
-			last(disabled,ts) disabled,
-			last(time_lock_delta,ts) time_lock_delta,
-			last(min_htlc,ts) min_htlc,
-			last(max_htlc_msat,ts) max_htlc_msat,
-			last(fee_base_msat,ts) fee_base_msat,
-			last(fee_rate_mill_msat, ts) fee_rate_mill_msat
-		from routing_policy
-		group by lnd_short_channel_id, announcing_pub_key) as a
-	where a.lnd_short_channel_id = $13 and
-		  a.announcing_pub_key = $14 and
-		  a.disabled = $15 and
-		  a.time_lock_delta = $16 and
-		  a.min_htlc = $17 and
-		  a.max_htlc_msat = $18 and
-		  a.fee_base_msat = $19 and
-		  a.fee_rate_mill_msat = $20
-);`
+func insertRoutingPolicy(
+	db *sqlx.DB,
+	eventTime time.Time,
+	channelId int,
+	nodeSettings commons.ManagedNodeSettings,
+	cu *lnrpc.ChannelEdgeUpdate,
+	eventChannel chan interface{}) error {
 
-func insertRoutingPolicy(db *sqlx.DB, ts time.Time, outbound bool, cu *lnrpc.ChannelEdgeUpdate) error {
-
+	var err error
 	if cu == nil || cu.RoutingPolicy == nil {
 		log.Warn().Msg("Routing policy nil, skipping")
 		return nil
 	}
 
-	cp, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
-	if err != nil {
-		return errors.Wrap(err, "Creating channel point from byte")
+	announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
+	if announcingNodeId == 0 {
+		newNode := nodes.Node{
+			PublicKey: cu.AdvertisingNode,
+			Chain:     nodeSettings.Chain,
+			Network:   nodeSettings.Network,
+		}
+		announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+		if err != nil {
+			return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.AdvertisingNode)
+		}
+	}
+	connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
+	if connectingNodeId == 0 {
+		newNode := nodes.Node{
+			PublicKey: cu.ConnectingNode,
+			Chain:     nodeSettings.Chain,
+			Network:   nodeSettings.Network,
+		}
+		connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+		if err != nil {
+			return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", cu.ConnectingNode)
+		}
 	}
 
-	shortChannelId := channels.ConvertLNDShortChannelID(cu.ChanId)
-	// Check if the routing policy is unchanged
-
-	_, err = db.Exec(rpQuery, ts, cu.ChanId, shortChannelId, cu.AdvertisingNode, cp, outbound,
-		cu.RoutingPolicy.Disabled, cu.RoutingPolicy.TimeLockDelta, cu.RoutingPolicy.MinHtlc,
-		cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat,
-		// Variables to check if it exists
-		cu.ChanId, cu.AdvertisingNode, cu.RoutingPolicy.Disabled, cu.RoutingPolicy.TimeLockDelta, cu.RoutingPolicy.MinHtlc,
-		cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat)
-
+	channelEvent := graph_events.ChannelEventFromGraph{}
+	err = db.Get(&channelEvent, `
+				SELECT *
+				FROM routing_policy
+				WHERE channel_id=$1 AND announcing_node_id=$2 AND connecting_node_id=$3
+				ORDER BY ts DESC
+				LIMIT 1;`, channelId, announcingNodeId, connectingNodeId)
 	if err != nil {
-		return errors.Wrapf(err, "DB Exec")
+		if !errors.Is(err, sql.ErrNoRows) {
+			return errors.Wrapf(err, "insertNodeEvent -> getPreviousChannelEvent.")
+		}
 	}
 
+	// If one of our active torq nodes is announcing_node_id then the channel update was by our node
+	// TODO FIXME ignore if previous update was from the same node so if announcing_node_id=node_id on previous record
+	// and the current parameters are announcing_node_id!=node_id
+	if cu.RoutingPolicy.Disabled != channelEvent.Disabled ||
+		cu.RoutingPolicy.FeeBaseMsat != channelEvent.FeeBaseMsat ||
+		cu.RoutingPolicy.FeeRateMilliMsat != channelEvent.FeeRateMilliMsat ||
+		cu.RoutingPolicy.MaxHtlcMsat != channelEvent.MaxHtlcMsat ||
+		cu.RoutingPolicy.MinHtlc != channelEvent.MinHtlc ||
+		cu.RoutingPolicy.TimeLockDelta != channelEvent.TimeLockDelta {
+
+		_, err := db.Exec(`
+		INSERT INTO routing_policy
+			(ts,disabled,time_lock_delta,min_htlc,max_htlc_msat,fee_base_msat,fee_rate_mill_msat,
+			 channel_id,announcing_node_id,connecting_node_id,node_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`, eventTime,
+			cu.RoutingPolicy.Disabled, cu.RoutingPolicy.TimeLockDelta, cu.RoutingPolicy.MinHtlc,
+			cu.RoutingPolicy.MaxHtlcMsat, cu.RoutingPolicy.FeeBaseMsat, cu.RoutingPolicy.FeeRateMilliMsat,
+			channelId, announcingNodeId, connectingNodeId, nodeSettings.NodeId)
+		if err != nil {
+			return errors.Wrapf(err, "insertRoutingPolicy")
+		}
+
+		if eventChannel != nil {
+			channelGraphEvent := broadcast.ChannelGraphEvent{
+				GraphEventData: broadcast.GraphEventData{
+					EventData: broadcast.EventData{
+						EventTime: eventTime,
+						NodeId:    nodeSettings.NodeId,
+					},
+					AnnouncingNodeId: &announcingNodeId,
+					ConnectingNodeId: &connectingNodeId,
+					ChannelId:        &channelId,
+				},
+				ChannelGraphEventData: broadcast.ChannelGraphEventData{
+					TimeLockDelta:    cu.RoutingPolicy.TimeLockDelta,
+					FeeRateMilliMsat: cu.RoutingPolicy.FeeRateMilliMsat,
+					FeeBaseMsat:      cu.RoutingPolicy.FeeBaseMsat,
+					MaxHtlcMsat:      cu.RoutingPolicy.MaxHtlcMsat,
+					Disabled:         cu.RoutingPolicy.Disabled,
+					MinHtlc:          cu.RoutingPolicy.MinHtlc,
+				},
+			}
+			if channelEvent.ChannelId != 0 {
+				channelGraphEvent.PreviousEventTime = channelEvent.EventTime
+				channelGraphEvent.PreviousEventData = broadcast.ChannelGraphEventData{
+					TimeLockDelta:    channelEvent.TimeLockDelta,
+					FeeRateMilliMsat: channelEvent.FeeRateMilliMsat,
+					FeeBaseMsat:      channelEvent.FeeBaseMsat,
+					MaxHtlcMsat:      channelEvent.MaxHtlcMsat,
+					Disabled:         channelEvent.Disabled,
+					MinHtlc:          channelEvent.MinHtlc,
+				}
+			}
+			eventChannel <- channelGraphEvent
+		}
+	}
 	return nil
 }
 
-const neQuery = `INSERT INTO node_event (timestamp, pub_key, alias, color, node_addresses, features)
-SELECT $1,$2,$3,$4,$5,$6
-WHERE NOT EXISTS (
-select true
-from (select pub_key,
-        last(alias, timestamp) as  alias,
-        last(color,timestamp) as color,
-        last(node_addresses,timestamp) as node_addresses,
-        last(features,timestamp) as features
-    from node_event
-    group by pub_key) as a
-where a.pub_key = $2 and
-      a.alias = $3 and
-      a.color = $4 and
-      a.node_addresses = $5 and
-      a.features = $6
-);`
-
-func insertNodeEvent(db *sqlx.DB, ts time.Time, pubKey string, alias string, color string,
-	na []*lnrpc.NodeAddress, f map[uint32]*lnrpc.Feature) error {
+func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias string, color string,
+	nodeAddress []*lnrpc.NodeAddress, features map[uint32]*lnrpc.Feature, nodeId int, eventChannel chan interface{}) error {
 
 	// Create json byte object from node address map
-	najb, err := json.Marshal(na)
+	najb, err := json.Marshal(nodeAddress)
 	if err != nil {
 		return errors.Wrap(err, "JSON Marshall node address map")
 	}
 
 	// Create json byte object from features list
-	fjb, err := json.Marshal(f)
+	fjb, err := json.Marshal(features)
 	if err != nil {
 		return errors.Wrap(err, "JSON Marshal feature list")
 	}
 
-	if _, err = db.Exec(neQuery, ts, pubKey, alias, color, najb, fjb); err != nil {
-		return errors.Wrap(err, "Executing SQL")
-	}
-
-	return nil
-}
-
-func AddOpenChanPoint(chanPoint string)      { addOpenChanPointChan <- chanPoint }
-func RemoveClosedChanPoint(chanPoint string) { removeClosedChanPointChan <- chanPoint }
-func GetOpenChanPoints() []string            { return <-getOpenChanPointsChan }
-
-var addOpenChanPointChan = make(chan string)      //nolint:gochecknoglobals
-var removeClosedChanPointChan = make(chan string) //nolint:gochecknoglobals
-var getOpenChanPointsChan = make(chan []string)   //nolint:gochecknoglobals
-
-func OpenChanPointListMonitor(ctx context.Context) {
-	var openChanPointList []string
-	for {
-		select {
-		case <-ctx.Done():
-			log.Debug().Msg("Chan point list monitor is closing")
-			return
-		case chanPoint := <-addOpenChanPointChan:
-			if !slices.Contains(openChanPointList, chanPoint) {
-				openChanPointList = append(openChanPointList, chanPoint)
-			}
-		case chanPoint := <-removeClosedChanPointChan:
-			index := slices.Index(openChanPointList, chanPoint)
-			if index != -1 {
-				openChanPointList = append(openChanPointList[:index], openChanPointList[index+1:]...)
-			}
-		case getOpenChanPointsChan <- openChanPointList:
+	nodeEvent := graph_events.NodeEventFromGraph{}
+	err = db.Get(&nodeEvent, `
+				SELECT *
+				FROM node_event
+				WHERE event_node_id=$1
+				ORDER BY timestamp DESC
+				LIMIT 1;`, eventNodeId)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return errors.Wrapf(err, "insertNodeEvent -> getPreviousNodeEvent.")
 		}
 	}
-}
+	// TODO FIXME ignore if previous update was from the same node so if event_node_id=node_id on previous record
+	// and the current parameters are event_node_id!=node_id
+	if alias != nodeEvent.Alias ||
+		color != nodeEvent.Color ||
+		string(najb) != nodeEvent.NodeAddresses ||
+		string(fjb) != nodeEvent.Features {
 
-func InitChanPointList(db *sqlx.DB) error {
-	q := `
-		select array_agg(lnd_channel_point) as lnd_channel_point from (
-			select
-				last(event_type, time) as event_type,
-				last(lnd_channel_point,time) as lnd_channel_point
-			from channel_event
-			where event_type in(0,1)
-			group by lnd_channel_point
-		) as t
-		where t.event_type = 0;`
-
-	var chanPointList []string
-	err := db.QueryRowx(q).Scan(pq.Array(&chanPointList))
-	if err != nil {
-		return errors.Wrap(err, "Query row into chanPointList")
-	}
-	for _, chanPoint := range chanPointList {
-		AddOpenChanPoint(chanPoint)
-	}
-
-	return nil
-}
-
-func addMissingLocalPubkey(ctx context.Context, client lnrpc.LightningClient, grpcAddress string,
-	db *sqlx.DB) (r *string, err error) {
-
-	// Get the public key of our node
-	// TODO: Update this when adding support for multiple nodes
-	ni, err := client.GetInfo(ctx, &lnrpc.GetInfoRequest{})
-	if err != nil {
-		return nil, errors.Wrap(err, "LND Get node info")
-	}
-
-	const q = `update local_node set(pub_key, updated_on) = ($1, $2) where grpc_address = $3`
-
-	_, err = db.Exec(q,
-		ni.IdentityPubkey,
-		time.Now().UTC(),
-		grpcAddress,
-	)
-	if err != nil {
-		return nil, errors.Wrapf(err, "DB Exec")
-	}
-
-	return &ni.IdentityPubkey, nil
-}
-
-func InitOurNodesList(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) (ourNodePubKeys []string, err error) {
-
-	var pubKey *string
-	var grpcAddress *string
-
-	q := `select grpc_address, pub_key from local_node;`
-	r, err := db.Query(q)
-	if err != nil {
-		return []string{}, errors.Wrap(err, "DB Query")
-	}
-
-	ourNodePubKeys = []string{}
-	for r.Next() {
-		err = r.Scan(&grpcAddress, &pubKey)
+		_, err = db.Exec(`INSERT INTO node_event
+    		(timestamp, event_node_id, alias, color, node_addresses, features, node_id)
+			VALUES ($1,$2,$3,$4,$5,$6,$7);`,
+			eventTime, eventNodeId, alias, color, najb, fjb, nodeId)
 		if err != nil {
-			return []string{}, errors.Wrap(err, "Reading grpc_address and pub_key from db")
+			return errors.Wrap(err, "Executing SQL")
 		}
 
-		if grpcAddress == nil || *grpcAddress == "" {
-			continue
-		}
-		// If the pub key is missing from the local_node table, add it.
-		if pubKey == nil || len(*pubKey) == 0 {
-			pubKey, err = addMissingLocalPubkey(ctx, client, *grpcAddress, db)
-			if err != nil {
-				return []string{}, errors.Wrap(err, "Adding Missing Local Pubkey")
+		if eventChannel != nil {
+			nodeGraphEvent := broadcast.NodeGraphEvent{
+				GraphEventData: broadcast.GraphEventData{
+					EventData: broadcast.EventData{
+						EventTime: eventTime,
+						NodeId:    nodeId,
+					},
+					EventNodeId: &eventNodeId,
+				},
+				NodeGraphEventData: broadcast.NodeGraphEventData{
+					Alias:     alias,
+					Color:     color,
+					Addresses: string(najb),
+					Features:  string(fjb),
+				},
 			}
+			if nodeEvent.NodeId != 0 {
+				nodeGraphEvent.PreviousEventTime = nodeEvent.EventTime
+				nodeGraphEvent.PreviousEventData = broadcast.NodeGraphEventData{
+					Alias:     nodeEvent.Alias,
+					Color:     nodeEvent.Color,
+					Addresses: nodeEvent.NodeAddresses,
+					Features:  nodeEvent.Features,
+				}
+			}
+			eventChannel <- nodeGraphEvent
 		}
-		ourNodePubKeys = append(ourNodePubKeys, *pubKey)
 	}
-
-	return ourNodePubKeys, nil
-}
-
-// InitPeerList fetches all public keys from the list of all channels. This is used to
-// filter out noise from the graph updates.
-func InitPeerList(db *sqlx.DB) error {
-	q := `select array_agg(distinct pub_key) as all_nodes from channel_event where event_type in (0, 1);`
-	var peerPubKeyList []string
-	err := db.QueryRow(q).Scan(pq.Array(&peerPubKeyList))
-	if err != nil {
-		return errors.Wrap(err, "Selecting distinct pub keys from channel_event table")
-	}
-	for _, peerPubKey := range peerPubKeyList {
-		AddPeerPubKey(peerPubKey)
-	}
-
 	return nil
-}
-
-func AddPeerPubKey(pubKey string) { addPeerPubKeyChan <- pubKey }
-func GetPeerPubKeys() []string    { return <-getPeerPubKeysChan }
-
-var addPeerPubKeyChan = make(chan string)    //nolint:gochecknoglobals
-var getPeerPubKeysChan = make(chan []string) //nolint:gochecknoglobals
-
-func PeerPubKeyListMonitor(ctx context.Context) {
-	// pubKeyList is used to store which node and channel updates to store. We only want to store
-	// updates that are relevant to our channels and their nodes.
-	var pubKeyList []string
-	for {
-		select {
-		case <-ctx.Done():
-			log.Debug().Msg("Peer pub key list monitor is closing")
-			return
-		case pubKey := <-addPeerPubKeyChan:
-			if !slices.Contains(pubKeyList, pubKey) {
-				pubKeyList = append(pubKeyList, pubKey)
-			}
-		case getPeerPubKeysChan <- pubKeyList:
-		}
-	}
-}
-
-// isRelevantOrOurNode is used to check if any public key is in the pubKeyList.
-// The first boolean returned indicate if the key is relevant, the second boolean
-// indicates that it is one of our own nodes.
-func isRelevantOrOurNode(pubKey string, ourNodePubKeys []string) (bool, bool) {
-
-	if slices.Contains(ourNodePubKeys, pubKey) {
-		// Is relevant (first boolean), _and_ our node (second boolean).
-		return true, true
-	}
-
-	if isRelevant(pubKey) {
-		// Is relevant (first boolean), _but not_ our node (second boolean).
-		return true, false
-	}
-
-	return false, false
-}
-
-func isRelevantChannel(chanPoint string) bool {
-	for _, c := range GetOpenChanPoints() {
-		if c == chanPoint {
-			return true
-		}
-	}
-	return false
-}
-
-// isRelevant is used to check if any public key is in the pubKeyList.
-func isRelevant(pubKey string) bool {
-
-	for _, p := range GetPeerPubKeys() {
-
-		// Check if any of the provided public keys equals the current public key.
-		if p == pubKey {
-			// If found, no reason to search further, immediately return true.
-			return true
-		}
-
-	}
-
-	return false
 }

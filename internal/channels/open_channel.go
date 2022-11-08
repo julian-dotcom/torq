@@ -4,15 +4,17 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"io"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/internal/peers"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
-	"io"
 )
 
 type OpenChannelRequest struct {
@@ -44,13 +46,13 @@ type PsbtDetails struct {
 	Psbt           []byte `json:"psbt,omitempty"`
 }
 
-func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, reqId string) (err error) {
+func OpenChannel(db *sqlx.DB, eventChannel chan interface{}, req OpenChannelRequest, reqId string) (err error) {
 	openChanReq, err := prepareOpenRequest(req)
 	if err != nil {
 		return errors.Wrap(err, "Preparing open request")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 	if err != nil {
 		return errors.Wrap(err, "Getting node connection details from the db")
 	}
@@ -105,8 +107,9 @@ func OpenChannel(db *sqlx.DB, wChan chan interface{}, req OpenChannelRequest, re
 		if err != nil {
 			return errors.Wrap(err, "Processing open response")
 		}
-		wChan <- r
-
+		if eventChannel != nil {
+			eventChannel <- r
+		}
 	}
 }
 

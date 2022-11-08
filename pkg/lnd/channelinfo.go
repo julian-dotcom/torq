@@ -11,9 +11,12 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/nodes"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 // For importing the latest routing policy at startup.
@@ -90,8 +93,8 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 	return r, nil
 }
 
-// ImportRoutingPolicies imports routing policy information about all open channels if they don't already have
-func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePubKeys []string) error {
+// ImportRoutingPolicies imports routing policy information about all channels if they don't already have
+func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)
@@ -101,7 +104,6 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePub
 
 	ctx := context.Background()
 	for _, cid := range chanIdList {
-
 		ce, err := client.GetChanInfo(ctx, &lnrpc.ChanInfoRequest{ChanId: cid})
 		if err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "edge not found") {
@@ -118,28 +120,78 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, ourNodePub
 				}
 			}
 		}
-
 		ceu, err := constructChannelEdgeUpdates(ce)
 		if err != nil {
 			return errors.Wrap(err, "Construct Channel Edge Updates")
 		}
-
-		var ts time.Time
-		var outbound bool
-
 		for _, cu := range ceu {
+			// TODO FIXME shouldn't we check if announcingNodeId == nodeId || connectingNodeId == nodeId ???
+			// We don't want our other torqNode updates in here???
+			channelPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
+			if err != nil {
+				return errors.Wrap(err, "Creating channel point from byte")
+			}
+			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
 
-			ts = time.Now().UTC()
-			outbound = slices.Contains(ourNodePubKeys, cu.AdvertisingNode)
+			announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
+			if announcingNodeId == 0 {
+				announcingNode := nodes.Node{
+					PublicKey: cu.AdvertisingNode,
+					Chain:     nodeSettings.Chain,
+					Network:   nodeSettings.Network,
+				}
+				_, err = nodes.AddNodeWhenNew(db, announcingNode)
+				if err != nil {
+					return errors.Wrap(err, "Adding new announcingNode")
+				}
+			}
 
-			err := insertRoutingPolicy(db, ts, outbound, cu)
+			connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
+			if connectingNodeId == 0 {
+				connectingNode := nodes.Node{
+					PublicKey: cu.ConnectingNode,
+					Chain:     nodeSettings.Chain,
+					Network:   nodeSettings.Network,
+				}
+				_, err = nodes.AddNodeWhenNew(db, connectingNode)
+				if err != nil {
+					return errors.Wrap(err, "Adding new connectingNode")
+				}
+			}
+
+			channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+			if channelId == 0 {
+				channel := channels.Channel{
+					FirstNodeId:            announcingNodeId,
+					SecondNodeId:           connectingNodeId,
+					FundingTransactionHash: fundingTransactionHash,
+					FundingOutputIndex:     fundingOutputIndex,
+					Status:                 commons.Open,
+				}
+				if cu.ChanId != 0 {
+					shortChannelId := channels.ConvertLNDShortChannelID(cu.ChanId)
+					channel.ShortChannelID = &shortChannelId
+					channel.LNDShortChannelID = &cu.ChanId
+				}
+				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
+				if err != nil {
+					return errors.Wrap(err, "Adding new channel")
+				}
+			} else {
+				channelStatus := commons.GetChannelStatusFromChannelId(channelId)
+				if channelStatus != commons.Open {
+					err := channels.UpdateChannelStatus(db, channelId, commons.Open)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to update channel status for channelId: %v", channelId)
+					}
+				}
+			}
+			err = insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu, nil)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}
 
 		}
-
 	}
-
 	return nil
 }

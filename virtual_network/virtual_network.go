@@ -3,22 +3,26 @@ package virtual_network
 import (
 	"context"
 	"fmt"
-	"github.com/cockroachdb/errors"
-	"github.com/docker/docker/client"
 	"log"
 	"math/rand"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cockroachdb/errors"
+	"github.com/docker/docker/client"
 )
 
 func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvironment, err error) {
 
 	btcdName := name + "-btcd"
 	aliceName := name + "-alice"
+	aliceColor := "#AA0000"
 	bobName := name + "-bob"
+	bobColor := "#BB0000"
 	carolName := name + "-carol"
+	carolColor := "#CC0000"
 
 	cli, err := client.NewClientWithOpts()
 	if err != nil {
@@ -62,7 +66,7 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 			de.SharedVolumeName + ":/rpc",
 			aliceName + ":/root/.lnd",
 		},
-		[]string{"NETWORK=simnet"},
+		[]string{"NETWORK=simnet", "COLOR=" + aliceColor},
 		nil,
 		"",
 	)
@@ -75,7 +79,7 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 			de.SharedVolumeName + ":/rpc",
 			bobName + ":/root/.lnd",
 		},
-		[]string{"NETWORK=simnet"},
+		[]string{"NETWORK=simnet", "COLOR=" + bobColor},
 		nil,
 		"10009",
 	)
@@ -88,7 +92,7 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 			de.SharedVolumeName + ":/rpc",
 			carolName + ":/root/.lnd",
 		},
-		[]string{"NETWORK=simnet"},
+		[]string{"NETWORK=simnet", "COLOR=" + carolColor},
 		nil,
 		"",
 	)

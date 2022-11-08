@@ -1,9 +1,10 @@
 package on_chain_tx
 
 import (
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"reflect"
 	"testing"
+
+	"github.com/lightningnetwork/lnd/lnrpc"
 )
 
 func Test_processSendRequest(t *testing.T) {
@@ -36,9 +37,9 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Address not provided",
 			PayOnChainRequest{
-				LocalNodeId: 1,
-				Address:     "",
-				AmountSat:   12,
+				NodeId:    1,
+				Address:   "",
+				AmountSat: 12,
 			},
 			&lnrpc.SendCoinsRequest{
 				Addr:   "",
@@ -49,9 +50,9 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Invalid amount",
 			PayOnChainRequest{
-				LocalNodeId: 1,
-				Address:     "test",
-				AmountSat:   0,
+				NodeId:    1,
+				Address:   "test",
+				AmountSat: 0,
 			},
 			&lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -62,7 +63,7 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Both targetconf and satpervbyte provided",
 			PayOnChainRequest{
-				LocalNodeId: 1,
+				NodeId:      1,
 				Address:     "test",
 				AmountSat:   12,
 				TargetConf:  &targetConf,
@@ -79,9 +80,9 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"Only mandatory params",
 			PayOnChainRequest{
-				LocalNodeId: 1,
-				Address:     "test",
-				AmountSat:   amount,
+				NodeId:    1,
+				Address:   "test",
+				AmountSat: amount,
 			},
 			&lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -92,7 +93,7 @@ func Test_processSendRequest(t *testing.T) {
 		{
 			"All params",
 			PayOnChainRequest{
-				LocalNodeId:      1,
+				NodeId:           1,
 				Address:          "test",
 				AmountSat:        amount,
 				TargetConf:       &targetConf,

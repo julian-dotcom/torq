@@ -35,7 +35,7 @@ const paymentStatusClass = {
 type InvoicePaymentResponseProps = {
   responses: Array<NewPaymentResponse>;
   paymentProcessingError: string;
-  selectedLocalNode: number;
+  selectedNodeId: number;
   decodedInvoice: DecodedInvoice;
   destination: string;
   clearPaymentFlow: () => void;

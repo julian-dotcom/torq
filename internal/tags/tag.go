@@ -1,14 +1,13 @@
 package tags
 
 import (
-	"gopkg.in/guregu/null.v4"
 	"time"
 )
 
-type tag struct {
-	TagID       int       `json:"tagId" db:"tag_id"`
-	ChannelDBID int       `json:"channelDBId" db:"channel_db_id"`
-	Tag         string    `json:"tag" db:"tag"`
-	CreatedOn   time.Time `json:"createdOn" db:"created_on"`
-	UpdateOn    null.Time `json:"updatedOn" db:"updated_on"`
+type Tag struct {
+	TagId     int       `json:"tagId" db:"tag_id"`
+	Name      string    `json:"name" db:"name"`
+	Style     string    `json:"style" db:"style"`
+	CreatedOn time.Time `json:"createdOn" db:"created_on"`
+	UpdateOn  time.Time `json:"updatedOn" db:"updated_on"`
 }

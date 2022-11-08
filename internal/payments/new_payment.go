@@ -3,19 +3,21 @@ package payments
 import (
 	"context"
 	"encoding/hex"
+	"io"
+	"strings"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
-	"io"
-	"strings"
-	"time"
 )
 
 type rrpcClientSendPayment interface {
@@ -25,7 +27,7 @@ type rrpcClientSendPayment interface {
 }
 
 type NewPaymentRequest struct {
-	LocalNodeId      int     `json:"localNodeId"`
+	NodeId           int     `json:"nodeId"`
 	Invoice          *string `json:"invoice"`
 	TimeOutSecs      int32   `json:"timeoutSecs"`
 	Dest             *string `json:"dest"`
@@ -92,18 +94,18 @@ type NewPaymentResponse struct {
 // payments hash - the hash to use within the payment's HTLC
 // timeout seconds is mandatory
 func SendNewPayment(
-	wChan chan interface{},
+	eventChannel chan interface{},
 	db *sqlx.DB,
 	c *gin.Context,
 	npReq NewPaymentRequest,
 	reqId string,
 ) (err error) {
 
-	if npReq.LocalNodeId == 0 {
+	if npReq.NodeId == 0 {
 		return errors.New("Node id is missing")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, npReq.LocalNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, npReq.NodeId)
 	if err != nil {
 		return errors.Wrap(err, "Getting node connection details from the db")
 	}
@@ -116,7 +118,7 @@ func SendNewPayment(
 	}
 	defer conn.Close()
 	client := routerrpc.NewRouterClient(conn)
-	return sendPayment(client, npReq, wChan, reqId)
+	return sendPayment(client, npReq, eventChannel, reqId)
 }
 
 func newSendPaymentRequest(npReq NewPaymentRequest) (r *routerrpc.SendPaymentRequest, err error) {
@@ -154,7 +156,7 @@ func newSendPaymentRequest(npReq NewPaymentRequest) (r *routerrpc.SendPaymentReq
 	return newPayReq, nil
 }
 
-func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan chan interface{}, reqId string) (err error) {
+func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, eventChannel chan interface{}, reqId string) (err error) {
 
 	// Create and validate payment request details
 	newPayReq, err := newSendPaymentRequest(npReq)
@@ -198,8 +200,10 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, wChan ch
 			return errors.New("UNKNOWN_ERROR")
 		}
 
-		// Write the payment status to the client
-		wChan <- processResponse(resp, reqId)
+		if eventChannel != nil {
+			// Write the payment status to the client
+			eventChannel <- processResponse(resp, reqId)
+		}
 	}
 }
 

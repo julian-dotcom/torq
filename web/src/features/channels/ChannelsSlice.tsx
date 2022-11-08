@@ -87,9 +87,9 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "string",
   },
   {
-    heading: "LND Channel Point",
+    heading: "Funding Transaction",
     type: "TextCell",
-    key: "lndChannelPoint",
+    key: "fundingTransactionHash",
     valueType: "string",
   },
   {
@@ -153,15 +153,15 @@ export const channelsColumns: ColumnMetaData[] = [
     valueType: "number",
   },
   {
-    heading: "Local Node ID",
+    heading: "Node ID",
     type: "NumericCell",
-    key: "localNodeId",
+    key: "nodeId",
     valueType: "number",
   },
   {
-    heading: "Local Node Name",
+    heading: "Node Name",
     type: "TextCell",
-    key: "localNodeName",
+    key: "nodeName",
     valueType: "string",
   },
   {
@@ -189,8 +189,9 @@ export interface PolicyInterface {
   maxHtlcMsat: number;
   minHtlcMsat: number;
   baseFeeMsat: number;
-  lndChannelPoint: string;
-  localNodeId: number;
+  fundingTransactionHash: string;
+  fundingOutputIndex: number;
+  nodeId: number;
 }
 export interface TableChannelsState {
   channels: [];
@@ -226,7 +227,7 @@ export const activeChannelsColumns = channelsColumns.filter((c) =>
     "baseFeeMsat",
     "minHtlc",
     "maxHtlcMsat",
-    "localNodeName",
+    "nodeName",
   ].includes(c.key)
 );
 

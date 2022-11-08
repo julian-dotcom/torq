@@ -27,8 +27,8 @@ import type {
   LoginResponse,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import type { localNode, settings, timeZone, channel } from "./apiTypes";
-import { NewInvoiceRequest, NewInvoiceResponse } from "./features/transact/Invoices/newInvoice/newInvoiceTypes";
+import type { nodeConfiguration, settings, timeZone, channel } from "apiTypes";
+import { NewInvoiceRequest, NewInvoiceResponse } from "features/transact/Invoices/newInvoice/newInvoiceTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -61,7 +61,7 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
 export const torqApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRedirect,
-  tagTypes: ["settings", "tableView", "localNodes", "channels"],
+  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels"],
   endpoints: (builder) => ({
     getFlow: builder.query<FlowData[], GetFlowQueryParams>({
       query: (params) => "flow" + queryParamsBuilder(params),
@@ -189,44 +189,36 @@ export const torqApi = createApi({
     getTimeZones: builder.query<timeZone[], void>({
       query: () => `settings/timezones`,
     }),
-    getLocalNodes: builder.query<localNode[], void>({
-      query: () => `settings/local-nodes`,
-      providesTags: ["localNodes"],
+    getNodeConfigurations: builder.query<nodeConfiguration[], void>({
+      query: () => `settings/nodeConnectionDetails`,
+      providesTags: ["nodeConfigurations"],
     }),
-    getLocalNode: builder.query<localNode, number>({
-      query: (localNodeId) => `settings/local-nodes/${localNodeId}`,
-      providesTags: ["localNodes"],
+    getNodeConfiguration: builder.query<nodeConfiguration, number>({
+      query: (nodeId) => `settings/nodeConnectionDetails/${nodeId}`,
+      providesTags: ["nodeConfigurations"],
     }),
-    addLocalNode: builder.mutation<any, FormData>({
-      query: (localNode) => ({
-        url: "settings/local-nodes",
+    addNodeConfiguration: builder.mutation<any, FormData>({
+      query: (nodeConfiguration) => ({
+        url: "settings/nodeConnectionDetails",
         method: "POST",
-        body: localNode,
+        body: nodeConfiguration,
       }),
-      invalidatesTags: ["localNodes", "channels"],
+      invalidatesTags: ["nodeConfigurations","channels"],
     }),
-    updateLocalNode: builder.mutation<any, { form: FormData; localNodeId: number }>({
-      query: (localNode) => ({
-        url: `settings/local-nodes/${localNode.localNodeId}`,
+    updateNodeConfiguration: builder.mutation<any, { form: FormData; nodeId: number }>({
+      query: (nodeConfiguration) => ({
+        url: `settings/nodeConnectionDetails/${nodeConfiguration.nodeId}`,
         method: "PUT",
-        body: localNode.form,
+        body: nodeConfiguration.form,
       }),
-      invalidatesTags: ["localNodes", "channels"],
+      invalidatesTags: ["nodeConfigurations","channels"],
     }),
-    updateLocalNodeSetDisabled: builder.mutation<any, { localNodeId: number; disabled: boolean }>({
-      query: (localNode) => ({
-        url: `settings/local-nodes/${localNode.localNodeId}/set-disabled`,
+    updateNodeConfigurationStatus: builder.mutation<any, { nodeId: number; status: number }>({
+      query: (nodeConfiguration) => ({
+        url: `settings/nodeConnectionDetails/${nodeConfiguration.nodeId}/${nodeConfiguration.status}`,
         method: "PUT",
-        body: localNode,
       }),
-      invalidatesTags: ["localNodes", "channels"],
-    }),
-    updateLocalNodeSetDeleted: builder.mutation<any, { localNodeId: number }>({
-      query: (localNode) => ({
-        url: `settings/local-nodes/${localNode.localNodeId}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["localNodes", "channels"],
+      invalidatesTags: ["nodeConfigurations","channels"],
     }),
   }),
 });
@@ -258,11 +250,10 @@ export const {
   useGetSettingsQuery,
   useUpdateSettingsMutation,
   useGetTimeZonesQuery,
-  useGetLocalNodeQuery,
-  useGetLocalNodesQuery,
-  useUpdateLocalNodeMutation,
-  useAddLocalNodeMutation,
-  useUpdateLocalNodeSetDeletedMutation,
-  useUpdateLocalNodeSetDisabledMutation,
+  useGetNodeConfigurationsQuery,
+  useGetNodeConfigurationQuery,
+  useUpdateNodeConfigurationMutation,
+  useAddNodeConfigurationMutation,
+  useUpdateNodeConfigurationStatusMutation,
   useUpdateChannelMutation,
 } = torqApi;

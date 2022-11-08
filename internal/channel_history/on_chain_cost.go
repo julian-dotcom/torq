@@ -2,21 +2,25 @@ package channel_history
 
 import (
 	"database/sql"
-	"github.com/cockroachdb/errors"
-	"github.com/jmoiron/sqlx"
 	"time"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
-func getTotalOnChainCost(db *sqlx.DB, from time.Time, to time.Time) (*uint64, error) {
+func getTotalOnChainCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time) (*uint64, error) {
 	var Cost uint64
 
-	q := `WITH tz AS (select preferred_timezone as tz from settings)
+	q := `
 		select coalesce(sum(total_fees), 0) as cost
 		from tx
-		where timestamp::timestamp AT TIME ZONE (table tz) >= $1::timestamp
-			and timestamp::timestamp AT TIME ZONE (table tz) <= $2::timestamp`
+		where timestamp::timestamp AT TIME ZONE ($4) >= $1::timestamp
+			and timestamp::timestamp AT TIME ZONE ($4) <= $2::timestamp
+			AND node_id = ANY ($3)`
 
-	row := db.QueryRow(q, from, to)
+	row := db.QueryRowx(q, from, to, pq.Array(nodeIds), commons.GetSettings().PreferredTimeZone)
 	err := row.Scan(&Cost)
 
 	if err != nil {
@@ -26,20 +30,13 @@ func getTotalOnChainCost(db *sqlx.DB, from time.Time, to time.Time) (*uint64, er
 	return &Cost, nil
 }
 
-func getChannelOnChainCost(db *sqlx.DB, chanIds []string) (cost *uint64, err error) {
+func getChannelOnChainCost(db *sqlx.DB, lndShortChannelIdStrings []string) (cost *uint64, err error) {
 
 	q := `select coalesce(sum(total_fees), 0) as on_chain_cost
 		from tx
-		where split_part(label, '-', 2) in (?)`
+		where split_part(label, '-', 2) = ANY ($1)`
 
-	qs, args, err := sqlx.In(q, chanIds)
-	if err != nil {
-		return nil, errors.Wrapf(err, "sqlx.In(%s, %v)", q, chanIds)
-	}
-
-	qsr := db.Rebind(qs)
-
-	row := db.QueryRow(qsr, args...)
+	row := db.QueryRowx(q, pq.Array(lndShortChannelIdStrings))
 	err = row.Scan(&cost)
 
 	if err == sql.ErrNoRows {

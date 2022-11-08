@@ -3,21 +3,18 @@ package lnd
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"go.uber.org/ratelimit"
-	"log"
-	"time"
-)
 
-type wsTxUpdate struct {
-	Type      string `json:"type"`
-	Amount    int64  `json:"amount"`
-	TimeStamp string `json:"timeStamp"`
-	TotalFees int64  `json:"totalFees"`
-}
+	"github.com/lncapital/torq/pkg/broadcast"
+	"github.com/lncapital/torq/pkg/commons"
+)
 
 func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 
@@ -33,7 +30,7 @@ func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 	return txHeight, nil
 }
 
-func ImportTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB) error {
+func ImportTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB, nodeId int) error {
 
 	txheight, err := fetchLastTxHeight(db)
 	if err != nil {
@@ -49,7 +46,7 @@ func ImportTransactions(ctx context.Context, client lnrpc.LightningClient, db *s
 	}
 
 	for _, tx := range res.Transactions {
-		err = storeTransaction(db, tx)
+		err = storeTransaction(db, tx, nodeId)
 		if err != nil {
 			return errors.Wrap(err, "Store Transaction")
 		}
@@ -60,10 +57,11 @@ func ImportTransactions(ctx context.Context, client lnrpc.LightningClient, db *s
 
 // SubscribeAndStoreTransactions Subscribes to on-chain transaction events from LND and stores them in the
 // database as a time series. It will also import unregistered transactions on startup.
-func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB, wsChan chan interface{}) error {
+func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
 
 	// Imports transactions not captured on the stream
-	err := ImportTransactions(ctx, client, db)
+	err := ImportTransactions(ctx, client, db, nodeSettings.NodeId)
 	if err != nil {
 		return errors.Wrapf(err, "ImportTransactions(%v, %v, %v)", ctx, client, db)
 	}
@@ -103,7 +101,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				continue
 			}
 
-			err = storeTransaction(db, tx)
+			err = storeTransaction(db, tx, nodeSettings.NodeId)
 			if err != nil {
 				fmt.Printf("Subscribe transaction events store transaction error: %v", err)
 				// rate limit for caution but hopefully not needed
@@ -111,24 +109,22 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				continue
 			}
 
-			txUpd := wsTxUpdate{
-				Type:      "txUpdate",
-				Amount:    tx.Amount,
-				TimeStamp: time.Unix(tx.TimeStamp, 0).Format(time.UnixDate),
-				TotalFees: tx.TotalFees,
+			if eventChannel != nil {
+				eventChannel <- broadcast.TransactionEvent{
+					EventData: broadcast.EventData{
+						EventTime: time.Now().UTC(),
+						NodeId:    nodeSettings.NodeId,
+					},
+					Amount:    tx.Amount,
+					Timestamp: time.Unix(tx.TimeStamp, 0),
+					TotalFees: tx.TotalFees,
+				}
 			}
-
-			wsChan <- txUpd
 		}
 	}
 }
 
-func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction) error {
-
-	var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height,
-                total_fees, dest_addresses, raw_tx_hex, label) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                ON CONFLICT (timestamp, tx_hash) DO NOTHING;`
-
+func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction, nodeId int) error {
 	if tx == nil {
 		return nil
 	}
@@ -139,6 +135,11 @@ func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction) error {
 	for _, output := range tx.OutputDetails {
 		destinationAddresses = append(destinationAddresses, output.Address)
 	}
+
+	var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height,
+                total_fees, dest_addresses, raw_tx_hex, label, node_id)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ON CONFLICT (timestamp, tx_hash) DO NOTHING;`
 
 	_, err := db.Exec(insertTx,
 		time.Unix(tx.TimeStamp, 0).UTC(),
@@ -151,6 +152,7 @@ func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction) error {
 		pq.Array(destinationAddresses),
 		tx.RawTxHex,
 		tx.Label,
+		nodeId,
 	)
 
 	if err != nil {

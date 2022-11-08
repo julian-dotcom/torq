@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
@@ -44,12 +47,13 @@ type pendingChannel struct {
 }
 
 type channelBody struct {
-	LocalNodeId                  int                  `json:"localNodeId"`
-	LocalNodeName                string               `json:"localNodeName"`
+	NodeId                       int                  `json:"nodeId"`
+	NodeName                     string               `json:"nodeName"`
 	Active                       bool                 `json:"active"`
 	Gauge                        float64              `json:"gauge"`
 	RemotePubkey                 string               `json:"remotePubkey"`
-	LNDChannelPoint              string               `json:"lndChannelPoint"`
+	FundingTransactionHash       string               `json:"fundingTransactionHash"`
+	FundingOutputIndex           int                  `json:"fundingOutputIndex"`
 	LNDShortChannelId            uint64               `json:"lndShortChannelId"`
 	ShortChannelId               string               `json:"shortChannelId"`
 	Capacity                     int64                `json:"capacity"`
@@ -104,7 +108,7 @@ func updateChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	requestBody := updateChanRequestBody{}
 
 	if err := c.BindJSON(&requestBody); err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
@@ -139,7 +143,7 @@ type BatchOpenResponse struct {
 func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 	var batchOpnReq BatchOpenRequest
 	if err := c.BindJSON(&batchOpnReq); err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
@@ -166,7 +170,7 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 			node.TLSFileBytes,
 			node.MacaroonFileBytes)
 		if err != nil {
-			errorMsg := fmt.Sprintf("Connect to node %d\n", node.LocalNodeId)
+			errorMsg := fmt.Sprintf("Connect to node %d\n", node.NodeId)
 			server_errors.WrapLogAndSendServerError(c, err, errorMsg)
 			return
 		}
@@ -193,13 +197,15 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 			pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
 
 			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
+			fundingTransactionHash, fundingOutputIndex := ParseChannelPoint(channel.ChannelPoint)
 			chanBody := channelBody{
-				LocalNodeId:                  node.LocalNodeId,
-				LocalNodeName:                node.Name,
+				NodeId:                       node.NodeId,
+				NodeName:                     node.Name,
 				Active:                       channel.Active,
 				Gauge:                        gauge,
 				RemotePubkey:                 channel.RemotePubkey,
-				LNDChannelPoint:              channel.ChannelPoint,
+				FundingTransactionHash:       fundingTransactionHash,
+				FundingOutputIndex:           fundingOutputIndex,
 				LNDShortChannelId:            channel.ChanId,
 				ShortChannelId:               shortChannelId,
 				Capacity:                     channel.Capacity,

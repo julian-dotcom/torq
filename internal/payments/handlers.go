@@ -1,14 +1,17 @@
 package payments
 
 import (
+	"net/http"
+	"strconv"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+
 	qp "github.com/lncapital/torq/internal/query_parser"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"net/http"
-	"strconv"
 )
 
 func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
@@ -95,7 +98,10 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	r, total, err := getPayments(db, filter, sort, limit, offset)
+	network := c.Query("network")
+	chain := c.Query("chain")
+
+	r, total, err := getPayments(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -110,8 +116,10 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
+	network := c.Query("network")
+	chain := c.Query("chain")
 
-	r, err := getPaymentDetails(db, c.Param("identifier"))
+	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), c.Param("identifier"))
 	switch err.(type) {
 	case nil:
 		break

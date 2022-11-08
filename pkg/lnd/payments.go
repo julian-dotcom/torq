@@ -3,6 +3,8 @@ package lnd
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/benbjohnson/clock"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cockroachdb/errors"
@@ -11,7 +13,8 @@ import (
 	"github.com/lightningnetwork/lnd/zpay32"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
-	"time"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type lightningClient_ListPayments interface {
@@ -26,7 +29,8 @@ type PayOptions struct {
 	Tick <-chan time.Time
 }
 
-func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB, opt *PayOptions) error {
+func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) error {
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
@@ -68,7 +72,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				last = p.LastIndexOffset
 
 				// Store the payments
-				err = storePayments(db, p.Payments)
+				err = storePayments(db, p.Payments, nodeSettings.NodeId)
 				if err != nil {
 					log.Printf("Store payments: %v\n", err)
 					break
@@ -117,8 +121,7 @@ func fetchPayments(ctx context.Context, client lightningClient_ListPayments, las
 	return r, nil
 }
 
-func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
-
+func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 	const q = `INSERT INTO payment(
 				  payment_hash,
 				  creation_timestamp,
@@ -131,15 +134,15 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 				  htlcs,
 				  payment_index,
 				  failure_reason,
+				  node_id,
 				  created_on)
-			  VALUES ($1, $2, $3,$4, $5,$6, $7, $8, $9, $10, $11, $12)
+			  VALUES ($1, $2, $3,$4, $5,$6, $7, $8, $9, $10, $11, $12, $13)
 			  ON CONFLICT (creation_timestamp, payment_index) DO NOTHING;`
 
 	if len(p) > 0 {
 		tx := db.MustBegin()
 
 		for _, payment := range p {
-
 			htlcJson, err := json.Marshal(payment.Htlcs)
 			if err != nil {
 				return err
@@ -157,6 +160,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 				htlcJson,
 				payment.PaymentIndex,
 				payment.FailureReason.String(),
+				nodeId,
 				time.Now().UTC(),
 			); err != nil {
 				return errors.Wrapf(err, "store payments: db exec")
@@ -171,7 +175,8 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 	return nil
 }
 
-func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB, opt *PayOptions) error {
+func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) error {
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
@@ -226,7 +231,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 					continue
 				}
 				// Store the payments
-				err = updatePayments(db, p.Payments)
+				err = updatePayments(db, p.Payments, nodeSettings.NodeId)
 				if err != nil {
 					log.Printf("Subscribe and update payments: %v\n", err)
 					continue
@@ -299,7 +304,7 @@ func setPaymentToFailedDetailsUnavailable(db *sqlx.DB, paymentIndex uint64) erro
 	return nil
 }
 
-func updatePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
+func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 
 	const q = `update payment set(
 				  payment_hash,
@@ -310,9 +315,10 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 				  fee_msat,
 				  htlcs,
 				  failure_reason,
+                  node_id,
 				  updated_on)
-			  = ($1, $2, $3,$4, $5,$6, $7, $8, $9)
-				where payment_index = $10;`
+			  = ($1, $2, $3,$4, $5,$6, $7, $8, $9, $10)
+				where payment_index = $11;`
 
 	if len(p) > 0 {
 		tx := db.MustBegin()
@@ -369,6 +375,7 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment) error {
 				payment.FeeMsat,
 				htlcJson,
 				fr,
+				nodeId,
 				time.Now().UTC(),
 				payment.PaymentIndex,
 			)

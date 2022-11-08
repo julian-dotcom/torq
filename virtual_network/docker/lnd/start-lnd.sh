@@ -48,6 +48,8 @@ NETWORK=$(set_default "$NETWORK" "simnet")
 CHAIN=$(set_default "$CHAIN" "bitcoin")
 BACKEND="btcd"
 HOSTNAME=$(hostname)
+ALIAS=$(set_default "$ALIAS" "$HOSTNAME")
+COLOR=$(set_default "$COLOR" "#000000")
 if [[ "$CHAIN" == "litecoin" ]]; then
     BACKEND="ltcd"
 fi
@@ -72,4 +74,6 @@ exec lnd \
     --debuglevel="$DEBUG" \
     --protocol.wumbo-channels \
     "--maxchansize=100000000" \
+    --alias="$ALIAS" \
+    --color="$COLOR" \
     "$@"

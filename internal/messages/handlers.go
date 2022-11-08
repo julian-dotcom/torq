@@ -1,10 +1,10 @@
 package messages
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"github.com/rs/zerolog/log"
 	"net/http"
 )
 
@@ -33,8 +33,7 @@ func signMessageHandler(c *gin.Context, db *sqlx.DB) {
 	var signMsgReq SignMessageRequest
 
 	if err := c.BindJSON(&signMsgReq); err != nil {
-		log.Error().Msgf("JSON binding the request body")
-		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
@@ -51,8 +50,7 @@ func verifyMessageHandler(c *gin.Context, db *sqlx.DB) {
 	var verifyMsgReq VerifyMessageRequest
 
 	if err := c.BindJSON(&verifyMsgReq); err != nil {
-		log.Error().Msgf("JSON binding the request body")
-		server_errors.WrapLogAndSendServerError(c, err, "JSON binding the request body")
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 

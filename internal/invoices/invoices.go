@@ -62,11 +62,7 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 			`).From("invoice").LeftJoin("payment p on (invoice.r_hash = p.payment_hash)"), "subq").
 		PlaceholderFormat(sq.Dollar).
 		Where(filter).
-		OrderBy(order...).
-		Prefix(`WITH
-			tz AS (select preferred_timezone as tz from settings),
-			pub_keys as (select array_agg(pub_key) from local_node)
-		`)
+		OrderBy(order...)
 
 	if limit > 0 {
 		qb = qb.Limit(limit).Offset(offset)
@@ -142,11 +138,7 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				cltv_expiry,
 				private
 			`).From("invoice").LeftJoin("payment p on (invoice.r_hash = p.payment_hash)"), "subquery").
-		Where(filter).
-		Prefix(`WITH
-			tz AS (select preferred_timezone as tz from settings),
-			pub_keys as (select array_agg(pub_key) from local_node)
-		`)
+		Where(filter)
 
 	totalQs, args, err := totalQb.ToSql()
 	if err != nil {
@@ -248,11 +240,7 @@ func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) 
 				sq.Eq{"r_hash": identifier},
 				sq.Eq{"r_preimage": identifier},
 				sq.Eq{"payment_request": identifier},
-			}).
-		Prefix(`WITH
-			tz AS (select preferred_timezone as tz from settings),
-			pub_keys as (select array_agg(pub_key) from local_node)
-		`)
+			})
 
 	qs, args, err := qb.ToSql()
 	if err != nil {

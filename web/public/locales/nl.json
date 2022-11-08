@@ -5,24 +5,50 @@
   "monday": "Maandag",
   "language": "Taal",
   "defaultDateRange": "Standaard tijdbereik",
-  "preferredTimezone": "Voorkeur Tijdzone",
+  "preferredTimezone": "Voorkeur tijdzone",
   "weekStartsOn": "Week begint op",
   "save": "Opslaan",
   "addNode": "Node toevoegen",
+  "addTag": "Label toevoegen",
+  "deleteTag": "Label verwijderen",
   "unknown": "Onbekend",
   "p2wpkh": "Segwit",
   "p2wkh": "Nested Segwit",
   "np2wkh": "Hybrid Nested Segwit",
   "p2tr": "Taproot",
   "addressType": "Type adres",
+  "yourNode": "Jouw node",
   "next": "Volgende",
-  "newAddress": "Nieuw Adres",
+  "confirm": "Bevestig",
+  "newAddress": "Nieuw adres",
+  "style": "Stijl",
+  "name": "Naam",
+  "drain": "Drain",
+  "saving": "Verwerken...",
+  "red": "rood",
+  "yellow": "geel",
   "toast": {
-    "settingsSaved": "Instellingen opgeslagen"
+    "settingsSaved": "Instellingen opgeslagen",
+    "tagAdded": "Label toegevoegd",
+    "tagSaved": "Label opgeslaan",
+    "cannotBeUndone": "Deze actie kan niet ongedaan worden, type delete om te bevestigen."
   },
   "header": {
-    "newAddress": "Nieuw Adres",
+    "newAddress": "Nieuw adres",
     "settings": "Datum & tijd instellingen",
-    "nodes": "Nodes"
+    "nodes": "Nodes",
+    "tags": "Labels",
+    "peerTag": "Collega label",
+    "channelTag": "Kanaal label"
+  },
+  "info": {
+    "peerTag": "Label toegewezen aan een collega.\nInclusief all huidige en toekomstige kanalen.",
+    "channelTag": "Laben toegewezen aan dit kanaal.\nAlleen aan dit kanaal.\nDus niet aan huidige noch toekomstige andere kanalen van dezelfde collega."
+  },
+  "modal": {
+    "title": {
+      "areYouSure": "Bent u zeker?",
+      "addTag": "Label toevoegen"
+    }
   }
 }

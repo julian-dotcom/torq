@@ -2,17 +2,19 @@ package peers
 
 import (
 	"context"
+	"net/http"
+	"strconv"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
-	"net/http"
-	"strconv"
 )
 
 type LndAddress struct {
@@ -27,11 +29,16 @@ type ConnectPeerRequest struct {
 	TimeOut    *uint64    `json:"timeOut"`
 }
 
+func RegisterPeerRoutes(r *gin.RouterGroup, db *sqlx.DB) {
+	r.GET("", func(c *gin.Context) { listPeersHandler(c, db) })
+	r.POST("", func(c *gin.Context) { connectPeerHandler(c, db) })
+}
+
 func connectPeerHandler(c *gin.Context, db *sqlx.DB) {
 	var requestBody ConnectPeerRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
-		server_errors.SendBadRequestFromError(c, errors.Wrap(err, "JSON binding the request body"))
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
@@ -63,14 +70,14 @@ func connectPeerHandler(c *gin.Context, db *sqlx.DB) {
 
 func listPeersHandler(c *gin.Context, db *sqlx.DB) {
 
-	nodeId, err := strconv.Atoi(c.Query("localNodeId"))
+	nodeId, err := strconv.Atoi(c.Query("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, "Getting node id"))
 		return
 	}
 
 	//should be true or false
-	///api/peers?localNodeId=1&latestErr=false
+	///api/peers?nodeId=1&latestErr=false
 	latestErr := c.Query("latestErr")
 
 	conn, err := connectLND(db, nodeId)
@@ -93,7 +100,7 @@ func listPeersHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func connectLND(db *sqlx.DB, nodeId int) (conn *grpc.ClientConn, err error) {
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, nodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, nodeId)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Getting node connection details from the db")
@@ -109,9 +116,4 @@ func connectLND(db *sqlx.DB, nodeId int) (conn *grpc.ClientConn, err error) {
 
 	return conn, nil
 
-}
-
-func RegisterPeersRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.POST("", func(c *gin.Context) { connectPeerHandler(c, db) })
-	r.GET("", func(c *gin.Context) { listPeersHandler(c, db) })
 }

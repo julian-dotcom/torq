@@ -11,8 +11,8 @@ type chartConfig = {
     bottom: number;
     left: number;
   };
-  keyOut: keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "lndChannelPoint">;
-  keyIn: keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "lndChannelPoint">;
+  keyOut: keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash">;
+  keyIn: keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash">;
   totalInbound: number;
   totalOutbound: number;
   verticalGap: number;
@@ -101,7 +101,8 @@ class FlowChartCanvas {
     const otherChannelsOut: FlowData = {
       alias: "",
       lndShortChannelId: "",
-      lndChannelPoint: "",
+      fundingTransactionHash: "",
+      fundingOutputIndex: 0,
       pubKey: "",
       amountIn: 0,
       revenueIn: 0,
@@ -130,7 +131,8 @@ class FlowChartCanvas {
     const otherChannelsIn: FlowData = {
       alias: "",
       lndShortChannelId: "",
-      lndChannelPoint: "",
+      fundingTransactionHash: "",
+      fundingOutputIndex: 0,
       pubKey: "",
       amountIn: 0,
       revenueIn: 0,

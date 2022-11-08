@@ -98,9 +98,9 @@ export const availableColumns: ColumnMetaData[] = [
     valueType: "string",
   },
   {
-    heading: "Channel point",
+    heading: "Funding Transaction",
     type: "TextCell",
-    key: "lndChannelPoint",
+    key: "fundingTransactionHash",
     valueType: "string",
   },
   {

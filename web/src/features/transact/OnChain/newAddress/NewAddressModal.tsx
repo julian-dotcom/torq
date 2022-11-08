@@ -1,5 +1,5 @@
 import { MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
-import { useGetLocalNodesQuery, WS_URL } from "apiSlice";
+import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
 import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -9,7 +9,7 @@ import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
 import styles from "features/transact/OnChain/newAddress/newAddress.module.scss";
 import useTranslations from "services/i18n/useTranslations";
-import { localNode } from "apiTypes";
+import { nodeConfiguration } from "apiTypes";
 import Select from "features/forms/Select";
 import Note, { NoteType } from "features/note/Note";
 import {
@@ -19,7 +19,7 @@ import {
 import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";
 
 export type NewAddressRequest = {
-  localNodeId: number;
+  nodeId: number;
   addressType: string;
 };
 
@@ -42,12 +42,12 @@ export enum AddressType {
 function NewAddressModal() {
   const { t } = useTranslations();
 
-  const { data: localNodes } = useGetLocalNodesQuery();
+  const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
 
-  let localNodeOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
-  if (localNodes !== undefined) {
-    localNodeOptions = localNodes.map((localNode: localNode) => {
-      return { value: localNode.localNodeId, label: localNode.name };
+  let nodeConfigurationOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
+  if (nodeConfigurations !== undefined) {
+    nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
+      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
     });
   }
 
@@ -59,7 +59,7 @@ function NewAddressModal() {
 
   const [response, setResponse] = useState<NewAddressResponse>();
   const [newAddressError, setNewAddressError] = useState("");
-  const [selectedLocalNode, setSelectedLocalNode] = useState<number>(localNodeOptions[0].value);
+  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value);
 
   const [addressTypeState, setAddressTypeState] = useState(ProgressStepState.active);
   const [doneState, setDoneState] = useState(ProgressStepState.disabled);
@@ -114,7 +114,7 @@ function NewAddressModal() {
       reqId: "randId",
       type: "newAddress",
       newAddressRequest: {
-        localNodeId: selectedLocalNode,
+        nodeId: selectedNodeId,
         type: addType,
         // TODO: account empty so the default wallet account is used
         // account: {account},
@@ -141,10 +141,10 @@ function NewAddressModal() {
           <Select
             label={t.yourNode}
             onChange={(newValue: any) => {
-              setSelectedLocalNode(newValue?.value || 0);
+              setSelectedNodeId(newValue?.value || 0);
             }}
-            options={localNodeOptions}
-            value={localNodeOptions.find((option) => option.value === selectedLocalNode)}
+            options={nodeConfigurationOptions}
+            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
           />
           <div className={styles.addressTypeWrapper}>
             <div className={styles.addressTypes}>
@@ -152,11 +152,11 @@ function NewAddressModal() {
                 return (
                   <Button
                     text={addType.label}
-                    disabled={!selectedLocalNode}
+                    disabled={!selectedNodeId}
                     buttonColor={buttonColor.subtle}
                     key={index + addType.label}
                     onClick={() => {
-                      if (selectedLocalNode) {
+                      if (selectedNodeId) {
                         handleClickNext(addType.value);
                       }
                     }}

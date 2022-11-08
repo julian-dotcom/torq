@@ -2,16 +2,18 @@ package channels
 
 import (
 	"context"
+	"io"
+	"strconv"
+	"strings"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"google.golang.org/grpc"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"google.golang.org/grpc"
-	"io"
-	"strconv"
-	"strings"
 )
 
 type lndClientCloseChannel interface {
@@ -44,8 +46,8 @@ type CloseChannelResponse struct {
 	ChanClose    channelCloseUpdate `json:"chanClose"`
 }
 
-func CloseChannel(wChan chan interface{}, db *sqlx.DB, c *gin.Context, ccReq CloseChannelRequest, reqId string) (err error) {
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, ccReq.NodeId)
+func CloseChannel(eventChannel chan interface{}, db *sqlx.DB, c *gin.Context, ccReq CloseChannelRequest, reqId string) (err error) {
+	connectionDetails, err := settings.GetConnectionDetailsById(db, ccReq.NodeId)
 	if err != nil {
 		return errors.New("Getting node connection details from the db")
 	}
@@ -65,7 +67,7 @@ func CloseChannel(wChan chan interface{}, db *sqlx.DB, c *gin.Context, ccReq Clo
 		return errors.Wrap(err, "Preparing close request")
 	}
 
-	return closeChannelResp(client, closeChanReq, wChan, reqId)
+	return closeChannelResp(client, closeChanReq, eventChannel, reqId)
 }
 
 func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelRequest, err error) {
@@ -107,7 +109,7 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelReques
 	return closeChanReq, nil
 }
 
-func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseChannelRequest, wChan chan interface{}, reqId string) error {
+func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan interface{}, reqId string) error {
 
 	ctx := context.Background()
 	closeChanRes, err := client.CloseChannel(ctx, closeChanReq)
@@ -136,7 +138,9 @@ func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseCha
 		if err != nil {
 			return errors.Wrap(err, "Process close response")
 		}
-		wChan <- r
+		if eventChannel != nil {
+			eventChannel <- r
+		}
 	}
 }
 

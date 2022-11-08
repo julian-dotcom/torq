@@ -2,21 +2,26 @@ package flow
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/lncapital/torq/pkg/server_errors"
+	"github.com/lib/pq"
 	"gopkg.in/guregu/null.v4"
+
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 type channelFlowData struct {
 	// Alias of remote peer
-	Alias null.String `json:"alias"`
-	// The channel point
-	LNDChannelPoint null.String `json:"lndChannelPoint"`
+	Alias                  null.String `json:"alias"`
+	FundingTransactionHash string      `json:"fundingTransactionHash"`
+	FundingOutputIndex     int         `json:"fundingOutputIndex"`
 	// The remote public key
 	PubKey null.String `json:"pubKey"`
 	// Short channel id in c-lightning / BOLT format
@@ -67,16 +72,33 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
+func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 	toTime time.Time) (r []*channelFlowData,
 	err error) {
+
+	var channelIds []int
+	var getAll = false
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+		// TODO: Clean up Quick hack to simplify logic for fetching all channels
+		channelIds = []int{0}
+		getAll = true
+	} else {
+		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
+			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Converting LND short channel id from string")
+			}
+			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+		}
+	}
 
 	const sql = `
 		select
 			ne.alias,
-			fw.lnd_short_channel_id,
-			ce.lnd_channel_point,
-			ne.pub_key,
+			fw.channel_id,
+			COALESCE(c.funding_transaction_hash, ''),
+			COALESCE(c.funding_output_index, 0),
+			n.public_key,
 
 			coalesce(fw.amount_in, 0) as amount_in,
 			coalesce(fw.revenue_in, 0) as revenue_in,
@@ -87,69 +109,62 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 			coalesce(fw.count_out, 0) as count_out
 		from (
 			select
-				coalesce(o.lnd_outgoing_short_channel_id, i.lnd_incoming_short_channel_id) as lnd_short_channel_id,
+				coalesce(o.outgoing_channel_id, i.incoming_channel_id) as channel_id,
 				i.amount as amount_in,
 				o.amount as amount_out,
 				i.revenue as revenue_in,
 				o.revenue as revenue_out,
 				i.count as count_in,
 				o.count as count_out
-				from
-						 (select
-					lnd_outgoing_short_channel_id,
-					floor(sum(outgoing_amount_msat)/1000) as amount,
-					floor(sum(fee_msat)/1000) as revenue,
-					count(time) as count
-				from forward as fw
-				where time >= ?
-            		and time <= ?
-					and ((?) or (lnd_incoming_short_channel_id in (?)))
-				group by lnd_outgoing_short_channel_id) as o
-				full outer join (
+			from (
 				select
-					lnd_incoming_short_channel_id,
+					outgoing_channel_id,
 					floor(sum(outgoing_amount_msat)/1000) as amount,
 					floor(sum(fee_msat)/1000) as revenue,
 					count(time) as count
-				from forward as fw
-				where time >= ?
-            		and time <= ?
-					and ((?) or (lnd_outgoing_short_channel_id in (?)))
-				group by lnd_incoming_short_channel_id) as i on o.lnd_outgoing_short_channel_id = i.lnd_incoming_short_channel_id) as fw
-			left join (
-			select
-				lnd_short_channel_id,
-				lnd_channel_point,
-				pub_key,
-				last(event->'capacity', time) as capacity,
-				(1-last(event_type, time)) as open
-			from channel_event where event_type in (0,1)
-		   group by lnd_short_channel_id, lnd_channel_point, pub_key
-		) as ce on fw.lnd_short_channel_id = ce.lnd_short_channel_id
+				from forward
+				where time >= $1
+					and time <= $2
+					and ($3 or incoming_channel_id = ANY($4))
+				group by outgoing_channel_id
+			) as o
+			full outer join (
+				select
+					incoming_channel_id,
+					floor(sum(outgoing_amount_msat)/1000) as amount,
+					floor(sum(fee_msat)/1000) as revenue,
+					count(time) as count
+				from forward
+				where time >= $1
+					and time <= $2
+					and ($3 or outgoing_channel_id = ANY($4))
+				group by incoming_channel_id
+			) as i
+				on o.outgoing_channel_id = i.incoming_channel_id
+		) as fw
 		left join (
 			select
-				pub_key,
+				channel_id,
+				last(event->'capacity', time) as capacity,
+				(1-last(event_type, time)) as open
+			from channel_event
+			where event_type in (0,1)
+			group by channel_id
+		) as ce
+			on fw.channel_id = ce.channel_id
+		left join channel c on c.channel_id = ce.channel_id
+		left join (
+			select
+				event_node_id,
 				last(alias, timestamp) as alias
 			from node_event
-			group by pub_key
-		) as ne on ce.pub_key = ne.pub_key
+			group by event_node_id
+		) as ne
+			on c.second_node_id = ne.event_node_id
+		left join node n on ne.event_node_id = n.node_id
 	`
 
-	// TODO: Clean up
-	// Quick hack to simplify logic for fetching flow for all channels
-	var getAll = false
-	if chanIds[0] == "1" {
-		getAll = true
-	}
-
-	qs, args, err := sqlx.In(sql, fromTime, toTime, getAll, chanIds, fromTime, toTime, getAll, chanIds)
-	if err != nil {
-		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v, %v, %v)",
-			sql, fromTime, toTime, getAll, chanIds, fromTime, toTime, getAll, chanIds)
-	}
-
-	qsr := db.Rebind(qs)
-	rows, err := db.Query(qsr, args...)
+	rows, err := db.Queryx(sql, fromTime, toTime, getAll, pq.Array(channelIds))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running flow query")
 	}
@@ -159,7 +174,8 @@ func getFlow(db *sqlx.DB, chanIds []string, fromTime time.Time,
 		err = rows.Scan(
 			&c.Alias,
 			&c.LNDShortChannelId,
-			&c.LNDChannelPoint,
+			&c.FundingTransactionHash,
+			&c.FundingOutputIndex,
 			&c.PubKey,
 
 			&c.AmountOut,

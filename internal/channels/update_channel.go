@@ -8,9 +8,10 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
 )
 
 // UpdateChannel
@@ -22,7 +23,7 @@ func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, e
 		return updateResponse{}, errors.Wrap(err, "Create policy request")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 
 	if err != nil {
 		return updateResponse{}, errors.Wrap(err, "Getting node connection details from the db")

@@ -2,9 +2,11 @@ package messages
 
 import (
 	"context"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
@@ -14,7 +16,7 @@ func verifyMessage(db *sqlx.DB, req VerifyMessageRequest) (r VerifyMessageRespon
 		return VerifyMessageResponse{}, errors.Newf("Node Id missing")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 	if err != nil {
 		return VerifyMessageResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}

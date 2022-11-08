@@ -55,11 +55,9 @@ type NewTableView struct {
 }
 
 func insertTableViewsHandler(c *gin.Context, db *sqlx.DB) {
-
-	view := &NewTableView{}
-	err := c.BindJSON(&view)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+	view := NewTableView{}
+	if err := c.BindJSON(&view); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
@@ -71,7 +69,7 @@ func insertTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func insertTableView(db *sqlx.DB, view *NewTableView) (r TableView, err error) {
+func insertTableView(db *sqlx.DB, view NewTableView) (r TableView, err error) {
 
 	sql := `
 		INSERT INTO table_view (view, page, created_on) values ($1, $2, $3)
@@ -87,10 +85,9 @@ func insertTableView(db *sqlx.DB, view *NewTableView) (r TableView, err error) {
 
 func updateTableViewHandler(c *gin.Context, db *sqlx.DB) {
 
-	view := &TableView{}
-	err := c.BindJSON(view)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+	view := TableView{}
+	if err := c.BindJSON(&view); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
@@ -102,23 +99,23 @@ func updateTableViewHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func updateTableView(db *sqlx.DB, view *TableView) (TableView, error) {
+func updateTableView(db *sqlx.DB, view TableView) (TableView, error) {
 
 	sql := `UPDATE table_view SET view = $1, updated_on = $2 WHERE id = $3;`
 
-	_, err := db.Exec(sql, &view.View, time.Now().UTC(), &view.Id)
+	_, err := db.Exec(sql, view.View, time.Now().UTC(), view.Id)
 	if err != nil {
 		return TableView{}, errors.Wrap(err, "Unable to create view. SQL statement error")
 	}
 
-	return *view, nil
+	return view, nil
 }
 
 func deleteTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 
 	id, err := strconv.Atoi(c.Param("viewId"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, "Failed to find/parse viewId in the request.")
 		return
 	}
 
@@ -143,15 +140,13 @@ func deleteTableView(db *sqlx.DB, id int) error {
 }
 
 func updateTableViewOrderHandler(c *gin.Context, db *sqlx.DB) {
-
-	var viewOrders []*TableViewOrder
-	err := c.BindJSON(&viewOrders)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+	var viewOrders []TableViewOrder
+	if err := c.BindJSON(&viewOrders); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	err = updateTableViewOrder(db, viewOrders)
+	err := updateTableViewOrder(db, viewOrders)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -164,7 +159,7 @@ type TableViewOrder struct {
 	ViewOrder int `json:"view_order" db:"view_order"`
 }
 
-func updateTableViewOrder(db *sqlx.DB, viewOrders []*TableViewOrder) error {
+func updateTableViewOrder(db *sqlx.DB, viewOrders []TableViewOrder) error {
 
 	// TODO: Switch tp updating using this and add Unique constraint
 	//sql := `

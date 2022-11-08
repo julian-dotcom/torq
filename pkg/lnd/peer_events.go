@@ -2,23 +2,25 @@ package lnd
 
 import (
 	"context"
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/pkg/broadcast"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
-type peerEventUpdate struct {
-	Type      string `json:"type"`
-	EventType string `json:"eventType"`
-}
-
 type peerEventsClient interface {
-	SubscribePeerEvents(ctx context.Context, in *lnrpc.PeerEventSubscription, opts ...grpc.CallOption) (lnrpc.Lightning_SubscribePeerEventsClient, error)
+	SubscribePeerEvents(ctx context.Context, in *lnrpc.PeerEventSubscription,
+		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribePeerEventsClient, error)
 }
 
-func SubscribePeerEvents(ctx context.Context, client peerEventsClient, wsChan chan interface{}) error {
+func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
 
 	peerEventStream, err := client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
 
@@ -56,13 +58,16 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient, wsChan ch
 			continue
 		}
 
-		updatePeer := peerEventUpdate{
-			"peerEvent",
-			peerEvent.GetType().String(),
+		if eventChannel != nil {
+			eventChannel <- broadcast.PeerEvent{
+				EventData: broadcast.EventData{
+					EventTime: time.Now().UTC(),
+					NodeId:    nodeSettings.NodeId,
+				},
+				Type:           peerEvent.Type,
+				EventPublicKey: peerEvent.PubKey,
+			}
 		}
-
-		wsChan <- updatePeer
-
 	}
 
 	return nil

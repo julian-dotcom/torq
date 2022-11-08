@@ -8,8 +8,10 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/testutil"
 	"github.com/mixer/clock"
+
+	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/testutil"
 	// "github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -53,7 +55,8 @@ func TestSubscribePayments(t *testing.T) {
 		panic(err)
 	}
 
-	db, err := srv.NewTestDatabase(true)
+	db, dbCancel, err := srv.NewTestDatabase(true)
+	defer dbCancel()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +197,9 @@ func TestSubscribePayments(t *testing.T) {
 	// Start subscribing in a goroutine to allow the test to continue simulating time through the
 	// mocked time object.
 	errs.Go(func() error {
-		err := SubscribeAndStorePayments(ctx, &mclient, db, &opt)
+		err := SubscribeAndStorePayments(ctx, &mclient, db,
+			commons.GetNodeSettingsByNodeId(
+				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeAndStorePayments(%v, %v, %v, %v)", ctx, mclient, db, &opt))
 		}
@@ -329,7 +334,9 @@ func TestSubscribePayments(t *testing.T) {
 	}
 
 	errs.Go(func() error {
-		err := UpdateInFlightPayments(ctx, &mclientUpdate, db, &opt)
+		err := UpdateInFlightPayments(ctx, &mclientUpdate, db,
+			commons.GetNodeSettingsByNodeId(
+				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeAndUpdatePayments(%v, %v, %v, %v)", ctx, mclientUpdate, db, &opt))
 		}

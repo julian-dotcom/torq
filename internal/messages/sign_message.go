@@ -2,9 +2,11 @@ package messages
 
 import (
 	"context"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
@@ -13,7 +15,7 @@ func signMessage(db *sqlx.DB, req SignMessageRequest) (r SignMessageResponse, er
 	if req.NodeId == 0 {
 		return SignMessageResponse{}, errors.New("Node Id missing")
 	}
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.NodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 	if err != nil {
 		return SignMessageResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}

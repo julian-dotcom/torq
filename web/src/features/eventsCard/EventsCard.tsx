@@ -57,11 +57,11 @@ function EventsCard({ events, selectedEvents, channels }: eventCardType) {
             .map((event: Event, index: number) => {
               const icon = eventIcons.get(event.type);
               const newDate = prev !== event.date as string;
-              const newAlias = prevAlias !== event.lndChannelPoint;
+              const newAlias = prevAlias !== event.fundingTransactionHash;
               prev = event.date;
-              prevAlias = event.lndChannelPoint;
+              prevAlias = event.fundingTransactionHash;
               const chan: Channel =
-                (channels?.channels || []).find((c: Channel) => c.channelPoint === event.lndChannelPoint) as Channel || {};
+                (channels?.channels || []).find((c: Channel) => c.fundingTransactionHash === event.fundingTransactionHash) as Channel || {};
 
               return (
                 <React.Fragment key={"empty-wrapper-" + index}>
@@ -74,7 +74,7 @@ function EventsCard({ events, selectedEvents, channels }: eventCardType) {
                     <div key={"name-row" + index} className={styles.eventRowName}>
                       <div className={styles.channelAlias}>{chan.alias}</div>
                       <div>|</div>
-                      <div className={styles.channelPoint}>{chan.channelPoint}</div>
+                      <div className={styles.channelPoint}>{chan.fundingTransactionHash}</div>
                     </div>
                   )}
                   <div

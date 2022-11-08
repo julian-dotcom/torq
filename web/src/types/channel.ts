@@ -1,10 +1,9 @@
 type Channel = {
   alias: string;
-  channelDbId: number;
+  channelId: number;
   channelPoint: string;
   pubKey: string;
   shortChannelId: string;
-  channelId: string;
   isOpen: boolean;
   capacity: number;
 };
@@ -45,7 +44,8 @@ type Rebalancing = {
 type Event = {
   date: string;
   datetime: string;
-  lndChannelPoint: string;
+  fundingTransactionHash: string;
+  fundingOutputIndex: number;
   shortChannelId: string;
   type: string;
   isOutbound: boolean;

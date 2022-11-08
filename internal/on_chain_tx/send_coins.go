@@ -2,16 +2,18 @@ package on_chain_tx
 
 import (
 	"context"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/rs/zerolog/log"
 )
 
 type PayOnChainRequest struct {
-	LocalNodeId      int     `json:"localNodeId"`
+	NodeId           int     `json:"nodeId"`
 	Address          string  `json:"address"`
 	AmountSat        int64   `json:"amountSat"`
 	TargetConf       *int32  `json:"targetConf"`
@@ -33,7 +35,7 @@ func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 		return "", errors.Wrap(err, "Process send request")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, req.LocalNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 	if err != nil {
 		return "", errors.New("Error getting node connection details from the db")
 	}
@@ -63,7 +65,7 @@ func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 func processSendRequest(req PayOnChainRequest) (r *lnrpc.SendCoinsRequest, err error) {
 	r = &lnrpc.SendCoinsRequest{}
 
-	if req.LocalNodeId == 0 {
+	if req.NodeId == 0 {
 		return &lnrpc.SendCoinsRequest{}, errors.New("Node id is missing")
 	}
 

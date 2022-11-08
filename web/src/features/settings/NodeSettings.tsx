@@ -20,13 +20,12 @@ import ToastContext from "features/toast/context";
 import File from "features/forms/File";
 import TextInput from "features/forms/TextInput";
 import {
-  useGetLocalNodeQuery,
-  useUpdateLocalNodeMutation,
-  useAddLocalNodeMutation,
-  useUpdateLocalNodeSetDisabledMutation,
-  useUpdateLocalNodeSetDeletedMutation,
+  useGetNodeConfigurationQuery,
+  useUpdateNodeConfigurationMutation,
+  useAddNodeConfigurationMutation,
+  useUpdateNodeConfigurationStatusMutation,
 } from "apiSlice";
-import { localNode } from "apiTypes";
+import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
 import Collapse from "features/collapse/Collapse";
 import Popover from "features/popover/Popover";
@@ -34,7 +33,7 @@ import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
 import Modal from "features/modal/Modal";
 
 interface nodeProps {
-  localNodeId: number;
+  nodeId: number;
   collapsed?: boolean;
   addMode?: boolean;
   onAddSuccess?: () => void;
@@ -42,21 +41,20 @@ interface nodeProps {
 }
 
 const NodeSettings = React.forwardRef(function NodeSettings(
-  { localNodeId, collapsed, addMode, onAddSuccess }: nodeProps,
+  { nodeId, collapsed, addMode, onAddSuccess }: nodeProps,
   ref
 ) {
   const toastRef = React.useContext(ToastContext);
   const popoverRef = React.useRef();
 
-  const { data: localNodeData } = useGetLocalNodeQuery(localNodeId, {
-    skip: !localNodeId,
+  const { data: nodeConfigurationData } = useGetNodeConfigurationQuery(nodeId, {
+    skip: !nodeId,
   });
-  const [updateLocalNode] = useUpdateLocalNodeMutation();
-  const [addLocalNode] = useAddLocalNodeMutation();
-  const [setDisableLocalNode] = useUpdateLocalNodeSetDisabledMutation();
-  const [deleteLocalNode] = useUpdateLocalNodeSetDeletedMutation();
+  const [updateNodeConfiguration] = useUpdateNodeConfigurationMutation();
+  const [addNodeConfiguration] = useAddNodeConfigurationMutation();
+  const [setNodeConfigurationStatus] = useUpdateNodeConfigurationStatusMutation();
 
-  const [localState, setLocalState] = useState({} as localNode);
+  const [nodeConfigurationState, setNodeConfigurationState] = useState({} as nodeConfiguration);
   const [collapsedState, setCollapsedState] = useState(collapsed ?? false);
   const [showModalState, setShowModalState] = useState(false);
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
@@ -71,7 +69,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   }));
 
   const clear = () => {
-    setLocalState({ grpcAddress: "", implementation: "", name: "" } as localNode);
+    setNodeConfigurationState({ grpcAddress: "", implementation: "", name: "" } as nodeConfiguration);
   };
 
   React.useEffect(() => {
@@ -84,7 +82,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setShowModalState(false);
     setDeleteConfirmationTextInputState("");
     setDeleteEnabled(false);
-    setLocalState({} as localNode);
+    setNodeConfigurationState({} as nodeConfiguration);
   };
 
   const handleDeleteClick = () => {
@@ -102,18 +100,18 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const submitNodeSettings = async () => {
     setSaveEnabledState(false);
     const form = new FormData();
-    form.append("implementation", "LND");
-    form.append("name", localState.name ?? "");
-    form.append("grpcAddress", localState.grpcAddress ?? "");
-    if (localState.tlsFile) {
-      form.append("tlsFile", localState.tlsFile, localState.tlsFileName);
+    form.append("implementation", "0");
+    form.append("name", nodeConfigurationState.name ?? "");
+    form.append("grpcAddress", nodeConfigurationState.grpcAddress ?? "");
+    if (nodeConfigurationState.tlsFile) {
+      form.append("tlsFile", nodeConfigurationState.tlsFile, nodeConfigurationState.tlsFileName);
     }
-    if (localState.macaroonFile) {
-      form.append("macaroonFile", localState.macaroonFile, localState.macaroonFileName);
+    if (nodeConfigurationState.macaroonFile) {
+      form.append("macaroonFile", nodeConfigurationState.macaroonFile, nodeConfigurationState.macaroonFileName);
     }
     // we are adding new node
-    if (!localState.localNodeId) {
-      addLocalNode(form)
+    if (!nodeConfigurationState.nodeId) {
+      addNodeConfiguration(form)
         .unwrap()
         .then((_) => {
           setSaveEnabledState(true);
@@ -129,7 +127,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
 
       return;
     }
-    updateLocalNode({ form, localNodeId: localState.localNodeId })
+    updateNodeConfiguration({ form, nodeId: nodeConfigurationState.nodeId })
       .unwrap()
       .then((_) => {
         setSaveEnabledState(true);
@@ -142,25 +140,25 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   };
 
   React.useEffect(() => {
-    if (localNodeData) {
-      setLocalState(localNodeData);
+    if (nodeConfigurationData) {
+      setNodeConfigurationState(nodeConfigurationData);
     }
-  }, [localNodeData]);
+  }, [nodeConfigurationData]);
 
   const handleTLSFileChange = (file: File | null) => {
-    setLocalState({ ...localState, tlsFile: file, tlsFileName: file ? file.name : undefined });
+    setNodeConfigurationState({ ...nodeConfigurationState, tlsFile: file, tlsFileName: file ? file.name : undefined });
   };
 
   const handleMacaroonFileChange = (file: File | null) => {
-    setLocalState({ ...localState, macaroonFile: file, macaroonFileName: file ? file.name : undefined });
+    setNodeConfigurationState({ ...nodeConfigurationState, macaroonFile: file, macaroonFileName: file ? file.name : undefined });
   };
 
   const handleAddressChange = (value: string) => {
-    setLocalState({ ...localState, grpcAddress: value });
+    setNodeConfigurationState({ ...nodeConfigurationState, grpcAddress: value });
   };
 
   const handleNodeNameChange = (value: string) => {
-    setLocalState({ ...localState, name: value });
+    setNodeConfigurationState({ ...nodeConfigurationState, name: value });
   };
 
   const handleCollapseClick = () => {
@@ -171,7 +169,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setShowModalState(false);
     setDeleteConfirmationTextInputState("");
     setDeleteEnabled(false);
-    deleteLocalNode({ localNodeId: localState.localNodeId });
+    setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: 3});
   };
 
   const handleDeleteConfirmationTextInputChange = (value: string) => {
@@ -181,7 +179,12 @@ const NodeSettings = React.forwardRef(function NodeSettings(
 
   const handleDisableClick = () => {
     setEnableEnableButtonState(false);
-    setDisableLocalNode({ localNodeId: localState.localNodeId, disabled: !localState.disabled })
+    if (nodeConfigurationState.status == 0) {
+      nodeConfigurationState.status = 1
+    } else {
+      nodeConfigurationState.status = 0
+    }
+    setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: nodeConfigurationState.status})
       .unwrap()
       .finally(() => {
         setEnableEnableButtonState(true);
@@ -191,7 +194,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
   };
 
-  const implementationOptions = [{ value: "LND", label: "LND" } as SelectOption];
+  const implementationOptions = [{ value: "0", label: "LND" } as SelectOption];
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
   return (
@@ -202,13 +205,13 @@ const NodeSettings = React.forwardRef(function NodeSettings(
             <div
               className={classNames(styles.connectionIcon, {
                 [styles.connected]: true,
-                [styles.disabled]: localState.disabled,
+                [styles.disabled]: nodeConfigurationState.status==1,
               })}
             >
-              {!localState.disabled && <ConnectedIcon />}
-              {localState.disabled && <DisconnectedIcon />}
+              {nodeConfigurationState.status==0 && <ConnectedIcon />}
+              {nodeConfigurationState.status==1 && <DisconnectedIcon />}
             </div>
-            <div className={styles.title}>{localNodeData?.name}</div>
+            <div className={styles.title}>{nodeConfigurationState?.name}</div>
             <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
               {collapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
             </div>
@@ -225,8 +228,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       <div className={styles.nodeMenu}>
                         <Button
                           buttonColor={buttonColor.secondary}
-                          text={localState.disabled ? "Enable node" : "Disable node"}
-                          icon={localState.disabled ? <PlayIcon /> : <PauseIcon />}
+                          text={nodeConfigurationState.status==0 ? "Enable node" : "Disable node"}
+                          icon={nodeConfigurationState.status==0 ? <PlayIcon /> : <PauseIcon />}
                           onClick={handleDisableClick}
                           disabled={!enableEnableButtonState}
                         />
@@ -250,12 +253,12 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                     return;
                   }}
                   options={implementationOptions}
-                  value={implementationOptions.find((io) => io.value === localState.implementation)}
+                  value={implementationOptions.find((io) => io.value === nodeConfigurationState.implementation)}
                 />
                 <span id="name">
                   <TextInput
                     label="Node Name"
-                    value={localState.name}
+                    value={nodeConfigurationState.name}
                     inputType="text"
                     onChange={(e) => handleNodeNameChange(e as string)}
                     placeholder="Node 1"
@@ -264,19 +267,19 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 <span id="address">
                   <TextInput
                     label="GRPC Address (IP or Tor)"
-                    value={localState.grpcAddress}
+                    value={nodeConfigurationState.grpcAddress}
                     onChange={(e) => handleAddressChange(e as string)}
                     placeholder="100.100.100.100:10009"
                   />
                 </span>
                 <span id="tls">
-                  <File label="TLS Certificate" onFileChange={handleTLSFileChange} fileName={localState?.tlsFileName} />
+                  <File label="TLS Certificate" onFileChange={handleTLSFileChange} fileName={nodeConfigurationState?.tlsFileName} />
                 </span>
                 <span id="macaroon">
                   <File
                     label="Macaroon"
                     onFileChange={handleMacaroonFileChange}
-                    fileName={localState?.macaroonFileName}
+                    fileName={nodeConfigurationState?.macaroonFileName}
                   />
                 </span>
                 <Button

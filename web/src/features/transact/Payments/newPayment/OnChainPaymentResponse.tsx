@@ -29,7 +29,7 @@ type OnChainPaymentResponseProps = {
     error?: FetchBaseQueryError | SerializedError;
   };
   amount: number;
-  selectedLocalNode: number;
+  selectedNodeId: number;
   setProcessState: (state: ProgressStepState) => void;
   destination: string;
   clearPaymentFlow: () => void;

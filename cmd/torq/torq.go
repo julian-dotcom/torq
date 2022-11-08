@@ -10,27 +10,32 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/lncapital/torq/build"
-	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
-	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
-	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
+
+	"github.com/lncapital/torq/build"
+	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
+	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/broadcast"
+	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/lnd_connect"
 )
+
+var eventChannel = make(chan interface{}) //nolint:gochecknoglobals
 
 var startchan = make(chan struct{}) //nolint:gochecknoglobals
 var stopchan = make(chan struct{})  //nolint:gochecknoglobals
-var wsChan = make(chan interface{}) //nolint:gochecknoglobals
 
 type subscriptions struct {
 	mu          sync.RWMutex
 	runningList map[int]func()
 }
 
-func (rs *subscriptions) AddSubscription(localNodeId int, cancelFunc func()) {
+func (rs *subscriptions) AddSubscription(nodeId int, cancelFunc func()) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -38,24 +43,24 @@ func (rs *subscriptions) AddSubscription(localNodeId int, cancelFunc func()) {
 		rs.runningList = make(map[int]func())
 	}
 
-	rs.runningList[localNodeId] = cancelFunc
+	rs.runningList[nodeId] = cancelFunc
 }
 
-func (rs *subscriptions) RemoveSubscription(localNodeId int) {
+func (rs *subscriptions) RemoveSubscription(nodeId int) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
 	if rs.runningList == nil {
 		rs.runningList = make(map[int]func())
 	}
-	delete(rs.runningList, localNodeId)
+	delete(rs.runningList, nodeId)
 }
 
-func (rs *subscriptions) Contains(localNodeId int) bool {
+func (rs *subscriptions) Contains(nodeId int) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	_, exists := rs.runningList[localNodeId]
+	_, exists := rs.runningList[nodeId]
 	return exists
 }
 
@@ -180,42 +185,62 @@ func main() {
 				return err
 			}
 
+			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, nil)
+			err = settings.InitializeManagedSettingsCache(db)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
+			}
+
+			go commons.ManagedNodeCache(commons.ManagedNodeChannel, nil)
+			err = settings.InitializeManagedNodeCache(db)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNode cache.")
+			}
+
+			go commons.ManagedChannelCache(commons.ManagedChannelChannel, nil)
+			err = channels.InitializeManagedChannelCache(db)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")
+			}
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			broadcaster := broadcast.NewBroadcastServer(ctx, eventChannel)
+
 			// if node specified on cmd flags then check if we already know about it
 			if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
-
 				macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
 				if err != nil {
+					log.Error().Err(err).Msg("Reading macaroon file from disk path from config")
 					return errors.Wrap(err, "Reading macaroon file from disk path from config")
 				}
-
 				tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
 				if err != nil {
+					log.Error().Err(err).Msg("Reading tls file from disk path from config")
 					return errors.Wrap(err, "Reading tls file from disk path from config")
 				}
-
-				localNodeFromConfig := settings.ConnectionDetails{
-					GRPCAddress:       c.String("lnd.url"),
-					MacaroonFileBytes: macaroonFile,
-					TLSFileBytes:      tlsFile}
-
-				nodeId, err := settings.GetNodeIdByGRPC(db, localNodeFromConfig)
+				grpcAddress := c.String("lnd.url")
+				nodeId, err := settings.GetNodeIdByGRPC(db, grpcAddress)
 				if err != nil {
+					log.Error().Err(err).Msg("Checking if node specified in config exists")
 					return errors.Wrap(err, "Checking if node specified in config exists")
 				}
-				// doesn't exist
-				if nodeId == -1 {
+				if nodeId == 0 {
 					log.Debug().Msg("Node specified in config is not in DB, adding it")
-					localNodeId, err := settings.AddNodeToDB(db, localNodeFromConfig)
+					nodeConnectionDetails, err := settings.AddNodeToDB(db, commons.LND, grpcAddress, tlsFile, macaroonFile)
 					if err != nil {
+						log.Error().Err(err).Msg("Adding node specified in config to database")
 						return errors.Wrap(err, "Adding node specified in config to database")
 					}
-					err = settings.UpdateLocalNodeName(db, "Auto configured node "+strconv.Itoa(localNodeId), localNodeId)
+					nodeConnectionDetails.Name = "Auto configured node " + strconv.Itoa(nodeId)
+					_, err = settings.SetNodeConnectionDetails(db, nodeConnectionDetails)
 					if err != nil {
 						return errors.Wrap(err, "Updating node name")
 					}
 				} else {
 					log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
-					if err = settings.UpdateNodeFiles(db, localNodeFromConfig); err != nil {
+					if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, grpcAddress, tlsFile, macaroonFile); err != nil {
+						log.Error().Err(err).Msg("Problem updating node files")
 						return errors.Wrap(err, "Problem updating node files")
 					}
 				}
@@ -229,7 +254,6 @@ func main() {
 				go (func() {
 					for {
 						<-startchan
-
 						nodes, err := settings.GetActiveNodesConnectionDetails(db)
 						if err != nil {
 							log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
@@ -242,25 +266,26 @@ func main() {
 								ctx := context.Background()
 								ctx, cancel := context.WithCancel(ctx)
 
-								log.Info().Msgf("Subscribing to LND for node id: %v", node.LocalNodeId)
-								runningSubscriptions.AddSubscription(node.LocalNodeId, cancel)
+								log.Info().Msgf("Subscribing to LND for node id: %v", node.NodeId)
+								runningSubscriptions.AddSubscription(node.NodeId, cancel)
 								conn, err := lnd_connect.Connect(
 									node.GRPCAddress,
 									node.TLSFileBytes,
-									node.MacaroonFileBytes)
+									node.MacaroonFileBytes,
+								)
 								if err != nil {
-									log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.LocalNodeId)
-									runningSubscriptions.RemoveSubscription(node.LocalNodeId)
+									log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+									runningSubscriptions.RemoveSubscription(node.NodeId)
 									return
 								}
 
-								err = subscribe.Start(ctx, conn, db, node.LocalNodeId, wsChan)
+								err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel)
 								if err != nil {
 									log.Error().Err(err).Send()
 									// only log the error, don't return
 								}
-								log.Info().Msgf("LND Subscription stopped for node id: %v", node.LocalNodeId)
-								runningSubscriptions.RemoveSubscription(node.LocalNodeId)
+								log.Info().Msgf("LND Subscription stopped for node id: %v", node.NodeId)
+								runningSubscriptions.RemoveSubscription(node.NodeId)
 							})(node)
 						}
 					}
@@ -282,7 +307,7 @@ func main() {
 
 			}
 
-			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, wsChan, RestartLNDSubscription); err != nil {
+			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, eventChannel, broadcaster, RestartLNDSubscription); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}
 

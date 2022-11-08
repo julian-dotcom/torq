@@ -6,37 +6,48 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/lncapital/torq/internal/peers"
-
 	"github.com/cockroachdb/errors"
-	"github.com/rs/zerolog/log"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog/log"
+	"github.com/ulule/limiter/v3"
+	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
+	"github.com/ulule/limiter/v3/drivers/store/memory"
+
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/channel_history"
+	"github.com/lncapital/torq/internal/channel_tags"
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/forwards"
 	"github.com/lncapital/torq/internal/invoices"
 	"github.com/lncapital/torq/internal/messages"
+	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
+	"github.com/lncapital/torq/internal/peers"
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/internal/views"
-	"github.com/ulule/limiter/v3"
-	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
-	"github.com/ulule/limiter/v3/drivers/store/memory"
+	"github.com/lncapital/torq/pkg/broadcast"
 )
 
-func Start(port int, apiPswd string, db *sqlx.DB, wsChan chan interface{}, restartLNDSub func() error) error {
+func Start(port int, apiPswd string, db *sqlx.DB, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) error {
 	r := gin.Default()
+
+	log.Debug().Msg("Loading caches in memory.")
+	err := corridors.RefreshCorridorCache(db)
+	if err != nil {
+		log.Error().Msg("Torq cannot be initialized (Loading caches in memory).")
+		return errors.Wrap(err, "Loading caches.")
+	}
 
 	auth.CreateSession(r, apiPswd)
 
-	registerRoutes(r, db, apiPswd, wsChan, restartLNDSub)
+	registerRoutes(r, db, apiPswd, eventChannel, broadcaster, restartLNDSub)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -95,14 +106,14 @@ func equalASCIIFold(s, t string) bool {
 	return s == t
 }
 
-func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, wsChan chan interface{}, restartLNDSub func() error) {
+func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) {
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	applyCors(r)
 	// Websocket
 	ws := r.Group("/ws")
 	ws.Use(auth.AuthRequired)
 	ws.GET("", func(c *gin.Context) {
-		err := WebsocketHandler(c, db, wsChan)
+		err := WebsocketHandler(c, db, eventChannel, broadcaster)
 		log.Debug().Msgf("WebsocketHandler: %v", err)
 	})
 
@@ -129,10 +140,20 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, wsChan chan inter
 			views.RegisterTableViewRoutes(tableViewRoutes, db)
 		}
 
-		//channelTagRoutes := api.Group("/tags")
-		//{
-		//	tags.RegisterTagRoutes(channelTagRoutes, db)
-		//}
+		tagRoutes := api.Group("/tags")
+		{
+			tags.RegisterTagRoutes(tagRoutes, db)
+		}
+
+		channelTagRoutes := api.Group("/channelTags")
+		{
+			channel_tags.RegisterChannelTagRoutes(channelTagRoutes, db)
+		}
+
+		corridorRoutes := api.Group("/corridors")
+		{
+			corridors.RegisterCorridorRoutes(corridorRoutes, db)
+		}
 
 		paymentRoutes := api.Group("/payments")
 		{
@@ -147,6 +168,16 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, wsChan chan inter
 		onChainTx := api.Group("/on-chain-tx")
 		{
 			on_chain_tx.RegisterOnChainTxsRoutes(onChainTx, db)
+		}
+
+		peerRoutes := api.Group("/peers")
+		{
+			peers.RegisterPeerRoutes(peerRoutes, db)
+		}
+
+		nodeRoutes := api.Group("/nodes")
+		{
+			nodes.RegisterNodeRoutes(nodeRoutes, db)
 		}
 
 		channelRoutes := api.Group("/channels")
@@ -173,11 +204,6 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, wsChan chan inter
 		settingRoutes := api.Group("settings")
 		{
 			settings.RegisterSettingRoutes(settingRoutes, db, restartLNDSub)
-		}
-
-		peerRoutes := api.Group("peers")
-		{
-			peers.RegisterPeersRoutes(peerRoutes, db)
 		}
 
 		api.GET("/ping", func(c *gin.Context) {

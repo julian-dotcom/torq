@@ -1,13 +1,14 @@
 package channel_history
 
 import (
+	"time"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"time"
+	"github.com/lib/pq"
 )
 
-func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time) (r ChannelHistory, err error) {
-
+func getChannelTotal(db *sqlx.DB, all bool, channelIds []int, from time.Time, to time.Time) (r ChannelHistory, err error) {
 	sql := `
 		select
 			sum(coalesce(i.amount,0)) as amount_in,
@@ -22,49 +23,34 @@ func getChannelTotal(db *sqlx.DB, chanIds []string, from time.Time, to time.Time
 			sum(coalesce(o.count,0)) as count_out,
 			sum(coalesce((i.count + o.count), 0)) as count_total
 		from (
-			select lnd_outgoing_short_channel_id,
+			select outgoing_channel_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
-			from forward, settings
-			where (? or lnd_outgoing_short_channel_id in (?))
-			and time >= ?::timestamp
-			and time <= ?::timestamp
-			group by lnd_outgoing_short_channel_id
+			from forward
+			where ($1 or outgoing_channel_id = ANY($2))
+			and time >= $3::timestamp
+			and time <= $4::timestamp
+			group by outgoing_channel_id
 			) as o
 		full outer join (
-			select lnd_incoming_short_channel_id,
+			select incoming_channel_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
 				   count(time) as count
-			from forward, settings
-			where (? or lnd_incoming_short_channel_id in (?))
-			and time >= ?::timestamp
-			and time <= ?::timestamp
-			group by lnd_incoming_short_channel_id
+			from forward
+			where ($1 or incoming_channel_id = ANY($2))
+			and time >= $3::timestamp
+			and time <= $4::timestamp
+			group by incoming_channel_id
 			) as i
-		on (i.lnd_incoming_short_channel_id = o.lnd_outgoing_short_channel_id);
+		on (i.incoming_channel_id = o.outgoing_channel_id);
 `
 
-	// TODO: Clean up
-	// Quick hack to simplify logic for fetching all channels
-	var getAll = false
-	if chanIds[0] == "1" {
-		getAll = true
-	}
-
-	qs, args, err := sqlx.In(sql, getAll, chanIds, from, to, getAll, chanIds, from, to)
+	rows, err := db.Queryx(sql, all, pq.Array(channelIds), from, to)
 	if err != nil {
-		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v, %v)", sql, from, to, chanIds, from, to, chanIds)
+		return ChannelHistory{}, errors.Wrap(err, "Getting channel total")
 	}
-
-	qsr := db.Rebind(qs)
-
-	rows, err := db.Query(qsr, args...)
-	if err != nil {
-		return ChannelHistory{}, errors.Wrapf(err, "Error running getChannelTotal query")
-	}
-
 	for rows.Next() {
 		err = rows.Scan(
 			&r.AmountIn,

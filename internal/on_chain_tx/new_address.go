@@ -2,13 +2,15 @@ package on_chain_tx
 
 import (
 	"context"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/walletrpc"
+	"google.golang.org/grpc"
+
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -20,8 +22,8 @@ const (
 )
 
 type NewAddressRequest struct {
-	LocalNodeId int   `json:"localNodeId"`
-	Type        int32 `json:"type"`
+	NodeId int   `json:"nodeId"`
+	Type   int32 `json:"type"`
 	//The name of the account to generate a new address for. If empty, the default wallet account is used.
 	Account string `json:"account"`
 }
@@ -37,18 +39,18 @@ type rpcClientNewAddress interface {
 }
 
 func NewAddress(
-	wChan chan interface{},
+	eventChannel chan interface{},
 	db *sqlx.DB,
 	context *gin.Context,
 	newAddressRequest NewAddressRequest,
 	reqId string,
 ) (err error) {
 
-	if newAddressRequest.LocalNodeId == 0 {
+	if newAddressRequest.NodeId == 0 {
 		return errors.New("Node id is missing")
 	}
 
-	connectionDetails, err := settings.GetNodeConnectionDetailsById(db, newAddressRequest.LocalNodeId)
+	connectionDetails, err := settings.GetConnectionDetailsById(db, newAddressRequest.NodeId)
 	if err != nil {
 		return errors.Wrap(err, "Getting node connection details from the db")
 	}
@@ -61,7 +63,7 @@ func NewAddress(
 	}
 	defer conn.Close()
 	client := walletrpc.NewWalletKitClient(conn)
-	return newAddress(client, newAddressRequest, wChan, reqId)
+	return newAddress(client, newAddressRequest, eventChannel, reqId)
 }
 
 func createLndAddressRequest(newAddressRequest NewAddressRequest) (r *walletrpc.AddrRequest, err error) {
@@ -82,7 +84,7 @@ func createLndAddressRequest(newAddressRequest NewAddressRequest) (r *walletrpc.
 	return lndAddressRequest, nil
 }
 
-func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest, wChan chan interface{}, reqId string) (err error) {
+func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest, eventChannel chan interface{}, reqId string) (err error) {
 	// Create and validate payment request details
 	lndAddressRequest, err := createLndAddressRequest(newAddressRequest)
 	if err != nil {
@@ -95,7 +97,9 @@ func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest,
 		return errors.Wrap(err, "New address")
 	}
 
-	wChan <- processResponse(lndResponse, reqId)
+	if eventChannel != nil {
+		eventChannel <- processResponse(lndResponse, reqId)
+	}
 	return nil
 }
 

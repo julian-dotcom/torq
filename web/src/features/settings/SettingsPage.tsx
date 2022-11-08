@@ -6,8 +6,8 @@ import style from "features/settings/settings.module.css";
 import Select, { SelectOption } from "features/forms/Select";
 import React from "react";
 import { defaultStaticRangesFn } from "features/timeIntervalSelect/customRanges";
-import { useGetLocalNodesQuery, useGetSettingsQuery, useGetTimeZonesQuery, useUpdateSettingsMutation } from "apiSlice";
-import { localNode, settings } from "apiTypes";
+import { useGetNodeConfigurationsQuery, useGetSettingsQuery, useGetTimeZonesQuery, useUpdateSettingsMutation } from "apiSlice";
+import {nodeConfiguration, settings} from "apiTypes";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import NodeSettings from "features/settings/NodeSettings";
@@ -18,7 +18,7 @@ import { supportedLangs } from "config/i18nConfig";
 function Settings() {
   const { t, setLang } = useTranslations();
   const { data: settingsData } = useGetSettingsQuery();
-  const { data: localNodes } = useGetLocalNodesQuery();
+  const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
   const { data: timeZones = [] } = useGetTimeZonesQuery();
   const [updateSettings] = useUpdateSettingsMutation();
   const toastRef = React.useContext(ToastContext);
@@ -26,7 +26,7 @@ function Settings() {
 
   const [showAddNodeState, setShowAddNodeState] = React.useState(false);
   const [settingsState, setSettingsState] = React.useState({} as settings);
-  const [localNodesState, setLocalNodesState] = React.useState([] as localNode[]);
+  const [nodeConfigurationsState, setNodeConfigurationsState] = React.useState([] as nodeConfiguration[]);
 
   React.useEffect(() => {
     if (settingsData) {
@@ -35,10 +35,10 @@ function Settings() {
   }, [settingsData]);
 
   React.useEffect(() => {
-    if (localNodes) {
-      setLocalNodesState(localNodes);
+    if (nodeConfigurations) {
+      setNodeConfigurationsState(nodeConfigurations);
     }
-  }, [localNodes]);
+  }, [nodeConfigurations]);
 
   const defaultDateRangeLabels: {
     label: string;
@@ -93,7 +93,7 @@ function Settings() {
     toastRef?.current?.addToast(t.toast.settingsSaved, toastCategory.success);
   };
 
-  const addLocalNode = () => {
+  const addNodeConfiguration = () => {
     setShowAddNodeState(true);
   };
 
@@ -156,17 +156,17 @@ function Settings() {
             </div>
             <div>
               <h3>{t.header.nodes}</h3>
-              {localNodesState &&
-                localNodesState?.map((localNode) => (
-                  <NodeSettings localNodeId={localNode.localNodeId} key={localNode.localNodeId ?? 0} collapsed={true} />
+              {nodeConfigurationsState &&
+                nodeConfigurationsState?.map((nodeConfiguration) => (
+                  <NodeSettings nodeId={nodeConfiguration.nodeId} key={nodeConfiguration.nodeId ?? 0} collapsed={true} />
                 ))}
             </div>
-            <Button buttonColor={buttonColor.primary} onClick={addLocalNode} icon={<AddIcon />} text={t.addNode} />
+            <Button buttonColor={buttonColor.primary} onClick={addNodeConfiguration} icon={<AddIcon />} text={t.addNode} />
             <Modal title={t.addNode} show={showAddNodeState} onClose={handleNewNodeModalOnClose}>
               <NodeSettings
                 ref={addNodeRef}
                 addMode={true}
-                localNodeId={0}
+                nodeId={0}
                 collapsed={false}
                 onAddSuccess={handleOnAddSuccess}
               />

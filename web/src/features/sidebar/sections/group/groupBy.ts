@@ -1,6 +1,6 @@
 
 const nonSummableFields: Array<string> = ["alias", "pub_key", "color"]
-const arrayAggKeys: Array<string> = ["channelDbId", "channel_point", "shortChannelId", "chan_id"]
+const arrayAggKeys: Array<string> = ["channelId", "channel_point", "shortChannelId", "chan_id"]
 
 export const groupByFn = (channels: Array<any>, by: string) => {
 
