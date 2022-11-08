@@ -232,7 +232,7 @@ func main() {
 						log.Error().Err(err).Msg("Adding node specified in config to database")
 						return errors.Wrap(err, "Adding node specified in config to database")
 					}
-					nodeConnectionDetails.Name = "Auto configured node " + strconv.Itoa(nodeId)
+					nodeConnectionDetails.Name = "Auto configured node " + strconv.Itoa(nodeConnectionDetails.NodeId)
 					_, err = settings.SetNodeConnectionDetails(db, nodeConnectionDetails)
 					if err != nil {
 						return errors.Wrap(err, "Updating node name")
