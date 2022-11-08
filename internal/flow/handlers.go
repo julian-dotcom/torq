@@ -97,8 +97,8 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 		select
 			ne.alias,
 			fw.channel_id,
-			c.funding_transaction_hash,
-			c.funding_output_index,
+			COALESCE(c.funding_transaction_hash, ''),
+			COALESCE(c.funding_output_index, 0),
 			n.public_key,
 
 			coalesce(fw.amount_in, 0) as amount_in,

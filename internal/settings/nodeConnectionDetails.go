@@ -81,6 +81,7 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 		Status:            commons.Active,
 		TLSDataBytes:      tlsDataBytes,
 		MacaroonDataBytes: macaroonDataBytes,
+		CreateOn:          time.Now().UTC(),
 	}
 	ncd, err := addNodeConnectionDetails(db, nodeConnectionDetailsData)
 	if err != nil {

@@ -23,17 +23,16 @@ func convMicro(ns uint64) time.Time {
 
 // storeForwardingHistory
 func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int) error {
-
-	const querySfwh = `INSERT INTO forward(time, time_ns, fee_msat,
-		incoming_amount_msat, outgoing_amount_msat, incoming_channel_id, outgoing_channel_id, node_id)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	ON CONFLICT (time, time_ns) DO NOTHING;`
-
 	if len(fwh) > 0 {
 		tx := db.MustBegin()
-
+		stmt, err := tx.Prepare(`INSERT INTO forward(time, time_ns, fee_msat,
+				incoming_amount_msat, outgoing_amount_msat, incoming_channel_id, outgoing_channel_id, node_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			ON CONFLICT (time, time_ns) DO NOTHING;`)
+		if err != nil {
+			return err
+		}
 		for _, event := range fwh {
-
 			incomingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdIn)
 			incomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
 			incomingShortChannelIdP := &incomingChannelId
@@ -42,7 +41,6 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 					incomingShortChannelId)
 				incomingShortChannelIdP = nil
 			}
-
 			outgoingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdOut)
 			outgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
 			outgoingChannelIdP := &outgoingChannelId
@@ -51,13 +49,17 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 					outgoingShortChannelId)
 				outgoingChannelIdP = nil
 			}
-
-			if _, err := tx.Exec(querySfwh, convMicro(event.TimestampNs), event.TimestampNs, event.FeeMsat,
-				event.AmtInMsat, event.AmtOutMsat, incomingShortChannelIdP, outgoingChannelIdP, nodeId); err != nil {
-				return errors.Wrapf(err, "storeForwardingHistory->tx.Exec(%v)", querySfwh)
+			_, err = stmt.Exec(convMicro(event.TimestampNs), event.TimestampNs, event.FeeMsat,
+				event.AmtInMsat, event.AmtOutMsat, incomingShortChannelIdP, outgoingChannelIdP, nodeId)
+			if err != nil {
+				return errors.Wrapf(err, "storeForwardingHistory->tx.Exec(%v)", event)
 			}
 		}
-		err := tx.Commit()
+		err = stmt.Close()
+		if err != nil {
+			return err
+		}
+		err = tx.Commit()
 		if err != nil {
 			return err
 		}
@@ -154,17 +156,17 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 		case <-ctx.Done():
 			return nil
 		case <-ticker:
-
-			// Fetch the nanosecond timestamp of the most recent record we have.
-			lastNs, err := fetchLastForwardTime(db)
-			if err != nil {
-				log.Printf("Subscribe forwarding events: %v\n", err)
-			}
-			lastTimestamp := lastNs / uint64(time.Second)
-
 			// Keep fetching until LND returns less than the max number of records requested.
 			for {
 				rl.Take() // rate limited to 1 per second, when caught up will normally be 1 every 10 seconds
+
+				// Fetch the nanosecond timestamp of the most recent record we have.
+				lastNs, err := fetchLastForwardTime(db)
+				if err != nil {
+					log.Printf("Subscribe forwarding events: %v\n", err)
+				}
+				lastTimestamp := lastNs / uint64(time.Second)
+
 				fwh, err := fetchForwardingHistory(ctx, client, lastTimestamp, me)
 				if err != nil {
 					log.Printf("Subscribe forwarding events: %v\n", err)
