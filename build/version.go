@@ -21,24 +21,30 @@ const (
 	AppMajor uint = 0
 
 	// AppMinor defines the minor version of this binary.
-	AppMinor uint = 10
+	AppMinor uint = 0
 
 	// AppPatch defines the application patch for this binary.
-	AppPatch uint = 0
+	AppPatch uint = 1
 
 	// AppPreRelease MUST only contain characters from semanticAlphabet
 	// per the semantic versioning spec.
-	AppPreRelease = ""
+	AppPreRelease = "dev"
 )
 
 // appBuild is defined as a variable, so it can be overridden during the build
 // process with '-ldflags "-X main.appBuild foo' if needed.  It MUST only
 // contain characters from semanticAlphabet per the semantic versioning spec.
-var appBuild string //nolint:gochecknoglobals
+var appBuild string         //nolint:gochecknoglobals
+var overrideBuildVer string //nolint:gochecknoglobals
 
 // Version returns the application version as a properly formed string per the
 // semantic versioning 2.0.0 spec (http://semver.org/).
 func Version() string {
+
+	if overrideBuildVer != "" {
+		return overrideBuildVer
+	}
+
 	// Start with the major, minor, and patch versions.
 	version := fmt.Sprintf("%d.%d.%d", AppMajor, AppMinor, AppPatch)
 
