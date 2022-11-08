@@ -43,8 +43,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args:
-            - BUILD_VER={{ steps.meta.outputs.version }}
+          build-args: |
+            BUILD_VER={{ steps.meta.outputs.version }}
   arm:
     runs-on: buildjet-4vcpu-ubuntu-2204-arm
     name: Push ARM Docker image to Docker Hub
@@ -78,8 +78,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args:
-            - BUILD_VER={{ steps.meta.outputs.version }}
+          build-args: |
+            BUILD_VER={{ steps.meta.outputs.version }}
   combine-manifests:
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Combine architectures into one manifest
