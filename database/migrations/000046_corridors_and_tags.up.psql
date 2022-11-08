@@ -293,7 +293,8 @@ DELETE FROM forward;
 ALTER TABLE forward ADD COLUMN incoming_channel_id INTEGER;
 ALTER TABLE forward ADD COLUMN outgoing_channel_id INTEGER;
 ALTER TABLE forward ADD COLUMN node_id INTEGER;
-ALTER TABLE forward ALTER COLUMN incoming_channel_id SET NOT NULL;
+--FOR LND BUG where we don't get shortChannelId for closed channels...
+--ALTER TABLE forward ALTER COLUMN incoming_channel_id SET NOT NULL;
 --ALTER TABLE forward ALTER COLUMN outgoing_channel_id SET NOT NULL;
 ALTER TABLE forward ALTER COLUMN node_id SET NOT NULL;
 ALTER TABLE forward ADD CONSTRAINT fk_forward_incoming_channel_id FOREIGN KEY (incoming_channel_id) REFERENCES channel(channel_id);
