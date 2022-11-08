@@ -44,8 +44,23 @@ func MigrateUp(db *sqlx.DB) error {
 	log.Println("Migrations might take a while. Please be patient.")
 
 	err = m.Up()
-	if err != nil {
-		return errors.Wrap(err, "Migrating database up")
+	dirtyErr, ok := err.(migrate.ErrDirty)
+	// If the Error did not originate from a dirty state, return the error directly.
+	if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion && err != migrate.ErrLocked && !ok {
+		return err
+	}
+
+	// If the error is due to dirty state. Roll back and try again.
+	if ok {
+		fmt.Printf("Migration is dirty, forcing rollback and retrying")
+		err = m.Force(dirtyErr.Version - 1)
+		if err != nil {
+			return errors.Wrap(err, "Rolling back dirty migration state")
+		}
+		err = m.Up()
+		if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion && err != migrate.ErrLocked {
+			return errors.Wrap(err, "Migrating database up")
+		}
 	}
 
 	log.Println("Migration done.")
