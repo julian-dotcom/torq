@@ -68,7 +68,7 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 	limit uint64, offset uint64) (r []*Payment, total uint64, err error) {
 
 	var publicKeys []string
-	for nodeId := range nodeIds {
+	for _, nodeId := range nodeIds {
 		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
 
@@ -200,7 +200,7 @@ func (e ErrPaymentNotFound) Error() string {
 func getPaymentDetails(db *sqlx.DB, nodeIds []int, identifier string) (*PaymentDetails, error) {
 
 	var publicKeys []string
-	for nodeId := range nodeIds {
+	for _, nodeId := range nodeIds {
 		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
 

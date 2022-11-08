@@ -21,7 +21,7 @@ func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time
 	settings := commons.GetSettings()
 
 	var publicKeys []string
-	for nodeId := range nodeIds {
+	for _, nodeId := range nodeIds {
 		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
 
@@ -62,7 +62,7 @@ func getChannelRebalancing(db *sqlx.DB, nodeIds []int, lndShortChannelIdStrings 
 	from time.Time, to time.Time) (RebalancingDetails, error) {
 
 	var publicKeys []string
-	for nodeId := range nodeIds {
+	for _, nodeId := range nodeIds {
 		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
 
