@@ -406,5 +406,3 @@ CREATE INDEX tx_tx_hash_total_fees_amount ON tx(tx_hash, total_fees, amount);
 CREATE INDEX tx_node_timestamp_total_fees ON tx(node_id, "timestamp", total_fees);
 CREATE INDEX tx_block_height ON tx(block_height);
 CREATE INDEX tx_label_total_fees ON tx((split_part(label, '-', 2)), total_fees);
-
-VACUUM FULL;
