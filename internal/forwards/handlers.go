@@ -101,10 +101,10 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			coalesce(c.channel_id, 0) as channel_id,
 			coalesce(c.funding_transaction_hash, 'Funding tansaction missing') as funding_transaction_hash,
 			coalesce(c.funding_output_index, 0) as funding_output_index,
-			coalesce(fcn.public_key, LEFT(fcn.public_key, 20)) as pub_key,
+			coalesce(scn.public_key, '') as pub_key,
 			coalesce(c.short_channel_id, 'Short channel ID missing') as short_channel_id,
 			coalesce(c.lnd_short_channel_id::text, 'LND short channel id missing') as lnd_short_channel_id,
-			coalesce(fcne.node_color, 'Color missing') as color,
+			coalesce(scne.node_color, 'Color missing') as color,
 			coalesce(c.status_id, 0) as status_id,
 
 
@@ -185,7 +185,7 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 				group by incoming_channel_id
 			) as i
 			on i.channel_id = o.channel_id
-		) as fw on fw.channel_id = ce.channel_id
+		) as fw on fw.channel_id = c.channel_id
 		WHERE ( c.first_node_id = ANY($4) OR c.second_node_id = ANY($4) )
 `
 

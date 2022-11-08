@@ -145,14 +145,14 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 		left join (
 			select
 				channel_id,
-				node_id,
 				last(event->'capacity', time) as capacity,
 				(1-last(event_type, time)) as open
 			from channel_event
 			where event_type in (0,1)
-			group by channel_id, node_id
+			group by channel_id
 		) as ce
 			on fw.channel_id = ce.channel_id
+		left join channel c on c.channel_id = ce.channel_id
 		left join (
 			select
 				event_node_id,
@@ -160,9 +160,8 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 			from node_event
 			group by event_node_id
 		) as ne
-			on ce.node_id = ne.event_node_id
+			on c.second_node_id = ne.event_node_id
 		left join node n on ne.event_node_id = n.node_id
-		left join channel c on ce.channel_id = c.channel_id
 	`
 
 	rows, err := db.Queryx(sql, fromTime, toTime, getAll, pq.Array(channelIds))
