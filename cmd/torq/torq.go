@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -206,6 +207,45 @@ func main() {
 			defer cancel()
 			broadcaster := broadcast.NewBroadcastServer(ctx, eventChannel)
 
+			// if node specified on cmd flags then check if we already know about it
+			if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
+				macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
+				if err != nil {
+					log.Error().Err(err).Msg("Reading macaroon file from disk path from config")
+					return errors.Wrap(err, "Reading macaroon file from disk path from config")
+				}
+				tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
+				if err != nil {
+					log.Error().Err(err).Msg("Reading tls file from disk path from config")
+					return errors.Wrap(err, "Reading tls file from disk path from config")
+				}
+				grpcAddress := c.String("lnd.url")
+				nodeId, err := settings.GetNodeIdByGRPC(db, grpcAddress)
+				if err != nil {
+					log.Error().Err(err).Msg("Checking if node specified in config exists")
+					return errors.Wrap(err, "Checking if node specified in config exists")
+				}
+				if nodeId == 0 {
+					log.Debug().Msg("Node specified in config is not in DB, adding it")
+					nodeConnectionDetails, err := settings.AddNodeToDB(db, commons.LND, grpcAddress, tlsFile, macaroonFile)
+					if err != nil {
+						log.Error().Err(err).Msg("Adding node specified in config to database")
+						return errors.Wrap(err, "Adding node specified in config to database")
+					}
+					nodeConnectionDetails.Name = "Auto configured node " + strconv.Itoa(nodeId)
+					_, err = settings.SetNodeConnectionDetails(db, nodeConnectionDetails)
+					if err != nil {
+						return errors.Wrap(err, "Updating node name")
+					}
+				} else {
+					log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
+					if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, grpcAddress, tlsFile, macaroonFile); err != nil {
+						log.Error().Err(err).Msg("Problem updating node files")
+						return errors.Wrap(err, "Problem updating node files")
+					}
+				}
+			}
+
 			if !c.Bool("torq.no-sub") {
 				// initialise package level var for keeping state of subsciptions
 				runningSubscriptions = subscriptions{}
@@ -214,44 +254,6 @@ func main() {
 				go (func() {
 					for {
 						<-startchan
-						// if node specified on cmd flags then check if we already know about it
-						if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
-
-							macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
-							if err != nil {
-								log.Error().Err(err).Msg("Reading macaroon file from disk path from config")
-								return
-							}
-
-							tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
-							if err != nil {
-								log.Error().Err(err).Msg("Reading tls file from disk path from config")
-								return
-							}
-
-							grpcAddress := c.String("lnd.url")
-
-							nodeId, err := settings.GetNodeIdByGRPC(db, grpcAddress)
-							if err != nil {
-								log.Error().Err(err).Msg("Checking if node specified in config exists")
-								return
-							}
-							if nodeId == 0 {
-								log.Debug().Msg("Node specified in config is not in DB, adding it")
-								err = settings.AddNodeToDB(db, commons.LND, grpcAddress, tlsFile, macaroonFile)
-								if err != nil {
-									log.Error().Err(err).Msg("Adding node specified in config to database")
-									return
-								}
-							} else {
-								log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
-								if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, grpcAddress, tlsFile, macaroonFile); err != nil {
-									log.Error().Err(err).Msg("Problem updating node files")
-									return
-								}
-							}
-						}
-
 						nodes, err := settings.GetActiveNodesConnectionDetails(db)
 						if err != nil {
 							log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()

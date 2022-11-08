@@ -162,7 +162,7 @@ func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Stat
 	return nil
 }
 
-func setNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
+func SetNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
 	updatedOn := time.Now().UTC()
 	ncd.UpdatedOn = &updatedOn
 	_, err := db.Exec(`
@@ -194,7 +194,7 @@ func SetNodeConnectionDetailsByConnectionDetails(
 	ncd.MacaroonDataBytes = macaroonDataBytes
 	ncd.TLSDataBytes = tlsDataBytes
 	ncd.GRPCAddress = &grpcAddress
-	_, err = setNodeConnectionDetails(db, ncd)
+	_, err = SetNodeConnectionDetails(db, ncd)
 	return err
 }
 

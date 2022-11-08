@@ -43,10 +43,10 @@ func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
 }
 
 func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
-	grpcAddress string, tlsDataBytes []byte, macaroonDataBytes []byte) error {
+	grpcAddress string, tlsDataBytes []byte, macaroonDataBytes []byte) (nodeConnectionDetails, error) {
 	publicKey, chain, network, err := getInformationFromLndNode(grpcAddress, tlsDataBytes, macaroonDataBytes)
 	if err != nil {
-		return errors.Wrap(err, "Getting public key from node")
+		return nodeConnectionDetails{}, errors.Wrap(err, "Getting public key from node")
 	}
 	newNodeFromConfig := nodes.Node{
 		PublicKey: publicKey,
@@ -55,22 +55,22 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 	}
 	nodeId, err := nodes.AddNodeWhenNew(db, newNodeFromConfig)
 	if err != nil {
-		return errors.Wrap(err, "Getting node from db")
+		return nodeConnectionDetails{}, errors.Wrap(err, "Getting node from db")
 	}
 	existingNodeConnectionDetails, err := getNodeConnectionDetails(db, nodeId)
 	if err != nil {
-		return errors.Wrap(err, "Getting all existing node connection details from db")
+		return nodeConnectionDetails{}, errors.Wrap(err, "Getting all existing node connection details from db")
 	}
 
 	if existingNodeConnectionDetails.NodeId == nodeId {
 		existingNodeConnectionDetails.GRPCAddress = &grpcAddress
 		existingNodeConnectionDetails.TLSDataBytes = tlsDataBytes
 		existingNodeConnectionDetails.MacaroonDataBytes = macaroonDataBytes
-		_, err = setNodeConnectionDetails(db, existingNodeConnectionDetails)
+		ncd, err := SetNodeConnectionDetails(db, existingNodeConnectionDetails)
 		if err != nil {
-			return errors.Wrap(err, "Updating node connection details in the database")
+			return nodeConnectionDetails{}, errors.Wrap(err, "Updating node connection details in the database")
 		}
-		return nil
+		return ncd, nil
 	}
 
 	nodeConnectionDetailsData := nodeConnectionDetails{
@@ -82,10 +82,10 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 		TLSDataBytes:      tlsDataBytes,
 		MacaroonDataBytes: macaroonDataBytes,
 	}
-	_, err = addNodeConnectionDetails(db, nodeConnectionDetailsData)
+	ncd, err := addNodeConnectionDetails(db, nodeConnectionDetailsData)
 	if err != nil {
-		return errors.Wrap(err, "Inserting node connection details in the database")
+		return nodeConnectionDetails{}, errors.Wrap(err, "Inserting node connection details in the database")
 	}
 	commons.SetTorqNode(nodeId, nodeConnectionDetailsData.Status, publicKey, chain, network)
-	return nil
+	return ncd, nil
 }
