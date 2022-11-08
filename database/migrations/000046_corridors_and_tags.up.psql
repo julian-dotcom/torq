@@ -179,6 +179,13 @@ SET channel_id=c.channel_id
 FROM channel c
 WHERE c.short_channel_id=ce1.short_channel_id;
 
+-- Update remaining channel events based on the channel point
+UPDATE channel_event ce1
+SET channel_id=c.channel_id
+FROM channel c
+WHERE c.lnd_channel_point=ce1.lnd_channel_point
+AND ce1.channel_id IS NULL;
+
 UPDATE channel_event SET node_id=(
     SELECT COALESCE(mainnet.node_id, allnetworks.node_id)
     FROM node_connection_details allnetworks
@@ -399,3 +406,5 @@ CREATE INDEX tx_tx_hash_total_fees_amount ON tx(tx_hash, total_fees, amount);
 CREATE INDEX tx_node_timestamp_total_fees ON tx(node_id, "timestamp", total_fees);
 CREATE INDEX tx_block_height ON tx(block_height);
 CREATE INDEX tx_label_total_fees ON tx((split_part(label, '-', 2)), total_fees);
+
+VACUUM FULL;
