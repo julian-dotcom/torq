@@ -303,7 +303,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		server_errors.WrapLogAndSendServerError(c, err, "Processing Macaroon file")
 		return
 	}
-	ncd, err = setNodeConnectionDetails(db, ncd)
+	ncd, err = SetNodeConnectionDetails(db, ncd)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Opening Macaroon file")
 		return
