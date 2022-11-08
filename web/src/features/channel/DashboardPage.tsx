@@ -33,7 +33,7 @@ import { useNavigate } from "react-router-dom";
 const ft = d3.format(",.0f");
 
 function ChannelPage() {
-  const { data: nodeConfigurations, isLoading: nodeConfigurationsQueryHasRun } = useGetNodeConfigurationsQuery();
+  const { data: nodeConfigurations, isSuccess: nodeConfigurationsQueryHasRun } = useGetNodeConfigurationsQuery();
   const navigate = useNavigate();
 
   const handleConfirmationModalClose = () => {
