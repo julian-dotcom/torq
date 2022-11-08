@@ -122,7 +122,7 @@ type FwhOptions struct {
 // SubscribeForwardingEvents repeatedly requests forwarding history starting after the last
 // forwarding stored in the database and stores new forwards.
 func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwardingHistory, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, opt *FwhOptions) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *FwhOptions) error {
 
 	me := MAXEVENTS
 

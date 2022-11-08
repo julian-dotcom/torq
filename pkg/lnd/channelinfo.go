@@ -186,7 +186,7 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettin
 					}
 				}
 			}
-			err = insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu)
+			err = insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu, nil)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}

@@ -12,15 +12,9 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"go.uber.org/ratelimit"
 
+	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
-
-type wsTxUpdate struct {
-	Type      string `json:"type"`
-	Amount    int64  `json:"amount"`
-	TimeStamp string `json:"timeStamp"`
-	TotalFees int64  `json:"totalFees"`
-}
 
 func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 
@@ -64,7 +58,7 @@ func ImportTransactions(ctx context.Context, client lnrpc.LightningClient, db *s
 // SubscribeAndStoreTransactions Subscribes to on-chain transaction events from LND and stores them in the
 // database as a time series. It will also import unregistered transactions on startup.
 func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, wsChan chan interface{}) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
 
 	// Imports transactions not captured on the stream
 	err := ImportTransactions(ctx, client, db, nodeSettings.NodeId)
@@ -115,14 +109,17 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				continue
 			}
 
-			txUpd := wsTxUpdate{
-				Type:      "txUpdate",
-				Amount:    tx.Amount,
-				TimeStamp: time.Unix(tx.TimeStamp, 0).Format(time.UnixDate),
-				TotalFees: tx.TotalFees,
+			if eventChannel != nil {
+				eventChannel <- broadcast.TransactionEvent{
+					EventData: broadcast.EventData{
+						EventTime: time.Now().UTC(),
+						NodeId:    nodeSettings.NodeId,
+					},
+					Amount:    tx.Amount,
+					Timestamp: time.Unix(tx.TimeStamp, 0),
+					TotalFees: tx.TotalFees,
+				}
 			}
-
-			wsChan <- txUpd
 		}
 	}
 }

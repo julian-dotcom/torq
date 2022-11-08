@@ -156,7 +156,7 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 	errs.Go(func() error {
 		err := SubscribeForwardingEvents(ctx, &mclient, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), &opt)
+				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeForwardingEvents(%v, %v, %v, %v)", ctx,
 				mclient, db, &opt))

@@ -32,9 +32,10 @@ import (
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/internal/views"
+	"github.com/lncapital/torq/pkg/broadcast"
 )
 
-func Start(port int, apiPswd string, db *sqlx.DB, wsChan chan interface{}, restartLNDSub func() error) error {
+func Start(port int, apiPswd string, db *sqlx.DB, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) error {
 	r := gin.Default()
 
 	log.Debug().Msg("Loading caches in memory.")
@@ -46,7 +47,7 @@ func Start(port int, apiPswd string, db *sqlx.DB, wsChan chan interface{}, resta
 
 	auth.CreateSession(r, apiPswd)
 
-	registerRoutes(r, db, apiPswd, wsChan, restartLNDSub)
+	registerRoutes(r, db, apiPswd, eventChannel, broadcaster, restartLNDSub)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -105,14 +106,14 @@ func equalASCIIFold(s, t string) bool {
 	return s == t
 }
 
-func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, wsChan chan interface{}, restartLNDSub func() error) {
+func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) {
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	applyCors(r)
 	// Websocket
 	ws := r.Group("/ws")
 	ws.Use(auth.AuthRequired)
 	ws.GET("", func(c *gin.Context) {
-		err := WebsocketHandler(c, db, wsChan)
+		err := WebsocketHandler(c, db, eventChannel, broadcaster)
 		log.Debug().Msgf("WebsocketHandler: %v", err)
 	})
 

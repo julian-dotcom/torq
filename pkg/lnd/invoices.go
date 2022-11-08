@@ -16,21 +16,13 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
 type invoicesClient interface {
 	SubscribeInvoices(ctx context.Context, in *lnrpc.InvoiceSubscription,
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeInvoicesClient, error)
-}
-
-type wsInvoiceUpdate struct {
-	Type        string `json:"type"`
-	AddIndex    uint64 `json:"addIndex"`
-	ValueMSat   int64  `json:"valueMSat"`
-	State       string `json:"state"`
-	AmountPaid  int64  `json:"amountPaid,omitempty"`
-	SettledDate string `json:"settledDate,omitempty"`
 }
 
 type Invoice struct {
@@ -202,7 +194,7 @@ func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, 
 }
 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, wsChan chan interface{}) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
 
 	// Get the latest settle and add index to prevent duplicate entries.
 	addIndex, settleIndex, err := fetchLastInvoiceIndexes(db)
@@ -268,32 +260,18 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			}
 		}
 
-		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId)
+		invoiceEvent := broadcast.InvoiceEvent{
+			EventData: broadcast.EventData{
+				EventTime: time.Now().UTC(),
+				NodeId:    nodeSettings.NodeId,
+			},
+		}
+		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel)
 		if err != nil {
 			log.Error().Msgf("Subscribe and store invoices: %v", err)
 			// rate limit for caution but hopefully not needed
 			rl.Take()
 		}
-
-		invoiceUpdate := wsInvoiceUpdate{
-			Type:      "invoiceUpdate",
-			AddIndex:  invoice.AddIndex,
-			ValueMSat: invoice.ValueMsat,
-			State:     invoice.GetState().String(),
-		}
-
-		//Add other info for settled and accepted states
-		//	Invoice_OPEN     = 0
-		//	Invoice_SETTLED  = 1
-		//	Invoice_CANCELED = 2
-		//	Invoice_ACCEPTED = 3
-		if invoice.State == 1 || invoice.State == 3 {
-			invoiceUpdate.AmountPaid = invoice.AmtPaidMsat
-			invoiceUpdate.SettledDate = time.Unix(invoice.SettleDate, 0).Format(time.UnixDate)
-		}
-
-		wsChan <- invoiceUpdate
-
 	}
 
 	return nil
@@ -338,7 +316,8 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 	}
 }
 
-func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, nodeId int) error {
+func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, nodeId int,
+	invoiceEvent broadcast.InvoiceEvent, eventChannel chan interface{}) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {
@@ -465,6 +444,22 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, node
 	if err != nil {
 		log.Error().Msgf("insert invoice: %v", err)
 		return errors.Wrapf(err, "insert invoice")
+	}
+
+	if eventChannel != nil {
+		invoiceEvent.AddIndex = invoice.AddIndex
+		invoiceEvent.ValueMSat = invoice.ValueMsat
+		invoiceEvent.State = invoice.GetState()
+		// Add other info for settled and accepted states
+		//	Invoice_OPEN     = 0
+		//	Invoice_SETTLED  = 1
+		//	Invoice_CANCELED = 2
+		//	Invoice_ACCEPTED = 3
+		if invoice.State == 1 || invoice.State == 3 {
+			invoiceEvent.AmountPaid = invoice.AmtPaidMsat
+			invoiceEvent.SettledDate = time.Unix(invoice.SettleDate, 0)
+		}
+		eventChannel <- invoiceEvent
 	}
 	return nil
 }

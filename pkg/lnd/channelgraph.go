@@ -16,6 +16,7 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/internal/nodes"
+	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -26,7 +27,7 @@ type subscribeChannelGrpahClient interface {
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
 func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
 
 	req := lnrpc.GraphTopologySubscription{}
 	stream, err := client.SubscribeChannelGraph(ctx, &req)
@@ -65,12 +66,12 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			continue
 		}
 
-		err = processNodeUpdates(gpu.NodeUpdates, db, nodeSettings)
+		err = processNodeUpdates(gpu.NodeUpdates, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Process node updates")
 		}
 
-		err = processChannelUpdates(gpu.ChannelUpdates, db, nodeSettings)
+		err = processChannelUpdates(gpu.ChannelUpdates, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Process channel updates")
 		}
@@ -80,12 +81,13 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	return nil
 }
 
-func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
+	eventChannel chan interface{}) error {
 	for _, nu := range nus {
 		eventNodeId := commons.GetActiveNodeIdFromPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
 			err := insertNodeEvent(db, time.Now().UTC(), eventNodeId, nu.Alias, nu.Color,
-				nu.NodeAddresses, nu.Features, nodeSettings.NodeId)
+				nu.NodeAddresses, nu.Features, nodeSettings.NodeId, eventChannel)
 			if err != nil {
 				return errors.Wrapf(err, "Insert node event")
 			}
@@ -95,7 +97,7 @@ func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commo
 }
 
 func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
 	for _, cu := range cus {
 		channelPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 		if err != nil {
@@ -105,7 +107,7 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
 
 		channelId := commons.GetActiveChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if channelId != 0 {
-			err := insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu)
+			err := insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu, eventChannel)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}
@@ -119,7 +121,8 @@ func insertRoutingPolicy(
 	eventTime time.Time,
 	channelId int,
 	nodeSettings commons.ManagedNodeSettings,
-	cu *lnrpc.ChannelEdgeUpdate) error {
+	cu *lnrpc.ChannelEdgeUpdate,
+	eventChannel chan interface{}) error {
 
 	var err error
 	if cu == nil || cu.RoutingPolicy == nil {
@@ -186,12 +189,46 @@ func insertRoutingPolicy(
 		if err != nil {
 			return errors.Wrapf(err, "insertRoutingPolicy")
 		}
+
+		if eventChannel != nil {
+			channelGraphEvent := broadcast.ChannelGraphEvent{
+				GraphEventData: broadcast.GraphEventData{
+					EventData: broadcast.EventData{
+						EventTime: eventTime,
+						NodeId:    nodeSettings.NodeId,
+					},
+					AnnouncingNodeId: &announcingNodeId,
+					ConnectingNodeId: &connectingNodeId,
+					ChannelId:        &channelId,
+				},
+				ChannelGraphEventData: broadcast.ChannelGraphEventData{
+					TimeLockDelta:    cu.RoutingPolicy.TimeLockDelta,
+					FeeRateMilliMsat: cu.RoutingPolicy.FeeRateMilliMsat,
+					FeeBaseMsat:      cu.RoutingPolicy.FeeBaseMsat,
+					MaxHtlcMsat:      cu.RoutingPolicy.MaxHtlcMsat,
+					Disabled:         cu.RoutingPolicy.Disabled,
+					MinHtlc:          cu.RoutingPolicy.MinHtlc,
+				},
+			}
+			if channelEvent.ChannelId != 0 {
+				channelGraphEvent.PreviousEventTime = channelEvent.EventTime
+				channelGraphEvent.PreviousEventData = broadcast.ChannelGraphEventData{
+					TimeLockDelta:    channelEvent.TimeLockDelta,
+					FeeRateMilliMsat: channelEvent.FeeRateMilliMsat,
+					FeeBaseMsat:      channelEvent.FeeBaseMsat,
+					MaxHtlcMsat:      channelEvent.MaxHtlcMsat,
+					Disabled:         channelEvent.Disabled,
+					MinHtlc:          channelEvent.MinHtlc,
+				}
+			}
+			eventChannel <- channelGraphEvent
+		}
 	}
 	return nil
 }
 
 func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias string, color string,
-	nodeAddress []*lnrpc.NodeAddress, features map[uint32]*lnrpc.Feature, nodeId int) error {
+	nodeAddress []*lnrpc.NodeAddress, features map[uint32]*lnrpc.Feature, nodeId int, eventChannel chan interface{}) error {
 
 	// Create json byte object from node address map
 	najb, err := json.Marshal(nodeAddress)
@@ -230,6 +267,34 @@ func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias st
 			eventTime, eventNodeId, alias, color, najb, fjb, nodeId)
 		if err != nil {
 			return errors.Wrap(err, "Executing SQL")
+		}
+
+		if eventChannel != nil {
+			nodeGraphEvent := broadcast.NodeGraphEvent{
+				GraphEventData: broadcast.GraphEventData{
+					EventData: broadcast.EventData{
+						EventTime: eventTime,
+						NodeId:    nodeId,
+					},
+					EventNodeId: &eventNodeId,
+				},
+				NodeGraphEventData: broadcast.NodeGraphEventData{
+					Alias:     alias,
+					Color:     color,
+					Addresses: string(najb),
+					Features:  string(fjb),
+				},
+			}
+			if nodeEvent.NodeId != 0 {
+				nodeGraphEvent.PreviousEventTime = nodeEvent.EventTime
+				nodeGraphEvent.PreviousEventData = broadcast.NodeGraphEventData{
+					Alias:     nodeEvent.Alias,
+					Color:     nodeEvent.Color,
+					Addresses: nodeEvent.NodeAddresses,
+					Features:  nodeEvent.Features,
+				}
+			}
+			eventChannel <- nodeGraphEvent
 		}
 	}
 	return nil

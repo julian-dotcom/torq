@@ -19,13 +19,15 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
+var eventChannel = make(chan interface{}) //nolint:gochecknoglobals
+
 var startchan = make(chan struct{}) //nolint:gochecknoglobals
 var stopchan = make(chan struct{})  //nolint:gochecknoglobals
-var wsChan = make(chan interface{}) //nolint:gochecknoglobals
 
 type subscriptions struct {
 	mu          sync.RWMutex
@@ -200,6 +202,10 @@ func main() {
 				log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")
 			}
 
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			broadcaster := broadcast.NewBroadcastServer(ctx, eventChannel)
+
 			if !c.Bool("torq.no-sub") {
 				// initialise package level var for keeping state of subsciptions
 				runningSubscriptions = subscriptions{}
@@ -271,7 +277,7 @@ func main() {
 									return
 								}
 
-								err = subscribe.Start(ctx, conn, db, node.NodeId, wsChan)
+								err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel)
 								if err != nil {
 									log.Error().Err(err).Send()
 									// only log the error, don't return
@@ -299,7 +305,7 @@ func main() {
 
 			}
 
-			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, wsChan, RestartLNDSubscription); err != nil {
+			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, eventChannel, broadcaster, RestartLNDSubscription); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}
 

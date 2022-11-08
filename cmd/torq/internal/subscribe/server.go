@@ -20,7 +20,7 @@ import (
 // fetches data as needed and stores it in the database.
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
-func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, wsChan chan interface{}) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, eventChannel chan interface{}) error {
 
 	_, monitorCancel := context.WithCancel(context.Background())
 
@@ -68,7 +68,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	// Transactions
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreTransactions(ctx, client, db, nodeSettings, wsChan)
+		err := lnd.SubscribeAndStoreTransactions(ctx, client, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store transactions")
 		}
@@ -77,7 +77,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	// // HTLC events
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings)
+		err := lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store HTLC events")
 		}
@@ -86,7 +86,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	// // Channel Events
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, wsChan)
+		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store channel events")
 		}
@@ -95,7 +95,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	// Graph (Node updates, fee updates etc.)
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings)
+		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store channel graph")
 		}
@@ -104,7 +104,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	// Forwarding history
 	errs.Go(func() error {
-		err := lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, nil)
+		err := lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, nil)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe forwarding events")
 		}
@@ -113,7 +113,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	// Invoices
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, wsChan)
+		err := lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store invoices")
 		}
@@ -122,7 +122,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	// Payments
 	errs.Go(func() error {
-		err := lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, nil)
+		err := lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, nil)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and store payments")
 		}
@@ -131,7 +131,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	// Update in flight payments
 	errs.Go(func() error {
-		err := lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, nil)
+		err := lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, nil)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe and update payments")
 		}
@@ -140,7 +140,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	// Peer Events
 	errs.Go(func() error {
-		err := lnd.SubscribePeerEvents(ctx, client, nodeSettings, wsChan)
+		err := lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel)
 		if err != nil {
 			return errors.Wrap(err, "LND subscribe peer events")
 		}

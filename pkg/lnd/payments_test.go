@@ -199,7 +199,7 @@ func TestSubscribePayments(t *testing.T) {
 	errs.Go(func() error {
 		err := SubscribeAndStorePayments(ctx, &mclient, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), &opt)
+				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeAndStorePayments(%v, %v, %v, %v)", ctx, mclient, db, &opt))
 		}
@@ -336,7 +336,7 @@ func TestSubscribePayments(t *testing.T) {
 	errs.Go(func() error {
 		err := UpdateInFlightPayments(ctx, &mclientUpdate, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), &opt)
+				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
 		if err != nil {
 			t.Fatal(errors.Wrapf(err, "SubscribeAndUpdatePayments(%v, %v, %v, %v)", ctx, mclientUpdate, db, &opt))
 		}

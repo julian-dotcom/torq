@@ -280,7 +280,7 @@ func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) error {
 // NB: LND has marked HTLC event streaming as experimental. Delivery is not guaranteed, so dataset might not be complete
 // HTLC events is primarily used to diagnose how good a channel / node is. And if the channel allocation should change.
 func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
 
 	htlcStream, err := router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 	if err != nil {

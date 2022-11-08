@@ -30,7 +30,7 @@ type PayOptions struct {
 }
 
 func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, opt *PayOptions) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) error {
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
@@ -176,7 +176,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 }
 
 func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, opt *PayOptions) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) error {
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()

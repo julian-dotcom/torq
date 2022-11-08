@@ -39,7 +39,7 @@ type rpcClientNewAddress interface {
 }
 
 func NewAddress(
-	wChan chan interface{},
+	eventChannel chan interface{},
 	db *sqlx.DB,
 	context *gin.Context,
 	newAddressRequest NewAddressRequest,
@@ -63,7 +63,7 @@ func NewAddress(
 	}
 	defer conn.Close()
 	client := walletrpc.NewWalletKitClient(conn)
-	return newAddress(client, newAddressRequest, wChan, reqId)
+	return newAddress(client, newAddressRequest, eventChannel, reqId)
 }
 
 func createLndAddressRequest(newAddressRequest NewAddressRequest) (r *walletrpc.AddrRequest, err error) {
@@ -84,7 +84,7 @@ func createLndAddressRequest(newAddressRequest NewAddressRequest) (r *walletrpc.
 	return lndAddressRequest, nil
 }
 
-func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest, wChan chan interface{}, reqId string) (err error) {
+func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest, eventChannel chan interface{}, reqId string) (err error) {
 	// Create and validate payment request details
 	lndAddressRequest, err := createLndAddressRequest(newAddressRequest)
 	if err != nil {
@@ -97,7 +97,9 @@ func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest,
 		return errors.Wrap(err, "New address")
 	}
 
-	wChan <- processResponse(lndResponse, reqId)
+	if eventChannel != nil {
+		eventChannel <- processResponse(lndResponse, reqId)
+	}
 	return nil
 }
 
