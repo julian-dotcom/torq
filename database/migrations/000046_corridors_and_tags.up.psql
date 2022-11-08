@@ -79,7 +79,12 @@ SELECT n.node_id,COALESCE(ln.name, CONCAT('Node_', n.node_id::text)),0,ln.grpc_a
             ELSE 0
        END,ln.created_on,ln.updated_on
 FROM local_node ln
-JOIN node n ON n.public_key=ln.pub_key;
+JOIN node n ON n.public_key=ln.pub_key
+WHERE ln.local_node_id IN (
+    SELECT MAX(dln.local_node_id)
+    FROM local_node dln
+    GROUP BY dln.pub_key
+);
 
 
 --DELETE FROM channel (that would brake routing policy)
