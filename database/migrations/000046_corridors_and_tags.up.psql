@@ -151,7 +151,13 @@ SET connecting_node_id=c.first_node_id
 FROM channel c
 WHERE c.short_channel_id=rp1.short_channel_id AND c.second_node_id=rp1.announcing_node_id;
 
-UPDATE routing_policy SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
+UPDATE routing_policy SET node_id=(
+    SELECT COALESCE(mainnet.node_id, allnetworks.node_id)
+    FROM node_connection_details allnetworks
+    LEFT JOIN node_connection_details mainnet ON mainnet.node_id=allnetworks.node_id AND mainnet.status_id=0
+    LEFT JOIN node mainnetnode ON mainnetnode.node_id=mainnet.node_id AND mainnetnode.chain=0 AND mainnetnode.network=0
+    WHERE allnetworks.status_id=0
+    LIMIT 1);
 
 ALTER TABLE routing_policy ALTER COLUMN channel_id SET NOT NULL;
 ALTER TABLE routing_policy ALTER COLUMN announcing_node_id SET NOT NULL;
@@ -173,7 +179,13 @@ SET channel_id=c.channel_id
 FROM channel c
 WHERE c.short_channel_id=ce1.short_channel_id;
 
-UPDATE channel_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
+UPDATE channel_event SET node_id=(
+    SELECT COALESCE(mainnet.node_id, allnetworks.node_id)
+    FROM node_connection_details allnetworks
+    LEFT JOIN node_connection_details mainnet ON mainnet.node_id=allnetworks.node_id AND mainnet.status_id=0
+    LEFT JOIN node mainnetnode ON mainnetnode.node_id=mainnet.node_id AND mainnetnode.chain=0 AND mainnetnode.network=0
+    WHERE allnetworks.status_id=0
+    LIMIT 1);
 
 ALTER TABLE channel_event ALTER COLUMN channel_id SET NOT NULL;
 ALTER TABLE channel_event ALTER COLUMN node_id SET NOT NULL;
@@ -227,7 +239,13 @@ $$;
 call updateOutgoingChannelIdProc();
 
 --Query returned successfully in 1 min 43 secs: 3437900 UPDATES
-UPDATE htlc_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
+UPDATE htlc_event SET node_id=(
+    SELECT COALESCE(mainnet.node_id, allnetworks.node_id)
+    FROM node_connection_details allnetworks
+    LEFT JOIN node_connection_details mainnet ON mainnet.node_id=allnetworks.node_id AND mainnet.status_id=0
+    LEFT JOIN node mainnetnode ON mainnetnode.node_id=mainnet.node_id AND mainnetnode.chain=0 AND mainnetnode.network=0
+    WHERE allnetworks.status_id=0
+    LIMIT 1);
 
 --ALTER TABLE htlc_event ALTER COLUMN incoming_channel_id SET NOT NULL;
 --For payments there is no incoming_channel_id
@@ -249,7 +267,13 @@ SET event_node_id=n.node_id
 FROM node n
 WHERE n.public_key=ne1.pub_key;
 
-UPDATE node_event SET node_id=(SELECT node_id FROM node_connection_details WHERE status_id=0 LIMIT 1);
+UPDATE node_event SET node_id=(
+    SELECT COALESCE(mainnet.node_id, allnetworks.node_id)
+    FROM node_connection_details allnetworks
+    LEFT JOIN node_connection_details mainnet ON mainnet.node_id=allnetworks.node_id AND mainnet.status_id=0
+    LEFT JOIN node mainnetnode ON mainnetnode.node_id=mainnet.node_id AND mainnetnode.chain=0 AND mainnetnode.network=0
+    WHERE allnetworks.status_id=0
+    LIMIT 1);
 
 ALTER TABLE node_event ALTER COLUMN node_id SET NOT NULL;
 ALTER TABLE node_event ALTER COLUMN event_node_id SET NOT NULL;
