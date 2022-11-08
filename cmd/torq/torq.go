@@ -162,7 +162,7 @@ func main() {
 		Usage: "Start the main daemon",
 		Action: func(c *cli.Context) error {
 			// Print startup message
-			fmt.Printf("Starting Torq v%s\n", build.Version())
+			fmt.Printf("Starting Torq %s\n", build.Version())
 
 			fmt.Println("Connecting to the Torq database")
 			db, err := database.PgConnect(c.String("db.name"), c.String("db.user"),
