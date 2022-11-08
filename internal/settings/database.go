@@ -44,7 +44,7 @@ func getTimeZones(db *sqlx.DB) (timeZones []timeZone, err error) {
 	err = db.Select(&timeZones, "SELECT name FROM pg_timezone_names ORDER BY name;")
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return make([]timeZone, 0), nil
+			return []timeZone{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}

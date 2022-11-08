@@ -83,7 +83,6 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 		channelIds = []int{0}
 		getAll = true
 	} else {
-		channelIds = make([]int, len(lndShortChannelIdStrings))
 		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
 			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
 			if err != nil {

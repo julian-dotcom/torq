@@ -92,7 +92,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		channelIds = []int{0}
 		all = true
 	} else {
-		channelIds = make([]int, len(lndShortChannelIdStrings))
+		var channelIds []int
 		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
 			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
 			if err != nil {
@@ -158,7 +158,7 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		// TODO: Clean up Quick hack to simplify logic for fetching all channels
 		channelIds = []int{0}
 	} else {
-		channelIds = make([]int, len(lndShortChannelIdStrings))
+		var channelIds []int
 		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
 			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
 			if err != nil {

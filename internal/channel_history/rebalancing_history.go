@@ -20,7 +20,7 @@ type RebalancingDetails struct {
 func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time) (RebalancingDetails, error) {
 	settings := commons.GetSettings()
 
-	publicKeys := make([]string, len(nodeIds))
+	var publicKeys []string
 	for nodeId := range nodeIds {
 		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
@@ -61,7 +61,7 @@ func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time
 func getChannelRebalancing(db *sqlx.DB, nodeIds []int, lndShortChannelIdStrings []string,
 	from time.Time, to time.Time) (RebalancingDetails, error) {
 
-	publicKeys := make([]string, len(nodeIds))
+	var publicKeys []string
 	for nodeId := range nodeIds {
 		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}

@@ -93,7 +93,7 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 	return r, nil
 }
 
-// ImportRoutingPolicies imports routing policy information about all open channels if they don't already have
+// ImportRoutingPolicies imports routing policy information about all channels if they don't already have
 func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 
 	// Get all open channels from LND

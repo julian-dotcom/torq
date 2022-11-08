@@ -407,7 +407,7 @@ func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeSettings com
 		return nil
 	}
 
-	channelIds := make([]int, len(c))
+	var channelIds []int
 	for _, channel := range c {
 		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
 		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
@@ -469,7 +469,7 @@ func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary,
 		return nil
 	}
 
-	channelIds := make([]int, len(c))
+	var channelIds []int
 	for _, channel := range c {
 		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
 		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)

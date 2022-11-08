@@ -58,6 +58,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		return errors.Wrap(err, "LND import routing policies")
 	}
 
+	// Import node info from nodes with channels
+	err = lnd.ImportNodeInfo(client, db, nodeSettings)
+	if err != nil {
+		monitorCancel()
+		return errors.Wrap(err, "LND import node info")
+	}
+
 	// TODO FIXME channels with short_channel_id = null and status IN (1,2,100,101,102,103) should be fixed somehow???
 	//  Open                   = 1
 	//  Closing                = 2

@@ -94,17 +94,17 @@ var corridorCache = map[CorridorType]*corridorCacheByType{ //nolint:gochecknoglo
 	Tag(): {
 		sync.RWMutex{},
 		make(map[int]map[CorridorKey]Corridor, 0),
-		make([]int, 0),
+		[]int{},
 	},
 	AutoFee(): {
 		sync.RWMutex{},
 		make(map[int]map[CorridorKey]Corridor, 0),
-		make([]int, 0),
+		[]int{},
 	},
 }
 
 func finalizeCorridorCacheByType(corridorType CorridorType, corridorStagingCache *map[int]map[CorridorKey]Corridor) {
-	corridorCacheSortedKeys := make([]int, len(*corridorStagingCache))
+	var corridorCacheSortedKeys []int
 	for k := range *corridorStagingCache {
 		corridorCacheSortedKeys = append(corridorCacheSortedKeys, k)
 	}

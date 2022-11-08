@@ -67,7 +67,7 @@ type PaymentDetails struct {
 func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 	limit uint64, offset uint64) (r []*Payment, total uint64, err error) {
 
-	publicKeys := make([]string, len(nodeIds))
+	var publicKeys []string
 	for nodeId := range nodeIds {
 		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
@@ -199,7 +199,7 @@ func (e ErrPaymentNotFound) Error() string {
 
 func getPaymentDetails(db *sqlx.DB, nodeIds []int, identifier string) (*PaymentDetails, error) {
 
-	publicKeys := make([]string, len(nodeIds))
+	var publicKeys []string
 	for nodeId := range nodeIds {
 		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
