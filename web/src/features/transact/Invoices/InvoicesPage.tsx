@@ -83,7 +83,7 @@ function InvoicesPage() {
   const [offset, setOffset] = useState(0);
   const [orderBy, setOrderBy] = useLocalStorage("invoicesOrderBy", [
     {
-      key: "creation_date",
+      key: "creationDate",
       direction: "desc",
     },
   ] as OrderBy[]);

@@ -3,8 +3,9 @@ package query_parser
 import (
 	"encoding/json"
 	"fmt"
-	sq "github.com/Masterminds/squirrel"
 	"strings"
+
+	sq "github.com/Masterminds/squirrel"
 )
 
 // Examples of json input

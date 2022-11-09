@@ -23,19 +23,19 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 	if filterParam != "" {
 		filter, err = qp.ParseFilterParam(filterParam, []string{
 			"date",
-			"destinationPubKey",
+			"destination_pub_key",
 			"status",
 			"value",
 			"fee",
 			"ppm",
-			"failureReason",
-			"isRebalance",
-			"isMpp",
-			"countSuccessfulAttempts",
-			"countFailedAttempts",
-			"secondsInFlight",
-			"paymentHash",
-			"paymentPreimage",
+			"failure_reason",
+			"is_rebalance",
+			"is_mpp",
+			"count_successful_attempts",
+			"count_failed_attempts",
+			"seconds_in_flight",
+			"payment_hash",
+			"payment_preimage",
 		})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
@@ -55,10 +55,10 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 				"value",
 				"fee",
 				"ppm",
-				"failureReason",
-				"countSuccessfulAttempts",
-				"countFailedAttempts",
-				"secondsInFlight",
+				"failure_reason",
+				"count_successful_attempts",
+				"count_failed_attempts",
+				"seconds_in_flight",
 			})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})

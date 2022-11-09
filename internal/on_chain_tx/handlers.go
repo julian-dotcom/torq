@@ -22,13 +22,13 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 	if filterParam != "" {
 		filter, err = qp.ParseFilterParam(filterParam, []string{
 			"date",
-			"destAddresses",
-			"destAddressesCount",
+			"dest_addresses",
+			"dest_addresses_count",
 			"amount",
-			"totalFees",
+			"total_fees",
 			"label",
-			"lndTxTypeLabel",
-			"lndShortChanId",
+			"lnd_tx_type_label",
+			"lnd_short_chan_id",
 		})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
@@ -44,13 +44,13 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 			sortParam,
 			[]string{
 				"date",
-				"destAddresses",
-				"destAddressesCount",
+				"dest_addresses",
+				"dest_addresses_count",
 				"amount",
-				"totalFees",
+				"total_fees",
 				"label",
-				"lndTxTypeLabel",
-				"lndShortChanId",
+				"lnd_tx_type_label",
+				"lnd_short_chan_id",
 			})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
