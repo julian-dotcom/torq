@@ -49,7 +49,7 @@ func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func()
 	r.GET("nodeConnectionDetails/:nodeId", func(c *gin.Context) { getNodeConnectionDetailsHandler(c, db) })
 	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db, restartLNDSub) })
 	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db, restartLNDSub) })
-	r.PUT("nodeConnectionDetails/:nodeId/:status", func(c *gin.Context) { setNodeConnectionDetailsStatusHandler(c, db, restartLNDSub) })
+	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) { setNodeConnectionDetailsStatusHandler(c, db, restartLNDSub) })
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
