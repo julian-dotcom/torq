@@ -211,11 +211,11 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["nodeConfigurations","channels"],
     }),
-    updateNodeConfiguration: builder.mutation<any, { form: FormData; nodeId: number }>({
+    updateNodeConfiguration: builder.mutation<any, FormData>({
       query: (nodeConfiguration) => ({
-        url: `settings/nodeConnectionDetails/${nodeConfiguration.nodeId}`,
+        url: `settings/nodeConnectionDetails`,
         method: "PUT",
-        body: nodeConfiguration.form,
+        body: nodeConfiguration,
       }),
       invalidatesTags: ["nodeConfigurations","channels"],
     }),
