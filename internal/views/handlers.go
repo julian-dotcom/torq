@@ -108,7 +108,7 @@ func convertView(r []*TableView, db *sqlx.DB, c *gin.Context) ([]*TableView, err
 			}
 			r[i].View = viewJson
 			r[i].Version = "v2"
-			_, err = updateTableView(db, r[i])
+			_, err = updateTableView(db, *r[i])
 			if err != nil {
 				return nil, err
 			}
