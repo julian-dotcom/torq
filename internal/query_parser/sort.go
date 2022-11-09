@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 )
-
-// Example of sort json input
-// "sortBy":[{"value":"revenue_out", direction":"desc"}]
-
 type Order struct {
 	Key       string `json:"key"`
 	Direction string `json:"direction"`
@@ -19,6 +17,10 @@ func ParseOrderParams(params string, allowedColumns []string) ([]string, error) 
 	err := json.Unmarshal([]byte(params), &sort)
 	if err != nil {
 		return nil, err
+	}
+
+	for i, param := range sort {
+		sort[i].Key =  strcase.ToSnake(param.Key)
 	}
 
 	// Whitelist the columns that are allowed to sorted by.

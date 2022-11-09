@@ -22,7 +22,7 @@ export interface ColumnMetaData {
   valueType: string;
   total?: number;
   max?: number;
-  percent?: boolean
+  percent?: boolean;
 }
 
 export interface ViewInterface {
@@ -33,7 +33,7 @@ export interface ViewInterface {
   columns: ColumnMetaData[];
   sortBy: SortByOptionType[];
   groupBy?: string;
-  page: string
+  page: string;
 }
 
 export interface viewOrderInterface {
@@ -59,7 +59,7 @@ function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, col
       return (
         <AliasCell
           current={row[key] as string}
-          chanId={row["chan_id"]}
+          lndShortChannelId={row["lndShortChannelId"]}
           open={row["open"]}
           className={classNames(key, index, cellStyles.locked)}
           key={key + index + columnIndex}
@@ -119,7 +119,7 @@ function defaultTotalsRowRenderer(column: ColumnMetaData, index: number) {
       return (
         <AliasCell
           current={"Total"}
-          chanId={""}
+          lndShortChannelId={""}
           className={classNames(column.key, index, cellStyles.locked, cellStyles.totalCell)}
           key={column.key + index}
         />
@@ -202,10 +202,6 @@ function Table(props: TableProps) {
     ",  min-content) auto;" +
     rowGridStyle(numRows) +
     "}";
-
-  // if (props.isLoading == true) {
-  //   return <div className={styles.tableWrapper}>No data</div>;
-  // }
 
   return (
     <div className={styles.tableWrapper}>

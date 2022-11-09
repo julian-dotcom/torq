@@ -47,7 +47,6 @@ function NameColumnRow({ column, index }: { column: ColumnMetaData; index: numbe
       <div className={styles.columnName}>
         <div>{column.heading}</div>
       </div>
-      {/*<Select value={{ label: "Name", value: "AliasCell" }} isDisabled={true} />*/}
     </div>
   );
 }

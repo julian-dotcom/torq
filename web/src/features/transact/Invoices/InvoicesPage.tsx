@@ -83,7 +83,7 @@ function InvoicesPage() {
   const [offset, setOffset] = useState(0);
   const [orderBy, setOrderBy] = useLocalStorage("invoicesOrderBy", [
     {
-      key: "creation_date",
+      key: "creationDate",
       direction: "desc",
     },
   ] as OrderBy[]);
@@ -203,7 +203,7 @@ function InvoicesPage() {
 
   const filterColumns = clone(allColumns).map((c: any) => {
     switch (c.key) {
-      case "invoice_state":
+      case "invoiceState":
         c.selectOptions = Object.keys(statusTypes).map((key: any) => {
           return {
             value: key,
@@ -221,23 +221,23 @@ function InvoicesPage() {
 
   const sortableColumns = allColumns.filter((column: ColumnMetaData) =>
     [
-      "creation_date",
-      "settle_date",
-      "invoice_state",
-      "amt_paid",
+      "creationDate",
+      "settleDate",
+      "invoiceState",
+      "amtPaid",
       "memo",
       "value",
-      "is_rebalance",
-      "is_keysend",
-      "destination_pub_key",
-      "is_amp",
-      "fallback_addr",
-      "payment_addr",
-      "payment_request",
+      "isRebalance",
+      "isKeysend",
+      "destinationPubKey",
+      "isAmp",
+      "fallbackAddr",
+      "paymentAddr",
+      "paymentRequest",
       "private",
       "expiry",
-      "cltv_expiry",
-      "updated_on",
+      "cltvExpiry",
+      "updatedOn",
     ].includes(column.key)
   );
 
@@ -293,7 +293,7 @@ function InvoicesPage() {
     <Pagination
       limit={limit}
       offset={offset}
-      total={invoicesResponse?.data?.pagination?.total}
+      total={invoicesResponse?.data?.pagination?.total || 0}
       perPageHandler={setLimit}
       offsetHandler={setOffset}
     />

@@ -228,7 +228,7 @@ function PaymentsPage() {
 
   const filterColumns = clone(allColumns).map((c: any) => {
     switch (c.key) {
-      case "failure_reason":
+      case "failureReason":
         c.selectOptions = Object.keys(failureReasons)
           .filter((key) => key !== "FAILURE_REASON_NONE")
           .map((key: any) => {
@@ -260,12 +260,12 @@ function PaymentsPage() {
       "fee",
       "ppm",
       "status",
-      "is_rebalance",
-      "seconds_in_flight",
-      "failure_reason",
-      "is_mpp",
-      "count_failed_attempts",
-      "count_successful_attempts",
+      "isRebalance",
+      "secondsInFlight",
+      "failureReason",
+      "isMpp",
+      "countFailedAttempts",
+      "countSuccessfulAttempts",
     ].includes(column.key)
   );
 
@@ -274,7 +274,7 @@ function PaymentsPage() {
     // dispatch(updateSortBy({ sortBy: updated }));
   };
 
-  const updateColumnsHandler = (columns: Array<any>) => {
+  const updateColumnsHandler = (columns: ColumnMetaData[]) => {
     dispatch(updateColumns({ columns: columns }));
   };
 
@@ -323,7 +323,7 @@ function PaymentsPage() {
     <Pagination
       limit={limit}
       offset={offset}
-      total={paymentsResponse?.data?.pagination?.total}
+      total={paymentsResponse?.data?.pagination?.total || 0}
       perPageHandler={setLimit}
       offsetHandler={setOffset}
     />

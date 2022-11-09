@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { cloneDeep, orderBy } from "lodash";
+import { orderBy } from "lodash";
 import { useAppSelector } from "store/hooks";
 import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
@@ -9,6 +9,7 @@ import { applyFilters, Clause, deserialiseQuery } from "features/sidebar/section
 import { groupByFn } from "features/sidebar/sections/group/groupBy";
 import clone from "clone";
 import Table, { ColumnMetaData } from "features/table/Table";
+import { ForwardResponse } from "types/api";
 
 interface boxProps {
   activeColumns: ColumnMetaData[];
@@ -21,19 +22,16 @@ function ForwardsDataWrapper(props: boxProps) {
 
   const chanResponse = useGetForwardsQuery({ from: from, to: to });
 
-  // const columns = useAppSelector(selectAllColumns);
   const sortBy = useAppSelector(selectSortBy);
   const groupBy = useAppSelector(selectGroupBy) || "channels";
   const filters = useAppSelector(selectFilters);
-
-  // const data = chanResponse.data || [];
 
   const [channels, columns] = useMemo(() => {
     if (chanResponse.data?.length == 0) {
       return [];
     }
-    let channels = cloneDeep(chanResponse.data ? chanResponse.data : ([] as any[]));
-    const columns = clone<Array<ColumnMetaData>>(props.activeColumns) || [];
+    let channels = clone<ForwardResponse[]>(chanResponse.data ? chanResponse.data : ([]));
+    const columns = clone<ColumnMetaData[]>(props.activeColumns) || [];
 
     if (channels.length > 0) {
       channels = groupByFn(channels, groupBy || "channels");
@@ -48,21 +46,26 @@ function ForwardsDataWrapper(props: boxProps) {
       sortBy.map((s) => s.direction) as ["asc" | "desc"]
     );
 
-    /* const channels = chanResponse.data || []; */
     if (channels.length > 0) {
       for (const channel of channels) {
         for (const column of columns) {
-          column.total = (column.total ?? 0) + channel[column.key];
-          column.max = Math.max(column.max ?? 0, channel[column.key] ?? 0);
+          if (typeof channel[column.key as keyof ForwardResponse] == "number") {
+            if (!column.total) column.total = 0
+            column.total += channel[column.key as keyof ForwardResponse] as number || 0;
+            column.max = Math.max(column.max ?? 0 , channel[column.key as keyof ForwardResponse] as number || 0);
+          } else {
+            column.total = 0;
+            column.max = 0;
+          }
         }
       }
 
-      const turnover_total_col = columns.find((col) => col.key === "turnover_total");
-      const turnover_out_col = columns.find((col) => col.key === "turnover_out");
-      const turnover_in_col = columns.find((col) => col.key === "turnover_in");
-      const amount_total_col = columns.find((col) => col.key === "amount_total");
-      const amount_out_col = columns.find((col) => col.key === "amount_out");
-      const amount_in_col = columns.find((col) => col.key === "amount_in");
+      const turnover_total_col = columns.find((col) => col.key === "turnoverTotal");
+      const turnover_out_col = columns.find((col) => col.key === "turnoverOut");
+      const turnover_in_col = columns.find((col) => col.key === "turnoverIn");
+      const amount_total_col = columns.find((col) => col.key === "amountTotal");
+      const amount_out_col = columns.find((col) => col.key === "amountOut");
+      const amount_in_col = columns.find((col) => col.key === "amountIn");
       const capacity_col = columns.find((col) => col.key === "capacity");
 
       if (turnover_total_col) {
@@ -83,7 +86,7 @@ function ForwardsDataWrapper(props: boxProps) {
   return (
     <Table
       activeColumns={columns || []}
-      data={channels}
+      data={channels || []}
       isLoading={chanResponse.isLoading || chanResponse.isFetching || chanResponse.isUninitialized}
       showTotals={true}
     />

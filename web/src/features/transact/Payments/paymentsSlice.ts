@@ -15,15 +15,15 @@ export const AllPaymentsColumns: Array<ColumnMetaData> = [
   { key: "value", heading: "Value", type: "NumericCell", valueType: "number" },
   { key: "fee", heading: "Fee", type: "NumericCell", valueType: "number" },
   { key: "ppm", heading: "PPM", type: "NumericCell", valueType: "number" },
-  { key: "is_rebalance", heading: "Rebalance", type: "BooleanCell", valueType: "boolean" },
-  { key: "seconds_in_flight", heading: "Seconds In Flight", type: "DurationCell", valueType: "duration" },
-  { key: "failure_reason", heading: "Failure Reason", type: "TextCell", valueType: "array" },
-  { key: "is_mpp", heading: "MPP", type: "BooleanCell", valueType: "boolean" },
-  { key: "count_failed_attempts", heading: "Failed Attempts", type: "NumericCell", valueType: "number" },
-  { key: "count_successful_attempts", heading: "Successful Attempts", type: "NumericCell", valueType: "number" },
-  { key: "destination_pub_key", heading: "Destination", type: "TextCell", valueType: "string" },
-  { key: "payment_hash", heading: "Payment Hash", type: "TextCell", valueType: "string" },
-  { key: "payment_preimage", heading: "Payment Preimage", type: "TextCell", valueType: "string" },
+  { key: "isRebalance", heading: "Rebalance", type: "BooleanCell", valueType: "boolean" },
+  { key: "secondsInFlight", heading: "Seconds In Flight", type: "DurationCell", valueType: "duration" },
+  { key: "failureReason", heading: "Failure Reason", type: "TextCell", valueType: "array" },
+  { key: "isMpp", heading: "MPP", type: "BooleanCell", valueType: "boolean" },
+  { key: "countFailedAttempts", heading: "Failed Attempts", type: "NumericCell", valueType: "number" },
+  { key: "countSuccessfulAttempts", heading: "Successful Attempts", type: "NumericCell", valueType: "number" },
+  { key: "destinationPubKey", heading: "Destination", type: "TextCell", valueType: "string" },
+  { key: "paymentHash", heading: "Payment Hash", type: "TextCell", valueType: "string" },
+  { key: "paymentPreimage", heading: "Payment Preimage", type: "TextCell", valueType: "string" },
 ];
 
 export const ActivePaymentsColumns: Array<ColumnMetaData> = [
@@ -32,10 +32,10 @@ export const ActivePaymentsColumns: Array<ColumnMetaData> = [
   { key: "value", heading: "Value", type: "NumericCell", valueType: "number" },
   { key: "fee", heading: "Fee", type: "NumericCell", valueType: "number" },
   { key: "ppm", heading: "PPM", type: "NumericCell", valueType: "number" },
-  { key: "is_rebalance", heading: "Rebalance", type: "BooleanCell", valueType: "boolean" },
-  { key: "seconds_in_flight", heading: "Seconds In Flight", type: "DurationCell", valueType: "duration" },
-  { key: "failure_reason", heading: "Failure Reason", type: "TextCell", valueType: "array" },
-  { key: "count_failed_attempts", heading: "Failed Attempts", type: "NumericCell", valueType: "number" },
+  { key: "isRebalance", heading: "Rebalance", type: "BooleanCell", valueType: "boolean" },
+  { key: "secondsInFlight", heading: "Seconds In Flight", type: "DurationCell", valueType: "duration" },
+  { key: "failureReason", heading: "Failure Reason", type: "TextCell", valueType: "array" },
+  { key: "countFailedAttempts", heading: "Failed Attempts", type: "NumericCell", valueType: "number" },
 ];
 
 export const DefaultView: ViewInterface = {

@@ -9,10 +9,14 @@ import {
   ChannelRebalancingResponse,
   ChannelBalanceResponse,
   ChannelEventResponse,
-  FlowData,
+  FlowData
 } from "features/channel/channelTypes";
 
-import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import type {
+  BaseQueryFn,
+  FetchArgs,
+  FetchBaseQueryError
+} from "@reduxjs/toolkit/query";
 import type {
   GetDecodedInvoiceQueryParams,
   GetForwardsQueryParams,
@@ -25,22 +29,24 @@ import type {
   GetFlowQueryParams,
   GetChannelHistoryData,
   LoginResponse,
+  ForwardResponse,
+  OnchainResponse,
+  PaymentsResponse,
+  InvoicesResponse,
+  DecodedInvoice,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { nodeConfiguration, settings, timeZone, channel } from "apiTypes";
-import { NewInvoiceRequest, NewInvoiceResponse } from "features/transact/Invoices/newInvoice/newInvoiceTypes";
+import {
+  NewInvoiceRequest,
+  NewInvoiceResponse
+} from "./features/transact/Invoices/newInvoice/newInvoiceTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
 
 const baseQuery = fetchBaseQuery({
   baseUrl: API_URL,
-  // prepareHeaders: (headers, _) => {
-  //   if (!headers.get("Content-Type")) {
-  //     headers.set("Content-Type", "application/json");
-  //   }
-  //   return headers;
-  // },
   credentials: "include",
   mode: "cors",
 });
@@ -81,7 +87,7 @@ export const torqApi = createApi({
     getChannelOnChainCost: builder.query<ChannelOnchainCostResponse, GetChannelHistoryData>({
       query: (data) => `channels/${data.params.chanId}/onchaincost` + queryParamsBuilder(data.queryParams),
     }),
-    getForwards: builder.query<any, GetForwardsQueryParams>({
+    getForwards: builder.query<ForwardResponse[], GetForwardsQueryParams>({
       query: (params) => "forwards" + queryParamsBuilder(params, true),
     }),
     getChannels: builder.query<channel[], void>({
@@ -99,16 +105,16 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["channels"],
     }),
-    getDecodedInvoice: builder.query<any, GetDecodedInvoiceQueryParams>({
+    getDecodedInvoice: builder.query<DecodedInvoice, GetDecodedInvoiceQueryParams>({
       query: (params) => "invoices/decode" + queryParamsBuilder(params),
     }),
-    getPayments: builder.query<any, GetPaymentsQueryParams>({
+    getPayments: builder.query<PaymentsResponse, GetPaymentsQueryParams>({
       query: (params) => "payments" + queryParamsBuilder(params, true),
     }),
-    getInvoices: builder.query<any, GetInvoicesQueryParams>({
+    getInvoices: builder.query<InvoicesResponse, GetInvoicesQueryParams>({
       query: (params) => "invoices" + queryParamsBuilder(params, true),
     }),
-    getOnChainTx: builder.query<any, GetOnChainTransactionsQueryParams>({
+    getOnChainTx: builder.query<OnchainResponse, GetOnChainTransactionsQueryParams>({
       query: (params) => "on-chain-tx" + queryParamsBuilder(params, true),
     }),
     sendOnChain: builder.mutation<SendOnChainResponse, SendOnChainRequest>({

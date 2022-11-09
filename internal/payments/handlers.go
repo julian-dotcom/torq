@@ -133,8 +133,3 @@ func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
 
 	c.JSON(http.StatusOK, r)
 }
-
-func RegisterPaymentsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("", func(c *gin.Context) { getPaymentsHandler(c, db) })
-	r.GET(":identifier", func(c *gin.Context) { getPaymentHandler(c, db) })
-}

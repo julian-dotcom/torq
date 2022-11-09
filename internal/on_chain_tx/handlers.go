@@ -1,6 +1,9 @@
 package on_chain_tx
 
 import (
+	"net/http"
+	"strconv"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -8,8 +11,6 @@ import (
 	qp "github.com/lncapital/torq/internal/query_parser"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"net/http"
-	"strconv"
 )
 
 func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
@@ -99,24 +100,6 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 		}})
 }
 
-// "tx_hash", "raw_tx_hex",
-//func getOnChainTxHandler(c *gin.Context, db *sqlx.DB) {
-//
-//	r, err := getOnChainTxDetails(db, c.Param("identifier"))
-//	switch err.(type) {
-//	case nil:
-//		break
-//	case ErrOnChainTxNotFound:
-//		c.JSON(http.StatusNotFound, gin.H{"Error": err.Error(), "Identifier": c.Param("identifier")})
-//		return
-//	default:
-//		server_errors.LogAndSendServerError(c, err)
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, r)
-//}
-
 func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 	var requestBody PayOnChainRequest
 
@@ -134,10 +117,4 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 	sendCoinsResp := PayOnChainResponse{TxId: resp}
 
 	c.JSON(http.StatusOK, sendCoinsResp)
-}
-
-func RegisterOnChainTxsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("", func(c *gin.Context) { getOnChainTxsHandler(c, db) })
-	//r.GET(":identifier", func(c *gin.Context) { getOnChainTxHandler(c, db) })
-	r.POST("sendcoins", func(c *gin.Context) { sendCoinsHandler(c, db) })
 }
