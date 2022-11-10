@@ -181,6 +181,7 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConne
 func SetNodeConnectionDetailsByConnectionDetails(
 	db *sqlx.DB,
 	nodeId int,
+	status commons.Status,
 	grpcAddress string,
 	tlsDataBytes []byte,
 	macaroonDataBytes []byte) error {
@@ -194,6 +195,7 @@ func SetNodeConnectionDetailsByConnectionDetails(
 	ncd.MacaroonDataBytes = macaroonDataBytes
 	ncd.TLSDataBytes = tlsDataBytes
 	ncd.GRPCAddress = &grpcAddress
+	ncd.Status = status
 	_, err = SetNodeConnectionDetails(db, ncd)
 	return err
 }

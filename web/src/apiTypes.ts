@@ -12,7 +12,7 @@ export interface timeZone {
 export interface nodeConfiguration {
   nodeId: number;
   name?: string;
-  implementation: string;
+  implementation: number;
   grpcAddress?: string;
   tlsFileName?: string;
   tlsFile: File | null;

@@ -48,7 +48,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const popoverRef = React.useRef();
 
   const { data: nodeConfigurationData } = useGetNodeConfigurationQuery(nodeId, {
-    skip: !nodeId,
+    skip: !nodeId || nodeId == 0,
   });
   const [updateNodeConfiguration] = useUpdateNodeConfigurationMutation();
   const [addNodeConfiguration] = useAddNodeConfigurationMutation();
@@ -69,7 +69,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   }));
 
   const clear = () => {
-    setNodeConfigurationState({ grpcAddress: "", implementation: "", name: "" } as nodeConfiguration);
+    setNodeConfigurationState({ grpcAddress: "", nodeId: 0, status: 0, implementation: 0, name: "" } as nodeConfiguration);
   };
 
   React.useEffect(() => {
@@ -100,8 +100,10 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const submitNodeSettings = async () => {
     setSaveEnabledState(false);
     const form = new FormData();
-    form.append("implementation", "0");
+    form.append("implementation", "" + nodeConfigurationState.implementation);
     form.append("name", nodeConfigurationState.name ?? "");
+    form.append("nodeId", "" + nodeConfigurationState.nodeId);
+    form.append("status", "" + nodeConfigurationState.status);
     form.append("grpcAddress", nodeConfigurationState.grpcAddress ?? "");
     if (nodeConfigurationState.tlsFile) {
       form.append("tlsFile", nodeConfigurationState.tlsFile, nodeConfigurationState.tlsFileName);
@@ -110,7 +112,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       form.append("macaroonFile", nodeConfigurationState.macaroonFile, nodeConfigurationState.macaroonFileName);
     }
     // we are adding new node
-    if (!nodeConfigurationState.nodeId) {
+    if (!nodeConfigurationState.nodeId || nodeConfigurationState.nodeId == 0) {
       addNodeConfiguration(form)
         .unwrap()
         .then((_) => {
@@ -126,22 +128,25 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         });
 
       return;
+    } else {
+      updateNodeConfiguration(form)
+        .unwrap()
+        .then((_) => {
+          setSaveEnabledState(true);
+          toastRef?.current?.addToast("Local node info saved", toastCategory.success);
+        })
+        .catch((error) => {
+          setSaveEnabledState(true);
+          toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
+        });
     }
-    updateNodeConfiguration({ form, nodeId: nodeConfigurationState.nodeId })
-      .unwrap()
-      .then((_) => {
-        setSaveEnabledState(true);
-        toastRef?.current?.addToast("Local node info saved", toastCategory.success);
-      })
-      .catch((error) => {
-        setSaveEnabledState(true);
-        toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
-      });
   };
 
   React.useEffect(() => {
     if (nodeConfigurationData) {
       setNodeConfigurationState(nodeConfigurationData);
+    } else {
+      setNodeConfigurationState({implementation: 0, nodeId: 0, status: 0} as nodeConfiguration);
     }
   }, [nodeConfigurationData]);
 
@@ -177,14 +182,13 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setDeleteEnabled(value.toLowerCase() === "delete");
   };
 
-  const handleDisableClick = () => {
+  const handleStatusClick = () => {
     setEnableEnableButtonState(false);
+    let statusId = 0;
     if (nodeConfigurationState.status == 0) {
-      nodeConfigurationState.status = 1
-    } else {
-      nodeConfigurationState.status = 0
+      statusId = 1;
     }
-    setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: nodeConfigurationState.status})
+    setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: statusId})
       .unwrap()
       .finally(() => {
         setEnableEnableButtonState(true);
@@ -228,9 +232,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       <div className={styles.nodeMenu}>
                         <Button
                           buttonColor={buttonColor.secondary}
-                          text={nodeConfigurationState.status==0 ? "Enable node" : "Disable node"}
-                          icon={nodeConfigurationState.status==0 ? <PlayIcon /> : <PauseIcon />}
-                          onClick={handleDisableClick}
+                          text={nodeConfigurationState.status==1 ? "Enable node" : "Disable node"}
+                          icon={nodeConfigurationState.status==1 ? <PlayIcon /> : <PauseIcon />}
+                          onClick={handleStatusClick}
                           disabled={!enableEnableButtonState}
                         />
                         <Button
@@ -253,7 +257,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                     return;
                   }}
                   options={implementationOptions}
-                  value={implementationOptions.find((io) => io.value === nodeConfigurationState.implementation)}
+                  value={implementationOptions.find((io) => io.value == "" + nodeConfigurationState.implementation)}
                 />
                 <span id="name">
                   <TextInput

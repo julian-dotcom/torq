@@ -238,7 +238,7 @@ func main() {
 					}
 				} else {
 					log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
-					if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, grpcAddress, tlsFile, macaroonFile); err != nil {
+					if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, commons.Active, grpcAddress, tlsFile, macaroonFile); err != nil {
 						log.Error().Err(err).Msg("Problem updating node files")
 						return errors.Wrap(err, "Problem updating node files")
 					}
