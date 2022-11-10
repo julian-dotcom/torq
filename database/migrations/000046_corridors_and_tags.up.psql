@@ -199,6 +199,11 @@ UPDATE channel_event SET node_id=(
     WHERE allnetworks.status_id=0
     LIMIT 1);
 
+DELETE FROM channel_event
+       WHERE channel_id IS NULL AND
+             lnd_channel_point='0' AND
+             event->>'closing_tx_hash'='0000000000000000000000000000000000000000000000000000000000000000';
+
 ALTER TABLE channel_event ALTER COLUMN channel_id SET NOT NULL;
 ALTER TABLE channel_event ALTER COLUMN node_id SET NOT NULL;
 
