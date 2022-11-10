@@ -9,6 +9,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -98,6 +99,12 @@ func main() {
 			Usage:   "Path to config file",
 		},
 
+		&cli.BoolFlag{
+			Name:  "debug",
+			Value: false,
+			Usage: "Enable debug logging",
+		},
+
 		// Torq connection details
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.password",
@@ -160,6 +167,13 @@ func main() {
 		Name:  "start",
 		Usage: "Start the main daemon",
 		Action: func(c *cli.Context) error {
+
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+			if c.Bool("debug") {
+				zerolog.SetGlobalLevel(zerolog.DebugLevel)
+				log.Debug().Msg("Debug logging enabled")
+			}
+
 			// Print startup message
 			fmt.Printf("Starting Torq %s\n", build.Version())
 
