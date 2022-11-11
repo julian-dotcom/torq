@@ -1,13 +1,14 @@
 package forwards
 
 import (
+	"fmt"
+	"github.com/lib/pq"
 	"net/http"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	"gopkg.in/guregu/null.v4"
 
 	"github.com/lncapital/torq/pkg/commons"
@@ -47,15 +48,18 @@ type forwardsTableRow struct {
 	ChannelID              null.Int `json:"channelId"`
 	FundingTransactionHash string   `json:"fundingTransactionHash"`
 	FundingOutputIndex     string   `json:"fundingOutputIndex"`
+	ChannelPoint           string   `json:"channelPoint"`
 	// The remote public key
 	PubKey null.String `json:"pubKey"`
 	// Short channel id in c-lightning / BOLT format
 	ShortChannelID null.String `json:"shortChannelId"`
 	// The channel ID
-	LNDShortChannelId null.String `json:"lndShortChannelId"`
+	LNDShortChannelId null.String `json:"lndShortChannelId" db:"lnd_short_channel_id"`
 	// Color of remote peer (Vanity)
 	Color null.String `json:"color"`
 	// Is the channel open
+	Open bool `json:"open"`
+	// Stauts of channel
 	StatusId null.Int `json:"statusId"`
 
 	// The channels total capacity (as created)
@@ -92,6 +96,8 @@ type forwardsTableRow struct {
 func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 	fromTime time.Time, toTime time.Time) (r []*forwardsTableRow, err error) {
 
+	fmt.Println("nodeIds", nodeIds)
+
 	var sqlString = `
 		select
 			coalesce(scne.node_alias, LEFT(scn.public_key, 20)) as alias,
@@ -101,11 +107,13 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			coalesce(c.channel_id, 0) as channel_id,
 			coalesce(c.funding_transaction_hash, 'Funding tansaction missing') as funding_transaction_hash,
 			coalesce(c.funding_output_index, 0) as funding_output_index,
+			coalesce(c.funding_transaction_hash, '') || ':'::text || coalesce(c.funding_output_index,0)::text as channel_point,
 			coalesce(scn.public_key, '') as pub_key,
 			coalesce(c.short_channel_id, 'Short channel ID missing') as short_channel_id,
 			coalesce(c.lnd_short_channel_id::text, 'LND short channel id missing') as lnd_short_channel_id,
 			coalesce(scne.node_color, 'Color missing') as color,
-			coalesce(c.status_id, 0) as status_id,
+			coalesce(c.status_id, 3) <= 1 as open,
+			coalesce(c.status_id, 3) as status_id,
 
 
 			coalesce(ce.capacity::numeric, 0) as capacity,
@@ -204,10 +212,12 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			&c.ChannelID,
 			&c.FundingTransactionHash,
 			&c.FundingOutputIndex,
+			&c.ChannelPoint,
 			&c.PubKey,
 			&c.ShortChannelID,
 			&c.LNDShortChannelId,
 			&c.Color,
+			&c.Open,
 			&c.StatusId,
 
 			&c.Capacity,
