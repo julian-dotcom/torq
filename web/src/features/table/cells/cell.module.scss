@@ -58,6 +58,81 @@
   }
 }
 
+.balanceCell {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  box-sizing: border-box;
+
+  .balances {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 50px;
+    margin-bottom: 8px;
+
+    .amount {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 5px;
+
+      .icon {
+        color: #6CA09E;
+
+        svg {
+          width: 16px;
+        }
+      }
+
+      .value {
+        font-weight: 400;
+        font-size: 12px;
+        line-height: 100%;
+        color: #6CA09E;
+      }
+
+      &:last-of-type {
+        justify-content: flex-end;
+      }
+    }
+  }
+
+  .bar {
+    display: grid;
+    width: 100%;
+    justify-items: flex-end;
+    background-color: #9FDFDC;
+    border-radius: 3px;
+
+    .percentage {
+      height: 5px;
+      min-width: 2px;
+      background-color: #46A9A4;
+      border-radius: 0px 3px 3px 0px;
+    }
+  }
+
+  .capacity {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 100%;
+    gap: 50px;
+    margin-top: 6px;
+
+    .remote, .local {
+      color: #9AA7B3;
+    }
+
+    .total {
+      color: #6CA09E;
+    }
+  }
+}
+
 .totalCell {
   position: sticky;
   bottom: 0;
