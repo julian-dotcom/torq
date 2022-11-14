@@ -1,6 +1,54 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;1,400&display=swap");
 
+:root {
+  --font-size-tiny: 10px;
+  --font-size-small: 12px;
+  --font-size-normal: 14px;
+  --font-size-medium: 18px;
+  --font-size-large: 32px;
+
+  --line-height-normal: 125%;
+  --line-height-slim: 0;
+
+  --font-wight-normal: 400;
+  --font-wight-title: 500;
+}
+
+@mixin text-tiny {
+  font-size: var(--font-size-tiny);
+  font-weight: var(--font-wight-normal);
+}
+
+@mixin text-small {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-wight-normal);
+}
+
+@mixin text-normal {
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-wight-normal);
+}
+
+@mixin text-medium {
+  font-size: var(--font-size-medium);
+  font-weight: var(--font-wight-title);
+}
+
+@mixin text-large {
+  font-size: var(--font-size-large);
+  font-weight: var(--font-wight-title);
+}
+
+@mixin L-regular {
+  font-size: var(--font-L-regular);
+  font-weight: 500;
+}
+@mixin XXL-regular {
+  font-size: var(--font-XXL-regular);
+  font-weight: 500;
+}
+
 *,
 button,
 div {
@@ -55,13 +103,5 @@ a:visited {
 }
 a:hover {
   color: var(--fg-default);
-  font-weight: 500;
-}
-@mixin L-regular {
-  font-size: var(--font-L-regular);
-  font-weight: 500;
-}
-@mixin XXL-regular {
-  font-size: var(--font-XXL-regular);
   font-weight: 500;
 }

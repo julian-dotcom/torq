@@ -1,0 +1,160 @@
+:root {
+  // ------------------------------
+  // Primary
+  // Base color #85c4ff
+  // ------------------------------
+  --color-primary-layer-1: #f9fcff;
+  --color-primary-layer-2: #e6f3ff;
+  --color-primary-layer-3: #dbeeff;
+  --color-primary-layer-4: #c2e2ff;
+  --color-primary-faint: #85c4ff;
+  --color-primary-faded: #5d89b3;
+  --color-primary-strong: #354e66;
+
+  --color-text-primary-extra-faint: #daedff;
+  --color-text-primary-faint: #85c4ff;
+  --color-text-primary-faded: #5d89b3;
+  --color-text-primary-strong: #354e66;
+
+  --color-border-primary-faint: #daedff;
+  --color-border-primary-faded: #78b0e6;
+  --color-border-primary-strong: #5d89b3;
+
+  // ------------------------------
+  // Success
+  // Base color #9ae5e1
+  // ------------------------------
+  --color-success-layer-1: #ebfaf9;
+  --color-success-layer-2: #d7f5f3;
+  --color-success-layer-3: #c2efed;
+  --color-success-layer-4: #9ae5e1;
+  --color-success-faint: #9fdfdc;
+  --color-success-faded: #6ca09e;
+  --color-success-strong: #3e5c5a;
+
+  --color-text-success-extra-faint: #d7f5f3;
+  --color-text-success-faint: #6ca09e;
+  --color-text-success-faded: #5c8987;
+  --color-text-success-strong: #3e5c5a;
+
+  --color-border-success-faint: #ebfaf9;
+  --color-border-success-faded: #46a9a4;
+  --color-border-success-strong: #5c8987;
+
+  // ------------------------------
+  // Warning
+  // Base color #FAECCB
+  // ------------------------------
+  --color-warning-layer-1: #fffdfa;
+  --color-warning-layer-2: #fef7ea;
+  --color-warning-layer-3: #fcf4e0;
+  --color-warning-layer-4: #fbeed0;
+  --color-warning-faint: #e1d4b7;
+  --color-warning-faded: #968e7a;
+  --color-warning-strong: #4b473d;
+
+  --color-text-warning-extra-faint: #faebca;
+  --color-text-warning-faint: #c7bda2;
+  --color-text-warning-faded: #7d7666;
+  --color-text-warning-strong: #4b473d;
+
+  --color-border-warning-faded: #e1d3b7;
+  --color-border-warning-strong: #c7bda2;
+
+  // ------------------------------
+  // Error
+  // Base color #FA9393
+  // ------------------------------
+  --color-error-layer-1: #fffafa;
+  --color-error-layer-2: #fff4f4;
+  --color-error-layer-3: #fee9e9;
+  --color-error-layer-4: #fcb3b3;
+  --color-error-faint: #e18484;
+  --color-error-faded: #af6767;
+  --color-error-strong: #643b3a;
+
+  --color-text-error-extra-faint: #fdc8c9;
+  --color-text-error-faint: #c77676;
+  --color-text-error-faded: #af6767;
+  --color-text-error-strong: #643b3a;
+
+  --color-border-error-faded: #fdd4d4;
+  --color-border-error-strong: #c87676;
+
+  // ------------------------------
+  // Accent 1
+  // Base color #BA93FA
+  // ------------------------------
+  --color-accent-1-layer-1: #fcfaff;
+  --color-accent-1-layer-2: #f8f4ff;
+  --color-accent-1-layer-3: #f1e9fe;
+  --color-accent-1-layer-4: #ddc9fd;
+  --color-accent-1-faint: #ba93fa;
+  --color-accent-1-faded: #9576c8;
+  --color-accent-1-strong: #4a3b64;
+
+  --color-text-accent-1-extra-faint: #e3d4fd;
+  --color-text-accent-1-faint: #ba93fa;
+  --color-text-accent-1-faded: #9576c8;
+  --color-text-accent-1-strong: #4a3b64;
+
+  --color-border-accent-1-faded: #ddc9fd;
+  --color-border-accent-1-strong: #9576c8;
+
+  // ------------------------------
+  // Accent 2
+  // Base color #93E5FA
+  // ------------------------------
+  --color-accent-2-layer-1: #f4fcff;
+  --color-accent-2-layer-2: #e9fafe;
+  --color-accent-2-layer-3: #d4f5fd;
+  --color-accent-2-layer-4: #b3edfc;
+  --color-accent-2-faint: #84cee1;
+  --color-accent-2-faded: #588996;
+  --color-accent-2-strong: #3b5c64;
+
+  --color-text-accent-2-extra-faint: #a9eafb;
+  --color-text-accent-2-faint: #67a0af;
+  --color-text-accent-2-faded: #588996;
+  --color-text-accent-2-strong: #3b5c64;
+
+  --color-border-accent-2-faded: #84cee1;
+  --color-border-accent-2-strong: #67a0af;
+
+  // ------------------------------
+  // Accent 3
+  // Base color #FA93E3
+  // ------------------------------
+  --color-accent-3-layer-1: #fffafe;
+  --color-accent-3-layer-2: #fee9f9;
+  --color-accent-3-layer-3: #fedff7;
+  --color-accent-3-layer-4: #fdc9f1;
+  --color-accent-3-faint: #c875b6;
+  --color-accent-3-faded: #965888;
+  --color-accent-3-strong: #4b2c44;
+
+  --color-text-accent-3-extra-faint: #ffdff7;
+  --color-text-accent-3-faint: #c875b6;
+  --color-text-accent-3-faded: #965888;
+  --color-text-accent-3-strong: #4b2c44;
+
+  --color-border-accent-3-faded: #e084cc;
+  --color-border-accent-3-strong: #af679f;
+
+  // ------------------------------
+  // Accent 3
+  // Base color #FA93E3
+  // ------------------------------
+  --color-gray-layer-2: #ebedf0;
+  --color-gray-layer-4: #ebedf0;
+  --color-gray-layer-faint: #9aa7b3;
+  --color-gray-layer-faded: #728394;
+  --color-gray-layer-strong: #354e66;
+
+  // ------------------------------
+  // Special colors
+  // Colors used in very specific cases where it is not possible to use the standard colors
+  // ------------------------------
+  --color-layer-0: #ffffff;
+  --color-backdrop: rgba(57, 104, 147, 0.1);
+}
