@@ -200,9 +200,21 @@ UPDATE channel_event SET node_id=(
     LIMIT 1);
 
 DELETE FROM channel_event
-       WHERE channel_id IS NULL AND
-             lnd_channel_point='0' AND
-             event->>'closing_tx_hash'='0000000000000000000000000000000000000000000000000000000000000000';
+    WHERE channel_id IS NULL AND
+        lnd_channel_point='0' AND
+            event->>'closing_tx_hash'='0000000000000000000000000000000000000000000000000000000000000000';
+
+--ChannelCloseSummary_FUNDING_CANCELED
+DELETE FROM channel_event
+WHERE channel_id IS NULL AND
+    lnd_channel_point='0' AND
+        event->>'close_type'='4';
+
+--ChannelCloseSummary_ABANDONED
+DELETE FROM channel_event
+WHERE channel_id IS NULL AND
+    lnd_channel_point='0' AND
+        event->>'close_type'='5';
 
 ALTER TABLE channel_event ALTER COLUMN channel_id SET NOT NULL;
 ALTER TABLE channel_event ALTER COLUMN node_id SET NOT NULL;
