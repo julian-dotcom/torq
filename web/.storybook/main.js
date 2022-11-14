@@ -1,5 +1,14 @@
+const path = require("path");
 module.exports = {
-  stories: ["../src/**/*.stories.mdx", "../src/**/*.stories.@(js|jsx|ts|tsx)"],
+  compilerOptions: {
+    baseUrl: "./src",
+  },
+  webpackFinal: async (config) => {
+    config.resolve.modules = [...(config.resolve.modules || []), path.resolve(__dirname, "../src")];
+
+    return config;
+  },
+  stories: ["../src/**/*.stories.mdx", "../src/**/*.stories.@(js|jsx|ts|tsx|scss)"],
   addons: [
     "@storybook/addon-links",
     "@storybook/addon-essentials",

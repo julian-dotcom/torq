@@ -1,0 +1,17 @@
+.DateCell {
+  justify-items: start;
+  min-width: initial;
+}
+.DateCell {
+  white-space: nowrap;
+}
+.dateRow,
+.timeRow {
+  display: flex;
+  column-gap: 5px;
+  justify-items: start;
+  align-items: center;
+  svg {
+    color: var(--content-muted);
+  }
+}
