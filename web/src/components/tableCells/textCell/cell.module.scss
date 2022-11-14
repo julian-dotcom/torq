@@ -1,0 +1,260 @@
+.cell {
+  display: flex;
+  flex-direction: column;
+  grid-row-gap: 4px;
+  padding: 10px 20px;
+  align-items: flex-end;
+  align-content: center;
+  text-align: right;
+  background-color: var(--bg-default);
+  border-bottom: 1px solid var(--primary-100);
+  @media only screen and (max-width: 900px) {
+    min-width: 0px;
+  }
+  &.alignLeft {
+    text-align: left;
+    align-items: start;
+    min-width: 200px;
+  }
+  &.alignRight {
+    align-items: flex-end;
+    min-width: 170px;
+  }
+  .past {
+    color: var(--fg-muted);
+    font-size: var(--font-size-small);
+  }
+  .positive {
+    color: var(--accent1-500);
+  }
+  .negative {
+    color: var(--secondary-500);
+  }
+}
+
+.barCell {
+  position: relative;
+  z-index: 2;
+  grid-row-gap: 4px;
+  min-width: 200px;
+  @media only screen and (max-width: 900px) {
+    min-width: 150px;
+  }
+  .barWrapper {
+    display: grid;
+    width: 100%;
+    justify-items: flex-end;
+    background-color: var(--accent1-300);
+  }
+  .bar {
+    height: 5px;
+    min-width: 2px;
+    background-color: var(--accent1-400);
+  }
+  &.totalCell {
+    .bar-wrapper {
+      display: none;
+    }
+  }
+}
+
+.totalCell {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--primary-50); //var(--bg-alt-faint);
+  border-top: 1px solid var(--primary-500); //var(--bg-alt-strong);
+  border-bottom: 1px solid var(--primary-500);
+  &.alias {
+    border-right: 1px solid var(--primary-500);
+  }
+  .barWrapper {
+    display: none !important;
+  }
+}
+.totalCell.empty.locked {
+  border-bottom-left-radius: 3px;
+  border-left: 1px solid var(--primary-500);
+}
+.totalCell.lastTotalCell {
+  border-right: 1px solid var(--primary-500);
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  border-bottom-right-radius: 3px;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  justify-items: flex-end;
+  align-items: flex-end;
+  grid-row-gap: 5px;
+  padding: 20px 20px 10px 20px;
+  border-bottom: 1px solid var(--primary-100);
+  background-color: var(--bg-default);
+  border-top: 1px solid var(--material-layer-3);
+  color: var(--primary-600);
+  white-space: nowrap;
+  font-size: var(--font-size-small);
+  &:global(.alias) {
+    padding-right: 50px;
+    justify-items: start;
+  }
+  .content {
+    display: grid;
+    grid-auto-flow: column;
+    grid-column-gap: 5px;
+  }
+}
+
+// TODO: Clean this up after deciding on limitations to column freezing
+:global(.alias),
+.locked {
+  position: sticky;
+  left: 10px;
+  top: 0;
+  //padding-left: 20px !important;
+  z-index: 5;
+  border-right: 1px solid var(--primary-100);
+}
+.firstEmptyCell {
+}
+.lastEmptyCell {
+  border-right: 1px solid var(--primary-150);
+  position: -webkit-sticky;
+  position: sticky;
+  right: 0;
+  top: 0;
+  z-index: 2;
+}
+.header:global(.alias),
+.header.firstEmptyHeader,
+.header.lastEmptyHeader {
+  z-index: 7;
+  border-right: 1px solid var(--primary-100);
+  border-bottom: 1px solid var(--primary-100);
+  border-top-right-radius: 3px;
+}
+.header.firstEmptyHeader {
+  border-top-left-radius: 3px;
+  border-left: 1px solid var(--primary-150);
+  border-top: 1px solid var(--primary-150);
+}
+.header.lastEmptyHeader {
+  border-top-right-radius: 3px;
+  border-right: 1px solid var(--primary-150);
+  border-top: 1px solid var(--primary-150);
+  position: sticky;
+  right: 0;
+  top: 0;
+  z-index: 3;
+}
+
+.empty {
+  padding: 0;
+  min-width: 10px;
+}
+.empty.locked {
+  left: 0;
+  border-right: none;
+  border-left: 1px solid var(--material-layer-3);
+}
+
+.header.TextCell,
+.cell.TextCell {
+  justify-items: start;
+}
+.header.DurationCell,
+.cell.DurationCell {
+  justify-items: start;
+}
+.cell:global(.alias),
+.header:global(.alias) {
+  .text {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media only screen and (max-width: 900px) {
+    .text {
+      max-width: 100px;
+    }
+    min-width: 0px;
+  }
+}
+.cell.BooleanCell {
+  min-width: initial;
+  .checked {
+    color: var(--secondary-2-600);
+  }
+  .unchecked {
+    color: var(--content-muted);
+  }
+}
+.header.BooleanCell,
+.cell.BooleanCell {
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+}
+
+.header.DateCell,
+.cell.DateCell {
+  justify-items: start;
+  min-width: initial;
+}
+.cell.DateCell {
+  white-space: nowrap;
+}
+.dateRow,
+.timeRow {
+  display: flex;
+  column-gap: 5px;
+  justify-items: start;
+  align-items: center;
+  svg {
+    color: var(--content-muted);
+  }
+}
+
+.link {
+  color: var(--primary-600);
+}
+
+.noTotalsRow {
+  border-bottom: 2px solid var(--primary-100);
+  min-height: 10px;
+  min-width: 10px;
+  position: sticky;
+  bottom: 0px;
+  z-index: 7;
+  &.firstEmptyCell {
+    z-index: 8;
+    left: 0;
+    border-bottom-left-radius: 3px;
+  }
+  &.lastEmptyCell {
+    border-bottom-right-radius: 3px;
+  }
+}
+
+/* For extremely small screen devices (595px and below) */
+@media only screen and (max-width: 595px) {
+  .cell,
+  .header {
+    padding: 10px 10px;
+  }
+  .cell.empty,
+  .header.empty {
+    min-width: 10px;
+    padding: 0;
+  }
+  :global(.alias),
+  .locked {
+    position: sticky;
+    left: 10px;
+  }
+}
