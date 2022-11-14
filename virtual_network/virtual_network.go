@@ -122,11 +122,9 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 	ctx := context.Background()
 
 	if withDatabase {
-		if withDatabase {
-			err = de.StartContainer(ctx, torqDbConf)
-			if err != nil {
-				return err
-			}
+		err = de.StartContainer(ctx, torqDbConf)
+		if err != nil {
+			return err
 		}
 	}
 
