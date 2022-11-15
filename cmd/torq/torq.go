@@ -99,13 +99,16 @@ func main() {
 			Usage:   "Path to config file",
 		},
 
-		&cli.BoolFlag{
-			Name:  "debug",
+		// Torq details
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:  "torq.debug",
 			Value: false,
 			Usage: "Enable debug logging",
-		},
-
-		// Torq connection details
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "torq.cookie-path",
+			Usage: "Path to auth cookie file",
+		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.password",
 			Usage: "Password used to access the API and frontend.",
@@ -169,7 +172,7 @@ func main() {
 		Action: func(c *cli.Context) error {
 
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
-			if c.Bool("debug") {
+			if c.Bool("torq.debug") {
 				zerolog.SetGlobalLevel(zerolog.DebugLevel)
 				log.Debug().Msg("Debug logging enabled")
 			}
@@ -320,7 +323,8 @@ func main() {
 
 			}
 
-			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), db, eventChannel, broadcaster, RestartLNDSubscription); err != nil {
+			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
+				db, eventChannel, broadcaster, RestartLNDSubscription); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}
 

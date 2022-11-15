@@ -1,19 +1,32 @@
 package auth
 
 import (
+	"crypto/rand"
 	"net/http"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 const Userkey = "user"
 
-func CreateSession(r *gin.Engine, apiPwd string) {
-	store := sessions.NewCookieStore([]byte(apiPwd))
+func CreateSession(r *gin.Engine, apiPwd string) error {
+	cookiePwd := []byte(apiPwd)
+	if len(cookiePwd) == 0 {
+		cookiePwd = make([]byte, 64)
+		_, err := rand.Read(cookiePwd)
+		if err != nil {
+			return errors.Wrap(err, "Generating random key")
+		}
+		log.Debug().Msg("No password set so generated random key for cookie store")
+	}
+	store := sessions.NewCookieStore(cookiePwd)
 	store.Options(sessions.Options{MaxAge: 86400, Path: "/"})
 	r.Use(sessions.Sessions("torq_session", store))
+	return nil
 }
 
 // AuthRequired is a simple middleware to check the session
