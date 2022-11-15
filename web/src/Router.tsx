@@ -22,6 +22,7 @@ import OnChainPage from "features/transact/OnChain/OnChainPage";
 import NewPaymentModal from "features/transact/Payments/newPayment/NewPaymentModal";
 import NewAddressModal from "features/transact/OnChain/newAddress/NewAddressModal";
 import UpdateChannelModal from "features/channels/updateChannel/UpdateChannelModal";
+import OpenChannelModal from "features/transact/Payments/openChannel/OpenChannelModal";
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
 
 import * as routes from "constants/routes";
@@ -55,6 +56,7 @@ const modalRoutes: RouteObject = {
     { path: routes.NEW_PAYMENT, element: <NewPaymentModal /> },
     { path: routes.NEW_ADDRESS, element: <NewAddressModal /> },
     { path: routes.UPDATE_CHANNEL, element: <UpdateChannelModal /> },
+    { path: routes.OPEN_CHANNEL, element: <OpenChannelModal /> },
   ],
 };
 

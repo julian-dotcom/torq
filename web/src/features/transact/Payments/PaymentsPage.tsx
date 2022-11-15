@@ -5,6 +5,7 @@ import {
   MoneyHand20Regular as TransactionIcon,
   Options20Regular as OptionsIcon,
   Save20Regular as SaveIcon,
+  ArrowRouting20Regular as ChannelsIcon,
 } from "@fluentui/react-icons";
 import {
   useCreateTableViewMutation,
@@ -13,7 +14,7 @@ import {
   useGetPaymentsQuery,
 } from "apiSlice";
 import clone from "clone";
-import { NEW_PAYMENT } from "constants/routes";
+import { NEW_PAYMENT, OPEN_CHANNEL } from "constants/routes";
 import Button, { buttonColor } from "features/buttons/Button";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
@@ -205,6 +206,15 @@ function PaymentsPage() {
         />
       )}
       <TableControlsButtonGroup>
+        <Button
+          buttonColor={buttonColor.green}
+          text={"Open Channel"}
+          className={"collapse-tablet"}
+          icon={<ChannelsIcon />}
+          onClick={() => {
+            navigate(OPEN_CHANNEL, { state: { background: location } });
+          }}
+        />
         <Button
           buttonColor={buttonColor.green}
           text={"New Payment"}
