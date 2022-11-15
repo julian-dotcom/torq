@@ -1,4 +1,4 @@
-import styles from "./cell.module.scss";
+import styles from "components/table/cells/cell.module.scss";
 import React from "react";
 import { format } from "d3";
 import classNames from "classnames";

@@ -1,5 +1,10 @@
 import Table, { ColumnMetaData } from "features/table/Table";
-import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation, useGetInvoicesQuery } from "apiSlice";
+import {
+  useCreateTableViewMutation,
+  useGetTableViewsQuery,
+  useUpdateTableViewMutation,
+  useGetInvoicesQuery,
+} from "apiSlice";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
@@ -17,7 +22,7 @@ import TablePageTemplate, {
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useEffect, useState } from "react";
 import TransactTabs from "../TransactTabs";
-import Pagination from "features/table/pagination/Pagination";
+import Pagination from "components/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
@@ -60,20 +65,19 @@ const statusTypes: any = {
 };
 
 function InvoicesPage() {
-
-  const { data: invoicesViews, isLoading } = useGetTableViewsQuery({page: 'invoices'});
+  const { data: invoicesViews, isLoading } = useGetTableViewsQuery({ page: "invoices" });
 
   useEffect(() => {
     const views: ViewInterface[] = [];
     if (!isLoading) {
       if (invoicesViews) {
         invoicesViews?.map((v: ViewResponse) => {
-          views.push(v.view)
+          views.push(v.view);
         });
 
         dispatch(updateViews({ views, index: 0 }));
       } else {
-        dispatch(updateViews({ views: [{...DefaultView, title: "Default View"}], index: 0 }));
+        dispatch(updateViews({ views: [{ ...DefaultView, title: "Default View" }], index: 0 }));
       }
     }
   }, [invoicesViews, isLoading]);
@@ -149,7 +153,7 @@ function InvoicesPage() {
     const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex, page: 'invoices' });
+      createTableView({ view: viewMod, index: currentViewIndex, page: "invoices" });
       return;
     }
     updateTableView(viewMod);

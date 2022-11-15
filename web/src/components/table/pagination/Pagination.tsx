@@ -6,7 +6,7 @@ import React, { useMemo } from "react";
 import { ChevronLeft20Filled as LeftIcon, ChevronRight20Filled as RightIcon } from "@fluentui/react-icons";
 import PaginationSelect from "./PaginationSelect";
 
-type PaginationProps = {
+export type PaginationProps = {
   limit: number;
   offset: number;
   total: number;

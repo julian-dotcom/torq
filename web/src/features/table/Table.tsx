@@ -1,16 +1,16 @@
 import styles from "./table.module.scss";
-import cellStyles from "./cells/cell.module.scss";
-import HeaderCell from "./cells/HeaderCell";
-import AliasCell from "./cells/AliasCell";
-import NumericCell from "./cells/NumericCell";
-import BarCell from "./cells/BarCell";
-import TextCell from "components/table/tableCells/textCell/TextCell";
-import DurationCell from "./cells/DurationCell";
-import BooleanCell from "./cells/BooleanCell";
+import cellStyles from "components/table/cells/cell.module.scss";
+import HeaderCell from "components/table/cells/header/HeaderCell";
+import AliasCell from "components/table/cells/alias/AliasCell";
+import NumericCell from "components/table/cells/numeric/NumericCell";
+import BarCell from "components/table/cells/bar/BarCell";
+import TextCell from "components/table/cells/text/TextCell";
+import DurationCell from "components/table/cells/duration/DurationCell";
+import BooleanCell from "components/table/cells/boolean/BooleanCell";
 import classNames from "classnames";
-import DateCell from "components/table/tableCells/dateCell/DateCell";
-import EnumCell from "./cells/EnumCell";
-import LinkCell from "./cells/LinkCell";
+import DateCell from "components/table/cells/date/DateCell";
+import EnumCell from "components/table/cells/enum/EnumCell";
+import LinkCell from "components/table/cells/link/LinkCell";
 import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
 
 export interface ColumnMetaData {

@@ -3,11 +3,12 @@ import classNames from "classnames";
 import { format } from "date-fns";
 import { Clock20Regular as TimeIcon, CalendarLtr20Regular as DateIcon } from "@fluentui/react-icons";
 import styles from "./date_cell.module.scss";
-import cellStyles from "components/table/tableCells/cell.module.scss";
+import cellStyles from "components/table/cells/cell.module.scss";
 
 export interface DateCellProps {
   value?: string | Date;
   className?: string;
+  total?: boolean;
 }
 
 function DateCell(props: DateCellProps) {
@@ -25,7 +26,11 @@ function DateCell(props: DateCellProps) {
   }
 
   return (
-    <div className={classNames(cellStyles.cell, cellStyles.alignLeft, styles.DateCell, props.className)}>
+    <div
+      className={classNames(cellStyles.cell, cellStyles.alignLeft, styles.DateCell, props.className, {
+        [cellStyles.totalCell]: props.total,
+      })}
+    >
       <div className={styles.dateRow}>
         {displayDate && <DateIcon />}
         {displayDate}

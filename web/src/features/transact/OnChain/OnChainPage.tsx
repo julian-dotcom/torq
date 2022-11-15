@@ -1,5 +1,10 @@
 import Table, { ColumnMetaData } from "features/table/Table";
-import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation, useGetOnChainTxQuery } from "apiSlice";
+import {
+  useCreateTableViewMutation,
+  useGetTableViewsQuery,
+  useUpdateTableViewMutation,
+  useGetOnChainTxQuery,
+} from "apiSlice";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
@@ -17,7 +22,7 @@ import TablePageTemplate, {
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useEffect, useState } from "react";
 import TransactTabs from "features/transact/TransactTabs";
-import Pagination from "features/table/pagination/Pagination";
+import Pagination from "components/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
@@ -60,19 +65,19 @@ const statusTypes: any = {
 function OnChainPage() {
   const dispatch = useAppDispatch();
 
-  const { data: onchainViews, isLoading } = useGetTableViewsQuery({page: 'onChain'});
+  const { data: onchainViews, isLoading } = useGetTableViewsQuery({ page: "onChain" });
 
   useEffect(() => {
     const views: ViewInterface[] = [];
     if (!isLoading) {
       if (onchainViews) {
         onchainViews?.map((v: ViewResponse) => {
-          views.push(v.view)
+          views.push(v.view);
         });
 
         dispatch(updateViews({ views, index: 0 }));
       } else {
-        dispatch(updateViews({ views: [{...DefaultView, title: "Default View"}], index: 0 }));
+        dispatch(updateViews({ views: [{ ...DefaultView, title: "Default View" }], index: 0 }));
       }
     }
   }, [onchainViews, isLoading]);
@@ -148,7 +153,7 @@ function OnChainPage() {
     const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex, page: 'onChain' });
+      createTableView({ view: viewMod, index: currentViewIndex, page: "onChain" });
       return;
     }
     updateTableView(viewMod);

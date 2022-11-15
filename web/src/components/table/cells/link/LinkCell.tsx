@@ -1,4 +1,4 @@
-import styles from "./cell.module.scss";
+import styles from "components/table/cells/cell.module.scss";
 import React from "react";
 import classNames from "classnames";
 
@@ -10,7 +10,12 @@ interface LinkCell {
 
 function LinkCell({ current, link, className }: LinkCell) {
   return (
-    <a className={classNames(styles.cell, styles.numericCell, styles.alignRight, className)} rel="noreferrer" target="_blank" href={link}>
+    <a
+      className={classNames(styles.cell, styles.numericCell, styles.alignRight, className)}
+      rel="noreferrer"
+      target="_blank"
+      href={link}
+    >
       <div className={classNames(styles.current, styles.text, styles.link)}>{current}</div>
     </a>
   );
