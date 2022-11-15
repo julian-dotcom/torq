@@ -1,4 +1,4 @@
-import {DEV_BACKEND_PORT, DEV_FRONTEND_PORT, REST_API_PATHNAME, WS_API_PATHNAME} from "constants/backend";
+import { DEV_BACKEND_PORT, DEV_FRONTEND_PORT, REST_API_PATHNAME, WS_API_PATHNAME } from "constants/backend";
 import { BASE_PATHNAME_PREFIX } from "constants/subpath-support";
 
 const isRunningOnSubpath = window.location.pathname.startsWith(BASE_PATHNAME_PREFIX);
@@ -22,3 +22,5 @@ export const getWsEndpoint = () => {
   const baseApiUrl = buildBaseUrl();
   return `${protocol}:${baseApiUrl}${WS_API_PATHNAME}`;
 };
+
+export const getStaticEndpoint = () => buildBaseUrl();
