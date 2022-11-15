@@ -95,18 +95,14 @@ function OpenChannelModal() {
     onMessage: onOpenChannelMessage,
   });
 
-  let response: any;
-
   function onOpenChannelMessage(event: MessageEvent<string>) {
-    response = JSON.parse(event.data);
-    console.log('response', response)
+    const response = JSON.parse(event.data);
     if (response?.type === "Error") {
       response.status = "FAILED"
       setErrorMEssage(response.error);
       setResultState(ProgressStepState.error);
       return;
     }
-    response.status = "SUCCEEDED"
   }
 
   return (
@@ -292,7 +288,6 @@ function OpenChannelModal() {
               <Switch label={"Private"}
                 checked={privateChan}
                 onChange={(value) => {
-                  console.log('value', value)
                   setPrivate(value)
                 }}
               />
@@ -301,7 +296,6 @@ function OpenChannelModal() {
               <Switch label={"Spend unconfirmed outputs"}
                 checked={spendUnconfirmed}
                 onChange={(value) => {
-                  console.log('value', value)
                   setSpendUnconfirmed(value)
                 }}
               />

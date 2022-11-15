@@ -22,7 +22,7 @@ import OnChainPage from "features/transact/OnChain/OnChainPage";
 import NewPaymentModal from "features/transact/Payments/newPayment/NewPaymentModal";
 import NewAddressModal from "features/transact/OnChain/newAddress/NewAddressModal";
 import UpdateChannelModal from "features/channels/updateChannel/UpdateChannelModal";
-import OpenChannelModal from "features/transact/Payments/openChannel/OpenChannelModal";
+import OpenChannelModal from "features/channels/openChannel/OpenChannelModal";
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
 
 import * as routes from "constants/routes";
