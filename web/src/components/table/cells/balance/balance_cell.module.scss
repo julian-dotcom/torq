@@ -1,0 +1,67 @@
+.balanceCell {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.bar {
+  display: grid;
+  width: 100%;
+  justify-items: flex-end;
+  background-color: var(--color-success-faint);
+  border-radius: 3px;
+
+  .percentage {
+    height: 5px;
+    min-width: 2px;
+    background-color: var(--color-border-success-faded);
+    border-radius: 0px 3px 3px 0px;
+  }
+}
+
+.capacity {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 100%;
+
+  .remote,
+  .local,
+  .total {
+    color: var(--color-text-success-faint);
+  }
+}
+.balances {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+
+  .amount {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+
+    .icon {
+      color: var(--color-text-success-faint);
+
+      svg {
+        width: 16px;
+      }
+    }
+
+    .value {
+      font-weight: 400;
+      font-size: 12px;
+      line-height: 100%;
+      color: var(--color-text-success-faint);
+    }
+
+    &:last-of-type {
+      justify-content: flex-end;
+    }
+  }
+}
