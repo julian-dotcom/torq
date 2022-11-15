@@ -1,6 +1,7 @@
 export const ROOT = "/";
 
 export const LOGIN = "login";
+export const COOKIELOGIN = "cookie-login";
 export const LOGOUT = "logout";
 
 export const ANALYSE = "analyse";

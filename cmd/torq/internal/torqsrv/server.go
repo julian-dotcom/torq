@@ -131,6 +131,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 	// Limit login attempts to 10 per minute.
 	rl := NewLoginRateLimitMiddleware()
 	api.POST("/login", rl, auth.Login(apiPwd))
+	api.POST("/cookie-login", rl, auth.CookieLogin(cookiePath))
 
 	unauthorisedSettingRoutes := api.Group("settings")
 	{

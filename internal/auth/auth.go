@@ -2,7 +2,10 @@ package auth
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"net/http"
+	"os"
+	"regexp"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -65,6 +68,50 @@ func Login(apiPwd string) gin.HandlerFunc {
 		// set this to the users ID when moving to multi users setup
 		session.Set(Userkey, username)
 		if err := session.Save(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Successfully authenticated user"})
+	}
+}
+
+type accessKey struct {
+	AccessKey string `json:"accessKey"`
+}
+
+// Cookie Login creates a user session
+func CookieLogin(cookiePath string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+
+		accessKey := accessKey{}
+
+		if err := c.BindJSON(&accessKey); err != nil {
+			log.Error().Err(err).Msg("Unable to parse access key from JSON")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to parse access key from JSON"})
+			return
+		}
+
+		cookieFile, err := os.ReadFile(cookiePath)
+		if err != nil {
+			log.Error().Err(err).Msg("Unable to read cookie file")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to read cookie file"})
+			return
+		}
+
+		var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
+		cookieFileContents := nonAlphanumericRegex.ReplaceAllString(string(cookieFile), "")
+
+		if subtle.ConstantTimeCompare([]byte(accessKey.AccessKey), []byte(cookieFileContents)) != 1 {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication failed"})
+			return
+		}
+
+		// Save the username in the session
+		// set this to the users ID when moving to multi users setup
+		session.Set(Userkey, "SSOUser")
+		if err := session.Save(); err != nil {
+			log.Error().Err(err).Msg("Failed to save session")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
 			return
 		}
