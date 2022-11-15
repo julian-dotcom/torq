@@ -47,6 +47,13 @@ const (
 	AbandonedClosed        = 105
 )
 
+type PingSystem byte
+
+const (
+	Amboss PingSystem = 1 << iota
+	Vector
+)
+
 // GetNetwork defaults to MainNet when no match is found
 func GetNetwork(network string) Network {
 	switch network {

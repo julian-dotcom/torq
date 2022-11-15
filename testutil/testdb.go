@@ -185,9 +185,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		log.Debug().Msgf("Added test node with publicKey: %v nodeId: %v", TestPublicKey2, testNodeId2)
 
 		_, err = db.Exec(`INSERT INTO node_connection_details
-			(node_id, name, implementation, status_id, created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5, $6);`,
-			testNodeId1, "Node_1", commons.LND, commons.Active, time.Now().UTC(), time.Now().UTC())
+			(node_id, name, implementation, status_id, ping_system, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+			testNodeId1, "Node_1", commons.LND, commons.Active, 0, time.Now().UTC(), time.Now().UTC())
 		if err != nil {
 			cancel()
 			return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
@@ -195,9 +195,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		log.Debug().Msgf("Added test active node connection details with nodeId: %v", testNodeId1)
 
 		_, err = db.Exec(`INSERT INTO node_connection_details
-			(node_id, name, implementation, status_id, created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5, $6);`,
-			testNodeId2, "Node_2", commons.LND, commons.Active, time.Now().UTC(), time.Now().UTC())
+			(node_id, name, implementation, status_id, ping_system, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+			testNodeId2, "Node_2", commons.LND, commons.Active, 0, time.Now().UTC(), time.Now().UTC())
 		if err != nil {
 			cancel()
 			return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
