@@ -6,7 +6,12 @@ import {
   Options20Regular as OptionsIcon,
   Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
-import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation, useGetPaymentsQuery } from "apiSlice";
+import {
+  useCreateTableViewMutation,
+  useGetTableViewsQuery,
+  useUpdateTableViewMutation,
+  useGetPaymentsQuery,
+} from "apiSlice";
 import clone from "clone";
 import { NEW_PAYMENT } from "constants/routes";
 import Button, { buttonColor } from "features/buttons/Button";
@@ -15,7 +20,7 @@ import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import Sidebar from "features/sidebar/Sidebar";
-import Pagination from "features/table/pagination/Pagination";
+import Pagination from "components/table/pagination/Pagination";
 import Table, { ColumnMetaData } from "features/table/Table";
 import TablePageTemplate, {
   TableControlsButton,
@@ -72,23 +77,22 @@ const failureReasons: any = {
 };
 
 function PaymentsPage() {
-  const { data: paymentsViews, isLoading } = useGetTableViewsQuery({page: 'payments'});
+  const { data: paymentsViews, isLoading } = useGetTableViewsQuery({ page: "payments" });
 
   useEffect(() => {
     const views: ViewInterface[] = [];
     if (!isLoading) {
       if (paymentsViews) {
         paymentsViews?.map((v: ViewResponse) => {
-          views.push(v.view)
+          views.push(v.view);
         });
 
         dispatch(updateViews({ views, index: 0 }));
       } else {
-        dispatch(updateViews({ views: [{...DefaultView, title: "Default View"}], index: 0 }));
+        dispatch(updateViews({ views: [{ ...DefaultView, title: "Default View" }], index: 0 }));
       }
     }
   }, [paymentsViews, isLoading]);
-
 
   const [limit, setLimit] = useLocalStorage("paymentsLimit", 100);
   const [offset, setOffset] = useState(0);
@@ -174,7 +178,7 @@ function PaymentsPage() {
     const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex, page: 'payments' });
+      createTableView({ view: viewMod, index: currentViewIndex, page: "payments" });
       return;
     }
     updateTableView(viewMod);

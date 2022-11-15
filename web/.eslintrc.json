@@ -8,7 +8,8 @@
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
     "prettier",
-    "plugin:react/jsx-runtime"
+    "plugin:react/jsx-runtime",
+    "plugin:storybook/recommended"
   ],
   "overrides": [],
   "parser": "@typescript-eslint/parser",
@@ -16,14 +17,23 @@
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
-  "plugins": ["react", "@typescript-eslint", "unused-imports"],
+  "plugins": [
+    "react",
+    "@typescript-eslint",
+    "unused-imports"
+  ],
   "rules": {
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": "off",
     "unused-imports/no-unused-imports": "error",
     "unused-imports/no-unused-vars": [
       "warn",
-      { "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+      {
+        "vars": "all",
+        "varsIgnorePattern": "^_",
+        "args": "after-used",
+        "argsIgnorePattern": "^_"
+      }
     ],
     "@typescript-eslint/no-explicit-any": "warn"
   },

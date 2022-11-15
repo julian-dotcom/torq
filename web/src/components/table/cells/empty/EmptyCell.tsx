@@ -1,4 +1,4 @@
-import styles from "./cell.module.scss";
+import styles from "components/table/cells/cell.module.scss";
 import classNames from "classnames";
 
 function EmptyCell(index?: number | string, className?: string) {

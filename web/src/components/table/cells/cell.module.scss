@@ -163,10 +163,15 @@
 }
 
 .header.TextCell,
+.header.DateCell,
+.header.DurationCell {
+  justify-items: start;
+  min-width: initial;
+}
 .cell.TextCell {
   justify-items: start;
 }
-.header.DurationCell,
+
 .cell.DurationCell {
   justify-items: start;
 }
@@ -199,25 +204,6 @@
   align-items: center;
   justify-content: center;
   min-width: 24px;
-}
-
-.header.DateCell,
-.cell.DateCell {
-  justify-items: start;
-  min-width: initial;
-}
-.cell.DateCell {
-  white-space: nowrap;
-}
-.dateRow,
-.timeRow {
-  display: flex;
-  column-gap: 5px;
-  justify-items: start;
-  align-items: center;
-  svg {
-    color: var(--content-muted);
-  }
 }
 
 .link {

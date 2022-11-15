@@ -1,7 +1,7 @@
-import styles from "./cell.module.scss";
 import { format } from "d3";
 import React from "react";
 import classNames from "classnames";
+import styles from "components/table/cells/cell.module.scss";
 
 interface barCell {
   current: number;
@@ -11,8 +11,8 @@ interface barCell {
 }
 
 function formatPercent(num: number) {
-  return new Intl.NumberFormat('default', {
-    style: 'percent',
+  return new Intl.NumberFormat("default", {
+    style: "percent",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(num / 100);
@@ -23,10 +23,10 @@ const formatter = format(",.0f");
 
 function BarCell({ current, total, className, showPercent }: barCell) {
   const percent = (current || 0) / total;
-  let data = current % 1 != 0 ? formatterDetailed(current) : formatter(current)
+  let data = current % 1 != 0 ? formatterDetailed(current) : formatter(current);
 
   if (showPercent) {
-    data = formatPercent(current)
+    data = formatPercent(current);
   }
 
   return (

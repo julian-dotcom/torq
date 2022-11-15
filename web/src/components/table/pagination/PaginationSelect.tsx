@@ -34,6 +34,7 @@ const customStyles = {
     cursor: "pointer",
     backgroundColor: "transparent",
     boxShadow: "none",
+    borderRadius: "0px",
     "&:hover": {
       color: "var(--content-default)",
       border: "1px solid var(--primary-250)",

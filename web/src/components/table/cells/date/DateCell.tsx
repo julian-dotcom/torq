@@ -1,12 +1,14 @@
 import React from "react";
-import styles from "./cell.module.scss";
 import classNames from "classnames";
 import { format } from "date-fns";
 import { Clock20Regular as TimeIcon, CalendarLtr20Regular as DateIcon } from "@fluentui/react-icons";
+import styles from "./date_cell.module.scss";
+import cellStyles from "components/table/cells/cell.module.scss";
 
-interface DateCellProps {
-  value: string | Date;
+export interface DateCellProps {
+  value?: string | Date;
   className?: string;
+  total?: boolean;
 }
 
 function DateCell(props: DateCellProps) {
@@ -24,13 +26,17 @@ function DateCell(props: DateCellProps) {
   }
 
   return (
-    <div className={classNames(styles.cell, styles.alignLeft, styles.booleanCell, styles.DateCell, props.className)}>
+    <div
+      className={classNames(cellStyles.cell, cellStyles.alignLeft, styles.DateCell, props.className, {
+        [cellStyles.totalCell]: props.total,
+      })}
+    >
       <div className={styles.dateRow}>
-        <DateIcon />
+        {displayDate && <DateIcon />}
         {displayDate}
       </div>
       <div className={styles.timeRow}>
-        <TimeIcon />
+        {displayTime && <TimeIcon />}
         {displayTime}
       </div>
     </div>
