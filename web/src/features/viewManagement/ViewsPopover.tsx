@@ -9,11 +9,11 @@ import {
 } from "@fluentui/react-icons";
 import { useState } from "react";
 import classNames from "classnames";
-import TabButton from "features/buttons/TabButton";
+import TabButton from "components/buttons/TabButton";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import Popover from "features/popover/Popover";
 import { RootState } from "store/store";
-import Button, { buttonColor, buttonSize } from "features/buttons/Button";
+import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import { ViewInterface, viewOrderInterface } from "features/table/Table";
 import {
   useCreateTableViewMutation,
@@ -21,7 +21,7 @@ import {
   useDeleteTableViewMutation,
   useUpdateTableViewsOrderMutation,
 } from "apiSlice";
-import { ActionCreatorWithPayload } from '@reduxjs/toolkit';
+import { ActionCreatorWithPayload } from "@reduxjs/toolkit";
 
 type viewRow = {
   title: string;
@@ -33,28 +33,37 @@ type viewRow = {
 };
 
 type ViewsPopover = {
-  page: string,
-  selectViews: (state: RootState) => ViewInterface[],
+  page: string;
+  selectViews: (state: RootState) => ViewInterface[];
   // selectViews: ViewInterface[],
-  updateViews: ActionCreatorWithPayload<{
-    views: ViewInterface[];
-    index: number;
-}, string>,
-  updateSelectedView: ActionCreatorWithPayload<{
-    index: number;
-  }, string>,
-  selectedViewIndex: (state: RootState) => number,
-  DefaultView: ViewInterface,
-  updateViewsOrder: ActionCreatorWithPayload<{
-    views: ViewInterface[];
-    index: number;
-  }, string>,
+  updateViews: ActionCreatorWithPayload<
+    {
+      views: ViewInterface[];
+      index: number;
+    },
+    string
+  >;
+  updateSelectedView: ActionCreatorWithPayload<
+    {
+      index: number;
+    },
+    string
+  >;
+  selectedViewIndex: (state: RootState) => number;
+  DefaultView: ViewInterface;
+  updateViewsOrder: ActionCreatorWithPayload<
+    {
+      views: ViewInterface[];
+      index: number;
+    },
+    string
+  >;
 };
 
 export type ViewResponse = {
   id: number;
   view: ViewInterface;
-}
+};
 
 function ViewRow({ title, index, handleUpdateView, handleRemoveView, handleSelectView, singleView }: viewRow) {
   const [editView, setEditView] = useState(false);
@@ -112,7 +121,15 @@ function ViewRow({ title, index, handleUpdateView, handleRemoveView, handleSelec
   );
 }
 
-function ViewsPopover({ page, selectViews, updateViews, updateSelectedView, selectedViewIndex, updateViewsOrder, DefaultView  }: ViewsPopover) {
+function ViewsPopover({
+  page,
+  selectViews,
+  updateViews,
+  updateSelectedView,
+  selectedViewIndex,
+  updateViewsOrder,
+  DefaultView,
+}: ViewsPopover) {
   const views = useAppSelector(selectViews);
   const selectedView = useAppSelector(selectedViewIndex);
   const dispatch = useAppDispatch();

@@ -19,12 +19,19 @@ const Template: Story<SwitchProps> = (args) => {
 
 const defaultArgs: SwitchProps = {
   label: "Add Torq",
-  checked: false,
   sizeVariant: SwitchSize.normal,
+};
+const argTypes = {
+  checked: {
+    control: {
+      type: "boolean",
+    },
+  },
 };
 
 export const Primary = Template.bind({});
 Primary.args = defaultArgs;
+Primary.argTypes = argTypes;
 
 export const Unchecked = Template.bind({});
 Unchecked.args = defaultArgs;
@@ -32,19 +39,17 @@ Unchecked.args = defaultArgs;
 export const Checked = Template.bind({});
 Checked.args = {
   ...defaultArgs,
-  checked: true,
+  defaultChecked: true,
 };
 
 export const Small = Template.bind({});
 Small.args = {
   ...defaultArgs,
-  checked: true,
   sizeVariant: SwitchSize.small,
 };
 
 export const Tiny = Template.bind({});
 Tiny.args = {
   ...defaultArgs,
-  checked: true,
   sizeVariant: SwitchSize.tiny,
 };

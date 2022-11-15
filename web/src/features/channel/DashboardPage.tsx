@@ -27,7 +27,7 @@ import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartK
 import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
 import Modal from "features/modal/Modal";
-import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
+import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 
 const ft = d3.format(",.0f");

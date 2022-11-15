@@ -45,7 +45,7 @@ import {
 import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import { SectionContainer } from "features/section/SectionContainer";
-import Button, { buttonColor } from "features/buttons/Button";
+import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_ADDRESS } from "constants/routes";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";

@@ -7,7 +7,7 @@ import {
 import { useGetNodeConfigurationsQuery, useGetChannelsQuery, useUpdateChannelMutation } from "apiSlice";
 import type { channel } from "apiTypes";
 import { useState, useEffect } from "react";
-import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
+import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./updateChannel.module.scss";
@@ -66,7 +66,10 @@ function NodechannelModal() {
 
   function handleNodeSelection(value: number) {
     setSelectedNodeId(value);
-    channels = channels?.filter((channel: { firstNodeId: number, secondNodeId: number }) => channel.firstNodeId == value || channel.secondNodeId == value);
+    channels = channels?.filter(
+      (channel: { firstNodeId: number; secondNodeId: number }) =>
+        channel.firstNodeId == value || channel.secondNodeId == value
+    );
   }
 
   function handleChannelSelection(value: number) {

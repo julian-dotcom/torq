@@ -45,7 +45,7 @@ import GroupBySection from "features/sidebar/sections/group/GroupBySection";
 import ForwardsDataWrapper from "./ForwardsDataWrapper";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import { SectionContainer } from "features/section/SectionContainer";
-import Button, { buttonColor } from "features/buttons/Button";
+import Button, { buttonColor } from "components/buttons/Button";
 import { ViewResponse } from "features/viewManagement/ViewsPopover";
 import { ViewInterface } from "features/table/Table";
 
@@ -58,20 +58,20 @@ type sections = {
 function ForwardsPage() {
   const dispatch = useAppDispatch();
 
-   const { data: forwardsViews, isLoading } = useGetTableViewsQuery({page: 'forwards'});
+  const { data: forwardsViews, isLoading } = useGetTableViewsQuery({ page: "forwards" });
 
-    useEffect(() => {
-      const views: ViewInterface[] = [];
-      if (forwardsViews) {
-        forwardsViews?.map((v: ViewResponse) => {
-          views.push(v.view)
-        });
+  useEffect(() => {
+    const views: ViewInterface[] = [];
+    if (forwardsViews) {
+      forwardsViews?.map((v: ViewResponse) => {
+        views.push(v.view);
+      });
 
-        dispatch(updateViews({ views, index: 0 }));
-      } else {
-        dispatch(updateViews({ views: [{...DefaultView, title: "Default View"}], index: 0 }));
-      }
-    }, [forwardsViews, isLoading]);
+      dispatch(updateViews({ views, index: 0 }));
+    } else {
+      dispatch(updateViews({ views: [{ ...DefaultView, title: "Default View" }], index: 0 }));
+    }
+  }, [forwardsViews, isLoading]);
 
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
@@ -116,7 +116,7 @@ function ForwardsPage() {
     const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex, page: 'forwards' });
+      createTableView({ view: viewMod, index: currentViewIndex, page: "forwards" });
       return;
     }
     updateTableView(viewMod);

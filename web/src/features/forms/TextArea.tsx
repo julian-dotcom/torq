@@ -1,4 +1,4 @@
-import styles from "./textInput.module.scss";
+import styles from "components/forms/input/textInput.module.scss";
 import React from "react";
 
 interface textInputProps {

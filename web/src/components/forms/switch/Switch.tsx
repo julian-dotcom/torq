@@ -14,11 +14,10 @@ const SwitchSizeClasses = new Map<SwitchSize, string>([
   [SwitchSize.tiny, styles.tiny],
 ]);
 
-export interface SwitchProps
-  extends React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> {
+export type SwitchProps = React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & {
   sizeVariant?: SwitchSize;
   label: string;
-}
+};
 
 export default function Switch({ label, sizeVariant, ...rest }: SwitchProps) {
   const sizeClass = SwitchSizeClasses.get(sizeVariant || SwitchSize.normal);

@@ -14,7 +14,7 @@ import {
 } from "apiSlice";
 import clone from "clone";
 import { NEW_PAYMENT } from "constants/routes";
-import Button, { buttonColor } from "features/buttons/Button";
+import Button, { buttonColor } from "components/buttons/Button";
 import useLocalStorage from "features/helpers/useLocalStorage";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import { FilterCategoryType } from "features/sidebar/sections/filter/filter";

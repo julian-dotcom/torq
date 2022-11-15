@@ -44,7 +44,7 @@ import GroupBySection from "features/sidebar/sections/group/GroupBySection";
 import ChannelsDataWrapper from "./ChannelsDataWrapper";
 import { SectionContainer } from "features/section/SectionContainer";
 import { ColumnMetaData } from "features/table/Table";
-import Button, { buttonColor } from "features/buttons/Button";
+import Button, { buttonColor } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
 import { UPDATE_CHANNEL } from "constants/routes";
@@ -59,18 +59,18 @@ function ChannelsPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { data: channelsViews, isLoading } = useGetTableViewsQuery({page: 'channels'});
+  const { data: channelsViews, isLoading } = useGetTableViewsQuery({ page: "channels" });
 
   useEffect(() => {
     const views: ViewInterface[] = [];
     if (channelsViews) {
       channelsViews?.map((v: ViewResponse) => {
-        views.push(v.view)
+        views.push(v.view);
       });
 
       dispatch(updateViews({ views, index: 0 }));
     } else {
-      dispatch(updateViews({ views: [{...DefaultView, title: "Default View"}], index: 0 }));
+      dispatch(updateViews({ views: [{ ...DefaultView, title: "Default View" }], index: 0 }));
     }
   }, [channelsViews, isLoading]);
 
@@ -116,7 +116,7 @@ function ChannelsPage() {
     const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex, page: 'channels' });
+      createTableView({ view: viewMod, index: currentViewIndex, page: "channels" });
       return;
     }
     updateTableView(viewMod);

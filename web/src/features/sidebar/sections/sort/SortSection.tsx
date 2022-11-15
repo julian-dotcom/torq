@@ -8,7 +8,7 @@ import {
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
 import { ColumnMetaData } from "features/table/Table";
-import Button, { buttonColor, buttonSize } from "features/buttons/Button";
+import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";

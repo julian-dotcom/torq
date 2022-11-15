@@ -17,7 +17,7 @@ import React from "react";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "store/hooks";
-import Button, { buttonColor, buttonSize } from "features/buttons/Button";
+import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import EventsCard from "features/eventsCard/EventsCard";
 import Select from "features/inputs/Select";
 import Switch from "components/forms/switch/Switch";

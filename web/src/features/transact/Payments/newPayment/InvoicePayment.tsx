@@ -1,7 +1,7 @@
 import { Options20Regular as OptionsIcon } from "@fluentui/react-icons";
-import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
+import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import { useState } from "react";
-import TextInput from "features/forms/TextInput";
+import Input from "components/forms/input/Input";
 import { ProgressStepState } from "features/progressTabs/ProgressHeader";
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import { SectionContainer } from "features/section/SectionContainer";
@@ -66,18 +66,19 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
         expanded={expandAdvancedOptions}
         handleToggle={() => setExpandAdvancedOptions(!expandAdvancedOptions)}
       >
-        <TextInput
+        <Input
           label={"Fee limit"}
-          inputType={"number"}
+          type={"number"}
           value={feeLimit}
           onChange={(e) => {
-            setFeeLimit(e as number);
+            setFeeLimit(e.target.valueAsNumber);
           }}
         />
-        <TextInput
+        <Input
           label={"Timeout (Seconds)"}
+          type={"number"}
           value={timeOutSecs}
-          onChange={(e) => setTimeOutSecs(parseInt(e as string))}
+          onChange={(e) => setTimeOutSecs(e.target.valueAsNumber)}
         />
       </SectionContainer>
 
