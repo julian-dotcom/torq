@@ -52,6 +52,13 @@
     "maxHtlcSatPlaceholder": "Leave empty for no limit",
     "minHtlcSatPlaceholder": "Leave empty for no limit"
   },
+  "openCloseChannel": {
+    "openNewChannel": "Open another",
+    "confirm": "Confirm",
+    "error": "Error:",
+    "note": "Note:",
+    "confirmationOpenning": "The channel open has been published but still need time to be confirmed. on-chain."
+  },
   "toast": {
     "settingsSaved": "Settings saved",
     "tagAdded": "Tag added",
