@@ -28,8 +28,8 @@ Primary.args = defaultArgs;
 
 export const Checked = Template.bind({});
 Checked.args = {
-  checked: true,
   ...defaultArgs,
+  checked: true,
 };
 
 export const Total = Template.bind({});
