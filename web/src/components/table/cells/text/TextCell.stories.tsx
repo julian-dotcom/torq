@@ -10,8 +10,10 @@ const Template: Story<TextCellProps> = (args) => <TextCellMemo {...args} />;
 
 export const Primary = Template.bind({});
 Primary.args = {
-  current: "Some value text",
-  total: false,
+  current: "Some value text value that is longer than the other values",
+  link: "https://www.google.com",
+  copyText: "Some value text value that is longer than the other values",
+  totalCell: false,
 };
 
 export const NoData = Template.bind({});
@@ -19,6 +21,8 @@ NoData.args = { current: undefined };
 
 export const Total = Template.bind({});
 Total.args = {
-  current: "Some total value text",
-  total: true,
+  current: "Some value text value that is longer than the other values",
+  link: "https://www.google.com",
+  copyText: "Some value text value that is longer than the other values",
+  totalCell: true,
 };
