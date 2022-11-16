@@ -1,0 +1,73 @@
+.normal {
+  --label-font-size: var(--font-size-small);
+  --input-font-size: var(--font-size-normal);
+}
+
+.primary {
+  --input-default-background: var(--color-primary-layer-2);
+  --input-hover-background: var(--color-primary-layer-4);
+  --input-focus-background: var(--color-primary-layer-1);
+  --input-focus-border-color: var(--color-border-primary-faded);
+  --input-placeholder-color: var(--color-text-primary-faded);
+  --input-color: var(--color-text-primary-strong);
+  --input-label-color: var(--color-text-primary-strong);
+}
+
+.success {
+  --input-default-background: var(--color-success-layer-2);
+  --input-hover-background: var(--color-success-layer-3);
+  --input-focus-background: var(--color-success-layer-1);
+  --input-focus-border-color: var(--color-border-success-faded);
+  --input-placeholder-color: var(--color-text-success-faded);
+  --input-color: var(--color-text-success-strong);
+  --input-label-color: var(--color-text-primary-strong);
+}
+.warning {
+  --input-default-background: var(--color-warning-layer-2);
+  --input-hover-background: var(--color-warning-layer-4);
+  --input-focus-background: var(--color-warning-layer-1);
+  --input-focus-border-color: var(--color-border-warning-faded);
+  --input-placeholder-color: var(--color-text-warning-faded);
+  --input-color: var(--color-text-warning-strong);
+  --input-label-color: var(--color-text-primary-strong);
+}
+
+.error {
+  --input-default-background: var(--color-error-layer-2);
+  --input-hover-background: var(--color-error-layer-3);
+  --input-focus-background: var(--color-error-layer-1);
+  --input-focus-border-color: var(--color-border-error-faded);
+  --input-placeholder-color: var(--color-text-error-faded);
+  --input-color: var(--color-text-error-faded);
+  --input-label-color: var(--color-text-primary-strong);
+}
+
+.accent1 {
+  --input-default-background: var(--color-accent-1-layer-2);
+  --input-hover-background: var(--color-accent-1-layer-3);
+  --input-focus-background: var(--color-accent-1-layer-1);
+  --input-focus-border-color: var(--color-border-accent-1-faded);
+  --input-placeholder-color: var(--color-text-accent-1-faded);
+  --input-color: var(--color-text-accent-1-strong);
+  --input-label-color: var(--color-text-primary-strong);
+}
+
+.accent2 {
+  --input-default-background: var(--color-accent-2-layer-2);
+  --input-hover-background: var(--color-accent-2-layer-3);
+  --input-focus-background: var(--color-accent-2-layer-1);
+  --input-focus-border-color: var(--color-border-accent-2-faded);
+  --input-placeholder-color: var(--color-text-accent-2-faded);
+  --input-color: var(--color-text-accent-2-strong);
+  --input-label-color: var(--color-text-primary-strong);
+}
+
+.accent3 {
+  --input-default-background: var(--color-accent-3-layer-2);
+  --input-hover-background: var(--color-accent-3-layer-3);
+  --input-focus-background: var(--color-accent-3-layer-1);
+  --input-focus-border-color: var(--color-border-accent-3-faded);
+  --input-placeholder-color: var(--color-text-accent-3-faded);
+  --input-color: var(--color-text-accent-3-strong);
+  --input-label-color: var(--color-text-primary-strong);
+}
