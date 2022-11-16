@@ -81,11 +81,8 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		for _, transaction := range transactionDetails.Transactions {
 			storedTx, err = storeTransaction(db, transaction, nodeSettings.NodeId)
 			if err != nil {
-				// TODO FIXME THIS WILL CAUSE AN INFINITE LOOP???
-				// It's either an infinite loop or missing a transaction.
-				log.Error().Err(err).Msg("Failed to store the transaction, will retry in 10 seconds")
-				time.Sleep(10 * time.Second)
-				continue
+				// TODO FIXME This transaction is now missing
+				log.Error().Err(err).Msg("Failed to store the transaction (transaction is now missing and can only be recovered by emptying the transactions table)")
 			}
 			if eventChannel != nil {
 				eventChannel <- broadcast.TransactionEvent{

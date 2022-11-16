@@ -47,8 +47,9 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 
 		peerEvent, err = stream.Recv()
 		if err != nil {
-			log.Error().Err(err).Msg("Receiving peer events from the stream failed, will retry to obtain a stream")
+			log.Error().Err(err).Msg("Receiving peer events from the stream failed, will retry in 1 minute")
 			stream = nil
+			time.Sleep(1 * time.Minute)
 			continue
 		}
 

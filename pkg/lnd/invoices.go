@@ -230,7 +230,8 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 
 		invoice, err = stream.Recv()
 		if err != nil {
-			log.Error().Err(err).Msg("Receiving invoices from the stream failed, will retry to obtain a stream")
+			log.Error().Err(err).Msg("Receiving invoices from the stream failed, will retry in 1 minute")
+			time.Sleep(1 * time.Minute)
 			continue
 		}
 
