@@ -9,18 +9,15 @@
     color: var(--input-placeholder-color);
   }
   label {
+    font-size: var(--label-font-size);
     color: var(--input-label-color);
   }
-}
-.label {
-  font-size: var(--font-size-small);
 }
 
 .feedbackWrapper {
   display: flex;
   gap: 4px;
-  font-size: var(--font-size-small);
-  color: var(--color-text-secondary-faded);
+  font-size: var(--feedback-font-size);
   .feedbackText {
     margin-top: 1px;
   }
@@ -29,15 +26,15 @@
     width: 16px;
   }
 }
-.inputWrapper.tiny {
-  .feedbackWrapper {
-    font-size: var(--font-size-tiny);
-    .feedbackText {
-      margin-top: 0px;
-    }
-    svg {
-      height: 12px;
-      width: 12px;
-    }
-  }
-}
+//.inputWrapper.tiny {
+//  .feedbackWrapper {
+//    font-size: var(--font-size-tiny);
+//    .feedbackText {
+//      margin-top: 0px;
+//    }
+//    svg {
+//      height: 12px;
+//      width: 12px;
+//    }
+//  }
+//}

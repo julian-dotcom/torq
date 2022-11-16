@@ -25,26 +25,37 @@ const customStyles = {
       backgroundColor: state.isFocused ? "var(--input-focus-background)" : "var(--input-hover-background)",
       boxShadow: "none",
     },
-    height: "40px",
+    fontSize: "var(--input-font-size)",
+    height: "var(--input-height)",
+    minHeight: "var(--input-height)",
   }),
   placeholder: (provided: any) => {
     return {
       ...provided,
       color: "var(--input-placeholder-color)",
+      fontSize: "var(--input-font-size)",
     };
   },
   dropdownIndicator: (provided: any, _: any) => ({
     ...provided,
     color: "var(--input-color)",
-    // padding: "0",
+    fontSize: "var(--input-font-size)",
+    padding: "var(--indicator-padding)",
   }),
   singleValue: (provided: any) => ({
     ...provided,
     color: "var(--input-color)",
+    fontSize: "var(--input-font-size)",
+  }),
+  input: (provided: any) => ({
+    ...provided,
+    margin: "0",
+    padding: "0",
   }),
   option: (provided: any, state: any) => ({
     ...provided,
     color: "var(--input-color)",
+    fontSize: "var(--input-font-size)",
     background: state.isFocused ? "var(--input-default-background)" : "#ffffff",
     "&:hover": {
       boxShadow: "none",
@@ -57,6 +68,9 @@ const customStyles = {
     borderColor: "transparent",
     boxShadow: "none",
     padding: "8px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
   }),
   menu: (provided: any, _: any) => ({
     ...provided,

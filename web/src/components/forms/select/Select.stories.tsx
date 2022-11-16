@@ -38,6 +38,20 @@ Open.args = {
   menuIsOpen: true,
 };
 
+export const Small = Template.bind({});
+Small.args = {
+  ...defaultArgs,
+  sizeVariant: InputSizeVariant.small,
+  menuIsOpen: true,
+};
+
+export const Tiny = Template.bind({});
+Tiny.args = {
+  ...defaultArgs,
+  sizeVariant: InputSizeVariant.tiny,
+  menuIsOpen: true,
+};
+
 export const Accent1 = Template.bind({});
 Accent1.args = { ...defaultArgs, colorVariant: InputColorVaraint.accent1 };
 
