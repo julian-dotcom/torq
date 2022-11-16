@@ -8,7 +8,7 @@ import {
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
 import { useState } from "react";
-import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
+import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./openChannel.module.scss";
@@ -20,10 +20,10 @@ import Select, { SelectOptions } from "features/forms/Select";
 import { ActionMeta } from "react-select";
 import classNames from "classnames";
 import NumberFormat, { NumberFormatValues } from "react-number-format";
-import TextInput from "features/forms/TextInput";
+import Input from "components/forms/input/Input";
 import { SectionContainer } from "features/section/SectionContainer";
 import useWebSocket from "react-use-websocket";
-import Switch from "features/inputs/Slider/Switch";
+import Switch from "components/forms/switch/Switch";
 
 // import clone from "clone";
 import FormRow from "features/forms/FormWrappers";
@@ -42,7 +42,6 @@ const openStatusIcon = {
 };
 
 function OpenChannelModal() {
-
   const { t } = useTranslations();
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
 
@@ -98,7 +97,7 @@ function OpenChannelModal() {
   function onOpenChannelMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
     if (response?.type === "Error") {
-      response.status = "FAILED"
+      response.status = "FAILED";
       setErrorMEssage(response.error);
       setResultState(ProgressStepState.error);
       return;
@@ -129,11 +128,11 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableSingle}>
                 <span className={styles.label}>{"Peer public key"}</span>
                 <div className={styles.input}>
-                  <TextInput
+                  <Input
                     value={nodePubKey}
                     placeholder={"pubkey"}
-                    onChange={(value) => {
-                      setNodePubKey(value as string);
+                    onChange={(e) => {
+                      setNodePubKey(e.target.value);
                     }}
                   />
                 </div>
@@ -145,11 +144,12 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableSingle}>
                 <span className={styles.label}>{"Peer IP and port"}</span>
                 <div className={styles.input}>
-                  <TextInput
+                  <Input
                     value={host}
+                    type={"text"}
                     placeholder={"ip:port"}
-                    onChange={(value) => {
-                      setHost(value as string);
+                    onChange={(e) => {
+                      setHost(e.target.value);
                     }}
                   />
                 </div>
@@ -161,7 +161,7 @@ function OpenChannelModal() {
             rightChildren={
               <Button
                 text={"Comfirm"}
-                disabled={ host == "" || nodePubKey == "" || selectedNodeId == 0 }
+                disabled={host == "" || nodePubKey == "" || selectedNodeId == 0}
                 onClick={() => {
                   setStepIndex(1);
                   setConnectState(ProgressStepState.completed);
@@ -209,99 +209,102 @@ function OpenChannelModal() {
               </FormRow>
             </div>
             <SectionContainer
-            title={"Advanced Options"}
-            icon={AdvencedOption}
-            expanded={expandAdvancedOptions}
-            handleToggle={() => {
-              setExpandAdvancedOptions(!expandAdvancedOptions);
-            }}
-          >
-            <div className={styles.openChannelTableRow}>
-              <FormRow>
-                <div className={styles.openChannelTableSingle}>
-                  <span className={styles.label}>{"Push Amount"}</span>
-                  <div className={styles.input}>
-                    <NumberFormat
-                      className={styles.single}
-                      thousandSeparator={false}
-                      value={pushSat}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setPushSat(values.floatValue as number);
-                      }}
-                    />
+              title={"Advanced Options"}
+              icon={AdvencedOption}
+              expanded={expandAdvancedOptions}
+              handleToggle={() => {
+                setExpandAdvancedOptions(!expandAdvancedOptions);
+              }}
+            >
+              <div className={styles.openChannelTableRow}>
+                <FormRow>
+                  <div className={styles.openChannelTableSingle}>
+                    <span className={styles.label}>{"Push Amount"}</span>
+                    <div className={styles.input}>
+                      <NumberFormat
+                        className={styles.single}
+                        thousandSeparator={false}
+                        value={pushSat}
+                        onValueChange={(values: NumberFormatValues) => {
+                          setPushSat(values.floatValue as number);
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              </FormRow>
-            </div>
-            <div className={styles.openChannelTableRow}>
-              <FormRow>
-                <div className={styles.openChannelTableSingle}>
-                  <span className={styles.label}>{"HTLC min sat"}</span>
-                  <div className={styles.input}>
-                    <NumberFormat
-                      className={styles.single}
-                      thousandSeparator={false}
-                      value={minHtlcMsat}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setMinHtlcMsat(values.floatValue as number);
-                      }}
-                    />
+                </FormRow>
+              </div>
+              <div className={styles.openChannelTableRow}>
+                <FormRow>
+                  <div className={styles.openChannelTableSingle}>
+                    <span className={styles.label}>{"HTLC min sat"}</span>
+                    <div className={styles.input}>
+                      <NumberFormat
+                        className={styles.single}
+                        thousandSeparator={false}
+                        value={minHtlcMsat}
+                        onValueChange={(values: NumberFormatValues) => {
+                          setMinHtlcMsat(values.floatValue as number);
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              </FormRow>
-            </div>
-            <div className={styles.openChannelTableRow}>
-              <FormRow>
-                <div className={styles.openChannelTableSingle}>
-                  <span className={styles.label}>{"Minimum Confirmations"}</span>
-                  <div className={styles.input}>
-                    <NumberFormat
-                      className={styles.single}
-                      thousandSeparator={false}
-                      value={minConfs}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setMinConfs(values.floatValue as number);
-                      }}
-                    />
+                </FormRow>
+              </div>
+              <div className={styles.openChannelTableRow}>
+                <FormRow>
+                  <div className={styles.openChannelTableSingle}>
+                    <span className={styles.label}>{"Minimum Confirmations"}</span>
+                    <div className={styles.input}>
+                      <NumberFormat
+                        className={styles.single}
+                        thousandSeparator={false}
+                        value={minConfs}
+                        onValueChange={(values: NumberFormatValues) => {
+                          setMinConfs(values.floatValue as number);
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              </FormRow>
-            </div>
-            <div className={styles.openChannelTableRow}>
-              <FormRow>
-                <div className={styles.openChannelTableSingle}>
-                  <span className={styles.label}>{"Channel Close Address"}</span>
-                  <div className={styles.input}>
-                    <TextInput
-                      value={closeAddress}
-                      placeholder={"e.g. bc1q..."}
-                      onChange={(value) => {
-                        setCloseAddress(value as string);
-                      }}
-                    />
+                </FormRow>
+              </div>
+              <div className={styles.openChannelTableRow}>
+                <FormRow>
+                  <div className={styles.openChannelTableSingle}>
+                    <span className={styles.label}>{"Channel Close Address"}</span>
+                    <div className={styles.input}>
+                      <Input
+                        value={closeAddress}
+                        type={"text"}
+                        placeholder={"e.g. bc1q..."}
+                        onChange={(e) => {
+                          setCloseAddress(e.target.value);
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              </FormRow>
-            </div>
-            <div className={styles.openChannelTableRow}>
-              <FormRow>
-              <Switch label={"Private"}
-                checked={privateChan}
-                onChange={(value) => {
-                  setPrivate(value)
-                }}
-              />
-              </FormRow>
-              <FormRow>
-              <Switch label={"Spend unconfirmed outputs"}
-                checked={spendUnconfirmed}
-                onChange={(value) => {
-                  setSpendUnconfirmed(value)
-                }}
-              />
-              </FormRow>
-            </div>
-          </SectionContainer>
+                </FormRow>
+              </div>
+              <div className={styles.openChannelTableRow}>
+                <FormRow>
+                  <Switch
+                    label={"Private"}
+                    checked={privateChan}
+                    onChange={(e) => {
+                      setPrivate(e.target.checked);
+                    }}
+                  />
+                </FormRow>
+                <FormRow>
+                  <Switch
+                    label={"Spend unconfirmed outputs"}
+                    checked={spendUnconfirmed}
+                    onChange={(e) => {
+                      setSpendUnconfirmed(e.target.checked);
+                    }}
+                  />
+                </FormRow>
+              </div>
+            </SectionContainer>
             <ButtonWrapper
               rightChildren={
                 <Button
@@ -326,7 +329,7 @@ function OpenChannelModal() {
                         minConfs,
                         closeAddress,
                       },
-                    })
+                    });
                   }}
                   buttonColor={buttonColor.green}
                 />
@@ -345,12 +348,14 @@ function OpenChannelModal() {
             {" "}
             {openStatusIcon[errMessage ? "FAILED" : "SUCCEEDED"]}
           </div>
-          <div className={errMessage ? styles.errorBox : styles.successeBox }>
+          <div className={errMessage ? styles.errorBox : styles.successeBox}>
             <div>
-              <div className={errMessage ? styles.errorIcon : styles.successIcon }>{openStatusIcon["NOTE"]}</div>
-              <div className={errMessage ? styles.errorNote : styles.successNote}>{errMessage ? t.openCloseChannel.error :t.openCloseChannel.note}</div>
-            </div >
-            <div className={errMessage ? styles.errorMessage: styles.successMessage }>
+              <div className={errMessage ? styles.errorIcon : styles.successIcon}>{openStatusIcon["NOTE"]}</div>
+              <div className={errMessage ? styles.errorNote : styles.successNote}>
+                {errMessage ? t.openCloseChannel.error : t.openCloseChannel.note}
+              </div>
+            </div>
+            <div className={errMessage ? styles.errorMessage : styles.successMessage}>
               {errMessage ? errMessage : t.openCloseChannel.confirmationOpenning}
             </div>
           </div>
