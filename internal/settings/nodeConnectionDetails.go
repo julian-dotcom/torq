@@ -24,6 +24,7 @@ type nodeConnectionDetails struct {
 	MacaroonDataBytes []byte                 `db:"macaroon_data"`
 	MacaroonFile      *multipart.FileHeader  `form:"macaroonFile"`
 	Status            commons.Status         `json:"status" db:"status_id"`
+	PingSystem        commons.PingSystem     `json:"pingSystem" db:"ping_system"`
 	CreateOn          time.Time              `json:"createdOn" db:"created_on"`
 	UpdatedOn         *time.Time             `json:"updatedOn"  db:"updated_on"`
 }

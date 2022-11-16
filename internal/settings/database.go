@@ -79,6 +79,23 @@ func getNodeConnectionDetails(db *sqlx.DB, nodeId int) (nodeConnectionDetails, e
 	}
 	return nodeConnectionDetailsData, nil
 }
+
+func getPingConnectionDetails(db *sqlx.DB, pingSystem commons.PingSystem) ([]nodeConnectionDetails, error) {
+	var ncds []nodeConnectionDetails
+	err := db.Select(&ncds, `
+		SELECT *
+		FROM node_connection_details
+		WHERE status_id = $1 AND ping_system IN ($2, $3)
+		ORDER BY node_id;`, commons.Active, pingSystem, commons.Amboss+commons.Vector)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []nodeConnectionDetails{}, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return ncds, nil
+}
+
 func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]nodeConnectionDetails, error) {
 	var nodeConnectionDetailsArray []nodeConnectionDetails
 	var err error
@@ -168,10 +185,10 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConne
 	_, err := db.Exec(`
 		UPDATE node_connection_details
 		SET implementation = $1, name = $2, grpc_address = $3, tls_file_name = $4, tls_data = $5,
-		    macaroon_file_name = $6, macaroon_data = $7, status_id = $8, updated_on = $9
-		WHERE node_id = $10;`,
+		    macaroon_file_name = $6, macaroon_data = $7, status_id = $8, ping_system = $9, updated_on = $10
+		WHERE node_id = $11;`,
 		ncd.Implementation, ncd.Name, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
-		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.UpdatedOn, ncd.NodeId)
+		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.UpdatedOn, ncd.NodeId)
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -206,10 +223,10 @@ func addNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConne
 	_, err := db.Exec(`
 		INSERT INTO node_connection_details
 		    (node_id, name, implementation, grpc_address, tls_file_name, tls_data, macaroon_file_name, macaroon_data,
-		     status_id, created_on, updated_on)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11);`,
+		     status_id, ping_system, created_on, updated_on)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);`,
 		ncd.NodeId, ncd.Name, ncd.Implementation, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
-		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.CreateOn, ncd.UpdatedOn)
+		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.CreateOn, ncd.UpdatedOn)
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}

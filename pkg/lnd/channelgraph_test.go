@@ -3,6 +3,7 @@ package lnd
 import (
 	"context"
 	"database/sql"
+	"sync"
 	"testing"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/channels"
@@ -22,6 +22,24 @@ type stubLNDSubscribeChannelGraphRPC struct {
 	grpc.ClientStream
 	GraphTopologyUpdate []*lnrpc.GraphTopologyUpdate
 	CancelFunc          func()
+}
+
+func (s *stubLNDSubscribeChannelGraphRPC) ListChannels(
+	ctx context.Context, in *lnrpc.ListChannelsRequest, opts ...grpc.CallOption) (*lnrpc.ListChannelsResponse, error) {
+	var channels []*lnrpc.Channel
+	return &lnrpc.ListChannelsResponse{
+		Channels: channels,
+	}, nil
+}
+
+func (s *stubLNDSubscribeChannelGraphRPC) GetChanInfo(
+	ctx context.Context, in *lnrpc.ChanInfoRequest, opts ...grpc.CallOption) (*lnrpc.ChannelEdge, error) {
+	return nil, nil
+}
+
+func (s *stubLNDSubscribeChannelGraphRPC) GetNodeInfo(
+	ctx context.Context, in *lnrpc.NodeInfoRequest, opts ...grpc.CallOption) (*lnrpc.NodeInfo, error) {
+	return nil, nil
 }
 
 func (s *stubLNDSubscribeChannelGraphRPC) Recv() (*lnrpc.GraphTopologyUpdate, error) {
@@ -57,7 +75,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 	}
 
 	chanPoint := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.
-		ChannelPoint_FundingTxidBytes{
+	ChannelPoint_FundingTxidBytes{
 		FundingTxidBytes: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
 		OutputIndex: 3}
 
@@ -70,7 +88,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 	t.Run("Irrelevant routing policy updates are ignored", func(t *testing.T) {
 
 		irrelevatChannelPoint := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.
-			ChannelPoint_FundingTxidBytes{
+		ChannelPoint_FundingTxidBytes{
 			FundingTxidBytes: []byte{2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 				1, 1, 1, 1}},
 			OutputIndex: 2}
@@ -97,7 +115,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		result := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
-			GraphTopologyUpdate{&irrelecantUpdateEvent}}, fundingTransactionHash, fundingOutputIndex)
+		GraphTopologyUpdate{&irrelecantUpdateEvent}}, fundingTransactionHash, fundingOutputIndex)
 
 		if len(result) != 0 {
 			testutil.Fatalf(t, "Expected to find no routing policy record stored in the database. Found %d",
@@ -197,7 +215,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		r2 := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
-			GraphTopologyUpdate{&updateEvent}}, fundingTransactionHash, fundingOutputIndex)
+		GraphTopologyUpdate{&updateEvent}}, fundingTransactionHash, fundingOutputIndex)
 
 		if len(r2) != 1 {
 			testutil.Fatalf(t, "Expected to find a single routing policy record stored in the database. Found %d",
@@ -244,7 +262,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		r3 := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
-			GraphTopologyUpdate{&secondUpdateEvent}}, fundingTransactionHash, fundingOutputIndex)
+		GraphTopologyUpdate{&secondUpdateEvent}}, fundingTransactionHash, fundingOutputIndex)
 
 		if r3[1].AnnouncingPubKey != e3.AnnouncingPubKey {
 			testutil.Errorf(t, "Incorrect announcing pub key. Expected: %v, got %v", e3.AnnouncingPubKey,
@@ -277,7 +295,6 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	fundingTransactionHash string, fundingOutputIndex int) (r []routingPolicyData) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
-	errs, ctx := errgroup.WithContext(ctx)
 	client.CancelFunc = cancel
 
 	lndShortChannelId := uint64(1111)
@@ -297,21 +314,15 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	}
 	t.Logf("channel added with channelId: %v", channelId)
 
-	errs.Go(func() error {
-		err := SubscribeAndStoreChannelGraph(ctx, client, db,
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		SubscribeAndStoreChannelGraph(ctx, client, db,
 			commons.GetNodeSettingsByNodeId(
 				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil)
-		if err != nil {
-			t.Fatalf("Problem subscribing to channel graph: %v", err)
-		}
-		return err
-	})
-
-	// Wait for subscriptions to complete
-	err = errs.Wait()
-	if err != nil {
-		t.Fatal(err)
-	}
+	}()
+	wg.Wait()
 
 	var result []routingPolicyData
 	err = db.Select(&result, `

@@ -51,9 +51,16 @@ type ChannelGraphEvent struct {
 
 type TransactionEvent struct {
 	EventData
-	Timestamp time.Time `json:"timestamp"`
-	Amount    int64     `json:"amount"`
-	TotalFees int64     `json:"totalFees"`
+	Timestamp             time.Time `json:"timestamp"`
+	TransactionHash       *string   `json:"transactionHash"`
+	Amount                *int64    `json:"amount"`
+	NumberOfConfirmations *int32    `json:"numberOfConfirmations"`
+	BlockHash             *string   `json:"blockHash"`
+	BlockHeight           *int32    `json:"blockHeight"`
+	TotalFees             *int64    `json:"totalFees"`
+	DestinationAddresses  *[]string `json:"destinationAddresses"`
+	RawTransactionHex     *string   `json:"rawTransactionHex"`
+	Label                 *string   `json:"label"`
 }
 
 type ChannelEvent struct {
@@ -75,4 +82,30 @@ type PeerEvent struct {
 	EventData
 	Type           lnrpc.PeerEvent_EventType `json:"type"`
 	EventPublicKey string                    `json:"eventPublicKey"`
+}
+
+type BlockEvent struct {
+	EventData
+	Height uint32 `json:"height"`
+	Hash   []byte `json:"hash"`
+}
+
+type HtlcEvent struct {
+	EventData
+	Timestamp         time.Time `json:"timestamp"`
+	Data              string    `json:"data"`
+	EventOrigin       *string   `json:"eventOrigin"`
+	EventType         *string   `json:"eventType"`
+	OutgoingHtlcId    *uint64   `json:"outgoingHtlcId"`
+	IncomingHtlcId    *uint64   `json:"incomingHtlcId"`
+	TimestampNs       *uint64   `json:"timestampNs"`
+	IncomingAmtMsat   *uint64   `json:"incomingAmtMsat"`
+	OutgoingAmtMsat   *uint64   `json:"outgoingAmtMsat"`
+	IncomingTimelock  *uint32   `json:"incomingTimelock"`
+	OutgoingTimelock  *uint32   `json:"outgoingTimelock"`
+	BoltFailureCode   *string   `json:"boltFailureCode"`
+	BoltFailureString *string   `json:"boltFailureString"`
+	LndFailureDetail  *string   `json:"lndFailureDetail"`
+	OutgoingChannelId *int      `json:"outgoingChannelId"`
+	IncomingChannelId *int      `json:"incomingChannelId"`
 }

@@ -97,25 +97,6 @@ type lightningClientForwardingHistory interface {
 		opts ...grpc.CallOption) (*lnrpc.ForwardingHistoryResponse, error)
 }
 
-// fetchForwardingHistory fetches the forwarding history from LND.
-func fetchForwardingHistory(ctx context.Context, client lightningClientForwardingHistory,
-	lastTimestamp uint64,
-	maxEvents int) (
-	*lnrpc.ForwardingHistoryResponse, error) {
-
-	fwhReq := &lnrpc.ForwardingHistoryRequest{
-		StartTime:    lastTimestamp,
-		NumMaxEvents: uint32(maxEvents),
-	}
-	fwh, err := client.ForwardingHistory(ctx, fwhReq)
-	if err != nil {
-		return nil, errors.Wrapf(err, "fetchForwardingHistory->ForwardingHistory(%v, %v)", ctx,
-			fwhReq)
-	}
-
-	return fwh, nil
-}
-
 // FwhOptions allows the caller to adjust the number of forwarding events can be requested at a time
 // and set a custom time interval between requests.
 type FwhOptions struct {
@@ -126,14 +107,14 @@ type FwhOptions struct {
 // SubscribeForwardingEvents repeatedly requests forwarding history starting after the last
 // forwarding stored in the database and stores new forwards.
 func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwardingHistory, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *FwhOptions) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *FwhOptions) {
 
-	me := MAXEVENTS
+	maxEvents := MAXEVENTS
 
 	// Check if maxEvents has been set and that it is bellow the hard coded maximum defined by
 	// the constant MAXEVENTS.
 	if (opt != nil) && ((*opt.MaxEvents > MAXEVENTS) || (*opt.MaxEvents <= 0)) {
-		me = *opt.MaxEvents
+		maxEvents = *opt.MaxEvents
 	}
 
 	// Create the default ticker used to fetch forwards at a set interval
@@ -151,10 +132,9 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 	// NB!: This timer is slowly being shifted because of the time required to
 	//fetch and store the response.
 	for {
-		// Exit if canceled
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		case <-ticker:
 			// Keep fetching until LND returns less than the max number of records requested.
 			for {
@@ -163,26 +143,36 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				// Fetch the nanosecond timestamp of the most recent record we have.
 				lastNs, err := fetchLastForwardTime(db)
 				if err != nil {
-					log.Printf("Subscribe forwarding events: %v\n", err)
+					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 10 seconds")
+					break
 				}
 				lastTimestamp := lastNs / uint64(time.Second)
 
-				fwh, err := fetchForwardingHistory(ctx, client, lastTimestamp, me)
+				fwhReq := &lnrpc.ForwardingHistoryRequest{
+					StartTime:    lastTimestamp,
+					NumMaxEvents: uint32(maxEvents),
+				}
+				fwh, err := client.ForwardingHistory(ctx, fwhReq)
 				if err != nil {
-					log.Printf("Subscribe forwarding events: %v\n", err)
-					continue
+					if errors.Is(ctx.Err(), context.Canceled) {
+						return
+					}
+					log.Error().Err(err).Msgf("Failed to obtain forwards, will retry in 10 seconds")
+					break
 				}
 
 				// Store the forwarding history
 				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId)
 				if err != nil {
-					log.Printf("Subscribe forwarding events: %v\n", err)
+					log.Error().Err(err).Msgf("Failed to store forward event")
 				}
 
 				// Stop fetching if there are fewer forwards than max requested
 				// (indicates that we have the last forwarding record)
-				if len(fwh.ForwardingEvents) < me {
+				if len(fwh.ForwardingEvents) < maxEvents {
 					break
+				} else {
+					log.Info().Msgf("Still running bulk import of forward events")
 				}
 			}
 		}

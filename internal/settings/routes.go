@@ -40,6 +40,17 @@ type ConnectionDetails struct {
 	TLSFileBytes      []byte
 	MacaroonFileBytes []byte
 	Status            commons.Status
+	PingSystem        commons.PingSystem
+}
+
+func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem commons.PingSystem) {
+	connectionDetails.PingSystem |= pingSystem
+}
+func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem commons.PingSystem) bool {
+	return connectionDetails.PingSystem&pingSystem != 0
+}
+func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.PingSystem) {
+	connectionDetails.PingSystem &= ^pingSystem
 }
 
 func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func() error) {
@@ -353,22 +364,41 @@ func GetActiveNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
 	if err != nil {
 		return []ConnectionDetails{}, errors.Wrap(err, "Getting active node connection details from db")
 	}
+	return processConnectionDetails(activeNcds), nil
+}
 
-	var activeNodes []ConnectionDetails
-	for _, ncd := range activeNcds {
+func GetAmbossPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
+	ncds, err := getPingConnectionDetails(db, commons.Amboss)
+	if err != nil {
+		return nil, errors.Wrap(err, "Getting node connection details for Amboss from db")
+	}
+	return processConnectionDetails(ncds), nil
+}
+
+func GetVectorPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
+	ncds, err := getPingConnectionDetails(db, commons.Vector)
+	if err != nil {
+		return nil, errors.Wrap(err, "Getting node connection details for Vector from db")
+	}
+	return processConnectionDetails(ncds), nil
+}
+
+func processConnectionDetails(ncds []nodeConnectionDetails) []ConnectionDetails {
+	var processedNodes []ConnectionDetails
+	for _, ncd := range ncds {
 		if ncd.GRPCAddress == nil || ncd.TLSDataBytes == nil || ncd.MacaroonDataBytes == nil {
 			continue
 		}
-		activeNodes = append(activeNodes, ConnectionDetails{
+		processedNodes = append(processedNodes, ConnectionDetails{
 			NodeId:            ncd.NodeId,
 			GRPCAddress:       *ncd.GRPCAddress,
 			TLSFileBytes:      ncd.TLSDataBytes,
 			MacaroonFileBytes: ncd.MacaroonDataBytes,
 			Name:              ncd.Name,
+			PingSystem:        ncd.PingSystem,
 		})
 	}
-
-	return activeNodes, nil
+	return processedNodes
 }
 
 // GetConnectionDetailsById will still fetch details even if node is disabled or deleted
@@ -383,6 +413,7 @@ func GetConnectionDetailsById(db *sqlx.DB, nodeId int) (ConnectionDetails, error
 		MacaroonFileBytes: ncd.MacaroonDataBytes,
 		Name:              ncd.Name,
 		Status:            ncd.Status,
+		PingSystem:        ncd.PingSystem,
 	}
 	if ncd.GRPCAddress != nil {
 		cd.GRPCAddress = *ncd.GRPCAddress
