@@ -7,6 +7,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lightningnetwork/lnd/lnrpc/chainrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/rs/zerolog/log"
 
@@ -23,6 +24,7 @@ import (
 func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, eventChannel chan interface{}) error {
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
+	chain := chainrpc.NewChainNotifierClient(conn)
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 
 	var wg sync.WaitGroup
@@ -61,7 +63,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 				}
 			}
 		}()
-		lnd.SubscribeAndStoreTransactions(ctx, client, db, nodeSettings, eventChannel)
+		lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel)
 	})()
 
 	// HTLC events

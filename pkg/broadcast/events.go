@@ -84,6 +84,12 @@ type PeerEvent struct {
 	EventPublicKey string                    `json:"eventPublicKey"`
 }
 
+type BlockEvent struct {
+	EventData
+	Height uint32 `json:"height"`
+	Hash   []byte `json:"hash"`
+}
+
 type HtlcEvent struct {
 	EventData
 	Timestamp         time.Time `json:"timestamp"`

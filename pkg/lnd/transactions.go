@@ -8,8 +8,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lightningnetwork/lnd/lnrpc/chainrpc"
 	"github.com/rs/zerolog/log"
-	"go.uber.org/ratelimit"
 
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
@@ -45,14 +45,14 @@ func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 
 // SubscribeAndStoreTransactions Subscribes to on-chain transaction events from LND and stores them in the
 // database as a time series. It will also import unregistered transactions on startup.
-func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB,
+func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, chain chainrpc.ChainNotifierClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
 	var transactionHeight int32
 	var err error
 	var transactionDetails *lnrpc.TransactionDetails
 	var storedTx Tx
-
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
+	var stream chainrpc.ChainNotifier_RegisterBlockEpochNtfnClient
+	var blockEpoch *chainrpc.BlockEpoch
 
 	for {
 		select {
@@ -61,21 +61,57 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		default:
 		}
 
-		transactionHeight, err = fetchLastTxHeight(db)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to obtain last know transaction, will retry in 10 seconds")
-			time.Sleep(10 * time.Second)
-			continue
-		}
+		if stream == nil {
+			transactionHeight, err = fetchLastTxHeight(db)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to obtain last know transaction, will retry in 1 minute")
+				time.Sleep(1 * time.Minute)
+				continue
+			}
 
-		// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
-		transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
-			StartHeight: transactionHeight + 1,
-		})
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 10 seconds")
-			time.Sleep(10 * time.Second)
-			continue
+			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
+			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
+				StartHeight: transactionHeight + 1,
+			})
+			if err == nil {
+				stream, err = chain.RegisterBlockEpochNtfn(ctx, &chainrpc.BlockEpoch{Height: uint32(transactionHeight + 1)})
+				if err != nil {
+					log.Error().Err(err).Msg("Obtaining stream (RegisterBlockEpochNtfn) from LND failed, will retry in 1 minute")
+					stream = nil
+					time.Sleep(1 * time.Minute)
+					continue
+				}
+			} else {
+				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 1 minute")
+				time.Sleep(1 * time.Minute)
+				continue
+			}
+		} else {
+			blockEpoch, err = stream.Recv()
+			if err == nil {
+				eventChannel <- broadcast.BlockEvent{
+					EventData: broadcast.EventData{
+						EventTime: time.Now().UTC(),
+						NodeId:    nodeSettings.NodeId,
+					},
+					Hash:   blockEpoch.Hash,
+					Height: blockEpoch.Height,
+				}
+			} else {
+				log.Error().Err(err).Msg("Receiving block epoch from the stream failed, will retry in 1 minute")
+				stream = nil
+				time.Sleep(1 * time.Minute)
+				continue
+			}
+			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
+			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
+				StartHeight: transactionHeight + 1,
+			})
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 1 minute")
+				time.Sleep(1 * time.Minute)
+				continue
+			}
 		}
 
 		for _, transaction := range transactionDetails.Transactions {
@@ -102,9 +138,8 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 					Label:                 storedTx.Label,
 				}
 			}
+			transactionHeight = *storedTx.BlockHeight
 		}
-
-		rl.Take()
 	}
 }
 
