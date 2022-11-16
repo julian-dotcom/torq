@@ -11,7 +11,7 @@ import { PaymentType, PaymentTypeLabel } from "./types";
 import { MutationTrigger } from "@reduxjs/toolkit/dist/query/react/buildHooks";
 import { BaseQueryFn, FetchArgs, FetchBaseQueryError, MutationDefinition } from "@reduxjs/toolkit/query";
 import { SendOnChainRequest } from "types/api";
-import LargeAmountInput from "features/inputs/largeAmountInput/LargeAmountInput";
+import LargeAmountInput from "components/forms/largeAmountInput/LargeAmountInput";
 
 type BtcStepProps = {
   sendCoinsMutation: MutationTrigger<

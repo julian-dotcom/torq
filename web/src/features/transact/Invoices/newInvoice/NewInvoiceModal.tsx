@@ -10,7 +10,7 @@ import styles from "./newInvoice.module.scss";
 import useTranslations from "services/i18n/useTranslations";
 import { nodeConfiguration } from "apiTypes";
 import Select from "features/forms/Select";
-import LargeAmountInput from "features/inputs/largeAmountInput/LargeAmountInput";
+import LargeAmountInput from "components/forms/largeAmountInput/LargeAmountInput";
 import { SectionContainer } from "features/section/SectionContainer";
 import Input from "components/forms/input/Input";
 import { formatDuration, intervalToDuration } from "date-fns";
