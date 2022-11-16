@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	b64 "encoding/base64"
+	"encoding/hex"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/contrib/sessions"
@@ -43,13 +43,13 @@ func RefreshCookieFile(cookiePath string) error {
 	if err != nil {
 		return errors.Wrap(err, "Generating random key")
 	}
-	base64Cookie := b64.StdEncoding.EncodeToString([]byte(cookie))
+	hexCookie := hex.EncodeToString(cookie)
 	f, err := os.Create(cookiePath)
 	if err != nil {
 		return errors.Wrap(err, "Creating or truncating cookie file")
 	}
 	defer f.Close()
-	_, err = f.WriteString(base64Cookie)
+	_, err = f.WriteString(hexCookie)
 	if err != nil {
 		return errors.Wrap(err, "Writing to cookie file")
 	}
