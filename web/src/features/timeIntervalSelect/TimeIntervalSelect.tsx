@@ -8,7 +8,7 @@ import { defaultStaticRangesFn } from "./customRanges";
 
 import Popover from "features/popover/Popover";
 import classNames from "classnames";
-import Button, { buttonColor } from "features/buttons/Button";
+import Button, { buttonColor } from "components/buttons/Button";
 import { useAppSelector, useAppDispatch } from "store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
 import { useGetSettingsQuery } from "apiSlice";

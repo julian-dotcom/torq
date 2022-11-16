@@ -1,6 +1,6 @@
 import { Options20Regular as OptionsIcon, MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, useNewInvoiceMutation } from "apiSlice";
-import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
+import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
@@ -12,7 +12,7 @@ import { nodeConfiguration } from "apiTypes";
 import Select from "features/forms/Select";
 import LargeAmountInput from "features/inputs/largeAmountInput/LargeAmountInput";
 import { SectionContainer } from "features/section/SectionContainer";
-import TextInput from "features/forms/TextInput";
+import Input from "components/forms/input/Input";
 import { formatDuration, intervalToDuration } from "date-fns";
 import { NewInvoiceResponseStep } from "./newInvoiceResponse";
 
@@ -135,20 +135,22 @@ function NewInvoiceModal() {
               setExpandAdvancedOptions(!expandAdvancedOptions);
             }}
           >
-            <TextInput
+            <Input
               label={t.newInvoice.expiry + ` (${pif})`}
               value={expirySeconds}
+              type={"text"}
               placeholder={"86,400 seconds (24 hours)"}
-              onChange={(value) => {
-                value ? setExpirySeconds(parseInt(value as string)) : setExpirySeconds(undefined);
+              onChange={(e) => {
+                e ? setExpirySeconds(parseInt(e.target.value)) : setExpirySeconds(undefined);
               }}
             />
-            <TextInput
+            <Input
               label={t.newInvoice.fallbackAddress}
               value={fallbackAddress}
+              type={"text"}
               placeholder={"e.g. bc1q..."}
-              onChange={(value) => {
-                setFallbackAddress(value as string);
+              onChange={(e) => {
+                setFallbackAddress(e.target.value);
               }}
             />
           </SectionContainer>

@@ -1,13 +1,18 @@
 import { AddSquare20Regular as AddIcon, Save20Regular as SaveIcon } from "@fluentui/react-icons";
 import Page from "layout/Page";
 import Box from "features/settings/Box";
-import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
+import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
 import style from "features/settings/settings.module.css";
 import Select, { SelectOption } from "features/forms/Select";
 import React from "react";
 import { defaultStaticRangesFn } from "features/timeIntervalSelect/customRanges";
-import { useGetNodeConfigurationsQuery, useGetSettingsQuery, useGetTimeZonesQuery, useUpdateSettingsMutation } from "apiSlice";
-import {nodeConfiguration, settings} from "apiTypes";
+import {
+  useGetNodeConfigurationsQuery,
+  useGetSettingsQuery,
+  useGetTimeZonesQuery,
+  useUpdateSettingsMutation,
+} from "apiSlice";
+import { nodeConfiguration, settings } from "apiTypes";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import NodeSettings from "features/settings/NodeSettings";
@@ -158,10 +163,19 @@ function Settings() {
               <h3>{t.header.nodes}</h3>
               {nodeConfigurationsState &&
                 nodeConfigurationsState?.map((nodeConfiguration) => (
-                  <NodeSettings nodeId={nodeConfiguration.nodeId} key={nodeConfiguration.nodeId ?? 0} collapsed={true} />
+                  <NodeSettings
+                    nodeId={nodeConfiguration.nodeId}
+                    key={nodeConfiguration.nodeId ?? 0}
+                    collapsed={true}
+                  />
                 ))}
             </div>
-            <Button buttonColor={buttonColor.primary} onClick={addNodeConfiguration} icon={<AddIcon />} text={t.addNode} />
+            <Button
+              buttonColor={buttonColor.primary}
+              onClick={addNodeConfiguration}
+              icon={<AddIcon />}
+              text={t.addNode}
+            />
             <Modal title={t.addNode} show={showAddNodeState} onClose={handleNewNodeModalOnClose}>
               <NodeSettings
                 ref={addNodeRef}

@@ -1,4 +1,4 @@
-import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
+import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import {
   ArrowSyncFilled as ProcessingIcon,
   CheckmarkRegular as SuccessIcon,

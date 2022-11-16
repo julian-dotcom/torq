@@ -1,4 +1,4 @@
-import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
+import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./newPayments.module.scss";

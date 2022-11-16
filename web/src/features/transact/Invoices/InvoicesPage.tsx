@@ -46,7 +46,7 @@ import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import clone from "clone";
 import { SectionContainer } from "features/section/SectionContainer";
-import Button, { buttonColor } from "features/buttons/Button";
+import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import { ViewResponse } from "features/viewManagement/ViewsPopover";

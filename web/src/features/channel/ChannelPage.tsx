@@ -17,10 +17,10 @@ import React from "react";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "store/hooks";
-import Button, { buttonColor, buttonSize } from "features/buttons/Button";
+import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import EventsCard from "features/eventsCard/EventsCard";
 import Select from "features/inputs/Select";
-import Switch from "features/inputs/Slider/Switch";
+import Switch from "components/forms/switch/Switch";
 import Popover from "features/popover/Popover";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
@@ -426,16 +426,16 @@ function ChannelPage(_: ChannelPageProps) {
                         <Switch
                           label="Toggle all"
                           checked={allToggle}
-                          onChange={(checked) => {
-                            setAllToggle(checked);
+                          onChange={() => {
+                            setAllToggle(!allToggle);
                             setSelectedEvents(
                               new Map([
-                                ["fee_rate", checked],
-                                ["base_fee", checked],
-                                ["min_htlc", checked],
-                                ["max_htlc", checked],
-                                ["enabled", checked],
-                                ["disabled", checked],
+                                ["fee_rate", !allToggle],
+                                ["base_fee", !allToggle],
+                                ["min_htlc", !allToggle],
+                                ["max_htlc", !allToggle],
+                                ["enabled", !allToggle],
+                                ["disabled", !allToggle],
                               ])
                             );
                           }}
@@ -450,7 +450,7 @@ function ChannelPage(_: ChannelPageProps) {
                             <Switch
                               label={eventNames.get(item[0]) || ""}
                               checked={selectedEvents.get(item[0])}
-                              onChange={handleSelectEventUpdate(item[0])}
+                              onChange={(e) => handleSelectEventUpdate(item[0])}
                             />
                           </div>
                         </div>

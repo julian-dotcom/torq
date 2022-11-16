@@ -1,7 +1,7 @@
 import { Options20Regular as OptionsIcon } from "@fluentui/react-icons";
-import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
+import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import { useState } from "react";
-import TextInput from "features/forms/TextInput";
+import Input from "components/forms/input/Input";
 import { ProgressStepState } from "features/progressTabs/ProgressHeader";
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import { SectionContainer } from "features/section/SectionContainer";
@@ -89,11 +89,12 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
           setExpandAdvancedOptions(!expandAdvancedOptions);
         }}
       >
-        <TextInput
+        <Input
           label={"Sat per vByte"}
+          type={"number"}
           value={satPerVbyte}
-          onChange={(value) => {
-            setSatPerVbyte(value as number);
+          onChange={(e) => {
+            setSatPerVbyte(e.target.valueAsNumber);
           }}
         />
       </SectionContainer>

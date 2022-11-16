@@ -18,7 +18,7 @@ import Spinny from "features/spinny/Spinny";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import File from "features/forms/File";
-import TextInput from "features/forms/TextInput";
+import Input from "components/forms/input/Input";
 import {
   useGetNodeConfigurationQuery,
   useUpdateNodeConfigurationMutation,
@@ -29,7 +29,7 @@ import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
 import Collapse from "features/collapse/Collapse";
 import Popover from "features/popover/Popover";
-import Button, { buttonColor, buttonPosition } from "features/buttons/Button";
+import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
 import Modal from "features/modal/Modal";
 
 interface nodeProps {
@@ -69,7 +69,13 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   }));
 
   const clear = () => {
-    setNodeConfigurationState({ grpcAddress: "", nodeId: 0, status: 0, implementation: 0, name: "" } as nodeConfiguration);
+    setNodeConfigurationState({
+      grpcAddress: "",
+      nodeId: 0,
+      status: 0,
+      implementation: 0,
+      name: "",
+    } as nodeConfiguration);
   };
 
   React.useEffect(() => {
@@ -146,7 +152,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     if (nodeConfigurationData) {
       setNodeConfigurationState(nodeConfigurationData);
     } else {
-      setNodeConfigurationState({implementation: 0, nodeId: 0, status: 0} as nodeConfiguration);
+      setNodeConfigurationState({ implementation: 0, nodeId: 0, status: 0 } as nodeConfiguration);
     }
   }, [nodeConfigurationData]);
 
@@ -155,7 +161,11 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   };
 
   const handleMacaroonFileChange = (file: File | null) => {
-    setNodeConfigurationState({ ...nodeConfigurationState, macaroonFile: file, macaroonFileName: file ? file.name : undefined });
+    setNodeConfigurationState({
+      ...nodeConfigurationState,
+      macaroonFile: file,
+      macaroonFileName: file ? file.name : undefined,
+    });
   };
 
   const handleAddressChange = (value: string) => {
@@ -174,7 +184,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setShowModalState(false);
     setDeleteConfirmationTextInputState("");
     setDeleteEnabled(false);
-    setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: 3});
+    setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: 3 });
   };
 
   const handleDeleteConfirmationTextInputChange = (value: string) => {
@@ -188,7 +198,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     if (nodeConfigurationState.status == 0) {
       statusId = 1;
     }
-    setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: statusId})
+    setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: statusId })
       .unwrap()
       .finally(() => {
         setEnableEnableButtonState(true);
@@ -209,11 +219,11 @@ const NodeSettings = React.forwardRef(function NodeSettings(
             <div
               className={classNames(styles.connectionIcon, {
                 [styles.connected]: true,
-                [styles.disabled]: nodeConfigurationState.status==1,
+                [styles.disabled]: nodeConfigurationState.status == 1,
               })}
             >
-              {nodeConfigurationState.status==0 && <ConnectedIcon />}
-              {nodeConfigurationState.status==1 && <DisconnectedIcon />}
+              {nodeConfigurationState.status == 0 && <ConnectedIcon />}
+              {nodeConfigurationState.status == 1 && <DisconnectedIcon />}
             </div>
             <div className={styles.title}>{nodeConfigurationState?.name}</div>
             <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
@@ -232,8 +242,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       <div className={styles.nodeMenu}>
                         <Button
                           buttonColor={buttonColor.secondary}
-                          text={nodeConfigurationState.status==1 ? "Enable node" : "Disable node"}
-                          icon={nodeConfigurationState.status==1 ? <PlayIcon /> : <PauseIcon />}
+                          text={nodeConfigurationState.status == 1 ? "Enable node" : "Disable node"}
+                          icon={nodeConfigurationState.status == 1 ? <PlayIcon /> : <PauseIcon />}
                           onClick={handleStatusClick}
                           disabled={!enableEnableButtonState}
                         />
@@ -260,24 +270,29 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   value={implementationOptions.find((io) => io.value == "" + nodeConfigurationState.implementation)}
                 />
                 <span id="name">
-                  <TextInput
+                  <Input
                     label="Node Name"
                     value={nodeConfigurationState.name}
-                    inputType="text"
-                    onChange={(e) => handleNodeNameChange(e as string)}
+                    type={"text"}
+                    onChange={(e) => handleNodeNameChange(e.target.value)}
                     placeholder="Node 1"
                   />
                 </span>
                 <span id="address">
-                  <TextInput
+                  <Input
                     label="GRPC Address (IP or Tor)"
+                    type={"text"}
                     value={nodeConfigurationState.grpcAddress}
-                    onChange={(e) => handleAddressChange(e as string)}
+                    onChange={(e) => handleAddressChange(e.target.value)}
                     placeholder="100.100.100.100:10009"
                   />
                 </span>
                 <span id="tls">
-                  <File label="TLS Certificate" onFileChange={handleTLSFileChange} fileName={nodeConfigurationState?.tlsFileName} />
+                  <File
+                    label="TLS Certificate"
+                    onFileChange={handleTLSFileChange}
+                    fileName={nodeConfigurationState?.tlsFileName}
+                  />
                 </span>
                 <span id="macaroon">
                   <File
@@ -314,9 +329,10 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               This operation cannot be undone, type &quot;<span className={styles.red}>delete</span>&quot; to confirm.
             </p>
 
-            <TextInput
+            <Input
               value={deleteConfirmationTextInputState}
-              onChange={(e) => handleDeleteConfirmationTextInputChange(e as string)}
+              type={"text"}
+              onChange={(e) => handleDeleteConfirmationTextInputChange(e.target.value)}
             />
             <div className={styles.deleteConfirmButtons}>
               <Button

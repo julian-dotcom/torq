@@ -7,7 +7,7 @@ import {
   ArrowSortDownLines16Regular as SortDescIcon,
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
-import Button, { buttonColor, buttonSize } from "features/buttons/Button";
+import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import { ColumnMetaData } from "features/table/Table";
 import styles from "./sort.module.scss";
 import classNames from "classnames";

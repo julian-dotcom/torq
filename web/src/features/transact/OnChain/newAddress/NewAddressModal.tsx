@@ -1,6 +1,6 @@
 import { MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
-import Button, { buttonColor, ButtonWrapper } from "features/buttons/Button";
+import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
