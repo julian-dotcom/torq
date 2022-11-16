@@ -54,6 +54,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 		case <-ctx.Done():
 			return
 		case <-ticker:
+			importCounter := 0
 			for {
 				lastPaymentIndex, err = fetchLastPaymentIndex(db)
 				if err != nil {
@@ -82,7 +83,10 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				if len(payments.Payments) == 0 {
 					break
 				} else {
-					log.Info().Msgf("Still running bulk import of payments")
+					importCounter++
+					if importCounter%1000 == 0 {
+						log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
+					}
 				}
 			}
 		}
