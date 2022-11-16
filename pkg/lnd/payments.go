@@ -55,13 +55,14 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 			return
 		case <-ticker:
 			importCounter := 0
-			for {
-				lastPaymentIndex, err = fetchLastPaymentIndex(db)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 1 minute")
-					break
-				}
 
+			lastPaymentIndex, err = fetchLastPaymentIndex(db)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 1 minute")
+				continue
+			}
+
+			for {
 				payments, err = fetchPayments(ctx, client, lastPaymentIndex)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
@@ -83,6 +84,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				if len(payments.Payments) == 0 {
 					break
 				} else {
+					lastPaymentIndex = payments.LastIndexOffset
 					importCounter++
 					if importCounter%1000 == 0 {
 						log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
