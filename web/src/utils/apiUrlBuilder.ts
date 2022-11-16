@@ -23,4 +23,4 @@ export const getWsEndpoint = () => {
   return `${protocol}:${baseApiUrl}${WS_API_PATHNAME}`;
 };
 
-export const getStaticEndpoint = () => buildBaseUrl();
+export const getStaticEndpoint = () => basePathnamePrefix;
