@@ -74,6 +74,9 @@ const customStyles = {
   }),
   menu: (provided: any, _: any) => ({
     ...provided,
+    margin: "8px 4px",
+    clip: "initial",
+    width: "calc(100% - 8px)",
     borderColor: "transparent",
     borderRadius: "4px",
     boxShadow: "var(--hover-box-shadow)",
