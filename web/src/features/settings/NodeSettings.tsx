@@ -274,7 +274,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                     label="Node Name"
                     value={nodeConfigurationState.name}
                     type={"text"}
-                    onChange={(e) => handleNodeNameChange(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNodeNameChange(e.target.value)}
                     placeholder="Node 1"
                   />
                 </span>
@@ -283,7 +283,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                     label="GRPC Address (IP or Tor)"
                     type={"text"}
                     value={nodeConfigurationState.grpcAddress}
-                    onChange={(e) => handleAddressChange(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAddressChange(e.target.value)}
                     placeholder="100.100.100.100:10009"
                   />
                 </span>
@@ -332,7 +332,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
             <Input
               value={deleteConfirmationTextInputState}
               type={"text"}
-              onChange={(e) => handleDeleteConfirmationTextInputChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                handleDeleteConfirmationTextInputChange(e.target.value)
+              }
             />
             <div className={styles.deleteConfirmButtons}>
               <Button

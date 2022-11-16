@@ -1,6 +1,6 @@
 import { Options20Regular as OptionsIcon } from "@fluentui/react-icons";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import Input from "components/forms/input/Input";
 import { ProgressStepState } from "features/progressTabs/ProgressHeader";
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -75,7 +75,7 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
           className={styles.destinationTextArea}
           autoComplete="off"
           value={description}
-          onChange={(e) => {
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
             setDescription(e.target.value);
           }}
           rows={3}
@@ -93,7 +93,7 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
           label={"Sat per vByte"}
           type={"number"}
           value={satPerVbyte}
-          onChange={(e) => {
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
             setSatPerVbyte(e.target.valueAsNumber);
           }}
         />

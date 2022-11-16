@@ -140,7 +140,7 @@ function NewInvoiceModal() {
               value={expirySeconds}
               type={"text"}
               placeholder={"86,400 seconds (24 hours)"}
-              onChange={(e) => {
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 e ? setExpirySeconds(parseInt(e.target.value)) : setExpirySeconds(undefined);
               }}
             />
@@ -149,7 +149,7 @@ function NewInvoiceModal() {
               value={fallbackAddress}
               type={"text"}
               placeholder={"e.g. bc1q..."}
-              onChange={(e) => {
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 setFallbackAddress(e.target.value);
               }}
             />

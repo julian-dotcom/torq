@@ -7,7 +7,7 @@ import {
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -126,12 +126,13 @@ function OpenChannelModal() {
           <div className={styles.openChannelTableRow}>
             <FormRow>
               <div className={styles.openChannelTableSingle}>
-                <span className={styles.label}>{"Peer public key"}</span>
                 <div className={styles.input}>
                   <Input
+                    label={"Peer public key"}
+                    type={"text"}
                     value={nodePubKey}
                     placeholder={"pubkey"}
-                    onChange={(e) => {
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       setNodePubKey(e.target.value);
                     }}
                   />
@@ -142,13 +143,13 @@ function OpenChannelModal() {
           <div className={styles.openChannelTableRow}>
             <FormRow>
               <div className={styles.openChannelTableSingle}>
-                <span className={styles.label}>{"Peer IP and port"}</span>
                 <div className={styles.input}>
                   <Input
+                    label={"Peer IP and port"}
                     value={host}
                     type={"text"}
                     placeholder={"ip:port"}
-                    onChange={(e) => {
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       setHost(e.target.value);
                     }}
                   />
@@ -276,7 +277,7 @@ function OpenChannelModal() {
                         value={closeAddress}
                         type={"text"}
                         placeholder={"e.g. bc1q..."}
-                        onChange={(e) => {
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
                           setCloseAddress(e.target.value);
                         }}
                       />
@@ -289,7 +290,7 @@ function OpenChannelModal() {
                   <Switch
                     label={"Private"}
                     checked={privateChan}
-                    onChange={(e) => {
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       setPrivate(e.target.checked);
                     }}
                   />
@@ -298,7 +299,7 @@ function OpenChannelModal() {
                   <Switch
                     label={"Spend unconfirmed outputs"}
                     checked={spendUnconfirmed}
-                    onChange={(e) => {
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       setSpendUnconfirmed(e.target.checked);
                     }}
                   />
