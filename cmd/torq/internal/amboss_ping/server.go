@@ -16,12 +16,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-const ambossUrl = "https://api.amboss.space/graphql"
-
 // Start runs the background server. It sends out a ping to Amboss every 25 seconds.
 func Start(ctx context.Context, conn *grpc.ClientConn) error {
 	_, monitorCancel := context.WithCancel(context.Background())
 
+	const ambossUrl = "https://api.amboss.space/graphql"
 	client := lnrpc.NewLightningClient(conn)
 
 	for {

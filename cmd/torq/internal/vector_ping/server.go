@@ -52,12 +52,11 @@ type VectorPingChain struct {
 	Network string `json:"network"`
 }
 
-const vectorUrl = "https://vector.ln.capital/api/publicNodeEvents/ping"
-
 // Start runs the background server. It sends out a ping to Vector every 20 seconds.
 func Start(ctx context.Context, conn *grpc.ClientConn) error {
 	_, monitorCancel := context.WithCancel(context.Background())
 
+	const vectorUrl = "https://vector.ln.capital/api/publicNodeEvents/ping"
 	client := lnrpc.NewLightningClient(conn)
 
 	for {
