@@ -284,7 +284,7 @@ function OpenChannelModal() {
               </FormRow>
             </div>
             <div className={styles.openChannelTableRow}>
-              <FormRow>
+              <FormRow className={styles.switchRow}>
               <Switch label={"Private"}
                 checked={privateChan}
                 onChange={(value) => {
@@ -292,7 +292,7 @@ function OpenChannelModal() {
                 }}
               />
               </FormRow>
-              <FormRow>
+              <FormRow className={styles.switchRow}>
               <Switch label={"Spend unconfirmed outputs"}
                 checked={spendUnconfirmed}
                 onChange={(value) => {
