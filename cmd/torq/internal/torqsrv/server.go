@@ -45,6 +45,10 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB, eventChanne
 		return errors.Wrap(err, "Loading caches.")
 	}
 
+	if err = auth.RefreshCookieFile(cookiePath); err != nil {
+		return errors.Wrap(err, "Refreshing cookie file")
+	}
+
 	err = auth.CreateSession(r, apiPswd)
 	if err != nil {
 		return errors.Wrap(err, "Creating Gin Session")
