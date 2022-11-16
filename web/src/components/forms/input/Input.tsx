@@ -1,8 +1,9 @@
-import styles from "./textInput.module.scss";
 import React from "react";
 import classNames from "classnames";
-import { GetColorClass, GetSizeClass, InputColorVaraint, InputSizeVariant } from "components/forms/input/variants";
 import NumberFormat, { NumberFormatProps } from "react-number-format";
+import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
+import { GetColorClass, GetSizeClass, InputColorVaraint, InputSizeVariant } from "components/forms/input/variants";
+import styles from "./textInput.module.scss";
 
 export type InputProps = React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & {
   label?: string;
@@ -81,14 +82,22 @@ function Input({
         {leftIcon && <div className={styles.leftIcon}>{leftIcon}</div>}
         {renderInput()}
       </div>
-      <div className={classNames(styles.feedbackWrapper, styles.feedbackError)}>
-        <div className={styles.inputErrorIcon}>{errorText}</div>
-        <div className={styles.inputErrorText}>{errorText}</div>
-      </div>
-      <div className={classNames(styles.feedbackWrapper, styles.feedbackWarning)}>
-        <div className={styles.inputWarningIcon}>{warningText}</div>
-        <div className={styles.inputWarningText}>{warningText}</div>
-      </div>
+      {errorText && (
+        <div className={classNames(styles.feedbackWrapper, styles.feedbackError)}>
+          <div className={styles.feedbackIcon}>
+            <ErrorIcon />
+          </div>
+          <div className={styles.feedbackText}>{errorText}</div>
+        </div>
+      )}
+      {warningText && (
+        <div className={classNames(styles.feedbackWrapper, styles.feedbackWarning)}>
+          <div className={styles.feedbackIcon}>
+            <WarningIcon />
+          </div>
+          <div className={styles.feedbackText}>{warningText}</div>
+        </div>
+      )}
     </div>
   );
 }

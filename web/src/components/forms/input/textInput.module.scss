@@ -5,6 +5,7 @@
   --input-focus-border-color: var(--color-border-primary-faded);
   --input-placeholder-color: var(--color-text-primary-faded);
   --input-color: var(--color-text-primary-strong);
+  --input-label-color: var(--color-text-primary-strong);
 }
 
 .success {
@@ -14,6 +15,7 @@
   --input-focus-border-color: var(--color-border-success-faded);
   --input-placeholder-color: var(--color-text-success-faded);
   --input-color: var(--color-text-success-strong);
+  --input-label-color: var(--color-text-primary-strong);
 }
 .warning {
   --input-default-background: var(--color-warning-layer-2);
@@ -22,6 +24,7 @@
   --input-focus-border-color: var(--color-border-warning-faded);
   --input-placeholder-color: var(--color-text-warning-faded);
   --input-color: var(--color-text-warning-strong);
+  --input-label-color: var(--color-text-primary-strong);
 }
 
 .error {
@@ -31,6 +34,7 @@
   --input-focus-border-color: var(--color-border-error-faded);
   --input-placeholder-color: var(--color-text-error-faded);
   --input-color: var(--color-text-error-faded);
+  --input-label-color: var(--color-text-primary-strong);
 }
 
 .accent1 {
@@ -40,6 +44,7 @@
   --input-focus-border-color: var(--color-border-accent-1-faded);
   --input-placeholder-color: var(--color-text-accent-1-faded);
   --input-color: var(--color-text-accent-1-strong);
+  --input-label-color: var(--color-text-primary-strong);
 }
 
 .accent2 {
@@ -49,6 +54,7 @@
   --input-focus-border-color: var(--color-border-accent-2-faded);
   --input-placeholder-color: var(--color-text-accent-2-faded);
   --input-color: var(--color-text-accent-2-strong);
+  --input-label-color: var(--color-text-primary-strong);
 }
 
 .accent3 {
@@ -58,16 +64,20 @@
   --input-focus-border-color: var(--color-border-accent-3-faded);
   --input-placeholder-color: var(--color-text-accent-3-faded);
   --input-color: var(--color-text-accent-3-strong);
+  --input-label-color: var(--color-text-primary-strong);
 }
 
 .inputWrapper {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   color: var(--input-color);
   // color both text and all icons in the same color
   svg {
     color: var(--input-placeholder-color);
+  }
+  label {
+    color: var(--input-label-color);
   }
 }
 .input {
@@ -152,6 +162,31 @@
     }
     input {
       padding-left: 32px;
+    }
+  }
+}
+.feedbackWrapper {
+  display: flex;
+  gap: 4px;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary-faded);
+  .feedbackText {
+    margin-top: 1px;
+  }
+  svg {
+    height: 16px;
+    width: 16px;
+  }
+}
+.inputWrapper.tiny {
+  .feedbackWrapper {
+    font-size: var(--font-size-tiny);
+    .feedbackText {
+      margin-top: 0px;
+    }
+    svg {
+      height: 12px;
+      width: 12px;
     }
   }
 }
