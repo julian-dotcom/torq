@@ -49,7 +49,7 @@ function Input({
         <NumberFormat
           {...(inputProps as FormattedInputProps)}
           className={classNames(styles.input, inputProps.className)}
-          id={inputId}
+          id={inputProps.id || inputId}
         />
       );
     } else {
@@ -57,7 +57,7 @@ function Input({
         <input
           {...(inputProps as InputProps)}
           className={classNames(styles.input, inputProps.className)}
-          id={inputId}
+          id={inputProps.id || inputId}
         />
       );
     }
@@ -66,7 +66,7 @@ function Input({
   return (
     <div className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}>
       <div className={styles.labelWrapper}>
-        <label htmlFor={inputId} className={styles.label}>
+        <label htmlFor={inputProps.id || inputId} className={styles.label}>
           {label}
         </label>
       </div>

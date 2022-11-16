@@ -1,4 +1,4 @@
-import RawSelect, { SelectOptionType } from "features/inputs/Select";
+import RawSelect, { SelectOptionType } from "components/forms/select/Select";
 import { Props } from "react-select";
 
 type selectProps = {

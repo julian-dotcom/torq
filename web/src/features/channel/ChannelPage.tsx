@@ -19,7 +19,7 @@ import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import EventsCard from "features/eventsCard/EventsCard";
-import Select from "features/inputs/Select";
+import Select from "components/forms/select/Select";
 import Switch from "components/forms/switch/Switch";
 import Popover from "features/popover/Popover";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";

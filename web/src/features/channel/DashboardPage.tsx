@@ -19,7 +19,7 @@ import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsP
 import { useParams } from "react-router";
 import { Link, Outlet } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "store/hooks";
-import Select from "features/inputs/Select";
+import Select from "components/forms/select/Select";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import styles from "./channel-page.module.scss";
