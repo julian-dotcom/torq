@@ -22,7 +22,7 @@ import (
 // For importing the latest routing policy at startup.
 
 // Fetches the channel id form all open channels from LND
-func getOpenChanIds(client lnrpc.LightningClient) ([]uint64, error) {
+func getOpenChanIds(client lndClientChannelEvent) ([]uint64, error) {
 
 	resp, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 	if err != nil {
@@ -93,8 +93,8 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 	return r, nil
 }
 
-// ImportRoutingPolicies imports routing policy information about all channels if they don't already have
-func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+// importRoutingPolicies imports routing policy information about all channels if they don't already have
+func importRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)

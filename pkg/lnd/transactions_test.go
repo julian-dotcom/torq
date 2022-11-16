@@ -48,7 +48,7 @@ func TestStoreTransaction(t *testing.T) {
 		},
 	}
 
-	err = storeTransaction(db, &lnrpc.Transaction{
+	_, err = storeTransaction(db, &lnrpc.Transaction{
 		TxHash:           "test",
 		Amount:           expected.Amount,
 		NumConfirmations: expected.NumConfirmations,
@@ -78,6 +78,9 @@ func TestStoreTransaction(t *testing.T) {
 		Label:             expected.Label,
 		PreviousOutpoints: nil,
 	}, commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet))
+	if err != nil {
+		return
+	}
 
 	if err != nil {
 		testutil.Fatalf(t, "storeTransaction", err)

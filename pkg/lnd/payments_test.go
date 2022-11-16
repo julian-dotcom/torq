@@ -3,17 +3,16 @@ package lnd
 import (
 	"context"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/mixer/clock"
 
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
-	// "github.com/rs/zerolog/log"
-	"golang.org/x/sync/errgroup"
+
 	"google.golang.org/grpc"
 )
 
@@ -47,7 +46,6 @@ func TestSubscribePayments(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
-	errs, ctx := errgroup.WithContext(ctx)
 	c := clock.NewMockClock(time.Unix(0, 0))
 
 	srv, err := testutil.InitTestDBConn()
@@ -194,28 +192,20 @@ func TestSubscribePayments(t *testing.T) {
 		CancelFunc: cancel,
 	}
 
-	// Start subscribing in a goroutine to allow the test to continue simulating time through the
-	// mocked time object.
-	errs.Go(func() error {
-		err := SubscribeAndStorePayments(ctx, &mclient, db,
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		SubscribeAndStorePayments(ctx, &mclient, db,
 			commons.GetNodeSettingsByNodeId(
 				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
-		if err != nil {
-			t.Fatal(errors.Wrapf(err, "SubscribeAndStorePayments(%v, %v, %v, %v)", ctx, mclient, db, &opt))
-		}
-		return nil
-	})
-
+	}()
 	// Simulate passing intervals
 	numbTicks := 4
 	for i := 0; i < numbTicks; i++ {
 		c.AddTime(mockTickerInterval)
 	}
-
-	// wait for context.Canceled and go routine to return
-	if err = errs.Wait(); err != nil {
-		t.Fatalf("Error group failure: %v", err)
-	}
+	wg.Wait()
 
 	t.Run("Last payment index is stored correctly", func(t *testing.T) {
 		var expected uint64 = 15
@@ -246,7 +236,6 @@ func TestSubscribePayments(t *testing.T) {
 	// reset context
 	ctx = context.Background()
 	ctx, cancel = context.WithCancel(ctx)
-	errs, ctx = errgroup.WithContext(ctx)
 
 	mclientUpdate := mockLightningClient_ListPayments{}
 	mclientUpdate.CancelFunc = cancel
@@ -333,27 +322,19 @@ func TestSubscribePayments(t *testing.T) {
 		},
 	}
 
-	errs.Go(func() error {
-		err := UpdateInFlightPayments(ctx, &mclientUpdate, db,
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		UpdateInFlightPayments(ctx, &mclientUpdate, db,
 			commons.GetNodeSettingsByNodeId(
 				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
-		if err != nil {
-			t.Fatal(errors.Wrapf(err, "SubscribeAndUpdatePayments(%v, %v, %v, %v)", ctx, mclientUpdate, db, &opt))
-		}
-		return nil
-	})
-
+	}()
 	// Simulate passing intervals
 	numbTicks = 6
 	for i := 0; i < numbTicks; i++ {
 		c.AddTime(mockTickerInterval)
 	}
-
-	// wait for context.Canceled and go routine to return
-	err = errs.Wait()
-	if err != nil {
-		t.Fatal(err)
-	}
+	wg.Wait()
 
 	t.Run("List of in flight payments is correct after update.", func(t *testing.T) {
 		var expected = []uint64{11}

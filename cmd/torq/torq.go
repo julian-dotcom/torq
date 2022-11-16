@@ -316,6 +316,9 @@ func main() {
 											if err != nil {
 												log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
 												runningLndSubscriptions.RemoveSubscription(node.NodeId)
+												log.Info().Msgf("LND Subscription will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
+												time.Sleep(1 * time.Minute)
+												serviceChannel <- serviceChannelMessage{pingCommand: boot, pingService: lndSubscription, nodeId: node.NodeId}
 												return
 											}
 

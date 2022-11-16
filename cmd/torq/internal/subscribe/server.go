@@ -2,17 +2,17 @@ package subscribe
 
 import (
 	"context"
+	"sync"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd"
 
-	// "github.com/rs/zerolog/log"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
@@ -21,48 +21,22 @@ import (
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
 func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, eventChannel chan interface{}) error {
-
-	_, monitorCancel := context.WithCancel(context.Background())
-
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
-
-	// Create an error group to catch errors from go routines.
-	// TODO: Improve this by using the context to propogate the error,
-	//   shutting down the if one of the subscribe go routines fail.
-	//   https://www.fullstory.com/blog/why-errgroup-withcontext-in-golang-server-handlers/
-	// TODO: Also consider using the same context used by the gRPC connection from Golang and the
-	//   gRPC server of Torq
-	errs, ctx := errgroup.WithContext(ctx)
-
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+
+	var wg sync.WaitGroup
 
 	//Import Open channels
 	err := lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, nodeSettings)
 	if err != nil {
-		monitorCancel()
-		return errors.Wrap(err, "LND import channels list - open chanel")
+		return errors.Wrap(err, "LND import open channels list")
 	}
 
 	// Import Closed channels
 	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, nodeSettings)
 	if err != nil {
-		monitorCancel()
-		return errors.Wrap(err, "LND import channels list - closed chanel")
-	}
-
-	// Import routing policies from open channels
-	err = lnd.ImportRoutingPolicies(client, db, nodeSettings)
-	if err != nil {
-		monitorCancel()
-		return errors.Wrap(err, "LND import routing policies")
-	}
-
-	// Import node info from nodes with channels
-	err = lnd.ImportNodeInfo(client, db, nodeSettings)
-	if err != nil {
-		monitorCancel()
-		return errors.Wrap(err, "LND import node info")
+		return errors.Wrap(err, "LND import closed channels list")
 	}
 
 	// TODO FIXME channels with short_channel_id = null and status IN (1,2,100,101,102,103) should be fixed somehow???
@@ -74,90 +48,159 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 	//	BreachClosed           = 103
 
 	// Transactions
-	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreTransactions(ctx, client, db, nodeSettings, eventChannel)
-		if err != nil {
-			return errors.Wrap(err, "LND subscribe and store transactions")
-		}
-		return nil
-	})
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in SubscribeAndStoreTransactions: %v", panicError)
+				log.Error().Msg("Cancelling the subscription.")
+				err = ctx.Err()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreTransactions")
+				}
+			}
+		}()
+		lnd.SubscribeAndStoreTransactions(ctx, client, db, nodeSettings, eventChannel)
+	})()
 
-	// // HTLC events
-	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel)
-		if err != nil {
-			return errors.Wrap(err, "LND subscribe and store HTLC events")
-		}
-		return nil
-	})
+	// HTLC events
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in SubscribeAndStoreHtlcEvents: %v", panicError)
+				log.Error().Msg("Cancelling the subscription.")
+				err = ctx.Err()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreHtlcEvents")
+				}
+			}
+		}()
+		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel)
+	})()
 
-	// // Channel Events
-	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel)
-		if err != nil {
-			return errors.Wrap(err, "LND subscribe and store channel events")
-		}
-		return nil
-	})
+	// Channel events
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in SubscribeAndStoreChannelEvents: %v", panicError)
+				log.Error().Msg("Cancelling the subscription.")
+				err = ctx.Err()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreChannelEvents")
+				}
+			}
+		}()
+		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel)
+	})()
 
 	// Graph (Node updates, fee updates etc.)
-	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel)
-		if err != nil {
-			return errors.Wrap(err, "LND subscribe and store channel graph")
-		}
-		return nil
-	})
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in SubscribeAndStoreChannelGraph: %v", panicError)
+				log.Error().Msg("Cancelling the subscription.")
+				err = ctx.Err()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreChannelGraph")
+				}
+			}
+		}()
+		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel)
+	})()
 
 	// Forwarding history
-	errs.Go(func() error {
-		err := lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, nil)
-		if err != nil {
-			return errors.Wrap(err, "LND subscribe forwarding events")
-		}
-		return nil
-	})
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in SubscribeForwardingEvents: %v", panicError)
+				log.Error().Msg("Cancelling the subscription.")
+				err = ctx.Err()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeForwardingEvents")
+				}
+			}
+		}()
+		lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, nil)
+	})()
 
 	// Invoices
-	errs.Go(func() error {
-		err := lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel)
-		if err != nil {
-			return errors.Wrap(err, "LND subscribe and store invoices")
-		}
-		return nil
-	})
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in SubscribeAndStoreInvoices: %v", panicError)
+				log.Error().Msg("Cancelling the subscription.")
+				err = ctx.Err()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreInvoices")
+				}
+			}
+		}()
+		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel)
+	})()
 
 	// Payments
-	errs.Go(func() error {
-		err := lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, nil)
-		if err != nil {
-			return errors.Wrap(err, "LND subscribe and store payments")
-		}
-		return nil
-	})
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in SubscribeAndStorePayments: %v", panicError)
+				log.Error().Msg("Cancelling the subscription.")
+				err = ctx.Err()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStorePayments")
+				}
+			}
+		}()
+		lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, nil)
+	})()
 
 	// Update in flight payments
-	errs.Go(func() error {
-		err := lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, nil)
-		if err != nil {
-			return errors.Wrap(err, "LND subscribe and update payments")
-		}
-		return nil
-	})
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in UpdateInFlightPayments: %v", panicError)
+				log.Error().Msg("Cancelling the subscription.")
+				err = ctx.Err()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to cancel context after Panic in UpdateInFlightPayments")
+				}
+			}
+		}()
+		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, nil)
+	})()
 
 	// Peer Events
-	errs.Go(func() error {
-		err := lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel)
-		if err != nil {
-			return errors.Wrap(err, "LND subscribe peer events")
-		}
-		return nil
-	})
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in SubscribePeerEvents: %v", panicError)
+				log.Error().Msg("Cancelling the subscription.")
+				err = ctx.Err()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribePeerEvents")
+				}
+			}
+		}()
+		lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel)
+	})()
 
-	err = errs.Wait()
+	wg.Wait()
 
-	// Everything that will write to the PeerPubKeyList and ChanPointList has finised so we can cancel the monitor functions
-	monitorCancel()
-
-	return err
+	return nil
 }

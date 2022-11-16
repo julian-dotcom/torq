@@ -3,13 +3,13 @@ package lnd
 import (
 	"context"
 	"database/sql"
+	"sync"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/commons"
@@ -39,6 +39,19 @@ func (s *stubLNDSubscribeChannelEventRPC) Recv() (*lnrpc.ChannelEventUpdate, err
 type stubLNDSubscribeChannelEvent struct {
 	ChannelEvents []interface{}
 	CancelFunc    func()
+}
+
+func (c *stubLNDSubscribeChannelEvent) ListChannels(
+	ctx context.Context, in *lnrpc.ListChannelsRequest, opts ...grpc.CallOption) (*lnrpc.ListChannelsResponse, error) {
+	var channels []*lnrpc.Channel
+	return &lnrpc.ListChannelsResponse{
+		Channels: channels,
+	}, nil
+}
+
+func (c *stubLNDSubscribeChannelEvent) GetChanInfo(
+	ctx context.Context, in *lnrpc.ChanInfoRequest, opts ...grpc.CallOption) (*lnrpc.ChannelEdge, error) {
+	return nil, nil
 }
 
 func (c *stubLNDSubscribeChannelEvent) SubscribeChannelEvents(
@@ -243,27 +256,20 @@ type channelEventData struct {
 func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, expected channelEventData) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
-	errs, ctx := errgroup.WithContext(ctx)
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	client := &stubLNDSubscribeChannelEvent{ChannelEvents: []interface{}{channelEvent}, CancelFunc: cancel}
-	errs.Go(func() error {
-		err := SubscribeAndStoreChannelEvents(ctx, client, db,
+	go func() {
+		defer wg.Done()
+		SubscribeAndStoreChannelEvents(ctx, client, db,
 			commons.GetNodeSettingsByNodeId(
 				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil)
-		if err != nil {
-			t.Fatalf("Problem subscribing to channel events: %v", err)
-		}
-		return err
-	})
-
-	// Wait for subscriptions to complete
-	err := errs.Wait()
-	if err != nil {
-		t.Fatal(err)
-	}
+	}()
+	wg.Wait()
 
 	var channelEvents []channelEventData
-	err = db.Select(&channelEvents, `
+	err := db.Select(&channelEvents, `
 			SELECT c.lnd_short_channel_id,
 			       c.funding_transaction_hash,
 			       c.funding_output_index,

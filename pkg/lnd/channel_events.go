@@ -280,7 +280,15 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 	return channelId, nil
 }
 
+type lndClientChannelEvent interface {
+	ListChannels(ctx context.Context, in *lnrpc.ListChannelsRequest,
+		opts ...grpc.CallOption) (*lnrpc.ListChannelsResponse, error)
+	GetChanInfo(ctx context.Context, in *lnrpc.ChanInfoRequest,
+		opts ...grpc.CallOption) (*lnrpc.ChannelEdge, error)
+}
+
 type lndClientSubscribeChannelEvent interface {
+	lndClientChannelEvent
 	SubscribeChannelEvents(ctx context.Context, in *lnrpc.ChannelEventSubscription,
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeChannelEventsClient, error)
 	PendingChannels(ctx context.Context, in *lnrpc.PendingChannelsRequest,
@@ -290,55 +298,59 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
 
-	cesr := lnrpc.ChannelEventSubscription{}
-	stream, err := client.SubscribeChannelEvents(ctx, &cesr)
-	if err != nil {
-		return errors.Wrap(err, "Subscribe channel events")
-	}
+	var stream lnrpc.Lightning_SubscribeChannelEventsClient
+	var err error
+	var chanEvent *lnrpc.ChannelEventUpdate
 
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
 	for {
-
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
 		}
 
-		chanEvent, err := stream.Recv()
-		if err != nil {
-			if errors.Is(ctx.Err(), context.Canceled) {
-				break
-			}
-
-			log.Error().Err(err).Msg("Subscribe channel events stream receive error")
-			// rate limited resubscribe
-			log.Info().Msg("Attempting reconnect to channel events")
-			for {
-				rl.Take()
-				stream, err = client.SubscribeChannelEvents(ctx, &cesr)
-				if err == nil {
-					log.Info().Msg("Reconnected to channel events")
-					break
+		if stream == nil {
+			stream, err = client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
+			if err == nil {
+				// HACK to know if the context is a testcase.
+				if eventChannel != nil {
+					// Import routing policies from open channels
+					err = importRoutingPolicies(client, db, nodeSettings)
+					if err != nil {
+						log.Error().Err(err).Msg("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
+						stream = nil
+						time.Sleep(1 * time.Minute)
+						continue
+					}
 				}
-				log.Debug().Err(err).Msg("Reconnecting to channel events error")
+			} else {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
+				log.Error().Err(err).Msg("Obtaining stream (SubscribeChannelEvents) from LND failed, will retry in 1 minute")
+				stream = nil
+				time.Sleep(1 * time.Minute)
+				continue
 			}
+		}
+
+		chanEvent, err = stream.Recv()
+		if err != nil {
+			log.Error().Err(err).Msg("Receiving channel events from the stream failed, will retry to obtain a stream")
+			stream = nil
+			rl.Take()
 			continue
 		}
 
 		err = storeChannelEvent(ctx, db, client, chanEvent, nodeSettings, eventChannel)
 		if err != nil {
-			log.Error().Err(err).Msg("Subscribe channel events store event error")
-			// rate limit for caution but hopefully not needed
-			rl.Take()
-			continue
+			// TODO FIXME STORE THIS SOMEWHERE??? CHANNELEVENT IS NOW IGNORED???
+			log.Error().Err(err).Msg("Storing channel event failed")
 		}
-
 	}
-
-	return nil
 }
 
 func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, client lnrpc.LightningClient,

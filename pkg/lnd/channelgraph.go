@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/graph_events"
@@ -20,64 +22,114 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-type subscribeChannelGrpahClient interface {
+type subscribeChannelGraphClient interface {
+	lndClientChannelEvent
 	SubscribeChannelGraph(ctx context.Context, in *lnrpc.GraphTopologySubscription,
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeChannelGraphClient, error)
+	GetNodeInfo(ctx context.Context, in *lnrpc.NodeInfoRequest,
+		opts ...grpc.CallOption) (*lnrpc.NodeInfo, error)
 }
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
-func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
+func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
 
-	req := lnrpc.GraphTopologySubscription{}
-	stream, err := client.SubscribeChannelGraph(ctx, &req)
-	if err != nil {
-		return errors.Wrap(err, "LND Subscribe Channel Graph")
-	}
+	var stream lnrpc.Lightning_SubscribeChannelGraphClient
+	var err error
+	var gpu *lnrpc.GraphTopologyUpdate
 
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
 	for {
-
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
 		}
 
-		gpu, err := stream.Recv()
+		if stream == nil {
+			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
+			if err == nil {
+				// HACK to know if the context is a testcase.
+				if eventChannel != nil {
+					// Import routing policies from open channels
+					err = importRoutingPolicies(client, db, nodeSettings)
+					if err != nil {
+						log.Error().Err(err).Msg("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
+						stream = nil
+						time.Sleep(1 * time.Minute)
+						continue
+					}
 
-		if err != nil {
-			if errors.Is(ctx.Err(), context.Canceled) {
-				break
-			}
-			log.Error().Err(err).Msgf("Subscribe channel graph stream receive")
-			// rate limited resubscribe
-			log.Info().Msg("Attempting reconnect to channel graph")
-			for {
-				rl.Take()
-				stream, err = client.SubscribeChannelGraph(ctx, &req)
-				if err == nil {
-					log.Info().Msg("Reconnected to channel graph")
-					break
+					// Import node info from nodes with channels
+					err = importNodeInfo(client, db, nodeSettings)
+					if err != nil {
+						log.Error().Err(err).Msg("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
+						stream = nil
+						time.Sleep(1 * time.Minute)
+						continue
+					}
 				}
-				log.Debug().Err(err).Msg("Reconnecting to channel graph")
+			} else {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
+				log.Error().Err(err).Msg("Obtaining stream (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
+				stream = nil
+				time.Sleep(1 * time.Minute)
+				continue
 			}
+		}
+
+		gpu, err = stream.Recv()
+		if err != nil {
+			log.Error().Err(err).Msg("Receiving channel graph events from the stream failed, will retry to obtain a stream")
+			stream = nil
+			rl.Take()
 			continue
 		}
 
 		err = processNodeUpdates(gpu.NodeUpdates, db, nodeSettings, eventChannel)
 		if err != nil {
-			return errors.Wrap(err, "Process node updates")
+			// TODO FIXME STORE THIS SOMEWHERE??? NODE UPDATES ARE NOW IGNORED???
+			log.Error().Err(err).Msgf("Failed to store node update events")
+			rl.Take()
 		}
 
 		err = processChannelUpdates(gpu.ChannelUpdates, db, nodeSettings, eventChannel)
 		if err != nil {
-			return errors.Wrap(err, "Process channel updates")
+			// TODO FIXME STORE THIS SOMEWHERE??? CHANNEL UPDATES ARE NOW IGNORED???
+			log.Error().Err(err).Msgf("Failed to store channel update events")
+			rl.Take()
 		}
-
 	}
+}
 
+func importNodeInfo(client subscribeChannelGraphClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+	// Get all node public keys with channels
+	publicKeys := commons.GetAllChannelPublicKeys(nodeSettings.Chain, nodeSettings.Network)
+
+	ctx := context.Background()
+	for _, publicKey := range publicKeys {
+		ni, err := client.GetNodeInfo(ctx, &lnrpc.NodeInfoRequest{PubKey: publicKey, IncludeChannels: false})
+		if err != nil {
+			if e, ok := status.FromError(err); ok {
+				switch e.Code() {
+				case codes.NotFound:
+					log.Debug().Err(err).Msgf("Node info not found error when importing node info for public key: %v", publicKey)
+					continue
+				default:
+					return errors.Wrap(err, "Get node info")
+				}
+			}
+		}
+		err = insertNodeEvent(db, time.Now().UTC(),
+			commons.GetNodeIdFromPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network),
+			ni.Node.Alias, ni.Node.Color, ni.Node.Addresses, ni.Node.Features, nodeSettings.NodeId, nil)
+		if err != nil {
+			return errors.Wrap(err, "Insert node event")
+		}
+	}
 	return nil
 }
 

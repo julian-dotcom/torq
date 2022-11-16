@@ -194,55 +194,48 @@ func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, 
 }
 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
 
-	// Get the latest settle and add index to prevent duplicate entries.
-	addIndex, settleIndex, err := fetchLastInvoiceIndexes(db)
-	if err != nil {
-		log.Error().Msgf("subscribe and store invoices: %v", err)
-		return errors.Wrap(err, "subscribe and store invoices")
-	}
-
-	invoiceStream, err := client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
-		AddIndex:    addIndex,
-		SettleIndex: settleIndex,
-	})
-	if err != nil {
-		log.Error().Msgf("subscribe and store invoices - lnrpc subscribe:  %v", err)
-		return errors.Wrap(err, "lnrpc subscribe invoices")
-	}
+	var addIndex, settleIndex uint64
+	var stream lnrpc.Lightning_SubscribeInvoicesClient
+	var err error
+	var invoice *lnrpc.Invoice
 
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
 	for {
-
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
 		}
 
-		invoice, err := invoiceStream.Recv()
+		// Get the latest settle and add index to prevent duplicate entries.
+		addIndex, settleIndex, err = fetchLastInvoiceIndexes(db)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in 1 minute")
+			time.Sleep(1 * time.Minute)
+			continue
+		}
 
+		stream, err = client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
+			AddIndex:    addIndex,
+			SettleIndex: settleIndex,
+		})
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				break
+				return
 			}
-			log.Error().Msgf("Subscribe and store invoice stream receive: %v\n", err)
-			// rate limited resubscribe
-			log.Debug().Msg("Attempting reconnect to invoice subscription")
-			for {
-				rl.Take()
-				invoiceStream, err = client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
-					AddIndex:    addIndex,
-					SettleIndex: settleIndex,
-				})
-				if err == nil {
-					log.Debug().Msgf("Reconnected to invoice subscription")
-					break
-				}
-				log.Info().Msgf("Reconnecting to invoice subscription: %v\n", err)
-			}
+			log.Error().Err(err).Msgf("Failed to obtain invoices, will retry in 10 seconds")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		invoice, err = stream.Recv()
+		if err != nil {
+			log.Error().Err(err).Msg("Receiving invoices from the stream failed, will retry to obtain a stream")
+			stream = nil
+			rl.Take()
 			continue
 		}
 
@@ -268,13 +261,10 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel)
 		if err != nil {
-			log.Error().Msgf("Subscribe and store invoices: %v", err)
-			// rate limit for caution but hopefully not needed
+			log.Error().Err(err).Msg("Storing invoice failed")
 			rl.Take()
 		}
 	}
-
-	return nil
 }
 
 // getNodeNetwork

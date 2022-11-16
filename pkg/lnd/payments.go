@@ -30,7 +30,11 @@ type PayOptions struct {
 }
 
 func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) {
+
+	var lastPaymentIndex uint64
+	var payments *lnrpc.ListPaymentsResponse
+	var err error
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
@@ -48,40 +52,37 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 		// Exit if canceled
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		case <-ticker:
-
-			// Fetch the last payment index we have stored
-			last, err := fetchLastPaymentIndex(db)
-			if err != nil {
-				return errors.Wrapf(err, "SubscribeAndStorePayments->fetchLastPaymentIndex(%v)", db)
-			}
-
-			// Keep fetching until LND returns less than the max number of records requested.
 			for {
-
-				p, err := fetchPayments(ctx, client, last)
-				if errors.Is(ctx.Err(), context.Canceled) {
-					return nil
-				}
+				lastPaymentIndex, err = fetchLastPaymentIndex(db)
 				if err != nil {
-					log.Printf("Fetch payments: %v\n", err)
+					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 1 minute")
 					break
 				}
 
-				last = p.LastIndexOffset
+				payments, err = fetchPayments(ctx, client, lastPaymentIndex)
+				if err != nil {
+					if errors.Is(ctx.Err(), context.Canceled) {
+						return
+					}
+					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in 1 minute")
+					break
+				}
 
 				// Store the payments
-				err = storePayments(db, p.Payments, nodeSettings.NodeId)
+				err = storePayments(db, payments.Payments, nodeSettings.NodeId)
 				if err != nil {
-					log.Printf("Store payments: %v\n", err)
+					log.Error().Err(err).Msgf("Failed to store payments, will retry in 1 minute")
 					break
 				}
 
 				// Stop fetching if there are fewer forwards than max requested
 				// (indicates that we have the last forwarding record)
-				if len(p.Payments) == 0 {
+				if len(payments.Payments) == 0 {
 					break
+				} else {
+					log.Info().Msgf("Still running bulk import of payments")
 				}
 			}
 		}
@@ -176,7 +177,9 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 }
 
 func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) {
+
+	var listPaymentsResponse *lnrpc.ListPaymentsResponse
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
@@ -194,28 +197,26 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		// Exit if canceled
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		case <-ticker:
-
-			inFlightindexes, err := fetchInFlightPaymentIndexes(db)
-
+			inFlightIndexes, err := fetchInFlightPaymentIndexes(db)
 			if err != nil {
-				log.Printf("Subscribe and update payments: %v\n", err)
+				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in 1 minute")
 				continue
 			}
 
-			for _, i := range inFlightindexes {
+			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				// we will only get one payment back. Might not be the right one.
-				p, err := fetchPayments(ctx, client, ifPayIndex)
+				listPaymentsResponse, err = fetchPayments(ctx, client, ifPayIndex)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
-						return nil
+						return
 					}
 					log.Error().Err(err).Msg("Error with subscribe and update payments")
 					continue
 				}
-				if len(p.Payments) == 0 {
+				if len(listPaymentsResponse.Payments) == 0 {
 					log.Info().Msgf("We had an inflight payment but nothing from LND: %v", i)
 					if err = setPaymentToFailedDetailsUnavailable(db, i); err != nil {
 						log.Error().Err(err).Msg("Error with Setting payment to failed details unavailable")
@@ -223,17 +224,18 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 					continue
 				}
 
-				if p.Payments[0].PaymentIndex != i {
+				if listPaymentsResponse.Payments[0].PaymentIndex != i {
 					log.Warn().Msgf("Payment data missing from LND for payment index: %v", i)
 					if err = setPaymentToFailedDetailsUnavailable(db, i); err != nil {
 						log.Error().Err(err).Msg("Error with Setting payment to failed details unavailable")
 					}
 					continue
 				}
+
 				// Store the payments
-				err = updatePayments(db, p.Payments, nodeSettings.NodeId)
+				err = updatePayments(db, listPaymentsResponse.Payments, nodeSettings.NodeId)
 				if err != nil {
-					log.Printf("Subscribe and update payments: %v\n", err)
+					log.Error().Err(err).Msgf("Failed to store update payments")
 					continue
 				}
 			}

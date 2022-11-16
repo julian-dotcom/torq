@@ -3,353 +3,243 @@ package lnd
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/rs/zerolog/log"
 	"go.uber.org/ratelimit"
 )
 
-func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) error {
-
-	jb, err := json.Marshal(h)
-	if err != nil {
-		return fmt.Errorf("storeLinkFailEvent -> json.Marshal(%v): %v", h, err)
-	}
-
-	stm := `
-	INSERT INTO htlc_event (
-		time,
-		event_origin,
-		timestamp_ns,
-		data,
-		event_type,
-		incoming_amt_msat,
-		outgoing_amt_msat,
-		incoming_timelock,
-		Outgoing_timelock,
-		outgoing_htlc_id,
-		incoming_htlc_id,
-		bolt_failure_code,
-		bolt_failure_string,
-		lnd_failure_detail,
-	    incoming_channel_id,
-	    outgoing_channel_id,
-	    node_id
-	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-	`
-
-	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
-
-	var incomingChannelId *int
-	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
-	tempIncomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
-	if tempIncomingChannelId != 0 {
-		incomingChannelId = &tempIncomingChannelId
-	}
-
-	var outgoingChannelId *int
-	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-	tempOutgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
-	if tempOutgoingChannelId != 0 {
-		outgoingChannelId = &tempOutgoingChannelId
-	}
-
-	_, err = db.Exec(stm,
-		timestampMs,
-		h.EventType,
-		h.TimestampNs,
-		jb,
-		"LinkFailEvent",
-		h.GetLinkFailEvent().Info.IncomingAmtMsat,
-		h.GetLinkFailEvent().Info.OutgoingAmtMsat,
-		h.GetLinkFailEvent().Info.IncomingTimelock,
-		h.GetLinkFailEvent().Info.OutgoingTimelock,
-		h.OutgoingHtlcId,
-		h.IncomingHtlcId,
-		h.GetLinkFailEvent().WireFailure.String(),
-		h.GetLinkFailEvent().FailureString,
-		h.GetLinkFailEvent().FailureDetail.String(),
-		incomingChannelId,
-		outgoingChannelId,
-		nodeId,
-	)
-
-	if err != nil {
-		return fmt.Errorf(`storeLinkFailEvent -> db.Exec(%s, %v, %v, %v, %v, %v): %v`,
-			stm, timestampMs, h.EventType, h.OutgoingChannelId, h.IncomingChannelId, jb, err)
-	}
-
-	return nil
+type HtlcEvent struct {
+	Time              time.Time `json:"time" db:"time"`
+	Data              string    `json:"data" db:"data"`
+	EventOrigin       *string   `json:"eventOrigin" db:"event_origin"`
+	EventType         *string   `json:"eventType" db:"event_type"`
+	OutgoingHtlcId    *uint64   `json:"outgoingHtlcId" db:"outgoing_htlc_id"`
+	IncomingHtlcId    *uint64   `json:"incomingHtlcId" db:"incoming_htlc_id"`
+	TimestampNs       *uint64   `json:"timestampNs" db:"timestamp_ns"`
+	IncomingAmtMsat   *uint64   `json:"incomingAmtMsat" db:"incoming_amt_msat"`
+	OutgoingAmtMsat   *uint64   `json:"outgoingAmtMsat" db:"outgoing_amt_msat"`
+	IncomingTimelock  *uint32   `json:"incomingTimelock" db:"incoming_timelock"`
+	OutgoingTimelock  *uint32   `json:"outgoingTimelock" db:"outgoing_timelock"`
+	BoltFailureCode   *string   `json:"boltFailureCode" db:"bolt_failure_code"`
+	BoltFailureString *string   `json:"boltFailureString" db:"bolt_failure_string"`
+	LndFailureDetail  *string   `json:"lndFailureDetail" db:"lnd_failure_detail"`
+	OutgoingChannelId *int      `json:"outgoingChannelId" db:"outgoing_channel_id"`
+	IncomingChannelId *int      `json:"incomingChannelId" db:"incoming_channel_id"`
+	NodeId            int       `json:"nodeId" db:"node_id"`
 }
 
-func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) error {
-
-	jb, err := json.Marshal(h)
-	if err != nil {
-		return fmt.Errorf("storeForwardEvent -> json.Marshal(%v): %v", h, err)
-	}
-
-	stm := `
-	INSERT INTO htlc_event (
-		time,
-		event_origin,
-		timestamp_ns,
-		data,
-		event_type,
-		outgoing_htlc_id,
-		incoming_htlc_id,
-	    incoming_channel_id,
-	    outgoing_channel_id,
-	    node_id
-	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
-
-	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
-
-	var incomingChannelId *int
-	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
-	tempIncomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
-	if tempIncomingChannelId != 0 {
-		incomingChannelId = &tempIncomingChannelId
-	}
-
-	var outgoingChannelId *int
-	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-	tempOutgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
-	if tempOutgoingChannelId != 0 {
-		outgoingChannelId = &tempOutgoingChannelId
-	}
-
-	_, err = db.Exec(stm,
-		timestampMs,
-		h.EventType,
-		h.TimestampNs,
-		jb,
-		"SettleEvent",
-		h.OutgoingHtlcId,
-		h.IncomingHtlcId,
-		incomingChannelId,
-		outgoingChannelId,
-		nodeId,
-	)
-
-	if err != nil {
-		return fmt.Errorf(`storeSettleEvent -> db.Exec(%s, %v, %v, %v, %v, %v): %v`,
-			stm, timestampMs, h.EventType, h.OutgoingChannelId, h.IncomingChannelId, jb, err)
-	}
-
-	return nil
+func storeLinkFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) (HtlcEvent, error) {
+	return storeFullEvent(db, h, nodeId, "LinkFailEvent")
 }
 
-func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) error {
-
-	jb, err := json.Marshal(h)
-	if err != nil {
-		return fmt.Errorf("storeForwardFailEvent -> json.Marshal(%v): %v", h, err)
-	}
-
-	stm := `
-	INSERT INTO htlc_event (
-		time,
-		event_origin,
-		timestamp_ns,
-		data,
-		event_type,
-		outgoing_htlc_id,
-		incoming_htlc_id,
-		incoming_channel_id,
-		outgoing_channel_id,
-	    node_id
-	)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
-
-	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
-
-	var incomingChannelId *int
-	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
-	tempIncomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
-	if tempIncomingChannelId != 0 {
-		incomingChannelId = &tempIncomingChannelId
-	}
-
-	var outgoingChannelId *int
-	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-	tempOutgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
-	if tempOutgoingChannelId != 0 {
-		outgoingChannelId = &tempOutgoingChannelId
-	}
-
-	_, err = db.Exec(stm,
-		timestampMs,
-		h.EventType,
-		h.TimestampNs,
-		jb,
-		"ForwardFailEvent",
-		h.OutgoingHtlcId,
-		h.IncomingHtlcId,
-		incomingChannelId,
-		outgoingChannelId,
-		nodeId,
-	)
-
-	if err != nil {
-		return fmt.Errorf(`storeForwardFailEvent -> db.Exec(%s, %v, %v, %v, %v, %v): %v`,
-			stm, timestampMs, h.EventType, h.OutgoingChannelId, h.IncomingChannelId, jb, err)
-	}
-
-	return nil
+func storeSettleEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) (HtlcEvent, error) {
+	return storeFullEvent(db, h, nodeId, "SettleEvent")
 }
 
-func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) error {
+func storeForwardFailEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) (HtlcEvent, error) {
+	return storeFullEvent(db, h, nodeId, "ForwardFailEvent")
+}
 
+func storeForwardEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int) (HtlcEvent, error) {
+	return storeFullEvent(db, h, nodeId, "ForwardEvent")
+}
+
+func storeFullEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int, eventType string) (HtlcEvent, error) {
 	jb, err := json.Marshal(h)
 	if err != nil {
-		return fmt.Errorf("storeForwardEvent -> json.Marshal(%v): %v", h, err)
+		return HtlcEvent{}, errors.Wrapf(err, "Marshalling HTLC Event (%v) %v", eventType, h)
 	}
-
-	stm := `
-	INSERT INTO htlc_event (
-		time,
-		event_origin,
-		timestamp_ns,
-		data,
-		event_type,
-		incoming_amt_msat,
-		outgoing_amt_msat,
-		incoming_timelock,
-		Outgoing_timelock,
-		outgoing_htlc_id,
-		incoming_htlc_id,
-	    incoming_channel_id,
-	    outgoing_channel_id,
-	    node_id
-	)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);`
-
 	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
-
-	var incomingChannelId *int
-	incomingShortChannelId := channels.ConvertLNDShortChannelID(h.IncomingChannelId)
-	tempIncomingChannelId := commons.GetChannelIdFromShortChannelId(incomingShortChannelId)
-	if tempIncomingChannelId != 0 {
-		incomingChannelId = &tempIncomingChannelId
+	incomingChannelId := getChannelIdByLndShortChannelId(h.IncomingChannelId)
+	outgoingChannelId := getChannelIdByLndShortChannelId(h.OutgoingChannelId)
+	eventOrigin := h.EventType.String()
+	htlcEvent := HtlcEvent{
+		Time:              timestampMs,
+		Data:              string(jb),
+		EventOrigin:       &eventOrigin,
+		EventType:         &eventType,
+		OutgoingHtlcId:    &h.OutgoingHtlcId,
+		IncomingHtlcId:    &h.IncomingHtlcId,
+		TimestampNs:       &h.TimestampNs,
+		OutgoingChannelId: outgoingChannelId,
+		IncomingChannelId: incomingChannelId,
+		NodeId:            nodeId,
 	}
-
-	var outgoingChannelId *int
-	outgoingShortChannelId := channels.ConvertLNDShortChannelID(h.OutgoingChannelId)
-	tempOutgoingChannelId := commons.GetChannelIdFromShortChannelId(outgoingShortChannelId)
-	if tempOutgoingChannelId != 0 {
-		outgoingChannelId = &tempOutgoingChannelId
+	if "LinkFailEvent" == eventType {
+		htlcEvent.IncomingAmtMsat = &h.GetLinkFailEvent().Info.IncomingAmtMsat
+		htlcEvent.OutgoingAmtMsat = &h.GetLinkFailEvent().Info.OutgoingAmtMsat
+		htlcEvent.IncomingTimelock = &h.GetLinkFailEvent().Info.IncomingTimelock
+		htlcEvent.OutgoingTimelock = &h.GetLinkFailEvent().Info.OutgoingTimelock
+		boltFailureCode := h.GetLinkFailEvent().WireFailure.String()
+		lndFailureDetail := h.GetLinkFailEvent().FailureDetail.String()
+		htlcEvent.BoltFailureCode = &boltFailureCode
+		htlcEvent.BoltFailureString = &h.GetLinkFailEvent().FailureString
+		htlcEvent.LndFailureDetail = &lndFailureDetail
 	}
-
-	_, err = db.Exec(stm,
-		timestampMs,
-		h.EventType,
-		h.TimestampNs,
-		jb,
-		"ForwardEvent",
-		h.GetForwardEvent().Info.IncomingAmtMsat,
-		h.GetForwardEvent().Info.OutgoingAmtMsat,
-		h.GetForwardEvent().Info.IncomingTimelock,
-		h.GetForwardEvent().Info.OutgoingTimelock,
-		h.OutgoingHtlcId,
-		h.IncomingHtlcId,
-		incomingChannelId,
-		outgoingChannelId,
-		nodeId,
-	)
-
+	if "ForwardEvent" == eventType {
+		htlcEvent.IncomingAmtMsat = &h.GetForwardEvent().Info.IncomingAmtMsat
+		htlcEvent.OutgoingAmtMsat = &h.GetForwardEvent().Info.OutgoingAmtMsat
+		htlcEvent.IncomingTimelock = &h.GetForwardEvent().Info.IncomingTimelock
+		htlcEvent.OutgoingTimelock = &h.GetForwardEvent().Info.OutgoingTimelock
+	}
+	err = addHtlcEvent(db, htlcEvent)
 	if err != nil {
-		return fmt.Errorf(`storeForwardEvent -> db.Exec(%s, %v, %v, %v, %v, %v): %v`,
-			stm, timestampMs, h.EventType, h.OutgoingChannelId, h.IncomingChannelId, jb, err)
+		return HtlcEvent{}, errors.Wrapf(err, "Storing HTLC Event (%v)", eventType)
 	}
+	return htlcEvent, nil
+}
 
-	return nil
+func getChannelIdByLndShortChannelId(lndShortChannelId uint64) *int {
+	var channelId *int
+	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
+	tempChannelId := commons.GetChannelIdFromShortChannelId(shortChannelId)
+	if tempChannelId != 0 {
+		channelId = &tempChannelId
+	}
+	return channelId
+}
+
+func addHtlcEvent(db *sqlx.DB, htlcEvent HtlcEvent) error {
+	_, err := db.Exec(`
+		INSERT INTO htlc_event (
+			time,
+			event_origin,
+			timestamp_ns,
+			data,
+			event_type,
+			incoming_amt_msat,
+			outgoing_amt_msat,
+			incoming_timelock,
+			Outgoing_timelock,
+			outgoing_htlc_id,
+			incoming_htlc_id,
+			bolt_failure_code,
+			bolt_failure_string,
+			lnd_failure_detail,
+			incoming_channel_id,
+			outgoing_channel_id,
+			node_id
+		) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+		htlcEvent.Time,
+		htlcEvent.EventOrigin,
+		htlcEvent.TimestampNs,
+		htlcEvent.Data,
+		htlcEvent.EventType,
+		htlcEvent.IncomingAmtMsat,
+		htlcEvent.OutgoingAmtMsat,
+		htlcEvent.IncomingTimelock,
+		htlcEvent.OutgoingTimelock,
+		htlcEvent.OutgoingHtlcId,
+		htlcEvent.IncomingHtlcId,
+		htlcEvent.BoltFailureCode,
+		htlcEvent.BoltFailureString,
+		htlcEvent.LndFailureDetail,
+		htlcEvent.IncomingChannelId,
+		htlcEvent.OutgoingChannelId,
+		htlcEvent.NodeId,
+	)
+	return err
 }
 
 // SubscribeAndStoreHtlcEvents subscribes to HTLC events from LND and stores them in the database as time series.
 // NB: LND has marked HTLC event streaming as experimental. Delivery is not guaranteed, so dataset might not be complete
 // HTLC events is primarily used to diagnose how good a channel / node is. And if the channel allocation should change.
 func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
-
-	htlcStream, err := router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
-	if err != nil {
-		return fmt.Errorf("SubscribeAndStoreHtlcEvents -> SubscribeHtlcEvents(): %v", err)
-	}
-
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+	var stream routerrpc.Router_SubscribeHtlcEventsClient
+	var err error
+	var htlcEvent *routerrpc.HtlcEvent
+	var storedHtlcEvent HtlcEvent
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
-
 	for {
-
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return
 		default:
 		}
 
-		htlcEvent, err := htlcStream.Recv()
-
-		if err != nil {
-			if errors.Is(ctx.Err(), context.Canceled) {
-				break
-			}
-			log.Error().Msg("printing error")
-			log.Error().Msgf("%v, %T", err, err)
-			log.Error().Msgf("Subscribe htlc events stream receive: %v\n", err)
-			// rate limited resubscribe
-			log.Info().Msg("Attempting reconnect to HTLC events")
-			for {
-				rl.Take()
-				htlcStream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
-				if err == nil {
-					log.Info().Msg("Reconnected to HTLC events")
-					break
+		if stream == nil {
+			stream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
+			if err != nil {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
 				}
-				log.Printf("Reconnecting to HTLC events: %v\n", err)
+				log.Error().Err(err).Msg("Obtaining stream (SubscribeTransactions) from LND failed, will retry in 1 minute")
+				stream = nil
+				time.Sleep(1 * time.Minute)
+				continue
 			}
+		}
+
+		htlcEvent, err = stream.Recv()
+		if err != nil {
+			log.Error().Err(err).Msg("Receiving htlc events from the stream failed, will retry to obtain a stream")
+			stream = nil
+			rl.Take()
 			continue
 		}
 
 		switch htlcEvent.Event.(type) {
 		case *routerrpc.HtlcEvent_ForwardEvent:
-			err = storeForwardEvent(db, htlcEvent, nodeSettings.NodeId)
+			storedHtlcEvent, err = storeForwardEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
-				log.Printf("Subscribe htlc events stream: %v", err)
-				// rate limit for caution but hopefully not needed
+				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
+				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_ForwardEvent")
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_ForwardFailEvent:
-			err = storeForwardFailEvent(db, htlcEvent, nodeSettings.NodeId)
+			storedHtlcEvent, err = storeForwardFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
-				log.Printf("Subscribe htlc events stream: %v", err)
-				// rate limit for caution but hopefully not needed
+				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
+				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_ForwardFailEvent")
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_LinkFailEvent:
-			err = storeLinkFailEvent(db, htlcEvent, nodeSettings.NodeId)
+			storedHtlcEvent, err = storeLinkFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
-				log.Printf("Subscribe htlc events stream: %v", err)
-				// rate limit for caution but hopefully not needed
+				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
+				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_LinkFailEvent")
 				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_SettleEvent:
-			err = storeSettleEvent(db, htlcEvent, nodeSettings.NodeId)
+			storedHtlcEvent, err = storeSettleEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
-				log.Printf("Subscribe htlc events stream: %v", err)
-				// rate limit for caution but hopefully not needed
+				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
+				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_SettleEvent")
 				rl.Take()
 			}
 		}
+
+		if eventChannel != nil {
+			eventChannel <- broadcast.HtlcEvent{
+				EventData: broadcast.EventData{
+					EventTime: time.Now().UTC(),
+					NodeId:    nodeSettings.NodeId,
+				},
+				EventOrigin:       storedHtlcEvent.EventOrigin,
+				EventType:         storedHtlcEvent.EventType,
+				OutgoingHtlcId:    storedHtlcEvent.OutgoingHtlcId,
+				IncomingHtlcId:    storedHtlcEvent.IncomingHtlcId,
+				TimestampNs:       storedHtlcEvent.TimestampNs,
+				IncomingAmtMsat:   storedHtlcEvent.IncomingAmtMsat,
+				OutgoingAmtMsat:   storedHtlcEvent.OutgoingAmtMsat,
+				IncomingTimelock:  storedHtlcEvent.IncomingTimelock,
+				OutgoingTimelock:  storedHtlcEvent.OutgoingTimelock,
+				BoltFailureCode:   storedHtlcEvent.BoltFailureCode,
+				BoltFailureString: storedHtlcEvent.BoltFailureString,
+				LndFailureDetail:  storedHtlcEvent.LndFailureDetail,
+				OutgoingChannelId: storedHtlcEvent.OutgoingChannelId,
+				IncomingChannelId: storedHtlcEvent.IncomingChannelId,
+			}
+		}
 	}
-	return nil
 }
