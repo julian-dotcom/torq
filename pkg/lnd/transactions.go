@@ -64,6 +64,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		if stream == nil {
 			transactionHeight, err = fetchLastTxHeight(db)
 			if err != nil {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
 				log.Error().Err(err).Msgf("Failed to obtain last know transaction, will retry in 1 minute")
 				time.Sleep(1 * time.Minute)
 				continue
@@ -82,6 +85,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 					continue
 				}
 			} else {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
 				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 1 minute")
 				time.Sleep(1 * time.Minute)
 				continue
@@ -98,6 +104,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 					Height: blockEpoch.Height,
 				}
 			} else {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
 				log.Error().Err(err).Msg("Receiving block epoch from the stream failed, will retry in 1 minute")
 				stream = nil
 				time.Sleep(1 * time.Minute)
@@ -108,6 +117,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				StartHeight: transactionHeight + 1,
 			})
 			if err != nil {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
 				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 1 minute")
 				time.Sleep(1 * time.Minute)
 				continue

@@ -337,6 +337,9 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 
 		chanEvent, err = stream.Recv()
 		if err != nil {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			log.Error().Err(err).Msg("Receiving channel events from the stream failed, will retry in 1 minute")
 			stream = nil
 			time.Sleep(1 * time.Minute)
