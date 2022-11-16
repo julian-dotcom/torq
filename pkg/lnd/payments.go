@@ -236,7 +236,6 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 				err = updatePayments(db, listPaymentsResponse.Payments, nodeSettings.NodeId)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to store update payments")
-					continue
 				}
 			}
 		}

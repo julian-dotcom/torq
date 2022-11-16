@@ -61,7 +61,6 @@ type TransactionEvent struct {
 	DestinationAddresses  *[]string `json:"destinationAddresses"`
 	RawTransactionHex     *string   `json:"rawTransactionHex"`
 	Label                 *string   `json:"label"`
-	NodeId                int       `json:"nodeId"`
 }
 
 type ChannelEvent struct {

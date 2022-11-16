@@ -17,7 +17,6 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/rs/zerolog/log"
-	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 )
 
@@ -304,7 +303,6 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 	var err error
 	var chanEvent *lnrpc.ChannelEventUpdate
 
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
 	for {
 		select {
 		case <-ctx.Done():
@@ -341,7 +339,6 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 		if err != nil {
 			log.Error().Err(err).Msg("Receiving channel events from the stream failed, will retry to obtain a stream")
 			stream = nil
-			rl.Take()
 			continue
 		}
 

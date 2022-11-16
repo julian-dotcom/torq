@@ -14,7 +14,6 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/rs/zerolog/log"
-	"go.uber.org/ratelimit"
 )
 
 type HtlcEvent struct {
@@ -159,7 +158,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 	var err error
 	var htlcEvent *routerrpc.HtlcEvent
 	var storedHtlcEvent HtlcEvent
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -184,7 +183,6 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 		if err != nil {
 			log.Error().Err(err).Msg("Receiving htlc events from the stream failed, will retry to obtain a stream")
 			stream = nil
-			rl.Take()
 			continue
 		}
 
@@ -194,28 +192,24 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
 				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_ForwardEvent")
-				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_ForwardFailEvent:
 			storedHtlcEvent, err = storeForwardFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
 				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_ForwardFailEvent")
-				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_LinkFailEvent:
 			storedHtlcEvent, err = storeLinkFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
 				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_LinkFailEvent")
-				rl.Take()
 			}
 		case *routerrpc.HtlcEvent_SettleEvent:
 			storedHtlcEvent, err = storeSettleEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
 				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_SettleEvent")
-				rl.Take()
 			}
 		}
 

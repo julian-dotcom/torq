@@ -10,7 +10,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
-	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,8 +36,6 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	var stream lnrpc.Lightning_SubscribeChannelGraphClient
 	var err error
 	var gpu *lnrpc.GraphTopologyUpdate
-
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
 	for {
 		select {
@@ -85,7 +82,6 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		if err != nil {
 			log.Error().Err(err).Msg("Receiving channel graph events from the stream failed, will retry to obtain a stream")
 			stream = nil
-			rl.Take()
 			continue
 		}
 
@@ -93,14 +89,12 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		if err != nil {
 			// TODO FIXME STORE THIS SOMEWHERE??? NODE UPDATES ARE NOW IGNORED???
 			log.Error().Err(err).Msgf("Failed to store node update events")
-			rl.Take()
 		}
 
 		err = processChannelUpdates(gpu.ChannelUpdates, db, nodeSettings, eventChannel)
 		if err != nil {
 			// TODO FIXME STORE THIS SOMEWHERE??? CHANNEL UPDATES ARE NOW IGNORED???
 			log.Error().Err(err).Msgf("Failed to store channel update events")
-			rl.Take()
 		}
 	}
 }

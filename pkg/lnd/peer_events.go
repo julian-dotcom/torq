@@ -7,7 +7,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
-	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/broadcast"
@@ -25,8 +24,6 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 	var stream lnrpc.Lightning_SubscribePeerEventsClient
 	var err error
 	var peerEvent *lnrpc.PeerEvent
-
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
 	for {
 		select {
@@ -52,7 +49,6 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 		if err != nil {
 			log.Error().Err(err).Msg("Receiving peer events from the stream failed, will retry to obtain a stream")
 			stream = nil
-			rl.Take()
 			continue
 		}
 

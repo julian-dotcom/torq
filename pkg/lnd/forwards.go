@@ -165,7 +165,6 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to store forward event")
-					rl.Take()
 				}
 
 				// Stop fetching if there are fewer forwards than max requested

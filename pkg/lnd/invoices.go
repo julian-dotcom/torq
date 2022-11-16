@@ -13,7 +13,6 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/zpay32"
 	"github.com/rs/zerolog/log"
-	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/broadcast"
@@ -201,8 +200,6 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	var err error
 	var invoice *lnrpc.Invoice
 
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -226,16 +223,14 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			log.Error().Err(err).Msgf("Failed to obtain invoices, will retry in 10 seconds")
-			time.Sleep(1 * time.Second)
+			log.Error().Err(err).Msgf("Failed to obtain invoice stream, will retry in 1 minute")
+			time.Sleep(1 * time.Minute)
 			continue
 		}
 
 		invoice, err = stream.Recv()
 		if err != nil {
 			log.Error().Err(err).Msg("Receiving invoices from the stream failed, will retry to obtain a stream")
-			stream = nil
-			rl.Take()
 			continue
 		}
 
@@ -262,7 +257,6 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel)
 		if err != nil {
 			log.Error().Err(err).Msg("Storing invoice failed")
-			rl.Take()
 		}
 	}
 }

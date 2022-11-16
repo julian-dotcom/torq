@@ -9,6 +9,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
+	"go.uber.org/ratelimit"
 
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
@@ -51,6 +52,8 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 	var transactionDetails *lnrpc.TransactionDetails
 	var storedTx Tx
 
+	rl := ratelimit.New(1) // 1 per second maximum rate limit
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -65,8 +68,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 			continue
 		}
 
+		// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
 		transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
-			StartHeight: transactionHeight,
+			StartHeight: transactionHeight + 1,
 		})
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 10 seconds")
@@ -99,10 +103,11 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 					DestinationAddresses:  storedTx.DestinationAddresses,
 					RawTransactionHex:     storedTx.RawTransactionHex,
 					Label:                 storedTx.Label,
-					NodeId:                storedTx.NodeId,
 				}
 			}
 		}
+
+		rl.Take()
 	}
 }
 
