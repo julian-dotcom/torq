@@ -1,6 +1,7 @@
 export const ROOT = "/";
 
 export const LOGIN = "login";
+export const COOKIELOGIN = "cookie-login";
 export const LOGOUT = "logout";
 
 export const ANALYSE = "analyse";
@@ -22,3 +23,4 @@ export const NEW_INVOICE = "/new-invoice";
 export const NEW_PAYMENT = "/new-payment";
 export const NEW_ADDRESS = "/new-address";
 export const UPDATE_CHANNEL = "/update-channel";
+export const OPEN_CHANNEL = "/open-channel";

@@ -10,6 +10,7 @@ import DefaultLayout from "layout/DefaultLayout";
 import LoginLayout from "layout/LoginLayout";
 
 import LoginPage from "features/auth/LoginPage";
+import CookieLoginPage from "features/auth/CookieLoginPage";
 import ChannelPage from "features/channel/ChannelPage";
 import ChannelsPage from "features/channels/ChannelsPage";
 import DashboardPage from "features/channel/DashboardPage";
@@ -22,6 +23,7 @@ import OnChainPage from "features/transact/OnChain/OnChainPage";
 import NewPaymentModal from "features/transact/Payments/newPayment/NewPaymentModal";
 import NewAddressModal from "features/transact/OnChain/newAddress/NewAddressModal";
 import UpdateChannelModal from "features/channels/updateChannel/UpdateChannelModal";
+import OpenChannelModal from "features/channels/openChannel/OpenChannelModal";
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
 
 import * as routes from "constants/routes";
@@ -45,6 +47,7 @@ const publicRoutes: RouteObject = {
   element: <LoginLayout />,
   children: [
     { path: routes.LOGIN, element: <LoginPage /> },
+    { path: routes.COOKIELOGIN, element: <CookieLoginPage /> },
     { path: routes.LOGOUT, element: <Logout /> },
   ],
 };
@@ -55,6 +58,7 @@ const modalRoutes: RouteObject = {
     { path: routes.NEW_PAYMENT, element: <NewPaymentModal /> },
     { path: routes.NEW_ADDRESS, element: <NewAddressModal /> },
     { path: routes.UPDATE_CHANNEL, element: <UpdateChannelModal /> },
+    { path: routes.OPEN_CHANNEL, element: <OpenChannelModal /> },
   ],
 };
 

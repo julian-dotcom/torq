@@ -7,6 +7,7 @@ import {
   ArrowJoin20Regular as GroupIcon,
   Options20Regular as OptionsIcon,
   Save20Regular as SaveIcon,
+  ArrowRouting20Regular as ChannelsIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
 import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation } from "apiSlice";
@@ -47,7 +48,7 @@ import { ColumnMetaData } from "features/table/Table";
 import Button, { buttonColor } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
-import { UPDATE_CHANNEL } from "constants/routes";
+import { UPDATE_CHANNEL, OPEN_CHANNEL } from "constants/routes";
 import { Sections } from "./channelsTypes";
 import useTranslations from "services/i18n/useTranslations";
 import { ViewResponse } from "features/viewManagement/ViewsPopover";
@@ -147,6 +148,15 @@ function ChannelsPage() {
         </TableControlsTabsGroup>
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
+        <Button
+          buttonColor={buttonColor.green}
+          text={"Open Channel"}
+          className={"collapse-tablet"}
+          icon={<ChannelsIcon />}
+          onClick={() => {
+            navigate(OPEN_CHANNEL, { state: { background: location } });
+          }}
+        />
         <Button
           buttonColor={buttonColor.green}
           text={t.updateChannelPolicy.title}

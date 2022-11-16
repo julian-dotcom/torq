@@ -9,14 +9,10 @@ import {
   ChannelRebalancingResponse,
   ChannelBalanceResponse,
   ChannelEventResponse,
-  FlowData
+  FlowData,
 } from "features/channel/channelTypes";
 
-import type {
-  BaseQueryFn,
-  FetchArgs,
-  FetchBaseQueryError
-} from "@reduxjs/toolkit/query";
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type {
   GetDecodedInvoiceQueryParams,
   GetForwardsQueryParams,
@@ -37,10 +33,7 @@ import type {
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { nodeConfiguration, settings, timeZone, channel } from "apiTypes";
-import {
-  NewInvoiceRequest,
-  NewInvoiceResponse
-} from "./features/transact/Invoices/newInvoice/newInvoiceTypes";
+import { NewInvoiceRequest, NewInvoiceResponse } from "./features/transact/Invoices/newInvoice/newInvoiceTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -180,6 +173,13 @@ export const torqApi = createApi({
         body: new URLSearchParams(form as any),
       }),
     }),
+    cookieLogin: builder.mutation<LoginResponse, string>({
+      query: (key) => ({
+        url: `cookie-login`,
+        method: "POST",
+        body: { accessKey: key },
+      }),
+    }),
     getSettings: builder.query<settings, void>({
       query: () => `settings`,
       providesTags: ["settings"],
@@ -209,7 +209,7 @@ export const torqApi = createApi({
         method: "POST",
         body: nodeConfiguration,
       }),
-      invalidatesTags: ["nodeConfigurations","channels"],
+      invalidatesTags: ["nodeConfigurations", "channels"],
     }),
     updateNodeConfiguration: builder.mutation<any, FormData>({
       query: (nodeConfiguration) => ({
@@ -217,14 +217,14 @@ export const torqApi = createApi({
         method: "PUT",
         body: nodeConfiguration,
       }),
-      invalidatesTags: ["nodeConfigurations","channels"],
+      invalidatesTags: ["nodeConfigurations", "channels"],
     }),
     updateNodeConfigurationStatus: builder.mutation<any, { nodeId: number; status: number }>({
       query: (nodeConfiguration) => ({
         url: `settings/nodeConnectionDetails/${nodeConfiguration.nodeId}/${nodeConfiguration.status}`,
         method: "PUT",
       }),
-      invalidatesTags: ["nodeConfigurations","channels"],
+      invalidatesTags: ["nodeConfigurations", "channels"],
     }),
   }),
 });
@@ -252,6 +252,7 @@ export const {
   useDeleteTableViewMutation,
   useUpdateTableViewsOrderMutation,
   useLoginMutation,
+  useCookieLoginMutation,
   useLogoutMutation,
   useGetSettingsQuery,
   useUpdateSettingsMutation,
