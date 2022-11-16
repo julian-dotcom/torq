@@ -35,7 +35,7 @@ import (
 	"github.com/lncapital/torq/pkg/broadcast"
 )
 
-func Start(port int, apiPswd string, db *sqlx.DB, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) error {
+func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) error {
 	r := gin.Default()
 
 	log.Debug().Msg("Loading caches in memory.")
@@ -45,9 +45,12 @@ func Start(port int, apiPswd string, db *sqlx.DB, eventChannel chan interface{},
 		return errors.Wrap(err, "Loading caches.")
 	}
 
-	auth.CreateSession(r, apiPswd)
+	err = auth.CreateSession(r, apiPswd)
+	if err != nil {
+		return errors.Wrap(err, "Creating Gin Session")
+	}
 
-	registerRoutes(r, db, apiPswd, eventChannel, broadcaster, restartLNDSub)
+	registerRoutes(r, db, apiPswd, cookiePath, eventChannel, broadcaster, restartLNDSub)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -106,7 +109,9 @@ func equalASCIIFold(s, t string) bool {
 	return s == t
 }
 
-func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) {
+func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string,
+	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) {
+
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	applyCors(r)
 	// Websocket
@@ -126,6 +131,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, eventChannel chan
 	// Limit login attempts to 10 per minute.
 	rl := NewLoginRateLimitMiddleware()
 	api.POST("/login", rl, auth.Login(apiPwd))
+	api.POST("/cookie-login", rl, auth.CookieLogin(cookiePath))
 
 	unauthorisedSettingRoutes := api.Group("settings")
 	{

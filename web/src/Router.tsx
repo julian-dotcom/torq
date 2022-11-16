@@ -10,6 +10,7 @@ import DefaultLayout from "layout/DefaultLayout";
 import LoginLayout from "layout/LoginLayout";
 
 import LoginPage from "features/auth/LoginPage";
+import CookieLoginPage from "features/auth/CookieLoginPage";
 import ChannelPage from "features/channel/ChannelPage";
 import ChannelsPage from "features/channels/ChannelsPage";
 import DashboardPage from "features/channel/DashboardPage";
@@ -46,6 +47,7 @@ const publicRoutes: RouteObject = {
   element: <LoginLayout />,
   children: [
     { path: routes.LOGIN, element: <LoginPage /> },
+    { path: routes.COOKIELOGIN, element: <CookieLoginPage /> },
     { path: routes.LOGOUT, element: <Logout /> },
   ],
 };
