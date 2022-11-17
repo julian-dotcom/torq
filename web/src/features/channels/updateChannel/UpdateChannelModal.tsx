@@ -41,35 +41,45 @@ function NodechannelModal() {
   const { t } = useTranslations();
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
-  let { data: channels } = useGetChannelsQuery();
+  const { data: channels } = useGetChannelsQuery();
+  const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<SelectOptions[]>([{ value: 0, label: "Select a local node" }]);
+  const [channelOptions, setChannelOptions] = useState<SelectOptions[]>([{ value: 0, label: "Select your channel" }]);
 
-  let nodeConfigurationOptions: SelectOptions[] = [{ value: 0, label: "Select a local node" }];
-  if (nodeConfigurations !== undefined) {
-    nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
-      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
-    });
-  }
-  let channelOptions: SelectOptions[] = [{ value: 0, label: "Select your channel" }];
-  if (channels !== undefined) {
-    channelOptions = channels.map((channel: channel) => {
-      return {
-        value: channel.lndShortChannelId,
-        label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
-      };
-    });
-  }
+  useEffect(() => {
+    if (channels !== undefined) {
+      const newChannelOptions = channels.map((channel: channel) => {
+        return {
+          value: channel.lndShortChannelId,
+          label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
+        };
+      });
+      setChannelOptions(newChannelOptions);
+    }
+    if (nodeConfigurations !== undefined) {
+        const newNodeOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
+          return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
+        });
+        setNodeConfigurationOptions(newNodeOptions);
+      }
+  }, [channels, nodeConfigurations]);
 
-  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value);
-  const [selectedChannel, setSelectedChannel] = useState<number>(channelOptions[0].value);
+  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
+  const [selectedChannel, setSelectedChannel] = useState<number>(channelOptions[0]?.value as number);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<any[]>([]);
 
   function handleNodeSelection(value: number) {
     setSelectedNodeId(value);
-    channels = channels?.filter(
-      (channel: { firstNodeId: number; secondNodeId: number }) =>
-        channel.firstNodeId == value || channel.secondNodeId == value
-    );
+    const filteredChannels = channels?.filter((channel: { nodeId: number }) => channel.nodeId == value);
+      const filteredChannelOptions = filteredChannels?.map((channel: channel) => {
+        if (channel.nodeId == value) {
+          return {
+            value: channel.lndShortChannelId,
+            label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
+          };
+        }
+      });
+    setChannelOptions(filteredChannelOptions as SelectOptions[]);
   }
 
   function handleChannelSelection(value: number) {
@@ -161,7 +171,7 @@ function NodechannelModal() {
             label={t.yourNode}
             onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
               const selectOptions = newValue as SelectOptions;
-              handleNodeSelection(selectOptions?.value);
+              handleNodeSelection(selectOptions?.value as number);
             }}
             options={nodeConfigurationOptions}
             value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
@@ -170,7 +180,7 @@ function NodechannelModal() {
             label={t.yourChannel}
             onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
               const selectOptions = newValue as SelectOptions;
-              handleChannelSelection(selectOptions?.value);
+              handleChannelSelection(selectOptions?.value as number);
             }}
             options={channelOptions}
             value={channelOptions.find((option) => option.value === selectedChannel)}
