@@ -182,6 +182,7 @@ function closeChannelModal() {
                   <span className={styles.label}>{"Close Address (for local funds)"}</span>
                   <div className={styles.input}>
                     <Input
+                      type={"text"}
                       value={closeAddress}
                       placeholder={"e.g. bc1q..."}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => {
