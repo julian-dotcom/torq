@@ -49,6 +49,7 @@
     "minHtlcSat": "Min HTLC amount",
     "maxHtlcSat": "Max HTLC amount",
     "update": "Update",
+    "confirm": "Channel policy uptaded",
     "maxHtlcSatPlaceholder": "Leave empty for no limit",
     "minHtlcSatPlaceholder": "Leave empty for no limit"
   },
