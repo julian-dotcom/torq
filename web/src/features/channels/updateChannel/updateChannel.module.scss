@@ -74,3 +74,51 @@
     font-size: 14px;
   }
 }
+
+.errorBox {
+  margin: 10px;
+  background-color: var(--color-red-300);
+  border-radius: 3px;
+  padding: 15px 4px 10px 12px;
+}
+
+.successeBox {
+  margin: 10px;
+  background-color: var(--color-purple-100);
+  border-radius: 3px;
+  padding: 15px 4px 10px 12px;
+}
+
+.errorIcon {
+  color: var(--color-red-500);
+  float: left;
+  margin-right: 10px;
+}
+
+.successIcon {
+  color: var(--color-purple-250);
+  float: left;
+  margin-right: 10px;
+}
+
+.errorNote {
+  color: var(--color-red-500);
+  font-weight: bold;
+  float: left;
+}
+
+.successNote {
+  color: var(--color-purple-250);
+  font-weight: bold;
+  float: left;
+}
+
+.errorMessage {
+  clear: both;
+  word-wrap: break-word;
+}
+
+.successMessage {
+  clear: both;
+  word-wrap: break-word;
+}

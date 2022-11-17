@@ -3,6 +3,7 @@ import {
   CheckmarkRegular as SuccessIcon,
   DismissRegular as FailedIcon,
   ArrowRouting20Regular as ChannelsIcon,
+  Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, useGetChannelsQuery, useUpdateChannelMutation } from "apiSlice";
 import type { channel } from "apiTypes";
@@ -33,6 +34,7 @@ const updateStatusIcon = {
   IN_FLIGHT: <ProcessingIcon />,
   FAILED: <FailedIcon />,
   SUCCEEDED: <SuccessIcon />,
+  NOTE: <NoteIcon />,
 };
 
 function NodechannelModal() {
@@ -88,8 +90,8 @@ function NodechannelModal() {
       if (channel.lndShortChannelId == value) {
         setTimeLockDelta(channel.timeLockDelta);
         setBaseFeeMsat(channel.baseFeeMsat);
-        setMinHtlcSat(channel.minHtlc / 1000);
-        setMaxHtlcSat(channel.maxHtlcMsat / 1000);
+        setMinHtlcSat(channel.minHtlc);
+        setMaxHtlcSat(channel.maxHtlcMsat);
         setFeeRatePpm(channel.feeRatePpm);
         setFundingTransactionHash(channel.fundingTransactionHash);
         setFundingOutputIndex(channel.fundingOutputIndex);
@@ -297,8 +299,8 @@ function NodechannelModal() {
                       feeRatePpm,
                       baseFeeMsat: baseFeeMsat,
                       timeLockDelta,
-                      minHtlcMsat: minHtlcSat * 1000,
-                      maxHtlcMsat: maxHtlcSat * 1000,
+                      minHtlcMsat: minHtlcSat,
+                      maxHtlcMsat: maxHtlcSat,
                       fundingTransactionHash: fundingTransactionHash,
                       fundingOutputIndex: fundingOutputIndex,
                       nodeId: selectedNodeId,
@@ -322,7 +324,15 @@ function NodechannelModal() {
             {!response.data && updateStatusIcon["FAILED"]}
             {updateStatusIcon[response.data?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]}
           </div>
-          <div className="pop">{errMessage}</div>
+          <div className={errMessage.length ? styles.errorBox : styles.successeBox }>
+            <div>
+              <div className={errMessage.length ? styles.errorIcon : styles.successIcon }>{updateStatusIcon["NOTE"]}</div>
+              <div className={errMessage.length ? styles.errorNote : styles.successNote}>{errMessage.length ? t.openCloseChannel.error :t.openCloseChannel.note}</div>
+            </div >
+            <div className={errMessage.length ? styles.errorMessage: styles.successMessage }>
+              {errMessage.length ? errMessage : t.updateChannelPolicy.confirmedMessage}
+            </div>
+          </div>
           <ButtonWrapper
             rightChildren={
               <Button
@@ -332,6 +342,7 @@ function NodechannelModal() {
                   setChannelState(ProgressStepState.active);
                   setPolicyState(ProgressStepState.disabled);
                   setResultState(ProgressStepState.disabled);
+                  setErrorMEssage([])
                 }}
                 buttonColor={buttonColor.subtle}
               />
