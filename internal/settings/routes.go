@@ -61,6 +61,7 @@ func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func()
 	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db, restartLNDSub) })
 	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db, restartLNDSub) })
 	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) { setNodeConnectionDetailsStatusHandler(c, db, restartLNDSub) })
+	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) { setNodeConnectionDetailsPingSystemHandler(c, db) })
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
@@ -353,6 +354,32 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB, restartL
 	}
 
 	if restartLND(c, restartLNDSub) {
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
+	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
+		return
+	}
+	pingSystem, err := strconv.Atoi(c.Param("pingSystem"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse pingSystem in the request.")
+		return
+	}
+	statusId, err := strconv.Atoi(c.Param("statusId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
+		return
+	}
+
+	err = setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 

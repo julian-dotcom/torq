@@ -179,6 +179,23 @@ func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Stat
 	return nil
 }
 
+func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB, nodeId int, pingSystem commons.PingSystem, status commons.Status) error {
+	var err error
+	if status == commons.Active {
+		_, err = db.Exec(`
+		UPDATE node_connection_details SET ping_system = ping_system+$1, updated_on = $2 WHERE node_id = $3 AND ping_system%$4 < $5;`,
+			pingSystem, time.Now().UTC(), nodeId, pingSystem*2, pingSystem)
+	} else {
+		_, err = db.Exec(`
+		UPDATE node_connection_details SET ping_system = ping_system-$1, updated_on = $2 WHERE node_id = $3 AND ping_system%$4 >= $5;`,
+			pingSystem, time.Now().UTC(), nodeId, pingSystem*2, pingSystem)
+	}
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
+}
+
 func SetNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
 	updatedOn := time.Now().UTC()
 	ncd.UpdatedOn = &updatedOn
