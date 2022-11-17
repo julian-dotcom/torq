@@ -330,7 +330,7 @@ function NodechannelModal() {
               <div className={errMessage.length ? styles.errorNote : styles.successNote}>{errMessage.length ? t.openCloseChannel.error :t.openCloseChannel.note}</div>
             </div >
             <div className={errMessage.length ? styles.errorMessage: styles.successMessage }>
-              {errMessage.length ? errMessage : t.updateChannelPolicy.confirm}
+              {errMessage.length ? errMessage : t.updateChannelPolicy.confirmedMessage}
             </div>
           </div>
           <ButtonWrapper
