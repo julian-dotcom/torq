@@ -25,7 +25,6 @@ import { SectionContainer } from "features/section/SectionContainer";
 import useWebSocket from "react-use-websocket";
 import Switch from "components/forms/switch/Switch";
 
-// import clone from "clone";
 import FormRow from "features/forms/FormWrappers";
 
 const openStatusClass = {
@@ -54,7 +53,7 @@ function OpenChannelModal() {
     });
   }
 
-  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value);
+  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
 
@@ -97,7 +96,6 @@ function OpenChannelModal() {
   function onOpenChannelMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
     if (response?.type === "Error") {
-      response.status = "FAILED";
       setErrorMEssage(response.error);
       setResultState(ProgressStepState.error);
       return;
@@ -118,7 +116,7 @@ function OpenChannelModal() {
             label={t.yourNode}
             onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
               const selectOptions = newValue as SelectOptions;
-              handleNodeSelection(selectOptions?.value);
+              handleNodeSelection(selectOptions?.value as number);
             }}
             options={nodeConfigurationOptions}
             value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}

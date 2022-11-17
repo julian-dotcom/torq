@@ -57,6 +57,8 @@ export interface channel {
   feeRatePpm: number;
   firstNodeId: number;
   secondNodeId: number;
+  nodeId: number;
+  channelPoint: string;
 }
 
 interface PendingHTLC {

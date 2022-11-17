@@ -48,7 +48,7 @@ import { ColumnMetaData } from "features/table/Table";
 import Button, { buttonColor } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
-import { UPDATE_CHANNEL, OPEN_CHANNEL } from "constants/routes";
+import { UPDATE_CHANNEL, OPEN_CHANNEL, CLOSE_CHANNEL } from "constants/routes";
 import { Sections } from "./channelsTypes";
 import useTranslations from "services/i18n/useTranslations";
 import { ViewResponse } from "features/viewManagement/ViewsPopover";
@@ -155,6 +155,15 @@ function ChannelsPage() {
           icon={<ChannelsIcon />}
           onClick={() => {
             navigate(OPEN_CHANNEL, { state: { background: location } });
+          }}
+        />
+        <Button
+          buttonColor={buttonColor.green}
+          text={"Close Channel"}
+          className={"collapse-tablet"}
+          icon={<ChannelsIcon />}
+          onClick={() => {
+            navigate(CLOSE_CHANNEL, { state: { background: location } });
           }}
         />
         <Button

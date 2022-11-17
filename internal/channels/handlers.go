@@ -48,6 +48,7 @@ type pendingChannel struct {
 
 type channelBody struct {
 	NodeId                       int                  `json:"nodeId"`
+	ChannelPoint                 string               `json:"channelPoint"`
 	NodeName                     string               `json:"nodeName"`
 	Active                       bool                 `json:"active"`
 	Gauge                        float64              `json:"gauge"`
@@ -202,6 +203,7 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				NodeId:                       node.NodeId,
 				NodeName:                     node.Name,
 				Active:                       channel.Active,
+				ChannelPoint:                 channel.ChannelPoint,
 				Gauge:                        gauge,
 				RemotePubkey:                 channel.RemotePubkey,
 				FundingTransactionHash:       fundingTransactionHash,

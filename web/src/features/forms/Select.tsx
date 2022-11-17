@@ -7,7 +7,7 @@ type selectProps = {
 
 export type SelectOptions = {
   label?: string;
-  value: number;
+  value: number | string;
 };
 
 function Select(props: selectProps) {
