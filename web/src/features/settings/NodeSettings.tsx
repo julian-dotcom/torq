@@ -216,11 +216,17 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const handleAmbossPingClick = () => {
     const ambossActive = nodeConfigurationState.pingSystem%2 >= 1
     setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 1, statusId: ambossActive?0:1 })
-    if (ambossActive) {
-      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem-1 });
-    } else {
-      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem+1 });
-    }
+      .unwrap()
+      .then((_) => {
+        if (ambossActive) {
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem-1 })
+        } else {
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem+1 });
+        }
+      })
+      .catch((error) => {
+        toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
+      });
     if (popoverRef.current) {
       (popoverRef.current as { close: () => void }).close();
     }
@@ -229,11 +235,17 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const handleVectorPingClick = () => {
     const vectorActive = nodeConfigurationState.pingSystem%4 >= 2
     setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 2, statusId: vectorActive?0:1 })
-    if (vectorActive) {
-      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem-2 });
-    } else {
-      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem+2 });
-    }
+      .unwrap()
+      .then((_) => {
+        if (vectorActive) {
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem-2 });
+        } else {
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem+2 });
+        }
+      })
+      .catch((error) => {
+        toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
+      });
     if (popoverRef.current) {
       (popoverRef.current as { close: () => void }).close();
     }
