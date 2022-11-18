@@ -145,6 +145,9 @@ func initServiceMaps(rs *services) {
 	}
 }
 
+// IF YOU MAKE THESE SERVICES EXPORTED YOU CAN GET A LIST OF ACTIVE SUBSCRIPTIONS AND WHEN THEY WERE BOOTED
+// NO CANCEL FUNCTION IN runningList MEANS NOT ACTIVE
+// NICE TO ADD A CANCELLATION TIME???
 var runningLndSubscriptions services //nolint:gochecknoglobals
 var runningAmbossPings services      //nolint:gochecknoglobals
 var runningVectorPings services      //nolint:gochecknoglobals
