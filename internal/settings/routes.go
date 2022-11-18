@@ -53,15 +53,28 @@ func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.
 	connectionDetails.PingSystem &= ^pingSystem
 }
 
-func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func() error) {
+func restartSubscription(serviceChannel chan commons.ServiceChannelMessage, nodeId int, serviceType commons.ServiceType) {
+	serviceChannel <- commons.ServiceChannelMessage{
+		NodeId:         nodeId,
+		ServiceType:    serviceType,
+		ServiceCommand: commons.Kill,
+	}
+	serviceChannel <- commons.ServiceChannelMessage{
+		NodeId:         nodeId,
+		ServiceType:    serviceType,
+		ServiceCommand: commons.Boot,
+	}
+}
+
+func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
 	r.GET("nodeConnectionDetails", func(c *gin.Context) { getAllNodeConnectionDetailsHandler(c, db) })
 	r.GET("nodeConnectionDetails/:nodeId", func(c *gin.Context) { getNodeConnectionDetailsHandler(c, db) })
-	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db, restartLNDSub) })
-	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db, restartLNDSub) })
-	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) { setNodeConnectionDetailsStatusHandler(c, db, restartLNDSub) })
-	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) { setNodeConnectionDetailsPingSystemHandler(c, db) })
+	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db, serviceChannel) })
+	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db, serviceChannel) })
+	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) { setNodeConnectionDetailsStatusHandler(c, db, serviceChannel) })
+	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) { setNodeConnectionDetailsPingSystemHandler(c, db, serviceChannel) })
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
@@ -121,7 +134,9 @@ func getNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, ncd)
 }
 
-func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
+func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
+	serviceChannel chan commons.ServiceChannelMessage) {
+
 	var ncd nodeConnectionDetails
 
 	if err := c.Bind(&ncd); err != nil {
@@ -212,16 +227,14 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 	}
 	commons.SetTorqNode(nodeId, ncd.Status, publicKey, chain, network)
 
-	go func() {
-		if err := restartLNDSub(); err != nil {
-			log.Warn().Msg("Already restarting subscriptions, discarding restart request")
-		}
-	}()
+	restartSubscription(serviceChannel, nodeId, commons.LndSubscription)
 
 	c.JSON(http.StatusOK, ncd)
 }
 
-func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
+func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
+	serviceChannel chan commons.ServiceChannelMessage) {
+
 	var ncd nodeConnectionDetails
 	if err := c.Bind(&ncd); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -328,14 +341,14 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		return
 	}
 
-	if restartLND(c, restartLNDSub) {
-		return
-	}
+	restartSubscription(serviceChannel, ncd.NodeId, commons.LndSubscription)
 
 	c.JSON(http.StatusOK, ncd)
 }
 
-func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
+func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
+	serviceChannel chan commons.ServiceChannelMessage) {
+
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
@@ -353,14 +366,14 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB, restartL
 		return
 	}
 
-	if restartLND(c, restartLNDSub) {
-		return
-	}
+	restartSubscription(serviceChannel, nodeId, commons.LndSubscription)
 
 	c.Status(http.StatusOK)
 }
 
-func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
+func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
+	serviceChannel chan commons.ServiceChannelMessage) {
+
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
@@ -369,6 +382,10 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 	pingSystem, err := strconv.Atoi(c.Param("pingSystem"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse pingSystem in the request.")
+		return
+	}
+	if pingSystem > commons.PingSystemMax {
+		server_errors.SendBadRequest(c, "Failed to parse pingSystem in the request.")
 		return
 	}
 	statusId, err := strconv.Atoi(c.Param("statusId"))
@@ -381,6 +398,13 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
+	}
+
+	if commons.PingSystem(pingSystem) == commons.Amboss {
+		restartSubscription(serviceChannel, nodeId, commons.AmbossSubscription)
+	}
+	if commons.PingSystem(pingSystem) == commons.Vector {
+		restartSubscription(serviceChannel, nodeId, commons.VectorSubscription)
 	}
 
 	c.Status(http.StatusOK)

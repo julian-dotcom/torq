@@ -1,5 +1,26 @@
 package commons
 
+type ServiceType int
+
+const (
+	LndSubscription = ServiceType(iota)
+	VectorSubscription
+	AmbossSubscription
+)
+
+type ServiceCommand int
+
+const (
+	Boot = ServiceCommand(iota)
+	Kill
+)
+
+type ServiceChannelMessage = struct {
+	ServiceType    ServiceType
+	ServiceCommand ServiceCommand
+	NodeId         int
+}
+
 type Status int
 
 const (
@@ -53,27 +74,4 @@ const (
 	Amboss PingSystem = 1 << iota
 	Vector
 )
-
-// GetNetwork defaults to MainNet when no match is found
-func GetNetwork(network string) Network {
-	switch network {
-	case "testnet":
-		return TestNet
-	case "signet":
-		return SigNet
-	case "simnet":
-		return SimNet
-	case "regtest":
-		return RegTest
-	}
-	return MainNet
-}
-
-// GetChain defaults to Bitcoin when no match is found
-func GetChain(chain string) Chain {
-	switch chain {
-	case "litecoin":
-		return Litecoin
-	}
-	return Bitcoin
-}
+const PingSystemMax = int(Vector)*2 - 1

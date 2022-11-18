@@ -29,68 +29,69 @@ import (
 
 var eventChannel = make(chan interface{}) //nolint:gochecknoglobals
 
-var serviceChannel = make(chan serviceChannelMessage) //nolint:gochecknoglobals
-
-type serviceType int
-
-const (
-	lndSubscription = serviceType(iota)
-	vector
-	amboss
-)
-
-type serviceCommand int
-
-const (
-	boot = serviceCommand(iota)
-	kill
-)
-
-type serviceChannelMessage = struct {
-	pingService serviceType
-	pingCommand serviceCommand
-	nodeId      int
-}
+var serviceChannel = make(chan commons.ServiceChannelMessage) //nolint:gochecknoglobals
 
 type services struct {
 	mu          sync.RWMutex
 	runningList map[int]func()
+	// guards against running restart code whilst it's already running
+	bootLock map[int]*sync.Mutex
 }
 
-func (rs *services) AddSubscription(localNodeId int, cancelFunc func()) {
+func (rs *services) AddSubscription(nodeId int, cancelFunc func()) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
+	initServiceMaps(rs)
+	rs.runningList[nodeId] = cancelFunc
+}
+
+func (rs *services) RemoveSubscription(nodeId int) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	initServiceMaps(rs)
+	delete(rs.runningList, nodeId)
+}
+
+func (rs *services) Cancel(nodeId int) error {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	initServiceMaps(rs)
+	_, exists := rs.runningList[nodeId]
+	if exists {
+		_, exists = rs.bootLock[nodeId]
+		if exists && commons.MutexLocked(rs.bootLock[nodeId]) {
+			return errors.New("Failed to cancel subscription due to boot lock")
+		} else {
+			rs.runningList[nodeId]()
+			return nil
+		}
+	}
+	return errors.New("No cancel function registered")
+}
+
+func (rs *services) GetBootLock(nodeId int) *sync.Mutex {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	initServiceMaps(rs)
+	lock := rs.bootLock[nodeId]
+	if lock == nil {
+		lock = &sync.Mutex{}
+		rs.bootLock[nodeId] = lock
+	}
+	return lock
+}
+
+func initServiceMaps(rs *services) {
 	if rs.runningList == nil {
 		rs.runningList = make(map[int]func())
 	}
-
-	rs.runningList[localNodeId] = cancelFunc
-}
-
-func (rs *services) RemoveSubscription(localNodeId int) {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-
-	if rs.runningList == nil {
-		rs.runningList = make(map[int]func())
+	if rs.bootLock == nil {
+		rs.bootLock = make(map[int]*sync.Mutex)
 	}
-	delete(rs.runningList, localNodeId)
-}
-
-func (rs *services) Contains(localNodeId int) bool {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-
-	_, exists := rs.runningList[localNodeId]
-	return exists
-}
-
-func (rs *services) GetCancelFunction(localNodeId int) func() {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-	cancelFunction := rs.runningList[localNodeId]
-	return cancelFunction
 }
 
 var runningLndSubscriptions services //nolint:gochecknoglobals
@@ -292,66 +293,81 @@ func main() {
 				go (func() {
 					for {
 						serviceCmd := <-serviceChannel
-						if serviceCmd.pingService == lndSubscription {
-							if serviceCmd.pingCommand == boot {
+						if serviceCmd.ServiceType == commons.LndSubscription {
+							if serviceCmd.ServiceCommand == commons.Boot {
 								nodes, err := settings.GetActiveNodesConnectionDetails(db)
 								if err != nil {
 									log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
 									return
 								}
 								for _, node := range nodes {
-									if serviceCmd.nodeId == 0 || serviceCmd.nodeId == node.NodeId {
-										go (func(node settings.ConnectionDetails) {
+									if serviceCmd.NodeId == 0 || serviceCmd.NodeId == node.NodeId {
+										bootLock := runningVectorPings.GetBootLock(node.NodeId)
+										successful := bootLock.TryLock()
+										if successful {
+											go (func(node settings.ConnectionDetails, bootLock *sync.Mutex) {
+												defer func() {
+													if commons.MutexLocked(bootLock) {
+														bootLock.Unlock()
+													}
+												}()
 
-											ctx := context.Background()
-											ctx, cancel := context.WithCancel(ctx)
+												ctx := context.Background()
+												ctx, cancel := context.WithCancel(ctx)
 
-											log.Info().Msgf("Subscribing to LND for node id: %v", node.NodeId)
-											runningLndSubscriptions.AddSubscription(node.NodeId, cancel)
-											conn, err := lnd_connect.Connect(
-												node.GRPCAddress,
-												node.TLSFileBytes,
-												node.MacaroonFileBytes,
-											)
-											if err != nil {
-												log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+												log.Info().Msgf("Subscribing to LND for node id: %v", node.NodeId)
+												runningLndSubscriptions.AddSubscription(node.NodeId, cancel)
+												conn, err := lnd_connect.Connect(
+													node.GRPCAddress,
+													node.TLSFileBytes,
+													node.MacaroonFileBytes,
+												)
+												if err != nil {
+													log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+													runningLndSubscriptions.RemoveSubscription(node.NodeId)
+													log.Info().Msgf("LND Subscription will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
+													time.Sleep(1 * time.Minute)
+													serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndSubscription, NodeId: node.NodeId}
+													return
+												}
+
+												bootLock.Unlock()
+												err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel)
+												if err != nil {
+													log.Error().Err(err).Send()
+													// only log the error, don't return
+												}
+												log.Info().Msgf("LND Subscription stopped for node id: %v", node.NodeId)
 												runningLndSubscriptions.RemoveSubscription(node.NodeId)
 												log.Info().Msgf("LND Subscription will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
 												time.Sleep(1 * time.Minute)
-												serviceChannel <- serviceChannelMessage{pingCommand: boot, pingService: lndSubscription, nodeId: node.NodeId}
-												return
-											}
-
-											err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel)
-											if err != nil {
-												log.Error().Err(err).Send()
-												// only log the error, don't return
-											}
-											log.Info().Msgf("LND Subscription stopped for node id: %v", node.NodeId)
-											runningLndSubscriptions.RemoveSubscription(node.NodeId)
-											log.Info().Msgf("LND Subscription will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
-											time.Sleep(1 * time.Minute)
-											serviceChannel <- serviceChannelMessage{pingCommand: boot, pingService: lndSubscription, nodeId: node.NodeId}
-										})(node)
+												serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndSubscription, NodeId: node.NodeId}
+											})(node, bootLock)
+										} else {
+											log.Error().Msgf("Requested Vector Ping Service start failed. A start is already running.")
+										}
 									}
 								}
 							}
-							if serviceCmd.pingCommand == kill {
-								runningLndSubscriptions.GetCancelFunction(serviceCmd.nodeId)()
+							if serviceCmd.ServiceCommand == commons.Kill {
+								err := runningLndSubscriptions.Cancel(serviceCmd.NodeId)
+								if err != nil {
+									log.Error().Err(err).Msgf("LND Subscription cancel failed for node id: %v", serviceCmd.NodeId)
+								}
 							}
 						}
-						if serviceCmd.pingService == vector {
-							if serviceCmd.pingCommand == boot {
+						if serviceCmd.ServiceType == commons.VectorSubscription {
+							if serviceCmd.ServiceCommand == commons.Boot {
 								log.Info().Msgf("Verifying Vector ping service requirement.")
 
 								var nodes []settings.ConnectionDetails
-								if serviceCmd.nodeId == 0 {
+								if serviceCmd.NodeId == 0 {
 									nodes, err = settings.GetVectorPingNodesConnectionDetails(db)
 									if err != nil {
 										log.Error().Err(err).Msg("Getting connection details")
 									}
 								} else {
-									node, err := settings.GetConnectionDetailsById(db, serviceCmd.nodeId)
+									node, err := settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
 									if err != nil {
 										log.Error().Err(err).Msg("Getting connection details")
 										return
@@ -364,50 +380,65 @@ func main() {
 								}
 
 								for _, node := range nodes {
-									go (func(node settings.ConnectionDetails) {
+									bootLock := runningVectorPings.GetBootLock(node.NodeId)
+									successful := bootLock.TryLock()
+									if successful {
+										go (func(node settings.ConnectionDetails, bootLock *sync.Mutex) {
+											defer func() {
+												if commons.MutexLocked(bootLock) {
+													bootLock.Unlock()
+												}
+											}()
 
-										ctx := context.Background()
-										ctx, cancel := context.WithCancel(ctx)
+											ctx := context.Background()
+											ctx, cancel := context.WithCancel(ctx)
 
-										log.Info().Msgf("Generating Vector ping service for node id: %v", node.NodeId)
-										runningVectorPings.AddSubscription(node.NodeId, cancel)
-										conn, err := lnd_connect.Connect(
-											node.GRPCAddress,
-											node.TLSFileBytes,
-											node.MacaroonFileBytes)
-										if err != nil {
-											log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+											log.Info().Msgf("Generating Vector ping service for node id: %v", node.NodeId)
+											runningVectorPings.AddSubscription(node.NodeId, cancel)
+											conn, err := lnd_connect.Connect(
+												node.GRPCAddress,
+												node.TLSFileBytes,
+												node.MacaroonFileBytes)
+											if err != nil {
+												log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+												runningVectorPings.RemoveSubscription(node.NodeId)
+												return
+											}
+
+											bootLock.Unlock()
+											err = vector_ping.Start(ctx, conn)
+											if err != nil {
+												log.Error().Err(err).Msgf("Vector ping ended for node id: %v", node.NodeId)
+											}
+											log.Info().Msgf("Vector Ping Service stopped for node id: %v", node.NodeId)
 											runningVectorPings.RemoveSubscription(node.NodeId)
-											return
-										}
-
-										err = vector_ping.Start(ctx, conn)
-										if err != nil {
-											log.Error().Err(err).Msgf("Vector ping ended for node id: %v", node.NodeId)
-										}
-										log.Info().Msgf("Vector Ping Service stopped for node id: %v", node.NodeId)
-										runningVectorPings.RemoveSubscription(node.NodeId)
-										log.Info().Msgf("Vector Ping Service will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
-										time.Sleep(1 * time.Minute)
-										serviceChannel <- serviceChannelMessage{pingCommand: boot, pingService: vector, nodeId: node.NodeId}
-									})(node)
+											log.Info().Msgf("Vector Ping Service will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
+											time.Sleep(1 * time.Minute)
+											serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.VectorSubscription, NodeId: node.NodeId}
+										})(node, bootLock)
+									} else {
+										log.Error().Msgf("Requested Vector Ping Service start failed. A start is already running.")
+									}
 								}
 							}
-							if serviceCmd.pingCommand == kill {
-								runningVectorPings.GetCancelFunction(serviceCmd.nodeId)()
+							if serviceCmd.ServiceCommand == commons.Kill {
+								err := runningVectorPings.Cancel(serviceCmd.NodeId)
+								if err != nil {
+									log.Error().Err(err).Msgf("Vector Ping Service cancel failed for node id: %v", serviceCmd.NodeId)
+								}
 							}
 						}
-						if serviceCmd.pingService == amboss {
-							if serviceCmd.pingCommand == boot {
+						if serviceCmd.ServiceType == commons.AmbossSubscription {
+							if serviceCmd.ServiceCommand == commons.Boot {
 								log.Info().Msgf("Verifying Amboss ping service requirement.")
 								var nodes []settings.ConnectionDetails
-								if serviceCmd.nodeId == 0 {
+								if serviceCmd.NodeId == 0 {
 									nodes, err = settings.GetAmbossPingNodesConnectionDetails(db)
 									if err != nil {
 										log.Error().Err(err).Msg("Getting connection details")
 									}
 								} else {
-									node, err := settings.GetConnectionDetailsById(db, serviceCmd.nodeId)
+									node, err := settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
 									if err != nil {
 										log.Error().Err(err).Msg("Getting connection details")
 										return
@@ -420,50 +451,70 @@ func main() {
 								}
 
 								for _, node := range nodes {
-									go (func(node settings.ConnectionDetails) {
+									bootLock := runningAmbossPings.GetBootLock(node.NodeId)
+									successful := bootLock.TryLock()
+									if successful {
+										go (func(node settings.ConnectionDetails, bootLock *sync.Mutex) {
+											defer func() {
+												if commons.MutexLocked(bootLock) {
+													bootLock.Unlock()
+												}
+											}()
+											ctx := context.Background()
+											ctx, cancel := context.WithCancel(ctx)
 
-										ctx := context.Background()
-										ctx, cancel := context.WithCancel(ctx)
+											log.Info().Msgf("Generating Amboss ping service for node id: %v", node.NodeId)
+											runningAmbossPings.AddSubscription(node.NodeId, cancel)
+											conn, err := lnd_connect.Connect(
+												node.GRPCAddress,
+												node.TLSFileBytes,
+												node.MacaroonFileBytes)
+											if err != nil {
+												log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+												runningAmbossPings.RemoveSubscription(node.NodeId)
+												return
+											}
 
-										log.Info().Msgf("Generating Amboss ping service for node id: %v", node.NodeId)
-										runningAmbossPings.AddSubscription(node.NodeId, cancel)
-										conn, err := lnd_connect.Connect(
-											node.GRPCAddress,
-											node.TLSFileBytes,
-											node.MacaroonFileBytes)
-										if err != nil {
-											log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+											bootLock.Unlock()
+											err = amboss_ping.Start(ctx, conn)
+											if err != nil {
+												log.Error().Err(err).Msgf("Amboss ping ended for node id: %v", node.NodeId)
+											}
+											log.Info().Msgf("Amboss Ping Service stopped for node id: %v", node.NodeId)
 											runningAmbossPings.RemoveSubscription(node.NodeId)
-											return
-										}
-
-										err = amboss_ping.Start(ctx, conn)
-										if err != nil {
-											log.Error().Err(err).Msgf("Amboss ping ended for node id: %v", node.NodeId)
-										}
-										log.Info().Msgf("Amboss Ping Service stopped for node id: %v", node.NodeId)
-										runningAmbossPings.RemoveSubscription(node.NodeId)
-										log.Info().Msgf("Amboss Ping Service will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
-										time.Sleep(1 * time.Minute)
-										serviceChannel <- serviceChannelMessage{pingCommand: boot, pingService: amboss, nodeId: node.NodeId}
-									})(node)
+											log.Info().Msgf("Amboss Ping Service will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
+											time.Sleep(1 * time.Minute)
+											serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AmbossSubscription, NodeId: node.NodeId}
+										})(node, bootLock)
+									} else {
+										log.Error().Msgf("Requested Amboss Ping Service start failed. A start is already running.")
+									}
 								}
 							}
-							if serviceCmd.pingCommand == kill {
-								runningAmbossPings.GetCancelFunction(serviceCmd.nodeId)()
+							if serviceCmd.ServiceCommand == commons.Kill {
+								err := runningAmbossPings.Cancel(serviceCmd.NodeId)
+								if err != nil {
+									log.Error().Err(err).Msgf("Amboss Ping Service cancel failed for node id: %v", serviceCmd.NodeId)
+								}
 							}
 						}
 					}
 				})()
 
-				serviceChannel <- serviceChannelMessage{pingCommand: boot, pingService: lndSubscription}
-				serviceChannel <- serviceChannelMessage{pingCommand: boot, pingService: vector}
-				serviceChannel <- serviceChannelMessage{pingCommand: boot, pingService: amboss}
-
+				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndSubscription}
+				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.VectorSubscription}
+				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AmbossSubscription}
+			} else {
+				go (func() {
+					for {
+						serviceCmd := <-serviceChannel
+						log.Warn().Msgf("Ignoring Service call for node id: %v", serviceCmd.NodeId)
+					}
+				})()
 			}
 
 			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
-				db, eventChannel, broadcaster, RestartLNDSubscription); err != nil {
+				db, eventChannel, broadcaster, serviceChannel); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}
 
@@ -511,34 +562,6 @@ func main() {
 		log.Fatal().Err(err).Send()
 	}
 
-}
-
-// guards against running restart code whilst it's already running
-var restartLock sync.RWMutex //nolint:gochecknoglobals
-
-func RestartLNDSubscription() error {
-	locked := restartLock.TryLock()
-	if !locked {
-		return errors.New("Already restarting")
-	}
-	defer restartLock.Unlock()
-
-	log.Info().Msg("Stopping subscriptions")
-	for nodeId := range runningLndSubscriptions.runningList {
-		serviceChannel <- serviceChannelMessage{pingCommand: kill, pingService: lndSubscription, nodeId: nodeId}
-	}
-
-	for {
-		if len(runningLndSubscriptions.runningList) == 0 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
-	log.Info().Msg("All subscriptions stopped")
-	log.Info().Msg("Restarting subscriptions")
-	serviceChannel <- serviceChannelMessage{pingCommand: boot, pingService: lndSubscription}
-	return nil
 }
 
 func loadFlags() func(context *cli.Context) (altsrc.InputSourceContext, error) {
