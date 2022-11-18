@@ -58,11 +58,7 @@ func restartSubscription(serviceChannel chan commons.ServiceChannelMessage, node
 		ServiceType:    serviceType,
 		ServiceCommand: commons.Kill,
 	}
-	serviceChannel <- commons.ServiceChannelMessage{
-		NodeId:         nodeId,
-		ServiceType:    serviceType,
-		ServiceCommand: commons.Boot,
-	}
+	// NO NEED TO BOOT THAT IS DONE AUTOMAGICLY
 }
 
 func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage) {
