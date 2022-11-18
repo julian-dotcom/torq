@@ -20,12 +20,14 @@ const (
 )
 
 type ServiceChannelMessage = struct {
-	ServiceType           ServiceType
-	ServiceCommand        ServiceCommand
-	NodeId                int
+	ServiceType    ServiceType
+	ServiceCommand ServiceCommand
+	NodeId         int
+	// EnforcedServiceStatus is a one time status enforcement for a service
 	EnforcedServiceStatus *Status
-	NoDelay               bool
-	Out                   chan Status
+	// NoDelay is a one time no delay enforcement for a service
+	NoDelay bool
+	Out     chan Status
 }
 
 type Status int

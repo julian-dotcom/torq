@@ -380,25 +380,21 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	lndDone := startServiceOrRestartWhenRunning(serviceChannel, commons.LndSubscription, ncd.NodeId, ncd.Status == commons.Active)
-	ambossDone := true
-	vectorDone := true
 	nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
 	if ncd.HasNotificationType(commons.Amboss) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Amboss Ping Service is only allowed on Bitcoin Mainnet."))
 		return
-	} else {
-		ambossDone = startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
 	}
 	if ncd.HasNotificationType(commons.Vector) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
-	} else {
-		vectorDone = startServiceOrRestartWhenRunning(serviceChannel, commons.VectorSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
 	}
 
+	lndDone := startServiceOrRestartWhenRunning(serviceChannel, commons.LndSubscription, ncd.NodeId, ncd.Status == commons.Active)
+	ambossDone := startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
+	vectorDone := startServiceOrRestartWhenRunning(serviceChannel, commons.VectorSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
 	if lndDone && ambossDone && vectorDone {
 		ncd, err = SetNodeConnectionDetails(db, ncd)
 		if err != nil {

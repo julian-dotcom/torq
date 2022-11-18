@@ -34,11 +34,13 @@ var serviceChannel = make(chan commons.ServiceChannelMessage) //nolint:gocheckno
 type services struct {
 	mu          sync.RWMutex
 	runningList map[int]func()
-	// guards against running restart code whilst it's already running
-	bootLock              map[int]*sync.Mutex
-	bootTime              map[int]time.Time
+	// bootLock entry guards against running restart code whilst it's already running
+	bootLock map[int]*sync.Mutex
+	bootTime map[int]time.Time
+	// enforcedServiceStatus entry is a one time status enforcement for a service
 	enforcedServiceStatus map[int]*commons.Status
-	noDelay               map[int]bool
+	// noDelay entry is a one time no delay enforcement for a service
+	noDelay map[int]bool
 }
 
 func (rs *services) AddSubscription(nodeId int, cancelFunc func()) {
@@ -88,7 +90,9 @@ func (rs *services) GetEnforcedServiceStatusCheck(nodeId int) *commons.Status {
 	initServiceMaps(rs)
 	_, exists := rs.enforcedServiceStatus[nodeId]
 	if exists {
-		return rs.enforcedServiceStatus[nodeId]
+		enforcedServiceStatus := rs.enforcedServiceStatus[nodeId]
+		delete(rs.enforcedServiceStatus, nodeId)
+		return enforcedServiceStatus
 	}
 	return nil
 }
@@ -100,7 +104,9 @@ func (rs *services) IsNoDelay(nodeId int) bool {
 	initServiceMaps(rs)
 	_, exists := rs.noDelay[nodeId]
 	if exists {
-		return rs.noDelay[nodeId]
+		noDelay := rs.noDelay[nodeId]
+		delete(rs.noDelay, nodeId)
+		return noDelay
 	}
 	return false
 }
