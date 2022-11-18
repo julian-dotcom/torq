@@ -1,2 +1,6 @@
 
 ALTER TABLE node_connection_details ADD COLUMN ping_system INTEGER NOT NULL DEFAULT 0;
+
+UPDATE node_connection_details SET status_id=10 WHERE status_id=0;
+UPDATE node_connection_details SET status_id=0 WHERE status_id=1;
+UPDATE node_connection_details SET status_id=1 WHERE status_id=10;

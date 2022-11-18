@@ -3,8 +3,8 @@ package commons
 type Status int
 
 const (
-	Active = Status(iota)
-	Inactive
+	Inactive = Status(iota)
+	Active
 	Pending
 	Deleted
 )
