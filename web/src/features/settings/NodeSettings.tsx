@@ -250,11 +250,11 @@ const NodeSettings = React.forwardRef(function NodeSettings(
             <div
               className={classNames(styles.connectionIcon, {
                 [styles.connected]: true,
-                [styles.disabled]: nodeConfigurationState.status == 1,
+                [styles.disabled]: nodeConfigurationState.status == 0,
               })}
             >
-              {nodeConfigurationState.status == 0 && <ConnectedIcon />}
-              {nodeConfigurationState.status == 1 && <DisconnectedIcon />}
+              {nodeConfigurationState.status == 0 && <DisconnectedIcon />}
+              {nodeConfigurationState.status == 1 && <ConnectedIcon />}
             </div>
             <div className={styles.title}>{nodeConfigurationState?.name}</div>
             <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
@@ -273,8 +273,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       <div className={styles.nodeMenu}>
                         <Button
                           buttonColor={buttonColor.secondary}
-                          text={nodeConfigurationState.status == 1 ? "Enable node" : "Disable node"}
-                          icon={nodeConfigurationState.status == 1 ? <PlayIcon /> : <PauseIcon />}
+                          text={nodeConfigurationState.status == 0 ? "Enable node" : "Disable node"}
+                          icon={nodeConfigurationState.status == 0 ? <PlayIcon /> : <PauseIcon />}
                           onClick={handleStatusClick}
                           disabled={!enableEnableButtonState}
                         />

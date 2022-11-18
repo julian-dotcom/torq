@@ -54,27 +54,51 @@ func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.
 
 func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage,
 	serviceType commons.ServiceType, nodeId int, active bool) bool {
-	resultChannel := make(chan commons.Status)
-	serviceChannel <- commons.ServiceChannelMessage{
-		NodeId:         nodeId,
-		ServiceType:    serviceType,
-		ServiceCommand: commons.Kill,
-		Out:            resultChannel,
-	}
-	switch <-resultChannel {
-	case commons.Active:
-		// NOTHING TO DO HERE THE RUNNING SERVICE WAS KILLED IF IT'S STILL ACTIVE IT WILL BE REBOOTED
-	case commons.Pending:
-		// THE SERVICE WAS BOOTING WHEN AN ATTEMPT TO KILL WAS INITIATED
-		return false
-	case commons.Inactive:
-		// THE SERVICE WAS NOT RUNNING
-		if active {
+	if active {
+		enforcedServiceStatus := commons.Active
+		resultChannel := make(chan commons.Status)
+		serviceChannel <- commons.ServiceChannelMessage{
+			NodeId:                nodeId,
+			ServiceType:           serviceType,
+			EnforcedServiceStatus: &enforcedServiceStatus,
+			ServiceCommand:        commons.Kill,
+			NoDelay:               true,
+			Out:                   resultChannel,
+		}
+		switch <-resultChannel {
+		case commons.Active:
+			// THE RUNNING SERVICE WAS KILLED EnforcedServiceStatus is ACTIVE (subscription will attempt to start)
+		case commons.Pending:
+			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
+			return false
+		case commons.Inactive:
+			// THE SERVICE WAS NOT RUNNING
 			serviceChannel <- commons.ServiceChannelMessage{
-				NodeId:         nodeId,
-				ServiceType:    serviceType,
-				ServiceCommand: commons.Boot,
+				NodeId:                nodeId,
+				ServiceType:           serviceType,
+				EnforcedServiceStatus: &enforcedServiceStatus,
+				ServiceCommand:        commons.Boot,
 			}
+		}
+	} else {
+		enforcedServiceStatus := commons.Inactive
+		resultChannel := make(chan commons.Status)
+		serviceChannel <- commons.ServiceChannelMessage{
+			NodeId:                nodeId,
+			ServiceType:           serviceType,
+			EnforcedServiceStatus: &enforcedServiceStatus,
+			ServiceCommand:        commons.Kill,
+			NoDelay:               true,
+			Out:                   resultChannel,
+		}
+		switch <-resultChannel {
+		case commons.Active:
+			// THE RUNNING SERVICE WAS KILLED AND EnforcedServiceStatus is INACTIVE (subscription will stay down)
+		case commons.Pending:
+			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
+			return false
+		case commons.Inactive:
+			// THE SERVICE WAS NOT RUNNING
 		}
 	}
 	return true
@@ -357,8 +381,23 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	}
 
 	lndDone := startServiceOrRestartWhenRunning(serviceChannel, commons.LndSubscription, ncd.NodeId, ncd.Status == commons.Active)
-	ambossDone := startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
-	vectorDone := startServiceOrRestartWhenRunning(serviceChannel, commons.VectorSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
+	ambossDone := true
+	vectorDone := true
+	nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
+	if ncd.HasNotificationType(commons.Amboss) &&
+		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
+		server_errors.LogAndSendServerError(c, errors.New("Amboss Ping Service is only allowed on Bitcoin Mainnet."))
+		return
+	} else {
+		ambossDone = startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
+	}
+	if ncd.HasNotificationType(commons.Vector) &&
+		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
+		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
+		return
+	} else {
+		vectorDone = startServiceOrRestartWhenRunning(serviceChannel, commons.VectorSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
+	}
 
 	if lndDone && ambossDone && vectorDone {
 		ncd, err = SetNodeConnectionDetails(db, ncd)
@@ -423,6 +462,12 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
 	statusId, err := strconv.Atoi(c.Param("statusId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
+		return
+	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	if commons.Status(statusId) == commons.Active &&
+		(nodeSettings.Chain != commons.Bitcoin || nodeSettings.Network != commons.MainNet) {
+		server_errors.SendBadRequest(c, "Ping Services are only allowed on Bitcoin Mainnet.")
 		return
 	}
 

@@ -20,10 +20,12 @@ const (
 )
 
 type ServiceChannelMessage = struct {
-	ServiceType    ServiceType
-	ServiceCommand ServiceCommand
-	NodeId         int
-	Out            chan Status
+	ServiceType           ServiceType
+	ServiceCommand        ServiceCommand
+	NodeId                int
+	EnforcedServiceStatus *Status
+	NoDelay               bool
+	Out                   chan Status
 }
 
 type Status int
