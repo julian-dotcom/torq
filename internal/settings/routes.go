@@ -197,7 +197,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 	if len(tlsCert) == 0 {
-		server_errors.SendBadRequest(c, "Can't check new GRPC details without TLS Cert")
+		server_errors.SendBadRequest(c, "Can't check new gRPC details without TLS Cert")
 		return
 	}
 
@@ -212,13 +212,13 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 	if len(macaroonFile) == 0 {
-		server_errors.SendBadRequest(c, "Can't check new GRPC details without Macaroon File")
+		server_errors.SendBadRequest(c, "Can't check new gRPC details without Macaroon File")
 		return
 	}
 
 	publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Getting public key from node")
+		server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
 		return
 	}
 	node, err := nodes.GetNodeByPublicKey(db, publicKey)
@@ -311,7 +311,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		ncd.TLSFileName = existingNcd.TLSFileName
 	}
 
-	// if GRPC details have changed we need to check that the public keys (if existing) matches
+	// if gRPC details have changed we need to check that the public keys (if existing) matches
 	if existingNcd.GRPCAddress != ncd.GRPCAddress {
 		var tlsCert []byte
 		if ncd.TLSFile != nil {
@@ -331,7 +331,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 			tlsCert = existingNcd.TLSDataBytes
 		}
 		if len(tlsCert) == 0 {
-			server_errors.LogAndSendServerError(c, errors.New("Can't check new GRPC details without TLS Cert"))
+			server_errors.LogAndSendServerError(c, errors.New("Can't check new gRPC details without TLS Cert"))
 			return
 		}
 
@@ -353,13 +353,13 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 			macaroonFile = existingNcd.MacaroonDataBytes
 		}
 		if len(macaroonFile) == 0 {
-			server_errors.LogAndSendServerError(c, errors.New("Can't check new GRPC details without Macaroon File"))
+			server_errors.LogAndSendServerError(c, errors.New("Can't check new gRPC details without Macaroon File"))
 			return
 		}
 
 		publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
 		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from grpc")
+			server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
 			return
 		}
 
@@ -562,7 +562,7 @@ func getInformationFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile 
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
-			log.Debug().Err(err).Msg("Failed to close grpc connection.")
+			log.Debug().Err(err).Msg("Failed to close gRPC connection.")
 		}
 	}(conn)
 
