@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -554,23 +553,4 @@ func processMacaroon(ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
 		ncd.MacaroonDataBytes = macaroonData
 	}
 	return ncd, nil
-}
-
-func restartLND(c *gin.Context, restartLNDSub func() error) bool {
-	maxTries := 30
-	attempts := 0
-	for {
-		attempts++
-		if attempts > maxTries {
-			server_errors.LogAndSendServerError(c, errors.New("Failed to restart node subscriptions"))
-			return true
-		}
-		if err := restartLNDSub(); err != nil {
-			log.Warn().Msg("Already restarting subscriptions, retrying")
-			time.Sleep(1 * time.Second)
-			continue
-		}
-		break
-	}
-	return false
 }
