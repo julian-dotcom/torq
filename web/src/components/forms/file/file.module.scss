@@ -1,17 +1,31 @@
+@import "../input-colors.module";
+.fileDropWrapper {
+  color: var(--input-color);
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+  label {
+    color: var(--input-label-color);
+  }
+}
 .fileDropArea {
   padding: 26px 10px;
+  background-color: var(--input-default-background);
   border-style: dashed;
-  border-color: var(--fg-muted);
+  border-color: var(--input-focus-border-color);
   border-width: 1px;
   border-radius: var(--radius-default);
-  margin-bottom: var(--form-margin-bottom);
   display: grid;
   justify-content: center;
   position: relative;
   z-index: 1;
+  &:hover {
+    background-color: var(--input-hover-background);
+  }
 }
 .fileDropArea.dragging:after {
   content: "";
+  background-color: var(--input-hover-background);
   display: block;
   position: absolute;
   left: 0;

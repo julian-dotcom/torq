@@ -1,13 +1,10 @@
 import { Link } from "react-router-dom";
 import {
-  MoneySettings20Regular as AdjustFeesIcon,
   Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
-  ArrowJoin20Regular as GroupIcon,
   Options20Regular as OptionsIcon,
   Save20Regular as SaveIcon,
-  ArrowRouting20Regular as ChannelsIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
 import { useCreateTableViewMutation, useGetTableViewsQuery, useUpdateTableViewMutation } from "apiSlice";
@@ -34,27 +31,25 @@ import {
   updateFilters,
   selectSortBy,
   updateSortBy,
-  selectGroupBy,
   updateGroupBy,
-} from "./ChannelsSlice";
+} from "./tagsSlice";
+import { TagsSidebarSections } from "./tagsTypes";
 import ViewsPopover from "features/viewManagement/ViewsPopover";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import FilterSection from "features/sidebar/sections/filter/FilterSection";
 import SortSection, { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
-import GroupBySection from "features/sidebar/sections/group/GroupBySection";
-import ChannelsDataWrapper from "./ChannelsDataWrapper";
+import TagsDataWrapper from "./TagsDataWrapper";
 import { SectionContainer } from "features/section/SectionContainer";
 import { ColumnMetaData } from "features/table/Table";
 import Button, { buttonColor } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
-import { UPDATE_CHANNEL, OPEN_CHANNEL } from "constants/routes";
-import { Sections } from "./channelsTypes";
+import * as routes from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import { ViewResponse } from "features/viewManagement/ViewsPopover";
 import { ViewInterface } from "features/table/Table";
 
-function ChannelsPage() {
+function TagsPage() {
   const dispatch = useAppDispatch();
   const { t } = useTranslations();
   const navigate = useNavigate();
@@ -78,14 +73,13 @@ function ChannelsPage() {
   const activeColumns = useAppSelector(selectActiveColumns) || [];
   const columns = useAppSelector(selectAllColumns);
   const sortBy = useAppSelector(selectSortBy);
-  const groupBy = useAppSelector(selectGroupBy) || "channels";
   const filters = useAppSelector(selectFilters);
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   // General logic for toggling the sidebar sections
-  const initialSectionState: Sections = {
+  const initialSectionState = {
     filter: false,
     sort: false,
     columns: false,
@@ -94,7 +88,7 @@ function ChannelsPage() {
 
   const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
 
-  const sidebarSectionHandler = (section: keyof Sections) => {
+  const sidebarSectionHandler = (section: keyof TagsSidebarSections) => {
     return () => {
       setActiveSidebarSections({
         ...activeSidebarSections,
@@ -117,7 +111,7 @@ function ChannelsPage() {
     const viewMod = { ...currentView };
     viewMod.saved = true;
     if (currentView.id === undefined || null) {
-      createTableView({ view: viewMod, index: currentViewIndex, page: "channels" });
+      createTableView({ view: viewMod, index: currentViewIndex, page: "tags" });
       return;
     }
     updateTableView(viewMod);
@@ -128,7 +122,7 @@ function ChannelsPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <ViewsPopover
-            page="channels"
+            page="tags"
             selectViews={selectViews}
             updateViews={updateViews}
             updateSelectedView={updateSelectedView}
@@ -148,23 +142,23 @@ function ChannelsPage() {
         </TableControlsTabsGroup>
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
-        <Button
-          buttonColor={buttonColor.green}
-          text={"Open Channel"}
-          className={"collapse-tablet"}
-          icon={<ChannelsIcon />}
-          onClick={() => {
-            navigate(OPEN_CHANNEL, { state: { background: location } });
-          }}
-        />
-        <Button
-          buttonColor={buttonColor.green}
-          text={t.updateChannelPolicy.title}
-          icon={<AdjustFeesIcon />}
-          onClick={() => {
-            navigate(UPDATE_CHANNEL, { state: { background: location } });
-          }}
-        />
+        {/*<Button*/}
+        {/*  buttonColor={buttonColor.green}*/}
+        {/*  text={"Open Channel"}*/}
+        {/*  className={"collapse-tablet"}*/}
+        {/*  icon={<ChannelsIcon />}*/}
+        {/*  onClick={() => {*/}
+        {/*    navigate(OPEN_CHANNEL, { state: { background: location } });*/}
+        {/*  }}*/}
+        {/*/>*/}
+        {/*<Button*/}
+        {/*  buttonColor={buttonColor.green}*/}
+        {/*  text={t.updateChannelPolicy.title}*/}
+        {/*  icon={<AdjustFeesIcon />}*/}
+        {/*  onClick={() => {*/}
+        {/*    navigate(UPDATE_CHANNEL, { state: { background: location } });*/}
+        {/*  }}*/}
+        {/*/>*/}
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>
@@ -226,28 +220,19 @@ function ChannelsPage() {
       >
         <SortSection columns={columns} orderBy={sortBy} updateSortByHandler={handleSortUpdate} />
       </SectionContainer>
-
-      <SectionContainer
-        title={t.group}
-        icon={GroupIcon}
-        expanded={activeSidebarSections.group}
-        handleToggle={sidebarSectionHandler("group")}
-      >
-        <GroupBySection groupBy={groupBy} groupByHandler={handleGroupByUpdate} />
-      </SectionContainer>
     </Sidebar>
   );
 
   const breadcrumbs = [
-    <span key="b1">Analyse</span>,
-    <Link key="b2" to={"/analyse/channels"}>
-      {t.channels}
+    <span key="b1">{`${t.manage}`}</span>,
+    <Link key="b2" to={`/${routes.MANAGE}/${routes.TAGS}`}>
+      {t.tags}
     </Link>,
   ];
 
   return (
     <TablePageTemplate
-      title={t.channels}
+      title={t.tags}
       titleContent={""}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
@@ -255,10 +240,10 @@ function ChannelsPage() {
       tableControls={tableControls}
     >
       <>
-        <ChannelsDataWrapper activeColumns={activeColumns} />
+        <TagsDataWrapper activeColumns={activeColumns} />
       </>
     </TablePageTemplate>
   );
 }
 
-export default ChannelsPage;
+export default TagsPage;

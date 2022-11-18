@@ -1,0 +1,25 @@
+.barCell {
+  grid-row-gap: 4px;
+  min-width: 200px;
+  @media only screen and (max-width: 900px) {
+    min-width: 150px;
+  }
+  .barWrapper {
+    display: grid;
+    width: 100%;
+    justify-items: flex-end;
+    background-color: var(--color-success-faint);
+    border-radius: var(--radius-default);
+  }
+  .bar {
+    height: 5px;
+    min-width: 2px;
+    background-color: var(--color-border-success-faded);
+    border-radius: var(--radius-default);
+  }
+  &.totalCell {
+    .bar-wrapper {
+      display: none;
+    }
+  }
+}

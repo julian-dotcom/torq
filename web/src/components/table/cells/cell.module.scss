@@ -32,32 +32,6 @@
   }
 }
 
-.barCell {
-  position: relative;
-  z-index: 2;
-  grid-row-gap: 4px;
-  min-width: 200px;
-  @media only screen and (max-width: 900px) {
-    min-width: 150px;
-  }
-  .barWrapper {
-    display: grid;
-    width: 100%;
-    justify-items: flex-end;
-    background-color: var(--accent1-300);
-  }
-  .bar {
-    height: 5px;
-    min-width: 2px;
-    background-color: var(--accent1-400);
-  }
-  &.totalCell {
-    .bar-wrapper {
-      display: none;
-    }
-  }
-}
-
 .totalCell {
   position: sticky;
   bottom: 0;
@@ -243,4 +217,11 @@
     position: sticky;
     left: 10px;
   }
+}
+
+.tableRow {
+  display: contents;
+}
+.tableRow:hover .cell {
+  background-color: var(--color-primary-layer-2);
 }

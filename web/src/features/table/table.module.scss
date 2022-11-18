@@ -29,12 +29,6 @@
 .loading {
   opacity: 0.5;
 }
-.tableRow {
-  display: contents;
-}
-:global(.tableRow):hover :global(.cell) {
-  background-color: var(--primary-0);
-}
 
 @media only screen and (min-width: 900px) {
   .tableContent:global(::-webkit-scrollbar) {

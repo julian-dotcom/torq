@@ -32,8 +32,9 @@ import type {
   DecodedInvoice,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import type { nodeConfiguration, settings, timeZone, channel } from "apiTypes";
-import { NewInvoiceRequest, NewInvoiceResponse } from "./features/transact/Invoices/newInvoice/newInvoiceTypes";
+import type { nodeConfiguration, settings, timeZone, channel, stringMap } from "apiTypes";
+import { NewInvoiceRequest, NewInvoiceResponse } from "features/transact/Invoices/newInvoice/newInvoiceTypes";
+import { tag, channelTag } from "pages/tagsPage/tagsTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -60,8 +61,46 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
 export const torqApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRedirect,
-  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels"],
+  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "tags"],
   endpoints: (builder) => ({
+    getTags: builder.query<tag[], void>({
+      query: () => `tags/all`,
+      providesTags: ["tags"],
+    }),
+    getTag: builder.query<tag, number>({
+      query: (tagId) => `tags/get/${tagId}`,
+      providesTags: ["tags"],
+    }),
+    addTag: builder.mutation<tag, tag>({
+      query: (tag) => ({
+        url: `tags/add`,
+        method: "POST",
+        body: tag,
+      }),
+      invalidatesTags: ["tags"],
+    }),
+    setTag: builder.mutation<tag, tag>({
+      query: (tag) => ({
+        url: `tags/set`,
+        method: "PUT",
+        body: tag,
+      }),
+      invalidatesTags: ["tags"],
+    }),
+    removeTag: builder.mutation<number, number>({
+      query: (tagId) => ({
+        url: `tags/${tagId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["tags"],
+    }),
+    addChannelTag: builder.mutation<stringMap<string>, channelTag>({
+      query: (channelTag) => ({
+        url: `channelTags/add`,
+        method: "POST",
+        body: channelTag,
+      }),
+    }),
     getFlow: builder.query<FlowData[], GetFlowQueryParams>({
       query: (params) => "flow" + queryParamsBuilder(params),
     }),
@@ -263,4 +302,10 @@ export const {
   useAddNodeConfigurationMutation,
   useUpdateNodeConfigurationStatusMutation,
   useUpdateChannelMutation,
+  useGetTagsQuery,
+  useGetTagQuery,
+  useAddTagMutation,
+  useSetTagMutation,
+  useRemoveTagMutation,
+  useAddChannelTagMutation,
 } = torqApi;

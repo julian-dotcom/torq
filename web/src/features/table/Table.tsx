@@ -1,17 +1,9 @@
 import styles from "./table.module.scss";
 import cellStyles from "components/table/cells/cell.module.scss";
 import HeaderCell from "components/table/cells/header/HeaderCell";
-import AliasCell from "components/table/cells/alias/AliasCell";
-import NumericCell from "components/table/cells/numeric/NumericCell";
-import BarCell from "components/table/cells/bar/BarCell";
-import TextCell from "components/table/cells/text/TextCell";
-import DurationCell from "components/table/cells/duration/DurationCell";
-import BooleanCell from "components/table/cells/boolean/BooleanCell";
 import classNames from "classnames";
-import DateCell from "components/table/cells/date/DateCell";
-import EnumCell from "components/table/cells/enum/EnumCell";
-import LinkCell from "components/table/cells/link/LinkCell";
 import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
+import TableRow from "./TableRow";
 
 export interface ColumnMetaData {
   heading: string;
@@ -41,143 +33,19 @@ export interface viewOrderInterface {
   view_order: number;
 }
 
-type TableProps = {
+export type TableProps = {
   activeColumns: Array<ColumnMetaData>;
   data: Array<any>;
   isLoading: boolean;
   showTotals?: boolean;
   rowRenderer?: (row: any, index: number, column: ColumnMetaData, columnIndex: number) => JSX.Element;
   totalsRowRenderer?: (column: ColumnMetaData, index: number) => JSX.Element;
+  selectable?: boolean;
+  selectedRowIds?: Array<number>;
 };
 
-function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, columnIndex: number) {
-  const key = column.key;
-  const heading = column.heading;
-  const percent = column.percent;
-  switch (column.type) {
-    case "AliasCell":
-      return (
-        <AliasCell
-          current={row[key] as string}
-          lndShortChannelId={row["lndShortChannelId"]}
-          open={row["open"]}
-          className={classNames(key, index, cellStyles.locked)}
-          key={key + index + columnIndex}
-        />
-      );
-    case "LinkCell":
-      return (
-        <LinkCell
-          current={`Check in ${heading}`}
-          link={row[key]}
-          className={classNames(key, index)}
-          key={key + index + columnIndex}
-        />
-      );
-    case "NumericCell":
-      return <NumericCell current={row[key] as number} className={key} key={key + index + columnIndex} />;
-    case "DateCell":
-      return <DateCell value={row[key] as string} className={key} key={key + index + columnIndex} />;
-    case "BooleanCell":
-      return (
-        <BooleanCell
-          falseTitle={"Failure"}
-          trueTitle={"Success"}
-          value={row[key] as boolean}
-          className={classNames(key)}
-          key={key + index + columnIndex}
-        />
-      );
-    case "BarCell":
-      return (
-        <BarCell
-          current={row[key] as number}
-          total={column.max as number}
-          className={key}
-          showPercent={percent}
-          key={key + index + columnIndex}
-        />
-      );
-    case "TextCell":
-      return (
-        <TextCell current={row[key] as string} className={classNames(column.key, index)} key={column.key + index} />
-      );
-    case "DurationCell":
-      return (
-        <DurationCell seconds={row[key] as number} className={classNames(column.key, index)} key={column.key + index} />
-      );
-    case "EnumCell":
-      return <EnumCell value={row[key] as string} className={key} key={key + index + columnIndex} />;
-    default:
-      return <NumericCell current={row[key] as number} className={key} key={key + index + columnIndex} />;
-  }
-}
-
-function defaultTotalsRowRenderer(column: ColumnMetaData, index: number) {
-  switch (column.type) {
-    case "AliasCell":
-      return (
-        <AliasCell
-          current={"Total"}
-          lndShortChannelId={""}
-          className={classNames(column.key, index, cellStyles.locked, cellStyles.totalCell)}
-          key={column.key + index}
-        />
-      );
-    case "NumericCell":
-      return (
-        <NumericCell
-          current={column.total as number}
-          className={classNames(column.key, index, cellStyles.totalCell)}
-          key={`total-${column.key}-${index}`}
-        />
-      );
-    case "BooleanCell":
-      return (
-        <BooleanCell
-          value={false}
-          className={classNames(column.key, index, cellStyles.totalCell)}
-          key={`total-${column.key}-${index}`}
-        />
-      );
-    case "BarCell":
-      return (
-        <BarCell
-          current={column.total as number}
-          total={column.max as number}
-          className={classNames(column.key, index, cellStyles.totalCell)}
-          key={`total-${column.key}-${index}`}
-        />
-      );
-    case "TextCell":
-      return (
-        <TextCell
-          current={" "}
-          className={classNames(column.key, index, styles.textCell, cellStyles.totalCell, cellStyles.firstTotalCell)}
-          key={column.key + index}
-        />
-      );
-    case "DurationCell":
-      return (
-        <TextCell
-          current={" "}
-          className={classNames(column.key, index, styles.textCell, cellStyles.totalCell, cellStyles.firstTotalCell)}
-          key={column.key + index}
-        />
-      );
-    default:
-      return (
-        <NumericCell
-          current={column.total as number}
-          className={classNames(column.key, index, cellStyles.totalCell)}
-          key={`total-${column.key}-${index}`}
-        />
-      );
-  }
-}
-
 function Table(props: TableProps) {
-  const numColumns = Object.keys(props.activeColumns).length;
+  const numColumns = Object.keys(props.activeColumns).length + (props.selectable ? 1 : 0);
   const numRows = (props.data || []).length;
   const rowGridStyle = (numRows: number): string => {
     if (numRows > 0) {
@@ -189,9 +57,6 @@ function Table(props: TableProps) {
     }
   };
 
-  const rowRenderer = props.rowRenderer ? props.rowRenderer : defaultRowRenderer;
-  const totalsRowRenderer = props.totalsRowRenderer ? props.totalsRowRenderer : defaultTotalsRowRenderer;
-
   const tableClass = classNames(styles.tableContent, { [styles.loading]: props.isLoading });
   const customStyle =
     "." +
@@ -202,21 +67,21 @@ function Table(props: TableProps) {
     ",  min-content) auto;" +
     rowGridStyle(numRows) +
     "}";
-
+  console.log(props.data);
   return (
     <div className={styles.tableWrapper}>
       <style>{customStyle}</style>
 
       <div className={tableClass}>
         {/*/!*Empty header at the start*!/*/}
-        {
-          <HeaderCell
-            heading={""}
-            className={classNames(cellStyles.firstEmptyHeader, cellStyles.empty, cellStyles.locked)}
-            key={"first-empty-header"}
-          />
-        }
-
+        <HeaderCell
+          heading={""}
+          className={classNames(cellStyles.firstEmptyHeader, cellStyles.empty, cellStyles.locked)}
+          key={"first-empty-header"}
+        />
+        {props.selectable && (
+          <HeaderCell heading={""} className={classNames(cellStyles.empty)} key={"checkbox-header"} />
+        )}
         {/* Header cells */}
         {props.activeColumns.map((column, index) => {
           return (
@@ -228,7 +93,6 @@ function Table(props: TableProps) {
             />
           );
         })}
-
         {/*Empty header at the end*/}
         {
           <HeaderCell
@@ -240,35 +104,34 @@ function Table(props: TableProps) {
 
         {/* The main cells containing the data */}
         {props.data.map((row: any, index: any) => {
-          // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.
+          console.log(row);
           return (
-            <div className={classNames(styles.tableRow, "torq-row-" + index)} key={"torq-row-" + index}>
-              {[
-                <div
-                  className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked)}
-                  key={"first-cell-" + index}
-                />,
-                ...props.activeColumns.map((column, columnIndex) => {
-                  return rowRenderer(row, index, column, columnIndex);
-                }),
-                <div
-                  className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.lastEmptyCell)}
-                  key={"last-cell-" + index}
-                />,
-              ]}
-            </div>
+            <TableRow
+              row={row}
+              rowIndex={index}
+              columns={props.activeColumns}
+              key={"row-" + index}
+              selectable={props.selectable}
+              selected={false}
+              isTotalsRow={false}
+            />
           );
         })}
 
         {/* Empty filler cells to create an empty row that expands to push the last row down.
            It's ugly but seems to be the only way to do it */}
-        {
+        <div
+          className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked, cellStyles.firstEmptyCell, {
+            [cellStyles.noTotalsRow]: !props.showTotals,
+          })}
+        />
+
+        {props.selectable && (
           <div
-            className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked, cellStyles.firstEmptyCell, {
-              [cellStyles.noTotalsRow]: !props.showTotals,
-            })}
+            className={classNames(cellStyles.cell, cellStyles.empty, { [cellStyles.noTotalsRow]: !props.showTotals })}
           />
-        }
+        )}
+
         {props.activeColumns.map((column, index) => {
           return (
             <div
@@ -279,26 +142,21 @@ function Table(props: TableProps) {
             />
           );
         })}
-
         {/* Render a filler row to fill all available space vertically */}
-        {
-          <div
-            className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.lastEmptyCell, {
-              [cellStyles.noTotalsRow]: !props.showTotals,
-            })}
-          />
-        }
-
-        {/* Totals row */}
-        {/* Empty cell at the start */}
-        {props.showTotals && (
-          <div className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked, cellStyles.totalCell)} />
-        )}
-        {props.showTotals && props.activeColumns.map(totalsRowRenderer)}
-        {/*Empty cell at the end*/}
-        {props.showTotals && (
-          <div
-            className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.totalCell, cellStyles.lastTotalCell)}
+        <div
+          className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.lastEmptyCell, {
+            [cellStyles.noTotalsRow]: !props.showTotals,
+          })}
+        />
+        {props.showTotals && props.data.length && (
+          <TableRow
+            row={props.data[0]}
+            rowIndex={props.activeColumns.length + 1}
+            columns={props.activeColumns}
+            key={"row-" + "total"}
+            selectable={props.selectable}
+            selected={false}
+            isTotalsRow={true}
           />
         )}
       </div>

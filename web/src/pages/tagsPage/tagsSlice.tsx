@@ -1,185 +1,21 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "store/store";
-import { AndClause, FilterClause } from "features/sidebar/sections/filter/filter";
+import { AndClause } from "features/sidebar/sections/filter/filter";
 import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
 import { ColumnMetaData, ViewInterface } from "features/table/Table";
 import { torqApi } from "apiSlice";
 
-export const channelsColumns: ColumnMetaData[] = [
+export const tagsColumns: ColumnMetaData[] = [
   {
-    heading: "Active",
-    type: "BooleanCell",
-    key: "active",
+    heading: "Checkbox",
+    type: "CheckboxCell",
+    key: "checkbox",
     valueType: "boolean",
-    locked: false,
   },
   {
-    heading: "Peer Alias",
+    heading: "Name",
     type: "TextCell",
-    key: "peerAlias",
-    valueType: "string",
-  },
-  {
-    heading: "Short Channel ID",
-    type: "TextCell",
-    key: "shortChannelId",
-    valueType: "string",
-  },
-  {
-    heading: "Remote Balance",
-    type: "NumericCell",
-    key: "remoteBalance",
-    valueType: "number",
-  },
-  {
-    heading: "Balance Gauge",
-    type: "BarCell",
-    key: "gauge",
-    valueType: "number",
-    percent: true,
-  },
-  {
-    heading: "Local Balance",
-    type: "NumericCell",
-    key: "localBalance",
-    valueType: "number",
-  },
-  {
-    heading: "Capacity",
-    type: "NumericCell",
-    key: "capacity",
-    valueType: "number",
-  },
-  {
-    heading: "Fee rate (PPM)",
-    type: "NumericCell",
-    key: "feeRatePpm",
-    valueType: "number",
-  },
-  {
-    heading: "Base Fee Msat",
-    type: "NumericCell",
-    key: "baseFeeMsat",
-    valueType: "number",
-  },
-  {
-    heading: "Minimum HTLC",
-    type: "NumericCell",
-    key: "minHtlc",
-    valueType: "number",
-  },
-  {
-    heading: "Maximum HTLC Msat",
-    type: "NumericCell",
-    key: "maxHtlcMsat",
-    valueType: "number",
-  },
-  {
-    heading: "Time Lock Delta",
-    type: "NumericCell",
-    key: "timeLockDelta",
-    valueType: "number",
-  },
-  {
-    heading: "LND Short Channel ID",
-    type: "TextCell",
-    key: "lndShortChannelId",
-    valueType: "string",
-  },
-  {
-    heading: "Funding Transaction",
-    type: "TextCell",
-    key: "fundingTransactionHash",
-    valueType: "string",
-  },
-  {
-    heading: "Unsettled Balance",
-    type: "NumericCell",
-    key: "unsettledBalance",
-    valueType: "number",
-  },
-  {
-    heading: "Satoshis Sent",
-    type: "NumericCell",
-    key: "totalSatoshisSent",
-    valueType: "number",
-  },
-  {
-    heading: "Satoshis Received",
-    type: "NumericCell",
-    key: "totalSatoshisReceived",
-    valueType: "number",
-  },
-  {
-    heading: "Pending Forwarding HTLCs count",
-    type: "NumericCell",
-    key: "pendingForwardingHTLCsCount",
-    valueType: "number",
-  },
-  {
-    heading: "Pending Forwarding HTLCs",
-    type: "NumericCell",
-    key: "pendingForwardingHTLCsAmount",
-    valueType: "number",
-  },
-  {
-    heading: "Pending Forwarding HTLCs count",
-    type: "NumericCell",
-    key: "pendingLocalHTLCsCount",
-    valueType: "number",
-  },
-  {
-    heading: "Pending Forwarding HTLCs",
-    type: "NumericCell",
-    key: "pendingLocalHTLCsAmount",
-    valueType: "number",
-  },
-  {
-    heading: "Total Pending Forwarding HTLCs count",
-    type: "NumericCell",
-    key: "pendingTotalHTLCsCount",
-    valueType: "number",
-  },
-  {
-    heading: "Total Pending Forwarding HTLCs",
-    type: "NumericCell",
-    key: "pendingTotalHTLCsAmount",
-    valueType: "number",
-  },
-  {
-    heading: "Commit Fee",
-    type: "NumericCell",
-    key: "commitFee",
-    valueType: "number",
-  },
-  {
-    heading: "Node ID",
-    type: "NumericCell",
-    key: "nodeId",
-    valueType: "number",
-  },
-  {
-    heading: "Node Name",
-    type: "TextCell",
-    key: "nodeName",
-    valueType: "string",
-  },
-  {
-    heading: "Mempool",
-    type: "LinkCell",
-    key: "mempoolSpace",
-    valueType: "string",
-  },
-  {
-    heading: "Amboss",
-    type: "LinkCell",
-    key: "ambossSpace",
-    valueType: "string",
-  },
-  {
-    heading: "1ML",
-    type: "LinkCell",
-    key: "1ml",
+    key: "name",
     valueType: "string",
   },
 ];
@@ -201,45 +37,16 @@ export interface TableChannelsState {
 }
 
 const defaultFilter = new AndClause();
-defaultFilter.addChildClause(
-  new FilterClause({
-    funcName: "eq",
-    category: "boolean",
-    key: "active",
-    parameter: true,
-  })
-);
 
-export const activeChannelsColumns = channelsColumns.filter((c) =>
-  [
-    "active",
-    "peerAlias",
-    "shortChannelId",
-    "feeRatePpm",
-    "remoteBalance",
-    "gauge",
-    "localBalance",
-    "capacity",
-    "totalSatoshisSent",
-    "totalSatoshisReceived",
-    "unsettledBalance",
-    "commitFee",
-    "baseFeeMsat",
-    "minHtlc",
-    "maxHtlcMsat",
-    "nodeName",
-  ].includes(c.key)
-);
-
+export const activeTagsColumns = tagsColumns.filter((c) => ["name", "checkbox"].includes(c.key));
 
 export const DefaultView: ViewInterface = {
   title: "Untitled View",
   saved: true,
-  columns: activeChannelsColumns,
+  columns: activeTagsColumns,
   filters: defaultFilter.toJSON(),
   sortBy: [],
-  groupBy: undefined,
-  page: 'channels'
+  page: "tags",
 };
 
 const initialState: TableChannelsState = {
@@ -296,7 +103,7 @@ export const channelsSlice = createSlice({
     builder.addMatcher(
       (action) => {
         return (
-          ["channels/updateFilters", "channels/updateSortBy", "channels/updateColumns", "channels/updateGroupBy"].findIndex(
+          ["tags/updateFilters", "tags/updateSortBy", "tags/updateColumns"].findIndex(
             (item) => action.type === item
           ) !== -1
         );
@@ -347,15 +154,14 @@ export const {
   updateSelectedView,
   updateSortBy,
   updateColumns,
-  updateGroupBy
+  updateGroupBy,
 } = channelsSlice.actions;
 
 export const selectActiveColumns = (state: RootState) => {
   return state.channels.views[state.channels.selectedViewIndex].columns || [];
 };
-export const selectAllColumns = (_: RootState) => channelsColumns;
+export const selectAllColumns = (_: RootState) => tagsColumns;
 export const selectSortBy = (state: RootState) => state.channels.views[state.channels.selectedViewIndex].sortBy;
-export const selectGroupBy = (state: RootState) => state.channels.views[state.channels.selectedViewIndex].groupBy;
 export const selectFilters = (state: RootState) => {
   return state.channels.views[state.channels.selectedViewIndex].filters;
 };

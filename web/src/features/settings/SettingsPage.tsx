@@ -1,9 +1,9 @@
 import { AddSquare20Regular as AddIcon, Save20Regular as SaveIcon } from "@fluentui/react-icons";
 import Page from "layout/Page";
-import Box from "features/settings/Box";
 import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
-import style from "features/settings/settings.module.css";
-import Select, { SelectOption } from "features/forms/Select";
+import styles from "features/settings/settings.module.css";
+import { SelectOption } from "features/forms/Select";
+import Select from "components/forms/select/Select";
 import React from "react";
 import { defaultStaticRangesFn } from "features/timeIntervalSelect/customRanges";
 import {
@@ -117,47 +117,46 @@ function Settings() {
     <Page>
       <React.Fragment>
         <div>
-          <div className={style.center}>
+          <div className={styles.center}>
             <div>
               <h3>Date & time settings</h3>
-              <Box>
-                <form onSubmit={submitPreferences}>
+
+              <form onSubmit={submitPreferences} className={styles.settingsForm}>
+                <Select
+                  label={t.defaultDateRange}
+                  onChange={handleDefaultDateRangeChange}
+                  options={defaultDateRangeOptions}
+                  value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
+                />
+                <Select
+                  label={t.language}
+                  onChange={handleDefaultLanguageRangeChange}
+                  options={languageOptions}
+                  value={languageOptions.find((lo) => lo.value === settingsState?.defaultLanguage)}
+                />
+                <div>
                   <Select
-                    label={t.defaultDateRange}
-                    onChange={handleDefaultDateRangeChange}
-                    options={defaultDateRangeOptions}
-                    value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
+                    label={t.preferredTimezone}
+                    onChange={handlePreferredTimezoneChange}
+                    options={preferredTimezoneOptions}
+                    value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
                   />
-                  <Select
-                    label={t.language}
-                    onChange={handleDefaultLanguageRangeChange}
-                    options={languageOptions}
-                    value={languageOptions.find((lo) => lo.value === settingsState?.defaultLanguage)}
-                  />
-                  <div>
-                    <Select
-                      label={t.preferredTimezone}
-                      onChange={handlePreferredTimezoneChange}
-                      options={preferredTimezoneOptions}
-                      value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
-                    />
-                  </div>
-                  <Select
-                    label={t.weekStartsOn}
-                    onChange={handleWeekStartsOnChange}
-                    options={weekStartsOnOptions}
-                    value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
-                  />
-                  <Button
-                    type={"submit"}
-                    submit={true}
-                    text={t.save}
-                    icon={<SaveIcon />}
-                    buttonColor={buttonColor.green}
-                    buttonPosition={buttonPosition.fullWidth}
-                  />
-                </form>
-              </Box>
+                </div>
+                <Select
+                  label={t.weekStartsOn}
+                  onChange={handleWeekStartsOnChange}
+                  options={weekStartsOnOptions}
+                  value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
+                />
+                <Button
+                  type={"submit"}
+                  submit={true}
+                  text={t.save}
+                  icon={<SaveIcon />}
+                  buttonColor={buttonColor.green}
+                  buttonPosition={buttonPosition.fullWidth}
+                />
+              </form>
             </div>
             <div>
               <h3>{t.header.nodes}</h3>

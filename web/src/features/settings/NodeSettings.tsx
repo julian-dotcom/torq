@@ -1,6 +1,6 @@
-import Box from "./Box";
 import styles from "./NodeSettings.module.scss";
-import Select, { SelectOption } from "features/forms/Select";
+import Select from "components/forms/select/Select";
+import { SelectOption } from "features/forms/Select";
 import React, { useState } from "react";
 import {
   Save20Regular as SaveIcon,
@@ -17,7 +17,7 @@ import {
 import Spinny from "features/spinny/Spinny";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
-import File from "features/forms/File";
+import File from "components/forms/file/File";
 import Input from "components/forms/input/Input";
 import {
   useGetNodeConfigurationQuery,
@@ -212,144 +212,138 @@ const NodeSettings = React.forwardRef(function NodeSettings(
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
   return (
-    <Box>
-      <>
-        {!addMode && (
-          <div className={styles.header} onClick={handleCollapseClick}>
-            <div
-              className={classNames(styles.connectionIcon, {
-                [styles.connected]: true,
-                [styles.disabled]: nodeConfigurationState.status == 1,
-              })}
-            >
-              {nodeConfigurationState.status == 0 && <ConnectedIcon />}
-              {nodeConfigurationState.status == 1 && <DisconnectedIcon />}
-            </div>
-            <div className={styles.title}>{nodeConfigurationState?.name}</div>
-            <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
-              {collapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
-            </div>
+    <>
+      {!addMode && (
+        <div className={styles.header} onClick={handleCollapseClick}>
+          <div
+            className={classNames(styles.connectionIcon, {
+              [styles.connected]: true,
+              [styles.disabled]: nodeConfigurationState.status == 1,
+            })}
+          >
+            {nodeConfigurationState.status == 0 && <ConnectedIcon />}
+            {nodeConfigurationState.status == 1 && <DisconnectedIcon />}
           </div>
-        )}
-        <Collapse collapsed={collapsedState} animate={!addMode}>
-          <>
-            {!addMode && (
-              <>
-                <div className={styles.borderSection}>
-                  <div className={styles.detailHeader}>
-                    <h4 className={styles.detailsTitle}>Node Details</h4>
-                    <Popover button={menuButton} className={classNames("right", styles.moreButton)} ref={popoverRef}>
-                      <div className={styles.nodeMenu}>
-                        <Button
-                          buttonColor={buttonColor.secondary}
-                          text={nodeConfigurationState.status == 1 ? "Enable node" : "Disable node"}
-                          icon={nodeConfigurationState.status == 1 ? <PlayIcon /> : <PauseIcon />}
-                          onClick={handleStatusClick}
-                          disabled={!enableEnableButtonState}
-                        />
-                        <Button
-                          buttonColor={buttonColor.warning}
-                          text={"Delete node"}
-                          icon={<DeleteIcon />}
-                          onClick={handleDeleteClick}
-                        />
-                      </div>
-                    </Popover>
-                  </div>
+          <div className={styles.title}>{nodeConfigurationState?.name}</div>
+          <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
+            {collapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
+          </div>
+        </div>
+      )}
+      <Collapse collapsed={collapsedState} animate={!addMode}>
+        <div className={classNames(styles.nodeDetailsCollapseContainer, { [styles.addMode]: addMode })}>
+          {!addMode && (
+            <>
+              <div className={styles.borderSection}>
+                <div className={styles.detailHeader}>
+                  <h4 className={styles.detailsTitle}>Node Details</h4>
+                  <Popover button={menuButton} className={classNames("right", styles.moreButton)} ref={popoverRef}>
+                    <div className={styles.nodeMenu}>
+                      <Button
+                        buttonColor={buttonColor.secondary}
+                        text={nodeConfigurationState.status == 1 ? "Enable node" : "Disable node"}
+                        icon={nodeConfigurationState.status == 1 ? <PlayIcon /> : <PauseIcon />}
+                        onClick={handleStatusClick}
+                        disabled={!enableEnableButtonState}
+                      />
+                      <Button
+                        buttonColor={buttonColor.warning}
+                        text={"Delete node"}
+                        icon={<DeleteIcon />}
+                        onClick={handleDeleteClick}
+                      />
+                    </div>
+                  </Popover>
                 </div>
-              </>
-            )}
-            <div className={""}>
-              <form onSubmit={handleSubmit}>
-                <Select
-                  label="Implementation"
-                  onChange={() => {
-                    return;
-                  }}
-                  options={implementationOptions}
-                  value={implementationOptions.find((io) => io.value == "" + nodeConfigurationState.implementation)}
-                />
-                <span id="name">
-                  <Input
-                    label="Node Name"
-                    value={nodeConfigurationState.name}
-                    type={"text"}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNodeNameChange(e.target.value)}
-                    placeholder="Node 1"
-                  />
-                </span>
-                <span id="address">
-                  <Input
-                    label="GRPC Address (IP or Tor)"
-                    type={"text"}
-                    value={nodeConfigurationState.grpcAddress}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAddressChange(e.target.value)}
-                    placeholder="100.100.100.100:10009"
-                  />
-                </span>
-                <span id="tls">
-                  <File
-                    label="TLS Certificate"
-                    onFileChange={handleTLSFileChange}
-                    fileName={nodeConfigurationState?.tlsFileName}
-                  />
-                </span>
-                <span id="macaroon">
-                  <File
-                    label="Macaroon"
-                    onFileChange={handleMacaroonFileChange}
-                    fileName={nodeConfigurationState?.macaroonFileName}
-                  />
-                </span>
-                <Button
-                  id={"save-node"}
-                  buttonColor={buttonColor.green}
-                  text={addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
-                  icon={saveEnabledState ? <SaveIcon /> : <Spinny />}
-                  onClick={submitNodeSettings}
-                  buttonPosition={buttonPosition.fullWidth}
-                  disabled={!saveEnabledState}
-                />
-              </form>
-            </div>
-          </>
-        </Collapse>
-        <Modal
-          title={"Are you sure?"}
-          icon={<DeleteIconHeader />}
-          onClose={handleConfirmationModalClose}
-          show={showModalState}
-        >
-          <div className={styles.deleteConfirm}>
-            <p>
-              Deleting the node will prevent you from viewing it&apos;s data in Torq. Alternatively set node to disabled
-              to simply stop the data subscription but keep data collected so far.
-            </p>
-            <p>
-              This operation cannot be undone, type &quot;<span className={styles.red}>delete</span>&quot; to confirm.
-            </p>
-
-            <Input
-              value={deleteConfirmationTextInputState}
-              type={"text"}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleDeleteConfirmationTextInputChange(e.target.value)
-              }
-            />
-            <div className={styles.deleteConfirmButtons}>
-              <Button
-                buttonColor={buttonColor.warning}
-                buttonPosition={buttonPosition.fullWidth}
-                text={"Delete node"}
-                icon={<DeleteIcon />}
-                onClick={handleModalDeleteClick}
-                disabled={!deleteEnabled}
+              </div>
+            </>
+          )}
+          <div>
+            <form className={styles.nodeForm} onSubmit={handleSubmit}>
+              <Select
+                label="Implementation"
+                onChange={() => {
+                  return;
+                }}
+                options={implementationOptions}
+                value={implementationOptions.find((io) => io.value == "" + nodeConfigurationState.implementation)}
               />
-            </div>
+              <Input
+                label="Node Name"
+                value={nodeConfigurationState.name}
+                type={"text"}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNodeNameChange(e.target.value)}
+                placeholder="Node 1"
+              />
+
+              <Input
+                label="GRPC Address (IP or Tor)"
+                type={"text"}
+                value={nodeConfigurationState.grpcAddress}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAddressChange(e.target.value)}
+                placeholder="100.100.100.100:10009"
+              />
+
+              <File
+                label="TLS Certificate"
+                onFileChange={handleTLSFileChange}
+                fileName={nodeConfigurationState?.tlsFileName}
+              />
+
+              <File
+                label="Macaroon"
+                onFileChange={handleMacaroonFileChange}
+                fileName={nodeConfigurationState?.macaroonFileName}
+              />
+
+              <Button
+                id={"save-node"}
+                buttonColor={buttonColor.green}
+                text={addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
+                icon={saveEnabledState ? <SaveIcon /> : <Spinny />}
+                onClick={submitNodeSettings}
+                buttonPosition={buttonPosition.fullWidth}
+                disabled={!saveEnabledState}
+              />
+            </form>
           </div>
-        </Modal>
-      </>
-    </Box>
+        </div>
+      </Collapse>
+      <Modal
+        title={"Are you sure?"}
+        icon={<DeleteIconHeader />}
+        onClose={handleConfirmationModalClose}
+        show={showModalState}
+      >
+        <div className={styles.deleteConfirm}>
+          <p>
+            Deleting the node will prevent you from viewing it&apos;s data in Torq. Alternatively set node to disabled
+            to simply stop the data subscription but keep data collected so far.
+          </p>
+          <p>
+            This operation cannot be undone, type &quot;<span className={styles.red}>delete</span>&quot; to confirm.
+          </p>
+
+          <Input
+            value={deleteConfirmationTextInputState}
+            type={"text"}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleDeleteConfirmationTextInputChange(e.target.value)
+            }
+          />
+          <div className={styles.deleteConfirmButtons}>
+            <Button
+              buttonColor={buttonColor.warning}
+              buttonPosition={buttonPosition.fullWidth}
+              text={"Delete node"}
+              icon={<DeleteIcon />}
+              onClick={handleModalDeleteClick}
+              disabled={!deleteEnabled}
+            />
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 });
 export default NodeSettings;

@@ -7,6 +7,7 @@ import {
 import { useGetNodeConfigurationsQuery, useGetChannelsQuery, useUpdateChannelMutation } from "apiSlice";
 import type { channel } from "apiTypes";
 import { useState, useEffect } from "react";
+import Form from "components/forms/form/Form";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -157,42 +158,44 @@ function NodechannelModal() {
 
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
-          <Select
-            label={t.yourNode}
-            onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-              const selectOptions = newValue as SelectOptions;
-              handleNodeSelection(selectOptions?.value);
-            }}
-            options={nodeConfigurationOptions}
-            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
-          />
-          <Select
-            label={t.yourChannel}
-            onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-              const selectOptions = newValue as SelectOptions;
-              handleChannelSelection(selectOptions?.value);
-            }}
-            options={channelOptions}
-            value={channelOptions.find((option) => option.value === selectedChannel)}
-            isDisabled={true}
-          />
-          <ButtonWrapper
-            className={styles.customButtonWrapperStyles}
-            rightChildren={
-              <Button
-                text={"Next"}
-                disabled={selectedNodeId == 0 || selectedChannel == 0}
-                onClick={() => {
-                  if (selectedChannel) {
-                    setStepIndex(1);
-                    setChannelState(ProgressStepState.completed);
-                    setPolicyState(ProgressStepState.active);
-                  }
-                }}
-                buttonColor={buttonColor.subtle}
-              />
-            }
-          />
+          <Form>
+            <Select
+              label={t.yourNode}
+              onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
+                const selectOptions = newValue as SelectOptions;
+                handleNodeSelection(selectOptions?.value);
+              }}
+              options={nodeConfigurationOptions}
+              value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
+            />
+            <Select
+              label={t.yourChannel}
+              onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
+                const selectOptions = newValue as SelectOptions;
+                handleChannelSelection(selectOptions?.value);
+              }}
+              options={channelOptions}
+              value={channelOptions.find((option) => option.value === selectedChannel)}
+              isDisabled={true}
+            />
+            <ButtonWrapper
+              className={styles.customButtonWrapperStyles}
+              rightChildren={
+                <Button
+                  text={"Next"}
+                  disabled={selectedNodeId == 0 || selectedChannel == 0}
+                  onClick={() => {
+                    if (selectedChannel) {
+                      setStepIndex(1);
+                      setChannelState(ProgressStepState.completed);
+                      setPolicyState(ProgressStepState.active);
+                    }
+                  }}
+                  buttonColor={buttonColor.subtle}
+                />
+              }
+            />
+          </Form>
         </ProgressTabContainer>
         <ProgressTabContainer>
           <div className={styles.activeColumns}>

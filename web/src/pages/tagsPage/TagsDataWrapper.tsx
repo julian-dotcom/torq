@@ -1,66 +1,51 @@
 import React, { useMemo } from "react";
-
-import { orderBy } from "lodash";
 import { useAppSelector } from "store/hooks";
-import { useGetChannelsQuery } from "apiSlice";
-import { selectFilters, selectGroupBy, selectSortBy } from "./ChannelsSlice";
-import type { channel } from "apiTypes";
+import { selectFilters, selectSortBy } from "./tagsSlice";
+import { orderBy } from "lodash";
+import type { tag } from "./tagsTypes";
 import { applyFilters, Clause, deserialiseQuery } from "features/sidebar/sections/filter/filter";
-import { groupByFn } from "features/sidebar/sections/group/groupBy";
 import clone from "clone";
 import Table, { ColumnMetaData } from "features/table/Table";
+import { useGetTagsQuery } from "apiSlice";
 
 interface boxProps {
   activeColumns: ColumnMetaData[];
 }
 
-function ChannelsDataWrapper(props: boxProps) {
-  const chanResponse = useGetChannelsQuery();
+function TagsDataWrapper(props: boxProps) {
+  const tagsResponse = useGetTagsQuery();
 
   const sortBy = useAppSelector(selectSortBy);
-  const groupBy = useAppSelector(selectGroupBy) || "channels";
   const filters = useAppSelector(selectFilters);
 
-  const [channels, columns] = useMemo(() => {
-    if (chanResponse.data?.length == 0) {
+  const [tags, columns] = useMemo(() => {
+    if (tagsResponse.data?.length == 0) {
       return [];
     }
 
-    let channels = clone<channel[]>(chanResponse.data as channel[]) || [];
+    let tags = clone<tag[]>(tagsResponse.data as tag[]) || [];
     const columns = clone<ColumnMetaData[]>(props.activeColumns) || [];
 
-    if (channels.length > 0) {
-      channels = groupByFn(channels, groupBy || "channels");
-    }
     if (filters) {
       const f = deserialiseQuery(clone<Clause>(filters));
-      channels = applyFilters(f, channels);
+      tags = applyFilters(f, tags);
     }
-    channels = orderBy(
-      channels,
+    tags = orderBy(
+      tags,
       sortBy.map((s) => s.value),
       sortBy.map((s) => s.direction) as ["asc" | "desc"]
     );
 
-    if (channels.length > 0) {
-      for (const channel of channels) {
-        for (const column of columns) {
-          column.total = (column.total ?? 0) + channel.gauge;
-          column.max = 100;
-        }
-      }
-    }
-    return [channels, columns];
-  }, [props.activeColumns, chanResponse.data, filters, groupBy, sortBy]);
+    return [tags, columns];
+  }, [props.activeColumns, tagsResponse.data, filters, sortBy]);
 
   return (
     <Table
       activeColumns={columns || []}
-      data={channels as channel[]}
-      isLoading={chanResponse.isLoading || chanResponse.isFetching || chanResponse.isUninitialized}
-      showTotals={false}
+      data={tags as tag[]}
+      isLoading={tagsResponse.isLoading || tagsResponse.isFetching || tagsResponse.isUninitialized}
     />
   );
 }
-const ChannelsDataWrapperMemo = React.memo(ChannelsDataWrapper);
-export default ChannelsDataWrapperMemo;
+const TagsDataWrapperMemo = React.memo(TagsDataWrapper);
+export default TagsDataWrapperMemo;

@@ -30,7 +30,7 @@ function ForwardsDataWrapper(props: boxProps) {
     if (chanResponse.data?.length == 0) {
       return [];
     }
-    let channels = clone<ForwardResponse[]>(chanResponse.data ? chanResponse.data : ([]));
+    let channels = clone<ForwardResponse[]>(chanResponse.data ? chanResponse.data : []);
     const columns = clone<ColumnMetaData[]>(props.activeColumns) || [];
 
     if (channels.length > 0) {
@@ -50,9 +50,9 @@ function ForwardsDataWrapper(props: boxProps) {
       for (const channel of channels) {
         for (const column of columns) {
           if (typeof channel[column.key as keyof ForwardResponse] == "number") {
-            if (!column.total) column.total = 0
-            column.total += channel[column.key as keyof ForwardResponse] as number || 0;
-            column.max = Math.max(column.max ?? 0 , channel[column.key as keyof ForwardResponse] as number || 0);
+            if (!column.total) column.total = 0;
+            column.total += (channel[column.key as keyof ForwardResponse] as number) || 0;
+            column.max = Math.max(column.max ?? 0, (channel[column.key as keyof ForwardResponse] as number) || 0);
           } else {
             column.total = 0;
             column.max = 0;

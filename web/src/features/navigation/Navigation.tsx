@@ -6,12 +6,13 @@ import NavCategory from "./NavCategory";
 import { ReactComponent as TorqLogo } from "icons/torq-logo.svg";
 import {
   Navigation20Regular as CollapseIcon,
-  AppsListDetail20Regular as ForwardsIcon,
+  ArrowForward20Regular as ForwardsIcon,
   Autosum20Regular as SummaryIcon,
   MoneyHand20Regular as TransactionIcon,
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
+  Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
 
@@ -39,17 +40,14 @@ function Navigation() {
 
         <NavCategory text={"Analyse"} collapsed={false}>
           <MenuItem text={"Summary"} icon={<SummaryIcon />} routeTo={"/"} />
-          <MenuItem text={"Channels"} icon={<ChannelsIcon />} routeTo={"/analyse/channels"} />
           <MenuItem text={"Forwards"} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
           {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
         </NavCategory>
 
-        {/*<NavCategory text={"Manage"} collapsed={false}>*/}
-        {/*  <>*/}
-        {/*    <MenuItem text={"Nodes"} icon={<NodesIcon />} routeTo={"/nodes"} />*/}
-        {/*    <MenuItem text={"Channels"} icon={<ChannelsIcon />} routeTo={"/channelss"} />*/}
-        {/*  </>*/}
-        {/*</NavCategory>*/}
+        <NavCategory text={"Manage"} collapsed={false}>
+          <MenuItem text={"Channels"} icon={<ChannelsIcon />} routeTo={"/manage/channels"} />
+          <MenuItem text={"Tags"} icon={<TagsIcon />} routeTo={"/manage/tags"} />
+        </NavCategory>
 
         <NavCategory text={"Transact"} collapsed={false}>
           <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/transactions/payments"} />

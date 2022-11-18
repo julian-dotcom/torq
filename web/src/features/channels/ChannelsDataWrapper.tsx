@@ -58,7 +58,6 @@ function ChannelsDataWrapper(props: boxProps) {
       activeColumns={columns || []}
       data={channels as channel[]}
       isLoading={chanResponse.isLoading || chanResponse.isFetching || chanResponse.isUninitialized}
-      showTotals={false}
     />
   );
 }

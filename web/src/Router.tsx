@@ -28,6 +28,7 @@ import PaymentsPage from "features/transact/Payments/PaymentsPage";
 
 import * as routes from "constants/routes";
 import NewInvoiceModal from "./features/transact/Invoices/newInvoice/NewInvoiceModal";
+import TagsPage from "./pages/tagsPage/TagsPage";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -74,9 +75,15 @@ const authenticatedRoutes: RouteObject = {
           children: modalRoutes.children,
         },
         {
-          path: routes.ANALYSE,
+          path: routes.MANAGE,
           children: [
             { path: routes.CHANNELS, element: <ChannelsPage /> },
+            { path: routes.TAGS, element: <TagsPage /> },
+          ],
+        },
+        {
+          path: routes.ANALYSE,
+          children: [
             { path: routes.FORWARDS, element: <ForwardsPage /> },
             { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
             { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },

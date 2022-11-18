@@ -36,6 +36,8 @@
   "channels": "Channels",
   "channelPolicy": "Channel policy",
   "analyse": "Analyse",
+  "tags": "Tags",
+  "manage": "Manage",
   "tableLayout": {
     "tableOptions": "Table options"
   },

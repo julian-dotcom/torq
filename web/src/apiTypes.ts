@@ -67,3 +67,6 @@ interface PendingHTLC {
   toalCount: number;
   totalAmount: number;
 }
+export interface stringMap<T> {
+  [key: string]: T;
+}

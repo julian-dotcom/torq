@@ -85,11 +85,17 @@ function File({ label, onFileChange, fileName }: fileProps) {
     }
   };
 
+  const inputId = React.useId();
   return (
-    <>
-      <div style={{ marginBottom: "var(--form-label-margin-bottom)" }}>
-        <span>{label}</span>
-      </div>
+    <div className={classNames(styles.fileDropWrapper, styles.primary)}>
+      <label htmlFor={inputId}>{label}</label>
+      <input
+        id={inputId}
+        ref={hiddenFileRef}
+        onChange={handleFileChange}
+        type="file"
+        style={{ position: "fixed", top: "-100em" }}
+      />
       <div
         onDrop={handleDrop}
         onDragEnter={handleDragEnter}
@@ -105,8 +111,7 @@ function File({ label, onFileChange, fileName }: fileProps) {
       >
         <span style={{ textAlign: "center" }}>{message}</span>
       </div>
-      <input ref={hiddenFileRef} onChange={handleFileChange} type="file" style={{ position: "fixed", top: "-100em" }} />
-    </>
+    </div>
   );
 }
 
