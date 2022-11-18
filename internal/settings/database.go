@@ -169,31 +169,42 @@ func getNodeConnectionDetailsByStatus(db *sqlx.DB, status commons.Status) ([]nod
 	return nodeConnectionDetailsArray, nil
 }
 
-func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Status) error {
-	_, err := db.Exec(`
-		UPDATE node_connection_details SET status_id = $1, updated_on = $2 WHERE node_id = $3;`,
+func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Status) (int64, error) {
+	res, err := db.Exec(`
+		UPDATE node_connection_details SET status_id = $1, updated_on = $2 WHERE node_id = $3 AND status_id != $1;`,
 		status, time.Now().UTC(), nodeId)
 	if err != nil {
-		return errors.Wrap(err, database.SqlExecutionError)
+		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return nil
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+	}
+	return rowsAffected, nil
 }
 
-func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB, nodeId int, pingSystem commons.PingSystem, status commons.Status) error {
+func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB,
+	nodeId int, pingSystem commons.PingSystem, status commons.Status) (int64, error) {
+
 	var err error
+	var res sql.Result
 	if status == commons.Active {
-		_, err = db.Exec(`
+		res, err = db.Exec(`
 		UPDATE node_connection_details SET ping_system = ping_system+$1, updated_on = $2 WHERE node_id = $3 AND ping_system%$4 < $5;`,
 			pingSystem, time.Now().UTC(), nodeId, pingSystem*2, pingSystem)
 	} else {
-		_, err = db.Exec(`
+		res, err = db.Exec(`
 		UPDATE node_connection_details SET ping_system = ping_system-$1, updated_on = $2 WHERE node_id = $3 AND ping_system%$4 >= $5;`,
 			pingSystem, time.Now().UTC(), nodeId, pingSystem*2, pingSystem)
 	}
 	if err != nil {
-		return errors.Wrap(err, database.SqlExecutionError)
+		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return nil
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+	}
+	return rowsAffected, nil
 }
 
 func SetNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {

@@ -36,6 +36,7 @@ type services struct {
 	runningList map[int]func()
 	// guards against running restart code whilst it's already running
 	bootLock map[int]*sync.Mutex
+	bootTime map[int]time.Time
 }
 
 func (rs *services) AddSubscription(nodeId int, cancelFunc func()) {
@@ -54,7 +55,7 @@ func (rs *services) RemoveSubscription(nodeId int) {
 	delete(rs.runningList, nodeId)
 }
 
-func (rs *services) Cancel(nodeId int) error {
+func (rs *services) Cancel(nodeId int) commons.Status {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -63,13 +64,13 @@ func (rs *services) Cancel(nodeId int) error {
 	if exists {
 		_, exists = rs.bootLock[nodeId]
 		if exists && commons.MutexLocked(rs.bootLock[nodeId]) {
-			return errors.New("Failed to cancel subscription due to boot lock")
+			return commons.Pending
 		} else {
 			rs.runningList[nodeId]()
-			return nil
+			return commons.Active
 		}
 	}
-	return errors.New("No cancel function registered")
+	return commons.Inactive
 }
 
 func (rs *services) GetBootLock(nodeId int) *sync.Mutex {
@@ -85,12 +86,24 @@ func (rs *services) GetBootLock(nodeId int) *sync.Mutex {
 	return lock
 }
 
+func (rs *services) Booted(nodeId int, bootLock *sync.Mutex) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	bootLock.Unlock()
+	initServiceMaps(rs)
+	rs.bootTime[nodeId] = time.Now().UTC()
+}
+
 func initServiceMaps(rs *services) {
 	if rs.runningList == nil {
 		rs.runningList = make(map[int]func())
 	}
 	if rs.bootLock == nil {
 		rs.bootLock = make(map[int]*sync.Mutex)
+	}
+	if rs.bootTime == nil {
+		rs.bootTime = make(map[int]time.Time)
 	}
 }
 
@@ -302,7 +315,7 @@ func main() {
 								}
 								for _, node := range nodes {
 									if serviceCmd.NodeId == 0 || serviceCmd.NodeId == node.NodeId {
-										bootLock := runningVectorPings.GetBootLock(node.NodeId)
+										bootLock := runningLndSubscriptions.GetBootLock(node.NodeId)
 										successful := bootLock.TryLock()
 										if successful {
 											go (func(node settings.ConnectionDetails, bootLock *sync.Mutex) {
@@ -331,7 +344,7 @@ func main() {
 													return
 												}
 
-												bootLock.Unlock()
+												runningLndSubscriptions.Booted(node.NodeId, bootLock)
 												err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel)
 												if err != nil {
 													log.Error().Err(err).Send()
@@ -350,10 +363,7 @@ func main() {
 								}
 							}
 							if serviceCmd.ServiceCommand == commons.Kill {
-								err := runningLndSubscriptions.Cancel(serviceCmd.NodeId)
-								if err != nil {
-									log.Error().Err(err).Msgf("LND Subscription cancel failed for node id: %v", serviceCmd.NodeId)
-								}
+								serviceCmd.Out <- runningLndSubscriptions.Cancel(serviceCmd.NodeId)
 							}
 						}
 						if serviceCmd.ServiceType == commons.VectorSubscription {
@@ -405,7 +415,7 @@ func main() {
 												return
 											}
 
-											bootLock.Unlock()
+											runningVectorPings.Booted(node.NodeId, bootLock)
 											err = vector_ping.Start(ctx, conn)
 											if err != nil {
 												log.Error().Err(err).Msgf("Vector ping ended for node id: %v", node.NodeId)
@@ -422,10 +432,7 @@ func main() {
 								}
 							}
 							if serviceCmd.ServiceCommand == commons.Kill {
-								err := runningVectorPings.Cancel(serviceCmd.NodeId)
-								if err != nil {
-									log.Error().Err(err).Msgf("Vector Ping Service cancel failed for node id: %v", serviceCmd.NodeId)
-								}
+								serviceCmd.Out <- runningVectorPings.Cancel(serviceCmd.NodeId)
 							}
 						}
 						if serviceCmd.ServiceType == commons.AmbossSubscription {
@@ -475,7 +482,7 @@ func main() {
 												return
 											}
 
-											bootLock.Unlock()
+											runningAmbossPings.Booted(node.NodeId, bootLock)
 											err = amboss_ping.Start(ctx, conn)
 											if err != nil {
 												log.Error().Err(err).Msgf("Amboss ping ended for node id: %v", node.NodeId)
@@ -492,10 +499,7 @@ func main() {
 								}
 							}
 							if serviceCmd.ServiceCommand == commons.Kill {
-								err := runningAmbossPings.Cancel(serviceCmd.NodeId)
-								if err != nil {
-									log.Error().Err(err).Msgf("Amboss Ping Service cancel failed for node id: %v", serviceCmd.NodeId)
-								}
+								serviceCmd.Out <- runningAmbossPings.Cancel(serviceCmd.NodeId)
 							}
 						}
 					}

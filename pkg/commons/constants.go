@@ -12,6 +12,10 @@ type ServiceCommand int
 
 const (
 	Boot = ServiceCommand(iota)
+	// Kill requires Out return channel
+	// status: Active => Service kill initiated
+	// status: Pending => Service is booting and cannot be killed
+	// status: Inactive => Service was not running and could not be killed
 	Kill
 )
 
@@ -19,6 +23,7 @@ type ServiceChannelMessage = struct {
 	ServiceType    ServiceType
 	ServiceCommand ServiceCommand
 	NodeId         int
+	Out            chan Status
 }
 
 type Status int

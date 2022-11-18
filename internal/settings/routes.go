@@ -52,13 +52,32 @@ func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.
 	connectionDetails.PingSystem &= ^pingSystem
 }
 
-func restartSubscription(serviceChannel chan commons.ServiceChannelMessage, nodeId int, serviceType commons.ServiceType) {
+func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage,
+	serviceType commons.ServiceType, nodeId int, active bool) bool {
+	resultChannel := make(chan commons.Status)
 	serviceChannel <- commons.ServiceChannelMessage{
 		NodeId:         nodeId,
 		ServiceType:    serviceType,
 		ServiceCommand: commons.Kill,
+		Out:            resultChannel,
 	}
-	// NO NEED TO BOOT THAT IS DONE AUTOMAGICLY
+	switch <-resultChannel {
+	case commons.Active:
+		// NOTHING TO DO HERE THE RUNNING SERVICE WAS KILLED IF IT'S STILL ACTIVE IT WILL BE REBOOTED
+	case commons.Pending:
+		// THE SERVICE WAS BOOTING WHEN AN ATTEMPT TO KILL WAS INITIATED
+		return false
+	case commons.Inactive:
+		// THE SERVICE WAS NOT RUNNING
+		if active {
+			serviceChannel <- commons.ServiceChannelMessage{
+				NodeId:         nodeId,
+				ServiceType:    serviceType,
+				ServiceCommand: commons.Boot,
+			}
+		}
+	}
+	return true
 }
 
 func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage) {
@@ -222,7 +241,13 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	}
 	commons.SetTorqNode(nodeId, ncd.Status, publicKey, chain, network)
 
-	restartSubscription(serviceChannel, nodeId, commons.LndSubscription)
+	if ncd.Status == commons.Active {
+		serviceChannel <- commons.ServiceChannelMessage{
+			NodeId:         nodeId,
+			ServiceType:    commons.LndSubscription,
+			ServiceCommand: commons.Boot,
+		}
+	}
 
 	c.JSON(http.StatusOK, ncd)
 }
@@ -330,13 +355,21 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.WrapLogAndSendServerError(c, err, "Processing Macaroon file")
 		return
 	}
-	ncd, err = SetNodeConnectionDetails(db, ncd)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Opening Macaroon file")
+
+	lndDone := startServiceOrRestartWhenRunning(serviceChannel, commons.LndSubscription, ncd.NodeId, ncd.Status == commons.Active)
+	ambossDone := startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
+	vectorDone := startServiceOrRestartWhenRunning(serviceChannel, commons.VectorSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
+
+	if lndDone && ambossDone && vectorDone {
+		ncd, err = SetNodeConnectionDetails(db, ncd)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Opening Macaroon file")
+			return
+		}
+	} else {
+		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
 		return
 	}
-
-	restartSubscription(serviceChannel, ncd.NodeId, commons.LndSubscription)
 
 	c.JSON(http.StatusOK, ncd)
 }
@@ -355,13 +388,17 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	err = setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+	done := startServiceOrRestartWhenRunning(serviceChannel, commons.LndSubscription, nodeId, commons.Status(statusId) == commons.Active)
+	if done {
+		_, err := setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+	} else {
+		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
 		return
 	}
-
-	restartSubscription(serviceChannel, nodeId, commons.LndSubscription)
 
 	c.Status(http.StatusOK)
 }
@@ -389,17 +426,24 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	err = setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-
+	var subscription commons.ServiceType
 	if commons.PingSystem(pingSystem) == commons.Amboss {
-		restartSubscription(serviceChannel, nodeId, commons.AmbossSubscription)
+		subscription = commons.AmbossSubscription
 	}
 	if commons.PingSystem(pingSystem) == commons.Vector {
-		restartSubscription(serviceChannel, nodeId, commons.VectorSubscription)
+		subscription = commons.VectorSubscription
+	}
+
+	done := startServiceOrRestartWhenRunning(serviceChannel, subscription, nodeId, commons.Status(statusId) == commons.Active)
+	if done {
+		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+	} else {
+		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
+		return
 	}
 
 	c.Status(http.StatusOK)
