@@ -17,8 +17,9 @@ import (
 	"github.com/ulule/limiter/v3/drivers/store/memory"
 
 	"github.com/lncapital/torq/internal/auth"
+	"github.com/lncapital/torq/internal/categories"
+	"github.com/lncapital/torq/internal/channel_groups"
 	"github.com/lncapital/torq/internal/channel_history"
-	"github.com/lncapital/torq/internal/channel_tags"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/flow"
@@ -155,14 +156,19 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 			views.RegisterTableViewRoutes(tableViewRoutes, db)
 		}
 
+		categoryRoutes := api.Group("/categories")
+		{
+			categories.RegisterCategoryRoutes(categoryRoutes, db)
+		}
+
 		tagRoutes := api.Group("/tags")
 		{
 			tags.RegisterTagRoutes(tagRoutes, db)
 		}
 
-		channelTagRoutes := api.Group("/channelTags")
+		channelGroupRoutes := api.Group("/channelGroups")
 		{
-			channel_tags.RegisterChannelTagRoutes(channelTagRoutes, db)
+			channel_groups.RegisterChannelGroupRoutes(channelGroupRoutes, db)
 		}
 
 		corridorRoutes := api.Group("/corridors")

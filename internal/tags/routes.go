@@ -2,12 +2,14 @@ package tags
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+
 	"github.com/lncapital/torq/pkg/server_errors"
-	"net/http"
-	"strconv"
 )
 
 func RegisterTagRoutes(r *gin.RouterGroup, db *sqlx.DB) {
@@ -16,7 +18,6 @@ func RegisterTagRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("forChannel/:channelId", func(c *gin.Context) { getTagsForChannelHandler(c, db) })
 	r.POST("add", func(c *gin.Context) { addTagHandler(c, db) })
 	r.PUT("set", func(c *gin.Context) { setTagHandler(c, db) })
-	r.DELETE(":tagId", func(c *gin.Context) { removeTagHandler(c, db) })
 }
 
 func getTagsForChannelHandler(c *gin.Context, db *sqlx.DB) {
@@ -25,7 +26,7 @@ func getTagsForChannelHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse channelId in the request.")
 		return
 	}
-	tags, err := getTagsForChannel(db, channelId)
+	tags, err := getTagsByChannelId(db, channelId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting tags for channelId: %v", channelId))
 		return
@@ -87,18 +88,4 @@ func setTagHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	c.JSON(http.StatusOK, storedTag)
-}
-
-func removeTagHandler(c *gin.Context, db *sqlx.DB) {
-	tagId, err := strconv.Atoi(c.Param("tagId"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse tagId in the request.")
-		return
-	}
-	count, err := removeTag(db, tagId)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing tag for tagId: %v", tagId))
-		return
-	}
-	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully deleted %v tag(s).", count)})
 }

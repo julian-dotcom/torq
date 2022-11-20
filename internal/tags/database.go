@@ -2,24 +2,34 @@ package tags
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
-	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/database"
 )
 
-func getTagsForChannel(db *sqlx.DB, channelId int) ([]Tag, error) {
+func getTagsByChannelId(db *sqlx.DB, channelId int) ([]Tag, error) {
 	var tags []Tag
 	err := db.Select(&tags, `
 		SELECT t.*
 		FROM tag t
 		JOIN channel_tag ct ON t.tag_id = ct.tag_id
         WHERE ct.channel_id = $1;`, channelId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []Tag{}, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return tags, nil
+}
+
+func GetTagsByCategoryId(db *sqlx.DB, categoryId int) ([]Tag, error) {
+	var tags []Tag
+	err := db.Select(&tags, `SELECT t.* FROM tag t WHERE t.category_id = $1;`, categoryId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []Tag{}, nil
@@ -83,23 +93,4 @@ func setTag(db *sqlx.DB, tag Tag) (Tag, error) {
 		return Tag{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return tag, nil
-}
-
-func removeTag(db *sqlx.DB, tagId int) (int64, error) {
-	referencingCorridors, err := corridors.GetCorridorsReferencingTag(db, tagId)
-	if err != nil {
-		return 0, errors.Wrap(err, database.SqlExecutionError)
-	}
-	if len(referencingCorridors) > 0 {
-		return 0, errors.New(fmt.Sprintf("Could not remove tag since it's in use. %v", referencingCorridors))
-	}
-	res, err := db.Exec(`DELETE FROM tag WHERE tag_id = $1;`, tagId)
-	if err != nil {
-		return 0, errors.Wrap(err, database.SqlExecutionError)
-	}
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
-	}
-	return rowsAffected, nil
 }
