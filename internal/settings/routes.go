@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -53,14 +52,67 @@ func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.
 	connectionDetails.PingSystem &= ^pingSystem
 }
 
-func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, restartLNDSub func() error) {
+func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage,
+	serviceType commons.ServiceType, nodeId int, active bool) bool {
+	if active {
+		enforcedServiceStatus := commons.Active
+		resultChannel := make(chan commons.Status)
+		serviceChannel <- commons.ServiceChannelMessage{
+			NodeId:                nodeId,
+			ServiceType:           serviceType,
+			EnforcedServiceStatus: &enforcedServiceStatus,
+			ServiceCommand:        commons.Kill,
+			NoDelay:               true,
+			Out:                   resultChannel,
+		}
+		switch <-resultChannel {
+		case commons.Active:
+			// THE RUNNING SERVICE WAS KILLED EnforcedServiceStatus is ACTIVE (subscription will attempt to start)
+		case commons.Pending:
+			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
+			return false
+		case commons.Inactive:
+			// THE SERVICE WAS NOT RUNNING
+			serviceChannel <- commons.ServiceChannelMessage{
+				NodeId:                nodeId,
+				ServiceType:           serviceType,
+				EnforcedServiceStatus: &enforcedServiceStatus,
+				ServiceCommand:        commons.Boot,
+			}
+		}
+	} else {
+		enforcedServiceStatus := commons.Inactive
+		resultChannel := make(chan commons.Status)
+		serviceChannel <- commons.ServiceChannelMessage{
+			NodeId:                nodeId,
+			ServiceType:           serviceType,
+			EnforcedServiceStatus: &enforcedServiceStatus,
+			ServiceCommand:        commons.Kill,
+			NoDelay:               true,
+			Out:                   resultChannel,
+		}
+		switch <-resultChannel {
+		case commons.Active:
+			// THE RUNNING SERVICE WAS KILLED AND EnforcedServiceStatus is INACTIVE (subscription will stay down)
+		case commons.Pending:
+			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
+			return false
+		case commons.Inactive:
+			// THE SERVICE WAS NOT RUNNING
+		}
+	}
+	return true
+}
+
+func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
 	r.GET("nodeConnectionDetails", func(c *gin.Context) { getAllNodeConnectionDetailsHandler(c, db) })
 	r.GET("nodeConnectionDetails/:nodeId", func(c *gin.Context) { getNodeConnectionDetailsHandler(c, db) })
-	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db, restartLNDSub) })
-	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db, restartLNDSub) })
-	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) { setNodeConnectionDetailsStatusHandler(c, db, restartLNDSub) })
+	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db, serviceChannel) })
+	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db, serviceChannel) })
+	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) { setNodeConnectionDetailsStatusHandler(c, db, serviceChannel) })
+	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) { setNodeConnectionDetailsPingSystemHandler(c, db, serviceChannel) })
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
@@ -120,7 +172,9 @@ func getNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, ncd)
 }
 
-func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
+func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
+	serviceChannel chan commons.ServiceChannelMessage) {
+
 	var ncd nodeConnectionDetails
 
 	if err := c.Bind(&ncd); err != nil {
@@ -143,7 +197,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		return
 	}
 	if len(tlsCert) == 0 {
-		server_errors.SendBadRequest(c, "Can't check new GRPC details without TLS Cert")
+		server_errors.SendBadRequest(c, "Can't check new gRPC details without TLS Cert")
 		return
 	}
 
@@ -158,13 +212,13 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		return
 	}
 	if len(macaroonFile) == 0 {
-		server_errors.SendBadRequest(c, "Can't check new GRPC details without Macaroon File")
+		server_errors.SendBadRequest(c, "Can't check new gRPC details without Macaroon File")
 		return
 	}
 
 	publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Getting public key from node")
+		server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
 		return
 	}
 	node, err := nodes.GetNodeByPublicKey(db, publicKey)
@@ -211,16 +265,20 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 	}
 	commons.SetTorqNode(nodeId, ncd.Status, publicKey, chain, network)
 
-	go func() {
-		if err := restartLNDSub(); err != nil {
-			log.Warn().Msg("Already restarting subscriptions, discarding restart request")
+	if ncd.Status == commons.Active {
+		serviceChannel <- commons.ServiceChannelMessage{
+			NodeId:         nodeId,
+			ServiceType:    commons.LndSubscription,
+			ServiceCommand: commons.Boot,
 		}
-	}()
+	}
 
 	c.JSON(http.StatusOK, ncd)
 }
 
-func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
+func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
+	serviceChannel chan commons.ServiceChannelMessage) {
+
 	var ncd nodeConnectionDetails
 	if err := c.Bind(&ncd); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -253,7 +311,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		ncd.TLSFileName = existingNcd.TLSFileName
 	}
 
-	// if GRPC details have changed we need to check that the public keys (if existing) matches
+	// if gRPC details have changed we need to check that the public keys (if existing) matches
 	if existingNcd.GRPCAddress != ncd.GRPCAddress {
 		var tlsCert []byte
 		if ncd.TLSFile != nil {
@@ -273,7 +331,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 			tlsCert = existingNcd.TLSDataBytes
 		}
 		if len(tlsCert) == 0 {
-			server_errors.LogAndSendServerError(c, errors.New("Can't check new GRPC details without TLS Cert"))
+			server_errors.LogAndSendServerError(c, errors.New("Can't check new gRPC details without TLS Cert"))
 			return
 		}
 
@@ -295,13 +353,13 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 			macaroonFile = existingNcd.MacaroonDataBytes
 		}
 		if len(macaroonFile) == 0 {
-			server_errors.LogAndSendServerError(c, errors.New("Can't check new GRPC details without Macaroon File"))
+			server_errors.LogAndSendServerError(c, errors.New("Can't check new gRPC details without Macaroon File"))
 			return
 		}
 
 		publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
 		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from grpc")
+			server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
 			return
 		}
 
@@ -321,20 +379,39 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB, restartLNDSub 
 		server_errors.WrapLogAndSendServerError(c, err, "Processing Macaroon file")
 		return
 	}
-	ncd, err = SetNodeConnectionDetails(db, ncd)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Opening Macaroon file")
+
+	nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
+	if ncd.HasNotificationType(commons.Amboss) &&
+		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
+		server_errors.LogAndSendServerError(c, errors.New("Amboss Ping Service is only allowed on Bitcoin Mainnet."))
+		return
+	}
+	if ncd.HasNotificationType(commons.Vector) &&
+		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
+		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
 
-	if restartLND(c, restartLNDSub) {
+	lndDone := startServiceOrRestartWhenRunning(serviceChannel, commons.LndSubscription, ncd.NodeId, ncd.Status == commons.Active)
+	ambossDone := startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
+	vectorDone := startServiceOrRestartWhenRunning(serviceChannel, commons.VectorSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
+	if lndDone && ambossDone && vectorDone {
+		ncd, err = SetNodeConnectionDetails(db, ncd)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Opening Macaroon file")
+			return
+		}
+	} else {
+		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
 		return
 	}
 
 	c.JSON(http.StatusOK, ncd)
 }
 
-func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB, restartLNDSub func() error) {
+func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
+	serviceChannel chan commons.ServiceChannelMessage) {
+
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
@@ -346,13 +423,67 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB, restartL
 		return
 	}
 
-	err = setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+	done := startServiceOrRestartWhenRunning(serviceChannel, commons.LndSubscription, nodeId, commons.Status(statusId) == commons.Active)
+	if done {
+		_, err := setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+	} else {
+		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
 		return
 	}
 
-	if restartLND(c, restartLNDSub) {
+	c.Status(http.StatusOK)
+}
+
+func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
+	serviceChannel chan commons.ServiceChannelMessage) {
+
+	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
+		return
+	}
+	pingSystem, err := strconv.Atoi(c.Param("pingSystem"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse pingSystem in the request.")
+		return
+	}
+	if pingSystem > commons.PingSystemMax {
+		server_errors.SendBadRequest(c, "Failed to parse pingSystem in the request.")
+		return
+	}
+	statusId, err := strconv.Atoi(c.Param("statusId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
+		return
+	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	if commons.Status(statusId) == commons.Active &&
+		(nodeSettings.Chain != commons.Bitcoin || nodeSettings.Network != commons.MainNet) {
+		server_errors.SendBadRequest(c, "Ping Services are only allowed on Bitcoin Mainnet.")
+		return
+	}
+
+	var subscription commons.ServiceType
+	if commons.PingSystem(pingSystem) == commons.Amboss {
+		subscription = commons.AmbossSubscription
+	}
+	if commons.PingSystem(pingSystem) == commons.Vector {
+		subscription = commons.VectorSubscription
+	}
+
+	done := startServiceOrRestartWhenRunning(serviceChannel, subscription, nodeId, commons.Status(statusId) == commons.Active)
+	if done {
+		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
+		if err != nil {
+			server_errors.LogAndSendServerError(c, err)
+			return
+		}
+	} else {
+		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
 		return
 	}
 
@@ -431,7 +562,7 @@ func getInformationFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile 
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
-			log.Debug().Err(err).Msg("Failed to close grpc connection.")
+			log.Debug().Err(err).Msg("Failed to close gRPC connection.")
 		}
 	}(conn)
 
@@ -503,23 +634,4 @@ func processMacaroon(ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
 		ncd.MacaroonDataBytes = macaroonData
 	}
 	return ncd, nil
-}
-
-func restartLND(c *gin.Context, restartLNDSub func() error) bool {
-	maxTries := 30
-	attempts := 0
-	for {
-		attempts++
-		if attempts > maxTries {
-			server_errors.LogAndSendServerError(c, errors.New("Failed to restart node subscriptions"))
-			return true
-		}
-		if err := restartLNDSub(); err != nil {
-			log.Warn().Msg("Already restarting subscriptions, retrying")
-			time.Sleep(1 * time.Second)
-			continue
-		}
-		break
-	}
-	return false
 }

@@ -1,10 +1,40 @@
 package commons
 
+type ServiceType int
+
+const (
+	LndSubscription = ServiceType(iota)
+	VectorSubscription
+	AmbossSubscription
+)
+
+type ServiceCommand int
+
+const (
+	Boot = ServiceCommand(iota)
+	// Kill requires Out return channel
+	// status: Active => Service kill initiated
+	// status: Pending => Service is booting and cannot be killed
+	// status: Inactive => Service was not running and could not be killed
+	Kill
+)
+
+type ServiceChannelMessage = struct {
+	ServiceType    ServiceType
+	ServiceCommand ServiceCommand
+	NodeId         int
+	// EnforcedServiceStatus is a one time status enforcement for a service
+	EnforcedServiceStatus *Status
+	// NoDelay is a one time no delay enforcement for a service
+	NoDelay bool
+	Out     chan Status
+}
+
 type Status int
 
 const (
-	Active = Status(iota)
-	Inactive
+	Inactive = Status(iota)
+	Active
 	Pending
 	Deleted
 )
@@ -53,27 +83,4 @@ const (
 	Amboss PingSystem = 1 << iota
 	Vector
 )
-
-// GetNetwork defaults to MainNet when no match is found
-func GetNetwork(network string) Network {
-	switch network {
-	case "testnet":
-		return TestNet
-	case "signet":
-		return SigNet
-	case "simnet":
-		return SimNet
-	case "regtest":
-		return RegTest
-	}
-	return MainNet
-}
-
-// GetChain defaults to Bitcoin when no match is found
-func GetChain(chain string) Chain {
-	switch chain {
-	case "litecoin":
-		return Litecoin
-	}
-	return Bitcoin
-}
+const PingSystemMax = int(Vector)*2 - 1

@@ -77,7 +77,10 @@
     "nodes": "Nodes",
     "tags": "Tags",
     "peerTag": "Peer tag",
-    "channelTag": "Channel tag"
+    "channelTag": "Channel tag",
+    "pingSystem": "All Ping Systems Require a macaroon that can sign messages.",
+    "ambossPingSystem": "Amboss Ping: When enabled you consent to Torq sending uptime pings to Amboss.",
+    "vectorPingSystem": "Vector Ping: When enabled you consent to Torq sending the output from `lncli getinfo` to vector.ln.capital"
   },
   "newInvoice": {
     "title": "New Invoice",

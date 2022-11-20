@@ -24,6 +24,7 @@ import {
   useUpdateNodeConfigurationMutation,
   useAddNodeConfigurationMutation,
   useUpdateNodeConfigurationStatusMutation,
+  useUpdateNodePingSystemStatusMutation,
 } from "apiSlice";
 import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
@@ -31,6 +32,7 @@ import Collapse from "features/collapse/Collapse";
 import Popover from "features/popover/Popover";
 import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
 import Modal from "features/modal/Modal";
+import Switch from "components/forms/switch/Switch";
 
 interface nodeProps {
   nodeId: number;
@@ -53,6 +55,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [updateNodeConfiguration] = useUpdateNodeConfigurationMutation();
   const [addNodeConfiguration] = useAddNodeConfigurationMutation();
   const [setNodeConfigurationStatus] = useUpdateNodeConfigurationStatusMutation();
+  const [setNodePingSystemStatus] = useUpdateNodePingSystemStatusMutation();
 
   const [nodeConfigurationState, setNodeConfigurationState] = useState({} as nodeConfiguration);
   const [collapsedState, setCollapsedState] = useState(collapsed ?? false);
@@ -74,6 +77,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       nodeId: 0,
       status: 0,
       implementation: 0,
+      pingSystem: 0,
       name: "",
     } as nodeConfiguration);
   };
@@ -110,6 +114,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     form.append("name", nodeConfigurationState.name ?? "");
     form.append("nodeId", "" + nodeConfigurationState.nodeId);
     form.append("status", "" + nodeConfigurationState.status);
+    form.append("pingSystem", "" + nodeConfigurationState.pingSystem);
     form.append("grpcAddress", nodeConfigurationState.grpcAddress ?? "");
     if (nodeConfigurationState.tlsFile) {
       form.append("tlsFile", nodeConfigurationState.tlsFile, nodeConfigurationState.tlsFileName);
@@ -152,7 +157,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     if (nodeConfigurationData) {
       setNodeConfigurationState(nodeConfigurationData);
     } else {
-      setNodeConfigurationState({ implementation: 0, nodeId: 0, status: 0 } as nodeConfiguration);
+      setNodeConfigurationState({ implementation: 0, nodeId: 0, status: 0, pingSystem: 0 } as nodeConfiguration);
     }
   }, [nodeConfigurationData]);
 
@@ -208,6 +213,44 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
   };
 
+  const handleAmbossPingClick = () => {
+    const ambossActive = nodeConfigurationState.pingSystem%2 >= 1
+    setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 1, statusId: ambossActive?0:1 })
+      .unwrap()
+      .then((_) => {
+        if (ambossActive) {
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem-1 })
+        } else {
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem+1 });
+        }
+      })
+      .catch((error) => {
+        toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
+      });
+    if (popoverRef.current) {
+      (popoverRef.current as { close: () => void }).close();
+    }
+  };
+
+  const handleVectorPingClick = () => {
+    const vectorActive = nodeConfigurationState.pingSystem%4 >= 2
+    setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 2, statusId: vectorActive?0:1 })
+      .unwrap()
+      .then((_) => {
+        if (vectorActive) {
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem-2 });
+        } else {
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem+2 });
+        }
+      })
+      .catch((error) => {
+        toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
+      });
+    if (popoverRef.current) {
+      (popoverRef.current as { close: () => void }).close();
+    }
+  };
+
   const implementationOptions = [{ value: "0", label: "LND" } as SelectOption];
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
@@ -219,11 +262,11 @@ const NodeSettings = React.forwardRef(function NodeSettings(
             <div
               className={classNames(styles.connectionIcon, {
                 [styles.connected]: true,
-                [styles.disabled]: nodeConfigurationState.status == 1,
+                [styles.disabled]: nodeConfigurationState.status == 0,
               })}
             >
-              {nodeConfigurationState.status == 0 && <ConnectedIcon />}
-              {nodeConfigurationState.status == 1 && <DisconnectedIcon />}
+              {nodeConfigurationState.status == 0 && <DisconnectedIcon />}
+              {nodeConfigurationState.status == 1 && <ConnectedIcon />}
             </div>
             <div className={styles.title}>{nodeConfigurationState?.name}</div>
             <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
@@ -242,8 +285,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       <div className={styles.nodeMenu}>
                         <Button
                           buttonColor={buttonColor.secondary}
-                          text={nodeConfigurationState.status == 1 ? "Enable node" : "Disable node"}
-                          icon={nodeConfigurationState.status == 1 ? <PlayIcon /> : <PauseIcon />}
+                          text={nodeConfigurationState.status == 0 ? "Enable node" : "Disable node"}
+                          icon={nodeConfigurationState.status == 0 ? <PlayIcon /> : <PauseIcon />}
                           onClick={handleStatusClick}
                           disabled={!enableEnableButtonState}
                         />
@@ -310,6 +353,22 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   buttonPosition={buttonPosition.fullWidth}
                   disabled={!saveEnabledState}
                 />
+                <div className={styles.pingSystems}>
+                  <div className={styles.ambossPingSystem}>
+                    <Switch
+                      label="Amboss Ping"
+                      checked={nodeConfigurationState.pingSystem%2 >= 1}
+                      onClick={handleAmbossPingClick}
+                    />
+                  </div>
+                  <div className={styles.vectorPingSystem}>
+                    <Switch
+                      label="Vector Ping"
+                      checked={nodeConfigurationState.pingSystem%4 >= 2}
+                      onClick={handleVectorPingClick}
+                    />
+                  </div>
+                </div>
               </form>
             </div>
           </>
