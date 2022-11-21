@@ -175,7 +175,7 @@ func getNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	serviceChannel chan commons.ServiceChannelMessage) {
 
-	var ncd nodeConnectionDetails
+	var ncd NodeConnectionDetails
 
 	if err := c.Bind(&ncd); err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -279,7 +279,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	serviceChannel chan commons.ServiceChannelMessage) {
 
-	var ncd nodeConnectionDetails
+	var ncd NodeConnectionDetails
 	if err := c.Bind(&ncd); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
@@ -514,7 +514,7 @@ func GetVectorPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, erro
 	return processConnectionDetails(ncds), nil
 }
 
-func processConnectionDetails(ncds []nodeConnectionDetails) []ConnectionDetails {
+func processConnectionDetails(ncds []NodeConnectionDetails) []ConnectionDetails {
 	var processedNodes []ConnectionDetails
 	for _, ncd := range ncds {
 		if ncd.GRPCAddress == nil || ncd.TLSDataBytes == nil || ncd.MacaroonDataBytes == nil {
@@ -604,7 +604,7 @@ func getInformationFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile 
 	return info.IdentityPubkey, chain, network, nil
 }
 
-func processTLS(ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
+func processTLS(ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 	if ncd.TLSFile != nil {
 		ncd.TLSFileName = &ncd.TLSFile.Filename
 		tlsDataFile, err := ncd.TLSFile.Open()
@@ -620,7 +620,7 @@ func processTLS(ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
 	return ncd, nil
 }
 
-func processMacaroon(ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
+func processMacaroon(ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 	if ncd.MacaroonFile != nil {
 		ncd.MacaroonFileName = &ncd.MacaroonFile.Filename
 		macaroonDataFile, err := ncd.MacaroonFile.Open()

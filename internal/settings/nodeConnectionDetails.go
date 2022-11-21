@@ -12,7 +12,7 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-type nodeConnectionDetails struct {
+type NodeConnectionDetails struct {
 	NodeId            int                    `json:"nodeId" form:"nodeId" db:"node_id"`
 	Name              string                 `json:"name" form:"name" db:"name"`
 	Implementation    commons.Implementation `json:"implementation" form:"implementation" db:"implementation"`
@@ -29,13 +29,13 @@ type nodeConnectionDetails struct {
 	UpdatedOn         *time.Time             `json:"updatedOn"  db:"updated_on"`
 }
 
-func (ncd *nodeConnectionDetails) AddNotificationType(pingSystem commons.PingSystem) {
+func (ncd *NodeConnectionDetails) AddNotificationType(pingSystem commons.PingSystem) {
 	ncd.PingSystem |= pingSystem
 }
-func (ncd *nodeConnectionDetails) HasNotificationType(pingSystem commons.PingSystem) bool {
+func (ncd *NodeConnectionDetails) HasNotificationType(pingSystem commons.PingSystem) bool {
 	return ncd.PingSystem&pingSystem != 0
 }
-func (ncd *nodeConnectionDetails) RemoveNotificationType(pingSystem commons.PingSystem) {
+func (ncd *NodeConnectionDetails) RemoveNotificationType(pingSystem commons.PingSystem) {
 	ncd.PingSystem &= ^pingSystem
 }
 
@@ -54,10 +54,10 @@ func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
 }
 
 func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
-	grpcAddress string, tlsDataBytes []byte, macaroonDataBytes []byte) (nodeConnectionDetails, error) {
+	grpcAddress string, tlsDataBytes []byte, macaroonDataBytes []byte) (NodeConnectionDetails, error) {
 	publicKey, chain, network, err := getInformationFromLndNode(grpcAddress, tlsDataBytes, macaroonDataBytes)
 	if err != nil {
-		return nodeConnectionDetails{}, errors.Wrap(err, "Getting public key from node")
+		return NodeConnectionDetails{}, errors.Wrap(err, "Getting public key from node")
 	}
 	newNodeFromConfig := nodes.Node{
 		PublicKey: publicKey,
@@ -66,11 +66,11 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 	}
 	nodeId, err := nodes.AddNodeWhenNew(db, newNodeFromConfig)
 	if err != nil {
-		return nodeConnectionDetails{}, errors.Wrap(err, "Getting node from db")
+		return NodeConnectionDetails{}, errors.Wrap(err, "Getting node from db")
 	}
 	existingNodeConnectionDetails, err := getNodeConnectionDetails(db, nodeId)
 	if err != nil {
-		return nodeConnectionDetails{}, errors.Wrap(err, "Getting all existing node connection details from db")
+		return NodeConnectionDetails{}, errors.Wrap(err, "Getting all existing node connection details from db")
 	}
 
 	if existingNodeConnectionDetails.NodeId == nodeId {
@@ -79,12 +79,12 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 		existingNodeConnectionDetails.MacaroonDataBytes = macaroonDataBytes
 		ncd, err := SetNodeConnectionDetails(db, existingNodeConnectionDetails)
 		if err != nil {
-			return nodeConnectionDetails{}, errors.Wrap(err, "Updating node connection details in the database")
+			return NodeConnectionDetails{}, errors.Wrap(err, "Updating node connection details in the database")
 		}
 		return ncd, nil
 	}
 
-	nodeConnectionDetailsData := nodeConnectionDetails{
+	nodeConnectionDetailsData := NodeConnectionDetails{
 		NodeId:            nodeId,
 		Name:              fmt.Sprintf("Node_%v", nodeId),
 		Implementation:    implementation,
@@ -96,7 +96,7 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 	}
 	ncd, err := addNodeConnectionDetails(db, nodeConnectionDetailsData)
 	if err != nil {
-		return nodeConnectionDetails{}, errors.Wrap(err, "Inserting node connection details in the database")
+		return NodeConnectionDetails{}, errors.Wrap(err, "Inserting node connection details in the database")
 	}
 	commons.SetTorqNode(nodeId, nodeConnectionDetailsData.Status, publicKey, chain, network)
 	return ncd, nil

@@ -323,11 +323,16 @@ func main() {
 					return errors.Wrap(err, "Checking if node specified in config exists")
 				}
 				if nodeId == 0 {
-					log.Debug().Msg("Node specified in config is not in DB, adding it")
-					nodeConnectionDetails, err := settings.AddNodeToDB(db, commons.LND, grpcAddress, tlsFile, macaroonFile)
-					if err != nil {
-						log.Error().Err(err).Msg("Adding node specified in config to database")
-						return errors.Wrap(err, "Adding node specified in config to database")
+					log.Info().Msgf("Node specified in config is not in DB, obtaining public key from GRPC: %v", grpcAddress)
+					var nodeConnectionDetails settings.NodeConnectionDetails
+					for {
+						nodeConnectionDetails, err = settings.AddNodeToDB(db, commons.LND, grpcAddress, tlsFile, macaroonFile)
+						if err == nil && nodeConnectionDetails.NodeId != 0 {
+							break
+						} else {
+							log.Error().Err(err).Msg("Adding node specified in config to database, LND is probably booting (will retry in 10 seconds)")
+							time.Sleep(10 * time.Second)
+						}
 					}
 					nodeConnectionDetails.Name = "Auto configured node"
 					_, err = settings.SetNodeConnectionDetails(db, nodeConnectionDetails)
@@ -335,7 +340,7 @@ func main() {
 						return errors.Wrap(err, "Updating node name")
 					}
 				} else {
-					log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
+					log.Info().Msg("Node specified in config is present, updating Macaroon and TLS files")
 					if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, commons.Active, grpcAddress, tlsFile, macaroonFile); err != nil {
 						log.Error().Err(err).Msg("Problem updating node files")
 						return errors.Wrap(err, "Problem updating node files")
