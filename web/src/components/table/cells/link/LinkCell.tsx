@@ -8,15 +8,15 @@ interface LinkCell {
   className?: string;
 }
 
-function LinkCell({ current, link, className }: LinkCell) {
+function LinkCell(props: LinkCell) {
   return (
     <a
-      className={classNames(styles.cell, styles.numericCell, styles.alignRight, className)}
+      className={classNames(styles.cell, styles.numericCell, styles.alignRight, props.className)}
       rel="noreferrer"
       target="_blank"
-      href={link}
+      href={props.link}
     >
-      <div className={classNames(styles.current, styles.text, styles.link)}>{current}</div>
+      <div className={classNames(styles.current, styles.text, styles.link)}>{props.current}</div>
     </a>
   );
 }

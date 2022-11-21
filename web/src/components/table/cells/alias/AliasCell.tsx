@@ -6,18 +6,15 @@ import classNames from "classnames";
 interface AliasCell {
   current: string;
   lndShortChannelId: string;
-  open?: number;
+  open?: boolean;
   className?: string;
 }
 
-function OpenText(open: number) {
-  if (open > 1) {
-    return `Open (${open})`;
-  } else if (open === 1) {
+function OpenText(open: boolean) {
+  if (open) {
     return `Open`;
-  } else {
-    return `Closed`;
   }
+  return `Closed`;
 }
 
 function AliasCell({ current, lndShortChannelId, open, className }: AliasCell) {

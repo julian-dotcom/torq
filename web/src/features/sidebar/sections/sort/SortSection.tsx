@@ -7,7 +7,7 @@ import {
   ReOrder16Regular as ReOrderIcon,
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
-import { ColumnMetaData } from "features/table/Table";
+import { ColumnMetaData } from "features/table/types";
 import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
@@ -88,20 +88,20 @@ const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort 
   );
 };
 
-type SortSectionProps = {
-  columns: Array<ColumnMetaData>;
+type SortSectionProps<T extends {}> = {
+  columns: Array<ColumnMetaData<T>>;
   orderBy: Array<OrderBy>;
   updateHandler: (orderBy: Array<OrderBy>) => void;
 };
 
-const SortSection = (props: SortSectionProps) => {
+const SortSection = <T extends {}>(props: SortSectionProps<T>) => {
   const [options, _] = useMemo(() => {
     const options: Array<OrderByOption> = [];
     const selected: Array<OrderByOption> = [];
 
-    props.columns.slice().forEach((column: { key: string; heading: string }) => {
+    props.columns.slice().forEach((column) => {
       options.push({
-        value: column.key,
+        value: column.key.toString(),
         label: column.heading,
       });
     });
@@ -113,7 +113,7 @@ const SortSection = (props: SortSectionProps) => {
       ...props.orderBy,
       {
         direction: "desc",
-        key: props.columns[0].key,
+        key: props.columns[0].key.toString(),
       },
     ];
     props.updateHandler(updated);

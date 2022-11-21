@@ -2,49 +2,10 @@ import styles from "./table.module.scss";
 import cellStyles from "components/table/cells/cell.module.scss";
 import HeaderCell from "components/table/cells/header/HeaderCell";
 import classNames from "classnames";
-import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
 import TableRow from "./TableRow";
+import { TableProps } from "./types";
 
-export interface ColumnMetaData {
-  heading: string;
-  key: string;
-  type?: string;
-  width?: number;
-  locked?: boolean;
-  valueType: string;
-  total?: number;
-  max?: number;
-  percent?: boolean;
-}
-
-export interface ViewInterface {
-  title: string;
-  id?: number;
-  saved: boolean;
-  filters?: any;
-  columns: ColumnMetaData[];
-  sortBy: SortByOptionType[];
-  groupBy?: string;
-  page: string;
-}
-
-export interface viewOrderInterface {
-  id: number | undefined;
-  view_order: number;
-}
-
-export type TableProps = {
-  activeColumns: Array<ColumnMetaData>;
-  data: Array<any>;
-  isLoading: boolean;
-  showTotals?: boolean;
-  rowRenderer?: (row: any, index: number, column: ColumnMetaData, columnIndex: number) => JSX.Element;
-  totalsRowRenderer?: (column: ColumnMetaData, index: number) => JSX.Element;
-  selectable?: boolean;
-  selectedRowIds?: Array<number>;
-};
-
-function Table(props: TableProps) {
+function Table<T extends {}>(props: TableProps<T>) {
   const numColumns = Object.keys(props.activeColumns).length + (props.selectable ? 1 : 0);
   const numRows = (props.data || []).length;
   const rowGridStyle = (numRows: number): string => {
@@ -67,7 +28,6 @@ function Table(props: TableProps) {
     ",  min-content) auto;" +
     rowGridStyle(numRows) +
     "}";
-  console.log(props.data);
   return (
     <div className={styles.tableWrapper}>
       <style>{customStyle}</style>
@@ -87,8 +47,8 @@ function Table(props: TableProps) {
           return (
             <HeaderCell
               heading={column.heading}
-              className={classNames(column.key, cellStyles[column.type || "NumericCell"])}
-              key={column.key + index}
+              className={classNames(column.key as string, cellStyles[(column.type as string) || "NumericCell"])}
+              key={(column.key as string) + index}
               locked={column.locked}
             />
           );
@@ -103,12 +63,12 @@ function Table(props: TableProps) {
         }
 
         {/* The main cells containing the data */}
-        {props.data.map((row: any, index: any) => {
-          console.log(row);
+        {props.data.map((row: T, index: number) => {
           return (
             <TableRow
               row={row}
               rowIndex={index}
+              cellRenderer={props.cellRenderer}
               columns={props.activeColumns}
               key={"row-" + index}
               selectable={props.selectable}
@@ -135,10 +95,10 @@ function Table(props: TableProps) {
         {props.activeColumns.map((column, index) => {
           return (
             <div
-              className={classNames(cellStyles.cell, cellStyles.empty, column.key, {
+              className={classNames(cellStyles.cell, cellStyles.empty, column.key as string, {
                 [cellStyles.noTotalsRow]: !props.showTotals,
               })}
-              key={`mid-cell-${column.key}-${index}`}
+              key={`mid-cell-${column.key as string}-${index}`}
             />
           );
         })}
@@ -148,9 +108,10 @@ function Table(props: TableProps) {
             [cellStyles.noTotalsRow]: !props.showTotals,
           })}
         />
-        {props.showTotals && props.data.length && (
+        {props.showTotals && props.totalRow && (
           <TableRow
             row={props.data[0]}
+            cellRenderer={props.cellRenderer}
             rowIndex={props.activeColumns.length + 1}
             columns={props.activeColumns}
             key={"row-" + "total"}

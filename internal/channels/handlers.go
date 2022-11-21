@@ -85,7 +85,7 @@ type channelBody struct {
 	TotalSatoshisReceived        int64                `json:"totalSatoshisReceived"`
 	MempoolSpace                 string               `json:"mempoolSpace"`
 	AmbossSpace                  string               `json:"ambossSpace"`
-	OneMl                        string               `json:"1ml"`
+	OneMl                        string               `json:"oneMl"`
 	PeerAlias                    string               `json:"peerAlias"`
 }
 

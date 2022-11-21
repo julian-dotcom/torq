@@ -5,7 +5,6 @@ import {
   ArrowRouting20Regular as ChannelsIcon,
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, useGetChannelsQuery, useUpdateChannelMutation } from "apiSlice";
-import type { channel } from "apiTypes";
 import { useState, useEffect } from "react";
 import Form from "components/forms/form/Form";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
@@ -23,6 +22,7 @@ import NumberFormat, { NumberFormatValues } from "react-number-format";
 
 import clone from "clone";
 import FormRow from "features/forms/FormWrappers";
+import { channel } from "../channelsTypes";
 
 const updateStatusClass = {
   IN_FLIGHT: styles.inFlight,

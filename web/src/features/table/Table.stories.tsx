@@ -1,5 +1,6 @@
 import { Meta, Story } from "@storybook/react";
-import Table, { TableProps } from "./Table";
+import Table from "./Table";
+import { TableProps } from "./types";
 import { useArgs } from "@storybook/client-api";
 
 export default {
@@ -7,7 +8,7 @@ export default {
   component: Table,
 } as Meta;
 
-const Template: Story<TableProps> = (args) => {
+const Template: Story<TableProps<ExampleData>> = (args) => {
   const [_, updateArgs] = useArgs();
 
   // const onClickHandler = () => {
@@ -36,7 +37,12 @@ const exData = Array(20)
     return getExampleRow(index);
   });
 
-const defaultArgs: TableProps = {
+type ExampleData = typeof exData[0];
+
+const defaultArgs: TableProps<ExampleData> = {
+  cellRenderer: (row, rowIndex, columnMeta, columnIndex) => {
+    return <div>Hello</div>;
+  },
   activeColumns: [
     {
       heading: "Name",

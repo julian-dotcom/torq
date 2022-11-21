@@ -65,11 +65,13 @@ function Input({
 
   return (
     <div className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}>
-      <div className={styles.labelWrapper}>
-        <label htmlFor={inputProps.id || inputId} className={styles.label}>
-          {label}
-        </label>
-      </div>
+      {label && (
+        <div className={styles.labelWrapper}>
+          <label htmlFor={inputProps.id || inputId} className={styles.label}>
+            {label}
+          </label>
+        </div>
+      )}
       <div className={classNames(styles.inputFieldContainer, { [styles.hasLeftIcon]: !!leftIcon })}>
         {leftIcon && <div className={styles.leftIcon}>{leftIcon}</div>}
         {renderInput()}

@@ -15,6 +15,7 @@ import {
   Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
+import * as routes from "constants/routes";
 
 function Navigation() {
   const dispatch = useAppDispatch();
@@ -49,8 +50,22 @@ function Navigation() {
           <MenuItem text={"Tags"} icon={<TagsIcon />} routeTo={"/manage/tags"} />
         </NavCategory>
 
-        <NavCategory text={"Transact"} collapsed={false}>
-          <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/transactions/payments"} />
+        <NavCategory text={"Transactions"} collapsed={false}>
+          <MenuItem
+            text={"Payments"}
+            icon={<TransactionIcon />}
+            routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`}
+          />
+          <MenuItem
+            text={"Invoices"}
+            icon={<TransactionIcon />}
+            routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`}
+          />
+          <MenuItem
+            text={"On-Chain"}
+            icon={<TransactionIcon />}
+            routeTo={`/${routes.TRANSACTIONS}/${routes.ONCHAIN}`}
+          />
         </NavCategory>
       </div>
 

@@ -1,8 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { PolicyInterface } from "features/channels/ChannelsSlice";
+import { PolicyInterface } from "features/channels/channelsTypes";
 import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
-import { UpdatedChannelResponse } from "features/channels/channelsTypes";
-import { ViewInterface, viewOrderInterface } from "features/table/Table";
+import { channel, UpdatedChannelResponse } from "features/channels/channelsTypes";
 import {
   ChannelOnchainCostResponse,
   ChannelHistoryResponse,
@@ -21,20 +20,19 @@ import type {
   GetPaymentsQueryParams,
   SendOnChainRequest,
   SendOnChainResponse,
-  GetTableViewQueryParams,
   GetFlowQueryParams,
   GetChannelHistoryData,
   LoginResponse,
-  ForwardResponse,
-  OnchainResponse,
-  PaymentsResponse,
-  InvoicesResponse,
+  Forward,
   DecodedInvoice,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import type { nodeConfiguration, settings, timeZone, channel, stringMap } from "apiTypes";
+import type { nodeConfiguration, settings, timeZone, stringMap } from "apiTypes";
 import { NewInvoiceRequest, NewInvoiceResponse } from "features/transact/Invoices/newInvoice/newInvoiceTypes";
 import { tag, channelTag } from "pages/tagsPage/tagsTypes";
+import { PaymentsResponse } from "./features/transact/Payments/types";
+import { InvoicesResponse } from "./features/transact/Invoices/invoiceTypes";
+import { OnChainResponse } from "./features/transact/OnChain/types";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -119,7 +117,7 @@ export const torqApi = createApi({
     getChannelOnChainCost: builder.query<ChannelOnchainCostResponse, GetChannelHistoryData>({
       query: (data) => `channels/${data.params.chanId}/onchaincost` + queryParamsBuilder(data.queryParams),
     }),
-    getForwards: builder.query<ForwardResponse[], GetForwardsQueryParams>({
+    getForwards: builder.query<Array<Forward>, GetForwardsQueryParams>({
       query: (params) => "forwards" + queryParamsBuilder(params, true),
     }),
     getChannels: builder.query<channel[], void>({
@@ -146,7 +144,7 @@ export const torqApi = createApi({
     getInvoices: builder.query<InvoicesResponse, GetInvoicesQueryParams>({
       query: (params) => "invoices" + queryParamsBuilder(params, true),
     }),
-    getOnChainTx: builder.query<OnchainResponse, GetOnChainTransactionsQueryParams>({
+    getOnChainTx: builder.query<OnChainResponse, GetOnChainTransactionsQueryParams>({
       query: (params) => "on-chain-tx" + queryParamsBuilder(params, true),
     }),
     sendOnChain: builder.mutation<SendOnChainResponse, SendOnChainRequest>({
@@ -161,42 +159,6 @@ export const torqApi = createApi({
         url: "invoices/newinvoice",
         method: "POST",
         body: data,
-      }),
-    }),
-    getTableViews: builder.query<any, GetTableViewQueryParams>({
-      query: (params) => "table-views" + queryParamsBuilder(params),
-      providesTags: ["tableView"],
-    }),
-    createTableView: builder.mutation<any, { view: ViewInterface; index: number; page: string }>({
-      query: (data) => ({
-        url: "table-views",
-        method: "POST",
-        body: { id: null, view: data.view, page: data.page },
-      }),
-      transformResponse: (response: { view: ViewInterface }, _, arg) => ({
-        view: response,
-        index: arg.index,
-      }),
-    }),
-    updateTableView: builder.mutation<any, ViewInterface>({
-      query: (view: ViewInterface) => ({
-        url: "table-views",
-        method: "PUT",
-        body: { id: view.id, view: view },
-      }),
-    }),
-    deleteTableView: builder.mutation<any, { view: ViewInterface; index: number }>({
-      query: (data) => ({
-        url: `table-views/${data.view.id}`,
-        method: "DELETE",
-      }),
-      transformResponse: (_, __, arg) => ({ index: arg.index }),
-    }),
-    updateTableViewsOrder: builder.mutation<any, viewOrderInterface[]>({
-      query: (order: viewOrderInterface[]) => ({
-        url: "table-views/order",
-        method: "PATCH",
-        body: order,
       }),
     }),
     logout: builder.mutation<any, void>({
@@ -285,11 +247,6 @@ export const {
   useGetOnChainTxQuery,
   useSendOnChainMutation,
   useNewInvoiceMutation,
-  useGetTableViewsQuery,
-  useUpdateTableViewMutation,
-  useCreateTableViewMutation,
-  useDeleteTableViewMutation,
-  useUpdateTableViewsOrderMutation,
   useLoginMutation,
   useCookieLoginMutation,
   useLogoutMutation,
@@ -303,9 +260,4 @@ export const {
   useUpdateNodeConfigurationStatusMutation,
   useUpdateChannelMutation,
   useGetTagsQuery,
-  useGetTagQuery,
-  useAddTagMutation,
-  useSetTagMutation,
-  useRemoveTagMutation,
-  useAddChannelTagMutation,
 } = torqApi;

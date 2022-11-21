@@ -11,16 +11,17 @@ import {
 } from "@fluentui/react-icons";
 import styles from "./columns-section.module.scss";
 import Select, { SelectOptionType } from "./ColumnDropDown";
-import { ColumnMetaData } from "features/table/Table";
+import { ColumnMetaData } from "features/table/types";
 import { useState } from "react";
 import { useStrictDroppable } from "utils/UseStrictDroppable";
+import { TableResponses } from "../../../viewManagement/types";
 
-interface columnRow {
-  column: ColumnMetaData;
+type columnRow<T extends {}> = {
+  column: ColumnMetaData<T>;
   index: number;
-  handleRemoveColumn: (index: number) => void;
-  handleUpdateColumn: (columnMetadata: ColumnMetaData, index: number) => void;
-}
+  handleRemoveColumn?: (index: number) => void;
+  handleUpdateColumn?: (columnMetadata: ColumnMetaData<T>, index: number) => void;
+};
 
 const CellOptions: SelectOptionType[] = [
   { label: "Number", value: "NumericCell" },
@@ -37,23 +38,28 @@ const NumericCellOptions: SelectOptionType[] = [
   { label: "Text", value: "TextCell" },
 ];
 
-function NameColumnRow({ column, index }: { column: ColumnMetaData; index: number }) {
+type NameColumnRowProps<T extends {}> = columnRow<T> & {
+  column: ColumnMetaData<T>;
+  index: number;
+};
+
+function NameColumnRow<T extends {}>(props: NameColumnRowProps<T>) {
   return (
-    <div className={classNames(styles.columnRow, index)}>
+    <div className={classNames(styles.columnRow, props.index)}>
       <div className={classNames(styles.rowLeftIcon, styles.lockBtn)}>
-        {column.locked ? <LockClosedIcon /> : <LockOpenIcon />}
+        {props.column.locked ? <LockClosedIcon /> : <LockOpenIcon />}
       </div>
 
       <div className={styles.columnName}>
-        <div>{column.heading}</div>
+        <div>{props.column.heading}</div>
       </div>
     </div>
   );
 }
 
-function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: columnRow) {
+function ColumnRow<T extends {}>(props: columnRow<T>) {
   const selectedOption = CellOptions.filter((option) => {
-    if (option.value === column.type) {
+    if (option.value === props.column.type) {
       return option;
     }
   })[0];
@@ -61,7 +67,7 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Draggable draggableId={`draggable-column-id-${column.key}`} index={index}>
+    <Draggable draggableId={`draggable-column-id-${props.column.key.toString()}`} index={props.index}>
       {(provided, snapshot) => (
         <div
           className={classNames(styles.rowContent, {
@@ -77,7 +83,7 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
             </div>
 
             <div className={styles.columnName}>
-              <div>{column.heading}</div>
+              <div>{props.column.heading}</div>
             </div>
 
             <div className={styles.rowOptions} onClick={() => setExpanded(!expanded)}>
@@ -87,7 +93,7 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
             <div
               className={styles.removeColumn}
               onClick={() => {
-                handleRemoveColumn(index);
+                props.handleRemoveColumn ? props.handleRemoveColumn(props.index) : null;
               }}
             >
               <RemoveIcon />
@@ -95,17 +101,19 @@ function ColumnRow({ column, index, handleRemoveColumn, handleUpdateColumn }: co
           </div>
           <div className={styles.rowOptionsContainer}>
             <Select
-              isDisabled={["date", "array", "string", "boolean", "enum"].includes(column.valueType)}
+              isDisabled={["date", "array", "string", "boolean", "enum"].includes(props.column.valueType)}
               options={NumericCellOptions}
               value={selectedOption}
               onChange={(newValue) => {
-                handleUpdateColumn(
-                  {
-                    ...column,
-                    type: (newValue as { value: string; label: string }).value,
-                  },
-                  index
-                );
+                props.handleUpdateColumn
+                  ? props.handleUpdateColumn(
+                      {
+                        ...props.column,
+                        type: (newValue as { value: string; label: string }).value,
+                      },
+                      props.index
+                    )
+                  : null;
               }}
             />
           </div>
@@ -140,14 +148,14 @@ function UnselectedColumn({ name, index, handleAddColumn }: unselectedColumnRow)
   );
 }
 
-type ColumnsSectionProps = {
-  activeColumns: Array<ColumnMetaData>;
-  columns: ColumnMetaData[];
-  handleUpdateColumn: (updatedColumns: Array<ColumnMetaData>) => void;
+type ColumnsSectionProps<T extends {}> = {
+  activeColumns: Array<ColumnMetaData<T>>;
+  columns: ColumnMetaData<T>[];
+  handleUpdateColumn: (updatedColumns: Array<ColumnMetaData<T>>) => void;
 };
 
-function ColumnsSection(props: ColumnsSectionProps) {
-  const updateColumn = (column: ColumnMetaData, index: number) => {
+function ColumnsSection<T extends {}>(props: ColumnsSectionProps<T>) {
+  const updateColumn = (column: ColumnMetaData<T>, index: number) => {
     const updatedColumns = [
       ...props.activeColumns.slice(0, index),
       column,
@@ -157,9 +165,9 @@ function ColumnsSection(props: ColumnsSectionProps) {
   };
 
   const removeColumn = (index: number) => {
-    console.log('index', index)
-    console.log('props.activeColumns', props.activeColumns)
-    const updatedColumns: ColumnMetaData[] = [
+    console.log("index", index);
+    console.log("props.activeColumns", props.activeColumns);
+    const updatedColumns: ColumnMetaData<T>[] = [
       ...props.activeColumns.slice(0, index),
       ...props.activeColumns.slice(index + 1, props.activeColumns.length),
     ];
@@ -167,7 +175,7 @@ function ColumnsSection(props: ColumnsSectionProps) {
   };
 
   const addColumn = (index: number) => {
-    const updatedColumns: ColumnMetaData[] = [...props.activeColumns, props.columns[index]];
+    const updatedColumns: ColumnMetaData<T>[] = [...props.activeColumns, props.columns[index]];
     props.handleUpdateColumn(updatedColumns);
   };
 
@@ -229,7 +237,7 @@ function ColumnsSection(props: ColumnsSectionProps) {
                         return (
                           <ColumnRow
                             column={column}
-                            key={"selected-" + column.key + "-" + index}
+                            key={"selected-" + column.key.toString() + "-" + index}
                             index={index}
                             handleRemoveColumn={removeColumn}
                             handleUpdateColumn={updateColumn}

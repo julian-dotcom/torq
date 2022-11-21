@@ -1,3 +1,10 @@
+import { Pagination } from "types/api";
+
+export type InvoicesResponse = {
+  data: Invoice[];
+  pagination: Pagination;
+};
+
 export type Invoice = {
   creationDate: string;
   settleDate: string;
@@ -9,15 +16,15 @@ export type Invoice = {
   rPreimage: string;
   memo: string;
   value: number;
-  amountPaid: number;
+  amtPaid: number;
   invoiceState: number;
   isRebalance: boolean;
   isKeysend: boolean;
   isAmp: boolean;
-  paymentAddress: string;
-  fallbackAddress: string;
+  paymentAddr: string;
+  fallbackAddr: string;
   updatedOn: string;
   expiry: number;
   cltvExpiry: number;
-  isPrivate: boolean;
+  private: boolean;
 };

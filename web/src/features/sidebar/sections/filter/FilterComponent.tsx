@@ -4,23 +4,23 @@ import { AddSquare20Regular as AddFilterIcon, AddSquareMultiple20Regular as AddG
 
 import styles from "./filter-section.module.scss";
 import { AndClause, OrClause, Clause, FilterClause, FilterInterface } from "./filter";
-import { ColumnMetaData } from "features/table/Table";
+import { ColumnMetaData } from "features/table/types";
 
-interface filterProps {
-  columnsMeta: Array<ColumnMetaData>;
+export type filterProps<T extends {}> = {
+  columnsMeta: Array<ColumnMetaData<T>>;
   filters: Clause;
   defaultFilter: FilterInterface;
   onFilterUpdate: () => void;
   onNoChildrenLeft?: () => void;
   child: boolean;
-}
+};
 
 const combinerOptions = new Map<string, string>([
   ["$and", "And"],
   ["$or", "Or"],
 ]);
 
-const FilterComponent = (props: filterProps) => {
+const FilterComponent = <T extends {}>(props: filterProps<T>) => {
   const updateFilter = () => {
     props.onFilterUpdate();
   };

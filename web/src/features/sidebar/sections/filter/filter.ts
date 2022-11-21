@@ -87,7 +87,7 @@ export const FilterFunctions = new Map<string, Map<string, FilterFunc>>([
 ]);
 
 // an interface for a user configured filter with the key to operate on and value to filter by
-export interface FilterInterface {
+export type FilterInterface = {
   category: FilterCategoryType;
   funcName: string;
   parameter: FilterParameterType;
@@ -95,7 +95,7 @@ export interface FilterInterface {
   selectOptions?: Array<SelectOption>;
   value?: any;
   label?: string;
-}
+};
 
 export function applyFilters(filters: Clause, data: Array<any>): any[] {
   return data.filter((item) => processQuery(filters, item));
@@ -139,7 +139,7 @@ class OrClause extends AndClause {
   prefix = "$or";
 }
 
-type Clause = FilterClause | OrClause | AndClause;
+export type Clause = FilterClause | OrClause | AndClause;
 
 type ClauseWithResult = Clause & {
   result?: boolean;
@@ -218,4 +218,3 @@ const deserialiseQueryFromString = (query: string): Clause => {
 };
 
 export { FilterClause, OrClause, AndClause, processQuery, deserialiseQuery, deserialiseQueryFromString };
-export type { Clause };

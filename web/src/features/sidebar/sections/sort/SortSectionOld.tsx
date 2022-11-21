@@ -8,7 +8,7 @@ import {
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
 import Button, { buttonColor, buttonSize } from "components/buttons/Button";
-import { ColumnMetaData } from "features/table/Table";
+import { ColumnMetaData } from "features/table/types";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { ActionMeta } from "react-select";
@@ -91,17 +91,17 @@ const SortRow = ({ selected, options, index, handleUpdateSort, handleRemoveSort 
   );
 };
 
-type SortSectionProps = {
-  columns: Array<ColumnMetaData>;
+export type SortSectionProps<T extends {}> = {
+  columns: Array<ColumnMetaData<T>>;
   orderBy: Array<SortByOptionType>;
   updateSortByHandler: (sortBy: Array<SortByOptionType>) => void;
 };
 
-const SortSectionOld = (props: SortSectionProps) => {
-  const options = props.columns.slice().map((column: { key: string; heading: string; valueType: string }) => {
+const SortSectionOld = <T extends {}>(props: SortSectionProps<T>) => {
+  const options = props.columns.slice().map((column) => {
     return {
-      value: column.key,
-      label: column.heading,
+      value: column.key.toString(),
+      label: column.heading.toString(),
       direction: "desc",
     };
   });
@@ -111,7 +111,7 @@ const SortSectionOld = (props: SortSectionProps) => {
       ...props.orderBy,
       {
         direction: "desc",
-        value: props.columns[0].key,
+        value: props.columns[0].key.toString(),
         label: props.columns[0].heading,
       },
     ];
@@ -202,4 +202,4 @@ const SortSectionOld = (props: SortSectionProps) => {
   );
 };
 
-export default memo(SortSectionOld);
+export default SortSectionOld;

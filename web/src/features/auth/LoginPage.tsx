@@ -7,6 +7,8 @@ import { useLoginMutation } from "apiSlice";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import type { LoginResponse } from "types/api";
+import Input from "components/forms/input/Input";
+import Button, { buttonColor } from "components/buttons/Button";
 
 function LoginPage() {
   const [login] = useLoginMutation();
@@ -46,11 +48,8 @@ function LoginPage() {
           <TorqLogo />
         </div>
         <form className="login-form" onSubmit={submit}>
-          <input type="password" name={"password"} className={"password-field"} placeholder={"Password..."} />
-          <button type="submit" className={"submit-button"}>
-            <UnlockIcon />
-            Login
-          </button>
+          <Input type="password" name={"password"} placeholder={"Password..."} />
+          <Button type="submit" text={"Login"} icon={<UnlockIcon />} buttonColor={buttonColor.green} />
         </form>
       </div>
     </div>

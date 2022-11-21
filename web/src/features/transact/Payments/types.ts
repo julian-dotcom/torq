@@ -1,3 +1,10 @@
+import { Pagination } from "types/api";
+
+export type PaymentsResponse = {
+  data: Payment[];
+  pagination: Pagination;
+};
+
 export type Payment = {
   paymentIndex: number;
   date: string;
@@ -7,12 +14,11 @@ export type Payment = {
   fee: number;
   ppm: number;
   failureReason: string;
-  paymentHash: string;
-  paymentPreimage: string;
-  paymentRequest: string;
+  paymentHash: number;
+  paymentPreimage: number;
   isRebalance: boolean;
   isMpp: boolean;
-  countSuccessfulAttempts: number;
   countFailedAttempts: number;
+  countSuccessfulAttempts: number;
   secondsInFlight: number;
 };
