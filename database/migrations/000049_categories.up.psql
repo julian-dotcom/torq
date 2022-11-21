@@ -21,27 +21,52 @@ CREATE TABLE tag (
     UNIQUE (name)
 );
 
+-- channel organically fills local balance
 INSERT INTO category (category_id, name, style, created_on, updated_on)
 VALUES (-1, 'source', 'source', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- channel organically fills and drains local balance
 INSERT INTO category (category_id, name, style, created_on, updated_on)
 VALUES (-2, 'router', 'router', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- channel organically drains local balance
 INSERT INTO category (category_id, name, style, created_on, updated_on)
 VALUES (-3, 'drain', 'drain', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- channel is with a merchant
 INSERT INTO category (category_id, name, style, created_on, updated_on)
 VALUES (-4, 'merchant', 'merchant', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- channel is with an exchange
 INSERT INTO category (category_id, name, style, created_on, updated_on)
 VALUES (-5, 'exchange', 'exchange', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- channel is with a wallet
 INSERT INTO category (category_id, name, style, created_on, updated_on)
 VALUES (-6, 'wallet', 'wallet', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
+-- free channel
 INSERT INTO tag (tag_id, name, style, created_on, updated_on)
 VALUES (-1, 'free', 'free', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- cheap to rebalance
 INSERT INTO tag (tag_id, name, style, created_on, updated_on)
 VALUES (-2, 'cheap', 'cheap', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- normal cost to rebalance
 INSERT INTO tag (tag_id, name, style, created_on, updated_on)
 VALUES (-3, 'normal', 'normal', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- expensive cost to rebalance
 INSERT INTO tag (tag_id, name, style, created_on, updated_on)
 VALUES (-4, 'expensive', 'expensive', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- channel confirmation lower then x blocks ago
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-5, 'new', 'new', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- has not forwarded in sliding window
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-6, 'idle', 'idle', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- local balance to low
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-7, 'drained', 'drained', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- local balance to high
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-8, 'sourced', 'sourced', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- channel hits insufficient balance error when drained with a higher price
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-9, 'insufficient', 'insufficient', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- No updated_on because table will never be updated only insert/delete.
 CREATE TABLE channel_group (
