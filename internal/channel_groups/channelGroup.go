@@ -18,5 +18,6 @@ type channelGroup struct {
 type groupOrigin int
 
 const (
-	corridorOrigin = groupOrigin(iota)
+	categoryCorridor = groupOrigin(iota)
+	tagCorridor
 )

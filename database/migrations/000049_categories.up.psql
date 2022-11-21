@@ -1,13 +1,6 @@
 DROP TABLE channel_tag;
-
-CREATE TABLE tag (
-    tag_id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    style TEXT NOT NULL,
-    created_on TIMESTAMPTZ NOT NULL,
-    updated_on TIMESTAMPTZ NOT NULL,
-    UNIQUE (name)
-);
+DROP TABLE corridor;
+DROP TABLE tag;
 
 CREATE TABLE category (
     category_id SERIAL PRIMARY KEY,
@@ -18,12 +11,37 @@ CREATE TABLE category (
     UNIQUE (name)
 );
 
+CREATE TABLE tag (
+    tag_id SERIAL PRIMARY KEY,
+    category_id INTEGER REFERENCES category(category_id),
+    name TEXT NOT NULL,
+    style TEXT NOT NULL,
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL,
+    UNIQUE (name)
+);
+
 INSERT INTO category (category_id, name, style, created_on, updated_on)
-VALUES (-1, 'source', '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+VALUES (-1, 'source', 'source', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 INSERT INTO category (category_id, name, style, created_on, updated_on)
-VALUES (-2, 'routing', '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+VALUES (-2, 'router', 'router', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 INSERT INTO category (category_id, name, style, created_on, updated_on)
-VALUES (-3, 'drain', '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+VALUES (-3, 'drain', 'drain', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO category (category_id, name, style, created_on, updated_on)
+VALUES (-4, 'merchant', 'merchant', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO category (category_id, name, style, created_on, updated_on)
+VALUES (-5, 'exchange', 'exchange', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO category (category_id, name, style, created_on, updated_on)
+VALUES (-6, 'wallet', 'wallet', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-1, 'free', 'free', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-2, 'cheap', 'cheap', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-3, 'normal', 'normal', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-4, 'expensive', 'expensive', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- No updated_on because table will never be updated only insert/delete.
 CREATE TABLE channel_group (
@@ -57,6 +75,6 @@ CREATE TABLE corridor (
 );
 
 --TODO FIXME doesn't work in current postgres (it will work in the next version: 15)
---ALTER TABLE corridor ADD CONSTRAINT corridor_unique UNIQUE NULLS NOT DISTINCT (corridor_type_id,reference_id,inverse,node_id,from_tag_id,from_peer_id,channel_id,to_tag_id,to_peer_id);
+--ALTER TABLE corridor ADD CONSTRAINT corridor_unique UNIQUE NULLS NOT DISTINCT (corridor_type_id,reference_id,inverse,node_id,from_category_id,from_tag_id,...);
 
 --PERFORMANCE BOOSTERS:

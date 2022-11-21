@@ -11,22 +11,6 @@ import (
 	"github.com/lncapital/torq/internal/database"
 )
 
-func getTagsByChannelId(db *sqlx.DB, channelId int) ([]Tag, error) {
-	var tags []Tag
-	err := db.Select(&tags, `
-		SELECT t.*
-		FROM tag t
-		JOIN channel_tag ct ON t.tag_id = ct.tag_id
-        WHERE ct.channel_id = $1;`, channelId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []Tag{}, nil
-		}
-		return nil, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return tags, nil
-}
-
 func GetTagsByCategoryId(db *sqlx.DB, categoryId int) ([]Tag, error) {
 	var tags []Tag
 	err := db.Select(&tags, `SELECT t.* FROM tag t WHERE t.category_id = $1;`, categoryId)
@@ -80,6 +64,7 @@ func addTag(db *sqlx.DB, tag Tag) (Tag, error) {
 	return tag, nil
 }
 
+// setTag you cannot update the category! If you want to reassign a tag to a new category you need to recreate the tag.
 func setTag(db *sqlx.DB, tag Tag) (Tag, error) {
 	tag.UpdateOn = time.Now().UTC()
 	_, err := db.Exec(`UPDATE tag SET name=$1, style=$2, updated_on=$3 WHERE tag_id=$4;`,

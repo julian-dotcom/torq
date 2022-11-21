@@ -11,14 +11,42 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/corridors"
+	"github.com/lncapital/torq/internal/tags"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 func RegisterChannelGroupRoutes(r *gin.RouterGroup, db *sqlx.DB) {
+	// include: 0=CATEGORIES_ONLY, 1=DISTINCT_REGULAR_AND_TAG_CATEGORIES, 2=ALL_REGULAR_AND_TAG_CATEGORIES, 3=TAGS_ONLY
+	r.GET("channelGroupsByChannel/:channelId/:include", func(c *gin.Context) { getChannelGroupsByChannelIdHandler(c, db) })
 	r.POST("", func(c *gin.Context) { addChannelGroupHandler(c, db) })
 	r.DELETE("/channelGroup/:channelGroupId", func(c *gin.Context) { removeChannelGroupHandler(c, db) })
 	r.DELETE("/category/:categoryId", func(c *gin.Context) { removeCategoryHandler(c, db) })
 	r.DELETE("/tag/:tagId", func(c *gin.Context) { removeTagHandler(c, db) })
+}
+
+func getChannelGroupsByChannelIdHandler(c *gin.Context, db *sqlx.DB) {
+	channelId, err := strconv.Atoi(c.Param("channelId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse channelId in the request.")
+		return
+	}
+	include, err := strconv.Atoi(c.Param("include"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse include in the request.")
+		return
+	}
+	if include > int(commons.ALL_REGULAR_AND_TAG_CATEGORIES) {
+		server_errors.SendBadRequest(c, "Failed to parse include in the request.")
+		return
+	}
+	channelGroupInclude := commons.ChannelGroupInclude(include)
+	channelGroups, err := getChannelGroupsByChannelId(db, channelId, channelGroupInclude)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting ChannelGroupCategories for channelId: %v", channelId))
+		return
+	}
+	c.JSON(http.StatusOK, channelGroups)
 }
 
 func addChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
@@ -27,7 +55,8 @@ func addChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	if cg.TagId == 0 && cg.CategoryId == 0 {
+	if (cg.TagId == nil || *cg.TagId == 0) &&
+		(cg.CategoryId == nil || *cg.CategoryId == 0) {
 		server_errors.SendUnprocessableEntity(c, "Failed to find tagId or categoryId in the request.")
 		return
 	}
@@ -39,13 +68,27 @@ func addChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendUnprocessableEntity(c, "Failed to find nodeId in the request.")
 		return
 	}
-	corridor := corridors.Corridor{CorridorTypeId: corridors.Tag().CorridorTypeId, Flag: 1}
-	corridor.ReferenceId = &cg.TagId
+	var origin groupOrigin
+	var corridor corridors.Corridor
+	if cg.TagId != nil && *cg.TagId != 0 {
+		tag, err := tags.GetTag(db, *cg.TagId)
+		if err != nil {
+			server_errors.SendUnprocessableEntity(c, "Failed to find tag from tagId.")
+			return
+		}
+		corridor = corridors.Corridor{CorridorTypeId: corridors.Tag().CorridorTypeId, Flag: 1}
+		corridor.ReferenceId = &tag.TagId
+		if tag.CategoryId != nil {
+			corridor.FromCategoryId = tag.CategoryId
+		}
+		origin = tagCorridor
+	} else {
+		corridor = corridors.Corridor{CorridorTypeId: corridors.Category().CorridorTypeId, Flag: 1}
+		corridor.ReferenceId = cg.CategoryId
+		origin = categoryCorridor
+	}
 	if cg.NodeId != 0 {
 		corridor.FromNodeId = &cg.NodeId
-	}
-	if cg.CategoryId != 0 {
-		corridor.FromCategoryId = &cg.CategoryId
 	}
 	if cg.ChannelId != 0 {
 		corridor.ChannelId = &cg.ChannelId
@@ -61,7 +104,7 @@ func addChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	go func() {
-		err := GenerateChannelGroups(db)
+		err := GenerateChannelGroupsByOrigin(db, origin)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to generate channel groups.")
 		}
@@ -80,8 +123,25 @@ func removeChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Obtaining channelGroup for channelGroupId: %v", channelGroupId))
 		return
 	}
-	corridorKey := corridors.CorridorKey{CorridorType: corridors.Tag()}
-	corridorKey.ReferenceId = ct.TagId
+	var corridorKey corridors.CorridorKey
+	var origin groupOrigin
+	if ct.TagId != nil {
+		tag, err := tags.GetTag(db, *ct.TagId)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Obtaining tag for channelGroupId: %v", channelGroupId))
+			return
+		}
+		corridorKey = corridors.CorridorKey{CorridorType: corridors.Tag()}
+		corridorKey.ReferenceId = tag.TagId
+		if tag.CategoryId != nil {
+			corridorKey.FromCategoryId = *tag.CategoryId
+		}
+		origin = tagCorridor
+	} else {
+		corridorKey = corridors.CorridorKey{CorridorType: corridors.Category()}
+		corridorKey.ReferenceId = *ct.CategoryId
+		origin = categoryCorridor
+	}
 	corridorKey.FromNodeId = ct.NodeId
 	corridorKey.ChannelId = ct.ChannelId
 	corridor := corridors.GetBestCorridor(corridorKey)
@@ -90,13 +150,13 @@ func removeChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing corridor with corridorId: %v", corridor.CorridorId))
 		return
 	}
-	err = corridors.RefreshCorridorCacheByType(db, corridors.Tag())
+	err = corridors.RefreshCorridorCacheByType(db, corridorKey.CorridorType)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Refresh Corridor Cache By Type.")
 		return
 	}
 	go func() {
-		err := GenerateChannelGroups(db)
+		err := GenerateChannelGroupsByOrigin(db, origin)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to generate channel groups.")
 		}

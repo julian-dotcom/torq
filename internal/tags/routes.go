@@ -15,23 +15,9 @@ import (
 func RegisterTagRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("get/:tagId", func(c *gin.Context) { getTagHandler(c, db) })
 	r.GET("all", func(c *gin.Context) { getTagsHandler(c, db) })
-	r.GET("forChannel/:channelId", func(c *gin.Context) { getTagsForChannelHandler(c, db) })
 	r.POST("add", func(c *gin.Context) { addTagHandler(c, db) })
+	// setTagHandler you cannot reassign a tag to a new category!
 	r.PUT("set", func(c *gin.Context) { setTagHandler(c, db) })
-}
-
-func getTagsForChannelHandler(c *gin.Context, db *sqlx.DB) {
-	channelId, err := strconv.Atoi(c.Param("channelId"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse channelId in the request.")
-		return
-	}
-	tags, err := getTagsByChannelId(db, channelId)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting tags for channelId: %v", channelId))
-		return
-	}
-	c.JSON(http.StatusOK, tags)
 }
 
 func getTagHandler(c *gin.Context, db *sqlx.DB) {
