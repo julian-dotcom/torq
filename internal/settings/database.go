@@ -68,20 +68,20 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 	return nil
 }
 
-func getNodeConnectionDetails(db *sqlx.DB, nodeId int) (nodeConnectionDetails, error) {
-	var nodeConnectionDetailsData nodeConnectionDetails
+func getNodeConnectionDetails(db *sqlx.DB, nodeId int) (NodeConnectionDetails, error) {
+	var nodeConnectionDetailsData NodeConnectionDetails
 	err := db.Get(&nodeConnectionDetailsData, `SELECT * FROM node_connection_details WHERE node_id = $1;`, nodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nodeConnectionDetails{}, nil
+			return NodeConnectionDetails{}, nil
 		}
-		return nodeConnectionDetails{}, errors.Wrap(err, database.SqlExecutionError)
+		return NodeConnectionDetails{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nodeConnectionDetailsData, nil
 }
 
-func getPingConnectionDetails(db *sqlx.DB, pingSystem commons.PingSystem) ([]nodeConnectionDetails, error) {
-	var ncds []nodeConnectionDetails
+func getPingConnectionDetails(db *sqlx.DB, pingSystem commons.PingSystem) ([]NodeConnectionDetails, error) {
+	var ncds []NodeConnectionDetails
 	err := db.Select(&ncds, `
 		SELECT *
 		FROM node_connection_details
@@ -89,15 +89,15 @@ func getPingConnectionDetails(db *sqlx.DB, pingSystem commons.PingSystem) ([]nod
 		ORDER BY node_id;`, commons.Active, pingSystem, commons.Amboss+commons.Vector)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []nodeConnectionDetails{}, nil
+			return []NodeConnectionDetails{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return ncds, nil
 }
 
-func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]nodeConnectionDetails, error) {
-	var nodeConnectionDetailsArray []nodeConnectionDetails
+func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]NodeConnectionDetails, error) {
+	var nodeConnectionDetailsArray []NodeConnectionDetails
 	var err error
 	if includeDeleted {
 		err = db.Select(&nodeConnectionDetailsArray, `SELECT * FROM node_connection_details ORDER BY node_id;`)
@@ -110,7 +110,7 @@ func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]nodeConnec
 	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []nodeConnectionDetails{}, nil
+			return []NodeConnectionDetails{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -156,13 +156,13 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 	return nil
 }
 
-func getNodeConnectionDetailsByStatus(db *sqlx.DB, status commons.Status) ([]nodeConnectionDetails, error) {
-	var nodeConnectionDetailsArray []nodeConnectionDetails
+func getNodeConnectionDetailsByStatus(db *sqlx.DB, status commons.Status) ([]NodeConnectionDetails, error) {
+	var nodeConnectionDetailsArray []NodeConnectionDetails
 	err := db.Select(&nodeConnectionDetailsArray, `
 		SELECT * FROM node_connection_details WHERE status_id = $1 ORDER BY node_id;`, status)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []nodeConnectionDetails{}, nil
+			return []NodeConnectionDetails{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -207,7 +207,7 @@ func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB,
 	return rowsAffected, nil
 }
 
-func SetNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
+func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 	updatedOn := time.Now().UTC()
 	ncd.UpdatedOn = &updatedOn
 	_, err := db.Exec(`
@@ -245,7 +245,7 @@ func SetNodeConnectionDetailsByConnectionDetails(
 	return err
 }
 
-func addNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
+func addNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 	updatedOn := time.Now().UTC()
 	ncd.UpdatedOn = &updatedOn
 	_, err := db.Exec(`
