@@ -37,7 +37,7 @@ func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 	err = row.Scan(&txHeight)
 
 	if err != nil {
-		return 1, err
+		return 1, errors.Wrap(err, "SQL row scan for tx height")
 	}
 
 	return txHeight, nil

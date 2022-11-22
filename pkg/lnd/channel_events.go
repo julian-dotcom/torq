@@ -23,7 +23,7 @@ import (
 func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 	ch, err := chainhash.NewHash(cb)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "Chainhash newhash")
 	}
 	return fmt.Sprintf("%s:%d", ch.String(), oi), nil
 }
@@ -409,7 +409,7 @@ func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB
 		var channelId int
 		err = rows.Scan(&channelId)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "SQL row scan for channel id")
 		}
 		existingChannelIds = append(existingChannelIds, channelId)
 	}

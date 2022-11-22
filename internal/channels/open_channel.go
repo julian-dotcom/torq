@@ -82,7 +82,7 @@ func OpenChannel(db *sqlx.DB, eventChannel chan interface{}, req OpenChannelRequ
 	openChanRes, err := client.OpenChannel(ctx, openChanReq)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "LND Open channel")
 	}
 
 	for {
@@ -220,7 +220,7 @@ func processOpenResponse(resp *lnrpc.OpenStatusUpdate) (*OpenChannelResponse, er
 func translateChanPoint(cb []byte, oi uint32) (string, error) {
 	ch, err := chainhash.NewHash(cb)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "Chainhash new hash")
 	}
 
 	return fmt.Sprintf("%s:%d", ch.String(), oi), nil

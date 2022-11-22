@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 
@@ -24,7 +25,7 @@ func getTotalOnChainCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Tim
 	err := row.Scan(&Cost)
 
 	if err != nil {
-		return &Cost, err
+		return nil, errors.Wrap(err, "SQL row scan for cost")
 	}
 
 	return &Cost, nil
@@ -40,11 +41,11 @@ func getChannelOnChainCost(db *sqlx.DB, lndShortChannelIdStrings []string) (cost
 	err = row.Scan(&cost)
 
 	if err == sql.ErrNoRows {
-		return cost, nil
+		return nil, nil
 	}
 
 	if err != nil {
-		return cost, err
+		return nil, errors.Wrap(err, "SQL row scan for cost")
 	}
 
 	return cost, nil

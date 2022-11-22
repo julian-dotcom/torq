@@ -26,7 +26,7 @@ func getOpenChanIds(client lndClientChannelEvent) ([]uint64, error) {
 
 	resp, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "LND List Channels")
 	}
 
 	var chanIdList []uint64

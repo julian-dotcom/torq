@@ -4,6 +4,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
@@ -55,7 +56,7 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 	// Compile the query
 	qs, args, err := qb.ToSql()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "SQL compile statement")
 	}
 
 	// Log for debugging
@@ -63,7 +64,7 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 
 	rows, err := db.Queryx(qs, args...)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "Run SQL Query")
 	}
 	for rows.Next() {
 		var tx Transaction
@@ -80,7 +81,7 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 		)
 
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, errors.Wrap(err, "SQL row scan")
 		}
 
 		r = append(r, &tx)
@@ -110,12 +111,12 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 
 	totalQs, args, err := totalQb.ToSql()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "SQL compile query")
 	}
 
 	err = db.QueryRowx(totalQs, args...).Scan(&total)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "SQL run query")
 	}
 
 	return r, total, nil

@@ -26,7 +26,7 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 
 	cli, err := client.NewClientWithOpts()
 	if err != nil {
-		return de, errors.Newf("Getting new docker client: %v\n", err)
+		return de, errors.Wrap(err, "Getting new docker client")
 	}
 
 	de = DockerDevEnvironment{
@@ -147,7 +147,7 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 	log.Println(aliceConf.Instance)
 	aliceInspection, err := de.Client.ContainerInspect(ctx, aliceConf.Instance.ID)
 	if err != nil {
-		return errors.Newf("Getting Alice's IP Address: %v", err)
+		return errors.Wrap(err, "Getting Alice's IP Address")
 	}
 	log.Println(aliceInspection.NetworkSettings.Networks)
 	aliceIPAddress := aliceInspection.NetworkSettings.Networks[name].IPAddress
@@ -157,7 +157,7 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 	log.Println("Getting Alice's pubkey")
 	alicePubkey, err := GetPubKey(ctx, de.Client, aliceConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Alice's pubkey: %v", err)
+		return errors.Wrap(err, "Getting Alice's pubkey")
 	}
 	log.Printf("Alice's pubkey: %s\n", alicePubkey)
 
@@ -173,7 +173,7 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 	log.Println("Get Bob's IP")
 	bobInspection, err := de.Client.ContainerInspect(ctx, bobConf.Instance.ID)
 	if err != nil {
-		return errors.Newf("Getting Bob's IP Address: %v", err)
+		return errors.Wrap(err, "Getting Bob's IP Address")
 	}
 	bobIPAddress := bobInspection.NetworkSettings.Networks[name].IPAddress
 	log.Println("Bob's IP address is:")
@@ -182,7 +182,7 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 	log.Println("Getting Bob's pubkey")
 	bobPubkey, err := GetPubKey(ctx, de.Client, bobConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Bob's pubkey: %v", err)
+		return errors.Wrap(err, "Getting Bob's pubkey")
 	}
 	log.Printf("Bob's pubkey: %s\n", bobPubkey)
 
@@ -194,14 +194,14 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 
 	err = ConnectPeer(ctx, de.Client, bobConf.Instance, alicePubkey, aliceIPAddress)
 	if err != nil {
-		return errors.Newf("Connecting Alice to Bob: %v", err)
+		return errors.Wrap(err, "Connecting Alice to Bob")
 	}
 
 	log.Println("Verifing Alice is a peer of Bob")
 
 	alicePeerExists, err := CheckPeerExists(ctx, de.Client, bobConf.Instance, alicePubkey)
 	if err != nil || !alicePeerExists {
-		return errors.Newf("Checking that Alice is a peer of Bob: %v", err)
+		return errors.Wrap(err, "Checking that Alice is a peer of Bob")
 	}
 
 	/*
@@ -216,13 +216,13 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 	log.Println("Getting Carol's pubkey")
 	carolPubkey, err := GetPubKey(ctx, de.Client, carolConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Carol's pubkey: %v", err)
+		return errors.Wrap(err, "Getting Carol's pubkey")
 	}
 	log.Printf("Carol's pubkey: %s\n", carolPubkey)
 
 	carolInspection, err := de.Client.ContainerInspect(ctx, carolConf.Instance.ID)
 	if err != nil {
-		return errors.Newf("Getting Carol's IP Address: %v", err)
+		return errors.Wrap(err, "Getting Carol's IP Address")
 	}
 	carolIPAddress := carolInspection.NetworkSettings.Networks[name].IPAddress
 	log.Println("Carol's IP address is:")
@@ -232,14 +232,14 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 
 	err = ConnectPeer(ctx, de.Client, bobConf.Instance, carolPubkey, carolIPAddress)
 	if err != nil {
-		return errors.Newf("Connecting Carol to Bob: %v", err)
+		return errors.Wrap(err, "Connecting Carol to Bob")
 	}
 
 	log.Println("Verifing Carol is a peer of Bob")
 
 	carolPeerExists, err := CheckPeerExists(ctx, de.Client, bobConf.Instance, carolPubkey)
 	if err != nil || !carolPeerExists {
-		return errors.Newf("Checking that Carol is a peer of Bob: %v", err)
+		return errors.Wrap(err, "Checking that Carol is a peer of Bob")
 	}
 
 	if err = WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress); err != nil {
@@ -262,7 +262,7 @@ func StopVirtualNetwork(name string, withDatabase bool) error {
 		// Start btcd first
 		err := de.StopContainer(ctx, container.Name)
 		if err != nil {
-			return errors.Newf("Starting container: %v\n", err)
+			return errors.Wrap(err, "Starting container")
 		}
 	}
 
@@ -280,16 +280,16 @@ func PurgeVirtualNetwork(name string, withDatabase bool) error {
 
 	err = de.CleanupContainers(ctx)
 	if err != nil {
-		return errors.Newf("cleaning up containers: %v\n", err)
+		return errors.Wrap(err, "cleaning up containers")
 	}
 	err = de.CleanupDefaultVolumes(ctx)
 	if err != nil {
-		return errors.Newf("cleaning up volumes: %v\n", err)
+		return errors.Wrap(err, "cleaning up volumes")
 	}
 
 	err = de.FindAndRemoveNetwork(ctx, de.NetworkName)
 	if err != nil {
-		return errors.Newf("removing network: %v\n", err)
+		return errors.Wrap(err, "removing network")
 	}
 
 	return nil
@@ -324,16 +324,16 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 		// Clean up old containers and network before initiating new ones.
 		err := de.CleanupContainers(ctx)
 		if err != nil {
-			return errors.Newf("cleaning up containers: %v\n", err)
+			return errors.Wrap(err, "cleaning up containers")
 		}
 		err = de.CleanupDefaultVolumes(ctx)
 		if err != nil {
-			return errors.Newf("cleaning up volumes: %v\n", err)
+			return errors.Wrap(err, "cleaning up volumes")
 		}
 
 		err = de.FindAndRemoveNetwork(ctx, de.NetworkName)
 		if err != nil {
-			return errors.Newf("removing network: %v\n", err)
+			return errors.Wrap(err, "removing network")
 		}
 	}
 
@@ -358,14 +358,14 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	btcdPath, _ := filepath.Abs("virtual_network/docker/btcd/")
 	err = de.BuildImage(ctx, btcdPath, name+"/btcd")
 	if err != nil {
-		return errors.Newf("building image: %v\n", err)
+		return errors.Wrap(err, "building image")
 	}
 
 	log.Println("Building lnd image from dockerfile")
 	lndPath, _ := filepath.Abs("virtual_network/docker/lnd/")
 	err = de.BuildImage(ctx, lndPath, name+"/lnd")
 	if err != nil {
-		return errors.Newf("building image: %v\n", err)
+		return errors.Wrap(err, "building image")
 	}
 
 	log.Println("Starting btcd")
@@ -390,7 +390,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println("Creating new mining address on Alice")
 	aliceAddress, err := GetNewAddress(ctx, de.Client, aliceConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting alice mining address: %v", err)
+		return errors.Wrap(err, "Getting alice mining address")
 	}
 	log.Println("Alice receive address created")
 	log.Println(aliceAddress)
@@ -417,7 +417,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 400)
 	if err != nil {
-		return errors.Newf("Mining blocks: %v", err)
+		return errors.Wrap(err, "Mining blocks")
 	}
 
 	log.Println("Blocks mined")
@@ -433,13 +433,13 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println("Checking that segwit is active")
 	err = SegWitActive(ctx, de.Client, btcdConf.Instance)
 	if err != nil {
-		return errors.Newf("btcd checking segwit is active: %v", err)
+		return errors.Wrap(err, "btcd checking segwit is active")
 	}
 	log.Println("Segwit is active")
 
 	aliceInitBalance, err := GetOnchainBalance(ctx, de.Client, aliceConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Bob's balance: %v", err)
+		return errors.Wrap(err, "Getting Bob's balance")
 	}
 	log.Printf("Alice's initial onchain balance: %s\n", aliceInitBalance)
 
@@ -453,7 +453,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println("Creating new mining address on Carol")
 	carolAddress, err := GetNewAddress(ctx, de.Client, carolConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Carol mining address: %v", err)
+		return errors.Wrap(err, "Getting Carol mining address")
 	}
 	log.Println("Carol receive address created")
 	log.Println(carolAddress)
@@ -479,7 +479,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
 	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 400)
 	if err != nil {
-		return errors.Newf("Mining blocks: %v", err)
+		return errors.Wrap(err, "Mining blocks")
 	}
 	log.Println("Blocks mined")
 
@@ -493,13 +493,13 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println("Checking that segwit is active")
 	err = SegWitActive(ctx, de.Client, btcdConf.Instance)
 	if err != nil {
-		return errors.Newf("btcd checking segwit is active: %v", err)
+		return errors.Wrap(err, "btcd checking segwit is active")
 	}
 	log.Println("Segwit is active")
 
 	carolInitBalance, err := GetOnchainBalance(ctx, de.Client, carolConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Bob's balance: %v", err)
+		return errors.Wrap(err, "Getting Bob's balance")
 	}
 	log.Printf("Carol's initial onchain balance: %s\n", carolInitBalance)
 
@@ -513,7 +513,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println("Creating new mining address on Carol")
 	bobAddress, err := GetNewAddress(ctx, de.Client, bobConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Bob mining address: %v", err)
+		return errors.Wrap(err, "Getting Bob mining address")
 	}
 	log.Println("Bob receive address created")
 	log.Println(bobAddress)
@@ -539,7 +539,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
 	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 400)
 	if err != nil {
-		return errors.Newf("Mining blocks: %v", err)
+		return errors.Wrap(err, "Mining blocks")
 	}
 	log.Println("Blocks mined")
 
@@ -551,21 +551,21 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	bobInitBalance, err := GetOnchainBalance(ctx, de.Client, bobConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Bob's balance: %v", err)
+		return errors.Wrap(err, "Getting Bob's balance")
 	}
 	log.Printf("Bob's initial onchain balance: %s\n", bobInitBalance)
 
 	log.Println("Checking that segwit is active")
 	err = SegWitActive(ctx, de.Client, btcdConf.Instance)
 	if err != nil {
-		return errors.Newf("btcd checking segwit is active: %v", err)
+		return errors.Wrap(err, "btcd checking segwit is active")
 	}
 	log.Println("Segwit is active")
 
 	log.Println("Get Bob's pubkey")
 	bobInspection, err := de.Client.ContainerInspect(ctx, bobConf.Instance.ID)
 	if err != nil {
-		return errors.Newf("Getting Bob's IP Address: %v", err)
+		return errors.Wrap(err, "Getting Bob's IP Address")
 	}
 	bobIPAddress := bobInspection.NetworkSettings.Networks[name].IPAddress
 	log.Println("Bob's IP address is:")
@@ -573,7 +573,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	bobPubkey, err := GetPubKey(ctx, de.Client, bobConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Bob's pubkey: %v", err)
+		return errors.Wrap(err, "Getting Bob's pubkey")
 	}
 	log.Printf("Bob's pubkey is: %s\n", bobPubkey)
 
@@ -581,14 +581,14 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	err = ConnectPeer(ctx, de.Client, aliceConf.Instance, bobPubkey, bobIPAddress)
 	if err != nil {
-		return errors.Newf("Connecting Bob to Alice: %v", err)
+		return errors.Wrap(err, "Connecting Bob to Alice")
 	}
 
 	log.Println("Verifing Bob is a peer of Alice")
 
 	bobPeerExists, err := CheckPeerExists(ctx, de.Client, aliceConf.Instance, bobPubkey)
 	if err != nil || !bobPeerExists {
-		return errors.Newf("Checking that Bob is a peer of Alice: %v", err)
+		return errors.Wrap(err, "Checking that Bob is a peer of Alice")
 	}
 
 	log.Println("Bob confirmed as peer of Alice")
@@ -596,7 +596,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println("Getting Alice's pubkey")
 	alicePubkey, err := GetPubKey(ctx, de.Client, aliceConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Alice's pubkey: %v", err)
+		return errors.Wrap(err, "Getting Alice's pubkey")
 	}
 
 	log.Printf("Alice's pubkey is: %s\n", alicePubkey)
@@ -605,7 +605,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	alicePeerExists, err := CheckPeerExists(ctx, de.Client, bobConf.Instance, alicePubkey)
 	if err != nil || !alicePeerExists {
-		return errors.Newf("Checking that Alice is a peer of Bob: %v", err)
+		return errors.Wrap(err, "Checking that Alice is a peer of Bob")
 	}
 	log.Println("Alice confirmed as peer of Bob")
 
@@ -614,14 +614,14 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	aliceBobChannelPoint, err := CreateChannel(ctx, de.Client, aliceConf.Instance, bobPubkey, "12000000",
 		btcdConf.Instance)
 	if err != nil {
-		return errors.Newf("Creating Alice<->Bob channel: %v", err)
+		return errors.Wrap(err, "Creating Alice<->Bob channel")
 	}
 
 	log.Println("Generating invoice for payment to Bob")
 
 	bobEncodedInvoice, err := GenerateInvoice(ctx, de.Client, bobConf.Instance, "4100000")
 	if err != nil {
-		return errors.Newf("Creating Bob invoice: %v", err)
+		return errors.Wrap(err, "Creating Bob invoice")
 	}
 
 	log.Printf("Encoded payment request: %s\n", bobEncodedInvoice)
@@ -630,13 +630,13 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	err = PayInvoice(ctx, de.Client, aliceConf.Instance, bobEncodedInvoice)
 	if err != nil {
-		return errors.Newf("Sending Alice->Bob payment: %v", err)
+		return errors.Wrap(err, "Sending Alice->Bob payment")
 	}
 
 	log.Println("Checking payment received by Bob")
 	bobChannelBalance, err := GetChannelBalance(ctx, de.Client, bobConf.Instance)
 	if err != nil {
-		return errors.Newf("Checking Bob's balance: %v", err)
+		return errors.Wrap(err, "Checking Bob's balance")
 	}
 
 	log.Println("Payment received by Bob")
@@ -646,7 +646,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	aliceBobClosingTxId, err := CloseChannel(ctx, de.Client, aliceConf.Instance, aliceBobChannelPoint)
 	if err != nil {
-		return errors.Newf("Closing Alice<->Bob channel: %v", err)
+		return errors.Wrap(err, "Closing Alice<->Bob channel")
 	}
 
 	log.Printf("Alice<->Bob channel closing transaction id: %s\n", aliceBobClosingTxId)
@@ -655,25 +655,25 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 3)
 	if err != nil {
-		return errors.Newf("Mining blocks: %v", err)
+		return errors.Wrap(err, "Mining blocks")
 	}
 
 	bobOnChainBalance, err := GetOnchainBalance(ctx, de.Client, bobConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Bob's balance: %v", err)
+		return errors.Wrap(err, "Getting Bob's balance")
 	}
 	log.Printf("Bob's onchain balance: %s\n", bobOnChainBalance)
 
 	log.Println("Getting Carol's pubkey")
 	carolPubkey, err := GetPubKey(ctx, de.Client, carolConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Carol's pubkey: %v", err)
+		return errors.Wrap(err, "Getting Carol's pubkey")
 	}
 	log.Printf("Carol's pubkey: %s\n", carolPubkey)
 
 	carolInspection, err := de.Client.ContainerInspect(ctx, carolConf.Instance.ID)
 	if err != nil {
-		return errors.Newf("Getting Carol's IP Address: %v", err)
+		return errors.Wrap(err, "Getting Carol's IP Address")
 	}
 	carolIPAddress := carolInspection.NetworkSettings.Networks[name].IPAddress
 	log.Println("Carol's IP address is:")
@@ -683,14 +683,14 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	err = ConnectPeer(ctx, de.Client, bobConf.Instance, carolPubkey, carolIPAddress)
 	if err != nil {
-		return errors.Newf("Connecting Carol to Bob: %v", err)
+		return errors.Wrap(err, "Connecting Carol to Bob")
 	}
 
 	log.Println("Verifing Carol is a peer of Bob")
 
 	carolPeerExists, err := CheckPeerExists(ctx, de.Client, bobConf.Instance, carolPubkey)
 	if err != nil || !carolPeerExists {
-		return errors.Newf("Checking that Carol is a peer of Bob: %v", err)
+		return errors.Wrap(err, "Checking that Carol is a peer of Bob")
 	}
 
 	log.Println("Carol confirmed as peer of Bob")
@@ -698,33 +698,33 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	log.Println("Verifing Bob is a peer of Carol")
 	carolBobPeerExists, err := CheckPeerExists(ctx, de.Client, carolConf.Instance, bobPubkey)
 	if err != nil || !carolBobPeerExists {
-		return errors.Newf("Checking that Bob is a peer of Carol: %v", err)
+		return errors.Wrap(err, "Checking that Bob is a peer of Carol")
 	}
 	log.Println("Bob confirmed as peer of Carol")
 
 	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 30)
 	if err != nil {
-		return errors.Newf("Mining blocks: %v\n", err)
+		return errors.Wrap(err, "Mining blocks")
 	}
 	log.Println("Created the Bob<->Carol channel")
 
 	_, err = CreateChannel(ctx, de.Client, bobConf.Instance, carolPubkey, "100000", btcdConf.Instance)
 	if err != nil {
-		return errors.Newf("Creating Bob<->Carol channel: %v", err)
+		return errors.Wrap(err, "Creating Bob<->Carol channel")
 	}
 
 	log.Println("Recreate the Alice<->Bob channel")
 
 	_, err = CreateChannel(ctx, de.Client, aliceConf.Instance, bobPubkey, "1000000", btcdConf.Instance)
 	if err != nil {
-		return errors.Newf("Creating Alice<->Bob channel: %v", err)
+		return errors.Wrap(err, "Creating Alice<->Bob channel")
 	}
 
 	log.Println("Generating invoice for payment to Carol")
 
 	carolEncodedInvoice, err := GenerateInvoice(ctx, de.Client, carolConf.Instance, "10")
 	if err != nil {
-		return errors.Newf("Creating Carol invoice: %v", err)
+		return errors.Wrap(err, "Creating Carol invoice")
 	}
 
 	log.Printf("Encoded payment request: %s\n", carolEncodedInvoice)
@@ -733,13 +733,13 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	err = PayInvoice(ctx, de.Client, aliceConf.Instance, carolEncodedInvoice)
 	if err != nil {
-		return errors.Newf("Sending Alice->Bob->Carol payment: %v", err)
+		return errors.Wrap(err, "Sending Alice->Bob->Carol payment")
 	}
 
 	log.Println("Checking payment received by Carol")
 	carolChannelBalance, err := GetChannelBalance(ctx, de.Client, carolConf.Instance)
 	if err != nil {
-		return errors.Newf("Checking Carol's balance: %v", err)
+		return errors.Wrap(err, "Checking Carol's balance")
 	}
 
 	log.Println("Payment received by Carol")
@@ -751,10 +751,6 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 		log.Fatalf("Unable to write connection details: %v", err)
 	}
 	PrintInstructions()
-	//err = StopVirtualNetwork(name, createDatabase)
-	//if err != nil {
-	//	return errors.Newf("Stopping virtual network: %v", err)
-	//}
 
 	return nil
 }
@@ -843,7 +839,7 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 	log.Println(aliceConf.Instance)
 	aliceInspection, err := de.Client.ContainerInspect(ctx, aliceConf.Instance.ID)
 	if err != nil {
-		return errors.Newf("Getting Alice's IP Address: %v", err)
+		return errors.Wrap(err, "Getting Alice's IP Address")
 	}
 	log.Println(aliceInspection.NetworkSettings.Networks)
 
@@ -854,14 +850,14 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 	log.Println("Getting Alice's pubkey")
 	alicePubkey, err := GetPubKey(ctx, de.Client, aliceConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Alice's pubkey: %v", err)
+		return errors.Wrap(err, "Getting Alice's pubkey")
 	}
 	log.Printf("Alice's pubkey: %s\n", alicePubkey)
 
 	aliceWalletBalance, err := GetOnchainBalance(ctx, de.Client, aliceConf.Instance)
 	if err != nil {
 
-		return errors.Newf("Checking Carol's balance: %v", err)
+		return errors.Wrap(err, "Checking Carol's balance")
 		//continue
 	}
 	log.Printf("Alice wallet balance: %v", aliceWalletBalance)
@@ -878,7 +874,7 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 	log.Println("Get Bob's IP")
 	bobInspection, err := de.Client.ContainerInspect(ctx, bobConf.Instance.ID)
 	if err != nil {
-		return errors.Newf("Getting Bob's IP Address: %v", err)
+		return errors.Wrap(err, "Getting Bob's IP Address")
 	}
 	bobIPAddress := bobInspection.NetworkSettings.Networks[name].IPAddress
 	log.Println("Bob's IP address is:")
@@ -887,14 +883,14 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 	log.Println("Getting Bob's pubkey")
 	bobPubkey, err := GetPubKey(ctx, de.Client, bobConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Bob's pubkey: %v", err)
+		return errors.Wrap(err, "Getting Bob's pubkey")
 	}
 	log.Printf("Bob's pubkey: %s\n", bobPubkey)
 
 	bobWalletBalance, err := GetOnchainBalance(ctx, de.Client, bobConf.Instance)
 	if err != nil {
 
-		return errors.Newf("Checking Carol's balance: %v", err)
+		return errors.Wrap(err, "Checking Carol's balance")
 		//continue
 	}
 	log.Printf("Bob wallet balance: %v", bobWalletBalance)
@@ -910,7 +906,7 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 
 	carolInspection, err := de.Client.ContainerInspect(ctx, carolConf.Instance.ID)
 	if err != nil {
-		return errors.Newf("Getting Carol's IP Address: %v", err)
+		return errors.Wrap(err, "Getting Carol's IP Address")
 	}
 	carolIPAddress := carolInspection.NetworkSettings.Networks[name].IPAddress
 	log.Println("Carol's IP address is:")
@@ -919,14 +915,14 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 	log.Println("Getting Carol's pubkey")
 	carolPubkey, err := GetPubKey(ctx, de.Client, carolConf.Instance)
 	if err != nil {
-		return errors.Newf("Getting Carol's pubkey: %v", err)
+		return errors.Wrap(err, "Getting Carol's pubkey")
 	}
 	log.Printf("Carol's pubkey: %s\n", carolPubkey)
 
 	carolWalletBalance, err := GetOnchainBalance(ctx, de.Client, carolConf.Instance)
 	if err != nil {
 
-		return errors.Newf("Checking Carol's balance: %v", err)
+		return errors.Wrap(err, "Checking Carol's balance")
 		//continue
 	}
 	log.Printf("Carol wallet balance: %v", carolWalletBalance)
@@ -939,19 +935,19 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 
 	err = ConnectPeer(ctx, de.Client, bobConf.Instance, alicePubkey, aliceIPAddress)
 	if err != nil {
-		return errors.Newf("Connecting Alice to Bob: %v", err)
+		return errors.Wrap(err, "Connecting Alice to Bob")
 	}
 
 	log.Println("Verifing Alice is a peer of Bob")
 
 	alicePeerExists, err := CheckPeerExists(ctx, de.Client, bobConf.Instance, alicePubkey)
 	if err != nil || !alicePeerExists {
-		return errors.Newf("Checking that Alice is a peer of Bob: %v", err)
+		return errors.Wrap(err, "Checking that Alice is a peer of Bob")
 	}
 
 	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 30)
 	if err != nil {
-		return errors.Newf("Mining blocks: %v\n", err)
+		return errors.Wrap(err, "Mining blocks")
 	}
 
 	/*
@@ -962,19 +958,19 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 
 	err = ConnectPeer(ctx, de.Client, bobConf.Instance, carolPubkey, carolIPAddress)
 	if err != nil {
-		return errors.Newf("Connecting Carol to Bob: %v", err)
+		return errors.Wrap(err, "Connecting Carol to Bob")
 	}
 
 	log.Println("Verifing Carol is a peer of Bob")
 
 	carolPeerExists, err := CheckPeerExists(ctx, de.Client, bobConf.Instance, carolPubkey)
 	if err != nil || !carolPeerExists {
-		return errors.Newf("Checking that Carol is a peer of Bob: %v", err)
+		return errors.Wrap(err, "Checking that Carol is a peer of Bob")
 	}
 
 	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 30)
 	if err != nil {
-		return errors.Newf("Mining blocks: %v\n", err)
+		return errors.Wrap(err, "Mining blocks")
 	}
 
 	/*
@@ -985,19 +981,19 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 
 	err = ConnectPeer(ctx, de.Client, aliceConf.Instance, carolPubkey, carolIPAddress)
 	if err != nil {
-		return errors.Newf("Connecting Carol to Bob: %v", err)
+		return errors.Wrap(err, "Connecting Carol to Bob")
 	}
 
 	log.Println("Verifing Carol is a peer of Bob")
 
 	carolPeerAliceExists, err := CheckPeerExists(ctx, de.Client, aliceConf.Instance, carolPubkey)
 	if err != nil || !carolPeerAliceExists {
-		return errors.Newf("Checking that Carol is a peer of Bob: %v", err)
+		return errors.Wrap(err, "Checking that Carol is a peer of Bob")
 	}
 
 	err = MineBlocks(ctx, de.Client, btcdConf.Instance, 30)
 	if err != nil {
-		return errors.Newf("Mining blocks: %v\n", err)
+		return errors.Wrap(err, "Mining blocks")
 	}
 
 	if err = WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress); err != nil {
@@ -1120,7 +1116,6 @@ func createPayInvoice(name string, invfrq int, ctx context.Context, de DockerDev
 
 		newInvoice, err := GenerateInvoice(ctx, de.Client, peer1.Instance, amt)
 		if err != nil {
-			//return errors.Newf("Creating Carol invoice: %v", err)
 			continue
 		}
 
@@ -1148,7 +1143,6 @@ func createPayInvoice(name string, invfrq int, ctx context.Context, de DockerDev
 		log.Printf("Checking payment received by %v", peer1.Name)
 		peer1ChannelBalance, err := GetChannelBalance(ctx, de.Client, peer1.Instance)
 		if err != nil {
-			//return errors.Newf("Checking Carol's balance: %v", err)
 			continue
 		}
 

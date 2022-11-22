@@ -187,7 +187,7 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 			&c.CountIn,
 		)
 		if err != nil {
-			return r, err
+			return r, errors.Wrap(err, "SQL row scan")
 		}
 
 		// Append to the result

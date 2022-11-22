@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cockroachdb/errors"
 )
 
 // Examples of json input
@@ -42,7 +43,7 @@ func ParseFilterParam(params string, allowedColumns []string) (f sq.Sqlizer, err
 	filters := FilterClauses{}
 	err = json.Unmarshal([]byte(params), &filters)
 	if err != nil {
-		return f, err
+		return f, errors.Wrap(err, "JSON unmarshal filters")
 	}
 
 	qp := QueryParser{

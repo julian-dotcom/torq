@@ -62,7 +62,7 @@ func InitTestDBConn() (*Server, error) {
 	var err error
 	srv.conn, err = sql.Open("postgres", srv.baseURL+"?sslmode=disable")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "SQL open connection")
 	}
 
 	//srv.conn.SetMaxOpenConns(1)
@@ -98,7 +98,10 @@ func (srv *Server) Cleanup() error {
 	}
 
 	if srv.conn != nil {
-		return srv.conn.Close()
+		err = srv.conn.Close()
+		if err != nil {
+			return errors.Wrap(err, "Closing server database connection")
+		}
 	}
 
 	return nil
@@ -163,7 +166,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		err = database.MigrateUp(db)
 		if err != nil {
 			cancel()
-			return nil, nil, err
+			return nil, nil, errors.Wrap(err, "Database Migrate Up")
 		}
 
 		var testNodeId1 int

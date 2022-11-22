@@ -609,11 +609,11 @@ func processTLS(ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 		ncd.TLSFileName = &ncd.TLSFile.Filename
 		tlsDataFile, err := ncd.TLSFile.Open()
 		if err != nil {
-			return ncd, err
+			return NodeConnectionDetails{}, errors.Wrap(err, "Opening TLS file")
 		}
 		tlsData, err := io.ReadAll(tlsDataFile)
 		if err != nil {
-			return ncd, err
+			return NodeConnectionDetails{}, errors.Wrap(err, "Reasing TLS file")
 		}
 		ncd.TLSDataBytes = tlsData
 	}
@@ -625,11 +625,11 @@ func processMacaroon(ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 		ncd.MacaroonFileName = &ncd.MacaroonFile.Filename
 		macaroonDataFile, err := ncd.MacaroonFile.Open()
 		if err != nil {
-			return ncd, err
+			return NodeConnectionDetails{}, errors.Wrap(err, "Opening macaroon file")
 		}
 		macaroonData, err := io.ReadAll(macaroonDataFile)
 		if err != nil {
-			return ncd, err
+			return NodeConnectionDetails{}, errors.Wrap(err, "Reading macaroon file")
 		}
 		ncd.MacaroonDataBytes = macaroonData
 	}

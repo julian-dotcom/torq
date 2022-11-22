@@ -146,7 +146,7 @@ func addHtlcEvent(db *sqlx.DB, htlcEvent HtlcEvent) error {
 		htlcEvent.OutgoingChannelId,
 		htlcEvent.NodeId,
 	)
-	return err
+	return errors.Wrap(err, "DB Exec adding HTLC Event")
 }
 
 // SubscribeAndStoreHtlcEvents subscribes to HTLC events from LND and stores them in the database as time series.

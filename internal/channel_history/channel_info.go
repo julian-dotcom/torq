@@ -56,7 +56,7 @@ func getChannels(db *sqlx.DB, all bool, channelIds []int) (r []*channel, err err
 		c := &channel{}
 		err = rows.StructScan(&c)
 		if err != nil {
-			return r, err
+			return r, errors.Wrap(err, "SQL struct scan")
 		}
 
 		// Append to the result

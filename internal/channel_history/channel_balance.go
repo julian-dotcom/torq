@@ -82,14 +82,14 @@ func getChannelBalance(db *sqlx.DB, lndShortChannelIdString string, from time.Ti
 
 	rows, err := db.Queryx(q, channelId, from, to, commons.GetSettings().PreferredTimeZone, lndShortChannelIdString)
 	if err != nil {
-		return cb, err
+		return cb, errors.Wrap(err, "SQL run query")
 	}
 	for rows.Next() {
 		b := Balance{}
 
 		err = rows.StructScan(&b)
 		if err != nil {
-			return cb, err
+			return cb, errors.Wrap(err, "SQL struct scan")
 		}
 
 		if len(cb.Balances) == 0 {

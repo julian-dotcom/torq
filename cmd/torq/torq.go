@@ -279,7 +279,7 @@ func main() {
 			// Check if the database needs to be migrated.
 			err = database.MigrateUp(db)
 			if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-				return err
+				return errors.Wrap(err, "Migrating database up")
 			}
 
 			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, nil)
@@ -660,7 +660,7 @@ func main() {
 			db, err := database.PgConnect(c.String("db.name"), c.String("db.user"),
 				c.String("db.password"), c.String("db.host"), c.String("db.port"))
 			if err != nil {
-				return err
+				return errors.Wrap(err, "Database connect")
 			}
 
 			defer func() {
@@ -672,7 +672,7 @@ func main() {
 
 			err = database.MigrateUp(db)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "Migrating database up")
 			}
 
 			return nil
@@ -697,9 +697,13 @@ func main() {
 
 func loadFlags() func(context *cli.Context) (altsrc.InputSourceContext, error) {
 	return func(context *cli.Context) (altsrc.InputSourceContext, error) {
-		if _, err := os.Stat(context.String("config")); err == nil {
-			return altsrc.NewTomlSourceFromFile(context.String("config"))
+		if _, err := os.Stat(context.String("config")); err != nil {
+			return altsrc.NewMapInputSource("", map[interface{}]interface{}{}), nil
 		}
-		return altsrc.NewMapInputSource("", map[interface{}]interface{}{}), nil
+		tomlSource, err := altsrc.NewTomlSourceFromFile(context.String("config"))
+		if err != nil {
+			return nil, errors.Wrap(err, "Creating new toml config from file")
+		}
+		return tomlSource, nil
 	}
 }

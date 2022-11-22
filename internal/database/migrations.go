@@ -38,7 +38,7 @@ func newMigrationInstance(db *sql.DB) (*migrate.Migrate, error) {
 func MigrateUp(db *sqlx.DB) error {
 	m, err := newMigrationInstance(db.DB)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Creating new migration instance")
 	}
 
 	log.Println("Migrations might take a while. Please be patient.")
@@ -47,7 +47,7 @@ func MigrateUp(db *sqlx.DB) error {
 	dirtyErr, ok := err.(migrate.ErrDirty)
 	// If the Error did not originate from a dirty state, return the error directly.
 	if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion && err != migrate.ErrLocked && !ok {
-		return err
+		return errors.Wrap(err, "Running up migration")
 	}
 
 	// If the error is due to dirty state. Roll back and try again.

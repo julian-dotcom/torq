@@ -113,7 +113,7 @@ func processChannelPoint(chanPoint string) (cp *lnrpc.PolicyUpdateRequest_ChanPo
 	oIndxUint, err := strconv.ParseUint(splitChanPoint[1], 10, 1)
 	if err != nil {
 		log.Error().Msgf("parsing channel point output index: %v", err)
-		return cp, errors.Newf("parsing channel point output index: %v", err)
+		return cp, errors.Wrapf(err, "parsing channel point output index: %v", err)
 	}
 
 	outputIndex := uint32(oIndxUint)

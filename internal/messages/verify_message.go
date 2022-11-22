@@ -13,7 +13,7 @@ import (
 
 func verifyMessage(db *sqlx.DB, req VerifyMessageRequest) (r VerifyMessageResponse, err error) {
 	if req.NodeId == 0 {
-		return VerifyMessageResponse{}, errors.Newf("Node Id missing")
+		return VerifyMessageResponse{}, errors.Wrap(err, "Node Id missing")
 	}
 
 	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)

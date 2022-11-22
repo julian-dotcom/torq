@@ -152,7 +152,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 		for _, payment := range p {
 			htlcJson, err := json.Marshal(payment.Htlcs)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "JSON Marshal the payment HTLCs")
 			}
 
 			if _, err := tx.Exec(q,
@@ -170,12 +170,12 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 				nodeId,
 				time.Now().UTC(),
 			); err != nil {
-				return errors.Wrapf(err, "store payments: db exec")
+				return errors.Wrap(err, "store payments: db exec")
 			}
 		}
 		err := tx.Commit()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Transaction commit")
 		}
 	}
 
@@ -271,7 +271,7 @@ func fetchInFlightPaymentIndexes(db *sqlx.DB) (r []uint64, err error) {
 		order by payment_index asc;
 	`)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "DB Query of inflight payment indexes")
 	}
 
 	for rows.Next() {
@@ -279,7 +279,7 @@ func fetchInFlightPaymentIndexes(db *sqlx.DB) (r []uint64, err error) {
 		err = rows.Scan(&res)
 
 		if err != nil {
-			return r, err
+			return r, errors.Wrap(err, "SQL row scan")
 		}
 
 		// Append to the result
@@ -334,7 +334,7 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 
 			htlcJson, err := json.Marshal(payment.Htlcs)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "JSON Marhsal of payment HTLCs")
 			}
 
 			status := payment.Status.String()
@@ -351,7 +351,7 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 				if payment.PaymentRequest != "" {
 					inva, err := zpay32.Decode(payment.PaymentRequest, &chaincfg.MainNetParams)
 					if err != nil {
-						return err
+						return errors.Wrap(err, "zpay32 decode of payment request")
 					}
 					expiry = inva.Expiry()
 				}
@@ -393,7 +393,7 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 		}
 		err := tx.Commit()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Transaction commit")
 		}
 	}
 

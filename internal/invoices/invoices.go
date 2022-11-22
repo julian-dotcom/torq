@@ -70,12 +70,12 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 
 	qs, args, err := qb.ToSql()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "Compiling SQL")
 	}
 
 	rows, err := db.Queryx(qs, args...)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "Running SQL Query")
 	}
 
 	for rows.Next() {
@@ -105,7 +105,7 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 		)
 
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, errors.Wrap(err, "SQL row scan")
 		}
 
 		r = append(r, &i)
@@ -142,12 +142,12 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 
 	totalQs, args, err := totalQb.ToSql()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "Compile SQL")
 	}
 
 	err = db.QueryRowx(totalQs, args...).Scan(&total)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "SQL run query")
 	}
 
 	return r, total, nil
@@ -283,25 +283,25 @@ func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) 
 	case sql.ErrNoRows:
 		return nil, ErrInvoiceNotFound{identifier}
 	default:
-		return nil, err
+		return nil, errors.Wrap(err, "SQL run query")
 	}
 
 	// Unmarshal the HTLCs
 	err = json.Unmarshal(h, &i.Htlcs)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "JSON unmarshal of HTLCs")
 	}
 
 	// Unmarshal the feature map
 	err = json.Unmarshal(fm, &i.Features)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "JSON unmarshal of features")
 	}
 
 	// Unmarshal the route hints
 	err = json.Unmarshal(rh, &i.RouteHints)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "JSON unmarshal of route hints")
 	}
 
 	return &i, nil

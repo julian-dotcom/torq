@@ -58,7 +58,7 @@ const (
 func getChannelFrom(queryFrom string) (time.Time, error) {
 	from, err := time.Parse("2006-01-02", queryFrom)
 	if err != nil {
-		return from, err
+		return from, errors.Wrap(err, "Time parse")
 	}
 	return from, nil
 }
@@ -66,7 +66,7 @@ func getChannelFrom(queryFrom string) (time.Time, error) {
 func getChannelTo(queryTo string) (time.Time, error) {
 	to, err := time.Parse("2006-01-02", queryTo)
 	if err != nil {
-		return to, err
+		return to, errors.Wrap(err, "Time parse")
 	}
 	return to, nil
 }

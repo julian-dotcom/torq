@@ -48,5 +48,5 @@ func signMessage(db *sqlx.DB, req SignMessageRequest) (r SignMessageResponse, er
 
 	r.Signature = signMsgResp.Signature
 
-	return r, err
+	return r, nil
 }

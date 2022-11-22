@@ -66,7 +66,7 @@ func getChannelTotal(db *sqlx.DB, all bool, channelIds []int, from time.Time, to
 			&r.CountTotal,
 		)
 		if err != nil {
-			return r, err
+			return r, errors.Wrap(err, "SQL row scan")
 		}
 	}
 

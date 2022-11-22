@@ -30,7 +30,7 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 			ON CONFLICT (time, time_ns) DO NOTHING;`)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "SQL Statement prepare")
 		}
 		for _, event := range fwh {
 			incomingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdIn)
@@ -57,11 +57,11 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 		}
 		err = stmt.Close()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Close of prepared statement")
 		}
 		err = tx.Commit()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "DB Commit")
 		}
 	}
 
@@ -86,7 +86,7 @@ func fetchLastForwardTime(db *sqlx.DB) (uint64, error) {
 	}
 
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "Query row of last forward time")
 	}
 
 	return lastNs, nil

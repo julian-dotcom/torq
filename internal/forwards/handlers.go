@@ -239,7 +239,7 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			&c.TurnoverTotal,
 		)
 		if err != nil {
-			return r, err
+			return r, errors.Wrap(err, "SQL row scan")
 		}
 
 		// Append to the result

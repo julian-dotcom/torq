@@ -73,7 +73,7 @@ func checkPrepareReq(bocReq BatchOpenRequest) (req *lnrpc.BatchOpenChannelReques
 		pubKeyHex, err := hex.DecodeString(channel.NodePubkey)
 		if err != nil {
 			log.Error().Msgf("Err decoding string: %v, %v", i, err)
-			return req, err
+			return req, errors.Wrap(err, "Hex decode string")
 		}
 		boChannel.NodePubkey = pubKeyHex
 
