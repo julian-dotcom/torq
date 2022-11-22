@@ -23,6 +23,25 @@ func GetAllChannels(db *sqlx.DB) (channels []Channel, err error) {
 	return channels, nil
 }
 
+func GetRoutingPolicy(chanId uint64, db *sqlx.DB) ([]ChannelPolicy, error) {
+	cp := []ChannelPolicy{}
+	err := db.Select(&cp, `
+	SELECT time_lock_delta, min_htlc, max_htlc_msat, fee_base_msat, fee_rate_mill_msat, short_channel_id
+	FROM routing_policy rp
+	LEFT JOIN channel c
+	ON rp.channel_id = c.channel_id
+	WHERE c.lnd_short_channel_id=$1
+	ORDER BY ts DESC
+	LIMIT 1;`, chanId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []ChannelPolicy{}, nil
+		}
+		return []ChannelPolicy{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return cp, nil
+}
+
 func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err error) {
 	err = db.Select(&channels, `
 		SELECT *
