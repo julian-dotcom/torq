@@ -2,6 +2,7 @@ import styles from "./table.module.scss";
 import cellStyles from "components/table/cells/cell.module.scss";
 import HeaderCell from "components/table/cells/header/HeaderCell";
 import AliasCell from "components/table/cells/alias/AliasCell";
+import NumericDoubleCell from "components/table/cells/numeric/NumericDoubleCell";
 import NumericCell from "components/table/cells/numeric/NumericCell";
 import BarCell from "components/table/cells/bar/BarCell";
 import TextCell from "components/table/cells/text/TextCell";
@@ -11,11 +12,14 @@ import classNames from "classnames";
 import DateCell from "components/table/cells/date/DateCell";
 import EnumCell from "components/table/cells/enum/EnumCell";
 import LinkCell from "components/table/cells/link/LinkCell";
+import BalanceCell from "components/table/cells/balance/BalanceCell";
 import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
 
 export interface ColumnMetaData {
   heading: string;
   key: string;
+  key2?: string;
+  suffix?: string;
   type?: string;
   width?: number;
   locked?: boolean;
@@ -52,6 +56,8 @@ type TableProps = {
 
 function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, columnIndex: number) {
   const key = column.key;
+  const key2 = column?.key2 as string;
+  const suffix = column?.suffix;
   const heading = column.heading;
   const percent = column.percent;
   switch (column.type) {
@@ -76,6 +82,10 @@ function defaultRowRenderer(row: any, index: number, column: ColumnMetaData, col
       );
     case "NumericCell":
       return <NumericCell current={row[key] as number} className={key} key={key + index + columnIndex} />;
+    case "BalanceCell":
+      return <BalanceCell local={row[key] as number} remote={row[key2] as number} capacity={row?.capacity | 0} className={key} key={key + index + columnIndex} />;
+    case "NumericDoubleCell":
+      return <NumericDoubleCell local={row[key] as number} remote={row[key2] as number} suffix={suffix as string} className={key} key={key + index + columnIndex} />;
     case "DateCell":
       return <DateCell value={row[key] as string} className={key} key={key + index + columnIndex} />;
     case "BooleanCell":

@@ -55,7 +55,7 @@ type channelBody struct {
 	RemotePubkey                 string               `json:"remotePubkey"`
 	FundingTransactionHash       string               `json:"fundingTransactionHash"`
 	FundingOutputIndex           int                  `json:"fundingOutputIndex"`
-	LNDShortChannelId            uint64               `json:"lndShortChannelId"`
+	LNDShortChannelId            string               `json:"lndShortChannelId"`
 	ShortChannelId               string               `json:"shortChannelId"`
 	Capacity                     int64                `json:"capacity"`
 	LocalBalance                 int64                `json:"localBalance"`
@@ -69,6 +69,11 @@ type channelBody struct {
 	MaxHtlcMsat                  uint64               `json:"maxHtlcMsat"`
 	TimeLockDelta                uint32               `json:"timeLockDelta"`
 	FeeRatePpm                   int64                `json:"feeRatePpm"`
+	RemoteBaseFeeMsat            int64                `json:"remoteBaseFeeMsat"`
+	RemoteMinHtlc                int64                `json:"remoteMinHtlc"`
+	RemoteMaxHtlcMsat            uint64               `json:"remoteMaxHtlcMsat"`
+	RemoteTimeLockDelta          uint32               `json:"remoteTimeLockDelta"`
+	RemoteFeeRatePpm             int64                `json:"remoteFeeRatePpm"`
 	PendingForwardingHTLCsCount  int                  `json:"pendingForwardingHTLCsCount"`
 	PendingForwardingHTLCsAmount int64                `json:"pendingForwardingHTLCsAmount"`
 	PendingLocalHTLCsCount       int                  `json:"pendingLocalHTLCsCount"`
@@ -97,6 +102,17 @@ type PendingHtlcs struct {
 	LocalAmount      int64 `json:"localAmount"`
 	TotalCount       int   `json:"toalCount"`
 	TotalAmount      int64 `json:"totalAmount"`
+}
+
+type ChannelPolicy struct {
+	TimeLockDelta    uint32 `json:"timeLockDelta" db:"time_lock_delta"`
+	MinHtlc          int64  `json:"minHtlc" db:"min_htlc"`
+	MaxHtlcMsat      uint64 `json:"maxHtlcMsat" db:"max_htlc_msat"`
+	FeeRateMillMsat  int64  `json:"feeRateMillMsat" db:"fee_rate_mill_msat"`
+	ShortChannelId   string `json:"shortChannelId" db:"short_channel_id"`
+	BeeBaseMsat      int64  `json:"feeBaseMsat" db:"fee_base_msat"`
+	AnnouncingNodeId int    `json:"announcingNodeId" db:"announcing_node_id"`
+	ConnectingNodeId int    `json:"connectingNodeId" db:"connecting_node_id"`
 }
 
 const (
@@ -187,14 +203,13 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 		}
 
 		for _, channel := range r.Channels {
-			channelFee, err := client.GetChanInfo(context.Background(), &lnrpc.ChanInfoRequest{ChanId: channel.ChanId})
+			channelRoutingPolicy, err := GetRoutingPolicy(channel.ChanId, db)
 			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Channel info")
+				server_errors.WrapLogAndSendServerError(c, err, "Channel policy")
 				return
 			}
-			shortChannelId := ConvertLNDShortChannelID(channel.ChanId)
-			stringLNDShortChannelId := strconv.FormatUint(channel.ChanId, 10)
 
+			stringLNDShortChannelId := strconv.FormatUint(channel.ChanId, 10)
 			pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
 
 			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
@@ -208,8 +223,8 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				RemotePubkey:                 channel.RemotePubkey,
 				FundingTransactionHash:       fundingTransactionHash,
 				FundingOutputIndex:           fundingOutputIndex,
-				LNDShortChannelId:            channel.ChanId,
-				ShortChannelId:               shortChannelId,
+				LNDShortChannelId:            stringLNDShortChannelId,
+				ShortChannelId:               channelRoutingPolicy[0].ShortChannelId,
 				Capacity:                     channel.Capacity,
 				LocalBalance:                 channel.LocalBalance,
 				RemoteBalance:                channel.RemoteBalance,
@@ -225,29 +240,32 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				CommitFee:                    channel.CommitFee,
 				CommitWeight:                 channel.CommitWeight,
 				FeePerKw:                     channel.FeePerKw,
-				BaseFeeMsat:                  channelFee.Node1Policy.FeeBaseMsat,
-				MinHtlc:                      channelFee.Node1Policy.MinHtlc,
-				MaxHtlcMsat:                  channelFee.Node1Policy.MaxHtlcMsat,
-				TimeLockDelta:                channelFee.Node1Policy.TimeLockDelta,
-				FeeRatePpm:                   channelFee.Node1Policy.FeeRateMilliMsat,
+				BaseFeeMsat:                  channelRoutingPolicy[0].BeeBaseMsat,
+				MinHtlc:                      channelRoutingPolicy[0].MinHtlc,
+				MaxHtlcMsat:                  channelRoutingPolicy[0].MaxHtlcMsat,
+				TimeLockDelta:                channelRoutingPolicy[0].TimeLockDelta,
+				FeeRatePpm:                   channelRoutingPolicy[0].FeeRateMillMsat,
+				RemoteBaseFeeMsat:            channelRoutingPolicy[1].BeeBaseMsat,
+				RemoteMinHtlc:                channelRoutingPolicy[1].MinHtlc,
+				RemoteMaxHtlcMsat:            channelRoutingPolicy[1].MaxHtlcMsat,
+				RemoteTimeLockDelta:          channelRoutingPolicy[1].TimeLockDelta,
+				RemoteFeeRatePpm:             channelRoutingPolicy[1].FeeRateMillMsat,
 				NumUpdates:                   channel.NumUpdates,
 				Initiator:                    channel.Initiator,
 				ChanStatusFlags:              channel.ChanStatusFlags,
 				CommitmentType:               channel.CommitmentType,
 				Lifetime:                     channel.Lifetime,
 				MempoolSpace:                 MEMPOOL + stringLNDShortChannelId,
-				AmbossSpace:                  AMBOSS + shortChannelId,
+				AmbossSpace:                  AMBOSS + channelRoutingPolicy[0].ShortChannelId,
 				OneMl:                        ONEML + stringLNDShortChannelId,
 			}
 
-			peerInfo, err := client.GetNodeInfo(context.Background(),
-				&lnrpc.NodeInfoRequest{IncludeChannels: true, PubKey: channel.RemotePubkey})
+			peerInfo, err := GetNodePeerAlias(channelRoutingPolicy[0].AnnouncingNodeId, channelRoutingPolicy[0].ConnectingNodeId, db)
 			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Node info")
+				server_errors.WrapLogAndSendServerError(c, err, "Node Alias")
 				return
 			}
-			chanBody.PeerAlias = peerInfo.Node.Alias
-
+			chanBody.PeerAlias = peerInfo
 			channelsBody = append(channelsBody, chanBody)
 		}
 	}
