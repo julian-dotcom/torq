@@ -207,6 +207,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		}
 		log.Debug().Msgf("Added test active node connection details with nodeId: %v", testNodeId2)
 
+		go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctx)
 		go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctx)
 		go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
 		go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)

@@ -11,6 +11,20 @@ import (
 	"github.com/lncapital/torq/internal/database"
 )
 
+func GetCorridorsReferencingCategory(db *sqlx.DB, categoryId int) (corridors []*Corridor, err error) {
+	err = db.Select(&corridors, `
+		SELECT *
+		FROM corridor
+		WHERE from_category_id = $1 OR to_category_id = $1 OR (reference_id = $1 AND corridor_type_id = $2);`, categoryId, Category().CorridorTypeId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return corridors, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return corridors, nil
+}
+
 func GetCorridorsReferencingTag(db *sqlx.DB, tagId int) (corridors []*Corridor, err error) {
 	err = db.Select(&corridors, `
 		SELECT *
@@ -69,6 +83,11 @@ func AddCorridor(db *sqlx.DB, c Corridor) (*Corridor, error) {
 	} else {
 		qb = qb.Where(sq.Eq{"reference_id": nil})
 	}
+	if c.FromCategoryId != nil {
+		qb = qb.Where(sq.Eq{"from_category_id": *c.FromCategoryId})
+	} else {
+		qb = qb.Where(sq.Eq{"from_category_id": nil})
+	}
 	if c.FromTagId != nil {
 		qb = qb.Where(sq.Eq{"from_tag_id": *c.FromTagId})
 	} else {
@@ -78,6 +97,11 @@ func AddCorridor(db *sqlx.DB, c Corridor) (*Corridor, error) {
 		qb = qb.Where(sq.Eq{"from_node_id": *c.FromNodeId})
 	} else {
 		qb = qb.Where(sq.Eq{"from_node_id": nil})
+	}
+	if c.ToCategoryId != nil {
+		qb = qb.Where(sq.Eq{"to_category_id": *c.ToCategoryId})
+	} else {
+		qb = qb.Where(sq.Eq{"to_category_id": nil})
 	}
 	if c.ToTagId != nil {
 		qb = qb.Where(sq.Eq{"to_tag_id": *c.ToTagId})
@@ -106,10 +130,12 @@ func AddCorridor(db *sqlx.DB, c Corridor) (*Corridor, error) {
 
 	if count == 0 {
 		err = db.QueryRowx(`INSERT INTO corridor (corridor_type_id, reference_id, flag, inverse, priority,
-                      from_tag_id, from_node_id, to_tag_id, to_node_id, channel_id, created_on, updated_on)
+                      from_category_id, from_tag_id, from_node_id, to_category_id, to_tag_id, to_node_id, channel_id,
+                      created_on, updated_on)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING corridor_id;`,
 			c.CorridorTypeId, c.ReferenceId, c.Flag, c.Inverse, c.Priority,
-			c.FromTagId, c.FromNodeId, c.ToTagId, c.ToNodeId, c.ChannelId, c.CreatedOn, c.UpdateOn).
+			c.FromCategoryId, c.FromTagId, c.FromNodeId, c.ToCategoryId, c.ToTagId, c.ToNodeId, c.ChannelId,
+			c.CreatedOn, c.UpdateOn).
 			Scan(&c.CorridorId)
 		if err != nil {
 			return nil, errors.Wrap(err, database.SqlExecutionError)

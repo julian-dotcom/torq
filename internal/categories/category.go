@@ -1,12 +1,11 @@
-package tags
+package categories
 
 import (
 	"time"
 )
 
-type Tag struct {
-	TagId      int       `json:"tagId" db:"tag_id"`
-	CategoryId *int      `json:"categoryId" db:"category_id"`
+type Category struct {
+	CategoryId int       `json:"categoryId" db:"category_id"`
 	Name       string    `json:"name" db:"name"`
 	Style      string    `json:"style" db:"style"`
 	CreatedOn  time.Time `json:"createdOn" db:"created_on"`

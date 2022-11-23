@@ -13,21 +13,23 @@ import (
 type CorridorPriority int
 
 const (
-	FromTag = CorridorPriority(iota)
+	FromCategory = CorridorPriority(iota)
+	FromTag
 	FromNode
+	ToCategory
 	ToTag
 	ToNode
 	Channel
 )
 
-func Tag() CorridorType {
-	return CorridorType{0, "tag", 0}
+func Category() CorridorType {
+	return CorridorType{0, "category", 0}
 }
-func AutoFee() CorridorType {
-	return CorridorType{1, "autoFee", 0}
+func Tag() CorridorType {
+	return CorridorType{1, "tag", 0}
 }
 func corridorTypes() []CorridorType {
-	return []CorridorType{Tag(), AutoFee()}
+	return []CorridorType{Category(), Tag()}
 }
 
 type CorridorType struct {
@@ -37,14 +39,16 @@ type CorridorType struct {
 }
 
 type CorridorKey struct {
-	CorridorType CorridorType `json:"corridorType"`
-	Inverse      bool         `json:"inverse"`
-	ReferenceId  int          `json:"referenceId"`
-	FromTagId    int          `json:"fromTagId"`
-	FromNodeId   int          `json:"fromNodeId"`
-	ChannelId    int          `json:"channelId"`
-	ToTagId      int          `json:"toTagId"`
-	ToNodeId     int          `json:"toNodeId"`
+	CorridorType   CorridorType `json:"corridorType"`
+	Inverse        bool         `json:"inverse"`
+	ReferenceId    int          `json:"referenceId"`
+	FromCategoryId int          `json:"fromCategoryId"`
+	FromTagId      int          `json:"fromTagId"`
+	FromNodeId     int          `json:"fromNodeId"`
+	ChannelId      int          `json:"channelId"`
+	ToCategoryId   int          `json:"toCategoryId"`
+	ToTagId        int          `json:"toTagId"`
+	ToNodeId       int          `json:"toNodeId"`
 }
 
 type Corridor struct {
@@ -54,9 +58,11 @@ type Corridor struct {
 	Flag           int       `json:"flag" db:"flag"`
 	Inverse        bool      `json:"inverse" db:"inverse"`
 	Priority       int       `json:"priority" db:"priority"`
+	FromCategoryId *int      `json:"fromCategoryId" db:"from_category_id"`
 	FromTagId      *int      `json:"fromTagId" db:"from_tag_id"`
 	FromNodeId     *int      `json:"fromNodeId" db:"from_node_id"`
 	ChannelId      *int      `json:"channelId" db:"channel_id"`
+	ToCategoryId   *int      `json:"toCategoryId" db:"to_category_id"`
 	ToTagId        *int      `json:"toTagId" db:"to_tag_id"`
 	ToNodeId       *int      `json:"toNodeId" db:"to_node_id"`
 	CreatedOn      time.Time `json:"createdOn" db:"created_on"`
@@ -91,12 +97,12 @@ func (cc *corridorCacheByType) getBestCorridor(key CorridorKey) Corridor {
 }
 
 var corridorCache = map[CorridorType]*corridorCacheByType{ //nolint:gochecknoglobals
-	Tag(): {
+	Category(): {
 		sync.RWMutex{},
 		make(map[int]map[CorridorKey]Corridor, 0),
 		[]int{},
 	},
-	AutoFee(): {
+	Tag(): {
 		sync.RWMutex{},
 		make(map[int]map[CorridorKey]Corridor, 0),
 		[]int{},
@@ -160,12 +166,12 @@ func addToCorridorCache(c Corridor, corridorStagingCache *map[int]map[CorridorKe
 
 func getCorridorTypeFromId(corridorTypeId int) *CorridorType {
 	switch corridorTypeId {
+	case Category().CorridorTypeId:
+		category := Category()
+		return &category
 	case Tag().CorridorTypeId:
 		tag := Tag()
 		return &tag
-	case AutoFee().CorridorTypeId:
-		autoFee := AutoFee()
-		return &autoFee
 	}
 	return nil
 }
@@ -182,11 +188,17 @@ func constructKey(corridor Corridor) CorridorKey {
 		key.ReferenceId = *corridor.ReferenceId
 	}
 	key.Inverse = corridor.Inverse
+	if corridor.FromCategoryId != nil {
+		key.FromCategoryId = *corridor.FromCategoryId
+	}
 	if corridor.FromTagId != nil {
 		key.FromTagId = *corridor.FromTagId
 	}
 	if corridor.FromNodeId != nil {
 		key.FromNodeId = *corridor.FromNodeId
+	}
+	if corridor.ToCategoryId != nil {
+		key.ToCategoryId = *corridor.ToCategoryId
 	}
 	if corridor.ToTagId != nil {
 		key.ToTagId = *corridor.ToTagId
@@ -202,11 +214,17 @@ func constructKey(corridor Corridor) CorridorKey {
 
 func calculatePriority(corridor Corridor) int {
 	priority := 0
+	if corridor.FromCategoryId != nil && *corridor.FromCategoryId != 0 {
+		priority += getPriority(FromCategory)
+	}
 	if corridor.FromTagId != nil && *corridor.FromTagId != 0 {
 		priority += getPriority(FromTag)
 	}
 	if corridor.FromNodeId != nil && *corridor.FromNodeId != 0 {
 		priority += getPriority(FromNode)
+	}
+	if corridor.ToCategoryId != nil && *corridor.ToCategoryId != 0 {
+		priority += getPriority(ToCategory)
 	}
 	if corridor.ToTagId != nil && *corridor.ToTagId != 0 {
 		priority += getPriority(ToTag)
@@ -230,10 +248,16 @@ func hasPriority(corridorPriority CorridorPriority, priority int) bool {
 }
 
 func equals(key CorridorKey, priority int, otherKey CorridorKey) bool {
+	if hasPriority(FromCategory, priority) && otherKey.FromCategoryId != key.FromCategoryId {
+		return false
+	}
 	if hasPriority(FromTag, priority) && otherKey.FromTagId != key.FromTagId {
 		return false
 	}
 	if hasPriority(FromNode, priority) && otherKey.FromNodeId != key.FromNodeId {
+		return false
+	}
+	if hasPriority(ToCategory, priority) && otherKey.ToCategoryId != key.ToCategoryId {
 		return false
 	}
 	if hasPriority(ToTag, priority) && otherKey.ToTagId != key.ToTagId {

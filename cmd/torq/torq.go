@@ -282,6 +282,8 @@ func main() {
 				return errors.Wrap(err, "Migrating database up")
 			}
 
+			go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, nil)
+
 			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, nil)
 			err = settings.InitializeManagedSettingsCache(db)
 			if err != nil {

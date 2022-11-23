@@ -9,10 +9,10 @@ var ManagedSettingsChannel = make(chan ManagedSettings) //nolint:gochecknoglobal
 type ManagedSettingsCacheOperationType uint
 
 const (
-	// READ please provide Out
-	READ ManagedSettingsCacheOperationType = iota
-	// WRITE please provide defaultLanguage, preferredTimeZone, defaultDateRange and weekStartsOn
-	WRITE
+	// READ_SETTINGS please provide Out
+	READ_SETTINGS ManagedSettingsCacheOperationType = iota
+	// WRITE_SETTINGS please provide defaultLanguage, preferredTimeZone, defaultDateRange and weekStartsOn
+	WRITE_SETTINGS
 )
 
 type ManagedSettings struct {
@@ -51,13 +51,13 @@ func ManagedSettingsCache(ch chan ManagedSettings, ctx context.Context) {
 
 func processManagedSettings(managedSettings ManagedSettings, defaultLanguage string, preferredTimeZone string, defaultDateRange string, weekStartsOn string) (string, string, string, string) {
 	switch managedSettings.Type {
-	case READ:
+	case READ_SETTINGS:
 		managedSettings.DefaultLanguage = defaultLanguage
 		managedSettings.PreferredTimeZone = preferredTimeZone
 		managedSettings.DefaultDateRange = defaultDateRange
 		managedSettings.WeekStartsOn = weekStartsOn
 		go SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
-	case WRITE:
+	case WRITE_SETTINGS:
 		defaultLanguage = managedSettings.DefaultLanguage
 		preferredTimeZone = managedSettings.PreferredTimeZone
 		defaultDateRange = managedSettings.DefaultDateRange
@@ -73,7 +73,7 @@ func SendToManagedSettingsChannel(ch chan ManagedSettings, managedSettings Manag
 func GetSettings() ManagedSettings {
 	settingsResponseChannel := make(chan ManagedSettings)
 	managedSettings := ManagedSettings{
-		Type: READ,
+		Type: READ_SETTINGS,
 		Out:  settingsResponseChannel,
 	}
 	ManagedSettingsChannel <- managedSettings
@@ -86,7 +86,7 @@ func SetSettings(defaultDateRange, defaultLanguage, weekStartsOn, preferredTimeZ
 		DefaultLanguage:   defaultLanguage,
 		WeekStartsOn:      weekStartsOn,
 		PreferredTimeZone: preferredTimeZone,
-		Type:              WRITE,
+		Type:              WRITE_SETTINGS,
 	}
 	ManagedSettingsChannel <- managedSettings
 }
