@@ -26,13 +26,13 @@ func GetAllChannels(db *sqlx.DB) (channels []Channel, err error) {
 func GetRoutingPolicy(chanId uint64, db *sqlx.DB) ([]ChannelPolicy, error) {
 	cp := []ChannelPolicy{}
 	err := db.Select(&cp, `
-	SELECT time_lock_delta, min_htlc, max_htlc_msat, fee_base_msat, fee_rate_mill_msat, short_channel_id
+	SELECT time_lock_delta, min_htlc, max_htlc_msat, fee_base_msat, fee_rate_mill_msat, short_channel_id, announcing_node_id, connecting_node_id
 	FROM routing_policy rp
 	LEFT JOIN channel c
 	ON rp.channel_id = c.channel_id
 	WHERE c.lnd_short_channel_id=$1
 	ORDER BY ts DESC
-	LIMIT 1;`, chanId)
+	LIMIT 2;`, chanId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []ChannelPolicy{}, nil
@@ -40,6 +40,18 @@ func GetRoutingPolicy(chanId uint64, db *sqlx.DB) ([]ChannelPolicy, error) {
 		return []ChannelPolicy{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return cp, nil
+}
+
+func GetNodePeerAlias(localNodeId int, remoteNodeId int, db *sqlx.DB) (string, error) {
+	var alias string
+	err := db.Get(&alias, "SELECT DISTINCT alias FROM node_event WHERE node_id = $1 AND event_node_id = $2 LIMIT 1;", localNodeId, remoteNodeId)
+	if err != nil {
+		if errors.As(err, &sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", errors.Wrap(err, database.SqlExecutionError)
+	}
+	return alias, nil
 }
 
 func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err error) {
