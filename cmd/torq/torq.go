@@ -164,6 +164,7 @@ func main() {
 			broadcaster := broadcast.NewBroadcastServer(globalCtx, eventChannelGlobal)
 
 			go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, globalCtx)
+			go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, broadcaster, globalCtx)
 			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, globalCtx)
 			go commons.ManagedNodeCache(commons.ManagedNodeChannel, globalCtx)
 			go commons.ManagedChannelCache(commons.ManagedChannelChannel, globalCtx)
