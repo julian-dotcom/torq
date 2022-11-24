@@ -57,7 +57,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		if c.Initiator {
 			initiatingNodeId = &nodeSettings.NodeId
 		}
-		channel, err := addChannelOrUpdateStatus(c.ChannelPoint, c.ChanId, &channelStatus, c.Capacity,
+		channel, err := addChannelOrUpdateStatus(c.ChannelPoint, c.ChanId, &channelStatus, c.Capacity, &c.Private,
 			nil, nil, nodeSettings, remoteNodeId, initiatingNodeId, nil, db)
 		if err != nil {
 			return errors.Wrap(err, "OPEN_CHANNEL: Add Channel Or Update Status")
@@ -73,7 +73,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 
 		// This allows torq to listen to the graph for channel updates
 		commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.Status,
-			channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity,
+			channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
 			channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channel.ChannelID, false, jsonByteArray,
@@ -101,7 +101,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		} else if c.CloseInitiator == lnrpc.Initiator_INITIATOR_REMOTE {
 			closingNodeId = &remoteNodeId
 		}
-		channel, err := addChannelOrUpdateStatus(c.ChannelPoint, c.ChanId, nil, c.Capacity,
+		channel, err := addChannelOrUpdateStatus(c.ChannelPoint, c.ChanId, nil, c.Capacity, nil,
 			&c.CloseType, &c.ClosingTxHash, nodeSettings, remoteNodeId, initiatingNodeId, closingNodeId, db)
 		if err != nil {
 			return errors.Wrap(err, "CLOSED_CHANNEL: Add Channel Or Update Status")
@@ -203,7 +203,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 }
 
 func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, channelStatus *commons.ChannelStatus,
-	capacity int64, closeType *lnrpc.ChannelCloseSummary_ClosureType, closingTxHash *string,
+	capacity int64, private *bool, closeType *lnrpc.ChannelCloseSummary_ClosureType, closingTxHash *string,
 	nodeSettings commons.ManagedNodeSettings, remoteNodeId int, initiatingNodeId *int, closingNodeId *int,
 	db *sqlx.DB) (channels.Channel, error) {
 
@@ -216,6 +216,9 @@ func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, cha
 		InitiatingNodeId:       initiatingNodeId,
 		ClosingNodeId:          closingNodeId,
 		Capacity:               capacity,
+	}
+	if private != nil {
+		channel.Private = *private
 	}
 	if initiatingNodeId != nil {
 		if *initiatingNodeId == remoteNodeId {
@@ -486,7 +489,7 @@ icoLoop:
 			initiatingNodeId = &nodeSettings.NodeId
 		}
 		channel, err := addChannelOrUpdateStatus(lndChannel.ChannelPoint, lndChannel.ChanId,
-			&channelStatus, lndChannel.Capacity,
+			&channelStatus, lndChannel.Capacity, &lndChannel.Private,
 			nil, nil, nodeSettings, remoteNodeId, initiatingNodeId, nil, db)
 		if err != nil {
 			return errors.Wrap(err, "ImportedOpenChannels: Add Channel Or Update Status")
@@ -559,7 +562,7 @@ icoLoop:
 		} else if lndChannel.CloseInitiator == lnrpc.Initiator_INITIATOR_REMOTE {
 			closingNodeId = &remoteNodeId
 		}
-		channel, err := addChannelOrUpdateStatus(lndChannel.ChannelPoint, lndChannel.ChanId, nil, lndChannel.Capacity,
+		channel, err := addChannelOrUpdateStatus(lndChannel.ChannelPoint, lndChannel.ChanId, nil, lndChannel.Capacity, nil,
 			&lndChannel.CloseType, &lndChannel.ClosingTxHash, nodeSettings, remoteNodeId, initiatingNodeId, closingNodeId, db)
 		if err != nil {
 			return errors.Wrap(err, "ImportedClosedChannels: Add Channel Or Update Status")

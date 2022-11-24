@@ -61,6 +61,7 @@ type Channel struct {
 	ClosingTransactionHash *string               `json:"closingTransactionHash" db:"closing_transaction_hash"`
 	LNDShortChannelID      *uint64               `json:"lndShortChannelId" db:"lnd_short_channel_id"`
 	Capacity               int64                 `json:"capacity" db:"capacity"`
+	Private                bool                  `json:"private" db:"private"`
 	FirstNodeId            int                   `json:"firstNodeId" db:"first_node_id"`
 	SecondNodeId           int                   `json:"secondNodeId" db:"second_node_id"`
 	InitiatingNodeId       *int                  `json:"initiatingNodeId" db:"initiating_node_id"`
@@ -110,7 +111,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 						channel.FundingTransactionHash, channel.FundingOutputIndex)
 				}
 				commons.SetChannel(existingChannelId, channel.ShortChannelID,
-					channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity,
+					channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
 					channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 				if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
 					err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)

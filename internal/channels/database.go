@@ -132,7 +132,7 @@ func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err 
 func InitializeManagedChannelCache(db *sqlx.DB) error {
 	log.Debug().Msg("Pushing channels to ManagedChannel cache.")
 	rows, err := db.Query(`
-		SELECT channel_id, short_channel_id, funding_transaction_hash, funding_output_index, status_id, capacity,
+		SELECT channel_id, short_channel_id, funding_transaction_hash, funding_output_index, status_id, capacity, private,
 		       first_node_id, second_node_id, initiating_node_id, accepting_node_id
 		FROM channel;`)
 	if err != nil {
@@ -144,16 +144,17 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		var fundingTransactionHash string
 		var fundingOutputIndex int
 		var capacity int64
+		var private bool
 		var firstNodeId int
 		var secondNodeId int
 		var initiatingNodeId *int
 		var acceptingNodeId *int
 		var status commons.ChannelStatus
-		err = rows.Scan(&channelId, &shortChannelId, &fundingTransactionHash, &fundingOutputIndex, &status, &capacity, &firstNodeId, &secondNodeId, &initiatingNodeId, &acceptingNodeId)
+		err = rows.Scan(&channelId, &shortChannelId, &fundingTransactionHash, &fundingOutputIndex, &status, &capacity, &private, &firstNodeId, &secondNodeId, &initiatingNodeId, &acceptingNodeId)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining channelId and shortChannelId from the resultSet")
 		}
-		commons.SetChannel(channelId, shortChannelId, status, fundingTransactionHash, fundingOutputIndex, capacity, firstNodeId, secondNodeId, initiatingNodeId, acceptingNodeId)
+		commons.SetChannel(channelId, shortChannelId, status, fundingTransactionHash, fundingOutputIndex, capacity, private, firstNodeId, secondNodeId, initiatingNodeId, acceptingNodeId)
 	}
 	return nil
 }
@@ -210,21 +211,22 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 		  initiating_node_id,
 		  accepting_node_id,
 		  capacity,
+		  private,
 		  status_id,
 		  created_on,
 		  updated_on
 		) values (
-		  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+		  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 		) RETURNING channel_id;`,
 		channel.ShortChannelID, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.ClosingTransactionHash, channel.ClosingNodeId,
 		channel.LNDShortChannelID, channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId, channel.Capacity,
-		channel.Status, channel.CreatedOn,
+		channel.Private, channel.Status, channel.CreatedOn,
 		channel.UpdateOn).Scan(&channel.ChannelID)
 	if err != nil {
 		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	commons.SetChannel(channel.ChannelID, channel.ShortChannelID,
-		channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity,
+		channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
 		channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 	return channel, nil
 }

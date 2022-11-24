@@ -43,6 +43,7 @@ type ManagedChannel struct {
 	SecondNodeId           int
 	InitiatingNodeId       *int
 	AcceptingNodeId        *int
+	Private                bool
 	Status                 ChannelStatus
 	Out                    chan ManagedChannel
 	ChannelSettingOut      chan ManagedChannelSettings
@@ -59,6 +60,7 @@ type ManagedChannelSettings struct {
 	SecondNodeId           int
 	InitiatingNodeId       *int
 	AcceptingNodeId        *int
+	Private                bool
 	Status                 ChannelStatus
 }
 
@@ -141,6 +143,7 @@ func processManagedChannel(managedChannel ManagedChannel,
 				SecondNodeId:           managedChannel.SecondNodeId,
 				InitiatingNodeId:       managedChannel.InitiatingNodeId,
 				AcceptingNodeId:        managedChannel.AcceptingNodeId,
+				Private:                managedChannel.Private,
 			}
 		}
 	case WRITE_CHANNELSTATUSID:
@@ -284,7 +287,7 @@ func GetChannelSettingByChannelId(channelId int) ManagedChannelSettings {
 }
 
 func SetChannel(channelId int, shortChannelId *string, status ChannelStatus,
-	fundingTransactionHash string, fundingOutputIndex int, capacity int64, firstNodeId, secondNodeId int,
+	fundingTransactionHash string, fundingOutputIndex int, capacity int64, private bool, firstNodeId, secondNodeId int,
 	initiatingNodeId, acceptingNodeId *int) {
 	managedChannel := ManagedChannel{
 		ChannelId:              channelId,
@@ -295,6 +298,7 @@ func SetChannel(channelId int, shortChannelId *string, status ChannelStatus,
 		SecondNodeId:           secondNodeId,
 		InitiatingNodeId:       initiatingNodeId,
 		AcceptingNodeId:        acceptingNodeId,
+		Private:                private,
 		Status:                 status,
 		Type:                   WRITE_CHANNEL,
 	}

@@ -229,7 +229,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		err = channels.InitializeManagedChannelCache(db)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem initializing ManagedChannel cache: %v", err)
+			log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
 		}
 		log.Debug().Msgf("Channel publicKeys: %v", commons.GetChannelPublicKeys(commons.Bitcoin, commons.SigNet))
 		log.Debug().Msgf("Channel nodeIds: %v", commons.GetChannelNodeIds(commons.Bitcoin, commons.SigNet))
@@ -248,7 +248,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, testChannel1)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem adding channel %v", testChannel1)
+			log.Fatal().Err(err).Msgf("Problem adding channel %v", testChannel1)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
@@ -267,7 +267,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel2)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem adding channel %v", testChannel2)
+			log.Fatal().Err(err).Msgf("Problem adding channel %v", testChannel2)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
@@ -286,7 +286,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel3)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem adding channel %v", testChannel3)
+			log.Fatal().Err(err).Msgf("Problem adding channel %v", testChannel3)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
@@ -305,7 +305,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel4)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem adding channel %v", testChannel4)
+			log.Fatal().Err(err).Msgf("Problem adding channel %v", testChannel4)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 

@@ -11,6 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/channels"
@@ -311,6 +312,7 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	}
 	channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 	if err != nil {
+		log.Error().Err(err).Msgf("Failed to create channel %v", lndShortChannelId)
 		t.Fatalf("Problem adding channel %v", channel)
 	}
 	t.Logf("channel added with channelId: %v", channelId)
