@@ -113,12 +113,6 @@ type ChannelPolicy struct {
 	FeeBaseMsat     int64  `json:"feeBaseMsat" db:"fee_base_msat"`
 	NodeId          int    `json:"nodeId" db:"node_id"`
 	RemoteNodeId    int    `json:"RemoteodeId" db:"remote_node_id"`
-	// RemoteTimeLockDelta   uint32 `json:"remoteTimeLockDelta" db:"remote_time_lock_delta"`
-	// RemoteMinHtlc         int64  `json:"remoteMinHtlc" db:"remote_min_htlc"`
-	// RemoteMaxHtlcMsat     uint64 `json:"remoteMaxHtlcMsat" db:"remote_max_htlc_msat"`
-	// RemoteFeeRateMillMsat int64  `json:"remoteFeeRateMillMsat" db:"remote_fee_rate_mill_msat"`
-	// RemoteFeeBaseMsat     int64  `json:"remoteFeeBaseMsat" db:"remote_fee_base_msat"`
-	// RemoteNodeId          int    `json:"remoteNodeId" db:"remote_node_id"`
 }
 
 const (
@@ -226,15 +220,6 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
 			fundingTransactionHash, fundingOutputIndex := ParseChannelPoint(channel.ChannelPoint)
 
-			// var localPolicy = ChannelPolicy{}
-			// var remotePolicy = ChannelPolicy{}
-			// if (channelRoutingPolicy[0] != ChannelPolicy{}) {
-			// 	localPolicy = channelRoutingPolicy[0]
-			// }
-
-			// if (channelRoutingPolicy[1] != ChannelPolicy{}) {
-			// 	remotePolicy = channelRoutingPolicy[0]
-			// }
 			shortChannelId := localPolicy.ShortChannelId
 			localNodeId := localPolicy.NodeId
 			remoteNodeId := localPolicy.RemoteNodeId
