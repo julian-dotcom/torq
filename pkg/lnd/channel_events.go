@@ -334,6 +334,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 	var err error
 	var chanEvent *lnrpc.ChannelEventUpdate
 	serviceStatus := commons.Inactive
+	subscriptionStream := commons.ChannelEventStream
 
 	for {
 		select {
@@ -343,7 +344,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 		}
 
 		if stream == nil {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.ChannelEventStream, commons.Pending, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			stream, err = client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
 			if err == nil {
 				// HACK to know if the context is a testcase.
@@ -357,7 +358,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 						continue
 					}
 				}
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.ChannelEventStream, commons.Active, serviceStatus)
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 			} else {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
@@ -374,7 +375,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.ChannelEventStream, commons.Pending, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msg("Receiving channel events from the stream failed, will retry in 1 minute")
 			stream = nil
 			time.Sleep(1 * time.Minute)

@@ -54,6 +54,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 	var blockEpoch *chainrpc.BlockEpoch
 	serviceStatus := commons.Inactive
 	bootStrapping := true
+	subscriptionStream := commons.TransactionStream
 
 	for {
 		select {
@@ -63,7 +64,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		}
 
 		if stream == nil {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Pending, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			transactionHeight, err = fetchLastTxHeight(db)
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -112,7 +113,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Pending, serviceStatus)
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msg("Receiving block epoch from the stream failed, will retry in 1 minute")
 				stream = nil
 				time.Sleep(1 * time.Minute)
@@ -126,7 +127,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Pending, serviceStatus)
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 1 minute")
 				stream = nil
 				time.Sleep(1 * time.Minute)
@@ -135,9 +136,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		}
 
 		if bootStrapping {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Initializing, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 		} else {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Active, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 		for _, transaction := range transactionDetails.Transactions {
 			storedTx, err = storeTransaction(db, transaction, nodeSettings.NodeId)

@@ -101,5 +101,6 @@ const (
 	ForwardStream
 	InvoiceStream
 	PaymentStream
+	InFlightPaymentStream
 	PeerEventStream
 )

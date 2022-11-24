@@ -36,6 +36,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	var err error
 	var gpu *lnrpc.GraphTopologyUpdate
 	serviceStatus := commons.Inactive
+	subscriptionStream := commons.GraphEventStream
 
 	for {
 		select {
@@ -45,7 +46,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		if stream == nil {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.GraphEventStream, commons.Pending, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
 			if err == nil {
 				// HACK to know if the context is a testcase.
@@ -68,7 +69,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 						continue
 					}
 				}
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.GraphEventStream, commons.Active, serviceStatus)
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 			} else {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
@@ -85,7 +86,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.GraphEventStream, commons.Pending, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msg("Receiving channel graph events from the stream failed, will retry in 1 minute")
 			stream = nil
 			time.Sleep(1 * time.Minute)

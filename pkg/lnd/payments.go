@@ -35,6 +35,9 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	var lastPaymentIndex uint64
 	var payments *lnrpc.ListPaymentsResponse
 	var err error
+	serviceStatus := commons.Inactive
+	bootStrapping := true
+	subscriptionStream := commons.PaymentStream
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
@@ -58,16 +61,23 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 			lastPaymentIndex, err = fetchLastPaymentIndex(db)
 			if err != nil {
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 1 minute")
 				continue
 			}
 
+			if bootStrapping {
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			} else {
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			}
 			for {
 				payments, err = fetchPayments(ctx, client, lastPaymentIndex)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
+					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in 1 minute")
 					break
 				}
@@ -82,12 +92,15 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				// Stop fetching if there are fewer forwards than max requested
 				// (indicates that we have the last forwarding record)
 				if len(payments.Payments) == 0 {
+					bootStrapping = false
 					break
 				} else {
 					lastPaymentIndex = payments.LastIndexOffset
-					importCounter++
-					if importCounter%1000 == 0 {
-						log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
+					if bootStrapping {
+						importCounter++
+						if importCounter%500 == 0 {
+							log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
+						}
 					}
 				}
 			}
@@ -188,6 +201,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 	var listPaymentsResponse *lnrpc.ListPaymentsResponse
 	serviceStatus := commons.Inactive
 	bootStrapping := true
+	subscriptionStream := commons.InFlightPaymentStream
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
@@ -209,15 +223,15 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		case <-ticker:
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db)
 			if err != nil {
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.PaymentStream, commons.Pending, serviceStatus)
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in 1 minute")
 				continue
 			}
 
 			if bootStrapping {
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.PaymentStream, commons.Initializing, serviceStatus)
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 			} else {
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.PaymentStream, commons.Active, serviceStatus)
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 			}
 			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.

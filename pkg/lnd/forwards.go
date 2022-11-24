@@ -126,6 +126,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 	maxEvents := MAXEVENTS
 	serviceStatus := commons.Inactive
 	bootStrapping := true
+	subscriptionStream := commons.ForwardStream
 
 	// Check if maxEvents has been set and that it is bellow the hard coded maximum defined by
 	// the constant MAXEVENTS.
@@ -159,7 +160,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				// Fetch the nanosecond timestamp of the most recent record we have.
 				lastNs, err := fetchLastForwardTime(db)
 				if err != nil {
-					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.ForwardStream, commons.Pending, serviceStatus)
+					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 10 seconds")
 					break
 				}
@@ -174,15 +175,15 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
-					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.ForwardStream, commons.Pending, serviceStatus)
+					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain forwards, will retry in 10 seconds")
 					break
 				}
 
 				if bootStrapping {
-					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.ForwardStream, commons.Initializing, serviceStatus)
+					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 				} else {
-					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.ForwardStream, commons.Active, serviceStatus)
+					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 				}
 				// Store the forwarding history
 				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, eventChannel)

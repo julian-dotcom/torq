@@ -306,6 +306,7 @@ func setStreamStatuses(nodeId int, rs *Services, status Status) {
 	nodeStreamStatus[ForwardStream] = status
 	nodeStreamStatus[InvoiceStream] = status
 	nodeStreamStatus[PaymentStream] = status
+	nodeStreamStatus[InFlightPaymentStream] = status
 	nodeStreamStatus[PeerEventStream] = status
 	rs.streamStatus[nodeId] = nodeStreamStatus
 }

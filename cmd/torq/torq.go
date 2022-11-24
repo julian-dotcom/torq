@@ -372,7 +372,7 @@ func main() {
 
 												services.Booted(node.NodeId, bootLock, serviceEventChannel)
 												log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
-												err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel, serviceEventChannel)
+												err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel, serviceEventChannel, serviceChannel)
 												if err != nil {
 													log.Error().Err(err).Send()
 													// only log the error, don't return

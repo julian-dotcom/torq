@@ -158,6 +158,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 	var htlcEvent *routerrpc.HtlcEvent
 	var storedHtlcEvent HtlcEvent
 	serviceStatus := commons.Inactive
+	subscriptionStream := commons.HtlcEventStream
 
 	for {
 		select {
@@ -167,7 +168,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 		}
 
 		if stream == nil {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.HtlcEventStream, commons.Pending, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			stream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -178,7 +179,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				time.Sleep(1 * time.Minute)
 				continue
 			}
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.HtlcEventStream, commons.Active, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 
 		htlcEvent, err = stream.Recv()
@@ -186,7 +187,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.HtlcEventStream, commons.Pending, serviceStatus)
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msg("Receiving htlc events from the stream failed, will retry in 1 minute")
 			stream = nil
 			time.Sleep(1 * time.Minute)

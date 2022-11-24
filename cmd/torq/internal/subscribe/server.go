@@ -21,7 +21,9 @@ import (
 // fetches data as needed and stores it in the database.
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
-func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
+	eventChannel chan interface{},
+	serviceEventChannel chan commons.ServiceEvent, serviceChannel chan commons.ServiceChannelMessage) error {
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
 	chain := chainrpc.NewChainNotifierClient(conn)
@@ -55,12 +57,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in SubscribeAndStoreTransactions: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreTransactions")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.TransactionStream)
 			}
 		}()
 		lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel, serviceEventChannel)
@@ -72,12 +69,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in SubscribeAndStoreHtlcEvents: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreHtlcEvents")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.HtlcEventStream)
 			}
 		}()
 		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel, serviceEventChannel)
@@ -89,12 +81,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in SubscribeAndStoreChannelEvents: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreChannelEvents")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.ChannelEventStream)
 			}
 		}()
 		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
@@ -106,12 +93,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in SubscribeAndStoreChannelGraph: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreChannelGraph")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.GraphEventStream)
 			}
 		}()
 		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
@@ -123,12 +105,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in SubscribeForwardingEvents: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeForwardingEvents")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.ForwardStream)
 			}
 		}()
 		lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
@@ -140,12 +117,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in SubscribeAndStoreInvoices: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStoreInvoices")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.InvoiceStream)
 			}
 		}()
 		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
@@ -157,12 +129,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in SubscribeAndStorePayments: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribeAndStorePayments")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.PaymentStream)
 			}
 		}()
 		lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
@@ -174,12 +141,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in UpdateInFlightPayments: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in UpdateInFlightPayments")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.InFlightPaymentStream)
 			}
 		}()
 		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
@@ -191,12 +153,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in SubscribePeerEvents: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribePeerEvents")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.PeerEventStream)
 			}
 		}()
 		lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel, serviceEventChannel)
@@ -205,4 +162,25 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 	wg.Wait()
 
 	return nil
+}
+
+func recoverPanic(panicError any, serviceChannel chan commons.ServiceChannelMessage, nodeId int, subscriptionStream commons.SubscriptionStream) {
+	log.Error().Msgf("Panic occurred in %v (nodeId: %v) %v", subscriptionStream, nodeId, panicError)
+	log.Error().Msgf("Killing the LND Service for nodeId: %v", nodeId)
+	resultChannel := make(chan commons.Status)
+	serviceChannel <- commons.ServiceChannelMessage{
+		NodeId:         nodeId,
+		ServiceType:    commons.LndService,
+		ServiceCommand: commons.Kill,
+		NoDelay:        true,
+		Out:            resultChannel,
+	}
+	switch <-resultChannel {
+	case commons.Active:
+		log.Error().Msgf("Killed LND service after Panic in %v (nodeId: %v)", subscriptionStream, nodeId)
+	case commons.Pending:
+		log.Error().Msgf("Failed to kill LND service (it's booting) after Panic in %v (nodeId: %v)", subscriptionStream, nodeId)
+	case commons.Inactive:
+		log.Error().Msgf("Killed LND service after Panic in %v (nodeId: %v)", subscriptionStream, nodeId)
+	}
 }

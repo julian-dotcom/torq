@@ -17,22 +17,24 @@ type TorqService struct {
 
 type LndService struct {
 	Service
-	TransactionStreamStatus    commons.Status
-	TransactionStreamBootTime  *time.Time
-	HtlcEventStreamStatus      commons.Status
-	HtlcEventStreamBootTime    *time.Time
-	ChannelEventStreamStatus   commons.Status
-	ChannelEventStreamBootTime *time.Time
-	GraphEventStreamStatus     commons.Status
-	GraphEventStreamBootTime   *time.Time
-	ForwardStreamStatus        commons.Status
-	ForwardStreamBootTime      *time.Time
-	InvoiceStreamStatus        commons.Status
-	InvoiceStreamBootTime      *time.Time
-	PaymentStreamStatus        commons.Status
-	PaymentStreamBootTime      *time.Time
-	PeerEventStreamStatus      commons.Status
-	PeerEventStreamBootTime    *time.Time
+	TransactionStreamStatus       commons.Status
+	TransactionStreamBootTime     *time.Time
+	HtlcEventStreamStatus         commons.Status
+	HtlcEventStreamBootTime       *time.Time
+	ChannelEventStreamStatus      commons.Status
+	ChannelEventStreamBootTime    *time.Time
+	GraphEventStreamStatus        commons.Status
+	GraphEventStreamBootTime      *time.Time
+	ForwardStreamStatus           commons.Status
+	ForwardStreamBootTime         *time.Time
+	InvoiceStreamStatus           commons.Status
+	InvoiceStreamBootTime         *time.Time
+	PaymentStreamStatus           commons.Status
+	PaymentStreamBootTime         *time.Time
+	InFlightPaymentStreamStatus   commons.Status
+	InFlightPaymentStreamBootTime *time.Time
+	PeerEventStreamStatus         commons.Status
+	PeerEventStreamBootTime       *time.Time
 }
 
 type VectorService struct {
