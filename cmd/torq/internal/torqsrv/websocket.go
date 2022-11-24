@@ -203,19 +203,7 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 				return
 			default:
 				// TODO FIXME FILTER OUT ONLY THE EVENTS THE USER ACTUALLY WANTS!!!
-				if nodeGraphEvent, ok := event.(broadcast.NodeGraphEvent); ok {
-					webSocketChannel <- nodeGraphEvent
-				} else if channelGraphEvent, ok := event.(broadcast.ChannelGraphEvent); ok {
-					webSocketChannel <- channelGraphEvent
-				} else if transactionEvent, ok := event.(broadcast.TransactionEvent); ok {
-					webSocketChannel <- transactionEvent
-				} else if channelEvent, ok := event.(broadcast.ChannelEvent); ok {
-					webSocketChannel <- channelEvent
-				} else if invoiceEvent, ok := event.(broadcast.InvoiceEvent); ok {
-					webSocketChannel <- invoiceEvent
-				} else if peerEvent, ok := event.(broadcast.PeerEvent); ok {
-					webSocketChannel <- peerEvent
-				} else if openChannelEvent, ok := event.(channels.OpenChannelResponse); ok {
+				if openChannelEvent, ok := event.(channels.OpenChannelResponse); ok {
 					webSocketChannel <- openChannelEvent
 				} else if closeChannelEvent, ok := event.(channels.CloseChannelResponse); ok {
 					webSocketChannel <- closeChannelEvent
