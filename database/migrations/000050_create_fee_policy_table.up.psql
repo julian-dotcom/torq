@@ -1,0 +1,23 @@
+CREATE TABLE fee_policy (
+  fee_policy_id SERIAL PRIMARY KEY,
+  fee_policy_type INTEGER NOT NULL,
+  name TEXT NULL,
+  include_pending_htlcs BOOLEAN NOT NULL DEFAULT FALSE,
+  aggregate_on_peer BOOLEAN NOT NULL DEFAULT FALSE,
+  min_htlc INTEGER NOT NULL,
+  max_htlc INTEGER NOT NULL,
+  max_ratio INTEGER NOT NULL,
+  min_ratio INTEGER NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_on TIMESTAMPTZ NOT NULL,
+  updated_on TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE fee_policy_step (
+  fee_policy_step_id SERIAL PRIMARY KEY,
+  fee_policy_id INTEGER NOT NULL,
+  fee_rate INTEGER NOT NULL,
+  base_fee INTGER NOT NULL,
+  created_on TIMESTAMPTZ NOT NULL,
+  updated_on TIMESTAMPTZ NOT NULL
+);
