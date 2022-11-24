@@ -255,6 +255,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		}
 	}
 	ncd.NodeId = nodeId
+	ncd.Status = commons.Active
 	if strings.TrimSpace(ncd.Name) == "" {
 		ncd.Name = fmt.Sprintf("Node_%v", ncd.NodeId)
 	}
