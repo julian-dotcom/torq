@@ -1,0 +1,19 @@
+
+ALTER TABLE channel ADD COLUMN capacity NUMERIC;
+ALTER TABLE channel ADD COLUMN initiating_node_id INTEGER REFERENCES node(node_id);
+ALTER TABLE channel ADD COLUMN accepting_node_id INTEGER REFERENCES node(node_id);
+ALTER TABLE channel ADD COLUMN closing_node_id INTEGER REFERENCES node(node_id);
+
+UPDATE channel c1
+SET capacity=TO_NUMBER((ce.event->'capacity')::TEXT, '9999999999999999')
+FROM channel_event ce
+WHERE ce.event->'capacity' > '0' AND
+    ce.channel_id=c1.channel_id AND
+    c1.capacity IS NULL AND
+    ce.time=(
+        SELECT MAX(me.time)
+        FROM channel_event me
+        WHERE me.channel_id=ce.channel_id AND
+                    me.event->'capacity' > '0'
+        GROUP BY me.channel_id
+    );

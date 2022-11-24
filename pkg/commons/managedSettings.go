@@ -24,27 +24,18 @@ type ManagedSettings struct {
 	Out               chan ManagedSettings
 }
 
-// ManagedSettingsCache parameter Context is for test cases...
 func ManagedSettingsCache(ch chan ManagedSettings, ctx context.Context) {
 	var defaultLanguage string
 	var preferredTimeZone string
 	var defaultDateRange string
 	var weekStartsOn string
 	for {
-		if ctx == nil {
-			managedSettings := <-ch
+		select {
+		case <-ctx.Done():
+			return
+		case managedSettings := <-ch:
 			defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn =
 				processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn)
-		} else {
-			// TODO: The code itself is fine here but special case only for test cases?
-			// Running Torq we don't have nor need to be able to cancel but we do for test cases because global var is shared
-			select {
-			case <-ctx.Done():
-				return
-			case managedSettings := <-ch:
-				defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn =
-					processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn)
-			}
 		}
 	}
 }

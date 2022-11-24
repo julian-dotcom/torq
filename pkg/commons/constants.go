@@ -3,10 +3,13 @@ package commons
 type ServiceType int
 
 const (
-	LndSubscription = ServiceType(iota)
-	VectorSubscription
-	AmbossSubscription
+	LndService = ServiceType(iota)
+	VectorService
+	AmbossService
+	TorqService
 )
+
+const TorqDummyNodeId = -1337
 
 type ServiceCommand int
 
@@ -30,6 +33,8 @@ type ServiceChannelMessage = struct {
 	Out     chan Status
 }
 
+const BOOTSTRAPPING_TIME_MINUTES = 8 * 60
+
 type Status int
 
 const (
@@ -37,6 +42,7 @@ const (
 	Active
 	Pending
 	Deleted
+	Initializing
 )
 
 type Implementation int
@@ -84,3 +90,16 @@ const (
 	Vector
 )
 const PingSystemMax = int(Vector)*2 - 1
+
+type SubscriptionStream int
+
+const (
+	TransactionStream = SubscriptionStream(iota)
+	HtlcEventStream
+	ChannelEventStream
+	GraphEventStream
+	ForwardStream
+	InvoiceStream
+	PaymentStream
+	PeerEventStream
+)

@@ -1,4 +1,4 @@
-package broadcast
+package commons
 
 import (
 	"time"
@@ -33,6 +33,14 @@ type ChannelGraphEventData struct {
 	MaxHtlcMsat      uint64 `json:"maxHtlcMsat"`
 	FeeBaseMsat      int64  `json:"feeBaseMsat"`
 	FeeRateMilliMsat int64  `json:"feeRateMilliMsat"`
+}
+
+type ServiceEvent struct {
+	EventData
+	Type               ServiceType
+	SubscriptionStream *SubscriptionStream
+	Status             Status
+	PreviousStatus     Status
 }
 
 type NodeGraphEvent struct {
@@ -106,6 +114,16 @@ type HtlcEvent struct {
 	BoltFailureCode   *string   `json:"boltFailureCode"`
 	BoltFailureString *string   `json:"boltFailureString"`
 	LndFailureDetail  *string   `json:"lndFailureDetail"`
+	OutgoingChannelId *int      `json:"outgoingChannelId"`
+	IncomingChannelId *int      `json:"incomingChannelId"`
+}
+
+type ForwardEvent struct {
+	EventData
+	Timestamp         time.Time `json:"timestamp"`
+	FeeMsat           uint64    `json:"feeMsat"`
+	AmountInMsat      uint64    `json:"amountInMsat"`
+	AmountOutMsat     uint64    `json:"amountOutMsat"`
 	OutgoingChannelId *int      `json:"outgoingChannelId"`
 	IncomingChannelId *int      `json:"incomingChannelId"`
 }

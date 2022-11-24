@@ -19,6 +19,7 @@ const (
 	WRITE_ACTIVE_TORQ_NODE
 	READ_ACTIVE_TORQ_NODEIDS
 	READ_ACTIVE_TORQ_PUBLICKEYS
+	READ_ALL_ACTIVE_TORQ_NODEIDS
 	READ_ACTIVE_CHANNEL_NODE
 	READ_CHANNEL_NODE
 	WRITE_ACTIVE_CHANNEL_NODE
@@ -57,20 +58,12 @@ func ManagedNodeCache(ch chan ManagedNode, ctx context.Context) {
 	channelNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
 	allChannelNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
 	for {
-		if ctx == nil {
-			managedNode := <-ch
+		select {
+		case <-ctx.Done():
+			return
+		case managedNode := <-ch:
 			processManagedNode(managedNode, allTorqNodeIdCache, activeTorqNodeIdCache,
 				channelNodeIdCache, allChannelNodeIdCache, nodeSettingsByNodeIdCache)
-		} else {
-			// TODO: The code itself is fine here but special case only for test cases?
-			// Running Torq we don't have nor need to be able to cancel but we do for test cases because global var is shared
-			select {
-			case <-ctx.Done():
-				return
-			case managedNode := <-ch:
-				processManagedNode(managedNode, allTorqNodeIdCache, activeTorqNodeIdCache,
-					channelNodeIdCache, allChannelNodeIdCache, nodeSettingsByNodeIdCache)
-			}
 		}
 	}
 }
@@ -134,17 +127,6 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			}
 		}
 		go SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allNodeIds)
-	//case READ_ACTIVE_CHANNEL_NODEIDS:
-	//	var allActiveNodeIds []int
-	//	if managedNode.Chain == nil || managedNode.Network == nil {
-	//		log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", managedNode.Chain, managedNode.Network)
-	//	} else {
-	//		initializeIdCache(channelNodeIdCache, *managedNode.Chain, *managedNode.Network)
-	//		for _, value := range channelNodeIdCache[*managedNode.Chain][*managedNode.Network] {
-	//			allActiveNodeIds = append(allActiveNodeIds, value)
-	//		}
-	//	}
-	//	go SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allActiveNodeIds)
 	case READ_ALL_CHANNEL_NODEIDS:
 		var allNodeIds []int
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -178,17 +160,27 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			}
 		}
 		go SendToManagedPublicKeysChannel(managedNode.PublicKeysOut, activePublicKeys)
-	//case READ_ACTIVE_CHANNEL_PUBLICKEYS:
-	//	var activeChannelPublicKeys = []string
-	//	if managedNode.Chain == nil || managedNode.Network == nil {
-	//		log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", managedNode.Chain, managedNode.Network)
-	//	} else {
-	//		initializeIdCache(channelNodeIdCache, *managedNode.Chain, *managedNode.Network)
-	//		for key := range channelNodeIdCache[*managedNode.Chain][*managedNode.Network] {
-	//			activeChannelPublicKeys = append(activeChannelPublicKeys, key)
-	//		}
-	//	}
-	//	go SendToManagedPublicKeysChannel(managedNode.PublicKeysOut, activeChannelPublicKeys)
+	case READ_ALL_ACTIVE_TORQ_NODEIDS:
+		var nodeIds []int
+		if managedNode.Chain == nil || managedNode.Network == nil {
+			for chain, networkMap := range activeTorqNodeIdCache {
+				if managedNode.Chain == nil || *managedNode.Chain == chain {
+					for network, publicKeyMap := range networkMap {
+						if managedNode.Network == nil || *managedNode.Network == network {
+							for _, nodeId := range publicKeyMap {
+								nodeIds = append(nodeIds, nodeId)
+							}
+						}
+					}
+				}
+			}
+		} else {
+			initializeIdCache(activeTorqNodeIdCache, *managedNode.Chain, *managedNode.Network)
+			for _, nodeId := range activeTorqNodeIdCache[*managedNode.Chain][*managedNode.Network] {
+				nodeIds = append(nodeIds, nodeId)
+			}
+		}
+		go SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, nodeIds)
 	case READ_ALL_CHANNEL_PUBLICKEYS:
 		var channelPublicKeys []string
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -376,18 +368,16 @@ func GetChannelNodeIds(chain Chain, network Network) []int {
 	return <-nodeIdsResponseChannel
 }
 
-func GetActiveTorqNodeIdFromPublicKey(publicKey string, chain Chain, network Network) int {
-	nodeResponseChannel := make(chan ManagedNode)
+func GetAllActiveTorqNodeIds(chain *Chain, network *Network) []int {
+	nodeIdsResponseChannel := make(chan []int)
 	managedNode := ManagedNode{
-		PublicKey: publicKey,
-		Chain:     &chain,
-		Network:   &network,
-		Type:      READ_ACTIVE_TORQ_NODE,
-		Out:       nodeResponseChannel,
+		Chain:      chain,
+		Network:    network,
+		Type:       READ_ALL_ACTIVE_TORQ_NODEIDS,
+		NodeIdsOut: nodeIdsResponseChannel,
 	}
 	ManagedNodeChannel <- managedNode
-	nodeResponse := <-nodeResponseChannel
-	return nodeResponse.NodeId
+	return <-nodeIdsResponseChannel
 }
 
 // SetTorqNode When active then also adds to channelNodes
@@ -413,7 +403,7 @@ func SetTorqNode(nodeId int, status Status, publicKey string, chain Chain, netwo
 	}
 }
 
-func GetNodeIdFromPublicKey(publicKey string, chain Chain, network Network) int {
+func GetNodeIdByPublicKey(publicKey string, chain Chain, network Network) int {
 	nodeResponseChannel := make(chan ManagedNode)
 	managedNode := ManagedNode{
 		PublicKey: publicKey,
@@ -427,7 +417,7 @@ func GetNodeIdFromPublicKey(publicKey string, chain Chain, network Network) int 
 	return nodeResponse.NodeId
 }
 
-func GetActiveNodeIdFromPublicKey(publicKey string, chain Chain, network Network) int {
+func GetActiveNodeIdByPublicKey(publicKey string, chain Chain, network Network) int {
 	nodeResponseChannel := make(chan ManagedNode)
 	managedNode := ManagedNode{
 		PublicKey: publicKey,

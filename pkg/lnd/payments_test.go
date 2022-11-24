@@ -198,7 +198,7 @@ func TestSubscribePayments(t *testing.T) {
 		defer wg.Done()
 		SubscribeAndStorePayments(ctx, &mclient, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil, &opt)
 	}()
 	// Simulate passing intervals
 	numbTicks := 4
@@ -327,7 +327,7 @@ func TestSubscribePayments(t *testing.T) {
 		defer wg.Done()
 		UpdateInFlightPayments(ctx, &mclientUpdate, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil, &opt)
 	}()
 	// Simulate passing intervals
 	numbTicks = 6

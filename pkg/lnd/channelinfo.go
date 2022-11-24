@@ -133,7 +133,7 @@ func importRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettin
 			}
 			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
 
-			announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
+			announcingNodeId := commons.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
 			if announcingNodeId == 0 {
 				announcingNode := nodes.Node{
 					PublicKey: cu.AdvertisingNode,
@@ -146,7 +146,7 @@ func importRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettin
 				}
 			}
 
-			connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
+			connectingNodeId := commons.GetNodeIdByPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
 			if connectingNodeId == 0 {
 				connectingNode := nodes.Node{
 					PublicKey: cu.ConnectingNode,
@@ -159,13 +159,14 @@ func importRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettin
 				}
 			}
 
-			channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+			channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 			if channelId == 0 {
 				channel := channels.Channel{
 					FirstNodeId:            announcingNodeId,
 					SecondNodeId:           connectingNodeId,
 					FundingTransactionHash: fundingTransactionHash,
 					FundingOutputIndex:     fundingOutputIndex,
+					Capacity:               cu.Capacity,
 					Status:                 commons.Open,
 				}
 				if cu.ChanId != 0 {
@@ -178,7 +179,7 @@ func importRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettin
 					return errors.Wrap(err, "Adding new channel")
 				}
 			} else {
-				channelStatus := commons.GetChannelStatusFromChannelId(channelId)
+				channelStatus := commons.GetChannelStatusByChannelId(channelId)
 				if channelStatus != commons.Open {
 					err := channels.UpdateChannelStatus(db, channelId, commons.Open)
 					if err != nil {

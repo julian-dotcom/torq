@@ -17,7 +17,6 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/internal/nodes"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -31,11 +30,12 @@ type subscribeChannelGraphClient interface {
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
 func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
 
 	var stream lnrpc.Lightning_SubscribeChannelGraphClient
 	var err error
 	var gpu *lnrpc.GraphTopologyUpdate
+	serviceStatus := commons.Inactive
 
 	for {
 		select {
@@ -45,6 +45,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		if stream == nil {
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.GraphEventStream, commons.Pending, serviceStatus)
 			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
 			if err == nil {
 				// HACK to know if the context is a testcase.
@@ -67,6 +68,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 						continue
 					}
 				}
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.GraphEventStream, commons.Active, serviceStatus)
 			} else {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
@@ -83,6 +85,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.GraphEventStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msg("Receiving channel graph events from the stream failed, will retry in 1 minute")
 			stream = nil
 			time.Sleep(1 * time.Minute)
@@ -122,7 +125,7 @@ func importNodeInfo(client subscribeChannelGraphClient, db *sqlx.DB, nodeSetting
 			}
 		}
 		err = insertNodeEvent(db, time.Now().UTC(),
-			commons.GetNodeIdFromPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network),
+			commons.GetNodeIdByPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network),
 			ni.Node.Alias, ni.Node.Color, ni.Node.Addresses, ni.Node.Features, nodeSettings.NodeId, nil)
 		if err != nil {
 			return errors.Wrap(err, "Insert node event")
@@ -134,7 +137,7 @@ func importNodeInfo(client subscribeChannelGraphClient, db *sqlx.DB, nodeSetting
 func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
 	eventChannel chan interface{}) error {
 	for _, nu := range nus {
-		eventNodeId := commons.GetActiveNodeIdFromPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
+		eventNodeId := commons.GetActiveNodeIdByPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
 			err := insertNodeEvent(db, time.Now().UTC(), eventNodeId, nu.Alias, nu.Color,
 				nu.NodeAddresses, nu.Features, nodeSettings.NodeId, eventChannel)
@@ -155,7 +158,7 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
 		}
 		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
 
-		channelId := commons.GetActiveChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetActiveChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if channelId != 0 {
 			err := insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu, eventChannel)
 			if err != nil {
@@ -180,7 +183,7 @@ func insertRoutingPolicy(
 		return nil
 	}
 
-	announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
+	announcingNodeId := commons.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
 	if announcingNodeId == 0 {
 		newNode := nodes.Node{
 			PublicKey: cu.AdvertisingNode,
@@ -192,7 +195,7 @@ func insertRoutingPolicy(
 			return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.AdvertisingNode)
 		}
 	}
-	connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
+	connectingNodeId := commons.GetNodeIdByPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
 	if connectingNodeId == 0 {
 		newNode := nodes.Node{
 			PublicKey: cu.ConnectingNode,
@@ -241,9 +244,9 @@ func insertRoutingPolicy(
 		}
 
 		if eventChannel != nil {
-			channelGraphEvent := broadcast.ChannelGraphEvent{
-				GraphEventData: broadcast.GraphEventData{
-					EventData: broadcast.EventData{
+			channelGraphEvent := commons.ChannelGraphEvent{
+				GraphEventData: commons.GraphEventData{
+					EventData: commons.EventData{
 						EventTime: eventTime,
 						NodeId:    nodeSettings.NodeId,
 					},
@@ -251,7 +254,7 @@ func insertRoutingPolicy(
 					ConnectingNodeId: &connectingNodeId,
 					ChannelId:        &channelId,
 				},
-				ChannelGraphEventData: broadcast.ChannelGraphEventData{
+				ChannelGraphEventData: commons.ChannelGraphEventData{
 					TimeLockDelta:    cu.RoutingPolicy.TimeLockDelta,
 					FeeRateMilliMsat: cu.RoutingPolicy.FeeRateMilliMsat,
 					FeeBaseMsat:      cu.RoutingPolicy.FeeBaseMsat,
@@ -262,7 +265,7 @@ func insertRoutingPolicy(
 			}
 			if channelEvent.ChannelId != 0 {
 				channelGraphEvent.PreviousEventTime = channelEvent.EventTime
-				channelGraphEvent.PreviousEventData = broadcast.ChannelGraphEventData{
+				channelGraphEvent.PreviousEventData = commons.ChannelGraphEventData{
 					TimeLockDelta:    channelEvent.TimeLockDelta,
 					FeeRateMilliMsat: channelEvent.FeeRateMilliMsat,
 					FeeBaseMsat:      channelEvent.FeeBaseMsat,
@@ -320,15 +323,15 @@ func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias st
 		}
 
 		if eventChannel != nil {
-			nodeGraphEvent := broadcast.NodeGraphEvent{
-				GraphEventData: broadcast.GraphEventData{
-					EventData: broadcast.EventData{
+			nodeGraphEvent := commons.NodeGraphEvent{
+				GraphEventData: commons.GraphEventData{
+					EventData: commons.EventData{
 						EventTime: eventTime,
 						NodeId:    nodeId,
 					},
 					EventNodeId: &eventNodeId,
 				},
-				NodeGraphEventData: broadcast.NodeGraphEventData{
+				NodeGraphEventData: commons.NodeGraphEventData{
 					Alias:     alias,
 					Color:     color,
 					Addresses: string(najb),
@@ -337,7 +340,7 @@ func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias st
 			}
 			if nodeEvent.NodeId != 0 {
 				nodeGraphEvent.PreviousEventTime = nodeEvent.EventTime
-				nodeGraphEvent.PreviousEventData = broadcast.NodeGraphEventData{
+				nodeGraphEvent.PreviousEventData = commons.NodeGraphEventData{
 					Alias:     nodeEvent.Alias,
 					Color:     nodeEvent.Color,
 					Addresses: nodeEvent.NodeAddresses,

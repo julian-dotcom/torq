@@ -48,22 +48,14 @@ type ManagedChannelGroupSettings struct {
 	ChannelGroups []ChannelGroup
 }
 
-// ManagedChannelGroupCache parameter Context is for test cases...
 func ManagedChannelGroupCache(ch chan ManagedChannelGroup, ctx context.Context) {
 	channelGroupSettingsByChannelIdCache := make(map[int]ManagedChannelGroupSettings, 0)
 	for {
-		if ctx == nil {
-			managedChannelGroup := <-ch
+		select {
+		case <-ctx.Done():
+			return
+		case managedChannelGroup := <-ch:
 			processManagedChannelGroupSettings(managedChannelGroup, channelGroupSettingsByChannelIdCache)
-		} else {
-			// TODO: The code itself is fine here but special case only for test cases?
-			// Running Torq we don't have nor need to be able to cancel but we do for test cases because global var is shared
-			select {
-			case <-ctx.Done():
-				return
-			case managedChannelGroup := <-ch:
-				processManagedChannelGroupSettings(managedChannelGroup, channelGroupSettingsByChannelIdCache)
-			}
 		}
 	}
 }

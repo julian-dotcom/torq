@@ -46,7 +46,7 @@ type ChannelHistory struct {
 	CountTotal *uint64 `json:"countTotal"`
 
 	// A list of channels included in this response
-	Channels []*channel               `json:"channels"`
+	Channels []*channels.Channel      `json:"channels"`
 	History  []*ChannelHistoryRecords `json:"history"`
 }
 
@@ -98,7 +98,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
 				return
 			}
-			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
 		}
 	}
 
@@ -110,7 +110,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	// Get the details for the requested channels
-	channels, err := getChannels(db, all, channelIds)
+	channels, err := channels.GetChannels(db, all, channelIds)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -163,7 +163,7 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
 				return
 			}
-			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
 		}
 	}
 	network := c.Query("network")

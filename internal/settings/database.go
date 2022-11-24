@@ -80,13 +80,29 @@ func getNodeConnectionDetails(db *sqlx.DB, nodeId int) (NodeConnectionDetails, e
 	return nodeConnectionDetailsData, nil
 }
 
+func GetPingSystemNodeIds(db *sqlx.DB, pingSystem commons.PingSystem) ([]int, error) {
+	var nodeIds []int
+	err := db.Select(&nodeIds, `
+		SELECT node_id
+		FROM node_connection_details
+		WHERE status_id = $1 AND ping_system%$2>=$3
+		ORDER BY node_id;`, commons.Active, pingSystem*2, pingSystem)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []int{}, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nodeIds, nil
+}
+
 func getPingConnectionDetails(db *sqlx.DB, pingSystem commons.PingSystem) ([]NodeConnectionDetails, error) {
 	var ncds []NodeConnectionDetails
 	err := db.Select(&ncds, `
 		SELECT *
 		FROM node_connection_details
-		WHERE status_id = $1 AND ping_system IN ($2, $3)
-		ORDER BY node_id;`, commons.Active, pingSystem, commons.Amboss+commons.Vector)
+		WHERE status_id = $1 AND ping_system%$2>=$3
+		ORDER BY node_id;`, commons.Active, pingSystem*2, pingSystem)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []NodeConnectionDetails{}, nil

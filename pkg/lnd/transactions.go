@@ -11,7 +11,6 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc/chainrpc"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -46,13 +45,15 @@ func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 // SubscribeAndStoreTransactions Subscribes to on-chain transaction events from LND and stores them in the
 // database as a time series. It will also import unregistered transactions on startup.
 func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, chain chainrpc.ChainNotifierClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
 	var transactionHeight int32
 	var err error
 	var transactionDetails *lnrpc.TransactionDetails
 	var storedTx Tx
 	var stream chainrpc.ChainNotifier_RegisterBlockEpochNtfnClient
 	var blockEpoch *chainrpc.BlockEpoch
+	serviceStatus := commons.Inactive
+	bootStrapping := true
 
 	for {
 		select {
@@ -62,6 +63,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		}
 
 		if stream == nil {
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Pending, serviceStatus)
 			transactionHeight, err = fetchLastTxHeight(db)
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -93,20 +95,24 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				continue
 			}
 		} else {
+			bootStrapping = false
 			blockEpoch, err = stream.Recv()
 			if err == nil {
-				eventChannel <- broadcast.BlockEvent{
-					EventData: broadcast.EventData{
-						EventTime: time.Now().UTC(),
-						NodeId:    nodeSettings.NodeId,
-					},
-					Hash:   blockEpoch.Hash,
-					Height: blockEpoch.Height,
+				if eventChannel != nil {
+					eventChannel <- commons.BlockEvent{
+						EventData: commons.EventData{
+							EventTime: time.Now().UTC(),
+							NodeId:    nodeSettings.NodeId,
+						},
+						Hash:   blockEpoch.Hash,
+						Height: blockEpoch.Height,
+					}
 				}
 			} else {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msg("Receiving block epoch from the stream failed, will retry in 1 minute")
 				stream = nil
 				time.Sleep(1 * time.Minute)
@@ -120,12 +126,19 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
+				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 1 minute")
+				stream = nil
 				time.Sleep(1 * time.Minute)
 				continue
 			}
 		}
 
+		if bootStrapping {
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Initializing, serviceStatus)
+		} else {
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.TransactionStream, commons.Active, serviceStatus)
+		}
 		for _, transaction := range transactionDetails.Transactions {
 			storedTx, err = storeTransaction(db, transaction, nodeSettings.NodeId)
 			if err != nil {
@@ -133,8 +146,8 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				log.Error().Err(err).Msg("Failed to store the transaction (transaction is now missing and can only be recovered by emptying the transactions table)")
 			}
 			if eventChannel != nil {
-				eventChannel <- broadcast.TransactionEvent{
-					EventData: broadcast.EventData{
+				eventChannel <- commons.TransactionEvent{
+					EventData: commons.EventData{
 						EventTime: time.Now().UTC(),
 						NodeId:    nodeSettings.NodeId,
 					},

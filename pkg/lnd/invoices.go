@@ -15,7 +15,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -193,12 +192,14 @@ func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, 
 }
 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
 
 	var addIndex, settleIndex uint64
 	var stream lnrpc.Lightning_SubscribeInvoicesClient
 	var err error
 	var invoice *lnrpc.Invoice
+	var serviceStatus commons.Status
+	bootStrapping := true
 
 	for {
 		select {
@@ -210,6 +211,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, settleIndex, err = fetchLastInvoiceIndexes(db)
 		if err != nil {
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.InvoiceStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in 1 minute")
 			time.Sleep(1 * time.Minute)
 			continue
@@ -223,16 +225,23 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.InvoiceStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msgf("Failed to obtain invoice stream, will retry in 1 minute")
 			time.Sleep(1 * time.Minute)
 			continue
 		}
 
+		if bootStrapping {
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.InvoiceStream, commons.Initializing, serviceStatus)
+		} else {
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.InvoiceStream, commons.Active, serviceStatus)
+		}
 		invoice, err = stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, commons.InvoiceStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msg("Receiving invoices from the stream failed, will retry in 1 minute")
 			time.Sleep(1 * time.Minute)
 			continue
@@ -252,11 +261,14 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			}
 		}
 
-		invoiceEvent := broadcast.InvoiceEvent{
-			EventData: broadcast.EventData{
+		invoiceEvent := commons.InvoiceEvent{
+			EventData: commons.EventData{
 				EventTime: time.Now().UTC(),
 				NodeId:    nodeSettings.NodeId,
 			},
+		}
+		if bootStrapping && time.Unix(invoice.CreationDate, 0).UTC().Sub(time.Now().UTC()).Minutes() < commons.BOOTSTRAPPING_TIME_MINUTES {
+			bootStrapping = false
 		}
 		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel)
 		if err != nil {
@@ -305,7 +317,7 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 }
 
 func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, nodeId int,
-	invoiceEvent broadcast.InvoiceEvent, eventChannel chan interface{}) error {
+	invoiceEvent commons.InvoiceEvent, eventChannel chan interface{}) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {
