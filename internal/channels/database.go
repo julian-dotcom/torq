@@ -23,7 +23,7 @@ func GetAllChannels(db *sqlx.DB) (channels []Channel, err error) {
 	return channels, nil
 }
 
-func GetLocalRoutingPolicy(chanId uint64, db *sqlx.DB) (ChannelPolicy, error) {
+func GetLocalRoutingPolicy(chanId uint64, nodeId int, db *sqlx.DB) (ChannelPolicy, error) {
 	cp := ChannelPolicy{}
 	err := db.Get(&cp, `
     SELECT time_lock_delta, min_htlc, max_htlc_msat, fee_base_msat, fee_rate_mill_msat, short_channel_id,
@@ -32,10 +32,18 @@ func GetLocalRoutingPolicy(chanId uint64, db *sqlx.DB) (ChannelPolicy, error) {
 	LEFT JOIN channel c
 	ON rp.channel_id = c.channel_id
 	WHERE c.lnd_short_channel_id=$1
-	AND c.first_node_id = rp.announcing_node_id
-	AND c.second_node_id = rp.connecting_node_id
+	AND
+	(
+		c.first_node_id = $2 AND
+		c.first_node_id = rp.announcing_node_id AND
+		c.second_node_id = rp.connecting_node_id
+	OR
+		c.second_node_id = $2 AND
+		c.second_node_id = rp.announcing_node_id AND
+		c.first_node_id = rp.connecting_node_id
+	)
 	ORDER BY ts DESC
-	LIMIT 1;`, chanId)
+	LIMIT 1;`, chanId, nodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ChannelPolicy{}, nil
@@ -45,7 +53,7 @@ func GetLocalRoutingPolicy(chanId uint64, db *sqlx.DB) (ChannelPolicy, error) {
 	return cp, nil
 }
 
-func GetRemoteRoutingPolicy(chanId uint64, db *sqlx.DB) (ChannelPolicy, error) {
+func GetRemoteRoutingPolicy(chanId uint64, nodeId int, db *sqlx.DB) (ChannelPolicy, error) {
 	cp := ChannelPolicy{}
 	err := db.Get(&cp, `
     SELECT time_lock_delta, min_htlc, max_htlc_msat, fee_base_msat, fee_rate_mill_msat, short_channel_id,
@@ -54,10 +62,18 @@ func GetRemoteRoutingPolicy(chanId uint64, db *sqlx.DB) (ChannelPolicy, error) {
 	LEFT JOIN channel c
 	ON rp.channel_id = c.channel_id
 	WHERE c.lnd_short_channel_id=$1
-	AND c.second_node_id = rp.announcing_node_id
-	AND c.first_node_id = rp.connecting_node_id
+	AND
+	(
+		c.first_node_id != $2 AND
+		c.first_node_id = rp.announcing_node_id AND
+		c.second_node_id = rp.connecting_node_id
+	OR
+		c.second_node_id != $2 AND
+		c.second_node_id = rp.announcing_node_id AND
+		c.first_node_id = rp.connecting_node_id
+	)
 	ORDER BY ts DESC
-	LIMIT 1;`, chanId)
+	LIMIT 1;`, chanId, nodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ChannelPolicy{}, nil

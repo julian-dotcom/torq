@@ -203,12 +203,12 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 		}
 
 		for _, channel := range r.Channels {
-			localPolicy, err := GetLocalRoutingPolicy(channel.ChanId, db)
+			localPolicy, err := GetLocalRoutingPolicy(channel.ChanId, node.NodeId, db)
 			if err != nil {
 				server_errors.WrapLogAndSendServerError(c, err, "Local Channel policy")
 				return
 			}
-			remotePolicy, err := GetRemoteRoutingPolicy(channel.ChanId, db)
+			remotePolicy, err := GetRemoteRoutingPolicy(channel.ChanId, node.NodeId, db)
 			if err != nil {
 				server_errors.WrapLogAndSendServerError(c, err, "Remote Channel policy")
 				return
