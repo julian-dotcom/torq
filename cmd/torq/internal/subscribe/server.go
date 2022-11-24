@@ -276,15 +276,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in SubscribePeerEvents: %v", panicError)
-				log.Error().Msg("Cancelling the subscription.")
-				err = ctx.Err()
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to cancel context after Panic in SubscribePeerEvents")
-				}
+				recoverPanic(panicError, serviceChannel, nodeId, commons.ChannelBalanceCacheStream)
 			}
 		}()
-		lnd.ChannelBalanceCacheMaintenance(ctx, nodeSettings, broadcaster, eventChannel, serviceEventChannel)
+		lnd.ChannelBalanceCacheMaintenance(ctx, client, nodeSettings, broadcaster, eventChannel, serviceEventChannel)
 	})()
 
 	wg.Wait()

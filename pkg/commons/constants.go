@@ -130,6 +130,7 @@ const (
 	PaymentStream
 	InFlightPaymentStream
 	PeerEventStream
+	ChannelBalanceCacheStream
 )
 
 var SubscriptionStreams = []SubscriptionStream{ //nolint:gochecknoglobals

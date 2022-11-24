@@ -10,12 +10,12 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/pkg/broadcast"
-
-	"github.com/rs/zerolog/log"
 )
 
 type wsRequest struct {
