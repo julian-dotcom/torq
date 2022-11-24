@@ -105,14 +105,14 @@ type PendingHtlcs struct {
 }
 
 type ChannelPolicy struct {
-	TimeLockDelta    uint32 `json:"timeLockDelta" db:"time_lock_delta"`
-	MinHtlc          int64  `json:"minHtlc" db:"min_htlc"`
-	MaxHtlcMsat      uint64 `json:"maxHtlcMsat" db:"max_htlc_msat"`
-	FeeRateMillMsat  int64  `json:"feeRateMillMsat" db:"fee_rate_mill_msat"`
-	ShortChannelId   string `json:"shortChannelId" db:"short_channel_id"`
-	BeeBaseMsat      int64  `json:"feeBaseMsat" db:"fee_base_msat"`
-	AnnouncingNodeId int    `json:"announcingNodeId" db:"announcing_node_id"`
-	ConnectingNodeId int    `json:"connectingNodeId" db:"connecting_node_id"`
+	TimeLockDelta   uint32 `json:"timeLockDelta" db:"time_lock_delta"`
+	MinHtlc         int64  `json:"minHtlc" db:"min_htlc"`
+	MaxHtlcMsat     uint64 `json:"maxHtlcMsat" db:"max_htlc_msat"`
+	FeeRateMillMsat int64  `json:"feeRateMillMsat" db:"fee_rate_mill_msat"`
+	ShortChannelId  string `json:"shortChannelId" db:"short_channel_id"`
+	FeeBaseMsat     int64  `json:"feeBaseMsat" db:"fee_base_msat"`
+	NodeId          int    `json:"nodeId" db:"node_id"`
+	RemoteNodeId    int    `json:"RemoteodeId" db:"remote_node_id"`
 }
 
 const (
@@ -203,9 +203,14 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 		}
 
 		for _, channel := range r.Channels {
-			channelRoutingPolicy, err := GetRoutingPolicy(channel.ChanId, db)
+			localPolicy, err := GetLocalRoutingPolicy(channel.ChanId, node.NodeId, db)
 			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Channel policy")
+				server_errors.WrapLogAndSendServerError(c, err, "Local Channel policy")
+				return
+			}
+			remotePolicy, err := GetRemoteRoutingPolicy(channel.ChanId, node.NodeId, db)
+			if err != nil {
+				server_errors.WrapLogAndSendServerError(c, err, "Remote Channel policy")
 				return
 			}
 
@@ -214,6 +219,15 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 
 			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
 			fundingTransactionHash, fundingOutputIndex := ParseChannelPoint(channel.ChannelPoint)
+
+			shortChannelId := localPolicy.ShortChannelId
+			localNodeId := localPolicy.NodeId
+			remoteNodeId := localPolicy.RemoteNodeId
+			if localPolicy.ShortChannelId == "" && remotePolicy.ShortChannelId != "" {
+				shortChannelId = remotePolicy.ShortChannelId
+				localNodeId = remotePolicy.RemoteNodeId
+				remoteNodeId = remotePolicy.NodeId
+			}
 			chanBody := channelBody{
 				NodeId:                       node.NodeId,
 				NodeName:                     node.Name,
@@ -224,7 +238,7 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				FundingTransactionHash:       fundingTransactionHash,
 				FundingOutputIndex:           fundingOutputIndex,
 				LNDShortChannelId:            stringLNDShortChannelId,
-				ShortChannelId:               channelRoutingPolicy[0].ShortChannelId,
+				ShortChannelId:               shortChannelId,
 				Capacity:                     channel.Capacity,
 				LocalBalance:                 channel.LocalBalance,
 				RemoteBalance:                channel.RemoteBalance,
@@ -240,27 +254,27 @@ func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
 				CommitFee:                    channel.CommitFee,
 				CommitWeight:                 channel.CommitWeight,
 				FeePerKw:                     channel.FeePerKw,
-				BaseFeeMsat:                  channelRoutingPolicy[0].BeeBaseMsat,
-				MinHtlc:                      channelRoutingPolicy[0].MinHtlc,
-				MaxHtlcMsat:                  channelRoutingPolicy[0].MaxHtlcMsat,
-				TimeLockDelta:                channelRoutingPolicy[0].TimeLockDelta,
-				FeeRatePpm:                   channelRoutingPolicy[0].FeeRateMillMsat,
-				RemoteBaseFeeMsat:            channelRoutingPolicy[1].BeeBaseMsat,
-				RemoteMinHtlc:                channelRoutingPolicy[1].MinHtlc,
-				RemoteMaxHtlcMsat:            channelRoutingPolicy[1].MaxHtlcMsat,
-				RemoteTimeLockDelta:          channelRoutingPolicy[1].TimeLockDelta,
-				RemoteFeeRatePpm:             channelRoutingPolicy[1].FeeRateMillMsat,
+				BaseFeeMsat:                  localPolicy.FeeBaseMsat,
+				MinHtlc:                      localPolicy.MinHtlc,
+				MaxHtlcMsat:                  localPolicy.MaxHtlcMsat,
+				TimeLockDelta:                localPolicy.TimeLockDelta,
+				FeeRatePpm:                   localPolicy.FeeRateMillMsat,
+				RemoteBaseFeeMsat:            remotePolicy.FeeBaseMsat,
+				RemoteMinHtlc:                remotePolicy.MinHtlc,
+				RemoteMaxHtlcMsat:            remotePolicy.MaxHtlcMsat,
+				RemoteTimeLockDelta:          remotePolicy.TimeLockDelta,
+				RemoteFeeRatePpm:             remotePolicy.FeeRateMillMsat,
 				NumUpdates:                   channel.NumUpdates,
 				Initiator:                    channel.Initiator,
 				ChanStatusFlags:              channel.ChanStatusFlags,
 				CommitmentType:               channel.CommitmentType,
 				Lifetime:                     channel.Lifetime,
 				MempoolSpace:                 MEMPOOL + stringLNDShortChannelId,
-				AmbossSpace:                  AMBOSS + channelRoutingPolicy[0].ShortChannelId,
+				AmbossSpace:                  AMBOSS + shortChannelId,
 				OneMl:                        ONEML + stringLNDShortChannelId,
 			}
 
-			peerInfo, err := GetNodePeerAlias(channelRoutingPolicy[0].AnnouncingNodeId, channelRoutingPolicy[0].ConnectingNodeId, db)
+			peerInfo, err := GetNodePeerAlias(localNodeId, remoteNodeId, db)
 			if err != nil {
 				server_errors.WrapLogAndSendServerError(c, err, "Node Alias")
 				return
