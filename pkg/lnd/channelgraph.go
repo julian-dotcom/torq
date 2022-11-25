@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/graph_events"
-	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -184,28 +184,30 @@ func insertRoutingPolicy(
 		return nil
 	}
 
-	announcingNodeId := commons.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
-	if announcingNodeId == 0 {
-		newNode := nodes.Node{
-			PublicKey: cu.AdvertisingNode,
-			Chain:     nodeSettings.Chain,
-			Network:   nodeSettings.Network,
-		}
-		announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
-		if err != nil {
-			return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.AdvertisingNode)
+	channelSettings := commons.GetChannelSettingByChannelId(channelId)
+	announcingNodeId := 0
+	if cu.AdvertisingNode != "" {
+		announcingNodeId = commons.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
+	}
+	connectingNodeId := 0
+	if cu.ConnectingNode != "" {
+		connectingNodeId = commons.GetNodeIdByPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
+	}
+	if connectingNodeId == 0 && announcingNodeId == 0 {
+		return errors.New(fmt.Sprintf("Cannot obtain announcingNodeId nor connectingNodeId (from AdvertisingNode: %v ConnectingNode: %v)", cu.AdvertisingNode, cu.ConnectingNode))
+	}
+	if connectingNodeId == 0 {
+		if announcingNodeId == channelSettings.FirstNodeId {
+			connectingNodeId = channelSettings.SecondNodeId
+		} else {
+			connectingNodeId = channelSettings.FirstNodeId
 		}
 	}
-	connectingNodeId := commons.GetNodeIdByPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
-	if connectingNodeId == 0 {
-		newNode := nodes.Node{
-			PublicKey: cu.ConnectingNode,
-			Chain:     nodeSettings.Chain,
-			Network:   nodeSettings.Network,
-		}
-		connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
-		if err != nil {
-			return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", cu.ConnectingNode)
+	if announcingNodeId == 0 {
+		if connectingNodeId == channelSettings.FirstNodeId {
+			announcingNodeId = channelSettings.SecondNodeId
+		} else {
+			announcingNodeId = channelSettings.FirstNodeId
 		}
 	}
 

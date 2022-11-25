@@ -1,0 +1,36 @@
+--CONNECTING_NODE='' SECOND_NODE_ID=ANNOUNCING SO UPDATE CONNECTING=FIRST
+UPDATE routing_policy rp
+SET connecting_node_id=c.first_node_id
+FROM channel c
+JOIN node cn ON cn.node_id = rp.connecting_node_id
+WHERE rp.channel_id = c.channel_id AND
+    cn.public_key='' AND
+    c.second_node_id=rp.announcing_node_id;
+
+--CONNECTING_NODE='' FIRST_NODE_ID=ANNOUNCING SO UPDATE CONNECTING=SECOND
+UPDATE routing_policy rp
+SET connecting_node_id=c.second_node_id
+FROM channel c
+JOIN node cn ON cn.node_id = rp.connecting_node_id
+WHERE rp.channel_id = c.channel_id AND
+    cn.public_key='' AND
+    c.first_node_id=rp.announcing_node_id;
+
+--ANNOUNCING_NODE='' SECOND_NODE_ID=CONNECTING SO UPDATE ANNOUNCING=FIRST
+UPDATE routing_policy rp
+SET announcing_node_id=c.first_node_id
+FROM channel c
+JOIN node an ON an.node_id = rp.announcing_node_id
+WHERE rp.channel_id = c.channel_id AND
+    an.public_key='' AND
+    c.second_node_id=rp.connecting_node_id;
+
+--ANNOUNCING_NODE='' FIRST_NODE_ID=CONNECTING SO UPDATE ANNOUNCING=SECOND
+UPDATE routing_policy rp
+SET announcing_node_id=c.second_node_id
+FROM channel c
+JOIN node an ON an.node_id = rp.announcing_node_id
+WHERE rp.channel_id = c.channel_id AND
+    an.public_key='' AND
+    c.first_node_id=rp.connecting_node_id;
+
