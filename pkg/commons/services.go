@@ -131,13 +131,62 @@ func (rs *Services) GetStatus(nodeId int) Status {
 		return serviceStatus
 	}
 	if rs.ServiceType == LndService {
+		var streamStatus *Status
 		for _, status := range rs.streamStatus[nodeId] {
+			existingStatus := status
 			if status != Active {
-				return Pending
+				if streamStatus == nil {
+					streamStatus = &existingStatus
+				}
+				if *streamStatus != status {
+					return Pending
+				}
 			}
+		}
+		if streamStatus != nil {
+			return *streamStatus
 		}
 	}
 	return Active
+}
+
+func (rs *Services) GetNodeIds() []int {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	if rs.serviceStatus == nil {
+		return []int{}
+	}
+	var nodeIds []int
+	for nodeId := range rs.serviceStatus {
+		nodeIds = append(nodeIds, nodeId)
+	}
+	return nodeIds
+}
+
+func (rs *Services) GetActiveNodeIds() []int {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	if rs.serviceStatus == nil {
+		return []int{}
+	}
+	var nodeIds []int
+node:
+	for nodeId, serviceStatus := range rs.serviceStatus {
+		if serviceStatus != Active {
+			continue
+		}
+		if rs.ServiceType == LndService {
+			for _, status := range rs.streamStatus[nodeId] {
+				if status != Active {
+					continue node
+				}
+			}
+		}
+		nodeIds = append(nodeIds, nodeId)
+	}
+	return nodeIds
 }
 
 // GetStreamStatus when the status of the LND Service is active then streamStatus will be returned.
@@ -193,10 +242,20 @@ func (rs *Services) GetCombinedStatus(nodeId int, streams ...SubscriptionStream)
 	if serviceStatus != Active {
 		return serviceStatus
 	}
+	var streamStatus *Status
 	for _, stream := range streams {
-		if rs.streamStatus[nodeId][stream] != Active {
-			return Pending
+		status := rs.streamStatus[nodeId][stream]
+		if status != Active {
+			if streamStatus == nil {
+				streamStatus = &status
+			}
+			if *streamStatus != status {
+				return Pending
+			}
 		}
+	}
+	if streamStatus != nil {
+		return *streamStatus
 	}
 	return Active
 }

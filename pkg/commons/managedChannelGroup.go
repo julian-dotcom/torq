@@ -67,6 +67,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 		_, exists := channelGroupSettingsByChannelIdCache[managedChannelGroup.ChannelId]
 		if !exists {
 			go SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, nil)
+			break
 		}
 		result := ManagedChannelGroupSettings{
 			ChannelId:     managedChannelGroup.ChannelId,
@@ -79,6 +80,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 				}
 			}
 			go SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
+			break
 		}
 		for _, channelGroup := range channelGroupSettingsByChannelIdCache[managedChannelGroup.ChannelId].ChannelGroups {
 			if channelGroup.CategoryId != nil && channelGroup.TagId == nil {
@@ -87,6 +89,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 		}
 		if managedChannelGroup.Include == CATEGORIES_ONLY {
 			go SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
+			break
 		}
 	group:
 		for _, channelGroup := range channelGroupSettingsByChannelIdCache[managedChannelGroup.ChannelId].ChannelGroups {
