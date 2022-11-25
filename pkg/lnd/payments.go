@@ -384,6 +384,9 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 
 				currentTime := time.Now().UTC()
 				created := time.Unix(0, payment.CreationTimeNs).UTC()
+				if bootStrapping && time.Since(created).Minutes() < commons.BOOTSTRAPPING_TIME_MINUTES {
+					bootStrapping = false
+				}
 				// Add 10 minutes to the invoice expiry time to be safe.
 				expiredAt := created.Add(expiry).Add(10 * time.Minute)
 

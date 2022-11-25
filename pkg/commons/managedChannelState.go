@@ -16,15 +16,17 @@ var ManagedChannelStateChannel = make(chan ManagedChannelState) //nolint:gocheck
 type ManagedChannelStateCacheOperationType uint
 
 const (
-	// READ_CHANNELSTATE please provide NodeId, ChannelId and Out
+	// READ_CHANNELSTATE please provide NodeId, ChannelId and StateOut
 	READ_CHANNELSTATE ManagedChannelStateCacheOperationType = iota
+	// READ_ALL_CHANNELSTATES please provide NodeId and StatesOut
+	READ_ALL_CHANNELSTATES
 	// READ_CHANNELBALANCESTATE please provide NodeId, ChannelId, HtlcInclude and BalanceStateOut
 	READ_CHANNELBALANCESTATE
 	// READ_ALL_CHANNELBALANCESTATES please provide NodeId, StateInclude, HtlcInclude and BalanceStatesOut
 	READ_ALL_CHANNELBALANCESTATES
 	// WRITE_INITIAL_CHANNELSTATE This requires the lock being active for writing! Please provide the complete information set
 	WRITE_INITIAL_CHANNELSTATE
-	// READ_CHANNELSTATELOCK please provide NodeId and Out
+	// READ_CHANNELSTATELOCK please provide NodeId and LockOut
 	READ_CHANNELSTATELOCK
 )
 
@@ -61,29 +63,53 @@ const (
 	ALL_CHANNELS
 )
 
+type Htlc struct {
+	Incoming         bool
+	Amount           int64
+	HashLock         []byte
+	ExpirationHeight uint32
+	// Index identifying the htlc on the channel.
+	HtlcIndex uint64
+	// If this HTLC is involved in a forwarding operation, this field indicates
+	// the forwarding channel. For an outgoing htlc, it is the incoming channel.
+	// For an incoming htlc, it is the outgoing channel. When the htlc
+	// originates from this node or this node is the final destination,
+	// forwarding_channel will be zero. The forwarding channel will also be zero
+	// for htlcs that need to be forwarded but don't have a forwarding decision
+	// persisted yet.
+	ForwardingChannel uint64
+	// Index identifying the htlc on the forwarding channel.
+	ForwardingHtlcIndex uint64
+}
+
 type ManagedChannelState struct {
 	Type                 ManagedChannelStateCacheOperationType
 	NodeId               int
+	RemoteNodeId         int
 	ChannelId            int
 	ChannelStateSettings ManagedChannelStateSettings
 	HtlcInclude          ChannelBalanceStateHtlcInclude
 	StateInclude         ChannelStateInclude
-	Out                  chan *ManagedChannelStateSettings
+	StateOut             chan *ManagedChannelStateSettings
+	StatesOut            chan []ManagedChannelStateSettings
 	BalanceStateOut      chan *ManagedChannelBalanceStateSettings
 	BalanceStatesOut     chan []ManagedChannelBalanceStateSettings
 	LockOut              chan *sync.RWMutex
 }
 
 type ManagedChannelStateSettings struct {
-	NodeId                 int    `json:"nodeId"`
-	ChannelId              int    `json:"channelId"`
-	LocalBalance           int64  `json:"localBalance"`
-	LocalDisabled          bool   `json:"localDisabled"`
-	LocalFeeBaseMsat       int64  `json:"localFeeBaseMsat"`
-	LocalFeeRateMilliMsat  int64  `json:"localFeeRateMilliMsat"`
-	LocalMinHtlc           int64  `json:"localMinHtlc"`
-	LocalMaxHtlcMsat       uint64 `json:"localMaxHtlcMsat"`
-	LocalTimeLockDelta     uint32 `json:"localTimeLockDelta"`
+	NodeId       int `json:"nodeId"`
+	RemoteNodeId int `json:"remoteNodeId"`
+	ChannelId    int `json:"channelId"`
+
+	LocalBalance          int64  `json:"localBalance"`
+	LocalDisabled         bool   `json:"localDisabled"`
+	LocalFeeBaseMsat      int64  `json:"localFeeBaseMsat"`
+	LocalFeeRateMilliMsat int64  `json:"localFeeRateMilliMsat"`
+	LocalMinHtlc          int64  `json:"localMinHtlc"`
+	LocalMaxHtlcMsat      uint64 `json:"localMaxHtlcMsat"`
+	LocalTimeLockDelta    uint32 `json:"localTimeLockDelta"`
+
 	RemoteBalance          int64  `json:"remoteBalance"`
 	RemoteDisabled         bool   `json:"remoteDisabled"`
 	RemoteFeeBaseMsat      int64  `json:"remoteFeeBaseMsat"`
@@ -91,17 +117,17 @@ type ManagedChannelStateSettings struct {
 	RemoteMinHtlc          int64  `json:"remoteMinHtlc"`
 	RemoteMaxHtlcMsat      uint64 `json:"remoteMaxHtlcMsat"`
 	RemoteTimeLockDelta    uint32 `json:"remoteTimeLockDelta"`
-	// PAYMENT HTLCs
-	PendingPaymentHTLCsCount  int   `json:"pendingPaymentHTLCsCount"`
-	PendingPaymentHTLCsAmount int64 `json:"pendingPaymentHTLCsAmount"`
-	// INVOICE HTLCs
-	PendingInvoiceHTLCsCount  int   `json:"pendingInvoiceHTLCsCount"`
-	PendingInvoiceHTLCsAmount int64 `json:"pendingInvoiceHTLCsAmount"`
-	// FORWARDING HTLCs Decreasing/Increasing IN RELATION TO LOCAL BALANCE
-	PendingDecreasingForwardHTLCsCount  int   `json:"pendingDecreasingForwardCount"`
-	PendingDecreasingForwardHTLCsAmount int64 `json:"pendingDecreasingForwardAmount"`
-	PendingIncreasingForwardHTLCsCount  int   `json:"pendingIncreasingForwardHTLCsCount"`
-	PendingIncreasingForwardHTLCsAmount int64 `json:"pendingIncreasingForwardHTLCsAmount"`
+
+	UnsettledBalance int64 `json:"unsettledBalance"`
+
+	PendingHtlcs []Htlc `json:"pendingHtlcs"`
+	// INCREASING LOCAL BALANCE HTLCs
+	PendingIncreasingHtlcCount  int   `json:"pendingIncreasingHtlcCount"`
+	PendingIncreasingHtlcAmount int64 `json:"pendingIncreasingHtlcAmount"`
+	// DECREASING LOCAL BALANCE HTLCs
+	PendingDecreasingHtlcCount  int   `json:"pendingDecreasingHtlcCount"`
+	PendingDecreasingHtlcAmount int64 `json:"pendingDecreasingHtlcAmount"`
+
 	// STALE INFORMATION ONLY OBTAINED VIA LND REGULAR CHECKINS SO NOT MAINTAINED
 	CommitFee             int64                `json:"commitFee"`
 	CommitWeight          int64                `json:"commitWeight"`
@@ -109,8 +135,6 @@ type ManagedChannelStateSettings struct {
 	TotalSatoshisSent     int64                `json:"totalSatoshisSent"`
 	NumUpdates            uint64               `json:"numUpdates"`
 	ChanStatusFlags       string               `json:"chanStatusFlags"`
-	LocalChanReserveSat   int64                `json:"localChanReserveSat"`
-	RemoteChanReserveSat  int64                `json:"remoteChanReserveSat"`
 	CommitmentType        lnrpc.CommitmentType `json:"commitmentType"`
 	Lifetime              int64                `json:"lifetime"`
 	TotalSatoshisReceived int64                `json:"totalSatoshisReceived"`
@@ -118,6 +142,7 @@ type ManagedChannelStateSettings struct {
 
 type ManagedChannelBalanceStateSettings struct {
 	NodeId                     int                            `json:"nodeId"`
+	RemoteNodeId               int                            `json:"remoteNodeId"`
 	ChannelId                  int                            `json:"channelId"`
 	HtlcInclude                ChannelBalanceStateHtlcInclude `json:"htlcInclude"`
 	LocalBalance               int64                          `json:"localBalance"`
@@ -262,97 +287,127 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 	case READ_CHANNELSTATE:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
-			go SendToManagedChannelStateSettingsChannel(managedChannelState.Out, nil)
+			go SendToManagedChannelStateSettingsChannel(managedChannelState.StateOut, nil)
+			break
 		}
 		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
 			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if !exists {
-				go SendToManagedChannelStateSettingsChannel(managedChannelState.Out, nil)
+				go SendToManagedChannelStateSettingsChannel(managedChannelState.StateOut, nil)
+				break
 			}
 			settings, exists := settingsByChannel[managedChannelState.ChannelId]
 			if !exists {
-				go SendToManagedChannelStateSettingsChannel(managedChannelState.Out, nil)
+				go SendToManagedChannelStateSettingsChannel(managedChannelState.StateOut, nil)
+				break
 			}
-			go SendToManagedChannelStateSettingsChannel(managedChannelState.Out, &settings)
-		} else {
-			go SendToManagedChannelStateSettingsChannel(managedChannelState.Out, nil)
+			go SendToManagedChannelStateSettingsChannel(managedChannelState.StateOut, &settings)
+			break
 		}
+		go SendToManagedChannelStateSettingsChannel(managedChannelState.StateOut, nil)
+	case READ_ALL_CHANNELSTATES:
+		if managedChannelState.NodeId == 0 {
+			log.Error().Msgf("No empty NodeId (%v) allowed", managedChannelState.NodeId)
+			go SendToManagedChannelStatesSettingsChannel(managedChannelState.StatesOut, nil)
+			break
+		}
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
+			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
+			if !exists {
+				go SendToManagedChannelStatesSettingsChannel(managedChannelState.StatesOut, nil)
+				break
+			}
+			var channelStates []ManagedChannelStateSettings
+			for _, channelState := range settingsByChannel {
+				channelStates = append(channelStates, channelState)
+			}
+			go SendToManagedChannelStatesSettingsChannel(managedChannelState.StatesOut, channelStates)
+			break
+		}
+		go SendToManagedChannelStatesSettingsChannel(managedChannelState.StatesOut, nil)
 	case READ_CHANNELSTATELOCK:
 		if managedChannelState.NodeId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) allowed", managedChannelState.NodeId)
 			go SendToManagedChannelStateSettingsLockChannel(managedChannelState.LockOut, nil)
+			break
 		}
 		go SendToManagedChannelStateSettingsLockChannel(managedChannelState.LockOut, channelStateSettingsLockCache[managedChannelState.NodeId])
 	case READ_CHANNELBALANCESTATE:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
-		} else {
-			if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
-				defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
-				settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
-				if !exists {
-					go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
-				}
-				settings, exists := settingsByChannel[managedChannelState.ChannelId]
-				if !exists {
-					go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
-				}
-				capacity := GetChannelSettingByChannelId(managedChannelState.ChannelId).Capacity
-				channelBalanceState := processHtlcInclude(managedChannelState, settings, capacity)
-				go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, &channelBalanceState)
-			} else {
-				go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
-			}
+			go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
+			break
 		}
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
+			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
+			if !exists {
+				go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
+				break
+			}
+			settings, exists := settingsByChannel[managedChannelState.ChannelId]
+			if !exists {
+				go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
+				break
+			}
+			capacity := GetChannelSettingByChannelId(managedChannelState.ChannelId).Capacity
+			channelBalanceState := processHtlcInclude(managedChannelState, settings, capacity)
+			go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, &channelBalanceState)
+			break
+		}
+		go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
 	case READ_ALL_CHANNELBALANCESTATES:
 		if managedChannelState.NodeId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) allowed", managedChannelState.NodeId)
-		} else {
-			if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
-				defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
-				settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
-				if !exists {
-					go SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, nil)
-				}
-				var channelBalanceStates []ManagedChannelBalanceStateSettings
-				for _, channelSetting := range GetChannelSettingsByNodeId(managedChannelState.NodeId) {
-					if channelSetting.Status != Open {
-						continue
-					}
-					settings, exists := settingsByChannel[channelSetting.ChannelId]
-					if !exists {
-						log.Error().Msgf("Channel from channel cache that doesn't exist in channelState cache.")
-						continue
-					}
-					if settings.LocalDisabled && managedChannelState.StateInclude != ALL_CHANNELS {
-						continue
-					}
-					if settings.RemoteDisabled && managedChannelState.StateInclude == ALL_LOCAL_AND_REMOTE_ACTIVE_CHANNELS {
-						continue
-					}
-					capacity := channelSetting.Capacity
-					channelBalanceStates = append(channelBalanceStates, processHtlcInclude(managedChannelState, settings, capacity))
-				}
-				go SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, channelBalanceStates)
-			} else {
-				go SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, nil)
-			}
+			go SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, nil)
+			break
 		}
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
+			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
+			if !exists {
+				go SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, nil)
+				break
+			}
+			var channelBalanceStates []ManagedChannelBalanceStateSettings
+			for _, channelSetting := range GetChannelSettingsByNodeId(managedChannelState.NodeId) {
+				if channelSetting.Status != Open {
+					continue
+				}
+				settings, exists := settingsByChannel[channelSetting.ChannelId]
+				if !exists {
+					log.Error().Msgf("Channel from channel cache that doesn't exist in channelState cache.")
+					continue
+				}
+				if settings.LocalDisabled && managedChannelState.StateInclude != ALL_CHANNELS {
+					continue
+				}
+				if settings.RemoteDisabled && managedChannelState.StateInclude == ALL_LOCAL_AND_REMOTE_ACTIVE_CHANNELS {
+					continue
+				}
+				capacity := channelSetting.Capacity
+				channelBalanceStates = append(channelBalanceStates, processHtlcInclude(managedChannelState, settings, capacity))
+			}
+			go SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, channelBalanceStates)
+			break
+		}
+		go SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, nil)
 	case WRITE_INITIAL_CHANNELSTATE:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
-		} else {
-			if RWMutexWriteLocked(channelStateSettingsLockCache[managedChannelState.NodeId]) {
-				settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
-				if !exists {
-					settingsByChannel = make(map[int]ManagedChannelStateSettings, 0)
-				}
-				settingsByChannel[managedChannelState.ChannelId] = managedChannelState.ChannelStateSettings
-				channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = settingsByChannel
-			} else {
-				log.Error().Msgf("Attempted to manipulate the channel state cache without the lock. nodeId: %v", managedChannelState.NodeId)
+			break
+		}
+		if RWMutexWriteLocked(channelStateSettingsLockCache[managedChannelState.NodeId]) {
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
+			if !exists {
+				settingsByChannel = make(map[int]ManagedChannelStateSettings, 0)
 			}
+			settingsByChannel[managedChannelState.ChannelId] = managedChannelState.ChannelStateSettings
+			channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = settingsByChannel
+		} else {
+			log.Error().Msgf("Attempted to manipulate the channel state cache without the lock. nodeId: %v", managedChannelState.NodeId)
 		}
 	}
 }
@@ -362,6 +417,10 @@ func SendToManagedChannelBalanceStatesSettingsChannel(ch chan []ManagedChannelBa
 }
 
 func SendToManagedChannelBalanceStateSettingsChannel(ch chan *ManagedChannelBalanceStateSettings, managedChannelBalanceStateSettings *ManagedChannelBalanceStateSettings) {
+	ch <- managedChannelBalanceStateSettings
+}
+
+func SendToManagedChannelStatesSettingsChannel(ch chan []ManagedChannelStateSettings, managedChannelBalanceStateSettings []ManagedChannelStateSettings) {
 	ch <- managedChannelBalanceStateSettings
 }
 
@@ -379,10 +438,21 @@ func GetChannelState(nodeId, channelId int) *ManagedChannelStateSettings {
 		NodeId:    nodeId,
 		ChannelId: channelId,
 		Type:      READ_CHANNELSTATE,
-		Out:       channelStateResponseChannel,
+		StateOut:  channelStateResponseChannel,
 	}
 	ManagedChannelStateChannel <- managedChannelState
 	return <-channelStateResponseChannel
+}
+
+func GetChannelStates(nodeId int) []ManagedChannelStateSettings {
+	channelStatesResponseChannel := make(chan []ManagedChannelStateSettings)
+	managedChannelState := ManagedChannelState{
+		NodeId:    nodeId,
+		Type:      READ_ALL_CHANNELSTATES,
+		StatesOut: channelStatesResponseChannel,
+	}
+	ManagedChannelStateChannel <- managedChannelState
+	return <-channelStatesResponseChannel
 }
 
 func GetChannelBalanceState(nodeId, channelId int, htlcInclude ChannelBalanceStateHtlcInclude) *ManagedChannelBalanceStateSettings {
@@ -438,7 +508,7 @@ func isNodeReady(channelStateSettingsStatusCache map[int]Status, nodeId int,
 	// Channel states not initialized yet
 	if channelStateSettingsStatusCache[nodeId] != Active {
 		deactivationTime, exists := channelStateSettingsDeactivationTimeCache[nodeId]
-		if exists && time.Now().Sub(deactivationTime).Seconds() < TOLERATED_SUBSCRIPTION_DOWNTIME_SECONDS {
+		if exists && time.Since(deactivationTime).Seconds() < TOLERATED_SUBSCRIPTION_DOWNTIME_SECONDS {
 			log.Debug().Msgf("Node flagged as active even tough subscription is temporary down for nodeId: %v", nodeId)
 			return true
 		}
@@ -453,22 +523,23 @@ func processHtlcInclude(managedChannelState ManagedChannelState, settings Manage
 	remoteBalance := settings.RemoteBalance
 	if managedChannelState.HtlcInclude == PENDING_HTLCS_LOCAL_BALANCE_ADJUSTED_DOWNWARDS ||
 		managedChannelState.HtlcInclude == PENDING_HTLCS_LOCAL_AND_REMOTE_BALANCE_ADJUSTED_DOWNWARDS {
-		localBalance = settings.LocalBalance - settings.PendingDecreasingForwardHTLCsAmount - settings.PendingPaymentHTLCsAmount
+		localBalance = settings.LocalBalance - settings.PendingDecreasingHtlcAmount
 	}
 	if managedChannelState.HtlcInclude == PENDING_HTLCS_REMOTE_BALANCE_ADJUSTED_DOWNWARDS ||
 		managedChannelState.HtlcInclude == PENDING_HTLCS_LOCAL_AND_REMOTE_BALANCE_ADJUSTED_DOWNWARDS {
-		remoteBalance = settings.RemoteBalance - settings.PendingIncreasingForwardHTLCsAmount - settings.PendingInvoiceHTLCsAmount
+		remoteBalance = settings.RemoteBalance - settings.PendingIncreasingHtlcAmount
 	}
 	if managedChannelState.HtlcInclude == PENDING_HTLCS_LOCAL_BALANCE_ADJUSTED_UPWARDS ||
 		managedChannelState.HtlcInclude == PENDING_HTLCS_LOCAL_AND_REMOTE_BALANCE_ADJUSTED_UPWARDS {
-		localBalance = settings.LocalBalance + settings.PendingIncreasingForwardHTLCsAmount + settings.PendingInvoiceHTLCsAmount
+		localBalance = settings.LocalBalance + settings.PendingIncreasingHtlcAmount
 	}
 	if managedChannelState.HtlcInclude == PENDING_HTLCS_REMOTE_BALANCE_ADJUSTED_UPWARDS ||
 		managedChannelState.HtlcInclude == PENDING_HTLCS_LOCAL_AND_REMOTE_BALANCE_ADJUSTED_UPWARDS {
-		remoteBalance = settings.RemoteBalance + settings.PendingDecreasingForwardHTLCsAmount + settings.PendingPaymentHTLCsAmount
+		remoteBalance = settings.RemoteBalance + settings.PendingDecreasingHtlcAmount
 	}
 	return ManagedChannelBalanceStateSettings{
 		NodeId:                     managedChannelState.NodeId,
+		RemoteNodeId:               managedChannelState.RemoteNodeId,
 		ChannelId:                  managedChannelState.ChannelId,
 		HtlcInclude:                managedChannelState.HtlcInclude,
 		LocalBalance:               localBalance,

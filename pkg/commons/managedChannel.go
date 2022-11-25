@@ -36,6 +36,7 @@ type ManagedChannel struct {
 	Type                   ManagedChannelCacheOperationType
 	ChannelId              int
 	ShortChannelId         string
+	LndShortChannelId      uint64
 	FundingTransactionHash string
 	FundingOutputIndex     int
 	Capacity               int64
@@ -53,6 +54,7 @@ type ManagedChannel struct {
 type ManagedChannelSettings struct {
 	ChannelId              int
 	ShortChannelId         string
+	LndShortChannelId      uint64
 	FundingTransactionHash string
 	FundingOutputIndex     int
 	Capacity               int64
@@ -121,6 +123,7 @@ func processManagedChannel(managedChannel ManagedChannel,
 			log.Error().Msgf("No empty ChannelId (%v) or FundingTransactionHash (%v) allowed", managedChannel.ChannelId, managedChannel.FundingTransactionHash)
 		} else {
 			channelPoint := createChannelPoint(managedChannel)
+			parseAndConvertShortIds(managedChannel)
 			if managedChannel.Status < CooperativeClosed {
 				if managedChannel.ShortChannelId != "" {
 					shortChannelIdCache[managedChannel.ShortChannelId] = managedChannel.ChannelId
@@ -180,6 +183,19 @@ func processManagedChannel(managedChannel ManagedChannel,
 	}
 }
 
+func parseAndConvertShortIds(managedChannel ManagedChannel) {
+	if managedChannel.ShortChannelId == "" && managedChannel.LndShortChannelId != 0 {
+		managedChannel.ShortChannelId = ConvertLNDShortChannelID(managedChannel.LndShortChannelId)
+	}
+	if managedChannel.LndShortChannelId == 0 && managedChannel.ShortChannelId != "" {
+		var err error
+		managedChannel.LndShortChannelId, err = ConvertShortChannelIDToLND(managedChannel.ShortChannelId)
+		if err != nil {
+			log.Error().Msgf("Could not convert ShortChannelId (%v) into LndShortChannelId", managedChannel.ShortChannelId)
+		}
+	}
+}
+
 func createChannelPoint(managedChannel ManagedChannel) string {
 	return fmt.Sprintf("%s:%v", managedChannel.FundingTransactionHash, managedChannel.FundingOutputIndex)
 }
@@ -202,6 +218,20 @@ func GetActiveChannelIdByFundingTransaction(fundingTransactionHash string, fundi
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
 		Type:                   READ_ACTIVE_CHANNELID_BY_FUNDING_TRANSACTION,
+		Out:                    channelResponseChannel,
+	}
+	ManagedChannelChannel <- managedChannel
+	channelResponse := <-channelResponseChannel
+	return channelResponse.ChannelId
+}
+
+func GetChannelIdByChannelPoint(channelPoint string) int {
+	fundingTransactionHash, fundingOutputIndex := ParseChannelPoint(channelPoint)
+	channelResponseChannel := make(chan ManagedChannel)
+	managedChannel := ManagedChannel{
+		FundingTransactionHash: fundingTransactionHash,
+		FundingOutputIndex:     fundingOutputIndex,
+		Type:                   READ_CHANNELID_BY_FUNDING_TRANSACTION,
 		Out:                    channelResponseChannel,
 	}
 	ManagedChannelChannel <- managedChannel
@@ -241,6 +271,22 @@ func GetChannelIdByShortChannelId(shortChannelId string) int {
 	if shortChannelId == "" || shortChannelId == "0x0x0" {
 		return 0
 	}
+	channelResponseChannel := make(chan ManagedChannel)
+	managedChannel := ManagedChannel{
+		ShortChannelId: shortChannelId,
+		Type:           READ_CHANNELID_BY_SHORTCHANNELID,
+		Out:            channelResponseChannel,
+	}
+	ManagedChannelChannel <- managedChannel
+	channelResponse := <-channelResponseChannel
+	return channelResponse.ChannelId
+}
+
+func GetChannelIdByLndShortChannelId(lndShortChannelId uint64) int {
+	if lndShortChannelId == 0 {
+		return 0
+	}
+	shortChannelId := ConvertLNDShortChannelID(lndShortChannelId)
 	channelResponseChannel := make(chan ManagedChannel)
 	managedChannel := ManagedChannel{
 		ShortChannelId: shortChannelId,

@@ -109,6 +109,6 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 	if err != nil {
 		return NodeConnectionDetails{}, errors.Wrap(err, "Inserting node connection details in the database")
 	}
-	commons.SetTorqNode(nodeId, nodeConnectionDetailsData.Status, publicKey, chain, network)
+	commons.SetTorqNode(nodeId, nodeConnectionDetailsData.Name, nodeConnectionDetailsData.Status, publicKey, chain, network)
 	return ncd, nil
 }

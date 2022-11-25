@@ -98,7 +98,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
 				return
 			}
-			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(commons.ConvertLNDShortChannelID(lndShortChannelId)))
 		}
 	}
 
@@ -163,7 +163,7 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
 				return
 			}
-			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(commons.ConvertLNDShortChannelID(lndShortChannelId)))
 		}
 	}
 	network := c.Query("network")

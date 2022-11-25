@@ -66,7 +66,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 			})
 		}
 	} else {
-		log.Error().Err(err).Msgf("Failed to obtain Vector ping systems maybe the database is not ready yet?")
+		log.Info().Err(err).Msgf("Failed to obtain Vector ping systems maybe the database is not ready yet?")
 	}
 	ambossNodeIds, err := settings.GetPingSystemNodeIds(db, commons.Amboss)
 	if err == nil {
@@ -80,7 +80,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 			})
 		}
 	} else {
-		log.Error().Err(err).Msgf("Failed to obtain Amboss ping systems maybe the database is not ready yet?")
+		log.Info().Err(err).Msgf("Failed to obtain Amboss ping systems maybe the database is not ready yet?")
 	}
 	c.JSON(http.StatusOK, result)
 }

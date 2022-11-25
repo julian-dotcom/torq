@@ -1,8 +1,14 @@
 package commons
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 	"sync"
+
+	"github.com/cockroachdb/errors"
+	"github.com/rs/zerolog/log"
 )
 
 // GetNetwork defaults to MainNet when no match is found
@@ -44,4 +50,50 @@ func RWMutexWriteLocked(rw *sync.RWMutex) bool {
 
 func RWMutexReadLocked(rw *sync.RWMutex) bool {
 	return reflect.ValueOf(rw).Elem().FieldByName("readerCount").Int() > 0
+}
+
+func ConvertLNDShortChannelID(LNDShortChannelID uint64) string {
+	blockHeight := uint32(LNDShortChannelID >> 40)
+	txIndex := uint32(LNDShortChannelID>>16) & 0xFFFFFF
+	outputIndex := uint16(LNDShortChannelID)
+	return strconv.FormatUint(uint64(blockHeight), 10) +
+		"x" + strconv.FormatUint(uint64(txIndex), 10) +
+		"x" + strconv.FormatUint(uint64(outputIndex), 10)
+}
+
+func ConvertShortChannelIDToLND(ShortChannelID string) (uint64, error) {
+	parts := strings.Split(ShortChannelID, "x")
+	blockHeight, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, errors.Wrap(err, "Converting block height from string to int")
+	}
+	txIndex, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, errors.Wrap(err, "Converting tx index from string to int")
+	}
+	txPosition, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return 0, errors.Wrap(err, "Converting tx position from string to int")
+	}
+
+	return (uint64(blockHeight) << 40) |
+		(uint64(txIndex) << 16) |
+		(uint64(txPosition)), nil
+}
+
+func ParseChannelPoint(channelPoint string) (string, int) {
+	parts := strings.Split(channelPoint, ":")
+	if channelPoint != "" && strings.Contains(channelPoint, ":") && len(parts) == 2 {
+		outputIndex, err := strconv.Atoi(parts[1])
+		if err == nil {
+			return parts[0], outputIndex
+		} else {
+			log.Debug().Err(err).Msgf("Failed to parse channelPoint %v", channelPoint)
+		}
+	}
+	return "", 0
+}
+
+func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) string {
+	return fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)
 }

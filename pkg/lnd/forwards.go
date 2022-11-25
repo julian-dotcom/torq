@@ -13,7 +13,6 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -30,7 +29,7 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 			return errors.Wrap(err, "SQL Statement prepare")
 		}
 		for _, event := range fwh {
-			incomingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdIn)
+			incomingShortChannelId := commons.ConvertLNDShortChannelID(event.ChanIdIn)
 			incomingChannelId := commons.GetChannelIdByShortChannelId(incomingShortChannelId)
 			incomingChannelIdP := &incomingChannelId
 			if incomingChannelId == 0 {
@@ -38,7 +37,7 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 					incomingShortChannelId)
 				incomingChannelIdP = nil
 			}
-			outgoingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdOut)
+			outgoingShortChannelId := commons.ConvertLNDShortChannelID(event.ChanIdOut)
 			outgoingChannelId := commons.GetChannelIdByShortChannelId(outgoingShortChannelId)
 			outgoingChannelIdP := &outgoingChannelId
 			if outgoingChannelId == 0 {

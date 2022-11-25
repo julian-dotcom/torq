@@ -279,7 +279,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 				recoverPanic(panicError, serviceChannel, nodeId, commons.ChannelBalanceCacheStream)
 			}
 		}()
-		lnd.ChannelBalanceCacheMaintenance(ctx, client, nodeSettings, broadcaster, eventChannel, serviceEventChannel)
+		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel, serviceEventChannel)
 	})()
 
 	wg.Wait()

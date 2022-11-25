@@ -3,28 +3,23 @@ package lnd
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/benbjohnson/clock"
 	"github.com/cockroachdb/errors"
-	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
-	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/lncapital/torq/pkg/server_errors"
 )
 
-func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.LightningClient, nodeSettings commons.ManagedNodeSettings,
+func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.LightningClient, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings,
 	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
 
-	var err error
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.ChannelBalanceCacheStream
@@ -38,86 +33,128 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 		case <-ctx.Done():
 			return
 		case <-lndSyncTicker:
+			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
+				serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db)
 		case event := <-broadcaster.Subscribe():
 			if serviceEvent, ok := event.(commons.ServiceEvent); ok {
 				if serviceEvent.Type == commons.LndService && serviceEvent.NodeId == nodeSettings.NodeId &&
 					serviceEvent.Status == commons.Active && serviceEvent.PreviousStatus != commons.Active {
-					if commons.RunningServices[commons.LndService].GetStatus(serviceEvent.NodeId) == commons.Active {
-						if bootStrapping {
-							serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
-						}
-						initializeChannelBalanceFromLnd(lndClient, serviceEvent.NodeId)
-						bootStrapping = false
-					}
+					bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
+						serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db)
 				}
 			}
 		}
 	}
 }
 
-func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int) error {
+func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapping bool, serviceStatus commons.Status,
+	serviceEventChannel chan commons.ServiceEvent, subscriptionStream commons.SubscriptionStream,
+	lndClient lnrpc.LightningClient, db *sqlx.DB) (bool, commons.Status) {
+
+	if commons.RunningServices[commons.LndService].GetStatus(nodeSettings.NodeId) == commons.Active {
+		if bootStrapping {
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+		}
+		err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db)
+		if err == nil {
+			bootStrapping = false
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		} else {
+			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			log.Error().Err(err).Msgf("Failed to initialize channel balance cache. This is a critical issue! (nodeId: %v)", nodeSettings.NodeId)
+		}
+	}
+	return bootStrapping, serviceStatus
+}
+
+func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int, db *sqlx.DB) error {
+	mutex := commons.GetChannelStateLock(nodeId)
+	if commons.RWMutexWriteLocked(mutex) {
+		log.Error().Msgf("The lock initializeChannelBalanceFromLnd is already locked? This is a critical issue! (nodeId: %v)", nodeId)
+		return errors.New(fmt.Sprintf("he lock initializeChannelBalanceFromLnd is already locked? This is a critical issue! (nodeId: %v)", nodeId))
+	}
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	mutex.Lock()
+	defer mutex.Unlock()
 	r, err := lndClient.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 	if err != nil {
 		return errors.Wrapf(err, "Obtaining channels from LND for nodeId: %v", nodeId)
 	}
 	for _, lndChannel := range r.Channels {
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(lndChannel.ChannelPoint)
-		channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetChannelIdByChannelPoint(lndChannel.ChannelPoint)
+		remoteNodeId := commons.GetNodeIdByPublicKey(lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network)
+		if channelId == 0 {
+			return errors.Wrapf(err, "Obtaining channelId from channelPoint: %v", lndChannel.ChannelPoint)
+		}
 		channelStateSettings := commons.ManagedChannelStateSettings{
-			NodeId: nodeId,
-			ChannelId: channelId,
-			LocalBalance: lndChannel.LocalBalance,
-			LocalDisabled: lndChannel.,
-			LocalFeeBaseMsat: lndChannel.,
-			LocalFeeRateMilliMsat: lndChannel.,
-			LocalMinHtlc: lndChannel.,
-			LocalMaxHtlcMsat: lndChannel.,
-			LocalTimeLockDelta: lndChannel.,
+			NodeId:        nodeId,
+			RemoteNodeId:  remoteNodeId,
+			ChannelId:     channelId,
+			LocalBalance:  lndChannel.LocalBalance,
 			RemoteBalance: lndChannel.RemoteBalance,
-			RemoteDisabled: lndChannel.,
-			RemoteFeeBaseMsat: lndChannel.,
-			RemoteFeeRateMilliMsat: lndChannel.,
-			RemoteMinHtlc: lndChannel.,
-			RemoteMaxHtlcMsat: lndChannel.,
-			RemoteTimeLockDelta: lndChannel.,
 			// STALE INFORMATION ONLY OBTAINED VIA LND REGULAR CHECKINS SO NOT MAINTAINED
-			CommitFee: lndChannel.CommitFee,
-			CommitWeight: lndChannel.CommitWeight,
-			FeePerKw: lndChannel.FeePerKw,
-			NumUpdates: lndChannel.NumUpdates,
-			ChanStatusFlags: lndChannel.ChanStatusFlags,
-			LocalChanReserveSat: lndChannel.LocalChanReserveSat,
-			RemoteChanReserveSat: lndChannel.RemoteChanReserveSat,
-			CommitmentType: lndChannel.CommitmentType,
-			Lifetime: lndChannel.Lifetime,
-			TotalSatoshisSent: lndChannel.TotalSatoshisSent,
+			CommitFee:             lndChannel.CommitFee,
+			CommitWeight:          lndChannel.CommitWeight,
+			FeePerKw:              lndChannel.FeePerKw,
+			NumUpdates:            lndChannel.NumUpdates,
+			ChanStatusFlags:       lndChannel.ChanStatusFlags,
+			CommitmentType:        lndChannel.CommitmentType,
+			Lifetime:              lndChannel.Lifetime,
+			TotalSatoshisSent:     lndChannel.TotalSatoshisSent,
 			TotalSatoshisReceived: lndChannel.TotalSatoshisReceived,
 		}
+		localRoutingPolicy, err := channels.GetLocalRoutingPolicy(channelId, nodeId, db)
+		if err != nil {
+			return errors.Wrapf(err, "Obtaining LocalRoutingPolicy from the database for channelId: %v", channelId)
+		}
+		channelStateSettings.LocalDisabled = localRoutingPolicy.Disabled
+		channelStateSettings.LocalFeeBaseMsat = localRoutingPolicy.FeeBaseMsat
+		channelStateSettings.LocalFeeRateMilliMsat = localRoutingPolicy.FeeRateMillMsat
+		channelStateSettings.LocalMinHtlc = localRoutingPolicy.MinHtlc
+		channelStateSettings.LocalMaxHtlcMsat = localRoutingPolicy.MaxHtlcMsat
+		channelStateSettings.LocalTimeLockDelta = localRoutingPolicy.TimeLockDelta
+
+		remoteRoutingPolicy, err := channels.GetRemoteRoutingPolicy(channelId, nodeId, db)
+		if err != nil {
+			return errors.Wrapf(err, "Obtaining RemoteRoutingPolicy from the database for channelId: %v", channelId)
+		}
+		channelStateSettings.RemoteDisabled = remoteRoutingPolicy.Disabled
+		channelStateSettings.RemoteFeeBaseMsat = remoteRoutingPolicy.FeeBaseMsat
+		channelStateSettings.RemoteFeeRateMilliMsat = remoteRoutingPolicy.FeeRateMillMsat
+		channelStateSettings.RemoteMinHtlc = remoteRoutingPolicy.MinHtlc
+		channelStateSettings.RemoteMaxHtlcMsat = remoteRoutingPolicy.MaxHtlcMsat
+		channelStateSettings.RemoteTimeLockDelta = remoteRoutingPolicy.TimeLockDelta
 
 		if len(lndChannel.PendingHtlcs) > 0 {
-			pendingPaymentHTLCsCount:=0
-			pendingPaymentHTLCsAmount:=int64(0)
-			pendingInvoiceHTLCsCount:=0
-			pendingInvoiceHTLCsAmount:=int64(0)
-			pendingDecreasingForwardHTLCsCount:=0
-			pendingDecreasingForwardHTLCsAmount:=int64(0)
-			pendingIncreasingForwardHTLCsCount:=0
-			pendingIncreasingForwardHTLCsAmount:=int64(0)
+			pendingDecreasingHtlcCount := 0
+			pendingDecreasingHtlcAmount := int64(0)
+			pendingIncreasingHtlcCount := 0
+			pendingIncreasingHtlcAmount := int64(0)
 			for _, pendingHtlc := range lndChannel.PendingHtlcs {
-				if pendingHtlc.ForwardingHtlcIndex == 0 {
-					continue
+				htlc := commons.Htlc{
+					Incoming:            pendingHtlc.Incoming,
+					Amount:              pendingHtlc.Amount,
+					HashLock:            pendingHtlc.HashLock,
+					ExpirationHeight:    pendingHtlc.ExpirationHeight,
+					HtlcIndex:           pendingHtlc.HtlcIndex,
+					ForwardingChannel:   pendingHtlc.ForwardingChannel,
+					ForwardingHtlcIndex: pendingHtlc.ForwardingHtlcIndex,
 				}
-				pendingHtlc += pendingHtlc.Amount
+				channelStateSettings.PendingHtlcs = append(channelStateSettings.PendingHtlcs, htlc)
+				if htlc.ForwardingHtlcIndex == 0 {
+					pendingDecreasingHtlcCount++
+					pendingDecreasingHtlcAmount += htlc.Amount
+				} else {
+					pendingIncreasingHtlcCount++
+					pendingIncreasingHtlcAmount += htlc.Amount
+				}
 			}
-			channelStateSettings.PendingPaymentHTLCsCount = pendingPaymentHTLCsCount
-			channelStateSettings.PendingPaymentHTLCsAmount = pendingPaymentHTLCsAmount
-			channelStateSettings.PendingInvoiceHTLCsCount = pendingInvoiceHTLCsCount
-			channelStateSettings.PendingInvoiceHTLCsAmount = pendingInvoiceHTLCsAmount
-			channelStateSettings.PendingDecreasingForwardHTLCsCount = pendingDecreasingForwardHTLCsCount
-			channelStateSettings.PendingDecreasingForwardHTLCsAmount = pendingDecreasingForwardHTLCsAmount
-			channelStateSettings.PendingIncreasingForwardHTLCsCount = pendingIncreasingForwardHTLCsCount
-			channelStateSettings.PendingIncreasingForwardHTLCsAmount = pendingIncreasingForwardHTLCsAmount
+			channelStateSettings.PendingDecreasingHtlcCount = pendingDecreasingHtlcCount
+			channelStateSettings.PendingDecreasingHtlcAmount = pendingDecreasingHtlcAmount
+			channelStateSettings.PendingIncreasingHtlcCount = pendingIncreasingHtlcCount
+			channelStateSettings.PendingIncreasingHtlcAmount = pendingIncreasingHtlcAmount
 		}
 		commons.SetChannelState(nodeId, channelId, channelStateSettings)
 	}
+	return nil
 }

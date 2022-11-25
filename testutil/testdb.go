@@ -234,7 +234,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		log.Debug().Msgf("Channel publicKeys: %v", commons.GetChannelPublicKeys(commons.Bitcoin, commons.SigNet))
 		log.Debug().Msgf("Channel nodeIds: %v", commons.GetChannelNodeIds(commons.Bitcoin, commons.SigNet))
 		lndShortChannelId := uint64(1111)
-		shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
+		shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel1 := channels.Channel{
 			ShortChannelID:         &shortChannelId,
 			FirstNodeId:            commons.GetNodeIdByPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
@@ -253,7 +253,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
 		lndShortChannelId = 2222
-		shortChannelId = channels.ConvertLNDShortChannelID(lndShortChannelId)
+		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel2 := channels.Channel{
 			ShortChannelID:         &shortChannelId,
 			FirstNodeId:            commons.GetNodeIdByPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
@@ -272,7 +272,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
 		lndShortChannelId = 3333
-		shortChannelId = channels.ConvertLNDShortChannelID(lndShortChannelId)
+		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel3 := channels.Channel{
 			ShortChannelID:         &shortChannelId,
 			FirstNodeId:            commons.GetNodeIdByPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
@@ -291,7 +291,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
 		lndShortChannelId = 4444
-		shortChannelId = channels.ConvertLNDShortChannelID(lndShortChannelId)
+		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel4 := channels.Channel{
 			ShortChannelID:         &shortChannelId,
 			FirstNodeId:            commons.GetNodeIdByPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),

@@ -15,8 +15,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
@@ -233,7 +233,7 @@ func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
 
 		for _, hop := range attempt.Route.Hops {
 			h := hops{
-				ChanId:           channels.ConvertLNDShortChannelID(hop.ChanId),
+				ChanId:           commons.ConvertLNDShortChannelID(hop.ChanId),
 				AmtToForwardMsat: hop.AmtToForwardMsat,
 				Expiry:           hop.Expiry,
 				PubKey:           hop.PubKey,
