@@ -66,10 +66,14 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 						continue
 					}
 
-					// Import node info from nodes with channels
-					err = importNodeInfo(client, db, nodeSettings)
+					responseChannel = make(chan error)
+					importRequestChannel <- commons.ImportRequest{
+						ImportType: commons.ImportNodeInformation,
+						Out:        responseChannel,
+					}
+					err = <-responseChannel
 					if err != nil {
-						log.Error().Err(err).Msg("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
+						log.Error().Err(err).Msg("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
 						stream = nil
 						time.Sleep(1 * time.Minute)
 						continue
@@ -113,7 +117,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	}
 }
 
-func importNodeInfo(client subscribeChannelGraphClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+func ImportNodeInfo(client subscribeChannelGraphClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 	// Get all node public keys with channels
 	publicKeys := commons.GetAllChannelPublicKeys(nodeSettings.Chain, nodeSettings.Network)
 

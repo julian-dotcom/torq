@@ -116,4 +116,5 @@ type ImportType int
 
 const (
 	ImportChannelAndRoutingPolicies = ImportType(iota)
+	ImportNodeInformation
 )

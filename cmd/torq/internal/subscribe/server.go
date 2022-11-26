@@ -35,18 +35,19 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 
 	importRequestChannel := make(chan commons.ImportRequest)
 	go (func() {
-		var successTime time.Time
+		successTimes := make(map[commons.ImportType]time.Time, 0)
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case importRequest := <-importRequestChannel:
+				successTime, exists := successTimes[importRequest.ImportType]
+				if exists && time.Since(successTime).Seconds() < commons.AVOID_CHANNEL_AND_POLICY_IMPORT_RERUN_TIME_SECONDS {
+					log.Info().Msgf("%v were imported very recently for nodeId: %v.", importRequest.ImportType, nodeSettings.NodeId)
+					importRequest.Out <- nil
+					continue
+				}
 				if importRequest.ImportType == commons.ImportChannelAndRoutingPolicies {
-					if time.Since(successTime).Seconds() < commons.AVOID_CHANNEL_AND_POLICY_IMPORT_RERUN_TIME_SECONDS {
-						log.Info().Msgf("Channels and policies were imported very recently for nodeId: %v.", nodeSettings.NodeId)
-						importRequest.Out <- nil
-						continue
-					}
 					var err error
 					//Import Open channels
 					err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, nodeSettings)
@@ -85,9 +86,18 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 						importRequest.Out <- err
 						continue
 					}
-					successTime = time.Now()
-					importRequest.Out <- nil
 				}
+				if importRequest.ImportType == commons.ImportNodeInformation {
+					err := lnd.ImportNodeInfo(client, db, nodeSettings)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to import node information.")
+						importRequest.Out <- err
+						continue
+					}
+				}
+				log.Info().Msgf("%v was imported successfully for nodeId: %v.", importRequest.ImportType, nodeSettings.NodeId)
+				successTimes[importRequest.ImportType] = time.Now()
+				importRequest.Out <- nil
 			}
 		}
 	})()
