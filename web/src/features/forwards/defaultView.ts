@@ -154,7 +154,7 @@ export const DefaultView: ViewInterface<Forward> = {
   saved: true,
   columns: activeForwardsColumns,
   filters: defaultFilter,
-  sortBy: [{ value: "revenueOut", label: "Revenue", direction: "desc" }],
+  sortBy: [{ key: "revenueOut", direction: "desc" }],
   groupBy: undefined,
   page: "forwards",
   view_order: 0,

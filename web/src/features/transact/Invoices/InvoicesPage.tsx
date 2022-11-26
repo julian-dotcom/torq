@@ -5,13 +5,13 @@ import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   // Filter20Regular as FilterIcon,
-  // ArrowSortDownLines20Regular as SortIcon,
-  // ColumnTriple20Regular as ColumnsIcon,
+  ArrowSortDownLines20Regular as SortIcon,
+  ColumnTriple20Regular as ColumnsIcon,
   Options20Regular as OptionsIcon,
   Check20Regular as InvoiceIcon,
   // Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
-// import Sidebar from "features/sidebar/Sidebar";
+import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -24,18 +24,19 @@ import useLocalStorage from "features/helpers/useLocalStorage";
 // import FilterSection from "features/sidebar/sections/filter/FilterSection";
 // import { Clause, FilterInterface } from "features/sidebar/sections/filter/filter";
 // import { useAppDispatch, useAppSelector } from "store/hooks";
-// import { DefaultView } from "features/transact/Invoices/invoicesSlice";
 // import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
-// import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
-// import clone from "clone";
-// import { SectionContainer } from "features/section/SectionContainer";
+import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
+import { SectionContainer } from "features/section/SectionContainer";
 import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import { AllViewsResponse } from "features/viewManagement/types";
 import { InvoicesResponse } from "./invoiceTypes";
-import { InvoiceViewTemplate } from "./invoiceDefaults";
+import { AllInvoicesColumns, DefaultSortValue, InvoiceViewTemplate, SortableInvoiceColumns } from "./invoiceDefaults";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
+
+import SortSection from "../../sidebar/sections/sort/SortSection";
+import { useView } from "../../viewManagement/useView";
 
 type sections = {
   filter: boolean;
@@ -65,7 +66,7 @@ function InvoicesPage() {
     isSuccess: boolean;
   }>();
   const invoiceViews = allViews?.data ? allViews.data["invoices"] : [InvoiceViewTemplate];
-  const [selectedView, setSelectedView] = useState(0);
+  const [view, selectView] = useView(invoiceViews, 0);
 
   const invoicesResponse = useGetInvoicesQuery<{
     data: InvoicesResponse;
@@ -77,12 +78,11 @@ function InvoicesPage() {
     {
       limit: limit,
       offset: offset,
-      // order: invoiceViews[selectedView].sortBy,
+      order: view.sortBy,
     },
     { skip: !allViews.isSuccess }
   );
 
-  // useEffect(() => {
   //   const views: ViewInterface<Invoice>[] = [];
   //   if (!isLoading) {
   //     if (invoicesViews) {
@@ -98,22 +98,8 @@ function InvoicesPage() {
 
   // }, [invoicesViews, isLoading]);
 
-  // const [orderBy, setOrderBy] = useLocalStorage("invoicesOrderBy", [
-  //   {
-  //     key: "creationDate",
-  //     direction: "desc",
-  //   },
-  // ] as OrderBy[]);
-
-  // const activeColumns = useAppSelector(selectActiveColumns) || [];
-  // const allColumns = useAppSelector(selectAllColumns);
-
-  // const dispatch = useAppDispatch();
-  // const filters = useAppSelector(selectInvoicesFilters);
-
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  // let data: any = [];
 
   // if (invoicesResponse?.data?.data) {
   //   data = invoicesResponse?.data?.data.map((invoice: any) => {
@@ -196,27 +182,7 @@ function InvoicesPage() {
   //   dispatch(updateInvoicesFilters({ filters: updated.toJSON() }));
   // };
   //
-  // const sortableColumns = allColumns.filter((column: ColumnMetaData<Invoice>) =>
-  //   [
-  //     "creationDate",
-  //     "settleDate",
-  //     "invoiceState",
-  //     "amtPaid",
-  //     "memo",
-  //     "value",
-  //     "isRebalance",
-  //     "isKeysend",
-  //     "destinationPubKey",
-  //     "isAmp",
-  //     "fallbackAddr",
-  //     "paymentAddr",
-  //     "paymentRequest",
-  //     "private",
-  //     "expiry",
-  //     "cltvExpiry",
-  //     "updatedOn",
-  //   ].includes(column.key)
-  // );
+
   //
   // const handleSortUpdate = (updated: Array<OrderBy>) => {
   //   setOrderBy(updated);
@@ -226,39 +192,39 @@ function InvoicesPage() {
   //   dispatch(updateColumns({ columns: columns }));
   // };
 
-  // const sidebar = (
-  //   <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
-  //     <SectionContainer
-  //       title={"Columns"}
-  //       icon={ColumnsIcon}
-  //       expanded={activeSidebarSections.columns}
-  //       handleToggle={sidebarSectionHandler("columns")}
-  //     >
-  //       <ColumnsSection columns={allColumns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
-  //     </SectionContainer>
-  //     <SectionContainer
-  //       title={"Filter"}
-  //       icon={FilterIcon}
-  //       expanded={activeSidebarSections.filter}
-  //       handleToggle={sidebarSectionHandler("filter")}
-  //     >
-  //       <FilterSection
-  //         columnsMeta={filterColumns}
-  //         filters={filters}
-  //         filterUpdateHandler={handleFilterUpdate}
-  //         defaultFilter={defaultFilter}
-  //       />
-  //     </SectionContainer>
-  //     <SectionContainer
-  //       title={"Sort"}
-  //       icon={SortIcon}
-  //       expanded={activeSidebarSections.sort}
-  //       handleToggle={sidebarSectionHandler("sort")}
-  //     >
-  //       <SortSection columns={sortableColumns} orderBy={orderBy} updateHandler={handleSortUpdate} />
-  //     </SectionContainer>
-  //   </Sidebar>
-  // );
+  const sidebar = (
+    <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
+      <SectionContainer
+        title={"Columns"}
+        icon={ColumnsIcon}
+        expanded={activeSidebarSections.columns}
+        handleToggle={sidebarSectionHandler("columns")}
+      >
+        <ColumnsSection columns={AllInvoicesColumns} view={view} />
+      </SectionContainer>
+      {/*<SectionContainer*/}
+      {/*  title={"Filter"}*/}
+      {/*  icon={FilterIcon}*/}
+      {/*  expanded={activeSidebarSections.filter}*/}
+      {/*  handleToggle={sidebarSectionHandler("filter")}*/}
+      {/*>*/}
+      {/*  <FilterSection*/}
+      {/*    columnsMeta={filterColumns}*/}
+      {/*    filters={filters}*/}
+      {/*    filterUpdateHandler={handleFilterUpdate}*/}
+      {/*    defaultFilter={defaultFilter}*/}
+      {/*  />*/}
+      {/*</SectionContainer>*/}
+      <SectionContainer
+        title={"Sort"}
+        icon={SortIcon}
+        expanded={activeSidebarSections.sort}
+        handleToggle={sidebarSectionHandler("sort")}
+      >
+        <SortSection columns={SortableInvoiceColumns} view={view} defaultSortBy={DefaultSortValue} />
+      </SectionContainer>
+    </Sidebar>
+  );
 
   const breadcrumbs = [
     <span key="b1">Transactions</span>,
@@ -280,14 +246,14 @@ function InvoicesPage() {
       title={"Invoices"}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
-      // sidebar={sidebar}
+      sidebar={sidebar}
       tableControls={tableControls}
       pagination={pagination}
     >
       <Table
         cellRenderer={DefaultCellRenderer}
         data={invoicesResponse?.data?.data || []}
-        activeColumns={invoiceViews[selectedView].columns || []}
+        activeColumns={view.columns || []}
         isLoading={invoicesResponse.isLoading || invoicesResponse.isFetching || invoicesResponse.isUninitialized}
       />
     </TablePageTemplate>

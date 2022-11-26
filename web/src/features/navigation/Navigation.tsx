@@ -8,7 +8,9 @@ import {
   Navigation20Regular as CollapseIcon,
   ArrowForward20Regular as ForwardsIcon,
   Autosum20Regular as SummaryIcon,
-  MoneyHand20Regular as TransactionIcon,
+  MoneyHand20Regular as PaymentsIcon,
+  KeyMultiple20Regular as OnChainTransactionIcon,
+  Check20Regular as InvoicesIcon,
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
@@ -51,19 +53,11 @@ function Navigation() {
         </NavCategory>
 
         <NavCategory text={"Transactions"} collapsed={false}>
-          <MenuItem
-            text={"Payments"}
-            icon={<TransactionIcon />}
-            routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`}
-          />
-          <MenuItem
-            text={"Invoices"}
-            icon={<TransactionIcon />}
-            routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`}
-          />
+          <MenuItem text={"Payments"} icon={<PaymentsIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`} />
+          <MenuItem text={"Invoices"} icon={<InvoicesIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`} />
           <MenuItem
             text={"On-Chain"}
-            icon={<TransactionIcon />}
+            icon={<OnChainTransactionIcon />}
             routeTo={`/${routes.TRANSACTIONS}/${routes.ONCHAIN}`}
           />
         </NavCategory>

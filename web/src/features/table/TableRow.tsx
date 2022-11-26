@@ -1,16 +1,10 @@
-import styles from "./table.module.scss";
 import cellStyles from "components/table/cells/cell.module.scss";
-import NumericCell from "components/table/cells/numeric/NumericCell";
-import BarCell from "components/table/cells/bar/BarCell";
-import TextCell from "components/table/cells/text/TextCell";
-import DurationCell from "components/table/cells/duration/DurationCell";
-import BooleanCell from "components/table/cells/boolean/BooleanCell";
 import CheckboxCell from "components/table/cells/checkbox/CheckboxCell";
 import classNames from "classnames";
 import { ReactNode } from "react";
 import { RowProp, ColumnMetaData } from "./types";
 
-function Row<T extends {}>(props: RowProp<T>) {
+function Row<T>(props: RowProp<T>) {
   // const totalsRowRenderer = props.totalsRowRenderer ? props.totalsRowRenderer : defaultTotalsRowRenderer;
 
   // Adds empty cells at the start and end of each row. This is to give the table a buffer at each end.

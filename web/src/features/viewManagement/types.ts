@@ -1,4 +1,3 @@
-import { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
 import { ColumnMetaData } from "features/table/types";
 import { Clause } from "features/sidebar/sections/filter/filter";
 import { Forward } from "types/api";
@@ -7,20 +6,21 @@ import { channel } from "features/channels/channelsTypes";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";
 import { OnChainTx } from "features/transact/OnChain/types";
 import { Payment } from "features/transact/Payments/types";
+import { OrderBy } from "../sidebar/sections/sort/SortSection";
 
 export type PageViewType<T extends {}> = {
   selectedViewIndex: number;
   views: Array<ViewInterface<T>>;
 };
 
-export type ViewInterface<T extends {}> = {
+export type ViewInterface<T> = {
   id?: number; // Missing ID means the view is not in the database
   saved: boolean; // False, means the view is different from the version in the database.
   view_order: number; // This is the order of the view set by the user.
   title: string;
   filters?: Clause;
-  columns?: Array<ColumnMetaData<T>>;
-  sortBy?: SortByOptionType[];
+  columns: Array<ColumnMetaData<T>>;
+  sortBy?: Array<OrderBy>;
   groupBy?: string;
   page: string;
 };
@@ -51,6 +51,4 @@ export type AllViewsResponse = {
   channel: Array<ViewInterface<channel>>;
 };
 
-export type SortType<T extends {}> = ViewInterface<T>;
-// export type SelectColumnType = ViewInterface<TableResponses>;
 export type ViewInterfaceResponse = ViewInterface<TableResponses>;

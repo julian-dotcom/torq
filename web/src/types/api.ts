@@ -1,7 +1,4 @@
-type Order = {
-  key: string;
-  direction: "asc" | "desc";
-};
+import { OrderBy } from "../features/sidebar/sections/sort/SortSection";
 
 type Paginable = {
   limit: number;
@@ -14,7 +11,7 @@ export type FromAndTo = {
 };
 
 export type BaseQueryCollectionParams = Paginable & {
-  order?: Order;
+  order?: Array<OrderBy>;
   filter?: Record<string, unknown>;
 };
 

@@ -5,7 +5,7 @@ import classNames from "classnames";
 import TableRow from "./TableRow";
 import { TableProps } from "./types";
 
-function Table<T extends {}>(props: TableProps<T>) {
+function Table<T>(props: TableProps<T>) {
   const numColumns = Object.keys(props.activeColumns).length + (props.selectable ? 1 : 0);
   const numRows = (props.data || []).length;
   const rowGridStyle = (numRows: number): string => {

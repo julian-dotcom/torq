@@ -1,4 +1,4 @@
-export type ColumnMetaData<T extends {}> = {
+export type ColumnMetaData<T> = {
   heading: string;
   key: keyof T;
   type?: string;
@@ -10,7 +10,7 @@ export type ColumnMetaData<T extends {}> = {
   percent?: boolean;
 };
 
-export type TableProps<T extends {}> = {
+export type TableProps<T> = {
   activeColumns: Array<ColumnMetaData<T>>;
   data: Array<T>;
   isLoading: boolean;
@@ -21,14 +21,14 @@ export type TableProps<T extends {}> = {
   selectedRowIds?: Array<number>;
 };
 
-export type CellRendererFunction<T extends {}> = (
+export type CellRendererFunction<T> = (
   row: T,
-  index: number,
+  rowIndex: number,
   columnMeta: ColumnMetaData<T>,
   columnIndex: number
 ) => JSX.Element;
 
-export type RowProp<T extends {}> = {
+export type RowProp<T> = {
   row: T;
   rowIndex: number;
   columns: Array<ColumnMetaData<T>>;

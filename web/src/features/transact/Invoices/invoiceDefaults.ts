@@ -2,7 +2,7 @@ import { ViewInterface } from "features/viewManagement/types";
 import { Invoice } from "./invoiceTypes";
 import { ColumnMetaData } from "features/table/types";
 
-export const AllInvoicesColumns: ColumnMetaData<Invoice>[] = [
+export const AllInvoicesColumns: Array<ColumnMetaData<Invoice>> = [
   {
     key: "creationDate",
     heading: "Creation Date",
@@ -132,6 +132,35 @@ const defaultKeys: Array<keyof Invoice> = [
 ];
 
 export const DefaultInvoicesColumns = AllInvoicesColumns.filter(({ key }) => defaultKeys.includes(key));
+
+const sortableKeys: Array<keyof Invoice> = [
+  "creationDate",
+  "settleDate",
+  "invoiceState",
+  "amtPaid",
+  "memo",
+  "value",
+  "isRebalance",
+  "isKeysend",
+  "destinationPubKey",
+  "isAmp",
+  "fallbackAddr",
+  "paymentAddr",
+  "paymentRequest",
+  "private",
+  "expiry",
+  "cltvExpiry",
+  "updatedOn",
+];
+
+export const SortableInvoiceColumns = AllInvoicesColumns.filter((column: ColumnMetaData<Invoice>) => {
+  return sortableKeys.includes(column.key);
+});
+
+export const DefaultSortValue: { key: keyof Invoice; direction: "desc" | "asc" } = {
+  key: "value",
+  direction: "desc",
+};
 
 export const InvoiceViewTemplate: ViewInterface<Invoice> = {
   title: "Untitled View",

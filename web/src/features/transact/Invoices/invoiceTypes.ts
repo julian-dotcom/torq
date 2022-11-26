@@ -1,7 +1,7 @@
 import { Pagination } from "types/api";
 
 export type InvoicesResponse = {
-  data: Invoice[];
+  data: Array<Invoice>;
   pagination: Pagination;
 };
 
