@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -93,8 +92,8 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 	return r, nil
 }
 
-// importRoutingPolicies imports routing policy information about all channels if they don't already have
-func importRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+// ImportRoutingPolicies imports routing policy information about all channels if they don't already have
+func ImportRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)
@@ -132,52 +131,11 @@ func importRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettin
 				return errors.Wrap(err, "Creating channel point from byte")
 			}
 			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
-
-			announcingNodeId := commons.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
-			if announcingNodeId == 0 {
-				announcingNode := nodes.Node{
-					PublicKey: cu.AdvertisingNode,
-					Chain:     nodeSettings.Chain,
-					Network:   nodeSettings.Network,
-				}
-				_, err = nodes.AddNodeWhenNew(db, announcingNode)
-				if err != nil {
-					return errors.Wrap(err, "Adding new announcingNode")
-				}
-			}
-
-			connectingNodeId := commons.GetNodeIdByPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
-			if connectingNodeId == 0 {
-				connectingNode := nodes.Node{
-					PublicKey: cu.ConnectingNode,
-					Chain:     nodeSettings.Chain,
-					Network:   nodeSettings.Network,
-				}
-				_, err = nodes.AddNodeWhenNew(db, connectingNode)
-				if err != nil {
-					return errors.Wrap(err, "Adding new connectingNode")
-				}
-			}
-
 			channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 			if channelId == 0 {
-				channel := channels.Channel{
-					FirstNodeId:            announcingNodeId,
-					SecondNodeId:           connectingNodeId,
-					FundingTransactionHash: fundingTransactionHash,
-					FundingOutputIndex:     fundingOutputIndex,
-					Capacity:               cu.Capacity,
-					Status:                 commons.Open,
-				}
-				if cu.ChanId != 0 {
-					shortChannelId := channels.ConvertLNDShortChannelID(cu.ChanId)
-					channel.ShortChannelID = &shortChannelId
-					channel.LNDShortChannelID = &cu.ChanId
-				}
-				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
-				if err != nil {
-					return errors.Wrap(err, "Adding new channel")
-				}
+				return errors.New(fmt.Sprintf(
+					"Importing routing policy for a channel that doesn't exist in our database? (fundingTransactionHash: %v, fundingOutputIndex: %v)",
+					fundingTransactionHash, fundingOutputIndex))
 			} else {
 				channelStatus := commons.GetChannelStatusByChannelId(channelId)
 				if channelStatus != commons.Open {

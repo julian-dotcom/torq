@@ -331,7 +331,8 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent,
+	importRequestChannel chan commons.ImportRequest) {
 
 	var stream lnrpc.Lightning_SubscribeChannelEventsClient
 	var err error
@@ -351,9 +352,13 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			stream, err = client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
 			if err == nil {
 				// HACK to know if the context is a testcase.
-				if eventChannel != nil {
-					// Import routing policies from open channels
-					err = importRoutingPolicies(client, db, nodeSettings)
+				if importRequestChannel != nil {
+					responseChannel := make(chan error)
+					importRequestChannel <- commons.ImportRequest{
+						ImportType: commons.ImportChannelAndRoutingPolicies,
+						Out:        responseChannel,
+					}
+					err = <-responseChannel
 					if err != nil {
 						log.Error().Err(err).Msg("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
 						stream = nil

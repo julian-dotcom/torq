@@ -33,6 +33,8 @@ type ServiceChannelMessage = struct {
 	Out     chan Status
 }
 
+// 70 because a reconnection is attempted every 60 seconds
+const AVOID_CHANNEL_AND_POLICY_IMPORT_RERUN_TIME_SECONDS = 70
 const BOOTSTRAPPING_TIME_MINUTES = 8 * 60
 
 type Status int
@@ -103,4 +105,15 @@ const (
 	PaymentStream
 	InFlightPaymentStream
 	PeerEventStream
+)
+
+type ImportRequest struct {
+	ImportType ImportType
+	Out        chan error
+}
+
+type ImportType int
+
+const (
+	ImportChannelAndRoutingPolicies = ImportType(iota)
 )

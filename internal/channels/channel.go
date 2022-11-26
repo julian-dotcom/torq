@@ -139,6 +139,9 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 					return 0, errors.Wrapf(err, "Updating channel status %v.", existingChannelId)
 				}
 			}
+			commons.SetChannel(existingChannelId, channel.ShortChannelID,
+				channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
+				channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 		}
 		return existingChannelId, nil
 	}

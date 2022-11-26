@@ -3,6 +3,7 @@ package subscribe
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -11,6 +12,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd"
 
@@ -31,25 +33,74 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 
 	var wg sync.WaitGroup
 
-	//Import Open channels
-	err := lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, nodeSettings)
-	if err != nil {
-		return errors.Wrap(err, "LND import open channels list")
-	}
+	importRequestChannel := make(chan commons.ImportRequest)
+	go (func() {
+		var successTime time.Time
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case importRequest := <-importRequestChannel:
+				if importRequest.ImportType == commons.ImportChannelAndRoutingPolicies {
+					if time.Since(successTime).Seconds() < commons.AVOID_CHANNEL_AND_POLICY_IMPORT_RERUN_TIME_SECONDS {
+						log.Info().Msgf("Channels and policies were imported very recently for nodeId: %v.", nodeSettings.NodeId)
+						importRequest.Out <- nil
+						continue
+					}
+					var err error
+					//Import Open channels
+					err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, nodeSettings)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to import open channels.")
+						importRequest.Out <- err
+						continue
+					}
 
-	// Import Closed channels
-	err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, nodeSettings)
-	if err != nil {
-		return errors.Wrap(err, "LND import closed channels list")
-	}
+					// Import Closed channels
+					err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, nodeSettings)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to import closed channels.")
+						importRequest.Out <- err
+						continue
+					}
 
-	// TODO FIXME channels with short_channel_id = null and status IN (1,2,100,101,102,103) should be fixed somehow???
-	//  Open                   = 1
-	//  Closing                = 2
-	//	CooperativeClosed      = 100
-	//	LocalForceClosed       = 101
-	//	RemoteForceClosed      = 102
-	//	BreachClosed           = 103
+					// TODO FIXME channels with short_channel_id = null and status IN (1,2,100,101,102,103) should be fixed somehow???
+					//  Open                   = 1
+					//  Closing                = 2
+					//	CooperativeClosed      = 100
+					//	LocalForceClosed       = 101
+					//	RemoteForceClosed      = 102
+					//	BreachClosed           = 103
+
+					err = channels.InitializeManagedChannelCache(db)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to Initialize ManagedChannelCache.")
+						importRequest.Out <- err
+						continue
+					}
+
+					err = lnd.ImportRoutingPolicies(client, db, nodeSettings)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to import routing policies.")
+						importRequest.Out <- err
+						continue
+					}
+					successTime = time.Now()
+					importRequest.Out <- nil
+				}
+			}
+		}
+	})()
+
+	responseChannel := make(chan error)
+	importRequestChannel <- commons.ImportRequest{
+		ImportType: commons.ImportChannelAndRoutingPolicies,
+		Out:        responseChannel,
+	}
+	err := <-responseChannel
+	if err != nil {
+		return errors.Wrapf(err, "LND import Channel And Routing Policies for nodeId: %v", nodeSettings.NodeId)
+	}
 
 	// Transactions
 	wg.Add(1)
@@ -84,7 +135,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 				recoverPanic(panicError, serviceChannel, nodeId, commons.ChannelEventStream)
 			}
 		}()
-		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
+		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
 	})()
 
 	// Graph (Node updates, fee updates etc.)
@@ -96,7 +147,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 				recoverPanic(panicError, serviceChannel, nodeId, commons.GraphEventStream)
 			}
 		}()
-		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
+		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
 	})()
 
 	// Forwarding history

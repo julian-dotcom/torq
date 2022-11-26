@@ -17,6 +17,7 @@ import (
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/graph_events"
+	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -30,7 +31,8 @@ type subscribeChannelGraphClient interface {
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
 func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent,
+	importRequestChannel chan commons.ImportRequest) {
 
 	var stream lnrpc.Lightning_SubscribeChannelGraphClient
 	var err error
@@ -50,9 +52,13 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
 			if err == nil {
 				// HACK to know if the context is a testcase.
-				if eventChannel != nil {
-					// Import routing policies from open channels
-					err = importRoutingPolicies(client, db, nodeSettings)
+				if importRequestChannel != nil {
+					responseChannel := make(chan error)
+					importRequestChannel <- commons.ImportRequest{
+						ImportType: commons.ImportChannelAndRoutingPolicies,
+						Out:        responseChannel,
+					}
+					err = <-responseChannel
 					if err != nil {
 						log.Error().Err(err).Msg("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
 						stream = nil
@@ -188,10 +194,32 @@ func insertRoutingPolicy(
 	announcingNodeId := 0
 	if cu.AdvertisingNode != "" {
 		announcingNodeId = commons.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
+		if announcingNodeId == 0 {
+			newNode := nodes.Node{
+				PublicKey: cu.AdvertisingNode,
+				Chain:     nodeSettings.Chain,
+				Network:   nodeSettings.Network,
+			}
+			announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			if err != nil {
+				return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.AdvertisingNode)
+			}
+		}
 	}
 	connectingNodeId := 0
 	if cu.ConnectingNode != "" {
 		connectingNodeId = commons.GetNodeIdByPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
+		if connectingNodeId == 0 {
+			newNode := nodes.Node{
+				PublicKey: cu.ConnectingNode,
+				Chain:     nodeSettings.Chain,
+				Network:   nodeSettings.Network,
+			}
+			connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			if err != nil {
+				return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.ConnectingNode)
+			}
+		}
 	}
 	if connectingNodeId == 0 && announcingNodeId == 0 {
 		return errors.New(fmt.Sprintf("Cannot obtain announcingNodeId nor connectingNodeId (from AdvertisingNode: %v ConnectingNode: %v)", cu.AdvertisingNode, cu.ConnectingNode))
