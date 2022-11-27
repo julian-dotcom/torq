@@ -3,10 +3,20 @@ package query_parser
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/iancoleman/strcase"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 )
+
+//var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+//var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+//
+//func ToSnakeCase(str string) string {
+//	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
+//	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
+//	return strings.ToLower(snake)
+//}
 
 // Examples of json input
 //
@@ -71,10 +81,15 @@ type Filter struct {
 
 func (qp *QueryParser) ParseFilter(f Filter) (r sq.Sqlizer, err error) {
 
-	if !qp.IsAllowed(f.Key) {
+	//key, err := GetDBKeyName(f.Key)
+	//if err != nil {
+	//	return r, err
+	//}
+	key := strcase.ToSnake(f.Key)
+	if !qp.IsAllowed(key) {
 		return r,
 			fmt.Errorf("filtering by %s is not allwed. Try one of: %v",
-				f.Key,
+				key,
 				strings.Join(qp.AllowedColumns, ", "),
 			)
 	}
@@ -101,25 +116,25 @@ func (qp *QueryParser) ParseFilter(f Filter) (r sq.Sqlizer, err error) {
 
 	switch f.FuncName {
 	case "eq":
-		return sq.Eq{f.Key: param}, nil
+		return sq.Eq{key: param}, nil
 	case "neq":
-		return sq.NotEq{f.Key: param}, nil
+		return sq.NotEq{key: param}, nil
 	case "gt":
-		return sq.Gt{f.Key: param}, nil
+		return sq.Gt{key: param}, nil
 	case "gte":
-		return sq.GtOrEq{f.Key: param}, nil
+		return sq.GtOrEq{key: param}, nil
 	case "lt":
-		return sq.Lt{f.Key: param}, nil
+		return sq.Lt{key: param}, nil
 	case "lte":
-		return sq.LtOrEq{f.Key: param}, nil
+		return sq.LtOrEq{key: param}, nil
 	case "like":
-		return sq.ILike{f.Key: "%" + fmt.Sprintf("%v", param) + "%"}, nil
+		return sq.ILike{key: "%" + fmt.Sprintf("%v", param) + "%"}, nil
 	case "notLike":
-		return sq.NotILike{f.Key: "%" + fmt.Sprintf("%v", param) + "%"}, nil
+		return sq.NotILike{key: "%" + fmt.Sprintf("%v", param) + "%"}, nil
 	case "any":
-		return Overlap(param, f.Key, false)
+		return Overlap(param, key, false)
 	case "notAny":
-		return Overlap(param, f.Key, true)
+		return Overlap(param, key, true)
 	default:
 		return r, fmt.Errorf("%s is not a valid filter function", f.FuncName)
 	}

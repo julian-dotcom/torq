@@ -19,7 +19,7 @@ function FilterSection<T>(props: FilterSectionProps<T>) {
 
   return (
     <div className={styles.filterPopoverContent}>
-      <FilterComponent<T>
+      <FilterComponent
         filters={filters}
         columns={props.columns}
         defaultFilter={props.defaultFilter}

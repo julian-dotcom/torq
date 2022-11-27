@@ -158,12 +158,12 @@ export const SortableInvoiceColumns = AllInvoicesColumns.filter((column: ColumnM
   return sortableKeys.includes(column.key);
 });
 
-export const DefaultSortValue: { key: keyof Invoice; direction: "desc" | "asc" } = {
+export const InvoiceSortTemplate: { key: keyof Invoice; direction: "desc" | "asc" } = {
   key: "value",
   direction: "desc",
 };
 
-export const DefaultFilter: FilterInterface = {
+export const InvoiceFilterTemplate: FilterInterface = {
   key: "value",
   funcName: "gte",
   parameter: 0,

@@ -72,57 +72,65 @@ function FilterRow({
     key: keyOption,
   };
 
+  console.log("FilterRow", rowValues);
+
   const handleKeyChange = (item: any) => {
-    rowValues.key = item.value;
-    const newCategory = filterOptions.find((item: any) => item.value === rowValues.key)?.valueType || "number";
+    const newRow = { ...rowValues };
+    newRow.key = item.value;
+    const newCategory = filterOptions.find((item: any) => item.value === newRow.key)?.valueType || "number";
     switch (newCategory) {
       case "number":
-        rowValues.parameter = 0;
-        rowValues.funcName = "gte";
+        newRow.parameter = 0;
+        newRow.funcName = "gte";
         break;
       case "boolean":
-        if (newCategory !== rowValues.category) {
-          rowValues.parameter = true;
+        if (newCategory !== newRow.category) {
+          newRow.parameter = true;
         }
-        rowValues.funcName = "eq";
+        newRow.funcName = "eq";
         break;
       case "date": {
         const nd = new Date().toISOString().slice(0, 10) + "T00:00:00";
-        rowValues.parameter = nd;
-        rowValues.funcName = "gte";
+        newRow.parameter = nd;
+        newRow.funcName = "gte";
         break;
       }
       case "array":
-        rowValues.parameter = "";
-        rowValues.funcName = "eq";
+        newRow.parameter = "";
+        newRow.funcName = "eq";
         break;
       default:
-        rowValues.parameter = "";
-        rowValues.funcName = "like";
+        newRow.parameter = "";
+        newRow.funcName = "like";
     }
-    rowValues.category = newCategory;
+    newRow.category = newCategory;
+    filterClause.filter = newRow;
     onUpdateFilter();
   };
 
   const handleFunctionChange = (item: any) => {
-    rowValues.funcName = item.value;
+    console.log("item", item);
+    const newRow = { ...rowValues, funcName: item.value };
+    filterClause.filter = newRow;
     onUpdateFilter();
   };
 
   const handleParamChange = (e: any) => {
-    switch (rowValues.category) {
+    const newRow = { ...rowValues };
+    switch (newRow.category) {
       case "number":
-        rowValues.parameter = e.floatValue || 0;
+        newRow.parameter = e.floatValue || 0;
         break;
       case "boolean":
-        rowValues.parameter = e.value;
+        newRow.parameter = e.value;
         break;
       case "array":
-        rowValues.parameter = String(e.value);
+        newRow.parameter = String(e.value);
         break;
       default:
-        rowValues.parameter = e.target.value ? e.target.value : "";
+        newRow.parameter = e.target.value ? e.target.value : "";
     }
+    filterClause.filter = newRow;
     onUpdateFilter();
   };
 

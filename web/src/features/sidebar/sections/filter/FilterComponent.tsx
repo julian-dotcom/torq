@@ -49,7 +49,6 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
       props.filters = new AndClause();
     }
     if (props.filters instanceof AndClause || OrClause) {
-      console.log("add filter");
       ((props.filters as AndClause) || OrClause).addChildClause(new FilterClause(props.defaultFilter));
       props.onFilterUpdate();
     }
@@ -60,7 +59,6 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
       props.filters = new AndClause();
     }
     if (props.filters instanceof AndClause || OrClause) {
-      console.log("add group", props.filters);
       ((props.filters as AndClause) || OrClause).addChildClause(
         new AndClause([
           new FilterClause({

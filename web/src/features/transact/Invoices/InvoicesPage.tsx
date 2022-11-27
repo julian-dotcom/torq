@@ -20,11 +20,6 @@ import TablePageTemplate, {
 import { useState } from "react";
 import Pagination from "components/table/pagination/Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
-// import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
-// import FilterSection from "features/sidebar/sections/filter/FilterSection";
-// import { Clause, FilterInterface } from "features/sidebar/sections/filter/filter";
-// import { useAppDispatch, useAppSelector } from "store/hooks";
-// import { FilterCategoryType } from "features/sidebar/sections/filter/filter";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import { SectionContainer } from "features/section/SectionContainer";
 import Button, { buttonColor } from "components/buttons/Button";
@@ -34,8 +29,8 @@ import { AllViewsResponse } from "features/viewManagement/types";
 import { InvoicesResponse } from "./invoiceTypes";
 import {
   AllInvoicesColumns,
-  DefaultFilter,
-  DefaultSortValue,
+  InvoiceFilterTemplate,
+  InvoiceSortTemplate,
   InvoiceViewTemplate,
   SortableInvoiceColumns,
 } from "./invoiceDefaults";
@@ -44,6 +39,7 @@ import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import SortSection from "../../sidebar/sections/sort/SortSection";
 import { useView } from "../../viewManagement/useView";
 import FilterSection from "../../sidebar/sections/filter/FilterSection";
+import { FilterInterface } from "../../sidebar/sections/filter/filter";
 
 type sections = {
   filter: boolean;
@@ -86,6 +82,7 @@ function InvoicesPage() {
       limit: limit,
       offset: offset,
       order: view.sortBy,
+      filter: view.filters.length ? (view.filters.toJSON() as FilterInterface) : undefined,
     },
     { skip: !allViews.isSuccess }
   );
@@ -193,7 +190,7 @@ function InvoicesPage() {
         expanded={activeSidebarSections.filter}
         handleToggle={sidebarSectionHandler("filter")}
       >
-        <FilterSection columns={AllInvoicesColumns} view={view} defaultFilter={DefaultFilter} />
+        <FilterSection columns={AllInvoicesColumns} view={view} defaultFilter={InvoiceFilterTemplate} />
       </SectionContainer>
       <SectionContainer
         title={"Sort"}
@@ -201,7 +198,7 @@ function InvoicesPage() {
         expanded={activeSidebarSections.sort}
         handleToggle={sidebarSectionHandler("sort")}
       >
-        <SortSection columns={SortableInvoiceColumns} view={view} defaultSortBy={DefaultSortValue} />
+        <SortSection columns={SortableInvoiceColumns} view={view} defaultSortBy={InvoiceSortTemplate} />
       </SectionContainer>
     </Sidebar>
   );
