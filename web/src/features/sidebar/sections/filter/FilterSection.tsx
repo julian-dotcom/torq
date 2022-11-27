@@ -1,35 +1,33 @@
-import clone from "clone";
 import styles from "./filter-section.module.scss";
-import { deserialiseQuery, Clause, AndClause, FilterInterface } from "./filter";
+import { FilterInterface } from "./filter";
 import FilterComponent from "./FilterComponent";
 import { ColumnMetaData } from "features/table/types";
+import View from "features/viewManagement/View";
 
-type FilterSectionProps<T extends {}> = {
-  columnsMeta: Array<ColumnMetaData<T>>;
-  filters: Clause;
-  filterUpdateHandler: (filters: Clause) => void;
+type FilterSectionProps<T> = {
+  columns: Array<ColumnMetaData<T>>;
+  view: View<T>;
   defaultFilter: FilterInterface;
 };
 
-const FilterSection = <T extends {}>(props: FilterSectionProps<T>) => {
-  const filtersFromStore = clone<Clause>(props.filters);
-  const filters = filtersFromStore ? deserialiseQuery(filtersFromStore) : new AndClause();
+function FilterSection<T>(props: FilterSectionProps<T>) {
+  const filters = props.view.filters;
 
   const handleFilterUpdate = () => {
-    props.filterUpdateHandler(filters);
+    props.view.updateFilters(filters);
   };
 
   return (
     <div className={styles.filterPopoverContent}>
-      <FilterComponent
-        columnsMeta={props.columnsMeta}
+      <FilterComponent<T>
         filters={filters}
+        columns={props.columns}
         defaultFilter={props.defaultFilter}
-        onFilterUpdate={handleFilterUpdate}
         child={false}
+        onFilterUpdate={handleFilterUpdate}
       />
     </div>
   );
-};
+}
 
 export default FilterSection;

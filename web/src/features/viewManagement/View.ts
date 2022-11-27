@@ -23,8 +23,12 @@ export default class View<T> {
     return this.view.sortBy;
   }
 
-  get filters(): Clause | AndClause | undefined {
-    return this.view.filters;
+  get filters(): Clause {
+    return this.view.filters || new AndClause();
+  }
+
+  set filters(filter) {
+    this.view.filters = filter;
   }
 
   //------------------ Columns ------------------
@@ -126,7 +130,7 @@ export default class View<T> {
 
   //------------------ Render ------------------
   // This is a callback from the parent component to make react render. Used when the view is updated.
-  private render() {
+  public render() {
     this.renderCallback(this.renderCount + 1);
   }
 }

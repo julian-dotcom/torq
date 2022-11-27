@@ -4,7 +4,7 @@ import { useGetInvoicesQuery } from "apiSlice";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  // Filter20Regular as FilterIcon,
+  Filter20Regular as FilterIcon,
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
   Options20Regular as OptionsIcon,
@@ -32,11 +32,18 @@ import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import { AllViewsResponse } from "features/viewManagement/types";
 import { InvoicesResponse } from "./invoiceTypes";
-import { AllInvoicesColumns, DefaultSortValue, InvoiceViewTemplate, SortableInvoiceColumns } from "./invoiceDefaults";
+import {
+  AllInvoicesColumns,
+  DefaultFilter,
+  DefaultSortValue,
+  InvoiceViewTemplate,
+  SortableInvoiceColumns,
+} from "./invoiceDefaults";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 
 import SortSection from "../../sidebar/sections/sort/SortSection";
 import { useView } from "../../viewManagement/useView";
+import FilterSection from "../../sidebar/sections/filter/FilterSection";
 
 type sections = {
   filter: boolean;
@@ -82,21 +89,6 @@ function InvoicesPage() {
     },
     { skip: !allViews.isSuccess }
   );
-
-  //   const views: ViewInterface<Invoice>[] = [];
-  //   if (!isLoading) {
-  //     if (invoicesViews) {
-  //       invoicesViews?.map((v: ViewResponse<Invoice>) => {
-  //         views.push(v.view);
-  //       });
-  //
-  //       dispatch(updateViews({ views, index: 0 }));
-  //     } else {
-  //       dispatch(updateViews({ views: [{ ...DefaultView, title: "Default View" }], index: 0 }));
-  //     }
-  //   }
-
-  // }, [invoicesViews, isLoading]);
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -157,13 +149,6 @@ function InvoicesPage() {
     </TableControlSection>
   );
 
-  // const defaultFilter: FilterInterface = {
-  //   funcName: "gte",
-  //   category: "number" as FilterCategoryType,
-  //   parameter: 0,
-  //   key: "value",
-  // };
-  //
   // const filterColumns = clone(allColumns).map((c: any) => {
   //   switch (c.key) {
   //     case "invoiceState":
@@ -202,19 +187,14 @@ function InvoicesPage() {
       >
         <ColumnsSection columns={AllInvoicesColumns} view={view} />
       </SectionContainer>
-      {/*<SectionContainer*/}
-      {/*  title={"Filter"}*/}
-      {/*  icon={FilterIcon}*/}
-      {/*  expanded={activeSidebarSections.filter}*/}
-      {/*  handleToggle={sidebarSectionHandler("filter")}*/}
-      {/*>*/}
-      {/*  <FilterSection*/}
-      {/*    columnsMeta={filterColumns}*/}
-      {/*    filters={filters}*/}
-      {/*    filterUpdateHandler={handleFilterUpdate}*/}
-      {/*    defaultFilter={defaultFilter}*/}
-      {/*  />*/}
-      {/*</SectionContainer>*/}
+      <SectionContainer
+        title={"Filter"}
+        icon={FilterIcon}
+        expanded={activeSidebarSections.filter}
+        handleToggle={sidebarSectionHandler("filter")}
+      >
+        <FilterSection columns={AllInvoicesColumns} view={view} defaultFilter={DefaultFilter} />
+      </SectionContainer>
       <SectionContainer
         title={"Sort"}
         icon={SortIcon}

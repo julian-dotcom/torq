@@ -1,6 +1,7 @@
 import { ViewInterface } from "features/viewManagement/types";
 import { Invoice } from "./invoiceTypes";
 import { ColumnMetaData } from "features/table/types";
+import { FilterInterface } from "../../sidebar/sections/filter/filter";
 
 export const AllInvoicesColumns: Array<ColumnMetaData<Invoice>> = [
   {
@@ -161,6 +162,27 @@ export const DefaultSortValue: { key: keyof Invoice; direction: "desc" | "asc" }
   key: "value",
   direction: "desc",
 };
+
+export const DefaultFilter: FilterInterface = {
+  key: "value",
+  funcName: "gte",
+  parameter: 0,
+  category: "number",
+};
+
+// const filterColumns = clone(allColumns).map((c: any) => {
+//   switch (c.key) {
+//     case "invoiceState":
+//       c.selectOptions = Object.keys(statusTypes).map((key: any) => {
+//         return {
+//           value: key,
+//           label: statusTypes[String(key)],
+//         };
+//       });
+//       break;
+//   }
+//   return c;
+// });
 
 export const InvoiceViewTemplate: ViewInterface<Invoice> = {
   title: "Untitled View",
