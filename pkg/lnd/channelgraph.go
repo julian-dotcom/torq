@@ -60,9 +60,9 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 					}
 					err = <-responseChannel
 					if err != nil {
-						log.Error().Err(err).Msg("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
+						log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 						stream = nil
-						time.Sleep(1 * time.Minute)
+						time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 						continue
 					}
 
@@ -73,9 +73,9 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 					}
 					err = <-responseChannel
 					if err != nil {
-						log.Error().Err(err).Msg("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
+						log.Error().Err(err).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 						stream = nil
-						time.Sleep(1 * time.Minute)
+						time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 						continue
 					}
 				}
@@ -84,9 +84,9 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				log.Error().Err(err).Msg("Obtaining stream (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 				stream = nil
-				time.Sleep(1 * time.Minute)
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
 		}
@@ -97,9 +97,9 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				return
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msg("Receiving channel graph events from the stream failed, will retry in 1 minute")
+			log.Error().Err(err).Msgf("Receiving channel graph events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 			stream = nil
-			time.Sleep(1 * time.Minute)
+			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 

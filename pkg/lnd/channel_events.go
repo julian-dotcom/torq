@@ -360,9 +360,9 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 					}
 					err = <-responseChannel
 					if err != nil {
-						log.Error().Err(err).Msg("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in 1 minute")
+						log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 						stream = nil
-						time.Sleep(1 * time.Minute)
+						time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 						continue
 					}
 				}
@@ -371,9 +371,9 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				log.Error().Err(err).Msg("Obtaining stream (SubscribeChannelEvents) from LND failed, will retry in 1 minute")
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelEvents) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 				stream = nil
-				time.Sleep(1 * time.Minute)
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
 		}
@@ -384,9 +384,9 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				return
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msg("Receiving channel events from the stream failed, will retry in 1 minute")
+			log.Error().Err(err).Msgf("Receiving channel events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 			stream = nil
-			time.Sleep(1 * time.Minute)
+			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 

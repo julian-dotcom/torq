@@ -215,8 +215,8 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		addIndex, settleIndex, err = fetchLastInvoiceIndexes(db)
 		if err != nil {
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in 1 minute")
-			time.Sleep(1 * time.Minute)
+			log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 
@@ -229,8 +229,8 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 				return
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msgf("Failed to obtain invoice stream, will retry in 1 minute")
-			time.Sleep(1 * time.Minute)
+			log.Error().Err(err).Msgf("Failed to obtain invoice stream, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 
@@ -257,8 +257,8 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 				return
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msg("Receiving invoices from the stream failed, will retry in 1 minute")
-			time.Sleep(1 * time.Minute)
+			log.Error().Err(err).Msgf("Receiving invoices from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 

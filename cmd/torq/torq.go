@@ -473,8 +473,8 @@ func main() {
 											if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
 												log.Info().Msgf("Vector Ping Service will be restarted (when active) for node id: %v", node.NodeId)
 											} else {
-												log.Info().Msgf("Vector Ping Service will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
-												time.Sleep(1 * time.Minute)
+												log.Info().Msgf("Vector Ping Service will be restarted (when active) in %v seconds for node id: %v", commons.SERVICES_ERROR_SLEEP_SECONDS, node.NodeId)
+												time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
 											}
 											serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
 										})(node, bootLock, services, serviceChannel, eventChannel)
@@ -562,8 +562,8 @@ func main() {
 											if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
 												log.Info().Msgf("Amboss Ping Service will be restarted (when active) for node id: %v", node.NodeId)
 											} else {
-												log.Info().Msgf("Amboss Ping Service will be restarted (when active) in 60 seconds for node id: %v", node.NodeId)
-												time.Sleep(1 * time.Minute)
+												log.Info().Msgf("Amboss Ping Service will be restarted (when active) in %v seconds for node id: %v", commons.SERVICES_ERROR_SLEEP_SECONDS, node.NodeId)
+												time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
 											}
 											serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
 										})(node, bootLock, services, serviceChannel, eventChannel)

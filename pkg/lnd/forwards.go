@@ -161,7 +161,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				lastNs, err := fetchLastForwardTime(db)
 				if err != nil {
 					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 10 seconds")
+					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_FORWARDS_TICKER_SECONDS)
 					break
 				}
 				lastTimestamp := lastNs / uint64(time.Second)
@@ -176,7 +176,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 						return
 					}
 					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-					log.Error().Err(err).Msgf("Failed to obtain forwards, will retry in 10 seconds")
+					log.Error().Err(err).Msgf("Failed to obtain forwards, will retry in %v seconds", commons.STREAM_FORWARDS_TICKER_SECONDS)
 					break
 				}
 

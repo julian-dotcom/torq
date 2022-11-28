@@ -70,8 +70,8 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				log.Error().Err(err).Msgf("Failed to obtain last know transaction, will retry in 1 minute")
-				time.Sleep(1 * time.Minute)
+				log.Error().Err(err).Msgf("Failed to obtain last know transaction, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
 
@@ -82,17 +82,17 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 			if err == nil {
 				stream, err = chain.RegisterBlockEpochNtfn(ctx, &chainrpc.BlockEpoch{Height: uint32(transactionHeight + 1)})
 				if err != nil {
-					log.Error().Err(err).Msg("Obtaining stream (RegisterBlockEpochNtfn) from LND failed, will retry in 1 minute")
+					log.Error().Err(err).Msgf("Obtaining stream (RegisterBlockEpochNtfn) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 					stream = nil
-					time.Sleep(1 * time.Minute)
+					time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 					continue
 				}
 			} else {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 1 minute")
-				time.Sleep(1 * time.Minute)
+				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
 		} else {
@@ -114,9 +114,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 					return
 				}
 				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-				log.Error().Err(err).Msg("Receiving block epoch from the stream failed, will retry in 1 minute")
+				log.Error().Err(err).Msgf("Receiving block epoch from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 				stream = nil
-				time.Sleep(1 * time.Minute)
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
 			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
@@ -128,9 +128,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 					return
 				}
 				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in 1 minute")
+				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 				stream = nil
-				time.Sleep(1 * time.Minute)
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
 		}

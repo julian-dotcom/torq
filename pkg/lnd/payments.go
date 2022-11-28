@@ -62,7 +62,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 			lastPaymentIndex, err = fetchLastPaymentIndex(db)
 			if err != nil {
 				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 1 minute")
+				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
 				continue
 			}
 
@@ -78,14 +78,14 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 						return
 					}
 					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in 1 minute")
+					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
 					break
 				}
 
 				// Store the payments
 				err = storePayments(db, payments.Payments, nodeSettings.NodeId)
 				if err != nil {
-					log.Error().Err(err).Msgf("Failed to store payments, will retry in 1 minute")
+					log.Error().Err(err).Msgf("Failed to store payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
 					break
 				}
 
@@ -224,7 +224,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db)
 			if err != nil {
 				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in 1 minute")
+				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS)
 				continue
 			}
 			if bootStrapping {
