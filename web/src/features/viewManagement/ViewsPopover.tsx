@@ -8,15 +8,15 @@ import { ViewInterface, ViewInterfaceResponse, ViewOrderInterface } from "./type
 import { useCreateTableViewMutation, useUpdateTableViewsOrderMutation } from "./viewsApiSlice";
 import ViewRow from "./ViewRow";
 
-type ViewsPopover = {
+type ViewsPopover<T> = {
   page: string;
-  views: Array<ViewInterfaceResponse>;
-  DefaultView: ViewInterfaceResponse;
+  views: Array<ViewInterface<T>>;
+  DefaultView: ViewInterface<T>;
   onSelectView: (index: number) => void;
   selectedView: number;
 };
 
-function ViewsPopover(props: ViewsPopover) {
+function ViewsPopover<T>(props: ViewsPopover<T>) {
   const [updateTableViewsOrder] = useUpdateTableViewsOrderMutation();
   const [createTableView] = useCreateTableViewMutation();
 

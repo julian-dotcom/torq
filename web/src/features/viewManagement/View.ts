@@ -8,11 +8,15 @@ export default class View<T> {
   view: ViewInterface<T>;
   renderCallback: React.Dispatch<React.SetStateAction<number>>;
   renderCount = 0;
+  saved: boolean;
+  id: number | undefined;
 
   constructor(view: ViewInterface<T>, renderCount: number, render: React.Dispatch<React.SetStateAction<number>>) {
     this.view = view;
     this.renderCallback = render;
     this.renderCount = renderCount;
+    this.id = view.id;
+    this.saved = view.saved;
   }
 
   get columns(): ColumnMetaData<T>[] {
@@ -29,6 +33,15 @@ export default class View<T> {
 
   set filters(filter) {
     this.view.filters = filter;
+  }
+
+  get groupBy(): "channels" | "peers" | undefined {
+    return this.view.groupBy;
+  }
+
+  set groupBy(groupBy: "channels" | "peers" | undefined) {
+    this.view.groupBy = groupBy;
+    this.render();
   }
 
   //------------------ Columns ------------------

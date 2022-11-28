@@ -21,7 +21,7 @@ export type ViewInterface<T> = {
   filters?: Clause;
   columns: Array<ColumnMetaData<T>>;
   sortBy?: Array<OrderBy>;
-  groupBy?: string;
+  groupBy?: "channels" | "peers" | undefined;
   page: string;
 };
 

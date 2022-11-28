@@ -20,14 +20,14 @@ import SettingsPage from "features/settings/SettingsPage";
 import AllTxPage from "features/transact/AllTxPage";
 import InvoicesPage from "features/transact/Invoices/InvoicesPage";
 import OnChainPage from "features/transact/OnChain/OnChainPage";
-import NewPaymentModal from "features/transact/Payments/newPayment/NewPaymentModal";
-import NewAddressModal from "features/transact/OnChain/newAddress/NewAddressModal";
+import NewPaymentModal from "features/transact/NewPayment/NewPaymentModal";
+import NewAddressModal from "features/transact/newAddress/NewAddressModal";
 import UpdateChannelModal from "features/channels/updateChannel/UpdateChannelModal";
 import OpenChannelModal from "features/channels/openChannel/OpenChannelModal";
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
 
 import * as routes from "constants/routes";
-import NewInvoiceModal from "./features/transact/Invoices/newInvoice/NewInvoiceModal";
+import NewInvoiceModal from "./features/transact/newInvoice/NewInvoiceModal";
 // import TagsPage from "./pages/tagsPage/TagsPage";
 
 function Logout() {

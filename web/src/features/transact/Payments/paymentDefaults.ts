@@ -1,6 +1,7 @@
 import { ColumnMetaData } from "features/table/types";
 import { Payment } from "./types";
 import { ViewInterface } from "../../viewManagement/types";
+import { FilterCategoryType, FilterInterface } from "../../sidebar/sections/filter/filter";
 
 export const AllPaymentsColumns: Array<ColumnMetaData<Payment>> = [
   { key: "date", heading: "Date", type: "DateCell", valueType: "date" },
@@ -19,7 +20,7 @@ export const AllPaymentsColumns: Array<ColumnMetaData<Payment>> = [
   { key: "paymentPreimage", heading: "Payment Preimage", type: "TextCell", valueType: "string" },
 ];
 
-export const defaultColumns: Array<keyof Payment> = [
+const defaultColumns: Array<keyof Payment> = [
   "date",
   "status",
   "value",
@@ -31,6 +32,77 @@ export const defaultColumns: Array<keyof Payment> = [
   "countFailedAttempts",
 ];
 
+const sortableColumns: Array<keyof Payment> = [
+  "date",
+  "value",
+  "fee",
+  "ppm",
+  "status",
+  "isRebalance",
+  "secondsInFlight",
+  "failureReason",
+  "isMpp",
+  "countFailedAttempts",
+  "countSuccessfulAttempts",
+];
+
+export const SortablePaymentsColumns = AllPaymentsColumns.filter((column: ColumnMetaData<Payment>) =>
+  sortableColumns.includes(column.key)
+);
+
+export const FilterTemplate: FilterInterface = {
+  funcName: "gte",
+  category: "number" as FilterCategoryType,
+  parameter: 0,
+  key: "value",
+};
+
+const StatusTypeLabels = {
+  SUCCEEDED: "Succeeded",
+  FAILED: "Failed",
+  IN_FLIGHT: "In Flight",
+};
+
+const FailureReasonLabels = new Map<string, string>([
+  ["FAILURE_REASON_NONE", ""],
+  ["FAILURE_REASON_TIMEOUT", "Timeout"],
+  ["FAILURE_REASON_NO_ROUTE", "No Route"],
+  ["FAILURE_REASON_ERROR", "Error"],
+  ["FAILURE_REASON_INCORRECT_PAYMENT_DETAILS", "Incorrect Payment Details"],
+  ["FAILURE_REASON_INCORRECT_PAYMENT_AMOUNT", "Incorrect Payment Amount"],
+  ["FAILURE_REASON_PAYMENT_HASH_MISMATCH", "Payment Hash Mismatch"],
+  ["FAILURE_REASON_INCORRECT_PAYMENT_REQUEST", "Incorrect Payment Request"],
+  ["FAILURE_REASON_UNKNOWN", "Unknown"],
+]);
+
+export const PaymentsSortTemplate: { key: keyof Payment; direction: "desc" | "asc" } = {
+  key: "date",
+  direction: "desc",
+};
+
+// const FilterColumns = AllPaymentsColumns.map((c: any) => {
+//   switch (c.key) {
+//     case "failureReason":
+//       c.selectOptions = Object.keys(failureReasons)
+//         .filter((key) => key !== "FAILURE_REASON_NONE")
+//         .map((key: any) => {
+//           return {
+//             value: key,
+//             label: FailureReasonLabels.get(key),
+//           };
+//         });
+//       break;
+//     case "status":
+//       c.selectOptions = Object.keys(statusTypes).map((key: any) => {
+//         return {
+//           value: key,
+//           label: statusTypes[String(key)],
+//         };
+//       });
+//   }
+//   return c;
+// });
+
 export const ActivePaymentsColumns: Array<ColumnMetaData<Payment>> = AllPaymentsColumns.filter((item) => {
   return defaultColumns.includes(item.key);
 });
@@ -40,6 +112,6 @@ export const DefaultPaymentView: ViewInterface<Payment> = {
   saved: true,
   columns: ActivePaymentsColumns,
   page: "payments",
-  sortBy: [],
+  sortBy: [PaymentsSortTemplate],
   view_order: 0,
 };

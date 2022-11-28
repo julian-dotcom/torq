@@ -13,26 +13,15 @@ import {
 
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type {
-  GetDecodedInvoiceQueryParams,
   GetForwardsQueryParams,
-  GetInvoicesQueryParams,
-  GetOnChainTransactionsQueryParams,
-  GetPaymentsQueryParams,
-  SendOnChainRequest,
-  SendOnChainResponse,
   GetFlowQueryParams,
   GetChannelHistoryData,
   LoginResponse,
   Forward,
-  DecodedInvoice,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { nodeConfiguration, settings, timeZone, stringMap } from "apiTypes";
-import { NewInvoiceRequest, NewInvoiceResponse } from "features/transact/Invoices/newInvoice/newInvoiceTypes";
 import { tag, channelTag } from "pages/tagsPage/tagsTypes";
-import { PaymentsResponse } from "./features/transact/Payments/types";
-import { InvoicesResponse } from "./features/transact/Invoices/invoiceTypes";
-import { OnChainResponse } from "./features/transact/OnChain/types";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -135,32 +124,6 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["channels"],
     }),
-    getDecodedInvoice: builder.query<DecodedInvoice, GetDecodedInvoiceQueryParams>({
-      query: (params) => "invoices/decode" + queryParamsBuilder(params),
-    }),
-    getPayments: builder.query<PaymentsResponse, GetPaymentsQueryParams>({
-      query: (params) => "payments" + queryParamsBuilder(params, true),
-    }),
-    getInvoices: builder.query<InvoicesResponse, GetInvoicesQueryParams>({
-      query: (params) => "invoices" + queryParamsBuilder(params, true),
-    }),
-    getOnChainTx: builder.query<OnChainResponse, GetOnChainTransactionsQueryParams>({
-      query: (params) => "on-chain-tx" + queryParamsBuilder(params, true),
-    }),
-    sendOnChain: builder.mutation<SendOnChainResponse, SendOnChainRequest>({
-      query: (data: SendOnChainRequest) => ({
-        url: "on-chain-tx/sendcoins",
-        method: "POST",
-        body: data,
-      }),
-    }),
-    newInvoice: builder.mutation<NewInvoiceResponse, NewInvoiceRequest>({
-      query: (data: NewInvoiceRequest) => ({
-        url: "invoices/newinvoice",
-        method: "POST",
-        body: data,
-      }),
-    }),
     logout: builder.mutation<any, void>({
       query: () => ({
         url: "logout",
@@ -241,12 +204,6 @@ export const {
   useGetChannelOnChainCostQuery,
   useGetForwardsQuery,
   useGetChannelsQuery,
-  useGetDecodedInvoiceQuery,
-  useGetPaymentsQuery,
-  useGetInvoicesQuery,
-  useGetOnChainTxQuery,
-  useSendOnChainMutation,
-  useNewInvoiceMutation,
   useLoginMutation,
   useCookieLoginMutation,
   useLogoutMutation,

@@ -1,7 +1,5 @@
 import Table from "features/table/Table";
-// import { ColumnMetaData } from "features/table/types";
-import { useGetInvoicesQuery } from "apiSlice";
-import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
+import { useGetInvoicesQuery } from "./invoiceApi";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
@@ -18,14 +16,11 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import Pagination from "components/table/pagination/Pagination";
-import useLocalStorage from "features/helpers/useLocalStorage";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import { SectionContainer } from "features/section/SectionContainer";
 import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
-import { AllViewsResponse } from "features/viewManagement/types";
 import { InvoicesResponse } from "./invoiceTypes";
 import {
   AllInvoicesColumns,
@@ -40,6 +35,7 @@ import SortSection from "../../sidebar/sections/sort/SortSection";
 import { useView } from "../../viewManagement/useView";
 import FilterSection from "../../sidebar/sections/filter/FilterSection";
 import { FilterInterface } from "../../sidebar/sections/filter/filter";
+import { usePagination } from "../../../components/table/pagination/usePagination";
 
 type sections = {
   filter: boolean;
@@ -58,18 +54,8 @@ function InvoicesPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [limit, setLimit] = useLocalStorage("invoicesLimit", 100);
-  const [offset, setOffset] = useState(0);
-
-  const allViews = useGetTableViewsQuery<{
-    data: AllViewsResponse;
-    isLoading: boolean;
-    isFetching: boolean;
-    isUninitialized: boolean;
-    isSuccess: boolean;
-  }>();
-  const invoiceViews = allViews?.data ? allViews.data["invoices"] : [InvoiceViewTemplate];
-  const [view, selectView] = useView(invoiceViews, 0);
+  const [view, selectView, isViewsLoaded] = useView("invoices", 0, InvoiceViewTemplate);
+  const [getPagination, limit, offset] = usePagination("invoices");
 
   const invoicesResponse = useGetInvoicesQuery<{
     data: InvoicesResponse;
@@ -84,7 +70,7 @@ function InvoicesPage() {
       order: view.sortBy,
       filter: view.filters.length ? (view.filters.toJSON() as FilterInterface) : undefined,
     },
-    { skip: !allViews.isSuccess }
+    { skip: !isViewsLoaded }
   );
 
   // Logic for toggling the sidebar
@@ -146,34 +132,6 @@ function InvoicesPage() {
     </TableControlSection>
   );
 
-  // const filterColumns = clone(allColumns).map((c: any) => {
-  //   switch (c.key) {
-  //     case "invoiceState":
-  //       c.selectOptions = Object.keys(statusTypes).map((key: any) => {
-  //         return {
-  //           value: key,
-  //           label: statusTypes[String(key)],
-  //         };
-  //       });
-  //       break;
-  //   }
-  //   return c;
-  // });
-  //
-  // const handleFilterUpdate = (updated: Clause) => {
-  //   dispatch(updateInvoicesFilters({ filters: updated.toJSON() }));
-  // };
-  //
-
-  //
-  // const handleSortUpdate = (updated: Array<OrderBy>) => {
-  //   setOrderBy(updated);
-  // };
-  //
-  // const updateColumnsHandler = (columns: Array<any>) => {
-  //   dispatch(updateColumns({ columns: columns }));
-  // };
-
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
       <SectionContainer
@@ -209,15 +167,7 @@ function InvoicesPage() {
       Invoices
     </Link>,
   ];
-  const pagination = (
-    <Pagination
-      limit={limit}
-      offset={offset}
-      total={invoicesResponse?.data?.pagination?.total || 0}
-      perPageHandler={setLimit}
-      offsetHandler={setOffset}
-    />
-  );
+
   return (
     <TablePageTemplate
       title={"Invoices"}
@@ -225,7 +175,7 @@ function InvoicesPage() {
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}
       tableControls={tableControls}
-      pagination={pagination}
+      pagination={getPagination(invoicesResponse?.data?.pagination?.total || 0)}
     >
       <Table
         cellRenderer={DefaultCellRenderer}

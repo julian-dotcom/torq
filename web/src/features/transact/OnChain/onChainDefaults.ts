@@ -1,6 +1,7 @@
-import { ColumnMetaData } from "../../table/types";
+import { ColumnMetaData } from "features/table/types";
 import { OnChainTx } from "./types";
-import { ViewInterface } from "../../viewManagement/types";
+import { ViewInterface } from "features/viewManagement/types";
+import { FilterInterface } from "features/sidebar/sections/filter/filter";
 
 export const AllOnChainColumns: Array<ColumnMetaData<OnChainTx>> = [
   { key: "date", heading: "Date", type: "DateCell", valueType: "date" },
@@ -23,13 +24,40 @@ const defaultColumns: Array<keyof OnChainTx> = [
   "label",
 ];
 
-export const ActiveOnChainColumns = AllOnChainColumns.filter((c) => defaultColumns.includes(c.key));
+export const DefaultOnChainColumns = AllOnChainColumns.filter((c) => defaultColumns.includes(c.key));
+
+const sortableColumnsKeys: Array<keyof OnChainTx> = [
+  "date",
+  "destAddresses",
+  "destAddressesCount",
+  "amount",
+  "totalFees",
+  "label",
+  "lndTxTypeLabel",
+  "lndShortChanId",
+];
+
+export const SortableOnChainColumns = AllOnChainColumns.filter((column: ColumnMetaData<OnChainTx>) =>
+  sortableColumnsKeys.includes(column.key)
+);
+
+export const OnChainSortTemplate: { key: keyof OnChainTx; direction: "desc" | "asc" } = {
+  key: "date",
+  direction: "desc",
+};
+
+export const OnChainFilterTemplate: FilterInterface = {
+  funcName: "gte",
+  category: "number",
+  parameter: 0,
+  key: "amount",
+};
 
 export const DefaultOnChainView: ViewInterface<OnChainTx> = {
   view_order: 0,
   title: "Untitled View",
   saved: true,
-  columns: ActiveOnChainColumns,
+  columns: DefaultOnChainColumns,
   page: "onChain",
-  sortBy: [],
+  sortBy: [OnChainSortTemplate],
 };

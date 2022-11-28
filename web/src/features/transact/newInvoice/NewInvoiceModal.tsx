@@ -1,5 +1,6 @@
 import { Options20Regular as OptionsIcon, MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
-import { useGetNodeConfigurationsQuery, useNewInvoiceMutation } from "apiSlice";
+import { useGetNodeConfigurationsQuery } from "apiSlice";
+import { useNewInvoiceMutation } from "./newInvoiceApi";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";

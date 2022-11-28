@@ -72,8 +72,6 @@ function FilterRow({
     key: keyOption,
   };
 
-  console.log("FilterRow", rowValues);
-
   const handleKeyChange = (item: any) => {
     const newRow = { ...rowValues };
     newRow.key = item.value;
@@ -109,7 +107,6 @@ function FilterRow({
   };
 
   const handleFunctionChange = (item: any) => {
-    console.log("item", item);
     const newRow = { ...rowValues, funcName: item.value };
     filterClause.filter = newRow;
     onUpdateFilter();

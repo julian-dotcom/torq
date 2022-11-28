@@ -1,15 +1,9 @@
 import { ViewInterface } from "../viewManagement/types";
 import { channel } from "./channelsTypes";
 import { ColumnMetaData } from "../table/types";
+import { FilterInterface } from "../sidebar/sections/filter/filter";
 
-// export const defaultFilter: FilterInterface = {
-//   funcName: "gte",
-//   category: "number" as FilterCategoryType,
-//   parameter: 0,
-//   key: "capacity",
-// };
-
-export const channelsColumns: ColumnMetaData<channel>[] = [
+export const AllChannelsColumns: ColumnMetaData<channel>[] = [
   {
     heading: "Active",
     type: "BooleanCell",
@@ -224,12 +218,45 @@ const defaultColumns: Array<keyof channel> = [
   "nodeName",
 ];
 
-export const activeChannelsColumns = channelsColumns.filter((c) => defaultColumns.includes(c.key));
+export const DefaultChannelsColumns = AllChannelsColumns.filter((c) => defaultColumns.includes(c.key));
+
+export const ChannelsFilterTemplate: FilterInterface = {
+  funcName: "gte",
+  category: "number",
+  parameter: 0,
+  key: "capacity",
+};
+
+export const ChannelsSortTemplate: { key: keyof channel; direction: "desc" | "asc" } = {
+  key: "nodeName",
+  direction: "asc",
+};
 
 export const DefaultChannelsView: ViewInterface<channel> = {
   title: "Untitled View",
   saved: true,
-  columns: activeChannelsColumns,
+  columns: DefaultChannelsColumns,
+  sortBy: [ChannelsSortTemplate],
   page: "channels",
   view_order: 0,
 };
+
+const sortableColumns: Array<keyof channel> = [
+  "active",
+  "peerAlias",
+  "shortChannelId",
+  "feeRatePpm",
+  "remoteBalance",
+  "localBalance",
+  "capacity",
+  "totalSatoshisSent",
+  "totalSatoshisReceived",
+  "unsettledBalance",
+  "commitFee",
+  "baseFeeMsat",
+  "minHtlc",
+  "maxHtlcMsat",
+  "nodeName",
+];
+
+export const SortableChannelsColumns = AllChannelsColumns.filter((c) => sortableColumns.includes(c.key));

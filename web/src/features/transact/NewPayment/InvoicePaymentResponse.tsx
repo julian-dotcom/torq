@@ -8,7 +8,7 @@ import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./newPayments.module.scss";
 import { DecodedInvoice } from "types/api";
 import classNames from "classnames";
-import { InvoiceStatusType, NewPaymentResponse } from "../paymentTypes";
+import { InvoiceStatusType, NewPaymentResponse } from "../Payments/paymentTypes";
 import { useEffect, useState } from "react";
 import { format } from "d3";
 import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";

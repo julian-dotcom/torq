@@ -7,12 +7,12 @@ import {
   Save20Regular as SaveIcon,
   Reorder20Regular as DragHandle,
 } from "@fluentui/react-icons";
-import { ViewInterface, ViewRow } from "./types";
+import { TableResponses, ViewInterface, ViewRow } from "./types";
 import styles from "./views.module.scss";
 import { useCreateTableViewMutation, useDeleteTableViewMutation, useUpdateTableViewMutation } from "./viewsApiSlice";
 import { ViewInterfaceResponse } from "./types";
 
-export default function ViewRow(props: ViewRow<ViewInterfaceResponse>) {
+export default function ViewRow<T>(props: ViewRow<ViewInterface<T>>) {
   const [updateTableView] = useUpdateTableViewMutation();
   const [deleteTableView] = useDeleteTableViewMutation();
 
@@ -37,7 +37,7 @@ export default function ViewRow(props: ViewRow<ViewInterfaceResponse>) {
 
           {editView ? (
             <form
-              onSubmit={() => updateTableView({ ...props.view, title: localTitle })}
+              onSubmit={() => updateTableView({ ...props.view, title: localTitle } as ViewInterface<TableResponses>)}
               className={classNames(styles.viewEdit, "torq-input-field")}
             >
               <input type="text" autoFocus={true} onChange={handleInputChange} value={localTitle} />

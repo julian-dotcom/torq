@@ -7,7 +7,7 @@ import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPage
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
-import styles from "features/transact/OnChain/newAddress/newAddress.module.scss";
+import styles from "features/transact/newAddress/newAddress.module.scss";
 import useTranslations from "services/i18n/useTranslations";
 import { nodeConfiguration } from "apiTypes";
 import Select from "features/forms/Select";

@@ -1,5 +1,11 @@
 import { torqApi } from "apiSlice";
-import { AllViewsResponse, ViewInterfaceResponse, ViewOrderInterface } from "features/viewManagement/types";
+import {
+  AllViewsResponse,
+  TableResponses,
+  ViewInterface,
+  ViewInterfaceResponse,
+  ViewOrderInterface,
+} from "features/viewManagement/types";
 
 // Define a service using a base URL and expected endpoints
 export const viewApi = torqApi.injectEndpoints({
@@ -16,7 +22,7 @@ export const viewApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["tableView"],
     }),
-    updateTableView: builder.mutation<{ view: ViewInterfaceResponse }, ViewInterfaceResponse>({
+    updateTableView: builder.mutation<AllViewsResponse, ViewInterface<TableResponses>>({
       query: (view: ViewInterfaceResponse) => ({
         url: "table-views",
         method: "PUT",

@@ -1,5 +1,6 @@
 import { MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
-import { useGetDecodedInvoiceQuery, useGetNodeConfigurationsQuery, useSendOnChainMutation, WS_URL } from "apiSlice";
+import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
+import { useGetDecodedInvoiceQuery, useSendOnChainMutation } from "./newPaymentApi";
 import classNames from "classnames";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
@@ -8,7 +9,7 @@ import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPage
 import { ChangeEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
-import { NewPaymentError, NewPaymentResponse } from "../paymentTypes";
+import { NewPaymentError, NewPaymentResponse } from "../Payments/paymentTypes";
 import styles from "./newPayments.module.scss";
 import { PaymentProcessingErrors } from "./paymentErrorMessages";
 import OnChanPaymentDetails from "./OnChanPaymentDetails";

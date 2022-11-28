@@ -1,17 +1,15 @@
 import { Link } from "react-router-dom";
 import {
   MoneySettings20Regular as AdjustFeesIcon,
-  // Filter20Regular as FilterIcon,
-  // ArrowSortDownLines20Regular as SortIcon,
-  // ColumnTriple20Regular as ColumnsIcon,
-  // ArrowJoin20Regular as GroupIcon,
+  Filter20Regular as FilterIcon,
+  ArrowSortDownLines20Regular as SortIcon,
+  ColumnTriple20Regular as ColumnsIcon,
+  ArrowJoin20Regular as GroupIcon,
   Options20Regular as OptionsIcon,
   // Save20Regular as SaveIcon,
   ArrowRouting20Regular as ChannelsIcon,
 } from "@fluentui/react-icons";
-// import Sidebar from "features/sidebar/Sidebar";
-import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
-// import { Clause, FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
+import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -19,46 +17,37 @@ import TablePageTemplate, {
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-// import { useAppDispatch, useAppSelector } from "store/hooks";
 // import ViewsPopover from "features/viewManagement/ViewsPopover";
-// import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
-// import FilterSection from "features/sidebar/sections/filter/FilterSection";
-// import SortSection, { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
-// import GroupBySection from "features/sidebar/sections/group/GroupBySection";
-// import ChannelsDataWrapper from "./ChannelsDataWrapper";
-// import { SectionContainer } from "features/section/SectionContainer";
-// import { ColumnMetaData } from "features/table/types";
+import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
+import FilterSection from "features/sidebar/sections/filter/FilterSection";
+import SortSection from "features/sidebar/sections/sort/SortSection";
+import GroupBySection from "features/sidebar/sections/group/GroupBySection";
+import { SectionContainer } from "features/section/SectionContainer";
 import Button, { buttonColor } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
 import { UPDATE_CHANNEL, OPEN_CHANNEL } from "constants/routes";
 import { channel } from "./channelsTypes";
 import useTranslations from "services/i18n/useTranslations";
-import { AllViewsResponse } from "features/viewManagement/types";
 import { Sections } from "features/sidebar/sections/types";
 import DefaultCellRenderer from "../table/DefaultCellRenderer";
 import Table from "../table/Table";
-// import useLocalStorage from "../helpers/useLocalStorage";
-import { DefaultChannelsView } from "./channelsDefaults";
+import {
+  AllChannelsColumns,
+  ChannelsFilterTemplate,
+  ChannelsSortTemplate,
+  DefaultChannelsView,
+  SortableChannelsColumns,
+} from "./channelsDefaults";
 import { useGetChannelsQuery } from "../../apiSlice";
+import { useView } from "../viewManagement/useView";
 
 function ChannelsPage() {
   const { t } = useTranslations();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // const [limit, setLimit] = useLocalStorage("invoicesLimit", 100);
-  // const [offset, setOffset] = useState(0);
-
-  const allViews = useGetTableViewsQuery<{
-    data: AllViewsResponse;
-    isLoading: boolean;
-    isFetching: boolean;
-    isUninitialized: boolean;
-    isSuccess: boolean;
-  }>();
-  const views = allViews?.data ? allViews.data["channel"] : [DefaultChannelsView];
-  const [selectedView, setSelectedView] = useState(0);
+  const [view, selectView, isViewsLoaded] = useView("onChain", 0, DefaultChannelsView);
 
   const channelsResponse = useGetChannelsQuery<{
     data: Array<channel>;
@@ -66,7 +55,7 @@ function ChannelsPage() {
     isFetching: boolean;
     isUninitialized: boolean;
     isSuccess: boolean;
-  }>();
+  }>(undefined, { skip: !isViewsLoaded });
 
   //
   // const { data: channelsViews, isLoading } = useGetTableViewsQuery<{
@@ -86,12 +75,6 @@ function ChannelsPage() {
   //   }
   //   return views;
   // }, [channelsViews, isLoading]);
-
-  // const activeColumns = useAppSelector(selectActiveColumns) || [];
-  // const columns = useAppSelector(selectAllColumns);
-  // const sortBy = useAppSelector(selectSortBy) || [];
-  // const groupBy = useAppSelector(selectGroupBy) || "channels";
-  // const filters = useAppSelector(selectFilters);
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -121,11 +104,6 @@ function ChannelsPage() {
     };
   };
 
-  // const [updateTableView] = useUpdateTableViewMutation();
-  // const [createTableView] = useCreateTableViewMutation();
-  // const currentViewIndex = useAppSelector(selectedViewIndex);
-  // const currentView = useAppSelector(selectCurrentView);
-  //
   // const saveView = () => {
   //   const viewMod = { ...currentView };
   //   viewMod.saved = true;
@@ -183,66 +161,42 @@ function ChannelsPage() {
     </TableControlSection>
   );
 
-  // const updateColumnsHandler = (columns: ColumnMetaData<channel>[]) => {
-  //   dispatch(updateColumns({ columns }));
-  // };
-  //
-  // const handleFilterUpdate = (filters: Clause) => {
-  //   dispatch(updateFilters({ filters: filters.toJSON() }));
-  // };
-  //
-  // const handleSortUpdate = (updated: SortByOptionType[]) => {
-  //   dispatch(updateSortBy({ sortBy: updated }));
-  // };
-  //
-  // const handleGroupByUpdate = (updated: string) => {
-  //   dispatch(updateGroupBy({ groupBy: updated }));
-  // };
-
-  // const sidebar = (
-  //   <Sidebar title={t.tableLayout.tableOptionsTitle} closeSidebarHandler={closeSidebarHandler()}>
-  //     <SectionContainer
-  //       title={t.columns}
-  //       icon={ColumnsIcon}
-  //       expanded={activeSidebarSections.columns}
-  //       handleToggle={sidebarSectionHandler("columns")}
-  //     >
-  //       <ColumnsSection columns={columns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
-  //     </SectionContainer>
-  //
-  //     <SectionContainer
-  //       title={t.filter}
-  //       icon={FilterIcon}
-  //       expanded={activeSidebarSections.filter}
-  //       handleToggle={sidebarSectionHandler("filter")}
-  //     >
-  //       <FilterSection
-  //         columnsMeta={columns}
-  //         filters={filters}
-  //         filterUpdateHandler={handleFilterUpdate}
-  //         defaultFilter={defaultFilter}
-  //       />
-  //     </SectionContainer>
-  //
-  //     <SectionContainer
-  //       title={t.sort}
-  //       icon={SortIcon}
-  //       expanded={activeSidebarSections.sort}
-  //       handleToggle={sidebarSectionHandler("sort")}
-  //     >
-  //       <SortSection columns={columns} orderBy={sortBy} updateSortByHandler={handleSortUpdate} />
-  //     </SectionContainer>
-  //
-  //     <SectionContainer
-  //       title={t.group}
-  //       icon={GroupIcon}
-  //       expanded={activeSidebarSections.group}
-  //       handleToggle={sidebarSectionHandler("group")}
-  //     >
-  //       <GroupBySection groupBy={groupBy} groupByHandler={handleGroupByUpdate} />
-  //     </SectionContainer>
-  //   </Sidebar>
-  // );
+  const sidebar = (
+    <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
+      <SectionContainer
+        title={"Columns"}
+        icon={ColumnsIcon}
+        expanded={activeSidebarSections.columns}
+        handleToggle={sidebarSectionHandler("columns")}
+      >
+        <ColumnsSection columns={AllChannelsColumns} view={view} />
+      </SectionContainer>
+      <SectionContainer
+        title={"Filter"}
+        icon={FilterIcon}
+        expanded={activeSidebarSections.filter}
+        handleToggle={sidebarSectionHandler("filter")}
+      >
+        <FilterSection columns={AllChannelsColumns} view={view} defaultFilter={ChannelsFilterTemplate} />
+      </SectionContainer>
+      <SectionContainer
+        title={"Sort"}
+        icon={SortIcon}
+        expanded={activeSidebarSections.sort}
+        handleToggle={sidebarSectionHandler("sort")}
+      >
+        <SortSection columns={SortableChannelsColumns} view={view} defaultSortBy={ChannelsSortTemplate} />
+      </SectionContainer>
+      <SectionContainer
+        title={t.group}
+        icon={GroupIcon}
+        expanded={activeSidebarSections.group}
+        handleToggle={sidebarSectionHandler("group")}
+      >
+        <GroupBySection view={view} />
+      </SectionContainer>
+    </Sidebar>
+  );
 
   const breadcrumbs = [
     <span key="b1">Analyse</span>,
@@ -256,14 +210,14 @@ function ChannelsPage() {
       title={t.channels}
       titleContent={""}
       breadcrumbs={breadcrumbs}
-      // sidebarExpanded={sidebarExpanded}
-      // sidebar={sidebar}
+      sidebarExpanded={sidebarExpanded}
+      sidebar={sidebar}
       tableControls={tableControls}
     >
       <Table
         cellRenderer={DefaultCellRenderer}
         data={channelsResponse?.data || []}
-        activeColumns={views[selectedView].columns || []}
+        activeColumns={view.columns || []}
         isLoading={channelsResponse.isLoading || channelsResponse.isFetching || channelsResponse.isUninitialized}
       />
     </TablePageTemplate>
