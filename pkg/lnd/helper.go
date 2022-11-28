@@ -12,7 +12,7 @@ func convertMicro(ns int64) time.Time {
 
 func SendStreamEvent(serviceEventChannel chan commons.ServiceEvent,
 	nodeId int, subscriptionStream commons.SubscriptionStream, status commons.Status, previousStatus commons.Status) commons.Status {
-	if status == commons.Initializing || previousStatus != status {
+	if serviceEventChannel != nil && (status == commons.Initializing || previousStatus != status) {
 		commons.RunningServices[commons.LndService].SetStreamStatus(nodeId, subscriptionStream, status, serviceEventChannel)
 	}
 	return status
