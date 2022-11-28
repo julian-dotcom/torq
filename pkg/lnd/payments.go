@@ -91,7 +91,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 				// Stop fetching if there are fewer forwards than max requested
 				// (indicates that we have the last forwarding record)
-				if len(payments.Payments) == 0 {
+				if len(payments.Payments) == 0 || lastPaymentIndex == payments.LastIndexOffset {
 					bootStrapping = false
 					break
 				} else {
