@@ -378,7 +378,7 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, node
 		AmpInvoiceState: aisJson,
 		NodeId:          nodeId,
 		CreatedOn:       time.Now().UTC(),
-		UpdatedOn:       time.Time{},
+		UpdatedOn:       time.Now().UTC(),
 	}
 
 	var sqlInvoice = `INSERT INTO invoice (

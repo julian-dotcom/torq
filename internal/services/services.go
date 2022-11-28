@@ -17,6 +17,7 @@ type TorqService struct {
 
 type LndService struct {
 	Service
+	NodeId                        int
 	TransactionStreamStatus       commons.Status
 	TransactionStreamBootTime     *time.Time
 	HtlcEventStreamStatus         commons.Status
@@ -39,10 +40,12 @@ type LndService struct {
 
 type VectorService struct {
 	Service
+	NodeId int
 }
 
 type AmbossService struct {
 	Service
+	NodeId int
 }
 
 type Services struct {

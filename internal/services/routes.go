@@ -33,6 +33,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 				Status:   commons.RunningServices[commons.LndService].GetStatus(torqNodeId),
 				BootTime: lndService.GetBootTime(torqNodeId),
 			},
+			NodeId:                        torqNodeId,
 			TransactionStreamStatus:       commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.TransactionStream),
 			TransactionStreamBootTime:     commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.TransactionStream),
 			HtlcEventStreamStatus:         commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.HtlcEventStream),
@@ -59,8 +60,9 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 			result.VectorServices = append(result.VectorServices, VectorService{
 				Service: Service{
 					Status:   commons.RunningServices[commons.VectorService].GetStatus(vectorNodeId),
-					BootTime: torqService.GetBootTime(vectorNodeId),
+					BootTime: commons.RunningServices[commons.VectorService].GetBootTime(vectorNodeId),
 				},
+				NodeId: vectorNodeId,
 			})
 		}
 	} else {
@@ -72,8 +74,9 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 			result.AmbossServices = append(result.AmbossServices, AmbossService{
 				Service: Service{
 					Status:   commons.RunningServices[commons.AmbossService].GetStatus(ambossNodeId),
-					BootTime: torqService.GetBootTime(ambossNodeId),
+					BootTime: commons.RunningServices[commons.AmbossService].GetBootTime(ambossNodeId),
 				},
+				NodeId: ambossNodeId,
 			})
 		}
 	} else {
