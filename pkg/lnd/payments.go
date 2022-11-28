@@ -72,7 +72,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 			}
 			for {
-				payments, err = fetchPayments(ctx, client, lastPaymentIndex)
+				payments, err = fetchPayments(ctx, client, lastPaymentIndex, false)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
@@ -92,6 +92,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				// Stop fetching if there are fewer forwards than max requested
 				// (indicates that we have the last forwarding record)
 				if len(payments.Payments) == 0 || lastPaymentIndex == payments.LastIndexOffset {
+					log.Info().Msgf("Processed amount of payments: %v", importCounter)
 					bootStrapping = false
 					break
 				} else {
@@ -122,12 +123,12 @@ func fetchLastPaymentIndex(db *sqlx.DB) (uint64, error) {
 }
 
 // fetchPayments fetches completed payments from LND.
-func fetchPayments(ctx context.Context, client lightningClient_ListPayments, last uint64) (
+func fetchPayments(ctx context.Context, client lightningClient_ListPayments, last uint64, includeIncomplete bool) (
 	r *lnrpc.ListPaymentsResponse, err error) {
 
 	//retry:
 	req := &lnrpc.ListPaymentsRequest{
-		IncludeIncomplete: true,
+		IncludeIncomplete: includeIncomplete,
 		IndexOffset:       last,
 		MaxPayments:       1, // Only fetch one at a time due to the size of failed payments
 		Reversed:          false,
@@ -235,7 +236,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				// we will only get one payment back. Might not be the right one.
-				listPaymentsResponse, err = fetchPayments(ctx, client, ifPayIndex)
+				listPaymentsResponse, err = fetchPayments(ctx, client, ifPayIndex, true)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
