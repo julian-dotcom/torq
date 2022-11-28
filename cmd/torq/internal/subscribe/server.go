@@ -43,7 +43,12 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 			case importRequest := <-importRequestChannel:
 				successTime, exists := successTimes[importRequest.ImportType]
 				if exists && time.Since(successTime).Seconds() < commons.AVOID_CHANNEL_AND_POLICY_IMPORT_RERUN_TIME_SECONDS {
-					log.Info().Msgf("%v were imported very recently for nodeId: %v.", importRequest.ImportType, nodeSettings.NodeId)
+					if importRequest.ImportType == commons.ImportChannelAndRoutingPolicies {
+						log.Info().Msgf("ImportChannelAndRoutingPolicies were imported very recently for nodeId: %v.", nodeSettings.NodeId)
+					}
+					if importRequest.ImportType == commons.ImportNodeInformation {
+						log.Info().Msgf("ImportNodeInformation were imported very recently for nodeId: %v.", nodeSettings.NodeId)
+					}
 					importRequest.Out <- nil
 					continue
 				}
@@ -86,6 +91,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 						importRequest.Out <- err
 						continue
 					}
+					log.Info().Msgf("ImportChannelAndRoutingPolicies was imported successfully for nodeId: %v.", nodeSettings.NodeId)
 				}
 				if importRequest.ImportType == commons.ImportNodeInformation {
 					err := lnd.ImportNodeInfo(client, db, nodeSettings)
@@ -94,8 +100,8 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 						importRequest.Out <- err
 						continue
 					}
+					log.Info().Msgf("ImportNodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
 				}
-				log.Info().Msgf("%v was imported successfully for nodeId: %v.", importRequest.ImportType, nodeSettings.NodeId)
 				successTimes[importRequest.ImportType] = time.Now()
 				importRequest.Out <- nil
 			}
@@ -112,6 +118,15 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 		return errors.Wrapf(err, "LND import Channel And Routing Policies for nodeId: %v", nodeSettings.NodeId)
 	}
 
+	importRequestChannel <- commons.ImportRequest{
+		ImportType: commons.ImportNodeInformation,
+		Out:        responseChannel,
+	}
+	err = <-responseChannel
+	if err != nil {
+		return errors.Wrapf(err, "LND import Node Information for nodeId: %v", nodeSettings.NodeId)
+	}
+
 	// Transactions
 	wg.Add(1)
 	go (func() {
@@ -124,41 +139,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 		lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel, serviceEventChannel)
 	})()
 
-	// HTLC events
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				recoverPanic(panicError, serviceChannel, nodeId, commons.HtlcEventStream)
-			}
-		}()
-		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel, serviceEventChannel)
-	})()
-
-	// Channel events
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				recoverPanic(panicError, serviceChannel, nodeId, commons.ChannelEventStream)
-			}
-		}()
-		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
-	})()
-
-	// Graph (Node updates, fee updates etc.)
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				recoverPanic(panicError, serviceChannel, nodeId, commons.GraphEventStream)
-			}
-		}()
-		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
-	})()
+	waitForReadyState(nodeSettings.NodeId, commons.TransactionStream, "TransactionStream", serviceEventChannel)
 
 	// Forwarding history
 	wg.Add(1)
@@ -172,17 +153,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 		lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
 	})()
 
-	// Invoices
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				recoverPanic(panicError, serviceChannel, nodeId, commons.InvoiceStream)
-			}
-		}()
-		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
-	})()
+	waitForReadyState(nodeSettings.NodeId, commons.ForwardStream, "ForwardStream", serviceEventChannel)
 
 	// Payments
 	wg.Add(1)
@@ -196,17 +167,49 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 		lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
 	})()
 
-	// Update in flight payments
+	waitForReadyState(nodeSettings.NodeId, commons.PaymentStream, "PaymentStream", serviceEventChannel)
+
+	// Channel events
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				recoverPanic(panicError, serviceChannel, nodeId, commons.InFlightPaymentStream)
+				recoverPanic(panicError, serviceChannel, nodeId, commons.ChannelEventStream)
 			}
 		}()
-		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
+		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
 	})()
+
+	waitForReadyState(nodeSettings.NodeId, commons.ChannelEventStream, "ChannelEventStream", serviceEventChannel)
+
+	// Graph (Node updates, fee updates etc.)
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				recoverPanic(panicError, serviceChannel, nodeId, commons.GraphEventStream)
+			}
+		}()
+		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
+	})()
+
+	waitForReadyState(nodeSettings.NodeId, commons.GraphEventStream, "GraphEventStream", serviceEventChannel)
+
+	// HTLC events
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				recoverPanic(panicError, serviceChannel, nodeId, commons.HtlcEventStream)
+			}
+		}()
+		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel, serviceEventChannel)
+	})()
+
+	waitForReadyState(nodeSettings.NodeId, commons.HtlcEventStream, "HtlcEventStream", serviceEventChannel)
 
 	// Peer Events
 	wg.Add(1)
@@ -219,6 +222,42 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 		}()
 		lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel, serviceEventChannel)
 	})()
+
+	waitForReadyState(nodeSettings.NodeId, commons.PeerEventStream, "PeerEventStream", serviceEventChannel)
+
+	// Update in flight payments
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				recoverPanic(panicError, serviceChannel, nodeId, commons.InFlightPaymentStream)
+			}
+		}()
+		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
+	})()
+
+	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", serviceEventChannel)
+
+	// Invoices
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				recoverPanic(panicError, serviceChannel, nodeId, commons.InvoiceStream)
+			}
+		}()
+		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
+	})()
+
+	waitForReadyState(nodeSettings.NodeId, commons.InvoiceStream, "InvoiceStream", serviceEventChannel)
+
+	if commons.RunningServices[commons.LndService].GetStatus(nodeId) == commons.Active {
+		log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)
+	} else {
+		log.Error().Msgf("LND completely initialized but somehow a stream got out-of-sync for nodeId: %v", nodeId)
+	}
 
 	wg.Wait()
 
@@ -243,5 +282,42 @@ func recoverPanic(panicError any, serviceChannel chan commons.ServiceChannelMess
 		log.Error().Msgf("Failed to kill LND service (it's booting) after Panic in %v (nodeId: %v)", subscriptionStream, nodeId)
 	case commons.Inactive:
 		log.Error().Msgf("Killed LND service after Panic in %v (nodeId: %v)", subscriptionStream, nodeId)
+	}
+}
+
+func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream, name string, serviceEventChannel chan commons.ServiceEvent) {
+	log.Info().Msgf("LND %v initialization started for nodeId: %v", name, nodeId)
+	streamStartTime := time.Now()
+	time.Sleep(1 * time.Second)
+	for {
+		if commons.RunningServices[commons.LndService].GetStreamStatus(nodeId, subscriptionStream) == commons.Active {
+			log.Info().Msgf("LND %v initial download done (in less then %s) for nodeId: %v", name, time.Since(streamStartTime).Round(1*time.Second), nodeId)
+			return
+		}
+		if time.Since(streamStartTime).Seconds() > commons.GENERIC_BOOTSTRAPPING_TIME_SECONDS {
+			lastInitializationPing := commons.RunningServices[commons.LndService].GetStreamInitializationPingTime(nodeId, subscriptionStream)
+			if lastInitializationPing == nil {
+				log.Error().Msgf("LND %v could not be initialized for nodeId: %v", name, nodeId)
+				return
+			} else {
+				pingTimeOutInSeconds := commons.GENERIC_BOOTSTRAPPING_TIME_SECONDS
+				switch subscriptionStream {
+				case commons.ForwardStream:
+					pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_FORWARDS_TICKER_SECONDS
+				case commons.PaymentStream:
+					pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_PAYMENTS_TICKER_SECONDS
+				case commons.InFlightPaymentStream:
+					pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS
+				case commons.InvoiceStream:
+					pingTimeOutInSeconds = commons.INVOICE_BOOTSTRAPPING_TIME_SECONDS
+				}
+				if time.Since(*lastInitializationPing).Seconds() > float64(pingTimeOutInSeconds) {
+					log.Info().Msgf("LND %v idle for over %v seconds for nodeId: %v", name, pingTimeOutInSeconds, nodeId)
+					lnd.SendStreamEvent(serviceEventChannel, nodeId, subscriptionStream, commons.Active, commons.Initializing)
+					return
+				}
+			}
+		}
+		time.Sleep(commons.STREAM_BOOTED_CHECK_SECONDS * time.Second)
 	}
 }

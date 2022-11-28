@@ -201,6 +201,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	var serviceStatus commons.Status
 	bootStrapping := true
 	subscriptionStream := commons.InvoiceStream
+	importCounter := 0
 
 	for {
 		select {
@@ -212,7 +213,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, settleIndex, err = fetchLastInvoiceIndexes(db)
 		if err != nil {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in 1 minute")
 			time.Sleep(1 * time.Minute)
 			continue
@@ -226,23 +227,28 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msgf("Failed to obtain invoice stream, will retry in 1 minute")
 			time.Sleep(1 * time.Minute)
 			continue
 		}
 
 		if bootStrapping {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			importCounter++
+			if importCounter%commons.STREAM_LND_INVOICES_INTERVAL_SLEEP == 0 {
+				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
+				time.Sleep(commons.STREAM_LND_INVOICES_SLEEP_SECONDS * time.Second)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			}
 		} else {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 		invoice, err = stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msg("Receiving invoices from the stream failed, will retry in 1 minute")
 			time.Sleep(1 * time.Minute)
 			continue
@@ -268,7 +274,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 				NodeId:    nodeSettings.NodeId,
 			},
 		}
-		if bootStrapping && time.Unix(invoice.CreationDate, 0).UTC().Sub(time.Now().UTC()).Minutes() < commons.BOOTSTRAPPING_TIME_MINUTES {
+		if bootStrapping && time.Since(time.Unix(invoice.CreationDate, 0).UTC()).Seconds() < commons.INVOICE_BOOTSTRAPPING_TIME_SECONDS {
 			bootStrapping = false
 		}
 		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel)

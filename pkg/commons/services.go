@@ -21,8 +21,9 @@ type Services struct {
 	noDelay map[int]bool
 
 	// streamStatus ONLY FOR serviceType=LndSubscription
-	streamStatus   map[int]map[SubscriptionStream]Status
-	streamBootTime map[int]map[SubscriptionStream]time.Time
+	streamStatus                 map[int]map[SubscriptionStream]Status
+	streamBootTime               map[int]map[SubscriptionStream]time.Time
+	streamInitializationPingTime map[int]map[SubscriptionStream]time.Time
 }
 
 var RunningServices map[ServiceType]*Services //nolint:gochecknoglobals
@@ -230,6 +231,22 @@ func (rs *Services) GetStreamBootTime(nodeId int, stream SubscriptionStream) *ti
 	return &bootTime
 }
 
+func (rs *Services) GetStreamInitializationPingTime(nodeId int, stream SubscriptionStream) *time.Time {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	initServiceMaps(rs, nodeId)
+	_, exists := rs.streamInitializationPingTime[nodeId]
+	if !exists {
+		return nil
+	}
+	initializationPingTime, exists := rs.streamInitializationPingTime[nodeId][stream]
+	if !exists {
+		return nil
+	}
+	return &initializationPingTime
+}
+
 func (rs *Services) GetCombinedStatus(nodeId int, streams ...SubscriptionStream) Status {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
@@ -311,6 +328,9 @@ func (rs *Services) SetStreamStatus(nodeId int, stream SubscriptionStream, statu
 	defer rs.mu.Unlock()
 
 	initServiceMaps(rs, nodeId)
+	if status == Initializing {
+		rs.streamInitializationPingTime[nodeId][stream] = time.Now().UTC()
+	}
 	previousStatus := rs.streamStatus[nodeId][stream]
 	if previousStatus == status {
 		return
@@ -335,6 +355,8 @@ func initServiceMaps(rs *Services, nodeId int) {
 		rs.streamStatus[nodeId] = make(map[SubscriptionStream]Status, 0)
 		rs.streamBootTime = make(map[int]map[SubscriptionStream]time.Time)
 		rs.streamBootTime[nodeId] = make(map[SubscriptionStream]time.Time, 0)
+		rs.streamInitializationPingTime = make(map[int]map[SubscriptionStream]time.Time)
+		rs.streamInitializationPingTime[nodeId] = make(map[SubscriptionStream]time.Time, 0)
 	}
 }
 

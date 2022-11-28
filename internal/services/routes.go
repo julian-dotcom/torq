@@ -58,7 +58,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 		for _, vectorNodeId := range vectorNodeIds {
 			result.VectorServices = append(result.VectorServices, VectorService{
 				Service: Service{
-					Status:   commons.RunningServices[commons.LndService].GetStatus(vectorNodeId),
+					Status:   commons.RunningServices[commons.VectorService].GetStatus(vectorNodeId),
 					BootTime: torqService.GetBootTime(vectorNodeId),
 				},
 			})
@@ -71,7 +71,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 		for _, ambossNodeId := range ambossNodeIds {
 			result.AmbossServices = append(result.AmbossServices, AmbossService{
 				Service: Service{
-					Status:   commons.RunningServices[commons.LndService].GetStatus(ambossNodeId),
+					Status:   commons.RunningServices[commons.AmbossService].GetStatus(ambossNodeId),
 					BootTime: torqService.GetBootTime(ambossNodeId),
 				},
 			})

@@ -41,7 +41,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
-	ticker := c.Tick(60 * time.Second)
+	ticker := c.Tick(commons.STREAM_PAYMENTS_TICKER_SECONDS * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -61,15 +61,15 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 			lastPaymentIndex, err = fetchLastPaymentIndex(db)
 			if err != nil {
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 1 minute")
 				continue
 			}
 
 			if bootStrapping {
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 			} else {
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 			}
 			for {
 				payments, err = fetchPayments(ctx, client, lastPaymentIndex)
@@ -77,7 +77,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
-					serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in 1 minute")
 					break
 				}
@@ -205,7 +205,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
-	ticker := c.Tick(60 * time.Second)
+	ticker := c.Tick(commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -223,15 +223,14 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		case <-ticker:
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db)
 			if err != nil {
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in 1 minute")
 				continue
 			}
-
 			if bootStrapping {
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 			} else {
-				serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 			}
 			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
@@ -261,11 +260,12 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 				}
 
 				// Store the payments
-				bootStrapping, err = updatePayments(db, listPaymentsResponse.Payments, nodeSettings.NodeId, bootStrapping)
+				err = updatePayments(db, listPaymentsResponse.Payments, nodeSettings.NodeId)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to store update payments")
 				}
 			}
+			bootStrapping = false
 		}
 	}
 }
@@ -333,7 +333,7 @@ func setPaymentToFailedDetailsUnavailable(db *sqlx.DB, paymentIndex uint64) erro
 	return nil
 }
 
-func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int, bootStrapping bool) (bool, error) {
+func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 
 	const q = `update payment set(
 				  payment_hash,
@@ -356,7 +356,7 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int, bootStrapping b
 
 			htlcJson, err := json.Marshal(payment.Htlcs)
 			if err != nil {
-				return bootStrapping, errors.Wrap(err, "JSON Marhsal of payment HTLCs")
+				return errors.Wrap(err, "JSON Marhsal of payment HTLCs")
 			}
 
 			status := payment.Status.String()
@@ -373,16 +373,13 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int, bootStrapping b
 				if payment.PaymentRequest != "" {
 					inva, err := zpay32.Decode(payment.PaymentRequest, &chaincfg.MainNetParams)
 					if err != nil {
-						return bootStrapping, errors.Wrap(err, "zpay32 decode of payment request")
+						return errors.Wrap(err, "zpay32 decode of payment request")
 					}
 					expiry = inva.Expiry()
 				}
 
 				currentTime := time.Now().UTC()
 				created := time.Unix(0, payment.CreationTimeNs).UTC()
-				if bootStrapping && created.Sub(time.Now().UTC()).Minutes() < commons.BOOTSTRAPPING_TIME_MINUTES {
-					bootStrapping = false
-				}
 				// Add 10 minutes to the invoice expiry time to be safe.
 				expiredAt := created.Add(expiry).Add(10 * time.Minute)
 
@@ -412,14 +409,14 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int, bootStrapping b
 			)
 
 			if err != nil {
-				return bootStrapping, errors.Wrapf(err, "updatePayments->tx.Exec(%v)", q)
+				return errors.Wrapf(err, "updatePayments->tx.Exec(%v)", q)
 			}
 		}
 		err := tx.Commit()
 		if err != nil {
-			return bootStrapping, errors.Wrap(err, "Transaction commit")
+			return errors.Wrap(err, "Transaction commit")
 		}
 	}
 
-	return bootStrapping, nil
+	return nil
 }
