@@ -12,16 +12,11 @@ import {
 } from "features/channel/channelTypes";
 
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
-import type {
-  GetForwardsQueryParams,
-  GetFlowQueryParams,
-  GetChannelHistoryData,
-  LoginResponse,
-  Forward,
-} from "types/api";
+import type { GetForwardsQueryParams, GetFlowQueryParams, GetChannelHistoryData, LoginResponse } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import type { nodeConfiguration, settings, timeZone, stringMap } from "apiTypes";
 import { tag, channelTag } from "pages/tagsPage/tagsTypes";
+import { Forward } from "./features/forwards/forwardsTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();

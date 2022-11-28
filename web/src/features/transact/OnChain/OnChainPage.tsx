@@ -48,7 +48,7 @@ function OnChainPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [view, selectView, isViewsLoaded] = useView("onChain", 0, DefaultOnChainView);
+  const [view, selectView, isViewsLoaded] = useView("onChain", AllOnChainColumns, 0, DefaultOnChainView);
   const [getPagination, limit, offset] = usePagination("onChain");
 
   const onChainTxResponse = useGetOnChainTxQuery<{

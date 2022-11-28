@@ -48,7 +48,7 @@ function PaymentsPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [view, selectView, isViewsLoaded] = useView("payments", 0, DefaultPaymentView);
+  const [view, selectView, isViewsLoaded] = useView("payments", AllPaymentsColumns, 0, DefaultPaymentView);
   const [getPagination, limit, offset] = usePagination("invoices");
 
   const paymentsResponse = useGetPaymentsQuery<{

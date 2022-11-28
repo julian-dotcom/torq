@@ -54,7 +54,7 @@ function InvoicesPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [view, selectView, isViewsLoaded] = useView("invoices", 0, InvoiceViewTemplate);
+  const [view, selectView, isViewsLoaded] = useView("invoices", AllInvoicesColumns, 0, InvoiceViewTemplate);
   const [getPagination, limit, offset] = usePagination("invoices");
 
   const invoicesResponse = useGetInvoicesQuery<{

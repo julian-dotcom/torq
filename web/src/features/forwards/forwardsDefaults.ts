@@ -1,9 +1,10 @@
-import { AndClause, FilterClause } from "features/sidebar/sections/filter/filter";
+import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
-import { Forward } from "types/api";
 import { ViewInterface } from "../viewManagement/types";
+import { OrderBy } from "../sidebar/sections/sort/SortSection";
+import { Forward } from "./forwardsTypes";
 
-export const availableColumns: ColumnMetaData<Forward>[] = [
+export const AllForwardsColumns: ColumnMetaData<Forward>[] = [
   {
     heading: "Name",
     type: "AliasCell",
@@ -133,29 +134,44 @@ export const availableColumns: ColumnMetaData<Forward>[] = [
   },
 ];
 
-const defaultFilter = new AndClause();
-defaultFilter.addChildClause(
-  new FilterClause({
-    funcName: "gt",
-    category: "number" as "number" | "string",
-    key: "amountTotal",
-    parameter: 0,
-  })
-);
+// const ForwardsFilterTemplate = new AndClause();
+// ForwardsFilterTemplate.addChildClause(
+//   new FilterClause({
+//     funcName: "gt",
+//     category: "number",
+//     key: "amountTotal",
+//     parameter: 0,
+//   })
+// );
 
-export const activeForwardsColumns = availableColumns.filter((c) =>
-  ["alias", "revenueOut", "countTotal", "amountOut", "amountIn", "amountTotal", "turnoverTotal", "capacity"].includes(
-    c.key
-  )
-);
+export const ForwardsFilterTemplate: FilterInterface = {
+  funcName: "gte",
+  category: "number",
+  parameter: 0,
+  key: "amountTotal",
+};
 
-export const DefaultView: ViewInterface<Forward> = {
+const defaultColumns: Array<keyof Forward> = [
+  "alias",
+  "revenueOut",
+  "countTotal",
+  "amountOut",
+  "amountIn",
+  "amountTotal",
+  "turnoverTotal",
+  "capacity",
+];
+
+export const ForwardsSortByTemplate: OrderBy = { key: "revenueOut", direction: "desc" };
+
+export const DefaultForwardsColumns = AllForwardsColumns.filter((c) => defaultColumns.includes(c.key));
+
+export const DefaultForwardsView: ViewInterface<Forward> = {
   title: "Untitled View",
   saved: true,
-  columns: activeForwardsColumns,
-  filters: defaultFilter,
-  sortBy: [{ key: "revenueOut", direction: "desc" }],
-  groupBy: undefined,
+  columns: DefaultForwardsColumns,
+  sortBy: [ForwardsSortByTemplate],
+  groupBy: "channels",
   page: "forwards",
   view_order: 0,
 };

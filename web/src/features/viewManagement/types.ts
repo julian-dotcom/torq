@@ -1,12 +1,12 @@
 import { ColumnMetaData } from "features/table/types";
 import { Clause } from "features/sidebar/sections/filter/filter";
-import { Forward } from "types/api";
 import { tag } from "pages/tagsPage/tagsTypes";
 import { channel } from "features/channels/channelsTypes";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";
 import { OnChainTx } from "features/transact/OnChain/types";
 import { Payment } from "features/transact/Payments/types";
 import { OrderBy } from "../sidebar/sections/sort/SortSection";
+import { Forward } from "../forwards/forwardsTypes";
 
 export type PageViewType<T extends {}> = {
   selectedViewIndex: number;

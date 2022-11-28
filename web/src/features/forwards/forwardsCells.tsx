@@ -7,8 +7,8 @@ import DurationCell from "components/table/cells/duration/DurationCell";
 import BooleanCell from "components/table/cells/boolean/BooleanCell";
 import DateCell from "components/table/cells/date/DateCell";
 import EnumCell from "components/table/cells/enum/EnumCell";
-import LinkCell from "components/table/cells/link/LinkCell";
-import { Forward } from "types/api";
+// import LinkCell from "components/table/cells/link/LinkCell";
+import { Forward } from "./forwardsTypes";
 
 export function forwardsCellRenderer(
   row: Forward,
@@ -29,14 +29,6 @@ export function forwardsCellRenderer(
               current={row["alias"] as string}
               lndShortChannelId={row["lndShortChannelId"]}
               open={row["open"]}
-              key={dataKey + rowIndex + columnIndex}
-            />
-          );
-        case "LinkCell":
-          return (
-            <LinkCell
-              current={`Check in ${heading}`}
-              link={row[dataKey] as string}
               key={dataKey + rowIndex + columnIndex}
             />
           );
@@ -78,6 +70,9 @@ export function forwardsCellRenderer(
             />
           );
       }
+      break;
+    default:
+      return <TextCell current={row[dataKey] as string} key={column.key + rowIndex} />;
   }
   return <TextCell current={row[dataKey] as string} key={column.key + rowIndex} />;
 }

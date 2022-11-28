@@ -1,15 +1,13 @@
 import { Link } from "react-router-dom";
 import {
-  // ArrowJoin20Regular as GroupIcon,
-  // ArrowSortDownLines20Regular as SortIcon,
-  // ColumnTriple20Regular as ColumnsIcon,
-  // Filter20Regular as FilterIcon,
+  ArrowJoin20Regular as GroupIcon,
+  ArrowSortDownLines20Regular as SortIcon,
+  ColumnTriple20Regular as ColumnsIcon,
+  Filter20Regular as FilterIcon,
   // Save20Regular as SaveIcon,
   Options20Regular as OptionsIcon,
 } from "@fluentui/react-icons";
-// import Sidebar from "features/sidebar/Sidebar";
-import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
-import { FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
+import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
@@ -17,20 +15,29 @@ import TablePageTemplate, {
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import { useAppDispatch } from "store/hooks";
 // import ViewsPopover from "features/viewManagement/ViewsPopover";
-// import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
-// import FilterSection from "features/sidebar/sections/filter/FilterSection";
-// import SortSection, { SortByOptionType } from "features/sidebar/sections/sort/SortSectionOld";
-// import GroupBySection from "features/sidebar/sections/group/GroupBySection";
-import ForwardsDataWrapper from "./ForwardsDataWrapper";
+import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
+import FilterSection from "features/sidebar/sections/filter/FilterSection";
+import SortSection from "features/sidebar/sections/sort/SortSection";
+import GroupBySection from "features/sidebar/sections/group/GroupBySection";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
-// import { SectionContainer } from "features/section/SectionContainer";
-// import { availableColumns, activeForwardsColumns } from "./defaultView";
+import { useView } from "../viewManagement/useView";
+import {
+  AllForwardsColumns,
+  DefaultForwardsView,
+  ForwardsFilterTemplate,
+  ForwardsSortByTemplate,
+} from "./forwardsDefaults";
+import { SectionContainer } from "features/section/SectionContainer";
+import useTranslations from "services/i18n/useTranslations";
+import { forwardsCellRenderer } from "./forwardsCells";
+import { useAppSelector } from "store/hooks";
+import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
+import { addDays, format } from "date-fns";
+import { useGetForwardsQuery } from "apiSlice";
+import Table from "features/table/Table";
+import { Forward } from "./forwardsTypes";
 // import Button, { buttonColor } from "components/buttons/Button";
-// import { ViewResponse } from "features/viewManagement/ViewsPopover";
-// import { Forward } from "types/api";
-// import { ViewInterface } from "features/viewManagement/types";
 
 type sections = {
   filter: boolean;
@@ -39,9 +46,20 @@ type sections = {
   columns: boolean;
 };
 function ForwardsPage() {
-  const dispatch = useAppDispatch();
+  const { t } = useTranslations();
+  const [view, selectView, isViewsLoaded] = useView("forwards", AllForwardsColumns, 0, DefaultForwardsView);
 
-  const { data: forwardsViews, isLoading } = useGetTableViewsQuery();
+  const currentPeriod = useAppSelector(selectTimeInterval);
+  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
+  const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
+
+  const forwardsResponse = useGetForwardsQuery<{
+    data: Array<Forward>;
+    isLoading: boolean;
+    isFetching: boolean;
+    isUninitialized: boolean;
+    isSuccess: boolean;
+  }>({ from: from, to: to }, { skip: !isViewsLoaded });
 
   // useEffect(() => {
   //   const views: ViewInterface<ForwardResponse>[] = [];
@@ -55,12 +73,6 @@ function ForwardsPage() {
   //     dispatch(updateViews({ views: [{ ...DefaultView, title: "Default View" }], index: 0 }));
   //   }
   // }, [forwardsViews, isLoading]);
-
-  // const activeColumns = useAppSelector(selectActiveColumns) || [];
-  // const columns = useAppSelector(selectAllColumns);
-  // const sortBy = useAppSelector(selectSortBy);
-  // const groupBy = useAppSelector(selectGroupBy) || "channels";
-  // const filters = useAppSelector(selectFilters);
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -89,10 +101,6 @@ function ForwardsPage() {
       setSidebarExpanded(false);
     };
   };
-
-  // const [updateTableView] = useUpdateTableViewMutation();
-  // const [createTableView] = useCreateTableViewMutation();
-  // const currentViewIndex = useAppSelector(selectedViewIndex);
 
   // const currentView = useAppSelector(selectCurrentView);
   // const saveView = () => {
@@ -132,74 +140,43 @@ function ForwardsPage() {
       </TableControlsButtonGroup>
     </TableControlSection>
   );
-  //
-  // const updateColumnsHandler = (columns: Array<any>) => {
-  //   dispatch(updateColumns({ columns: columns }));
-  // };
-  //
-  // const handleFilterUpdate = (filters: Clause) => {
-  //   dispatch(updateFilters({ filters: filters.toJSON() }));
-  // };
-  //
-  // const handleSortUpdate = (updated: Array<SortByOptionType>) => {
-  //   dispatch(updateSortBy({ sortBy: updated }));
-  // };
-  //
-  // const handleGroupByUpdate = (updated: string) => {
-  //   dispatch(updateGroupBy({ groupBy: updated }));
-  // };
 
-  const defaultFilter: FilterInterface = {
-    funcName: "gte",
-    category: "number" as FilterCategoryType,
-    parameter: 0,
-    key: "capacity",
-  };
-
-  // const sidebar = (
-  //   <Sidebar title={"Table Options"} closeSidebarHandler={closeSidebarHandler()}>
-  //     <SectionContainer
-  //       title={"Columns"}
-  //       icon={ColumnsIcon}
-  //       expanded={activeSidebarSections.columns}
-  //       handleToggle={sidebarSectionHandler("columns")}
-  //     >
-  //       <ColumnsSection columns={columns} activeColumns={activeColumns} handleUpdateColumn={updateColumnsHandler} />
-  //     </SectionContainer>
-  //
-  //     <SectionContainer
-  //       title={"Filter"}
-  //       icon={FilterIcon}
-  //       expanded={activeSidebarSections.filter}
-  //       handleToggle={sidebarSectionHandler("filter")}
-  //     >
-  //       <FilterSection
-  //         columnsMeta={columns}
-  //         filters={filters}
-  //         filterUpdateHandler={handleFilterUpdate}
-  //         defaultFilter={defaultFilter}
-  //       />
-  //     </SectionContainer>
-  //
-  //     <SectionContainer
-  //       title={"Sort"}
-  //       icon={SortIcon}
-  //       expanded={activeSidebarSections.sort}
-  //       handleToggle={sidebarSectionHandler("sort")}
-  //     >
-  //       <SortSection columns={columns} orderBy={sortBy} updateSortByHandler={handleSortUpdate} />
-  //     </SectionContainer>
-  //
-  //     <SectionContainer
-  //       title={"Group"}
-  //       icon={GroupIcon}
-  //       expanded={activeSidebarSections.group}
-  //       handleToggle={sidebarSectionHandler("group")}
-  //     >
-  //       <GroupBySection groupBy={groupBy} groupByHandler={handleGroupByUpdate} />
-  //     </SectionContainer>
-  //   </Sidebar>
-  // );
+  const sidebar = (
+    <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
+      <SectionContainer
+        title={"Columns"}
+        icon={ColumnsIcon}
+        expanded={activeSidebarSections.columns}
+        handleToggle={sidebarSectionHandler("columns")}
+      >
+        <ColumnsSection columns={AllForwardsColumns} view={view} />
+      </SectionContainer>
+      <SectionContainer
+        title={"Filter"}
+        icon={FilterIcon}
+        expanded={activeSidebarSections.filter}
+        handleToggle={sidebarSectionHandler("filter")}
+      >
+        <FilterSection columns={AllForwardsColumns} view={view} defaultFilter={ForwardsFilterTemplate} />
+      </SectionContainer>
+      <SectionContainer
+        title={"Sort"}
+        icon={SortIcon}
+        expanded={activeSidebarSections.sort}
+        handleToggle={sidebarSectionHandler("sort")}
+      >
+        <SortSection columns={AllForwardsColumns} view={view} defaultSortBy={ForwardsSortByTemplate} />
+      </SectionContainer>
+      <SectionContainer
+        title={t.group}
+        icon={GroupIcon}
+        expanded={activeSidebarSections.group}
+        handleToggle={sidebarSectionHandler("group")}
+      >
+        <GroupBySection view={view} />
+      </SectionContainer>
+    </Sidebar>
+  );
 
   const breadcrumbs = [
     <span key="b1">Analyse</span>,
@@ -214,10 +191,17 @@ function ForwardsPage() {
       titleContent={<TimeIntervalSelect />}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
-      // sidebar={sidebar}
+      sidebar={sidebar}
       tableControls={tableControls}
     >
-      <ForwardsDataWrapper selectedView={0} />
+      <Table
+        activeColumns={view.columns}
+        data={forwardsResponse?.data || []}
+        cellRenderer={forwardsCellRenderer}
+        isLoading={forwardsResponse.isLoading || forwardsResponse.isFetching || forwardsResponse.isUninitialized}
+        showTotals={true}
+      />
+      {/*<ForwardsDataWrapper selectedView={0} />*/}
     </TablePageTemplate>
   );
 }

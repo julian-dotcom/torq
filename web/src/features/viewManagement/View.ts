@@ -6,13 +6,20 @@ import { ViewInterface } from "./types";
 
 export default class View<T> {
   view: ViewInterface<T>;
+  allColumns: Array<ColumnMetaData<T>>;
   renderCallback: React.Dispatch<React.SetStateAction<number>>;
   renderCount = 0;
   saved: boolean;
   id: number | undefined;
 
-  constructor(view: ViewInterface<T>, renderCount: number, render: React.Dispatch<React.SetStateAction<number>>) {
+  constructor(
+    view: ViewInterface<T>,
+    allColumns: Array<ColumnMetaData<T>>,
+    renderCount: number,
+    render: React.Dispatch<React.SetStateAction<number>>
+  ) {
     this.view = view;
+    this.allColumns = allColumns;
     this.renderCallback = render;
     this.renderCount = renderCount;
     this.id = view.id;
@@ -45,18 +52,6 @@ export default class View<T> {
   }
 
   //------------------ Columns ------------------
-
-  getLocedColumns(): ColumnMetaData<T>[] {
-    return this.view.columns.filter((column) => column.locked === true);
-  }
-
-  getMovableColumns(): ColumnMetaData<T>[] {
-    return this.view.columns.filter((column) => column.locked !== true);
-  }
-
-  getColumn = (index: number): ColumnMetaData<T> => {
-    return this.view.columns[index];
-  };
 
   addColumn = (column: ColumnMetaData<T>) => {
     this.view.columns.push(column);

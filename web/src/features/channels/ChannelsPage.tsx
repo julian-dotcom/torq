@@ -47,7 +47,7 @@ function ChannelsPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [view, selectView, isViewsLoaded] = useView("onChain", 0, DefaultChannelsView);
+  const [view, selectView, isViewsLoaded] = useView("channel", AllChannelsColumns, 0, DefaultChannelsView);
 
   const channelsResponse = useGetChannelsQuery<{
     data: Array<channel>;

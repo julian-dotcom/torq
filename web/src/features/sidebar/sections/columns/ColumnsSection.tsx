@@ -35,8 +35,9 @@ type ColumnRow<T> = {
   index: number;
 };
 
-function ColumnRow<T>(props: ColumnRow<T>) {
-  const column = props.view.getColumn(props.index);
+// TODO: Fix bug that causes incorrect rendering of locked cells when they are removed and then added back
+function LockedColumnRow<T>(props: ColumnRow<T>) {
+  const column = props.view.columns[props.index];
   const selectedOption = CellOptions.filter((option) => {
     if (option.value === column.type) {
       return option;
@@ -44,7 +45,55 @@ function ColumnRow<T>(props: ColumnRow<T>) {
   })[0];
 
   const [expanded, setExpanded] = useState(false);
+  return (
+    <div
+      className={classNames(styles.rowContent, {
+        [styles.expanded]: expanded,
+      })}
+    >
+      <div className={classNames(styles.columnRow)}>
+        <div className={classNames(styles.rowLeftIcon, styles.lockBtn)}>
+          <LockClosedIcon />
+        </div>
 
+        <div className={styles.columnName}>
+          <div>{column.heading}</div>
+        </div>
+
+        <div className={styles.rowOptions} onClick={() => setExpanded(!expanded)}>
+          {expanded ? <OptionsExpandedIcon /> : <OptionsIcon />}
+        </div>
+      </div>
+      <div className={styles.rowOptionsContainer}>
+        <Select
+          isDisabled={["date", "array", "string", "boolean", "enum"].includes(column.valueType)}
+          options={NumericCellOptions}
+          value={selectedOption}
+          onChange={(newValue) => {
+            props.view.updateColumn(
+              {
+                ...column,
+                type: (newValue as { value: string; label: string }).value,
+              },
+              props.index
+            );
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ColumnRow<T>(props: ColumnRow<T>) {
+  const column = props.view.columns[props.index];
+  const selectedOption = CellOptions.filter((option) => {
+    if (option.value === column?.type) {
+      return option;
+    }
+    return option;
+  })[0];
+
+  const [expanded, setExpanded] = useState(false);
   return (
     <Draggable draggableId={`draggable-column-id-${column.key.toString()}`} index={props.index}>
       {(provided, snapshot) => (
@@ -57,15 +106,9 @@ function ColumnRow<T>(props: ColumnRow<T>) {
           {...provided.draggableProps}
         >
           <div className={classNames(styles.columnRow)}>
-            {column.locked ? (
-              <div className={classNames(styles.rowLeftIcon, styles.lockBtn)}>
-                <LockClosedIcon />
-              </div>
-            ) : (
-              <div className={classNames(styles.rowLeftIcon, styles.dragHandle)} {...provided.dragHandleProps}>
-                <DragHandle />
-              </div>
-            )}
+            <div className={classNames(styles.rowLeftIcon, styles.dragHandle)} {...provided.dragHandleProps}>
+              <DragHandle />
+            </div>
 
             <div className={styles.columnName}>
               <div>{column.heading}</div>
@@ -163,8 +206,10 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
       <DragDropContext onDragEnd={onDragEnd}>
         <div className={styles.columnsSectionContent}>
           <div className={styles.columnRows}>
-            {props.view.getLocedColumns().map((column, index) => {
-              return <ColumnRow view={props.view} key={"selected-" + column.key.toString() + "-" + index} index={0} />;
+            {props.view.columns.map((column, index) => {
+              if (column.locked === true) {
+                return <LockedColumnRow view={props.view} key={"selected-" + column.key.toString() + "-"} index={0} />;
+              }
             })}
             {strictDropEnabled && (
               <Droppable droppableId={droppableContainerId}>
@@ -174,14 +219,10 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                   >
-                    {props.view.getMovableColumns().map((column, index) => {
-                      if (column) {
+                    {props.view.columns.map((column, index) => {
+                      if (column.locked !== true) {
                         return (
-                          <ColumnRow
-                            view={props.view}
-                            key={"selected-" + column.key.toString() + "-" + index}
-                            index={index}
-                          />
+                          <ColumnRow view={props.view} key={"selected-" + column.key.toString() + "-"} index={index} />
                         );
                       }
                     })}

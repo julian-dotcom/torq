@@ -6,9 +6,8 @@ import DurationCell from "components/table/cells/duration/DurationCell";
 import BooleanCell from "components/table/cells/boolean/BooleanCell";
 import DateCell from "components/table/cells/date/DateCell";
 import EnumCell from "components/table/cells/enum/EnumCell";
-import { TableResponses } from "../viewManagement/types";
 
-export default function DefaultCellRenderer<T extends TableResponses>(
+export default function DefaultCellRenderer<T>(
   row: T,
   rowIndex: number,
   column: ColumnMetaData<T>,
