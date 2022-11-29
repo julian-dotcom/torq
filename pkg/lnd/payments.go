@@ -38,10 +38,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.PaymentStream
-
-	// Create the default ticker used to fetch forwards at a set interval
-	c := clock.New()
-	ticker := c.Tick(commons.STREAM_PAYMENTS_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(commons.STREAM_PAYMENTS_TICKER_SECONDS * time.Second)
 	includeIncomplete := commons.RunningServices[commons.LndService].GetIncludeIncomplete(nodeSettings.NodeId)
 
 	// If a custom ticker is set in the options, override the default ticker.
@@ -206,10 +203,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.InFlightPaymentStream
-
-	// Create the default ticker used to fetch forwards at a set interval
-	c := clock.New()
-	ticker := c.Tick(commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -384,9 +378,6 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 
 				currentTime := time.Now().UTC()
 				created := time.Unix(0, payment.CreationTimeNs).UTC()
-				if bootStrapping && time.Since(created).Minutes() < commons.BOOTSTRAPPING_TIME_MINUTES {
-					bootStrapping = false
-				}
 				// Add 10 minutes to the invoice expiry time to be safe.
 				expiredAt := created.Add(expiry).Add(10 * time.Minute)
 

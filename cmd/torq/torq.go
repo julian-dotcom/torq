@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
@@ -169,15 +170,96 @@ func main() {
 			go commons.ManagedNodeCache(commons.ManagedNodeChannel, globalCtx)
 			go commons.ManagedChannelCache(commons.ManagedChannelChannel, globalCtx)
 
-			go func(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, serviceEventChannel chan commons.ServiceEvent, eventChannel chan interface{}) {
+			go func(eventChannel chan interface{}) {
+				verifyTicker := clock.New().Tick(1 * time.Second)
+
+				torqServiceStatus := commons.Inactive
+				lndServiceStatuses := make(map[int]commons.Status)
+				vectorServiceStatuses := make(map[int]commons.Status)
+				ambossServiceStatuses := make(map[int]commons.Status)
+
+				for {
+					select {
+					case <-verifyTicker:
+						if torqServiceStatus == commons.Active {
+							torqNodeIds := commons.RunningServices[commons.LndService].GetNodeIds()
+							if len(torqNodeIds) > 0 {
+								for _, torqNodId := range torqNodeIds {
+									newLndServiceStatus := commons.RunningServices[commons.LndService].GetStatus(torqNodId)
+									_, exists := lndServiceStatuses[torqNodId]
+									if !exists {
+										lndServiceStatuses[torqNodId] = commons.Inactive
+									}
+									if newLndServiceStatus != lndServiceStatuses[torqNodId] {
+										eventChannel <- commons.ServiceEvent{
+											PreviousStatus: lndServiceStatuses[torqNodId],
+											Status:         newLndServiceStatus,
+											Type:           commons.LndService,
+											EventData: commons.EventData{
+												EventTime: time.Now().UTC(),
+												NodeId:    torqNodId,
+											},
+										}
+										lndServiceStatuses[torqNodId] = newLndServiceStatus
+									}
+									newVectorServiceStatus := commons.RunningServices[commons.VectorService].GetStatus(torqNodId)
+									_, exists = vectorServiceStatuses[torqNodId]
+									if !exists {
+										vectorServiceStatuses[torqNodId] = commons.Inactive
+									}
+									if newVectorServiceStatus != vectorServiceStatuses[torqNodId] {
+										eventChannel <- commons.ServiceEvent{
+											PreviousStatus: vectorServiceStatuses[torqNodId],
+											Status:         newVectorServiceStatus,
+											Type:           commons.VectorService,
+											EventData: commons.EventData{
+												EventTime: time.Now().UTC(),
+												NodeId:    torqNodId,
+											},
+										}
+										vectorServiceStatuses[torqNodId] = newVectorServiceStatus
+									}
+									newAmbossServiceStatus := commons.RunningServices[commons.AmbossService].GetStatus(torqNodId)
+									_, exists = ambossServiceStatuses[torqNodId]
+									if !exists {
+										ambossServiceStatuses[torqNodId] = commons.Inactive
+									}
+									if newAmbossServiceStatus != ambossServiceStatuses[torqNodId] {
+										eventChannel <- commons.ServiceEvent{
+											PreviousStatus: ambossServiceStatuses[torqNodId],
+											Status:         newAmbossServiceStatus,
+											Type:           commons.AmbossService,
+											EventData: commons.EventData{
+												EventTime: time.Now().UTC(),
+												NodeId:    torqNodId,
+											},
+										}
+										ambossServiceStatuses[torqNodId] = newAmbossServiceStatus
+									}
+								}
+							}
+						} else {
+							newTorqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
+							if newTorqServiceStatus != torqServiceStatus {
+								eventChannel <- commons.ServiceEvent{
+									PreviousStatus: torqServiceStatus,
+									Status:         newTorqServiceStatus,
+									Type:           commons.TorqService,
+									EventData: commons.EventData{
+										EventTime: time.Now().UTC(),
+										NodeId:    commons.TorqDummyNodeId,
+									},
+								}
+								torqServiceStatus = newTorqServiceStatus
+							}
+						}
+					}
+				}
+			}(eventChannelGlobal)
+
+			go func(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, serviceEventChannel chan commons.ServiceEvent) {
 				for {
 					event := <-serviceEventChannel
-					//if event.PreviousStatus == commons.Active && event.Status != commons.Active {
-					//	eventChannel <- event
-					//}
-					//if event.PreviousStatus != commons.Active && event.Status == commons.Active {
-					//	eventChannel <- event
-					//}
 					if event.Type == commons.TorqService {
 						switch event.Status {
 						case commons.Inactive:
@@ -223,7 +305,7 @@ func main() {
 						}
 					}
 				}
-			}(db, serviceChannelGlobal, serviceEventChannelGlobal, eventChannelGlobal)
+			}(db, serviceChannelGlobal, serviceEventChannelGlobal)
 
 			commons.RunningServices[commons.TorqService].AddSubscription(commons.TorqDummyNodeId, globalCancel, serviceEventChannelGlobal)
 			torqBootLock := commons.RunningServices[commons.TorqService].GetBootLock(commons.TorqDummyNodeId)
@@ -374,7 +456,7 @@ func main() {
 												services.Booted(node.NodeId, bootLock, serviceEventChannel)
 												commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 												log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
-												err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster, eventChannel, serviceEventChannel, serviceChannel)
+												err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel, serviceEventChannel, serviceChannel)
 												if err != nil {
 													log.Error().Err(err).Send()
 													// only log the error, don't return

@@ -12,21 +12,17 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
 func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.LightningClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings,
-	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
 
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.ChannelBalanceCacheStream
-
-	// Create the default ticker used to fetch the latest information from LND
-	c := clock.New()
-	lndSyncTicker := c.Tick(60 * time.Second)
+	lndSyncTicker := clock.New().Tick(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
+	bootstrapTicker := clock.New().Tick(commons.CHANNELBALANCE_BOOTSTRAP_TICKER_SECONDS * time.Second)
 
 	for {
 		select {
@@ -35,13 +31,10 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 		case <-lndSyncTicker:
 			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
 				serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db)
-		case event := <-broadcaster.Subscribe():
-			if serviceEvent, ok := event.(commons.ServiceEvent); ok {
-				if serviceEvent.Type == commons.LndService && serviceEvent.NodeId == nodeSettings.NodeId &&
-					serviceEvent.Status == commons.Active && serviceEvent.PreviousStatus != commons.Active {
-					bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
-						serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db)
-				}
+		case <-bootstrapTicker:
+			if bootStrapping {
+				bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping, serviceStatus,
+					serviceEventChannel, subscriptionStream, lndClient, db)
 			}
 		}
 	}
@@ -51,17 +44,25 @@ func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapp
 	serviceEventChannel chan commons.ServiceEvent, subscriptionStream commons.SubscriptionStream,
 	lndClient lnrpc.LightningClient, db *sqlx.DB) (bool, commons.Status) {
 
-	if commons.RunningServices[commons.LndService].GetStatus(nodeSettings.NodeId) == commons.Active {
+	if commons.RunningServices[commons.LndService].GetCombinedStatus(nodeSettings.NodeId,
+		commons.ForwardStream, commons.InvoiceStream, commons.PaymentStream, commons.PeerEventStream,
+		commons.ChannelEventStream, commons.GraphEventStream, commons.HtlcEventStream) == commons.Active {
 		if bootStrapping {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 		}
 		err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db)
 		if err == nil {
 			bootStrapping = false
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		} else {
-			serviceStatus = sendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msgf("Failed to initialize channel balance cache. This is a critical issue! (nodeId: %v)", nodeSettings.NodeId)
+		}
+	} else {
+		if !bootStrapping {
+			bootStrapping = true
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Inactive, serviceStatus)
+			log.Error().Msgf("Channel balance cache got out-of-sync because of a non-active LND stream. (nodeId: %v)", nodeSettings.NodeId)
 		}
 	}
 	return bootStrapping, serviceStatus
@@ -71,7 +72,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 	mutex := commons.GetChannelStateLock(nodeId)
 	if commons.RWMutexWriteLocked(mutex) {
 		log.Error().Msgf("The lock initializeChannelBalanceFromLnd is already locked? This is a critical issue! (nodeId: %v)", nodeId)
-		return errors.New(fmt.Sprintf("he lock initializeChannelBalanceFromLnd is already locked? This is a critical issue! (nodeId: %v)", nodeId))
+		return errors.New(fmt.Sprintf("The lock initializeChannelBalanceFromLnd is already locked? This is a critical issue! (nodeId: %v)", nodeId))
 	}
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 	mutex.Lock()
@@ -125,11 +126,11 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettings.RemoteMaxHtlcMsat = remoteRoutingPolicy.MaxHtlcMsat
 		channelStateSettings.RemoteTimeLockDelta = remoteRoutingPolicy.TimeLockDelta
 
+		pendingDecreasingHtlcCount := 0
+		pendingDecreasingHtlcAmount := int64(0)
+		pendingIncreasingHtlcCount := 0
+		pendingIncreasingHtlcAmount := int64(0)
 		if len(lndChannel.PendingHtlcs) > 0 {
-			pendingDecreasingHtlcCount := 0
-			pendingDecreasingHtlcAmount := int64(0)
-			pendingIncreasingHtlcCount := 0
-			pendingIncreasingHtlcAmount := int64(0)
 			for _, pendingHtlc := range lndChannel.PendingHtlcs {
 				htlc := commons.Htlc{
 					Incoming:            pendingHtlc.Incoming,
@@ -149,11 +150,11 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 					pendingIncreasingHtlcAmount += htlc.Amount
 				}
 			}
-			channelStateSettings.PendingDecreasingHtlcCount = pendingDecreasingHtlcCount
-			channelStateSettings.PendingDecreasingHtlcAmount = pendingDecreasingHtlcAmount
-			channelStateSettings.PendingIncreasingHtlcCount = pendingIncreasingHtlcCount
-			channelStateSettings.PendingIncreasingHtlcAmount = pendingIncreasingHtlcAmount
 		}
+		channelStateSettings.PendingDecreasingHtlcCount = pendingDecreasingHtlcCount
+		channelStateSettings.PendingDecreasingHtlcAmount = pendingDecreasingHtlcAmount
+		channelStateSettings.PendingIncreasingHtlcCount = pendingIncreasingHtlcCount
+		channelStateSettings.PendingIncreasingHtlcAmount = pendingIncreasingHtlcAmount
 		commons.SetChannelState(nodeId, channelId, channelStateSettings)
 	}
 	return nil

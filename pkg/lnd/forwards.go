@@ -126,16 +126,13 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.ForwardStream
+	ticker := clock.New().Tick(commons.STREAM_FORWARDS_TICKER_SECONDS * time.Second)
 
 	// Check if maxEvents has been set and that it is bellow the hard coded maximum defined by
 	// the constant MAXEVENTS.
 	if (opt != nil) && ((*opt.MaxEvents > MAXEVENTS) || (*opt.MaxEvents <= 0)) {
 		maxEvents = *opt.MaxEvents
 	}
-
-	// Create the default ticker used to fetch forwards at a set interval
-	c := clock.New()
-	ticker := c.Tick(commons.STREAM_FORWARDS_TICKER_SECONDS * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {

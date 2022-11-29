@@ -130,7 +130,7 @@ func ImportRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettin
 			if err != nil {
 				return errors.Wrap(err, "Creating channel point from byte")
 			}
-			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
+			fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
 			channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 			if channelId == 0 {
 				return errors.New(fmt.Sprintf(

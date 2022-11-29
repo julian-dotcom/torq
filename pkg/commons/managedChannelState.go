@@ -333,6 +333,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			go SendToManagedChannelStateSettingsLockChannel(managedChannelState.LockOut, nil)
 			break
 		}
+		_, exists := channelStateSettingsLockCache[managedChannelState.NodeId]
+		if !exists {
+			channelStateSettingsLockCache[managedChannelState.NodeId] = &sync.RWMutex{}
+		}
 		go SendToManagedChannelStateSettingsLockChannel(managedChannelState.LockOut, channelStateSettingsLockCache[managedChannelState.NodeId])
 	case READ_CHANNELBALANCESTATE:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
