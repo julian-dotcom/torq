@@ -2,6 +2,7 @@ package views
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/iancoleman/strcase"
@@ -14,10 +15,19 @@ import (
 )
 
 type TableView struct {
-	Id      int            `json:"id" db:"id"`
-	View    types.JSONText `json:"view" db:"view"`
-	Page    string         `json:"page" db:"page"`
-	Version string         `json:"version" db:"version"`
+	Id        int            `json:"id" db:"id"`
+	View      types.JSONText `json:"view" db:"view"`
+	Page      string         `json:"page" db:"page"`
+	ViewOrder *int32         `json:"viewOrder" db:"view_order"`
+	Version   string         `json:"version" db:"version"`
+}
+
+type TableViewResponse struct {
+	Forwards []TableView `json:"forwards"`
+	Channel  []TableView `json:"channel"`
+	Payments []TableView `json:"payments"`
+	Invoices []TableView `json:"invoices"`
+	OnChain  []TableView `json:"onChain"`
 }
 
 // TODO: delete when tables are switched to v2
@@ -125,12 +135,30 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 	// Temporary function
 	// We converted the API responses from snake_case to cameCase. The old views needs to be converted as well
 	// This function will be deleted when all table_views will be on version "v2"
-	r, err = convertView(r, db, c)
+	views, err := convertView(r, db, c)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, r)
+
+	response := TableViewResponse{}
+	for _, view := range views {
+		switch view.Page {
+		case "forwards":
+			fmt.Println(view)
+			response.Forwards = append(response.Forwards, *view)
+		case "channel":
+			response.Channel = append(response.Channel, *view)
+		case "payments":
+			response.Payments = append(response.Payments, *view)
+		case "invoices":
+			response.Invoices = append(response.Invoices, *view)
+		case "onChain":
+			response.OnChain = append(response.OnChain, *view)
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func insertTableViewsHandler(c *gin.Context, db *sqlx.DB) {

@@ -8,47 +8,40 @@ import { Payment } from "features/transact/Payments/types";
 import { OrderBy } from "../sidebar/sections/sort/SortSection";
 import { Forward } from "../forwards/forwardsTypes";
 
-export type PageViewType<T extends {}> = {
-  selectedViewIndex: number;
-  views: Array<ViewInterface<T>>;
+export type ViewResponse<T> = { view: ViewInterface<T>; id?: number; page: keyof AllViewsResponse; viewOrder: number };
+
+export type TableResponses = Forward | OnChainTx | Payment | Invoice | tag | channel;
+export type AllViewsResponse = {
+  forwards: Array<ViewResponse<Forward>>;
+  onChain: Array<ViewResponse<OnChainTx>>;
+  payments: Array<ViewResponse<Payment>>;
+  invoices: Array<ViewResponse<Invoice>>;
+  tags: Array<ViewResponse<tag>>;
+  channel: Array<ViewResponse<channel>>;
 };
 
+export type CreateViewRequest = {
+  page: keyof AllViewsResponse;
+  viewOrder: number;
+  view: ViewInterface<TableResponses>;
+};
+export type UpdateViewRequest = { id: number; view: ViewInterfaceResponse };
+
 export type ViewInterface<T> = {
-  id?: number; // Missing ID means the view is not in the database
-  saved: boolean; // False, means the view is different from the version in the database.
-  view_order: number; // This is the order of the view set by the user.
   title: string;
   filters?: Clause;
   columns: Array<ColumnMetaData<T>>;
   sortBy?: Array<OrderBy>;
   groupBy?: "channels" | "peers" | undefined;
-  page: string;
 };
 
 export interface ViewOrderInterface {
   id: number | undefined;
-  view_order: number;
+  viewOrder: number;
 }
-
-export type ViewRow<ViewInterfaceResponse> = {
-  view: ViewInterfaceResponse;
-  index: number;
-  onSelectView: (index: number) => void;
-  singleView: boolean;
-};
 
 export type GetTableViewQueryParams = {
   page: string;
-};
-
-export type TableResponses = Forward | OnChainTx | Payment | Invoice | tag | channel;
-export type AllViewsResponse = {
-  forwards: Array<ViewInterface<Forward>>;
-  onChain: Array<ViewInterface<OnChainTx>>;
-  payments: Array<ViewInterface<Payment>>;
-  invoices: Array<ViewInterface<Invoice>>;
-  tags: Array<ViewInterface<tag>>;
-  channel: Array<ViewInterface<channel>>;
 };
 
 export type ViewInterfaceResponse = ViewInterface<TableResponses>;

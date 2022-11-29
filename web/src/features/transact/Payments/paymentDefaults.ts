@@ -109,9 +109,6 @@ export const ActivePaymentsColumns: Array<ColumnMetaData<Payment>> = AllPayments
 
 export const DefaultPaymentView: ViewInterface<Payment> = {
   title: "Untitled View",
-  saved: true,
   columns: ActivePaymentsColumns,
-  page: "payments",
   sortBy: [PaymentsSortTemplate],
-  view_order: 0,
 };

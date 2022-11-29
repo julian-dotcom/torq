@@ -2,28 +2,31 @@ import clone from "clone";
 import { ColumnMetaData } from "features/table/types";
 import { AndClause, Clause } from "../sidebar/sections/filter/filter";
 import { OrderBy } from "../sidebar/sections/sort/SortSection";
-import { ViewInterface } from "./types";
+import { AllViewsResponse, ViewInterface, ViewResponse } from "./types";
 
 export default class View<T> {
   view: ViewInterface<T>;
+  page: keyof AllViewsResponse;
+  id: number | undefined;
   allColumns: Array<ColumnMetaData<T>>;
   renderCallback: React.Dispatch<React.SetStateAction<number>>;
   renderCount = 0;
   saved: boolean;
-  id: number | undefined;
 
   constructor(
-    view: ViewInterface<T>,
+    viewResponse: ViewResponse<T>,
     allColumns: Array<ColumnMetaData<T>>,
     renderCount: number,
-    render: React.Dispatch<React.SetStateAction<number>>
+    render: React.Dispatch<React.SetStateAction<number>>,
+    saved?: boolean
   ) {
-    this.view = view;
+    this.view = viewResponse.view;
     this.allColumns = allColumns;
     this.renderCallback = render;
     this.renderCount = renderCount;
-    this.id = view.id;
-    this.saved = view.saved;
+    this.id = viewResponse.id;
+    this.page = viewResponse.page;
+    this.saved = saved || true;
   }
 
   get columns(): ColumnMetaData<T>[] {
@@ -59,8 +62,10 @@ export default class View<T> {
   };
 
   updateColumn = (column: ColumnMetaData<T>, index: number) => {
-    this.view.columns[index] = column;
-    this.render();
+    if (this.view.columns) {
+      this.view.columns[index] = column;
+      this.render();
+    }
   };
 
   updateAllColumns = (columns: Array<ColumnMetaData<T>>) => {
@@ -69,15 +74,19 @@ export default class View<T> {
   };
 
   moveColumn = (fromIndex: number, toIndex: number) => {
-    const column = this.view.columns[fromIndex];
-    this.view.columns.splice(fromIndex, 1);
-    this.view.columns.splice(toIndex, 0, column);
-    this.render();
+    if (this.view.columns) {
+      const column = this.view.columns[fromIndex];
+      this.view.columns.splice(fromIndex, 1);
+      this.view.columns.splice(toIndex, 0, column);
+      this.render();
+    }
   };
 
   removeColumn = (index: number) => {
-    this.view.columns.splice(index, 1);
-    this.render();
+    if (this.view.columns) {
+      this.view.columns.splice(index, 1);
+      this.render();
+    }
   };
 
   //------------------ SortBy ------------------

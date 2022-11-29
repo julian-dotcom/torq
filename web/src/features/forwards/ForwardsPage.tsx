@@ -37,6 +37,7 @@ import { addDays, format } from "date-fns";
 import { useGetForwardsQuery } from "apiSlice";
 import Table from "features/table/Table";
 import { Forward } from "./forwardsTypes";
+import ViewsPopover from "../viewManagement/ViewsPopover";
 // import Button, { buttonColor } from "components/buttons/Button";
 
 type sections = {
@@ -47,7 +48,7 @@ type sections = {
 };
 function ForwardsPage() {
   const { t } = useTranslations();
-  const [view, selectView, isViewsLoaded] = useView("forwards", AllForwardsColumns, 0, DefaultForwardsView);
+  const [view, selectView, isViewsLoaded, allViews] = useView("forwards", AllForwardsColumns, 0, DefaultForwardsView);
 
   const currentPeriod = useAppSelector(selectTimeInterval);
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
@@ -117,15 +118,7 @@ function ForwardsPage() {
     <TableControlSection>
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
-          {/*<ViewsPopover*/}
-          {/*  page="forwards"*/}
-          {/*  selectViews={selectViews}*/}
-          {/*  updateViews={updateViews}*/}
-          {/*  updateSelectedView={updateSelectedView}*/}
-          {/*  selectedViewIndex={selectedViewIndex}*/}
-          {/*  updateViewsOrder={updateViewsOrder}*/}
-          {/*  DefaultView={DefaultView}*/}
-          {/*/>*/}
+          {/*<ViewsPopover views={views} />*/}
           {/*{!currentView.saved && (*/}
           {/*  <Button*/}
           {/*    buttonColor={buttonColor.green}*/}
@@ -143,6 +136,13 @@ function ForwardsPage() {
 
   const sidebar = (
     <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
+      <ViewsPopover
+        views={allViews}
+        page={"forwards"}
+        selectedView={0}
+        onSelectView={selectView}
+        ViewTemplate={DefaultForwardsView}
+      />
       <SectionContainer
         title={"Columns"}
         icon={ColumnsIcon}

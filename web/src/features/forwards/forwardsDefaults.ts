@@ -168,10 +168,7 @@ export const DefaultForwardsColumns = AllForwardsColumns.filter((c) => defaultCo
 
 export const DefaultForwardsView: ViewInterface<Forward> = {
   title: "Untitled View",
-  saved: true,
   columns: DefaultForwardsColumns,
   sortBy: [ForwardsSortByTemplate],
   groupBy: "channels",
-  page: "forwards",
-  view_order: 0,
 };

@@ -54,10 +54,7 @@ export const OnChainFilterTemplate: FilterInterface = {
 };
 
 export const DefaultOnChainView: ViewInterface<OnChainTx> = {
-  view_order: 0,
   title: "Untitled View",
-  saved: true,
   columns: DefaultOnChainColumns,
-  page: "onChain",
   sortBy: [OnChainSortTemplate],
 };

@@ -234,11 +234,8 @@ export const ChannelsSortTemplate: { key: keyof channel; direction: "desc" | "as
 
 export const DefaultChannelsView: ViewInterface<channel> = {
   title: "Untitled View",
-  saved: true,
   columns: DefaultChannelsColumns,
   sortBy: [ChannelsSortTemplate],
-  page: "channels",
-  view_order: 0,
 };
 
 const sortableColumns: Array<keyof channel> = [

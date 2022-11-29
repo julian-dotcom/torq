@@ -1,6 +1,6 @@
 import View from "./View";
 import React, { useState } from "react";
-import { AllViewsResponse, ViewInterface } from "./types";
+import { AllViewsResponse, ViewInterface, ViewResponse } from "./types";
 import { useGetTableViewsQuery } from "./viewsApiSlice";
 import { ColumnMetaData } from "../table/types";
 
@@ -9,7 +9,7 @@ export function useView<T>(
   allColumns: Array<ColumnMetaData<T>>,
   defaultView: number,
   viewTemplate: ViewInterface<T>
-): [View<T>, React.Dispatch<React.SetStateAction<number>>, boolean] {
+): [View<T>, React.Dispatch<React.SetStateAction<number>>, boolean, Array<ViewResponse<T>>] {
   const allViews = useGetTableViewsQuery<{
     data: AllViewsResponse;
     isLoading: boolean;
@@ -17,11 +17,20 @@ export function useView<T>(
     isUninitialized: boolean;
     isSuccess: boolean;
   }>();
-  const invoiceViews = allViews?.data ? (allViews.data[page] as Array<typeof viewTemplate>) : [viewTemplate];
 
   const [updateCounter, viewUpdater] = useState(0);
   const [selectedView, setSelectedView] = useState(defaultView);
-  const view = new View(invoiceViews[selectedView], allColumns, updateCounter, viewUpdater);
+  const defualtView = { page: page, view: viewTemplate, id: undefined, viewOrder: 0 };
 
-  return [view, setSelectedView, allViews.isSuccess];
+  if (allViews.data === undefined) {
+    return [new View(defualtView, allColumns, updateCounter, viewUpdater), setSelectedView, true, [defualtView]];
+  }
+
+  const views = JSON.parse(JSON.stringify(allViews.data)) as typeof allViews.data;
+
+  const all = views[page] ? (views[page] as Array<ViewResponse<T>>) : [defualtView];
+
+  const view = new View(all[selectedView], allColumns, updateCounter, viewUpdater);
+
+  return [view, setSelectedView, allViews.isSuccess, all];
 }

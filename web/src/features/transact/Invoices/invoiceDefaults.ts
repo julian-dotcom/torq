@@ -186,9 +186,6 @@ export const InvoiceFilterTemplate: FilterInterface = {
 
 export const InvoiceViewTemplate: ViewInterface<Invoice> = {
   title: "Untitled View",
-  saved: true,
   columns: DefaultInvoicesColumns,
-  page: "invoices",
   sortBy: [],
-  view_order: 0,
 };

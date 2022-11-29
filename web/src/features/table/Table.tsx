@@ -6,7 +6,7 @@ import TableRow from "./TableRow";
 import { TableProps } from "./types";
 
 function Table<T>(props: TableProps<T>) {
-  const numColumns = Object.keys(props.activeColumns).length + (props.selectable ? 1 : 0);
+  const numColumns = (props.selectable ? 1 : 0) + props.activeColumns.length;
   const numRows = (props.data || []).length;
   const rowGridStyle = (numRows: number): string => {
     if (numRows > 0) {

@@ -7,17 +7,19 @@ import {
   Save20Regular as SaveIcon,
   Reorder20Regular as DragHandle,
 } from "@fluentui/react-icons";
-import { TableResponses, ViewInterface, ViewRow } from "./types";
 import styles from "./views.module.scss";
-import { useCreateTableViewMutation, useDeleteTableViewMutation, useUpdateTableViewMutation } from "./viewsApiSlice";
-import { ViewInterfaceResponse } from "./types";
 
-export default function ViewRow<T>(props: ViewRow<ViewInterface<T>>) {
-  const [updateTableView] = useUpdateTableViewMutation();
-  const [deleteTableView] = useDeleteTableViewMutation();
+type ViewRow = {
+  title: string;
+  index: number;
+  onSelectView: (index: number) => void;
+  onTitleSave: (index: number, title: string) => void;
+  onDeleteView: (id: number) => void;
+};
 
+export default function ViewRowComponent<T>(props: ViewRow) {
   const [editView, setEditView] = useState(false);
-  const [localTitle, setLocalTitle] = useState(props.view.title);
+  const [localTitle, setLocalTitle] = useState(props.title);
 
   function handleInputChange(e: any) {
     setLocalTitle(e.target.value);
@@ -37,7 +39,7 @@ export default function ViewRow<T>(props: ViewRow<ViewInterface<T>>) {
 
           {editView ? (
             <form
-              onSubmit={() => updateTableView({ ...props.view, title: localTitle } as ViewInterface<TableResponses>)}
+              onSubmit={() => props.onTitleSave(props.index, localTitle)}
               className={classNames(styles.viewEdit, "torq-input-field")}
             >
               <input type="text" autoFocus={true} onChange={handleInputChange} value={localTitle} />
@@ -47,21 +49,16 @@ export default function ViewRow<T>(props: ViewRow<ViewInterface<T>>) {
             </form>
           ) : (
             <div className={styles.viewSelect} onClick={() => props.onSelectView(props.index)}>
-              <div>{props.view.title}</div>
+              <div>{props.title}</div>
               <div className={styles.editView} onClick={() => setEditView(true)}>
                 <EditIcon />
               </div>
             </div>
           )}
-          {props.singleView ? (
-            <div className={classNames(styles.removeView, styles.disabled)}>
-              <RemoveIcon />
-            </div>
-          ) : (
-            <div className={styles.removeView} onClick={() => deleteTableView({ id: props.index })}>
-              <RemoveIcon />
-            </div>
-          )}
+
+          <div className={styles.removeView} onClick={() => props.onDeleteView(props.index)}>
+            <RemoveIcon />
+          </div>
         </div>
       )}
     </Draggable>
