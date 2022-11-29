@@ -169,6 +169,20 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 
 	waitForReadyState(nodeSettings.NodeId, commons.PaymentStream, "PaymentStream", serviceEventChannel)
 
+	// Invoices
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				recoverPanic(panicError, serviceChannel, nodeId, commons.InvoiceStream)
+			}
+		}()
+		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
+	})()
+
+	waitForReadyState(nodeSettings.NodeId, commons.InvoiceStream, "InvoiceStream", serviceEventChannel)
+
 	// Channel events
 	wg.Add(1)
 	go (func() {
@@ -238,20 +252,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 	})()
 
 	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", serviceEventChannel)
-
-	// Invoices
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				recoverPanic(panicError, serviceChannel, nodeId, commons.InvoiceStream)
-			}
-		}()
-		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
-	})()
-
-	waitForReadyState(nodeSettings.NodeId, commons.InvoiceStream, "InvoiceStream", serviceEventChannel)
 
 	if commons.RunningServices[commons.LndService].GetStatus(nodeId) == commons.Active {
 		log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)
