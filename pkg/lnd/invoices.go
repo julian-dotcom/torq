@@ -202,7 +202,6 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	bootStrapping := true
 	subscriptionStream := commons.InvoiceStream
 	importCounter := 0
-	importDeltaStart := time.Now()
 
 	for {
 		select {
@@ -239,15 +238,16 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if importCounter%100 == 0 {
 				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
 			}
-			if importCounter%commons.STREAM_LND_INVOICES_INTERVAL_SLEEP == 0 {
-				if time.Since(importDeltaStart).Milliseconds() > commons.STREAM_LND_INVOICES_DELTA_TIME_MILLISECONDS {
-					time.Sleep((commons.STREAM_LND_INVOICES_SLEEP_MILLISECONDS * 2) * time.Millisecond)
-				} else {
-					time.Sleep(commons.STREAM_LND_INVOICES_SLEEP_MILLISECONDS * time.Millisecond)
-				}
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
-				importDeltaStart = time.Now()
-			}
+			//if importCounter%commons.STREAM_LND_INVOICES_INTERVAL_SLEEP == 0 {
+			//	if time.Since(importDeltaStart).Milliseconds() > commons.STREAM_LND_INVOICES_DELTA_TIME_MILLISECONDS {
+			//		time.Sleep((commons.STREAM_LND_INVOICES_SLEEP_MILLISECONDS * 2) * time.Millisecond)
+			//	} else {
+			//		time.Sleep(commons.STREAM_LND_INVOICES_SLEEP_MILLISECONDS * time.Millisecond)
+			//	}
+			//	serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			//	importDeltaStart = time.Now()
+			//}
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 		} else {
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}

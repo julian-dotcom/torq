@@ -308,6 +308,13 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 			log.Fatal().Err(err).Msgf("Problem adding channel %v", testChannel4)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
+		
+		// initialise package level var for keeping state of subsciptions
+		commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)
+		commons.RunningServices[commons.LndService] = &commons.Services{ServiceType: commons.LndService}
+		commons.RunningServices[commons.VectorService] = &commons.Services{ServiceType: commons.VectorService}
+		commons.RunningServices[commons.AmbossService] = &commons.Services{ServiceType: commons.AmbossService}
+		commons.RunningServices[commons.TorqService] = &commons.Services{ServiceType: commons.TorqService}
 
 	}
 

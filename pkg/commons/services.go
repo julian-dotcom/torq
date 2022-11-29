@@ -24,6 +24,7 @@ type Services struct {
 	streamStatus                 map[int]map[SubscriptionStream]Status
 	streamBootTime               map[int]map[SubscriptionStream]time.Time
 	streamInitializationPingTime map[int]map[SubscriptionStream]time.Time
+	includeIncomplete            map[int]bool
 }
 
 var RunningServices map[ServiceType]*Services //nolint:gochecknoglobals
@@ -307,6 +308,26 @@ func (rs *Services) GetBootLock(nodeId int) *sync.Mutex {
 	return lock
 }
 
+func (rs *Services) GetIncludeIncomplete(nodeId int) bool {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	initServiceMaps(rs, nodeId)
+	includeIncomplete, exists := rs.includeIncomplete[nodeId]
+	if exists {
+		return includeIncomplete
+	}
+	return false
+}
+
+func (rs *Services) SetIncludeIncomplete(nodeId int, includeIncomplete bool) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	initServiceMaps(rs, nodeId)
+	rs.includeIncomplete[nodeId] = includeIncomplete
+}
+
 func (rs *Services) Booted(nodeId int, bootLock *sync.Mutex, serviceEventChannel chan ServiceEvent) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
@@ -357,6 +378,7 @@ func initServiceMaps(rs *Services, nodeId int) {
 		rs.streamBootTime[nodeId] = make(map[SubscriptionStream]time.Time, 0)
 		rs.streamInitializationPingTime = make(map[int]map[SubscriptionStream]time.Time)
 		rs.streamInitializationPingTime[nodeId] = make(map[SubscriptionStream]time.Time, 0)
+		rs.includeIncomplete = make(map[int]bool)
 	}
 }
 

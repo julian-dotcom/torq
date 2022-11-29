@@ -42,6 +42,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
 	ticker := c.Tick(commons.STREAM_PAYMENTS_TICKER_SECONDS * time.Second)
+	includeIncomplete := commons.RunningServices[commons.LndService].GetIncludeIncomplete(nodeSettings.NodeId)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -72,7 +73,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 			}
 			for {
-				payments, err = fetchPayments(ctx, client, lastPaymentIndex, false)
+				payments, err = fetchPayments(ctx, client, lastPaymentIndex, includeIncomplete)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
