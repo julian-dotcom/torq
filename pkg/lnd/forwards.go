@@ -153,6 +153,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 		case <-ctx.Done():
 			return
 		case <-ticker:
+			importCounter := 0
 			// Keep fetching until LND returns less than the max number of records requested.
 			for {
 				rl.Take() // rate limited to 1 per second, when caught up will normally be 1 every 10 seconds
@@ -193,11 +194,15 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 
 				// Stop fetching if there are fewer forwards than max requested
 				// (indicates that we have the last forwarding record)
+				importCounter += len(fwh.ForwardingEvents)
 				if len(fwh.ForwardingEvents) < maxEvents {
+					if bootStrapping {
+						log.Info().Msgf("Bulk import of forward done (%v)", importCounter)
+					}
 					bootStrapping = false
 					break
 				} else {
-					log.Info().Msgf("Still running bulk import of forward events")
+					log.Info().Msgf("Still running bulk import of forward events (%v)", importCounter)
 				}
 			}
 		}

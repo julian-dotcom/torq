@@ -284,6 +284,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 		if bootStrapping && time.Since(time.Unix(invoice.CreationDate, 0).UTC()).Seconds() < commons.INVOICE_BOOTSTRAPPING_TIME_SECONDS {
 			bootStrapping = false
+			log.Info().Msgf("Bulk import of invoices done (%v)", importCounter)
 		}
 		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel)
 		if err != nil {
