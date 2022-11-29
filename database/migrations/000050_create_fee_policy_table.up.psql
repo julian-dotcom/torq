@@ -4,24 +4,35 @@ CREATE TABLE fee_policy (
   name TEXT NULL,
   include_pending_htlcs BOOLEAN NOT NULL DEFAULT FALSE,
   aggregate_on_peer BOOLEAN NOT NULL DEFAULT FALSE,
-  min_htlc INTEGER NULL,
-  max_htlc INTEGER NULL,
   max_ratio INTEGER NULL,
   min_ratio INTEGER NULL,
   max_balance INTEGER NULL,
   min_balance INTEGER NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE,
-  interval INTERGER NOT NULL,
+  interval INTEGER NOT NULL,
   last_run_on TIMESTAMPTZ NOT NULL,
+  created_on TIMESTAMPTZ NOT NULL,
+  updated_on TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE fee_policy_target (
+  fee_policy_target_id SERIAL PRIMARY KEY,
+  fee_policy_id INTEGER NOT NULL REFERENCES fee_policy(fee_policy_id),
+  tag_id INTEGER NULL REFERENCES tag(tag_id),
+  category_id INTEGER NULL REFERENCES category(category_id),
+  node_id INTEGER NULL REFERENCES node(node_id),
+  channel_id INTEGER NULL REFERENCES channel(channel_id),
   created_on TIMESTAMPTZ NOT NULL,
   updated_on TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE fee_policy_step (
   fee_policy_step_id SERIAL PRIMARY KEY,
-  fee_policy_id INTEGER NOT NULL,
-  fee_rate INTEGER NOT NULL,
-  base_fee INTGER NOT NULL,
+  fee_policy_id INTEGER NOT NULL REFERENCES fee_policy(fee_policy_id),
+  min_htlc INTEGER NULL,
+  max_htlc INTEGER NULL,
+  fee_rate_ppm INTEGER NOT NULL,
+  base_fee INTEGER NOT NULL,
   created_on TIMESTAMPTZ NOT NULL,
   updated_on TIMESTAMPTZ NOT NULL
 );

@@ -5,7 +5,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func RegisterChannelRoutes(r *gin.RouterGroup, db *sqlx.DB) {
+func RegisterFeePolicyRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.POST("", func(c *gin.Context) { addFeePolicyHandler(c, db) })
 	r.GET("", func(c *gin.Context) { getFeePolicyListHandler(c, db) })
 }

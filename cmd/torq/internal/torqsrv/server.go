@@ -22,6 +22,7 @@ import (
 	"github.com/lncapital/torq/internal/channel_history"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/corridors"
+	"github.com/lncapital/torq/internal/fee_policy"
 	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/forwards"
 	"github.com/lncapital/torq/internal/invoices"
@@ -204,6 +205,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		{
 			channel_history.RegisterChannelHistoryRoutes(channelRoutes, db)
 			channels.RegisterChannelRoutes(channelRoutes, db)
+		}
+
+		feePolicyRoutes := api.Group("/fee-policy")
+		{
+			fee_policy.RegisterFeePolicyRoutes(feePolicyRoutes, db)
 		}
 
 		forwardRoutes := api.Group("/forwards")
