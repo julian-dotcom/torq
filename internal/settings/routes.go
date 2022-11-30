@@ -296,6 +296,13 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
+	// TODO c.Bind cannot process status?
+	statusId, err := strconv.Atoi(c.Request.Form.Get("status"))
+	if err != nil || statusId > int(commons.Deleted) {
+		server_errors.SendBadRequest(c, "Failed to find/parse status in the request.")
+		return
+	}
+	ncd.Status = commons.Status(statusId)
 
 	if ncd.NodeId == 0 {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
