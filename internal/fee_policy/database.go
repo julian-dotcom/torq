@@ -49,11 +49,10 @@ func getFeePolices(db *sqlx.DB) (feePolicies []FeePolicy, err error) {
 
 func addFeePolicy(db *sqlx.DB, fp FeePolicy) (FeePolicy, error) {
 	err := db.QueryRowx(`
-INSERT INTO fee_policy (fee_policy_strategy, name, include_pending_htlcs, aggregate_on_peer, max_ratio,
-  min_ratio, max_balance, min_balance, active, interval, created_on, updated_on)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING fee_policy_id;`,
-		fp.FeePolicyStrategy, fp.Name, fp.IncludePendingHTLCs, fp.AggregateOnPeer, fp.MaxRatio,
-		fp.MinRatio, fp.MaxBalance, fp.MinBalance, fp.Active, fp.Interval,
+INSERT INTO fee_policy (fee_policy_strategy, name, include_pending_htlcs, aggregate_on_peer,
+ active, interval, created_on, updated_on)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING fee_policy_id;`,
+		fp.FeePolicyStrategy, fp.Name, fp.IncludePendingHTLCs, fp.AggregateOnPeer, fp.Active, fp.Interval,
 		time.Now(), time.Now()).
 		Scan(&fp.FeePolicyId)
 	if err != nil {
@@ -73,8 +72,11 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)`, fp.FeePolicyId, target.TagId, target.Categ
 	if fp.FeePolicyStrategy == policyStrategyStep {
 		for _, step := range fp.Steps {
 			_, err := db.Exec(`
-INSERT INTO fee_policy_step (fee_policy_id, min_htlc, max_htlc, fee_ppm, base_fee, created_on, updated_on)
-VALUES ($1, $2, $3, $4, $5, $6, $7)`, fp.FeePolicyId, step.MinHTLC, step.MaxHTLC, step.FeePPM, step.BaseFee,
+INSERT INTO fee_policy_step (fee_policy_id, filter_max_ratio, filter_min_ratio, filter_max_balance, filter_min_balance,
+  set_min_htlc, set_max_htlc, set_fee_ppm, set_base_fee, created_on, updated_on)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, fp.FeePolicyId,
+				step.FilterMaxRatio, step.FilterMinRatio, step.FilterMaxBalance, step.FilterMinBalance,
+				step.SetMinHTLC, step.SetMaxHTLC, step.SetFeePPM, step.SetBaseFee,
 				time.Now(), time.Now())
 			if err != nil {
 				return FeePolicy{}, errors.Wrap(err, database.SqlExecutionError)

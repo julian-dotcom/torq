@@ -1,13 +1,9 @@
 CREATE TABLE fee_policy (
   fee_policy_id SERIAL PRIMARY KEY,
   fee_policy_strategy INTEGER NOT NULL,
-  name TEXT NULL,
+  name TEXT NOT NULL,
   include_pending_htlcs BOOLEAN NOT NULL DEFAULT FALSE,
   aggregate_on_peer BOOLEAN NOT NULL DEFAULT FALSE,
-  max_ratio INTEGER NULL,
-  min_ratio INTEGER NULL,
-  max_balance INTEGER NULL,
-  min_balance INTEGER NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   interval INTEGER NOT NULL,
   last_run_on TIMESTAMPTZ NULL,
@@ -29,10 +25,14 @@ CREATE TABLE fee_policy_target (
 CREATE TABLE fee_policy_step (
   fee_policy_step_id SERIAL PRIMARY KEY,
   fee_policy_id INTEGER NOT NULL REFERENCES fee_policy(fee_policy_id),
-  min_htlc INTEGER NULL,
-  max_htlc INTEGER NULL,
-  fee_ppm INTEGER NOT NULL,
-  base_fee INTEGER NOT NULL,
+  filter_max_ratio INTEGER NULL,
+  filter_min_ratio INTEGER NULL,
+  filter_max_balance INTEGER NULL,
+  filter_min_balance INTEGER NULL,
+  set_min_htlc INTEGER NULL,
+  set_max_htlc INTEGER NULL,
+  set_fee_ppm INTEGER NOT NULL,
+  set_base_fee INTEGER NOT NULL,
   created_on TIMESTAMPTZ NOT NULL,
   updated_on TIMESTAMPTZ NOT NULL
 );

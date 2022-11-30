@@ -14,10 +14,6 @@ type FeePolicy struct {
 	Name                string            `json:"name" db:"name"`
 	IncludePendingHTLCs bool              `json:"includePendingHTLCs" db:"include_pending_htlcs"`
 	AggregateOnPeer     bool              `json:"aggregateOnPeer" db:"aggregate_on_peer"`
-	MinRatio            *int              `json:"minRatio" db:"min_ratio"`
-	MaxRatio            *int              `json:"maxRatio" db:"max_ratio"`
-	MinBalance          *int              `json:"minBalance" db:"min_balance"`
-	MaxBalance          *int              `json:"maxBalance" db:"max_balance"`
 	Active              bool              `json:"active" db:"active"`
 	Interval            int               `json:"interval" db:"interval"`
 	Targets             []FeePolicyTarget `json:"targets" db:"-"`
@@ -39,12 +35,16 @@ type FeePolicyTarget struct {
 }
 
 type FeePolicyStep struct {
-	FeePolicyStepId int       `json:"feePolicyStepId" db:"fee_policy_step_id"`
-	FeePolicyId     int       `json:"feePolicyId" db:"fee_policy_id"`
-	MinHTLC         *int      `json:"minHTLC" db:"min_htlc"`
-	MaxHTLC         *int      `json:"maxHTLC" db:"max_htlc"`
-	FeePPM          int       `json:"feePPM" db:"fee_ppm"`
-	BaseFee         int       `json:"baseFee" db:"base_fee"`
-	CreatedOn       time.Time `json:"createdOn" db:"created_on"`
-	UpdatedOn       time.Time `json:"updatedOn" db:"updated_on"`
+	FeePolicyStepId  int       `json:"feePolicyStepId" db:"fee_policy_step_id"`
+	FeePolicyId      int       `json:"feePolicyId" db:"fee_policy_id"`
+	FilterMinRatio   *int      `json:"filterMinRatio" db:"filter_min_ratio"`
+	FilterMaxRatio   *int      `json:"filterMaxRatio" db:"filter_max_ratio"`
+	FilterMinBalance *int      `json:"filterMinBalance" db:"filter_min_balance"`
+	FilterMaxBalance *int      `json:"filterMaxBalance" db:"filter_max_balance"`
+	SetMinHTLC       *int      `json:"setMinHTLC" db:"set_min_htlc"`
+	SetMaxHTLC       *int      `json:"setMaxHTLC" db:"set_max_htlc"`
+	SetFeePPM        int       `json:"setFeePPM" db:"set_fee_ppm"`
+	SetBaseFee       int       `json:"setBaseFee" db:"set_base_fee"`
+	CreatedOn        time.Time `json:"createdOn" db:"created_on"`
+	UpdatedOn        time.Time `json:"updatedOn" db:"updated_on"`
 }
