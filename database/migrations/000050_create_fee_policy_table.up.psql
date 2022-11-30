@@ -10,7 +10,7 @@ CREATE TABLE fee_policy (
   min_balance INTEGER NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   interval INTEGER NOT NULL,
-  last_run_on TIMESTAMPTZ NOT NULL,
+  last_run_on TIMESTAMPTZ NULL,
   created_on TIMESTAMPTZ NOT NULL,
   updated_on TIMESTAMPTZ NOT NULL
 );
