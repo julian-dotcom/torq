@@ -88,7 +88,7 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 			if err != nil {
 				return nil, errors.Wrapf(err, "Converting LND short channel id from string")
 			}
-			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
 		}
 	}
 

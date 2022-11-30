@@ -188,9 +188,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		log.Debug().Msgf("Added test node with publicKey: %v nodeId: %v", TestPublicKey2, testNodeId2)
 
 		_, err = db.Exec(`INSERT INTO node_connection_details
-			(node_id, name, implementation, status_id, ping_system, created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-			testNodeId1, "Node_1", commons.LND, commons.Active, 0, time.Now().UTC(), time.Now().UTC())
+			(node_id, name, implementation, status_id, ping_system, custom_settings, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
+			testNodeId1, "Node_1", commons.LND, commons.Active, 0, 0, time.Now().UTC(), time.Now().UTC())
 		if err != nil {
 			cancel()
 			return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
@@ -198,9 +198,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		log.Debug().Msgf("Added test active node connection details with nodeId: %v", testNodeId1)
 
 		_, err = db.Exec(`INSERT INTO node_connection_details
-			(node_id, name, implementation, status_id, ping_system, created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-			testNodeId2, "Node_2", commons.LND, commons.Active, 0, time.Now().UTC(), time.Now().UTC())
+			(node_id, name, implementation, status_id, ping_system, custom_settings, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
+			testNodeId2, "Node_2", commons.LND, commons.Active, 0, 0, time.Now().UTC(), time.Now().UTC())
 		if err != nil {
 			cancel()
 			return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
@@ -229,7 +229,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		err = channels.InitializeManagedChannelCache(db)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem initializing ManagedChannel cache: %v", err)
+			log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
 		}
 		log.Debug().Msgf("Channel publicKeys: %v", commons.GetChannelPublicKeys(commons.Bitcoin, commons.SigNet))
 		log.Debug().Msgf("Channel nodeIds: %v", commons.GetChannelNodeIds(commons.Bitcoin, commons.SigNet))
@@ -237,8 +237,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel1 := channels.Channel{
 			ShortChannelID:         &shortChannelId,
-			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
-			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			FirstNodeId:            commons.GetNodeIdByPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
+			SecondNodeId:           commons.GetNodeIdByPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			Capacity:               1_000_000,
 			LNDShortChannelID:      &lndShortChannelId,
 			FundingTransactionHash: TestFundingTransactionHash1,
 			FundingOutputIndex:     3,
@@ -247,7 +248,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		channelId, err := channels.AddChannelOrUpdateChannelStatus(db, testChannel1)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem adding channel %v", testChannel1)
+			log.Fatal().Err(err).Msgf("Problem adding channel %v", testChannel1)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
@@ -255,8 +256,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		shortChannelId = channels.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel2 := channels.Channel{
 			ShortChannelID:         &shortChannelId,
-			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
-			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			FirstNodeId:            commons.GetNodeIdByPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
+			SecondNodeId:           commons.GetNodeIdByPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			Capacity:               1_000_000,
 			LNDShortChannelID:      &lndShortChannelId,
 			FundingTransactionHash: TestFundingTransactionHash2,
 			FundingOutputIndex:     3,
@@ -265,7 +267,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel2)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem adding channel %v", testChannel2)
+			log.Fatal().Err(err).Msgf("Problem adding channel %v", testChannel2)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
@@ -273,8 +275,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		shortChannelId = channels.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel3 := channels.Channel{
 			ShortChannelID:         &shortChannelId,
-			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
-			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			FirstNodeId:            commons.GetNodeIdByPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
+			SecondNodeId:           commons.GetNodeIdByPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			Capacity:               1_000_000,
 			LNDShortChannelID:      &lndShortChannelId,
 			FundingTransactionHash: TestFundingTransactionHash3,
 			FundingOutputIndex:     3,
@@ -283,7 +286,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel3)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem adding channel %v", testChannel3)
+			log.Fatal().Err(err).Msgf("Problem adding channel %v", testChannel3)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
 
@@ -291,8 +294,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		shortChannelId = channels.ConvertLNDShortChannelID(lndShortChannelId)
 		testChannel4 := channels.Channel{
 			ShortChannelID:         &shortChannelId,
-			FirstNodeId:            commons.GetNodeIdFromPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
-			SecondNodeId:           commons.GetNodeIdFromPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			FirstNodeId:            commons.GetNodeIdByPublicKey(TestPublicKey1, commons.Bitcoin, commons.SigNet),
+			SecondNodeId:           commons.GetNodeIdByPublicKey(TestPublicKey2, commons.Bitcoin, commons.SigNet),
+			Capacity:               1_000_000,
 			LNDShortChannelID:      &lndShortChannelId,
 			FundingTransactionHash: TestFundingTransactionHash4,
 			FundingOutputIndex:     3,
@@ -301,9 +305,16 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		channelId, err = channels.AddChannelOrUpdateChannelStatus(db, testChannel4)
 		if err != nil {
 			cancel()
-			log.Fatal().Msgf("Problem adding channel %v", testChannel4)
+			log.Fatal().Err(err).Msgf("Problem adding channel %v", testChannel4)
 		}
 		log.Debug().Msgf("channel added with channelId: %v", channelId)
+
+		// initialise package level var for keeping state of subsciptions
+		commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)
+		commons.RunningServices[commons.LndService] = &commons.Services{ServiceType: commons.LndService}
+		commons.RunningServices[commons.VectorService] = &commons.Services{ServiceType: commons.VectorService}
+		commons.RunningServices[commons.AmbossService] = &commons.Services{ServiceType: commons.AmbossService}
+		commons.RunningServices[commons.TorqService] = &commons.Services{ServiceType: commons.TorqService}
 
 	}
 

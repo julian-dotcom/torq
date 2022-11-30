@@ -33,6 +33,7 @@ import Popover from "features/popover/Popover";
 import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
 import Modal from "features/modal/Modal";
 import Switch from "components/forms/switch/Switch";
+import useTranslations from "services/i18n/useTranslations";
 
 interface nodeProps {
   nodeId: number;
@@ -46,6 +47,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   { nodeId, collapsed, addMode, onAddSuccess }: nodeProps,
   ref
 ) {
+  const { t } = useTranslations();
   const toastRef = React.useContext(ToastContext);
   const popoverRef = React.useRef();
 
@@ -79,6 +81,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       implementation: 0,
       pingSystem: 0,
       name: "",
+      customSettings: 0,
     } as nodeConfiguration);
   };
 
@@ -115,6 +118,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     form.append("nodeId", "" + nodeConfigurationState.nodeId);
     form.append("status", "" + nodeConfigurationState.status);
     form.append("pingSystem", "" + nodeConfigurationState.pingSystem);
+    form.append("customSettings", "" + nodeConfigurationState.customSettings);
     form.append("grpcAddress", nodeConfigurationState.grpcAddress ?? "");
     if (nodeConfigurationState.tlsFile) {
       form.append("tlsFile", nodeConfigurationState.tlsFile, nodeConfigurationState.tlsFileName);
@@ -157,7 +161,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     if (nodeConfigurationData) {
       setNodeConfigurationState(nodeConfigurationData);
     } else {
-      setNodeConfigurationState({ implementation: 0, nodeId: 0, status: 0, pingSystem: 0 } as nodeConfiguration);
+      setNodeConfigurationState({ implementation: 0, nodeId: 0, status: 0, pingSystem: 0, customSettings: 0 } as nodeConfiguration);
     }
   }, [nodeConfigurationData]);
 
@@ -171,6 +175,15 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       macaroonFile: file,
       macaroonFileName: file ? file.name : undefined,
     });
+  };
+
+  const handleImportFailedPaymentsClick = () => {
+    const importFailedPaymentsActive = nodeConfigurationState.customSettings%2 >= 1
+    if (importFailedPaymentsActive) {
+      setNodeConfigurationState({ ...nodeConfigurationState, customSettings: nodeConfigurationState.customSettings-1 })
+    } else {
+      setNodeConfigurationState({ ...nodeConfigurationState, customSettings: nodeConfigurationState.customSettings+1 });
+    }
   };
 
   const handleAddressChange = (value: string) => {
@@ -305,7 +318,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
             <div className={""}>
               <form onSubmit={handleSubmit}>
                 <Select
-                  label="Implementation"
+                  label={t.implementation}
                   onChange={() => {
                     return;
                   }}
@@ -314,7 +327,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 />
                 <span id="name">
                   <Input
-                    label="Node Name"
+                    label={t.nodeName}
                     value={nodeConfigurationState.name}
                     type={"text"}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNodeNameChange(e.target.value)}
@@ -323,7 +336,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 </span>
                 <span id="address">
                   <Input
-                    label="GRPC Address (IP or Tor)"
+                    label={t.grpcAddress}
                     type={"text"}
                     value={nodeConfigurationState.grpcAddress}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAddressChange(e.target.value)}
@@ -332,18 +345,25 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 </span>
                 <span id="tls">
                   <File
-                    label="TLS Certificate"
+                    label={t.tlsCertificate}
                     onFileChange={handleTLSFileChange}
                     fileName={nodeConfigurationState?.tlsFileName}
                   />
                 </span>
                 <span id="macaroon">
                   <File
-                    label="Macaroon"
+                    label={t.macaroon}
                     onFileChange={handleMacaroonFileChange}
                     fileName={nodeConfigurationState?.macaroonFileName}
                   />
                 </span>
+                <div className={styles.importFailedPayments}>
+                  <Switch
+                    label={t.importFailedPayments}
+                    checked={nodeConfigurationState.customSettings%2 >= 1}
+                    onClick={handleImportFailedPaymentsClick}
+                  />
+                </div>
                 <Button
                   id={"save-node"}
                   buttonColor={buttonColor.green}

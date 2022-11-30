@@ -30,6 +30,7 @@ import (
 	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/internal/peers"
+	"github.com/lncapital/torq/internal/services"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/internal/views"
@@ -43,18 +44,11 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 
 	r := gin.Default()
 
-	log.Debug().Msg("Loading caches in memory.")
-	err := corridors.RefreshCorridorCache(db)
-	if err != nil {
-		log.Error().Msg("Torq cannot be initialized (Loading caches in memory).")
-		return errors.Wrap(err, "Loading caches.")
-	}
-
-	if err = auth.RefreshCookieFile(cookiePath); err != nil {
+	if err := auth.RefreshCookieFile(cookiePath); err != nil {
 		return errors.Wrap(err, "Refreshing cookie file")
 	}
 
-	err = auth.CreateSession(r, apiPswd)
+	err := auth.CreateSession(r, apiPswd)
 	if err != nil {
 		return errors.Wrap(err, "Creating Gin Session")
 	}
@@ -146,6 +140,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 	unauthorisedSettingRoutes := api.Group("settings")
 	{
 		settings.RegisterUnauthenticatedRoutes(unauthorisedSettingRoutes, db)
+	}
+
+	unauthorisedServicesRoutes := api.Group("services")
+	{
+		services.RegisterServiceRoutes(unauthorisedServicesRoutes, db)
 	}
 
 	api.Use(auth.AuthRequired)

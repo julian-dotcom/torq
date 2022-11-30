@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/build"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type PeerEvent struct {
@@ -126,6 +127,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn) error {
 			return errors.Wrapf(err, "Closing response body.")
 		}
 		log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signMsgResp)
-		time.Sleep(20 * time.Second)
+		time.Sleep(commons.VECTOR_SLEEP_SECONDS * time.Second)
 	}
 }

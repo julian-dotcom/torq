@@ -22,6 +22,7 @@ export interface nodeConfiguration {
   updatedOn?: Date;
   status: number;
   pingSystem: number;
+  customSettings: number;
 }
 
 export interface channel {

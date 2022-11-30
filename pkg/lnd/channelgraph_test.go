@@ -11,6 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/channels"
@@ -301,8 +302,9 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
 	channel := channels.Channel{
 		ShortChannelID:         &shortChannelId,
-		FirstNodeId:            commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
-		SecondNodeId:           commons.GetNodeIdFromPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
+		FirstNodeId:            commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+		SecondNodeId:           commons.GetNodeIdByPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
+		Capacity:               1_000_000,
 		LNDShortChannelID:      &lndShortChannelId,
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
@@ -310,6 +312,7 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	}
 	channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
 	if err != nil {
+		log.Error().Err(err).Msgf("Failed to create channel %v", lndShortChannelId)
 		t.Fatalf("Problem adding channel %v", channel)
 	}
 	t.Logf("channel added with channelId: %v", channelId)
@@ -320,7 +323,7 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 		defer wg.Done()
 		SubscribeAndStoreChannelGraph(ctx, client, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil, nil)
 	}()
 	wg.Wait()
 

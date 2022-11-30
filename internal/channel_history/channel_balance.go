@@ -29,7 +29,7 @@ func getChannelBalance(db *sqlx.DB, lndShortChannelIdString string, from time.Ti
 		return ChannelBalance{}, errors.Wrapf(err, "Converting LND short channel id %v", lndShortChannelId)
 	}
 	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
-	channelId := commons.GetChannelIdFromShortChannelId(shortChannelId)
+	channelId := commons.GetChannelIdByShortChannelId(shortChannelId)
 
 	cb := ChannelBalance{LNDShortChannelId: lndShortChannelIdString}
 	q := `WITH

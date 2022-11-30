@@ -77,7 +77,7 @@ func TestStoreTransaction(t *testing.T) {
 		RawTxHex:          "",
 		Label:             expected.Label,
 		PreviousOutpoints: nil,
-	}, commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet))
+	}, commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet))
 	if err != nil {
 		return
 	}

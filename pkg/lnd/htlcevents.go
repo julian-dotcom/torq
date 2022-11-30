@@ -10,7 +10,6 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/rs/zerolog/log"
@@ -57,7 +56,7 @@ func storeFullEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int, eventType s
 	if err != nil {
 		return HtlcEvent{}, errors.Wrapf(err, "Marshalling HTLC Event (%v) %v", eventType, h)
 	}
-	timestampMs := time.Unix(0, int64(h.TimestampNs)).Round(time.Microsecond).UTC()
+	timestampMs := convertMicro(int64(h.TimestampNs))
 	incomingChannelId := getChannelIdByLndShortChannelId(h.IncomingChannelId)
 	outgoingChannelId := getChannelIdByLndShortChannelId(h.OutgoingChannelId)
 	eventOrigin := h.EventType.String()
@@ -100,7 +99,7 @@ func storeFullEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int, eventType s
 func getChannelIdByLndShortChannelId(lndShortChannelId uint64) *int {
 	var channelId *int
 	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
-	tempChannelId := commons.GetChannelIdFromShortChannelId(shortChannelId)
+	tempChannelId := commons.GetChannelIdByShortChannelId(shortChannelId)
 	if tempChannelId != 0 {
 		channelId = &tempChannelId
 	}
@@ -153,11 +152,13 @@ func addHtlcEvent(db *sqlx.DB, htlcEvent HtlcEvent) error {
 // NB: LND has marked HTLC event streaming as experimental. Delivery is not guaranteed, so dataset might not be complete
 // HTLC events is primarily used to diagnose how good a channel / node is. And if the channel allocation should change.
 func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
 	var stream routerrpc.Router_SubscribeHtlcEventsClient
 	var err error
 	var htlcEvent *routerrpc.HtlcEvent
 	var storedHtlcEvent HtlcEvent
+	serviceStatus := commons.Inactive
+	subscriptionStream := commons.HtlcEventStream
 
 	for {
 		select {
@@ -167,16 +168,18 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 		}
 
 		if stream == nil {
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			stream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				log.Error().Err(err).Msg("Obtaining stream (SubscribeTransactions) from LND failed, will retry in 1 minute")
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribeTransactions) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 				stream = nil
-				time.Sleep(1 * time.Minute)
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 
 		htlcEvent, err = stream.Recv()
@@ -184,9 +187,10 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			log.Error().Err(err).Msg("Receiving htlc events from the stream failed, will retry in 1 minute")
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			log.Error().Err(err).Msgf("Receiving htlc events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 			stream = nil
-			time.Sleep(1 * time.Minute)
+			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 
@@ -218,11 +222,12 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 		}
 
 		if eventChannel != nil {
-			eventChannel <- broadcast.HtlcEvent{
-				EventData: broadcast.EventData{
+			eventChannel <- commons.HtlcEvent{
+				EventData: commons.EventData{
 					EventTime: time.Now().UTC(),
 					NodeId:    nodeSettings.NodeId,
 				},
+				Timestamp:         storedHtlcEvent.Time,
 				EventOrigin:       storedHtlcEvent.EventOrigin,
 				EventType:         storedHtlcEvent.EventType,
 				OutgoingHtlcId:    storedHtlcEvent.OutgoingHtlcId,

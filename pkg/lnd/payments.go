@@ -30,15 +30,19 @@ type PayOptions struct {
 }
 
 func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent, opt *PayOptions) {
 
 	var lastPaymentIndex uint64
 	var payments *lnrpc.ListPaymentsResponse
 	var err error
+	serviceStatus := commons.Inactive
+	bootStrapping := true
+	subscriptionStream := commons.PaymentStream
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
-	ticker := c.Tick(60 * time.Second)
+	ticker := c.Tick(commons.STREAM_PAYMENTS_TICKER_SECONDS * time.Second)
+	includeIncomplete := commons.RunningServices[commons.LndService].GetIncludeIncomplete(nodeSettings.NodeId)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -58,36 +62,49 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 			lastPaymentIndex, err = fetchLastPaymentIndex(db)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in 1 minute")
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
 				continue
 			}
 
+			if bootStrapping {
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			} else {
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			}
 			for {
-				payments, err = fetchPayments(ctx, client, lastPaymentIndex)
+				payments, err = fetchPayments(ctx, client, lastPaymentIndex, includeIncomplete)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
-					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in 1 minute")
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
 					break
 				}
 
 				// Store the payments
 				err = storePayments(db, payments.Payments, nodeSettings.NodeId)
 				if err != nil {
-					log.Error().Err(err).Msgf("Failed to store payments, will retry in 1 minute")
+					log.Error().Err(err).Msgf("Failed to store payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
 					break
 				}
 
 				// Stop fetching if there are fewer forwards than max requested
 				// (indicates that we have the last forwarding record)
-				if len(payments.Payments) == 0 {
+				if len(payments.Payments) == 0 || lastPaymentIndex == payments.LastIndexOffset {
+					if bootStrapping {
+						log.Info().Msgf("Bulk import of payments: %v", importCounter)
+					}
+					bootStrapping = false
 					break
 				} else {
 					lastPaymentIndex = payments.LastIndexOffset
-					importCounter++
-					if importCounter%1000 == 0 {
-						log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
+					if bootStrapping {
+						importCounter++
+						if importCounter%500 == 0 {
+							log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
+						}
 					}
 				}
 			}
@@ -109,12 +126,12 @@ func fetchLastPaymentIndex(db *sqlx.DB) (uint64, error) {
 }
 
 // fetchPayments fetches completed payments from LND.
-func fetchPayments(ctx context.Context, client lightningClient_ListPayments, last uint64) (
+func fetchPayments(ctx context.Context, client lightningClient_ListPayments, last uint64, includeIncomplete bool) (
 	r *lnrpc.ListPaymentsResponse, err error) {
 
 	//retry:
 	req := &lnrpc.ListPaymentsRequest{
-		IncludeIncomplete: true,
+		IncludeIncomplete: includeIncomplete,
 		IndexOffset:       last,
 		MaxPayments:       1, // Only fetch one at a time due to the size of failed payments
 		Reversed:          false,
@@ -157,7 +174,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 
 			if _, err := tx.Exec(q,
 				payment.PaymentHash,
-				time.Unix(0, payment.CreationTimeNs).Round(time.Microsecond).UTC(),
+				convertMicro(payment.CreationTimeNs),
 				payment.PaymentPreimage,
 				payment.ValueMsat,
 				payment.PaymentRequest,
@@ -183,13 +200,16 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 }
 
 func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent, opt *PayOptions) {
 
 	var listPaymentsResponse *lnrpc.ListPaymentsResponse
+	serviceStatus := commons.Inactive
+	bootStrapping := true
+	subscriptionStream := commons.InFlightPaymentStream
 
 	// Create the default ticker used to fetch forwards at a set interval
 	c := clock.New()
-	ticker := c.Tick(60 * time.Second)
+	ticker := c.Tick(commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -207,14 +227,19 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		case <-ticker:
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in 1 minute")
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS)
 				continue
 			}
-
+			if bootStrapping {
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			} else {
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			}
 			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				// we will only get one payment back. Might not be the right one.
-				listPaymentsResponse, err = fetchPayments(ctx, client, ifPayIndex)
+				listPaymentsResponse, err = fetchPayments(ctx, client, ifPayIndex, true)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
@@ -244,6 +269,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 					log.Error().Err(err).Msgf("Failed to store update payments")
 				}
 			}
+			bootStrapping = false
 		}
 	}
 }
@@ -358,7 +384,6 @@ func updatePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 
 				currentTime := time.Now().UTC()
 				created := time.Unix(0, payment.CreationTimeNs).UTC()
-
 				// Add 10 minutes to the invoice expiry time to be safe.
 				expiredAt := created.Add(expiry).Add(10 * time.Minute)
 

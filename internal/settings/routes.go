@@ -40,6 +40,7 @@ type ConnectionDetails struct {
 	MacaroonFileBytes []byte
 	Status            commons.Status
 	PingSystem        commons.PingSystem
+	CustomSettings    commons.NodeConnectionDetailCustomSettings
 }
 
 func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem commons.PingSystem) {
@@ -50,6 +51,16 @@ func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem commons.Pin
 }
 func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.PingSystem) {
 	connectionDetails.PingSystem &= ^pingSystem
+}
+
+func (connectionDetails *ConnectionDetails) AddNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
+	connectionDetails.CustomSettings |= customSettings
+}
+func (connectionDetails *ConnectionDetails) HasNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) bool {
+	return connectionDetails.CustomSettings&customSettings != 0
+}
+func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
+	connectionDetails.CustomSettings &= ^customSettings
 }
 
 func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage,
@@ -242,7 +253,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	nodeId := commons.GetNodeIdFromPublicKey(publicKey, chain, network)
+	nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
 		newNode := nodes.Node{
 			PublicKey: publicKey,
@@ -269,7 +280,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	if ncd.Status == commons.Active {
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:         nodeId,
-			ServiceType:    commons.LndSubscription,
+			ServiceType:    commons.LndService,
 			ServiceCommand: commons.Boot,
 		}
 	}
@@ -285,6 +296,13 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
+	// TODO c.Bind cannot process status?
+	statusId, err := strconv.Atoi(c.Request.Form.Get("status"))
+	if err != nil || statusId > int(commons.Deleted) {
+		server_errors.SendBadRequest(c, "Failed to find/parse status in the request.")
+		return
+	}
+	ncd.Status = commons.Status(statusId)
 
 	if ncd.NodeId == 0 {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
@@ -392,10 +410,11 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
+	commons.RunningServices[commons.LndService].SetIncludeIncomplete(ncd.NodeId, ncd.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 
-	lndDone := startServiceOrRestartWhenRunning(serviceChannel, commons.LndSubscription, ncd.NodeId, ncd.Status == commons.Active)
-	ambossDone := startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
-	vectorDone := startServiceOrRestartWhenRunning(serviceChannel, commons.VectorSubscription, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
+	lndDone := startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, ncd.NodeId, ncd.Status == commons.Active)
+	ambossDone := startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
+	vectorDone := startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
 	if lndDone && ambossDone && vectorDone {
 		ncd, err = SetNodeConnectionDetails(db, ncd)
 		if err != nil {
@@ -424,7 +443,7 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	done := startServiceOrRestartWhenRunning(serviceChannel, commons.LndSubscription, nodeId, commons.Status(statusId) == commons.Active)
+	done := startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, nodeId, commons.Status(statusId) == commons.Active)
 	if done {
 		_, err := setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
 		if err != nil {
@@ -470,10 +489,10 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
 
 	var subscription commons.ServiceType
 	if commons.PingSystem(pingSystem) == commons.Amboss {
-		subscription = commons.AmbossSubscription
+		subscription = commons.AmbossService
 	}
 	if commons.PingSystem(pingSystem) == commons.Vector {
-		subscription = commons.VectorSubscription
+		subscription = commons.VectorService
 	}
 
 	done := startServiceOrRestartWhenRunning(serviceChannel, subscription, nodeId, commons.Status(statusId) == commons.Active)
@@ -528,6 +547,7 @@ func processConnectionDetails(ncds []NodeConnectionDetails) []ConnectionDetails 
 			MacaroonFileBytes: ncd.MacaroonDataBytes,
 			Name:              ncd.Name,
 			PingSystem:        ncd.PingSystem,
+			CustomSettings:    ncd.CustomSettings,
 		})
 	}
 	return processedNodes
@@ -546,6 +566,7 @@ func GetConnectionDetailsById(db *sqlx.DB, nodeId int) (ConnectionDetails, error
 		Name:              ncd.Name,
 		Status:            ncd.Status,
 		PingSystem:        ncd.PingSystem,
+		CustomSettings:    ncd.CustomSettings,
 	}
 	if ncd.GRPCAddress != nil {
 		cd.GRPCAddress = *ncd.GRPCAddress

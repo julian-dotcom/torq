@@ -14,6 +14,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 // Start runs the background server. It sends out a ping to Amboss every 25 seconds.
@@ -49,6 +51,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn) error {
 		}
 		resp.Body.Close()
 		log.Debug().Msgf("Amboss Ping Service %v", values)
-		time.Sleep(25 * time.Second)
+		time.Sleep(commons.AMBOSS_SLEEP_SECONDS * time.Second)
 	}
 }
