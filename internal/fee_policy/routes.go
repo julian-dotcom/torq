@@ -2,6 +2,7 @@ package fee_policy
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -11,34 +12,58 @@ import (
 
 func RegisterFeePolicyRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.POST("", func(c *gin.Context) { addFeePolicyHandler(c, db) })
+	r.PUT(":feePolicyId", func(c *gin.Context) { updateFeePolicyHandler(c, db) })
 	r.GET("", func(c *gin.Context) { getFeePolicyListHandler(c, db) })
 }
 
-func addFeePolicyHandler(c *gin.Context, db *sqlx.DB) {
+func updateFeePolicyHandler(c *gin.Context, db *sqlx.DB) {
+	feePolicyId, err := strconv.Atoi(c.Param("feePolicyId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
+		return
+	}
+
 	var requestFeePolicy FeePolicy
 	if err := c.BindJSON(&requestFeePolicy); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	if len(requestFeePolicy.Targets) == 0 {
-		server_errors.SendUnprocessableEntity(c, "Must specify at least one target")
+	if err := validateFeePolicy(requestFeePolicy); err != nil {
+		server_errors.SendUnprocessableEntity(c, err.Error())
 		return
 	}
 
-	if requestFeePolicy.FeePolicyStrategy == policyStrategyStep && len(requestFeePolicy.Steps) == 0 {
-		server_errors.SendUnprocessableEntity(c, "Strategy of step specified but no steps provided")
+	if requestFeePolicy.FeePolicyId != feePolicyId {
+		server_errors.SendBadRequest(c, "Id used on route does not match id in request body")
 		return
 	}
 
-	if len(requestFeePolicy.Name) == 0 {
-		server_errors.SendUnprocessableEntity(c, "Name must be specified")
+	updatedFeePolicy, err := updateFeePolicy(db, requestFeePolicy)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Updating fee policy")
 		return
 	}
 
-	if requestFeePolicy.Interval < 1 || requestFeePolicy.Interval > 10080 {
-		server_errors.SendUnprocessableEntity(c, "Interval must be between 1 and 10080 minutes although we don't recommend shorter than 10 minutes")
-		return
+	c.JSON(http.StatusOK, updatedFeePolicy)
+	return
+}
+
+func validateFeePolicy(feePolicy FeePolicy) error {
+	if len(feePolicy.Targets) == 0 {
+		return errors.New("Must specify at least one target")
+	}
+
+	if feePolicy.FeePolicyStrategy == policyStrategyStep && len(feePolicy.Steps) == 0 {
+		return errors.New("Strategy of step specified but no steps provided")
+	}
+
+	if len(feePolicy.Name) == 0 {
+		return errors.New("Name must be specified")
+	}
+
+	if feePolicy.Interval < 1 || feePolicy.Interval > 10080 {
+		return errors.New("Interval must be between 1 and 10080 minutes although we don't recommend shorter than 10 minutes")
 	}
 
 	countOfNotNils := func(thingsToCheck ...*int) int {
@@ -51,24 +76,36 @@ func addFeePolicyHandler(c *gin.Context, db *sqlx.DB) {
 		return count
 	}
 
-	for _, target := range requestFeePolicy.Targets {
+	for _, target := range feePolicy.Targets {
 		if countOfNotNils(target.CategoryId, target.TagId, target.NodeId, target.ChannelId) != 1 {
-			server_errors.SendUnprocessableEntity(c, "All targets must specify one of a Category, Tag, Node or Channel")
-			return
+			return errors.New("All targets must specify one of a Category, Tag, Node or Channel")
 		}
 	}
 
-	if requestFeePolicy.FeePolicyStrategy == policyStrategyStep {
-		for _, step := range requestFeePolicy.Steps {
+	if feePolicy.FeePolicyStrategy == policyStrategyStep {
+		for _, step := range feePolicy.Steps {
 			if countOfNotNils(step.FilterMaxBalance, step.FilterMinBalance, step.FilterMaxRatio, step.FilterMinRatio) == 0 {
-				server_errors.SendUnprocessableEntity(c, "Balance and/or Ratio filter must be specified in all steps")
-				return
+				return errors.New("Balance and/or Ratio filter must be specified in all steps")
 			}
 			if step.SetFeePPM == 0 {
-				server_errors.SendUnprocessableEntity(c, "Fee PPM can't be zero on any steps")
-				return
+				return errors.New("Fee PPM can't be zero on any steps")
 			}
 		}
+	}
+
+	return nil
+}
+
+func addFeePolicyHandler(c *gin.Context, db *sqlx.DB) {
+	var requestFeePolicy FeePolicy
+	if err := c.BindJSON(&requestFeePolicy); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+
+	if err := validateFeePolicy(requestFeePolicy); err != nil {
+		server_errors.SendUnprocessableEntity(c, err.Error())
+		return
 	}
 
 	feePolicy, err := addFeePolicy(db, requestFeePolicy)
