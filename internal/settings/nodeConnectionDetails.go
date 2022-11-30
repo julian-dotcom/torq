@@ -40,6 +40,16 @@ func (ncd *NodeConnectionDetails) RemoveNotificationType(pingSystem commons.Ping
 	ncd.PingSystem &= ^pingSystem
 }
 
+func (ncd *NodeConnectionDetails) AddNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
+	ncd.CustomSettings |= customSettings
+}
+func (ncd *NodeConnectionDetails) HasNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) bool {
+	return ncd.CustomSettings&customSettings != 0
+}
+func (ncd *NodeConnectionDetails) RemoveNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
+	ncd.CustomSettings &= ^customSettings
+}
+
 func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
 	allNodeConnectionDetails, err := getAllNodeConnectionDetails(db, true)
 	if err != nil {

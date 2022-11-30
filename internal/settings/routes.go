@@ -40,6 +40,7 @@ type ConnectionDetails struct {
 	MacaroonFileBytes []byte
 	Status            commons.Status
 	PingSystem        commons.PingSystem
+	CustomSettings    commons.NodeConnectionDetailCustomSettings
 }
 
 func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem commons.PingSystem) {
@@ -50,6 +51,16 @@ func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem commons.Pin
 }
 func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.PingSystem) {
 	connectionDetails.PingSystem &= ^pingSystem
+}
+
+func (connectionDetails *ConnectionDetails) AddNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
+	connectionDetails.CustomSettings |= customSettings
+}
+func (connectionDetails *ConnectionDetails) HasNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) bool {
+	return connectionDetails.CustomSettings&customSettings != 0
+}
+func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
+	connectionDetails.CustomSettings &= ^customSettings
 }
 
 func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage,
@@ -392,6 +403,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
+	commons.RunningServices[commons.LndService].SetIncludeIncomplete(ncd.NodeId, ncd.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 
 	lndDone := startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, ncd.NodeId, ncd.Status == commons.Active)
 	ambossDone := startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
@@ -528,6 +540,7 @@ func processConnectionDetails(ncds []NodeConnectionDetails) []ConnectionDetails 
 			MacaroonFileBytes: ncd.MacaroonDataBytes,
 			Name:              ncd.Name,
 			PingSystem:        ncd.PingSystem,
+			CustomSettings:    ncd.CustomSettings,
 		})
 	}
 	return processedNodes
@@ -546,6 +559,7 @@ func GetConnectionDetailsById(db *sqlx.DB, nodeId int) (ConnectionDetails, error
 		Name:              ncd.Name,
 		Status:            ncd.Status,
 		PingSystem:        ncd.PingSystem,
+		CustomSettings:    ncd.CustomSettings,
 	}
 	if ncd.GRPCAddress != nil {
 		cd.GRPCAddress = *ncd.GRPCAddress

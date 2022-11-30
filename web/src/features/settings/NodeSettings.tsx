@@ -177,9 +177,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     });
   };
 
-  const handleFailedPaymentsClick = () => {
-    const failedPaymentsActive = nodeConfigurationState.customSettings%2 >= 1
-    if (failedPaymentsActive) {
+  const handleImportFailedPaymentsClick = () => {
+    const importFailedPaymentsActive = nodeConfigurationState.customSettings%2 >= 1
+    if (importFailedPaymentsActive) {
       setNodeConfigurationState({ ...nodeConfigurationState, customSettings: nodeConfigurationState.customSettings-1 })
     } else {
       setNodeConfigurationState({ ...nodeConfigurationState, customSettings: nodeConfigurationState.customSettings+1 });
@@ -357,11 +357,11 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                     fileName={nodeConfigurationState?.macaroonFileName}
                   />
                 </span>
-                <div className={styles.failedPayments}>
+                <div className={styles.importFailedPayments}>
                   <Switch
                     label={t.importFailedPayments}
                     checked={nodeConfigurationState.customSettings%2 >= 1}
-                    onClick={handleFailedPaymentsClick}
+                    onClick={handleImportFailedPaymentsClick}
                   />
                 </div>
                 <Button

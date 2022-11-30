@@ -371,6 +371,7 @@ func main() {
 												}
 
 												services.Booted(node.NodeId, bootLock, serviceEventChannel)
+												commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 												log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
 												err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel, serviceEventChannel, serviceChannel)
 												if err != nil {

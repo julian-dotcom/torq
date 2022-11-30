@@ -112,9 +112,9 @@ const PingSystemMax = int(Vector)*2 - 1
 type NodeConnectionDetailCustomSettings byte
 
 const (
-	FailedPayments NodeConnectionDetailCustomSettings = 1 << iota
+	ImportFailedPayments NodeConnectionDetailCustomSettings = 1 << iota
 )
-const NodeConnectionDetailCustomSettingsMax = int(FailedPayments)*2 - 1
+const NodeConnectionDetailCustomSettingsMax = int(ImportFailedPayments)*2 - 1
 
 type SubscriptionStream int
 
@@ -130,7 +130,7 @@ const (
 	PeerEventStream
 )
 
-var SubscriptionStreams = []SubscriptionStream{
+var SubscriptionStreams = []SubscriptionStream{ //nolint:gochecknoglobals
 	TransactionStream,
 	HtlcEventStream,
 	ChannelEventStream,
