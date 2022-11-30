@@ -13,20 +13,21 @@ import (
 )
 
 type NodeConnectionDetails struct {
-	NodeId            int                    `json:"nodeId" form:"nodeId" db:"node_id"`
-	Name              string                 `json:"name" form:"name" db:"name"`
-	Implementation    commons.Implementation `json:"implementation" form:"implementation" db:"implementation"`
-	GRPCAddress       *string                `json:"grpcAddress" form:"grpcAddress" db:"grpc_address"`
-	TLSFileName       *string                `json:"tlsFileName" db:"tls_file_name"`
-	TLSDataBytes      []byte                 `db:"tls_data"`
-	TLSFile           *multipart.FileHeader  `form:"tlsFile"`
-	MacaroonFileName  *string                `json:"macaroonFileName" db:"macaroon_file_name"`
-	MacaroonDataBytes []byte                 `db:"macaroon_data"`
-	MacaroonFile      *multipart.FileHeader  `form:"macaroonFile"`
-	Status            commons.Status         `json:"status" db:"status_id"`
-	PingSystem        commons.PingSystem     `json:"pingSystem" db:"ping_system"`
-	CreateOn          time.Time              `json:"createdOn" db:"created_on"`
-	UpdatedOn         *time.Time             `json:"updatedOn"  db:"updated_on"`
+	NodeId            int                                        `json:"nodeId" form:"nodeId" db:"node_id"`
+	Name              string                                     `json:"name" form:"name" db:"name"`
+	Implementation    commons.Implementation                     `json:"implementation" form:"implementation" db:"implementation"`
+	GRPCAddress       *string                                    `json:"grpcAddress" form:"grpcAddress" db:"grpc_address"`
+	TLSFileName       *string                                    `json:"tlsFileName" db:"tls_file_name"`
+	TLSDataBytes      []byte                                     `db:"tls_data"`
+	TLSFile           *multipart.FileHeader                      `form:"tlsFile"`
+	MacaroonFileName  *string                                    `json:"macaroonFileName" db:"macaroon_file_name"`
+	MacaroonDataBytes []byte                                     `db:"macaroon_data"`
+	MacaroonFile      *multipart.FileHeader                      `form:"macaroonFile"`
+	Status            commons.Status                             `json:"status" db:"status_id"`
+	PingSystem        commons.PingSystem                         `json:"pingSystem" db:"ping_system"`
+	CustomSettings    commons.NodeConnectionDetailCustomSettings `json:"customSettings" db:"custom_settings"`
+	CreateOn          time.Time                                  `json:"createdOn" db:"created_on"`
+	UpdatedOn         *time.Time                                 `json:"updatedOn"  db:"updated_on"`
 }
 
 func (ncd *NodeConnectionDetails) AddNotificationType(pingSystem commons.PingSystem) {

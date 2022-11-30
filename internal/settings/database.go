@@ -229,10 +229,12 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 	_, err := db.Exec(`
 		UPDATE node_connection_details
 		SET implementation = $1, name = $2, grpc_address = $3, tls_file_name = $4, tls_data = $5,
-		    macaroon_file_name = $6, macaroon_data = $7, status_id = $8, ping_system = $9, updated_on = $10
-		WHERE node_id = $11;`,
+		    macaroon_file_name = $6, macaroon_data = $7, status_id = $8, ping_system = $9, updated_on = $10,
+			custom_settings = $11
+		WHERE node_id = $12;`,
 		ncd.Implementation, ncd.Name, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
-		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.UpdatedOn, ncd.NodeId)
+		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.UpdatedOn,
+		ncd.CustomSettings, ncd.NodeId)
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -267,10 +269,11 @@ func addNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 	_, err := db.Exec(`
 		INSERT INTO node_connection_details
 		    (node_id, name, implementation, grpc_address, tls_file_name, tls_data, macaroon_file_name, macaroon_data,
-		     status_id, ping_system, created_on, updated_on)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);`,
+		     status_id, ping_system, custom_settings, created_on, updated_on)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13);`,
 		ncd.NodeId, ncd.Name, ncd.Implementation, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
-		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.CreateOn, ncd.UpdatedOn)
+		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.CustomSettings,
+		ncd.CreateOn, ncd.UpdatedOn)
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}

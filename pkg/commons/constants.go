@@ -109,6 +109,13 @@ const (
 )
 const PingSystemMax = int(Vector)*2 - 1
 
+type NodeConnectionDetailCustomSettings byte
+
+const (
+	FailedPayments NodeConnectionDetailCustomSettings = 1 << iota
+)
+const NodeConnectionDetailCustomSettingsMax = int(FailedPayments)*2 - 1
+
 type SubscriptionStream int
 
 const (
@@ -122,6 +129,32 @@ const (
 	InFlightPaymentStream
 	PeerEventStream
 )
+
+var SubscriptionStreams = []SubscriptionStream{
+	TransactionStream,
+	HtlcEventStream,
+	ChannelEventStream,
+	GraphEventStream,
+	ForwardStream,
+	InvoiceStream,
+	PaymentStream,
+	InFlightPaymentStream,
+	PeerEventStream,
+}
+
+func (ss *SubscriptionStream) IsChannelBalanceCache() bool {
+	if ss != nil && (
+		*ss == ForwardStream ||
+			*ss == InvoiceStream ||
+			*ss == PaymentStream ||
+			*ss == PeerEventStream ||
+			*ss == ChannelEventStream ||
+			*ss == GraphEventStream ||
+			*ss == HtlcEventStream) {
+		return true
+	}
+	return false
+}
 
 type ImportRequest struct {
 	ImportType ImportType

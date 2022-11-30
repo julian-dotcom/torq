@@ -248,7 +248,7 @@ func (rs *Services) GetStreamInitializationPingTime(nodeId int, stream Subscript
 	return &initializationPingTime
 }
 
-func (rs *Services) GetCombinedStatus(nodeId int, streams ...SubscriptionStream) Status {
+func (rs *Services) GetChannelBalanceCacheStreamStatus(nodeId int) Status {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -261,14 +261,16 @@ func (rs *Services) GetCombinedStatus(nodeId int, streams ...SubscriptionStream)
 		return serviceStatus
 	}
 	var streamStatus *Status
-	for _, stream := range streams {
-		status := rs.streamStatus[nodeId][stream]
-		if status != Active {
-			if streamStatus == nil {
-				streamStatus = &status
-			}
-			if *streamStatus != status {
-				return Pending
+	for _, stream := range SubscriptionStreams {
+		if stream.IsChannelBalanceCache() {
+			status := rs.streamStatus[nodeId][stream]
+			if status != Active {
+				if streamStatus == nil {
+					streamStatus = &status
+				}
+				if *streamStatus != status {
+					return Pending
+				}
 			}
 		}
 	}

@@ -36,6 +36,18 @@
   "channels": "Channels",
   "channelPolicy": "Channel policy",
   "analyse": "Analyse",
+  "importFailedPayments": "When this is enabled Torq will import failed payments. (Please be cautious with this as this could cause performance problems for LND. This is not advised for nodes with aggressive rebalancing and/or lightweight hardware.)",
+  "implementation": "Implementation",
+  "nodeName": "Node Name",
+  "grpcAddress": "GRPC Address (IP or Tor)",
+  "tlsCertificate": "TLS Certificate",
+  "macaroon": "Macaroon",
+  "summary": "Summary",
+  "forwards": "Forwards",
+  "transact": "Transact",
+  "transactions": "Transactions",
+  "settings": "Settings",
+  "logout": "Logout",
   "tableLayout": {
     "tableOptions": "Table options"
   },

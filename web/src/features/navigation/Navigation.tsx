@@ -14,9 +14,11 @@ import {
   ArrowRouting20Regular as ChannelsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
+import useTranslations from "services/i18n/useTranslations";
 
 function Navigation() {
   const dispatch = useAppDispatch();
+  const { t } = useTranslations();
 
   return (
     <div className={classNames(styles.navigation)}>
@@ -37,10 +39,10 @@ function Navigation() {
       <div className={styles.mainNavWrapper}>
         {/*<MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/sadfa"} />*/}
 
-        <NavCategory text={"Analyse"} collapsed={false}>
-          <MenuItem text={"Summary"} icon={<SummaryIcon />} routeTo={"/"} />
-          <MenuItem text={"Channels"} icon={<ChannelsIcon />} routeTo={"/analyse/channels"} />
-          <MenuItem text={"Forwards"} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
+        <NavCategory text={t.analyse} collapsed={false}>
+          <MenuItem text={t.summary} icon={<SummaryIcon />} routeTo={"/"} />
+          <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/analyse/channels"} />
+          <MenuItem text={t.forwards} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
           {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
         </NavCategory>
 
@@ -51,14 +53,14 @@ function Navigation() {
         {/*  </>*/}
         {/*</NavCategory>*/}
 
-        <NavCategory text={"Transact"} collapsed={false}>
-          <MenuItem text={"Transactions"} icon={<TransactionIcon />} routeTo={"/transactions/payments"} />
+        <NavCategory text={t.transact} collapsed={false}>
+          <MenuItem text={t.transactions} icon={<TransactionIcon />} routeTo={"/transactions/payments"} />
         </NavCategory>
       </div>
 
       <div className={classNames(styles.bottomWrapper)}>
-        <MenuItem text={"Settings"} icon={<SettingsIcon />} routeTo={"/settings"} />
-        <MenuItem text={"Logout"} icon={<LogoutIcon />} routeTo={"/logout"} />
+        <MenuItem text={t.settings} icon={<SettingsIcon />} routeTo={"/settings"} />
+        <MenuItem text={t.logout} icon={<LogoutIcon />} routeTo={"/logout"} />
       </div>
     </div>
   );

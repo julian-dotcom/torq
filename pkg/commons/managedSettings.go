@@ -40,7 +40,10 @@ func ManagedSettingsCache(ch chan ManagedSettings, ctx context.Context) {
 	}
 }
 
-func processManagedSettings(managedSettings ManagedSettings, defaultLanguage string, preferredTimeZone string, defaultDateRange string, weekStartsOn string) (string, string, string, string) {
+func processManagedSettings(managedSettings ManagedSettings,
+	defaultLanguage string, preferredTimeZone string, defaultDateRange string,
+	weekStartsOn string) (string, string, string, string) {
+
 	switch managedSettings.Type {
 	case READ_SETTINGS:
 		managedSettings.DefaultLanguage = defaultLanguage
