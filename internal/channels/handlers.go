@@ -11,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -174,75 +175,78 @@ func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 
 func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 	var channelsBody []channelBody
-	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	activeNcds, err := settings.GetActiveNodesConnectionDetails(db)
 	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
 		return
 	}
-	channelBalanceStates := commons.GetChannelStates(nodeId)
-	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
-	for _, channel := range channelBalanceStates {
-		channelSettings := commons.GetChannelSettingByChannelId(channel.ChannelId)
-		lndShortChannelIdString := strconv.FormatUint(channelSettings.LndShortChannelId, 10)
+	if activeNcds != nil && len(activeNcds) != 0 {
+		for _, ncd := range activeNcds {
+			channelBalanceStates := commons.GetChannelStates(ncd.NodeId)
+			nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
+			for _, channel := range channelBalanceStates {
+				channelSettings := commons.GetChannelSettingByChannelId(channel.ChannelId)
+				lndShortChannelIdString := strconv.FormatUint(channelSettings.LndShortChannelId, 10)
 
-		pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
+				pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
 
-		gauge := (float64(channel.LocalBalance) / float64(channelSettings.Capacity)) * 100
+				gauge := (float64(channel.LocalBalance) / float64(channelSettings.Capacity)) * 100
 
-		remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
-		chanBody := channelBody{
-			NodeId:                       nodeId,
-			NodeName:                     *nodeSettings.Name,
-			Active:                       !channel.LocalDisabled,
-			ChannelPoint:                 commons.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
-			Gauge:                        gauge,
-			RemotePubkey:                 remoteNode.PublicKey,
-			FundingTransactionHash:       channelSettings.FundingTransactionHash,
-			FundingOutputIndex:           channelSettings.FundingOutputIndex,
-			LNDShortChannelId:            channelSettings.LndShortChannelId,
-			ShortChannelId:               channelSettings.ShortChannelId,
-			Capacity:                     channelSettings.Capacity,
-			LocalBalance:                 channel.LocalBalance,
-			RemoteBalance:                channel.RemoteBalance,
-			UnsettledBalance:             channel.UnsettledBalance,
-			TotalSatoshisSent:            channel.TotalSatoshisSent,
-			TotalSatoshisReceived:        channel.TotalSatoshisReceived,
-			PendingForwardingHTLCsCount:  pendingHTLCs.ForwardingCount,
-			PendingForwardingHTLCsAmount: pendingHTLCs.ForwardingAmount,
-			PendingLocalHTLCsCount:       pendingHTLCs.LocalCount,
-			PendingLocalHTLCsAmount:      pendingHTLCs.LocalAmount,
-			PendingTotalHTLCsCount:       pendingHTLCs.TotalCount,
-			PendingTotalHTLCsAmount:      pendingHTLCs.TotalAmount,
-			CommitFee:                    channel.CommitFee,
-			CommitWeight:                 channel.CommitWeight,
-			FeePerKw:                     channel.FeePerKw,
-			BaseFeeMsat:                  channel.LocalFeeBaseMsat,
-			MinHtlc:                      channel.LocalMinHtlc,
-			MaxHtlcMsat:                  channel.LocalMaxHtlcMsat,
-			TimeLockDelta:                channel.LocalTimeLockDelta,
-			FeeRatePpm:                   channel.LocalFeeRateMilliMsat,
-			RemoteBaseFeeMsat:            channel.RemoteFeeBaseMsat,
-			RemoteMinHtlc:                channel.RemoteMinHtlc,
-			RemoteMaxHtlcMsat:            channel.RemoteMaxHtlcMsat,
-			RemoteTimeLockDelta:          channel.RemoteTimeLockDelta,
-			RemoteFeeRatePpm:             channel.RemoteFeeRateMilliMsat,
-			NumUpdates:                   channel.NumUpdates,
-			Initiator:                    channelSettings.InitiatingNodeId != nil && *channelSettings.InitiatingNodeId == nodeId,
-			ChanStatusFlags:              channel.ChanStatusFlags,
-			CommitmentType:               channel.CommitmentType,
-			Lifetime:                     channel.Lifetime,
-			MempoolSpace:                 MEMPOOL + lndShortChannelIdString,
-			AmbossSpace:                  AMBOSS + channelSettings.ShortChannelId,
-			OneMl:                        ONEML + lndShortChannelIdString,
+				remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
+				chanBody := channelBody{
+					NodeId:                       ncd.NodeId,
+					NodeName:                     *nodeSettings.Name,
+					Active:                       !channel.LocalDisabled,
+					ChannelPoint:                 commons.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
+					Gauge:                        gauge,
+					RemotePubkey:                 remoteNode.PublicKey,
+					FundingTransactionHash:       channelSettings.FundingTransactionHash,
+					FundingOutputIndex:           channelSettings.FundingOutputIndex,
+					LNDShortChannelId:            channelSettings.LndShortChannelId,
+					ShortChannelId:               channelSettings.ShortChannelId,
+					Capacity:                     channelSettings.Capacity,
+					LocalBalance:                 channel.LocalBalance,
+					RemoteBalance:                channel.RemoteBalance,
+					UnsettledBalance:             channel.UnsettledBalance,
+					TotalSatoshisSent:            channel.TotalSatoshisSent,
+					TotalSatoshisReceived:        channel.TotalSatoshisReceived,
+					PendingForwardingHTLCsCount:  pendingHTLCs.ForwardingCount,
+					PendingForwardingHTLCsAmount: pendingHTLCs.ForwardingAmount,
+					PendingLocalHTLCsCount:       pendingHTLCs.LocalCount,
+					PendingLocalHTLCsAmount:      pendingHTLCs.LocalAmount,
+					PendingTotalHTLCsCount:       pendingHTLCs.TotalCount,
+					PendingTotalHTLCsAmount:      pendingHTLCs.TotalAmount,
+					CommitFee:                    channel.CommitFee,
+					CommitWeight:                 channel.CommitWeight,
+					FeePerKw:                     channel.FeePerKw,
+					BaseFeeMsat:                  channel.LocalFeeBaseMsat,
+					MinHtlc:                      channel.LocalMinHtlc,
+					MaxHtlcMsat:                  channel.LocalMaxHtlcMsat,
+					TimeLockDelta:                channel.LocalTimeLockDelta,
+					FeeRatePpm:                   channel.LocalFeeRateMilliMsat,
+					RemoteBaseFeeMsat:            channel.RemoteFeeBaseMsat,
+					RemoteMinHtlc:                channel.RemoteMinHtlc,
+					RemoteMaxHtlcMsat:            channel.RemoteMaxHtlcMsat,
+					RemoteTimeLockDelta:          channel.RemoteTimeLockDelta,
+					RemoteFeeRatePpm:             channel.RemoteFeeRateMilliMsat,
+					NumUpdates:                   channel.NumUpdates,
+					Initiator:                    channelSettings.InitiatingNodeId != nil && *channelSettings.InitiatingNodeId == ncd.NodeId,
+					ChanStatusFlags:              channel.ChanStatusFlags,
+					CommitmentType:               channel.CommitmentType,
+					Lifetime:                     channel.Lifetime,
+					MempoolSpace:                 MEMPOOL + lndShortChannelIdString,
+					AmbossSpace:                  AMBOSS + channelSettings.ShortChannelId,
+					OneMl:                        ONEML + lndShortChannelIdString,
+				}
+
+				peerInfo, err := GetNodePeerAlias(ncd.NodeId, channel.RemoteNodeId, db)
+				if err == nil {
+					chanBody.PeerAlias = peerInfo
+				} else {
+					log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for nodeId: %v)", channel.RemoteNodeId, ncd.NodeId)
+				}
+				channelsBody = append(channelsBody, chanBody)
+			}
 		}
-
-		peerInfo, err := GetNodePeerAlias(nodeId, channel.RemoteNodeId, db)
-		if err == nil {
-			chanBody.PeerAlias = peerInfo
-		} else {
-			log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for nodeId: %v)", channel.RemoteNodeId, nodeId)
-		}
-		channelsBody = append(channelsBody, chanBody)
 	}
 	c.JSON(http.StatusOK, channelsBody)
 }

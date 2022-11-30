@@ -268,7 +268,8 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				recoverPanic(panicError, serviceChannel, nodeId, commons.ChannelBalanceCacheStream)
+				log.Error().Msgf("Panic occurred in ChannelBalanceCacheStream (nodeId: %v) %v", nodeId, panicError)
+				lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
 			}
 		}()
 		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)

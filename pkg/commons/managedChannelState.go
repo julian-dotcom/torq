@@ -185,16 +185,18 @@ func processBroadcastedEvent(event interface{},
 		if serviceEvent.NodeId == 0 || serviceEvent.Type != LndService {
 			return
 		}
-		currentStatus, exists := channelStateSettingsStatusCache[serviceEvent.NodeId]
-		if exists {
-			if serviceEvent.Status != currentStatus {
+		if serviceEvent.SubscriptionStream.IsChannelBalanceCache() {
+			currentStatus, exists := channelStateSettingsStatusCache[serviceEvent.NodeId]
+			if exists {
+				if serviceEvent.Status != currentStatus {
+					channelStateSettingsStatusCache[serviceEvent.NodeId] = serviceEvent.Status
+				}
+			} else {
 				channelStateSettingsStatusCache[serviceEvent.NodeId] = serviceEvent.Status
 			}
-		} else {
-			channelStateSettingsStatusCache[serviceEvent.NodeId] = serviceEvent.Status
-		}
-		if serviceEvent.Status != Active && serviceEvent.PreviousStatus == Active {
-			channelStateSettingsDeactivationTimeCache[serviceEvent.NodeId] = serviceEvent.EventTime
+			if serviceEvent.Status != Active && serviceEvent.PreviousStatus == Active {
+				channelStateSettingsDeactivationTimeCache[serviceEvent.NodeId] = serviceEvent.EventTime
+			}
 		}
 	} else if channelGraphEvent, ok := event.(ChannelGraphEvent); ok {
 		if channelGraphEvent.NodeId == 0 || channelGraphEvent.ChannelId == nil || *channelGraphEvent.ChannelId == 0 ||

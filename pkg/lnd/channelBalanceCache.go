@@ -44,9 +44,7 @@ func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapp
 	serviceEventChannel chan commons.ServiceEvent, subscriptionStream commons.SubscriptionStream,
 	lndClient lnrpc.LightningClient, db *sqlx.DB) (bool, commons.Status) {
 
-	if commons.RunningServices[commons.LndService].GetCombinedStatus(nodeSettings.NodeId,
-		commons.ForwardStream, commons.InvoiceStream, commons.PaymentStream, commons.PeerEventStream,
-		commons.ChannelEventStream, commons.GraphEventStream, commons.HtlcEventStream) == commons.Active {
+	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) == commons.Active {
 		if bootStrapping {
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 		}

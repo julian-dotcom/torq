@@ -146,6 +146,7 @@ var SubscriptionStreams = []SubscriptionStream{ //nolint:gochecknoglobals
 	PaymentStream,
 	InFlightPaymentStream,
 	PeerEventStream,
+	ChannelBalanceCacheStream,
 }
 
 func (ss *SubscriptionStream) IsChannelBalanceCache() bool {
