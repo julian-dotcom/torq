@@ -1,6 +1,6 @@
 CREATE TABLE fee_policy (
   fee_policy_id SERIAL PRIMARY KEY,
-  fee_policy_type INTEGER NOT NULL,
+  fee_policy_strategy INTEGER NOT NULL,
   name TEXT NULL,
   include_pending_htlcs BOOLEAN NOT NULL DEFAULT FALSE,
   aggregate_on_peer BOOLEAN NOT NULL DEFAULT FALSE,
@@ -31,7 +31,7 @@ CREATE TABLE fee_policy_step (
   fee_policy_id INTEGER NOT NULL REFERENCES fee_policy(fee_policy_id),
   min_htlc INTEGER NULL,
   max_htlc INTEGER NULL,
-  fee_rate_ppm INTEGER NOT NULL,
+  fee_ppm INTEGER NOT NULL,
   base_fee INTEGER NOT NULL,
   created_on TIMESTAMPTZ NOT NULL,
   updated_on TIMESTAMPTZ NOT NULL

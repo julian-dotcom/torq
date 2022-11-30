@@ -28,6 +28,19 @@ func getFeePolices(db *sqlx.DB) (feePolicies []FeePolicy, err error) {
 			return nil, errors.Wrap(err, database.SqlExecutionError)
 		}
 		feePolicies[ti].Targets = targets
+
+		if feePolicy.FeePolicyStrategy == policyStrategyStep {
+			var steps []FeePolicyStep
+			err = db.Select(&steps, "SELECT * FROM fee_policy_step where fee_policy_id = $1;", feePolicy.FeePolicyId)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					continue
+				}
+				return nil, errors.Wrap(err, database.SqlExecutionError)
+			}
+			feePolicies[ti].Steps = steps
+		}
+
 	}
 
 	return feePolicies, nil
@@ -36,10 +49,10 @@ func getFeePolices(db *sqlx.DB) (feePolicies []FeePolicy, err error) {
 
 func addFeePolicy(db *sqlx.DB, fp FeePolicy) (FeePolicy, error) {
 	err := db.QueryRowx(`
-INSERT INTO fee_policy (fee_policy_type, name, include_pending_htlcs, aggregate_on_peer, max_ratio,
+INSERT INTO fee_policy (fee_policy_strategy, name, include_pending_htlcs, aggregate_on_peer, max_ratio,
   min_ratio, max_balance, min_balance, active, interval, created_on, updated_on)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING fee_policy_id;`,
-		fp.FeePolicyType, fp.Name, fp.IncludePendingHTLCs, fp.AggregateOnPeer, fp.MaxRatio,
+		fp.FeePolicyStrategy, fp.Name, fp.IncludePendingHTLCs, fp.AggregateOnPeer, fp.MaxRatio,
 		fp.MinRatio, fp.MaxBalance, fp.MinBalance, fp.Active, fp.Interval,
 		time.Now(), time.Now()).
 		Scan(&fp.FeePolicyId)
@@ -56,5 +69,18 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)`, fp.FeePolicyId, target.TagId, target.Categ
 			return FeePolicy{}, errors.Wrap(err, database.SqlExecutionError)
 		}
 	}
+
+	if fp.FeePolicyStrategy == policyStrategyStep {
+		for _, step := range fp.Steps {
+			_, err := db.Exec(`
+INSERT INTO fee_policy_step (fee_policy_id, min_htlc, max_htlc, fee_ppm, base_fee, created_on, updated_on)
+VALUES ($1, $2, $3, $4, $5, $6, $7)`, fp.FeePolicyId, step.MinHTLC, step.MaxHTLC, step.FeePPM, step.BaseFee,
+				time.Now(), time.Now())
+			if err != nil {
+				return FeePolicy{}, errors.Wrap(err, database.SqlExecutionError)
+			}
+		}
+	}
+
 	return fp, nil
 }

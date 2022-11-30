@@ -2,15 +2,15 @@ package fee_policy
 
 import "time"
 
-type FeePolicyType int
+type FeePolicyStrategy int
 
 const (
-	Step FeePolicyType = iota
+	policyStrategyStep FeePolicyStrategy = iota
 )
 
 type FeePolicy struct {
 	FeePolicyId         int               `json:"feePolicyId" db:"fee_policy_id"`
-	FeePolicyType       FeePolicyType     `json:"feePolicyType" db:"fee_policy_type"`
+	FeePolicyStrategy   FeePolicyStrategy `json:"feePolicyStrategy" db:"fee_policy_strategy"`
 	Name                string            `json:"name" db:"name"`
 	IncludePendingHTLCs bool              `json:"includePendingHTLCs" db:"include_pending_htlcs"`
 	AggregateOnPeer     bool              `json:"aggregateOnPeer" db:"aggregate_on_peer"`
