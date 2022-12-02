@@ -317,22 +317,6 @@ func initializeIdCache(nodeIdCache map[Chain]map[Network]map[string]int, chain C
 	}
 }
 
-func SendToManagedNodeChannel(ch chan ManagedNode, managedNode ManagedNode) {
-	ch <- managedNode
-}
-
-func SendToManagedNodeIdsChannel(ch chan []int, channelIds []int) {
-	ch <- channelIds
-}
-
-func SendToManagedPublicKeysChannel(ch chan []string, publicKeys []string) {
-	ch <- publicKeys
-}
-
-func SendToManagedNodeSettingsChannel(ch chan ManagedNodeSettings, nodeSettings ManagedNodeSettings) {
-	ch <- nodeSettings
-}
-
 func GetAllChannelPublicKeys(chain Chain, network Network) []string {
 	publicKeysResponseChannel := make(chan []string)
 	managedNode := ManagedNode{

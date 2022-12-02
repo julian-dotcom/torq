@@ -81,7 +81,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				}
 
 				// Store the payments
-				err = storePayments(db, payments.Payments, nodeSettings.NodeId)
+				err = storePayments(db, payments.Payments, nodeSettings, eventChannel, bootStrapping)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to store payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
 					break
@@ -142,7 +142,7 @@ func fetchPayments(ctx context.Context, client lightningClient_ListPayments, las
 	return r, nil
 }
 
-func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
+func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, bootStrapping bool) error {
 	const q = `INSERT INTO payment(
 				  payment_hash,
 				  creation_timestamp,
@@ -155,11 +155,14 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 				  htlcs,
 				  payment_index,
 				  failure_reason,
+                  incoming_channel_id,
+                  outgoing_channel_id,
 				  node_id,
 				  created_on)
-			  VALUES ($1, $2, $3,$4, $5,$6, $7, $8, $9, $10, $11, $12, $13)
+			  VALUES ($1, $2, $3,$4, $5,$6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 			  ON CONFLICT (creation_timestamp, payment_index) DO NOTHING;`
 
+	var paymentEvents []commons.PaymentEvent
 	if len(p) > 0 {
 		tx := db.MustBegin()
 
@@ -169,6 +172,17 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 				return errors.Wrap(err, "JSON Marshal the payment HTLCs")
 			}
 
+			var incomingChannelId *int
+			var outgoingChannelId *int
+			if len(payment.Htlcs) == 0 || len(payment.Htlcs[0].Route.Hops) == 0 {
+				log.Error().Msgf("The payment HTLCs and/or Hops are unknown for paymentHash: %v", payment.PaymentHash)
+			} else {
+				incomingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[0].ChanId)
+				outgoingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[len(payment.Htlcs[0].Route.Hops)-1].ChanId)
+				if outgoingChannelId == nil {
+					log.Error().Msgf("The payment HTLCs has an unknown outgoingChannel for paymentHash: %v", payment.PaymentHash)
+				}
+			}
 			if _, err := tx.Exec(q,
 				payment.PaymentHash,
 				convertMicro(payment.CreationTimeNs),
@@ -181,15 +195,42 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeId int) error {
 				htlcJson,
 				payment.PaymentIndex,
 				payment.FailureReason.String(),
-				nodeId,
+				incomingChannelId,
+				outgoingChannelId,
+				nodeSettings.NodeId,
 				time.Now().UTC(),
 			); err != nil {
 				return errors.Wrap(err, "store payments: db exec")
 			}
+			paymentEvent := commons.PaymentEvent{
+				EventData: commons.EventData{
+					EventTime: time.Now(),
+					NodeId:    nodeSettings.NodeId,
+				},
+				AmountPaid:           payment.ValueSat,
+				FeeMsat:              uint64(payment.FeeMsat),
+				PaymentStatus:        payment.Status,
+				PaymentFailureReason: payment.FailureReason,
+			}
+			if incomingChannelId != nil && *incomingChannelId != 0 {
+				paymentEvent.IncomingChannelId = incomingChannelId
+				amountToForwardMsat := uint64(payment.Htlcs[0].Route.Hops[0].AmtToForwardMsat)
+				paymentEvent.RebalanceAmountMsat = &amountToForwardMsat
+			}
+			if outgoingChannelId != nil && *outgoingChannelId != 0 {
+				paymentEvent.OutgoingChannelId = outgoingChannelId
+			}
+			paymentEvents = append(paymentEvents, paymentEvent)
 		}
 		err := tx.Commit()
 		if err != nil {
 			return errors.Wrap(err, "Transaction commit")
+		}
+	}
+
+	if eventChannel != nil && !bootStrapping {
+		for _, paymentEvent := range paymentEvents {
+			eventChannel <- paymentEvent
 		}
 	}
 

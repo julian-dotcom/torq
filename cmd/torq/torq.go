@@ -179,79 +179,77 @@ func main() {
 				ambossServiceStatuses := make(map[int]commons.Status)
 
 				for {
-					select {
-					case <-verifyTicker:
-						if torqServiceStatus == commons.Active {
-							torqNodeIds := commons.RunningServices[commons.LndService].GetNodeIds()
-							if len(torqNodeIds) > 0 {
-								for _, torqNodId := range torqNodeIds {
-									newLndServiceStatus := commons.RunningServices[commons.LndService].GetStatus(torqNodId)
-									_, exists := lndServiceStatuses[torqNodId]
-									if !exists {
-										lndServiceStatuses[torqNodId] = commons.Inactive
+					<-verifyTicker
+					if torqServiceStatus == commons.Active {
+						torqNodeIds := commons.RunningServices[commons.LndService].GetNodeIds()
+						if len(torqNodeIds) > 0 {
+							for _, torqNodId := range torqNodeIds {
+								newLndServiceStatus := commons.RunningServices[commons.LndService].GetStatus(torqNodId)
+								_, exists := lndServiceStatuses[torqNodId]
+								if !exists {
+									lndServiceStatuses[torqNodId] = commons.Inactive
+								}
+								if newLndServiceStatus != lndServiceStatuses[torqNodId] {
+									eventChannel <- commons.ServiceEvent{
+										PreviousStatus: lndServiceStatuses[torqNodId],
+										Status:         newLndServiceStatus,
+										Type:           commons.LndService,
+										EventData: commons.EventData{
+											EventTime: time.Now().UTC(),
+											NodeId:    torqNodId,
+										},
 									}
-									if newLndServiceStatus != lndServiceStatuses[torqNodId] {
-										eventChannel <- commons.ServiceEvent{
-											PreviousStatus: lndServiceStatuses[torqNodId],
-											Status:         newLndServiceStatus,
-											Type:           commons.LndService,
-											EventData: commons.EventData{
-												EventTime: time.Now().UTC(),
-												NodeId:    torqNodId,
-											},
-										}
-										lndServiceStatuses[torqNodId] = newLndServiceStatus
+									lndServiceStatuses[torqNodId] = newLndServiceStatus
+								}
+								newVectorServiceStatus := commons.RunningServices[commons.VectorService].GetStatus(torqNodId)
+								_, exists = vectorServiceStatuses[torqNodId]
+								if !exists {
+									vectorServiceStatuses[torqNodId] = commons.Inactive
+								}
+								if newVectorServiceStatus != vectorServiceStatuses[torqNodId] {
+									eventChannel <- commons.ServiceEvent{
+										PreviousStatus: vectorServiceStatuses[torqNodId],
+										Status:         newVectorServiceStatus,
+										Type:           commons.VectorService,
+										EventData: commons.EventData{
+											EventTime: time.Now().UTC(),
+											NodeId:    torqNodId,
+										},
 									}
-									newVectorServiceStatus := commons.RunningServices[commons.VectorService].GetStatus(torqNodId)
-									_, exists = vectorServiceStatuses[torqNodId]
-									if !exists {
-										vectorServiceStatuses[torqNodId] = commons.Inactive
+									vectorServiceStatuses[torqNodId] = newVectorServiceStatus
+								}
+								newAmbossServiceStatus := commons.RunningServices[commons.AmbossService].GetStatus(torqNodId)
+								_, exists = ambossServiceStatuses[torqNodId]
+								if !exists {
+									ambossServiceStatuses[torqNodId] = commons.Inactive
+								}
+								if newAmbossServiceStatus != ambossServiceStatuses[torqNodId] {
+									eventChannel <- commons.ServiceEvent{
+										PreviousStatus: ambossServiceStatuses[torqNodId],
+										Status:         newAmbossServiceStatus,
+										Type:           commons.AmbossService,
+										EventData: commons.EventData{
+											EventTime: time.Now().UTC(),
+											NodeId:    torqNodId,
+										},
 									}
-									if newVectorServiceStatus != vectorServiceStatuses[torqNodId] {
-										eventChannel <- commons.ServiceEvent{
-											PreviousStatus: vectorServiceStatuses[torqNodId],
-											Status:         newVectorServiceStatus,
-											Type:           commons.VectorService,
-											EventData: commons.EventData{
-												EventTime: time.Now().UTC(),
-												NodeId:    torqNodId,
-											},
-										}
-										vectorServiceStatuses[torqNodId] = newVectorServiceStatus
-									}
-									newAmbossServiceStatus := commons.RunningServices[commons.AmbossService].GetStatus(torqNodId)
-									_, exists = ambossServiceStatuses[torqNodId]
-									if !exists {
-										ambossServiceStatuses[torqNodId] = commons.Inactive
-									}
-									if newAmbossServiceStatus != ambossServiceStatuses[torqNodId] {
-										eventChannel <- commons.ServiceEvent{
-											PreviousStatus: ambossServiceStatuses[torqNodId],
-											Status:         newAmbossServiceStatus,
-											Type:           commons.AmbossService,
-											EventData: commons.EventData{
-												EventTime: time.Now().UTC(),
-												NodeId:    torqNodId,
-											},
-										}
-										ambossServiceStatuses[torqNodId] = newAmbossServiceStatus
-									}
+									ambossServiceStatuses[torqNodId] = newAmbossServiceStatus
 								}
 							}
-						} else {
-							newTorqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
-							if newTorqServiceStatus != torqServiceStatus {
-								eventChannel <- commons.ServiceEvent{
-									PreviousStatus: torqServiceStatus,
-									Status:         newTorqServiceStatus,
-									Type:           commons.TorqService,
-									EventData: commons.EventData{
-										EventTime: time.Now().UTC(),
-										NodeId:    commons.TorqDummyNodeId,
-									},
-								}
-								torqServiceStatus = newTorqServiceStatus
+						}
+					} else {
+						newTorqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
+						if newTorqServiceStatus != torqServiceStatus {
+							eventChannel <- commons.ServiceEvent{
+								PreviousStatus: torqServiceStatus,
+								Status:         newTorqServiceStatus,
+								Type:           commons.TorqService,
+								EventData: commons.EventData{
+									EventTime: time.Now().UTC(),
+									NodeId:    commons.TorqDummyNodeId,
+								},
 							}
+							torqServiceStatus = newTorqServiceStatus
 						}
 					}
 				}
@@ -456,7 +454,7 @@ func main() {
 												services.Booted(node.NodeId, bootLock, serviceEventChannel)
 												commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 												log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
-												err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel, serviceEventChannel, serviceChannel)
+												err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster, eventChannel, serviceEventChannel, serviceChannel)
 												if err != nil {
 													log.Error().Err(err).Send()
 													// only log the error, don't return

@@ -17,7 +17,9 @@ import (
 )
 
 // storeForwardingHistory
-func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int, eventChannel chan interface{}) error {
+func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int,
+	eventChannel chan interface{}, bootStrapping bool) error {
+
 	if len(fwh) > 0 {
 		var forwardEvents []commons.ForwardEvent
 		tx := db.MustBegin()
@@ -71,8 +73,8 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 		if err != nil {
 			return errors.Wrap(err, "DB Commit")
 		}
-		for _, forwardEvent := range forwardEvents {
-			if eventChannel != nil {
+		if eventChannel != nil && !bootStrapping {
+			for _, forwardEvent := range forwardEvents {
 				eventChannel <- forwardEvent
 			}
 		}
@@ -183,7 +185,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 				}
 				// Store the forwarding history
-				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, eventChannel)
+				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, eventChannel, bootStrapping)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to store forward event")
 				}

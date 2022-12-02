@@ -15,6 +15,7 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -206,8 +207,11 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 			return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
 		}
 		log.Debug().Msgf("Added test active node connection details with nodeId: %v", testNodeId2)
+		var eventChannelGlobal = make(chan interface{})
+		broadcaster := broadcast.NewBroadcastServer(ctx, eventChannelGlobal)
 
 		go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctx)
+		go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, broadcaster, ctx)
 		go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctx)
 		go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
 		go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)
