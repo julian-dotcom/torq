@@ -2,30 +2,22 @@ import Table from "features/table/Table";
 import { useGetOnChainTxQuery } from "./onChainApi";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Filter20Regular as FilterIcon,
-  ArrowSortDownLines20Regular as SortIcon,
-  ColumnTriple20Regular as ColumnsIcon,
   Options20Regular as OptionsIcon,
   LinkEdit20Regular as NewOnChainAddressIcon,
   // Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
-import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
   TableControlsButton,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import { SectionContainer } from "features/section/SectionContainer";
-import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
-import FilterSection from "features/sidebar/sections/filter/FilterSection";
-import SortSection from "features/sidebar/sections/sort/SortSection";
 import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_ADDRESS } from "constants/routes";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
 import { OnChainResponse } from "./types";
-import DefaultCellRenderer from "../../table/DefaultCellRenderer";
+import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import {
   AllOnChainColumns,
   DefaultOnChainView,
@@ -33,22 +25,20 @@ import {
   OnChainSortTemplate,
   SortableOnChainColumns,
 } from "./onChainDefaults";
-import { useView } from "../../viewManagement/useView";
-import { FilterInterface } from "../../sidebar/sections/filter/filter";
-import { usePagination } from "../../../components/table/pagination/usePagination";
-
-type sections = {
-  filter: boolean;
-  sort: boolean;
-  columns: boolean;
-};
+import { FilterInterface } from "features/sidebar/sections/filter/filter";
+import { usePagination } from "components/table/pagination/usePagination";
+import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
+import { useAppSelector } from "store/hooks";
+import { selectOnChainView } from "features/viewManagement/viewSlice";
+import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 
 function OnChainPage() {
   const { t } = useTranslations();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [view, selectView, isViewsLoaded] = useView("onChain", AllOnChainColumns, 0, DefaultOnChainView);
+  const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
+  const viewResponse = useAppSelector(selectOnChainView);
   const [getPagination, limit, offset] = usePagination("onChain");
 
   const onChainTxResponse = useGetOnChainTxQuery<{
@@ -61,10 +51,10 @@ function OnChainPage() {
     {
       limit: limit,
       offset: offset,
-      order: view.sortBy,
-      filter: view.filters.length ? (view.filters.toJSON() as FilterInterface) : undefined,
+      order: viewResponse.view.sortBy,
+      filter: viewResponse.view.filters.length ? (viewResponse.view.filters.toJSON() as FilterInterface) : undefined,
     },
-    { skip: !isViewsLoaded }
+    { skip: !isSuccess }
   );
 
   // let data: any = [];
@@ -82,23 +72,6 @@ function OnChainPage() {
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-
-  // General logic for toggling the sidebar sections
-  const initialSectionState: sections = {
-    filter: false,
-    sort: false,
-    columns: false,
-  };
-  const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
-
-  const sidebarSectionHandler = (section: keyof sections) => {
-    return () => {
-      setActiveSidebarSections({
-        ...activeSidebarSections,
-        [section]: !activeSidebarSections[section],
-      });
-    };
-  };
 
   const closeSidebarHandler = () => {
     return () => {
@@ -138,38 +111,23 @@ function OnChainPage() {
   );
 
   const sidebar = (
-    <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
-      <SectionContainer
-        title={"Columns"}
-        icon={ColumnsIcon}
-        expanded={activeSidebarSections.columns}
-        handleToggle={sidebarSectionHandler("columns")}
-      >
-        <ColumnsSection columns={AllOnChainColumns} view={view} />
-      </SectionContainer>
-      <SectionContainer
-        title={"Filter"}
-        icon={FilterIcon}
-        expanded={activeSidebarSections.filter}
-        handleToggle={sidebarSectionHandler("filter")}
-      >
-        <FilterSection columns={AllOnChainColumns} view={view} defaultFilter={OnChainFilterTemplate} />
-      </SectionContainer>
-      <SectionContainer
-        title={"Sort"}
-        icon={SortIcon}
-        expanded={activeSidebarSections.sort}
-        handleToggle={sidebarSectionHandler("sort")}
-      >
-        <SortSection columns={SortableOnChainColumns} view={view} defaultSortBy={OnChainSortTemplate} />
-      </SectionContainer>
-    </Sidebar>
+    <ViewsSidebar
+      onExpandToggle={closeSidebarHandler}
+      expanded={sidebarExpanded}
+      viewResponse={viewResponse}
+      allColumns={AllOnChainColumns}
+      defaultView={DefaultOnChainView}
+      filterableColumns={AllOnChainColumns}
+      filterTemplate={OnChainFilterTemplate}
+      sortableColumns={SortableOnChainColumns}
+      sortByTemplate={OnChainSortTemplate}
+    />
   );
 
   const breadcrumbs = [
-    <span key="b1">Transactions</span>,
+    <span key="b1">{t.transactions}</span>,
     <Link key="b2" to={"/transactions/on-chain"}>
-      On-Chain Tx
+      {t.onChainTx}
     </Link>,
   ];
 
@@ -185,7 +143,7 @@ function OnChainPage() {
       <Table
         cellRenderer={DefaultCellRenderer}
         data={onChainTxResponse?.data?.data || []}
-        activeColumns={view.columns}
+        activeColumns={viewResponse.view.columns}
         isLoading={onChainTxResponse.isLoading || onChainTxResponse.isFetching || onChainTxResponse.isUninitialized}
       />
     </TablePageTemplate>

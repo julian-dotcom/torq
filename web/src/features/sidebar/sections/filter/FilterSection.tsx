@@ -1,27 +1,32 @@
 import styles from "./filter-section.module.scss";
-import { FilterInterface } from "./filter";
 import FilterComponent from "./FilterComponent";
 import { ColumnMetaData } from "features/table/types";
-import View from "features/viewManagement/View";
+import { updateFilters } from "features/viewManagement/viewSlice";
+import { AllViewsResponse } from "features/viewManagement/types";
 
 type FilterSectionProps<T> = {
-  columns: Array<ColumnMetaData<T>>;
-  view: View<T>;
-  defaultFilter: FilterInterface;
+  page: keyof AllViewsResponse;
+  uuid: string;
+  filters: any;
+  filterableColumns: Array<ColumnMetaData<T>>;
+  defaultFilter: any;
 };
 
 function FilterSection<T>(props: FilterSectionProps<T>) {
-  const filters = props.view.filters;
-
   const handleFilterUpdate = () => {
-    props.view.updateFilters(filters);
+    updateFilters({
+      page: props.page,
+      uuid: "",
+      filterUpdate: props.filters,
+    });
+    // props.view.updateFilters(props.filters);
   };
 
   return (
     <div className={styles.filterPopoverContent}>
       <FilterComponent
-        filters={filters}
-        columns={props.columns}
+        filters={props.filters}
+        columns={props.filterableColumns}
         defaultFilter={props.defaultFilter}
         child={false}
         onFilterUpdate={handleFilterUpdate}

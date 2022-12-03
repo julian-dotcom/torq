@@ -1,19 +1,12 @@
 import {
-  ArrowSortDownLines20Regular as SortIcon,
-  ColumnTriple20Regular as ColumnsIcon,
-  Filter20Regular as FilterIcon,
   MoneyHand20Regular as TransactionIcon,
   Options20Regular as OptionsIcon,
   // Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
-import { useView } from "features/viewManagement/useView";
 import { useGetPaymentsQuery } from "./paymentsApi";
 import { NEW_PAYMENT } from "constants/routes";
 import Button, { buttonColor } from "components/buttons/Button";
-import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
-import SortSection from "features/sidebar/sections/sort/SortSection";
-import Sidebar from "features/sidebar/Sidebar";
 import Table from "features/table/Table";
 import TablePageTemplate, {
   TableControlsButton,
@@ -23,32 +16,30 @@ import TablePageTemplate, {
 import { useState } from "react";
 import { useLocation } from "react-router";
 import { Link, useNavigate } from "react-router-dom";
-import { SectionContainer } from "features/section/SectionContainer";
-import FilterSection from "features/sidebar/sections/filter/FilterSection";
 import { PaymentsResponse } from "./types";
-import DefaultCellRenderer from "../../table/DefaultCellRenderer";
-import useTranslations from "../../../services/i18n/useTranslations";
+import DefaultCellRenderer from "features/table/DefaultCellRenderer";
+import useTranslations from "services/i18n/useTranslations";
 import {
   AllPaymentsColumns,
   DefaultPaymentView,
-  FilterTemplate,
+  PaymentsFilterTemplate,
   PaymentsSortTemplate,
   SortablePaymentsColumns,
 } from "./paymentDefaults";
-import { usePagination } from "../../../components/table/pagination/usePagination";
-
-type sections = {
-  filter: boolean;
-  sort: boolean;
-  columns: boolean;
-};
+import { usePagination } from "components/table/pagination/usePagination";
+import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
+import { useAppSelector } from "store/hooks";
+import { selectPaymentsView } from "features/viewManagement/viewSlice";
+import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 
 function PaymentsPage() {
   const { t } = useTranslations();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [view, selectView, isViewsLoaded] = useView("payments", AllPaymentsColumns, 0, DefaultPaymentView);
+  const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
+  const viewResponse = useAppSelector(selectPaymentsView);
+
   const [getPagination, limit, offset] = usePagination("invoices");
 
   const paymentsResponse = useGetPaymentsQuery<{
@@ -61,10 +52,10 @@ function PaymentsPage() {
     {
       limit: limit,
       offset: offset,
-      order: view.sortBy,
-      filter: view.filters.length ? (view.filters.toJSON() as FilterInterface) : undefined,
+      order: viewResponse.view.sortBy,
+      filter: viewResponse.view.filters ? (viewResponse.view.filters.toJSON() as FilterInterface) : undefined,
     },
-    { skip: !isViewsLoaded }
+    { skip: !isSuccess }
   );
 
   // if (paymentsResponse?.data?.data) {
@@ -80,36 +71,8 @@ function PaymentsPage() {
   //   });
   // }
 
-  // const columns = activeColumns.map((column: ColumnMetaData<Payment>, _: number) => {
-  //   if (column.type === "number") {
-  //     return {
-  //       ...column,
-  //       max: Math.max(column.max ?? 0, data[column.key].max ?? 0),
-  //     };
-  //   } else {
-  //     return column;
-  //   }
-  // });
-
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  // General logic for toggling the sidebar sections
-  const initialSectionState: sections = {
-    filter: false,
-    sort: false,
-    columns: false,
-  };
-
-  const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
-
-  const sidebarSectionHandler = (section: keyof sections) => {
-    return () => {
-      setActiveSidebarSections({
-        ...activeSidebarSections,
-        [section]: !activeSidebarSections[section],
-      });
-    };
-  };
 
   const closeSidebarHandler = () => {
     return () => {
@@ -139,32 +102,17 @@ function PaymentsPage() {
   );
 
   const sidebar = (
-    <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
-      <SectionContainer
-        title={"Columns"}
-        icon={ColumnsIcon}
-        expanded={activeSidebarSections.columns}
-        handleToggle={sidebarSectionHandler("columns")}
-      >
-        <ColumnsSection columns={AllPaymentsColumns} view={view} />
-      </SectionContainer>
-      <SectionContainer
-        title={"Filter"}
-        icon={FilterIcon}
-        expanded={activeSidebarSections.filter}
-        handleToggle={sidebarSectionHandler("filter")}
-      >
-        <FilterSection columns={AllPaymentsColumns} view={view} defaultFilter={FilterTemplate} />
-      </SectionContainer>
-      <SectionContainer
-        title={"Sort"}
-        icon={SortIcon}
-        expanded={activeSidebarSections.sort}
-        handleToggle={sidebarSectionHandler("sort")}
-      >
-        <SortSection columns={SortablePaymentsColumns} view={view} defaultSortBy={PaymentsSortTemplate} />
-      </SectionContainer>
-    </Sidebar>
+    <ViewsSidebar
+      onExpandToggle={closeSidebarHandler}
+      expanded={sidebarExpanded}
+      viewResponse={viewResponse}
+      allColumns={AllPaymentsColumns}
+      defaultView={DefaultPaymentView}
+      filterableColumns={AllPaymentsColumns}
+      filterTemplate={PaymentsFilterTemplate}
+      sortableColumns={SortablePaymentsColumns}
+      sortByTemplate={PaymentsSortTemplate}
+    />
   );
 
   const breadcrumbs = [
@@ -186,7 +134,7 @@ function PaymentsPage() {
       <Table
         cellRenderer={DefaultCellRenderer}
         data={paymentsResponse?.data?.data || []}
-        activeColumns={view.columns}
+        activeColumns={viewResponse.view.columns}
         isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
       />
     </TablePageTemplate>

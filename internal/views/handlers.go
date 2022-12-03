@@ -18,6 +18,7 @@ type TableView struct {
 	Id        int            `json:"id" db:"id"`
 	View      types.JSONText `json:"view" db:"view"`
 	Page      string         `json:"page" db:"page"`
+	Uuid      string         `json:"uuid" db:"uuid"`
 	ViewOrder *int32         `json:"viewOrder" db:"view_order"`
 	Version   string         `json:"version" db:"version"`
 }

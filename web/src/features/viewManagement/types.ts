@@ -1,5 +1,5 @@
 import { ColumnMetaData } from "features/table/types";
-import { Clause } from "features/sidebar/sections/filter/filter";
+import { Clause, FilterInterface } from "features/sidebar/sections/filter/filter";
 import { tag } from "pages/tagsPage/tagsTypes";
 import { channel } from "features/channels/channelsTypes";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";
@@ -8,9 +8,16 @@ import { Payment } from "features/transact/Payments/types";
 import { OrderBy } from "../sidebar/sections/sort/SortSection";
 import { Forward } from "../forwards/forwardsTypes";
 
-export type ViewResponse<T> = { view: ViewInterface<T>; id?: number; page: keyof AllViewsResponse; viewOrder: number };
+export type ViewResponse<T> = {
+  view: ViewInterface<T>;
+  uuid: string;
+  page: keyof AllViewsResponse;
+  id?: number;
+  dirty?: boolean;
+};
 
 export type TableResponses = Forward | OnChainTx | Payment | Invoice | tag | channel;
+
 export type AllViewsResponse = {
   forwards: Array<ViewResponse<Forward>>;
   onChain: Array<ViewResponse<OnChainTx>>;
@@ -29,7 +36,7 @@ export type UpdateViewRequest = { id: number; view: ViewInterfaceResponse };
 
 export type ViewInterface<T> = {
   title: string;
-  filters?: Clause;
+  filters?: any;
   columns: Array<ColumnMetaData<T>>;
   sortBy?: Array<OrderBy>;
   groupBy?: "channels" | "peers" | undefined;

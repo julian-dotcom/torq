@@ -2,8 +2,10 @@ import { torqApi } from "apiSlice";
 import {
   AllViewsResponse,
   CreateViewRequest,
+  TableResponses,
   UpdateViewRequest,
   ViewOrderInterface,
+  ViewResponse,
 } from "features/viewManagement/types";
 
 // Define a service using a base URL and expected endpoints
@@ -13,30 +15,27 @@ export const viewApi = torqApi.injectEndpoints({
       query: () => "table-views",
       providesTags: ["tableView"],
     }),
-    createTableView: builder.mutation<AllViewsResponse, CreateViewRequest>({
+    createTableView: builder.mutation<ViewResponse<TableResponses>, CreateViewRequest>({
       query: (body: CreateViewRequest) => ({
         url: "table-views",
         method: "POST",
         body: body,
       }),
-      // invalidatesTags: ["tableView"],
     }),
-    updateTableView: builder.mutation<AllViewsResponse, UpdateViewRequest>({
+    updateTableView: builder.mutation<ViewResponse<TableResponses>, UpdateViewRequest>({
       query: (body: UpdateViewRequest) => ({
         url: "table-views",
         method: "PUT",
         body: body,
       }),
-      // invalidatesTags: ["tableView"],
     }),
-    deleteTableView: builder.mutation<AllViewsResponse, { id: number }>({
+    deleteTableView: builder.mutation<AllViewsResponse, { page: keyof AllViewsResponse; id: number }>({
       query: (data) => ({
         url: `table-views/${data.id}`,
         method: "DELETE",
       }),
-      // invalidatesTags: ["tableView"],
     }),
-    updateTableViewsOrder: builder.mutation<AllViewsResponse, Array<ViewOrderInterface>>({
+    updateTableViewsOrder: builder.mutation<undefined, Array<ViewOrderInterface>>({
       query: (order: Array<ViewOrderInterface>) => ({
         url: "table-views/order",
         method: "PATCH",

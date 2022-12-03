@@ -1,4 +1,5 @@
-import { ViewInterface } from "../viewManagement/types";
+import { uuid } from "uuidv4";
+import { ViewInterface, ViewResponse } from "../viewManagement/types";
 import { channel } from "./channelsTypes";
 import { ColumnMetaData } from "../table/types";
 import { FilterInterface } from "../sidebar/sections/filter/filter";
@@ -232,10 +233,14 @@ export const ChannelsSortTemplate: { key: keyof channel; direction: "desc" | "as
   direction: "asc",
 };
 
-export const DefaultChannelsView: ViewInterface<channel> = {
-  title: "Untitled View",
-  columns: DefaultChannelsColumns,
-  sortBy: [ChannelsSortTemplate],
+export const DefaultChannelsView: ViewResponse<channel> = {
+  page: "channel",
+  uuid: uuid(),
+  view: {
+    title: "Untitled View",
+    columns: DefaultChannelsColumns,
+    sortBy: [ChannelsSortTemplate],
+  },
 };
 
 const sortableColumns: Array<keyof channel> = [

@@ -1,7 +1,8 @@
+import { uuid } from "uuidv4";
 import { ColumnMetaData } from "features/table/types";
 import { Payment } from "./types";
-import { ViewInterface } from "../../viewManagement/types";
-import { FilterCategoryType, FilterInterface } from "../../sidebar/sections/filter/filter";
+import { ViewResponse } from "features/viewManagement/types";
+import { FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
 
 export const AllPaymentsColumns: Array<ColumnMetaData<Payment>> = [
   { key: "date", heading: "Date", type: "DateCell", valueType: "date" },
@@ -50,7 +51,7 @@ export const SortablePaymentsColumns = AllPaymentsColumns.filter((column: Column
   sortableColumns.includes(column.key)
 );
 
-export const FilterTemplate: FilterInterface = {
+export const PaymentsFilterTemplate: FilterInterface = {
   funcName: "gte",
   category: "number" as FilterCategoryType,
   parameter: 0,
@@ -107,8 +108,13 @@ export const ActivePaymentsColumns: Array<ColumnMetaData<Payment>> = AllPayments
   return defaultColumns.includes(item.key);
 });
 
-export const DefaultPaymentView: ViewInterface<Payment> = {
-  title: "Untitled View",
-  columns: ActivePaymentsColumns,
-  sortBy: [PaymentsSortTemplate],
+export const DefaultPaymentView: ViewResponse<Payment> = {
+  page: "payments",
+  uuid: uuid(),
+  dirty: true,
+  view: {
+    title: "Untitled View",
+    columns: ActivePaymentsColumns,
+    sortBy: [PaymentsSortTemplate],
+  },
 };

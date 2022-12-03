@@ -1,4 +1,5 @@
-import { ViewInterface } from "features/viewManagement/types";
+import { uuid } from "uuidv4";
+import { ViewResponse } from "features/viewManagement/types";
 import { Invoice } from "./invoiceTypes";
 import { ColumnMetaData } from "features/table/types";
 import { FilterInterface } from "../../sidebar/sections/filter/filter";
@@ -184,8 +185,12 @@ export const InvoiceFilterTemplate: FilterInterface = {
 //   return c;
 // });
 
-export const InvoiceViewTemplate: ViewInterface<Invoice> = {
-  title: "Untitled View",
-  columns: DefaultInvoicesColumns,
-  sortBy: [],
+export const DefaultInvoiceView: ViewResponse<Invoice> = {
+  page: "invoices",
+  uuid: uuid(),
+  dirty: true,
+  view: {
+    title: "Untitled View",
+    columns: DefaultInvoicesColumns,
+  },
 };

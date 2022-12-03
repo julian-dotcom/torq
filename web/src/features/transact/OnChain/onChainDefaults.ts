@@ -1,6 +1,7 @@
+import { uuid } from "uuidv4";
 import { ColumnMetaData } from "features/table/types";
 import { OnChainTx } from "./types";
-import { ViewInterface } from "features/viewManagement/types";
+import { ViewResponse } from "features/viewManagement/types";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
 
 export const AllOnChainColumns: Array<ColumnMetaData<OnChainTx>> = [
@@ -53,8 +54,13 @@ export const OnChainFilterTemplate: FilterInterface = {
   key: "amount",
 };
 
-export const DefaultOnChainView: ViewInterface<OnChainTx> = {
-  title: "Untitled View",
-  columns: DefaultOnChainColumns,
-  sortBy: [OnChainSortTemplate],
+export const DefaultOnChainView: ViewResponse<OnChainTx> = {
+  page: "onChain",
+  uuid: uuid(),
+  dirty: true,
+  view: {
+    title: "Untitled View",
+    columns: DefaultOnChainColumns,
+    sortBy: [OnChainSortTemplate],
+  },
 };

@@ -1,13 +1,5 @@
 import { Link } from "react-router-dom";
-import {
-  ArrowJoin20Regular as GroupIcon,
-  ArrowSortDownLines20Regular as SortIcon,
-  ColumnTriple20Regular as ColumnsIcon,
-  Filter20Regular as FilterIcon,
-  // Save20Regular as SaveIcon,
-  Options20Regular as OptionsIcon,
-} from "@fluentui/react-icons";
-import Sidebar from "features/sidebar/Sidebar";
+import { Options20Regular as OptionsIcon } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
@@ -15,20 +7,13 @@ import TablePageTemplate, {
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-// import ViewsPopover from "features/viewManagement/ViewsPopover";
-import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
-import FilterSection from "features/sidebar/sections/filter/FilterSection";
-import SortSection from "features/sidebar/sections/sort/SortSection";
-import GroupBySection from "features/sidebar/sections/group/GroupBySection";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
-import { useView } from "../viewManagement/useView";
 import {
   AllForwardsColumns,
   DefaultForwardsView,
   ForwardsFilterTemplate,
   ForwardsSortByTemplate,
 } from "./forwardsDefaults";
-import { SectionContainer } from "features/section/SectionContainer";
 import useTranslations from "services/i18n/useTranslations";
 import { forwardsCellRenderer } from "./forwardsCells";
 import { useAppSelector } from "store/hooks";
@@ -37,18 +22,16 @@ import { addDays, format } from "date-fns";
 import { useGetForwardsQuery } from "apiSlice";
 import Table from "features/table/Table";
 import { Forward } from "./forwardsTypes";
-import ViewsPopover from "../viewManagement/ViewsPopover";
+import { useGetTableViewsQuery } from "../viewManagement/viewsApiSlice";
+import { selectForwardsView } from "../viewManagement/viewSlice";
+import ViewsSidebar from "../viewManagement/ViewsSidebar";
 // import Button, { buttonColor } from "components/buttons/Button";
 
-type sections = {
-  filter: boolean;
-  sort: boolean;
-  group: boolean;
-  columns: boolean;
-};
 function ForwardsPage() {
   const { t } = useTranslations();
-  const [view, selectView, isViewsLoaded, allViews] = useView("forwards", AllForwardsColumns, 0, DefaultForwardsView);
+
+  const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
+  const viewResponse = useAppSelector(selectForwardsView);
 
   const currentPeriod = useAppSelector(selectTimeInterval);
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
@@ -60,7 +43,7 @@ function ForwardsPage() {
     isFetching: boolean;
     isUninitialized: boolean;
     isSuccess: boolean;
-  }>({ from: from, to: to }, { skip: !isViewsLoaded });
+  }>({ from: from, to: to }, { skip: !isSuccess });
 
   // useEffect(() => {
   //   const views: ViewInterface<ForwardResponse>[] = [];
@@ -77,25 +60,6 @@ function ForwardsPage() {
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-
-  // General logic for toggling the sidebar sections
-  const initialSectionState: sections = {
-    filter: false,
-    sort: false,
-    columns: false,
-    group: false,
-  };
-
-  const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
-
-  const sidebarSectionHandler = (section: keyof sections) => {
-    return () => {
-      setActiveSidebarSections({
-        ...activeSidebarSections,
-        [section]: !activeSidebarSections[section],
-      });
-    };
-  };
 
   const closeSidebarHandler = () => {
     return () => {
@@ -135,47 +99,18 @@ function ForwardsPage() {
   );
 
   const sidebar = (
-    <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
-      <ViewsPopover
-        views={allViews}
-        page={"forwards"}
-        selectedView={0}
-        onSelectView={selectView}
-        ViewTemplate={DefaultForwardsView}
-      />
-      <SectionContainer
-        title={"Columns"}
-        icon={ColumnsIcon}
-        expanded={activeSidebarSections.columns}
-        handleToggle={sidebarSectionHandler("columns")}
-      >
-        <ColumnsSection columns={AllForwardsColumns} view={view} />
-      </SectionContainer>
-      <SectionContainer
-        title={"Filter"}
-        icon={FilterIcon}
-        expanded={activeSidebarSections.filter}
-        handleToggle={sidebarSectionHandler("filter")}
-      >
-        <FilterSection columns={AllForwardsColumns} view={view} defaultFilter={ForwardsFilterTemplate} />
-      </SectionContainer>
-      <SectionContainer
-        title={"Sort"}
-        icon={SortIcon}
-        expanded={activeSidebarSections.sort}
-        handleToggle={sidebarSectionHandler("sort")}
-      >
-        <SortSection columns={AllForwardsColumns} view={view} defaultSortBy={ForwardsSortByTemplate} />
-      </SectionContainer>
-      <SectionContainer
-        title={t.group}
-        icon={GroupIcon}
-        expanded={activeSidebarSections.group}
-        handleToggle={sidebarSectionHandler("group")}
-      >
-        <GroupBySection view={view} />
-      </SectionContainer>
-    </Sidebar>
+    <ViewsSidebar
+      onExpandToggle={closeSidebarHandler}
+      expanded={sidebarExpanded}
+      viewResponse={viewResponse}
+      allColumns={AllForwardsColumns}
+      defaultView={DefaultForwardsView}
+      filterableColumns={AllForwardsColumns}
+      filterTemplate={ForwardsFilterTemplate}
+      sortableColumns={AllForwardsColumns}
+      sortByTemplate={ForwardsSortByTemplate}
+      enableGroupBy={true}
+    />
   );
 
   const breadcrumbs = [
@@ -195,7 +130,7 @@ function ForwardsPage() {
       tableControls={tableControls}
     >
       <Table
-        activeColumns={view.columns}
+        activeColumns={viewResponse.view.columns}
         data={forwardsResponse?.data || []}
         cellRenderer={forwardsCellRenderer}
         isLoading={forwardsResponse.isLoading || forwardsResponse.isFetching || forwardsResponse.isUninitialized}

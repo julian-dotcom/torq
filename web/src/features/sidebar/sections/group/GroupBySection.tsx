@@ -1,21 +1,36 @@
 import { VirtualNetwork20Regular as ChannelsIcon, Iot20Regular as PeersIcon } from "@fluentui/react-icons";
 import styles from "./group-section.module.scss";
 import classNames from "classnames";
-import View from "features/viewManagement/View";
+import { AllViewsResponse } from "features/viewManagement/types";
+import { updateGroupBy } from "../../../viewManagement/viewSlice";
+import { useAppDispatch } from "../../../../store/hooks";
 
-type GroupPopoverProps<T> = {
-  view: View<T>;
+type GroupPopoverProps = {
+  page: keyof AllViewsResponse;
+  uuid: string;
+  groupBy?: "channels" | "peers";
 };
 
-function GroupBySection<T>(props: GroupPopoverProps<T>) {
+function GroupBySection(props: GroupPopoverProps) {
+  const dispatch = useAppDispatch();
+  const handleUpdate = (by: "channels" | "peers") => {
+    dispatch(
+      updateGroupBy({
+        page: props.page,
+        uuid: props.uuid,
+        groupByUpdate: by,
+      })
+    );
+  };
+
   return (
     <div className={styles.groupRowWrapper}>
       <button
         className={classNames(styles.groupRow, {
-          [styles.groupRowSelected]: props.view.groupBy == "channels",
+          [styles.groupRowSelected]: props.groupBy == "channels",
         })}
         onClick={() => {
-          props.view.groupBy = "channels";
+          handleUpdate("channels");
         }}
       >
         <div className="icon">
@@ -25,10 +40,10 @@ function GroupBySection<T>(props: GroupPopoverProps<T>) {
       </button>
       <button
         className={classNames(styles.groupRow, {
-          [styles.groupRowSelected]: props.view.groupBy == "peers",
+          [styles.groupRowSelected]: props.groupBy == "peers",
         })}
         onClick={() => {
-          props.view.groupBy = "peers";
+          handleUpdate("peers");
         }}
       >
         <div className="icon">

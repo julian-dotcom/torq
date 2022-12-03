@@ -6,6 +6,7 @@ import channelReducer from "features/channel/channelSlice";
 import timeIntervalReducer from "features/timeIntervalSelect/timeIntervalSlice";
 import { torqApi } from "apiSlice";
 import { setupListeners } from "@reduxjs/toolkit/query";
+import { viewsSlice } from "features/viewManagement/viewSlice";
 // import paymentsReducer from "features/transact/Payments/paymentsSlice";
 // import invoicesReducer from "features/transact/Invoices/invoicesSlice";
 // import onChainReducer from "features/transact/OnChain/onChainSlice";
@@ -22,6 +23,7 @@ export const store = configureStore({
     channel: channelReducer,
     // channels: channelsReducer,
     [torqApi.reducerPath]: torqApi.reducer,
+    viewsSlice: viewsSlice.reducer,
     i18n: i18nReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(torqApi.middleware),

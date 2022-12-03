@@ -1,6 +1,6 @@
 import { torqApi } from "apiSlice";
-import { GetPaymentsQueryParams } from "../../../types/api";
-import { queryParamsBuilder } from "../../../utils/queryParamsBuilder";
+import { GetPaymentsQueryParams } from "types/api";
+import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import { PaymentsResponse } from "./types";
 
 // Define a service using a base URL and expected endpoints

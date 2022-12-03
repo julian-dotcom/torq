@@ -2,22 +2,16 @@ import Table from "features/table/Table";
 import { useGetInvoicesQuery } from "./invoiceApi";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Filter20Regular as FilterIcon,
-  ArrowSortDownLines20Regular as SortIcon,
-  ColumnTriple20Regular as ColumnsIcon,
   Options20Regular as OptionsIcon,
   Check20Regular as InvoiceIcon,
   // Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
-import Sidebar from "features/sidebar/Sidebar";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
   TableControlsButtonGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
-import { SectionContainer } from "features/section/SectionContainer";
 import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
@@ -26,22 +20,16 @@ import {
   AllInvoicesColumns,
   InvoiceFilterTemplate,
   InvoiceSortTemplate,
-  InvoiceViewTemplate,
+  DefaultInvoiceView,
   SortableInvoiceColumns,
 } from "./invoiceDefaults";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
-
-import SortSection from "../../sidebar/sections/sort/SortSection";
-import { useView } from "../../viewManagement/useView";
-import FilterSection from "../../sidebar/sections/filter/FilterSection";
-import { FilterInterface } from "../../sidebar/sections/filter/filter";
-import { usePagination } from "../../../components/table/pagination/usePagination";
-
-type sections = {
-  filter: boolean;
-  sort: boolean;
-  columns: boolean;
-};
+import { FilterInterface } from "features/sidebar/sections/filter/filter";
+import { usePagination } from "components/table/pagination/usePagination";
+import { useGetTableViewsQuery } from "../../viewManagement/viewsApiSlice";
+import { useAppSelector } from "../../../store/hooks";
+import { selectInvoicesView } from "../../viewManagement/viewSlice";
+import ViewsSidebar from "../../viewManagement/ViewsSidebar";
 
 const statusTypes: any = {
   OPEN: "Open",
@@ -54,7 +42,9 @@ function InvoicesPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [view, selectView, isViewsLoaded] = useView("invoices", AllInvoicesColumns, 0, InvoiceViewTemplate);
+  const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
+  const viewResponse = useAppSelector(selectInvoicesView);
+
   const [getPagination, limit, offset] = usePagination("invoices");
 
   const invoicesResponse = useGetInvoicesQuery<{
@@ -67,10 +57,10 @@ function InvoicesPage() {
     {
       limit: limit,
       offset: offset,
-      order: view.sortBy,
-      filter: view.filters.length ? (view.filters.toJSON() as FilterInterface) : undefined,
+      order: viewResponse.view.sortBy,
+      filter: viewResponse.view.filters ? (viewResponse.view.filters.toJSON() as FilterInterface) : undefined,
     },
-    { skip: !isViewsLoaded }
+    { skip: !isSuccess }
   );
 
   // Logic for toggling the sidebar
@@ -86,24 +76,6 @@ function InvoicesPage() {
   //     };
   //   });
   // }
-
-  // General logic for toggling the sidebar sections
-  const initialSectionState: sections = {
-    filter: false,
-    sort: false,
-    columns: false,
-  };
-
-  const [activeSidebarSections, setActiveSidebarSections] = useState(initialSectionState);
-
-  const sidebarSectionHandler = (section: keyof sections) => {
-    return () => {
-      setActiveSidebarSections({
-        ...activeSidebarSections,
-        [section]: !activeSidebarSections[section],
-      });
-    };
-  };
 
   const closeSidebarHandler = () => {
     return () => {
@@ -133,32 +105,17 @@ function InvoicesPage() {
   );
 
   const sidebar = (
-    <Sidebar title={"Options"} closeSidebarHandler={closeSidebarHandler()}>
-      <SectionContainer
-        title={"Columns"}
-        icon={ColumnsIcon}
-        expanded={activeSidebarSections.columns}
-        handleToggle={sidebarSectionHandler("columns")}
-      >
-        <ColumnsSection columns={AllInvoicesColumns} view={view} />
-      </SectionContainer>
-      <SectionContainer
-        title={"Filter"}
-        icon={FilterIcon}
-        expanded={activeSidebarSections.filter}
-        handleToggle={sidebarSectionHandler("filter")}
-      >
-        <FilterSection columns={AllInvoicesColumns} view={view} defaultFilter={InvoiceFilterTemplate} />
-      </SectionContainer>
-      <SectionContainer
-        title={"Sort"}
-        icon={SortIcon}
-        expanded={activeSidebarSections.sort}
-        handleToggle={sidebarSectionHandler("sort")}
-      >
-        <SortSection columns={SortableInvoiceColumns} view={view} defaultSortBy={InvoiceSortTemplate} />
-      </SectionContainer>
-    </Sidebar>
+    <ViewsSidebar
+      onExpandToggle={closeSidebarHandler}
+      expanded={sidebarExpanded}
+      viewResponse={viewResponse}
+      allColumns={AllInvoicesColumns}
+      defaultView={DefaultInvoiceView}
+      filterableColumns={AllInvoicesColumns}
+      filterTemplate={InvoiceFilterTemplate}
+      sortableColumns={SortableInvoiceColumns}
+      sortByTemplate={InvoiceSortTemplate}
+    />
   );
 
   const breadcrumbs = [
@@ -180,7 +137,7 @@ function InvoicesPage() {
       <Table
         cellRenderer={DefaultCellRenderer}
         data={invoicesResponse?.data?.data || []}
-        activeColumns={view.columns || []}
+        activeColumns={viewResponse.view.columns || []}
         isLoading={invoicesResponse.isLoading || invoicesResponse.isFetching || invoicesResponse.isUninitialized}
       />
     </TablePageTemplate>

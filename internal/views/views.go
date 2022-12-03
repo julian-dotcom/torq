@@ -8,9 +8,10 @@ import (
 )
 
 type NewTableView struct {
-	View      types.JSONText `json:"view" db:"view"`
-	Page      string         `json:"page" db:"page"`
-	ViewOrder *int32         `json:"viewOrder" db:"view_order"`
+	View types.JSONText `json:"view" db:"view"`
+	Page string         `json:"page" db:"page"`
+	UuId string         `json:"uuid" db:"uuid"`
+	Id   int            `json:"id" db:"id"`
 }
 
 func getTableViews(db *sqlx.DB) (r []*TableView, err error) {
@@ -38,21 +39,23 @@ func getTableViews(db *sqlx.DB) (r []*TableView, err error) {
 func insertTableView(db *sqlx.DB, view NewTableView) (r TableView, err error) {
 
 	sql := `
-		INSERT INTO table_view (view, page, created_on) values ($1, $2, $3)
-		RETURNING id, view;
+		INSERT INTO table_view (view, page, uuid, created_on) values ($1, $2, $3, $4) RETURNING id, view, page, uuid,
+view_order;
 	`
-	err = db.QueryRowx(sql, &view.View, &view.Page, &view.ViewOrder, time.Now().UTC()).Scan(&r.Id, &r.View)
+	err = db.QueryRowx(sql, &view.View, &view.Page, &view.UuId, time.Now().UTC()).
+		Scan(&r.Id, &r.View, &r.Page, &r.Uuid, &r.ViewOrder)
 	if err != nil {
-		return TableView{}, errors.Wrap(err, "Unable to create view. SQL statement error")
+		return r, errors.Wrap(err, "Unable to create view. SQL statement error")
 	}
 
 	return r, nil
 }
 
 func updateTableView(db *sqlx.DB, view TableView) (TableView, error) {
-	sql := `UPDATE table_view SET view = $1, view_order = $2, updated_on = $3, version =$4 WHERE id = $5;`
+	sql := `UPDATE table_view SET view = $1, updated_on = $3, version =$4 WHERE uuid = $5 RETURNING id, view, page, uuid, view_order;`
 
-	_, err := db.Exec(sql, &view.View, &view.ViewOrder, time.Now().UTC(), "v2", &view.Id)
+	err := db.QueryRowx(sql, &view.View, &view.ViewOrder, time.Now().UTC(), &view.Version,
+		&view.Uuid).Scan(&view.Id, &view.View, &view.Page, &view.Uuid, &view.ViewOrder)
 	if err != nil {
 		return TableView{}, errors.Wrap(err, "Unable to create view. SQL statement error")
 	}

@@ -1,31 +1,27 @@
 import styles from "./views.module.scss";
-import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, DropResult, ResponderProvided } from "react-beautiful-dnd";
 import { AddSquare20Regular as AddIcon } from "@fluentui/react-icons";
-import TabButton from "components/buttons/TabButton";
 import Button, { buttonColor, buttonSize } from "components/buttons/Button";
-import { AllViewsResponse, TableResponses, ViewInterface, ViewOrderInterface, ViewResponse } from "./types";
-import {
-  useCreateTableViewMutation,
-  useDeleteTableViewMutation,
-  useUpdateTableViewMutation,
-  useUpdateTableViewsOrderMutation,
-} from "./viewsApiSlice";
+import { AllViewsResponse, TableResponses, ViewOrderInterface, ViewResponse } from "./types";
+import { useCreateTableViewMutation, useUpdateTableViewsOrderMutation } from "./viewsApiSlice";
 import ViewRowComponent from "./ViewRow";
-import { useStrictDroppable } from "../../utils/UseStrictDroppable";
+import { useStrictDroppable } from "utils/UseStrictDroppable";
+import { addView, selectViews, updateViewsOrder } from "./viewSlice";
+import { useAppDispatch, useAppSelector } from "store/hooks";
+import useTranslations from "services/i18n/useTranslations";
 
 type ViewsPopover<T> = {
   page: keyof AllViewsResponse;
-  views: Array<ViewResponse<T>>;
-  ViewTemplate: ViewInterface<T>;
-  onSelectView: (index: number) => void;
-  selectedView: number;
+  defaultView: ViewResponse<T>;
 };
 
 function ViewsPopover<T>(props: ViewsPopover<T>) {
+  const { t } = useTranslations();
+  const dispatch = useAppDispatch();
+  const viewResponse = useAppSelector(selectViews)(props.page);
+
   const [updateTableViewsOrder] = useUpdateTableViewsOrderMutation();
   const [createTableView] = useCreateTableViewMutation();
-  const [updateTableView] = useUpdateTableViewMutation();
-  const [deleteTableView] = useDeleteTableViewMutation();
 
   const droppableContainerId = "views-list-droppable-" + props.page;
 
@@ -43,32 +39,32 @@ function ViewsPopover<T>(props: ViewsPopover<T>) {
   //   }
   // }
 
-  function handleSaveTitle(index: number, title: string) {
-    const view = props.views[index];
-    if (view.id !== undefined) {
-      updateTableView({
-        id: view.id,
-        view: { ...view.view, title: title } as ViewInterface<TableResponses>,
-      });
-    } else {
-      createTableView({
-        page: view.page,
-        view: { ...view.view, title: title } as ViewInterface<TableResponses>,
-        viewOrder: index,
-      });
-    }
-  }
+  // function handleSaveTitle(index: number, title: string) {
+  //   const view = views.views[index];
+  //   if (view.id !== undefined) {
+  //     updateTableView({
+  //       id: view.id,
+  //       view: { ...view.view, title: title } as ViewInterface<TableResponses>,
+  //     });
+  //   } else {
+  //     createTableView({
+  //       page: view.page,
+  //       view: { ...view.view, title: title } as ViewInterface<TableResponses>,
+  //       viewOrder: index,
+  //     });
+  //   }
+  // }
 
-  function handleDeleteView(index: number) {
-    const view = props.views[index];
-    if (view.id !== undefined) {
-      deleteTableView({ id: view.id });
-    } else {
-      props.views.splice(index, 1);
-    }
-  }
+  // function handleDeleteView(index: number) {
+  //   const view = props.views[index];
+  //   if (view.id !== undefined) {
+  //     deleteTableView({ id: view.id });
+  //   } else {
+  //     props.views.splice(index, 1);
+  //   }
+  // }
 
-  const onDragEnd = (result: DropResult) => {
+  const onDragEnd = (result: DropResult, provided: ResponderProvided) => {
     const { destination, source } = result;
 
     // Dropped outside of container
@@ -81,53 +77,40 @@ function ViewsPopover<T>(props: ViewsPopover<T>) {
       return;
     }
 
-    let newCurrentIndex = props.selectedView;
-    // If moved view is the selected view
-    if (source.index === props.selectedView) {
-      newCurrentIndex = destination.index;
-    }
-    // If moved view has a source bellow the selected view
-    if (source.index < props.selectedView && destination.index >= props.selectedView) {
-      props.onSelectView(props.selectedView - 1);
-    }
-    // If moved view has a source above the selected view
-    if (source.index > props.selectedView && destination.index <= props.selectedView) {
-      newCurrentIndex = props.selectedView + 1;
-    }
-
-    const newViewsOrder = props.views.slice();
+    const newViewsOrder = viewResponse.views.slice();
+    const view = viewResponse.views[source.index];
     newViewsOrder.splice(source.index, 1);
-    newViewsOrder.splice(destination.index, 0, props.views[source.index]);
+    newViewsOrder.splice(destination.index, 0, view as ViewResponse<TableResponses>);
     const order: ViewOrderInterface[] = newViewsOrder.map((v, index: number) => {
       return { id: v.id, viewOrder: index };
     });
+    dispatch(updateViewsOrder({ page: props.page, fromIndex: source.index, toIndex: destination.index }));
     updateTableViewsOrder(order);
   };
 
-  const button = <TabButton title={props.views[props.selectedView].view.title} dropDown={true} />;
-
   // Workaround for incorrect handling of React.StrictMode by react-beautiful-dnd
   // https://github.com/atlassian/react-beautiful-dnd/issues/2396#issuecomment-1248018320
-  const [strictDropEnabled] = useStrictDroppable(!props.views.length);
+  const [strictDropEnabled] = useStrictDroppable(!viewResponse.views.length);
 
-  const singleView = props.views.length <= 1;
+  const singleView = viewResponse.views.length <= 1;
   return (
-    // <Popover button={button}>
     <DragDropContext onDragEnd={onDragEnd}>
       <div className={styles.viewsPopoverContent}>
         {strictDropEnabled && (
           <Droppable droppableId={droppableContainerId}>
             {(provided) => (
               <div className={styles.viewRows} ref={provided.innerRef} {...provided.droppableProps}>
-                {props.views.map((view, index) => {
+                {viewResponse.views.map((view, index) => {
                   return (
                     <ViewRowComponent
                       title={view.view.title}
-                      onTitleSave={handleSaveTitle}
-                      onDeleteView={handleDeleteView}
-                      key={"view-row-" + view.id || "unsaved-" + index}
+                      id={view.id}
+                      uuid={view.uuid}
+                      page={view.page}
                       index={index}
-                      onSelectView={props.onSelectView}
+                      key={"view-row-" + view.uuid}
+                      selected={viewResponse.selected === view.uuid}
+                      singleView={singleView}
                     />
                   );
                 })}
@@ -140,20 +123,15 @@ function ViewsPopover<T>(props: ViewsPopover<T>) {
           <Button
             buttonColor={buttonColor.ghost}
             buttonSize={buttonSize.small}
-            text={"Add View"}
+            text={t.addView}
             icon={<AddIcon />}
             onClick={() => {
-              createTableView({
-                page: props.page,
-                view: props.ViewTemplate as ViewInterface<TableResponses>,
-                viewOrder: props.views.length,
-              });
+              dispatch(addView({ view: props.defaultView as ViewResponse<TableResponses> }));
             }}
           />
         </div>
       </div>
     </DragDropContext>
-    // </Popover>
   );
 }
 

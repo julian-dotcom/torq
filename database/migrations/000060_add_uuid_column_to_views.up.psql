@@ -1,0 +1,2 @@
+alter table table_view
+    add uuid uuid default gen_random_uuid () not null;

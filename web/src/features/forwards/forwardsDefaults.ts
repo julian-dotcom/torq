@@ -1,7 +1,8 @@
+import { uuid } from "uuidv4";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
-import { ViewInterface } from "../viewManagement/types";
-import { OrderBy } from "../sidebar/sections/sort/SortSection";
+import { ViewResponse } from "../viewManagement/types";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { Forward } from "./forwardsTypes";
 
 export const AllForwardsColumns: ColumnMetaData<Forward>[] = [
@@ -166,9 +167,14 @@ export const ForwardsSortByTemplate: OrderBy = { key: "revenueOut", direction: "
 
 export const DefaultForwardsColumns = AllForwardsColumns.filter((c) => defaultColumns.includes(c.key));
 
-export const DefaultForwardsView: ViewInterface<Forward> = {
-  title: "Untitled View",
-  columns: DefaultForwardsColumns,
-  sortBy: [ForwardsSortByTemplate],
-  groupBy: "channels",
+export const DefaultForwardsView: ViewResponse<Forward> = {
+  page: "forwards",
+  uuid: uuid(),
+  dirty: true,
+  view: {
+    title: "Untitled View",
+    columns: DefaultForwardsColumns,
+    sortBy: [ForwardsSortByTemplate],
+    groupBy: "channels",
+  },
 };

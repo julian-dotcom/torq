@@ -11,9 +11,11 @@ import { ColumnMetaData } from "features/table/types";
 import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
-import { ActionMeta } from "react-select";
 import { useStrictDroppable } from "utils/UseStrictDroppable";
-import View from "../../../viewManagement/View";
+import { useAppDispatch } from "../../../../store/hooks";
+import { AllViewsResponse } from "../../../viewManagement/types";
+import { addSortBy, updateSortBy, deleteSortBy, updateSortByOrder } from "../../../viewManagement/viewSlice";
+import useTranslations from "../../../../services/i18n/useTranslations";
 
 export type OrderBy = {
   key: string;
@@ -26,23 +28,30 @@ type OrderByOption = {
 };
 
 type SortRowProps<T> = {
-  selected: OrderBy;
+  orderBy: OrderBy;
   options: Array<OrderByOption>;
+  page: keyof AllViewsResponse;
+  uuid: string;
   index: number;
-  view: View<T>;
 };
 
 function SortRow<T>(props: SortRowProps<T>) {
-  const handleUpdate = (newValue: unknown, _: ActionMeta<unknown>) => {
-    props.view.updateSortBy(
-      { key: (newValue as OrderByOption).value, direction: props.selected.direction },
-      props.index
-    );
+  const dispatch = useAppDispatch();
+  const handleUpdate = (newValue: any, _: unknown) => {
+    const newOrderBy: OrderBy = {
+      ...props.orderBy,
+      key: newValue.value,
+    };
+    dispatch(updateSortBy({ page: props.page, uuid: props.uuid, sortByUpdate: newOrderBy, sortByIndex: props.index }));
   };
 
   const updateDirection = (selected: OrderBy) => {
-    const direction = props.selected.direction === "asc" ? "desc" : "asc";
-    props.view.updateSortBy({ ...props.selected, direction: direction }, props.index);
+    const direction = props.orderBy.direction === "asc" ? "desc" : "asc";
+    const newOrderBy: OrderBy = {
+      ...props.orderBy,
+      direction: direction,
+    };
+    dispatch(updateSortBy({ page: props.page, uuid: props.uuid, sortByUpdate: newOrderBy, sortByIndex: props.index }));
   };
 
   return (
@@ -64,20 +73,20 @@ function SortRow<T>(props: SortRowProps<T>) {
               options={props.options}
               getOptionLabel={(option: any): string => option["label"]}
               getOptionValue={(option: any): string => option["value"]}
-              value={props.options.find((option) => option.value === props.selected.key)}
+              value={props.options.find((option) => option.value === props.orderBy.key)}
             />
           </div>
 
           <div
-            className={classNames(styles.directionWrapper, { [styles.asc]: props.selected.direction === "asc" })}
-            onClick={() => updateDirection(props.selected)}
+            className={classNames(styles.directionWrapper, { [styles.asc]: props.orderBy.direction === "asc" })}
+            onClick={() => updateDirection(props.orderBy)}
           >
             {<SortDescIcon />}
           </div>
           <div className={styles.dismissIconWrapper}>
             <DismissIcon
               onClick={() => {
-                props.view.removeSortBy(props.index);
+                dispatch(deleteSortBy({ page: props.page, uuid: props.uuid, sortByIndex: props.index }));
               }}
             />
           </div>
@@ -88,12 +97,17 @@ function SortRow<T>(props: SortRowProps<T>) {
 }
 
 type SortSectionProps<T> = {
+  page: keyof AllViewsResponse;
+  uuid: string;
   columns: Array<ColumnMetaData<T>>;
-  view: View<T>;
+  sortBy?: Array<OrderBy>;
   defaultSortBy: OrderBy;
 };
 
 function SortSection<T>(props: SortSectionProps<T>) {
+  const { t } = useTranslations();
+  const dispatch = useAppDispatch();
+
   const [options, _] = useMemo(() => {
     const options: Array<OrderByOption> = [];
     const selected: Array<OrderByOption> = [];
@@ -107,34 +121,9 @@ function SortSection<T>(props: SortSectionProps<T>) {
     return [options, selected];
   }, [props.columns]);
 
-  // const handleAddSort = () => {
-  //   const updated: Array<OrderBy> = [
-  //     ...props.orderBy,
-  //     {
-  //       direction: "desc",
-  //       key: props.columns[0].key.toString(),
-  //     },
-  //   ];
-  //   props.updateHandler(updated);
-  // };
-
-  // const handleUpdateSort = (update: OrderBy, index: number) => {
-  //   const updated: Array<OrderBy> = [
-  //     ...props.view.sortBy.slice(0, index),
-  //     update,
-  //     ...props.view.sortBy.slice(index + 1, props.orderBy.length),
-  //   ];
-  //   props.view.updateAllSortBy(updated);
-  // };
-  //
-  // const handleRemoveSort = (index: number) => {
-  //   const updated: OrderBy[] = [
-  //     ...props.orderBy.slice(0, index),
-  //     ...props.orderBy.slice(index + 1, props.orderBy.length),
-  //   ];
-  //
-  //   props.updateHandler(updated);
-  // };
+  const handleAddSort = () => {
+    dispatch(addSortBy({ page: props.page, uuid: props.uuid, sortBy: props.defaultSortBy }));
+  };
 
   const droppableContainerId = "sort-list-droppable";
 
@@ -151,25 +140,40 @@ function SortSection<T>(props: SortSectionProps<T>) {
       return;
     }
 
-    props.view.moveSortBy(source.index, destination.index);
+    // Update sort by order
+    dispatch(
+      updateSortByOrder({
+        page: props.page,
+        uuid: props.uuid,
+        fromIndex: source.index,
+        toIndex: destination.index,
+      })
+    );
   };
 
   // Workaround for incorrect handling of React.StrictMode by react-beautiful-dnd
   // https://github.com/atlassian/react-beautiful-dnd/issues/2396#issuecomment-1248018320
-  const [strictDropEnabled] = useStrictDroppable(!props.view.sortBy);
+  const [strictDropEnabled] = useStrictDroppable(!props.sortBy);
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className={styles.sortPopoverContent}>
-        {!props.view.sortBy?.length && <div className={styles.noFilters}>Not sorted</div>}
+        {!props.sortBy?.length && <div className={styles.noFilters}>Not sorted</div>}
 
         {strictDropEnabled && (
           <Droppable droppableId={droppableContainerId}>
             {(provided) => (
               <div className={styles.sortRows} ref={provided.innerRef} {...provided.droppableProps}>
-                {props.view.sortBy?.map((item, index) => {
+                {props.sortBy?.map((item, index) => {
                   return (
-                    <SortRow key={item.key + index} selected={item} options={options} index={index} view={props.view} />
+                    <SortRow
+                      key={item.key + index}
+                      orderBy={item}
+                      options={options}
+                      index={index}
+                      uuid={props.uuid}
+                      page={props.page}
+                    />
                   );
                 })}
 
@@ -183,8 +187,8 @@ function SortSection<T>(props: SortSectionProps<T>) {
           <Button
             buttonColor={buttonColor.ghost}
             buttonSize={buttonSize.small}
-            onClick={() => props.view.addSortBy(props.defaultSortBy)}
-            text={"Add"}
+            onClick={() => handleAddSort()}
+            text={t.Add}
             icon={<AddIcon />}
           />
         </div>

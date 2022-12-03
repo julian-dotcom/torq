@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import classNames from "classnames";
 import { Draggable } from "react-beautiful-dnd";
 import {
@@ -8,16 +8,24 @@ import {
   Reorder20Regular as DragHandle,
 } from "@fluentui/react-icons";
 import styles from "./views.module.scss";
+import { AllViewsResponse } from "./types";
+import { useDeleteTableViewMutation } from "./viewsApiSlice";
+import { useAppDispatch } from "../../store/hooks";
+import { deleteView, updateSelectedView, updateViewTitle } from "./viewSlice";
 
-type ViewRow = {
+type ViewRow<T> = {
+  uuid: string;
+  id?: number;
   title: string;
+  page: keyof AllViewsResponse;
   index: number;
-  onSelectView: (index: number) => void;
-  onTitleSave: (index: number, title: string) => void;
-  onDeleteView: (id: number) => void;
+  selected: boolean;
+  singleView: boolean;
 };
 
-export default function ViewRowComponent<T>(props: ViewRow) {
+export default function ViewRowComponent<T>(props: ViewRow<T>) {
+  const dispatch = useAppDispatch();
+  const [deleteTableView] = useDeleteTableViewMutation();
   const [editView, setEditView] = useState(false);
   const [localTitle, setLocalTitle] = useState(props.title);
 
@@ -25,8 +33,18 @@ export default function ViewRowComponent<T>(props: ViewRow) {
     setLocalTitle(e.target.value);
   }
 
+  function handleInputSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setEditView(false);
+    dispatch(updateViewTitle({ page: props.page, uuid: props.uuid, title: localTitle }));
+  }
+
+  function handleSelectView() {
+    dispatch(updateSelectedView({ page: props.page, uuid: props.uuid }));
+  }
+
   return (
-    <Draggable draggableId={`draggable-view-id-${props.index}`} index={props.index}>
+    <Draggable draggableId={`draggable-view-id-${props.uuid}`} index={props.index}>
       {(provided, snapshot) => (
         <div
           className={classNames(styles.viewRow, { dragging: snapshot.isDragging })}
@@ -38,17 +56,14 @@ export default function ViewRowComponent<T>(props: ViewRow) {
           </div>
 
           {editView ? (
-            <form
-              onSubmit={() => props.onTitleSave(props.index, localTitle)}
-              className={classNames(styles.viewEdit, "torq-input-field")}
-            >
+            <form onSubmit={handleInputSubmit} className={classNames(styles.viewEdit, "torq-input-field")}>
               <input type="text" autoFocus={true} onChange={handleInputChange} value={localTitle} />
               <button type={"submit"}>
                 <SaveIcon />
               </button>
             </form>
           ) : (
-            <div className={styles.viewSelect} onClick={() => props.onSelectView(props.index)}>
+            <div className={styles.viewSelect} onClick={handleSelectView}>
               <div>{props.title}</div>
               <div className={styles.editView} onClick={() => setEditView(true)}>
                 <EditIcon />
@@ -56,9 +71,20 @@ export default function ViewRowComponent<T>(props: ViewRow) {
             </div>
           )}
 
-          <div className={styles.removeView} onClick={() => props.onDeleteView(props.index)}>
-            <RemoveIcon />
-          </div>
+          {!props.singleView && (
+            <div
+              className={styles.removeView}
+              onClick={() => {
+                if (props.id) {
+                  deleteTableView({ page: props.page, id: props.id });
+                } else {
+                  dispatch(deleteView({ page: props.page, uuid: props.uuid }));
+                }
+              }}
+            >
+              <RemoveIcon />
+            </div>
+          )}
         </div>
       )}
     </Draggable>
