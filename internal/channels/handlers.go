@@ -34,13 +34,14 @@ type updateResponse struct {
 }
 
 type updateChanRequestBody struct {
-	NodeId        int     `json:"nodeId"`
-	ChannelPoint  *string `json:"channelPoint"`
-	FeeRatePpm    *uint32 `json:"feeRatePpm"`
-	BaseFeeMsat   *int64  `json:"baseFeeMsat"`
-	MaxHtlcMsat   *uint64 `json:"maxHtlcMsat"`
-	MinHtlcMsat   *uint64 `json:"minHtlcMsat"`
-	TimeLockDelta uint32  `json:"timeLockDelta"`
+	NodeId                 int     `json:"nodeId"`
+	FundingTransactionHash *string `json:"fundingTransactionHash"`
+	FundingOutputIndex     *int    `json:"fundingOutputIndex"`
+	FeeRatePpm             *uint32 `json:"feeRatePpm"`
+	BaseFeeMsat            *int64  `json:"baseFeeMsat"`
+	MaxHtlcMsat            *uint64 `json:"maxHtlcMsat"`
+	MinHtlcMsat            *uint64 `json:"minHtlcMsat"`
+	TimeLockDelta          uint32  `json:"timeLockDelta"`
 }
 type pendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
