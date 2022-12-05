@@ -182,7 +182,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	if len(activeNcds) != 0 {
 		for _, ncd := range activeNcds {
-			channelBalanceStates := commons.GetChannelStates(ncd.NodeId)
+			channelBalanceStates := commons.GetChannelStates(ncd.NodeId, true)
 			nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
 			for _, channel := range channelBalanceStates {
 				channelSettings := commons.GetChannelSettingByChannelId(channel.ChannelId)

@@ -25,13 +25,25 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	subscriptionStream := commons.ChannelBalanceCacheStream
 	lndSyncTicker := clock.New().Tick(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
 
+	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
+		serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-lndSyncTicker:
+				bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
+					serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db)
+			}
+		}
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-lndSyncTicker:
-			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
-				serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db)
 		case event := <-broadcaster.Subscribe():
 			processBroadcastedEvent(event)
 		}
@@ -158,6 +170,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettings.PendingOutgoingHtlcAmount = pendingOutgoingHtlcAmount
 		commons.SetChannelState(nodeId, channelId, channelStateSettings)
 	}
+	commons.SetChannelStateNodeStatus(nodeId, commons.RunningServices[commons.LndService].GetStatus(nodeId))
 	return nil
 }
 

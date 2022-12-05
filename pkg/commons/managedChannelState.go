@@ -104,6 +104,7 @@ type ManagedChannelState struct {
 	MaxHtlcMsat          uint64
 	TimeLockDelta        uint32
 	Amount               int64
+	ForceResponse        bool
 	HtlcEvent            HtlcEvent
 	ChannelStateSettings ManagedChannelStateSettings
 	HtlcInclude          ChannelBalanceStateHtlcInclude
@@ -199,7 +200,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			go SendToManagedChannelStateSettingsChannel(managedChannelState.StateOut, nil)
 			break
 		}
-		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
 			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if !exists {
@@ -221,7 +223,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			go SendToManagedChannelStatesSettingsChannel(managedChannelState.StatesOut, nil)
 			break
 		}
-		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
 			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if !exists {
@@ -262,7 +265,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			go SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
 			break
 		}
-		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
 			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if !exists {
@@ -286,7 +290,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			go SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, nil)
 			break
 		}
-		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
 			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if !exists {
@@ -346,13 +351,15 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			}
 		} else {
 			channelStateSettingsStatusCache[managedChannelState.NodeId] = managedChannelState.Status
+			channelStateSettingsDeactivationTimeCache[managedChannelState.NodeId] = time.Now()
 		}
 	case WRITE_CHANNELSTATE_CHANNELSTATUS:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
 			break
 		}
-		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
+		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
 			return
 		}
 		defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
@@ -379,7 +386,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
 			break
 		}
-		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache, channelStateSettingsDeactivationTimeCache) {
+		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
 			return
 		}
 		defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
@@ -434,39 +442,65 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 				managedChannelState.HtlcEvent.NodeId, managedChannelState.HtlcEvent.IncomingChannelId, managedChannelState.HtlcEvent.OutgoingChannelId)
 			break
 		}
-		//nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[managedChannelState.HtlcEvent.NodeId]
-		//if nodeExists {
-		//	if managedChannelState.HtlcEvent.IncomingChannelId != nil && *managedChannelState.HtlcEvent.IncomingChannelId == 0 {
-		//		channelSetting, channelExists := nodeChannels[*managedChannelState.HtlcEvent.IncomingChannelId]
-		//		if channelExists {
-		//			for _, htlc := range channelSetting.PendingHtlcs {
-		//				if htlc.HtlcIndex == managedChannelState.HtlcEvent.OutgoingHtlcId {
-		//					delete it and modifiy balance and UnsettledBalance if needed
-		//				} else {
-		//					new htlc so add it and modifiy balance and UnsettledBalance if needed
-		//				}
-		//			}
-		//		} else {
-		//			log.Error().Msgf("Received channel balance update for uncached channel with channelId: %v", managedChannelState.ChannelId)
-		//		}
-		//	}
-		//	if managedChannelState.HtlcEvent.OutgoingChannelId != nil && *managedChannelState.HtlcEvent.OutgoingChannelId == 0 {
-		//		channelSetting, channelExists := nodeChannels[*managedChannelState.HtlcEvent.OutgoingChannelId]
-		//		if channelExists {
-		//			for _, htlc := range channelSetting.PendingHtlcs {
-		//				if htlc.HtlcIndex == managedChannelState.HtlcEvent.OutgoingHtlcId {
-		//					delete it and modifiy balance and UnsettledBalance if needed
-		//				} else {
-		//					new htlc so add it and modifiy balance and UnsettledBalance if needed
-		//				}
-		//			}
-		//		} else {
-		//			log.Error().Msgf("Received channel balance update for uncached channel with channelId: %v", managedChannelState.ChannelId)
-		//		}
-		//	}
-		//} else {
-		//	log.Error().Msgf("Received channel balance update for uncached node with nodeId: %v", managedChannelState.NodeId)
-		//}
+		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[managedChannelState.HtlcEvent.NodeId]
+		if nodeExists {
+			if managedChannelState.HtlcEvent.IncomingChannelId != nil && *managedChannelState.HtlcEvent.IncomingChannelId == 0 {
+				channelSetting, channelExists := nodeChannels[*managedChannelState.HtlcEvent.IncomingChannelId]
+				if channelExists && managedChannelState.HtlcEvent.IncomingAmtMsat != nil && managedChannelState.HtlcEvent.IncomingHtlcId != nil {
+					foundIt := false
+					var pendingHtlc []Htlc
+					for _, htlc := range channelSetting.PendingHtlcs {
+						if managedChannelState.HtlcEvent.IncomingHtlcId != nil && htlc.HtlcIndex == *managedChannelState.HtlcEvent.IncomingHtlcId {
+							foundIt = true
+						} else {
+							pendingHtlc = append(pendingHtlc, htlc)
+						}
+					}
+					if foundIt {
+						channelSetting.UnsettledBalance = channelSetting.UnsettledBalance - int64(*managedChannelState.HtlcEvent.IncomingAmtMsat/1000)
+					} else {
+						pendingHtlc = append(pendingHtlc, Htlc{
+							Incoming:  true,
+							Amount:    int64((*managedChannelState.HtlcEvent.IncomingAmtMsat) / 1000),
+							HtlcIndex: *managedChannelState.HtlcEvent.IncomingHtlcId,
+						})
+						channelSetting.UnsettledBalance = channelSetting.UnsettledBalance + int64(*managedChannelState.HtlcEvent.IncomingAmtMsat/1000)
+					}
+					channelSetting.PendingHtlcs = pendingHtlc
+				} else {
+					log.Error().Msgf("Received channel balance update for uncached channel with channelId: %v", managedChannelState.ChannelId)
+				}
+			}
+			if managedChannelState.HtlcEvent.OutgoingChannelId != nil && *managedChannelState.HtlcEvent.OutgoingChannelId == 0 {
+				channelSetting, channelExists := nodeChannels[*managedChannelState.HtlcEvent.OutgoingChannelId]
+				if channelExists && managedChannelState.HtlcEvent.OutgoingAmtMsat != nil && managedChannelState.HtlcEvent.OutgoingHtlcId != nil {
+					foundIt := false
+					var pendingHtlc []Htlc
+					for _, htlc := range channelSetting.PendingHtlcs {
+						if managedChannelState.HtlcEvent.OutgoingHtlcId != nil && htlc.HtlcIndex == *managedChannelState.HtlcEvent.OutgoingHtlcId {
+							foundIt = true
+						} else {
+							pendingHtlc = append(pendingHtlc, htlc)
+						}
+					}
+					if foundIt {
+						channelSetting.UnsettledBalance = channelSetting.UnsettledBalance + int64(*managedChannelState.HtlcEvent.IncomingAmtMsat/1000)
+					} else {
+						pendingHtlc = append(pendingHtlc, Htlc{
+							Incoming:  false,
+							Amount:    int64((*managedChannelState.HtlcEvent.OutgoingAmtMsat) / 1000),
+							HtlcIndex: *managedChannelState.HtlcEvent.OutgoingHtlcId,
+						})
+						channelSetting.UnsettledBalance = channelSetting.UnsettledBalance - int64(*managedChannelState.HtlcEvent.IncomingAmtMsat/1000)
+					}
+					channelSetting.PendingHtlcs = pendingHtlc
+				} else {
+					log.Error().Msgf("Received channel balance update for uncached channel with channelId: %v", managedChannelState.ChannelId)
+				}
+			}
+		} else {
+			log.Error().Msgf("Received channel balance update for uncached node with nodeId: %v", managedChannelState.NodeId)
+		}
 	}
 }
 
@@ -482,12 +516,13 @@ func GetChannelState(nodeId, channelId int) *ManagedChannelStateSettings {
 	return <-channelStateResponseChannel
 }
 
-func GetChannelStates(nodeId int) []ManagedChannelStateSettings {
+func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSettings {
 	channelStatesResponseChannel := make(chan []ManagedChannelStateSettings)
 	managedChannelState := ManagedChannelState{
-		NodeId:    nodeId,
-		Type:      READ_ALL_CHANNELSTATES,
-		StatesOut: channelStatesResponseChannel,
+		NodeId:        nodeId,
+		ForceResponse: forceResponse,
+		Type:          READ_ALL_CHANNELSTATES,
+		StatesOut:     channelStatesResponseChannel,
 	}
 	ManagedChannelStateChannel <- managedChannelState
 	return <-channelStatesResponseChannel
@@ -621,7 +656,8 @@ func SetChannelStateBalanceHtlcEvent(htlcEvent HtlcEvent) {
 }
 
 func isNodeReady(channelStateSettingsStatusCache map[int]Status, nodeId int,
-	channelStateSettingsLockCache map[int]*sync.RWMutex, channelStateSettingsDeactivationTimeCache map[int]time.Time) bool {
+	channelStateSettingsLockCache map[int]*sync.RWMutex, channelStateSettingsDeactivationTimeCache map[int]time.Time,
+	forceResponse bool) bool {
 	// Channel states not initialized yet
 	if channelStateSettingsStatusCache[nodeId] != Active {
 		deactivationTime, exists := channelStateSettingsDeactivationTimeCache[nodeId]
@@ -629,7 +665,9 @@ func isNodeReady(channelStateSettingsStatusCache map[int]Status, nodeId int,
 			log.Debug().Msgf("Node flagged as active even tough subscription is temporary down for nodeId: %v", nodeId)
 			return true
 		}
-		return false
+		if !forceResponse {
+			return false
+		}
 	}
 	channelStateSettingsLockCache[nodeId].RLock()
 	return true

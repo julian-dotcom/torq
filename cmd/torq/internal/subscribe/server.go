@@ -279,6 +279,8 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", serviceEventChannel)
 
+	time.Sleep(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
+
 	if commons.RunningServices[commons.LndService].GetStatus(nodeId) == commons.Active {
 		log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)
 	} else {
