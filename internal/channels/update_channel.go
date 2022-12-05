@@ -67,8 +67,9 @@ func createPolicyRequest(req updateChanRequestBody) (r *lnrpc.PolicyUpdateReques
 		updChanReq.TimeLockDelta = req.TimeLockDelta
 	}
 
-	if req.ChannelPoint != nil {
-		updChanReq.Scope, err = processChannelPoint(*req.ChannelPoint)
+	if req.FundingTransactionHash != nil && req.FundingOutputIndex != nil {
+		channelPoint := *req.FundingTransactionHash + ":" + strconv.Itoa(*req.FundingOutputIndex)
+		updChanReq.Scope, err = processChannelPoint(channelPoint)
 		if err != nil {
 			return r, err
 		}
