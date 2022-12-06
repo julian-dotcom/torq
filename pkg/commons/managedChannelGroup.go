@@ -66,7 +66,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 	case READ_CHANNELGROUPS:
 		_, exists := channelGroupSettingsByChannelIdCache[managedChannelGroup.ChannelId]
 		if !exists {
-			go SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, nil)
+			SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, nil)
 			break
 		}
 		result := ManagedChannelGroupSettings{
@@ -79,7 +79,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 					result.ChannelGroups = append(result.ChannelGroups, channelGroup)
 				}
 			}
-			go SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
+			SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
 			break
 		}
 		for _, channelGroup := range channelGroupSettingsByChannelIdCache[managedChannelGroup.ChannelId].ChannelGroups {
@@ -88,7 +88,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 			}
 		}
 		if managedChannelGroup.Include == CATEGORIES_ONLY {
-			go SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
+			SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
 			break
 		}
 	group:
@@ -104,7 +104,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 				result.ChannelGroups = append(result.ChannelGroups, channelGroup)
 			}
 		}
-		go SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
+		SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
 	case WRITE_CHANNELGROUPS:
 		if managedChannelGroup.ChannelId == 0 {
 			log.Error().Msgf("No empty ChannelId (%v) allowed", managedChannelGroup.ChannelId)

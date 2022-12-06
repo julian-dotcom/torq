@@ -96,19 +96,19 @@ func processManagedChannel(managedChannel ManagedChannel,
 	switch managedChannel.Type {
 	case READ_ACTIVE_CHANNELID_BY_SHORTCHANNELID:
 		managedChannel.ChannelId = shortChannelIdCache[managedChannel.ShortChannelId]
-		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
+		SendToManagedChannelChannel(managedChannel.Out, managedChannel)
 	case READ_CHANNELID_BY_SHORTCHANNELID:
 		managedChannel.ChannelId = allShortChannelIdCache[managedChannel.ShortChannelId]
-		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
+		SendToManagedChannelChannel(managedChannel.Out, managedChannel)
 	case READ_ACTIVE_CHANNELID_BY_FUNDING_TRANSACTION:
 		managedChannel.ChannelId = channelPointCache[createChannelPoint(managedChannel)]
-		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
+		SendToManagedChannelChannel(managedChannel.Out, managedChannel)
 	case READ_CHANNELID_BY_FUNDING_TRANSACTION:
 		managedChannel.ChannelId = allChannelPointCache[createChannelPoint(managedChannel)]
-		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
+		SendToManagedChannelChannel(managedChannel.Out, managedChannel)
 	case READ_STATUSID_BY_CHANNELID:
 		managedChannel.Status = allChannelStatusCache[managedChannel.ChannelId]
-		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
+		SendToManagedChannelChannel(managedChannel.Out, managedChannel)
 	case READ_CHANNELIDS_BY_NODE_ID:
 		var channelIds []int
 		for _, channelSetting := range allChannelSettingsByChannelIdCache {
@@ -119,7 +119,7 @@ func processManagedChannel(managedChannel ManagedChannel,
 				channelIds = append(channelIds, channelSetting.ChannelId)
 			}
 		}
-		go SendToManagedChannelIdsChannel(managedChannel.ChannelIdsOut, channelIds)
+		SendToManagedChannelIdsChannel(managedChannel.ChannelIdsOut, channelIds)
 	case READ_ALL_CHANNEL_SETTINGS:
 		var channelSettings []ManagedChannelSettings
 		for _, channelSetting := range allChannelSettingsByChannelIdCache {
@@ -130,9 +130,9 @@ func processManagedChannel(managedChannel ManagedChannel,
 				channelSettings = append(channelSettings, channelSetting)
 			}
 		}
-		go SendToManagedChannelSettingsChannel(managedChannel.ChannelSettingsOut, channelSettings)
+		SendToManagedChannelSettingsChannel(managedChannel.ChannelSettingsOut, channelSettings)
 	case READ_CHANNEL_SETTINGS:
-		go SendToManagedChannelSettingChannel(managedChannel.ChannelSettingOut, allChannelSettingsByChannelIdCache[managedChannel.ChannelId])
+		SendToManagedChannelSettingChannel(managedChannel.ChannelSettingOut, allChannelSettingsByChannelIdCache[managedChannel.ChannelId])
 	case WRITE_CHANNEL:
 		if managedChannel.ChannelId == 0 || managedChannel.FundingTransactionHash == "" {
 			log.Error().Msgf("No empty ChannelId (%v) or FundingTransactionHash (%v) allowed", managedChannel.ChannelId, managedChannel.FundingTransactionHash)

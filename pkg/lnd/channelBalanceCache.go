@@ -3,6 +3,7 @@ package lnd
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/benbjohnson/clock"
@@ -24,9 +25,10 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	bootStrapping := true
 	subscriptionStream := commons.ChannelBalanceCacheStream
 	lndSyncTicker := clock.New().Tick(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
+	mutex := &sync.RWMutex{}
 
 	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
-		serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db)
+		serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db, mutex)
 
 	go func() {
 		for {
@@ -35,7 +37,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 				return
 			case <-lndSyncTicker:
 				bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
-					serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db)
+					serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db, mutex)
 			}
 		}
 	}()
@@ -52,7 +54,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 
 func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapping bool, serviceStatus commons.Status,
 	serviceEventChannel chan commons.ServiceEvent, subscriptionStream commons.SubscriptionStream,
-	lndClient lnrpc.LightningClient, db *sqlx.DB) (bool, commons.Status) {
+	lndClient lnrpc.LightningClient, db *sqlx.DB, mutex *sync.RWMutex) (bool, commons.Status) {
 
 	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
 		if !bootStrapping {
@@ -65,7 +67,7 @@ func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapp
 	} else {
 		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 	}
-	err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db)
+	err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db, mutex)
 	if err == nil {
 		if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) == commons.Active {
 			bootStrapping = false
@@ -78,8 +80,7 @@ func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapp
 	return bootStrapping, serviceStatus
 }
 
-func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int, db *sqlx.DB) error {
-	mutex := commons.GetChannelStateLock(nodeId)
+func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int, db *sqlx.DB, mutex *sync.RWMutex) error {
 	if commons.RWMutexWriteLocked(mutex) {
 		log.Error().Msgf("The lock initializeChannelBalanceFromLnd is already locked? This is a critical issue! (nodeId: %v)", nodeId)
 		return errors.New(fmt.Sprintf("The lock initializeChannelBalanceFromLnd is already locked? This is a critical issue! (nodeId: %v)", nodeId))
@@ -87,9 +88,9 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 	mutex.Lock()
 	defer func() {
-		commons.GetChannelStateLock(nodeId).Unlock()
+		mutex.Unlock()
 	}()
-	commons.ClearChannelStates(nodeId)
+	var channelStateSettingsList []commons.ManagedChannelStateSettings
 	r, err := lndClient.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 	if err != nil {
 		return errors.Wrapf(err, "Obtaining channels from LND for nodeId: %v", nodeId)
@@ -168,8 +169,9 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettings.PendingIncomingHtlcAmount = pendingIncomingHtlcAmount
 		channelStateSettings.PendingOutgoingHtlcCount = pendingOutgoingHtlcCount
 		channelStateSettings.PendingOutgoingHtlcAmount = pendingOutgoingHtlcAmount
-		commons.SetChannelState(nodeId, channelId, channelStateSettings)
+		channelStateSettingsList = append(channelStateSettingsList, channelStateSettings)
 	}
+	commons.SetChannelStates(nodeId, channelStateSettingsList)
 	commons.SetChannelStateNodeStatus(nodeId, commons.RunningServices[commons.LndService].GetStatus(nodeId))
 	return nil
 }

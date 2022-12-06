@@ -170,102 +170,17 @@ func main() {
 			go commons.ManagedNodeCache(commons.ManagedNodeChannel, globalCtx)
 			go commons.ManagedChannelCache(commons.ManagedChannelChannel, globalCtx)
 
-			go func(eventChannel chan interface{}) {
-				verifyTicker := clock.New().Tick(1 * time.Second)
-
-				torqServiceStatus := commons.Inactive
-				lndServiceStatuses := make(map[int]commons.Status)
-				vectorServiceStatuses := make(map[int]commons.Status)
-				ambossServiceStatuses := make(map[int]commons.Status)
-
-				for {
-					<-verifyTicker
-					if torqServiceStatus == commons.Active {
-						torqNodeIds := commons.RunningServices[commons.LndService].GetNodeIds()
-						if len(torqNodeIds) > 0 {
-							for _, torqNodId := range torqNodeIds {
-								newLndServiceStatus := commons.RunningServices[commons.LndService].GetStatus(torqNodId)
-								_, exists := lndServiceStatuses[torqNodId]
-								if !exists {
-									lndServiceStatuses[torqNodId] = commons.Inactive
-								}
-								if newLndServiceStatus != lndServiceStatuses[torqNodId] {
-									eventChannel <- commons.ServiceEvent{
-										PreviousStatus: lndServiceStatuses[torqNodId],
-										Status:         newLndServiceStatus,
-										Type:           commons.LndService,
-										EventData: commons.EventData{
-											EventTime: time.Now().UTC(),
-											NodeId:    torqNodId,
-										},
-									}
-									lndServiceStatuses[torqNodId] = newLndServiceStatus
-								}
-								newVectorServiceStatus := commons.RunningServices[commons.VectorService].GetStatus(torqNodId)
-								_, exists = vectorServiceStatuses[torqNodId]
-								if !exists {
-									vectorServiceStatuses[torqNodId] = commons.Inactive
-								}
-								if newVectorServiceStatus != vectorServiceStatuses[torqNodId] {
-									eventChannel <- commons.ServiceEvent{
-										PreviousStatus: vectorServiceStatuses[torqNodId],
-										Status:         newVectorServiceStatus,
-										Type:           commons.VectorService,
-										EventData: commons.EventData{
-											EventTime: time.Now().UTC(),
-											NodeId:    torqNodId,
-										},
-									}
-									vectorServiceStatuses[torqNodId] = newVectorServiceStatus
-								}
-								newAmbossServiceStatus := commons.RunningServices[commons.AmbossService].GetStatus(torqNodId)
-								_, exists = ambossServiceStatuses[torqNodId]
-								if !exists {
-									ambossServiceStatuses[torqNodId] = commons.Inactive
-								}
-								if newAmbossServiceStatus != ambossServiceStatuses[torqNodId] {
-									eventChannel <- commons.ServiceEvent{
-										PreviousStatus: ambossServiceStatuses[torqNodId],
-										Status:         newAmbossServiceStatus,
-										Type:           commons.AmbossService,
-										EventData: commons.EventData{
-											EventTime: time.Now().UTC(),
-											NodeId:    torqNodId,
-										},
-									}
-									ambossServiceStatuses[torqNodId] = newAmbossServiceStatus
-								}
-							}
-						}
-					} else {
-						newTorqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
-						if newTorqServiceStatus != torqServiceStatus {
-							eventChannel <- commons.ServiceEvent{
-								PreviousStatus: torqServiceStatus,
-								Status:         newTorqServiceStatus,
-								Type:           commons.TorqService,
-								EventData: commons.EventData{
-									EventTime: time.Now().UTC(),
-									NodeId:    commons.TorqDummyNodeId,
-								},
-							}
-							torqServiceStatus = newTorqServiceStatus
-						}
-					}
-				}
-			}(eventChannelGlobal)
-
 			go func(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, serviceEventChannel chan commons.ServiceEvent) {
 				for {
 					event := <-serviceEventChannel
 					if event.Type == commons.TorqService {
 						switch event.Status {
 						case commons.Inactive:
-							log.Debug().Msg("Torq is dead.")
+							log.Info().Msg("Torq is dead.")
 						case commons.Pending:
-							log.Debug().Msg("Torq is booting.")
-						case commons.Active:
-							log.Debug().Msg("Torq is booted.")
+							log.Info().Msg("Torq is booting.")
+						case commons.Initializing:
+							log.Info().Msg("Torq is initialising.")
 							err = settings.InitializeManagedSettingsCache(db)
 							if err != nil {
 								log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
@@ -281,12 +196,14 @@ func main() {
 								log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")
 							}
 
-							log.Debug().Msg("Loading caches in memory.")
+							log.Info().Msg("Loading caches in memory.")
 							err := corridors.RefreshCorridorCache(db)
 							if err != nil {
 								log.Error().Err(err).Msg("Torq cannot be initialized (Loading caches in memory).")
 							}
-
+							commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, nil, serviceEventChannel)
+						case commons.Active:
+							log.Info().Msg("Torq is booted.")
 							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndService}
 						}
 					}
@@ -306,10 +223,8 @@ func main() {
 			}(db, serviceChannelGlobal, serviceEventChannelGlobal)
 
 			commons.RunningServices[commons.TorqService].AddSubscription(commons.TorqDummyNodeId, globalCancel, serviceEventChannelGlobal)
-			torqBootLock := commons.RunningServices[commons.TorqService].GetBootLock(commons.TorqDummyNodeId)
-			torqBootLock.Lock()
 
-			go func(db *sqlx.DB, c *cli.Context, serviceEventChannel chan commons.ServiceEvent, torqBootLock *sync.Mutex) {
+			go func(db *sqlx.DB, c *cli.Context, serviceEventChannel chan commons.ServiceEvent) {
 				fmt.Println("Checking for migrations..")
 				// Check if the database needs to be migrated.
 				err = database.MigrateUp(db)
@@ -371,8 +286,8 @@ func main() {
 					break
 				}
 
-				commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, torqBootLock, serviceEventChannel)
-			}(db, c, serviceEventChannelGlobal, torqBootLock)
+				commons.RunningServices[commons.TorqService].Initialising(commons.TorqDummyNodeId, serviceEventChannel)
+			}(db, c, serviceEventChannelGlobal)
 
 			if !c.Bool("torq.no-sub") {
 				// go routine that responds to start command and starts all subscriptions
@@ -668,6 +583,91 @@ func main() {
 					}
 				})(serviceChannelGlobal)
 			}
+
+			go func(eventChannel chan interface{}) {
+				verifyTicker := clock.New().Tick(1 * time.Second)
+
+				torqServiceStatus := commons.Inactive
+				lndServiceStatuses := make(map[int]commons.Status)
+				vectorServiceStatuses := make(map[int]commons.Status)
+				ambossServiceStatuses := make(map[int]commons.Status)
+
+				for {
+					<-verifyTicker
+					if torqServiceStatus == commons.Active {
+						torqNodeIds := commons.RunningServices[commons.LndService].GetNodeIds()
+						if len(torqNodeIds) > 0 {
+							for _, torqNodId := range torqNodeIds {
+								newLndServiceStatus := commons.RunningServices[commons.LndService].GetStatus(torqNodId)
+								_, exists := lndServiceStatuses[torqNodId]
+								if !exists {
+									lndServiceStatuses[torqNodId] = commons.Inactive
+								}
+								if newLndServiceStatus != lndServiceStatuses[torqNodId] {
+									eventChannel <- commons.ServiceEvent{
+										PreviousStatus: lndServiceStatuses[torqNodId],
+										Status:         newLndServiceStatus,
+										Type:           commons.LndService,
+										EventData: commons.EventData{
+											EventTime: time.Now().UTC(),
+											NodeId:    torqNodId,
+										},
+									}
+									lndServiceStatuses[torqNodId] = newLndServiceStatus
+								}
+								newVectorServiceStatus := commons.RunningServices[commons.VectorService].GetStatus(torqNodId)
+								_, exists = vectorServiceStatuses[torqNodId]
+								if !exists {
+									vectorServiceStatuses[torqNodId] = commons.Inactive
+								}
+								if newVectorServiceStatus != vectorServiceStatuses[torqNodId] {
+									eventChannel <- commons.ServiceEvent{
+										PreviousStatus: vectorServiceStatuses[torqNodId],
+										Status:         newVectorServiceStatus,
+										Type:           commons.VectorService,
+										EventData: commons.EventData{
+											EventTime: time.Now().UTC(),
+											NodeId:    torqNodId,
+										},
+									}
+									vectorServiceStatuses[torqNodId] = newVectorServiceStatus
+								}
+								newAmbossServiceStatus := commons.RunningServices[commons.AmbossService].GetStatus(torqNodId)
+								_, exists = ambossServiceStatuses[torqNodId]
+								if !exists {
+									ambossServiceStatuses[torqNodId] = commons.Inactive
+								}
+								if newAmbossServiceStatus != ambossServiceStatuses[torqNodId] {
+									eventChannel <- commons.ServiceEvent{
+										PreviousStatus: ambossServiceStatuses[torqNodId],
+										Status:         newAmbossServiceStatus,
+										Type:           commons.AmbossService,
+										EventData: commons.EventData{
+											EventTime: time.Now().UTC(),
+											NodeId:    torqNodId,
+										},
+									}
+									ambossServiceStatuses[torqNodId] = newAmbossServiceStatus
+								}
+							}
+						}
+					} else {
+						newTorqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
+						if newTorqServiceStatus != torqServiceStatus {
+							eventChannel <- commons.ServiceEvent{
+								PreviousStatus: torqServiceStatus,
+								Status:         newTorqServiceStatus,
+								Type:           commons.TorqService,
+								EventData: commons.EventData{
+									EventTime: time.Now().UTC(),
+									NodeId:    commons.TorqDummyNodeId,
+								},
+							}
+							torqServiceStatus = newTorqServiceStatus
+						}
+					}
+				}
+			}(eventChannelGlobal)
 
 			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
 				db, eventChannelGlobal, broadcaster, serviceChannelGlobal); err != nil {

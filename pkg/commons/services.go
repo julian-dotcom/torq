@@ -330,11 +330,23 @@ func (rs *Services) SetIncludeIncomplete(nodeId int, includeIncomplete bool) {
 	rs.includeIncomplete[nodeId] = includeIncomplete
 }
 
+func (rs *Services) Initialising(nodeId int, serviceEventChannel chan ServiceEvent) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	initServiceMaps(rs, nodeId)
+	previousStatus := rs.serviceStatus[nodeId]
+	rs.serviceStatus[nodeId] = Initializing
+	sendServiceEvent(nodeId, serviceEventChannel, previousStatus, rs.serviceStatus[nodeId], rs.ServiceType, nil)
+}
+
 func (rs *Services) Booted(nodeId int, bootLock *sync.Mutex, serviceEventChannel chan ServiceEvent) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	bootLock.Unlock()
+	if bootLock != nil {
+		bootLock.Unlock()
+	}
 	initServiceMaps(rs, nodeId)
 	previousStatus := rs.serviceStatus[nodeId]
 	rs.bootTime[nodeId] = time.Now().UTC()
