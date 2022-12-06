@@ -32,7 +32,7 @@ import type {
   DecodedInvoice,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import type { nodeConfiguration, settings, timeZone, channel } from "apiTypes";
+import type { nodeConfiguration, settings, timeZone, channel, services } from "apiTypes";
 import { NewInvoiceRequest, NewInvoiceResponse } from "./features/transact/Invoices/newInvoice/newInvoiceTypes";
 
 const API_URL = getRestEndpoint();
@@ -53,6 +53,9 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
   if (result.error && result.error.status === 401 && window.location.pathname !== "/login") {
     window.location.href = "/login";
   }
+  if (result.error && result.error.status === 424 && window.location.pathname !== "/services") {
+    window.location.href = "/services";
+  }
   return result;
 };
 
@@ -60,7 +63,7 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
 export const torqApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRedirect,
-  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels"],
+  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "services"],
   endpoints: (builder) => ({
     getFlow: builder.query<FlowData[], GetFlowQueryParams>({
       query: (params) => "flow" + queryParamsBuilder(params),
@@ -233,6 +236,10 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["nodeConfigurations", "channels"],
     }),
+    getServices: builder.query<services, void>({
+      query: () => "services",
+      providesTags: ["services"],
+    }),
   }),
 });
 
@@ -271,4 +278,5 @@ export const {
   useUpdateNodeConfigurationStatusMutation,
   useUpdateNodePingSystemStatusMutation,
   useUpdateChannelMutation,
+  useGetServicesQuery,
 } = torqApi;

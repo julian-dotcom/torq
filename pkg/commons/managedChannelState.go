@@ -669,6 +669,10 @@ func isNodeReady(channelStateSettingsStatusCache map[int]Status, nodeId int,
 			return false
 		}
 	}
+	_, exists := channelStateSettingsLockCache[nodeId]
+	if !exists {
+		channelStateSettingsLockCache[nodeId] = &sync.RWMutex{}
+	}
 	channelStateSettingsLockCache[nodeId].RLock()
 	return true
 }
