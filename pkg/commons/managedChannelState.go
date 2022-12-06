@@ -658,14 +658,13 @@ func SetChannelStateBalanceHtlcEvent(htlcEvent HtlcEvent) {
 func isNodeReady(channelStateSettingsStatusCache map[int]Status, nodeId int,
 	channelStateSettingsLockCache map[int]*sync.RWMutex, channelStateSettingsDeactivationTimeCache map[int]time.Time,
 	forceResponse bool) bool {
+
 	// Channel states not initialized yet
 	if channelStateSettingsStatusCache[nodeId] != Active {
 		deactivationTime, exists := channelStateSettingsDeactivationTimeCache[nodeId]
 		if exists && time.Since(deactivationTime).Seconds() < TOLERATED_SUBSCRIPTION_DOWNTIME_SECONDS {
 			log.Debug().Msgf("Node flagged as active even tough subscription is temporary down for nodeId: %v", nodeId)
-			return true
-		}
-		if !forceResponse {
+		} else if !forceResponse {
 			return false
 		}
 	}
