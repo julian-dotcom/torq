@@ -22,7 +22,7 @@ WHERE oc.lnd_short_channel_id=((p1.htlcs->-1->'route'->'hops'->0->>'chan_id')::n
 UPDATE payment p1
 SET rebalance_amount_msat=(p2.htlcs->-1->'route'->'hops'->0->>'amt_to_forward_msat')::numeric
 FROM payment p2
-WHERE p1.creation_timestamp=p2.creation_timestamp AND p1.payment_index=p2.payment_index AND p2.incoming_channel_id IS NULL;
+WHERE p1.creation_timestamp=p2.creation_timestamp AND p1.payment_index=p2.payment_index AND p2.incoming_channel_id IS NOT NULL;
 
 ALTER TABLE payment ADD CONSTRAINT fk_payment_incoming_channel_id FOREIGN KEY (incoming_channel_id) REFERENCES channel(channel_id);
 ALTER TABLE payment ADD CONSTRAINT fk_payment_outgoing_channel_id FOREIGN KEY (outgoing_channel_id) REFERENCES channel(channel_id);

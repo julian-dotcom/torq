@@ -157,9 +157,10 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 				  failure_reason,
                   incoming_channel_id,
                   outgoing_channel_id,
+                  rebalance_amount_msat,
 				  node_id,
 				  created_on)
-			  VALUES ($1, $2, $3,$4, $5,$6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+			  VALUES ($1, $2, $3, $4, $5,$6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 			  ON CONFLICT (creation_timestamp, payment_index) DO NOTHING;`
 
 	var paymentEvents []commons.PaymentEvent
@@ -174,6 +175,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 
 			var incomingChannelId *int
 			var outgoingChannelId *int
+			var rebalanceAmountMsat *uint64
 			if len(payment.Htlcs) == 0 || len(payment.Htlcs[0].Route.Hops) == 0 {
 				log.Error().Msgf("The payment HTLCs and/or Hops are unknown for paymentHash: %v", payment.PaymentHash)
 			} else {
@@ -181,6 +183,10 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 				outgoingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[len(payment.Htlcs[0].Route.Hops)-1].ChanId)
 				if outgoingChannelId == nil {
 					log.Error().Msgf("The payment HTLCs has an unknown outgoingChannel for paymentHash: %v", payment.PaymentHash)
+				}
+				if incomingChannelId != nil && *incomingChannelId != 0 {
+					rebalanceAmountMsatV := uint64(payment.Htlcs[0].Route.Hops[0].AmtToForwardMsat)
+					rebalanceAmountMsat = &rebalanceAmountMsatV
 				}
 			}
 			if _, err := tx.Exec(q,
@@ -197,6 +203,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 				payment.FailureReason.String(),
 				incomingChannelId,
 				outgoingChannelId,
+				rebalanceAmountMsat,
 				nodeSettings.NodeId,
 				time.Now().UTC(),
 			); err != nil {
@@ -212,14 +219,9 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 				PaymentStatus:        payment.Status,
 				PaymentFailureReason: payment.FailureReason,
 			}
-			if incomingChannelId != nil && *incomingChannelId != 0 {
-				paymentEvent.IncomingChannelId = incomingChannelId
-				amountToForwardMsat := uint64(payment.Htlcs[0].Route.Hops[0].AmtToForwardMsat)
-				paymentEvent.RebalanceAmountMsat = &amountToForwardMsat
-			}
-			if outgoingChannelId != nil && *outgoingChannelId != 0 {
-				paymentEvent.OutgoingChannelId = outgoingChannelId
-			}
+			paymentEvent.IncomingChannelId = incomingChannelId
+			paymentEvent.OutgoingChannelId = outgoingChannelId
+			paymentEvent.RebalanceAmountMsat = rebalanceAmountMsat
 			paymentEvents = append(paymentEvents, paymentEvent)
 		}
 		err := tx.Commit()
