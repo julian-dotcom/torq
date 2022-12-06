@@ -286,7 +286,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			bootStrapping = false
 			log.Info().Msgf("Bulk import of invoices done (%v)", importCounter)
 		}
-		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel)
+		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel, bootStrapping)
 		if err != nil {
 			log.Error().Err(err).Msg("Storing invoice failed")
 		}
@@ -333,7 +333,7 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 }
 
 func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, nodeId int,
-	invoiceEvent commons.InvoiceEvent, eventChannel chan interface{}) error {
+	invoiceEvent commons.InvoiceEvent, eventChannel chan interface{}, bootStrapping bool) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {
@@ -462,9 +462,9 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, node
 		return errors.Wrapf(err, "insert invoice")
 	}
 
-	if eventChannel != nil {
+	if eventChannel != nil && !bootStrapping {
 		invoiceEvent.AddIndex = invoice.AddIndex
-		invoiceEvent.ValueMSat = invoice.ValueMsat
+		invoiceEvent.ValueMSat = uint64(invoice.ValueMsat)
 		invoiceEvent.State = invoice.GetState()
 		// Add other info for settled and accepted states
 		//	Invoice_OPEN     = 0
@@ -472,7 +472,7 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, node
 		//	Invoice_CANCELED = 2
 		//	Invoice_ACCEPTED = 3
 		if invoice.State == 1 || invoice.State == 3 {
-			invoiceEvent.AmountPaid = invoice.AmtPaidMsat
+			invoiceEvent.AmountPaidMsat = uint64(invoice.AmtPaidMsat)
 			invoiceEvent.SettledDate = time.Unix(invoice.SettleDate, 0)
 		}
 		eventChannel <- invoiceEvent

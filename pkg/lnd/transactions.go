@@ -146,7 +146,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				// TODO FIXME This transaction is now missing
 				log.Error().Err(err).Msg("Failed to store the transaction (transaction is now missing and can only be recovered by emptying the transactions table)")
 			}
-			if eventChannel != nil {
+			if eventChannel != nil && !bootStrapping {
 				eventChannel <- commons.TransactionEvent{
 					EventData: commons.EventData{
 						EventTime: time.Now().UTC(),

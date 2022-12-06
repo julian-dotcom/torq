@@ -7,7 +7,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -28,7 +27,7 @@ func getChannelBalance(db *sqlx.DB, lndShortChannelIdString string, from time.Ti
 	if err != nil {
 		return ChannelBalance{}, errors.Wrapf(err, "Converting LND short channel id %v", lndShortChannelId)
 	}
-	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
 	channelId := commons.GetChannelIdByShortChannelId(shortChannelId)
 
 	cb := ChannelBalance{LNDShortChannelId: lndShortChannelIdString}

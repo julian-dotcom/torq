@@ -13,8 +13,8 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -66,7 +66,7 @@ func constructRouteHints(routeHints []*lnrpc.RouteHint) []routeHint {
 		for _, hh := range rh.HopHints {
 			hopHints = append(hopHints, hopHint{
 				LNDShortChannelId: hh.ChanId,
-				ShortChannelId:    channels.ConvertLNDShortChannelID(hh.ChanId),
+				ShortChannelId:    commons.ConvertLNDShortChannelID(hh.ChanId),
 				NodeId:            hh.NodeId,
 				FeeBase:           hh.FeeBaseMsat,
 				CltvExpiryDelta:   hh.CltvExpiryDelta,

@@ -117,10 +117,6 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 	}
 }
 
-func SendToManagedChannelGroupSettingsChannel(ch chan *ManagedChannelGroupSettings, managedChannelGroupSettings *ManagedChannelGroupSettings) {
-	ch <- managedChannelGroupSettings
-}
-
 func GetChannelGroupsByChannelId(channelId int, include ChannelGroupInclude) *ManagedChannelGroupSettings {
 	channelGroupResponseChannel := make(chan *ManagedChannelGroupSettings)
 	managedChannelGroup := ManagedChannelGroup{

@@ -275,7 +275,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.WrapLogAndSendServerError(c, err, "Adding node connection details")
 		return
 	}
-	commons.SetTorqNode(nodeId, ncd.Status, publicKey, chain, network)
+	commons.SetTorqNode(nodeId, ncd.Name, ncd.Status, publicKey, chain, network)
 
 	if ncd.Status == commons.Active {
 		serviceChannel <- commons.ServiceChannelMessage{

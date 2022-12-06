@@ -404,14 +404,8 @@ func sendServiceEvent(nodeId int, serviceEventChannel chan ServiceEvent, previou
 
 func setStreamStatuses(nodeId int, rs *Services, status Status) {
 	nodeStreamStatus := make(map[SubscriptionStream]Status)
-	nodeStreamStatus[TransactionStream] = status
-	nodeStreamStatus[HtlcEventStream] = status
-	nodeStreamStatus[ChannelEventStream] = status
-	nodeStreamStatus[GraphEventStream] = status
-	nodeStreamStatus[ForwardStream] = status
-	nodeStreamStatus[InvoiceStream] = status
-	nodeStreamStatus[PaymentStream] = status
-	nodeStreamStatus[InFlightPaymentStream] = status
-	nodeStreamStatus[PeerEventStream] = status
+	for _, ss := range SubscriptionStreams {
+		nodeStreamStatus[ss] = status
+	}
 	rs.streamStatus[nodeId] = nodeStreamStatus
 }

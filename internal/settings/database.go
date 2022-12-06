@@ -140,7 +140,7 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 		for _, torqNode := range nodeConnectionDetailsArray {
 			node, err := nodes.GetNodeById(db, torqNode.NodeId)
 			if err == nil {
-				commons.SetTorqNode(node.NodeId, torqNode.Status, node.PublicKey, node.Chain, node.Network)
+				commons.SetTorqNode(node.NodeId, torqNode.Name, torqNode.Status, node.PublicKey, node.Chain, node.Network)
 			} else {
 				log.Error().Err(err).Msg("Failed to obtain torq node for ManagedNodes cache.")
 			}

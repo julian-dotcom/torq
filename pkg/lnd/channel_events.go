@@ -136,8 +136,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		if err != nil {
 			return errors.Wrap(err, "ACTIVE_CHANNEL: Get channelPoint from bytes")
 		}
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
-		channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetChannelIdByChannelPoint(channelPoint)
 		jsonByteArray, err := json.Marshal(c)
 		if err != nil {
 			return errors.Wrap(err, "ACTIVE_CHANNEL: JSON Marshall")
@@ -154,8 +153,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		if err != nil {
 			return errors.Wrap(err, "INACTIVE_CHANNEL: Get channelPoint from bytes")
 		}
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
-		channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetChannelIdByChannelPoint(channelPoint)
 		jsonByteArray, err := json.Marshal(c)
 		if err != nil {
 			return errors.Wrap(err, "INACTIVE_CHANNEL: JSON Marshall")
@@ -207,7 +205,7 @@ func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, cha
 	nodeSettings commons.ManagedNodeSettings, remoteNodeId int, initiatingNodeId *int, closingNodeId *int,
 	db *sqlx.DB) (channels.Channel, error) {
 
-	fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
+	fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
 	channel := channels.Channel{
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
@@ -235,7 +233,7 @@ func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, cha
 		channel.Status = channels.GetClosureStatus(*closeType)
 		channel.ClosingTransactionHash = closingTxHash
 	}
-	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
 	if lndShortChannelId != 0 {
 		channel.LNDShortChannelID = &lndShortChannelId
 		channel.ShortChannelID = &shortChannelId
@@ -273,7 +271,7 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 		return 0, err
 	}
 
-	fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
+	fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
 	channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 	if channelId == 0 {
 		pendingChannelsRequest := lnrpc.PendingChannelsRequest{}
@@ -469,8 +467,7 @@ func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeSettings com
 
 	var channelIds []int
 	for _, channel := range c {
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
-		channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetChannelIdByChannelPoint(channel.ChannelPoint)
 		if channelId != 0 {
 			channelIds = append(channelIds, channelId)
 		}
@@ -501,7 +498,8 @@ icoLoop:
 		}
 
 		if lndChannel.ChanId == 0 {
-			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(lndChannel.ChannelPoint)
+			// TODO FIXME GET DATA FROM VECTOR
+			fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(lndChannel.ChannelPoint)
 			log.Error().Msgf("Failed to obtain shortChannelId for open channel with channel point %v:%v",
 				fundingTransactionHash, fundingOutputIndex)
 		}
@@ -536,7 +534,7 @@ func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary,
 
 	var channelIds []int
 	for _, channel := range c {
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
+		fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channel.ChannelPoint)
 		channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if channelId != 0 {
 			channelIds = append(channelIds, channelId)
@@ -574,7 +572,8 @@ icoLoop:
 		}
 
 		if lndChannel.ChanId == 0 {
-			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(lndChannel.ChannelPoint)
+			// TODO FIXME GET DATA FROM VECTOR
+			fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(lndChannel.ChannelPoint)
 			log.Error().Msgf("Failed to obtain shortChannelId for closed channel with channel point %v:%v",
 				fundingTransactionHash, fundingOutputIndex)
 		}

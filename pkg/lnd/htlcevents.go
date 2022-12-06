@@ -9,7 +9,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/rs/zerolog/log"
@@ -98,7 +97,7 @@ func storeFullEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int, eventType s
 
 func getChannelIdByLndShortChannelId(lndShortChannelId uint64) *int {
 	var channelId *int
-	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
 	tempChannelId := commons.GetChannelIdByShortChannelId(shortChannelId)
 	if tempChannelId != 0 {
 		channelId = &tempChannelId

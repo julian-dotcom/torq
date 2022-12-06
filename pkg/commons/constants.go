@@ -33,6 +33,8 @@ type ServiceChannelMessage = struct {
 	Out     chan Status
 }
 
+const BOOTSTRAPPING_TIME_MINUTES = 8 * 60
+const TOLERATED_SUBSCRIPTION_DOWNTIME_SECONDS = 15
 const STREAM_LND_INVOICES_INTERVAL_SLEEP = 10
 const STREAM_LND_INVOICES_SLEEP_MILLISECONDS = 1000
 const STREAM_LND_INVOICES_DELTA_TIME_MILLISECONDS = 1000
@@ -49,6 +51,9 @@ const SERVICES_ERROR_SLEEP_SECONDS = 60
 const AVOID_CHANNEL_AND_POLICY_IMPORT_RERUN_TIME_SECONDS = 70
 const INVOICE_BOOTSTRAPPING_TIME_SECONDS = 60
 const GENERIC_BOOTSTRAPPING_TIME_SECONDS = 60
+
+const CHANNELBALANCE_TICKER_SECONDS = 150
+const CHANNELBALANCE_BOOTSTRAP_TICKER_SECONDS = 10
 
 const AMBOSS_SLEEP_SECONDS = 25
 const VECTOR_SLEEP_SECONDS = 20
@@ -128,6 +133,7 @@ const (
 	PaymentStream
 	InFlightPaymentStream
 	PeerEventStream
+	ChannelBalanceCacheStream
 )
 
 var SubscriptionStreams = []SubscriptionStream{ //nolint:gochecknoglobals
@@ -140,6 +146,7 @@ var SubscriptionStreams = []SubscriptionStream{ //nolint:gochecknoglobals
 	PaymentStream,
 	InFlightPaymentStream,
 	PeerEventStream,
+	ChannelBalanceCacheStream,
 }
 
 func (ss *SubscriptionStream) IsChannelBalanceCache() bool {

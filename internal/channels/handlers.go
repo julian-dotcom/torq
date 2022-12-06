@@ -1,19 +1,18 @@
 package channels
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/cockroachdb/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/lnd_connect"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -56,7 +55,7 @@ type channelBody struct {
 	RemotePubkey                 string               `json:"remotePubkey"`
 	FundingTransactionHash       string               `json:"fundingTransactionHash"`
 	FundingOutputIndex           int                  `json:"fundingOutputIndex"`
-	LNDShortChannelId            string               `json:"lndShortChannelId"`
+	LNDShortChannelId            uint64               `json:"lndShortChannelId"`
 	ShortChannelId               string               `json:"shortChannelId"`
 	Capacity                     int64                `json:"capacity"`
 	LocalBalance                 int64                `json:"localBalance"`
@@ -65,16 +64,16 @@ type channelBody struct {
 	CommitFee                    int64                `json:"commitFee"`
 	CommitWeight                 int64                `json:"commitWeight"`
 	FeePerKw                     int64                `json:"feePerKw"`
-	BaseFeeMsat                  int64                `json:"baseFeeMsat"`
+	BaseFeeMsat                  uint64               `json:"baseFeeMsat"`
 	MinHtlc                      int64                `json:"minHtlc"`
 	MaxHtlcMsat                  uint64               `json:"maxHtlcMsat"`
 	TimeLockDelta                uint32               `json:"timeLockDelta"`
-	FeeRatePpm                   int64                `json:"feeRatePpm"`
-	RemoteBaseFeeMsat            int64                `json:"remoteBaseFeeMsat"`
+	FeeRatePpm                   uint64               `json:"feeRatePpm"`
+	RemoteBaseFeeMsat            uint64               `json:"remoteBaseFeeMsat"`
 	RemoteMinHtlc                int64                `json:"remoteMinHtlc"`
 	RemoteMaxHtlcMsat            uint64               `json:"remoteMaxHtlcMsat"`
 	RemoteTimeLockDelta          uint32               `json:"remoteTimeLockDelta"`
-	RemoteFeeRatePpm             int64                `json:"remoteFeeRatePpm"`
+	RemoteFeeRatePpm             uint64               `json:"remoteFeeRatePpm"`
 	PendingForwardingHTLCsCount  int                  `json:"pendingForwardingHTLCsCount"`
 	PendingForwardingHTLCsAmount int64                `json:"pendingForwardingHTLCsAmount"`
 	PendingLocalHTLCsCount       int                  `json:"pendingLocalHTLCsCount"`
@@ -106,12 +105,13 @@ type PendingHtlcs struct {
 }
 
 type ChannelPolicy struct {
+	Disabled        bool   `json:"disabled" db:"disabled"`
 	TimeLockDelta   uint32 `json:"timeLockDelta" db:"time_lock_delta"`
 	MinHtlc         int64  `json:"minHtlc" db:"min_htlc"`
 	MaxHtlcMsat     uint64 `json:"maxHtlcMsat" db:"max_htlc_msat"`
-	FeeRateMillMsat int64  `json:"feeRateMillMsat" db:"fee_rate_mill_msat"`
+	FeeRateMillMsat uint64 `json:"feeRateMillMsat" db:"fee_rate_mill_msat"`
 	ShortChannelId  string `json:"shortChannelId" db:"short_channel_id"`
-	FeeBaseMsat     int64  `json:"feeBaseMsat" db:"fee_base_msat"`
+	FeeBaseMsat     uint64 `json:"feeBaseMsat" db:"fee_base_msat"`
 	NodeId          int    `json:"nodeId" db:"node_id"`
 	RemoteNodeId    int    `json:"RemoteodeId" db:"remote_node_id"`
 }
@@ -174,120 +174,86 @@ func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-func getChannelListhandler(c *gin.Context, db *sqlx.DB) {
+func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 	var channelsBody []channelBody
-	nodes, err := settings.GetActiveNodesConnectionDetails(db)
+	activeNcds, err := settings.GetActiveNodesConnectionDetails(db)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Get active nodes")
+		server_errors.WrapLogAndSendServerError(c, err, "List channels")
 		return
 	}
+	if len(activeNcds) != 0 {
+		for _, ncd := range activeNcds {
+			channelBalanceStates := commons.GetChannelStates(ncd.NodeId, true)
+			nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
+			for _, channel := range channelBalanceStates {
+				channelSettings := commons.GetChannelSettingByChannelId(channel.ChannelId)
+				lndShortChannelIdString := strconv.FormatUint(channelSettings.LndShortChannelId, 10)
 
-	for _, node := range nodes {
-		conn, err := lnd_connect.Connect(
-			node.GRPCAddress,
-			node.TLSFileBytes,
-			node.MacaroonFileBytes)
-		if err != nil {
-			errorMsg := fmt.Sprintf("Connect to node %d\n", node.NodeId)
-			server_errors.WrapLogAndSendServerError(c, err, errorMsg)
-			return
-		}
+				pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
 
-		defer conn.Close()
+				gauge := (float64(channel.LocalBalance) / float64(channelSettings.Capacity)) * 100
 
-		client := lnrpc.NewLightningClient(conn)
+				remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
+				chanBody := channelBody{
+					NodeId:                       ncd.NodeId,
+					NodeName:                     *nodeSettings.Name,
+					Active:                       !channel.LocalDisabled,
+					ChannelPoint:                 commons.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
+					Gauge:                        gauge,
+					RemotePubkey:                 remoteNode.PublicKey,
+					FundingTransactionHash:       channelSettings.FundingTransactionHash,
+					FundingOutputIndex:           channelSettings.FundingOutputIndex,
+					LNDShortChannelId:            channelSettings.LndShortChannelId,
+					ShortChannelId:               channelSettings.ShortChannelId,
+					Capacity:                     channelSettings.Capacity,
+					LocalBalance:                 channel.LocalBalance,
+					RemoteBalance:                channel.RemoteBalance,
+					UnsettledBalance:             channel.UnsettledBalance,
+					TotalSatoshisSent:            channel.TotalSatoshisSent,
+					TotalSatoshisReceived:        channel.TotalSatoshisReceived,
+					PendingForwardingHTLCsCount:  pendingHTLCs.ForwardingCount,
+					PendingForwardingHTLCsAmount: pendingHTLCs.ForwardingAmount,
+					PendingLocalHTLCsCount:       pendingHTLCs.LocalCount,
+					PendingLocalHTLCsAmount:      pendingHTLCs.LocalAmount,
+					PendingTotalHTLCsCount:       pendingHTLCs.TotalCount,
+					PendingTotalHTLCsAmount:      pendingHTLCs.TotalAmount,
+					CommitFee:                    channel.CommitFee,
+					CommitWeight:                 channel.CommitWeight,
+					FeePerKw:                     channel.FeePerKw,
+					BaseFeeMsat:                  channel.LocalFeeBaseMsat,
+					MinHtlc:                      channel.LocalMinHtlc,
+					MaxHtlcMsat:                  channel.LocalMaxHtlcMsat,
+					TimeLockDelta:                channel.LocalTimeLockDelta,
+					FeeRatePpm:                   channel.LocalFeeRateMilliMsat,
+					RemoteBaseFeeMsat:            channel.RemoteFeeBaseMsat,
+					RemoteMinHtlc:                channel.RemoteMinHtlc,
+					RemoteMaxHtlcMsat:            channel.RemoteMaxHtlcMsat,
+					RemoteTimeLockDelta:          channel.RemoteTimeLockDelta,
+					RemoteFeeRatePpm:             channel.RemoteFeeRateMilliMsat,
+					NumUpdates:                   channel.NumUpdates,
+					Initiator:                    channelSettings.InitiatingNodeId != nil && *channelSettings.InitiatingNodeId == ncd.NodeId,
+					ChanStatusFlags:              channel.ChanStatusFlags,
+					CommitmentType:               channel.CommitmentType,
+					Lifetime:                     channel.Lifetime,
+					MempoolSpace:                 MEMPOOL + lndShortChannelIdString,
+					AmbossSpace:                  AMBOSS + channelSettings.ShortChannelId,
+					OneMl:                        ONEML + lndShortChannelIdString,
+				}
 
-		r, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
-		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "List channels")
-			return
-		}
-
-		for _, channel := range r.Channels {
-			localPolicy, err := GetLocalRoutingPolicy(channel.ChanId, node.NodeId, db)
-			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Local Channel policy")
-				return
+				peerInfo, err := GetNodePeerAlias(ncd.NodeId, channel.RemoteNodeId, db)
+				if err == nil {
+					chanBody.PeerAlias = peerInfo
+				} else {
+					log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for nodeId: %v)", channel.RemoteNodeId, ncd.NodeId)
+				}
+				channelsBody = append(channelsBody, chanBody)
 			}
-			remotePolicy, err := GetRemoteRoutingPolicy(channel.ChanId, node.NodeId, db)
-			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Remote Channel policy")
-				return
-			}
-
-			stringLNDShortChannelId := strconv.FormatUint(channel.ChanId, 10)
-			pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
-
-			gauge := (float64(channel.LocalBalance) / float64(channel.Capacity)) * 100
-			fundingTransactionHash, fundingOutputIndex := ParseChannelPoint(channel.ChannelPoint)
-
-			shortChannelId := localPolicy.ShortChannelId
-			localNodeId := localPolicy.NodeId
-			remoteNodeId := localPolicy.RemoteNodeId
-			if localPolicy.ShortChannelId == "" && remotePolicy.ShortChannelId != "" {
-				shortChannelId = remotePolicy.ShortChannelId
-				localNodeId = remotePolicy.RemoteNodeId
-				remoteNodeId = remotePolicy.NodeId
-			}
-			chanBody := channelBody{
-				NodeId:                       node.NodeId,
-				NodeName:                     node.Name,
-				Active:                       channel.Active,
-				ChannelPoint:                 channel.ChannelPoint,
-				Gauge:                        gauge,
-				RemotePubkey:                 channel.RemotePubkey,
-				FundingTransactionHash:       fundingTransactionHash,
-				FundingOutputIndex:           fundingOutputIndex,
-				LNDShortChannelId:            stringLNDShortChannelId,
-				ShortChannelId:               shortChannelId,
-				Capacity:                     channel.Capacity,
-				LocalBalance:                 channel.LocalBalance,
-				RemoteBalance:                channel.RemoteBalance,
-				UnsettledBalance:             channel.UnsettledBalance,
-				TotalSatoshisSent:            channel.TotalSatoshisSent,
-				TotalSatoshisReceived:        channel.TotalSatoshisReceived,
-				PendingForwardingHTLCsCount:  pendingHTLCs.ForwardingCount,
-				PendingForwardingHTLCsAmount: pendingHTLCs.ForwardingAmount,
-				PendingLocalHTLCsCount:       pendingHTLCs.LocalCount,
-				PendingLocalHTLCsAmount:      pendingHTLCs.LocalAmount,
-				PendingTotalHTLCsCount:       pendingHTLCs.TotalCount,
-				PendingTotalHTLCsAmount:      pendingHTLCs.TotalAmount,
-				CommitFee:                    channel.CommitFee,
-				CommitWeight:                 channel.CommitWeight,
-				FeePerKw:                     channel.FeePerKw,
-				BaseFeeMsat:                  localPolicy.FeeBaseMsat,
-				MinHtlc:                      localPolicy.MinHtlc,
-				MaxHtlcMsat:                  localPolicy.MaxHtlcMsat,
-				TimeLockDelta:                localPolicy.TimeLockDelta,
-				FeeRatePpm:                   localPolicy.FeeRateMillMsat,
-				RemoteBaseFeeMsat:            remotePolicy.FeeBaseMsat,
-				RemoteMinHtlc:                remotePolicy.MinHtlc,
-				RemoteMaxHtlcMsat:            remotePolicy.MaxHtlcMsat,
-				RemoteTimeLockDelta:          remotePolicy.TimeLockDelta,
-				RemoteFeeRatePpm:             remotePolicy.FeeRateMillMsat,
-				NumUpdates:                   channel.NumUpdates,
-				Initiator:                    channel.Initiator,
-				ChanStatusFlags:              channel.ChanStatusFlags,
-				CommitmentType:               channel.CommitmentType,
-				Lifetime:                     channel.Lifetime,
-				MempoolSpace:                 MEMPOOL + stringLNDShortChannelId,
-				AmbossSpace:                  AMBOSS + shortChannelId,
-				OneMl:                        ONEML + stringLNDShortChannelId,
-			}
-
-			peerInfo, err := GetNodePeerAlias(localNodeId, remoteNodeId, db)
-			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Node Alias")
-				return
-			}
-			chanBody.PeerAlias = peerInfo
-			channelsBody = append(channelsBody, chanBody)
 		}
 	}
 	c.JSON(http.StatusOK, channelsBody)
 }
 
-func calculateHTLCs(htlcs []*lnrpc.HTLC) PendingHtlcs {
+func calculateHTLCs(htlcs []commons.Htlc) PendingHtlcs {
 	var pendingHTLCs PendingHtlcs
 	if len(htlcs) < 1 {
 		return pendingHTLCs
@@ -301,7 +267,7 @@ func calculateHTLCs(htlcs []*lnrpc.HTLC) PendingHtlcs {
 				pendingHTLCs.ForwardingAmount += htlc.Amount
 			}
 		}
-		pendingHTLCs.TotalAmount = pendingHTLCs.ForwardingAmount + pendingHTLCs.ForwardingAmount
+		pendingHTLCs.TotalAmount = pendingHTLCs.ForwardingAmount + pendingHTLCs.LocalAmount
 		pendingHTLCs.TotalCount = pendingHTLCs.ForwardingCount + pendingHTLCs.LocalCount
 	}
 

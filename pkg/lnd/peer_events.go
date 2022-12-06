@@ -61,13 +61,16 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 		}
 
 		if eventChannel != nil {
-			eventChannel <- commons.PeerEvent{
-				EventData: commons.EventData{
-					EventTime: time.Now().UTC(),
-					NodeId:    nodeSettings.NodeId,
-				},
-				Type:           peerEvent.Type,
-				EventPublicKey: peerEvent.PubKey,
+			eventNodeId := commons.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
+			if eventNodeId != 0 {
+				eventChannel <- commons.PeerEvent{
+					EventData: commons.EventData{
+						EventTime: time.Now().UTC(),
+						NodeId:    nodeSettings.NodeId,
+					},
+					Type:        peerEvent.Type,
+					EventNodeId: eventNodeId,
+				}
 			}
 		}
 	}

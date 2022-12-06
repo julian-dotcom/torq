@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd"
 
@@ -23,9 +24,10 @@ import (
 // fetches data as needed and stores it in the database.
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
-func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
+func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, broadcaster broadcast.BroadcastServer,
 	eventChannel chan interface{},
 	serviceEventChannel chan commons.ServiceEvent, serviceChannel chan commons.ServiceChannelMessage) error {
+
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
 	chain := chainrpc.NewChainNotifierClient(conn)
@@ -187,6 +189,21 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 
 	waitForReadyState(nodeSettings.NodeId, commons.PeerEventStream, "PeerEventStream", serviceEventChannel)
 
+	// Channel Balance Cache Maintenance
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in ChannelBalanceCacheStream (nodeId: %v) %v", nodeId, panicError)
+				lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel, serviceEventChannel)
+			}
+		}()
+		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel, serviceEventChannel)
+	})()
+
+	waitForReadyState(nodeSettings.NodeId, commons.ChannelBalanceCacheStream, "ChannelBalanceCacheStream", serviceEventChannel)
+
 	// Transactions
 	wg.Add(1)
 	go (func() {
@@ -261,6 +278,8 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 	})()
 
 	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", serviceEventChannel)
+
+	time.Sleep(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
 
 	if commons.RunningServices[commons.LndService].GetStatus(nodeId) == commons.Active {
 		log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)

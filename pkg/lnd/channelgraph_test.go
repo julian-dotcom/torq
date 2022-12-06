@@ -84,7 +84,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(chanPointStr)
+	fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(chanPointStr)
 
 	t.Run("Irrelevant routing policy updates are ignored", func(t *testing.T) {
 
@@ -299,7 +299,7 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 	client.CancelFunc = cancel
 
 	lndShortChannelId := uint64(1111)
-	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
 	channel := channels.Channel{
 		ShortChannelID:         &shortChannelId,
 		FirstNodeId:            commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),

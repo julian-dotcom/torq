@@ -13,12 +13,13 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
 // storeForwardingHistory
-func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int, eventChannel chan interface{}) error {
+func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int,
+	eventChannel chan interface{}, bootStrapping bool) error {
+
 	if len(fwh) > 0 {
 		var forwardEvents []commons.ForwardEvent
 		tx := db.MustBegin()
@@ -30,7 +31,7 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 			return errors.Wrap(err, "SQL Statement prepare")
 		}
 		for _, event := range fwh {
-			incomingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdIn)
+			incomingShortChannelId := commons.ConvertLNDShortChannelID(event.ChanIdIn)
 			incomingChannelId := commons.GetChannelIdByShortChannelId(incomingShortChannelId)
 			incomingChannelIdP := &incomingChannelId
 			if incomingChannelId == 0 {
@@ -38,7 +39,7 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 					incomingShortChannelId)
 				incomingChannelIdP = nil
 			}
-			outgoingShortChannelId := channels.ConvertLNDShortChannelID(event.ChanIdOut)
+			outgoingShortChannelId := commons.ConvertLNDShortChannelID(event.ChanIdOut)
 			outgoingChannelId := commons.GetChannelIdByShortChannelId(outgoingShortChannelId)
 			outgoingChannelIdP := &outgoingChannelId
 			if outgoingChannelId == 0 {
@@ -72,8 +73,8 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 		if err != nil {
 			return errors.Wrap(err, "DB Commit")
 		}
-		for _, forwardEvent := range forwardEvents {
-			if eventChannel != nil {
+		if eventChannel != nil && !bootStrapping {
+			for _, forwardEvent := range forwardEvents {
 				eventChannel <- forwardEvent
 			}
 		}
@@ -127,16 +128,13 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.ForwardStream
+	ticker := clock.New().Tick(commons.STREAM_FORWARDS_TICKER_SECONDS * time.Second)
 
 	// Check if maxEvents has been set and that it is bellow the hard coded maximum defined by
 	// the constant MAXEVENTS.
 	if (opt != nil) && ((*opt.MaxEvents > MAXEVENTS) || (*opt.MaxEvents <= 0)) {
 		maxEvents = *opt.MaxEvents
 	}
-
-	// Create the default ticker used to fetch forwards at a set interval
-	c := clock.New()
-	ticker := c.Tick(commons.STREAM_FORWARDS_TICKER_SECONDS * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -187,7 +185,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 				}
 				// Store the forwarding history
-				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, eventChannel)
+				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, eventChannel, bootStrapping)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to store forward event")
 				}

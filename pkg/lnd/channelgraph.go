@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
@@ -167,7 +166,7 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
 		if err != nil {
 			return errors.Wrap(err, "Creating channel point from byte")
 		}
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
+		fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
 
 		channelId := commons.GetActiveChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if channelId != 0 {
@@ -291,8 +290,8 @@ func insertRoutingPolicy(
 				},
 				ChannelGraphEventData: commons.ChannelGraphEventData{
 					TimeLockDelta:    cu.RoutingPolicy.TimeLockDelta,
-					FeeRateMilliMsat: cu.RoutingPolicy.FeeRateMilliMsat,
-					FeeBaseMsat:      cu.RoutingPolicy.FeeBaseMsat,
+					FeeRateMilliMsat: uint64(cu.RoutingPolicy.FeeRateMilliMsat),
+					FeeBaseMsat:      uint64(cu.RoutingPolicy.FeeBaseMsat),
 					MaxHtlcMsat:      cu.RoutingPolicy.MaxHtlcMsat,
 					Disabled:         cu.RoutingPolicy.Disabled,
 					MinHtlc:          cu.RoutingPolicy.MinHtlc,
@@ -302,8 +301,8 @@ func insertRoutingPolicy(
 				channelGraphEvent.PreviousEventTime = channelEvent.EventTime
 				channelGraphEvent.PreviousEventData = commons.ChannelGraphEventData{
 					TimeLockDelta:    channelEvent.TimeLockDelta,
-					FeeRateMilliMsat: channelEvent.FeeRateMilliMsat,
-					FeeBaseMsat:      channelEvent.FeeBaseMsat,
+					FeeRateMilliMsat: uint64(channelEvent.FeeRateMilliMsat),
+					FeeBaseMsat:      uint64(channelEvent.FeeBaseMsat),
 					MaxHtlcMsat:      channelEvent.MaxHtlcMsat,
 					Disabled:         channelEvent.Disabled,
 					MinHtlc:          channelEvent.MinHtlc,

@@ -31,8 +31,8 @@ type ChannelGraphEventData struct {
 	TimeLockDelta    uint32 `json:"timeLockDelta"`
 	MinHtlc          int64  `json:"minHtlc"`
 	MaxHtlcMsat      uint64 `json:"maxHtlcMsat"`
-	FeeBaseMsat      int64  `json:"feeBaseMsat"`
-	FeeRateMilliMsat int64  `json:"feeRateMilliMsat"`
+	FeeBaseMsat      uint64 `json:"feeBaseMsat"`
+	FeeRateMilliMsat uint64 `json:"feeRateMilliMsat"`
 }
 
 type ServiceEvent struct {
@@ -79,17 +79,29 @@ type ChannelEvent struct {
 
 type InvoiceEvent struct {
 	EventData
-	AddIndex    uint64                     `json:"addIndex"`
-	ValueMSat   int64                      `json:"valueMSat"`
-	State       lnrpc.Invoice_InvoiceState `json:"state"`
-	AmountPaid  int64                      `json:"amountPaid"`
-	SettledDate time.Time                  `json:"settledDate"`
+	ChannelId      int                        `json:"channelId"`
+	AddIndex       uint64                     `json:"addIndex"`
+	ValueMSat      uint64                     `json:"valueMSat"`
+	State          lnrpc.Invoice_InvoiceState `json:"state"`
+	AmountPaidMsat uint64                     `json:"amountPaidMsat"`
+	SettledDate    time.Time                  `json:"settledDate"`
 }
 
 type PeerEvent struct {
 	EventData
-	Type           lnrpc.PeerEvent_EventType `json:"type"`
-	EventPublicKey string                    `json:"eventPublicKey"`
+	Type        lnrpc.PeerEvent_EventType `json:"type"`
+	EventNodeId int                       `json:"eventNodeId"`
+}
+
+type PaymentEvent struct {
+	EventData
+	AmountPaid           int64                       `json:"amountPaid"`
+	FeeMsat              uint64                      `json:"feeMsat"`
+	PaymentStatus        lnrpc.Payment_PaymentStatus `json:"paymentStatus"`
+	PaymentFailureReason lnrpc.PaymentFailureReason  `json:"paymentFailureReason"`
+	OutgoingChannelId    *int                        `json:"outgoingChannelId"`
+	RebalanceAmountMsat  *uint64                     `json:"rebalanceAmount"`
+	IncomingChannelId    *int                        `json:"incomingChannelId"`
 }
 
 type BlockEvent struct {
