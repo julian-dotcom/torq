@@ -1,4 +1,4 @@
-import { uuid } from "uuidv4";
+// import { uuid } from "uuidv4";
 import { ColumnMetaData } from "features/table/types";
 import { Payment } from "./types";
 import { ViewResponse } from "features/viewManagement/types";
@@ -110,7 +110,6 @@ export const ActivePaymentsColumns: Array<ColumnMetaData<Payment>> = AllPayments
 
 export const DefaultPaymentView: ViewResponse<Payment> = {
   page: "payments",
-  uuid: uuid(),
   dirty: true,
   view: {
     title: "Untitled View",

@@ -14,11 +14,10 @@ import { useAppDispatch } from "../../store/hooks";
 import { deleteView, updateSelectedView, updateViewTitle } from "./viewSlice";
 
 type ViewRow<T> = {
-  uuid: string;
   id?: number;
   title: string;
   page: keyof AllViewsResponse;
-  index: number;
+  viewIndex: number;
   selected: boolean;
   singleView: boolean;
 };
@@ -36,15 +35,15 @@ export default function ViewRowComponent<T>(props: ViewRow<T>) {
   function handleInputSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setEditView(false);
-    dispatch(updateViewTitle({ page: props.page, uuid: props.uuid, title: localTitle }));
+    dispatch(updateViewTitle({ page: props.page, viewIndex: props.viewIndex, title: localTitle }));
   }
 
   function handleSelectView() {
-    dispatch(updateSelectedView({ page: props.page, uuid: props.uuid }));
+    dispatch(updateSelectedView({ page: props.page, viewIndex: props.viewIndex }));
   }
 
   return (
-    <Draggable draggableId={`draggable-view-id-${props.uuid}`} index={props.index}>
+    <Draggable draggableId={`draggable-view-id-${props.viewIndex}`} index={props.viewIndex}>
       {(provided, snapshot) => (
         <div
           className={classNames(styles.viewRow, { dragging: snapshot.isDragging })}
@@ -78,7 +77,7 @@ export default function ViewRowComponent<T>(props: ViewRow<T>) {
                 if (props.id) {
                   deleteTableView({ page: props.page, id: props.id });
                 } else {
-                  dispatch(deleteView({ page: props.page, uuid: props.uuid }));
+                  dispatch(deleteView({ page: props.page, viewIndex: props.viewIndex }));
                 }
               }}
             >

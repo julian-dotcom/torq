@@ -10,7 +10,6 @@ import { Forward } from "../forwards/forwardsTypes";
 
 export type ViewResponse<T> = {
   view: ViewInterface<T>;
-  uuid: string;
   page: keyof AllViewsResponse;
   id?: number;
   dirty?: boolean;

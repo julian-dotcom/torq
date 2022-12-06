@@ -14,6 +14,7 @@ import i18nReducer from "services/i18n/i18nSlice";
 
 export const store = configureStore({
   reducer: {
+    viewsSlice: viewsSlice.reducer,
     navigation: navReducer,
     // table: tableReducer,
     // payments: paymentsReducer,
@@ -23,7 +24,6 @@ export const store = configureStore({
     channel: channelReducer,
     // channels: channelsReducer,
     [torqApi.reducerPath]: torqApi.reducer,
-    viewsSlice: viewsSlice.reducer,
     i18n: i18nReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(torqApi.middleware),

@@ -21,6 +21,7 @@ type ViewSidebarProps<T> = {
   expanded: boolean;
   onExpandToggle: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   viewResponse: ViewResponse<T>;
+  selectedViewIndex: number;
   defaultView: ViewResponse<T>;
   allColumns: Array<ColumnMetaData<T>>;
   filterableColumns: ColumnMetaData<T>[];
@@ -64,7 +65,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
           allColumns={props.allColumns}
           activeColumns={props.viewResponse.view.columns}
           page={props.viewResponse.page}
-          uuid={props.viewResponse.uuid}
+          viewIndex={props.selectedViewIndex}
         />
       </SectionContainer>
       <SectionContainer
@@ -78,7 +79,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
           page={props.viewResponse.page}
           defaultFilter={props.filterTemplate}
           filters={props.viewResponse.view.filters}
-          uuid={props.viewResponse.uuid}
+          viewIndex={props.selectedViewIndex}
         />
       </SectionContainer>
       <SectionContainer
@@ -92,7 +93,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
           sortBy={props.viewResponse.view.sortBy}
           defaultSortBy={props.sortByTemplate}
           page={props.viewResponse.page}
-          uuid={props.viewResponse.uuid}
+          viewIndex={props.selectedViewIndex}
         />
       </SectionContainer>
       {props.enableGroupBy && (
@@ -105,7 +106,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
           <GroupBySection
             page={props.viewResponse.page}
             groupBy={props.viewResponse.view.groupBy}
-            uuid={props.viewResponse.uuid}
+            viewIndex={props.selectedViewIndex}
           />
         </SectionContainer>
       )}

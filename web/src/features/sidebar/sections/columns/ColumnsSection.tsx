@@ -21,7 +21,6 @@ import {
   updateColumnsOrder,
   ViewSliceStatePages,
 } from "features/viewManagement/viewSlice";
-import { useDeleteTableViewMutation } from "features/viewManagement/viewsApiSlice";
 import { TableResponses } from "features/viewManagement/types";
 
 const CellOptions: SelectOptionType[] = [
@@ -41,7 +40,7 @@ const NumericCellOptions: SelectOptionType[] = [
 
 type ColumnRow<T> = {
   page: ViewSliceStatePages;
-  uuid: string;
+  viewIndex: number;
   column: ColumnMetaData<T>;
   index: number;
 };
@@ -85,7 +84,7 @@ function LockedColumnRow<T>(props: ColumnRow<T>) {
             dispatch(
               updateColumn({
                 page: props.page,
-                uuid: props.uuid,
+                viewIndex: props.viewIndex,
                 columnIndex: props.index,
                 columnUpdate: {
                   type: (newValue as { value: string; label: string }).value,
@@ -101,7 +100,6 @@ function LockedColumnRow<T>(props: ColumnRow<T>) {
 
 function ColumnRow<T>(props: ColumnRow<T>) {
   const dispatch = useAppDispatch();
-  const [deleteTableView] = useDeleteTableViewMutation();
   const selectedOption = CellOptions.filter((option) => {
     if (option.value === props.column.type) {
       return option;
@@ -137,7 +135,7 @@ function ColumnRow<T>(props: ColumnRow<T>) {
             <div
               className={styles.removeColumn}
               onClick={() => {
-                dispatch(deleteColumn({ page: props.page, uuid: props.uuid, columnIndex: props.index }));
+                dispatch(deleteColumn({ page: props.page, viewIndex: props.viewIndex, columnIndex: props.index }));
               }}
             >
               <RemoveIcon />
@@ -152,7 +150,7 @@ function ColumnRow<T>(props: ColumnRow<T>) {
                 dispatch(
                   updateColumn({
                     page: props.page,
-                    uuid: props.uuid,
+                    viewIndex: props.viewIndex,
                     columnIndex: props.index,
                     columnUpdate: {
                       type: (newValue as { value: string; label: string }).value,
@@ -194,7 +192,7 @@ function UnselectedColumn({ name, onAddColumn }: unselectedColumnRow) {
 
 type ColumnsSectionProps<T> = {
   page: ViewSliceStatePages;
-  uuid: string;
+  viewIndex: number;
   activeColumns: Array<ColumnMetaData<T>>;
   allColumns: Array<ColumnMetaData<T>>;
 };
@@ -217,7 +215,12 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
     }
 
     dispatch(
-      updateColumnsOrder({ page: props.page, uuid: props.uuid, fromIndex: source.index, toIndex: destination.index })
+      updateColumnsOrder({
+        page: props.page,
+        viewIndex: props.viewIndex,
+        fromIndex: source.index,
+        toIndex: destination.index,
+      })
     );
   };
 
@@ -234,7 +237,7 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
               if (column.locked === true) {
                 return (
                   <LockedColumnRow
-                    uuid={props.uuid}
+                    viewIndex={props.viewIndex}
                     page={props.page}
                     column={column}
                     key={"selected-" + column.key.toString() + "-" + index}
@@ -255,7 +258,7 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
                       if (column.locked !== true) {
                         return (
                           <ColumnRow
-                            uuid={props.uuid}
+                            viewIndex={props.viewIndex}
                             page={props.page}
                             column={column}
                             key={"selected-" + column.key.toString() + "-"}
@@ -284,7 +287,7 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
                           dispatch(
                             addColumn({
                               page: props.page,
-                              uuid: props.uuid,
+                              viewIndex: props.viewIndex,
                               newColumn: column as ColumnMetaData<TableResponses>,
                             })
                           )

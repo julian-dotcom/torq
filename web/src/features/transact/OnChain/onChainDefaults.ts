@@ -1,4 +1,4 @@
-import { uuid } from "uuidv4";
+// import { uuid } from "uuidv4";
 import { ColumnMetaData } from "features/table/types";
 import { OnChainTx } from "./types";
 import { ViewResponse } from "features/viewManagement/types";
@@ -56,7 +56,6 @@ export const OnChainFilterTemplate: FilterInterface = {
 
 export const DefaultOnChainView: ViewResponse<OnChainTx> = {
   page: "onChain",
-  uuid: uuid(),
   dirty: true,
   view: {
     title: "Untitled View",

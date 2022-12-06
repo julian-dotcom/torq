@@ -7,7 +7,7 @@ import { useAppDispatch } from "../../../../store/hooks";
 
 type GroupPopoverProps = {
   page: keyof AllViewsResponse;
-  uuid: string;
+  viewIndex: number;
   groupBy?: "channels" | "peers";
 };
 
@@ -17,7 +17,7 @@ function GroupBySection(props: GroupPopoverProps) {
     dispatch(
       updateGroupBy({
         page: props.page,
-        uuid: props.uuid,
+        viewIndex: props.viewIndex,
         groupByUpdate: by,
       })
     );

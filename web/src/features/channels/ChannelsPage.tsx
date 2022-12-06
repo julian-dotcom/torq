@@ -39,7 +39,7 @@ function ChannelsPage() {
   const location = useLocation();
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
-  const viewResponse = useAppSelector(selectChannelView);
+  const { viewResponse, selectedViewIndex } = useAppSelector(selectChannelView);
 
   const channelsResponse = useGetChannelsQuery<{
     data: Array<channel>;
@@ -101,6 +101,7 @@ function ChannelsPage() {
       onExpandToggle={closeSidebarHandler}
       expanded={sidebarExpanded}
       viewResponse={viewResponse}
+      selectedViewIndex={selectedViewIndex}
       allColumns={AllChannelsColumns}
       defaultView={DefaultChannelsView}
       filterableColumns={AllChannelsColumns}

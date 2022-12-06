@@ -38,7 +38,7 @@ function PaymentsPage() {
   const location = useLocation();
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
-  const viewResponse = useAppSelector(selectPaymentsView);
+  const { viewResponse, selectedViewIndex } = useAppSelector(selectPaymentsView);
 
   const [getPagination, limit, offset] = usePagination("invoices");
 
@@ -106,6 +106,7 @@ function PaymentsPage() {
       onExpandToggle={closeSidebarHandler}
       expanded={sidebarExpanded}
       viewResponse={viewResponse}
+      selectedViewIndex={selectedViewIndex}
       allColumns={AllPaymentsColumns}
       defaultView={DefaultPaymentView}
       filterableColumns={AllPaymentsColumns}
@@ -134,7 +135,7 @@ function PaymentsPage() {
       <Table
         cellRenderer={DefaultCellRenderer}
         data={paymentsResponse?.data?.data || []}
-        activeColumns={viewResponse.view.columns}
+        activeColumns={viewResponse.view.columns || []}
         isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
       />
     </TablePageTemplate>

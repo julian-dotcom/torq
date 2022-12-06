@@ -43,9 +43,9 @@ export const { updateFlowKey, updateProfitChartKey, updateEventChartKey, updateB
 // The function below is called a selector and allows us to select a value from
 // the state. Selectors can also be defined inline where they're used instead of
 // in the slice file. For example: `useSelector((state: RootState) => state.counter.value)`
-export const selectFlowKeys = (state: { channel: ChannelState }) => state.channel.flowKey;
-export const selectProfitChartKey = (state: { channel: ChannelState }) => state.channel.profitChartKey;
-export const selectEventChartKey = (state: { channel: ChannelState }) => state.channel.eventChartKey;
-export const selectBalanceChanID = (state: { channel: ChannelState }) => state.channel.balanceChanID;
+export const selectFlowKeys = (state: RootState) => state.channel.flowKey;
+export const selectProfitChartKey = (state: RootState) => state.channel.profitChartKey;
+export const selectEventChartKey = (state: RootState) => state.channel.eventChartKey;
+export const selectBalanceChanID = (state: RootState) => state.channel.balanceChanID;
 
 export default channelSlice.reducer;

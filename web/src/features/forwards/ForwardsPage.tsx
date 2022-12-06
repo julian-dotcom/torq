@@ -15,36 +15,20 @@ import {
   ForwardsSortByTemplate,
 } from "./forwardsDefaults";
 import useTranslations from "services/i18n/useTranslations";
-import { forwardsCellRenderer } from "./forwardsCells";
 import { useAppSelector } from "store/hooks";
-import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
-import { addDays, format } from "date-fns";
-import { useGetForwardsQuery } from "apiSlice";
-import Table from "features/table/Table";
-import { Forward } from "./forwardsTypes";
 import { useGetTableViewsQuery } from "../viewManagement/viewsApiSlice";
 import { selectForwardsView } from "../viewManagement/viewSlice";
 import ViewsSidebar from "../viewManagement/ViewsSidebar";
+import ForwardsDataWrapper from "./ForwardsDataWrapper";
 // import Button, { buttonColor } from "components/buttons/Button";
 
 function ForwardsPage() {
   const { t } = useTranslations();
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
-  const viewResponse = useAppSelector(selectForwardsView);
 
-  const currentPeriod = useAppSelector(selectTimeInterval);
-  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
-  const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
-
-  const forwardsResponse = useGetForwardsQuery<{
-    data: Array<Forward>;
-    isLoading: boolean;
-    isFetching: boolean;
-    isUninitialized: boolean;
-    isSuccess: boolean;
-  }>({ from: from, to: to }, { skip: !isSuccess });
-
+  const { viewResponse, selectedViewIndex } = useAppSelector(selectForwardsView);
+  console.log("viewResponse", viewResponse);
   // useEffect(() => {
   //   const views: ViewInterface<ForwardResponse>[] = [];
   //   if (forwardsViews) {
@@ -103,6 +87,7 @@ function ForwardsPage() {
       onExpandToggle={closeSidebarHandler}
       expanded={sidebarExpanded}
       viewResponse={viewResponse}
+      selectedViewIndex={selectedViewIndex}
       allColumns={AllForwardsColumns}
       defaultView={DefaultForwardsView}
       filterableColumns={AllForwardsColumns}
@@ -129,14 +114,7 @@ function ForwardsPage() {
       sidebar={sidebar}
       tableControls={tableControls}
     >
-      <Table
-        activeColumns={viewResponse.view.columns}
-        data={forwardsResponse?.data || []}
-        cellRenderer={forwardsCellRenderer}
-        isLoading={forwardsResponse.isLoading || forwardsResponse.isFetching || forwardsResponse.isUninitialized}
-        showTotals={true}
-      />
-      {/*<ForwardsDataWrapper selectedView={0} />*/}
+      <ForwardsDataWrapper viewResponse={viewResponse} loadingViews={!isSuccess} />
     </TablePageTemplate>
   );
 }

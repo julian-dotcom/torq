@@ -1,4 +1,4 @@
-import { uuid } from "uuidv4";
+// import { uuid } from "uuidv4";
 import { ViewResponse } from "features/viewManagement/types";
 import { Invoice } from "./invoiceTypes";
 import { ColumnMetaData } from "features/table/types";
@@ -187,7 +187,6 @@ export const InvoiceFilterTemplate: FilterInterface = {
 
 export const DefaultInvoiceView: ViewResponse<Invoice> = {
   page: "invoices",
-  uuid: uuid(),
   dirty: true,
   view: {
     title: "Untitled View",

@@ -31,7 +31,7 @@ type SortRowProps<T> = {
   orderBy: OrderBy;
   options: Array<OrderByOption>;
   page: keyof AllViewsResponse;
-  uuid: string;
+  viewIndex: number;
   index: number;
 };
 
@@ -42,7 +42,9 @@ function SortRow<T>(props: SortRowProps<T>) {
       ...props.orderBy,
       key: newValue.value,
     };
-    dispatch(updateSortBy({ page: props.page, uuid: props.uuid, sortByUpdate: newOrderBy, sortByIndex: props.index }));
+    dispatch(
+      updateSortBy({ page: props.page, viewIndex: props.viewIndex, sortByUpdate: newOrderBy, sortByIndex: props.index })
+    );
   };
 
   const updateDirection = (selected: OrderBy) => {
@@ -51,7 +53,9 @@ function SortRow<T>(props: SortRowProps<T>) {
       ...props.orderBy,
       direction: direction,
     };
-    dispatch(updateSortBy({ page: props.page, uuid: props.uuid, sortByUpdate: newOrderBy, sortByIndex: props.index }));
+    dispatch(
+      updateSortBy({ page: props.page, viewIndex: props.viewIndex, sortByUpdate: newOrderBy, sortByIndex: props.index })
+    );
   };
 
   return (
@@ -86,7 +90,7 @@ function SortRow<T>(props: SortRowProps<T>) {
           <div className={styles.dismissIconWrapper}>
             <DismissIcon
               onClick={() => {
-                dispatch(deleteSortBy({ page: props.page, uuid: props.uuid, sortByIndex: props.index }));
+                dispatch(deleteSortBy({ page: props.page, viewIndex: props.viewIndex, sortByIndex: props.index }));
               }}
             />
           </div>
@@ -98,7 +102,7 @@ function SortRow<T>(props: SortRowProps<T>) {
 
 type SortSectionProps<T> = {
   page: keyof AllViewsResponse;
-  uuid: string;
+  viewIndex: number;
   columns: Array<ColumnMetaData<T>>;
   sortBy?: Array<OrderBy>;
   defaultSortBy: OrderBy;
@@ -122,7 +126,7 @@ function SortSection<T>(props: SortSectionProps<T>) {
   }, [props.columns]);
 
   const handleAddSort = () => {
-    dispatch(addSortBy({ page: props.page, uuid: props.uuid, sortBy: props.defaultSortBy }));
+    dispatch(addSortBy({ page: props.page, viewIndex: props.viewIndex, sortBy: props.defaultSortBy }));
   };
 
   const droppableContainerId = "sort-list-droppable";
@@ -144,7 +148,7 @@ function SortSection<T>(props: SortSectionProps<T>) {
     dispatch(
       updateSortByOrder({
         page: props.page,
-        uuid: props.uuid,
+        viewIndex: props.viewIndex,
         fromIndex: source.index,
         toIndex: destination.index,
       })
@@ -171,7 +175,7 @@ function SortSection<T>(props: SortSectionProps<T>) {
                       orderBy={item}
                       options={options}
                       index={index}
-                      uuid={props.uuid}
+                      viewIndex={props.viewIndex}
                       page={props.page}
                     />
                   );

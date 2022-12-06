@@ -20,7 +20,6 @@ const basename = resolveBasename();
 
 const appContainer = document.getElementById("root");
 const root = createRoot(appContainer!);
-
 root.render(
   <StrictMode>
     <BrowserRouter basename={basename}>

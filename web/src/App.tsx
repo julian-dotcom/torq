@@ -7,10 +7,13 @@ import Router from "./Router";
 import useTranslations from "./services/i18n/useTranslations";
 
 function App() {
+  console.log("App render");
   const { init, status: i18nStatus } = useTranslations();
   const toastRef = React.useRef<addToastHandle>();
 
-  useEffect(() => { init(); }, []);
+  useEffect(() => {
+    init();
+  }, []);
 
   return i18nStatus === "loading" ? (
     <p>Loading...</p>

@@ -111,7 +111,7 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
       <div className={styles.filterRows}>
         {!props.filters?.length && <div className={styles.noFilters}>No filters</div>}
 
-        {(props.filters as AndClause | OrClause).childClauses.map((filter, index) => {
+        {(props.filters as AndClause | OrClause)?.childClauses.map((filter, index) => {
           if (filter.prefix === "$filter") {
             return (
               <div

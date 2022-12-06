@@ -1,4 +1,3 @@
-import { uuid } from "uuidv4";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
 import { ViewResponse } from "../viewManagement/types";
@@ -169,7 +168,6 @@ export const DefaultForwardsColumns = AllForwardsColumns.filter((c) => defaultCo
 
 export const DefaultForwardsView: ViewResponse<Forward> = {
   page: "forwards",
-  uuid: uuid(),
   dirty: true,
   view: {
     title: "Untitled View",

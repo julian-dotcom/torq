@@ -43,7 +43,7 @@ function InvoicesPage() {
   const location = useLocation();
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
-  const viewResponse = useAppSelector(selectInvoicesView);
+  const { viewResponse, selectedViewIndex } = useAppSelector(selectInvoicesView);
 
   const [getPagination, limit, offset] = usePagination("invoices");
 
@@ -109,6 +109,7 @@ function InvoicesPage() {
       onExpandToggle={closeSidebarHandler}
       expanded={sidebarExpanded}
       viewResponse={viewResponse}
+      selectedViewIndex={selectedViewIndex}
       allColumns={AllInvoicesColumns}
       defaultView={DefaultInvoiceView}
       filterableColumns={AllInvoicesColumns}

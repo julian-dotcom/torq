@@ -1,4 +1,4 @@
-import { uuid } from "uuidv4";
+// import { uuid } from "uuidv4";
 import { ViewInterface, ViewResponse } from "../viewManagement/types";
 import { channel } from "./channelsTypes";
 import { ColumnMetaData } from "../table/types";
@@ -235,7 +235,6 @@ export const ChannelsSortTemplate: { key: keyof channel; direction: "desc" | "as
 
 export const DefaultChannelsView: ViewResponse<channel> = {
   page: "channel",
-  uuid: uuid(),
   view: {
     title: "Untitled View",
     columns: DefaultChannelsColumns,

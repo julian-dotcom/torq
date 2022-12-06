@@ -100,16 +100,15 @@ function ViewsPopover<T>(props: ViewsPopover<T>) {
           <Droppable droppableId={droppableContainerId}>
             {(provided) => (
               <div className={styles.viewRows} ref={provided.innerRef} {...provided.droppableProps}>
-                {viewResponse.views.map((view, index) => {
+                {viewResponse.views.map((view, viewIndex) => {
                   return (
                     <ViewRowComponent
                       title={view.view.title}
                       id={view.id}
-                      uuid={view.uuid}
+                      viewIndex={viewIndex}
                       page={view.page}
-                      index={index}
-                      key={"view-row-" + view.uuid}
-                      selected={viewResponse.selected === view.uuid}
+                      key={"view-row-" + viewIndex}
+                      selected={viewResponse.selected === viewIndex}
                       singleView={singleView}
                     />
                   );

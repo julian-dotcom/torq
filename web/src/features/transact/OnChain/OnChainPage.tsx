@@ -38,7 +38,7 @@ function OnChainPage() {
   const location = useLocation();
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
-  const viewResponse = useAppSelector(selectOnChainView);
+  const { viewResponse, selectedViewIndex } = useAppSelector(selectOnChainView);
   const [getPagination, limit, offset] = usePagination("onChain");
 
   const onChainTxResponse = useGetOnChainTxQuery<{
@@ -115,6 +115,7 @@ function OnChainPage() {
       onExpandToggle={closeSidebarHandler}
       expanded={sidebarExpanded}
       viewResponse={viewResponse}
+      selectedViewIndex={selectedViewIndex}
       allColumns={AllOnChainColumns}
       defaultView={DefaultOnChainView}
       filterableColumns={AllOnChainColumns}

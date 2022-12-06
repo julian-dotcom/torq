@@ -6,7 +6,7 @@ import { AllViewsResponse } from "features/viewManagement/types";
 
 type FilterSectionProps<T> = {
   page: keyof AllViewsResponse;
-  uuid: string;
+  viewIndex: number;
   filters: any;
   filterableColumns: Array<ColumnMetaData<T>>;
   defaultFilter: any;
@@ -16,7 +16,7 @@ function FilterSection<T>(props: FilterSectionProps<T>) {
   const handleFilterUpdate = () => {
     updateFilters({
       page: props.page,
-      uuid: "",
+      viewIndex: props.viewIndex,
       filterUpdate: props.filters,
     });
     // props.view.updateFilters(props.filters);
