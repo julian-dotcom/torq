@@ -375,12 +375,21 @@ func initServiceMaps(rs *Services, nodeId int) {
 		rs.enforcedServiceStatus = make(map[int]*Status)
 		rs.noDelay = make(map[int]bool)
 		rs.streamStatus = make(map[int]map[SubscriptionStream]Status)
-		rs.streamStatus[nodeId] = make(map[SubscriptionStream]Status, 0)
 		rs.streamBootTime = make(map[int]map[SubscriptionStream]time.Time)
-		rs.streamBootTime[nodeId] = make(map[SubscriptionStream]time.Time, 0)
 		rs.streamInitializationPingTime = make(map[int]map[SubscriptionStream]time.Time)
-		rs.streamInitializationPingTime[nodeId] = make(map[SubscriptionStream]time.Time, 0)
 		rs.includeIncomplete = make(map[int]bool)
+	}
+	_, exists := rs.streamStatus[nodeId]
+	if !exists {
+		rs.streamStatus[nodeId] = make(map[SubscriptionStream]Status)
+	}
+	_, exists = rs.streamBootTime[nodeId]
+	if !exists {
+		rs.streamBootTime[nodeId] = make(map[SubscriptionStream]time.Time)
+	}
+	_, exists = rs.streamInitializationPingTime[nodeId]
+	if !exists {
+		rs.streamInitializationPingTime[nodeId] = make(map[SubscriptionStream]time.Time)
 	}
 }
 
