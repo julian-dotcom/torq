@@ -11,6 +11,8 @@
   "addNode": "Add Node",
   "addTag": "Add Tag",
   "add": "Add",
+  "addFilter": "Add Filter",
+  "addFilterGroup": "Add Group",
   "deleteTag": "Delete Tag",
   "unknown": "Unknown",
   "p2wpkh": "Segwit",

@@ -24,12 +24,11 @@ import {
   SortableInvoiceColumns,
 } from "./invoiceDefaults";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
-import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { usePagination } from "components/table/pagination/usePagination";
-import { useGetTableViewsQuery } from "../../viewManagement/viewsApiSlice";
-import { useAppSelector } from "../../../store/hooks";
-import { selectInvoicesView } from "../../viewManagement/viewSlice";
-import ViewsSidebar from "../../viewManagement/ViewsSidebar";
+import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
+import { useAppSelector } from "store/hooks";
+import { selectInvoicesView } from "features/viewManagement/viewSlice";
+import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 
 const statusTypes: any = {
   OPEN: "Open",
@@ -58,7 +57,7 @@ function InvoicesPage() {
       limit: limit,
       offset: offset,
       order: viewResponse.view.sortBy,
-      filter: viewResponse.view.filters ? (viewResponse.view.filters.toJSON() as FilterInterface) : undefined,
+      filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
     },
     { skip: !isSuccess }
   );

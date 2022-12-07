@@ -91,7 +91,7 @@ export type FilterInterface = {
   category: FilterCategoryType;
   funcName: string;
   parameter: FilterParameterType;
-  key?: string;
+  key: string;
   selectOptions?: Array<SelectOption>;
   value?: any;
   label?: string;
@@ -114,7 +114,7 @@ class FilterClause {
 
 class AndClause {
   prefix = "$and";
-  childClauses: Clause[] = [];
+  childClauses: Array<Clause> = [];
   constructor(childClauses?: Clause[]) {
     if (childClauses) {
       this.childClauses = childClauses;

@@ -25,7 +25,6 @@ import {
   OnChainSortTemplate,
   SortableOnChainColumns,
 } from "./onChainDefaults";
-import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { usePagination } from "components/table/pagination/usePagination";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
@@ -52,7 +51,7 @@ function OnChainPage() {
       limit: limit,
       offset: offset,
       order: viewResponse.view.sortBy,
-      filter: viewResponse.view.filters.length ? (viewResponse.view.filters.toJSON() as FilterInterface) : undefined,
+      filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
     },
     { skip: !isSuccess }
   );

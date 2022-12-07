@@ -1,4 +1,4 @@
-import { FilterInterface } from "features/sidebar/sections/filter/filter";
+import { AndClause, FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
 import { ViewResponse } from "../viewManagement/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
@@ -171,6 +171,7 @@ export const DefaultForwardsView: ViewResponse<Forward> = {
   dirty: true,
   view: {
     title: "Untitled View",
+    filters: new AndClause().toJSON(),
     columns: DefaultForwardsColumns,
     sortBy: [ForwardsSortByTemplate],
     groupBy: "channels",

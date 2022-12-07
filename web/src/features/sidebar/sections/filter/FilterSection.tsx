@@ -3,23 +3,27 @@ import FilterComponent from "./FilterComponent";
 import { ColumnMetaData } from "features/table/types";
 import { updateFilters } from "features/viewManagement/viewSlice";
 import { AllViewsResponse } from "features/viewManagement/types";
+import { Clause } from "./filter";
+import { useAppDispatch } from "../../../../store/hooks";
 
 type FilterSectionProps<T> = {
   page: keyof AllViewsResponse;
   viewIndex: number;
-  filters: any;
+  filters: Clause;
   filterableColumns: Array<ColumnMetaData<T>>;
   defaultFilter: any;
 };
 
 function FilterSection<T>(props: FilterSectionProps<T>) {
+  const dispatch = useAppDispatch();
   const handleFilterUpdate = () => {
-    updateFilters({
-      page: props.page,
-      viewIndex: props.viewIndex,
-      filterUpdate: props.filters,
-    });
-    // props.view.updateFilters(props.filters);
+    dispatch(
+      updateFilters({
+        page: props.page,
+        viewIndex: props.viewIndex,
+        filterUpdate: props.filters.toJSON(),
+      })
+    );
   };
 
   return (

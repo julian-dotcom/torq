@@ -163,13 +163,14 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, columnIndex } = actions.payload;
       const columns = state.pages[page].views[viewIndex].view.columns;
       if (columns) {
-        state.pages[page].views[viewIndex].view.columns = columns.splice(columnIndex, 1);
+        columns.splice(columnIndex, 1);
+        state.pages[page].views[viewIndex].view.columns = columns;
       }
     },
     // --------------------- Filters ---------------------
     updateFilters: (
       state: ViewSliceState,
-      actions: PayloadAction<{ page: ViewSliceStatePages; viewIndex: number; filterUpdate: any }>
+      actions: PayloadAction<{ page: ViewSliceStatePages; viewIndex: number; filterUpdate: object }>
     ) => {
       const { page, viewIndex, filterUpdate } = actions.payload;
       state.pages[page].views[viewIndex].view.filters = filterUpdate;
@@ -219,7 +220,8 @@ export const viewsSlice = createSlice({
       const currentSortBy = state.pages[page].views[viewIndex].view.sortBy;
       // Delete the sort by if it exists
       if (currentSortBy) {
-        state.pages[page].views[viewIndex].view.sortBy = currentSortBy.splice(sortByIndex, 1);
+        currentSortBy.splice(sortByIndex, 1);
+        state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
       }
     },
     updateSortByOrder: (

@@ -13,7 +13,7 @@ export type FromAndTo = {
 
 export type BaseQueryCollectionParams = Paginable & {
   order?: Array<OrderBy>;
-  filter?: FilterInterface;
+  filter?: any;
 };
 
 export type GetFlowQueryParams = FromAndTo & {

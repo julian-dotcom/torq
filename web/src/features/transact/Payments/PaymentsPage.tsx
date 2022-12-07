@@ -6,7 +6,6 @@ import {
 import { useGetPaymentsQuery } from "./paymentsApi";
 import { NEW_PAYMENT } from "constants/routes";
 import Button, { buttonColor } from "components/buttons/Button";
-import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import Table from "features/table/Table";
 import TablePageTemplate, {
   TableControlsButton,
@@ -53,7 +52,7 @@ function PaymentsPage() {
       limit: limit,
       offset: offset,
       order: viewResponse.view.sortBy,
-      filter: viewResponse.view.filters ? (viewResponse.view.filters.toJSON() as FilterInterface) : undefined,
+      filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
     },
     { skip: !isSuccess }
   );

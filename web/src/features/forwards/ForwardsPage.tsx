@@ -16,15 +16,15 @@ import {
 } from "./forwardsDefaults";
 import useTranslations from "services/i18n/useTranslations";
 import { useAppSelector } from "store/hooks";
-import { useGetTableViewsQuery } from "../viewManagement/viewsApiSlice";
-import { selectForwardsView } from "../viewManagement/viewSlice";
-import ViewsSidebar from "../viewManagement/ViewsSidebar";
-import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
+import { selectForwardsView } from "features/viewManagement/viewSlice";
+import ViewsSidebar from "features/viewManagement/ViewsSidebar";
+import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
-import { useGetForwardsQuery } from "../../apiSlice";
+import { useGetForwardsQuery } from "apiSlice";
 import { Forward } from "./forwardsTypes";
 import { forwardsCellRenderer } from "./forwardsCells";
-import Table from "../table/Table";
+import Table from "features/table/Table";
 // import Button, { buttonColor } from "components/buttons/Button";
 
 function ForwardsPage() {

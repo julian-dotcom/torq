@@ -1,7 +1,6 @@
 import classNames from "classnames";
 import { Delete16Regular as RemoveIcon } from "@fluentui/react-icons";
 import Select from "./FilterDropDown";
-
 import { FilterClause, FilterParameterType } from "./filter";
 import styles from "./filter-section.module.scss";
 import { FilterFunctions } from "./filter";
@@ -59,8 +58,8 @@ function FilterRow({
   combiner,
 }: filterRowInterface) {
   const rowValues = filterClause.filter;
-
-  const [rowExpanded, setRowExpanded] = useState(!rowValues.key);
+  console.log("rowValues", rowValues);
+  const [rowExpanded, setRowExpanded] = useState(false);
 
   const functionOptions = getFilterFunctions(rowValues.category);
 
