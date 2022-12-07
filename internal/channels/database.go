@@ -42,6 +42,18 @@ func GetChannels(db *sqlx.DB, all bool, channelIds []int) ([]*Channel, error) {
 	return r, nil
 }
 
+func GetChannel(db *sqlx.DB, channelId int) (Channel, error) {
+	var c Channel
+	err := db.Get(&c, `SELECT * FROM channel WHERE channel_id = $1;`, channelId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Channel{}, nil
+		}
+		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return c, nil
+}
+
 func GetLocalRoutingPolicy(channelId, nodeId int, db *sqlx.DB) (ChannelPolicy, error) {
 	cp := ChannelPolicy{}
 	err := db.Get(&cp, `

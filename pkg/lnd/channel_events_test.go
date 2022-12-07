@@ -232,7 +232,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 			FirstNodePublicKey: testutil.TestPublicKey1, SecondNodePublicKey: testutil.TestPublicKey2, EventType: int(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL),
 			Capacity: 100000000, ClosingTransactionHash: &closingTransactionHash}
 		channel := &lnrpc.ChannelCloseSummary{ChanId: *expected.LNDShortChannelId, ChannelPoint: testutil.TestChannelPoint4,
-			RemotePubkey: expected.SecondNodePublicKey, Capacity: expected.Capacity, ClosingTxHash: closingTransactionHash}
+			RemotePubkey: expected.SecondNodePublicKey, Capacity: expected.Capacity, ClosingTxHash: closingTransactionHash, CloseInitiator: lnrpc.Initiator_INITIATOR_LOCAL}
 		channelEvent := lnrpc.ChannelEventUpdate_ClosedChannel{ClosedChannel: channel}
 		channelEventUpdate := &lnrpc.ChannelEventUpdate{
 			Type:    lnrpc.ChannelEventUpdate_CLOSED_CHANNEL,
@@ -313,8 +313,12 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 		t.Fatalf("Channel capacity is not stored correctly. Expected: %d, got: %d", expected.Capacity,
 			channelEvents[0].Capacity)
 	}
-	if channelEvents[0].EventType == 1 && *channelEvents[0].ClosingTransactionHash != *expected.ClosingTransactionHash {
-		t.Fatalf("Channel ClosingTransactionHash is not stored correctly. Expected: %v, got: %v", expected.ClosingTransactionHash,
+	if channelEvents[0].EventType == 1 && expected.ClosingTransactionHash != nil && *expected.ClosingTransactionHash != "" && channelEvents[0].ClosingTransactionHash == nil {
+		t.Fatalf("Channel ClosingTransactionHash is not stored correctly. Expected: %v, got: %v", *expected.ClosingTransactionHash,
+			channelEvents[0].ClosingTransactionHash)
+	}
+	if channelEvents[0].EventType == 1 && expected.ClosingTransactionHash != nil && *expected.ClosingTransactionHash != "" && *channelEvents[0].ClosingTransactionHash != *expected.ClosingTransactionHash {
+		t.Fatalf("Channel ClosingTransactionHash is not stored correctly. Expected: %v, got: %v", *expected.ClosingTransactionHash,
 			channelEvents[0].ClosingTransactionHash)
 	}
 }
