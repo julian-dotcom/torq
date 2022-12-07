@@ -48,6 +48,8 @@
   "transactions": "Transactions",
   "settings": "Settings",
   "logout": "Logout",
+  "retry": "Retry",
+  "bootstrapping": "Bootstrapping",
   "tableLayout": {
     "tableOptions": "Table options"
   },
