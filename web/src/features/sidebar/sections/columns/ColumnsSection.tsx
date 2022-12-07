@@ -254,7 +254,7 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                   >
-                    {props.allColumns.map((column, index) => {
+                    {props.activeColumns.map((column, index) => {
                       if (column.locked !== true) {
                         return (
                           <ColumnRow
@@ -284,13 +284,11 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
                       key={"unselected-" + index + "-" + column.key.toString()}
                       onAddColumn={() => {
                         dispatch(
-                          dispatch(
-                            addColumn({
-                              page: props.page,
-                              viewIndex: props.viewIndex,
-                              newColumn: column as ColumnMetaData<TableResponses>,
-                            })
-                          )
+                          addColumn({
+                            page: props.page,
+                            viewIndex: props.viewIndex,
+                            newColumn: column as ColumnMetaData<TableResponses>,
+                          })
                         );
                       }}
                     />

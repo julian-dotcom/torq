@@ -16,32 +16,32 @@ const initialState = {
   pages: {
     forwards: {
       selected: 0,
-      views: <Array<typeof DefaultForwardsView>>[],
+      views: [DefaultForwardsView],
       // persistedViews: <Array<ViewResponse<Forward>>>[],
     },
     onChain: {
       selected: 0,
-      views: <Array<typeof DefaultOnChainView>>[],
+      views: [DefaultOnChainView],
       // persistedViews: <Array<ViewResponse<OnChainTx>>>[],
     },
     payments: {
       selected: 0,
-      views: <Array<typeof DefaultPaymentView>>[],
+      views: [DefaultPaymentView],
       // persistedViews: <Array<ViewResponse<Payment>>>[],
     },
     invoices: {
       selected: 0,
-      views: <Array<typeof DefaultInvoiceView>>[],
+      views: [DefaultInvoiceView],
       // persistedViews: <Array<ViewResponse<Invoice>>>[],
     },
     channel: {
       selected: 0,
-      views: <Array<typeof DefaultChannelsView>>[],
+      views: [DefaultChannelsView],
       // persistedViews: <Array<ViewResponse<channel>>>[],
     },
     tags: {
       selected: 0,
-      views: <Array<typeof DefaultTagsView>>[],
+      views: [DefaultTagsView],
       // persistedViews: <Array<ViewResponse<tag>>>[],
     },
   },
@@ -115,9 +115,9 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, newColumn } = actions.payload;
       const columns = state.pages[page].views[viewIndex].view.columns;
       if (!columns) {
-        state.pages[page].views[viewIndex].view.columns = [...columns, newColumn];
-      } else {
         state.pages[page].views[viewIndex].view.columns = [newColumn];
+      } else {
+        state.pages[page].views[viewIndex].view.columns = [...(columns as Array<typeof newColumn>), newColumn];
       }
     },
     updateColumn: (
@@ -351,46 +351,31 @@ export const {
 
 export const selectForwardsView = (state: RootState) => {
   const page = "forwards";
-  let view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
-  if (view === undefined) {
-    view = { ...DefaultForwardsView };
-  }
+  const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
   return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
 };
 
 export const selectChannelView = (state: RootState) => {
   const page = "channel";
-  let view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
-  if (view === undefined) {
-    view = { ...DefaultChannelsView };
-  }
+  const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
   return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
 };
 
 export const selectPaymentsView = (state: RootState) => {
   const page = "payments";
-  let view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
-  if (view === undefined) {
-    view = { ...DefaultPaymentView };
-  }
+  const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
   return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
 };
 
 export const selectInvoicesView = (state: RootState) => {
   const page = "invoices";
-  let view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
-  if (view === undefined) {
-    view = { ...DefaultInvoiceView };
-  }
+  const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
   return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
 };
 
 export const selectOnChainView = (state: RootState) => {
   const page = "onChain";
-  let view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
-  if (view === undefined) {
-    view = { ...DefaultOnChainView };
-  }
+  const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
   return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
 };
 

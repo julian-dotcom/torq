@@ -19,7 +19,12 @@ import { useAppSelector } from "store/hooks";
 import { useGetTableViewsQuery } from "../viewManagement/viewsApiSlice";
 import { selectForwardsView } from "../viewManagement/viewSlice";
 import ViewsSidebar from "../viewManagement/ViewsSidebar";
-import ForwardsDataWrapper from "./ForwardsDataWrapper";
+import { selectTimeInterval } from "../timeIntervalSelect/timeIntervalSlice";
+import { addDays, format } from "date-fns";
+import { useGetForwardsQuery } from "../../apiSlice";
+import { Forward } from "./forwardsTypes";
+import { forwardsCellRenderer } from "./forwardsCells";
+import Table from "../table/Table";
 // import Button, { buttonColor } from "components/buttons/Button";
 
 function ForwardsPage() {
@@ -29,6 +34,18 @@ function ForwardsPage() {
 
   const { viewResponse, selectedViewIndex } = useAppSelector(selectForwardsView);
   console.log("viewResponse", viewResponse);
+  const currentPeriod = useAppSelector(selectTimeInterval);
+  const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
+  const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
+
+  const forwardsResponse = useGetForwardsQuery<{
+    data: Array<Forward>;
+    isLoading: boolean;
+    isFetching: boolean;
+    isUninitialized: boolean;
+    isSuccess: boolean;
+  }>({ from: from, to: to }, { skip: !isSuccess });
+
   // useEffect(() => {
   //   const views: ViewInterface<ForwardResponse>[] = [];
   //   if (forwardsViews) {
@@ -114,7 +131,14 @@ function ForwardsPage() {
       sidebar={sidebar}
       tableControls={tableControls}
     >
-      <ForwardsDataWrapper viewResponse={viewResponse} loadingViews={!isSuccess} />
+      <Table
+        activeColumns={viewResponse.view.columns || []}
+        data={forwardsResponse?.data || []}
+        cellRenderer={forwardsCellRenderer}
+        isLoading={forwardsResponse.isLoading || forwardsResponse.isFetching || forwardsResponse.isUninitialized}
+        showTotals={true}
+      />
+      {/*<ForwardsDataWrapper viewResponse={viewResponse} loadingViews={!isSuccess} />*/}
     </TablePageTemplate>
   );
 }
