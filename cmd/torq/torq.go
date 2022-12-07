@@ -201,9 +201,6 @@ func main() {
 							if err != nil {
 								log.Error().Err(err).Msg("Torq cannot be initialized (Loading caches in memory).")
 							}
-							commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, nil, serviceEventChannel)
-						case commons.Active:
-							log.Info().Msg("Torq is booted.")
 							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndService}
 						}
 					}
@@ -307,6 +304,7 @@ func main() {
 									enforcedServiceStatus = serviceCmd.EnforcedServiceStatus
 								}
 								if serviceCmd.NodeId == 0 {
+									commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, nil, serviceEventChannel)
 									nodes, err = settings.GetActiveNodesConnectionDetails(db)
 									if err != nil {
 										log.Error().Err(err).Msg("Getting connection details")

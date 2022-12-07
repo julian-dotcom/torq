@@ -237,7 +237,7 @@ export const torqApi = createApi({
       invalidatesTags: ["nodeConfigurations", "channels"],
     }),
     getServices: builder.query<services, void>({
-      query: () => "services",
+      query: () => "services/status",
       providesTags: ["services"],
     }),
   }),

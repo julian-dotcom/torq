@@ -144,7 +144,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 
 	unauthorisedServicesRoutes := api.Group("services")
 	{
-		services.RegisterServiceRoutes(unauthorisedServicesRoutes, db)
+		services.RegisterUnauthenticatedRoutes(unauthorisedServicesRoutes, db)
 	}
 
 	api.Use(auth.AuthRequired).Use(auth.TorqRequired)
