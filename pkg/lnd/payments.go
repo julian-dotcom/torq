@@ -64,12 +64,12 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				continue
 			}
 
-			if bootStrapping {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
-			} else {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
-			}
 			for {
+				if bootStrapping {
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+				} else {
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+				}
 				payments, err = fetchPayments(ctx, client, lastPaymentIndex, includeIncomplete)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
