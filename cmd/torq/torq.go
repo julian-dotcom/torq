@@ -167,6 +167,10 @@ func main() {
 			go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctxGlobal)
 			go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctxGlobal)
 
+			// This listens to events:
+			// When Torq has status initializing it loads the caches and starts the LndServices
+			// When Torq has status inactive a panic is created (i.e. migration failed)
+			// When LndService has status active other services like Amboss and Vector are booted (they depend on LND)
 			go func(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, broadcaster broadcast.BroadcastServer) {
 				for {
 					listener := broadcaster.Subscribe()
@@ -223,6 +227,8 @@ func main() {
 
 			commons.RunningServices[commons.TorqService].AddSubscription(commons.TorqDummyNodeId, cancelGlobal, eventChannelGlobal)
 
+			// This function initiates the database migration(s) and parses command line parameters
+			// When done the TorqService is set to Initialising
 			go func(db *sqlx.DB, c *cli.Context, eventChannel chan interface{}) {
 				fmt.Println("Checking for migrations..")
 				// Check if the database needs to be migrated.
@@ -289,7 +295,7 @@ func main() {
 			}(db, c, eventChannelGlobal)
 
 			if !c.Bool("torq.no-sub") {
-				// go routine that responds to start command and starts all subscriptions
+				// go routine that responds to commands to boot and kill services
 				go (func(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer) {
 					for {
 						serviceCmd := <-serviceChannel
