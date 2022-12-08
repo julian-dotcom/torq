@@ -172,10 +172,12 @@ type Invoice struct {
 	   given sub-invoice.
 	*/
 	//map<string, AMPInvoiceState> amp_invoice_state = 28;
-	AmpInvoiceState []byte    `db:"amp_invoice_state" json:"amp_invoice_state"`
-	NodeId          int       `db:"node_id" json:"nodeId"`
-	CreatedOn       time.Time `db:"created_on" json:"created_on"`
-	UpdatedOn       time.Time `db:"updated_on" json:"updated_on"`
+	AmpInvoiceState   []byte    `db:"amp_invoice_state" json:"amp_invoice_state"`
+	DestinationNodeId *int      `db:"destination_node_id" json:"destinationNodeId"`
+	NodeId            int       `db:"node_id" json:"nodeId"`
+	ChannelId         *int      `db:"channel_id" json:"channelId"`
+	CreatedOn         time.Time `db:"created_on" json:"created_on"`
+	UpdatedOn         time.Time `db:"updated_on" json:"updated_on"`
 }
 
 func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, err error) {
@@ -288,7 +290,15 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 }
 
 func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, err error, db *sqlx.DB, eventChannel chan interface{}, bootStrapping bool) {
+	invoiceEvent := commons.InvoiceEvent{
+		EventData: commons.EventData{
+			EventTime: time.Now().UTC(),
+			NodeId:    nodeSettings.NodeId,
+		},
+	}
+
 	var destinationPublicKey = ""
+	var destinationNodeId *int
 	// if empty payment request invoice is likely keysend
 	if invoice.PaymentRequest != "" {
 		// Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
@@ -299,16 +309,13 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 			log.Error().Msgf("Subscribe and store invoices - decode payment request: %v", err)
 		} else {
 			destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
+			destinationNodeIdValue := commons.GetNodeIdByPublicKey(destinationPublicKey, nodeSettings.Chain, nodeSettings.Network)
+			destinationNodeId = &destinationNodeIdValue
+			invoiceEvent.DestinationNodeId = destinationNodeId
 		}
 	}
 
-	invoiceEvent := commons.InvoiceEvent{
-		EventData: commons.EventData{
-			EventTime: time.Now().UTC(),
-			NodeId:    nodeSettings.NodeId,
-		},
-	}
-	err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel, bootStrapping)
+	err = insertInvoice(db, invoice, destinationPublicKey, destinationNodeId, nodeSettings.NodeId, invoiceEvent, eventChannel, bootStrapping)
 	if err != nil {
 		log.Error().Err(err).Msg("Storing invoice failed")
 	}
@@ -362,7 +369,7 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 	}
 }
 
-func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, nodeId int,
+func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, destinationNodeId *int, nodeId int,
 	invoiceEvent commons.InvoiceEvent, eventChannel chan interface{}, bootStrapping bool) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
@@ -375,6 +382,10 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, node
 	if err != nil {
 		log.Error().Msgf("insert invoice - json marshal htlcs: %v", err)
 		return errors.Wrapf(err, "insert invoice: json marshal htlcs")
+	}
+	var channelId *int
+	if len(invoice.Htlcs) > 0 {
+		channelId = getChannelIdByLndShortChannelId(invoice.Htlcs[len(invoice.Htlcs)-1].ChanId)
 	}
 
 	featuresJson, err := json.Marshal(invoice.Features)
@@ -390,34 +401,36 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, node
 	}
 
 	i := Invoice{
-		Memo:            invoice.Memo,
-		RPreimage:       hex.EncodeToString(invoice.RPreimage),
-		RHash:           hex.EncodeToString(invoice.RHash),
-		ValueMsat:       invoice.ValueMsat,
-		CreationDate:    time.Unix(invoice.CreationDate, 0).UTC(),
-		SettleDate:      time.Unix(invoice.SettleDate, 0).UTC(),
-		PaymentRequest:  invoice.PaymentRequest,
-		Destination:     destination,
-		DescriptionHash: invoice.DescriptionHash,
-		Expiry:          invoice.Expiry,
-		FallbackAddr:    invoice.FallbackAddr,
-		CltvExpiry:      invoice.CltvExpiry,
-		RouteHints:      rhJson,
-		Private:         false,
-		AddIndex:        invoice.AddIndex,
-		SettleIndex:     invoice.SettleIndex,
-		AmtPaidSat:      invoice.AmtPaidSat,
-		AmtPaidMsat:     invoice.AmtPaidMsat,
-		InvoiceState:    invoice.State.String(), // ,
-		Htlcs:           htlcJson,
-		Features:        featuresJson,
-		IsKeysend:       invoice.IsKeysend,
-		PaymentAddr:     hex.EncodeToString(invoice.PaymentAddr),
-		IsAmp:           invoice.IsAmp,
-		AmpInvoiceState: aisJson,
-		NodeId:          nodeId,
-		CreatedOn:       time.Now().UTC(),
-		UpdatedOn:       time.Now().UTC(),
+		Memo:              invoice.Memo,
+		RPreimage:         hex.EncodeToString(invoice.RPreimage),
+		RHash:             hex.EncodeToString(invoice.RHash),
+		ValueMsat:         invoice.ValueMsat,
+		CreationDate:      time.Unix(invoice.CreationDate, 0).UTC(),
+		SettleDate:        time.Unix(invoice.SettleDate, 0).UTC(),
+		PaymentRequest:    invoice.PaymentRequest,
+		Destination:       destination,
+		DescriptionHash:   invoice.DescriptionHash,
+		Expiry:            invoice.Expiry,
+		FallbackAddr:      invoice.FallbackAddr,
+		CltvExpiry:        invoice.CltvExpiry,
+		RouteHints:        rhJson,
+		Private:           false,
+		AddIndex:          invoice.AddIndex,
+		SettleIndex:       invoice.SettleIndex,
+		AmtPaidSat:        invoice.AmtPaidSat,
+		AmtPaidMsat:       invoice.AmtPaidMsat,
+		InvoiceState:      invoice.State.String(), // ,
+		Htlcs:             htlcJson,
+		Features:          featuresJson,
+		IsKeysend:         invoice.IsKeysend,
+		PaymentAddr:       hex.EncodeToString(invoice.PaymentAddr),
+		IsAmp:             invoice.IsAmp,
+		AmpInvoiceState:   aisJson,
+		DestinationNodeId: destinationNodeId,
+		NodeId:            nodeId,
+		ChannelId:         channelId,
+		CreatedOn:         time.Now().UTC(),
+		UpdatedOn:         time.Now().UTC(),
 	}
 
 	var sqlInvoice = `INSERT INTO invoice (
@@ -452,7 +465,9 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, node
     payment_addr,
     is_amp,
     amp_invoice_state,
+    destination_node_id,
     node_id,
+    channel_id,
     created_on,
     updated_on
 ) VALUES(
@@ -480,7 +495,9 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, node
     :payment_addr,
     :is_amp,
     :amp_invoice_state,
+	:destination_node_id,
 	:node_id,
+    :channel_id,
     :created_on,
     :updated_on
 );`

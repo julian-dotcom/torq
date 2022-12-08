@@ -79,12 +79,13 @@ type ChannelEvent struct {
 
 type InvoiceEvent struct {
 	EventData
-	ChannelId      int                        `json:"channelId"`
-	AddIndex       uint64                     `json:"addIndex"`
-	ValueMSat      uint64                     `json:"valueMSat"`
-	State          lnrpc.Invoice_InvoiceState `json:"state"`
-	AmountPaidMsat uint64                     `json:"amountPaidMsat"`
-	SettledDate    time.Time                  `json:"settledDate"`
+	ChannelId         int                        `json:"channelId"`
+	AddIndex          uint64                     `json:"addIndex"`
+	ValueMSat         uint64                     `json:"valueMSat"`
+	State             lnrpc.Invoice_InvoiceState `json:"state"`
+	AmountPaidMsat    uint64                     `json:"amountPaidMsat"`
+	SettledDate       time.Time                  `json:"settledDate"`
+	DestinationNodeId *int                       `json:"destinationNodeId"`
 }
 
 type PeerEvent struct {

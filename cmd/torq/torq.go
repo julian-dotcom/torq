@@ -236,6 +236,7 @@ func main() {
 				if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 					log.Error().Err(err).Msg("Torq could not migrate the database.")
 					commons.RunningServices[commons.TorqService].RemoveSubscription(commons.TorqDummyNodeId, eventChannel)
+					return
 				}
 
 				for {
