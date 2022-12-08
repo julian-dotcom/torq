@@ -2,7 +2,6 @@ package commons
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -169,7 +168,6 @@ type ManagedChannelBalanceStateSettings struct {
 func ManagedChannelStateCache(ch chan ManagedChannelState, broadcaster broadcast.BroadcastServer, ctx context.Context) {
 	channelStateSettingsByChannelIdCache := make(map[int]map[int]ManagedChannelStateSettings, 0)
 	channelStateSettingsStatusCache := make(map[int]Status, 0)
-	channelStateSettingsLockCache := make(map[int]*sync.RWMutex, 0)
 	channelStateSettingsDeactivationTimeCache := make(map[int]time.Time, 0)
 	for {
 		select {
@@ -177,14 +175,13 @@ func ManagedChannelStateCache(ch chan ManagedChannelState, broadcaster broadcast
 			return
 		case managedChannelState := <-ch:
 			processManagedChannelStateSettings(managedChannelState,
-				channelStateSettingsLockCache, channelStateSettingsStatusCache, channelStateSettingsByChannelIdCache,
+				channelStateSettingsStatusCache, channelStateSettingsByChannelIdCache,
 				channelStateSettingsDeactivationTimeCache)
 		}
 	}
 }
 
 func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
-	channelStateSettingsLockCache map[int]*sync.RWMutex,
 	channelStateSettingsStatusCache map[int]Status,
 	channelStateSettingsByChannelIdCache map[int]map[int]ManagedChannelStateSettings,
 	channelStateSettingsDeactivationTimeCache map[int]time.Time) {
@@ -195,9 +192,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			SendToManagedChannelStateSettingsChannel(managedChannelState.StateOut, nil)
 			break
 		}
-		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
 			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
-			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if !exists {
 				SendToManagedChannelStateSettingsChannel(managedChannelState.StateOut, nil)
@@ -218,9 +214,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			SendToManagedChannelStatesSettingsChannel(managedChannelState.StatesOut, nil)
 			break
 		}
-		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
 			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
-			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if !exists {
 				SendToManagedChannelStatesSettingsChannel(managedChannelState.StatesOut, nil)
@@ -240,9 +235,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
 			break
 		}
-		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
 			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
-			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if !exists {
 				SendToManagedChannelBalanceStateSettingsChannel(managedChannelState.BalanceStateOut, nil)
@@ -265,9 +259,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, nil)
 			break
 		}
-		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
 			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
-			defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if !exists {
 				SendToManagedChannelBalanceStatesSettingsChannel(managedChannelState.BalanceStatesOut, nil)
@@ -332,11 +325,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
 			break
 		}
-		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
 			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
 			return
 		}
-		defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 		if nodeExists {
 			channelSetting, channelExists := nodeChannels[managedChannelState.ChannelId]
@@ -360,11 +352,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
 			break
 		}
-		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId, channelStateSettingsLockCache,
+		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
 			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
 			return
 		}
-		defer channelStateSettingsLockCache[managedChannelState.NodeId].RUnlock()
 		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 		if nodeExists {
 			channelSetting, channelExists := nodeChannels[managedChannelState.ChannelId]
@@ -613,8 +604,7 @@ func SetChannelStateBalanceHtlcEvent(htlcEvent HtlcEvent) {
 }
 
 func isNodeReady(channelStateSettingsStatusCache map[int]Status, nodeId int,
-	channelStateSettingsLockCache map[int]*sync.RWMutex, channelStateSettingsDeactivationTimeCache map[int]time.Time,
-	forceResponse bool) bool {
+	channelStateSettingsDeactivationTimeCache map[int]time.Time, forceResponse bool) bool {
 
 	// Channel states not initialized yet
 	if channelStateSettingsStatusCache[nodeId] != Active {
@@ -625,11 +615,6 @@ func isNodeReady(channelStateSettingsStatusCache map[int]Status, nodeId int,
 			return false
 		}
 	}
-	_, exists := channelStateSettingsLockCache[nodeId]
-	if !exists {
-		channelStateSettingsLockCache[nodeId] = &sync.RWMutex{}
-	}
-	channelStateSettingsLockCache[nodeId].RLock()
 	return true
 }
 

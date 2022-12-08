@@ -83,10 +83,6 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 	return nil
 }
 
-// MAXEVENTS is used to set the maximum events in ForwardingHistoryRequest.
-// It's also used to check if we need to request more.
-const MAXEVENTS int = 50000
-
 // fetchLastForwardTime fetches the latest recorded forward, if none is set already.
 // This should only run once when a server starts.
 func fetchLastForwardTime(db *sqlx.DB) (uint64, error) {
@@ -124,7 +120,7 @@ type FwhOptions struct {
 func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwardingHistory, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *FwhOptions) {
 
-	maxEvents := MAXEVENTS
+	maxEvents := commons.STREAM_LND_MAX_FORWARDS
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.ForwardStream
@@ -132,7 +128,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 
 	// Check if maxEvents has been set and that it is bellow the hard coded maximum defined by
 	// the constant MAXEVENTS.
-	if (opt != nil) && ((*opt.MaxEvents > MAXEVENTS) || (*opt.MaxEvents <= 0)) {
+	if (opt != nil) && ((*opt.MaxEvents > commons.STREAM_LND_MAX_FORWARDS) || (*opt.MaxEvents <= 0)) {
 		maxEvents = *opt.MaxEvents
 	}
 

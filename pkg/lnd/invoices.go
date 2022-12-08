@@ -21,6 +21,8 @@ import (
 type invoicesClient interface {
 	SubscribeInvoices(ctx context.Context, in *lnrpc.InvoiceSubscription,
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeInvoicesClient, error)
+	ListInvoices(ctx context.Context, in *lnrpc.ListInvoiceRequest,
+		opts ...grpc.CallOption) (*lnrpc.ListInvoiceResponse, error)
 }
 
 type Invoice struct {
@@ -213,9 +215,50 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, settleIndex, err = fetchLastInvoiceIndexes(db)
 		if err != nil {
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
-			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
+			continue
+		}
+
+		listInvoiceResponse, err := client.ListInvoices(ctx, &lnrpc.ListInvoiceRequest{
+			NumMaxInvoices: commons.STREAM_LND_MAX_INVOICES,
+			IndexOffset:    addIndex,
+		})
+		if err != nil {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
+			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
+			continue
+		}
+
+		if bootStrapping {
+			importCounter = importCounter + len(listInvoiceResponse.Invoices)
+			log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
+			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+		} else {
+			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		}
+		for _, invoice = range listInvoiceResponse.Invoices {
+			processInvoice(invoice, nodeSettings, err, db, eventChannel, bootStrapping)
+		}
+		if bootStrapping && len(listInvoiceResponse.Invoices) < commons.STREAM_LND_MAX_INVOICES {
+			bootStrapping = false
+			log.Info().Msgf("Bulk import of invoices done (%v)", importCounter)
+			break
+		}
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		// Get the latest settle and add index to prevent duplicate entries.
+		addIndex, settleIndex, err = fetchLastInvoiceIndexes(db)
+		if err != nil {
+			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
 			continue
 		}
 
@@ -227,70 +270,57 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msgf("Failed to obtain invoice stream, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
-			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
 			continue
 		}
 
-		if bootStrapping {
-			importCounter++
-			if importCounter%100 == 0 {
-				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
-			}
-			//if importCounter%commons.STREAM_LND_INVOICES_INTERVAL_SLEEP == 0 {
-			//	if time.Since(importDeltaStart).Milliseconds() > commons.STREAM_LND_INVOICES_DELTA_TIME_MILLISECONDS {
-			//		time.Sleep((commons.STREAM_LND_INVOICES_SLEEP_MILLISECONDS * 2) * time.Millisecond)
-			//	} else {
-			//		time.Sleep(commons.STREAM_LND_INVOICES_SLEEP_MILLISECONDS * time.Millisecond)
-			//	}
-			//	serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
-			//	importDeltaStart = time.Now()
-			//}
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
-		} else {
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
-		}
+		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		invoice, err = stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msgf("Receiving invoices from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
-			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
 			continue
 		}
+		processInvoice(invoice, nodeSettings, err, db, eventChannel, bootStrapping)
+	}
+}
 
-		var destinationPublicKey = ""
-		// if empty payment request invoice is likely keysend
-		if invoice.PaymentRequest != "" {
-			// Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
-			nodeNetwork := getNodeNetwork(invoice.PaymentRequest)
+func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, err error, db *sqlx.DB, eventChannel chan interface{}, bootStrapping bool) {
+	var destinationPublicKey = ""
+	// if empty payment request invoice is likely keysend
+	if invoice.PaymentRequest != "" {
+		// Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
+		nodeNetwork := getNodeNetwork(invoice.PaymentRequest)
 
-			inva, err := zpay32.Decode(invoice.PaymentRequest, nodeNetwork)
-			if err != nil {
-				log.Error().Msgf("Subscribe and store invoices - decode payment request: %v", err)
-			} else {
-				destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
-			}
-		}
-
-		invoiceEvent := commons.InvoiceEvent{
-			EventData: commons.EventData{
-				EventTime: time.Now().UTC(),
-				NodeId:    nodeSettings.NodeId,
-			},
-		}
-		if bootStrapping && time.Since(time.Unix(invoice.CreationDate, 0).UTC()).Seconds() < commons.INVOICE_BOOTSTRAPPING_TIME_SECONDS {
-			bootStrapping = false
-			log.Info().Msgf("Bulk import of invoices done (%v)", importCounter)
-		}
-		err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel, bootStrapping)
+		inva, err := zpay32.Decode(invoice.PaymentRequest, nodeNetwork)
 		if err != nil {
-			log.Error().Err(err).Msg("Storing invoice failed")
+			log.Error().Msgf("Subscribe and store invoices - decode payment request: %v", err)
+		} else {
+			destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
 		}
 	}
+
+	invoiceEvent := commons.InvoiceEvent{
+		EventData: commons.EventData{
+			EventTime: time.Now().UTC(),
+			NodeId:    nodeSettings.NodeId,
+		},
+	}
+	err = insertInvoice(db, invoice, destinationPublicKey, nodeSettings.NodeId, invoiceEvent, eventChannel, bootStrapping)
+	if err != nil {
+		log.Error().Err(err).Msg("Storing invoice failed")
+	}
+}
+
+func processError(serviceStatus commons.Status, eventChannel chan interface{}, nodeSettings commons.ManagedNodeSettings,
+	subscriptionStream commons.SubscriptionStream, err error) commons.Status {
+
+	serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+	log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+	time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+	return serviceStatus
 }
 
 // getNodeNetwork

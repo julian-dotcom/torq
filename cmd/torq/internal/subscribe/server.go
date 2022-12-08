@@ -311,8 +311,6 @@ func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream
 					pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_PAYMENTS_TICKER_SECONDS
 				case commons.InFlightPaymentStream:
 					pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS
-				case commons.InvoiceStream:
-					pingTimeOutInSeconds = commons.INVOICE_BOOTSTRAPPING_TIME_SECONDS
 				}
 				if time.Since(*lastInitializationPing).Seconds() > float64(pingTimeOutInSeconds) {
 					log.Info().Msgf("LND %v idle for over %v seconds for nodeId: %v", name, pingTimeOutInSeconds, nodeId)
