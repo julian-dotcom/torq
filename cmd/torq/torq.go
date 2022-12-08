@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
@@ -177,6 +176,7 @@ func main() {
 								switch serviceEvent.Status {
 								case commons.Inactive:
 									log.Info().Msg("Torq is dead.")
+									panic("TorqService cannot be bootstrapped")
 								case commons.Pending:
 									log.Info().Msg("Torq is booting.")
 								case commons.Initializing:
@@ -583,91 +583,6 @@ func main() {
 					}
 				})(serviceChannelGlobal)
 			}
-
-			go func(eventChannel chan interface{}) {
-				verifyTicker := clock.New().Tick(1 * time.Second)
-
-				torqServiceStatus := commons.Inactive
-				lndServiceStatuses := make(map[int]commons.Status)
-				vectorServiceStatuses := make(map[int]commons.Status)
-				ambossServiceStatuses := make(map[int]commons.Status)
-
-				for {
-					<-verifyTicker
-					if torqServiceStatus == commons.Active {
-						torqNodeIds := commons.RunningServices[commons.LndService].GetNodeIds()
-						if len(torqNodeIds) > 0 {
-							for _, torqNodId := range torqNodeIds {
-								newLndServiceStatus := commons.RunningServices[commons.LndService].GetStatus(torqNodId)
-								_, exists := lndServiceStatuses[torqNodId]
-								if !exists {
-									lndServiceStatuses[torqNodId] = commons.Inactive
-								}
-								if newLndServiceStatus != lndServiceStatuses[torqNodId] {
-									eventChannel <- commons.ServiceEvent{
-										PreviousStatus: lndServiceStatuses[torqNodId],
-										Status:         newLndServiceStatus,
-										Type:           commons.LndService,
-										EventData: commons.EventData{
-											EventTime: time.Now().UTC(),
-											NodeId:    torqNodId,
-										},
-									}
-									lndServiceStatuses[torqNodId] = newLndServiceStatus
-								}
-								newVectorServiceStatus := commons.RunningServices[commons.VectorService].GetStatus(torqNodId)
-								_, exists = vectorServiceStatuses[torqNodId]
-								if !exists {
-									vectorServiceStatuses[torqNodId] = commons.Inactive
-								}
-								if newVectorServiceStatus != vectorServiceStatuses[torqNodId] {
-									eventChannel <- commons.ServiceEvent{
-										PreviousStatus: vectorServiceStatuses[torqNodId],
-										Status:         newVectorServiceStatus,
-										Type:           commons.VectorService,
-										EventData: commons.EventData{
-											EventTime: time.Now().UTC(),
-											NodeId:    torqNodId,
-										},
-									}
-									vectorServiceStatuses[torqNodId] = newVectorServiceStatus
-								}
-								newAmbossServiceStatus := commons.RunningServices[commons.AmbossService].GetStatus(torqNodId)
-								_, exists = ambossServiceStatuses[torqNodId]
-								if !exists {
-									ambossServiceStatuses[torqNodId] = commons.Inactive
-								}
-								if newAmbossServiceStatus != ambossServiceStatuses[torqNodId] {
-									eventChannel <- commons.ServiceEvent{
-										PreviousStatus: ambossServiceStatuses[torqNodId],
-										Status:         newAmbossServiceStatus,
-										Type:           commons.AmbossService,
-										EventData: commons.EventData{
-											EventTime: time.Now().UTC(),
-											NodeId:    torqNodId,
-										},
-									}
-									ambossServiceStatuses[torqNodId] = newAmbossServiceStatus
-								}
-							}
-						}
-					} else {
-						newTorqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
-						if newTorqServiceStatus != torqServiceStatus {
-							eventChannel <- commons.ServiceEvent{
-								PreviousStatus: torqServiceStatus,
-								Status:         newTorqServiceStatus,
-								Type:           commons.TorqService,
-								EventData: commons.EventData{
-									EventTime: time.Now().UTC(),
-									NodeId:    commons.TorqDummyNodeId,
-								},
-							}
-							torqServiceStatus = newTorqServiceStatus
-						}
-					}
-				}
-			}(eventChannelGlobal)
 
 			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
 				db, eventChannelGlobal, broadcasterGlobal, serviceChannelGlobal); err != nil {
