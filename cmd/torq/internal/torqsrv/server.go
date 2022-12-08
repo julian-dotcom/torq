@@ -34,6 +34,7 @@ import (
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/internal/views"
+	"github.com/lncapital/torq/internal/workflows"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -214,6 +215,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		flowRoutes := api.Group("/flow")
 		{
 			flow.RegisterFlowRoutes(flowRoutes, db)
+		}
+
+		workflowRoutes := api.Group("/workflow")
+		{
+			workflows.RegisterWorkflowRoutes(workflowRoutes, db)
 		}
 
 		messageRoutes := api.Group("messages")
