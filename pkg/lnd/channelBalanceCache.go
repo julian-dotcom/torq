@@ -200,7 +200,7 @@ func processBroadcastedEvent(event interface{}) {
 		case lnrpc.ChannelEventUpdate_CLOSED_CHANNEL:
 			status = commons.Deleted
 		}
-		commons.SetChannelStateChannelStatus(serviceEvent.NodeId, channelEvent.ChannelId, status)
+		commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, status)
 	} else if channelGraphEvent, ok := event.(commons.ChannelGraphEvent); ok {
 		if channelGraphEvent.NodeId == 0 || channelGraphEvent.ChannelId == nil || *channelGraphEvent.ChannelId == 0 ||
 			channelGraphEvent.AnnouncingNodeId == nil || *channelGraphEvent.AnnouncingNodeId == 0 ||
@@ -248,7 +248,7 @@ func processBroadcastedEvent(event interface{}) {
 			status = commons.Inactive
 		}
 		channelIds := commons.GetChannelIdsByNodeId(peerEvent.EventNodeId)
-		for channelId := range channelIds {
+		for _, channelId := range channelIds {
 			commons.SetChannelStateChannelStatus(peerEvent.NodeId, channelId, status)
 		}
 	}
