@@ -25,8 +25,7 @@ import (
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
 func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, broadcaster broadcast.BroadcastServer,
-	eventChannel chan interface{},
-	serviceEventChannel chan commons.ServiceEvent, serviceChannel chan commons.ServiceChannelMessage) error {
+	eventChannel chan interface{}, serviceChannel chan commons.ServiceChannelMessage) error {
 
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
@@ -136,13 +135,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in ChannelEventStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
+				lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
 			}
 		}()
-		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
+		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.ChannelEventStream, "ChannelEventStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.ChannelEventStream, "ChannelEventStream", eventChannel)
 
 	// Graph (Node updates, fee updates etc.)
 	wg.Add(1)
@@ -151,13 +150,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in GraphEventStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
+				lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
 			}
 		}()
-		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, importRequestChannel)
+		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.GraphEventStream, "GraphEventStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.GraphEventStream, "GraphEventStream", eventChannel)
 
 	// HTLC events
 	wg.Add(1)
@@ -166,13 +165,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in HtlcEventStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel, serviceEventChannel)
+				lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel)
 			}
 		}()
-		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel, serviceEventChannel)
+		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.HtlcEventStream, "HtlcEventStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.HtlcEventStream, "HtlcEventStream", eventChannel)
 
 	// Peer Events
 	wg.Add(1)
@@ -181,13 +180,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in PeerEventStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel, serviceEventChannel)
+				lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel)
 			}
 		}()
-		lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel, serviceEventChannel)
+		lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.PeerEventStream, "PeerEventStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.PeerEventStream, "PeerEventStream", eventChannel)
 
 	// Channel Balance Cache Maintenance
 	wg.Add(1)
@@ -196,13 +195,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in ChannelBalanceCacheStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel, serviceEventChannel)
+				lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel)
 			}
 		}()
-		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel, serviceEventChannel)
+		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.ChannelBalanceCacheStream, "ChannelBalanceCacheStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.ChannelBalanceCacheStream, "ChannelBalanceCacheStream", eventChannel)
 
 	// Transactions
 	wg.Add(1)
@@ -211,13 +210,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TransactionStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel, serviceEventChannel)
+				lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel)
 			}
 		}()
-		lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel, serviceEventChannel)
+		lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.TransactionStream, "TransactionStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.TransactionStream, "TransactionStream", eventChannel)
 
 	// Forwarding history
 	wg.Add(1)
@@ -226,13 +225,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in ForwardStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
+				lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, nil)
 			}
 		}()
-		lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
+		lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, nil)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.ForwardStream, "ForwardStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.ForwardStream, "ForwardStream", eventChannel)
 
 	// Payments
 	wg.Add(1)
@@ -241,13 +240,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in PaymentStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
+				lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, nil)
 			}
 		}()
-		lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
+		lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, nil)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.PaymentStream, "PaymentStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.PaymentStream, "PaymentStream", eventChannel)
 
 	// Invoices
 	wg.Add(1)
@@ -256,13 +255,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in InvoiceStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
+				lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel)
 			}
 		}()
-		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel)
+		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.InvoiceStream, "InvoiceStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.InvoiceStream, "InvoiceStream", eventChannel)
 
 	// Update in flight payments
 	wg.Add(1)
@@ -271,13 +270,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in InFlightPaymentStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
+				lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, nil)
 			}
 		}()
-		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, serviceEventChannel, nil)
+		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, nil)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", serviceEventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", eventChannel)
 
 	time.Sleep(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
 
@@ -292,7 +291,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 	return nil
 }
 
-func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream, name string, serviceEventChannel chan commons.ServiceEvent) {
+func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream, name string, eventChannel chan interface{}) {
 	log.Info().Msgf("LND %v initialization started for nodeId: %v", name, nodeId)
 	streamStartTime := time.Now()
 	time.Sleep(1 * time.Second)
@@ -320,7 +319,7 @@ func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream
 				}
 				if time.Since(*lastInitializationPing).Seconds() > float64(pingTimeOutInSeconds) {
 					log.Info().Msgf("LND %v idle for over %v seconds for nodeId: %v", name, pingTimeOutInSeconds, nodeId)
-					lnd.SendStreamEvent(serviceEventChannel, nodeId, subscriptionStream, commons.Active, commons.Initializing)
+					lnd.SendStreamEvent(eventChannel, nodeId, subscriptionStream, commons.Active, commons.Initializing)
 					return
 				}
 			}
