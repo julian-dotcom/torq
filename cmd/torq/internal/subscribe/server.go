@@ -200,8 +200,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		}()
 		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel)
 	})()
-
-	waitForReadyState(nodeSettings.NodeId, commons.ChannelBalanceCacheStream, "ChannelBalanceCacheStream", eventChannel)
+	// No need to waitForReadyState for ChannelBalanceCacheMaintenance
 
 	// Transactions
 	wg.Add(1)
@@ -278,12 +277,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 
 	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", eventChannel)
 
+	log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)
 	time.Sleep(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
-
-	if commons.RunningServices[commons.LndService].GetStatus(nodeId) == commons.Active {
-		log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)
-	} else {
-		log.Error().Msgf("LND completely initialized but somehow a stream got out-of-sync for nodeId: %v", nodeId)
+	if commons.RunningServices[commons.LndService].GetStatus(nodeId) != commons.Active {
+		log.Error().Msgf("Somehow a stream got out-of-sync for nodeId: %v", nodeId)
 	}
 
 	wg.Wait()
