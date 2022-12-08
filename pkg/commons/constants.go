@@ -199,7 +199,7 @@ const (
 	WorkflowNodeRebalanceParameters
 	WorkflowNodeDeferredApply
 	WorkflowNodeRebalanceRun
-	WorkflowNodeFeeRun
+	WorkflowNodeRoutingPolicyRun
 	WorkflowNodeSetVariable
 	WorkflowNodeFilterOnVariable
 )
@@ -207,20 +207,20 @@ const (
 type WorkflowTriggerType int
 
 const (
-	WorkflowTriggerRebalancerService = WorkflowTriggerType(iota)
-	WorkflowTriggerRoutingPolicyService
+	WorkflowTriggerEventService = WorkflowTriggerType(iota)
+	WorkflowTriggerTimingService
 )
 
 type WorkflowParameter string
 
 const (
-	WorkflowParameterAny               = WorkflowParameter("any")
-	WorkflowParameterTriggered         = WorkflowParameter("triggered")
-	WorkflowParameterChannelIds        = WorkflowParameter("channelIds")
-	WorkflowParameterDeferredData      = WorkflowParameter("deferredData")
-	WorkflowParameterFeeSettings       = WorkflowParameter("feeSettings")
-	WorkflowParameterRebalanceSettings = WorkflowParameter("rebalanceSettings")
-	WorkflowParameterStatus            = WorkflowParameter("status")
+	WorkflowParameterAny                   = WorkflowParameter("any")
+	WorkflowParameterTriggered             = WorkflowParameter("triggered")
+	WorkflowParameterChannelIds            = WorkflowParameter("channelIds")
+	WorkflowParameterDeferredData          = WorkflowParameter("deferredData")
+	WorkflowParameterRoutingPolicySettings = WorkflowParameter("routingPolicySettings")
+	WorkflowParameterRebalanceSettings     = WorkflowParameter("rebalanceSettings")
+	WorkflowParameterStatus                = WorkflowParameter("status")
 )
 
 type WorkflowNodeTypeParameters struct {
@@ -255,8 +255,9 @@ var WorkflowNodeTypeParameterMap = map[WorkflowNodeType]WorkflowNodeTypeParamete
 		OptionalInputs:   map[string]WorkflowParameter{"triggered": WorkflowParameterTriggered},
 		RequiredOutputs:  map[string]WorkflowParameter{},
 		OptionalOutputs: map[string]WorkflowParameter{
-			"channels":  WorkflowParameterChannelIds,
-			"triggered": WorkflowParameterTriggered,
+			"routingPolicySettings": WorkflowParameterRoutingPolicySettings,
+			"channels":              WorkflowParameterChannelIds,
+			"triggered":             WorkflowParameterTriggered,
 		},
 	},
 	WorkflowNodeRebalanceParameters: {
@@ -265,8 +266,9 @@ var WorkflowNodeTypeParameterMap = map[WorkflowNodeType]WorkflowNodeTypeParamete
 		OptionalInputs:   map[string]WorkflowParameter{"triggered": WorkflowParameterTriggered},
 		RequiredOutputs:  map[string]WorkflowParameter{},
 		OptionalOutputs: map[string]WorkflowParameter{
-			"channels":  WorkflowParameterChannelIds,
-			"triggered": WorkflowParameterTriggered,
+			"rebalanceSettings": WorkflowParameterRebalanceSettings,
+			"channels":          WorkflowParameterChannelIds,
+			"triggered":         WorkflowParameterTriggered,
 		},
 	},
 	WorkflowNodeDeferredApply: {
@@ -296,12 +298,11 @@ var WorkflowNodeTypeParameterMap = map[WorkflowNodeType]WorkflowNodeTypeParamete
 			"triggered":           WorkflowParameterTriggered,
 		},
 	},
-	WorkflowNodeFeeRun: {
-		WorkflowNodeType: WorkflowNodeFeeRun,
+	WorkflowNodeRoutingPolicyRun: {
+		WorkflowNodeType: WorkflowNodeRoutingPolicyRun,
 		RequiredInputs: map[string]WorkflowParameter{
-			"rebalanceSettings":   WorkflowParameterRebalanceSettings,
-			"sourceChannels":      WorkflowParameterChannelIds,
-			"destinationChannels": WorkflowParameterChannelIds,
+			"routingPolicySettings": WorkflowParameterRoutingPolicySettings,
+			"channels":              WorkflowParameterChannelIds,
 		},
 		OptionalInputs:  map[string]WorkflowParameter{"triggered": WorkflowParameterTriggered},
 		RequiredOutputs: map[string]WorkflowParameter{},

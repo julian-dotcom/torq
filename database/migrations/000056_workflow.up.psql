@@ -15,7 +15,7 @@ CREATE TABLE workflow_version (
     status INTEGER NOT NULL,
     created_on TIMESTAMPTZ NOT NULL,
     updated_on TIMESTAMPTZ NOT NULL,
-    workflow_id INTEGER NOT NULL REFERENCES workflow(workflow_id)
+    workflow_id INTEGER NOT NULL REFERENCES workflow(workflow_id),
     UNIQUE (workflow_id, version)
 );
 
