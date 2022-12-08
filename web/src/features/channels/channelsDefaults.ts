@@ -1,8 +1,7 @@
-// import { uuid } from "uuidv4";
-import { ViewInterface, ViewResponse } from "../viewManagement/types";
+import { ViewResponse } from "features/viewManagement/types";
 import { channel } from "./channelsTypes";
-import { ColumnMetaData } from "../table/types";
-import { FilterInterface } from "../sidebar/sections/filter/filter";
+import { ColumnMetaData } from "features/table/types";
+import { FilterInterface } from "features/sidebar/sections/filter/filter";
 
 export const AllChannelsColumns: ColumnMetaData<channel>[] = [
   {
@@ -183,23 +182,6 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
   },
 ];
 
-export interface TableChannelsState {
-  channels: [];
-  selectedViewIndex: number;
-  views: ViewInterface<channel>[];
-  status: "idle" | "loading" | "failed";
-}
-
-// const defaultFilter = new AndClause();
-// defaultFilter.addChildClause(
-//   new FilterClause({
-//     funcName: "eq",
-//     category: "boolean",
-//     key: "active",
-//     parameter: true,
-//   })
-// );
-
 const defaultColumns: Array<keyof channel> = [
   "active",
   "peerAlias",
@@ -229,7 +211,7 @@ export const ChannelsFilterTemplate: FilterInterface = {
 };
 
 export const ChannelsSortTemplate: { key: keyof channel; direction: "desc" | "asc" } = {
-  key: "nodeName",
+  key: "peerAlias",
   direction: "asc",
 };
 

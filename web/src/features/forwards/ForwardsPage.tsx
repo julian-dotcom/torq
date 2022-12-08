@@ -25,6 +25,7 @@ import { useGetForwardsQuery } from "apiSlice";
 import { Forward } from "./forwardsTypes";
 import { forwardsCellRenderer } from "./forwardsCells";
 import Table from "features/table/Table";
+import { useFilterData, useSortData } from "../viewManagement/hooks";
 // import Button, { buttonColor } from "components/buttons/Button";
 
 function ForwardsPage() {
@@ -33,7 +34,6 @@ function ForwardsPage() {
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
 
   const { viewResponse, selectedViewIndex } = useAppSelector(selectForwardsView);
-  console.log("viewResponse", viewResponse);
   const currentPeriod = useAppSelector(selectTimeInterval);
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
@@ -46,18 +46,14 @@ function ForwardsPage() {
     isSuccess: boolean;
   }>({ from: from, to: to }, { skip: !isSuccess });
 
-  // useEffect(() => {
-  //   const views: ViewInterface<ForwardResponse>[] = [];
-  //   if (forwardsViews) {
-  //     forwardsViews?.map((v: ViewResponse<ForwardResponse>) => {
-  //       views.push(v.view);
-  //     });
-  //
-  //     dispatch(updateViews({ views, index: 0 }));
-  //   } else {
-  //     dispatch(updateViews({ views: [{ ...DefaultView, title: "Default View" }], index: 0 }));
-  //   }
-  // }, [forwardsViews, isLoading]);
+  const filteredData = useFilterData(forwardsResponse.data, viewResponse.view.filters);
+  const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
+
+  // Apply frontend based filters
+  // TODO: Move this to a custom reach hook, e.g. useFilteredData
+  // const data = viewResponse.view.filters
+  //   ? applyFilters(deserialiseQuery(viewResponse.view.filters), forwardsResponse.data || [])
+  //   : forwardsResponse.data;
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -67,17 +63,6 @@ function ForwardsPage() {
       setSidebarExpanded(false);
     };
   };
-
-  // const currentView = useAppSelector(selectCurrentView);
-  // const saveView = () => {
-  //   const viewMod = { ...currentView };
-  //   viewMod.saved = true;
-  //   if (currentView.id === undefined || null) {
-  //     createTableView({ view: viewMod, index: currentViewIndex, page: "forwards" });
-  //     return;
-  //   }
-  //   updateTableView(viewMod);
-  // };
 
   const tableControls = (
     <TableControlSection>
@@ -133,7 +118,7 @@ function ForwardsPage() {
     >
       <Table
         activeColumns={viewResponse.view.columns || []}
-        data={forwardsResponse?.data || []}
+        data={sortedData}
         cellRenderer={forwardsCellRenderer}
         isLoading={forwardsResponse.isLoading || forwardsResponse.isFetching || forwardsResponse.isUninitialized}
         showTotals={true}

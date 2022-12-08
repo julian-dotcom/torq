@@ -92,7 +92,6 @@ function NewPaymentModal() {
   function onNewPaymentError(message: NewPaymentError) {
     console.log(PaymentProcessingErrors.get(message.error), message.error);
     setProcessState(ProgressStepState.error);
-    console.log("error", message);
   }
 
   // This can also be an async getter function. See notes below on Async Urls.

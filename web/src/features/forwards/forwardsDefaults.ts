@@ -123,7 +123,7 @@ export const AllForwardsColumns: ColumnMetaData<Forward>[] = [
   {
     heading: "Channel Point",
     type: "TextCell",
-    key: "lndChannelPoint",
+    key: "channelPoint",
     valueType: "string",
   },
   {

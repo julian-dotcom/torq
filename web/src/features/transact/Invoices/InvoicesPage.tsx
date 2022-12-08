@@ -52,15 +52,12 @@ function InvoicesPage() {
     isFetching: boolean;
     isUninitialized: boolean;
     isSuccess: boolean;
-  }>(
-    {
-      limit: limit,
-      offset: offset,
-      order: viewResponse.view.sortBy,
-      filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
-    },
-    { skip: !isSuccess }
-  );
+  }>({
+    limit: limit,
+    offset: offset,
+    order: viewResponse.view.sortBy,
+    filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
+  });
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);

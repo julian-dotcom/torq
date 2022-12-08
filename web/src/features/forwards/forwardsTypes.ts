@@ -1,7 +1,7 @@
 export type Forward = {
   alias: string;
   channelDbId: number;
-  lndChannelPoint: string;
+  channelPoint: string;
   pubKey: string;
   shortChannelId: string;
   lndShortChannelId: string;

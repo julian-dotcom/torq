@@ -9,7 +9,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import clone from "clone";
 import { SelectOption } from "features/forms/Select";
-
 export type FilterCategoryType = "number" | "string" | "date" | "boolean" | "array" | "duration";
 export type FilterParameterType = number | string | Date | boolean | Array<unknown>;
 export type FilterFunc = (input: unknown, key: string, parameter: FilterParameterType) => boolean;
@@ -146,6 +145,7 @@ type ClauseWithResult = Clause & {
 };
 
 const parseClause = (clause: ClauseWithResult, data: any) => {
+  // const toastRef = React.useContext(ToastContext);
   typeSwitch: switch (clause.prefix) {
     case "$filter": {
       const filterClause = clause as FilterClause;
@@ -153,7 +153,15 @@ const parseClause = (clause: ClauseWithResult, data: any) => {
       if (!filterFunc) {
         throw new Error("Filter function is not yet defined");
       }
-      clause.result = filterFunc(data, filterClause.filter.key ?? "", filterClause.filter.parameter);
+      if (data[filterClause.filter.key] !== undefined) {
+        clause.result = filterFunc(data, filterClause.filter.key ?? "", filterClause.filter.parameter);
+      } else {
+        // DISABLED BECAUSE IT CAUSED RENDERING ISSUES
+        // Let the user know that the filter key is not valid (most likely because the view filter data is out of date)
+        // Then return true so that the filter does not remove all data
+        // toastRef?.current?.addToast(`${filterClause.filter.key} is not found in the dataset.`, toastCategory.error);
+        clause.result = true;
+      }
       break;
     }
     case "$and": {
@@ -200,6 +208,9 @@ const processQuery = (query: any, data: any): boolean => {
 };
 
 const deserialiseQuery = (query: any): Clause => {
+  if (!query) {
+    return new AndClause();
+  }
   if (Object.keys(query)[0] === "$filter") {
     return new FilterClause(query.$filter);
   }
@@ -209,8 +220,7 @@ const deserialiseQuery = (query: any): Clause => {
   if (Object.keys(query)[0] === "$or" && query.$or) {
     return new OrClause(query.$or.map((subclause: Clause) => deserialiseQuery(subclause)));
   }
-  // throw new Error("Expected JSON to contain $filter, $or or $and");
-  return new AndClause();
+  throw new Error("Expected JSON to contain $filter, $or or $and");
 };
 
 const deserialiseQueryFromString = (query: string): Clause => {

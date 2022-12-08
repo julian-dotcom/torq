@@ -58,7 +58,6 @@ function FilterRow({
   combiner,
 }: filterRowInterface) {
   const rowValues = filterClause.filter;
-  console.log("rowValues", rowValues);
   const [rowExpanded, setRowExpanded] = useState(false);
 
   const functionOptions = getFilterFunctions(rowValues.category);

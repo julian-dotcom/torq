@@ -11,7 +11,6 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
-import { useState } from "react";
 import Button, { buttonColor } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
@@ -32,12 +31,15 @@ import { useAppSelector } from "store/hooks";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { selectChannelView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
+import { useState } from "react";
+import { useFilterData, useSortData } from "../viewManagement/hooks";
+import { useGroupBy } from "../sidebar/sections/group/groupBy";
 
 function ChannelsPage() {
   const { t } = useTranslations();
   const navigate = useNavigate();
   const location = useLocation();
-
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectChannelView);
 
@@ -49,9 +51,11 @@ function ChannelsPage() {
     isSuccess: boolean;
   }>(undefined, { skip: !isSuccess });
 
-  // Logic for toggling the sidebar
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const filteredData = useFilterData(channelsResponse.data, viewResponse.view.filters);
+  const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
+  const data = useGroupBy<channel>(sortedData, viewResponse.view.groupBy);
 
+  // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
     return () => {
       setSidebarExpanded(false);
@@ -129,7 +133,7 @@ function ChannelsPage() {
     >
       <Table
         cellRenderer={DefaultCellRenderer}
-        data={channelsResponse?.data || []}
+        data={data}
         activeColumns={viewResponse.view.columns || []}
         isLoading={channelsResponse.isLoading || channelsResponse.isFetching || channelsResponse.isUninitialized}
       />
