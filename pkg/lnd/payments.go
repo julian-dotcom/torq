@@ -177,12 +177,16 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 			var outgoingChannelId *int
 			var rebalanceAmountMsat *uint64
 			if len(payment.Htlcs) == 0 || len(payment.Htlcs[0].Route.Hops) == 0 {
-				log.Error().Msgf("The payment HTLCs and/or Hops are unknown for paymentHash: %v", payment.PaymentHash)
+				if payment.Status == lnrpc.Payment_SUCCEEDED {
+					log.Error().Msgf("The payment HTLCs and/or Hops are unknown for paymentHash: %v", payment.PaymentHash)
+				}
 			} else {
 				incomingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[0].ChanId)
 				outgoingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[len(payment.Htlcs[0].Route.Hops)-1].ChanId)
 				if outgoingChannelId == nil {
-					log.Error().Msgf("The payment HTLCs has an unknown outgoingChannel for paymentHash: %v", payment.PaymentHash)
+					if payment.Status != lnrpc.Payment_FAILED {
+						log.Error().Msgf("The payment HTLCs has an unknown outgoingChannel for paymentHash: %v", payment.PaymentHash)
+					}
 				}
 				if incomingChannelId != nil && *incomingChannelId != 0 {
 					rebalanceAmountMsatV := uint64(payment.Htlcs[0].Route.Hops[0].AmtToForwardMsat)

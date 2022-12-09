@@ -187,13 +187,16 @@ func insertRoutingPolicy(
 	cu *lnrpc.ChannelEdgeUpdate,
 	eventChannel chan interface{}) error {
 
+	channelSettings := commons.GetChannelSettingByChannelId(channelId)
+
 	var err error
 	if cu == nil || cu.RoutingPolicy == nil {
-		log.Warn().Msg("Routing policy nil, skipping")
+		if !channelSettings.Private {
+			log.Info().Msgf("Routing policy nil, skipping it for LND channel id: %v", cu.ChanId)
+		}
 		return nil
 	}
 
-	channelSettings := commons.GetChannelSettingByChannelId(channelId)
 	announcingNodeId := 0
 	if cu.AdvertisingNode != "" {
 		announcingNodeId = commons.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
