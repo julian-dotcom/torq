@@ -64,6 +64,7 @@ export interface channel {
   pendingTotalHTLCsCount: number;
   pendingTotalHTLCsAmount: number;
   nodeId: number;
+  channelPoint: string;
   nodeName: string;
   mempoolSpace: string;
   ambossSpace: string;

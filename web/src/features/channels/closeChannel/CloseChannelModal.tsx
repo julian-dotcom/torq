@@ -7,12 +7,13 @@ import {
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, WS_URL, useGetChannelsQuery } from "apiSlice";
-import type { channel, nodeConfiguration } from "apiTypes";
+import type { nodeConfiguration } from "apiTypes";
 import { useState, useEffect, ChangeEvent } from "react";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./closeChannel.module.scss";
+import { channel } from "../channelsTypes";
 import { useNavigate } from "react-router";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import useTranslations from "services/i18n/useTranslations";
@@ -40,14 +41,15 @@ const closeStatusIcon = {
 };
 
 function closeChannelModal() {
-
   const { t } = useTranslations();
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
   const { data: channels } = useGetChannelsQuery();
 
-  const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<SelectOptions[]>([{ value: 0, label: "Select a local node" }]);
+  const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<SelectOptions[]>([
+    { value: 0, label: "Select a local node" },
+  ]);
   const [channelOptions, setChannelOptions] = useState<SelectOptions[]>([{ value: 0, label: "Select your channel" }]);
 
   useEffect(() => {
@@ -61,11 +63,11 @@ function closeChannelModal() {
       setChannelOptions(newChannelOptions);
     }
     if (nodeConfigurations !== undefined) {
-        const newNodeOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
-          return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
-        });
-        setNodeConfigurationOptions(newNodeOptions);
-      }
+      const newNodeOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
+        return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
+      });
+      setNodeConfigurationOptions(newNodeOptions);
+    }
   }, [channels, nodeConfigurations]);
 
   const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
@@ -81,15 +83,15 @@ function closeChannelModal() {
   function handleNodeSelection(value: number) {
     setSelectedNodeId(value);
     const filteredChannels = channels?.filter((channel: { nodeId: number }) => channel.nodeId == value);
-      const filteredChannelOptions = filteredChannels?.map((channel: channel) => {
-        if (channel.nodeId == value) {
-          return {
-            value: channel.channelPoint,
-            label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
-          };
-        }
-      });
-      setChannelOptions(filteredChannelOptions as SelectOptions[]);
+    const filteredChannelOptions = filteredChannels?.map((channel: channel) => {
+      if (channel.nodeId == value) {
+        return {
+          value: channel.channelPoint,
+          label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
+        };
+      }
+    });
+    setChannelOptions(filteredChannelOptions as SelectOptions[]);
   }
 
   function handleChannelSelection(value: string) {
@@ -152,58 +154,59 @@ function closeChannelModal() {
           />
           <div className={styles.activeColumns}>
             <SectionContainer
-            title={"Advanced Options"}
-            icon={AdvencedOption}
-            expanded={expandAdvancedOptions}
-            handleToggle={() => {
-              setExpandAdvancedOptions(!expandAdvancedOptions);
-            }}
-          >
-            <div className={styles.closeChannelTableRow}>
-              <FormRow>
-                <div className={styles.closeChannelTableSingle}>
-                  <span className={styles.label}>{"Sat per vbyte"}</span>
-                  <div className={styles.input}>
-                    <NumberFormat
-                      className={styles.single}
-                      thousandSeparator={false}
-                      value={satPerVbyte}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setSatPerVbyte(values.floatValue as number);
-                      }}
-                    />
+              title={"Advanced Options"}
+              icon={AdvencedOption}
+              expanded={expandAdvancedOptions}
+              handleToggle={() => {
+                setExpandAdvancedOptions(!expandAdvancedOptions);
+              }}
+            >
+              <div className={styles.closeChannelTableRow}>
+                <FormRow>
+                  <div className={styles.closeChannelTableSingle}>
+                    <span className={styles.label}>{"Sat per vbyte"}</span>
+                    <div className={styles.input}>
+                      <NumberFormat
+                        className={styles.single}
+                        thousandSeparator={false}
+                        value={satPerVbyte}
+                        onValueChange={(values: NumberFormatValues) => {
+                          setSatPerVbyte(values.floatValue as number);
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              </FormRow>
-            </div>
-            <div className={styles.closeChannelTableRow}>
-              <FormRow>
-                <div className={styles.closeChannelTableSingle}>
-                  <span className={styles.label}>{"Close Address (for local funds)"}</span>
-                  <div className={styles.input}>
-                    <Input
-                      type={"text"}
-                      value={closeAddress}
-                      placeholder={"e.g. bc1q..."}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                        setCloseAddress(e.target.value);
-                      }}
-                    />
+                </FormRow>
+              </div>
+              <div className={styles.closeChannelTableRow}>
+                <FormRow>
+                  <div className={styles.closeChannelTableSingle}>
+                    <span className={styles.label}>{"Close Address (for local funds)"}</span>
+                    <div className={styles.input}>
+                      <Input
+                        type={"text"}
+                        value={closeAddress}
+                        placeholder={"e.g. bc1q..."}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                          setCloseAddress(e.target.value);
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              </FormRow>
-            </div>
-            <div className={styles.closeChannelTableRow}>
-              <FormRow className={styles.switchRow}>
-              <Switch label={"Force close"}
-                checked={force}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                  setForce(e.target.checked)
-                }}
-              />
-              </FormRow>
-            </div>
-          </SectionContainer>
+                </FormRow>
+              </div>
+              <div className={styles.closeChannelTableRow}>
+                <FormRow className={styles.switchRow}>
+                  <Switch
+                    label={"Force close"}
+                    checked={force}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      setForce(e.target.checked);
+                    }}
+                  />
+                </FormRow>
+              </div>
+            </SectionContainer>
             <ButtonWrapper
               rightChildren={
                 <Button
@@ -241,12 +244,14 @@ function closeChannelModal() {
             {" "}
             {closeStatusIcon[errMessage ? "FAILED" : "SUCCEEDED"]}
           </div>
-          <div className={errMessage ? styles.errorBox : styles.successeBox }>
+          <div className={errMessage ? styles.errorBox : styles.successeBox}>
             <div>
-              <div className={errMessage ? styles.errorIcon : styles.successIcon }>{closeStatusIcon["NOTE"]}</div>
-              <div className={errMessage ? styles.errorNote : styles.successNote}>{errMessage ? t.openCloseChannel.error :t.openCloseChannel.note}</div>
-            </div >
-            <div className={errMessage ? styles.errorMessage: styles.successMessage }>
+              <div className={errMessage ? styles.errorIcon : styles.successIcon}>{closeStatusIcon["NOTE"]}</div>
+              <div className={errMessage ? styles.errorNote : styles.successNote}>
+                {errMessage ? t.openCloseChannel.error : t.openCloseChannel.note}
+              </div>
+            </div>
+            <div className={errMessage ? styles.errorMessage : styles.successMessage}>
               {errMessage ? errMessage : t.openCloseChannel.confirmationClosing}
             </div>
           </div>

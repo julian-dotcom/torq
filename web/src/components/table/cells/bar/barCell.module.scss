@@ -22,4 +22,15 @@
       display: none;
     }
   }
+  .barWrapperDouble {
+    display: grid;
+    width: 100%;
+    justify-items: flex-end;
+    background-color: var(--accent1-400);
+  }
+  .barDouble {
+    height: 5px;
+    min-width: 2px;
+    background-color: var(--accent1-500);
+  }
 }
