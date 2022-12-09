@@ -198,9 +198,7 @@ func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
 
-	var addIndex, settleIndex uint64
 	var stream lnrpc.Lightning_SubscribeInvoicesClient
-	var err error
 	var invoice *lnrpc.Invoice
 	var serviceStatus commons.Status
 	bootStrapping := true
@@ -215,7 +213,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 
 		// Get the latest settle and add index to prevent duplicate entries.
-		addIndex, settleIndex, err = fetchLastInvoiceIndexes(db)
+		addIndex, _, err := fetchLastInvoiceIndexes(db)
 		if err != nil {
 			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
 			continue
@@ -241,7 +239,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 		for _, invoice = range listInvoiceResponse.Invoices {
-			processInvoice(invoice, nodeSettings, err, db, eventChannel, bootStrapping)
+			processInvoice(invoice, nodeSettings, db, eventChannel, bootStrapping)
 		}
 		if bootStrapping && len(listInvoiceResponse.Invoices) < commons.STREAM_LND_MAX_INVOICES {
 			bootStrapping = false
@@ -258,7 +256,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 
 		// Get the latest settle and add index to prevent duplicate entries.
-		addIndex, settleIndex, err = fetchLastInvoiceIndexes(db)
+		addIndex, settleIndex, err := fetchLastInvoiceIndexes(db)
 		if err != nil {
 			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
 			continue
@@ -285,11 +283,11 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
 			continue
 		}
-		processInvoice(invoice, nodeSettings, err, db, eventChannel, bootStrapping)
+		processInvoice(invoice, nodeSettings, db, eventChannel, bootStrapping)
 	}
 }
 
-func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, err error, db *sqlx.DB, eventChannel chan interface{}, bootStrapping bool) {
+func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB, eventChannel chan interface{}, bootStrapping bool) {
 	invoiceEvent := commons.InvoiceEvent{
 		EventData: commons.EventData{
 			EventTime: time.Now().UTC(),
@@ -315,7 +313,7 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 		}
 	}
 
-	err = insertInvoice(db, invoice, destinationPublicKey, destinationNodeId, nodeSettings.NodeId, invoiceEvent, eventChannel, bootStrapping)
+	err := insertInvoice(db, invoice, destinationPublicKey, destinationNodeId, nodeSettings.NodeId, invoiceEvent, eventChannel, bootStrapping)
 	if err != nil {
 		log.Error().Err(err).Msg("Storing invoice failed")
 	}
