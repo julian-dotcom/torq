@@ -17,8 +17,9 @@ import (
 	"github.com/ulule/limiter/v3/drivers/store/memory"
 
 	"github.com/lncapital/torq/internal/auth"
+	"github.com/lncapital/torq/internal/categories"
+	"github.com/lncapital/torq/internal/channel_groups"
 	"github.com/lncapital/torq/internal/channel_history"
-	"github.com/lncapital/torq/internal/channel_tags"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/flow"
@@ -29,28 +30,30 @@ import (
 	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/internal/peers"
+	"github.com/lncapital/torq/internal/services"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/internal/views"
 	"github.com/lncapital/torq/pkg/broadcast"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
-func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) error {
+func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
+	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer,
+	serviceChannel chan commons.ServiceChannelMessage) error {
+
 	r := gin.Default()
 
-	log.Debug().Msg("Loading caches in memory.")
-	err := corridors.RefreshCorridorCache(db)
-	if err != nil {
-		log.Error().Msg("Torq cannot be initialized (Loading caches in memory).")
-		return errors.Wrap(err, "Loading caches.")
+	if err := auth.RefreshCookieFile(cookiePath); err != nil {
+		return errors.Wrap(err, "Refreshing cookie file")
 	}
 
-	err = auth.CreateSession(r, apiPswd)
+	err := auth.CreateSession(r, apiPswd)
 	if err != nil {
 		return errors.Wrap(err, "Creating Gin Session")
 	}
 
-	registerRoutes(r, db, apiPswd, cookiePath, eventChannel, broadcaster, restartLNDSub)
+	registerRoutes(r, db, apiPswd, cookiePath, eventChannel, broadcaster, serviceChannel)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -110,7 +113,8 @@ func equalASCIIFold(s, t string) bool {
 }
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string,
-	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer, restartLNDSub func() error) {
+	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer,
+	serviceChannel chan commons.ServiceChannelMessage) {
 
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	applyCors(r)
@@ -138,6 +142,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		settings.RegisterUnauthenticatedRoutes(unauthorisedSettingRoutes, db)
 	}
 
+	unauthorisedServicesRoutes := api.Group("services")
+	{
+		services.RegisterServiceRoutes(unauthorisedServicesRoutes, db)
+	}
+
 	api.Use(auth.AuthRequired)
 	{
 
@@ -146,14 +155,19 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 			views.RegisterTableViewRoutes(tableViewRoutes, db)
 		}
 
+		categoryRoutes := api.Group("/categories")
+		{
+			categories.RegisterCategoryRoutes(categoryRoutes, db)
+		}
+
 		tagRoutes := api.Group("/tags")
 		{
 			tags.RegisterTagRoutes(tagRoutes, db)
 		}
 
-		channelTagRoutes := api.Group("/channelTags")
+		channelGroupRoutes := api.Group("/channelGroups")
 		{
-			channel_tags.RegisterChannelTagRoutes(channelTagRoutes, db)
+			channel_groups.RegisterChannelGroupRoutes(channelGroupRoutes, db)
 		}
 
 		corridorRoutes := api.Group("/corridors")
@@ -209,7 +223,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 
 		settingRoutes := api.Group("settings")
 		{
-			settings.RegisterSettingRoutes(settingRoutes, db, restartLNDSub)
+			settings.RegisterSettingRoutes(settingRoutes, db, serviceChannel)
 		}
 
 		api.GET("/ping", func(c *gin.Context) {

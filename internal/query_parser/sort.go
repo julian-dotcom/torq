@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/iancoleman/strcase"
 )
 
@@ -17,7 +18,7 @@ func ParseOrderParams(params string, allowedColumns []string) ([]string, error) 
 	var sort []Order
 	err := json.Unmarshal([]byte(params), &sort)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "JSON unmarshal of sort")
 	}
 
 	for i, param := range sort {

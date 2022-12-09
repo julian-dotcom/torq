@@ -109,7 +109,7 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 	qs, args, err := qb.ToSql()
 
 	if err != nil {
-		return nil, total, err
+		return nil, total, errors.Wrap(err, "Compiling query to sql")
 	}
 
 	// Log for debugging
@@ -117,7 +117,7 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 
 	rows, err := db.Queryx(qs, args...)
 	if err != nil {
-		return nil, total, err
+		return nil, total, errors.Wrap(err, "Running query")
 	}
 
 	for rows.Next() {
@@ -142,7 +142,7 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 		)
 
 		if err != nil {
-			return nil, total, err
+			return nil, total, errors.Wrap(err, "SQL row scan")
 		}
 
 		r = append(r, &p)
@@ -178,12 +178,12 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 
 	totalQs, args, err := totalQb.ToSql()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "SQL compile statement")
 	}
 
 	err = db.QueryRowx(totalQs, args...).Scan(&total)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrap(err, "SQL run query")
 	}
 
 	return r, total, nil
@@ -258,13 +258,13 @@ func getPaymentDetails(db *sqlx.DB, nodeIds []int, identifier string) (*PaymentD
 		// Unmarshal the Successful routes json byte array
 		err = json.Unmarshal(sr, &r.SuccessfulRoutes)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "JSON unmarshal of successful route")
 		}
 
 		// Unmarshal the Failed routes json byte array
 		err = json.Unmarshal(fr, &r.FailedRoutes)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "JSON unmarshal of failed routes")
 		}
 
 		return &r, nil

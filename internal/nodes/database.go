@@ -92,7 +92,7 @@ func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 }
 
 func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
-	nodeId := commons.GetNodeIdFromPublicKey(node.PublicKey, node.Chain, node.Network)
+	nodeId := commons.GetNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
 	if nodeId == 0 {
 		node.CreatedOn = time.Now().UTC()
 		err := db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)

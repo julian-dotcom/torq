@@ -20,10 +20,14 @@ const (
 	READ_ACTIVE_CHANNELID_BY_FUNDING_TRANSACTION
 	// READ_CHANNELID_BY_FUNDING_TRANSACTION please provide FundingTransactionHash, FundingOutputIndex and Out
 	READ_CHANNELID_BY_FUNDING_TRANSACTION
+	// READ_CHANNELIDS_BY_NODE_ID please provide NodeId and ChannelIdsOut
+	READ_CHANNELIDS_BY_NODE_ID
 	// READ_STATUSID_BY_CHANNELID please provide ChannelId and Out
 	READ_STATUSID_BY_CHANNELID
-	// READ_CHANNEL_SETTINGS please provide ChannelId and ChannelIdSettingsOut
+	// READ_CHANNEL_SETTINGS please provide ChannelId and ChannelSettingOut
 	READ_CHANNEL_SETTINGS
+	// READ_ALL_CHANNEL_SETTINGS please provide FirstNodeId and ChannelSettingsOut
+	READ_ALL_CHANNEL_SETTINGS
 	// WRITE_CHANNEL Please provide ChannelId, FundingTransactionHash, FundingOutputIndex and Status (other values are optional in case of pending open channel)
 	WRITE_CHANNEL
 	// WRITE_CHANNELSTATUSID Please provide ChannelId and Status
@@ -34,22 +38,38 @@ type ManagedChannel struct {
 	Type                   ManagedChannelCacheOperationType
 	ChannelId              int
 	ShortChannelId         string
+	LndShortChannelId      uint64
 	FundingTransactionHash string
 	FundingOutputIndex     int
+	Capacity               int64
+	NodeId                 int
+	FirstNodeId            int
+	SecondNodeId           int
+	InitiatingNodeId       *int
+	AcceptingNodeId        *int
+	Private                bool
 	Status                 ChannelStatus
 	Out                    chan ManagedChannel
-	ChannelIdSettingsOut   chan ManagedChannelSettings
+	ChannelSettingOut      chan ManagedChannelSettings
+	ChannelSettingsOut     chan []ManagedChannelSettings
+	ChannelIdsOut          chan []int
 }
 
 type ManagedChannelSettings struct {
 	ChannelId              int
 	ShortChannelId         string
+	LndShortChannelId      uint64
 	FundingTransactionHash string
 	FundingOutputIndex     int
+	Capacity               int64
+	FirstNodeId            int
+	SecondNodeId           int
+	InitiatingNodeId       *int
+	AcceptingNodeId        *int
+	Private                bool
 	Status                 ChannelStatus
 }
 
-// ManagedChannelCache parameter Context is for test cases...
 func ManagedChannelCache(ch chan ManagedChannel, ctx context.Context) {
 	allChannelSettingsByChannelIdCache := make(map[int]ManagedChannelSettings, 0)
 	shortChannelIdCache := make(map[string]int, 0)
@@ -58,22 +78,13 @@ func ManagedChannelCache(ch chan ManagedChannel, ctx context.Context) {
 	allChannelPointCache := make(map[string]int, 0)
 	allChannelStatusCache := make(map[int]ChannelStatus, 0)
 	for {
-		if ctx == nil {
-			managedChannel := <-ch
+		select {
+		case <-ctx.Done():
+			return
+		case managedChannel := <-ch:
 			processManagedChannel(managedChannel,
 				shortChannelIdCache, allShortChannelIdCache,
 				channelPointCache, allChannelPointCache, allChannelStatusCache, allChannelSettingsByChannelIdCache)
-		} else {
-			// TODO: The code itself is fine here but special case only for test cases?
-			// Running Torq we don't have nor need to be able to cancel but we do for test cases because global var is shared
-			select {
-			case <-ctx.Done():
-				return
-			case managedChannel := <-ch:
-				processManagedChannel(managedChannel,
-					shortChannelIdCache, allShortChannelIdCache,
-					channelPointCache, allChannelPointCache, allChannelStatusCache, allChannelSettingsByChannelIdCache)
-			}
 		}
 	}
 }
@@ -98,13 +109,36 @@ func processManagedChannel(managedChannel ManagedChannel,
 	case READ_STATUSID_BY_CHANNELID:
 		managedChannel.Status = allChannelStatusCache[managedChannel.ChannelId]
 		go SendToManagedChannelChannel(managedChannel.Out, managedChannel)
+	case READ_CHANNELIDS_BY_NODE_ID:
+		var channelIds []int
+		for _, channelSetting := range allChannelSettingsByChannelIdCache {
+			if channelSetting.FirstNodeId == managedChannel.NodeId {
+				channelIds = append(channelIds, channelSetting.ChannelId)
+			}
+			if channelSetting.SecondNodeId == managedChannel.NodeId {
+				channelIds = append(channelIds, channelSetting.ChannelId)
+			}
+		}
+		go SendToManagedChannelIdsChannel(managedChannel.ChannelIdsOut, channelIds)
+	case READ_ALL_CHANNEL_SETTINGS:
+		var channelSettings []ManagedChannelSettings
+		for _, channelSetting := range allChannelSettingsByChannelIdCache {
+			if channelSetting.FirstNodeId == managedChannel.NodeId {
+				channelSettings = append(channelSettings, channelSetting)
+			}
+			if channelSetting.SecondNodeId == managedChannel.NodeId {
+				channelSettings = append(channelSettings, channelSetting)
+			}
+		}
+		go SendToManagedChannelSettingsChannel(managedChannel.ChannelSettingsOut, channelSettings)
 	case READ_CHANNEL_SETTINGS:
-		go SendToManagedChannelSettingsChannel(managedChannel.ChannelIdSettingsOut, allChannelSettingsByChannelIdCache[managedChannel.ChannelId])
+		go SendToManagedChannelSettingChannel(managedChannel.ChannelSettingOut, allChannelSettingsByChannelIdCache[managedChannel.ChannelId])
 	case WRITE_CHANNEL:
 		if managedChannel.ChannelId == 0 || managedChannel.FundingTransactionHash == "" {
 			log.Error().Msgf("No empty ChannelId (%v) or FundingTransactionHash (%v) allowed", managedChannel.ChannelId, managedChannel.FundingTransactionHash)
 		} else {
 			channelPoint := createChannelPoint(managedChannel)
+			parseAndConvertShortIds(managedChannel)
 			if managedChannel.Status < CooperativeClosed {
 				if managedChannel.ShortChannelId != "" {
 					shortChannelIdCache[managedChannel.ShortChannelId] = managedChannel.ChannelId
@@ -122,6 +156,12 @@ func processManagedChannel(managedChannel ManagedChannel,
 				Status:                 managedChannel.Status,
 				FundingTransactionHash: managedChannel.FundingTransactionHash,
 				FundingOutputIndex:     managedChannel.FundingOutputIndex,
+				Capacity:               managedChannel.Capacity,
+				FirstNodeId:            managedChannel.FirstNodeId,
+				SecondNodeId:           managedChannel.SecondNodeId,
+				InitiatingNodeId:       managedChannel.InitiatingNodeId,
+				AcceptingNodeId:        managedChannel.AcceptingNodeId,
+				Private:                managedChannel.Private,
 			}
 		}
 	case WRITE_CHANNELSTATUSID:
@@ -158,19 +198,24 @@ func processManagedChannel(managedChannel ManagedChannel,
 	}
 }
 
+func parseAndConvertShortIds(managedChannel ManagedChannel) {
+	if managedChannel.ShortChannelId == "" && managedChannel.LndShortChannelId != 0 {
+		managedChannel.ShortChannelId = ConvertLNDShortChannelID(managedChannel.LndShortChannelId)
+	}
+	if managedChannel.LndShortChannelId == 0 && managedChannel.ShortChannelId != "" {
+		var err error
+		managedChannel.LndShortChannelId, err = ConvertShortChannelIDToLND(managedChannel.ShortChannelId)
+		if err != nil {
+			log.Error().Msgf("Could not convert ShortChannelId (%v) into LndShortChannelId", managedChannel.ShortChannelId)
+		}
+	}
+}
+
 func createChannelPoint(managedChannel ManagedChannel) string {
 	return fmt.Sprintf("%s:%v", managedChannel.FundingTransactionHash, managedChannel.FundingOutputIndex)
 }
 
-func SendToManagedChannelChannel(ch chan ManagedChannel, managedChannel ManagedChannel) {
-	ch <- managedChannel
-}
-
-func SendToManagedChannelSettingsChannel(ch chan ManagedChannelSettings, channelSettings ManagedChannelSettings) {
-	ch <- channelSettings
-}
-
-func GetActiveChannelIdFromFundingTransaction(fundingTransactionHash string, fundingOutputIndex int) int {
+func GetActiveChannelIdByFundingTransaction(fundingTransactionHash string, fundingOutputIndex int) int {
 	channelResponseChannel := make(chan ManagedChannel)
 	managedChannel := ManagedChannel{
 		FundingTransactionHash: fundingTransactionHash,
@@ -183,7 +228,8 @@ func GetActiveChannelIdFromFundingTransaction(fundingTransactionHash string, fun
 	return channelResponse.ChannelId
 }
 
-func GetChannelIdFromFundingTransaction(fundingTransactionHash string, fundingOutputIndex int) int {
+func GetChannelIdByChannelPoint(channelPoint string) int {
+	fundingTransactionHash, fundingOutputIndex := ParseChannelPoint(channelPoint)
 	channelResponseChannel := make(chan ManagedChannel)
 	managedChannel := ManagedChannel{
 		FundingTransactionHash: fundingTransactionHash,
@@ -196,7 +242,20 @@ func GetChannelIdFromFundingTransaction(fundingTransactionHash string, fundingOu
 	return channelResponse.ChannelId
 }
 
-func GetActiveChannelIdFromShortChannelId(shortChannelId string) int {
+func GetChannelIdByFundingTransaction(fundingTransactionHash string, fundingOutputIndex int) int {
+	channelResponseChannel := make(chan ManagedChannel)
+	managedChannel := ManagedChannel{
+		FundingTransactionHash: fundingTransactionHash,
+		FundingOutputIndex:     fundingOutputIndex,
+		Type:                   READ_CHANNELID_BY_FUNDING_TRANSACTION,
+		Out:                    channelResponseChannel,
+	}
+	ManagedChannelChannel <- managedChannel
+	channelResponse := <-channelResponseChannel
+	return channelResponse.ChannelId
+}
+
+func GetActiveChannelIdByShortChannelId(shortChannelId string) int {
 	if shortChannelId == "" || shortChannelId == "0x0x0" {
 		return 0
 	}
@@ -211,7 +270,7 @@ func GetActiveChannelIdFromShortChannelId(shortChannelId string) int {
 	return channelResponse.ChannelId
 }
 
-func GetChannelIdFromShortChannelId(shortChannelId string) int {
+func GetChannelIdByShortChannelId(shortChannelId string) int {
 	if shortChannelId == "" || shortChannelId == "0x0x0" {
 		return 0
 	}
@@ -226,7 +285,35 @@ func GetChannelIdFromShortChannelId(shortChannelId string) int {
 	return channelResponse.ChannelId
 }
 
-func GetChannelStatusFromChannelId(channelId int) ChannelStatus {
+func GetChannelIdByLndShortChannelId(lndShortChannelId uint64) int {
+	if lndShortChannelId == 0 {
+		return 0
+	}
+	shortChannelId := ConvertLNDShortChannelID(lndShortChannelId)
+	channelResponseChannel := make(chan ManagedChannel)
+	managedChannel := ManagedChannel{
+		ShortChannelId: shortChannelId,
+		Type:           READ_CHANNELID_BY_SHORTCHANNELID,
+		Out:            channelResponseChannel,
+	}
+	ManagedChannelChannel <- managedChannel
+	channelResponse := <-channelResponseChannel
+	return channelResponse.ChannelId
+}
+
+func GetChannelIdsByNodeId(peerNodeId int) []int {
+	channelIdsResponseChannel := make(chan []int)
+	managedChannel := ManagedChannel{
+		NodeId:        peerNodeId,
+		Type:          READ_CHANNELIDS_BY_NODE_ID,
+		ChannelIdsOut: channelIdsResponseChannel,
+	}
+	ManagedChannelChannel <- managedChannel
+	return <-channelIdsResponseChannel
+
+}
+
+func GetChannelStatusByChannelId(channelId int) ChannelStatus {
 	channelResponseChannel := make(chan ManagedChannel)
 	managedChannel := ManagedChannel{
 		ChannelId: channelId,
@@ -238,23 +325,41 @@ func GetChannelStatusFromChannelId(channelId int) ChannelStatus {
 	return channelResponse.Status
 }
 
-func GetChannelSettingsFromChannelId(channelId int) ManagedChannelSettings {
-	channelResponseChannel := make(chan ManagedChannelSettings)
+func GetChannelSettingsByNodeId(nodeId int) []ManagedChannelSettings {
+	channelResponseChannel := make(chan []ManagedChannelSettings)
 	managedChannel := ManagedChannel{
-		ChannelId:            channelId,
-		Type:                 READ_CHANNEL_SETTINGS,
-		ChannelIdSettingsOut: channelResponseChannel,
+		NodeId:             nodeId,
+		Type:               READ_ALL_CHANNEL_SETTINGS,
+		ChannelSettingsOut: channelResponseChannel,
 	}
 	ManagedChannelChannel <- managedChannel
-	channelResponse := <-channelResponseChannel
-	return channelResponse
+	return <-channelResponseChannel
 }
 
-func SetChannel(channelId int, shortChannelId *string, status ChannelStatus, fundingTransactionHash string, fundingOutputIndex int) {
+func GetChannelSettingByChannelId(channelId int) ManagedChannelSettings {
+	channelResponseChannel := make(chan ManagedChannelSettings)
+	managedChannel := ManagedChannel{
+		ChannelId:         channelId,
+		Type:              READ_CHANNEL_SETTINGS,
+		ChannelSettingOut: channelResponseChannel,
+	}
+	ManagedChannelChannel <- managedChannel
+	return <-channelResponseChannel
+}
+
+func SetChannel(channelId int, shortChannelId *string, status ChannelStatus,
+	fundingTransactionHash string, fundingOutputIndex int, capacity int64, private bool, firstNodeId, secondNodeId int,
+	initiatingNodeId, acceptingNodeId *int) {
 	managedChannel := ManagedChannel{
 		ChannelId:              channelId,
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
+		Capacity:               capacity,
+		FirstNodeId:            firstNodeId,
+		SecondNodeId:           secondNodeId,
+		InitiatingNodeId:       initiatingNodeId,
+		AcceptingNodeId:        acceptingNodeId,
+		Private:                private,
 		Status:                 status,
 		Type:                   WRITE_CHANNEL,
 	}

@@ -3,6 +3,7 @@ import {
   CheckmarkRegular as SuccessIcon,
   DismissRegular as FailedIcon,
   ArrowRouting20Regular as ChannelsIcon,
+  Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, useGetChannelsQuery, useUpdateChannelMutation } from "apiSlice";
 import { useState, useEffect } from "react";
@@ -34,6 +35,7 @@ const updateStatusIcon = {
   IN_FLIGHT: <ProcessingIcon />,
   FAILED: <FailedIcon />,
   SUCCEEDED: <SuccessIcon />,
+  NOTE: <NoteIcon />,
 };
 
 function NodechannelModal() {
@@ -42,35 +44,45 @@ function NodechannelModal() {
   const { t } = useTranslations();
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
-  let { data: channels } = useGetChannelsQuery();
+  const { data: channels } = useGetChannelsQuery();
+  const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<SelectOptions[]>([{ value: 0, label: "Select a local node" }]);
+  const [channelOptions, setChannelOptions] = useState<SelectOptions[]>([{ value: 0, label: "Select your channel" }]);
 
-  let nodeConfigurationOptions: SelectOptions[] = [{ value: 0, label: "Select a local node" }];
-  if (nodeConfigurations !== undefined) {
-    nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
-      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
-    });
-  }
-  let channelOptions: SelectOptions[] = [{ value: 0, label: "Select your channel" }];
-  if (channels !== undefined) {
-    channelOptions = channels.map((channel: channel) => {
-      return {
-        value: channel.lndShortChannelId,
-        label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
-      };
-    });
-  }
+  useEffect(() => {
+    if (channels !== undefined) {
+      const newChannelOptions = channels.map((channel: channel) => {
+        return {
+          value: channel.lndShortChannelId,
+          label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
+        };
+      });
+      setChannelOptions(newChannelOptions);
+    }
+    if (nodeConfigurations !== undefined) {
+        const newNodeOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
+          return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
+        });
+        setNodeConfigurationOptions(newNodeOptions);
+      }
+  }, [channels, nodeConfigurations]);
 
-  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value);
-  const [selectedChannel, setSelectedChannel] = useState<number>(channelOptions[0].value);
+  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
+  const [selectedChannel, setSelectedChannel] = useState<number>(channelOptions[0]?.value as number);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<any[]>([]);
 
   function handleNodeSelection(value: number) {
     setSelectedNodeId(value);
-    channels = channels?.filter(
-      (channel: { firstNodeId: number; secondNodeId: number }) =>
-        channel.firstNodeId == value || channel.secondNodeId == value
-    );
+    const filteredChannels = channels?.filter((channel: { nodeId: number }) => channel.nodeId == value);
+      const filteredChannelOptions = filteredChannels?.map((channel: channel) => {
+        if (channel.nodeId == value) {
+          return {
+            value: channel.lndShortChannelId,
+            label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
+          };
+        }
+      });
+    setChannelOptions(filteredChannelOptions as SelectOptions[]);
   }
 
   function handleChannelSelection(value: number) {
@@ -79,8 +91,8 @@ function NodechannelModal() {
       if (channel.lndShortChannelId == value) {
         setTimeLockDelta(channel.timeLockDelta);
         setBaseFeeMsat(channel.baseFeeMsat);
-        setMinHtlcSat(channel.minHtlc / 1000);
-        setMaxHtlcSat(channel.maxHtlcMsat / 1000);
+        setMinHtlcSat(channel.minHtlc);
+        setMaxHtlcSat(channel.maxHtlcMsat);
         setFeeRatePpm(channel.feeRatePpm);
         setFundingTransactionHash(channel.fundingTransactionHash);
         setFundingOutputIndex(channel.fundingOutputIndex);
@@ -159,42 +171,42 @@ function NodechannelModal() {
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
           <Form>
-            <Select
-              label={t.yourNode}
-              onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-                const selectOptions = newValue as SelectOptions;
-                handleNodeSelection(selectOptions?.value);
-              }}
-              options={nodeConfigurationOptions}
-              value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
-            />
-            <Select
-              label={t.yourChannel}
-              onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-                const selectOptions = newValue as SelectOptions;
-                handleChannelSelection(selectOptions?.value);
-              }}
-              options={channelOptions}
-              value={channelOptions.find((option) => option.value === selectedChannel)}
-              isDisabled={true}
-            />
-            <ButtonWrapper
-              className={styles.customButtonWrapperStyles}
-              rightChildren={
-                <Button
-                  text={"Next"}
-                  disabled={selectedNodeId == 0 || selectedChannel == 0}
-                  onClick={() => {
-                    if (selectedChannel) {
-                      setStepIndex(1);
-                      setChannelState(ProgressStepState.completed);
-                      setPolicyState(ProgressStepState.active);
-                    }
-                  }}
-                  buttonColor={buttonColor.subtle}
-                />
-              }
-            />
+          <Select
+            label={t.yourNode}
+            onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
+              const selectOptions = newValue as SelectOptions;
+              handleNodeSelection(selectOptions?.value as number);
+            }}
+            options={nodeConfigurationOptions}
+            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
+          />
+          <Select
+            label={t.yourChannel}
+            onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
+              const selectOptions = newValue as SelectOptions;
+              handleChannelSelection(selectOptions?.value as number);
+            }}
+            options={channelOptions}
+            value={channelOptions.find((option) => option.value === selectedChannel)}
+            isDisabled={true}
+          />
+          <ButtonWrapper
+            className={styles.customButtonWrapperStyles}
+            rightChildren={
+              <Button
+                text={"Next"}
+                disabled={selectedNodeId == 0 || selectedChannel == 0}
+                onClick={() => {
+                  if (selectedChannel) {
+                    setStepIndex(1);
+                    setChannelState(ProgressStepState.completed);
+                    setPolicyState(ProgressStepState.active);
+                  }
+                }}
+                buttonColor={buttonColor.subtle}
+              />
+            }
+          />
           </Form>
         </ProgressTabContainer>
         <ProgressTabContainer>
@@ -290,8 +302,8 @@ function NodechannelModal() {
                       feeRatePpm,
                       baseFeeMsat: baseFeeMsat,
                       timeLockDelta,
-                      minHtlcMsat: minHtlcSat * 1000,
-                      maxHtlcMsat: maxHtlcSat * 1000,
+                      minHtlcMsat: minHtlcSat,
+                      maxHtlcMsat: maxHtlcSat,
                       fundingTransactionHash: fundingTransactionHash,
                       fundingOutputIndex: fundingOutputIndex,
                       nodeId: selectedNodeId,
@@ -315,7 +327,15 @@ function NodechannelModal() {
             {!response.data && updateStatusIcon["FAILED"]}
             {updateStatusIcon[response.data?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]}
           </div>
-          <div className="pop">{errMessage}</div>
+          <div className={errMessage.length ? styles.errorBox : styles.successeBox }>
+            <div>
+              <div className={errMessage.length ? styles.errorIcon : styles.successIcon }>{updateStatusIcon["NOTE"]}</div>
+              <div className={errMessage.length ? styles.errorNote : styles.successNote}>{errMessage.length ? t.openCloseChannel.error :t.openCloseChannel.note}</div>
+            </div >
+            <div className={errMessage.length ? styles.errorMessage: styles.successMessage }>
+              {errMessage.length ? errMessage : t.updateChannelPolicy.confirmedMessage}
+            </div>
+          </div>
           <ButtonWrapper
             rightChildren={
               <Button
@@ -325,6 +345,7 @@ function NodechannelModal() {
                   setChannelState(ProgressStepState.active);
                   setPolicyState(ProgressStepState.disabled);
                   setResultState(ProgressStepState.disabled);
+                  setErrorMEssage([])
                 }}
                 buttonColor={buttonColor.subtle}
               />

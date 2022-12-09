@@ -15,18 +15,17 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
 // For importing the latest routing policy at startup.
 
 // Fetches the channel id form all open channels from LND
-func getOpenChanIds(client lnrpc.LightningClient) ([]uint64, error) {
+func getOpenChanIds(client lndClientChannelEvent) ([]uint64, error) {
 
 	resp, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "LND List Channels")
 	}
 
 	var chanIdList []uint64
@@ -94,7 +93,7 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 }
 
 // ImportRoutingPolicies imports routing policy information about all channels if they don't already have
-func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+func ImportRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)
@@ -131,54 +130,14 @@ func ImportRoutingPolicies(client lnrpc.LightningClient, db *sqlx.DB, nodeSettin
 			if err != nil {
 				return errors.Wrap(err, "Creating channel point from byte")
 			}
-			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
-
-			announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
-			if announcingNodeId == 0 {
-				announcingNode := nodes.Node{
-					PublicKey: cu.AdvertisingNode,
-					Chain:     nodeSettings.Chain,
-					Network:   nodeSettings.Network,
-				}
-				_, err = nodes.AddNodeWhenNew(db, announcingNode)
-				if err != nil {
-					return errors.Wrap(err, "Adding new announcingNode")
-				}
-			}
-
-			connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
-			if connectingNodeId == 0 {
-				connectingNode := nodes.Node{
-					PublicKey: cu.ConnectingNode,
-					Chain:     nodeSettings.Chain,
-					Network:   nodeSettings.Network,
-				}
-				_, err = nodes.AddNodeWhenNew(db, connectingNode)
-				if err != nil {
-					return errors.Wrap(err, "Adding new connectingNode")
-				}
-			}
-
-			channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+			fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
+			channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 			if channelId == 0 {
-				channel := channels.Channel{
-					FirstNodeId:            announcingNodeId,
-					SecondNodeId:           connectingNodeId,
-					FundingTransactionHash: fundingTransactionHash,
-					FundingOutputIndex:     fundingOutputIndex,
-					Status:                 commons.Open,
-				}
-				if cu.ChanId != 0 {
-					shortChannelId := channels.ConvertLNDShortChannelID(cu.ChanId)
-					channel.ShortChannelID = &shortChannelId
-					channel.LNDShortChannelID = &cu.ChanId
-				}
-				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
-				if err != nil {
-					return errors.Wrap(err, "Adding new channel")
-				}
+				return errors.New(fmt.Sprintf(
+					"Importing routing policy for a channel that doesn't exist in our database? (fundingTransactionHash: %v, fundingOutputIndex: %v)",
+					fundingTransactionHash, fundingOutputIndex))
 			} else {
-				channelStatus := commons.GetChannelStatusFromChannelId(channelId)
+				channelStatus := commons.GetChannelStatusByChannelId(channelId)
 				if channelStatus != commons.Open {
 					err := channels.UpdateChannelStatus(db, channelId, commons.Open)
 					if err != nil {

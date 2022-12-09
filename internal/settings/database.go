@@ -68,19 +68,52 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 	return nil
 }
 
-func getNodeConnectionDetails(db *sqlx.DB, nodeId int) (nodeConnectionDetails, error) {
-	var nodeConnectionDetailsData nodeConnectionDetails
+func getNodeConnectionDetails(db *sqlx.DB, nodeId int) (NodeConnectionDetails, error) {
+	var nodeConnectionDetailsData NodeConnectionDetails
 	err := db.Get(&nodeConnectionDetailsData, `SELECT * FROM node_connection_details WHERE node_id = $1;`, nodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nodeConnectionDetails{}, nil
+			return NodeConnectionDetails{}, nil
 		}
-		return nodeConnectionDetails{}, errors.Wrap(err, database.SqlExecutionError)
+		return NodeConnectionDetails{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nodeConnectionDetailsData, nil
 }
-func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]nodeConnectionDetails, error) {
-	var nodeConnectionDetailsArray []nodeConnectionDetails
+
+func GetPingSystemNodeIds(db *sqlx.DB, pingSystem commons.PingSystem) ([]int, error) {
+	var nodeIds []int
+	err := db.Select(&nodeIds, `
+		SELECT node_id
+		FROM node_connection_details
+		WHERE status_id = $1 AND ping_system%$2>=$3
+		ORDER BY node_id;`, commons.Active, pingSystem*2, pingSystem)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []int{}, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nodeIds, nil
+}
+
+func getPingConnectionDetails(db *sqlx.DB, pingSystem commons.PingSystem) ([]NodeConnectionDetails, error) {
+	var ncds []NodeConnectionDetails
+	err := db.Select(&ncds, `
+		SELECT *
+		FROM node_connection_details
+		WHERE status_id = $1 AND ping_system%$2>=$3
+		ORDER BY node_id;`, commons.Active, pingSystem*2, pingSystem)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []NodeConnectionDetails{}, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return ncds, nil
+}
+
+func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]NodeConnectionDetails, error) {
+	var nodeConnectionDetailsArray []NodeConnectionDetails
 	var err error
 	if includeDeleted {
 		err = db.Select(&nodeConnectionDetailsArray, `SELECT * FROM node_connection_details ORDER BY node_id;`)
@@ -93,7 +126,7 @@ func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]nodeConnec
 	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []nodeConnectionDetails{}, nil
+			return []NodeConnectionDetails{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -107,7 +140,7 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 		for _, torqNode := range nodeConnectionDetailsArray {
 			node, err := nodes.GetNodeById(db, torqNode.NodeId)
 			if err == nil {
-				commons.SetTorqNode(node.NodeId, torqNode.Status, node.PublicKey, node.Chain, node.Network)
+				commons.SetTorqNode(node.NodeId, torqNode.Name, torqNode.Status, node.PublicKey, node.Chain, node.Network)
 			} else {
 				log.Error().Err(err).Msg("Failed to obtain torq node for ManagedNodes cache.")
 			}
@@ -139,39 +172,69 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 	return nil
 }
 
-func getNodeConnectionDetailsByStatus(db *sqlx.DB, status commons.Status) ([]nodeConnectionDetails, error) {
-	var nodeConnectionDetailsArray []nodeConnectionDetails
+func getNodeConnectionDetailsByStatus(db *sqlx.DB, status commons.Status) ([]NodeConnectionDetails, error) {
+	var nodeConnectionDetailsArray []NodeConnectionDetails
 	err := db.Select(&nodeConnectionDetailsArray, `
 		SELECT * FROM node_connection_details WHERE status_id = $1 ORDER BY node_id;`, status)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []nodeConnectionDetails{}, nil
+			return []NodeConnectionDetails{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nodeConnectionDetailsArray, nil
 }
 
-func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Status) error {
-	_, err := db.Exec(`
-		UPDATE node_connection_details SET status_id = $1, updated_on = $2 WHERE node_id = $3;`,
+func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Status) (int64, error) {
+	res, err := db.Exec(`
+		UPDATE node_connection_details SET status_id = $1, updated_on = $2 WHERE node_id = $3 AND status_id != $1;`,
 		status, time.Now().UTC(), nodeId)
 	if err != nil {
-		return errors.Wrap(err, database.SqlExecutionError)
+		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return nil
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+	}
+	return rowsAffected, nil
 }
 
-func SetNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
+func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB,
+	nodeId int, pingSystem commons.PingSystem, status commons.Status) (int64, error) {
+
+	var err error
+	var res sql.Result
+	if status == commons.Active {
+		res, err = db.Exec(`
+		UPDATE node_connection_details SET ping_system = ping_system+$1, updated_on = $2 WHERE node_id = $3 AND ping_system%$4 < $5;`,
+			pingSystem, time.Now().UTC(), nodeId, pingSystem*2, pingSystem)
+	} else {
+		res, err = db.Exec(`
+		UPDATE node_connection_details SET ping_system = ping_system-$1, updated_on = $2 WHERE node_id = $3 AND ping_system%$4 >= $5;`,
+			pingSystem, time.Now().UTC(), nodeId, pingSystem*2, pingSystem)
+	}
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+	}
+	return rowsAffected, nil
+}
+
+func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 	updatedOn := time.Now().UTC()
 	ncd.UpdatedOn = &updatedOn
 	_, err := db.Exec(`
 		UPDATE node_connection_details
 		SET implementation = $1, name = $2, grpc_address = $3, tls_file_name = $4, tls_data = $5,
-		    macaroon_file_name = $6, macaroon_data = $7, status_id = $8, updated_on = $9
-		WHERE node_id = $10;`,
+		    macaroon_file_name = $6, macaroon_data = $7, status_id = $8, ping_system = $9, updated_on = $10,
+			custom_settings = $11
+		WHERE node_id = $12;`,
 		ncd.Implementation, ncd.Name, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
-		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.UpdatedOn, ncd.NodeId)
+		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.UpdatedOn,
+		ncd.CustomSettings, ncd.NodeId)
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -200,16 +263,17 @@ func SetNodeConnectionDetailsByConnectionDetails(
 	return err
 }
 
-func addNodeConnectionDetails(db *sqlx.DB, ncd nodeConnectionDetails) (nodeConnectionDetails, error) {
+func addNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 	updatedOn := time.Now().UTC()
 	ncd.UpdatedOn = &updatedOn
 	_, err := db.Exec(`
 		INSERT INTO node_connection_details
 		    (node_id, name, implementation, grpc_address, tls_file_name, tls_data, macaroon_file_name, macaroon_data,
-		     status_id, created_on, updated_on)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11);`,
+		     status_id, ping_system, custom_settings, created_on, updated_on)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13);`,
 		ncd.NodeId, ncd.Name, ncd.Implementation, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
-		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.CreateOn, ncd.UpdatedOn)
+		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.CustomSettings,
+		ncd.CreateOn, ncd.UpdatedOn)
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}

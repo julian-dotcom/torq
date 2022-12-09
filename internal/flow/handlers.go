@@ -12,7 +12,6 @@ import (
 	"github.com/lib/pq"
 	"gopkg.in/guregu/null.v4"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -88,7 +87,7 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 			if err != nil {
 				return nil, errors.Wrapf(err, "Converting LND short channel id from string")
 			}
-			channelIds = append(channelIds, commons.GetChannelIdFromShortChannelId(channels.ConvertLNDShortChannelID(lndShortChannelId)))
+			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(commons.ConvertLNDShortChannelID(lndShortChannelId)))
 		}
 	}
 
@@ -187,7 +186,7 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 			&c.CountIn,
 		)
 		if err != nil {
-			return r, err
+			return r, errors.Wrap(err, "SQL row scan")
 		}
 
 		// Append to the result

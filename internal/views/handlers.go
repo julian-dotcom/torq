@@ -85,7 +85,7 @@ func convertView(r []*TableView, db *sqlx.DB, c *gin.Context) ([]*TableView, err
 		if view.Version == "v1" {
 			err := json.Unmarshal(view.View, &tableViewDetail)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, "JSON unmarshal")
 			}
 			tableViewJson := TableViewJson{
 				view.Id,
@@ -114,7 +114,7 @@ func convertView(r []*TableView, db *sqlx.DB, c *gin.Context) ([]*TableView, err
 
 			viewJson, err := json.Marshal(tableViewJson.View)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, "JSON marshal table view")
 			}
 			r[i].View = viewJson
 			r[i].Version = "v2"

@@ -2,19 +2,31 @@ package lnd
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"go.uber.org/ratelimit"
+	"github.com/lightningnetwork/lnd/lnrpc/chainrpc"
+	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
+
+type Tx struct {
+	Timestamp             time.Time `json:"timestamp" db:"timestamp"`
+	TransactionHash       *string   `json:"transactionHash" db:"tx_hash"`
+	Amount                *int64    `json:"amount" db:"amount"`
+	NumberOfConfirmations *int32    `json:"numberOfConfirmations" db:"num_confirmations"`
+	BlockHash             *string   `json:"blockHash" db:"block_hash"`
+	BlockHeight           *int32    `json:"blockHeight" db:"block_height"`
+	TotalFees             *int64    `json:"totalFees" db:"total_fees"`
+	DestinationAddresses  *[]string `json:"destinationAddresses" db:"dest_addresses"`
+	RawTransactionHex     *string   `json:"rawTransactionHex" db:"raw_tx_hex"`
+	Label                 *string   `json:"label" db:"label"`
+	NodeId                int       `json:"nodeId" db:"node_id"`
+}
 
 func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 
@@ -24,109 +36,142 @@ func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
 	err = row.Scan(&txHeight)
 
 	if err != nil {
-		return 1, err
+		return 1, errors.Wrap(err, "SQL row scan for tx height")
 	}
 
 	return txHeight, nil
 }
 
-func ImportTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB, nodeId int) error {
-
-	txheight, err := fetchLastTxHeight(db)
-	if err != nil {
-		return errors.Wrap(err, "Fetch Last Tx Height")
-	}
-
-	req := lnrpc.GetTransactionsRequest{
-		StartHeight: txheight,
-	}
-	res, err := client.GetTransactions(ctx, &req)
-	if err != nil {
-		return errors.Wrap(err, "Get Transactions")
-	}
-
-	for _, tx := range res.Transactions {
-		err = storeTransaction(db, tx, nodeId)
-		if err != nil {
-			return errors.Wrap(err, "Store Transaction")
-		}
-	}
-
-	return nil
-}
-
 // SubscribeAndStoreTransactions Subscribes to on-chain transaction events from LND and stores them in the
 // database as a time series. It will also import unregistered transactions on startup.
-func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
-
-	// Imports transactions not captured on the stream
-	err := ImportTransactions(ctx, client, db, nodeSettings.NodeId)
-	if err != nil {
-		return errors.Wrapf(err, "ImportTransactions(%v, %v, %v)", ctx, client, db)
-	}
-
-	req := lnrpc.GetTransactionsRequest{}
-	stream, err := client.SubscribeTransactions(ctx, &req)
-	if err != nil {
-		return err
-	}
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
+func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, chain chainrpc.ChainNotifierClient, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
+	var transactionHeight int32
+	var err error
+	var transactionDetails *lnrpc.TransactionDetails
+	var storedTx Tx
+	var stream chainrpc.ChainNotifier_RegisterBlockEpochNtfnClient
+	var blockEpoch *chainrpc.BlockEpoch
+	serviceStatus := commons.Inactive
+	bootStrapping := true
+	subscriptionStream := commons.TransactionStream
 
 	for {
-
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
+		}
 
-			tx, err := stream.Recv()
-
+		if stream == nil {
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			transactionHeight, err = fetchLastTxHeight(db)
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
-					break
+					return
 				}
-				log.Printf("Subscribe transactions stream receive: %v\n", err)
-				// rate limited resubscribe
-				log.Println("Attempting reconnect to transactions")
-				for {
-					rl.Take()
-					stream, err = client.SubscribeTransactions(ctx, &req)
-					if err == nil {
-						log.Println("Reconnected to transactions")
-						break
+				log.Error().Err(err).Msgf("Failed to obtain last know transaction, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				continue
+			}
+
+			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
+			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
+				StartHeight: transactionHeight + 1,
+			})
+			if err == nil {
+				stream, err = chain.RegisterBlockEpochNtfn(ctx, &chainrpc.BlockEpoch{Height: uint32(transactionHeight + 1)})
+				if err != nil {
+					log.Error().Err(err).Msgf("Obtaining stream (RegisterBlockEpochNtfn) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+					stream = nil
+					time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+					continue
+				}
+			} else {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
+				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				continue
+			}
+		} else {
+			bootStrapping = false
+			blockEpoch, err = stream.Recv()
+			if err == nil {
+				if eventChannel != nil {
+					eventChannel <- commons.BlockEvent{
+						EventData: commons.EventData{
+							EventTime: time.Now().UTC(),
+							NodeId:    nodeSettings.NodeId,
+						},
+						Hash:   blockEpoch.Hash,
+						Height: blockEpoch.Height,
 					}
-					log.Printf("Reconnecting to transactions: %v\n", err)
 				}
+			} else {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				log.Error().Err(err).Msgf("Receiving block epoch from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				stream = nil
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
-
-			err = storeTransaction(db, tx, nodeSettings.NodeId)
+			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
+			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
+				StartHeight: transactionHeight + 1,
+			})
 			if err != nil {
-				fmt.Printf("Subscribe transaction events store transaction error: %v", err)
-				// rate limit for caution but hopefully not needed
-				rl.Take()
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				stream = nil
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
+		}
 
-			if eventChannel != nil {
-				eventChannel <- broadcast.TransactionEvent{
-					EventData: broadcast.EventData{
+		if bootStrapping {
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+		} else {
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		}
+		for _, transaction := range transactionDetails.Transactions {
+			storedTx, err = storeTransaction(db, transaction, nodeSettings.NodeId)
+			if err != nil {
+				// TODO FIXME This transaction is now missing
+				log.Error().Err(err).Msg("Failed to store the transaction (transaction is now missing and can only be recovered by emptying the transactions table)")
+			}
+			if eventChannel != nil && !bootStrapping {
+				eventChannel <- commons.TransactionEvent{
+					EventData: commons.EventData{
 						EventTime: time.Now().UTC(),
 						NodeId:    nodeSettings.NodeId,
 					},
-					Amount:    tx.Amount,
-					Timestamp: time.Unix(tx.TimeStamp, 0),
-					TotalFees: tx.TotalFees,
+					Timestamp:             storedTx.Timestamp,
+					TransactionHash:       storedTx.TransactionHash,
+					Amount:                storedTx.Amount,
+					NumberOfConfirmations: storedTx.NumberOfConfirmations,
+					BlockHash:             storedTx.BlockHash,
+					BlockHeight:           storedTx.BlockHeight,
+					TotalFees:             storedTx.TotalFees,
+					DestinationAddresses:  storedTx.DestinationAddresses,
+					RawTransactionHex:     storedTx.RawTransactionHex,
+					Label:                 storedTx.Label,
 				}
 			}
+			transactionHeight = *storedTx.BlockHeight
 		}
 	}
 }
 
-func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction, nodeId int) error {
+func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction, nodeId int) (Tx, error) {
 	if tx == nil {
-		return nil
+		return Tx{}, nil
 	}
 
 	// Here we're only storing the output addresses, not the output index, amount or if these
@@ -134,6 +179,20 @@ func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction, nodeId int) error {
 	var destinationAddresses []string
 	for _, output := range tx.OutputDetails {
 		destinationAddresses = append(destinationAddresses, output.Address)
+	}
+
+	storedTx := Tx{
+		Timestamp:             time.Unix(tx.TimeStamp, 0).UTC(),
+		TransactionHash:       &tx.TxHash,
+		Amount:                &tx.Amount,
+		NumberOfConfirmations: &tx.NumConfirmations,
+		BlockHash:             &tx.BlockHash,
+		BlockHeight:           &tx.BlockHeight,
+		TotalFees:             &tx.TotalFees,
+		DestinationAddresses:  &destinationAddresses,
+		RawTransactionHex:     &tx.RawTxHex,
+		Label:                 &tx.Label,
+		NodeId:                nodeId,
 	}
 
 	var insertTx = `INSERT INTO tx (timestamp, tx_hash, amount, num_confirmations, block_hash, block_height,
@@ -156,8 +215,8 @@ func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction, nodeId int) error {
 	)
 
 	if err != nil {
-		return errors.Wrapf(err, `inserting transaction`)
+		return Tx{}, errors.Wrapf(err, `inserting transaction`)
 	}
 
-	return nil
+	return storedTx, nil
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 
@@ -51,7 +52,7 @@ func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time
 	}
 
 	if err != nil {
-		return cost, err
+		return cost, errors.Wrap(err, "SQL row scan for rebalancing details")
 	}
 
 	return cost, nil
@@ -114,7 +115,7 @@ func getChannelRebalancing(db *sqlx.DB, nodeIds []int, lndShortChannelIdStrings 
 	}
 
 	if err != nil {
-		return cost, err
+		return cost, errors.Wrap(err, "SQL row scan for rebalancing details")
 	}
 
 	return cost, nil

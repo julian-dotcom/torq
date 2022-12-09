@@ -185,6 +185,13 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["nodeConfigurations", "channels"],
     }),
+    updateNodePingSystemStatus: builder.mutation<any, { nodeId: number; pingSystem: number; statusId: number }>({
+      query: (nodeConfiguration) => ({
+        url: `settings/nodePingSystem/${nodeConfiguration.nodeId}/${nodeConfiguration.pingSystem}/${nodeConfiguration.statusId}`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["nodeConfigurations", "channels"],
+    }),
   }),
 });
 
@@ -210,6 +217,7 @@ export const {
   useUpdateNodeConfigurationMutation,
   useAddNodeConfigurationMutation,
   useUpdateNodeConfigurationStatusMutation,
+  useUpdateNodePingSystemStatusMutation,
   useUpdateChannelMutation,
   useGetTagsQuery,
 } = torqApi;

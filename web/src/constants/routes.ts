@@ -26,3 +26,4 @@ export const NEW_PAYMENT = "/new-payment";
 export const NEW_ADDRESS = "/new-address";
 export const UPDATE_CHANNEL = "/update-channel";
 export const OPEN_CHANNEL = "/open-channel";
+export const CLOSE_CHANNEL = "/close-channel";

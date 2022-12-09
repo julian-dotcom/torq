@@ -73,11 +73,11 @@ func CloseChannel(eventChannel chan interface{}, db *sqlx.DB, c *gin.Context, cc
 func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelRequest, err error) {
 
 	if ccReq.NodeId == 0 {
-		return r, errors.New("Node id is missing")
+		return &lnrpc.CloseChannelRequest{}, errors.New("Node id is missing")
 	}
 
 	if ccReq.SatPerVbyte != nil && ccReq.TargetConf != nil {
-		return r, errors.New("Cannot set both SatPerVbyte and TargetConf")
+		return &lnrpc.CloseChannelRequest{}, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
 
 	channelPoint, err := convertChannelPoint(ccReq.ChannelPoint)

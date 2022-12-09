@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cockroachdb/errors"
 )
 
 //var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
@@ -52,7 +53,7 @@ func ParseFilterParam(params string, allowedColumns []string) (f sq.Sqlizer, err
 	filters := FilterClauses{}
 	err = json.Unmarshal([]byte(params), &filters)
 	if err != nil {
-		return f, err
+		return f, errors.Wrap(err, "JSON unmarshal filters")
 	}
 
 	qp := QueryParser{

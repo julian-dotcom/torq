@@ -129,3 +129,17 @@
   flex-direction: column;
   row-gap: 16px;
 }
+.importFailedPayments {
+  margin-bottom: var(--form-margin-bottom);
+}
+
+.pingSystems {
+  margin-top: 16px;
+  background-color: var(--color-primary-layer-2);
+  border-radius: var(--radius-default);
+  padding: 16px;
+}
+
+.ambossPingSystem {
+  padding-bottom: 16px;
+}

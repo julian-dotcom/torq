@@ -7,17 +7,22 @@ import (
 	"sync"
 	"time"
 
+	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 
 	"github.com/lncapital/torq/build"
+	"github.com/lncapital/torq/cmd/torq/internal/amboss_ping"
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
+	"github.com/lncapital/torq/cmd/torq/internal/vector_ping"
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/broadcast"
@@ -25,57 +30,10 @@ import (
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
-var eventChannel = make(chan interface{}) //nolint:gochecknoglobals
+var eventChannelGlobal = make(chan interface{}) //nolint:gochecknoglobals
 
-var startchan = make(chan struct{}) //nolint:gochecknoglobals
-var stopchan = make(chan struct{})  //nolint:gochecknoglobals
-
-type subscriptions struct {
-	mu          sync.RWMutex
-	runningList map[int]func()
-}
-
-func (rs *subscriptions) AddSubscription(nodeId int, cancelFunc func()) {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-
-	if rs.runningList == nil {
-		rs.runningList = make(map[int]func())
-	}
-
-	rs.runningList[nodeId] = cancelFunc
-}
-
-func (rs *subscriptions) RemoveSubscription(nodeId int) {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-
-	if rs.runningList == nil {
-		rs.runningList = make(map[int]func())
-	}
-	delete(rs.runningList, nodeId)
-}
-
-func (rs *subscriptions) Contains(nodeId int) bool {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-
-	_, exists := rs.runningList[nodeId]
-	return exists
-}
-
-func (rs *subscriptions) GetCancelFuncs() (funcs []func()) {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-
-	for _, v := range rs.runningList {
-		funcs = append(funcs, v)
-	}
-
-	return funcs
-}
-
-var runningSubscriptions subscriptions //nolint:gochecknoglobals
+var serviceChannelGlobal = make(chan commons.ServiceChannelMessage) //nolint:gochecknoglobals
+var serviceEventChannelGlobal = make(chan commons.ServiceEvent)     //nolint:gochecknoglobals
 
 func main() {
 
@@ -194,137 +152,525 @@ func main() {
 				}
 			}()
 
-			fmt.Println("Checking for migrations..")
-			// Check if the database needs to be migrated.
-			err = database.MigrateUp(db)
-			if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-				return err
-			}
+			// initialise package level var for keeping state of subsciptions
+			commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)
+			commons.RunningServices[commons.LndService] = &commons.Services{ServiceType: commons.LndService}
+			commons.RunningServices[commons.VectorService] = &commons.Services{ServiceType: commons.VectorService}
+			commons.RunningServices[commons.AmbossService] = &commons.Services{ServiceType: commons.AmbossService}
+			commons.RunningServices[commons.TorqService] = &commons.Services{ServiceType: commons.TorqService}
 
-			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, nil)
-			err = settings.InitializeManagedSettingsCache(db)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
-			}
+			globalCtx, globalCancel := context.WithCancel(context.Background())
+			defer globalCancel()
 
-			go commons.ManagedNodeCache(commons.ManagedNodeChannel, nil)
-			err = settings.InitializeManagedNodeCache(db)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNode cache.")
-			}
+			broadcaster := broadcast.NewBroadcastServer(globalCtx, eventChannelGlobal)
 
-			go commons.ManagedChannelCache(commons.ManagedChannelChannel, nil)
-			err = channels.InitializeManagedChannelCache(db)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")
-			}
+			go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, globalCtx)
+			go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, broadcaster, globalCtx)
+			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, globalCtx)
+			go commons.ManagedNodeCache(commons.ManagedNodeChannel, globalCtx)
+			go commons.ManagedChannelCache(commons.ManagedChannelChannel, globalCtx)
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			broadcaster := broadcast.NewBroadcastServer(ctx, eventChannel)
+			go func(eventChannel chan interface{}) {
+				verifyTicker := clock.New().Tick(1 * time.Second)
 
-			// if node specified on cmd flags then check if we already know about it
-			if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
-				macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
-				if err != nil {
-					log.Error().Err(err).Msg("Reading macaroon file from disk path from config")
-					return errors.Wrap(err, "Reading macaroon file from disk path from config")
-				}
-				tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
-				if err != nil {
-					log.Error().Err(err).Msg("Reading tls file from disk path from config")
-					return errors.Wrap(err, "Reading tls file from disk path from config")
-				}
-				grpcAddress := c.String("lnd.url")
-				nodeId, err := settings.GetNodeIdByGRPC(db, grpcAddress)
-				if err != nil {
-					log.Error().Err(err).Msg("Checking if node specified in config exists")
-					return errors.Wrap(err, "Checking if node specified in config exists")
-				}
-				if nodeId == 0 {
-					log.Debug().Msg("Node specified in config is not in DB, adding it")
-					nodeConnectionDetails, err := settings.AddNodeToDB(db, commons.LND, grpcAddress, tlsFile, macaroonFile)
-					if err != nil {
-						log.Error().Err(err).Msg("Adding node specified in config to database")
-						return errors.Wrap(err, "Adding node specified in config to database")
+				torqServiceStatus := commons.Inactive
+				lndServiceStatuses := make(map[int]commons.Status)
+				vectorServiceStatuses := make(map[int]commons.Status)
+				ambossServiceStatuses := make(map[int]commons.Status)
+
+				for {
+					<-verifyTicker
+					if torqServiceStatus == commons.Active {
+						torqNodeIds := commons.RunningServices[commons.LndService].GetNodeIds()
+						if len(torqNodeIds) > 0 {
+							for _, torqNodId := range torqNodeIds {
+								newLndServiceStatus := commons.RunningServices[commons.LndService].GetStatus(torqNodId)
+								_, exists := lndServiceStatuses[torqNodId]
+								if !exists {
+									lndServiceStatuses[torqNodId] = commons.Inactive
+								}
+								if newLndServiceStatus != lndServiceStatuses[torqNodId] {
+									eventChannel <- commons.ServiceEvent{
+										PreviousStatus: lndServiceStatuses[torqNodId],
+										Status:         newLndServiceStatus,
+										Type:           commons.LndService,
+										EventData: commons.EventData{
+											EventTime: time.Now().UTC(),
+											NodeId:    torqNodId,
+										},
+									}
+									lndServiceStatuses[torqNodId] = newLndServiceStatus
+								}
+								newVectorServiceStatus := commons.RunningServices[commons.VectorService].GetStatus(torqNodId)
+								_, exists = vectorServiceStatuses[torqNodId]
+								if !exists {
+									vectorServiceStatuses[torqNodId] = commons.Inactive
+								}
+								if newVectorServiceStatus != vectorServiceStatuses[torqNodId] {
+									eventChannel <- commons.ServiceEvent{
+										PreviousStatus: vectorServiceStatuses[torqNodId],
+										Status:         newVectorServiceStatus,
+										Type:           commons.VectorService,
+										EventData: commons.EventData{
+											EventTime: time.Now().UTC(),
+											NodeId:    torqNodId,
+										},
+									}
+									vectorServiceStatuses[torqNodId] = newVectorServiceStatus
+								}
+								newAmbossServiceStatus := commons.RunningServices[commons.AmbossService].GetStatus(torqNodId)
+								_, exists = ambossServiceStatuses[torqNodId]
+								if !exists {
+									ambossServiceStatuses[torqNodId] = commons.Inactive
+								}
+								if newAmbossServiceStatus != ambossServiceStatuses[torqNodId] {
+									eventChannel <- commons.ServiceEvent{
+										PreviousStatus: ambossServiceStatuses[torqNodId],
+										Status:         newAmbossServiceStatus,
+										Type:           commons.AmbossService,
+										EventData: commons.EventData{
+											EventTime: time.Now().UTC(),
+											NodeId:    torqNodId,
+										},
+									}
+									ambossServiceStatuses[torqNodId] = newAmbossServiceStatus
+								}
+							}
+						}
+					} else {
+						newTorqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
+						if newTorqServiceStatus != torqServiceStatus {
+							eventChannel <- commons.ServiceEvent{
+								PreviousStatus: torqServiceStatus,
+								Status:         newTorqServiceStatus,
+								Type:           commons.TorqService,
+								EventData: commons.EventData{
+									EventTime: time.Now().UTC(),
+									NodeId:    commons.TorqDummyNodeId,
+								},
+							}
+							torqServiceStatus = newTorqServiceStatus
+						}
 					}
-					nodeConnectionDetails.Name = "Auto configured node"
-					_, err = settings.SetNodeConnectionDetails(db, nodeConnectionDetails)
-					if err != nil {
-						return errors.Wrap(err, "Updating node name")
+				}
+			}(eventChannelGlobal)
+
+			go func(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, serviceEventChannel chan commons.ServiceEvent) {
+				for {
+					event := <-serviceEventChannel
+					if event.Type == commons.TorqService {
+						switch event.Status {
+						case commons.Inactive:
+							log.Debug().Msg("Torq is dead.")
+						case commons.Pending:
+							log.Debug().Msg("Torq is booting.")
+						case commons.Active:
+							log.Debug().Msg("Torq is booted.")
+							err = settings.InitializeManagedSettingsCache(db)
+							if err != nil {
+								log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
+							}
+
+							err = settings.InitializeManagedNodeCache(db)
+							if err != nil {
+								log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNode cache.")
+							}
+
+							err = channels.InitializeManagedChannelCache(db)
+							if err != nil {
+								log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")
+							}
+
+							log.Debug().Msg("Loading caches in memory.")
+							err := corridors.RefreshCorridorCache(db)
+							if err != nil {
+								log.Error().Err(err).Msg("Torq cannot be initialized (Loading caches in memory).")
+							}
+
+							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndService}
+						}
 					}
-				} else {
-					log.Debug().Msg("Node specified in config is present, updating Macaroon and TLS files")
-					if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, commons.Active, grpcAddress, tlsFile, macaroonFile); err != nil {
-						log.Error().Err(err).Msg("Problem updating node files")
-						return errors.Wrap(err, "Problem updating node files")
+					if event.Type == commons.LndService {
+						if event.Status == commons.Active && event.SubscriptionStream == nil {
+							log.Debug().Msgf("LndService booted checking for Vector activation for nodeId: %v", event.NodeId)
+							if commons.RunningServices[commons.VectorService].GetStatus(event.NodeId) == commons.Inactive {
+								serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.VectorService, NodeId: event.NodeId}
+							}
+							log.Debug().Msgf("LndService booted checking for Amboss activation for nodeId: %v", event.NodeId)
+							if commons.RunningServices[commons.AmbossService].GetStatus(event.NodeId) == commons.Inactive {
+								serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AmbossService, NodeId: event.NodeId}
+							}
+						}
 					}
 				}
-			}
+			}(db, serviceChannelGlobal, serviceEventChannelGlobal)
+
+			commons.RunningServices[commons.TorqService].AddSubscription(commons.TorqDummyNodeId, globalCancel, serviceEventChannelGlobal)
+			torqBootLock := commons.RunningServices[commons.TorqService].GetBootLock(commons.TorqDummyNodeId)
+			torqBootLock.Lock()
+
+			go func(db *sqlx.DB, c *cli.Context, serviceEventChannel chan commons.ServiceEvent, torqBootLock *sync.Mutex) {
+				fmt.Println("Checking for migrations..")
+				// Check if the database needs to be migrated.
+				err = database.MigrateUp(db)
+				if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+					log.Error().Err(err).Msg("Torq could not migrate the database.")
+					commons.RunningServices[commons.TorqService].RemoveSubscription(commons.TorqDummyNodeId, serviceEventChannel)
+				}
+
+				for {
+					// if node specified on cmd flags then check if we already know about it
+					if c.String("lnd.url") != "" && c.String("lnd.macaroon-path") != "" && c.String("lnd.tls-path") != "" {
+						macaroonFile, err := os.ReadFile(c.String("lnd.macaroon-path"))
+						if err != nil {
+							log.Error().Err(err).Msg("Reading macaroon file from disk path from config")
+							log.Error().Err(err).Msg("LND is probably not ready (will retry in 10 seconds)")
+							time.Sleep(10 * time.Second)
+							continue
+						}
+						tlsFile, err := os.ReadFile(c.String("lnd.tls-path"))
+						if err != nil {
+							log.Error().Err(err).Msg("Reading tls file from disk path from config")
+							log.Error().Err(err).Msg("LND is probably not ready (will retry in 10 seconds)")
+							time.Sleep(10 * time.Second)
+							continue
+						}
+						grpcAddress := c.String("lnd.url")
+						nodeId, err := settings.GetNodeIdByGRPC(db, grpcAddress)
+						if err != nil {
+							log.Error().Err(err).Msg("Checking if node specified in config exists")
+							log.Error().Err(err).Msg("LND is probably not ready (will retry in 10 seconds)")
+							time.Sleep(10 * time.Second)
+							continue
+						}
+						if nodeId == 0 {
+							log.Info().Msgf("Node specified in config is not in DB, obtaining public key from GRPC: %v", grpcAddress)
+							var nodeConnectionDetails settings.NodeConnectionDetails
+							for {
+								nodeConnectionDetails, err = settings.AddNodeToDB(db, commons.LND, grpcAddress, tlsFile, macaroonFile)
+								if err == nil && nodeConnectionDetails.NodeId != 0 {
+									break
+								} else {
+									log.Error().Err(err).Msg("Adding node specified in config to database, LND is probably booting (will retry in 10 seconds)")
+									time.Sleep(10 * time.Second)
+								}
+							}
+							nodeConnectionDetails.Name = "Auto configured node"
+							_, err = settings.SetNodeConnectionDetails(db, nodeConnectionDetails)
+							if err != nil {
+								log.Error().Err(err).Msg("Failed to update the node name (cosmetics problem).")
+							}
+						} else {
+							log.Info().Msg("Node specified in config is present, updating Macaroon and TLS files")
+							if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, commons.Active, grpcAddress, tlsFile, macaroonFile); err != nil {
+								log.Error().Err(err).Msg("Problem updating node files")
+								commons.RunningServices[commons.TorqService].RemoveSubscription(commons.TorqDummyNodeId, serviceEventChannel)
+							}
+						}
+					}
+					break
+				}
+
+				commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, torqBootLock, serviceEventChannel)
+			}(db, c, serviceEventChannelGlobal, torqBootLock)
 
 			if !c.Bool("torq.no-sub") {
-				// initialise package level var for keeping state of subsciptions
-				runningSubscriptions = subscriptions{}
-
 				// go routine that responds to start command and starts all subscriptions
-				go (func() {
+				go (func(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
 					for {
-						<-startchan
-						nodes, err := settings.GetActiveNodesConnectionDetails(db)
-						if err != nil {
-							log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
-							return
+						serviceCmd := <-serviceChannel
+						services := commons.RunningServices[serviceCmd.ServiceType]
+						var nodes []settings.ConnectionDetails
+						var enforcedServiceStatus *commons.Status
+						if serviceCmd.ServiceType == commons.LndService {
+							if serviceCmd.ServiceCommand == commons.Boot {
+								log.Info().Msgf("Verifying LND service requirement.")
+								if serviceCmd.NodeId != 0 {
+									enforcedServiceStatus = services.GetEnforcedServiceStatusCheck(serviceCmd.NodeId)
+								}
+								if serviceCmd.EnforcedServiceStatus != nil {
+									enforcedServiceStatus = serviceCmd.EnforcedServiceStatus
+								}
+								if serviceCmd.NodeId == 0 {
+									nodes, err = settings.GetActiveNodesConnectionDetails(db)
+									if err != nil {
+										log.Error().Err(err).Msg("Getting connection details")
+									}
+								} else {
+									if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Inactive {
+										nodes = []settings.ConnectionDetails{}
+									} else {
+										node, err := settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
+										if err == nil {
+											if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
+												nodes = []settings.ConnectionDetails{node}
+											} else {
+												if node.Status != commons.Active {
+													nodes = []settings.ConnectionDetails{}
+												} else {
+													nodes = []settings.ConnectionDetails{node}
+												}
+											}
+										} else {
+											log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
+											return
+										}
+									}
+								}
+								for _, node := range nodes {
+									if serviceCmd.NodeId == 0 || serviceCmd.NodeId == node.NodeId {
+										bootLock := services.GetBootLock(node.NodeId)
+										successful := bootLock.TryLock()
+										if successful {
+											go (func(node settings.ConnectionDetails, bootLock *sync.Mutex,
+												services *commons.Services,
+												serviceChannel chan commons.ServiceChannelMessage,
+												eventChannel chan interface{}) {
+												defer func() {
+													if commons.MutexLocked(bootLock) {
+														bootLock.Unlock()
+													}
+												}()
+
+												ctx := context.Background()
+												ctx, cancel := context.WithCancel(ctx)
+
+												log.Info().Msgf("Subscribing to LND for node id: %v", node.NodeId)
+												services.AddSubscription(node.NodeId, cancel, serviceEventChannel)
+												conn, err := lnd_connect.Connect(
+													node.GRPCAddress,
+													node.TLSFileBytes,
+													node.MacaroonFileBytes,
+												)
+												if err != nil {
+													log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+													services.RemoveSubscription(node.NodeId, serviceEventChannel)
+													log.Info().Msgf("LND Subscription will be restarted (when active) in 10 seconds for node id: %v", node.NodeId)
+													time.Sleep(10 * time.Second)
+													serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
+													return
+												}
+
+												services.Booted(node.NodeId, bootLock, serviceEventChannel)
+												commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
+												log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
+												err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster, eventChannel, serviceEventChannel, serviceChannel)
+												if err != nil {
+													log.Error().Err(err).Send()
+													// only log the error, don't return
+												}
+												log.Info().Msgf("LND Subscription stopped for node id: %v", node.NodeId)
+												services.RemoveSubscription(node.NodeId, serviceEventChannel)
+												if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
+													log.Info().Msgf("LND Subscription will be restarted (when active) for node id: %v", node.NodeId)
+												} else {
+													log.Info().Msgf("LND Subscription will be restarted (when active) in 10 seconds for node id: %v", node.NodeId)
+													time.Sleep(10 * time.Second)
+												}
+												serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
+											})(node, bootLock, services, serviceChannel, eventChannel)
+										} else {
+											log.Error().Msgf("Requested Vector Ping Service start failed. A start is already running.")
+										}
+									}
+								}
+							}
+							if serviceCmd.ServiceCommand == commons.Kill {
+								serviceCmd.Out <- services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay, serviceEventChannel)
+							}
 						}
-
-						for _, node := range nodes {
-							go (func(node settings.ConnectionDetails) {
-
-								ctx := context.Background()
-								ctx, cancel := context.WithCancel(ctx)
-
-								log.Info().Msgf("Subscribing to LND for node id: %v", node.NodeId)
-								runningSubscriptions.AddSubscription(node.NodeId, cancel)
-								conn, err := lnd_connect.Connect(
-									node.GRPCAddress,
-									node.TLSFileBytes,
-									node.MacaroonFileBytes,
-								)
-								if err != nil {
-									log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
-									runningSubscriptions.RemoveSubscription(node.NodeId)
-									return
+						if serviceCmd.ServiceType == commons.VectorService {
+							if serviceCmd.ServiceCommand == commons.Boot {
+								log.Info().Msgf("Verifying Vector ping service requirement.")
+								if serviceCmd.NodeId != 0 {
+									enforcedServiceStatus = services.GetEnforcedServiceStatusCheck(serviceCmd.NodeId)
+								}
+								if serviceCmd.EnforcedServiceStatus != nil {
+									enforcedServiceStatus = serviceCmd.EnforcedServiceStatus
+								}
+								if serviceCmd.NodeId == 0 {
+									nodes, err = settings.GetVectorPingNodesConnectionDetails(db)
+									if err != nil {
+										log.Error().Err(err).Msg("Getting connection details")
+									}
+								} else {
+									if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Inactive {
+										nodes = []settings.ConnectionDetails{}
+									} else {
+										node, err := settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
+										if err == nil {
+											if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
+												nodes = []settings.ConnectionDetails{node}
+											} else {
+												if node.Status != commons.Active || !node.HasPingSystem(commons.Vector) {
+													nodes = []settings.ConnectionDetails{}
+												} else {
+													nodes = []settings.ConnectionDetails{node}
+												}
+											}
+										} else {
+											log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
+											return
+										}
+									}
 								}
 
-								err = subscribe.Start(ctx, conn, db, node.NodeId, eventChannel)
-								if err != nil {
-									log.Error().Err(err).Send()
-									// only log the error, don't return
+								for _, node := range nodes {
+									bootLock := services.GetBootLock(node.NodeId)
+									successful := bootLock.TryLock()
+									if successful {
+										go (func(node settings.ConnectionDetails, bootLock *sync.Mutex,
+											services *commons.Services,
+											serviceChannel chan commons.ServiceChannelMessage,
+											eventChannel chan interface{}) {
+											defer func() {
+												if commons.MutexLocked(bootLock) {
+													bootLock.Unlock()
+												}
+											}()
+
+											ctx := context.Background()
+											ctx, cancel := context.WithCancel(ctx)
+
+											log.Info().Msgf("Generating Vector ping service for node id: %v", node.NodeId)
+											services.AddSubscription(node.NodeId, cancel, serviceEventChannel)
+											conn, err := lnd_connect.Connect(
+												node.GRPCAddress,
+												node.TLSFileBytes,
+												node.MacaroonFileBytes)
+											if err != nil {
+												log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+												services.RemoveSubscription(node.NodeId, serviceEventChannel)
+												return
+											}
+
+											services.Booted(node.NodeId, bootLock, serviceEventChannel)
+											log.Info().Msgf("Vector Ping Service booted for node id: %v", node.NodeId)
+											err = vector_ping.Start(ctx, conn)
+											if err != nil {
+												log.Error().Err(err).Msgf("Vector ping ended for node id: %v", node.NodeId)
+											}
+											log.Info().Msgf("Vector Ping Service stopped for node id: %v", node.NodeId)
+											services.RemoveSubscription(node.NodeId, serviceEventChannel)
+											if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
+												log.Info().Msgf("Vector Ping Service will be restarted (when active) for node id: %v", node.NodeId)
+											} else {
+												log.Info().Msgf("Vector Ping Service will be restarted (when active) in %v seconds for node id: %v", commons.SERVICES_ERROR_SLEEP_SECONDS, node.NodeId)
+												time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
+											}
+											serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
+										})(node, bootLock, services, serviceChannel, eventChannel)
+									} else {
+										log.Error().Msgf("Requested Vector Ping Service start failed. A start is already running.")
+									}
 								}
-								log.Info().Msgf("LND Subscription stopped for node id: %v", node.NodeId)
-								runningSubscriptions.RemoveSubscription(node.NodeId)
-							})(node)
+							}
+							if serviceCmd.ServiceCommand == commons.Kill {
+								serviceCmd.Out <- services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay, serviceEventChannel)
+							}
+						}
+						if serviceCmd.ServiceType == commons.AmbossService {
+							if serviceCmd.ServiceCommand == commons.Boot {
+								log.Info().Msgf("Verifying Amboss ping service requirement.")
+								if serviceCmd.NodeId != 0 {
+									enforcedServiceStatus = services.GetEnforcedServiceStatusCheck(serviceCmd.NodeId)
+								}
+								if serviceCmd.EnforcedServiceStatus != nil {
+									enforcedServiceStatus = serviceCmd.EnforcedServiceStatus
+								}
+								if serviceCmd.NodeId == 0 {
+									nodes, err = settings.GetAmbossPingNodesConnectionDetails(db)
+									if err != nil {
+										log.Error().Err(err).Msg("Getting connection details")
+									}
+								} else {
+									if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Inactive {
+										nodes = []settings.ConnectionDetails{}
+									} else {
+										node, err := settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
+										if err == nil {
+											if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
+												nodes = []settings.ConnectionDetails{node}
+											} else {
+												if node.Status != commons.Active || !node.HasPingSystem(commons.Amboss) {
+													nodes = []settings.ConnectionDetails{}
+												} else {
+													nodes = []settings.ConnectionDetails{node}
+												}
+											}
+										} else {
+											log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
+											return
+										}
+									}
+								}
+
+								for _, node := range nodes {
+									bootLock := services.GetBootLock(node.NodeId)
+									successful := bootLock.TryLock()
+									if successful {
+										go (func(node settings.ConnectionDetails, bootLock *sync.Mutex,
+											services *commons.Services,
+											serviceChannel chan commons.ServiceChannelMessage,
+											eventChannel chan interface{}) {
+											defer func() {
+												if commons.MutexLocked(bootLock) {
+													bootLock.Unlock()
+												}
+											}()
+											ctx := context.Background()
+											ctx, cancel := context.WithCancel(ctx)
+
+											log.Info().Msgf("Generating Amboss ping service for node id: %v", node.NodeId)
+											services.AddSubscription(node.NodeId, cancel, serviceEventChannel)
+											conn, err := lnd_connect.Connect(
+												node.GRPCAddress,
+												node.TLSFileBytes,
+												node.MacaroonFileBytes)
+											if err != nil {
+												log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
+												services.RemoveSubscription(node.NodeId, serviceEventChannel)
+												return
+											}
+
+											services.Booted(node.NodeId, bootLock, serviceEventChannel)
+											log.Info().Msgf("Amboss Ping Service booted for node id: %v", node.NodeId)
+											err = amboss_ping.Start(ctx, conn)
+											if err != nil {
+												log.Error().Err(err).Msgf("Amboss ping ended for node id: %v", node.NodeId)
+											}
+											log.Info().Msgf("Amboss Ping Service stopped for node id: %v", node.NodeId)
+											services.RemoveSubscription(node.NodeId, serviceEventChannel)
+											if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
+												log.Info().Msgf("Amboss Ping Service will be restarted (when active) for node id: %v", node.NodeId)
+											} else {
+												log.Info().Msgf("Amboss Ping Service will be restarted (when active) in %v seconds for node id: %v", commons.SERVICES_ERROR_SLEEP_SECONDS, node.NodeId)
+												time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
+											}
+											serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
+										})(node, bootLock, services, serviceChannel, eventChannel)
+									} else {
+										log.Error().Msgf("Requested Amboss Ping Service start failed. A start is already running.")
+									}
+								}
+							}
+							if serviceCmd.ServiceCommand == commons.Kill {
+								serviceCmd.Out <- services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay, serviceEventChannel)
+							}
 						}
 					}
-
-				})()
-
-				// starts LND subscription when Torq starts
-				startchan <- struct{}{}
-
-				// go routine that looks for stop signals and cancels the context(s)
-				go (func() {
+				})(db, serviceChannelGlobal, eventChannelGlobal, serviceEventChannelGlobal)
+			} else {
+				go (func(serviceChannel chan commons.ServiceChannelMessage) {
 					for {
-						<-stopchan
-						for _, cancelFunc := range runningSubscriptions.GetCancelFuncs() {
-							cancelFunc()
-						}
+						serviceCmd := <-serviceChannel
+						log.Warn().Msgf("Ignoring Service call for node id: %v", serviceCmd.NodeId)
 					}
-				})()
-
+				})(serviceChannelGlobal)
 			}
 
 			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
-				db, eventChannel, broadcaster, RestartLNDSubscription); err != nil {
+				db, eventChannelGlobal, broadcaster, serviceChannelGlobal); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}
 
@@ -339,7 +685,7 @@ func main() {
 			db, err := database.PgConnect(c.String("db.name"), c.String("db.user"),
 				c.String("db.password"), c.String("db.host"), c.String("db.port"))
 			if err != nil {
-				return err
+				return errors.Wrap(err, "Database connect")
 			}
 
 			defer func() {
@@ -351,7 +697,7 @@ func main() {
 
 			err = database.MigrateUp(db)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "Migrating database up")
 			}
 
 			return nil
@@ -374,37 +720,15 @@ func main() {
 
 }
 
-// guards against running restart code whilst it's already running
-var restartLock sync.RWMutex //nolint:gochecknoglobals
-
-func RestartLNDSubscription() error {
-	locked := restartLock.TryLock()
-	if !locked {
-		return errors.New("Already restarting")
-	}
-	defer restartLock.Unlock()
-
-	log.Info().Msg("Stopping subscriptions")
-	stopchan <- struct{}{}
-
-	for {
-		if len(runningSubscriptions.GetCancelFuncs()) == 0 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
-	log.Info().Msg("All subscriptions stopped")
-	log.Info().Msg("Restarting subscriptions")
-	startchan <- struct{}{}
-	return nil
-}
-
 func loadFlags() func(context *cli.Context) (altsrc.InputSourceContext, error) {
 	return func(context *cli.Context) (altsrc.InputSourceContext, error) {
-		if _, err := os.Stat(context.String("config")); err == nil {
-			return altsrc.NewTomlSourceFromFile(context.String("config"))
+		if _, err := os.Stat(context.String("config")); err != nil {
+			return altsrc.NewMapInputSource("", map[interface{}]interface{}{}), nil
 		}
-		return altsrc.NewMapInputSource("", map[interface{}]interface{}{}), nil
+		tomlSource, err := altsrc.NewTomlSourceFromFile(context.String("config"))
+		if err != nil {
+			return nil, errors.Wrap(err, "Creating new toml config from file")
+		}
+		return tomlSource, nil
 	}
 }

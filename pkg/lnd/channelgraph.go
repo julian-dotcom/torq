@@ -4,87 +4,150 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
-	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/internal/nodes"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-type subscribeChannelGrpahClient interface {
+type subscribeChannelGraphClient interface {
+	lndClientChannelEvent
 	SubscribeChannelGraph(ctx context.Context, in *lnrpc.GraphTopologySubscription,
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeChannelGraphClient, error)
+	GetNodeInfo(ctx context.Context, in *lnrpc.NodeInfoRequest,
+		opts ...grpc.CallOption) (*lnrpc.NodeInfo, error)
 }
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
-func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGrpahClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
+func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent,
+	importRequestChannel chan commons.ImportRequest) {
 
-	req := lnrpc.GraphTopologySubscription{}
-	stream, err := client.SubscribeChannelGraph(ctx, &req)
-	if err != nil {
-		return errors.Wrap(err, "LND Subscribe Channel Graph")
-	}
-
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
+	var stream lnrpc.Lightning_SubscribeChannelGraphClient
+	var err error
+	var gpu *lnrpc.GraphTopologyUpdate
+	serviceStatus := commons.Inactive
+	subscriptionStream := commons.GraphEventStream
 
 	for {
-
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
 		}
 
-		gpu, err := stream.Recv()
+		if stream == nil {
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
+			if err == nil {
+				// HACK to know if the context is a testcase.
+				if importRequestChannel != nil {
+					responseChannel := make(chan error)
+					importRequestChannel <- commons.ImportRequest{
+						ImportType: commons.ImportChannelAndRoutingPolicies,
+						Out:        responseChannel,
+					}
+					err = <-responseChannel
+					if err != nil {
+						log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+						stream = nil
+						time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+						continue
+					}
 
+					responseChannel = make(chan error)
+					importRequestChannel <- commons.ImportRequest{
+						ImportType: commons.ImportNodeInformation,
+						Out:        responseChannel,
+					}
+					err = <-responseChannel
+					if err != nil {
+						log.Error().Err(err).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+						stream = nil
+						time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+						continue
+					}
+				}
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			} else {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				stream = nil
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				continue
+			}
+		}
+
+		gpu, err = stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				break
+				return
 			}
-			log.Error().Err(err).Msgf("Subscribe channel graph stream receive")
-			// rate limited resubscribe
-			log.Info().Msg("Attempting reconnect to channel graph")
-			for {
-				rl.Take()
-				stream, err = client.SubscribeChannelGraph(ctx, &req)
-				if err == nil {
-					log.Info().Msg("Reconnected to channel graph")
-					break
-				}
-				log.Debug().Err(err).Msg("Reconnecting to channel graph")
-			}
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			log.Error().Err(err).Msgf("Receiving channel graph events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			stream = nil
+			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 
 		err = processNodeUpdates(gpu.NodeUpdates, db, nodeSettings, eventChannel)
 		if err != nil {
-			return errors.Wrap(err, "Process node updates")
+			// TODO FIXME STORE THIS SOMEWHERE??? NODE UPDATES ARE NOW IGNORED???
+			log.Error().Err(err).Msgf("Failed to store node update events")
 		}
 
 		err = processChannelUpdates(gpu.ChannelUpdates, db, nodeSettings, eventChannel)
 		if err != nil {
-			return errors.Wrap(err, "Process channel updates")
+			// TODO FIXME STORE THIS SOMEWHERE??? CHANNEL UPDATES ARE NOW IGNORED???
+			log.Error().Err(err).Msgf("Failed to store channel update events")
 		}
-
 	}
+}
 
+func ImportNodeInfo(client subscribeChannelGraphClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+	// Get all node public keys with channels
+	publicKeys := commons.GetAllChannelPublicKeys(nodeSettings.Chain, nodeSettings.Network)
+
+	ctx := context.Background()
+	for _, publicKey := range publicKeys {
+		ni, err := client.GetNodeInfo(ctx, &lnrpc.NodeInfoRequest{PubKey: publicKey, IncludeChannels: false})
+		if err != nil {
+			if e, ok := status.FromError(err); ok {
+				switch e.Code() {
+				case codes.NotFound:
+					log.Debug().Err(err).Msgf("Node info not found error when importing node info for public key: %v", publicKey)
+					continue
+				default:
+					return errors.Wrap(err, "Get node info")
+				}
+			}
+		}
+		err = insertNodeEvent(db, time.Now().UTC(),
+			commons.GetNodeIdByPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network),
+			ni.Node.Alias, ni.Node.Color, ni.Node.Addresses, ni.Node.Features, nodeSettings.NodeId, nil)
+		if err != nil {
+			return errors.Wrap(err, "Insert node event")
+		}
+	}
 	return nil
 }
 
 func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
 	eventChannel chan interface{}) error {
 	for _, nu := range nus {
-		eventNodeId := commons.GetActiveNodeIdFromPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
+		eventNodeId := commons.GetActiveNodeIdByPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
 			err := insertNodeEvent(db, time.Now().UTC(), eventNodeId, nu.Alias, nu.Color,
 				nu.NodeAddresses, nu.Features, nodeSettings.NodeId, eventChannel)
@@ -103,9 +166,9 @@ func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
 		if err != nil {
 			return errors.Wrap(err, "Creating channel point from byte")
 		}
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
+		fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
 
-		channelId := commons.GetActiveChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetActiveChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if channelId != 0 {
 			err := insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu, eventChannel)
 			if err != nil {
@@ -130,28 +193,52 @@ func insertRoutingPolicy(
 		return nil
 	}
 
-	announcingNodeId := commons.GetNodeIdFromPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
-	if announcingNodeId == 0 {
-		newNode := nodes.Node{
-			PublicKey: cu.AdvertisingNode,
-			Chain:     nodeSettings.Chain,
-			Network:   nodeSettings.Network,
-		}
-		announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
-		if err != nil {
-			return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.AdvertisingNode)
+	channelSettings := commons.GetChannelSettingByChannelId(channelId)
+	announcingNodeId := 0
+	if cu.AdvertisingNode != "" {
+		announcingNodeId = commons.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
+		if announcingNodeId == 0 {
+			newNode := nodes.Node{
+				PublicKey: cu.AdvertisingNode,
+				Chain:     nodeSettings.Chain,
+				Network:   nodeSettings.Network,
+			}
+			announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			if err != nil {
+				return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.AdvertisingNode)
+			}
 		}
 	}
-	connectingNodeId := commons.GetNodeIdFromPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
-	if connectingNodeId == 0 {
-		newNode := nodes.Node{
-			PublicKey: cu.ConnectingNode,
-			Chain:     nodeSettings.Chain,
-			Network:   nodeSettings.Network,
+	connectingNodeId := 0
+	if cu.ConnectingNode != "" {
+		connectingNodeId = commons.GetNodeIdByPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
+		if connectingNodeId == 0 {
+			newNode := nodes.Node{
+				PublicKey: cu.ConnectingNode,
+				Chain:     nodeSettings.Chain,
+				Network:   nodeSettings.Network,
+			}
+			connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			if err != nil {
+				return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.ConnectingNode)
+			}
 		}
-		connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
-		if err != nil {
-			return errors.Wrapf(err, "Adding node (publicKey: %v shortChannelId: %v)", cu.ConnectingNode)
+	}
+	if connectingNodeId == 0 && announcingNodeId == 0 {
+		return errors.New(fmt.Sprintf("Cannot obtain announcingNodeId nor connectingNodeId (from AdvertisingNode: %v ConnectingNode: %v)", cu.AdvertisingNode, cu.ConnectingNode))
+	}
+	if connectingNodeId == 0 {
+		if announcingNodeId == channelSettings.FirstNodeId {
+			connectingNodeId = channelSettings.SecondNodeId
+		} else {
+			connectingNodeId = channelSettings.FirstNodeId
+		}
+	}
+	if announcingNodeId == 0 {
+		if connectingNodeId == channelSettings.FirstNodeId {
+			announcingNodeId = channelSettings.SecondNodeId
+		} else {
+			announcingNodeId = channelSettings.FirstNodeId
 		}
 	}
 
@@ -191,9 +278,9 @@ func insertRoutingPolicy(
 		}
 
 		if eventChannel != nil {
-			channelGraphEvent := broadcast.ChannelGraphEvent{
-				GraphEventData: broadcast.GraphEventData{
-					EventData: broadcast.EventData{
+			channelGraphEvent := commons.ChannelGraphEvent{
+				GraphEventData: commons.GraphEventData{
+					EventData: commons.EventData{
 						EventTime: eventTime,
 						NodeId:    nodeSettings.NodeId,
 					},
@@ -201,10 +288,10 @@ func insertRoutingPolicy(
 					ConnectingNodeId: &connectingNodeId,
 					ChannelId:        &channelId,
 				},
-				ChannelGraphEventData: broadcast.ChannelGraphEventData{
+				ChannelGraphEventData: commons.ChannelGraphEventData{
 					TimeLockDelta:    cu.RoutingPolicy.TimeLockDelta,
-					FeeRateMilliMsat: cu.RoutingPolicy.FeeRateMilliMsat,
-					FeeBaseMsat:      cu.RoutingPolicy.FeeBaseMsat,
+					FeeRateMilliMsat: uint64(cu.RoutingPolicy.FeeRateMilliMsat),
+					FeeBaseMsat:      uint64(cu.RoutingPolicy.FeeBaseMsat),
 					MaxHtlcMsat:      cu.RoutingPolicy.MaxHtlcMsat,
 					Disabled:         cu.RoutingPolicy.Disabled,
 					MinHtlc:          cu.RoutingPolicy.MinHtlc,
@@ -212,10 +299,10 @@ func insertRoutingPolicy(
 			}
 			if channelEvent.ChannelId != 0 {
 				channelGraphEvent.PreviousEventTime = channelEvent.EventTime
-				channelGraphEvent.PreviousEventData = broadcast.ChannelGraphEventData{
+				channelGraphEvent.PreviousEventData = commons.ChannelGraphEventData{
 					TimeLockDelta:    channelEvent.TimeLockDelta,
-					FeeRateMilliMsat: channelEvent.FeeRateMilliMsat,
-					FeeBaseMsat:      channelEvent.FeeBaseMsat,
+					FeeRateMilliMsat: uint64(channelEvent.FeeRateMilliMsat),
+					FeeBaseMsat:      uint64(channelEvent.FeeBaseMsat),
 					MaxHtlcMsat:      channelEvent.MaxHtlcMsat,
 					Disabled:         channelEvent.Disabled,
 					MinHtlc:          channelEvent.MinHtlc,
@@ -270,15 +357,15 @@ func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias st
 		}
 
 		if eventChannel != nil {
-			nodeGraphEvent := broadcast.NodeGraphEvent{
-				GraphEventData: broadcast.GraphEventData{
-					EventData: broadcast.EventData{
+			nodeGraphEvent := commons.NodeGraphEvent{
+				GraphEventData: commons.GraphEventData{
+					EventData: commons.EventData{
 						EventTime: eventTime,
 						NodeId:    nodeId,
 					},
 					EventNodeId: &eventNodeId,
 				},
-				NodeGraphEventData: broadcast.NodeGraphEventData{
+				NodeGraphEventData: commons.NodeGraphEventData{
 					Alias:     alias,
 					Color:     color,
 					Addresses: string(najb),
@@ -287,7 +374,7 @@ func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias st
 			}
 			if nodeEvent.NodeId != 0 {
 				nodeGraphEvent.PreviousEventTime = nodeEvent.EventTime
-				nodeGraphEvent.PreviousEventData = broadcast.NodeGraphEventData{
+				nodeGraphEvent.PreviousEventData = commons.NodeGraphEventData{
 					Alias:     nodeEvent.Alias,
 					Color:     nodeEvent.Color,
 					Addresses: nodeEvent.NodeAddresses,

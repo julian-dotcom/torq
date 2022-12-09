@@ -7,10 +7,8 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
-	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -20,55 +18,60 @@ type peerEventsClient interface {
 }
 
 func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
 
-	peerEventStream, err := client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
-
-	if err != nil {
-		return errors.Wrap(err, "lnrpc subscribe invoices")
-	}
-
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
+	var stream lnrpc.Lightning_SubscribePeerEventsClient
+	var err error
+	var peerEvent *lnrpc.PeerEvent
+	serviceStatus := commons.Inactive
+	subscriptionStream := commons.PeerEventStream
 
 	for {
-
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
 		}
 
-		peerEvent, err := peerEventStream.Recv()
+		if stream == nil {
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			stream, err = client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
+			if err != nil {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribePeerEvents) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				stream = nil
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				continue
+			}
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		}
 
+		peerEvent, err = stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				log.Info().Msgf("Peer events subscription - Context canceled")
-				break
+				return
 			}
-			log.Error().Err(err).Msg("Problem with peer events subscription")
-			// rate limited resubscribe
-			for {
-				rl.Take()
-				peerEventStream, err = client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
-				if err == nil {
-					//log.Debug().Msgf("Reconnected to invoice subscription")
-					break
-				}
-			}
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			log.Error().Err(err).Msgf("Receiving peer events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			stream = nil
+			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 
 		if eventChannel != nil {
-			eventChannel <- broadcast.PeerEvent{
-				EventData: broadcast.EventData{
-					EventTime: time.Now().UTC(),
-					NodeId:    nodeSettings.NodeId,
-				},
-				Type:           peerEvent.Type,
-				EventPublicKey: peerEvent.PubKey,
+			eventNodeId := commons.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
+			if eventNodeId != 0 {
+				eventChannel <- commons.PeerEvent{
+					EventData: commons.EventData{
+						EventTime: time.Now().UTC(),
+						NodeId:    nodeSettings.NodeId,
+					},
+					Type:        peerEvent.Type,
+					EventNodeId: eventNodeId,
+				}
 			}
 		}
 	}
-
-	return nil
 }

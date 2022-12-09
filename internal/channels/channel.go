@@ -1,16 +1,11 @@
 package channels
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/rs/zerolog/log"
-	"gopkg.in/guregu/null.v4"
 
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/commons"
@@ -35,23 +30,6 @@ func GetClosureStatus(lndClosureType lnrpc.ChannelCloseSummary_ClosureType) comm
 	return commons.Closing
 }
 
-func ParseChannelPoint(channelPoint string) (string, int) {
-	parts := strings.Split(channelPoint, ":")
-	if channelPoint != "" && strings.Contains(channelPoint, ":") && len(parts) == 2 {
-		outputIndex, err := strconv.Atoi(parts[1])
-		if err == nil {
-			return parts[0], outputIndex
-		} else {
-			log.Debug().Err(err).Msgf("Failed to parse channelPoint %v", channelPoint)
-		}
-	}
-	return "", 0
-}
-
-func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) string {
-	return fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)
-}
-
 type Channel struct {
 	// ChannelID A database primary key. NOT a channel_id as specified in BOLT 2
 	ChannelID int `json:"channelId" db:"channel_id"`
@@ -60,12 +38,17 @@ type Channel struct {
 	FundingTransactionHash string                `json:"fundingTransactionHash" db:"funding_transaction_hash"`
 	FundingOutputIndex     int                   `json:"fundingOutputIndex" db:"funding_output_index"`
 	ClosingTransactionHash *string               `json:"closingTransactionHash" db:"closing_transaction_hash"`
+	LNDShortChannelID      *uint64               `json:"lndShortChannelId" db:"lnd_short_channel_id"`
+	Capacity               int64                 `json:"capacity" db:"capacity"`
+	Private                bool                  `json:"private" db:"private"`
 	FirstNodeId            int                   `json:"firstNodeId" db:"first_node_id"`
 	SecondNodeId           int                   `json:"secondNodeId" db:"second_node_id"`
-	CreatedOn              time.Time             `json:"createdOn" db:"created_on"`
-	UpdateOn               null.Time             `json:"updatedOn" db:"updated_on"`
-	LNDShortChannelID      *uint64               `json:"lndShortChannelId" db:"lnd_short_channel_id"`
+	InitiatingNodeId       *int                  `json:"initiatingNodeId" db:"initiating_node_id"`
+	AcceptingNodeId        *int                  `json:"acceptingNodeId" db:"accepting_node_id"`
+	ClosingNodeId          *int                  `json:"closingNodeId" db:"closing_node_id"`
 	Status                 commons.ChannelStatus `json:"status" db:"status_id"`
+	CreatedOn              time.Time             `json:"createdOn" db:"created_on"`
+	UpdateOn               *time.Time            `json:"updatedOn" db:"updated_on"`
 }
 
 func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) {
@@ -74,7 +57,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 	if channel.ShortChannelID == nil || *channel.ShortChannelID == "" || *channel.ShortChannelID == "0x0x0" {
 		existingChannelId = 0
 	} else {
-		existingChannelId = commons.GetChannelIdFromShortChannelId(*channel.ShortChannelID)
+		existingChannelId = commons.GetChannelIdByShortChannelId(*channel.ShortChannelID)
 		if existingChannelId == 0 {
 			existingChannelId, err = getChannelIdByShortChannelId(db, channel.ShortChannelID)
 			if err != nil {
@@ -84,7 +67,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 	}
 	if existingChannelId == 0 {
 		if channel.FundingTransactionHash != "" {
-			existingChannelId = commons.GetChannelIdFromFundingTransaction(channel.FundingTransactionHash, channel.FundingOutputIndex)
+			existingChannelId = commons.GetChannelIdByFundingTransaction(channel.FundingTransactionHash, channel.FundingOutputIndex)
 			if existingChannelId == 0 {
 				existingChannelId, err = getChannelIdByFundingTransaction(db, channel.FundingTransactionHash, channel.FundingOutputIndex)
 				if err != nil {
@@ -107,7 +90,8 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 						channel.FundingTransactionHash, channel.FundingOutputIndex)
 				}
 				commons.SetChannel(existingChannelId, channel.ShortChannelID,
-					channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex)
+					channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
+					channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 				if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
 					err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)
 					if err != nil {
@@ -121,7 +105,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 				channel.FundingTransactionHash, channel.FundingOutputIndex)
 		}
 	} else {
-		status := commons.GetChannelStatusFromChannelId(existingChannelId)
+		status := commons.GetChannelStatusByChannelId(existingChannelId)
 		if status != channel.Status {
 			if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
 				err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)
@@ -134,6 +118,9 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 					return 0, errors.Wrapf(err, "Updating channel status %v.", existingChannelId)
 				}
 			}
+			commons.SetChannel(existingChannelId, channel.ShortChannelID,
+				channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
+				channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 		}
 		return existingChannelId, nil
 	}
@@ -178,33 +165,4 @@ func updateChannelStatusAndLndIds(db *sqlx.DB, channelId int, status commons.Cha
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nil
-}
-
-func ConvertLNDShortChannelID(LNDShortChannelID uint64) string {
-	blockHeight := uint32(LNDShortChannelID >> 40)
-	txIndex := uint32(LNDShortChannelID>>16) & 0xFFFFFF
-	outputIndex := uint16(LNDShortChannelID)
-	return strconv.FormatUint(uint64(blockHeight), 10) +
-		"x" + strconv.FormatUint(uint64(txIndex), 10) +
-		"x" + strconv.FormatUint(uint64(outputIndex), 10)
-}
-
-func ConvertShortChannelIDToLND(ShortChannelID string) (uint64, error) {
-	parts := strings.Split(ShortChannelID, "x")
-	blockHeight, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return 0, errors.Wrap(err, "Converting block height from string to int")
-	}
-	txIndex, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return 0, errors.Wrap(err, "Converting tx index from string to int")
-	}
-	txPosition, err := strconv.Atoi(parts[2])
-	if err != nil {
-		return 0, errors.Wrap(err, "Converting tx position from string to int")
-	}
-
-	return (uint64(blockHeight) << 40) |
-		(uint64(txIndex) << 16) |
-		(uint64(txPosition)), nil
 }

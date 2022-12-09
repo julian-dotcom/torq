@@ -38,9 +38,7 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 
 type forwardsTableRow struct {
 	// Alias of remote peer
-	Alias null.String `json:"alias"`
-	// Semicolon seperated list of tagIds
-	TagIds       null.String `json:"tagIds"`
+	Alias        null.String `json:"alias"`
 	FirstNodeId  int         `json:"firstNodeId"`
 	SecondNodeId int         `json:"secondNodeId"`
 	// Database primary key of channel
@@ -98,7 +96,6 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 	var sqlString = `
 		select
 			coalesce(scne.node_alias, LEFT(scn.public_key, 20)) as alias,
-			coalesce(ct.tag_ids, '') as tag_ids,
 			coalesce(c.first_node_id, 0) as first_node_id,
 			coalesce(c.second_node_id, 0) as second_node_id,
 			coalesce(c.channel_id, 0) as channel_id,
@@ -132,11 +129,6 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			coalesce(round((fw.amount_in + fw.amount_out) / ce.capacity::numeric, 2), 0) as turnover_total
 
 		from channel as c
-		left join (
-			select channel_id, string_agg(tag_id::text, ';') AS tag_ids
-			from channel_tag
-			group by channel_id
-		) as ct on c.channel_id = ct.channel_id
 		left join (
 			select channel_id, last(event->'capacity', time) as capacity
 			from channel_event
@@ -203,7 +195,6 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 		c := &forwardsTableRow{}
 		err = rows.Scan(
 			&c.Alias,
-			&c.TagIds,
 			&c.FirstNodeId,
 			&c.SecondNodeId,
 			&c.ChannelID,
@@ -236,7 +227,7 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			&c.TurnoverTotal,
 		)
 		if err != nil {
-			return r, err
+			return r, errors.Wrap(err, "SQL row scan")
 		}
 
 		// Append to the result

@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 
+	"encoding/hex"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -29,6 +31,32 @@ func CreateSession(r *gin.Engine, apiPwd string) error {
 	store := sessions.NewCookieStore(cookiePwd)
 	store.Options(sessions.Options{MaxAge: 86400, Path: "/"})
 	r.Use(sessions.Sessions("torq_session", store))
+	return nil
+}
+
+func RefreshCookieFile(cookiePath string) error {
+	if cookiePath == "" {
+		return nil
+	}
+	cookie := make([]byte, 64)
+	_, err := rand.Read(cookie)
+	if err != nil {
+		return errors.Wrap(err, "Generating random key")
+	}
+	hexCookie := hex.EncodeToString(cookie)
+	f, err := os.Create(cookiePath)
+	if err != nil {
+		return errors.Wrap(err, "Creating or truncating cookie file")
+	}
+	defer f.Close()
+	_, err = f.WriteString(hexCookie)
+	if err != nil {
+		return errors.Wrap(err, "Writing to cookie file")
+	}
+	err = f.Sync()
+	if err != nil {
+		return errors.Wrap(err, "Flushing cookie contents to disk")
+	}
 	return nil
 }
 
@@ -104,6 +132,12 @@ func CookieLogin(cookiePath string) gin.HandlerFunc {
 
 		if subtle.ConstantTimeCompare([]byte(accessKey.AccessKey), []byte(cookieFileContents)) != 1 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication failed"})
+			return
+		}
+
+		if err = RefreshCookieFile(cookiePath); err != nil {
+			log.Error().Err(err).Msg("Failed to refresh cookie file")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh cookie file"})
 			return
 		}
 

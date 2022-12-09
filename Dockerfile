@@ -22,7 +22,9 @@ FROM debian:buster-slim
 COPY --from=backend-builder /app/torq /app/
 COPY --from=frontend-builder /app/build /app/web/build
 RUN useradd -ms /bin/bash torq
-RUN apt-get install bash
+RUN apt-get -y update
+RUN apt-get -y install ca-certificates bash
+RUN update-ca-certificates
 ENV GIN_MODE=release
 WORKDIR /app
 USER torq

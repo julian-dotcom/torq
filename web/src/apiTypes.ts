@@ -21,6 +21,8 @@ export interface nodeConfiguration {
   createdOn?: Date;
   updatedOn?: Date;
   status: number;
+  pingSystem: number;
+  customSettings: number;
 }
 
 export interface stringMap<T> {

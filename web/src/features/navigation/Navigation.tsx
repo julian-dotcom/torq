@@ -18,9 +18,11 @@ import {
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
 import * as routes from "constants/routes";
+import useTranslations from "services/i18n/useTranslations";
 
 function Navigation() {
   const dispatch = useAppDispatch();
+  const { t } = useTranslations();
 
   return (
     <div className={classNames(styles.navigation)}>
@@ -41,14 +43,15 @@ function Navigation() {
       <div className={styles.mainNavWrapper}>
         {/*<MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/sadfa"} />*/}
 
-        <NavCategory text={"Analyse"} collapsed={false}>
-          <MenuItem text={"Summary"} icon={<SummaryIcon />} routeTo={"/"} />
-          <MenuItem text={"Forwards"} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
+        <NavCategory text={t.analyse} collapsed={false}>
+          <MenuItem text={t.summary} icon={<SummaryIcon />} routeTo={"/"} />
+          <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/analyse/channels"} />
+          <MenuItem text={t.forwards} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
           {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
         </NavCategory>
 
         <NavCategory text={"Manage"} collapsed={false}>
-          <MenuItem text={"Channels"} icon={<ChannelsIcon />} routeTo={"/manage/channels"} />
+          <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/manage/channels"} />
           <MenuItem text={"Tags"} icon={<TagsIcon />} routeTo={"/manage/tags"} />
         </NavCategory>
 
@@ -64,8 +67,8 @@ function Navigation() {
       </div>
 
       <div className={classNames(styles.bottomWrapper)}>
-        <MenuItem text={"Settings"} icon={<SettingsIcon />} routeTo={"/settings"} />
-        <MenuItem text={"Logout"} icon={<LogoutIcon />} routeTo={"/logout"} />
+        <MenuItem text={t.settings} icon={<SettingsIcon />} routeTo={"/settings"} />
+        <MenuItem text={t.logout} icon={<LogoutIcon />} routeTo={"/logout"} />
       </div>
     </div>
   );

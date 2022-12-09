@@ -67,8 +67,9 @@ func createPolicyRequest(req updateChanRequestBody) (r *lnrpc.PolicyUpdateReques
 		updChanReq.TimeLockDelta = req.TimeLockDelta
 	}
 
-	if req.ChannelPoint != nil {
-		updChanReq.Scope, err = processChannelPoint(*req.ChannelPoint)
+	if req.FundingTransactionHash != nil && req.FundingOutputIndex != nil {
+		channelPoint := *req.FundingTransactionHash + ":" + strconv.Itoa(*req.FundingOutputIndex)
+		updChanReq.Scope, err = processChannelPoint(channelPoint)
 		if err != nil {
 			return r, err
 		}
@@ -113,7 +114,7 @@ func processChannelPoint(chanPoint string) (cp *lnrpc.PolicyUpdateRequest_ChanPo
 	oIndxUint, err := strconv.ParseUint(splitChanPoint[1], 10, 1)
 	if err != nil {
 		log.Error().Msgf("parsing channel point output index: %v", err)
-		return cp, errors.Newf("parsing channel point output index: %v", err)
+		return cp, errors.Wrapf(err, "parsing channel point output index: %v", err)
 	}
 
 	outputIndex := uint32(oIndxUint)

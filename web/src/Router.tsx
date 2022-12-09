@@ -24,6 +24,7 @@ import NewPaymentModal from "features/transact/NewPayment/NewPaymentModal";
 import NewAddressModal from "features/transact/newAddress/NewAddressModal";
 import UpdateChannelModal from "features/channels/updateChannel/UpdateChannelModal";
 import OpenChannelModal from "features/channels/openChannel/OpenChannelModal";
+import CloseChannelModal from "features/channels/closeChannel/CloseChannelModal";
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
 
 import * as routes from "constants/routes";
@@ -60,6 +61,7 @@ const modalRoutes: RouteObject = {
     { path: routes.NEW_ADDRESS, element: <NewAddressModal /> },
     { path: routes.UPDATE_CHANNEL, element: <UpdateChannelModal /> },
     { path: routes.OPEN_CHANNEL, element: <OpenChannelModal /> },
+    { path: routes.CLOSE_CHANNEL, element: <CloseChannelModal /> },
   ],
 };
 

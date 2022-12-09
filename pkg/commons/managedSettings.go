@@ -9,10 +9,10 @@ var ManagedSettingsChannel = make(chan ManagedSettings) //nolint:gochecknoglobal
 type ManagedSettingsCacheOperationType uint
 
 const (
-	// READ please provide Out
-	READ ManagedSettingsCacheOperationType = iota
-	// WRITE please provide defaultLanguage, preferredTimeZone, defaultDateRange and weekStartsOn
-	WRITE
+	// READ_SETTINGS please provide Out
+	READ_SETTINGS ManagedSettingsCacheOperationType = iota
+	// WRITE_SETTINGS please provide defaultLanguage, preferredTimeZone, defaultDateRange and weekStartsOn
+	WRITE_SETTINGS
 )
 
 type ManagedSettings struct {
@@ -24,40 +24,34 @@ type ManagedSettings struct {
 	Out               chan ManagedSettings
 }
 
-// ManagedSettingsCache parameter Context is for test cases...
 func ManagedSettingsCache(ch chan ManagedSettings, ctx context.Context) {
 	var defaultLanguage string
 	var preferredTimeZone string
 	var defaultDateRange string
 	var weekStartsOn string
 	for {
-		if ctx == nil {
-			managedSettings := <-ch
+		select {
+		case <-ctx.Done():
+			return
+		case managedSettings := <-ch:
 			defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn =
 				processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn)
-		} else {
-			// TODO: The code itself is fine here but special case only for test cases?
-			// Running Torq we don't have nor need to be able to cancel but we do for test cases because global var is shared
-			select {
-			case <-ctx.Done():
-				return
-			case managedSettings := <-ch:
-				defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn =
-					processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn)
-			}
 		}
 	}
 }
 
-func processManagedSettings(managedSettings ManagedSettings, defaultLanguage string, preferredTimeZone string, defaultDateRange string, weekStartsOn string) (string, string, string, string) {
+func processManagedSettings(managedSettings ManagedSettings,
+	defaultLanguage string, preferredTimeZone string, defaultDateRange string,
+	weekStartsOn string) (string, string, string, string) {
+
 	switch managedSettings.Type {
-	case READ:
+	case READ_SETTINGS:
 		managedSettings.DefaultLanguage = defaultLanguage
 		managedSettings.PreferredTimeZone = preferredTimeZone
 		managedSettings.DefaultDateRange = defaultDateRange
 		managedSettings.WeekStartsOn = weekStartsOn
 		go SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
-	case WRITE:
+	case WRITE_SETTINGS:
 		defaultLanguage = managedSettings.DefaultLanguage
 		preferredTimeZone = managedSettings.PreferredTimeZone
 		defaultDateRange = managedSettings.DefaultDateRange
@@ -73,7 +67,7 @@ func SendToManagedSettingsChannel(ch chan ManagedSettings, managedSettings Manag
 func GetSettings() ManagedSettings {
 	settingsResponseChannel := make(chan ManagedSettings)
 	managedSettings := ManagedSettings{
-		Type: READ,
+		Type: READ_SETTINGS,
 		Out:  settingsResponseChannel,
 	}
 	ManagedSettingsChannel <- managedSettings
@@ -86,7 +80,7 @@ func SetSettings(defaultDateRange, defaultLanguage, weekStartsOn, preferredTimeZ
 		DefaultLanguage:   defaultLanguage,
 		WeekStartsOn:      weekStartsOn,
 		PreferredTimeZone: preferredTimeZone,
-		Type:              WRITE,
+		Type:              WRITE_SETTINGS,
 	}
 	ManagedSettingsChannel <- managedSettings
 }

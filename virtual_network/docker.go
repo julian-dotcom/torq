@@ -106,7 +106,7 @@ func (de *DockerDevEnvironment) CreateContainer(ctx context.Context, container *
 		ExposedPorts: openPorts,
 	}, hostConfig, &de.NetworkingConfig, nil, container.Name)
 	if err != nil {
-		return errors.Newf("Creating %s container: %v", container.Name, err)
+		return errors.Wrapf(err, "Creating %s container", container.Name)
 	}
 	container.Instance = r
 	return nil
@@ -118,7 +118,7 @@ func (de *DockerDevEnvironment) InitContainer(ctx context.Context, container *Co
 		return err
 	}
 	if err := de.Client.ContainerStart(ctx, container.Instance.ID, types.ContainerStartOptions{}); err != nil {
-		return errors.Newf("can't start %s container: %v", container.Name, err)
+		return errors.Wrapf(err, "can't start %s container", container.Name)
 	}
 	return nil
 }
@@ -126,10 +126,10 @@ func (de *DockerDevEnvironment) InitContainer(ctx context.Context, container *Co
 func (de *DockerDevEnvironment) StartContainer(ctx context.Context, cc *ContainerConfig) (err error) {
 	container, err := de.FindContainerByName(ctx, cc.Name)
 	if err != nil {
-		return errors.Newf("Can't find container with the name %s: %v", cc.Name, err)
+		return errors.Wrapf(err, "Can't find container with the name %s", cc.Name)
 	}
 	if err := de.Client.ContainerStart(ctx, container.ID, types.ContainerStartOptions{}); err != nil {
-		return errors.Newf("can't start %s container: %v", cc.Name, err)
+		return errors.Wrapf(err, "can't start %s container", cc.Name)
 	}
 	cc.Instance = dockercontainer.ContainerCreateCreatedBody{ID: container.ID}
 	return nil
@@ -138,11 +138,11 @@ func (de *DockerDevEnvironment) StartContainer(ctx context.Context, cc *Containe
 func (de *DockerDevEnvironment) StopContainer(ctx context.Context, name string) (err error) {
 	container, err := de.FindContainerByName(ctx, name)
 	if err != nil {
-		return errors.Newf("can't find container with the name %s: %v", name, err)
+		return errors.Wrapf(err, "can't find container with the name %s", name)
 	}
 	timeout := 30 * time.Second
 	if err := de.Client.ContainerStop(ctx, container.ID, &timeout); err != nil {
-		return errors.Newf("can't stop %s container: %v", name, err)
+		return errors.Wrapf(err, "can't stop %s container", name)
 	}
 	return nil
 }
@@ -150,30 +150,30 @@ func (de *DockerDevEnvironment) StopContainer(ctx context.Context, name string) 
 func (de *DockerDevEnvironment) CreateNetwork(ctx context.Context) (nc network.NetworkingConfig, err error) {
 	nw, err := de.Client.NetworkCreate(ctx, de.NetworkName, types.NetworkCreate{})
 	if err != nil {
-		return nc, errors.Newf("Creating %s network: %v", de.NetworkName, err)
+		return network.NetworkingConfig{}, errors.Wrapf(err, "Creating %s network", de.NetworkName)
 	}
 	nc = network.NetworkingConfig{
 		EndpointsConfig: map[string]*network.EndpointSettings{},
 	}
 	nc.EndpointsConfig[nw.ID] = &network.EndpointSettings{Links: []string{de.NetworkName + "-btcd:blockchain"}}
-	return nc, err
+	return nc, nil
 }
 
 func (de *DockerDevEnvironment) FindAndRemoveContainer(ctx context.Context, name string) error {
 	container, err := de.FindContainerByName(ctx, name)
 	if err != nil {
-		return errors.Newf("Removing %s container: %v", name, err)
+		return errors.Wrapf(err, "Removing %s container", name)
 	}
 	if container != nil {
 		log.Printf("%s container found; removing\n", name)
 
 		if container.State == "running" {
 			if err := de.Client.ContainerStop(ctx, container.ID, nil); err != nil {
-				return errors.Newf("Stopping %s container: %v", name, err)
+				return errors.Wrapf(err, "Stopping %s container", name)
 			}
 		}
 		if err := de.Client.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
-			return errors.Newf("Removing %s container: %v", name, err)
+			return errors.Wrapf(err, "Removing %s container", name)
 		}
 	}
 	return nil
@@ -182,12 +182,12 @@ func (de *DockerDevEnvironment) FindAndRemoveContainer(ctx context.Context, name
 func (de *DockerDevEnvironment) FindAndRemoveVolume(ctx context.Context, name string) error {
 	volume, err := de.FindVolumeByName(ctx, name)
 	if err != nil {
-		return errors.Newf("Removing old %s volume: %v", name, err)
+		return errors.Wrapf(err, "Removing old %s volume", name)
 	}
 	if volume != nil {
 		log.Printf("Old %s volume found; removing\n", name)
 		if err := de.Client.VolumeRemove(ctx, volume.Name, false); err != nil {
-			return errors.Newf("Removing old %s volume: %v", name, err)
+			return errors.Wrapf(err, "Removing old %s volume", name)
 		}
 	}
 	return nil
@@ -196,7 +196,7 @@ func (de *DockerDevEnvironment) FindAndRemoveVolume(ctx context.Context, name st
 func (de *DockerDevEnvironment) FindVolumeByName(ctx context.Context, name string) (*types.Volume, error) {
 	volumes, err := de.Client.VolumeList(ctx, filters.Args{})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Docker volume list")
 	}
 	for _, volume := range volumes.Volumes {
 		if volume.Name == name {
@@ -209,12 +209,12 @@ func (de *DockerDevEnvironment) FindVolumeByName(ctx context.Context, name strin
 func (de *DockerDevEnvironment) FindAndRemoveNetwork(ctx context.Context, name string) error {
 	network, err := de.FindNetworkByName(ctx, name)
 	if err != nil {
-		return errors.Newf("Removing old %s network: %v", name, err)
+		return errors.Wrapf(err, "Removing old %s network", name)
 	}
 	if network != nil {
 		log.Printf("Old %s network found; removing\n", name)
 		if err := de.Client.NetworkRemove(ctx, network.ID); err != nil {
-			return errors.Newf("Removing old %s network: %v", name, err)
+			return errors.Wrapf(err, "Removing old %s network", name)
 		}
 	}
 	return nil
@@ -223,7 +223,7 @@ func (de *DockerDevEnvironment) FindAndRemoveNetwork(ctx context.Context, name s
 func (de *DockerDevEnvironment) FindNetworkByName(ctx context.Context, name string) (*types.NetworkResource, error) {
 	networks, err := de.Client.NetworkList(ctx, types.NetworkListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Docker network list")
 	}
 	for _, network := range networks {
 		if network.Name == name {
@@ -236,7 +236,7 @@ func (de *DockerDevEnvironment) FindNetworkByName(ctx context.Context, name stri
 func (de *DockerDevEnvironment) FindContainerByName(ctx context.Context, name string) (*types.Container, error) {
 	containers, err := de.Client.ContainerList(ctx, types.ContainerListOptions{All: true})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Docker container list")
 	}
 	for _, container := range containers {
 		for _, containerName := range container.Names {
@@ -252,7 +252,7 @@ func (de *DockerDevEnvironment) FindContainerByName(ctx context.Context, name st
 func (de *DockerDevEnvironment) BuildImage(ctx context.Context, path string, name string) error {
 	tar, err := archive.TarWithOptions(path, &archive.TarOptions{ExcludePatterns: []string{"web/node_modules", ".git"}})
 	if err != nil {
-		return errors.Newf("Creating %s archive: %v", name, err)
+		return errors.Wrapf(err, "Creating %s archive", name)
 	}
 
 	opts := types.ImageBuildOptions{
@@ -263,12 +263,12 @@ func (de *DockerDevEnvironment) BuildImage(ctx context.Context, path string, nam
 
 	res, err := de.Client.ImageBuild(ctx, tar, opts)
 	if err != nil {
-		return errors.Newf("Building %s docker image: %v", name, err)
+		return errors.Wrapf(err, "Building %s docker image", name)
 	}
 	defer res.Body.Close()
 	err = printBuildOutput(res.Body)
 	if err != nil {
-		return errors.Newf("Printing build output for %s docker image: %v", name, err)
+		return errors.Wrapf(err, "Printing build output for %s docker image", name)
 	}
 	return nil
 }
@@ -302,7 +302,7 @@ func printBuildOutput(rd io.Reader) error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return err
+		return errors.Wrap(err, "Buffio scanner err")
 	}
 
 	return nil
@@ -389,7 +389,7 @@ func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string
 	// Copy bobs macaroon and tls file to local directory
 	tlsFileReader, _, err := cli.CopyFromContainer(ctx, name, "/root/.lnd/tls.cert")
 	if err != nil {
-		return errors.Newf("Copying tls file: %v\n", err)
+		return errors.Wrap(err, "Copying tls file")
 	}
 	// close fi on exit and check for its returned error
 	defer func() {
@@ -403,12 +403,12 @@ func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string
 	_, err = tlsTar.Next()
 	if err == io.EOF || err != nil {
 		// EOF == end of tar archive
-		return errors.Newf("Reading tls tar header: %v\n", err)
+		return errors.Wrap(err, "Reading tls tar header")
 	}
 	tlsBuf := new(bytes.Buffer)
 	_, err = tlsBuf.ReadFrom(tlsTar)
 	if err != nil {
-		return errors.Newf("Reading tls tar: %v\n", err)
+		return errors.Wrap(err, "Reading tls tar")
 	}
 	// write the whole body at once
 	err = os.WriteFile("virtual_network/generated_files/tls.cert", tlsBuf.Bytes(), 0600)
@@ -419,7 +419,7 @@ func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string
 	macaroonFileReader, _, err := cli.CopyFromContainer(ctx, name,
 		"/root/.lnd/data/chain/bitcoin/simnet/admin.macaroon")
 	if err != nil {
-		return errors.Newf("Copying tls file: %v\n", err)
+		return errors.Wrapf(err, "Copying tls file")
 	}
 	// close fi on exit and check for its returned error
 	defer func() {
@@ -434,12 +434,12 @@ func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string
 	_, err = macaroonTar.Next()
 	if err == io.EOF || err != nil {
 		// EOF == end of tar archive
-		return errors.Newf("Reading macaroon tar header: %v\n", err)
+		return errors.Wrap(err, "Reading macaroon tar header")
 	}
 	macaroonBuf := new(bytes.Buffer)
 	_, err = macaroonBuf.ReadFrom(macaroonTar)
 	if err != nil {
-		return errors.Newf("Reading macaroon tar: %v\n", err)
+		return errors.Wrap(err, "Reading macaroon tar")
 	}
 
 	// write the whole body at once

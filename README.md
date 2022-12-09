@@ -1,10 +1,9 @@
-# Torq by LN.capital
+![Torq - Banner](./docs/images/readme-banner.png)
+# Torq
 
 Torq is a capital management tool for routing nodes on the lightning network.
 
 ![All Tests](https://github.com/lncapital/torq/actions/workflows/test-on-push.yml/badge.svg)
-
-![Torq - Forwards](./forwards-table.png)
 
 ## Quick start
 
@@ -23,8 +22,8 @@ You do not need sudo and you can check the contents of the installation script h
 - Advanced charts and visualizations of aggregated forwarding statistics.
 - Visualization of sources and destinations for traffic.
 - Stores all events from your node including HTLC events, fee rate changes and channel enable/disable events.
-- Filter, sort and group data
-- Store custom table views configurations for quickly finding the right information.
+- Advanced filter, sort and group data
+- Store filter, sort and group configurations to quickly find the right information.
 - Fetch and analyse data from any point in time.
 - Navigate through time (days, weeks, months) to track your progress.
 
@@ -36,10 +35,6 @@ You do not need sudo and you can check the contents of the installation script h
 - Limit HTLC amounts
 - Automatic Backups
 - Automatic channel tagging
-
-## Documentation
-
-https://docs.ln.capital/
 
 ## Join us!
 

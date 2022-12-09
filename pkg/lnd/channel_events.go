@@ -13,18 +13,16 @@ import (
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/nodes"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/rs/zerolog/log"
-	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 )
 
 func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 	ch, err := chainhash.NewHash(cb)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "Chainhash newhash")
 	}
 	return fmt.Sprintf("%s:%d", ch.String(), oi), nil
 }
@@ -38,8 +36,8 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 
 	timestampMs := time.Now().UTC()
 
-	channelEvent := broadcast.ChannelEvent{
-		EventData: broadcast.EventData{
+	channelEvent := commons.ChannelEvent{
+		EventData: commons.EventData{
 			EventTime: timestampMs,
 			NodeId:    nodeSettings.NodeId,
 		},
@@ -55,7 +53,12 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			return errors.Wrap(err, "OPEN_CHANNEL: Add Node When New")
 		}
 		channelStatus := commons.Open
-		channel, err := addChannelOrUpdateStatus(c.ChannelPoint, c.ChanId, &channelStatus, nil, nil, nodeSettings, remoteNodeId, db)
+		var initiatingNodeId *int
+		if c.Initiator {
+			initiatingNodeId = &nodeSettings.NodeId
+		}
+		channel, err := addChannelOrUpdateStatus(c.ChannelPoint, c.ChanId, &channelStatus, c.Capacity, &c.Private,
+			nil, nil, nodeSettings, remoteNodeId, initiatingNodeId, nil, db)
 		if err != nil {
 			return errors.Wrap(err, "OPEN_CHANNEL: Add Channel Or Update Status")
 		}
@@ -69,7 +72,9 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		commons.SetChannelNode(remoteNodeId, remotePublicKey, nodeSettings.Chain, nodeSettings.Network, channel.Status)
 
 		// This allows torq to listen to the graph for channel updates
-		commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex)
+		commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.Status,
+			channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
+			channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channel.ChannelID, false, jsonByteArray,
 			channelEvent, eventChannel)
@@ -84,7 +89,20 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		if err != nil {
 			return errors.Wrap(err, "CLOSED_CHANNEL: Add Node When New")
 		}
-		channel, err := addChannelOrUpdateStatus(c.ChannelPoint, c.ChanId, nil, &c.CloseType, &c.ClosingTxHash, nodeSettings, remoteNodeId, db)
+		var initiatingNodeId *int
+		if c.OpenInitiator == lnrpc.Initiator_INITIATOR_LOCAL {
+			initiatingNodeId = &nodeSettings.NodeId
+		} else if c.OpenInitiator == lnrpc.Initiator_INITIATOR_REMOTE {
+			initiatingNodeId = &remoteNodeId
+		}
+		var closingNodeId *int
+		if c.CloseInitiator == lnrpc.Initiator_INITIATOR_LOCAL {
+			closingNodeId = &nodeSettings.NodeId
+		} else if c.CloseInitiator == lnrpc.Initiator_INITIATOR_REMOTE {
+			closingNodeId = &remoteNodeId
+		}
+		channel, err := addChannelOrUpdateStatus(c.ChannelPoint, c.ChanId, nil, c.Capacity, nil,
+			&c.CloseType, &c.ClosingTxHash, nodeSettings, remoteNodeId, initiatingNodeId, closingNodeId, db)
 		if err != nil {
 			return errors.Wrap(err, "CLOSED_CHANNEL: Add Channel Or Update Status")
 		}
@@ -118,8 +136,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		if err != nil {
 			return errors.Wrap(err, "ACTIVE_CHANNEL: Get channelPoint from bytes")
 		}
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
-		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetChannelIdByChannelPoint(channelPoint)
 		jsonByteArray, err := json.Marshal(c)
 		if err != nil {
 			return errors.Wrap(err, "ACTIVE_CHANNEL: JSON Marshall")
@@ -136,8 +153,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		if err != nil {
 			return errors.Wrap(err, "INACTIVE_CHANNEL: Get channelPoint from bytes")
 		}
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
-		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetChannelIdByChannelPoint(channelPoint)
 		jsonByteArray, err := json.Marshal(c)
 		if err != nil {
 			return errors.Wrap(err, "INACTIVE_CHANNEL: JSON Marshall")
@@ -185,16 +201,30 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 }
 
 func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, channelStatus *commons.ChannelStatus,
-	closeType *lnrpc.ChannelCloseSummary_ClosureType, closingTxHash *string,
-	nodeSettings commons.ManagedNodeSettings, remoteNodeId int,
+	capacity int64, private *bool, closeType *lnrpc.ChannelCloseSummary_ClosureType, closingTxHash *string,
+	nodeSettings commons.ManagedNodeSettings, remoteNodeId int, initiatingNodeId *int, closingNodeId *int,
 	db *sqlx.DB) (channels.Channel, error) {
 
-	fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
+	fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
 	channel := channels.Channel{
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
 		FirstNodeId:            nodeSettings.NodeId,
 		SecondNodeId:           remoteNodeId,
+		InitiatingNodeId:       initiatingNodeId,
+		ClosingNodeId:          closingNodeId,
+		Capacity:               capacity,
+	}
+	if private != nil {
+		channel.Private = *private
+	}
+	if initiatingNodeId != nil {
+		if *initiatingNodeId == remoteNodeId {
+			channel.AcceptingNodeId = &nodeSettings.NodeId
+		}
+		if *initiatingNodeId == nodeSettings.NodeId {
+			channel.AcceptingNodeId = &remoteNodeId
+		}
 	}
 	if channelStatus != nil {
 		channel.Status = *channelStatus
@@ -203,7 +233,7 @@ func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, cha
 		channel.Status = channels.GetClosureStatus(*closeType)
 		channel.ClosingTransactionHash = closingTxHash
 	}
-	shortChannelId := channels.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
 	if lndShortChannelId != 0 {
 		channel.LNDShortChannelID = &lndShortChannelId
 		channel.ShortChannelID = &shortChannelId
@@ -217,7 +247,7 @@ func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, cha
 }
 
 func addNodeWhenNew(remotePublicKey string, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB) (int, error) {
-	remoteNodeId := commons.GetNodeIdFromPublicKey(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
+	remoteNodeId := commons.GetNodeIdByPublicKey(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
 	if remoteNodeId == 0 {
 		newNode := nodes.Node{
 			PublicKey: remotePublicKey,
@@ -241,8 +271,8 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 		return 0, err
 	}
 
-	fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channelPoint)
-	channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+	fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
+	channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 	if channelId == 0 {
 		pendingChannelsRequest := lnrpc.PendingChannelsRequest{}
 		pendingChannelsResponse, err := client.PendingChannels(ctx, &pendingChannelsRequest)
@@ -251,7 +281,7 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 		}
 		for _, pendingChannel := range pendingChannelsResponse.PendingOpenChannels {
 			if pendingChannel.Channel.ChannelPoint == channelPoint {
-				remoteNodeId := commons.GetNodeIdFromPublicKey(pendingChannel.Channel.RemoteNodePub, nodeSettings.Chain, nodeSettings.Network)
+				remoteNodeId := commons.GetNodeIdByPublicKey(pendingChannel.Channel.RemoteNodePub, nodeSettings.Chain, nodeSettings.Network)
 				if remoteNodeId == 0 {
 					remoteNode := nodes.Node{
 						PublicKey: pendingChannel.Channel.RemoteNodePub,
@@ -268,6 +298,7 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 					FundingOutputIndex:     fundingOutputIndex,
 					FirstNodeId:            nodeSettings.NodeId,
 					SecondNodeId:           remoteNodeId,
+					Capacity:               pendingChannel.Channel.Capacity,
 					Status:                 commons.Opening,
 				}
 				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, newChannel)
@@ -280,7 +311,15 @@ func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClien
 	return channelId, nil
 }
 
+type lndClientChannelEvent interface {
+	ListChannels(ctx context.Context, in *lnrpc.ListChannelsRequest,
+		opts ...grpc.CallOption) (*lnrpc.ListChannelsResponse, error)
+	GetChanInfo(ctx context.Context, in *lnrpc.ChanInfoRequest,
+		opts ...grpc.CallOption) (*lnrpc.ChannelEdge, error)
+}
+
 type lndClientSubscribeChannelEvent interface {
+	lndClientChannelEvent
 	SubscribeChannelEvents(ctx context.Context, in *lnrpc.ChannelEventSubscription,
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeChannelEventsClient, error)
 	PendingChannels(ctx context.Context, in *lnrpc.PendingChannelsRequest,
@@ -290,55 +329,71 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) error {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent,
+	importRequestChannel chan commons.ImportRequest) {
 
-	cesr := lnrpc.ChannelEventSubscription{}
-	stream, err := client.SubscribeChannelEvents(ctx, &cesr)
-	if err != nil {
-		return errors.Wrap(err, "Subscribe channel events")
-	}
+	var stream lnrpc.Lightning_SubscribeChannelEventsClient
+	var err error
+	var chanEvent *lnrpc.ChannelEventUpdate
+	serviceStatus := commons.Inactive
+	subscriptionStream := commons.ChannelEventStream
 
-	rl := ratelimit.New(1) // 1 per second maximum rate limit
 	for {
-
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
 		}
 
-		chanEvent, err := stream.Recv()
+		if stream == nil {
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			stream, err = client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
+			if err == nil {
+				// HACK to know if the context is a testcase.
+				if importRequestChannel != nil {
+					responseChannel := make(chan error)
+					importRequestChannel <- commons.ImportRequest{
+						ImportType: commons.ImportChannelAndRoutingPolicies,
+						Out:        responseChannel,
+					}
+					err = <-responseChannel
+					if err != nil {
+						log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+						stream = nil
+						time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+						continue
+					}
+				}
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			} else {
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelEvents) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				stream = nil
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				continue
+			}
+		}
+
+		chanEvent, err = stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				break
+				return
 			}
-
-			log.Error().Err(err).Msg("Subscribe channel events stream receive error")
-			// rate limited resubscribe
-			log.Info().Msg("Attempting reconnect to channel events")
-			for {
-				rl.Take()
-				stream, err = client.SubscribeChannelEvents(ctx, &cesr)
-				if err == nil {
-					log.Info().Msg("Reconnected to channel events")
-					break
-				}
-				log.Debug().Err(err).Msg("Reconnecting to channel events error")
-			}
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			log.Error().Err(err).Msgf("Receiving channel events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			stream = nil
+			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 
 		err = storeChannelEvent(ctx, db, client, chanEvent, nodeSettings, eventChannel)
 		if err != nil {
-			log.Error().Err(err).Msg("Subscribe channel events store event error")
-			// rate limit for caution but hopefully not needed
-			rl.Take()
-			continue
+			// TODO FIXME STORE THIS SOMEWHERE??? CHANNELEVENT IS NOW IGNORED???
+			log.Error().Err(err).Msg("Storing channel event failed")
 		}
-
 	}
-
-	return nil
 }
 
 func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, client lnrpc.LightningClient,
@@ -396,7 +451,7 @@ func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB
 		var channelId int
 		err = rows.Scan(&channelId)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "SQL row scan for channel id")
 		}
 		existingChannelIds = append(existingChannelIds, channelId)
 	}
@@ -412,8 +467,7 @@ func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeSettings com
 
 	var channelIds []int
 	for _, channel := range c {
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
-		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		channelId := commons.GetChannelIdByChannelPoint(channel.ChannelPoint)
 		if channelId != 0 {
 			channelIds = append(channelIds, channelId)
 		}
@@ -432,14 +486,20 @@ icoLoop:
 			return errors.Wrap(err, "ImportedOpenChannels: Add Node When New")
 		}
 		channelStatus := commons.Open
+		var initiatingNodeId *int
+		if lndChannel.Initiator {
+			initiatingNodeId = &nodeSettings.NodeId
+		}
 		channel, err := addChannelOrUpdateStatus(lndChannel.ChannelPoint, lndChannel.ChanId,
-			&channelStatus, nil, nil, nodeSettings, remoteNodeId, db)
+			&channelStatus, lndChannel.Capacity, &lndChannel.Private,
+			nil, nil, nodeSettings, remoteNodeId, initiatingNodeId, nil, db)
 		if err != nil {
 			return errors.Wrap(err, "ImportedOpenChannels: Add Channel Or Update Status")
 		}
 
 		if lndChannel.ChanId == 0 {
-			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(lndChannel.ChannelPoint)
+			// TODO FIXME GET DATA FROM VECTOR
+			fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(lndChannel.ChannelPoint)
 			log.Error().Msgf("Failed to obtain shortChannelId for open channel with channel point %v:%v",
 				fundingTransactionHash, fundingOutputIndex)
 		}
@@ -457,7 +517,7 @@ icoLoop:
 		}
 
 		err = insertChannelEvent(db, time.Now().UTC(), lnrpc.ChannelEventUpdate_OPEN_CHANNEL, nodeSettings.NodeId,
-			channel.ChannelID, true, jsonByteArray, broadcast.ChannelEvent{}, nil)
+			channel.ChannelID, true, jsonByteArray, commons.ChannelEvent{}, nil)
 		if err != nil {
 			return errors.Wrap(err, "ImportedOpenChannels: Insert channel event")
 		}
@@ -474,8 +534,8 @@ func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary,
 
 	var channelIds []int
 	for _, channel := range c {
-		fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(channel.ChannelPoint)
-		channelId := commons.GetChannelIdFromFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+		fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channel.ChannelPoint)
+		channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 		if channelId != 0 {
 			channelIds = append(channelIds, channelId)
 		}
@@ -493,14 +553,27 @@ icoLoop:
 		if err != nil {
 			return errors.Wrap(err, "ImportedClosedChannels: Add Node When New")
 		}
-		channel, err := addChannelOrUpdateStatus(lndChannel.ChannelPoint, lndChannel.ChanId,
-			nil, &lndChannel.CloseType, &lndChannel.ClosingTxHash, nodeSettings, remoteNodeId, db)
+		var initiatingNodeId *int
+		if lndChannel.OpenInitiator == lnrpc.Initiator_INITIATOR_LOCAL {
+			initiatingNodeId = &nodeSettings.NodeId
+		} else if lndChannel.OpenInitiator == lnrpc.Initiator_INITIATOR_REMOTE {
+			initiatingNodeId = &remoteNodeId
+		}
+		var closingNodeId *int
+		if lndChannel.CloseInitiator == lnrpc.Initiator_INITIATOR_LOCAL {
+			closingNodeId = &nodeSettings.NodeId
+		} else if lndChannel.CloseInitiator == lnrpc.Initiator_INITIATOR_REMOTE {
+			closingNodeId = &remoteNodeId
+		}
+		channel, err := addChannelOrUpdateStatus(lndChannel.ChannelPoint, lndChannel.ChanId, nil, lndChannel.Capacity, nil,
+			&lndChannel.CloseType, &lndChannel.ClosingTxHash, nodeSettings, remoteNodeId, initiatingNodeId, closingNodeId, db)
 		if err != nil {
 			return errors.Wrap(err, "ImportedClosedChannels: Add Channel Or Update Status")
 		}
 
 		if lndChannel.ChanId == 0 {
-			fundingTransactionHash, fundingOutputIndex := channels.ParseChannelPoint(lndChannel.ChannelPoint)
+			// TODO FIXME GET DATA FROM VECTOR
+			fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(lndChannel.ChannelPoint)
 			log.Error().Msgf("Failed to obtain shortChannelId for closed channel with channel point %v:%v",
 				fundingTransactionHash, fundingOutputIndex)
 		}
@@ -518,7 +591,7 @@ icoLoop:
 		}
 
 		err = insertChannelEvent(db, time.Now().UTC(), lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, nodeSettings.NodeId,
-			channel.ChannelID, true, jsonByteArray, broadcast.ChannelEvent{}, nil)
+			channel.ChannelID, true, jsonByteArray, commons.ChannelEvent{}, nil)
 		if err != nil {
 			return errors.Wrap(err, "ImportedClosedChannels: Insert channel event")
 		}
@@ -528,7 +601,7 @@ icoLoop:
 
 func insertChannelEvent(db *sqlx.DB, eventTime time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,
 	nodeId, channelId int, imported bool, jsonByteArray []byte,
-	channelEvent broadcast.ChannelEvent, eventChannel chan interface{}) error {
+	channelEvent commons.ChannelEvent, eventChannel chan interface{}) error {
 
 	var sqlStm = `INSERT INTO channel_event (time, event_type, channel_id, imported, event, node_id)
 		VALUES($1, $2, $3, $4, $5, $6);`

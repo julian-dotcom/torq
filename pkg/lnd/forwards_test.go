@@ -2,14 +2,13 @@ package lnd
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/mixer/clock"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/commons"
@@ -53,31 +52,9 @@ func (c *mockLightningClientForwardingHistory) ForwardingHistory(ctx context.Con
 	return &r, nil
 }
 
-func TestFetchForwardingHistoryError(t *testing.T) {
-
-	mClient := mockLightningClientForwardingHistory{
-		Error: errors.New("Some error"),
-	}
-
-	ctx := context.Background()
-	_, err := fetchForwardingHistory(ctx, &mClient, 0, 1000)
-
-	testutil.Given(t, "While fetching forwarding history")
-
-	testutil.WhenF(t, "If lnrcp.ForwardingHistory returns an error.")
-
-	if err != nil {
-		testutil.Successf(t, "fetchForwardingHistory returns the error")
-	} else {
-		testutil.Errorf(t, "fetchForwardingHistory returns the error")
-	}
-
-}
-
 func TestSubscribeForwardingEvents(t *testing.T) {
 
 	ctx := context.Background()
-	errs, ctx := errgroup.WithContext(ctx)
 	ctx, stopSubFwE := context.WithCancel(ctx)
 	c := clock.NewMockClock(time.Unix(0, 0))
 
@@ -151,30 +128,20 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 		LastOffsetIndex: 0,
 	}
 
-	// Start subscribing in a goroutine to allow the test to continue simulating time through the
-	// mocked time object.
-	errs.Go(func() error {
-		err := SubscribeForwardingEvents(ctx, &mclient, db,
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		SubscribeForwardingEvents(ctx, &mclient, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdFromPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
-		if err != nil {
-			t.Fatal(errors.Wrapf(err, "SubscribeForwardingEvents(%v, %v, %v, %v)", ctx,
-				mclient, db, &opt))
-		}
-		return nil
-	})
-
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil, &opt)
+	}()
 	// Simulate passing intervals, one more than required to process
 	numbTicks := 2
 	for i := 0; i < numbTicks; i++ {
 		c.AddTime(mockTickerInterval)
 	}
-
-	// Check for potential errors from the goroutine (SubscribeForwardingEvents)
-	err = errs.Wait()
-	if err != nil {
-		t.Fatal(err)
-	}
+	wg.Wait()
 
 	testutil.Given(t, "While running SubscribeForwardingEvents")
 

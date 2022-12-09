@@ -43,6 +43,17 @@
   "analyse": "Analyse",
   "tags": "Tags",
   "manage": "Manage",
+  "importFailedPayments": "When this is enabled Torq will import failed payments. (Please be cautious with this as this could cause performance problems for LND. This is not advised for nodes with aggressive rebalancing and/or lightweight hardware.)",
+  "implementation": "Implementation",
+  "nodeName": "Node Name",
+  "grpcAddress": "GRPC Address (IP or Tor)",
+  "tlsCertificate": "TLS Certificate",
+  "macaroon": "Macaroon",
+  "summary": "Summary",
+  "forwards": "Forwards",
+  "transact": "Transact",
+  "settings": "Settings",
+  "logout": "Logout",
   "tableLayout": {
     "tableOptions": "Table options"
   },
@@ -56,15 +67,19 @@
     "minHtlcSat": "Min HTLC amount",
     "maxHtlcSat": "Max HTLC amount",
     "update": "Update",
+    "confirmedMessage": "Channel policy uptaded",
     "maxHtlcSatPlaceholder": "Leave empty for no limit",
     "minHtlcSatPlaceholder": "Leave empty for no limit"
   },
   "openCloseChannel": {
     "openNewChannel": "Open another",
+    "closeNewChannel": "Close another",
     "confirm": "Confirm",
+    "closeChannel": "Close Channel",
     "error": "Error:",
     "note": "Note:",
-    "confirmationOpenning": "The channel open has been published but still need time to be confirmed. on-chain."
+    "confirmationOpenning": "The channel open has been published but still need time to be confirmed. on-chain.",
+    "confirmationClosing": "The channel close has been successfully published to the network but the funds in the channel still need to be confirmed through an on-chain transaction."
   },
   "toast": {
     "settingsSaved": "Settings saved",
@@ -80,7 +95,10 @@
     "nodes": "Nodes",
     "tags": "Tags",
     "peerTag": "Peer tag",
-    "channelTag": "Channel tag"
+    "channelTag": "Channel tag",
+    "pingSystem": "All Ping Systems Require a macaroon that can sign messages. Please make sure the certificates on your system are up-to-date.",
+    "ambossPingSystem": "Amboss Ping: When enabled you consent to Torq sending uptime pings to Amboss.",
+    "vectorPingSystem": "Vector Ping: When enabled you consent to Torq sending the output from `lncli getinfo` to vector.ln.capital"
   },
   "newInvoice": {
     "title": "New Invoice",
