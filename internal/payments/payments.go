@@ -268,7 +268,6 @@ func getPaymentDetails(db *sqlx.DB, nodeIds []int, identifier string) (*PaymentD
 		}
 
 		return &r, nil
-	} else {
-		return nil, ErrPaymentNotFound{identifier}
 	}
+	return nil, ErrPaymentNotFound{identifier}
 }

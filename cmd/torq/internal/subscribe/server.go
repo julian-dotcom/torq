@@ -302,21 +302,20 @@ func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream
 			if lastInitializationPing == nil {
 				log.Error().Msgf("LND %v could not be initialized for nodeId: %v", name, nodeId)
 				return
-			} else {
-				pingTimeOutInSeconds := commons.GENERIC_BOOTSTRAPPING_TIME_SECONDS
-				switch subscriptionStream {
-				case commons.ForwardStream:
-					pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_FORWARDS_TICKER_SECONDS
-				case commons.PaymentStream:
-					pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_PAYMENTS_TICKER_SECONDS
-				case commons.InFlightPaymentStream:
-					pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS
-				}
-				if time.Since(*lastInitializationPing).Seconds() > float64(pingTimeOutInSeconds) {
-					log.Info().Msgf("LND %v idle for over %v seconds for nodeId: %v", name, pingTimeOutInSeconds, nodeId)
-					lnd.SendStreamEvent(eventChannel, nodeId, subscriptionStream, commons.Active, commons.Initializing)
-					return
-				}
+			}
+			pingTimeOutInSeconds := commons.GENERIC_BOOTSTRAPPING_TIME_SECONDS
+			switch subscriptionStream {
+			case commons.ForwardStream:
+				pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_FORWARDS_TICKER_SECONDS
+			case commons.PaymentStream:
+				pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_PAYMENTS_TICKER_SECONDS
+			case commons.InFlightPaymentStream:
+				pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS
+			}
+			if time.Since(*lastInitializationPing).Seconds() > float64(pingTimeOutInSeconds) {
+				log.Info().Msgf("LND %v idle for over %v seconds for nodeId: %v", name, pingTimeOutInSeconds, nodeId)
+				lnd.SendStreamEvent(eventChannel, nodeId, subscriptionStream, commons.Active, commons.Initializing)
+				return
 			}
 		}
 		time.Sleep(commons.STREAM_BOOTED_CHECK_SECONDS * time.Second)

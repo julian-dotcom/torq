@@ -257,19 +257,18 @@ func calculateHTLCs(htlcs []commons.Htlc) PendingHtlcs {
 	var pendingHTLCs PendingHtlcs
 	if len(htlcs) < 1 {
 		return pendingHTLCs
-	} else {
-		for _, htlc := range htlcs {
-			if htlc.ForwardingHtlcIndex == 0 {
-				pendingHTLCs.LocalCount++
-				pendingHTLCs.LocalAmount += htlc.Amount
-			} else {
-				pendingHTLCs.ForwardingCount++
-				pendingHTLCs.ForwardingAmount += htlc.Amount
-			}
-		}
-		pendingHTLCs.TotalAmount = pendingHTLCs.ForwardingAmount + pendingHTLCs.LocalAmount
-		pendingHTLCs.TotalCount = pendingHTLCs.ForwardingCount + pendingHTLCs.LocalCount
 	}
+	for _, htlc := range htlcs {
+		if htlc.ForwardingHtlcIndex == 0 {
+			pendingHTLCs.LocalCount++
+			pendingHTLCs.LocalAmount += htlc.Amount
+		} else {
+			pendingHTLCs.ForwardingCount++
+			pendingHTLCs.ForwardingAmount += htlc.Amount
+		}
+	}
+	pendingHTLCs.TotalAmount = pendingHTLCs.ForwardingAmount + pendingHTLCs.LocalAmount
+	pendingHTLCs.TotalCount = pendingHTLCs.ForwardingCount + pendingHTLCs.LocalCount
 
 	return pendingHTLCs
 }

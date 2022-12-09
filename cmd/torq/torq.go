@@ -323,19 +323,18 @@ func main() {
 										nodes = []settings.ConnectionDetails{}
 									} else {
 										node, err := settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
-										if err == nil {
-											if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
-												nodes = []settings.ConnectionDetails{node}
-											} else {
-												if node.Status != commons.Active {
-													nodes = []settings.ConnectionDetails{}
-												} else {
-													nodes = []settings.ConnectionDetails{node}
-												}
-											}
-										} else {
+										if err != nil {
 											log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
 											return
+										}
+										if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
+											nodes = []settings.ConnectionDetails{node}
+										} else {
+											if node.Status != commons.Active {
+												nodes = []settings.ConnectionDetails{}
+											} else {
+												nodes = []settings.ConnectionDetails{node}
+											}
 										}
 									}
 								}

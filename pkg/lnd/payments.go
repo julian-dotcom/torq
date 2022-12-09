@@ -95,13 +95,12 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 					}
 					bootStrapping = false
 					break
-				} else {
-					lastPaymentIndex = payments.LastIndexOffset
-					if bootStrapping {
-						importCounter++
-						if importCounter%500 == 0 {
-							log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
-						}
+				}
+				lastPaymentIndex = payments.LastIndexOffset
+				if bootStrapping {
+					importCounter++
+					if importCounter%500 == 0 {
+						log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
 					}
 				}
 			}

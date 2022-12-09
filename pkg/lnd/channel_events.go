@@ -348,24 +348,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 		if stream == nil {
 			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			stream, err = client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
-			if err == nil {
-				// HACK to know if the context is a testcase.
-				if importRequestChannel != nil {
-					responseChannel := make(chan error)
-					importRequestChannel <- commons.ImportRequest{
-						ImportType: commons.ImportChannelAndRoutingPolicies,
-						Out:        responseChannel,
-					}
-					err = <-responseChannel
-					if err != nil {
-						log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
-						stream = nil
-						time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
-						continue
-					}
-				}
-				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
-			} else {
+			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
@@ -374,6 +357,22 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
+			// HACK to know if the context is a testcase.
+			if importRequestChannel != nil {
+				responseChannel := make(chan error)
+				importRequestChannel <- commons.ImportRequest{
+					ImportType: commons.ImportChannelAndRoutingPolicies,
+					Out:        responseChannel,
+				}
+				err = <-responseChannel
+				if err != nil {
+					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+					stream = nil
+					time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+					continue
+				}
+			}
+			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 
 		chanEvent, err = stream.Recv()

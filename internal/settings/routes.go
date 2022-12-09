@@ -418,7 +418,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	if lndDone && ambossDone && vectorDone {
 		ncd, err = SetNodeConnectionDetails(db, ncd)
 		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Opening Macaroon file")
+			server_errors.WrapLogAndSendServerError(c, err, "Updating connection details")
 			return
 		}
 	} else {

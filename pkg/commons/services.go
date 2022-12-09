@@ -75,17 +75,16 @@ func (rs *Services) Cancel(nodeId int, enforcedServiceStatus *Status, noDelay bo
 		_, exists = rs.bootLock[nodeId]
 		if exists && MutexLocked(rs.bootLock[nodeId]) {
 			return Pending
-		} else {
-			rs.noDelay[nodeId] = noDelay
-			rs.enforcedServiceStatus[nodeId] = enforcedServiceStatus
-			rs.runningList[nodeId]()
-			delete(rs.runningList, nodeId)
-			rs.cancelTime[nodeId] = time.Now().UTC()
-			rs.serviceStatus[nodeId] = Inactive
-			setStreamStatuses(nodeId, rs, Inactive)
-			sendServiceEvent(nodeId, eventChannel, previousStatus, rs.serviceStatus[nodeId], rs.ServiceType, nil)
-			return Active
 		}
+		rs.noDelay[nodeId] = noDelay
+		rs.enforcedServiceStatus[nodeId] = enforcedServiceStatus
+		rs.runningList[nodeId]()
+		delete(rs.runningList, nodeId)
+		rs.cancelTime[nodeId] = time.Now().UTC()
+		rs.serviceStatus[nodeId] = Inactive
+		setStreamStatuses(nodeId, rs, Inactive)
+		sendServiceEvent(nodeId, eventChannel, previousStatus, rs.serviceStatus[nodeId], rs.ServiceType, nil)
+		return Active
 	}
 	return Inactive
 }

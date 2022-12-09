@@ -79,15 +79,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
 				StartHeight: transactionHeight + 1,
 			})
-			if err == nil {
-				stream, err = chain.RegisterBlockEpochNtfn(ctx, &chainrpc.BlockEpoch{Height: uint32(transactionHeight + 1)})
-				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining stream (RegisterBlockEpochNtfn) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
-					stream = nil
-					time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
-					continue
-				}
-			} else {
+			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
@@ -95,21 +87,17 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
+			stream, err = chain.RegisterBlockEpochNtfn(ctx, &chainrpc.BlockEpoch{Height: uint32(transactionHeight + 1)})
+			if err != nil {
+				log.Error().Err(err).Msgf("Obtaining stream (RegisterBlockEpochNtfn) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				stream = nil
+				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				continue
+			}
 		} else {
 			bootStrapping = false
 			blockEpoch, err = stream.Recv()
-			if err == nil {
-				if eventChannel != nil {
-					eventChannel <- commons.BlockEvent{
-						EventData: commons.EventData{
-							EventTime: time.Now().UTC(),
-							NodeId:    nodeSettings.NodeId,
-						},
-						Hash:   blockEpoch.Hash,
-						Height: blockEpoch.Height,
-					}
-				}
-			} else {
+			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
@@ -118,6 +106,16 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				stream = nil
 				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
+			}
+			if eventChannel != nil {
+				eventChannel <- commons.BlockEvent{
+					EventData: commons.EventData{
+						EventTime: time.Now().UTC(),
+						NodeId:    nodeSettings.NodeId,
+					},
+					Hash:   blockEpoch.Hash,
+					Height: blockEpoch.Height,
+				}
 			}
 			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
 			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
