@@ -32,6 +32,7 @@ CREATE TABLE workflow_version_node (
 );
 
 CREATE TABLE workflow_version_node_link (
+    workflow_version_node_link_id SERIAL PRIMARY KEY,
     visibility_settings JSONB NOT NULL,
     parent_parameter_index INTEGER NOT NULL,
     parent_workflow_version_node_id INTEGER NOT NULL REFERENCES workflow_version_node(workflow_version_node_id),
