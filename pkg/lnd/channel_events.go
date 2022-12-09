@@ -520,6 +520,8 @@ icoLoop:
 		if err != nil {
 			return errors.Wrap(err, "ImportedOpenChannels: Insert channel event")
 		}
+
+		commons.SetChannelNode(remoteNodeId, lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network, commons.Open)
 	}
 	return nil
 }
@@ -594,6 +596,8 @@ icoLoop:
 		if err != nil {
 			return errors.Wrap(err, "ImportedClosedChannels: Insert channel event")
 		}
+
+		commons.SetChannelNode(remoteNodeId, lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network, channels.GetClosureStatus(lndChannel.CloseType))
 	}
 	return nil
 }

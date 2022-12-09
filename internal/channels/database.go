@@ -114,9 +114,9 @@ func GetRemoteRoutingPolicy(channelId, nodeId int, db *sqlx.DB) (ChannelPolicy, 
 	return cp, nil
 }
 
-func GetNodePeerAlias(localNodeId int, remoteNodeId int, db *sqlx.DB) (string, error) {
+func GetNodePeerAlias(nodeId int, eventNodeId int, db *sqlx.DB) (string, error) {
 	var alias string
-	err := db.Get(&alias, "SELECT DISTINCT alias FROM node_event WHERE node_id = $1 AND event_node_id = $2 LIMIT 1;", localNodeId, remoteNodeId)
+	err := db.Get(&alias, "SELECT DISTINCT alias FROM node_event WHERE node_id = $1 AND event_node_id = $2 LIMIT 1;", nodeId, eventNodeId)
 	if err != nil {
 		if errors.As(err, &sql.ErrNoRows) {
 			return "", nil

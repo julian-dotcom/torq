@@ -244,7 +244,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 				if err == nil {
 					chanBody.PeerAlias = peerInfo
 				} else {
-					log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for nodeId: %v)", channel.RemoteNodeId, ncd.NodeId)
+					log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for Torq nodeId: %v)", channel.RemoteNodeId, ncd.NodeId)
 				}
 				channelsBody = append(channelsBody, chanBody)
 			}
