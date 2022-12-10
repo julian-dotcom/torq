@@ -10,12 +10,12 @@ import { addView, selectViews, updateViewsOrder } from "./viewSlice";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import useTranslations from "services/i18n/useTranslations";
 
-type ViewsPopover<T> = {
+type ViewSection<T> = {
   page: keyof AllViewsResponse;
   defaultView: ViewResponse<T>;
 };
 
-function ViewsPopover<T>(props: ViewsPopover<T>) {
+function ViewsPopover<T>(props: ViewSection<T>) {
   const { t } = useTranslations();
   const dispatch = useAppDispatch();
   const viewResponse = useAppSelector(selectViews)(props.page);

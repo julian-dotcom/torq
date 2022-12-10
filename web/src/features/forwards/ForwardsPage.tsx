@@ -68,7 +68,7 @@ function ForwardsPage() {
     <TableControlSection>
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
-          {/*<ViewsPopover views={views} />*/}
+          {/*<ViewSection views={views} />*/}
           {/*{!currentView.saved && (*/}
           {/*  <Button*/}
           {/*    buttonColor={buttonColor.green}*/}

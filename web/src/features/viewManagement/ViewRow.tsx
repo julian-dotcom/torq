@@ -2,16 +2,18 @@ import { FormEvent, useState } from "react";
 import classNames from "classnames";
 import { Draggable } from "react-beautiful-dnd";
 import {
-  Dismiss20Regular as RemoveIcon,
+  Delete16Regular as RemoveIcon,
   Edit16Regular as EditIcon,
-  Save20Regular as SaveIcon,
-  Reorder20Regular as DragHandle,
+  ReOrder16Regular as DragHandle,
+  Save16Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import styles from "./views.module.scss";
 import { AllViewsResponse } from "./types";
 import { useDeleteTableViewMutation } from "./viewsApiSlice";
-import { useAppDispatch } from "../../store/hooks";
+import { useAppDispatch } from "store/hooks";
 import { deleteView, updateSelectedView, updateViewTitle } from "./viewSlice";
+import Input from "components/forms/input/Input";
+import { InputSizeVariant } from "components/forms/input/variants";
 
 type ViewRow<T> = {
   id?: number;
@@ -45,8 +47,9 @@ export default function ViewRowComponent<T>(props: ViewRow<T>) {
   return (
     <Draggable draggableId={`draggable-view-id-${props.viewIndex}`} index={props.viewIndex}>
       {(provided, snapshot) => (
-        <div
-          className={classNames(styles.viewRow, { dragging: snapshot.isDragging })}
+        <form
+          onSubmit={handleInputSubmit}
+          className={classNames(styles.viewRow, { dragging: snapshot.isDragging, [styles.selected]: props.selected })}
           ref={provided.innerRef}
           {...provided.draggableProps}
         >
@@ -55,21 +58,29 @@ export default function ViewRowComponent<T>(props: ViewRow<T>) {
           </div>
 
           {editView ? (
-            <form onSubmit={handleInputSubmit} className={classNames(styles.viewEdit, "torq-input-field")}>
-              <input type="text" autoFocus={true} onChange={handleInputChange} value={localTitle} />
-              <button type={"submit"}>
-                <SaveIcon />
-              </button>
-            </form>
+            <Input
+              type="text"
+              autoFocus={true}
+              onChange={handleInputChange}
+              value={localTitle}
+              sizeVariant={InputSizeVariant.small}
+            />
           ) : (
             <div className={styles.viewSelect} onClick={handleSelectView}>
               <div>{props.title}</div>
-              <div className={styles.editView} onClick={() => setEditView(true)}>
-                <EditIcon />
-              </div>
             </div>
           )}
-
+          {editView ? (
+            <button type={"submit"}>
+              <div className={styles.viewRowEdit}>
+                <SaveIcon />
+              </div>
+            </button>
+          ) : (
+            <div className={styles.viewRowEdit} onClick={() => setEditView(true)}>
+              <EditIcon />
+            </div>
+          )}
           {!props.singleView && (
             <div
               className={styles.removeView}
@@ -84,7 +95,7 @@ export default function ViewRowComponent<T>(props: ViewRow<T>) {
               <RemoveIcon />
             </div>
           )}
-        </div>
+        </form>
       )}
     </Draggable>
   );

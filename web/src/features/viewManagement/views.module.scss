@@ -5,36 +5,91 @@
   }
 }
 .viewRows {
-  margin-bottom: 20px;
   display: grid;
-  grid-row-gap: 10px;
+  grid-row-gap: 8px;
 }
 .viewSelect {
-  display: grid;
-  grid-template-columns: auto 21px;
+  padding-left: 4px;
+  height: 36px;
+  display: flex;
   justify-self: left;
-  padding: 6.5px 10px;
+  align-items: center;
+  font-size: var(--font-size-small);
   width: 100%;
   border: 1px solid transparent;
-  border-radius: 2px;
+  //border-radius: var(--radius-default);
   cursor: pointer;
+  &:hover {
+    background-color: var(--color-primary-layer-3);
+  }
 }
 .viewEdit {
-  display: grid;
-  grid-template-columns: auto min-content;
-  justify-self: left;
   cursor: pointer;
 }
-.removeView {
-  color: var(--fg-default);
+.viewRowDragHandle,
+.removeView,
+.viewRowEdit {
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  border-left: 1px solid var(--color-primary-layer-4);
+  height: 36px;
+  width: 36px;
   cursor: pointer;
+  &:hover {
+    background-color: var(--color-primary-layer-3);
+    border-bottom-right-radius: var(--radius-default);
+    border-top-right-radius: var(--radius-default);
+  }
+}
+.viewRowDragHandle {
+  border-left: none;
+  &:hover {
+    background-color: var(--color-primary-layer-4);
+    border-radius: 0;
+    border-bottom-left-radius: var(--radius-default);
+    border-top-left-radius: var(--radius-default);
+  }
 }
 .disabled {
   color: var(--fg-subtle);
 }
+.viewRowDragHandle {
+  display: flex;
+  align-items: center;
+  height: 36px;
+}
 .viewRow {
   display: grid;
-  grid-template-columns: 36px auto 36px;
+  height: 36px;
+  grid-template-columns: 36px auto;
+  grid-auto-columns: 36px;
+  grid-auto-flow: column;
+  background-color: var(--color-primary-layer-2);
+  border-radius: var(--radius-default);
+  color: var(--color-text-primary-strong);
   align-items: center;
   justify-items: center;
+}
+.selected {
+  background-color: var(--color-success-layer-1);
+  color: var(--color-text-success-strong);
+  .removeView,
+  .viewRowEdit {
+    border-left: 1px solid var(--color-success-layer-3);
+    &:hover {
+      background-color: var(--color-success-layer-2);
+    }
+    border-bottom-right-radius: var(--radius-default);
+    border-top-right-radius: var(--radius-default);
+  }
+  .viewRowDragHandle {
+    &:hover {
+      background-color: var(--color-success-layer-2);
+    }
+  }
+  .viewSelect:hover {
+    //background-color: var(--color-success-layer-2);
+    background-color: transparent;
+  }
 }

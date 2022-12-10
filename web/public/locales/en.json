@@ -16,6 +16,8 @@
   "deleteTag": "Delete Tag",
   "unknown": "Unknown",
   "p2wpkh": "Segwit",
+  "addView": "Add View",
+  "views": "Views",
   "p2wkh": "Nested Segwit",
   "np2wkh": "Hybrid Nested Segwit",
   "p2tr": "Taproot",

@@ -3,10 +3,11 @@ import {
   ArrowSortDownLines20Regular as SortIcon,
   ColumnTriple20Regular as ColumnsIcon,
   Filter20Regular as FilterIcon,
+  TableMultipleRegular as ViewsIcon,
   // Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
-import ViewsPopover from "../viewManagement/ViewsPopover";
+import ViewsPopover from "./ViewSection";
 import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
 import { ColumnMetaData } from "../table/types";
 import { useState } from "react";
@@ -15,7 +16,7 @@ import FilterSection from "../sidebar/sections/filter/FilterSection";
 import { SectionContainer } from "../section/SectionContainer";
 import GroupBySection from "../sidebar/sections/group/GroupBySection";
 import SortSection, { OrderBy } from "../sidebar/sections/sort/SortSection";
-import useTranslations from "../../services/i18n/useTranslations";
+import useTranslations from "services/i18n/useTranslations";
 import { deserialiseQuery } from "../sidebar/sections/filter/filter";
 
 type ViewSidebarProps<T> = {
@@ -36,6 +37,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
   const { t } = useTranslations();
   // General logic for toggling the sidebar sections
   const initialSectionState = {
+    views: true,
     filter: false,
     sort: false,
     columns: false,
@@ -57,7 +59,14 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
 
   return (
     <Sidebar title={"Options"} closeSidebarHandler={props.onExpandToggle}>
-      <ViewsPopover page={props.viewResponse.page} defaultView={props.defaultView} />
+      <SectionContainer
+        title={t.views}
+        icon={ViewsIcon}
+        expanded={activeSidebarSections.views}
+        handleToggle={sidebarSectionHandler("views")}
+      >
+        <ViewsPopover page={props.viewResponse.page} defaultView={props.defaultView} />
+      </SectionContainer>
       <SectionContainer
         title={t.columns}
         icon={ColumnsIcon}

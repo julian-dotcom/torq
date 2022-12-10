@@ -166,6 +166,7 @@
 .addFilterButton {
   cursor: pointer;
   display: flex;
+  align-items: center;
   column-gap: 4px;
   padding: 8px;
   color: var(--secondary-1-600);
