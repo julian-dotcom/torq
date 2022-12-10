@@ -45,7 +45,6 @@ function Navigation() {
 
         <NavCategory text={t.analyse} collapsed={false}>
           <MenuItem text={t.summary} icon={<SummaryIcon />} routeTo={"/"} />
-          <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/analyse/channels"} />
           <MenuItem text={t.forwards} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
           {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
         </NavCategory>
