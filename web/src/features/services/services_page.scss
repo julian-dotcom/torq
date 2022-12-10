@@ -1,0 +1,19 @@
+.services-page-wrapper {
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  background-color: var(--bg-extra-faint);
+  min-width: 100vw;
+  min-height: 100vh;
+  .services-form-wrapper {
+    display: grid;
+    justify-items: center;
+    margin: 100px 0 0;
+    padding: 0 20px;
+    grid-auto-flow: row;
+    grid-row-gap: 20px;
+    width: 100%;
+    min-width: 280px;
+    max-width: 500px;
+  }
+}

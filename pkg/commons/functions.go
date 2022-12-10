@@ -87,10 +87,9 @@ func ParseChannelPoint(channelPoint string) (string, int) {
 		outputIndex, err := strconv.Atoi(parts[1])
 		if err == nil {
 			return parts[0], outputIndex
-		} else {
+		}
 			log.Debug().Err(err).Msgf("Failed to parse channelPoint %v", channelPoint)
 		}
-	}
 	return "", 0
 }
 

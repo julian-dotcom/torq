@@ -83,10 +83,6 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 	return nil
 }
 
-// MAXEVENTS is used to set the maximum events in ForwardingHistoryRequest.
-// It's also used to check if we need to request more.
-const MAXEVENTS int = 50000
-
 // fetchLastForwardTime fetches the latest recorded forward, if none is set already.
 // This should only run once when a server starts.
 func fetchLastForwardTime(db *sqlx.DB) (uint64, error) {
@@ -122,9 +118,9 @@ type FwhOptions struct {
 // SubscribeForwardingEvents repeatedly requests forwarding history starting after the last
 // forwarding stored in the database and stores new forwards.
 func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwardingHistory, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent, opt *FwhOptions) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *FwhOptions) {
 
-	maxEvents := MAXEVENTS
+	maxEvents := commons.STREAM_LND_MAX_FORWARDS
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.ForwardStream
@@ -132,7 +128,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 
 	// Check if maxEvents has been set and that it is bellow the hard coded maximum defined by
 	// the constant MAXEVENTS.
-	if (opt != nil) && ((*opt.MaxEvents > MAXEVENTS) || (*opt.MaxEvents <= 0)) {
+	if (opt != nil) && ((*opt.MaxEvents > commons.STREAM_LND_MAX_FORWARDS) || (*opt.MaxEvents <= 0)) {
 		maxEvents = *opt.MaxEvents
 	}
 
@@ -159,7 +155,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				// Fetch the nanosecond timestamp of the most recent record we have.
 				lastNs, err := fetchLastForwardTime(db)
 				if err != nil {
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+					serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_FORWARDS_TICKER_SECONDS)
 					break
 				}
@@ -174,15 +170,15 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+					serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain forwards, will retry in %v seconds", commons.STREAM_FORWARDS_TICKER_SECONDS)
 					break
 				}
 
 				if bootStrapping {
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+					serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 				} else {
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+					serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 				}
 				// Store the forwarding history
 				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, eventChannel, bootStrapping)

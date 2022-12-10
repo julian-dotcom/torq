@@ -1,0 +1,17 @@
+
+ALTER TABLE invoice ADD COLUMN destination_node_id INTEGER;
+ALTER TABLE invoice ADD COLUMN channel_id INTEGER;
+
+UPDATE invoice i1
+SET destination_node_id=dn.node_id
+FROM node dn
+JOIN node n ON dn.chain=n.chain AND dn.network=n.network
+WHERE n.node_id = i1.node_id AND dn.public_key=i1.destination_pub_key AND i1.destination_node_id IS NULL;
+
+UPDATE invoice i1
+SET channel_id=c.channel_id
+FROM channel c
+WHERE c.lnd_short_channel_id=((i1.htlcs->-1->>'chan_id')::numeric) AND i1.channel_id IS NULL;
+
+ALTER TABLE invoice ADD CONSTRAINT fk_invoice_destination_node_id FOREIGN KEY (destination_node_id) REFERENCES node(node_id);
+ALTER TABLE invoice ADD CONSTRAINT fk_invoice_channel_id FOREIGN KEY (channel_id) REFERENCES channel(channel_id);

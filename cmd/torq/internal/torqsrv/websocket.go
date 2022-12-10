@@ -197,9 +197,11 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 	}()
 
 	go func() {
-		for event := range broadcaster.Subscribe() {
+		listener := broadcaster.Subscribe()
+		for event := range listener {
 			select {
 			case <-done:
+				broadcaster.CancelSubscription(listener)
 				return
 			default:
 				// TODO FIXME FILTER OUT ONLY THE EVENTS THE USER ACTUALLY WANTS!!!

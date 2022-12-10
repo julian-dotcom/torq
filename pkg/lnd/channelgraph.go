@@ -30,7 +30,7 @@ type subscribeChannelGraphClient interface {
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
 func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent,
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{},
 	importRequestChannel chan commons.ImportRequest) {
 
 	var stream lnrpc.Lightning_SubscribeChannelGraphClient
@@ -47,39 +47,9 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
-			if err == nil {
-				// HACK to know if the context is a testcase.
-				if importRequestChannel != nil {
-					responseChannel := make(chan error)
-					importRequestChannel <- commons.ImportRequest{
-						ImportType: commons.ImportChannelAndRoutingPolicies,
-						Out:        responseChannel,
-					}
-					err = <-responseChannel
-					if err != nil {
-						log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
-						stream = nil
-						time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
-						continue
-					}
-
-					responseChannel = make(chan error)
-					importRequestChannel <- commons.ImportRequest{
-						ImportType: commons.ImportNodeInformation,
-						Out:        responseChannel,
-					}
-					err = <-responseChannel
-					if err != nil {
-						log.Error().Err(err).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
-						stream = nil
-						time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
-						continue
-					}
-				}
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
-			} else {
+			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
@@ -88,6 +58,35 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
+			// HACK to know if the context is a testcase.
+			if importRequestChannel != nil {
+				responseChannel := make(chan error)
+				importRequestChannel <- commons.ImportRequest{
+					ImportType: commons.ImportChannelAndRoutingPolicies,
+					Out:        responseChannel,
+				}
+				err = <-responseChannel
+				if err != nil {
+					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+					stream = nil
+					time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+					continue
+				}
+
+				responseChannel = make(chan error)
+				importRequestChannel <- commons.ImportRequest{
+					ImportType: commons.ImportNodeInformation,
+					Out:        responseChannel,
+				}
+				err = <-responseChannel
+				if err != nil {
+					log.Error().Err(err).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+					stream = nil
+					time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+					continue
+				}
+			}
+			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 
 		gpu, err = stream.Recv()
@@ -95,7 +94,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msgf("Receiving channel graph events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 			stream = nil
 			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
@@ -187,13 +186,16 @@ func insertRoutingPolicy(
 	cu *lnrpc.ChannelEdgeUpdate,
 	eventChannel chan interface{}) error {
 
+	channelSettings := commons.GetChannelSettingByChannelId(channelId)
+
 	var err error
 	if cu == nil || cu.RoutingPolicy == nil {
-		log.Warn().Msg("Routing policy nil, skipping")
+		if !channelSettings.Private {
+			log.Info().Msgf("Routing policy nil, skipping it for LND channel id: %v", cu.ChanId)
+		}
 		return nil
 	}
 
-	channelSettings := commons.GetChannelSettingByChannelId(channelId)
 	announcingNodeId := 0
 	if cu.AdvertisingNode != "" {
 		announcingNodeId = commons.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)

@@ -181,9 +181,8 @@ func constructKey(corridor Corridor) CorridorKey {
 	corridorType := getCorridorTypeFromId(corridor.CorridorTypeId)
 	if corridorType == nil {
 		return key
-	} else {
-		key.CorridorType = *corridorType
 	}
+	key.CorridorType = *corridorType
 	if corridor.ReferenceId != nil {
 		key.ReferenceId = *corridor.ReferenceId
 	}

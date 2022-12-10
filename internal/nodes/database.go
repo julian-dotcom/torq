@@ -108,9 +108,8 @@ func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
 			return 0, errors.Wrap(err, database.SqlExecutionError)
 		}
 		return node.NodeId, nil
-	} else {
-		return nodeId, nil
 	}
+	return nodeId, nil
 }
 
 func removeNode(db *sqlx.DB, nodeId int) (int64, error) {

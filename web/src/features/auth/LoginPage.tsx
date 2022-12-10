@@ -20,8 +20,11 @@ function LoginPage() {
   }
   const toastRef = React.useContext(ToastContext);
   let from = (location.state as LocationState)?.from?.pathname || "/";
-  // Don't redirect back to logout.
-  if (from === "/logout" || from === "/login" || from === "logout" || from === "login" || from === "" || from === "/") {
+  // Don't redirect back to logout/login/services.
+  if (from === "/logout" || from === "/login" || from === "/services" ||
+    from === "logout" || from === "login" || from === "services" ||
+    from === "" || from === "/") {
+
     from = "/";
   }
 
