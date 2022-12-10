@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { PolicyInterface } from "features/channels/channelsTypes";
+import {channel, PolicyInterface} from "features/channels/channelsTypes";
 import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
-import { channel, UpdatedChannelResponse } from "features/channels/channelsTypes";
+import { UpdatedChannelResponse } from "features/channels/channelsTypes";
 import {
   ChannelOnchainCostResponse,
   ChannelHistoryResponse,
@@ -10,13 +10,12 @@ import {
   ChannelEventResponse,
   FlowData,
 } from "features/channel/channelTypes";
-
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type { GetForwardsQueryParams, GetFlowQueryParams, GetChannelHistoryData, LoginResponse } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import type { nodeConfiguration, settings, timeZone, stringMap } from "apiTypes";
 import { tag, channelTag } from "pages/tagsPage/tagsTypes";
 import { Forward } from "./features/forwards/forwardsTypes";
+import type { nodeConfiguration, settings, timeZone, stringMap, services } from "apiTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -36,6 +35,9 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
   if (result.error && result.error.status === 401 && window.location.pathname !== "/login") {
     window.location.href = "/login";
   }
+  if (result.error && result.error.status === 424 && window.location.pathname !== "/services") {
+    window.location.href = "/services";
+  }
   return result;
 };
 
@@ -43,7 +45,7 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
 export const torqApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRedirect,
-  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "tags"],
+  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "services", "tags"],
   endpoints: (builder) => ({
     getTags: builder.query<tag[], void>({
       query: () => `tags/all`,
@@ -102,7 +104,7 @@ export const torqApi = createApi({
       query: (data) => `channels/${data.params.chanId}/onchaincost` + queryParamsBuilder(data.queryParams),
     }),
     getForwards: builder.query<Array<Forward>, GetForwardsQueryParams>({
-      query: (params) => "forwards" + queryParamsBuilder(params, true),
+      query: (params) => "forwards" + queryParamsBuilder(params, false),
     }),
     getChannels: builder.query<channel[], void>({
       query: () => ({
@@ -192,6 +194,10 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["nodeConfigurations", "channels"],
     }),
+    getServices: builder.query<services, void>({
+      query: () => "services/status",
+      providesTags: ["services"],
+    }),
   }),
 });
 
@@ -220,4 +226,5 @@ export const {
   useUpdateNodePingSystemStatusMutation,
   useUpdateChannelMutation,
   useGetTagsQuery,
+  useGetServicesQuery,
 } = torqApi;

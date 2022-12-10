@@ -3,17 +3,18 @@ package auth
 import (
 	"crypto/rand"
 	"crypto/subtle"
+	"encoding/hex"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
 
-	"encoding/hex"
-
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 const Userkey = "user"
@@ -58,6 +59,16 @@ func RefreshCookieFile(cookiePath string) error {
 		return errors.Wrap(err, "Flushing cookie contents to disk")
 	}
 	return nil
+}
+
+// TorqRequired checks the status of the torq service
+func TorqRequired(c *gin.Context) {
+	torqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
+	if torqServiceStatus != commons.Active {
+		c.AbortWithStatusJSON(http.StatusFailedDependency, gin.H{"error": "initializing"})
+		return
+	}
+	c.Next()
 }
 
 // AuthRequired is a simple middleware to check the session

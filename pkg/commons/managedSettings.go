@@ -50,7 +50,7 @@ func processManagedSettings(managedSettings ManagedSettings,
 		managedSettings.PreferredTimeZone = preferredTimeZone
 		managedSettings.DefaultDateRange = defaultDateRange
 		managedSettings.WeekStartsOn = weekStartsOn
-		go SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
+		SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
 	case WRITE_SETTINGS:
 		defaultLanguage = managedSettings.DefaultLanguage
 		preferredTimeZone = managedSettings.PreferredTimeZone

@@ -87,7 +87,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				managedNode.Name = &nodeName
 			}
 		}
-		go SendToManagedNodeChannel(managedNode.Out, managedNode)
+		SendToManagedNodeChannel(managedNode.Out, managedNode)
 	case READ_ACTIVE_TORQ_NODE:
 		if managedNode.Chain == nil || managedNode.Network == nil {
 			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", managedNode.Chain, managedNode.Network)
@@ -99,7 +99,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				managedNode.Name = &nodeName
 			}
 		}
-		go SendToManagedNodeChannel(managedNode.Out, managedNode)
+		SendToManagedNodeChannel(managedNode.Out, managedNode)
 	case READ_ACTIVE_CHANNEL_NODE:
 		if managedNode.Chain == nil || managedNode.Network == nil {
 			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", managedNode.Chain, managedNode.Network)
@@ -107,7 +107,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			initializeIdCache(channelNodeIdCache, *managedNode.Chain, *managedNode.Network)
 			managedNode.NodeId = channelNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey]
 		}
-		go SendToManagedNodeChannel(managedNode.Out, managedNode)
+		SendToManagedNodeChannel(managedNode.Out, managedNode)
 	case READ_CHANNEL_NODE:
 		if managedNode.Chain == nil || managedNode.Network == nil {
 			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", managedNode.Chain, managedNode.Network)
@@ -115,7 +115,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			initializeIdCache(allChannelNodeIdCache, *managedNode.Chain, *managedNode.Network)
 			managedNode.NodeId = allChannelNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey]
 		}
-		go SendToManagedNodeChannel(managedNode.Out, managedNode)
+		SendToManagedNodeChannel(managedNode.Out, managedNode)
 	case READ_ALL_TORQ_NODEIDS:
 		var allNodeIds []int
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -126,7 +126,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				allNodeIds = append(allNodeIds, value)
 			}
 		}
-		go SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allNodeIds)
+		SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allNodeIds)
 	case READ_ACTIVE_TORQ_NODEIDS:
 		var allNodeIds []int
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -137,7 +137,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				allNodeIds = append(allNodeIds, value)
 			}
 		}
-		go SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allNodeIds)
+		SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allNodeIds)
 	case READ_ALL_CHANNEL_NODEIDS:
 		var allNodeIds []int
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -148,7 +148,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				allNodeIds = append(allNodeIds, value)
 			}
 		}
-		go SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allNodeIds)
+		SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allNodeIds)
 	case READ_ALL_TORQ_PUBLICKEYS:
 		var allPublicKeys []string
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -159,7 +159,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				allPublicKeys = append(allPublicKeys, key)
 			}
 		}
-		go SendToManagedPublicKeysChannel(managedNode.PublicKeysOut, allPublicKeys)
+		SendToManagedPublicKeysChannel(managedNode.PublicKeysOut, allPublicKeys)
 	case READ_ACTIVE_TORQ_PUBLICKEYS:
 		var activePublicKeys []string
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -170,7 +170,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				activePublicKeys = append(activePublicKeys, key)
 			}
 		}
-		go SendToManagedPublicKeysChannel(managedNode.PublicKeysOut, activePublicKeys)
+		SendToManagedPublicKeysChannel(managedNode.PublicKeysOut, activePublicKeys)
 	case READ_ALL_ACTIVE_TORQ_NODEIDS:
 		var nodeIds []int
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -191,7 +191,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				nodeIds = append(nodeIds, nodeId)
 			}
 		}
-		go SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, nodeIds)
+		SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, nodeIds)
 	case READ_ALL_CHANNEL_PUBLICKEYS:
 		var channelPublicKeys []string
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -202,18 +202,18 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				channelPublicKeys = append(channelPublicKeys, key)
 			}
 		}
-		go SendToManagedPublicKeysChannel(managedNode.PublicKeysOut, channelPublicKeys)
+		SendToManagedPublicKeysChannel(managedNode.PublicKeysOut, channelPublicKeys)
 	case READ_NODE_SETTINGS:
 		if managedNode.NodeId == 0 {
 			log.Error().Msgf("No empty nodeId (%v) allowed", managedNode.NodeId)
-			go SendToManagedNodeSettingsChannel(managedNode.NodeIdSettingsOut, ManagedNodeSettings{})
+			SendToManagedNodeSettingsChannel(managedNode.NodeIdSettingsOut, ManagedNodeSettings{})
 		} else {
 			nodeName, exists := torqNodeNameByNodeIdCache[managedNode.NodeId]
 			nodeSettings := nodeSettingsByNodeIdCache[managedNode.NodeId]
 			if exists {
 				nodeSettings.Name = &nodeName
 			}
-			go SendToManagedNodeSettingsChannel(managedNode.NodeIdSettingsOut, nodeSettings)
+			SendToManagedNodeSettingsChannel(managedNode.NodeIdSettingsOut, nodeSettings)
 		}
 	case WRITE_INACTIVE_TORQ_NODE:
 		if managedNode.Name == nil || *managedNode.Name == "" || managedNode.PublicKey == "" || managedNode.NodeId == 0 ||

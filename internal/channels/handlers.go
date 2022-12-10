@@ -244,7 +244,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 				if err == nil {
 					chanBody.PeerAlias = peerInfo
 				} else {
-					log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for nodeId: %v)", channel.RemoteNodeId, ncd.NodeId)
+					log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for Torq nodeId: %v)", channel.RemoteNodeId, ncd.NodeId)
 				}
 				channelsBody = append(channelsBody, chanBody)
 			}
@@ -257,19 +257,18 @@ func calculateHTLCs(htlcs []commons.Htlc) PendingHtlcs {
 	var pendingHTLCs PendingHtlcs
 	if len(htlcs) < 1 {
 		return pendingHTLCs
-	} else {
-		for _, htlc := range htlcs {
-			if htlc.ForwardingHtlcIndex == 0 {
-				pendingHTLCs.LocalCount++
-				pendingHTLCs.LocalAmount += htlc.Amount
-			} else {
-				pendingHTLCs.ForwardingCount++
-				pendingHTLCs.ForwardingAmount += htlc.Amount
-			}
-		}
-		pendingHTLCs.TotalAmount = pendingHTLCs.ForwardingAmount + pendingHTLCs.LocalAmount
-		pendingHTLCs.TotalCount = pendingHTLCs.ForwardingCount + pendingHTLCs.LocalCount
 	}
+	for _, htlc := range htlcs {
+		if htlc.ForwardingHtlcIndex == 0 {
+			pendingHTLCs.LocalCount++
+			pendingHTLCs.LocalAmount += htlc.Amount
+		} else {
+			pendingHTLCs.ForwardingCount++
+			pendingHTLCs.ForwardingAmount += htlc.Amount
+		}
+	}
+	pendingHTLCs.TotalAmount = pendingHTLCs.ForwardingAmount + pendingHTLCs.LocalAmount
+	pendingHTLCs.TotalCount = pendingHTLCs.ForwardingCount + pendingHTLCs.LocalCount
 
 	return pendingHTLCs
 }

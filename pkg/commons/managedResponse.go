@@ -1,7 +1,5 @@
 package commons
 
-import "sync"
-
 func SendToManagedNodeIdsChannel(ch chan []int, nodeIds []int) {
 	ch <- nodeIds
 }
@@ -12,10 +10,6 @@ func SendToManagedChannelIdsChannel(ch chan []int, channelIds []int) {
 
 func SendToManagedPublicKeysChannel(ch chan []string, publicKeys []string) {
 	ch <- publicKeys
-}
-
-func SendToManagedChannelStateSettingsLockChannel(ch chan *sync.RWMutex, lock *sync.RWMutex) {
-	ch <- lock
 }
 
 func SendToManagedChannelGroupSettingsChannel(ch chan *ManagedChannelGroupSettings, managedChannelGroupSettings *ManagedChannelGroupSettings) {

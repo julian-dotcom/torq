@@ -151,7 +151,7 @@ func addHtlcEvent(db *sqlx.DB, htlcEvent HtlcEvent) error {
 // NB: LND has marked HTLC event streaming as experimental. Delivery is not guaranteed, so dataset might not be complete
 // HTLC events is primarily used to diagnose how good a channel / node is. And if the channel allocation should change.
 func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
 	var stream routerrpc.Router_SubscribeHtlcEventsClient
 	var err error
 	var htlcEvent *routerrpc.HtlcEvent
@@ -167,7 +167,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			stream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -178,7 +178,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 
 		htlcEvent, err = stream.Recv()
@@ -186,7 +186,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msgf("Receiving htlc events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 			stream = nil
 			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)

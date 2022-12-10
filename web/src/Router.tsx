@@ -2,15 +2,14 @@ import { useEffect } from "react";
 import { Cookies } from "react-cookie";
 import { RouteObject, useRoutes } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
-
 import { useLogoutMutation } from "apiSlice";
 import RequireAuth from "RequireAuth";
-
+import RequireTorq from "RequireTorq";
 import DefaultLayout from "layout/DefaultLayout";
 import LoginLayout from "layout/LoginLayout";
-
 import LoginPage from "features/auth/LoginPage";
 import CookieLoginPage from "features/auth/CookieLoginPage";
+import ServicesPage from "features/services/ServicesPage";
 import ChannelPage from "features/channel/ChannelPage";
 import ChannelsPage from "features/channels/ChannelsPage";
 import DashboardPage from "features/channel/DashboardPage";
@@ -26,10 +25,8 @@ import UpdateChannelModal from "features/channels/updateChannel/UpdateChannelMod
 import OpenChannelModal from "features/channels/openChannel/OpenChannelModal";
 import CloseChannelModal from "features/channels/closeChannel/CloseChannelModal";
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
-
+import NewInvoiceModal from "features/transact/newInvoice/NewInvoiceModal";
 import * as routes from "constants/routes";
-import NewInvoiceModal from "./features/transact/newInvoice/NewInvoiceModal";
-// import TagsPage from "./pages/tagsPage/TagsPage";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -50,6 +47,7 @@ const publicRoutes: RouteObject = {
   children: [
     { path: routes.LOGIN, element: <LoginPage /> },
     { path: routes.COOKIELOGIN, element: <CookieLoginPage /> },
+    { path: routes.SERVICES, element: <ServicesPage /> },
     { path: routes.LOGOUT, element: <Logout /> },
   ],
 };
@@ -72,10 +70,14 @@ const authenticatedRoutes: RouteObject = {
       element: <RequireAuth />,
       children: [
         {
-          path: routes.ROOT,
-          element: <DashboardPage />,
-          children: modalRoutes.children,
-        },
+
+          element: <RequireTorq />,
+          children: [
+            {
+              path: routes.ROOT,
+              element: <DashboardPage />,
+              children: modalRoutes.children,
+            },
         {
           path: routes.MANAGE,
           children: [
@@ -83,25 +85,27 @@ const authenticatedRoutes: RouteObject = {
             // { path: routes.TAGS, element: <TagsPage /> },
           ],
         },
-        {
-          path: routes.ANALYSE,
-          children: [
-            { path: routes.FORWARDS, element: <ForwardsPage /> },
-            { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
-            { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
+            {
+              path: routes.ANALYSE,
+              children: [
+                { path: routes.FORWARDS, element: <ForwardsPage /> },
+                { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
+                { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
+              ],
+            },
+            {
+              path: routes.TRANSACTIONS,
+              children: [
+                { path: routes.PAYMENTS, element: <PaymentsPage /> },
+                { path: routes.INVOICES, element: <InvoicesPage /> },
+                { path: routes.ONCHAIN, element: <OnChainPage /> },
+                { path: routes.ALL, element: <AllTxPage /> },
+              ],
+            },
+            { path: routes.SETTINGS, element: <SettingsPage /> },
+            { path: "*", element: <NoMatch /> },
           ],
         },
-        {
-          path: routes.TRANSACTIONS,
-          children: [
-            { path: routes.PAYMENTS, element: <PaymentsPage /> },
-            { path: routes.INVOICES, element: <InvoicesPage /> },
-            { path: routes.ONCHAIN, element: <OnChainPage /> },
-            { path: routes.ALL, element: <AllTxPage /> },
-          ],
-        },
-        { path: routes.SETTINGS, element: <SettingsPage /> },
-        { path: "*", element: <NoMatch /> },
       ],
     },
   ],

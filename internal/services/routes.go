@@ -12,8 +12,8 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func RegisterServiceRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("", func(c *gin.Context) { getServicesHandler(c, db) })
+func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
+	r.GET("status", func(c *gin.Context) { getServicesHandler(c, db) })
 }
 
 func getServicesHandler(c *gin.Context, db *sqlx.DB) {

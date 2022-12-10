@@ -136,13 +136,12 @@ func ImportRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettin
 				return errors.New(fmt.Sprintf(
 					"Importing routing policy for a channel that doesn't exist in our database? (fundingTransactionHash: %v, fundingOutputIndex: %v)",
 					fundingTransactionHash, fundingOutputIndex))
-			} else {
-				channelStatus := commons.GetChannelStatusByChannelId(channelId)
-				if channelStatus != commons.Open {
-					err := channels.UpdateChannelStatus(db, channelId, commons.Open)
-					if err != nil {
-						log.Error().Err(err).Msgf("Failed to update channel status for channelId: %v", channelId)
-					}
+			}
+			channelStatus := commons.GetChannelStatusByChannelId(channelId)
+			if channelStatus != commons.Open {
+				err := channels.UpdateChannelStatus(db, channelId, commons.Open)
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to update channel status for channelId: %v", channelId)
 				}
 			}
 			err = insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu, nil)

@@ -54,76 +54,96 @@ type Channel struct {
 func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) {
 	var err error
 	var existingChannelId int
-	if channel.ShortChannelID == nil || *channel.ShortChannelID == "" || *channel.ShortChannelID == "0x0x0" {
-		existingChannelId = 0
-	} else {
-		existingChannelId = commons.GetChannelIdByShortChannelId(*channel.ShortChannelID)
-		if existingChannelId == 0 {
-			existingChannelId, err = getChannelIdByShortChannelId(db, channel.ShortChannelID)
-			if err != nil {
-				return 0, errors.Wrapf(err, "Getting channelId by ShortChannelID %v", channel.ShortChannelID)
+	if channel.FundingTransactionHash == "" {
+		if channel.ShortChannelID == nil || *channel.ShortChannelID == "" || *channel.ShortChannelID == "0x0x0" {
+			existingChannelId = 0
+		} else {
+			existingChannelId = commons.GetChannelIdByShortChannelId(*channel.ShortChannelID)
+			if existingChannelId == 0 {
+				existingChannelId, err = getChannelIdByShortChannelId(db, channel.ShortChannelID)
+				if err != nil {
+					return 0, errors.Wrapf(err, "Getting channelId by ShortChannelID %v", channel.ShortChannelID)
+				}
 			}
 		}
-	}
-	if existingChannelId == 0 {
-		if channel.FundingTransactionHash != "" {
-			existingChannelId = commons.GetChannelIdByFundingTransaction(channel.FundingTransactionHash, channel.FundingOutputIndex)
-			if existingChannelId == 0 {
-				existingChannelId, err = getChannelIdByFundingTransaction(db, channel.FundingTransactionHash, channel.FundingOutputIndex)
-				if err != nil {
-					return 0, errors.Wrapf(err, "Getting channelId by FundingTransactionHash %v, FundingOutputIndex %v",
-						channel.FundingTransactionHash, channel.FundingOutputIndex)
-				}
-			}
-			if existingChannelId == 0 {
-				storedChannel, err := addChannel(db, channel)
-				if err != nil {
-					return 0, errors.Wrapf(err, "Adding channel FundingTransactionHash %v, FundingOutputIndex %v",
-						channel.FundingTransactionHash, channel.FundingOutputIndex)
-				}
-				return storedChannel.ChannelID, nil
-			} else {
-				err = updateChannelStatusAndLndIds(db, existingChannelId, channel.Status, channel.ShortChannelID,
-					channel.LNDShortChannelID)
-				if err != nil {
-					return 0, errors.Wrapf(err, "Updating existing channel with FundingTransactionHash %v, FundingOutputIndex %v",
-						channel.FundingTransactionHash, channel.FundingOutputIndex)
-				}
-				commons.SetChannel(existingChannelId, channel.ShortChannelID,
-					channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
-					channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
-				if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
-					err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)
-					if err != nil {
-						return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
-					}
-				}
-				return existingChannelId, nil
-			}
-		} else {
+		if existingChannelId == 0 {
 			return 0, errors.Wrapf(err, "No valid FundingTransactionHash %v, FundingOutputIndex %v",
 				channel.FundingTransactionHash, channel.FundingOutputIndex)
 		}
 	} else {
-		status := commons.GetChannelStatusByChannelId(existingChannelId)
-		if status != channel.Status {
-			if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
-				err := updateChannelStatusAndClosingTransactionHash(db, existingChannelId, channel.Status, *channel.ClosingTransactionHash)
-				if err != nil {
-					return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
-				}
-			} else {
-				err := UpdateChannelStatus(db, existingChannelId, channel.Status)
-				if err != nil {
-					return 0, errors.Wrapf(err, "Updating channel status %v.", existingChannelId)
-				}
+		existingChannelId = commons.GetChannelIdByFundingTransaction(channel.FundingTransactionHash, channel.FundingOutputIndex)
+		if existingChannelId == 0 {
+			existingChannelId, err = getChannelIdByFundingTransaction(db, channel.FundingTransactionHash, channel.FundingOutputIndex)
+			if err != nil {
+				return 0, errors.Wrapf(err, "Getting channelId by FundingTransactionHash %v, FundingOutputIndex %v",
+					channel.FundingTransactionHash, channel.FundingOutputIndex)
 			}
-			commons.SetChannel(existingChannelId, channel.ShortChannelID,
-				channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
-				channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 		}
-		return existingChannelId, nil
+		if existingChannelId == 0 {
+			storedChannel, err := addChannel(db, channel)
+			if err != nil {
+				return 0, errors.Wrapf(err, "Adding channel FundingTransactionHash %v, FundingOutputIndex %v",
+					channel.FundingTransactionHash, channel.FundingOutputIndex)
+			}
+			return storedChannel.ChannelID, nil
+		}
 	}
+	// existingChannelId is known or it would have aborted/returned already
+	existingChannelSettings := commons.GetChannelSettingByChannelId(existingChannelId)
+	if existingChannelSettings.ChannelId == 0 {
+		existingChannel, err := GetChannel(db, existingChannelId)
+		if err != nil {
+			return 0, errors.Wrapf(err, "Obtaining existing channel for channelId: %v.", existingChannelId)
+		}
+		if existingChannel.Status != channel.Status ||
+			(existingChannel.ShortChannelID == nil) != (channel.ShortChannelID == nil) ||
+			existingChannel.ShortChannelID != nil && channel.ShortChannelID != nil && *existingChannel.ShortChannelID != *channel.ShortChannelID ||
+			(existingChannel.LNDShortChannelID == nil) != (channel.LNDShortChannelID == nil) ||
+			existingChannel.LNDShortChannelID != nil && channel.LNDShortChannelID != nil && *existingChannel.LNDShortChannelID != *channel.LNDShortChannelID {
+			err = updateChannelStatusAndLndIds(db, existingChannelId, channel.Status, channel.ShortChannelID,
+				channel.LNDShortChannelID)
+			if err != nil {
+				return 0, errors.Wrapf(err, "Updating existing channel with FundingTransactionHash %v, FundingOutputIndex %v",
+					channel.FundingTransactionHash, channel.FundingOutputIndex)
+			}
+		}
+		if existingChannel.ClosingTransactionHash == nil && channel.Status >= commons.CooperativeClosed &&
+			channel.ClosingTransactionHash != nil {
+			err := updateChannelClosingTransactionHash(db, existingChannelId, *channel.ClosingTransactionHash, channel.ClosingNodeId)
+			if err != nil {
+				return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
+			}
+		}
+	} else {
+		newShortChannelId := ""
+		if channel.ShortChannelID != nil {
+			newShortChannelId = *channel.ShortChannelID
+		}
+		newLndShortChannelId := uint64(0)
+		if channel.LNDShortChannelID != nil {
+			newLndShortChannelId = *channel.LNDShortChannelID
+		}
+		if existingChannelSettings.Status != channel.Status ||
+			existingChannelSettings.ShortChannelId != newShortChannelId ||
+			existingChannelSettings.LndShortChannelId != newLndShortChannelId {
+			err = updateChannelStatusAndLndIds(db, existingChannelId, channel.Status, channel.ShortChannelID,
+				channel.LNDShortChannelID)
+			if err != nil {
+				return 0, errors.Wrapf(err, "Updating existing channel with FundingTransactionHash %v, FundingOutputIndex %v",
+					channel.FundingTransactionHash, channel.FundingOutputIndex)
+			}
+		}
+		if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
+			err := updateChannelClosingTransactionHash(db, existingChannelId, *channel.ClosingTransactionHash, channel.ClosingNodeId)
+			if err != nil {
+				return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
+			}
+		}
+	}
+	commons.SetChannel(existingChannelId, channel.ShortChannelID,
+		channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
+		channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
+	return existingChannelId, nil
 }
 
 func UpdateChannelStatus(db *sqlx.DB, channelId int, status commons.ChannelStatus) error {
@@ -137,14 +157,14 @@ func UpdateChannelStatus(db *sqlx.DB, channelId int, status commons.ChannelStatu
 	return nil
 }
 
-func updateChannelStatusAndClosingTransactionHash(db *sqlx.DB, channelId int, status commons.ChannelStatus, closingTransactionHash string) error {
+func updateChannelClosingTransactionHash(db *sqlx.DB, channelId int, closingTransactionHash string, closingNodeId *int) error {
 	_, err := db.Exec(`
-		UPDATE channel SET status_id=$1, closing_transaction_hash=$2, updated_on=$3 WHERE channel_id=$4 AND (status_id!=$1 OR closing_transaction_hash!=$2)`,
-		status, closingTransactionHash, time.Now().UTC(), channelId)
+		UPDATE channel SET closing_transaction_hash=$1, closing_node_id=$4, updated_on=$2 WHERE channel_id=$3 AND
+		    ( closing_transaction_hash IS NULL OR closing_transaction_hash != $1 )`,
+		closingTransactionHash, time.Now().UTC(), channelId, closingNodeId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
-	commons.SetChannelStatus(channelId, status)
 	return nil
 }
 
@@ -159,7 +179,10 @@ func updateChannelStatusAndLndIds(db *sqlx.DB, channelId int, status commons.Cha
 	_, err := db.Exec(`
 		UPDATE channel
 		SET status_id=$2, short_channel_id=$3, lnd_short_channel_id=$4, updated_on=$5
-		WHERE channel_id=$1 AND (status_id!=$2 OR short_channel_id!=$3 OR lnd_short_channel_id!=$4)`,
+		WHERE channel_id=$1 AND (
+		    status_id!=$2 OR
+		    short_channel_id IS NULL OR short_channel_id!=$3 OR
+		    lnd_short_channel_id IS NULL OR lnd_short_channel_id!=$4)`,
 		channelId, status, shortChannelId, lndShortChannelId, time.Now().UTC())
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)

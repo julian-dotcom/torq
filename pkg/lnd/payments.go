@@ -30,7 +30,7 @@ type PayOptions struct {
 }
 
 func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent, opt *PayOptions) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) {
 
 	var lastPaymentIndex uint64
 	var payments *lnrpc.ListPaymentsResponse
@@ -59,23 +59,23 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 			lastPaymentIndex, err = fetchLastPaymentIndex(db)
 			if err != nil {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
 				continue
 			}
 
-			if bootStrapping {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
-			} else {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
-			}
 			for {
+				if bootStrapping {
+					serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+				} else {
+					serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+				}
 				payments, err = fetchPayments(ctx, client, lastPaymentIndex, includeIncomplete)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+					serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
 					break
 				}
@@ -95,13 +95,12 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 					}
 					bootStrapping = false
 					break
-				} else {
-					lastPaymentIndex = payments.LastIndexOffset
-					if bootStrapping {
-						importCounter++
-						if importCounter%500 == 0 {
-							log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
-						}
+				}
+				lastPaymentIndex = payments.LastIndexOffset
+				if bootStrapping {
+					importCounter++
+					if importCounter%500 == 0 {
+						log.Info().Msgf("Still running bulk import of payments (%v)", importCounter)
 					}
 				}
 			}
@@ -177,12 +176,16 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 			var outgoingChannelId *int
 			var rebalanceAmountMsat *uint64
 			if len(payment.Htlcs) == 0 || len(payment.Htlcs[0].Route.Hops) == 0 {
-				log.Error().Msgf("The payment HTLCs and/or Hops are unknown for paymentHash: %v", payment.PaymentHash)
+				if payment.Status == lnrpc.Payment_SUCCEEDED {
+					log.Error().Msgf("The payment HTLCs and/or Hops are unknown for paymentHash: %v", payment.PaymentHash)
+				}
 			} else {
 				incomingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[0].ChanId)
 				outgoingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[len(payment.Htlcs[0].Route.Hops)-1].ChanId)
 				if outgoingChannelId == nil {
-					log.Error().Msgf("The payment HTLCs has an unknown outgoingChannel for paymentHash: %v", payment.PaymentHash)
+					if payment.Status != lnrpc.Payment_FAILED {
+						log.Error().Msgf("The payment HTLCs has an unknown outgoingChannel for paymentHash: %v", payment.PaymentHash)
+					}
 				}
 				if incomingChannelId != nil && *incomingChannelId != 0 {
 					rebalanceAmountMsatV := uint64(payment.Htlcs[0].Route.Hops[0].AmtToForwardMsat)
@@ -240,7 +243,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 }
 
 func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, serviceEventChannel chan commons.ServiceEvent, opt *PayOptions) {
+	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) {
 
 	var listPaymentsResponse *lnrpc.ListPaymentsResponse
 	serviceStatus := commons.Inactive
@@ -264,14 +267,14 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		case <-ticker:
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db)
 			if err != nil {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS)
 				continue
 			}
 			if bootStrapping {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 			} else {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 			}
 			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.

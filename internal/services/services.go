@@ -7,50 +7,50 @@ import (
 )
 
 type Service struct {
-	Status   commons.Status
-	BootTime *time.Time
+	Status   commons.Status `json:"status"`
+	BootTime *time.Time     `json:"bootTime,omitempty"`
 }
 type TorqService struct {
 	Service
-	Version string
+	Version string `json:"version"`
 }
 
 type LndService struct {
 	Service
-	NodeId                        int
-	TransactionStreamStatus       commons.Status
-	TransactionStreamBootTime     *time.Time
-	HtlcEventStreamStatus         commons.Status
-	HtlcEventStreamBootTime       *time.Time
-	ChannelEventStreamStatus      commons.Status
-	ChannelEventStreamBootTime    *time.Time
-	GraphEventStreamStatus        commons.Status
-	GraphEventStreamBootTime      *time.Time
-	ForwardStreamStatus           commons.Status
-	ForwardStreamBootTime         *time.Time
-	InvoiceStreamStatus           commons.Status
-	InvoiceStreamBootTime         *time.Time
-	PaymentStreamStatus           commons.Status
-	PaymentStreamBootTime         *time.Time
-	InFlightPaymentStreamStatus   commons.Status
-	InFlightPaymentStreamBootTime *time.Time
-	PeerEventStreamStatus         commons.Status
-	PeerEventStreamBootTime       *time.Time
+	NodeId                        int            `json:"nodeId"`
+	TransactionStreamStatus       commons.Status `json:"transactionStreamStatus"`
+	TransactionStreamBootTime     *time.Time     `json:"transactionStreamBootTime,omitempty"`
+	HtlcEventStreamStatus         commons.Status `json:"htlcEventStreamStatus"`
+	HtlcEventStreamBootTime       *time.Time     `json:"htlcEventStreamBootTime,omitempty"`
+	ChannelEventStreamStatus      commons.Status `json:"channelEventStreamStatus"`
+	ChannelEventStreamBootTime    *time.Time     `json:"channelEventStreamBootTime,omitempty"`
+	GraphEventStreamStatus        commons.Status `json:"graphEventStreamStatus"`
+	GraphEventStreamBootTime      *time.Time     `json:"graphEventStreamBootTime,omitempty"`
+	ForwardStreamStatus           commons.Status `json:"forwardStreamStatus"`
+	ForwardStreamBootTime         *time.Time     `json:"forwardStreamBootTime,omitempty"`
+	InvoiceStreamStatus           commons.Status `json:"invoiceStreamStatus"`
+	InvoiceStreamBootTime         *time.Time     `json:"invoiceStreamBootTime,omitempty"`
+	PaymentStreamStatus           commons.Status `json:"paymentStreamStatus"`
+	PaymentStreamBootTime         *time.Time     `json:"paymentStreamBootTime,omitempty"`
+	InFlightPaymentStreamStatus   commons.Status `json:"inFlightPaymentStreamStatus"`
+	InFlightPaymentStreamBootTime *time.Time     `json:"inFlightPaymentStreamBootTime,omitempty"`
+	PeerEventStreamStatus         commons.Status `json:"peerEventStreamStatus"`
+	PeerEventStreamBootTime       *time.Time     `json:"peerEventStreamBootTime,omitempty"`
 }
 
 type VectorService struct {
 	Service
-	NodeId int
+	NodeId int `json:"nodeId"`
 }
 
 type AmbossService struct {
 	Service
-	NodeId int
+	NodeId int `json:"nodeId"`
 }
 
 type Services struct {
-	TorqService    TorqService
-	LndServices    []LndService
-	VectorServices []VectorService
-	AmbossServices []AmbossService
+	TorqService    TorqService     `json:"torqService"`
+	LndServices    []LndService    `json:"lndServices,omitempty"`
+	VectorServices []VectorService `json:"vectorServices,omitempty"`
+	AmbossServices []AmbossService `json:"ambossServices,omitempty"`
 }
