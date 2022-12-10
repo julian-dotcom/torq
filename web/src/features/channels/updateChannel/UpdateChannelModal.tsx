@@ -86,7 +86,6 @@ function NodechannelModal() {
   return (
     <PopoutPageTemplate title={"Update Channel"} show={true} onClose={() => navigate(-1)} icon={<ChannelsIcon />}>
       <ProgressHeader modalCloseHandler={closeAndReset}>
-        {/*<Step label={"Channel"} state={dynamicChannelState()} last={false} />*/}
         <Step label={"Policy"} state={policyState} last={false} />
         <Step label={"Result"} state={resultState} last={true} />
       </ProgressHeader>
@@ -183,7 +182,7 @@ function NodechannelModal() {
                 <Button
                   text={t.updateChannelPolicy.update}
                   onClick={() => {
-                    setStepIndex(2);
+                    setStepIndex(1);
                     setPolicyState(ProgressStepState.completed);
                     setResultState(ProgressStepState.processing);
                     updateChannelMutation({

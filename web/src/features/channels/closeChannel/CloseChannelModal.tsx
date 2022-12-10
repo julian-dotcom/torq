@@ -41,57 +41,13 @@ function closeChannelModal() {
   const nodeId = parseInt(queryParams.get("nodeId") || "0");
   const channelId = parseInt(queryParams.get("channelId") || "0");
 
-  // const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
-  // const { data: channels } = useGetChannelsQuery();
-  //
-  // const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<SelectOptions[]>([
-  //   { value: 0, label: "Select a local node" },
-  // ]);
-  // const [channelOptions, setChannelOptions] = useState<SelectOptions[]>([{ value: 0, label: "Select your channel" }]);
-
-  // useEffect(() => {
-  //   if (channels !== undefined) {
-  //     const newChannelOptions = channels.map((channel: channel) => {
-  //       return {
-  //         value: channel.channelPoint,
-  //         label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
-  //       };
-  //     });
-  //     setChannelOptions(newChannelOptions);
-  //   }
-  //   if (nodeConfigurations !== undefined) {
-  //     const newNodeOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
-  //       return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
-  //     });
-  //     setNodeConfigurationOptions(newNodeOptions);
-  //   }
-  // }, [channels, nodeConfigurations]);
-
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
   const [detailState, setDetailState] = useState(ProgressStepState.active);
-  const [closeAddress, setCloseAddress] = useState<string>("");
-  const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>(undefined);
+  // const [closeAddress, setCloseAddress] = useState<string | undefined>();
+  const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
   const [stepIndex, setStepIndex] = useState(0);
   const [force, setForce] = useState<boolean>(false);
-
-  // function handleNodeSelection(value: number) {
-  //   setSelectedNodeId(value);
-  //   const filteredChannels = channels?.filter((channel: { nodeId: number }) => channel.nodeId == value);
-  //   const filteredChannelOptions = filteredChannels?.map((channel: channel) => {
-  //     if (channel.nodeId == value) {
-  //       return {
-  //         value: channel.channelPoint,
-  //         label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
-  //       };
-  //     }
-  //   });
-  //   setChannelOptions(filteredChannelOptions as SelectOptions[]);
-  // }
-  //
-  // function handleChannelSelection(value: string) {
-  //   setSelectedChannel(value);
-  // }
 
   const closeAndReset = () => {
     setStepIndex(0);
@@ -127,25 +83,6 @@ function closeChannelModal() {
 
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
-          {/*<Select*/}
-          {/*  label={t.yourNode}*/}
-          {/*  onChange={(newValue: unknown, _: ActionMeta<unknown>) => {*/}
-          {/*    const selectOptions = newValue as SelectOptions;*/}
-          {/*    handleNodeSelection(selectOptions?.value as number);*/}
-          {/*  }}*/}
-          {/*  options={nodeConfigurationOptions}*/}
-          {/*  value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}*/}
-          {/*/>*/}
-          {/*<Select*/}
-          {/*  label={t.yourChannel}*/}
-          {/*  onChange={(newValue: unknown, _: ActionMeta<unknown>) => {*/}
-          {/*    const selectOptions = newValue as SelectOptions;*/}
-          {/*    handleChannelSelection(selectOptions?.value as string);*/}
-          {/*  }}*/}
-          {/*  options={channelOptions}*/}
-          {/*  value={channelOptions.find((option) => option.value === selectedChannel)}*/}
-          {/*  isDisabled={true}*/}
-          {/*/>*/}
           <div className={styles.activeColumns}>
             <div className={styles.closeChannelTableRow}>
               <FormRow>
@@ -159,30 +96,30 @@ function closeChannelModal() {
                       value={satPerVbyte}
                       suffix={" sat/vbyte"}
                       onValueChange={(values: NumberFormatValues) => {
-                        setSatPerVbyte(values.floatValue as number);
+                        setSatPerVbyte(values.floatValue);
                       }}
                     />
                   </div>
                 </div>
               </FormRow>
             </div>
-            <div className={styles.closeChannelTableRow}>
-              <FormRow>
-                <div className={styles.closeChannelTableSingle}>
-                  <span className={styles.label}>{"Close Address (for local funds)"}</span>
-                  <div className={styles.input}>
-                    <Input
-                      type={"text"}
-                      value={closeAddress}
-                      placeholder={"e.g. bc1q..."}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                        setCloseAddress(e.target.value);
-                      }}
-                    />
-                  </div>
-                </div>
-              </FormRow>
-            </div>
+            {/*<div className={styles.closeChannelTableRow}>*/}
+            {/*  <FormRow>*/}
+            {/*    <div className={styles.closeChannelTableSingle}>*/}
+            {/*      <span className={styles.label}>{"Close Address (for local funds)"}</span>*/}
+            {/*      <div className={styles.input}>*/}
+            {/*        <Input*/}
+            {/*          type={"text"}*/}
+            {/*          value={closeAddress}*/}
+            {/*          placeholder={"e.g. bc1q..."}*/}
+            {/*          onChange={(e: ChangeEvent<HTMLInputElement>) => {*/}
+            {/*            setCloseAddress(e.target.value);*/}
+            {/*          }}*/}
+            {/*        />*/}
+            {/*      </div>*/}
+            {/*    </div>*/}
+            {/*  </FormRow>*/}
+            {/*</div>*/}
             <div className={styles.closeChannelTableRow}>
               <FormRow className={styles.switchRow}>
                 <Switch
@@ -202,15 +139,16 @@ function closeChannelModal() {
                     setStepIndex(1);
                     setDetailState(ProgressStepState.completed);
                     setResultState(ProgressStepState.completed);
+                    console.log(satPerVbyte);
                     sendJsonMessage({
                       reqId: "randId",
                       type: "closeChannel",
                       closeChannelRequest: {
                         nodeId: nodeId,
                         channelId: channelId,
-                        satPerVbyte,
-                        deliveryAddress: closeAddress,
-                        force,
+                        satPerVbyte: satPerVbyte,
+                        // deliveryAddress: closeAddress,
+                        force: force,
                       },
                     });
                   }}
@@ -242,19 +180,6 @@ function closeChannelModal() {
               {errMessage ? errMessage : t.openCloseChannel.confirmationClosing}
             </div>
           </div>
-          <ButtonWrapper
-            rightChildren={
-              <Button
-                text={t.openCloseChannel.closeNewChannel}
-                onClick={() => {
-                  setStepIndex(0);
-                  setDetailState(ProgressStepState.active);
-                  setResultState(ProgressStepState.disabled);
-                }}
-                buttonColor={buttonColor.subtle}
-              />
-            }
-          />
         </ProgressTabContainer>
       </ProgressTabs>
     </PopoutPageTemplate>

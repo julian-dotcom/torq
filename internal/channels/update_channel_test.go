@@ -8,15 +8,20 @@ import (
 )
 
 func Test_processChannelPoint(t *testing.T) {
+	//txOutputIndex := uint32(0)
+	//txOpenHash := "e43bf0d5f03e179c2d107a1a8e4303bca066e883f4dbc0d9394f0c5b0721c7ce"
+
 	tests := []struct {
-		name    string
-		input   string
-		want    *lnrpc.PolicyUpdateRequest_ChanPoint
-		wantErr bool
+		name          string
+		txOpenHash    string
+		txOutputIndex uint32
+		want          *lnrpc.PolicyUpdateRequest_ChanPoint
+		wantErr       bool
 	}{
 		{
 			"Test correct chann point",
-			"e43bf0d5f03e179c2d107a1a8e4303bca066e883f4dbc0d9394f0c5b0721c7ce:0",
+			"e43bf0d5f03e179c2d107a1a8e4303bca066e883f4dbc0d9394f0c5b0721c7ce",
+			0,
 			&lnrpc.PolicyUpdateRequest_ChanPoint{
 				ChanPoint: &lnrpc.ChannelPoint{
 					FundingTxid: &lnrpc.ChannelPoint_FundingTxidStr{
@@ -30,12 +35,14 @@ func Test_processChannelPoint(t *testing.T) {
 		{
 			"Test wrong chann point format",
 			"e43bf0d5f03e179c2d107a1a8e4303bca066e883f4dbc0d9394f0c5b0721c7ce0",
+			0,
 			&lnrpc.PolicyUpdateRequest_ChanPoint{},
 			true,
 		},
 		{
 			"Output Index not int",
-			"e43bf0d5f03e179c2d107a1a8e4303bca066e883f4dbc0d9394f0c5b0721c7ce:X",
+			"e43bf0d5f03e179c2d107a1a8e4303bca066e883f4dbc0d9394f0c5b0721c7ce",
+			1,
 			&lnrpc.PolicyUpdateRequest_ChanPoint{},
 			true,
 		},
@@ -43,7 +50,7 @@ func Test_processChannelPoint(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := processChannelPoint(test.input)
+			got, err := processChannelPoint(test.txOpenHash, test.txOutputIndex)
 			if err != nil {
 				if test.wantErr {
 					return
@@ -58,16 +65,13 @@ func Test_processChannelPoint(t *testing.T) {
 }
 
 func Test_createPolicyRequest(t *testing.T) {
-	var noFundingTransactionHash *string
-	var noFundingOutputIndex *int
 
 	var feeRatePpm uint32 = 11
 	var baseFeeMsat int64 = 12
 	var maxHtlcMsat uint64 = 13
 	var minHtlcMsat uint64 = 14
 
-	fundingTransactionHash := "e43bf0d5f03e179c2d107a1a8e4303bca066e883f4dbc0d9394f0c5b0721c7ce"
-	fundingOutputIndex := 0
+	ChannelId := 1
 
 	tests := []struct {
 		name    string
@@ -78,10 +82,9 @@ func Test_createPolicyRequest(t *testing.T) {
 		{
 			"Missing node Id",
 			updateChanRequestBody{
-				NodeId:                 1,
-				FundingTransactionHash: noFundingTransactionHash,
-				FundingOutputIndex:     noFundingOutputIndex,
-				TimeLockDelta:          18,
+				NodeId:        1,
+				ChannelId:     &ChannelId,
+				TimeLockDelta: 18,
 			},
 			&lnrpc.PolicyUpdateRequest{
 				Scope:         &lnrpc.PolicyUpdateRequest_Global{Global: true},
@@ -92,10 +95,9 @@ func Test_createPolicyRequest(t *testing.T) {
 		{
 			"Channel point not provided - update all",
 			updateChanRequestBody{
-				NodeId:                 1,
-				FundingTransactionHash: noFundingTransactionHash,
-				FundingOutputIndex:     noFundingOutputIndex,
-				TimeLockDelta:          18,
+				NodeId:        1,
+				ChannelId:     &ChannelId,
+				TimeLockDelta: 18,
 			},
 			&lnrpc.PolicyUpdateRequest{
 				Scope:         &lnrpc.PolicyUpdateRequest_Global{Global: true},
@@ -106,10 +108,9 @@ func Test_createPolicyRequest(t *testing.T) {
 		{
 			"Channel point provided - update one",
 			updateChanRequestBody{
-				NodeId:                 1,
-				FundingTransactionHash: &fundingTransactionHash,
-				FundingOutputIndex:     &fundingOutputIndex,
-				TimeLockDelta:          18,
+				NodeId:        1,
+				ChannelId:     &ChannelId,
+				TimeLockDelta: 18,
 			},
 			&lnrpc.PolicyUpdateRequest{
 				Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
@@ -127,10 +128,9 @@ func Test_createPolicyRequest(t *testing.T) {
 		{
 			"TimeLockDelta < 18",
 			updateChanRequestBody{
-				NodeId:                 1,
-				FundingTransactionHash: noFundingTransactionHash,
-				FundingOutputIndex:     noFundingOutputIndex,
-				TimeLockDelta:          0,
+				NodeId:        1,
+				ChannelId:     &ChannelId,
+				TimeLockDelta: 0,
 			},
 			&lnrpc.PolicyUpdateRequest{
 				Scope:         &lnrpc.PolicyUpdateRequest_Global{Global: true},
@@ -141,14 +141,13 @@ func Test_createPolicyRequest(t *testing.T) {
 		{
 			"All params provided",
 			updateChanRequestBody{
-				NodeId:                 1,
-				FundingTransactionHash: &fundingTransactionHash,
-				FundingOutputIndex:     &fundingOutputIndex,
-				FeeRatePpm:             &feeRatePpm,
-				BaseFeeMsat:            &baseFeeMsat,
-				MaxHtlcMsat:            &maxHtlcMsat,
-				MinHtlcMsat:            &minHtlcMsat,
-				TimeLockDelta:          18,
+				NodeId:        1,
+				ChannelId:     &ChannelId,
+				FeeRatePpm:    &feeRatePpm,
+				BaseFeeMsat:   &baseFeeMsat,
+				MaxHtlcMsat:   &maxHtlcMsat,
+				MinHtlcMsat:   &minHtlcMsat,
+				TimeLockDelta: 18,
 			},
 			&lnrpc.PolicyUpdateRequest{
 				Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{

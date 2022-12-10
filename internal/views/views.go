@@ -19,15 +19,15 @@ func getTableViews(db *sqlx.DB) (r []*TableView, err error) {
 
 	rows, err := db.Query(sql)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "Unable to get table views. SQL statement error")
 	}
 
 	for rows.Next() {
 		v := &TableView{}
 
-		err = rows.Scan(&v.Id, &v.View, &v.Page, &v.ViewOrder, &v.Version)
+		err := rows.Scan(&v.Id, &v.View, &v.Page, &v.ViewOrder, &v.Version)
 		if err != nil {
-			return r, err
+			return r, errors.Wrapf(err, "Unable to scan table view response")
 		}
 
 		// Append to the result
