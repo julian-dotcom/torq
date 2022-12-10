@@ -1,5 +1,4 @@
 import { ColumnMetaData } from "features/table/types";
-import { Clause, FilterInterface } from "features/sidebar/sections/filter/filter";
 import { tag } from "pages/tagsPage/tagsTypes";
 import { channel } from "features/channels/channelsTypes";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";

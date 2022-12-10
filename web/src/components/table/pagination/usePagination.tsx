@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Pagination from "./Pagination";
 import useLocalStorage from "features/helpers/useLocalStorage";
 
-export function usePagination<T>(page: string): [(total: number) => React.ReactNode, number, number] {
+export function usePagination(page: string): [(total: number) => React.ReactNode, number, number] {
   const [limit, setLimit] = useLocalStorage(`${page.toString()}Limit`, 100);
   const [offset, setOffset] = useState(0);
 

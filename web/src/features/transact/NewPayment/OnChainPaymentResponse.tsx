@@ -1,15 +1,13 @@
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
-
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./newPayments.module.scss";
 import { SendOnChainResponse } from "types/api";
 import classNames from "classnames";
-import { useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { SerializedError } from "@reduxjs/toolkit";
 import { ProgressStepState } from "features/progressTabs/ProgressHeader";
 import { format } from "d3";
-import ToastContext from "features/toast/context";
 import {
   DetailsContainer,
   DetailsRow,
@@ -36,7 +34,6 @@ type OnChainPaymentResponseProps = {
 };
 
 export function OnChainPaymentResponse(props: OnChainPaymentResponseProps) {
-  const toastRef = useContext(ToastContext);
   useEffect(() => {
     if (props.response?.isSuccess) {
       props.setProcessState(ProgressStepState.completed);

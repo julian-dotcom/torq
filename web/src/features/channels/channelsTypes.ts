@@ -14,14 +14,14 @@ type FailedUpdatesOutPoint = {
   Txid: string;
 };
 
-interface PendingHTLC {
-  forwardingCount: number;
-  forwardingAmount: number;
-  localCount: number;
-  localAmount: number;
-  toalCount: number;
-  totalAmount: number;
-}
+// interface PendingHTLC {
+//   forwardingCount: number;
+//   forwardingAmount: number;
+//   localCount: number;
+//   localAmount: number;
+//   toalCount: number;
+//   totalAmount: number;
+// }
 
 export interface channel {
   active: boolean;

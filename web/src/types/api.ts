@@ -1,5 +1,4 @@
 import { OrderBy } from "../features/sidebar/sections/sort/SortSection";
-import { FilterInterface } from "../features/sidebar/sections/filter/filter";
 
 type Paginable = {
   limit: number;

@@ -1,9 +1,4 @@
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
-import {
-  ArrowSyncFilled as ProcessingIcon,
-  CheckmarkRegular as SuccessIcon,
-  DismissRegular as FailedIcon,
-} from "@fluentui/react-icons";
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./newPayments.module.scss";
 import { DecodedInvoice } from "types/api";
@@ -19,18 +14,6 @@ import {
 } from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
 
 const f = format(",.0f");
-
-const paymentStatusIcon = {
-  IN_FLIGHT: <ProcessingIcon />,
-  FAILED: <FailedIcon />,
-  SUCCEEDED: <SuccessIcon />,
-};
-
-const paymentStatusClass = {
-  IN_FLIGHT: styles.processing,
-  FAILED: styles.failed,
-  SUCCEEDED: styles.success,
-};
 
 type InvoicePaymentResponseProps = {
   responses: Array<NewPaymentResponse>;
@@ -68,12 +51,6 @@ export function InvoicePaymentResponse(props: InvoicePaymentResponseProps) {
         <div className={classNames(styles.paymentStatusMessage)}>{props.paymentProcessingError}</div>
       )}
       {status === "SUCCEEDED" && (
-        // <div className={styles.txDetailsContainer}>
-        //   <div className={styles.txDetailsRow}>
-        //     <div className={styles.txDetailsLabel}>Fee:</div>
-        //     <div className={styles.txDetailsValue}>{lastResponse.feePaidMsat} sat</div>
-        //   </div>
-        // </div>
         <div>
           <DetailsContainer>
             <DetailsRow label={"Fee:"}>{lastResponse.feePaidMsat / 1000}</DetailsRow>
