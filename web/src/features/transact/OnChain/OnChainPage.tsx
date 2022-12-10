@@ -9,7 +9,7 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsButton,
+  TableControlsButton, TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import Button, { buttonColor } from "components/buttons/Button";
@@ -91,15 +91,17 @@ function OnChainPage() {
   const tableControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
-        <Button
-          buttonColor={buttonColor.green}
-          text={t.newAddress}
-          icon={<NewOnChainAddressIcon />}
-          className={"collapse-tablet"}
-          onClick={() => {
-            navigate(NEW_ADDRESS, { state: { background: location } });
-          }}
-        />
+        <TableControlsTabsGroup>
+          <Button
+            buttonColor={buttonColor.green}
+            text={t.newAddress}
+            icon={<NewOnChainAddressIcon />}
+            className={"collapse-tablet"}
+            onClick={() => {
+              navigate(NEW_ADDRESS, { state: { background: location } });
+            }}
+          />
+        </TableControlsTabsGroup>
         <TableControlsButton
           onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
           icon={OptionsIcon}

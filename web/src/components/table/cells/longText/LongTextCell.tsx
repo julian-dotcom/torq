@@ -54,5 +54,4 @@ const LongTextCell = (props: TextCellProps) => {
   );
 };
 
-const TextCellMemo = React.memo(LongTextCell);
-export default TextCellMemo;
+export default LongTextCell;

@@ -5,18 +5,20 @@ import { FilterInterface } from "features/sidebar/sections/filter/filter";
 
 export const AllChannelsColumns: ColumnMetaData<channel>[] = [
   {
+    heading: "Peer Alias",
+    type: "AliasCell",
+    key: "peerAlias",
+    locked: true,
+    valueType: "string",
+  },
+  {
     heading: "Active",
     type: "BooleanCell",
     key: "active",
     valueType: "boolean",
     locked: false,
   },
-  {
-    heading: "Peer Alias",
-    type: "AliasCell",
-    key: "peerAlias",
-    valueType: "string",
-  },
+
   {
     heading: "Short Channel ID",
     type: "LongTextCell",

@@ -47,6 +47,7 @@ export interface channel {
   mempoolSpace: string;
   minHtlc: number;
   nodeId: number;
+  channelId: number;
   nodeName: string;
   numUpdates: number;
   oneMl: string;
@@ -78,7 +79,6 @@ export type PolicyInterface = {
   maxHtlcMsat: number;
   minHtlcMsat: number;
   baseFeeMsat: number;
-  fundingTransactionHash: string;
-  fundingOutputIndex: number;
+  channelId: number;
   nodeId: number;
 };

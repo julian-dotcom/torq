@@ -10,7 +10,7 @@ import Table from "features/table/Table";
 import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
-  TableControlSection,
+  TableControlSection, TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import { useLocation } from "react-router";
@@ -81,6 +81,7 @@ function PaymentsPage() {
   const tableControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
+        <TableControlsTabsGroup>
         <Button
           buttonColor={buttonColor.green}
           text={"New Payment"}
@@ -90,6 +91,7 @@ function PaymentsPage() {
             navigate(NEW_PAYMENT, { state: { background: location } });
           }}
         />
+        </TableControlsTabsGroup>
         <TableControlsButton
           onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
           icon={OptionsIcon}

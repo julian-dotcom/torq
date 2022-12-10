@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import {
-  MoneySettings20Regular as AdjustFeesIcon,
   Options20Regular as OptionsIcon,
   // Save20Regular as SaveIcon,
   ArrowRouting20Regular as ChannelsIcon,
@@ -15,7 +14,7 @@ import Button, { buttonColor } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
 import { channel } from "./channelsTypes";
-import { UPDATE_CHANNEL, OPEN_CHANNEL, CLOSE_CHANNEL } from "constants/routes";
+import { OPEN_CHANNEL } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import Table from "features/table/Table";
 import {
@@ -75,9 +74,6 @@ function ChannelsPage() {
           {/*    className={"collapse-tablet"}*/}
           {/*  />*/}
           {/*)}*/}
-        </TableControlsTabsGroup>
-      </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
         <Button
           buttonColor={buttonColor.green}
           text={t.openChannel}
@@ -87,23 +83,10 @@ function ChannelsPage() {
             navigate(OPEN_CHANNEL, { state: { background: location } });
           }}
         />
-        <Button
-          buttonColor={buttonColor.green}
-          text={"Close Channel"}
-          className={"collapse-tablet"}
-          icon={<ChannelsIcon />}
-          onClick={() => {
-            navigate(CLOSE_CHANNEL, { state: { background: location } });
-          }}
-        />
-        <Button
-          buttonColor={buttonColor.green}
-          text={t.updateChannelPolicy.title}
-          icon={<AdjustFeesIcon />}
-          onClick={() => {
-            navigate(UPDATE_CHANNEL, { state: { background: location } });
-          }}
-        />
+        </TableControlsTabsGroup>
+      </TableControlsButtonGroup>
+      <TableControlsButtonGroup>
+
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>

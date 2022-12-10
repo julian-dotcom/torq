@@ -9,7 +9,7 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
-  TableControlsButtonGroup,
+  TableControlsButtonGroup, TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import Button, { buttonColor } from "components/buttons/Button";
@@ -82,6 +82,7 @@ function InvoicesPage() {
   const tableControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
+        <TableControlsTabsGroup>
         <Button
           buttonColor={buttonColor.green}
           text={t.header.newInvoice}
@@ -91,6 +92,7 @@ function InvoicesPage() {
             navigate(NEW_INVOICE, { state: { background: location } });
           }}
         />
+          </TableControlsTabsGroup>
         <TableControlsButton
           onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
           icon={OptionsIcon}

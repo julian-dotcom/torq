@@ -2,15 +2,11 @@ package channels
 
 import (
 	"context"
-	"strconv"
-	"strings"
-
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/rs/zerolog/log"
-
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
@@ -67,9 +63,10 @@ func createPolicyRequest(req updateChanRequestBody) (r *lnrpc.PolicyUpdateReques
 		updChanReq.TimeLockDelta = req.TimeLockDelta
 	}
 
-	if req.FundingTransactionHash != nil && req.FundingOutputIndex != nil {
-		channelPoint := *req.FundingTransactionHash + ":" + strconv.Itoa(*req.FundingOutputIndex)
-		updChanReq.Scope, err = processChannelPoint(channelPoint)
+	if req.ChannelId != nil {
+		channelSettings := commons.GetChannelSettingByChannelId(*req.ChannelId)
+		updChanReq.Scope, err = processChannelPoint(channelSettings.FundingTransactionHash,
+			uint32(channelSettings.FundingOutputIndex))
 		if err != nil {
 			return r, err
 		}
@@ -100,26 +97,10 @@ func createPolicyRequest(req updateChanRequestBody) (r *lnrpc.PolicyUpdateReques
 // Split received channel point string into fundingtxid and outputindex
 // Build PolicyUpdateRequest_ChanPoint: ChannelPoint_FundingTxidStr, ChannelPoint,
 // Return PolicyUpdateRequest_ChanPoint
-func processChannelPoint(chanPoint string) (cp *lnrpc.PolicyUpdateRequest_ChanPoint, err error) {
+func processChannelPoint(fundingTxidStr string, outputIndex uint32) (cp *lnrpc.PolicyUpdateRequest_ChanPoint,
+	err error) {
 
-	//Split string into funding txid and output index
-	splitChanPoint := strings.Split(chanPoint, ":")
-	if len(splitChanPoint) != 2 {
-		log.Error().Msgf("invalid channel point format: %v", err)
-		return cp, errors.New("invalid channel point format")
-	}
-
-	txid := splitChanPoint[0]
-
-	oIndxUint, err := strconv.ParseUint(splitChanPoint[1], 10, 1)
-	if err != nil {
-		log.Error().Msgf("parsing channel point output index: %v", err)
-		return cp, errors.Wrapf(err, "parsing channel point output index: %v", err)
-	}
-
-	outputIndex := uint32(oIndxUint)
-
-	fundingTxid := lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: txid}
+	fundingTxid := lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: fundingTxidStr}
 
 	lnrpcCP := &lnrpc.ChannelPoint{FundingTxid: &fundingTxid, OutputIndex: outputIndex}
 	cp = &lnrpc.PolicyUpdateRequest_ChanPoint{ChanPoint: lnrpcCP}

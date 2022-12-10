@@ -33,14 +33,13 @@ type updateResponse struct {
 }
 
 type updateChanRequestBody struct {
-	NodeId                 int     `json:"nodeId"`
-	FundingTransactionHash *string `json:"fundingTransactionHash"`
-	FundingOutputIndex     *int    `json:"fundingOutputIndex"`
-	FeeRatePpm             *uint32 `json:"feeRatePpm"`
-	BaseFeeMsat            *int64  `json:"baseFeeMsat"`
-	MaxHtlcMsat            *uint64 `json:"maxHtlcMsat"`
-	MinHtlcMsat            *uint64 `json:"minHtlcMsat"`
-	TimeLockDelta          uint32  `json:"timeLockDelta"`
+	NodeId        int     `json:"nodeId"`
+	ChannelId     *int    `json:"channelId"`
+	FeeRatePpm    *uint32 `json:"feeRatePpm"`
+	BaseFeeMsat   *int64  `json:"baseFeeMsat"`
+	MaxHtlcMsat   *uint64 `json:"maxHtlcMsat"`
+	MinHtlcMsat   *uint64 `json:"minHtlcMsat"`
+	TimeLockDelta uint32  `json:"timeLockDelta"`
 }
 type pendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
@@ -48,6 +47,7 @@ type pendingChannel struct {
 
 type channelBody struct {
 	NodeId                       int                  `json:"nodeId"`
+	ChannelId                    int                  `json:"channelId"`
 	ChannelPoint                 string               `json:"channelPoint"`
 	NodeName                     string               `json:"nodeName"`
 	Active                       bool                 `json:"active"`
@@ -196,6 +196,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 				remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
 				chanBody := channelBody{
 					NodeId:                       ncd.NodeId,
+					ChannelId:                    channelSettings.ChannelId,
 					NodeName:                     *nodeSettings.Name,
 					Active:                       !channel.LocalDisabled,
 					ChannelPoint:                 commons.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
