@@ -11,16 +11,14 @@ import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./updateChannel.module.scss";
-import {useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import useTranslations from "services/i18n/useTranslations";
 import classNames from "classnames";
-import  { NumberFormatValues } from "react-number-format";
-
+import { NumberFormatValues } from "react-number-format";
 import clone from "clone";
 import FormRow from "features/forms/FormWrappers";
-// import { channel } from "../channelsTypes";
-import {useSearchParams} from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import Input from "../../../components/forms/input/Input";
 
 const updateStatusClass = {
@@ -39,68 +37,12 @@ const updateStatusIcon = {
 function NodechannelModal() {
   const { t } = useTranslations();
   const [queryParams] = useSearchParams();
-  const nodeId = parseInt(queryParams.get("nodeId") || "0") ;
+  const nodeId = parseInt(queryParams.get("nodeId") || "0");
   const channelId = parseInt(queryParams.get("channelId") || "0");
 
   const [updateChannelMutation, response] = useUpdateChannelMutation();
-  // const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
-  // const { data: channels } = useGetChannelsQuery();
-  // const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<SelectOptions[]>([]);
-  // const [channelOptions, setChannelOptions] = useState<SelectOptions[]>([]);
-  // const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeId ? parseInt(nodeId) : 0);
-  // const [selectedChannel, setSelectedChannel] = useState<number>(channelId ? parseInt(channelId) : 0);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMessage] = useState<any[]>([]);
-
-  // useEffect(() => {
-  //   if (channels !== undefined) {
-  //     const newChannelOptions = channels.map((channel: channel) => {
-  //       return {
-  //         value: channel.lndShortChannelId,
-  //         label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
-  //       };
-  //     });
-  //     setChannelOptions(newChannelOptions);
-  //   }
-  //   if (nodeConfigurations !== undefined) {
-  //       const newNodeOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
-  //         return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
-  //       });
-  //       setNodeConfigurationOptions(newNodeOptions);
-  //     }
-  // }, [channels, nodeConfigurations]);
-
-
-  //
-  // function handleNodeSelection(value: number) {
-  //   setSelectedNodeId(value);
-  //   const filteredChannels = channels?.filter((channel: { nodeId: number }) => channel.nodeId == value);
-  //     const filteredChannelOptions = filteredChannels?.map((channel: channel) => {
-  //       if (channel.nodeId == value) {
-  //         return {
-  //           value: channel.lndShortChannelId,
-  //           label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
-  //         };
-  //       }
-  //     });
-  //   setChannelOptions(filteredChannelOptions as SelectOptions[]);
-  // }
-  //
-  // function handleChannelSelection(value: number) {
-  //   setSelectedChannel(value);
-  //   channels?.map((channel: channel) => {
-  //     if (channel.lndShortChannelId == value) {
-  //       setTimeLockDelta(channel.timeLockDelta);
-  //       setBaseFeeMsat(channel.baseFeeMsat);
-  //       setMinHtlcSat(channel.minHtlc);
-  //       setMaxHtlcSat(channel.maxHtlcMsat);
-  //       setFeeRatePpm(channel.feeRatePpm);
-  //       setFundingTransactionHash(channel.fundingTransactionHash);
-  //       setFundingOutputIndex(channel.fundingOutputIndex);
-  //       return channel;
-  //     }
-  //   });
-  // }
 
   useEffect(() => {
     if (response.isSuccess) {
@@ -124,40 +66,20 @@ function NodechannelModal() {
     }
   }, [response]);
 
-  const [channelState, setChannelState] = useState(ProgressStepState.active);
   const [policyState, setPolicyState] = useState(ProgressStepState.disabled);
-  const [feeRatePpm, setFeeRatePpm] = useState<number>(0);
-  const [baseFeeMsat, setBaseFeeMsat] = useState<number>(0);
-  const [minHtlcSat, setMinHtlcSat] = useState<number>(0);
-  const [maxHtlcSat, setMaxHtlcSat] = useState<number>(0);
-  const [timeLockDelta, setTimeLockDelta] = useState<number>(0);
-  const [fundingTransactionHash, setFundingTransactionHash] = useState<string>("");
-  const [fundingOutputIndex, setFundingOutputIndex] = useState<number>(0);
+  const [feeRatePpm, setFeeRatePpm] = useState<number | undefined>(undefined);
+  const [baseFeeMsat, setBaseFeeMsat] = useState<number | undefined>(undefined);
+  const [minHtlcSat, setMinHtlcSat] = useState<number | undefined>(undefined);
+  const [maxHtlcSat, setMaxHtlcSat] = useState<number | undefined>(undefined);
+  const [timeLockDelta, setTimeLockDelta] = useState<number | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
 
   const closeAndReset = () => {
     setStepIndex(0);
-    // setSelectedNodeId(0);
-    // setSelectedChannel(0);
-    setChannelState(ProgressStepState.active);
-    setPolicyState(ProgressStepState.disabled);
+    setPolicyState(ProgressStepState.active);
     setResultState(ProgressStepState.disabled);
     setErrorMessage([]);
   };
-
-  // const dynamicChannelState = () => {
-  //   if (!channels?.length) {
-  //     return ProgressStepState.disabled;
-  //   }
-  //   return channelState;
-  // };
-
-  // const dynamicPolicyState = () => {
-  //   if (!channels?.length) {
-  //     return ProgressStepState.disabled;
-  //   }
-  //   return policyState;
-  // };
 
   const navigate = useNavigate();
 
@@ -170,46 +92,6 @@ function NodechannelModal() {
       </ProgressHeader>
 
       <ProgressTabs showTabIndex={stepIndex}>
-        {/*<ProgressTabContainer>*/}
-        {/*  <Form>*/}
-        {/*  <Select*/}
-        {/*    label={t.yourNode}*/}
-        {/*    onChange={(newValue: unknown, _: ActionMeta<unknown>) => {*/}
-        {/*      const selectOptions = newValue as SelectOptions;*/}
-        {/*      handleNodeSelection(selectOptions?.value as number);*/}
-        {/*    }}*/}
-        {/*    options={nodeConfigurationOptions}*/}
-        {/*    value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}*/}
-        {/*  />*/}
-        {/*  <Select*/}
-        {/*    label={t.yourChannel}*/}
-        {/*    onChange={(newValue: unknown, _: ActionMeta<unknown>) => {*/}
-        {/*      const selectOptions = newValue as SelectOptions;*/}
-        {/*      handleChannelSelection(selectOptions?.value as number);*/}
-        {/*    }}*/}
-        {/*    options={channelOptions}*/}
-        {/*    value={channelOptions.find((option) => option.value === selectedChannel)}*/}
-        {/*    isDisabled={true}*/}
-        {/*  />*/}
-        {/*  <ButtonWrapper*/}
-        {/*    className={styles.customButtonWrapperStyles}*/}
-        {/*    rightChildren={*/}
-        {/*      <Button*/}
-        {/*        text={"Next"}*/}
-        {/*        disabled={selectedNodeId === 0 || selectedChannel === 0}*/}
-        {/*        onClick={() => {*/}
-        {/*          if (selectedChannel) {*/}
-        {/*            setStepIndex(1);*/}
-        {/*            setChannelState(ProgressStepState.completed);*/}
-        {/*            setPolicyState(ProgressStepState.active);*/}
-        {/*          }*/}
-        {/*        }}*/}
-        {/*        buttonColor={buttonColor.subtle}*/}
-        {/*      />*/}
-        {/*    }*/}
-        {/*  />*/}
-        {/*  </Form>*/}
-        {/*</ProgressTabContainer>*/}
         <ProgressTabContainer>
           <div className={styles.activeColumns}>
             <FormRow>
@@ -217,9 +99,10 @@ function NodechannelModal() {
                 <span className={styles.label}>{t.updateChannelPolicy.feeRatePpm}</span>
                 <div className={styles.input}>
                   <Input
+                    formatted={true}
                     className={styles.double}
                     suffix={" ppm"}
-                    thousandSeparator={false}
+                    thousandSeparator={","}
                     value={feeRatePpm}
                     onValueChange={(values: NumberFormatValues) => {
                       setFeeRatePpm(values.floatValue as number);
@@ -231,9 +114,10 @@ function NodechannelModal() {
                 <span className={styles.label}>{t.updateChannelPolicy.baseFeeMsat}</span>
                 <div className={styles.input}>
                   <Input
+                    formatted={true}
                     className={styles.double}
                     suffix={" milli sat"}
-                    thousandSeparator={false}
+                    thousandSeparator={","}
                     value={baseFeeMsat}
                     onValueChange={(values: NumberFormatValues) => {
                       setBaseFeeMsat(values.floatValue as number);
@@ -248,9 +132,10 @@ function NodechannelModal() {
                 <span className={styles.label}>{t.updateChannelPolicy.minHtlcSat}</span>
                 <div className={styles.input}>
                   <Input
+                    formatted={true}
                     className={styles.double}
                     suffix={" sat"}
-                    thousandSeparator={false}
+                    thousandSeparator={","}
                     value={minHtlcSat}
                     onValueChange={(values: NumberFormatValues) => {
                       setMinHtlcSat(values.floatValue as number);
@@ -262,6 +147,7 @@ function NodechannelModal() {
                 <span className={styles.label}>{t.updateChannelPolicy.maxHtlcSat}</span>
                 <div className={styles.input}>
                   <Input
+                    formatted={true}
                     className={styles.double}
                     suffix={" sat"}
                     thousandSeparator={true}
@@ -280,6 +166,7 @@ function NodechannelModal() {
                   <span className={styles.label}>{"Time Lock Delta"}</span>
                   <div className={styles.input}>
                     <Input
+                      formatted={true}
                       className={styles.single}
                       thousandSeparator={false}
                       value={timeLockDelta}
@@ -327,12 +214,16 @@ function NodechannelModal() {
             {!response.data && updateStatusIcon["FAILED"]}
             {updateStatusIcon[response.data?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]}
           </div>
-          <div className={errMessage.length ? styles.errorBox : styles.successeBox }>
+          <div className={errMessage.length ? styles.errorBox : styles.successeBox}>
             <div>
-              <div className={errMessage.length ? styles.errorIcon : styles.successIcon }>{updateStatusIcon["NOTE"]}</div>
-              <div className={errMessage.length ? styles.errorNote : styles.successNote}>{errMessage.length ? t.openCloseChannel.error :t.openCloseChannel.note}</div>
-            </div >
-            <div className={errMessage.length ? styles.errorMessage: styles.successMessage }>
+              <div className={errMessage.length ? styles.errorIcon : styles.successIcon}>
+                {updateStatusIcon["NOTE"]}
+              </div>
+              <div className={errMessage.length ? styles.errorNote : styles.successNote}>
+                {errMessage.length ? t.openCloseChannel.error : t.openCloseChannel.note}
+              </div>
+            </div>
+            <div className={errMessage.length ? styles.errorMessage : styles.successMessage}>
               {errMessage.length ? errMessage : t.updateChannelPolicy.confirmedMessage}
             </div>
           </div>
@@ -342,10 +233,9 @@ function NodechannelModal() {
                 text={t.updateChannelPolicy.newUpdate}
                 onClick={() => {
                   setStepIndex(0);
-                  setChannelState(ProgressStepState.active);
-                  setPolicyState(ProgressStepState.disabled);
+                  setPolicyState(ProgressStepState.active);
                   setResultState(ProgressStepState.disabled);
-                  setErrorMessage([])
+                  setErrorMessage([]);
                 }}
                 buttonColor={buttonColor.subtle}
               />

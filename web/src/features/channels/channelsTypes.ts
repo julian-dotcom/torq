@@ -74,11 +74,11 @@ export interface channel {
 }
 
 export type PolicyInterface = {
-  feeRatePpm: number;
-  timeLockDelta: number;
-  maxHtlcMsat: number;
-  minHtlcMsat: number;
-  baseFeeMsat: number;
-  channelId: number;
+  feeRatePpm?: number;
+  timeLockDelta?: number;
+  maxHtlcMsat?: number;
+  minHtlcMsat?: number;
+  baseFeeMsat?: number;
+  channelId?: number;
   nodeId: number;
 };
