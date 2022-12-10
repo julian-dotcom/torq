@@ -2,6 +2,7 @@ package channels
 
 import (
 	"context"
+	"github.com/lncapital/torq/pkg/commons"
 	"io"
 	"strconv"
 	"strings"
@@ -22,7 +23,7 @@ type lndClientCloseChannel interface {
 
 type CloseChannelRequest struct {
 	NodeId          int     `json:"nodeId"`
-	ChannelPoint    string  `json:"channelPoint"`
+	ChannelId       int     `json:"channelId"`
 	Force           *bool   `json:"force"`
 	TargetConf      *int32  `json:"targetConf"`
 	DeliveryAddress *string `json:"deliveryAddress"`
@@ -80,14 +81,16 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelReques
 		return &lnrpc.CloseChannelRequest{}, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
 
-	channelPoint, err := convertChannelPoint(ccReq.ChannelPoint)
-	if err != nil {
-		return r, err
-	}
-	//
+	channelSettings := commons.GetChannelSettingByChannelId(ccReq.ChannelId)
+
 	//Make the close channel request
 	closeChanReq := &lnrpc.CloseChannelRequest{
-		ChannelPoint: channelPoint,
+		ChannelPoint: &lnrpc.ChannelPoint{
+			FundingTxid: &lnrpc.ChannelPoint_FundingTxidStr{
+				FundingTxidStr: channelSettings.FundingTransactionHash,
+			},
+			OutputIndex: uint32(channelSettings.FundingOutputIndex),
+		},
 	}
 
 	if ccReq.Force != nil {

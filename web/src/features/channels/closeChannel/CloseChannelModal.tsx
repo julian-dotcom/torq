@@ -3,29 +3,24 @@ import {
   CheckmarkRegular as SuccessIcon,
   DismissRegular as FailedIcon,
   ArrowRouting20Regular as ChannelsIcon,
-  CommentLightning20Regular as AdvencedOption,
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
-import { useGetNodeConfigurationsQuery, WS_URL, useGetChannelsQuery } from "apiSlice";
-import type { nodeConfiguration } from "apiTypes";
-import { useState, useEffect, ChangeEvent } from "react";
+import { WS_URL } from "apiSlice";
+import { useState, ChangeEvent } from "react";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./closeChannel.module.scss";
-import { channel } from "../channelsTypes";
 import { useNavigate } from "react-router";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import useTranslations from "services/i18n/useTranslations";
-import Select, { SelectOptions } from "features/forms/Select";
-import { ActionMeta } from "react-select";
 import classNames from "classnames";
-import NumberFormat, { NumberFormatValues } from "react-number-format";
+import { NumberFormatValues } from "react-number-format";
 import Input from "components/forms/input/Input";
-import { SectionContainer } from "features/section/SectionContainer";
 import useWebSocket from "react-use-websocket";
 import Switch from "components/forms/switch/Switch";
 import FormRow from "features/forms/FormWrappers";
+import { useSearchParams } from "react-router-dom";
 
 const closeStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -42,65 +37,64 @@ const closeStatusIcon = {
 
 function closeChannelModal() {
   const { t } = useTranslations();
-  const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
+  const [queryParams] = useSearchParams();
+  const nodeId = parseInt(queryParams.get("nodeId") || "0");
+  const channelId = parseInt(queryParams.get("channelId") || "0");
 
-  const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
-  const { data: channels } = useGetChannelsQuery();
+  // const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
+  // const { data: channels } = useGetChannelsQuery();
+  //
+  // const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<SelectOptions[]>([
+  //   { value: 0, label: "Select a local node" },
+  // ]);
+  // const [channelOptions, setChannelOptions] = useState<SelectOptions[]>([{ value: 0, label: "Select your channel" }]);
 
-  const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<SelectOptions[]>([
-    { value: 0, label: "Select a local node" },
-  ]);
-  const [channelOptions, setChannelOptions] = useState<SelectOptions[]>([{ value: 0, label: "Select your channel" }]);
+  // useEffect(() => {
+  //   if (channels !== undefined) {
+  //     const newChannelOptions = channels.map((channel: channel) => {
+  //       return {
+  //         value: channel.channelPoint,
+  //         label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
+  //       };
+  //     });
+  //     setChannelOptions(newChannelOptions);
+  //   }
+  //   if (nodeConfigurations !== undefined) {
+  //     const newNodeOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
+  //       return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
+  //     });
+  //     setNodeConfigurationOptions(newNodeOptions);
+  //   }
+  // }, [channels, nodeConfigurations]);
 
-  useEffect(() => {
-    if (channels !== undefined) {
-      const newChannelOptions = channels.map((channel: channel) => {
-        return {
-          value: channel.channelPoint,
-          label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
-        };
-      });
-      setChannelOptions(newChannelOptions);
-    }
-    if (nodeConfigurations !== undefined) {
-      const newNodeOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
-        return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
-      });
-      setNodeConfigurationOptions(newNodeOptions);
-    }
-  }, [channels, nodeConfigurations]);
-
-  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
-  const [selectedChannel, setSelectedChannel] = useState<string>(channelOptions[0]?.value as string);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
   const [detailState, setDetailState] = useState(ProgressStepState.active);
   const [closeAddress, setCloseAddress] = useState<string>("");
-  const [satPerVbyte, setSatPerVbyte] = useState<number>(0);
+  const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
   const [force, setForce] = useState<boolean>(false);
 
-  function handleNodeSelection(value: number) {
-    setSelectedNodeId(value);
-    const filteredChannels = channels?.filter((channel: { nodeId: number }) => channel.nodeId == value);
-    const filteredChannelOptions = filteredChannels?.map((channel: channel) => {
-      if (channel.nodeId == value) {
-        return {
-          value: channel.channelPoint,
-          label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
-        };
-      }
-    });
-    setChannelOptions(filteredChannelOptions as SelectOptions[]);
-  }
-
-  function handleChannelSelection(value: string) {
-    setSelectedChannel(value);
-  }
+  // function handleNodeSelection(value: number) {
+  //   setSelectedNodeId(value);
+  //   const filteredChannels = channels?.filter((channel: { nodeId: number }) => channel.nodeId == value);
+  //   const filteredChannelOptions = filteredChannels?.map((channel: channel) => {
+  //     if (channel.nodeId == value) {
+  //       return {
+  //         value: channel.channelPoint,
+  //         label: `${channel.peerAlias} - ${channel.lndShortChannelId.toString()}`,
+  //       };
+  //     }
+  //   });
+  //   setChannelOptions(filteredChannelOptions as SelectOptions[]);
+  // }
+  //
+  // function handleChannelSelection(value: string) {
+  //   setSelectedChannel(value);
+  // }
 
   const closeAndReset = () => {
     setStepIndex(0);
-    setSelectedNodeId(0);
     setDetailState(ProgressStepState.active);
     setResultState(ProgressStepState.disabled);
     setErrorMEssage("");
@@ -133,80 +127,73 @@ function closeChannelModal() {
 
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
-          <Select
-            label={t.yourNode}
-            onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-              const selectOptions = newValue as SelectOptions;
-              handleNodeSelection(selectOptions?.value as number);
-            }}
-            options={nodeConfigurationOptions}
-            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
-          />
-          <Select
-            label={t.yourChannel}
-            onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-              const selectOptions = newValue as SelectOptions;
-              handleChannelSelection(selectOptions?.value as string);
-            }}
-            options={channelOptions}
-            value={channelOptions.find((option) => option.value === selectedChannel)}
-            isDisabled={true}
-          />
+          {/*<Select*/}
+          {/*  label={t.yourNode}*/}
+          {/*  onChange={(newValue: unknown, _: ActionMeta<unknown>) => {*/}
+          {/*    const selectOptions = newValue as SelectOptions;*/}
+          {/*    handleNodeSelection(selectOptions?.value as number);*/}
+          {/*  }}*/}
+          {/*  options={nodeConfigurationOptions}*/}
+          {/*  value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}*/}
+          {/*/>*/}
+          {/*<Select*/}
+          {/*  label={t.yourChannel}*/}
+          {/*  onChange={(newValue: unknown, _: ActionMeta<unknown>) => {*/}
+          {/*    const selectOptions = newValue as SelectOptions;*/}
+          {/*    handleChannelSelection(selectOptions?.value as string);*/}
+          {/*  }}*/}
+          {/*  options={channelOptions}*/}
+          {/*  value={channelOptions.find((option) => option.value === selectedChannel)}*/}
+          {/*  isDisabled={true}*/}
+          {/*/>*/}
           <div className={styles.activeColumns}>
-            <SectionContainer
-              title={"Advanced Options"}
-              icon={AdvencedOption}
-              expanded={expandAdvancedOptions}
-              handleToggle={() => {
-                setExpandAdvancedOptions(!expandAdvancedOptions);
-              }}
-            >
-              <div className={styles.closeChannelTableRow}>
-                <FormRow>
-                  <div className={styles.closeChannelTableSingle}>
-                    <span className={styles.label}>{"Sat per vbyte"}</span>
-                    <div className={styles.input}>
-                      <NumberFormat
-                        className={styles.single}
-                        thousandSeparator={false}
-                        value={satPerVbyte}
-                        onValueChange={(values: NumberFormatValues) => {
-                          setSatPerVbyte(values.floatValue as number);
-                        }}
-                      />
-                    </div>
+            <div className={styles.closeChannelTableRow}>
+              <FormRow>
+                <div className={styles.closeChannelTableSingle}>
+                  <span className={styles.label}>{"Sat per vbyte"}</span>
+                  <div className={styles.input}>
+                    <Input
+                      formatted={true}
+                      className={styles.single}
+                      thousandSeparator={","}
+                      value={satPerVbyte}
+                      suffix={" sat/vbyte"}
+                      onValueChange={(values: NumberFormatValues) => {
+                        setSatPerVbyte(values.floatValue as number);
+                      }}
+                    />
                   </div>
-                </FormRow>
-              </div>
-              <div className={styles.closeChannelTableRow}>
-                <FormRow>
-                  <div className={styles.closeChannelTableSingle}>
-                    <span className={styles.label}>{"Close Address (for local funds)"}</span>
-                    <div className={styles.input}>
-                      <Input
-                        type={"text"}
-                        value={closeAddress}
-                        placeholder={"e.g. bc1q..."}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          setCloseAddress(e.target.value);
-                        }}
-                      />
-                    </div>
+                </div>
+              </FormRow>
+            </div>
+            <div className={styles.closeChannelTableRow}>
+              <FormRow>
+                <div className={styles.closeChannelTableSingle}>
+                  <span className={styles.label}>{"Close Address (for local funds)"}</span>
+                  <div className={styles.input}>
+                    <Input
+                      type={"text"}
+                      value={closeAddress}
+                      placeholder={"e.g. bc1q..."}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                        setCloseAddress(e.target.value);
+                      }}
+                    />
                   </div>
-                </FormRow>
-              </div>
-              <div className={styles.closeChannelTableRow}>
-                <FormRow className={styles.switchRow}>
-                  <Switch
-                    label={"Force close"}
-                    checked={force}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      setForce(e.target.checked);
-                    }}
-                  />
-                </FormRow>
-              </div>
-            </SectionContainer>
+                </div>
+              </FormRow>
+            </div>
+            <div className={styles.closeChannelTableRow}>
+              <FormRow className={styles.switchRow}>
+                <Switch
+                  label={"Force close"}
+                  checked={force}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setForce(e.target.checked);
+                  }}
+                />
+              </FormRow>
+            </div>
             <ButtonWrapper
               rightChildren={
                 <Button
@@ -219,8 +206,8 @@ function closeChannelModal() {
                       reqId: "randId",
                       type: "closeChannel",
                       closeChannelRequest: {
-                        nodeId: selectedNodeId,
-                        channelpoint: selectedChannel,
+                        nodeId: nodeId,
+                        channelId: channelId,
                         satPerVbyte,
                         deliveryAddress: closeAddress,
                         force,
