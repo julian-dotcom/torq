@@ -15,9 +15,9 @@ export interface nodeConfiguration {
   implementation: number;
   grpcAddress?: string;
   tlsFileName?: string;
-  tlsFile: File | null;
+  tlsFile?: File | null;
   macaroonFileName?: string;
-  macaroonFile: File | null;
+  macaroonFile?: File | null;
   createdOn?: Date;
   updatedOn?: Date;
   status: number;

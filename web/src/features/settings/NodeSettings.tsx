@@ -43,6 +43,20 @@ interface nodeProps {
   onAddFailure?: () => void;
 }
 
+const nodeConfigurationTemplate = {
+    createdOn: undefined,
+    grpcAddress: "",
+    macaroonFileName: "",
+    name: "",
+    tlsFileName: "",
+    updatedOn: undefined,
+    implementation: 0,
+    nodeId: 0,
+    status: 0,
+    pingSystem: 0,
+    customSettings: 0,
+  }
+
 const NodeSettings = React.forwardRef(function NodeSettings(
   { nodeId, collapsed, addMode, onAddSuccess }: nodeProps,
   ref
@@ -59,7 +73,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [setNodeConfigurationStatus] = useUpdateNodeConfigurationStatusMutation();
   const [setNodePingSystemStatus] = useUpdateNodePingSystemStatusMutation();
 
-  const [nodeConfigurationState, setNodeConfigurationState] = useState({} as nodeConfiguration);
+  const [nodeConfigurationState, setNodeConfigurationState] = useState<nodeConfiguration>(nodeConfigurationTemplate);
   const [collapsedState, setCollapsedState] = useState(collapsed ?? false);
   const [showModalState, setShowModalState] = useState(false);
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
@@ -95,7 +109,13 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setShowModalState(false);
     setDeleteConfirmationTextInputState("");
     setDeleteEnabled(false);
-    setNodeConfigurationState({} as nodeConfiguration);
+    setNodeConfigurationState({
+      implementation: 0,
+      nodeId: 0,
+      status: 0,
+      pingSystem: 0,
+      customSettings: 0,
+    });
   };
 
   const handleDeleteClick = () => {
@@ -158,17 +178,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   };
 
   React.useEffect(() => {
-    if (nodeConfigurationData) {
-      setNodeConfigurationState(nodeConfigurationData);
-    } else {
-      setNodeConfigurationState({
-        implementation: 0,
-        nodeId: 0,
-        status: 0,
-        pingSystem: 0,
-        customSettings: 0,
-      } as nodeConfiguration);
-    }
+    setNodeConfigurationState(nodeConfigurationData || nodeConfigurationTemplate);
   }, [nodeConfigurationData]);
 
   const handleTLSFileChange = (file: File | null) => {
@@ -373,7 +383,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   <Switch
                     label={t.importFailedPayments}
                     checked={nodeConfigurationState.customSettings % 2 >= 1}
-                    onClick={handleImportFailedPaymentsClick}
+                    onChange={handleImportFailedPaymentsClick}
                   />
                 </div>
                 <Button
@@ -390,14 +400,14 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                     <Switch
                       label="Amboss Ping"
                       checked={nodeConfigurationState.pingSystem % 2 >= 1}
-                      onClick={handleAmbossPingClick}
+                      onChange={handleAmbossPingClick}
                     />
                   </div>
                   <div className={styles.vectorPingSystem}>
                     <Switch
                       label="Vector Ping"
                       checked={nodeConfigurationState.pingSystem % 4 >= 2}
-                      onClick={handleVectorPingClick}
+                      onChange={handleVectorPingClick}
                     />
                   </div>
                 </div>
