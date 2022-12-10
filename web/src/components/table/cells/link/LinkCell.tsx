@@ -3,7 +3,7 @@ import React from "react";
 import classNames from "classnames";
 
 interface LinkCell {
-  current: string;
+  text: string;
   link: string;
   className?: string;
 }
@@ -16,7 +16,7 @@ function LinkCell(props: LinkCell) {
       target="_blank"
       href={props.link}
     >
-      <div className={classNames(styles.current, styles.text, styles.link)}>{props.current}</div>
+      <div className={classNames(styles.current, styles.text, styles.link)}>{props.text}</div>
     </a>
   );
 }

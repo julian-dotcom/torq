@@ -21,7 +21,7 @@ export const AllInvoicesColumns: Array<ColumnMetaData<Invoice>> = [
     key: "invoiceState",
     heading: "State",
     type: "TextCell",
-    valueType: "array",
+    valueType: "enum",
   },
   {
     key: "amtPaid",
@@ -56,7 +56,7 @@ export const AllInvoicesColumns: Array<ColumnMetaData<Invoice>> = [
   {
     key: "destinationPubKey",
     heading: "Destination",
-    type: "TextCell",
+    type: "LongTextCell",
     valueType: "string",
   },
   {
@@ -68,19 +68,19 @@ export const AllInvoicesColumns: Array<ColumnMetaData<Invoice>> = [
   {
     key: "fallbackAddr",
     heading: "Fallback Address",
-    type: "TextCell",
+    type: "LongTextCell",
     valueType: "string",
   },
   {
     key: "paymentAddr",
     heading: "Payment Address",
-    type: "TextCell",
+    type: "LongTextCell",
     valueType: "string",
   },
   {
     key: "paymentRequest",
     heading: "Payment Request",
-    type: "TextCell",
+    type: "LongTextCell",
     valueType: "string",
   },
   {
@@ -92,13 +92,13 @@ export const AllInvoicesColumns: Array<ColumnMetaData<Invoice>> = [
   {
     key: "rHash",
     heading: "Hash",
-    type: "TextCell",
+    type: "LongTextCell",
     valueType: "string",
   },
   {
     key: "rPreimage",
     heading: "Preimage",
-    type: "TextCell",
+    type: "LongTextCell",
     valueType: "string",
   },
   {

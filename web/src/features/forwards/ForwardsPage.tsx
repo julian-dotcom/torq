@@ -23,7 +23,7 @@ import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlic
 import { addDays, format } from "date-fns";
 import { useGetForwardsQuery } from "apiSlice";
 import { Forward } from "./forwardsTypes";
-import { forwardsCellRenderer } from "./forwardsCells";
+import forwardsCellRenderer from "./forwardsCells";
 import Table from "features/table/Table";
 import { useFilterData, useSortData } from "../viewManagement/hooks";
 // import Button, { buttonColor } from "components/buttons/Button";

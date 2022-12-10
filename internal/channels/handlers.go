@@ -55,7 +55,7 @@ type channelBody struct {
 	RemotePubkey                 string               `json:"remotePubkey"`
 	FundingTransactionHash       string               `json:"fundingTransactionHash"`
 	FundingOutputIndex           int                  `json:"fundingOutputIndex"`
-	LNDShortChannelId            uint64               `json:"lndShortChannelId"`
+	LNDShortChannelId            string               `json:"lndShortChannelId"`
 	ShortChannelId               string               `json:"shortChannelId"`
 	Capacity                     int64                `json:"capacity"`
 	LocalBalance                 int64                `json:"localBalance"`
@@ -203,7 +203,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 					RemotePubkey:                 remoteNode.PublicKey,
 					FundingTransactionHash:       channelSettings.FundingTransactionHash,
 					FundingOutputIndex:           channelSettings.FundingOutputIndex,
-					LNDShortChannelId:            channelSettings.LndShortChannelId,
+					LNDShortChannelId:            lndShortChannelIdString,
 					ShortChannelId:               channelSettings.ShortChannelId,
 					Capacity:                     channelSettings.Capacity,
 					LocalBalance:                 channel.LocalBalance,

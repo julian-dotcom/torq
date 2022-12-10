@@ -13,13 +13,13 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
   },
   {
     heading: "Peer Alias",
-    type: "TextCell",
+    type: "AliasCell",
     key: "peerAlias",
     valueType: "string",
   },
   {
     heading: "Short Channel ID",
-    type: "TextCell",
+    type: "LongTextCell",
     key: "shortChannelId",
     valueType: "string",
   },
@@ -30,11 +30,12 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     valueType: "number",
   },
   {
-    heading: "Balance Gauge",
-    type: "BarCell",
-    key: "gauge",
+    heading: "Balance",
+    type: "BalanceCell",
+    key: "localBalance",
+    key2: "remoteBalance",
     valueType: "number",
-    percent: true,
+    percent: false,
   },
   {
     heading: "Local Balance",
@@ -50,26 +51,34 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
   },
   {
     heading: "Fee rate (PPM)",
-    type: "NumericCell",
+    type: "NumericDoubleCell",
     key: "feeRatePpm",
+    key2: "remoteFeeRatePpm",
+    suffix: "ppm",
     valueType: "number",
   },
   {
     heading: "Base Fee Msat",
-    type: "NumericCell",
+    type: "NumericDoubleCell",
     key: "baseFeeMsat",
+    key2: "remoteBaseFeeMsat",
+    suffix: "msat",
     valueType: "number",
   },
   {
     heading: "Minimum HTLC",
-    type: "NumericCell",
+    type: "NumericDoubleCell",
     key: "minHtlc",
+    key2: "remoteMinHtlc",
+    suffix: "msat",
     valueType: "number",
   },
   {
-    heading: "Maximum HTLC Msat",
-    type: "NumericCell",
+    heading: "Maximum HTLC Amount",
+    type: "NumericDoubleCell",
     key: "maxHtlcMsat",
+    key2: "remoteMaxHtlcMsat",
+    suffix: "sat",
     valueType: "number",
   },
   {
@@ -80,13 +89,13 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
   },
   {
     heading: "LND Short Channel ID",
-    type: "TextCell",
+    type: "LongTextCell",
     key: "lndShortChannelId",
     valueType: "string",
   },
   {
     heading: "Funding Transaction",
-    type: "TextCell",
+    type: "LongTextCell",
     key: "fundingTransactionHash",
     valueType: "string",
   },
@@ -151,14 +160,8 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     valueType: "number",
   },
   {
-    heading: "Node ID",
-    type: "NumericCell",
-    key: "nodeId",
-    valueType: "number",
-  },
-  {
     heading: "Node Name",
-    type: "TextCell",
+    type: "AliasCell",
     key: "nodeName",
     valueType: "string",
   },
@@ -166,19 +169,19 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     heading: "Mempool",
     type: "LinkCell",
     key: "mempoolSpace",
-    valueType: "string",
+    valueType: "link",
   },
   {
     heading: "Amboss",
     type: "LinkCell",
     key: "ambossSpace",
-    valueType: "string",
+    valueType: "link",
   },
   {
     heading: "1ML",
     type: "LinkCell",
     key: "oneMl",
-    valueType: "string",
+    valueType: "link",
   },
 ];
 
@@ -243,3 +246,6 @@ const sortableColumns: Array<keyof channel> = [
 ];
 
 export const SortableChannelsColumns = AllChannelsColumns.filter((c) => sortableColumns.includes(c.key));
+
+
+

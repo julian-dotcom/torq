@@ -24,19 +24,38 @@ import {
 import { TableResponses } from "features/viewManagement/types";
 
 const CellOptions: SelectOptionType[] = [
+  { label: "Alias", value: "AliasCell" },
   { label: "Number", value: "NumericCell" },
   { label: "Boolean", value: "BooleanCell" },
   { label: "Array", value: "EnumCell" },
   { label: "Bar", value: "BarCell" },
   { label: "Text", value: "TextCell" },
-  { label: "Duration", value: "TextCell" },
+  { label: "Duration", value: "DurationCell" },
+  { label: "Date", value: "DateCell" },
+  { label: "Long Text", value: "LongTextCell" },
 ];
 
 const NumericCellOptions: SelectOptionType[] = [
   { label: "Number", value: "NumericCell" },
   { label: "Bar", value: "BarCell" },
   { label: "Text", value: "TextCell" },
+  { label: "Long Text", value: "LongTextCell" },
 ];
+
+const StringCellOptions: SelectOptionType[] = [
+  { label: "Text", value: "TextCell" },
+  { label: "Long Text", value: "LongTextCell" },
+];
+
+const Options = new Map<string, Array<{ label: string, value: string }>> ([
+  ["number", NumericCellOptions],
+  ["string", StringCellOptions],
+  ["boolean", [{ label: "Boolean", value: "BooleanCell" }]],
+  ["enum", [{ label: "Array", value: "EnumCell" }]],
+  ["array", [{ label: "Array", value: "EnumCell" }]],
+  ["date", [{ label: "Date", value: "DateCell" }]],
+  ["duration", [{ label: "Duration", value: "TextCell" }]],
+])
 
 type ColumnRow<T> = {
   page: ViewSliceStatePages;
@@ -51,9 +70,22 @@ function LockedColumnRow<T>(props: ColumnRow<T>) {
 
   const selectedOption = CellOptions.filter((option) => {
     if (option.value === props.column.type) {
-      return option;
+      return true;
     }
   })[0];
+
+  function handleCellTypeChange(newValue: unknown) {
+    dispatch(
+      updateColumn({
+        page: props.page,
+        viewIndex: props.viewIndex,
+        columnIndex: props.index,
+        columnUpdate: {
+          type: (newValue as { value: string; label: string }).value,
+        },
+      })
+    );
+  }
 
   const [expanded, setExpanded] = useState(false);
   return (
@@ -77,21 +109,10 @@ function LockedColumnRow<T>(props: ColumnRow<T>) {
       </div>
       <div className={styles.rowOptionsContainer}>
         <Select
-          isDisabled={["date", "array", "string", "boolean", "enum"].includes(props.column.valueType)}
-          options={NumericCellOptions}
+          isDisabled={["date", "duration", "array", "boolean", "enum"].includes(props.column.valueType)}
+          options={Options.get(props.column.valueType)}
           value={selectedOption}
-          onChange={(newValue) => {
-            dispatch(
-              updateColumn({
-                page: props.page,
-                viewIndex: props.viewIndex,
-                columnIndex: props.index,
-                columnUpdate: {
-                  type: (newValue as { value: string; label: string }).value,
-                },
-              })
-            );
-          }}
+          onChange={handleCellTypeChange}
         />
       </div>
     </div>
@@ -100,11 +121,11 @@ function LockedColumnRow<T>(props: ColumnRow<T>) {
 
 function ColumnRow<T>(props: ColumnRow<T>) {
   const dispatch = useAppDispatch();
-  const selectedOption = CellOptions.filter((option) => {
+
+  const selectedOption: {value: string, label: string} = CellOptions.filter((option) => {
     if (option.value === props.column.type) {
-      return option;
+      return true;
     }
-    return option;
   })[0];
 
   const [expanded, setExpanded] = useState(false);
@@ -143,8 +164,8 @@ function ColumnRow<T>(props: ColumnRow<T>) {
           </div>
           <div className={styles.rowOptionsContainer}>
             <Select
-              isDisabled={["date", "array", "string", "boolean", "enum"].includes(props.column.valueType)}
-              options={NumericCellOptions}
+              isDisabled={["date", "duration", "array", "boolean", "enum"].includes(props.column.valueType)}
+              options={Options.get(props.column.valueType)}
               value={selectedOption}
               onChange={(newValue) => {
                 dispatch(
@@ -261,7 +282,7 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
                             viewIndex={props.viewIndex}
                             page={props.page}
                             column={column}
-                            key={"selected-" + column.key.toString() + "-"}
+                            key={"selected-" + column.key.toString() + "-" + index}
                             index={index}
                           />
                         );

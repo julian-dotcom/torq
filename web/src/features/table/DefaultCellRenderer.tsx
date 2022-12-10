@@ -6,6 +6,11 @@ import DurationCell from "components/table/cells/duration/DurationCell";
 import BooleanCell from "components/table/cells/boolean/BooleanCell";
 import DateCell from "components/table/cells/date/DateCell";
 import EnumCell from "components/table/cells/enum/EnumCell";
+import NumericDoubleCell from "components/table/cells/numeric/NumericDoubleCell";
+import AliasCell from "components/table/cells/alias/AliasCell";
+import styles from "components/table/cells/cell.module.scss";
+import LongTextCell from "components/table/cells/longText/LongTextCell";
+import LinkCell from "../../components/table/cells/link/LinkCell";
 
 export default function DefaultCellRenderer<T>(
   row: T,
@@ -14,14 +19,20 @@ export default function DefaultCellRenderer<T>(
   columnIndex: number
 ): JSX.Element {
   const dataKey = column.key as keyof T;
+  const dataKey2 = column.key2 as keyof T;
+  const suffix = column.suffix as string;
   // const heading = column.heading;
   const percent = column.percent;
 
-  switch (typeof row[dataKey]) {
+  switch (column.valueType) {
     case "string":
       switch (column.type) {
+        case "AliasCell":
+          return <AliasCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} className={column.locked ? styles.locked : ""} />;
+        case "LongTextCell":
+          return <LongTextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} copyText={row[dataKey] as string} />;
         case "TextCell":
-          return <TextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} />;
+          return <TextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex}/>;
         case "DurationCell":
           return <DurationCell seconds={row[dataKey] as number} key={dataKey.toString() + rowIndex} />;
         case "EnumCell":
@@ -41,13 +52,19 @@ export default function DefaultCellRenderer<T>(
           );
       }
       break;
+    case "date":
+      return <DateCell value={row[dataKey] as Date} key={dataKey.toString() + rowIndex} />;
+      break;
+    case "duration":
+      return <DurationCell seconds={row[dataKey] as number} key={dataKey.toString() + rowIndex} />;
+      break;
+    case "link":
+      return <LinkCell text={row[dataKey] as string} link={row[dataKey] as string} key={dataKey.toString() + rowIndex} />;
+      break;
     case "number":
       switch (column.type) {
         case "NumericCell":
           return <NumericCell current={row[dataKey] as number} key={dataKey.toString() + rowIndex + columnIndex} />;
-        case "DateCell":
-          return <DateCell value={row[dataKey] as string} key={dataKey.toString() + rowIndex + columnIndex} />;
-
         case "BarCell":
           return (
             <BarCell
@@ -57,7 +74,10 @@ export default function DefaultCellRenderer<T>(
               key={dataKey.toString() + rowIndex + columnIndex}
             />
           );
+     case "NumericDoubleCell":
+        return <NumericDoubleCell local={row[dataKey] as number} remote={row[dataKey2] as number} suffix={suffix as string} className={dataKey.toString()} key={dataKey.toString() + rowIndex + columnIndex} />;
+
       }
   }
-  return <TextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} />;
+  return <TextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} copyText={row[dataKey] as string} />;
 }

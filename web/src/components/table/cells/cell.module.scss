@@ -8,6 +8,7 @@
   text-align: right;
   background-color: var(--bg-default);
   border-bottom: 1px solid var(--primary-100);
+  white-space: nowrap;
   @media only screen and (max-width: 900px) {
     min-width: 0px;
   }
@@ -84,7 +85,6 @@
 }
 
 // TODO: Clean this up after deciding on limitations to column freezing
-:global(.alias),
 .locked {
   position: sticky;
   left: 10px;

@@ -1,6 +1,8 @@
 export type ColumnMetaData<T> = {
   heading: string;
   key: keyof T;
+  key2?: keyof T;
+  suffix?: string;
   type?: string;
   width?: number;
   locked?: boolean;

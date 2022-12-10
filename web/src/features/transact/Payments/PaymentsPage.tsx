@@ -20,10 +20,10 @@ import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import useTranslations from "services/i18n/useTranslations";
 import {
   AllPaymentsColumns,
-  DefaultPaymentView,
+  DefaultPaymentView, FailureReasonLabels,
   PaymentsFilterTemplate,
   PaymentsSortTemplate,
-  SortablePaymentsColumns,
+  SortablePaymentsColumns, StatusTypeLabels,
 } from "./paymentDefaults";
 import { usePagination } from "components/table/pagination/usePagination";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
@@ -57,18 +57,17 @@ function PaymentsPage() {
     { skip: !isSuccess }
   );
 
-  // if (paymentsResponse?.data?.data) {
-  //   data = paymentsResponse?.data?.data.map((payment: any) => {
-  //     const failure_reason = failureReasons[payment.failure_reason];
-  //     const status = statusTypes[payment.status];
-  //
-  //     return {
-  //       ...payment,
-  //       failure_reason,
-  //       status,
-  //     };
-  //   });
-  // }
+  let data = paymentsResponse.data?.data || [];
+  data = data.map((payment: any) => {
+    const failureReason = FailureReasonLabels.get(payment.failure_reason) || "";
+    const status = StatusTypeLabels.get(payment.status) || "";
+
+    return {
+      ...payment,
+      failureReason: failureReason,
+      status: status,
+    };
+  });
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -133,7 +132,7 @@ function PaymentsPage() {
     >
       <Table
         cellRenderer={DefaultCellRenderer}
-        data={paymentsResponse?.data?.data || []}
+        data={data}
         activeColumns={viewResponse.view.columns || []}
         isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
       />

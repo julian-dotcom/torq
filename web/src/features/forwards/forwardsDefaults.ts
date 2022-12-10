@@ -92,13 +92,13 @@ export const AllForwardsColumns: ColumnMetaData<Forward>[] = [
   },
   {
     heading: "Public key",
-    type: "TextCell",
+    type: "LongTextCell",
     key: "pubKey",
     valueType: "string",
   },
   {
     heading: "Funding Tx Hash",
-    type: "TextCell",
+    type: "LongTextCell",
     key: "fundingTransactionHash",
     valueType: "string",
   },
@@ -110,19 +110,19 @@ export const AllForwardsColumns: ColumnMetaData<Forward>[] = [
   },
   {
     heading: "Channel short ID",
-    type: "TextCell",
+    type: "LongTextCell",
     key: "shortChannelId",
     valueType: "string",
   },
   {
     heading: "LND Channel short ID",
-    type: "TextCell",
+    type: "LongTextCell",
     key: "lndShortChannelId",
     valueType: "string",
   },
   {
     heading: "Channel Point",
-    type: "TextCell",
+    type: "LongTextCell",
     key: "channelPoint",
     valueType: "string",
   },

@@ -17,7 +17,6 @@ import { useLocation } from "react-router";
 import { channel } from "./channelsTypes";
 import { UPDATE_CHANNEL, OPEN_CHANNEL, CLOSE_CHANNEL } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
-import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import Table from "features/table/Table";
 import {
   AllChannelsColumns,
@@ -34,6 +33,7 @@ import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { useState } from "react";
 import { useFilterData, useSortData } from "../viewManagement/hooks";
 import { useGroupBy } from "../sidebar/sections/group/groupBy";
+import channelsCellRenderer from "./channelsCellRenderer";
 
 function ChannelsPage() {
   const { t } = useTranslations();
@@ -141,7 +141,7 @@ function ChannelsPage() {
       tableControls={tableControls}
     >
       <Table
-        cellRenderer={DefaultCellRenderer}
+        cellRenderer={channelsCellRenderer}
         data={data}
         activeColumns={viewResponse.view.columns || []}
         isLoading={channelsResponse.isLoading || channelsResponse.isFetching || channelsResponse.isUninitialized}

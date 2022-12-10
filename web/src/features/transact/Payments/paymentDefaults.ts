@@ -58,13 +58,13 @@ export const PaymentsFilterTemplate: FilterInterface = {
   key: "value",
 };
 
-const StatusTypeLabels = {
-  SUCCEEDED: "Succeeded",
-  FAILED: "Failed",
-  IN_FLIGHT: "In Flight",
-};
+export const StatusTypeLabels = new Map<string, string>([
+  ["SUCCEEDED", "Succeeded"],
+  ["FAILED", "Failed"],
+  ["IN_FLIGHT", "In Flight"],
+]);
 
-const FailureReasonLabels = new Map<string, string>([
+export const FailureReasonLabels = new Map<string, string>([
   ["FAILURE_REASON_NONE", ""],
   ["FAILURE_REASON_TIMEOUT", "Timeout"],
   ["FAILURE_REASON_NO_ROUTE", "No Route"],
