@@ -41,6 +41,21 @@ export const SortableOnChainColumns = AllOnChainColumns.filter((column: ColumnMe
   sortableColumnsKeys.includes(column.key)
 );
 
+const filterableColumnsKeys: Array<keyof OnChainTx> = [
+  "date",
+  "destAddresses",
+  "destAddressesCount",
+  "amount",
+  "totalFees",
+  "label",
+  "lndTxTypeLabel",
+  "lndShortChanId",
+];
+
+export const FilterableOnChainColumns = AllOnChainColumns.filter((column: ColumnMetaData<OnChainTx>) =>
+  filterableColumnsKeys.includes(column.key)
+);
+
 export const OnChainSortTemplate: { key: keyof OnChainTx; direction: "desc" | "asc" } = {
   key: "date",
   direction: "desc",

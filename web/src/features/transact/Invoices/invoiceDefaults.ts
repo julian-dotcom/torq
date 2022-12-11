@@ -138,25 +138,50 @@ export const DefaultInvoicesColumns = AllInvoicesColumns.filter(({ key }) => def
 const sortableKeys: Array<keyof Invoice> = [
   "creationDate",
   "settleDate",
-  "invoiceState",
-  "amtPaid",
+  "addIndex",
+  "settleIndex",
   "memo",
   "value",
+  "amtPaid",
+  "invoiceState",
   "isRebalance",
   "isKeysend",
-  "destinationPubKey",
   "isAmp",
-  "fallbackAddr",
-  "paymentAddr",
-  "paymentRequest",
-  "private",
-  "expiry",
-  "cltvExpiry",
   "updatedOn",
+  "expiry",
+  "private",
 ];
 
 export const SortableInvoiceColumns = AllInvoicesColumns.filter((column: ColumnMetaData<Invoice>) => {
   return sortableKeys.includes(column.key);
+});
+
+const filterableKeys: Array<keyof Invoice> = [
+  "addIndex",
+  "creationDate",
+  "settleDate",
+  "settleIndex",
+  "paymentRequest",
+  "destinationPubKey",
+  "rHash",
+  "rPreimage",
+  "memo",
+  "value",
+  "amtPaid",
+  "invoiceState",
+  "isRebalance",
+  "isKeysend",
+  "isAmp",
+  "paymentAddr",
+  "fallbackAddr",
+  "updatedOn",
+  "expiry",
+  "cltvExpiry",
+  "private",
+];
+
+export const FilterableInvoiceColumns = AllInvoicesColumns.filter((column: ColumnMetaData<Invoice>) => {
+  return filterableKeys.includes(column.key);
 });
 
 export const InvoiceSortTemplate: { key: keyof Invoice; direction: "desc" | "asc" } = {

@@ -9,7 +9,8 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsButton, TableControlsTabsGroup,
+  TableControlsButton,
+  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import Button, { buttonColor } from "components/buttons/Button";
@@ -21,6 +22,7 @@ import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import {
   AllOnChainColumns,
   DefaultOnChainView,
+  FilterableOnChainColumns,
   OnChainFilterTemplate,
   OnChainSortTemplate,
   SortableOnChainColumns,
@@ -119,7 +121,7 @@ function OnChainPage() {
       selectedViewIndex={selectedViewIndex}
       allColumns={AllOnChainColumns}
       defaultView={DefaultOnChainView}
-      filterableColumns={AllOnChainColumns}
+      filterableColumns={FilterableOnChainColumns}
       filterTemplate={OnChainFilterTemplate}
       sortableColumns={SortableOnChainColumns}
       sortByTemplate={OnChainSortTemplate}

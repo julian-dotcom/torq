@@ -74,7 +74,6 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 
 	//language=PostgreSQL
 	qb := sq.Select("*").
-		PlaceholderFormat(sq.Dollar).
 		FromSelect(
 			sq.Select(`
 				payment_index,
@@ -94,12 +93,12 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 				count_failed_attempts,
 				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000, 0))-creation_timestamp))::numeric as seconds_in_flight
 			`).
-				PlaceholderFormat(sq.Dollar).
-				From("payment"),
+				From("payment").
+				Prefix(`WITH pub_keys as (select ?::text[])`, pq.Array(publicKeys)),
 			"subquery").
+		PlaceholderFormat(sq.Dollar).
 		Where(filter).
-		OrderBy(order...).
-		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(publicKeys))
+		OrderBy(order...)
 
 	if limit > 0 {
 		qb = qb.Limit(limit).Offset(offset)
@@ -170,11 +169,11 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 				count_failed_attempts,
 				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000, 0))-creation_timestamp))::numeric as seconds_in_flight
 			`).
-				PlaceholderFormat(sq.Dollar).
-				From("payment"),
+				From("payment").
+				Prefix(`WITH pub_keys as(select ?::text[])`, pq.Array(publicKeys)),
 			"subquery").
-		Where(filter).
-		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(publicKeys))
+		PlaceholderFormat(sq.Dollar).
+		Where(filter)
 
 	totalQs, args, err := totalQb.ToSql()
 	if err != nil {

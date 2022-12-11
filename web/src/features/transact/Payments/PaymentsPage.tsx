@@ -10,7 +10,8 @@ import Table from "features/table/Table";
 import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
-  TableControlSection, TableControlsTabsGroup,
+  TableControlSection,
+  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import { useLocation } from "react-router";
@@ -20,10 +21,13 @@ import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import useTranslations from "services/i18n/useTranslations";
 import {
   AllPaymentsColumns,
-  DefaultPaymentView, FailureReasonLabels,
+  DefaultPaymentView,
+  FailureReasonLabels,
+  FilterablePaymentsColumns,
   PaymentsFilterTemplate,
   PaymentsSortTemplate,
-  SortablePaymentsColumns, StatusTypeLabels,
+  SortablePaymentsColumns,
+  StatusTypeLabels,
 } from "./paymentDefaults";
 import { usePagination } from "components/table/pagination/usePagination";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
@@ -82,15 +86,15 @@ function PaymentsPage() {
     <TableControlSection>
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
-        <Button
-          buttonColor={buttonColor.green}
-          text={"New Payment"}
-          className={"collapse-tablet"}
-          icon={<TransactionIcon />}
-          onClick={() => {
-            navigate(NEW_PAYMENT, { state: { background: location } });
-          }}
-        />
+          <Button
+            buttonColor={buttonColor.green}
+            text={"New Payment"}
+            className={"collapse-tablet"}
+            icon={<TransactionIcon />}
+            onClick={() => {
+              navigate(NEW_PAYMENT, { state: { background: location } });
+            }}
+          />
         </TableControlsTabsGroup>
         <TableControlsButton
           onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
@@ -109,7 +113,7 @@ function PaymentsPage() {
       selectedViewIndex={selectedViewIndex}
       allColumns={AllPaymentsColumns}
       defaultView={DefaultPaymentView}
-      filterableColumns={AllPaymentsColumns}
+      filterableColumns={FilterablePaymentsColumns}
       filterTemplate={PaymentsFilterTemplate}
       sortableColumns={SortablePaymentsColumns}
       sortByTemplate={PaymentsSortTemplate}

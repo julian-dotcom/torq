@@ -35,20 +35,39 @@ const defaultColumns: Array<keyof Payment> = [
 
 const sortableColumns: Array<keyof Payment> = [
   "date",
+  "status",
   "value",
   "fee",
   "ppm",
-  "status",
-  "isRebalance",
-  "secondsInFlight",
   "failureReason",
-  "isMpp",
-  "countFailedAttempts",
   "countSuccessfulAttempts",
+  "countFailedAttempts",
+  "secondsInFlight",
 ];
 
 export const SortablePaymentsColumns = AllPaymentsColumns.filter((column: ColumnMetaData<Payment>) =>
   sortableColumns.includes(column.key)
+);
+
+const filterableColumns: Array<keyof Payment> = [
+  "date",
+  "destinationPubKey",
+  "status",
+  "value",
+  "fee",
+  "ppm",
+  "failureReason",
+  "isRebalance",
+  "isMpp",
+  "countSuccessfulAttempts",
+  "countFailedAttempts",
+  "secondsInFlight",
+  "paymentHash",
+  "paymentPreimage",
+];
+
+export const FilterablePaymentsColumns = AllPaymentsColumns.filter((column: ColumnMetaData<Payment>) =>
+  filterableColumns.includes(column.key)
 );
 
 export const PaymentsFilterTemplate: FilterInterface = {

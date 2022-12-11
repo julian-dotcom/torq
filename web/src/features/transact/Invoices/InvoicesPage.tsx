@@ -9,7 +9,8 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
-  TableControlsButtonGroup, TableControlsTabsGroup,
+  TableControlsButtonGroup,
+  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import Button, { buttonColor } from "components/buttons/Button";
@@ -22,6 +23,7 @@ import {
   InvoiceSortTemplate,
   DefaultInvoiceView,
   SortableInvoiceColumns,
+  FilterableInvoiceColumns,
 } from "./invoiceDefaults";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import { usePagination } from "components/table/pagination/usePagination";
@@ -83,16 +85,16 @@ function InvoicesPage() {
     <TableControlSection>
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
-        <Button
-          buttonColor={buttonColor.green}
-          text={t.header.newInvoice}
-          className={"collapse-tablet"}
-          icon={<InvoiceIcon />}
-          onClick={() => {
-            navigate(NEW_INVOICE, { state: { background: location } });
-          }}
-        />
-          </TableControlsTabsGroup>
+          <Button
+            buttonColor={buttonColor.green}
+            text={t.header.newInvoice}
+            className={"collapse-tablet"}
+            icon={<InvoiceIcon />}
+            onClick={() => {
+              navigate(NEW_INVOICE, { state: { background: location } });
+            }}
+          />
+        </TableControlsTabsGroup>
         <TableControlsButton
           onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
           icon={OptionsIcon}
@@ -110,7 +112,7 @@ function InvoicesPage() {
       selectedViewIndex={selectedViewIndex}
       allColumns={AllInvoicesColumns}
       defaultView={DefaultInvoiceView}
-      filterableColumns={AllInvoicesColumns}
+      filterableColumns={FilterableInvoiceColumns}
       filterTemplate={InvoiceFilterTemplate}
       sortableColumns={SortableInvoiceColumns}
       sortByTemplate={InvoiceSortTemplate}

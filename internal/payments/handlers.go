@@ -98,8 +98,10 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	network := c.Query("network")
-	chain := c.Query("chain")
+	//network := c.Query("network")
+	//chain := c.Query("chain")
+	network := "mainnet"
+	chain := "bitcoin"
 
 	r, total, err := getPayments(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), filter, sort, limit, offset)
 	if err != nil {
@@ -116,8 +118,10 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
-	network := c.Query("network")
-	chain := c.Query("chain")
+	//network := c.Query("network")
+	//chain := c.Query("chain")
+	network := "mainnet"
+	chain := "bitcoin"
 
 	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), c.Param("identifier"))
 	switch err.(type) {
