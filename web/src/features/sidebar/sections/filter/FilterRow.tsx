@@ -224,8 +224,8 @@ function FilterRow({
           </div>
         )}
         <div className={styles.filterKeyLabel} onClick={() => setRowExpanded(!rowExpanded)}>
-          {label}
-          <span className={styles.filterFunctionLabel}> {funcOption?.label} </span>
+          <span>{label}</span>
+          <span className={styles.filterFunctionLabel}>&nbsp;{funcOption?.label}&nbsp;</span>
           <span className={styles.parameterLabel}>{getParameter()}</span>
         </div>
         <div className={classNames(styles.removeFilter, styles.desktopRemove)} onClick={() => onRemoveFilter(index)}>

@@ -17,13 +17,14 @@
 }
 .filterRow {
   background-color: var(--secondary-1-50);
-  border-radius: 2px;
+  border-radius: var(--radius-default);
 }
 .filter {
-  border-radius: 2px;
+  border-radius: var(--radius-default);
 }
 .filterKeyContainer {
   display: grid;
+  align-items: center;
   grid-template-columns: min-content auto min-content;
   font-size: 12px;
   width: 100%;
@@ -85,14 +86,15 @@
   gap: 8px;
   overflow: hidden;
   background-color: var(--secondary-1-0);
-  border-bottom-left-radius: 2px;
-  border-bottom-right-radius: 2px;
+  border-radius: var(--radius-default);
   border: 1px solid var(--secondary-1-50);
 }
 .filterOptions.expanded {
   height: auto;
   overflow: initial;
   padding: 8px;
+  border-bottom-left-radius: var(--radius-default);
+  border-bottom-right-radius: var(--radius-default);
 }
 .childFilter {
   .filterKeyContainer {
@@ -112,7 +114,7 @@
 }
 
 .filterInputField {
-  border-radius: 2px;
+  border-radius: var(--radius-default);
   border: 1px solid transparent;
   background-color: var(--bg-default);
   font-size: var(--font-size-default);
@@ -140,7 +142,7 @@
   }
 }
 .childWrapper {
-  border-radius: 2px;
+  border-radius: var(--radius-default);
   > .filterKeyLabel {
     color: var(--secondary-1-600);
     //&:hover {
@@ -152,7 +154,7 @@
   padding: 5px 10px;
   background-color: var(--bg-extra-faint);
   border: 1px solid var(--bg-subtle);
-  border-radius: 2px;
+  border-radius: var(--radius-default);
   color: var(--fg-muted);
 }
 
