@@ -10,8 +10,12 @@ import (
 type NewTableView struct {
 	View types.JSONText `json:"view" db:"view"`
 	Page string         `json:"page" db:"page"`
-	UuId string         `json:"uuid" db:"uuid"`
-	Id   int            `json:"id" db:"id"`
+}
+
+type UpdateTableView struct {
+	Id      int            `json:"id" db:"id"`
+	View    types.JSONText `json:"view" db:"view"`
+	Version string         `json:"version" db:"version"`
 }
 
 func getTableViews(db *sqlx.DB) (r []*TableView, err error) {
@@ -37,13 +41,19 @@ func getTableViews(db *sqlx.DB) (r []*TableView, err error) {
 }
 
 func insertTableView(db *sqlx.DB, view NewTableView) (r TableView, err error) {
+	nextViewOrder := 0
+	err = db.QueryRowx(`SELECT coalesce(MAX(view_order)+1, 1) FROM table_view where page = $1;`,
+		&view.Page).Scan(&nextViewOrder)
+	if err != nil {
+		return TableView{}, errors.Wrap(err, "Unable to get highest view order. SQL statement error")
+	}
 
 	sql := `
-		INSERT INTO table_view (view, page, uuid, created_on) values ($1, $2, $3, $4) RETURNING id, view, page, uuid,
-view_order;
+		INSERT INTO table_view (view, page, view_order, created_on) values ($1, $2, $3, $4)
+			RETURNING id, view, page, view_order, version
 	`
-	err = db.QueryRowx(sql, &view.View, &view.Page, &view.UuId, time.Now().UTC()).
-		Scan(&r.Id, &r.View, &r.Page, &r.Uuid, &r.ViewOrder)
+	err = db.QueryRowx(sql, &view.View, &view.Page, &nextViewOrder, time.Now().UTC()).
+		Scan(&r.Id, &r.View, &r.Page, &r.ViewOrder, &r.Version)
 	if err != nil {
 		return r, errors.Wrap(err, "Unable to create view. SQL statement error")
 	}
@@ -51,16 +61,16 @@ view_order;
 	return r, nil
 }
 
-func updateTableView(db *sqlx.DB, view TableView) (TableView, error) {
-	sql := `UPDATE table_view SET view = $1, updated_on = $3, version =$4 WHERE uuid = $5 RETURNING id, view, page, uuid, view_order;`
+func updateTableView(db *sqlx.DB, view UpdateTableView) (r TableView, err error) {
+	sql := `UPDATE table_view SET view = $1, updated_on = $2 WHERE id = $3 RETURNING id, view, page, view_order,
+version;`
 
-	err := db.QueryRowx(sql, &view.View, &view.ViewOrder, time.Now().UTC(), &view.Version,
-		&view.Uuid).Scan(&view.Id, &view.View, &view.Page, &view.Uuid, &view.ViewOrder)
+	err = db.QueryRowx(sql, &view.View, time.Now().UTC(), &view.Id).Scan(&r.Id, &r.View, &r.Page, &r.ViewOrder, &r.Version)
 	if err != nil {
 		return TableView{}, errors.Wrap(err, "Unable to create view. SQL statement error")
 	}
 
-	return view, nil
+	return r, nil
 }
 
 func deleteTableView(db *sqlx.DB, id int) error {

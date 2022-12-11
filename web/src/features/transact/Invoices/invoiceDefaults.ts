@@ -189,7 +189,7 @@ export const DefaultInvoiceView: ViewResponse<Invoice> = {
   page: "invoices",
   dirty: true,
   view: {
-    title: "Untitled View",
+    title: "Draft View",
     columns: DefaultInvoicesColumns,
   },
 };

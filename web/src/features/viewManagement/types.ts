@@ -26,11 +26,11 @@ export type AllViewsResponse = {
 };
 
 export type CreateViewRequest = {
+  index: number;
   page: keyof AllViewsResponse;
-  viewOrder: number;
   view: ViewInterface<TableResponses>;
 };
-export type UpdateViewRequest = { id: number; view: ViewInterfaceResponse };
+export type UpdateViewRequest = { id: number; view: ViewInterface<TableResponses> };
 
 export type ViewInterface<T> = {
   title: string;

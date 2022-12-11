@@ -6,6 +6,7 @@ import {
   Edit16Regular as EditIcon,
   ReOrder16Regular as DragHandle,
   Save16Regular as SaveIcon,
+  Checkmark16Regular as ChckmarkIcon,
 } from "@fluentui/react-icons";
 import styles from "./views.module.scss";
 import { AllViewsResponse } from "./types";
@@ -21,7 +22,9 @@ type ViewRow<T> = {
   page: keyof AllViewsResponse;
   viewIndex: number;
   selected: boolean;
+  dirty?: boolean;
   singleView: boolean;
+  onSaveView: (viewIndex: number) => void;
 };
 
 export default function ViewRowComponent<T>(props: ViewRow<T>) {
@@ -40,12 +43,17 @@ export default function ViewRowComponent<T>(props: ViewRow<T>) {
     dispatch(updateViewTitle({ page: props.page, viewIndex: props.viewIndex, title: localTitle }));
   }
 
+  function handleSaveView(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    dispatch(updateViewTitle({ page: props.page, viewIndex: props.viewIndex, title: localTitle }));
+  }
+
   function handleSelectView() {
     dispatch(updateSelectedView({ page: props.page, viewIndex: props.viewIndex }));
   }
 
   return (
-    <Draggable draggableId={`draggable-view-id-${props.viewIndex}`} index={props.viewIndex}>
+    <Draggable draggableId={`draggable-view-id-${props.viewIndex}`} index={props.viewIndex} isDragDisabled={!props.id}>
       {(provided, snapshot) => (
         <form
           onSubmit={handleInputSubmit}
@@ -53,7 +61,10 @@ export default function ViewRowComponent<T>(props: ViewRow<T>) {
           ref={provided.innerRef}
           {...provided.draggableProps}
         >
-          <div className={styles.viewRowDragHandle} {...provided.dragHandleProps}>
+          <div
+            className={classNames(styles.viewRowDragHandle, { [styles.dragDisabled]: !props.id })}
+            {...provided.dragHandleProps}
+          >
             <DragHandle />
           </div>
 
@@ -63,22 +74,30 @@ export default function ViewRowComponent<T>(props: ViewRow<T>) {
               autoFocus={true}
               onChange={handleInputChange}
               value={localTitle}
-              sizeVariant={InputSizeVariant.small}
+              sizeVariant={InputSizeVariant.inline}
             />
           ) : (
             <div className={styles.viewSelect} onClick={handleSelectView}>
-              <div>{props.title}</div>
+              <div className={styles.viewSelectTitle}>{props.title}</div>
             </div>
           )}
           {editView ? (
-            <button type={"submit"}>
-              <div className={styles.viewRowEdit}>
-                <SaveIcon />
-              </div>
+            <button type={"submit"} className={styles.viewRowEdit}>
+              <ChckmarkIcon />
             </button>
           ) : (
             <div className={styles.viewRowEdit} onClick={() => setEditView(true)}>
               <EditIcon />
+            </div>
+          )}
+          {props.dirty && (
+            <div
+              className={styles.viewRowSave}
+              onClick={() => {
+                props.onSaveView(props.viewIndex);
+              }}
+            >
+              <SaveIcon />
             </div>
           )}
           {!props.singleView && (

@@ -223,7 +223,7 @@ export const ChannelsSortTemplate: { key: keyof channel; direction: "desc" | "as
 export const DefaultChannelsView: ViewResponse<channel> = {
   page: "channel",
   view: {
-    title: "Untitled View",
+    title: "Draft View",
     columns: DefaultChannelsColumns,
     sortBy: [ChannelsSortTemplate],
   },
@@ -248,6 +248,3 @@ const sortableColumns: Array<keyof channel> = [
 ];
 
 export const SortableChannelsColumns = AllChannelsColumns.filter((c) => sortableColumns.includes(c.key));
-
-
-

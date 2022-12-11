@@ -66,7 +66,10 @@ export const viewsSlice = createSlice({
       action: PayloadAction<{ page: ViewSliceStatePages; viewIndex: number; title: string }>
     ) => {
       const { page, viewIndex, title } = action.payload;
-      state.pages[page].views[viewIndex].view.title = title;
+      if (state.pages[page].views[viewIndex].view.title !== title) {
+        state.pages[page].views[viewIndex].dirty = true;
+        state.pages[page].views[viewIndex].view.title = title;
+      }
     },
     updateSelectedView: (
       state: ViewSliceState,
@@ -98,7 +101,9 @@ export const viewsSlice = createSlice({
     ) => {
       const { page, viewIndex } = actions.payload;
       if (state.pages[page].views.length !== 1) {
-        state.pages[page].views = state.pages[page].views.splice(viewIndex, 1);
+        const views = state.pages[page].views;
+        views.splice(viewIndex, 1);
+        state.pages[page].views = views;
         if (state.pages[page].selected === viewIndex) {
           state.pages[page].selected = 0;
         }
@@ -120,6 +125,7 @@ export const viewsSlice = createSlice({
       } else {
         state.pages[page].views[viewIndex].view.columns = [...(columns as Array<typeof newColumn>), newColumn];
       }
+      state.pages[page].views[viewIndex].dirty = true;
     },
     updateColumn: (
       state: ViewSliceState,
@@ -136,6 +142,7 @@ export const viewsSlice = createSlice({
       if (columns) {
         state.pages[page].views[viewIndex].view.columns[columnIndex] = { ...column, ...columnUpdate };
       }
+      state.pages[page].views[viewIndex].dirty = true;
     },
     updateColumnsOrder: (
       state: ViewSliceState,
@@ -152,6 +159,7 @@ export const viewsSlice = createSlice({
       columns.splice(fromIndex, 1);
       columns.splice(toIndex, 0, column as ColumnMetaData<TableResponses>);
       state.pages[page].views[viewIndex].view.columns = columns;
+      state.pages[page].views[viewIndex].dirty = true;
     },
     deleteColumn: (
       state: ViewSliceState,
@@ -167,6 +175,7 @@ export const viewsSlice = createSlice({
         columns.splice(columnIndex, 1);
         state.pages[page].views[viewIndex].view.columns = columns;
       }
+      state.pages[page].views[viewIndex].dirty = true;
     },
     // --------------------- Filters ---------------------
     updateFilters: (
@@ -180,6 +189,7 @@ export const viewsSlice = createSlice({
       } else {
         state.pages[page].views[viewIndex].view.filters = undefined;
       }
+      state.pages[page].views[viewIndex].dirty = true;
     },
     // --------------------- Sort ---------------------
     addSortBy: (
@@ -193,6 +203,7 @@ export const viewsSlice = createSlice({
       } else {
         state.pages[page].views[viewIndex].view.sortBy = <Array<OrderBy>>[sortBy];
       }
+      state.pages[page].views[viewIndex].dirty = true;
     },
     updateSortBy: (
       state: ViewSliceState,
@@ -211,6 +222,7 @@ export const viewsSlice = createSlice({
         currentSortBy[sortByIndex] = sortByUpdate;
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
       }
+      state.pages[page].views[viewIndex].dirty = true;
       // TOOD: Add message
     },
     deleteSortBy: (
@@ -229,6 +241,7 @@ export const viewsSlice = createSlice({
         currentSortBy.splice(sortByIndex, 1);
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
       }
+      state.pages[page].views[viewIndex].dirty = true;
     },
     updateSortByOrder: (
       state,
@@ -242,6 +255,7 @@ export const viewsSlice = createSlice({
         currentSortBy.splice(toIndex, 0, sortBy);
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
       }
+      state.pages[page].views[viewIndex].dirty = true;
     },
     // --------------------- Group by ---------------------
     updateGroupBy: (
@@ -254,6 +268,7 @@ export const viewsSlice = createSlice({
     ) => {
       const { page, viewIndex, groupByUpdate } = actions.payload;
       state.pages[page].views[viewIndex].view.groupBy = groupByUpdate;
+      state.pages[page].views[viewIndex].dirty = true;
     },
   },
   // // The `extraReducers` field lets the slice handle actions defined elsewhere,
@@ -297,6 +312,7 @@ export const viewsSlice = createSlice({
       const index = views.findIndex((view) => view.id === meta.arg.originalArgs.id);
       views.splice(index, 1);
       state.pages[meta.arg.originalArgs.page].views = views;
+      state.pages[meta.arg.originalArgs.page].selected = 0;
     });
 
     builder.addMatcher(viewApi.endpoints.updateTableView.matchFulfilled, (state, { payload }) => {
@@ -307,11 +323,10 @@ export const viewsSlice = createSlice({
       state.pages[payload.page].views = views;
     });
 
-    builder.addMatcher(viewApi.endpoints.createTableView.matchFulfilled, (state, { payload }) => {
-      const views = state.pages[payload.page].views;
+    builder.addMatcher(viewApi.endpoints.createTableView.matchFulfilled, (state, { meta, payload }) => {
       const view = payload;
       view.dirty = false;
-      state.pages[payload.page].views = [...views, payload];
+      state.pages[payload.page].views[meta.arg.originalArgs.index] = view;
     });
   },
 });

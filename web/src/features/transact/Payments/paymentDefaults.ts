@@ -112,7 +112,7 @@ export const DefaultPaymentView: ViewResponse<Payment> = {
   page: "payments",
   dirty: true,
   view: {
-    title: "Untitled View",
+    title: "Draft View",
     columns: ActivePaymentsColumns,
     sortBy: [PaymentsSortTemplate],
   },

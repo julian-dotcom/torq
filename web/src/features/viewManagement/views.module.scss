@@ -11,16 +11,20 @@
 .viewSelect {
   padding-left: 4px;
   height: 36px;
-  display: flex;
+  display: grid;
   justify-self: left;
   align-items: center;
   font-size: var(--font-size-small);
   width: 100%;
   border: 1px solid transparent;
-  //border-radius: var(--radius-default);
   cursor: pointer;
   &:hover {
     background-color: var(--color-primary-layer-3);
+  }
+  .viewSelectTitle {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
   }
 }
 .viewEdit {
@@ -28,8 +32,11 @@
 }
 .viewRowDragHandle,
 .removeView,
+.viewRowSave,
 .viewRowEdit {
   display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
   align-content: center;
   justify-content: center;
   border-left: 1px solid var(--color-primary-layer-4);
@@ -42,6 +49,15 @@
     border-top-right-radius: var(--radius-default);
   }
 }
+.viewRowSave {
+  border-radius: 0px;
+  background-color: var(--color-warning-layer-3);
+  color: var(--color-text-warning-faded);
+  &:hover {
+    border-radius: 0px;
+    background-color: var(--color-warning-layer-4);
+  }
+}
 .viewRowDragHandle {
   border-left: none;
   &:hover {
@@ -49,6 +65,13 @@
     border-radius: 0;
     border-bottom-left-radius: var(--radius-default);
     border-top-left-radius: var(--radius-default);
+  }
+}
+.dragDisabled {
+  cursor: not-allowed;
+  color: var(--color-text-primary-faint);
+  &:hover {
+    background-color: transparent;
   }
 }
 .disabled {
@@ -62,14 +85,19 @@
 .viewRow {
   display: grid;
   height: 36px;
-  grid-template-columns: 36px auto;
   grid-auto-columns: 36px;
+  grid-template-columns: 36px auto;
   grid-auto-flow: column;
   background-color: var(--color-primary-layer-2);
   border-radius: var(--radius-default);
   color: var(--color-text-primary-strong);
   align-items: center;
-  justify-items: center;
+  justify-items: left;
+  input {
+    padding: 11px 0px 11px 5px !important;
+    background-color: var(--color-primary-layer-3) !important;
+    font-weight: 500;
+  }
 }
 .selected {
   background-color: var(--color-success-layer-1);
@@ -84,6 +112,12 @@
     border-top-right-radius: var(--radius-default);
   }
   .viewRowDragHandle {
+    &.dragDisabled {
+      color: var(--color-success-layer-4);
+      &:hover {
+        background-color: transparent;
+      }
+    }
     &:hover {
       background-color: var(--color-success-layer-2);
     }
@@ -92,4 +126,23 @@
     //background-color: var(--color-success-layer-2);
     background-color: transparent;
   }
+  &.viewRow {
+    input {
+      background-color: var(--color-success-layer-2) !important;
+    }
+  }
+}
+.buttonsRow {
+  margin-top: 16px;
+}
+.unSavedViewsDivider {
+  display: grid;
+  align-content: center;
+  padding: 0px 12px;
+  color: var(--color-text-primary-strong);
+  border-bottom: 1px solid var(--color-primary-layer-4);
+  //background-color: var(--color-accent-1-layer-2);
+  height: 36px;
+  margin-top: 16px;
+  margin-bottom: 16px;
 }

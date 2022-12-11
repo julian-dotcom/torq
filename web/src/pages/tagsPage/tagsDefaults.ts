@@ -16,7 +16,7 @@ export const DefaultTagsView: ViewResponse<tag> = {
   page: "invoices",
   dirty: true,
   view: {
-    title: "Untitled View",
+    title: "Draft View",
     columns: TagsColumns,
   },
 };

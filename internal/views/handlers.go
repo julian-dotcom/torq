@@ -18,7 +18,6 @@ type TableView struct {
 	Id        int            `json:"id" db:"id"`
 	View      types.JSONText `json:"view" db:"view"`
 	Page      string         `json:"page" db:"page"`
-	Uuid      string         `json:"uuid" db:"uuid"`
 	ViewOrder *int32         `json:"viewOrder" db:"view_order"`
 	Version   string         `json:"version" db:"version"`
 }
@@ -81,7 +80,7 @@ type Filter struct {
 // TODO: delete when tables are switched to v2
 func convertView(r []*TableView, db *sqlx.DB, c *gin.Context) ([]*TableView, error) {
 	var tableViewDetail TableViewDetail
-	for i, view := range r {
+	for _, view := range r {
 		if view.Version == "v1" {
 			err := json.Unmarshal(view.View, &tableViewDetail)
 			if err != nil {
@@ -116,9 +115,12 @@ func convertView(r []*TableView, db *sqlx.DB, c *gin.Context) ([]*TableView, err
 			if err != nil {
 				return nil, errors.Wrap(err, "JSON marshal table view")
 			}
-			r[i].View = viewJson
-			r[i].Version = "v2"
-			_, err = updateTableView(db, *r[i])
+			update := UpdateTableView{
+				Version: "v2",
+				Id:      view.Id,
+				View:    viewJson,
+			}
+			_, err = updateTableView(db, update)
 			if err != nil {
 				return nil, err
 			}
@@ -163,13 +165,13 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func insertTableViewsHandler(c *gin.Context, db *sqlx.DB) {
-	view := NewTableView{}
-	if err := c.BindJSON(&view); err != nil {
+	req := NewTableView{}
+	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	r, err := insertTableView(db, view)
+	r, err := insertTableView(db, req)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -179,13 +181,13 @@ func insertTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 
 func updateTableViewHandler(c *gin.Context, db *sqlx.DB) {
 
-	view := TableView{}
-	if err := c.BindJSON(&view); err != nil {
+	req := UpdateTableView{}
+	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	r, err := updateTableView(db, view)
+	r, err := updateTableView(db, req)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

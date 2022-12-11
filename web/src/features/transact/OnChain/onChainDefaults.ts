@@ -57,7 +57,7 @@ export const DefaultOnChainView: ViewResponse<OnChainTx> = {
   page: "onChain",
   dirty: true,
   view: {
-    title: "Untitled View",
+    title: "Draft View",
     columns: DefaultOnChainColumns,
     sortBy: [OnChainSortTemplate],
   },

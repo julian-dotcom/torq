@@ -170,7 +170,7 @@ export const DefaultForwardsView: ViewResponse<Forward> = {
   page: "forwards",
   dirty: true,
   view: {
-    title: "Untitled View",
+    title: "Draft View",
     filters: new AndClause().toJSON(),
     columns: DefaultForwardsColumns,
     sortBy: [ForwardsSortByTemplate],

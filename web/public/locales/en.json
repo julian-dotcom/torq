@@ -18,6 +18,8 @@
   "p2wpkh": "Segwit",
   "addView": "Add View",
   "views": "Views",
+  "draftViews": "Drafts",
+  "draft": "Draft",
   "p2wkh": "Nested Segwit",
   "np2wkh": "Hybrid Nested Segwit",
   "p2tr": "Taproot",

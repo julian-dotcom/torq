@@ -19,6 +19,13 @@
   --feedback-font-size: var(--font-size-tiny);
   --indicator-padding: 4px;
 }
+.inline {
+  --input-height: 36px;
+  --input-font-size: var(--font-size-tiny);
+  --label-font-size: var(--font-size-tiny);
+  --feedback-font-size: var(--font-size-tiny);
+  --indicator-padding: 4px;
+}
 
 .primary {
   --input-default-background: var(--color-primary-layer-2);

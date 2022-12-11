@@ -1,14 +1,19 @@
 import styles from "./views.module.scss";
 import { DragDropContext, Droppable, DropResult, ResponderProvided } from "react-beautiful-dnd";
-import { AddSquare20Regular as AddIcon } from "@fluentui/react-icons";
+import { Add16Regular as AddIcon } from "@fluentui/react-icons";
 import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import { AllViewsResponse, TableResponses, ViewOrderInterface, ViewResponse } from "./types";
-import { useCreateTableViewMutation, useUpdateTableViewsOrderMutation } from "./viewsApiSlice";
+import {
+  useCreateTableViewMutation,
+  useUpdateTableViewMutation,
+  useUpdateTableViewsOrderMutation,
+} from "./viewsApiSlice";
 import ViewRowComponent from "./ViewRow";
 import { useStrictDroppable } from "utils/UseStrictDroppable";
 import { addView, selectViews, updateViewsOrder } from "./viewSlice";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import useTranslations from "services/i18n/useTranslations";
+import { useState } from "react";
 
 type ViewSection<T> = {
   page: keyof AllViewsResponse;
@@ -16,53 +21,32 @@ type ViewSection<T> = {
 };
 
 function ViewsPopover<T>(props: ViewSection<T>) {
+  const [draftCount, setDraftcount] = useState(1);
   const { t } = useTranslations();
   const dispatch = useAppDispatch();
   const viewResponse = useAppSelector(selectViews)(props.page);
 
   const [updateTableViewsOrder] = useUpdateTableViewsOrderMutation();
   const [createTableView] = useCreateTableViewMutation();
+  const [updateTableView] = useUpdateTableViewMutation();
 
   const droppableContainerId = "views-list-droppable-" + props.page;
 
-  // function handleSaveView(view: ViewResponse<T>) {
-  //   if (view.id) {
-  //     updateTableView({
-  //       id: view.id,
-  //       view: view.view as ViewInterface<TableResponses>,
-  //     });
-  //   } else {
-  //     createTableView({
-  //       page: view.page,
-  //       view: view.view as ViewInterface<TableResponses>,
-  //     });
-  //   }
-  // }
-
-  // function handleSaveTitle(index: number, title: string) {
-  //   const view = views.views[index];
-  //   if (view.id !== undefined) {
-  //     updateTableView({
-  //       id: view.id,
-  //       view: { ...view.view, title: title } as ViewInterface<TableResponses>,
-  //     });
-  //   } else {
-  //     createTableView({
-  //       page: view.page,
-  //       view: { ...view.view, title: title } as ViewInterface<TableResponses>,
-  //       viewOrder: index,
-  //     });
-  //   }
-  // }
-
-  // function handleDeleteView(index: number) {
-  //   const view = props.views[index];
-  //   if (view.id !== undefined) {
-  //     deleteTableView({ id: view.id });
-  //   } else {
-  //     props.views.splice(index, 1);
-  //   }
-  // }
+  function handleSaveView(viewIndex: number) {
+    const view = viewResponse.views[viewIndex] as ViewResponse<TableResponses>;
+    if (view.id) {
+      updateTableView({
+        id: view.id,
+        view: view.view,
+      });
+    } else {
+      createTableView({
+        index: viewIndex,
+        page: view.page,
+        view: view.view,
+      });
+    }
+  }
 
   const onDragEnd = (result: DropResult, provided: ResponderProvided) => {
     const { destination, source } = result;
@@ -101,31 +85,68 @@ function ViewsPopover<T>(props: ViewSection<T>) {
             {(provided) => (
               <div className={styles.viewRows} ref={provided.innerRef} {...provided.droppableProps}>
                 {viewResponse.views.map((view, viewIndex) => {
+                  if (view.id) {
+                    return (
+                      <ViewRowComponent
+                        title={view.view.title}
+                        id={view.id}
+                        viewIndex={viewIndex}
+                        page={view.page}
+                        dirty={view.dirty}
+                        key={"view-row-" + viewIndex + "-" + view.id}
+                        selected={viewResponse.selected === viewIndex}
+                        singleView={singleView}
+                        onSaveView={handleSaveView}
+                      />
+                    );
+                  }
+                })}
+              </div>
+            )}
+          </Droppable>
+        )}
+        {viewResponse.views.findIndex((v) => v.id === undefined) !== -1 && (
+          <div className={styles.unSavedViewsDivider}>{t.draftViews}</div>
+        )}
+        <Droppable droppableId={droppableContainerId + "-unsaved"} isDropDisabled={true}>
+          {(provided) => (
+            <div className={styles.viewRows} ref={provided.innerRef} {...provided.droppableProps}>
+              {viewResponse.views.map((view, viewIndex) => {
+                if (!view.id) {
                   return (
                     <ViewRowComponent
                       title={view.view.title}
                       id={view.id}
                       viewIndex={viewIndex}
                       page={view.page}
-                      key={"view-row-" + viewIndex}
+                      dirty={view.dirty}
+                      key={"view-row-" + viewIndex + "-dirty-" + view.view.title}
                       selected={viewResponse.selected === viewIndex}
                       singleView={singleView}
+                      onSaveView={handleSaveView}
                     />
                   );
-                })}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        )}
+                }
+              })}
+            </div>
+          )}
+        </Droppable>
         <div className={styles.buttonsRow}>
           <Button
-            buttonColor={buttonColor.ghost}
+            buttonColor={buttonColor.subtle}
             buttonSize={buttonSize.small}
             text={t.addView}
             icon={<AddIcon />}
             onClick={() => {
-              dispatch(addView({ view: props.defaultView as ViewResponse<TableResponses> }));
+              const view: ViewResponse<TableResponses> = {
+                ...(props.defaultView as ViewResponse<TableResponses>),
+                view: {
+                  ...props.defaultView.view,
+                  title: t.draft + " " + draftCount,
+                } as ViewResponse<TableResponses>["view"],
+              };
+              dispatch(addView({ view: view }));
+              setDraftcount(draftCount + 1);
             }}
           />
         </div>
