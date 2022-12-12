@@ -7,7 +7,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-	"github.com/rs/zerolog/log"
 )
 
 type Transaction struct {
@@ -58,9 +57,6 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "SQL compile statement")
 	}
-
-	// Log for debugging
-	log.Debug().Msgf("Query: %s, \n Args: %v", qs, args)
 
 	rows, err := db.Queryx(qs, args...)
 	if err != nil {
