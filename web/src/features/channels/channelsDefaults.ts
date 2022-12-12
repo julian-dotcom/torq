@@ -18,7 +18,12 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     valueType: "boolean",
     locked: false,
   },
-
+  {
+    heading: "Balance",
+    type: "BalanceCell",
+    key: "balance",
+    valueType: "number",
+  },
   {
     heading: "Short Channel ID",
     type: "LongTextCell",
@@ -30,14 +35,6 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     type: "NumericCell",
     key: "remoteBalance",
     valueType: "number",
-  },
-  {
-    heading: "Balance",
-    type: "BalanceCell",
-    key: "localBalance",
-    key2: "remoteBalance",
-    valueType: "number",
-    percent: false,
   },
   {
     heading: "Local Balance",
@@ -188,21 +185,14 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
 ];
 
 const defaultColumns: Array<keyof channel> = [
-  "active",
   "peerAlias",
-  "shortChannelId",
+  "active",
+  "balance",
   "feeRatePpm",
-  "remoteBalance",
-  "gauge",
-  "localBalance",
-  "capacity",
-  "totalSatoshisSent",
-  "totalSatoshisReceived",
-  "unsettledBalance",
-  "commitFee",
   "baseFeeMsat",
   "minHtlc",
   "maxHtlcMsat",
+  "shortChannelId",
   "nodeName",
 ];
 

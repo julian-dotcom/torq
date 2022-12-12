@@ -41,6 +41,7 @@ export interface channel {
   initiator: boolean;
   lifetime: number;
   lndShortChannelId: number;
+  balance: number; // NB! This column only exists in the frontend!
   localBalance: number;
   localChanReserveSat: number;
   maxHtlcMsat: number;
