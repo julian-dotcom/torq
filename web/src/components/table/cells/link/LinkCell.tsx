@@ -6,6 +6,7 @@ interface LinkCell {
   text: string;
   link: string;
   className?: string;
+  totalCell?: boolean;
 }
 
 function LinkCell(props: LinkCell) {
@@ -16,7 +17,7 @@ function LinkCell(props: LinkCell) {
       target="_blank"
       href={props.link}
     >
-      <div className={classNames(styles.current, styles.text, styles.link)}>{props.text}</div>
+      {props.totalCell && <div className={classNames(styles.current, styles.text, styles.link)}>{props.text}</div>}
     </a>
   );
 }

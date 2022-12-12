@@ -27,6 +27,33 @@ import forwardsCellRenderer from "./forwardsCells";
 import Table from "features/table/Table";
 import { useFilterData, useSortData } from "../viewManagement/hooks";
 
+function useForwardsTotals(data: Array<Forward>): Forward | undefined {
+  if (!data.length) {
+    return undefined;
+  }
+
+  return data.reduce((prev: Forward, current: Forward, currentIndex: number) => {
+    return {
+      ...prev,
+      alias: "Totals",
+      locked: true,
+      capacity: prev.capacity + current.capacity,
+      amountIn: prev.amountIn + current.amountIn,
+      amountOut: prev.amountOut + current.amountOut,
+      amountTotal: prev.amountTotal + current.amountTotal,
+      revenueOut: prev.revenueOut + current.revenueOut,
+      revenueIn: prev.revenueIn + current.revenueIn,
+      revenueTotal: prev.revenueTotal + current.revenueTotal,
+      countOut: prev.countOut + current.countOut,
+      countIn: prev.countIn + current.countIn,
+      countTotal: prev.countTotal + current.countTotal,
+      turnoverOut: prev.turnoverOut + current.turnoverOut,
+      turnoverIn: prev.turnoverIn + current.turnoverIn,
+      turnoverTotal: prev.turnoverTotal + current.turnoverTotal,
+    };
+  });
+}
+
 function ForwardsPage() {
   const { t } = useTranslations();
 
@@ -47,6 +74,7 @@ function ForwardsPage() {
 
   const filteredData = useFilterData(forwardsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
+  const totalsRowData = useForwardsTotals(sortedData);
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -89,7 +117,7 @@ function ForwardsPage() {
 
   return (
     <TablePageTemplate
-      title={"Forwards"}
+      title={t.forwards}
       titleContent={<TimeIntervalSelect />}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
@@ -99,6 +127,7 @@ function ForwardsPage() {
       <Table
         activeColumns={viewResponse.view.columns || []}
         data={sortedData}
+        totalRow={totalsRowData ? totalsRowData : undefined}
         cellRenderer={forwardsCellRenderer}
         isLoading={forwardsResponse.isLoading || forwardsResponse.isFetching || forwardsResponse.isUninitialized}
         showTotals={true}

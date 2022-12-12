@@ -6,7 +6,6 @@
   overflow: auto;
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
-  border-radius: 3px;
   width: 100%;
   transition: opacity 200ms ease-in-out;
 }
@@ -16,6 +15,8 @@
   height: 100%;
   flex-direction: row;
   scrollbar-gutter: stable;
+  border-radius: var(--radius-large);
+  overflow: hidden;
   @media only screen and (max-width: 900px) {
     padding-right: 12px;
   }

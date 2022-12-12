@@ -8,6 +8,7 @@ interface BooleanCellProps {
   trueTitle?: string;
   falseTitle?: string;
   className?: string;
+  totalCell?: boolean;
 }
 
 function BooleanCell(props: BooleanCellProps) {
@@ -27,7 +28,7 @@ function BooleanCell(props: BooleanCellProps) {
   };
   return (
     <div className={classNames(styles.cell, styles.alignLeft, styles.BooleanCell, props.className)}>
-      <div className={styles.current}>{props.value ? checked() : unchecked()}</div>
+      {!props.totalCell && <div className={styles.current}>{props.value ? checked() : unchecked()}</div>}
     </div>
   );
 }

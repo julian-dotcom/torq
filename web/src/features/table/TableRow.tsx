@@ -11,7 +11,7 @@ function Row<T>(props: RowProp<T>) {
   const rowContent: Array<ReactNode> = [];
   rowContent.push(
     <div
-      className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.locked, {
+      className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.firstEmptyCell, cellStyles.locked, {
         [cellStyles.totalCell]: props.isTotalsRow,
       })}
       key={"first-cell-" + props.rowIndex}
@@ -30,15 +30,20 @@ function Row<T>(props: RowProp<T>) {
 
   rowContent.push(
     ...props.columns.map((columnMeta: ColumnMetaData<T>, columnIndex) => {
-      return props.cellRenderer(props.row, props.rowIndex, columnMeta, columnIndex);
+      return props.cellRenderer(props.row, props.rowIndex, columnMeta, columnIndex, props.isTotalsRow);
     })
   );
 
   rowContent.push(
     <div
-      className={classNames(cellStyles.cell, cellStyles.empty, cellStyles.lastEmptyCell, {
-        [cellStyles.totalCell]: props.isTotalsRow,
-      })}
+      className={classNames(
+        cellStyles.cell,
+        cellStyles.empty,
+        {
+          [cellStyles.lastTotalCell]: props.isTotalsRow,
+        },
+        cellStyles.lastEmptyCell
+      )}
       key={"last-cell-" + props.rowIndex}
     />
   );
@@ -46,7 +51,7 @@ function Row<T>(props: RowProp<T>) {
   return (
     <div
       className={classNames(cellStyles.tableRow, "torq-row-" + props.rowIndex, {
-        [cellStyles.totalCell]: props.isTotalsRow,
+        [cellStyles.totalsRow]: props.isTotalsRow,
       })}
       key={"torq-row-" + props.rowIndex}
     >

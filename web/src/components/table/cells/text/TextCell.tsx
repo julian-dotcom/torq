@@ -31,9 +31,11 @@ const TextCell = (props: TextCellProps) => {
         props.className
       )}
     >
-      <div>
-        <span className={classNames(styles.content)}>{props.current}</span>
-      </div>
+      {!props.totalCell && (
+        <div>
+          <span className={classNames(styles.content)}>{props.current}</span>
+        </div>
+      )}
     </div>
   );
 };

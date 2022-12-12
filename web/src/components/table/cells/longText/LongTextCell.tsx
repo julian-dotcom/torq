@@ -22,7 +22,6 @@ const LongTextCell = (props: TextCellProps) => {
     copyToClipboard(props.copyText || "");
     toastRef?.current?.addToast("Copied to clipboard", toastCategory.success);
   };
-
   return (
     <div
       className={classNames(
@@ -32,19 +31,19 @@ const LongTextCell = (props: TextCellProps) => {
         props.className
       )}
     >
-      {props.current && (
+      {!props.totalCell && props.current && (
         <div className={classNames(styles.action, styles.view)}>
           <Eye16Regular />
           <span className={classNames(styles.content)}>{props.current}</span>
         </div>
       )}
-      {props.copyText && (
+      {!props.totalCell && props.copyText && (
         <button className={classNames(styles.action, styles.copy)} onClick={copyText}>
           <Copy16Regular />
           Copy
         </button>
       )}
-      {props.link && (
+      {!props.totalCell && props.link && (
         <a href={props.link} className={classNames(styles.action, styles.link)} target="_blank" rel="noreferrer">
           <Eye16Regular />
           Link

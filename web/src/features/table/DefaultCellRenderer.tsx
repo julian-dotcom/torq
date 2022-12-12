@@ -16,7 +16,8 @@ export default function DefaultCellRenderer<T>(
   row: T,
   rowIndex: number,
   column: ColumnMetaData<T>,
-  columnIndex: number
+  columnIndex: number,
+  totalsRow?: boolean
 ): JSX.Element {
   const dataKey = column.key as keyof T;
   const dataKey2 = column.key2 as keyof T;
@@ -28,15 +29,38 @@ export default function DefaultCellRenderer<T>(
     case "string":
       switch (column.type) {
         case "AliasCell":
-          return <AliasCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} className={column.locked ? styles.locked : ""} />;
+          return (
+            <AliasCell
+              current={row[dataKey] as string}
+              key={dataKey.toString() + rowIndex}
+              className={column.locked ? styles.locked : ""}
+            />
+          );
         case "LongTextCell":
-          return <LongTextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} copyText={row[dataKey] as string} />;
+          return (
+            <LongTextCell
+              current={row[dataKey] as string}
+              key={dataKey.toString() + rowIndex}
+              copyText={row[dataKey] as string}
+              totalCell={totalsRow}
+            />
+          );
         case "TextCell":
-          return <TextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex}/>;
+          return (
+            <TextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} totalCell={totalsRow} />
+          );
         case "DurationCell":
-          return <DurationCell seconds={row[dataKey] as number} key={dataKey.toString() + rowIndex} />;
+          return (
+            <DurationCell seconds={row[dataKey] as number} key={dataKey.toString() + rowIndex} totalCell={totalsRow} />
+          );
         case "EnumCell":
-          return <EnumCell value={row[dataKey] as string} key={dataKey.toString() + rowIndex + columnIndex} />;
+          return (
+            <EnumCell
+              value={row[dataKey] as string}
+              key={dataKey.toString() + rowIndex + columnIndex}
+              totalCell={totalsRow}
+            />
+          );
       }
       break;
     case "boolean":
@@ -48,18 +72,28 @@ export default function DefaultCellRenderer<T>(
               trueTitle={"Success"}
               value={row[dataKey] as boolean}
               key={dataKey.toString() + rowIndex + columnIndex}
+              totalCell={totalsRow}
             />
           );
       }
       break;
     case "date":
-      return <DateCell value={row[dataKey] as Date} key={dataKey.toString() + rowIndex} />;
+      return <DateCell value={row[dataKey] as Date} key={dataKey.toString() + rowIndex} totalCell={totalsRow} />;
       break;
     case "duration":
-      return <DurationCell seconds={row[dataKey] as number} key={dataKey.toString() + rowIndex} />;
+      return (
+        <DurationCell seconds={row[dataKey] as number} key={dataKey.toString() + rowIndex} totalCell={totalsRow} />
+      );
       break;
     case "link":
-      return <LinkCell text={row[dataKey] as string} link={row[dataKey] as string} key={dataKey.toString() + rowIndex} />;
+      return (
+        <LinkCell
+          text={row[dataKey] as string}
+          link={row[dataKey] as string}
+          key={dataKey.toString() + rowIndex}
+          totalCell={totalsRow}
+        />
+      );
       break;
     case "number":
       switch (column.type) {
@@ -74,10 +108,20 @@ export default function DefaultCellRenderer<T>(
               key={dataKey.toString() + rowIndex + columnIndex}
             />
           );
-     case "NumericDoubleCell":
-        return <NumericDoubleCell local={row[dataKey] as number} remote={row[dataKey2] as number} suffix={suffix as string} className={dataKey.toString()} key={dataKey.toString() + rowIndex + columnIndex} />;
-
+        case "NumericDoubleCell":
+          return (
+            <NumericDoubleCell
+              local={row[dataKey] as number}
+              remote={row[dataKey2] as number}
+              suffix={suffix as string}
+              className={dataKey.toString()}
+              key={dataKey.toString() + rowIndex + columnIndex}
+              totalCell={totalsRow}
+            />
+          );
       }
   }
-  return <TextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} copyText={row[dataKey] as string} />;
+  return (
+    <TextCell current={row[dataKey] as string} key={dataKey.toString() + rowIndex} copyText={row[dataKey] as string} />
+  );
 }

@@ -110,7 +110,7 @@ function Table<T>(props: TableProps<T>) {
         />
         {props.showTotals && props.totalRow && (
           <TableRow
-            row={props.data[0]}
+            row={props.totalRow}
             cellRenderer={props.cellRenderer}
             rowIndex={props.activeColumns.length + 1}
             columns={props.activeColumns}
