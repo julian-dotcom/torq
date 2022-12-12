@@ -5,15 +5,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
+	"github.com/playwright-community/playwright-go"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"testing"
-
-	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
-	"github.com/playwright-community/playwright-go"
 
 	"github.com/lncapital/torq/virtual_network"
 )
@@ -601,9 +600,11 @@ func TestPlaywrightVideo(t *testing.T) {
 		}
 	}
 
-	fill(".login-form .password-field", "password")
+	fill("#password-field", "password")
 
-	click(".login-form .submit-button")
+	click("#submit-button")
+
+	gotoPage("http://localhost:" + torqPort + "/")
 
 	click("#no-settings-confirmation")
 

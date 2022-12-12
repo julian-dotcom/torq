@@ -23,10 +23,16 @@ function LoginPage() {
   const toastRef = React.useContext(ToastContext);
   let from = (location.state as LocationState)?.from?.pathname || "/";
   // Don't redirect back to logout/login/services.
-  if (from === "/logout" || from === "/login" || from === "/services" ||
-    from === "logout" || from === "login" || from === "services" ||
-    from === "" || from === "/") {
-
+  if (
+    from === "/logout" ||
+    from === "/login" ||
+    from === "/services" ||
+    from === "logout" ||
+    from === "login" ||
+    from === "services" ||
+    from === "" ||
+    from === "/"
+  ) {
     from = "/";
   }
 
@@ -51,8 +57,14 @@ function LoginPage() {
           <TorqLogo />
         </div>
         <form className="login-form" onSubmit={submit}>
-          <Input type="password" name={"password"} placeholder={"Password..."} />
-          <Button type="submit" text={"Login"} icon={<UnlockIcon />} buttonColor={buttonColor.green} />
+          <Input type="password" name={"password"} placeholder={"Password..."} id={"password-field"} />
+          <Button
+            type="submit"
+            text={"Login"}
+            icon={<UnlockIcon />}
+            buttonColor={buttonColor.green}
+            id={"submit-button"}
+          />
         </form>
       </div>
     </div>
