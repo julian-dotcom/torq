@@ -4,7 +4,7 @@ backendTest = go test ./... -v -count=1
 frontendTest = cd web && npm i --legacy-peer-deps && npm test -- --watchAll=false
 stopDevDb = ($(MAKE) stop-dev-db && false)
 #Virtual Network - Frequency(every x seconds; default 1) of creating and paying invoices
-virtual_network_invoice_freq = 1
+virtual_network_invoice_freq = 30
 #Virtual Network - Frequency(every x seconds; default 30) of sending coins to random address
 virtual_network_send_coins_freq = 30
 #Virtual Network - Frequency(every x minutes; default 10) of opening and closing random channels
@@ -85,7 +85,7 @@ purge-dev-env:
 # Start flow
 .PHONY: start-dev-flow
 start-dev-flow:
-	go run ./virtual_network/torq_vn flow --virtual_network_invoice_freq $(virtual_network_invoice_freq) --virtual_network_send_coins_freq $(virtual_network_send_coins_freq) --virtual_network_open_close_chan_freq $(virtual_network_open_close_chan_freq)
+	DEBUG=true go run ./virtual_network/torq_vn flow --virtual_network_invoice_freq $(virtual_network_invoice_freq) --virtual_network_send_coins_freq $(virtual_network_send_coins_freq) --virtual_network_open_close_chan_freq $(virtual_network_open_close_chan_freq)
 
 .PHONY: lint-backend
 lint-backend:
