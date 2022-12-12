@@ -9,7 +9,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import clone from "clone";
 import { SelectOption } from "features/forms/Select";
-export type FilterCategoryType = "number" | "string" | "date" | "boolean" | "array" | "duration";
+export type FilterCategoryType = "number" | "string" | "date" | "boolean" | "array" | "duration" | "enum";
 export type FilterParameterType = number | string | Date | boolean | Array<unknown>;
 export type FilterFunc = (input: unknown, key: string, parameter: FilterParameterType) => boolean;
 
@@ -39,6 +39,19 @@ export const FilterFunctions = new Map<string, Map<string, FilterFunc>>([
   ],
   [
     "string",
+    new Map<string, FilterFunc>([
+      [
+        "like",
+        (input: any, key: string, parameter: FilterParameterType) => input[key].toLowerCase().includes(parameter),
+      ],
+      [
+        "notLike",
+        (input: any, key: string, parameter: FilterParameterType) => !input[key].toLowerCase().includes(parameter),
+      ],
+    ]),
+  ],
+  [
+    "enum",
     new Map<string, FilterFunc>([
       [
         "like",

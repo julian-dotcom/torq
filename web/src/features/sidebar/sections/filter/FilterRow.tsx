@@ -122,6 +122,9 @@ function FilterRow({
       case "array":
         newRow.parameter = String(e.value);
         break;
+      case "enum":
+        newRow.parameter = String(e.value);
+        break;
       default:
         newRow.parameter = e.target.value ? e.target.value : "";
     }
@@ -158,6 +161,21 @@ function FilterRow({
           />
         );
       case "array": {
+        const label = options?.find((item) => {
+          return item.value === rowValues.parameter ? item : "";
+        })?.label;
+        return (
+          <Select
+            selectProps={{
+              options: options,
+              value: { value: rowValues.parameter, label: label },
+              onChange: handleParamChange,
+            }}
+            child={child}
+          />
+        );
+      }
+      case "enum": {
         const label = options?.find((item) => {
           return item.value === rowValues.parameter ? item : "";
         })?.label;

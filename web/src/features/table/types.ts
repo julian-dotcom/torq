@@ -10,6 +10,7 @@ export type ColumnMetaData<T> = {
   total?: number;
   max?: number;
   percent?: boolean;
+  selectOptions?: Array<{ label: string; value: string }>;
 };
 
 export type TableProps<T> = {
