@@ -28,11 +28,11 @@ type Tx struct {
 	NodeId                int       `json:"nodeId" db:"node_id"`
 }
 
-func fetchLastTxHeight(db *sqlx.DB) (txHeight int32, err error) {
+func fetchLastTxHeight(db *sqlx.DB, nodeId int) (txHeight int32, err error) {
 
-	sqlLatest := `select coalesce(max(block_height),1) from tx;`
+	sqlLatest := `select coalesce(max(block_height),1) from tx where node_id = $1;`
 
-	row := db.QueryRow(sqlLatest)
+	row := db.QueryRow(sqlLatest, nodeId)
 	err = row.Scan(&txHeight)
 
 	if err != nil {
@@ -65,7 +65,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 
 		if stream == nil {
 			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			transactionHeight, err = fetchLastTxHeight(db)
+			transactionHeight, err = fetchLastTxHeight(db, nodeSettings.NodeId)
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
