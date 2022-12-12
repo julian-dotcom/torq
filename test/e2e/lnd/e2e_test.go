@@ -39,7 +39,7 @@ var bobIPAddress string //nolint:gochecknoglobals
 
 func TestMain(m *testing.M) {
 
-	if os.Getenv("") == "" {
+	if os.Getenv("E2E") == "" {
 		log.Println("Skipping e2e tests as E2E environment variable not set")
 		return
 	}
