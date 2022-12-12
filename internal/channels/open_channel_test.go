@@ -143,7 +143,7 @@ func Test_processOpenResponse(t *testing.T) {
 		name    string
 		request commons.OpenChannelRequest
 		input   *lnrpc.OpenStatusUpdate
-		want    *commons.OpenChannelResponse
+		want    commons.OpenChannelResponse
 		wantErr bool
 	}{
 		{
@@ -158,7 +158,7 @@ func Test_processOpenResponse(t *testing.T) {
 				},
 				PendingChanId: []byte("1"),
 			},
-			&commons.OpenChannelResponse{
+			commons.OpenChannelResponse{
 				ReqId:               "TESTREQID",
 				Status:              commons.Opening,
 				ChannelPoint:        "",
@@ -173,7 +173,7 @@ func Test_processOpenResponse(t *testing.T) {
 				Update:        &update,
 				PendingChanId: nil,
 			},
-			&commons.OpenChannelResponse{
+			commons.OpenChannelResponse{
 				ReqId:               "TESTREQID",
 				Status:              commons.Open,
 				ChannelPoint:        "72c09cee568b5637d1c6730a83fb4576689fd8fec32a8b8a8bab9e25d2267cdc:0",
@@ -188,7 +188,7 @@ func Test_processOpenResponse(t *testing.T) {
 				Update:        &r4PsbtUpdate,
 				PendingChanId: nil,
 			},
-			nil,
+			commons.OpenChannelResponse{},
 			true,
 		},
 	}

@@ -22,7 +22,7 @@ func Test_processResponse(t *testing.T) {
 		reqId   string
 		req     commons.CloseChannelRequest
 		input   *lnrpc.CloseStatusUpdate
-		want    *commons.CloseChannelResponse
+		want    commons.CloseChannelResponse
 		wantErr bool
 	}{
 		{
@@ -37,7 +37,7 @@ func Test_processResponse(t *testing.T) {
 				},
 			},
 
-			want: &commons.CloseChannelResponse{
+			want: commons.CloseChannelResponse{
 				ReqId:                    "Test",
 				Status:                   commons.Closing,
 				ClosePendingChannelPoint: commons.ChannelPoint{TxId: []byte("test"), OutputIndex: 0},
@@ -55,7 +55,7 @@ func Test_processResponse(t *testing.T) {
 					},
 				},
 			},
-			want: &commons.CloseChannelResponse{
+			want: commons.CloseChannelResponse{
 				ReqId:                    "Test",
 				Status:                   commons.CooperativeClosed,
 				ClosePendingChannelPoint: commons.ChannelPoint{},
