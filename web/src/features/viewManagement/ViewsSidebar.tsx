@@ -58,7 +58,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
   const filterClause = deserialiseQuery(props.viewResponse.view.filters);
 
   return (
-    <Sidebar title={"Options"} closeSidebarHandler={props.onExpandToggle}>
+    <Sidebar title={"Options"} closeSidebarHandler={() => props.onExpandToggle()}>
       <SectionContainer
         title={t.views}
         icon={ViewsIcon}

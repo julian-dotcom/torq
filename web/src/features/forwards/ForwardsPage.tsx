@@ -26,7 +26,6 @@ import { Forward } from "./forwardsTypes";
 import forwardsCellRenderer from "./forwardsCells";
 import Table from "features/table/Table";
 import { useFilterData, useSortData } from "../viewManagement/hooks";
-// import Button, { buttonColor } from "components/buttons/Button";
 
 function ForwardsPage() {
   const { t } = useTranslations();
@@ -49,36 +48,17 @@ function ForwardsPage() {
   const filteredData = useFilterData(forwardsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
 
-  // Apply frontend based filters
-  // TODO: Move this to a custom reach hook, e.g. useFilteredData
-  // const data = viewResponse.view.filters
-  //   ? applyFilters(deserialiseQuery(viewResponse.view.filters), forwardsResponse.data || [])
-  //   : forwardsResponse.data;
-
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   const closeSidebarHandler = () => {
-    return () => {
-      setSidebarExpanded(false);
-    };
+    setSidebarExpanded(false);
   };
 
   const tableControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          {/*<ViewSection views={views} />*/}
-          {/*{!currentView.saved && (*/}
-          {/*  <Button*/}
-          {/*    buttonColor={buttonColor.green}*/}
-          {/*    icon={<SaveIcon />}*/}
-          {/*    text={"Save"}*/}
-          {/*    onClick={saveView}*/}
-          {/*    className={"collapse-tablet"}*/}
-          {/*  />*/}
-          {/*)}*/}
-        </TableControlsTabsGroup>
+        <TableControlsTabsGroup></TableControlsTabsGroup>
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>

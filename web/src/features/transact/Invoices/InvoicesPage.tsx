@@ -54,12 +54,15 @@ function InvoicesPage() {
     isFetching: boolean;
     isUninitialized: boolean;
     isSuccess: boolean;
-  }>({
-    limit: limit,
-    offset: offset,
-    order: viewResponse.view.sortBy,
-    filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
-  });
+  }>(
+    {
+      limit: limit,
+      offset: offset,
+      order: viewResponse.view.sortBy,
+      filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
+    },
+    { skip: !isSuccess }
+  );
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -76,9 +79,7 @@ function InvoicesPage() {
   // }
 
   const closeSidebarHandler = () => {
-    return () => {
-      setSidebarExpanded(false);
-    };
+    setSidebarExpanded(false);
   };
 
   const tableControls = (

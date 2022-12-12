@@ -75,20 +75,8 @@ function OnChainPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   const closeSidebarHandler = () => {
-    return () => {
-      setSidebarExpanded(false);
-    };
+    setSidebarExpanded(false);
   };
-
-  // const saveView = () => {
-  //   const viewMod = { ...currentView };
-  //   viewMod.saved = true;
-  //   if (currentView.id === undefined || null) {
-  //     createTableView({ view: viewMod, index: currentViewIndex, page: "onChain" });
-  //     return;
-  //   }
-  //   updateTableView(viewMod);
-  // };
 
   const tableControls = (
     <TableControlSection>

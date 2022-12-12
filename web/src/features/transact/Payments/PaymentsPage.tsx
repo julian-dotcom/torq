@@ -77,9 +77,7 @@ function PaymentsPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   const closeSidebarHandler = () => {
-    return () => {
-      setSidebarExpanded(false);
-    };
+    setSidebarExpanded(false);
   };
 
   const tableControls = (

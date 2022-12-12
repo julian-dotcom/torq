@@ -26,7 +26,7 @@ type Payment struct {
 	PaymentHash             string    `json:"paymentHash" db:"payment_hash"`
 	PaymentPreimage         string    `json:"paymentPreimage" db:"payment_preimage"`
 	PaymentRequest          *string   `json:"paymentRequest" db:"payment_request"`
-	IsRebalance             *bool     `json:"isREebalance" db:"is_rebalance"`
+	IsRebalance             *bool     `json:"isRebalance" db:"is_rebalance"`
 	IsMPP                   bool      `json:"isMpp" db:"is_mpp"`
 	CountSuccessfulAttempts int       `json:"countSuccessful_attempts" db:"count_successful_attempts"`
 	CountFailedAttempts     int       `json:"countFailedAttempts" db:"count_failed_attempts"`
