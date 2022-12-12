@@ -16,35 +16,6 @@ import (
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
-type failedUpdate struct {
-	OutPoint    OutPoint `json:"outPoint"`
-	Reason      string   `json:"reason"`
-	UpdateError string   `json:"updateError"`
-}
-
-type OutPoint struct {
-	Txid        string `json:"txId"`
-	OutputIndex uint32 `json:"outputIndex"`
-}
-
-type updateResponse struct {
-	Status        string         `json:"status"`
-	FailedUpdates []failedUpdate `json:"failedUpdates"`
-}
-
-type updateChanRequestBody struct {
-	NodeId        int     `json:"nodeId"`
-	ChannelId     *int    `json:"channelId"`
-	FeeRatePpm    *uint32 `json:"feeRatePpm"`
-	BaseFeeMsat   *int64  `json:"baseFeeMsat"`
-	MaxHtlcMsat   *uint64 `json:"maxHtlcMsat"`
-	MinHtlcMsat   *uint64 `json:"minHtlcMsat"`
-	TimeLockDelta uint32  `json:"timeLockDelta"`
-}
-type pendingChannel struct {
-	PendingChannelPoint string `json:"pendingChannelPoint"`
-}
-
 type channelBody struct {
 	NodeId                       int                  `json:"nodeId"`
 	ChannelId                    int                  `json:"channelId"`
@@ -116,21 +87,14 @@ type ChannelPolicy struct {
 	RemoteNodeId    int    `json:"RemoteodeId" db:"remote_node_id"`
 }
 
-const (
-	MEMPOOL string = "https://mempool.space/lightning/channel/"
-	AMBOSS  string = "https://amboss.space/edge/"
-	ONEML   string = "https://1ml.com/channel/"
-)
-
-func updateChannelsHandler(c *gin.Context, db *sqlx.DB) {
-	requestBody := updateChanRequestBody{}
-
+func updateChannelsHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}) {
+	var requestBody commons.UpdateChannelRequest
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	response, err := updateChannels(db, requestBody)
+	response, err := updateChannels(db, requestBody, eventChannel)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Update channel/s policy")
 		return
@@ -139,27 +103,8 @@ func updateChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-type batchOpenChannel struct {
-	NodePubkey         string `json:"nodePubkey"`
-	LocalFundingAmount int64  `json:"localFundingAmount"`
-	PushSat            *int64 `json:"pushSat"`
-	Private            *bool  `json:"private"`
-	MinHtlcMsat        *int64 `json:"minHtlcMsat"`
-}
-
-type BatchOpenRequest struct {
-	NodeId      int                `json:"nodeId"`
-	Channels    []batchOpenChannel `json:"channels"`
-	TargetConf  *int32             `json:"targetConf"`
-	SatPerVbyte *int64             `json:"satPerVbyte"`
-}
-
-type BatchOpenResponse struct {
-	PendingChannels []pendingChannel `json:"pendingChannels"`
-}
-
 func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
-	var batchOpnReq BatchOpenRequest
+	var batchOpnReq commons.BatchOpenRequest
 	if err := c.BindJSON(&batchOpnReq); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
@@ -183,6 +128,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	if len(activeNcds) != 0 {
 		for _, ncd := range activeNcds {
+			// Force Response because we don't care about balance accuracy
 			channelBalanceStates := commons.GetChannelStates(ncd.NodeId, true)
 			nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
 			for _, channel := range channelBalanceStates {
@@ -236,9 +182,9 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 					ChanStatusFlags:              channel.ChanStatusFlags,
 					CommitmentType:               channel.CommitmentType,
 					Lifetime:                     channel.Lifetime,
-					MempoolSpace:                 MEMPOOL + lndShortChannelIdString,
-					AmbossSpace:                  AMBOSS + channelSettings.ShortChannelId,
-					OneMl:                        ONEML + lndShortChannelIdString,
+					MempoolSpace:                 commons.MEMPOOL + lndShortChannelIdString,
+					AmbossSpace:                  commons.AMBOSS + channelSettings.ShortChannelId,
+					OneMl:                        commons.ONEML + lndShortChannelIdString,
 				}
 
 				peerInfo, err := GetNodePeerAlias(ncd.NodeId, channel.RemoteNodeId, db)

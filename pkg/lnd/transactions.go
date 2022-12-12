@@ -162,7 +162,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 					Label:                 storedTx.Label,
 				}
 			}
-			transactionHeight = *storedTx.BlockHeight
+			if *storedTx.BlockHeight > transactionHeight {
+				transactionHeight = *storedTx.BlockHeight
+			}
 		}
 	}
 }

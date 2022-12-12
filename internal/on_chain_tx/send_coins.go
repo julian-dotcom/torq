@@ -9,26 +9,11 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
-type PayOnChainRequest struct {
-	NodeId           int     `json:"nodeId"`
-	Address          string  `json:"address"`
-	AmountSat        int64   `json:"amountSat"`
-	TargetConf       *int32  `json:"targetConf"`
-	SatPerVbyte      *uint64 `json:"satPerVbyte"`
-	SendAll          *bool   `json:"sendAll"`
-	Label            *string `json:"label"`
-	MinConfs         *int32  `json:"minConfs"`
-	SpendUnconfirmed *bool   `json:"spendUnconfirmed"`
-}
-
-type PayOnChainResponse struct {
-	TxId string `json:"txId"`
-}
-
-func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
+func PayOnChain(db *sqlx.DB, req commons.PayOnChainRequest) (r string, err error) {
 
 	sendCoinsReq, err := processSendRequest(req)
 	if err != nil {
@@ -62,7 +47,7 @@ func PayOnChain(db *sqlx.DB, req PayOnChainRequest) (r string, err error) {
 
 }
 
-func processSendRequest(req PayOnChainRequest) (r *lnrpc.SendCoinsRequest, err error) {
+func processSendRequest(req commons.PayOnChainRequest) (r *lnrpc.SendCoinsRequest, err error) {
 	r = &lnrpc.SendCoinsRequest{}
 
 	if req.NodeId == 0 {

@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
@@ -21,19 +22,6 @@ const (
 	P2TR    int32 = 4
 )
 
-type NewAddressRequest struct {
-	NodeId int   `json:"nodeId"`
-	Type   int32 `json:"type"`
-	//The name of the account to generate a new address for. If empty, the default wallet account is used.
-	Account string `json:"account"`
-}
-
-type NewAddressResponse struct {
-	ReqId   string `json:"reqId"`
-	Type    string `json:"type"`
-	Address string `json:"address"`
-}
-
 type rpcClientNewAddress interface {
 	NextAddr(ctx context.Context, in *walletrpc.AddrRequest, opts ...grpc.CallOption) (*walletrpc.AddrResponse, error)
 }
@@ -42,7 +30,7 @@ func NewAddress(
 	eventChannel chan interface{},
 	db *sqlx.DB,
 	context *gin.Context,
-	newAddressRequest NewAddressRequest,
+	newAddressRequest commons.NewAddressRequest,
 	reqId string,
 ) (err error) {
 
@@ -66,7 +54,7 @@ func NewAddress(
 	return newAddress(client, newAddressRequest, eventChannel, reqId)
 }
 
-func createLndAddressRequest(newAddressRequest NewAddressRequest) (r *walletrpc.AddrRequest, err error) {
+func createLndAddressRequest(newAddressRequest commons.NewAddressRequest) (r *walletrpc.AddrRequest, err error) {
 	lndAddressRequest := &walletrpc.AddrRequest{}
 	if newAddressRequest.Account != "" {
 		lndAddressRequest.Account = newAddressRequest.Account
@@ -84,7 +72,7 @@ func createLndAddressRequest(newAddressRequest NewAddressRequest) (r *walletrpc.
 	return lndAddressRequest, nil
 }
 
-func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest, eventChannel chan interface{}, reqId string) (err error) {
+func newAddress(client rpcClientNewAddress, newAddressRequest commons.NewAddressRequest, eventChannel chan interface{}, reqId string) (err error) {
 	// Create and validate payment request details
 	lndAddressRequest, err := createLndAddressRequest(newAddressRequest)
 	if err != nil {
@@ -98,14 +86,15 @@ func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest,
 	}
 
 	if eventChannel != nil {
-		eventChannel <- processResponse(lndResponse, reqId)
+		eventChannel <- processResponse(lndResponse, newAddressRequest, reqId)
 	}
 	return nil
 }
 
-func processResponse(lndResponse *walletrpc.AddrResponse, reqId string) (r NewAddressResponse) {
-	r.ReqId = reqId
-	r.Type = "newAddress"
-	r.Address = lndResponse.GetAddr()
-	return r
+func processResponse(lndResponse *walletrpc.AddrResponse, req commons.NewAddressRequest, reqId string) commons.NewAddressResponse {
+	return commons.NewAddressResponse{
+		ReqId:   reqId,
+		Request: req,
+		Address: lndResponse.Addr,
+	}
 }

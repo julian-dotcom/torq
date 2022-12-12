@@ -1,18 +1,28 @@
 package channels
 
 import (
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"reflect"
 	"testing"
+
+	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/testutil"
 )
+
+const FundingTransactionHash = "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c"
+const FundingOutputIndex = 1
 
 func Test_processResponse(t *testing.T) {
 
 	tests := []struct {
 		name    string
 		reqId   string
+		req     commons.CloseChannelRequest
 		input   *lnrpc.CloseStatusUpdate
-		want    *CloseChannelResponse
+		want    *commons.CloseChannelResponse
 		wantErr bool
 	}{
 		{
@@ -27,11 +37,11 @@ func Test_processResponse(t *testing.T) {
 				},
 			},
 
-			want: &CloseChannelResponse{
-				ReqId:        "Test",
-				Status:       "PENDING",
-				ClosePending: pendingUpdate{[]byte("test"), 0},
-				ChanClose:    channelCloseUpdate{},
+			want: &commons.CloseChannelResponse{
+				ReqId:                    "Test",
+				Status:                   commons.Closing,
+				ClosePendingChannelPoint: commons.ChannelPoint{TxId: []byte("test"), OutputIndex: 0},
+				CloseChannelStatus:       commons.CloseChannelStatus{},
 			},
 		},
 		{
@@ -45,18 +55,18 @@ func Test_processResponse(t *testing.T) {
 					},
 				},
 			},
-			want: &CloseChannelResponse{
-				ReqId:        "Test",
-				Status:       "CLOSED",
-				ClosePending: pendingUpdate{},
-				ChanClose:    channelCloseUpdate{ClosingTxId: []byte("test"), Success: false},
+			want: &commons.CloseChannelResponse{
+				ReqId:                    "Test",
+				Status:                   commons.CooperativeClosed,
+				ClosePendingChannelPoint: commons.ChannelPoint{},
+				CloseChannelStatus:       commons.CloseChannelStatus{ClosingTxId: []byte("test"), Success: false},
 			},
 		},
 	}
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := processCloseResponse(test.input, test.reqId)
+			got, err := processCloseResponse(test.input, test.req, test.reqId)
 			if err != nil {
 				t.Errorf("processCloseResponse error: %v", err)
 			}
@@ -68,14 +78,13 @@ func Test_processResponse(t *testing.T) {
 }
 
 func Test_convertChannelPoint(t *testing.T) {
-	fundTxidStr := "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c"
-	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: fundTxidStr}
+	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: FundingTransactionHash}
 	want := &lnrpc.ChannelPoint{
 		FundingTxid: fundingTxid,
-		OutputIndex: 1,
+		OutputIndex: FundingOutputIndex,
 	}
 	t.Run("converChanPoint", func(t *testing.T) {
-		chanPointStr := "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c:1"
+		chanPointStr := commons.CreateChannelPoint(FundingTransactionHash, FundingOutputIndex)
 		got, err := convertChannelPoint(chanPointStr)
 		if err != nil {
 			t.Errorf("convertChannelPoint error: %v", err)
@@ -87,10 +96,56 @@ func Test_convertChannelPoint(t *testing.T) {
 }
 
 func Test_prepareCloseRequest(t *testing.T) {
-	fundTxidStr := "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c"
-	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: fundTxidStr}
 
-	var channelPoint = &lnrpc.ChannelPoint{FundingTxid: fundingTxid, OutputIndex: 1}
+	srv, err := testutil.InitTestDBConn()
+	if err != nil {
+		panic(err)
+	}
+
+	db, cancel, err := srv.NewTestDatabase(true)
+	defer cancel()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = settings.InitializeManagedSettingsCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
+	}
+
+	err = settings.InitializeManagedNodeCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
+	}
+
+	err = InitializeManagedChannelCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
+	}
+
+	lndShortChannelId := uint64(9999)
+	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
+	channel, err := addChannel(db, Channel{
+		ShortChannelID:         &shortChannelId,
+		Status:                 commons.Open,
+		Private:                false,
+		Capacity:               10_000_000,
+		FirstNodeId:            commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+		SecondNodeId:           commons.GetNodeIdByPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
+		LNDShortChannelID:      &lndShortChannelId,
+		FundingOutputIndex:     FundingOutputIndex,
+		FundingTransactionHash: FundingTransactionHash,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Problem initializing channel: %v", err)
+	}
+	log.Info().Msgf("Created OPEN channel to be closed with channelId: %v", channel.ChannelID)
+
+	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: FundingTransactionHash}
+	var channelPoint = &lnrpc.ChannelPoint{FundingTxid: fundingTxid, OutputIndex: FundingOutputIndex}
 	var force = true
 	var targetConf int32 = 12
 	var deliveryAddress = "test"
@@ -98,14 +153,14 @@ func Test_prepareCloseRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   CloseChannelRequest
+		input   commons.CloseChannelRequest
 		want    *lnrpc.CloseChannelRequest
 		wantErr bool
 	}{
 		{
 			"Node ID not provided",
-			CloseChannelRequest{
-				ChannelId: 1,
+			commons.CloseChannelRequest{
+				ChannelId: channel.ChannelID,
 			},
 			&lnrpc.CloseChannelRequest{
 				ChannelPoint: channelPoint,
@@ -114,9 +169,9 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Both targetConf & satPerVbyte provided",
-			CloseChannelRequest{
-				NodeId:          1,
-				ChannelId:       1,
+			commons.CloseChannelRequest{
+				NodeId:          commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+				ChannelId:       channel.ChannelID,
 				Force:           nil,
 				TargetConf:      &targetConf,
 				DeliveryAddress: nil,
@@ -133,9 +188,9 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Just mandatory params",
-			CloseChannelRequest{
-				NodeId:    1,
-				ChannelId: 1,
+			commons.CloseChannelRequest{
+				NodeId:    commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+				ChannelId: channel.ChannelID,
 			},
 			&lnrpc.CloseChannelRequest{
 				ChannelPoint: channelPoint,
@@ -144,9 +199,9 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"All params provide",
-			CloseChannelRequest{
-				NodeId:          1,
-				ChannelId:       1,
+			commons.CloseChannelRequest{
+				NodeId:          commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+				ChannelId:       channel.ChannelID,
 				Force:           &force,
 				TargetConf:      &targetConf,
 				DeliveryAddress: &deliveryAddress,

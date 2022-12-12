@@ -473,18 +473,6 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 	}
 }
 
-func GetChannelState(nodeId, channelId int) *ManagedChannelStateSettings {
-	channelStateResponseChannel := make(chan *ManagedChannelStateSettings)
-	managedChannelState := ManagedChannelState{
-		NodeId:    nodeId,
-		ChannelId: channelId,
-		Type:      READ_CHANNELSTATE,
-		StateOut:  channelStateResponseChannel,
-	}
-	ManagedChannelStateChannel <- managedChannelState
-	return <-channelStateResponseChannel
-}
-
 func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSettings {
 	channelStatesResponseChannel := make(chan []ManagedChannelStateSettings)
 	managedChannelState := ManagedChannelState{
@@ -497,27 +485,42 @@ func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSetti
 	return <-channelStatesResponseChannel
 }
 
-func GetChannelBalanceState(nodeId, channelId int, htlcInclude ChannelBalanceStateHtlcInclude) *ManagedChannelBalanceStateSettings {
-	channelBalanceStateResponseChannel := make(chan *ManagedChannelBalanceStateSettings)
+func GetChannelState(nodeId, channelId int, forceResponse bool) *ManagedChannelStateSettings {
+	channelStateResponseChannel := make(chan *ManagedChannelStateSettings)
 	managedChannelState := ManagedChannelState{
-		NodeId:          nodeId,
-		ChannelId:       channelId,
-		HtlcInclude:     htlcInclude,
-		Type:            READ_CHANNELBALANCESTATE,
-		BalanceStateOut: channelBalanceStateResponseChannel,
+		NodeId:        nodeId,
+		ChannelId:     channelId,
+		ForceResponse: forceResponse,
+		Type:          READ_CHANNELSTATE,
+		StateOut:      channelStateResponseChannel,
+	}
+	ManagedChannelStateChannel <- managedChannelState
+	return <-channelStateResponseChannel
+}
+
+func GetChannelBalanceStates(nodeId int, forceResponse bool, channelStateInclude ChannelStateInclude, htlcInclude ChannelBalanceStateHtlcInclude) []ManagedChannelBalanceStateSettings {
+	channelBalanceStateResponseChannel := make(chan []ManagedChannelBalanceStateSettings)
+	managedChannelState := ManagedChannelState{
+		NodeId:           nodeId,
+		ForceResponse:    forceResponse,
+		HtlcInclude:      htlcInclude,
+		StateInclude:     channelStateInclude,
+		Type:             READ_CHANNELBALANCESTATE,
+		BalanceStatesOut: channelBalanceStateResponseChannel,
 	}
 	ManagedChannelStateChannel <- managedChannelState
 	return <-channelBalanceStateResponseChannel
 }
 
-func GetChannelBalanceStates(nodeId int, channelStateInclude ChannelStateInclude, htlcInclude ChannelBalanceStateHtlcInclude) []ManagedChannelBalanceStateSettings {
-	channelBalanceStateResponseChannel := make(chan []ManagedChannelBalanceStateSettings)
+func GetChannelBalanceState(nodeId, channelId int, forceResponse bool, htlcInclude ChannelBalanceStateHtlcInclude) *ManagedChannelBalanceStateSettings {
+	channelBalanceStateResponseChannel := make(chan *ManagedChannelBalanceStateSettings)
 	managedChannelState := ManagedChannelState{
-		NodeId:           nodeId,
-		HtlcInclude:      htlcInclude,
-		StateInclude:     channelStateInclude,
-		Type:             READ_CHANNELBALANCESTATE,
-		BalanceStatesOut: channelBalanceStateResponseChannel,
+		NodeId:          nodeId,
+		ChannelId:       channelId,
+		ForceResponse:   forceResponse,
+		HtlcInclude:     htlcInclude,
+		Type:            READ_CHANNELBALANCESTATE,
+		BalanceStateOut: channelBalanceStateResponseChannel,
 	}
 	ManagedChannelStateChannel <- managedChannelState
 	return <-channelBalanceStateResponseChannel

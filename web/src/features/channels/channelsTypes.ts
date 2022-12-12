@@ -1,27 +1,12 @@
-export type UpdatedChannelResponse = {
-  status: string;
-  failedUpdates: null | FailedUpdates[];
+export type UpdateChannelResponse = {
+  status: number;
+  failedUpdates: null | FailedRequest[];
 };
 
-type FailedUpdates = {
+type FailedRequest = {
   reason: string;
-  updateError: string;
-  OutPoint: FailedUpdatesOutPoint;
+  error: string;
 };
-
-type FailedUpdatesOutPoint = {
-  outputIndex: number;
-  Txid: string;
-};
-
-// interface PendingHTLC {
-//   forwardingCount: number;
-//   forwardingAmount: number;
-//   localCount: number;
-//   localAmount: number;
-//   toalCount: number;
-//   totalAmount: number;
-// }
 
 export interface channel {
   active: boolean;
@@ -75,11 +60,11 @@ export interface channel {
 }
 
 export type PolicyInterface = {
-  feeRatePpm?: number;
+  feeRateMilliMsat?: number;
   timeLockDelta?: number;
   maxHtlcMsat?: number;
-  minHtlcMsat?: number;
-  baseFeeMsat?: number;
+  minHtlc?: number;
+  feeBaseMsat?: number;
   channelId?: number;
   nodeId: number;
 };

@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import {channel, PolicyInterface} from "features/channels/channelsTypes";
 import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
-import { UpdatedChannelResponse } from "features/channels/channelsTypes";
+import { UpdateChannelResponse } from "features/channels/channelsTypes";
 import {
   ChannelOnchainCostResponse,
   ChannelHistoryResponse,
@@ -113,7 +113,7 @@ export const torqApi = createApi({
       }),
       providesTags: ["channels"],
     }),
-    updateChannel: builder.mutation<UpdatedChannelResponse, PolicyInterface>({
+    updateChannel: builder.mutation<UpdateChannelResponse, PolicyInterface>({
       query: (data: PolicyInterface) => ({
         url: "channels/update",
         method: "PUT",

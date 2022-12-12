@@ -140,3 +140,196 @@ type ForwardEvent struct {
 	OutgoingChannelId *int      `json:"outgoingChannelId"`
 	IncomingChannelId *int      `json:"incomingChannelId"`
 }
+
+// GENERIC REQUEST/RESPONSE STRUCTS
+type FailedRequest struct {
+	Reason string `json:"reason"`
+	Error  string `json:"error"`
+}
+
+type ChannelPoint struct {
+	TxId        []byte `json:"txId"`
+	OutputIndex uint32 `json:"outputIndex"`
+}
+
+// OPEN CHANNEL
+type OpenChannelRequest struct {
+	NodeId             int     `json:"nodeId"`
+	SatPerVbyte        *uint64 `json:"satPerVbyte"`
+	NodePubKey         string  `json:"nodePubKey"`
+	Host               *string `json:"host"`
+	LocalFundingAmount int64   `json:"localFundingAmount"`
+	PushSat            *int64  `json:"pushSat"`
+	TargetConf         *int32  `json:"targetConf"`
+	Private            *bool   `json:"private"`
+	MinHtlcMsat        *int64  `json:"minHtlcMsat"`
+	RemoteCsvDelay     *uint32 `json:"remoteCsvDelay"`
+	MinConfs           *int32  `json:"minConfs"`
+	SpendUnconfirmed   *bool   `json:"spendUnconfirmed"`
+	CloseAddress       *string `json:"closeAddress"`
+}
+
+type OpenChannelResponse struct {
+	ReqId               string             `json:"reqId"`
+	Request             OpenChannelRequest `json:"request"`
+	Status              ChannelStatus      `json:"status"`
+	ChannelPoint        string             `json:"channelPoint,omitempty"`
+	PendingChannelPoint string             `json:"pendingChannelPoint,omitempty"`
+}
+
+// CLOSE CHANNEL
+type CloseChannelRequest struct {
+	NodeId          int     `json:"nodeId"`
+	ChannelId       int     `json:"channelId"`
+	Force           *bool   `json:"force"`
+	TargetConf      *int32  `json:"targetConf"`
+	DeliveryAddress *string `json:"deliveryAddress"`
+	SatPerVbyte     *uint64 `json:"satPerVbyte"`
+}
+
+type CloseChannelResponse struct {
+	ReqId                    string              `json:"reqId"`
+	Request                  CloseChannelRequest `json:"request"`
+	Status                   ChannelStatus       `json:"status"`
+	ClosePendingChannelPoint ChannelPoint        `json:"closePendingChannelPoint"`
+	CloseChannelStatus       CloseChannelStatus  `json:"closeChannelStatus"`
+}
+
+type CloseChannelStatus struct {
+	ClosingTxId []byte `json:"closingTxId"`
+	Success     bool   `json:"success"`
+}
+
+// NEW ADDRESS
+type NewAddressRequest struct {
+	NodeId int   `json:"nodeId"`
+	Type   int32 `json:"type"`
+	//The name of the account to generate a new address for. If empty, the default wallet account is used.
+	Account string `json:"account"`
+}
+
+type NewAddressResponse struct {
+	ReqId   string            `json:"reqId"`
+	Request NewAddressRequest `json:"request"`
+	Address string            `json:"address"`
+}
+
+// NEW PAYMENT
+type NewPaymentRequest struct {
+	NodeId           int     `json:"nodeId"`
+	Invoice          *string `json:"invoice"`
+	TimeOutSecs      int32   `json:"timeoutSecs"`
+	Dest             *string `json:"dest"`
+	AmtMSat          *int64  `json:"amtMSat"`
+	FeeLimitMsat     *int64  `json:"feeLimitMsat"`
+	AllowSelfPayment *bool   `json:"allowSelfPayment"`
+}
+
+type MppRecord struct {
+	PaymentAddr  string
+	TotalAmtMsat int64
+}
+
+type Hops struct {
+	ChanId           string    `json:"chanId"`
+	Expiry           uint32    `json:"expiry"`
+	AmtToForwardMsat int64     `json:"amtToForwardMsat"`
+	PubKey           string    `json:"pubKey"`
+	MppRecord        MppRecord `json:"mppRecord"`
+	// TODO: Imolement AMP record here when needed
+}
+
+type Route struct {
+	TotalTimeLock uint32 `json:"totalTimeLock"`
+	Hops          []Hops `json:"hops"`
+	TotalAmtMsat  int64  `json:"totalAmtMsat"`
+}
+
+type FailureDetails struct {
+	Reason             string `json:"reason"`
+	FailureSourceIndex uint32 `json:"failureSourceIndex"`
+	Height             uint32 `json:"height"`
+}
+
+type Attempt struct {
+	AttemptId     uint64         `json:"attemptId"`
+	Status        string         `json:"status"`
+	Route         Route          `json:"route"`
+	AttemptTimeNs time.Time      `json:"attemptTimeNs"`
+	ResolveTimeNs time.Time      `json:"resolveTimeNs"`
+	Preimage      string         `json:"preimage"`
+	Failure       FailureDetails `json:"failure"`
+}
+type NewPaymentResponse struct {
+	ReqId          string            `json:"reqId"`
+	Request        NewPaymentRequest `json:"request"`
+	Status         string            `json:"status"`
+	FailureReason  string            `json:"failureReason"`
+	Hash           string            `json:"hash"`
+	Preimage       string            `json:"preimage"`
+	PaymentRequest string            `json:"paymentRequest"`
+	AmountMsat     int64             `json:"amountMsat"`
+	FeeLimitMsat   int64             `json:"feeLimitMsat"`
+	FeePaidMsat    int64             `json:"feePaidMsat"`
+	CreationDate   time.Time         `json:"creationDate"`
+	Attempt        Attempt           `json:"path"`
+}
+
+// PAY ONCHAIN
+type PayOnChainRequest struct {
+	NodeId           int     `json:"nodeId"`
+	Address          string  `json:"address"`
+	AmountSat        int64   `json:"amountSat"`
+	TargetConf       *int32  `json:"targetConf"`
+	SatPerVbyte      *uint64 `json:"satPerVbyte"`
+	SendAll          *bool   `json:"sendAll"`
+	Label            *string `json:"label"`
+	MinConfs         *int32  `json:"minConfs"`
+	SpendUnconfirmed *bool   `json:"spendUnconfirmed"`
+}
+
+type PayOnChainResponse struct {
+	Request PayOnChainRequest `json:"request"`
+	TxId    string            `json:"txId"`
+}
+
+// UPDATE CHANNEL
+type UpdateChannelRequest struct {
+	NodeId           int     `json:"nodeId"`
+	ChannelId        *int    `json:"channelId"`
+	FeeRateMilliMsat *uint64 `json:"feeRateMilliMsat"`
+	FeeBaseMsat      *uint64 `json:"feeBaseMsat"`
+	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
+	MinHtlc          *int64  `json:"minHtlc"`
+	TimeLockDelta    *uint32 `json:"timeLockDelta"`
+}
+
+type UpdateChannelResponse struct {
+	Request       UpdateChannelRequest `json:"request"`
+	Status        Status               `json:"status"`
+	FailedUpdates []FailedRequest      `json:"failedUpdates"`
+}
+
+// BATCH OPEN CHANNELS
+type BatchOpenChannel struct {
+	NodePubkey         string `json:"nodePubkey"`
+	LocalFundingAmount int64  `json:"localFundingAmount"`
+	PushSat            *int64 `json:"pushSat"`
+	Private            *bool  `json:"private"`
+	MinHtlcMsat        *int64 `json:"minHtlcMsat"`
+}
+
+type BatchOpenRequest struct {
+	NodeId      int                `json:"nodeId"`
+	Channels    []BatchOpenChannel `json:"channels"`
+	TargetConf  *int32             `json:"targetConf"`
+	SatPerVbyte *int64             `json:"satPerVbyte"`
+}
+
+type BatchOpenResponse struct {
+	PendingChannels []PendingChannel `json:"pendingChannels"`
+}
+
+type PendingChannel struct {
+	PendingChannelPoint string `json:"pendingChannelPoint"`
+}

@@ -37,8 +37,8 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 				broadcaster.CancelSubscription(listener)
 				return
 			default:
-				processBroadcastedEvent(event)
 			}
+			processBroadcastedEvent(event)
 		}
 	}()
 
@@ -251,5 +251,44 @@ func processBroadcastedEvent(event interface{}) {
 		for _, channelId := range channelIds {
 			commons.SetChannelStateChannelStatus(peerEvent.NodeId, channelId, status)
 		}
+		// Channel open requires confirmations
+		//} else if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
+		//	if openChannelEvent.Request.NodeId == 0 || openChannelEvent.Status != commons.Open {
+		//		return
+		//	}
+		//	commons.SetChannelStateChannelStatus(openChannelEvent.Request.NodeId, openChannelEvent.ChannelId, commons.Inactive)
+	} else if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
+		if closeChannelEvent.Request.NodeId == 0 {
+			return
+		}
+		commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, commons.Deleted)
+	} else if updateChannelEvent, ok := event.(commons.UpdateChannelResponse); ok {
+		if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == nil || *updateChannelEvent.Request.ChannelId == 0 {
+			return
+		}
+		// Force Response because we don't care about balance accuracy
+		currentStates := commons.GetChannelState(updateChannelEvent.Request.NodeId, *updateChannelEvent.Request.ChannelId, true)
+		timeLockDelta := currentStates.LocalTimeLockDelta
+		if updateChannelEvent.Request.TimeLockDelta != nil {
+			timeLockDelta = *updateChannelEvent.Request.TimeLockDelta
+		}
+		minHtlc := currentStates.LocalMinHtlc
+		if updateChannelEvent.Request.MinHtlc != nil {
+			minHtlc = *updateChannelEvent.Request.MinHtlc
+		}
+		maxHtlcMsat := currentStates.LocalMaxHtlcMsat
+		if updateChannelEvent.Request.MaxHtlcMsat != nil {
+			maxHtlcMsat = *updateChannelEvent.Request.MaxHtlcMsat
+		}
+		feeBaseMsat := currentStates.LocalFeeBaseMsat
+		if updateChannelEvent.Request.FeeBaseMsat != nil {
+			feeBaseMsat = *updateChannelEvent.Request.FeeBaseMsat
+		}
+		feeRateMilliMsat := currentStates.LocalFeeRateMilliMsat
+		if updateChannelEvent.Request.FeeRateMilliMsat != nil {
+			feeRateMilliMsat = *updateChannelEvent.Request.FeeRateMilliMsat
+		}
+		commons.SetChannelStateRoutingPolicy(updateChannelEvent.Request.NodeId, *updateChannelEvent.Request.ChannelId, true,
+			currentStates.LocalDisabled, timeLockDelta, minHtlc, maxHtlcMsat, feeBaseMsat, feeRateMilliMsat)
 	}
 }

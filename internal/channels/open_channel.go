@@ -14,31 +14,9 @@ import (
 
 	"github.com/lncapital/torq/internal/peers"
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
-
-type OpenChannelRequest struct {
-	NodeId             int     `json:"nodeId"`
-	SatPerVbyte        *uint64 `json:"satPerVbyte"`
-	NodePubKey         string  `json:"nodePubKey"`
-	Host               *string `json:"host"`
-	LocalFundingAmount int64   `json:"localFundingAmount"`
-	PushSat            *int64  `json:"pushSat"`
-	TargetConf         *int32  `json:"targetConf"`
-	Private            *bool   `json:"private"`
-	MinHtlcMsat        *int64  `json:"minHtlcMsat"`
-	RemoteCsvDelay     *uint32 `json:"remoteCsvDelay"`
-	MinConfs           *int32  `json:"minConfs"`
-	SpendUnconfirmed   *bool   `json:"spendUnconfirmed"`
-	CloseAddress       *string `json:"closeAddress"`
-}
-
-type OpenChannelResponse struct {
-	ReqId               string `json:"reqId"`
-	Status              string `json:"status"`
-	ChannelPoint        string `json:"channelPoint,omitempty"`
-	PendingChannelPoint string `json:"pendingChannelPoint,omitempty"`
-}
 
 type PsbtDetails struct {
 	FundingAddress string `json:"funding_address,omitempty"`
@@ -46,7 +24,7 @@ type PsbtDetails struct {
 	Psbt           []byte `json:"psbt,omitempty"`
 }
 
-func OpenChannel(db *sqlx.DB, eventChannel chan interface{}, req OpenChannelRequest, reqId string) (err error) {
+func OpenChannel(eventChannel chan interface{}, db *sqlx.DB, req commons.OpenChannelRequest, reqId string) (err error) {
 	openChanReq, err := prepareOpenRequest(req)
 	if err != nil {
 		return errors.Wrap(err, "Preparing open request")
@@ -103,7 +81,7 @@ func OpenChannel(db *sqlx.DB, eventChannel chan interface{}, req OpenChannelRequ
 			return errors.Wrapf(err, "Opening channel")
 		}
 
-		r, err := processOpenResponse(resp)
+		r, err := processOpenResponse(resp, req, reqId)
 		if err != nil {
 			return errors.Wrap(err, "Processing open response")
 		}
@@ -113,7 +91,7 @@ func OpenChannel(db *sqlx.DB, eventChannel chan interface{}, req OpenChannelRequ
 	}
 }
 
-func prepareOpenRequest(ocReq OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
+func prepareOpenRequest(ocReq commons.OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
 	if ocReq.NodeId == 0 {
 		return &lnrpc.OpenChannelRequest{}, errors.New("Node id is missing")
 	}
@@ -175,8 +153,7 @@ func prepareOpenRequest(ocReq OpenChannelRequest) (r *lnrpc.OpenChannelRequest, 
 	return openChanReq, nil
 }
 
-func processOpenResponse(resp *lnrpc.OpenStatusUpdate) (*OpenChannelResponse, error) {
-
+func processOpenResponse(resp *lnrpc.OpenStatusUpdate, req commons.OpenChannelRequest, reqId string) (commons.OpenChannelResponse, error) {
 	switch resp.GetUpdate().(type) {
 	case *lnrpc.OpenStatusUpdate_ChanPending:
 		log.Info().Msgf("Channel pending")
@@ -185,11 +162,13 @@ func processOpenResponse(resp *lnrpc.OpenStatusUpdate) (*OpenChannelResponse, er
 		pcp, err := translateChanPoint(pc.Txid, pc.OutputIndex)
 		if err != nil {
 			log.Error().Msgf("Error translating pending channel point")
-			return nil, err
+			return commons.OpenChannelResponse{}, err
 		}
 
-		return &OpenChannelResponse{
-			Status:              "PENDING",
+		return commons.OpenChannelResponse{
+			ReqId:               reqId,
+			Request:             req,
+			Status:              commons.Opening,
 			PendingChannelPoint: pcp,
 		}, nil
 
@@ -200,21 +179,23 @@ func processOpenResponse(resp *lnrpc.OpenStatusUpdate) (*OpenChannelResponse, er
 		ocp, err := translateChanPoint(oc.ChannelPoint.GetFundingTxidBytes(), oc.ChannelPoint.OutputIndex)
 		if err != nil {
 			log.Error().Msgf("Error translating channel point")
-			return nil, err
+			return commons.OpenChannelResponse{}, err
 		}
 
-		return &OpenChannelResponse{
-			Status:       "OPEN",
+		return commons.OpenChannelResponse{
+			ReqId:        reqId,
+			Request:      req,
+			Status:       commons.Open,
 			ChannelPoint: ocp,
 		}, nil
 
 	case *lnrpc.OpenStatusUpdate_PsbtFund:
 		log.Error().Msg("Channel psbt fund response received. Can't process this response")
-		return nil, errors.New("Channel psbt fund response received. Can't process this response")
+		return commons.OpenChannelResponse{}, errors.New("Channel psbt fund response received. Can't process this response")
 	default:
 	}
 
-	return nil, nil
+	return commons.OpenChannelResponse{}, nil
 }
 
 func translateChanPoint(cb []byte, oi uint32) (string, error) {

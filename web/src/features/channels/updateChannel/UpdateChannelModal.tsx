@@ -46,7 +46,7 @@ function NodechannelModal() {
 
   useEffect(() => {
     if (response.isSuccess) {
-      if (response.data.status == "FAILED") {
+      if (response.data.status != 1) {
         setResultState(ProgressStepState.error);
         const message = clone(errMessage) || [];
         if (response.data?.failedUpdates?.length) {
@@ -67,10 +67,10 @@ function NodechannelModal() {
   }, [response]);
 
   const [policyState, setPolicyState] = useState(ProgressStepState.disabled);
-  const [feeRatePpm, setFeeRatePpm] = useState<number | undefined>(undefined);
-  const [baseFeeMsat, setBaseFeeMsat] = useState<number | undefined>(undefined);
-  const [minHtlcSat, setMinHtlcSat] = useState<number | undefined>(undefined);
-  const [maxHtlcSat, setMaxHtlcSat] = useState<number | undefined>(undefined);
+  const [feeRateMilliMsat, setFeeRateMilliMsat] = useState<number | undefined>(undefined);
+  const [feeBaseMsat, setFeeBaseMsat] = useState<number | undefined>(undefined);
+  const [minHtlc, setMinHtlc] = useState<number | undefined>(undefined);
+  const [maxHtlcMsat, setMaxHtlcMsat] = useState<number | undefined>(undefined);
   const [timeLockDelta, setTimeLockDelta] = useState<number | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -95,31 +95,31 @@ function NodechannelModal() {
           <div className={styles.activeColumns}>
             <FormRow>
               <div className={styles.updateChannelTableDouble}>
-                <span className={styles.label}>{t.updateChannelPolicy.feeRatePpm}</span>
+                <span className={styles.label}>{t.updateChannelPolicy.feeRateMilliMsat}</span>
                 <div className={styles.input}>
                   <Input
                     formatted={true}
                     className={styles.double}
                     suffix={" ppm"}
                     thousandSeparator={","}
-                    value={feeRatePpm}
+                    value={feeRateMilliMsat}
                     onValueChange={(values: NumberFormatValues) => {
-                      setFeeRatePpm(values.floatValue as number);
+                      setFeeRateMilliMsat(values.floatValue as number);
                     }}
                   />
                 </div>
               </div>
               <div className={styles.updateChannelTableDouble}>
-                <span className={styles.label}>{t.updateChannelPolicy.baseFeeMsat}</span>
+                <span className={styles.label}>{t.updateChannelPolicy.feeBaseMsat}</span>
                 <div className={styles.input}>
                   <Input
                     formatted={true}
                     className={styles.double}
                     suffix={" milli sat"}
                     thousandSeparator={","}
-                    value={baseFeeMsat}
+                    value={feeBaseMsat}
                     onValueChange={(values: NumberFormatValues) => {
-                      setBaseFeeMsat(values.floatValue as number);
+                      setFeeBaseMsat(values.floatValue as number);
                     }}
                   />
                 </div>
@@ -128,31 +128,31 @@ function NodechannelModal() {
 
             <FormRow>
               <div className={styles.updateChannelTableDouble}>
-                <span className={styles.label}>{t.updateChannelPolicy.minHtlcSat}</span>
+                <span className={styles.label}>{t.updateChannelPolicy.minHtlc}</span>
                 <div className={styles.input}>
                   <Input
                     formatted={true}
                     className={styles.double}
                     suffix={" sat"}
                     thousandSeparator={","}
-                    value={minHtlcSat}
+                    value={minHtlc}
                     onValueChange={(values: NumberFormatValues) => {
-                      setMinHtlcSat(values.floatValue as number);
+                      setMinHtlc(values.floatValue as number);
                     }}
                   />
                 </div>
               </div>
               <div className={styles.updateChannelTableDouble}>
-                <span className={styles.label}>{t.updateChannelPolicy.maxHtlcSat}</span>
+                <span className={styles.label}>{t.updateChannelPolicy.maxHtlcMsat}</span>
                 <div className={styles.input}>
                   <Input
                     formatted={true}
                     className={styles.double}
                     suffix={" sat"}
                     thousandSeparator={true}
-                    value={maxHtlcSat}
+                    value={maxHtlcMsat}
                     onValueChange={(values: NumberFormatValues) => {
-                      setMaxHtlcSat(values.floatValue as number);
+                      setMaxHtlcMsat(values.floatValue as number);
                     }}
                   />
                 </div>
@@ -186,11 +186,11 @@ function NodechannelModal() {
                     setPolicyState(ProgressStepState.completed);
                     setResultState(ProgressStepState.processing);
                     updateChannelMutation({
-                      feeRatePpm,
-                      baseFeeMsat: baseFeeMsat,
-                      timeLockDelta,
-                      minHtlcMsat: minHtlcSat,
-                      maxHtlcMsat: maxHtlcSat,
+                      feeRateMilliMsat: feeRateMilliMsat,
+                      feeBaseMsat: feeBaseMsat,
+                      timeLockDelta: timeLockDelta,
+                      minHtlc: minHtlc,
+                      maxHtlcMsat: maxHtlcMsat,
                       channelId: channelId,
                       nodeId: nodeId,
                     });
@@ -206,12 +206,12 @@ function NodechannelModal() {
             className={classNames(
               styles.updateChannelResultIconWrapper,
               { [styles.failed]: !response.data },
-              updateStatusClass[response.data?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]
+              updateStatusClass[response.data?.status==1 ? "SUCCEEDED" : "FAILED"]
             )}
           >
             {" "}
             {!response.data && updateStatusIcon["FAILED"]}
-            {updateStatusIcon[response.data?.status as "SUCCEEDED" | "FAILED" | "IN_FLIGHT"]}
+            {updateStatusIcon[response.data?.status==1 ? "SUCCEEDED" : "FAILED"]}
           </div>
           <div className={errMessage.length ? styles.errorBox : styles.successeBox}>
             <div>

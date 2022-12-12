@@ -2,10 +2,11 @@ package channels
 
 import (
 	"context"
-	"github.com/lncapital/torq/pkg/commons"
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -21,33 +22,7 @@ type lndClientCloseChannel interface {
 	CloseChannel(ctx context.Context, in *lnrpc.CloseChannelRequest, opts ...grpc.CallOption) (lnrpc.Lightning_CloseChannelClient, error)
 }
 
-type CloseChannelRequest struct {
-	NodeId          int     `json:"nodeId"`
-	ChannelId       int     `json:"channelId"`
-	Force           *bool   `json:"force"`
-	TargetConf      *int32  `json:"targetConf"`
-	DeliveryAddress *string `json:"deliveryAddress"`
-	SatPerVbyte     *uint64 `json:"satPerVbyte"`
-}
-
-type pendingUpdate struct {
-	TxId        []byte `json:"txId"`
-	OutputIndex uint32 `json:"outputIndex"`
-}
-
-type channelCloseUpdate struct {
-	ClosingTxId []byte `json:"closingTxId"`
-	Success     bool   `json:"success"`
-}
-
-type CloseChannelResponse struct {
-	ReqId        string             `json:"reqId"`
-	Status       string             `json:"status"`
-	ClosePending pendingUpdate      `json:"closePending"`
-	ChanClose    channelCloseUpdate `json:"chanClose"`
-}
-
-func CloseChannel(eventChannel chan interface{}, db *sqlx.DB, c *gin.Context, ccReq CloseChannelRequest, reqId string) (err error) {
+func CloseChannel(eventChannel chan interface{}, db *sqlx.DB, c *gin.Context, ccReq commons.CloseChannelRequest, reqId string) (err error) {
 	connectionDetails, err := settings.GetConnectionDetailsById(db, ccReq.NodeId)
 	if err != nil {
 		return errors.New("Getting node connection details from the db")
@@ -68,10 +43,10 @@ func CloseChannel(eventChannel chan interface{}, db *sqlx.DB, c *gin.Context, cc
 		return errors.Wrap(err, "Preparing close request")
 	}
 
-	return closeChannelResp(client, closeChanReq, eventChannel, reqId)
+	return closeChannelResp(client, closeChanReq, eventChannel, ccReq, reqId)
 }
 
-func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelRequest, err error) {
+func prepareCloseRequest(ccReq commons.CloseChannelRequest) (r *lnrpc.CloseChannelRequest, err error) {
 
 	if ccReq.NodeId == 0 {
 		return &lnrpc.CloseChannelRequest{}, errors.New("Node id is missing")
@@ -112,7 +87,8 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelReques
 	return closeChanReq, nil
 }
 
-func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan interface{}, reqId string) error {
+func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan interface{},
+	ccReq commons.CloseChannelRequest, reqId string) error {
 
 	ctx := context.Background()
 	closeChanRes, err := client.CloseChannel(ctx, closeChanReq)
@@ -137,7 +113,7 @@ func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseCha
 			return errors.Wrap(err, "Close channel request receive")
 		}
 
-		r, err := processCloseResponse(resp, reqId)
+		r, err := processCloseResponse(resp, ccReq, reqId)
 		if err != nil {
 			return errors.Wrap(err, "Process close response")
 		}
@@ -169,15 +145,16 @@ func convertChannelPoint(chanPointStr string) (chanPoint *lnrpc.ChannelPoint, er
 	return chanPoint, nil
 }
 
-func processCloseResponse(resp *lnrpc.CloseStatusUpdate, reqId string) (*CloseChannelResponse, error) {
+func processCloseResponse(resp *lnrpc.CloseStatusUpdate, req commons.CloseChannelRequest, reqId string) (commons.CloseChannelResponse, error) {
 	switch resp.GetUpdate().(type) {
 	case *lnrpc.CloseStatusUpdate_ClosePending:
 		//log.Info().Msgf("Pending closing channel")
 		ccPending := resp.GetClosePending()
-		return &CloseChannelResponse{
-			ReqId:        reqId,
-			Status:       "PENDING",
-			ClosePending: pendingUpdate{ccPending.Txid, ccPending.OutputIndex},
+		return commons.CloseChannelResponse{
+			ReqId:                    reqId,
+			Request:                  req,
+			Status:                   commons.Closing,
+			ClosePendingChannelPoint: commons.ChannelPoint{TxId: ccPending.Txid, OutputIndex: ccPending.OutputIndex},
 		}, nil
 	case *lnrpc.CloseStatusUpdate_ChanClose:
 		//log.Info().Msgf("Channel closed/or not")
@@ -186,13 +163,14 @@ func processCloseResponse(resp *lnrpc.CloseStatusUpdate, reqId string) (*CloseCh
 		//	log.Error().Msgf("Channel closing failed")
 		//	return nil, errors.New("Channel failed to close")
 		//}
-		return &CloseChannelResponse{
-			ReqId:     reqId,
-			Status:    "CLOSED",
-			ChanClose: channelCloseUpdate{ccClose.ClosingTxid, ccClose.Success},
+		return commons.CloseChannelResponse{
+			ReqId:              reqId,
+			Request:            req,
+			Status:             commons.CooperativeClosed,
+			CloseChannelStatus: commons.CloseChannelStatus{ClosingTxId: ccClose.ClosingTxid, Success: ccClose.Success},
 		}, nil
 	default:
 	}
 
-	return nil, nil
+	return commons.CloseChannelResponse{}, nil
 }

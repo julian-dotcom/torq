@@ -26,66 +26,6 @@ type rrpcClientSendPayment interface {
 		error)
 }
 
-type NewPaymentRequest struct {
-	NodeId           int     `json:"nodeId"`
-	Invoice          *string `json:"invoice"`
-	TimeOutSecs      int32   `json:"timeoutSecs"`
-	Dest             *string `json:"dest"`
-	AmtMSat          *int64  `json:"amtMSat"`
-	FeeLimitMsat     *int64  `json:"feeLimitMsat"`
-	AllowSelfPayment *bool   `json:"allowSelfPayment"`
-}
-
-type MppRecord struct {
-	PaymentAddr  string
-	TotalAmtMsat int64
-}
-
-type hops struct {
-	ChanId           string    `json:"chanId"`
-	Expiry           uint32    `json:"expiry"`
-	AmtToForwardMsat int64     `json:"amtToForwardMsat"`
-	PubKey           string    `json:"pubKey"`
-	MppRecord        MppRecord `json:"mppRecord"`
-	// TODO: Imolement AMP record here when needed
-}
-
-type route struct {
-	TotalTimeLock uint32 `json:"totalTimeLock"`
-	Hops          []hops `json:"hops"`
-	TotalAmtMsat  int64  `json:"totalAmtMsat"`
-}
-
-type failureDetails struct {
-	Reason             string `json:"reason"`
-	FailureSourceIndex uint32 `json:"failureSourceIndex"`
-	Height             uint32 `json:"height"`
-}
-
-type attempt struct {
-	AttemptId     uint64         `json:"attemptId"`
-	Status        string         `json:"status"`
-	Route         route          `json:"route"`
-	AttemptTimeNs time.Time      `json:"attemptTimeNs"`
-	ResolveTimeNs time.Time      `json:"resolveTimeNs"`
-	Preimage      string         `json:"preimage"`
-	Failure       failureDetails `json:"failure"`
-}
-type NewPaymentResponse struct {
-	ReqId          string    `json:"reqId"`
-	Type           string    `json:"type"`
-	Status         string    `json:"status"`
-	FailureReason  string    `json:"failureReason"`
-	Hash           string    `json:"hash"`
-	Preimage       string    `json:"preimage"`
-	PaymentRequest string    `json:"paymentRequest"`
-	AmountMsat     int64     `json:"amountMsat"`
-	FeeLimitMsat   int64     `json:"feeLimitMsat"`
-	FeePaidMsat    int64     `json:"feePaidMsat"`
-	CreationDate   time.Time `json:"creationDate"`
-	Attempt        attempt   `json:"path"`
-}
-
 // SendNewPayment - send new payment
 // A new payment can be made either by providing an invoice or by providing:
 // dest - the identity pubkey of the payment recipient
@@ -97,7 +37,7 @@ func SendNewPayment(
 	eventChannel chan interface{},
 	db *sqlx.DB,
 	c *gin.Context,
-	npReq NewPaymentRequest,
+	npReq commons.NewPaymentRequest,
 	reqId string,
 ) (err error) {
 
@@ -121,7 +61,7 @@ func SendNewPayment(
 	return sendPayment(client, npReq, eventChannel, reqId)
 }
 
-func newSendPaymentRequest(npReq NewPaymentRequest) (r *routerrpc.SendPaymentRequest, err error) {
+func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPaymentRequest, err error) {
 	newPayReq := &routerrpc.SendPaymentRequest{
 		TimeoutSeconds: npReq.TimeOutSecs,
 	}
@@ -156,7 +96,7 @@ func newSendPaymentRequest(npReq NewPaymentRequest) (r *routerrpc.SendPaymentReq
 	return newPayReq, nil
 }
 
-func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, eventChannel chan interface{}, reqId string) (err error) {
+func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, eventChannel chan interface{}, reqId string) (err error) {
 
 	// Create and validate payment request details
 	newPayReq, err := newSendPaymentRequest(npReq)
@@ -202,22 +142,23 @@ func sendPayment(client rrpcClientSendPayment, npReq NewPaymentRequest, eventCha
 
 		if eventChannel != nil {
 			// Write the payment status to the client
-			eventChannel <- processResponse(resp, reqId)
+			eventChannel <- processResponse(resp, npReq, reqId)
 		}
 	}
 }
 
-func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
-	r.ReqId = reqId
-	r.Type = "newPayment"
-	r.Status = p.Status.String()
-	r.Hash = p.PaymentHash
-	r.Preimage = p.PaymentPreimage
-	r.AmountMsat = p.ValueMsat
-	r.CreationDate = time.Unix(0, p.CreationTimeNs)
-	r.FailureReason = p.FailureReason.String()
-	r.FeePaidMsat = p.FeeMsat
-
+func processResponse(p *lnrpc.Payment, req commons.NewPaymentRequest, reqId string) commons.NewPaymentResponse {
+	r := commons.NewPaymentResponse{
+		ReqId:         reqId,
+		Request:       req,
+		Status:        p.Status.String(),
+		Hash:          p.PaymentHash,
+		Preimage:      p.PaymentPreimage,
+		AmountMsat:    p.ValueMsat,
+		CreationDate:  time.Unix(0, p.CreationTimeNs),
+		FailureReason: p.FailureReason.String(),
+		FeePaidMsat:   p.FeeMsat,
+	}
 	for _, attempt := range p.GetHtlcs() {
 		r.Attempt.AttemptId = attempt.AttemptId
 		r.Attempt.Status = attempt.Status.String()
@@ -232,7 +173,7 @@ func processResponse(p *lnrpc.Payment, reqId string) (r NewPaymentResponse) {
 		}
 
 		for _, hop := range attempt.Route.Hops {
-			h := hops{
+			h := commons.Hops{
 				ChanId:           commons.ConvertLNDShortChannelID(hop.ChanId),
 				AmtToForwardMsat: hop.AmtToForwardMsat,
 				Expiry:           hop.Expiry,
