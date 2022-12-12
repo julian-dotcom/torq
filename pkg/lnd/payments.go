@@ -57,7 +57,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 		case <-ticker:
 			importCounter := 0
 
-			lastPaymentIndex, err = fetchLastPaymentIndex(db)
+			lastPaymentIndex, err = fetchLastPaymentIndex(db, nodeSettings.NodeId)
 			if err != nil {
 				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
@@ -108,10 +108,10 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	}
 }
 
-func fetchLastPaymentIndex(db *sqlx.DB) (uint64, error) {
+func fetchLastPaymentIndex(db *sqlx.DB, nodeId int) (uint64, error) {
 	var last uint64
 
-	row := db.QueryRow(`select coalesce(max(payment_index), 0) as latest from payment;`)
+	row := db.QueryRow(`select coalesce(max(payment_index), 0) as latest from payment where node_id = $1;`, nodeId)
 	err := row.Scan(&last)
 
 	if err != nil {
