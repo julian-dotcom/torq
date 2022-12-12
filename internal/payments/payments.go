@@ -8,7 +8,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/commons"
@@ -111,9 +110,6 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 	if err != nil {
 		return nil, total, errors.Wrap(err, "Compiling query to sql")
 	}
-
-	// Log for debugging
-	log.Debug().Msgf("Query: %s, \n Args: %v", qs, args)
 
 	rows, err := db.Queryx(qs, args...)
 	if err != nil {
