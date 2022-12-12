@@ -180,11 +180,11 @@ type Invoice struct {
 	UpdatedOn         time.Time `db:"updated_on" json:"updated_on"`
 }
 
-func fetchLastInvoiceIndexes(db *sqlx.DB) (addIndex uint64, settleIndex uint64, err error) {
+func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIndex uint64, err error) {
 	// index starts at 1
-	sqlLatest := `select coalesce(max(add_index),1), coalesce(max(settle_index),1) from invoice;`
+	sqlLatest := `select coalesce(max(add_index),1), coalesce(max(settle_index),1) from invoice where node_id = $1;`
 
-	row := db.QueryRow(sqlLatest)
+	row := db.QueryRow(sqlLatest, nodeId)
 	err = row.Scan(&addIndex, &settleIndex)
 
 	if err != nil {
@@ -213,7 +213,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 
 		// Get the latest settle and add index to prevent duplicate entries.
-		addIndex, _, err := fetchLastInvoiceIndexes(db)
+		addIndex, _, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
 			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
 			continue
@@ -256,7 +256,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 
 		// Get the latest settle and add index to prevent duplicate entries.
-		addIndex, settleIndex, err := fetchLastInvoiceIndexes(db)
+		addIndex, settleIndex, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
 			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
 			continue
