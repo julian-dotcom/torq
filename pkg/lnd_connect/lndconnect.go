@@ -42,7 +42,7 @@ func Connect(host string, tlsCert []byte, macaroonBytes []byte) (*grpc.ClientCon
 		grpc.WithTransportCredentials(tlsCreds),
 		grpc.WithPerRPCCredentials(macCred),
 		// max size to 25mb
-		grpc.WithMaxMsgSize(25 << (10 * 2)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(25 << (10 * 2))),
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
