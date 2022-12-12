@@ -1,6 +1,6 @@
 import { AndClause, FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
-import { ViewResponse } from "../viewManagement/types";
+import { ViewResponse } from "features/viewManagement/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { Forward } from "./forwardsTypes";
 

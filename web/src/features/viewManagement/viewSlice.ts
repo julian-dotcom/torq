@@ -1,16 +1,16 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { TableResponses, ViewResponse } from "./types";
 import { viewApi } from "./viewsApiSlice";
-import { DefaultForwardsView } from "../forwards/forwardsDefaults";
-import { RootState } from "../../store/store";
-import { DefaultOnChainView } from "../transact/OnChain/onChainDefaults";
-import { DefaultPaymentView } from "../transact/Payments/paymentDefaults";
-import { DefaultInvoiceView } from "../transact/Invoices/invoiceDefaults";
-import { DefaultChannelsView } from "../channels/channelsDefaults";
-import { DefaultTagsView } from "../../pages/tagsPage/tagsDefaults";
-import { ColumnMetaData } from "../table/types";
-import { OrderBy } from "../sidebar/sections/sort/SortSection";
-import { deserialiseQuery } from "../sidebar/sections/filter/filter";
+import { DefaultForwardsView } from "features/forwards/forwardsDefaults";
+import { RootState } from "store/store";
+import { DefaultOnChainView } from "features/transact/OnChain/onChainDefaults";
+import { DefaultPaymentView } from "features/transact/Payments/paymentDefaults";
+import { DefaultInvoiceView } from "features/transact/Invoices/invoiceDefaults";
+import { DefaultChannelsView } from "features/channels/channelsDefaults";
+import { DefaultTagsView } from "pages/tagsPage/tagsDefaults";
+import { ColumnMetaData } from "features/table/types";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
+import { deserialiseQuery } from "features/sidebar/sections/filter/filter";
 
 const initialState = {
   initiated: false,

@@ -4,8 +4,8 @@ import { channel } from "features/channels/channelsTypes";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";
 import { OnChainTx } from "features/transact/OnChain/types";
 import { Payment } from "features/transact/Payments/types";
-import { OrderBy } from "../sidebar/sections/sort/SortSection";
-import { Forward } from "../forwards/forwardsTypes";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
+import { Forward } from "features/forwards/forwardsTypes";
 
 export type ViewResponse<T> = {
   view: ViewInterface<T>;

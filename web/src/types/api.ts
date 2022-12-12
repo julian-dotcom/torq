@@ -1,4 +1,4 @@
-import { OrderBy } from "../features/sidebar/sections/sort/SortSection";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 type Paginable = {
   limit: number;

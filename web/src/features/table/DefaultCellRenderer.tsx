@@ -10,7 +10,7 @@ import NumericDoubleCell from "components/table/cells/numeric/NumericDoubleCell"
 import AliasCell from "components/table/cells/alias/AliasCell";
 import styles from "components/table/cells/cell.module.scss";
 import LongTextCell from "components/table/cells/longText/LongTextCell";
-import LinkCell from "../../components/table/cells/link/LinkCell";
+import LinkCell from "components/table/cells/link/LinkCell";
 
 export default function DefaultCellRenderer<T>(
   row: T,

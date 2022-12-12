@@ -19,7 +19,7 @@ import { NumberFormatValues } from "react-number-format";
 import clone from "clone";
 import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
-import Input from "../../../components/forms/input/Input";
+import Input from "components/forms/input/Input";
 
 const updateStatusClass = {
   IN_FLIGHT: styles.inFlight,

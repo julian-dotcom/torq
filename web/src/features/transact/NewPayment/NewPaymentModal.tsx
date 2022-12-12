@@ -9,7 +9,7 @@ import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPage
 import { ChangeEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
-import { NewPaymentError, NewPaymentResponse } from "../Payments/paymentTypes";
+import { NewPaymentError, NewPaymentResponse } from "features/transact/Payments/paymentTypes";
 import styles from "./newPayments.module.scss";
 import { PaymentProcessingErrors } from "./paymentErrorMessages";
 import OnChanPaymentDetails from "./OnChanPaymentDetails";

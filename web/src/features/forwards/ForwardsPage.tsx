@@ -25,7 +25,7 @@ import { useGetForwardsQuery } from "apiSlice";
 import { Forward } from "./forwardsTypes";
 import forwardsCellRenderer from "./forwardsCells";
 import Table from "features/table/Table";
-import { useFilterData, useSortData } from "../viewManagement/hooks";
+import { useFilterData, useSortData } from "features/viewManagement/hooks";
 
 function useForwardsTotals(data: Array<Forward>): Forward | undefined {
   if (!data.length) {

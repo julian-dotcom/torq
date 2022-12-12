@@ -1,5 +1,5 @@
-import { applyFilters, deserialiseQuery } from "../sidebar/sections/filter/filter";
-import { OrderBy } from "../sidebar/sections/sort/SortSection";
+import { applyFilters, deserialiseQuery } from "features/sidebar/sections/filter/filter";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { orderBy } from "lodash";
 
 export function useFilterData<T>(data: Array<T>, filters?: string): Array<T> {

@@ -1,7 +1,7 @@
 import styles from "components/table/cells/cell.module.scss";
-import { ColumnMetaData } from "../table/types";
-import DefaultCellRenderer from "../table/DefaultCellRenderer";
-import AliasCell from "../../components/table/cells/alias/AliasCell";
+import { ColumnMetaData } from "features/table/types";
+import DefaultCellRenderer from "features/table/DefaultCellRenderer";
+import AliasCell from "components/table/cells/alias/AliasCell";
 import { Forward } from "./forwardsTypes";
 
 export default function channelsCellRenderer(

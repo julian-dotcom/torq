@@ -30,8 +30,8 @@ import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { selectChannelView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { useState } from "react";
-import { useFilterData, useSortData } from "../viewManagement/hooks";
-import { useGroupBy } from "../sidebar/sections/group/groupBy";
+import { useFilterData, useSortData } from "features/viewManagement/hooks";
+import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import channelsCellRenderer from "./channelsCellRenderer";
 
 function ChannelsPage() {
@@ -74,19 +74,18 @@ function ChannelsPage() {
           {/*    className={"collapse-tablet"}*/}
           {/*  />*/}
           {/*)}*/}
-        <Button
-          buttonColor={buttonColor.green}
-          text={t.openChannel}
-          className={"collapse-tablet"}
-          icon={<ChannelsIcon />}
-          onClick={() => {
-            navigate(OPEN_CHANNEL, { state: { background: location } });
-          }}
-        />
+          <Button
+            buttonColor={buttonColor.green}
+            text={t.openChannel}
+            className={"collapse-tablet"}
+            icon={<ChannelsIcon />}
+            onClick={() => {
+              navigate(OPEN_CHANNEL, { state: { background: location } });
+            }}
+          />
         </TableControlsTabsGroup>
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
-
         <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
       </TableControlsButtonGroup>
     </TableControlSection>

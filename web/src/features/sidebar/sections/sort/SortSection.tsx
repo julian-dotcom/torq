@@ -12,10 +12,10 @@ import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { useStrictDroppable } from "utils/UseStrictDroppable";
-import { useAppDispatch } from "../../../../store/hooks";
-import { AllViewsResponse } from "../../../viewManagement/types";
-import { addSortBy, updateSortBy, deleteSortBy, updateSortByOrder } from "../../../viewManagement/viewSlice";
-import useTranslations from "../../../../services/i18n/useTranslations";
+import { useAppDispatch } from "store/hooks";
+import { AllViewsResponse } from "features/viewManagement/types";
+import { addSortBy, updateSortBy, deleteSortBy, updateSortByOrder } from "features/viewManagement/viewSlice";
+import useTranslations from "services/i18n/useTranslations";
 
 export type OrderBy = {
   key: string;

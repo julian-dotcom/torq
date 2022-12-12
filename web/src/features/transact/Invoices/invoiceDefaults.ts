@@ -2,7 +2,7 @@
 import { ViewResponse } from "features/viewManagement/types";
 import { Invoice } from "./invoiceTypes";
 import { ColumnMetaData } from "features/table/types";
-import { FilterInterface } from "../../sidebar/sections/filter/filter";
+import { FilterInterface } from "features/sidebar/sections/filter/filter";
 
 export const AllInvoicesColumns: Array<ColumnMetaData<Invoice>> = [
   {

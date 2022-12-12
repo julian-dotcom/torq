@@ -4,7 +4,7 @@ import { ColumnMetaData } from "features/table/types";
 import { updateFilters } from "features/viewManagement/viewSlice";
 import { AllViewsResponse } from "features/viewManagement/types";
 import { Clause } from "./filter";
-import { useAppDispatch } from "../../../../store/hooks";
+import { useAppDispatch } from "store/hooks";
 
 type FilterSectionProps<T> = {
   page: keyof AllViewsResponse;

@@ -2,8 +2,8 @@ import { VirtualNetwork20Regular as ChannelsIcon, Iot20Regular as PeersIcon } fr
 import styles from "./group-section.module.scss";
 import classNames from "classnames";
 import { AllViewsResponse } from "features/viewManagement/types";
-import { updateGroupBy } from "../../../viewManagement/viewSlice";
-import { useAppDispatch } from "../../../../store/hooks";
+import { updateGroupBy } from "features/viewManagement/viewSlice";
+import { useAppDispatch } from "store/hooks";
 
 type GroupPopoverProps = {
   page: keyof AllViewsResponse;

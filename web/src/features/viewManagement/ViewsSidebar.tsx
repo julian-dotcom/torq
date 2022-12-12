@@ -8,16 +8,16 @@ import {
 } from "@fluentui/react-icons";
 import Sidebar from "features/sidebar/Sidebar";
 import ViewsPopover from "./ViewSection";
-import ColumnsSection from "../sidebar/sections/columns/ColumnsSection";
-import { ColumnMetaData } from "../table/types";
+import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
+import { ColumnMetaData } from "features/table/types";
 import { useState } from "react";
 import { ViewResponse } from "./types";
-import FilterSection from "../sidebar/sections/filter/FilterSection";
-import { SectionContainer } from "../section/SectionContainer";
-import GroupBySection from "../sidebar/sections/group/GroupBySection";
-import SortSection, { OrderBy } from "../sidebar/sections/sort/SortSection";
+import FilterSection from "features/sidebar/sections/filter/FilterSection";
+import { SectionContainer } from "features/section/SectionContainer";
+import GroupBySection from "features/sidebar/sections/group/GroupBySection";
+import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import useTranslations from "services/i18n/useTranslations";
-import { deserialiseQuery } from "../sidebar/sections/filter/filter";
+import { deserialiseQuery } from "features/sidebar/sections/filter/filter";
 
 type ViewSidebarProps<T> = {
   expanded: boolean;
