@@ -83,8 +83,8 @@ func createPolicyRequest(req commons.UpdateChannelRequest) (r *lnrpc.PolicyUpdat
 		updChanReq.BaseFeeMsat = int64(*req.FeeBaseMsat)
 	}
 
-	if req.MinHtlc != nil {
-		updChanReq.MinHtlcMsat = uint64(*req.MinHtlc) * 1000
+	if req.MinHtlcMsat != nil {
+		updChanReq.MinHtlcMsat = *req.MinHtlcMsat
 		updChanReq.MinHtlcMsatSpecified = true
 	}
 	if req.MaxHtlcMsat != nil {

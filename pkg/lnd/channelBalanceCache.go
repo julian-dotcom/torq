@@ -126,7 +126,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettings.LocalDisabled = localRoutingPolicy.Disabled
 		channelStateSettings.LocalFeeBaseMsat = localRoutingPolicy.FeeBaseMsat
 		channelStateSettings.LocalFeeRateMilliMsat = localRoutingPolicy.FeeRateMillMsat
-		channelStateSettings.LocalMinHtlc = localRoutingPolicy.MinHtlc
+		channelStateSettings.LocalMinHtlcMsat = localRoutingPolicy.MinHtlcMsat
 		channelStateSettings.LocalMaxHtlcMsat = localRoutingPolicy.MaxHtlcMsat
 		channelStateSettings.LocalTimeLockDelta = localRoutingPolicy.TimeLockDelta
 
@@ -137,7 +137,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettings.RemoteDisabled = remoteRoutingPolicy.Disabled
 		channelStateSettings.RemoteFeeBaseMsat = remoteRoutingPolicy.FeeBaseMsat
 		channelStateSettings.RemoteFeeRateMilliMsat = remoteRoutingPolicy.FeeRateMillMsat
-		channelStateSettings.RemoteMinHtlc = remoteRoutingPolicy.MinHtlc
+		channelStateSettings.RemoteMinHtlcMsat = remoteRoutingPolicy.MinHtlcMsat
 		channelStateSettings.RemoteMaxHtlcMsat = remoteRoutingPolicy.MaxHtlcMsat
 		channelStateSettings.RemoteTimeLockDelta = remoteRoutingPolicy.TimeLockDelta
 
@@ -209,7 +209,7 @@ func processBroadcastedEvent(event interface{}) {
 		}
 		local := *channelGraphEvent.AnnouncingNodeId == channelGraphEvent.NodeId
 		commons.SetChannelStateRoutingPolicy(channelGraphEvent.NodeId, *channelGraphEvent.ChannelId, local,
-			channelGraphEvent.Disabled, channelGraphEvent.TimeLockDelta, channelGraphEvent.MinHtlc,
+			channelGraphEvent.Disabled, channelGraphEvent.TimeLockDelta, channelGraphEvent.MinHtlcMsat,
 			channelGraphEvent.MaxHtlcMsat, channelGraphEvent.FeeBaseMsat, channelGraphEvent.FeeRateMilliMsat)
 	} else if forwardEvent, ok := event.(commons.ForwardEvent); ok {
 		if forwardEvent.NodeId == 0 {
@@ -272,9 +272,9 @@ func processBroadcastedEvent(event interface{}) {
 		if updateChannelEvent.Request.TimeLockDelta != nil {
 			timeLockDelta = *updateChannelEvent.Request.TimeLockDelta
 		}
-		minHtlc := currentStates.LocalMinHtlc
-		if updateChannelEvent.Request.MinHtlc != nil {
-			minHtlc = *updateChannelEvent.Request.MinHtlc
+		minHtlcMsat := currentStates.LocalMinHtlcMsat
+		if updateChannelEvent.Request.MinHtlcMsat != nil {
+			minHtlcMsat = *updateChannelEvent.Request.MinHtlcMsat
 		}
 		maxHtlcMsat := currentStates.LocalMaxHtlcMsat
 		if updateChannelEvent.Request.MaxHtlcMsat != nil {
@@ -289,6 +289,6 @@ func processBroadcastedEvent(event interface{}) {
 			feeRateMilliMsat = *updateChannelEvent.Request.FeeRateMilliMsat
 		}
 		commons.SetChannelStateRoutingPolicy(updateChannelEvent.Request.NodeId, *updateChannelEvent.Request.ChannelId, true,
-			currentStates.LocalDisabled, timeLockDelta, minHtlc, maxHtlcMsat, feeBaseMsat, feeRateMilliMsat)
+			currentStates.LocalDisabled, timeLockDelta, minHtlcMsat, maxHtlcMsat, feeBaseMsat, feeRateMilliMsat)
 	}
 }

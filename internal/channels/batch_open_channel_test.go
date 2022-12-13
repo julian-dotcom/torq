@@ -14,7 +14,7 @@ func Test_checkPrepareReq(t *testing.T) {
 	var tgConf int32 = 12
 	var pushSat int64 = 12
 	var private = true
-	var minHtlcMsat int64 = 12
+	var minHtlcMsat uint64 = 12
 	bobPKbyte := []byte{2, 190, 169, 250, 229, 164, 252, 104, 90, 205,
 		95, 89, 4, 113, 105, 9, 71, 116, 213, 31, 173, 13, 47, 59, 70, 193, 190, 225, 220, 35, 166, 206, 45}
 	davePKbyte := []byte{3, 0, 58, 60, 77, 240, 60, 90, 152, 5, 137, 98,
@@ -120,14 +120,14 @@ func Test_checkPrepareReq(t *testing.T) {
 						LocalFundingAmount: 250000,
 						PushSat:            int64(12),
 						Private:            true,
-						MinHtlcMsat:        int64(12),
+						MinHtlcMsat:        12,
 					},
 					{
 						NodePubkey:         davePKbyte,
 						LocalFundingAmount: 250000,
 						PushSat:            int64(12),
 						Private:            true,
-						MinHtlcMsat:        int64(12),
+						MinHtlcMsat:        12,
 					},
 				},
 				TargetConf: int32(12),

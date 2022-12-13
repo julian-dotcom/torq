@@ -95,7 +95,7 @@ type ManagedChannelState struct {
 	Disabled             bool
 	FeeBaseMsat          uint64
 	FeeRateMilliMsat     uint64
-	MinHtlc              int64
+	MinHtlcMsat          uint64
 	MaxHtlcMsat          uint64
 	TimeLockDelta        uint32
 	Amount               int64
@@ -119,7 +119,7 @@ type ManagedChannelStateSettings struct {
 	LocalDisabled         bool   `json:"localDisabled"`
 	LocalFeeBaseMsat      uint64 `json:"localFeeBaseMsat"`
 	LocalFeeRateMilliMsat uint64 `json:"localFeeRateMilliMsat"`
-	LocalMinHtlc          int64  `json:"localMinHtlc"`
+	LocalMinHtlcMsat      uint64 `json:"localMinHtlcMsat"`
 	LocalMaxHtlcMsat      uint64 `json:"localMaxHtlcMsat"`
 	LocalTimeLockDelta    uint32 `json:"localTimeLockDelta"`
 
@@ -127,7 +127,7 @@ type ManagedChannelStateSettings struct {
 	RemoteDisabled         bool   `json:"remoteDisabled"`
 	RemoteFeeBaseMsat      uint64 `json:"remoteFeeBaseMsat"`
 	RemoteFeeRateMilliMsat uint64 `json:"remoteFeeRateMilliMsat"`
-	RemoteMinHtlc          int64  `json:"remoteMinHtlc"`
+	RemoteMinHtlcMsat      uint64 `json:"remoteMinHtlcMsat"`
 	RemoteMaxHtlcMsat      uint64 `json:"remoteMaxHtlcMsat"`
 	RemoteTimeLockDelta    uint32 `json:"remoteTimeLockDelta"`
 
@@ -363,14 +363,14 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 				if managedChannelState.Local {
 					channelSetting.LocalDisabled = managedChannelState.Disabled
 					channelSetting.LocalTimeLockDelta = managedChannelState.TimeLockDelta
-					channelSetting.LocalMinHtlc = managedChannelState.MinHtlc
+					channelSetting.LocalMinHtlcMsat = managedChannelState.MinHtlcMsat
 					channelSetting.LocalMaxHtlcMsat = managedChannelState.MaxHtlcMsat
 					channelSetting.LocalFeeBaseMsat = managedChannelState.FeeBaseMsat
 					channelSetting.LocalFeeRateMilliMsat = managedChannelState.FeeRateMilliMsat
 				} else {
 					channelSetting.RemoteDisabled = managedChannelState.Disabled
 					channelSetting.RemoteTimeLockDelta = managedChannelState.TimeLockDelta
-					channelSetting.RemoteMinHtlc = managedChannelState.MinHtlc
+					channelSetting.RemoteMinHtlcMsat = managedChannelState.MinHtlcMsat
 					channelSetting.RemoteMaxHtlcMsat = managedChannelState.MaxHtlcMsat
 					channelSetting.RemoteFeeBaseMsat = managedChannelState.FeeBaseMsat
 					channelSetting.RemoteFeeRateMilliMsat = managedChannelState.FeeRateMilliMsat
@@ -555,14 +555,14 @@ func SetChannelStateChannelStatus(nodeId int, channelId int, status Status) {
 }
 
 func SetChannelStateRoutingPolicy(nodeId int, channelId int, local bool,
-	disabled bool, timeLockDelta uint32, minHtlc int64, maxHtlcMsat uint64, feeBaseMsat uint64, feeRateMilliMsat uint64) {
+	disabled bool, timeLockDelta uint32, minHtlcMsat uint64, maxHtlcMsat uint64, feeBaseMsat uint64, feeRateMilliMsat uint64) {
 	managedChannelState := ManagedChannelState{
 		NodeId:           nodeId,
 		ChannelId:        channelId,
 		Local:            local,
 		Disabled:         disabled,
 		TimeLockDelta:    timeLockDelta,
-		MinHtlc:          minHtlc,
+		MinHtlcMsat:      minHtlcMsat,
 		MaxHtlcMsat:      maxHtlcMsat,
 		FeeBaseMsat:      feeBaseMsat,
 		FeeRateMilliMsat: feeRateMilliMsat,

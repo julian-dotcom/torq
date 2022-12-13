@@ -89,7 +89,7 @@ func checkPrepareReq(bocReq commons.BatchOpenRequest) (req *lnrpc.BatchOpenChann
 		}
 
 		if channel.MinHtlcMsat != nil {
-			boChannel.MinHtlcMsat = *channel.MinHtlcMsat
+			boChannel.MinHtlcMsat = int64(*channel.MinHtlcMsat)
 		}
 
 		if channel.PushSat != nil {

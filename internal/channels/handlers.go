@@ -35,16 +35,16 @@ type channelBody struct {
 	CommitFee                    int64                `json:"commitFee"`
 	CommitWeight                 int64                `json:"commitWeight"`
 	FeePerKw                     int64                `json:"feePerKw"`
-	BaseFeeMsat                  uint64               `json:"baseFeeMsat"`
-	MinHtlc                      int64                `json:"minHtlc"`
+	FeeBaseMsat                  uint64               `json:"feeBaseMsat"`
+	MinHtlcMsat                  uint64               `json:"minHtlcMsat"`
 	MaxHtlcMsat                  uint64               `json:"maxHtlcMsat"`
 	TimeLockDelta                uint32               `json:"timeLockDelta"`
-	FeeRatePpm                   uint64               `json:"feeRatePpm"`
-	RemoteBaseFeeMsat            uint64               `json:"remoteBaseFeeMsat"`
-	RemoteMinHtlc                int64                `json:"remoteMinHtlc"`
+	FeeRateMilliMsat             uint64               `json:"feeRateMilliMsat"`
+	RemoteFeeBaseMsat            uint64               `json:"remoteFeeBaseMsat"`
+	RemoteMinHtlcMsat            uint64               `json:"remoteMinHtlcMsat"`
 	RemoteMaxHtlcMsat            uint64               `json:"remoteMaxHtlcMsat"`
 	RemoteTimeLockDelta          uint32               `json:"remoteTimeLockDelta"`
-	RemoteFeeRatePpm             uint64               `json:"remoteFeeRatePpm"`
+	RemoteFeeRateMilliMsat       uint64               `json:"remoteFeeRateMilliMsat"`
 	PendingForwardingHTLCsCount  int                  `json:"pendingForwardingHTLCsCount"`
 	PendingForwardingHTLCsAmount int64                `json:"pendingForwardingHTLCsAmount"`
 	PendingLocalHTLCsCount       int                  `json:"pendingLocalHTLCsCount"`
@@ -78,7 +78,7 @@ type PendingHtlcs struct {
 type ChannelPolicy struct {
 	Disabled        bool   `json:"disabled" db:"disabled"`
 	TimeLockDelta   uint32 `json:"timeLockDelta" db:"time_lock_delta"`
-	MinHtlc         int64  `json:"minHtlc" db:"min_htlc"`
+	MinHtlcMsat     uint64 `json:"minHtlcMsat" db:"min_htlc"`
 	MaxHtlcMsat     uint64 `json:"maxHtlcMsat" db:"max_htlc_msat"`
 	FeeRateMillMsat uint64 `json:"feeRateMillMsat" db:"fee_rate_mill_msat"`
 	ShortChannelId  string `json:"shortChannelId" db:"short_channel_id"`
@@ -167,16 +167,16 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 					CommitFee:                    channel.CommitFee,
 					CommitWeight:                 channel.CommitWeight,
 					FeePerKw:                     channel.FeePerKw,
-					BaseFeeMsat:                  channel.LocalFeeBaseMsat,
-					MinHtlc:                      channel.LocalMinHtlc,
+					FeeBaseMsat:                  channel.LocalFeeBaseMsat,
+					MinHtlcMsat:                  channel.LocalMinHtlcMsat,
 					MaxHtlcMsat:                  channel.LocalMaxHtlcMsat,
 					TimeLockDelta:                channel.LocalTimeLockDelta,
-					FeeRatePpm:                   channel.LocalFeeRateMilliMsat,
-					RemoteBaseFeeMsat:            channel.RemoteFeeBaseMsat,
-					RemoteMinHtlc:                channel.RemoteMinHtlc,
+					FeeRateMilliMsat:             channel.LocalFeeRateMilliMsat,
+					RemoteFeeBaseMsat:            channel.RemoteFeeBaseMsat,
+					RemoteMinHtlcMsat:            channel.RemoteMinHtlcMsat,
 					RemoteMaxHtlcMsat:            channel.RemoteMaxHtlcMsat,
 					RemoteTimeLockDelta:          channel.RemoteTimeLockDelta,
-					RemoteFeeRatePpm:             channel.RemoteFeeRateMilliMsat,
+					RemoteFeeRateMilliMsat:       channel.RemoteFeeRateMilliMsat,
 					NumUpdates:                   channel.NumUpdates,
 					Initiator:                    channelSettings.InitiatingNodeId != nil && *channelSettings.InitiatingNodeId == ncd.NodeId,
 					ChanStatusFlags:              channel.ChanStatusFlags,

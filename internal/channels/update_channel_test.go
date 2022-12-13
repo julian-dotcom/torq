@@ -120,7 +120,7 @@ func Test_createPolicyRequest(t *testing.T) {
 	var feeRateMilliMsat uint64 = 11
 	var feeBaseMsat uint64 = 12
 	var maxHtlcMsat uint64 = 13
-	var minHtlc int64 = 14
+	var minHtlcMsat uint64 = 14
 
 	tests := []struct {
 		name    string
@@ -216,7 +216,7 @@ func Test_createPolicyRequest(t *testing.T) {
 				FeeRateMilliMsat: &feeRateMilliMsat,
 				FeeBaseMsat:      &feeBaseMsat,
 				MaxHtlcMsat:      &maxHtlcMsat,
-				MinHtlc:          &minHtlc,
+				MinHtlcMsat:      &minHtlcMsat,
 				TimeLockDelta:    &timeLockDelta,
 			},
 			&lnrpc.PolicyUpdateRequest{
@@ -232,7 +232,7 @@ func Test_createPolicyRequest(t *testing.T) {
 				FeeRatePpm:           uint32(11),
 				TimeLockDelta:        18,
 				MaxHtlcMsat:          uint64(13),
-				MinHtlcMsat:          uint64(14000),
+				MinHtlcMsat:          uint64(14),
 				MinHtlcMsatSpecified: true,
 			},
 			false,

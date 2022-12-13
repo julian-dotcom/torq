@@ -11,7 +11,7 @@ type FailedRequest = {
 export interface channel {
   active: boolean;
   ambossSpace: string;
-  baseFeeMsat: number;
+  feeBaseMsat: number;
   capacity: number;
   channelPoint: string;
   chanStatusFlags: string;
@@ -19,7 +19,7 @@ export interface channel {
   commitmentType: number;
   commitWeight: number;
   feePerKw: number;
-  feeRatePpm: number;
+  feeRateMilliMsat: number;
   fundingOutputIndex: number;
   fundingTransactionHash: string;
   gauge: number;
@@ -31,7 +31,7 @@ export interface channel {
   localChanReserveSat: number;
   maxHtlcMsat: number;
   mempoolSpace: string;
-  minHtlc: number;
+  minHtlcMsat: number;
   nodeId: number;
   channelId: number;
   nodeName: string;
@@ -45,11 +45,11 @@ export interface channel {
   pendingTotalHTLCsAmount: number;
   pendingTotalHTLCsCount: number;
   remoteBalance: number;
-  remoteBaseFeeMsat: number;
+  remoteFeeBaseMsat: number;
   remoteChanReserveSat: number;
-  remoteFeeRatePpm: number;
+  remoteFeeRateMilliMsat: number;
   remoteMaxHtlcMsat: number;
-  remoteMinHtlc: number;
+  remoteMinHtlcMsat: number;
   remotePubkey: number;
   remoteTimeLockDelta: number;
   shortChannelId: string;
@@ -63,7 +63,7 @@ export type PolicyInterface = {
   feeRateMilliMsat?: number;
   timeLockDelta?: number;
   maxHtlcMsat?: number;
-  minHtlc?: number;
+  minHtlcMsat?: number;
   feeBaseMsat?: number;
   channelId?: number;
   nodeId: number;

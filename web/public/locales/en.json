@@ -68,15 +68,15 @@
     "title": "Update Channel Policy",
     "back": "Back",
     "newUpdate": "New",
-    "baseFeeMsat": "Base Fee (msat)",
-    "feeRatePpm": "Fee Rate (ppm)",
+    "feeBaseMsat": "Base Fee (msat)",
+    "feeRateMilliMsat": "Fee Rate (ppm)",
     "timeLockDelta": "Time Lock Delta",
-    "minHtlcSat": "Min HTLC amount",
-    "maxHtlcSat": "Max HTLC amount",
+    "minHtlcMsat": "Min HTLC amount",
+    "maxHtlcMsat": "Max HTLC amount",
     "update": "Update",
     "confirmedMessage": "Channel policy updated",
-    "maxHtlcSatPlaceholder": "Leave empty for no limit",
-    "minHtlcSatPlaceholder": "Leave empty for no limit"
+    "maxHtlcMsatlaceholder": "Leave empty for no limit",
+    "minHtlcMsatPlaceholder": "Leave empty for no limit"
   },
   "openCloseChannel": {
     "openNewChannel": "Open another",

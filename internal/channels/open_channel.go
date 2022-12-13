@@ -132,7 +132,7 @@ func prepareOpenRequest(ocReq commons.OpenChannelRequest) (r *lnrpc.OpenChannelR
 	}
 
 	if ocReq.MinHtlcMsat != nil {
-		openChanReq.MinHtlcMsat = *ocReq.MinHtlcMsat
+		openChanReq.MinHtlcMsat = int64(*ocReq.MinHtlcMsat)
 	}
 
 	if ocReq.RemoteCsvDelay != nil {

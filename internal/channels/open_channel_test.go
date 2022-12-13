@@ -15,7 +15,7 @@ func Test_prepareOpenRequest(t *testing.T) {
 	var pushSat int64 = 12
 	var targetConf int32 = 12
 	var private = true
-	var minHtlcMsat int64 = 12
+	var minHtlcMsat uint64 = 12
 	var remoteCsvDelay uint32 = 12
 	var minConfs int32 = 12
 	var spendUnconfirmed = true
@@ -91,7 +91,7 @@ func Test_prepareOpenRequest(t *testing.T) {
 				PushSat:            12,
 				TargetConf:         int32(12),
 				Private:            true,
-				MinHtlcMsat:        int64(12),
+				MinHtlcMsat:        12,
 				RemoteCsvDelay:     uint32(12),
 				MinConfs:           int32(12),
 				SpendUnconfirmed:   true,

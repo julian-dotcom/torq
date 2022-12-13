@@ -29,7 +29,7 @@ type NodeGraphEventData struct {
 type ChannelGraphEventData struct {
 	Disabled         bool   `json:"disabled"`
 	TimeLockDelta    uint32 `json:"timeLockDelta"`
-	MinHtlc          int64  `json:"minHtlc"`
+	MinHtlcMsat      uint64 `json:"minHtlcMsat"`
 	MaxHtlcMsat      uint64 `json:"maxHtlcMsat"`
 	FeeBaseMsat      uint64 `json:"feeBaseMsat"`
 	FeeRateMilliMsat uint64 `json:"feeRateMilliMsat"`
@@ -162,7 +162,7 @@ type OpenChannelRequest struct {
 	PushSat            *int64  `json:"pushSat"`
 	TargetConf         *int32  `json:"targetConf"`
 	Private            *bool   `json:"private"`
-	MinHtlcMsat        *int64  `json:"minHtlcMsat"`
+	MinHtlcMsat        *uint64 `json:"minHtlcMsat"`
 	RemoteCsvDelay     *uint32 `json:"remoteCsvDelay"`
 	MinConfs           *int32  `json:"minConfs"`
 	SpendUnconfirmed   *bool   `json:"spendUnconfirmed"`
@@ -300,7 +300,7 @@ type UpdateChannelRequest struct {
 	FeeRateMilliMsat *uint64 `json:"feeRateMilliMsat"`
 	FeeBaseMsat      *uint64 `json:"feeBaseMsat"`
 	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
-	MinHtlc          *int64  `json:"minHtlc"`
+	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
 	TimeLockDelta    *uint32 `json:"timeLockDelta"`
 }
 
@@ -312,11 +312,11 @@ type UpdateChannelResponse struct {
 
 // BATCH OPEN CHANNELS
 type BatchOpenChannel struct {
-	NodePubkey         string `json:"nodePubkey"`
-	LocalFundingAmount int64  `json:"localFundingAmount"`
-	PushSat            *int64 `json:"pushSat"`
-	Private            *bool  `json:"private"`
-	MinHtlcMsat        *int64 `json:"minHtlcMsat"`
+	NodePubkey         string  `json:"nodePubkey"`
+	LocalFundingAmount int64   `json:"localFundingAmount"`
+	PushSat            *int64  `json:"pushSat"`
+	Private            *bool   `json:"private"`
+	MinHtlcMsat        *uint64 `json:"minHtlcMsat"`
 }
 
 type BatchOpenRequest struct {

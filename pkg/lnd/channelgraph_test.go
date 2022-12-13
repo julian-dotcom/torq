@@ -175,7 +175,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			FeeRateMillMsat:        updateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
 			FeeBaseMsat:            updateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
 			MaxHtlcMsat:            updateEvent.ChannelUpdates[0].RoutingPolicy.MaxHtlcMsat,
-			MinHtlc:                updateEvent.ChannelUpdates[0].RoutingPolicy.MinHtlc,
+			MinHtlcMsat:            uint64(updateEvent.ChannelUpdates[0].RoutingPolicy.MinHtlc),
 			TimeLockDelta:          updateEvent.ChannelUpdates[0].RoutingPolicy.TimeLockDelta,
 			Disabled:               updateEvent.ChannelUpdates[0].RoutingPolicy.Disabled,
 		}
@@ -221,8 +221,8 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 				result[0].FeeBaseMsat)
 		}
 
-		if result[0].MinHtlc != expected.MinHtlc {
-			testutil.Errorf(t, "Incorrect min htlc. Expected: %v, got %v", expected.MinHtlc, result[0].MinHtlc)
+		if result[0].MinHtlcMsat != expected.MinHtlcMsat {
+			testutil.Errorf(t, "Incorrect min htlc. Expected: %v, got %v", expected.MinHtlcMsat, result[0].MinHtlcMsat)
 		}
 
 		if result[0].MaxHtlcMsat != expected.MaxHtlcMsat {
@@ -276,7 +276,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			FeeRateMillMsat:        secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
 			FeeBaseMsat:            secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeBaseMsat,
 			MaxHtlcMsat:            secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MaxHtlcMsat,
-			MinHtlc:                secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MinHtlc,
+			MinHtlcMsat:            uint64(secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.MinHtlc),
 			TimeLockDelta:          secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.TimeLockDelta,
 			Disabled:               secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.Disabled,
 		}
@@ -297,7 +297,7 @@ type routingPolicyData struct {
 	FeeRateMillMsat        int64   `db:"fee_rate_mill_msat"`
 	FeeBaseMsat            int64   `db:"fee_base_msat"`
 	MaxHtlcMsat            uint64  `db:"max_htlc_msat"`
-	MinHtlc                int64   `db:"min_htlc"`
+	MinHtlcMsat            uint64  `db:"min_htlc"`
 	TimeLockDelta          uint32  `db:"time_lock_delta"`
 	Disabled               bool    `db:"disabled"`
 	ChannelId              int     `db:"channel_id"`
