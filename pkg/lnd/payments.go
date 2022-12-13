@@ -57,7 +57,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 		case <-ticker:
 			importCounter := 0
 
-			lastPaymentIndex, err = fetchLastPaymentIndex(db)
+			lastPaymentIndex, err = fetchLastPaymentIndex(db, nodeSettings.NodeId)
 			if err != nil {
 				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
@@ -108,10 +108,10 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	}
 }
 
-func fetchLastPaymentIndex(db *sqlx.DB) (uint64, error) {
+func fetchLastPaymentIndex(db *sqlx.DB, nodeId int) (uint64, error) {
 	var last uint64
 
-	row := db.QueryRow(`select coalesce(max(payment_index), 0) as latest from payment;`)
+	row := db.QueryRow(`select coalesce(max(payment_index), 0) as latest from payment where node_id = $1;`, nodeId)
 	err := row.Scan(&last)
 
 	if err != nil {
@@ -265,7 +265,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		case <-ctx.Done():
 			return
 		case <-ticker:
-			inFlightIndexes, err := fetchInFlightPaymentIndexes(db)
+			inFlightIndexes, err := fetchInFlightPaymentIndexes(db, nodeSettings.NodeId)
 			if err != nil {
 				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS)
@@ -328,14 +328,15 @@ type Payment struct {
 	CreationTimestamp int64  `json:"creation_timestamp" db:"creation_timestamp"`
 }
 
-func fetchInFlightPaymentIndexes(db *sqlx.DB) (r []uint64, err error) {
+func fetchInFlightPaymentIndexes(db *sqlx.DB, nodeId int) (r []uint64, err error) {
 
 	rows, err := db.Query(`
 		select payment_index
 		from payment
 		where status = 'IN_FLIGHT'
+		and node_id = $1
 		order by payment_index asc;
-	`)
+	`, nodeId)
 	if err != nil {
 		return nil, errors.Wrap(err, "DB Query of inflight payment indexes")
 	}

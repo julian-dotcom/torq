@@ -85,11 +85,11 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 
 // fetchLastForwardTime fetches the latest recorded forward, if none is set already.
 // This should only run once when a server starts.
-func fetchLastForwardTime(db *sqlx.DB) (uint64, error) {
+func fetchLastForwardTime(db *sqlx.DB, nodeId int) (uint64, error) {
 
 	var lastNs uint64
 
-	row := db.QueryRow("SELECT time_ns FROM forward ORDER BY time_ns DESC LIMIT 1;")
+	row := db.QueryRow("SELECT time_ns FROM forward WHERE node_id = $1 ORDER BY time_ns DESC LIMIT 1;", nodeId)
 	err := row.Scan(&lastNs)
 
 	if err == sql.ErrNoRows {
@@ -153,7 +153,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				rl.Take() // rate limited to 1 per second, when caught up will normally be 1 every 10 seconds
 
 				// Fetch the nanosecond timestamp of the most recent record we have.
-				lastNs, err := fetchLastForwardTime(db)
+				lastNs, err := fetchLastForwardTime(db, nodeSettings.NodeId)
 				if err != nil {
 					serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_FORWARDS_TICKER_SECONDS)
