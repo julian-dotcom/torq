@@ -6,14 +6,18 @@ import NavCategory from "./NavCategory";
 import { ReactComponent as TorqLogo } from "icons/torq-logo.svg";
 import {
   Navigation20Regular as CollapseIcon,
-  AppsListDetail20Regular as ForwardsIcon,
+  ArrowForward20Regular as ForwardsIcon,
   Autosum20Regular as SummaryIcon,
-  MoneyHand20Regular as TransactionIcon,
+  MoneyHand20Regular as PaymentsIcon,
+  KeyMultiple20Regular as OnChainTransactionIcon,
+  Check20Regular as InvoicesIcon,
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
+  // Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
+import * as routes from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 
 function Navigation() {
@@ -41,20 +45,23 @@ function Navigation() {
 
         <NavCategory text={t.analyse} collapsed={false}>
           <MenuItem text={t.summary} icon={<SummaryIcon />} routeTo={"/"} />
-          <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/analyse/channels"} />
           <MenuItem text={t.forwards} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
           {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
         </NavCategory>
 
-        {/*<NavCategory text={"Manage"} collapsed={false}>*/}
-        {/*  <>*/}
-        {/*    <MenuItem text={"Nodes"} icon={<NodesIcon />} routeTo={"/nodes"} />*/}
-        {/*    <MenuItem text={"Channels"} icon={<ChannelsIcon />} routeTo={"/channelss"} />*/}
-        {/*  </>*/}
-        {/*</NavCategory>*/}
+        <NavCategory text={"Manage"} collapsed={false}>
+          <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/manage/channels"} />
+          {/*<MenuItem text={"Tags"} icon={<TagsIcon />} routeTo={"/manage/tags"} />*/}
+        </NavCategory>
 
-        <NavCategory text={t.transact} collapsed={false}>
-          <MenuItem text={t.transactions} icon={<TransactionIcon />} routeTo={"/transactions/payments"} />
+        <NavCategory text={"Transactions"} collapsed={false}>
+          <MenuItem text={"Payments"} icon={<PaymentsIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`} />
+          <MenuItem text={"Invoices"} icon={<InvoicesIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`} />
+          <MenuItem
+            text={"On-Chain"}
+            icon={<OnChainTransactionIcon />}
+            routeTo={`/${routes.TRANSACTIONS}/${routes.ONCHAIN}`}
+          />
         </NavCategory>
       </div>
 

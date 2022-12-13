@@ -2,6 +2,7 @@ import { format } from "d3";
 import React from "react";
 import classNames from "classnames";
 import styles from "components/table/cells/cell.module.scss";
+import barCellStyles from "./barCell.module.scss";
 
 interface barCell {
   current: number;
@@ -30,11 +31,11 @@ function BarCell({ current, total, className, showPercent }: barCell) {
   }
 
   return (
-    <div className={classNames(styles.cell, styles.barCell, className)}>
+    <div className={classNames(styles.cell, barCellStyles.barCell, className)}>
       <div className={styles.current}>{data}</div>
-      <div className={styles.barWrapper}>
-        <div className={styles.bar} style={{ width: percent * 100 + "%" }} />
-        <div className={styles.totalBar} />
+      <div className={barCellStyles.barWrapper}>
+        <div className={barCellStyles.bar} style={{ width: percent * 100 + "%" }} />
+        <div className={barCellStyles.totalBar} />
       </div>
     </div>
   );

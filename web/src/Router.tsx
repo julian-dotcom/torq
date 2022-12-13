@@ -2,14 +2,11 @@ import { useEffect } from "react";
 import { Cookies } from "react-cookie";
 import { RouteObject, useRoutes } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
-
 import { useLogoutMutation } from "apiSlice";
 import RequireAuth from "RequireAuth";
 import RequireTorq from "RequireTorq";
-
 import DefaultLayout from "layout/DefaultLayout";
 import LoginLayout from "layout/LoginLayout";
-
 import LoginPage from "features/auth/LoginPage";
 import CookieLoginPage from "features/auth/CookieLoginPage";
 import ServicesPage from "features/services/ServicesPage";
@@ -22,15 +19,14 @@ import SettingsPage from "features/settings/SettingsPage";
 import AllTxPage from "features/transact/AllTxPage";
 import InvoicesPage from "features/transact/Invoices/InvoicesPage";
 import OnChainPage from "features/transact/OnChain/OnChainPage";
-import NewPaymentModal from "features/transact/Payments/newPayment/NewPaymentModal";
-import NewAddressModal from "features/transact/OnChain/newAddress/NewAddressModal";
+import NewPaymentModal from "features/transact/NewPayment/NewPaymentModal";
+import NewAddressModal from "features/transact/newAddress/NewAddressModal";
 import UpdateChannelModal from "features/channels/updateChannel/UpdateChannelModal";
 import OpenChannelModal from "features/channels/openChannel/OpenChannelModal";
 import CloseChannelModal from "features/channels/closeChannel/CloseChannelModal";
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
-
+import NewInvoiceModal from "features/transact/newInvoice/NewInvoiceModal";
 import * as routes from "constants/routes";
-import NewInvoiceModal from "features/transact/Invoices/newInvoice/NewInvoiceModal";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -74,6 +70,7 @@ const authenticatedRoutes: RouteObject = {
       element: <RequireAuth />,
       children: [
         {
+
           element: <RequireTorq />,
           children: [
             {
@@ -81,10 +78,16 @@ const authenticatedRoutes: RouteObject = {
               element: <DashboardPage />,
               children: modalRoutes.children,
             },
+        {
+          path: routes.MANAGE,
+          children: [
+            { path: routes.CHANNELS, element: <ChannelsPage /> },
+            // { path: routes.TAGS, element: <TagsPage /> },
+          ],
+        },
             {
               path: routes.ANALYSE,
               children: [
-                { path: routes.CHANNELS, element: <ChannelsPage /> },
                 { path: routes.FORWARDS, element: <ForwardsPage /> },
                 { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
                 { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },

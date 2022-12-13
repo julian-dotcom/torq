@@ -1,40 +1,148 @@
 .viewsPopoverContent {
-  width: 375px;
+  //width: 375px;
   @media only screen and (max-width: 600px) {
     width: 100%;
   }
 }
 .viewRows {
-  margin-bottom: 20px;
   display: grid;
-  grid-row-gap: 10px;
+  grid-row-gap: 8px;
 }
 .viewSelect {
+  padding-left: 4px;
+  height: 36px;
   display: grid;
-  grid-template-columns: auto 21px;
   justify-self: left;
-  padding: 6.5px 10px;
+  align-items: center;
+  font-size: var(--font-size-small);
   width: 100%;
   border: 1px solid transparent;
-  border-radius: 2px;
   cursor: pointer;
+  &:hover {
+    background-color: var(--color-primary-layer-3);
+  }
+  .viewSelectTitle {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
 }
 .viewEdit {
-  display: grid;
-  grid-template-columns: auto min-content;
-  justify-self: left;
   cursor: pointer;
 }
-.removeView {
-  color: var(--fg-default);
+.viewRowDragHandle,
+.removeView,
+.viewRowSave,
+.viewRowEdit {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  border-left: 1px solid var(--color-primary-layer-4);
+  height: 36px;
+  width: 36px;
   cursor: pointer;
+  &:hover {
+    background-color: var(--color-primary-layer-3);
+    border-bottom-right-radius: var(--radius-default);
+    border-top-right-radius: var(--radius-default);
+  }
+}
+.viewRowSave {
+  border-radius: 0px;
+  background-color: var(--color-warning-layer-3);
+  color: var(--color-text-warning-faded);
+  &:hover {
+    border-radius: 0px;
+    background-color: var(--color-warning-layer-4);
+  }
+}
+.viewRowDragHandle {
+  border-left: none;
+  &:hover {
+    background-color: var(--color-primary-layer-4);
+    border-radius: 0;
+    border-bottom-left-radius: var(--radius-default);
+    border-top-left-radius: var(--radius-default);
+  }
+}
+.dragDisabled {
+  cursor: not-allowed;
+  color: var(--color-text-primary-faint);
+  &:hover {
+    background-color: transparent;
+  }
 }
 .disabled {
   color: var(--fg-subtle);
 }
+.viewRowDragHandle {
+  display: flex;
+  align-items: center;
+  height: 36px;
+}
 .viewRow {
   display: grid;
-  grid-template-columns: 36px auto 36px;
+  height: 36px;
+  grid-auto-columns: 36px;
+  grid-template-columns: 36px auto;
+  grid-auto-flow: column;
+  background-color: var(--color-primary-layer-2);
+  border-radius: var(--radius-default);
+  color: var(--color-text-primary-strong);
   align-items: center;
-  justify-items: center;
+  justify-items: left;
+  input {
+    padding: 11px 0px 11px 5px !important;
+    background-color: var(--color-primary-layer-3) !important;
+    font-weight: 500;
+  }
+}
+.selected {
+  background-color: var(--color-success-layer-1);
+  color: var(--color-text-success-strong);
+  .removeView,
+  .viewRowEdit {
+    border-left: 1px solid var(--color-success-layer-3);
+    &:hover {
+      background-color: var(--color-success-layer-2);
+    }
+    border-bottom-right-radius: var(--radius-default);
+    border-top-right-radius: var(--radius-default);
+  }
+  .viewRowDragHandle {
+    &.dragDisabled {
+      color: var(--color-success-layer-4);
+      &:hover {
+        background-color: transparent;
+      }
+    }
+    &:hover {
+      background-color: var(--color-success-layer-2);
+    }
+  }
+  .viewSelect:hover {
+    //background-color: var(--color-success-layer-2);
+    background-color: transparent;
+  }
+  &.viewRow {
+    input {
+      background-color: var(--color-success-layer-2) !important;
+    }
+  }
+}
+.buttonsRow {
+  margin-top: 16px;
+}
+.unSavedViewsDivider {
+  display: grid;
+  align-content: center;
+  padding: 0px 12px;
+  color: var(--color-text-primary-strong);
+  border-bottom: 1px solid var(--color-primary-layer-4);
+  //background-color: var(--color-accent-1-layer-2);
+  height: 36px;
+  margin-top: 16px;
+  margin-bottom: 16px;
 }

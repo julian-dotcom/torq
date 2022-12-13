@@ -36,8 +36,8 @@
 .columnRow {
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: 34px auto 34px 34px;
-  //grid-template-rows: minmax(34px, auto);
+  grid-template-columns: 34px auto 34px;
+  grid-auto-columns: 34px;
   align-items: center;
   justify-items: center;
   background-color: var(--secondary-2-50);

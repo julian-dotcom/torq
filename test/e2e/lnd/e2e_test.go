@@ -5,15 +5,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
+	"github.com/playwright-community/playwright-go"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"testing"
-
-	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
-	"github.com/playwright-community/playwright-go"
 
 	"github.com/lncapital/torq/virtual_network"
 )
@@ -601,9 +600,11 @@ func TestPlaywrightVideo(t *testing.T) {
 		}
 	}
 
-	fill(".login-form .password-field", "password")
+	fill("#password-field", "password")
 
-	click(".login-form .submit-button")
+	click("#submit-button")
+
+	gotoPage("http://localhost:" + torqPort + "/")
 
 	click("#no-settings-confirmation")
 
@@ -677,26 +678,30 @@ func TestPlaywrightVideo(t *testing.T) {
 	click("text=Summary")
 
 	click("text=Forwards")
-
-	click("text=Default View")
+	click("id=tableControlsButton")
 
 	click("text=Channels")
+	click("id=tableControlsButton")
 
-	click("text=Default View")
-
-	click("text=Transactions")
-
-	click("id=collapse-navigation")
+	click("text=Payments")
+	click("id=tableControlsButton")
 
 	click("text=Invoices")
+	click("id=tableControlsButton")
 
 	click("text=On-Chain")
-
 	click("id=tableControlsButton")
+
+	click("text=Columns")
+
+	click("text=Destination Addresses Count")
 
 	click("text=Filter")
 
 	click("text=Add filter")
 
-	click("text=Sort")
+	click("text=Filter")
+
+	click("id=collapse-navigation")
+
 }

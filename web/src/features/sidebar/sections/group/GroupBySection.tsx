@@ -1,13 +1,28 @@
 import { VirtualNetwork20Regular as ChannelsIcon, Iot20Regular as PeersIcon } from "@fluentui/react-icons";
 import styles from "./group-section.module.scss";
 import classNames from "classnames";
+import { AllViewsResponse } from "features/viewManagement/types";
+import { updateGroupBy } from "features/viewManagement/viewSlice";
+import { useAppDispatch } from "store/hooks";
 
 type GroupPopoverProps = {
-  groupBy: string;
-  groupByHandler: (groupBy: string) => void;
+  page: keyof AllViewsResponse;
+  viewIndex: number;
+  groupBy?: "channels" | "peers";
 };
 
-const GroupBySection = (props: GroupPopoverProps) => {
+function GroupBySection(props: GroupPopoverProps) {
+  const dispatch = useAppDispatch();
+  const handleUpdate = (by: "channels" | "peers") => {
+    dispatch(
+      updateGroupBy({
+        page: props.page,
+        viewIndex: props.viewIndex,
+        groupByUpdate: by,
+      })
+    );
+  };
+
   return (
     <div className={styles.groupRowWrapper}>
       <button
@@ -15,7 +30,7 @@ const GroupBySection = (props: GroupPopoverProps) => {
           [styles.groupRowSelected]: props.groupBy == "channels",
         })}
         onClick={() => {
-          props.groupByHandler("channels");
+          handleUpdate("channels");
         }}
       >
         <div className="icon">
@@ -28,7 +43,7 @@ const GroupBySection = (props: GroupPopoverProps) => {
           [styles.groupRowSelected]: props.groupBy == "peers",
         })}
         onClick={() => {
-          props.groupByHandler("peers");
+          handleUpdate("peers");
         }}
       >
         <div className="icon">
@@ -36,19 +51,8 @@ const GroupBySection = (props: GroupPopoverProps) => {
         </div>
         <div>Peers</div>
       </button>
-      {/*<button*/}
-      {/*  className={classNames(styles.groupRow, {[styles.groupRowSelected]: (props.groupBy == 'tags')})}*/}
-      {/*  onClick={() =>{*/}
-      {/*    dispatch(updateGroupBy({groupBy: 'tags'}))*/}
-      {/*  }}*/}
-      {/*>*/}
-      {/*  <div className="icon">*/}
-      {/*    <TagsIcon/>*/}
-      {/*  </div>*/}
-      {/*  <div>Tags</div>*/}
-      {/*</button>*/}
     </div>
   );
-};
+}
 
 export default GroupBySection;

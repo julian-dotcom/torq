@@ -2,31 +2,29 @@ package channels
 
 import (
 	"context"
-	"strconv"
-	"strings"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
 // UpdateChannel
 // Returns status, failed updates array
-func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, err error) {
+func updateChannels(db *sqlx.DB, req commons.UpdateChannelRequest, eventChannel chan interface{}) (r commons.UpdateChannelResponse, err error) {
 
 	policyReq, err := createPolicyRequest(req)
 	if err != nil {
-		return updateResponse{}, errors.Wrap(err, "Create policy request")
+		return commons.UpdateChannelResponse{}, errors.Wrap(err, "Create policy request")
 	}
 
 	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 
 	if err != nil {
-		return updateResponse{}, errors.Wrap(err, "Getting node connection details from the db")
+		return commons.UpdateChannelResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}
 
 	conn, err := lnd_connect.Connect(
@@ -34,7 +32,7 @@ func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, e
 		connectionDetails.TLSFileBytes,
 		connectionDetails.MacaroonFileBytes)
 	if err != nil {
-		return updateResponse{}, errors.Wrap(err, "Getting node connection details from the db")
+		return commons.UpdateChannelResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}
 
 	defer conn.Close()
@@ -44,15 +42,15 @@ func updateChannels(db *sqlx.DB, req updateChanRequestBody) (r updateResponse, e
 
 	resp, err := client.UpdateChannelPolicy(ctx, policyReq)
 	if err != nil {
-		return updateResponse{}, errors.Wrap(err, "Updating channel policy")
+		return commons.UpdateChannelResponse{}, errors.Wrap(err, "Updating channel policy")
 	}
 
-	r = processUpdateResponse(resp)
+	r = processUpdateResponse(req, resp, eventChannel)
 
 	return r, nil
 }
 
-func createPolicyRequest(req updateChanRequestBody) (r *lnrpc.PolicyUpdateRequest, err error) {
+func createPolicyRequest(req commons.UpdateChannelRequest) (r *lnrpc.PolicyUpdateRequest, err error) {
 
 	updChanReq := &lnrpc.PolicyUpdateRequest{}
 
@@ -61,38 +59,38 @@ func createPolicyRequest(req updateChanRequestBody) (r *lnrpc.PolicyUpdateReques
 	}
 
 	//Minimum supported value for TimeLockDelta is 18
-	if req.TimeLockDelta < 18 {
+	if req.TimeLockDelta == nil || *req.TimeLockDelta < 18 {
 		updChanReq.TimeLockDelta = 18
 	} else {
-		updChanReq.TimeLockDelta = req.TimeLockDelta
+		updChanReq.TimeLockDelta = *req.TimeLockDelta
 	}
 
-	if req.FundingTransactionHash != nil && req.FundingOutputIndex != nil {
-		channelPoint := *req.FundingTransactionHash + ":" + strconv.Itoa(*req.FundingOutputIndex)
-		updChanReq.Scope, err = processChannelPoint(channelPoint)
+	if req.ChannelId != nil && *req.ChannelId != 0 {
+		channelSettings := commons.GetChannelSettingByChannelId(*req.ChannelId)
+		updChanReq.Scope, err = processChannelPoint(channelSettings.FundingTransactionHash,
+			uint32(channelSettings.FundingOutputIndex))
 		if err != nil {
-			return r, err
+			return nil, err
 		}
 	} else {
 		updChanReq.Scope = &lnrpc.PolicyUpdateRequest_Global{Global: true}
 	}
 
-	if req.FeeRatePpm != nil {
-		updChanReq.FeeRatePpm = *req.FeeRatePpm
+	if req.FeeRateMilliMsat != nil {
+		updChanReq.FeeRatePpm = uint32(*req.FeeRateMilliMsat)
 	}
-
-	if req.MaxHtlcMsat != nil {
-		updChanReq.MaxHtlcMsat = *req.MaxHtlcMsat
+	if req.FeeBaseMsat != nil {
+		updChanReq.BaseFeeMsat = int64(*req.FeeBaseMsat)
 	}
 
 	if req.MinHtlcMsat != nil {
 		updChanReq.MinHtlcMsat = *req.MinHtlcMsat
 		updChanReq.MinHtlcMsatSpecified = true
 	}
-
-	if req.BaseFeeMsat != nil {
-		updChanReq.BaseFeeMsat = *req.BaseFeeMsat
+	if req.MaxHtlcMsat != nil {
+		updChanReq.MaxHtlcMsat = *req.MaxHtlcMsat
 	}
+
 	return updChanReq, nil
 }
 
@@ -100,26 +98,10 @@ func createPolicyRequest(req updateChanRequestBody) (r *lnrpc.PolicyUpdateReques
 // Split received channel point string into fundingtxid and outputindex
 // Build PolicyUpdateRequest_ChanPoint: ChannelPoint_FundingTxidStr, ChannelPoint,
 // Return PolicyUpdateRequest_ChanPoint
-func processChannelPoint(chanPoint string) (cp *lnrpc.PolicyUpdateRequest_ChanPoint, err error) {
+func processChannelPoint(fundingTxidStr string, outputIndex uint32) (cp *lnrpc.PolicyUpdateRequest_ChanPoint,
+	err error) {
 
-	//Split string into funding txid and output index
-	splitChanPoint := strings.Split(chanPoint, ":")
-	if len(splitChanPoint) != 2 {
-		log.Error().Msgf("invalid channel point format: %v", err)
-		return cp, errors.New("invalid channel point format")
-	}
-
-	txid := splitChanPoint[0]
-
-	oIndxUint, err := strconv.ParseUint(splitChanPoint[1], 10, 1)
-	if err != nil {
-		log.Error().Msgf("parsing channel point output index: %v", err)
-		return cp, errors.Wrapf(err, "parsing channel point output index: %v", err)
-	}
-
-	outputIndex := uint32(oIndxUint)
-
-	fundingTxid := lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: txid}
+	fundingTxid := lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: fundingTxidStr}
 
 	lnrpcCP := &lnrpc.ChannelPoint{FundingTxid: &fundingTxid, OutputIndex: outputIndex}
 	cp = &lnrpc.PolicyUpdateRequest_ChanPoint{ChanPoint: lnrpcCP}
@@ -127,23 +109,25 @@ func processChannelPoint(chanPoint string) (cp *lnrpc.PolicyUpdateRequest_ChanPo
 	return cp, nil
 }
 
-func processUpdateResponse(resp *lnrpc.PolicyUpdateResponse) (r updateResponse) {
-	var failedUpdSlice []failedUpdate
-	//log.Debug().Msgf("There are failed updates")
+func processUpdateResponse(req commons.UpdateChannelRequest, resp *lnrpc.PolicyUpdateResponse, eventChannel chan interface{}) commons.UpdateChannelResponse {
+	var r commons.UpdateChannelResponse
+	var failedUpdSlice []commons.FailedRequest
 	if len(resp.GetFailedUpdates()) > 0 {
 		for _, failUpdate := range resp.GetFailedUpdates() {
-			//log.Debug().Msgf("txid byte: %v", failUpdate.Outpoint.TxidBytes)
-			failedUpd := failedUpdate{}
-			failedUpd.Reason = failUpdate.UpdateError
-			failedUpd.UpdateError = failUpdate.UpdateError
-			failedUpd.OutPoint.OutputIndex = failUpdate.Outpoint.OutputIndex
-			failedUpd.OutPoint.Txid = failUpdate.Outpoint.TxidStr
+			failedUpd := commons.FailedRequest{
+				Reason: failUpdate.UpdateError,
+				Error:  failUpdate.UpdateError,
+			}
 			failedUpdSlice = append(failedUpdSlice, failedUpd)
 		}
-		r.Status = "FAILED"
+		r.Status = commons.Inactive
 		r.FailedUpdates = failedUpdSlice
 	} else {
-		r.Status = "SUCCEEDED"
+		r.Status = commons.Active
+	}
+	r.Request = req
+	if eventChannel != nil {
+		eventChannel <- r
 	}
 	return r
 }

@@ -1,9 +1,12 @@
 package channels
 
 import (
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"reflect"
 	"testing"
+
+	"github.com/lightningnetwork/lnd/lnrpc"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 func Test_prepareOpenRequest(t *testing.T) {
@@ -12,7 +15,7 @@ func Test_prepareOpenRequest(t *testing.T) {
 	var pushSat int64 = 12
 	var targetConf int32 = 12
 	var private = true
-	var minHtlcMsat int64 = 12
+	var minHtlcMsat uint64 = 12
 	var remoteCsvDelay uint32 = 12
 	var minConfs int32 = 12
 	var spendUnconfirmed = true
@@ -22,12 +25,12 @@ func Test_prepareOpenRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   OpenChannelRequest
+		input   commons.OpenChannelRequest
 		want    *lnrpc.OpenChannelRequest
 		wantErr bool
 	}{
 		{"Node id not provided",
-			OpenChannelRequest{
+			commons.OpenChannelRequest{
 				NodePubKey:         pubKeyStr,
 				LocalFundingAmount: 12,
 				PushSat:            nil,
@@ -37,7 +40,7 @@ func Test_prepareOpenRequest(t *testing.T) {
 			&lnrpc.OpenChannelRequest{},
 			true},
 		{"Just mandatory params",
-			OpenChannelRequest{
+			commons.OpenChannelRequest{
 				NodeId:             1,
 				NodePubKey:         pubKeyStr,
 				LocalFundingAmount: 12,
@@ -48,7 +51,7 @@ func Test_prepareOpenRequest(t *testing.T) {
 			},
 			false},
 		{"Both targetConf & satPerVbyte provided",
-			OpenChannelRequest{
+			commons.OpenChannelRequest{
 				NodePubKey:         pubKeyStr,
 				LocalFundingAmount: 12,
 				PushSat:            nil,
@@ -58,7 +61,7 @@ func Test_prepareOpenRequest(t *testing.T) {
 			&lnrpc.OpenChannelRequest{},
 			true},
 		{"Just mandatory params",
-			OpenChannelRequest{
+			commons.OpenChannelRequest{
 				NodeId:             1,
 				NodePubKey:         pubKeyStr,
 				LocalFundingAmount: 12,
@@ -69,7 +72,7 @@ func Test_prepareOpenRequest(t *testing.T) {
 			},
 			false},
 		{"All params provided",
-			OpenChannelRequest{
+			commons.OpenChannelRequest{
 				NodeId:             1,
 				NodePubKey:         pubKeyStr,
 				LocalFundingAmount: 12,
@@ -88,7 +91,7 @@ func Test_prepareOpenRequest(t *testing.T) {
 				PushSat:            12,
 				TargetConf:         int32(12),
 				Private:            true,
-				MinHtlcMsat:        int64(12),
+				MinHtlcMsat:        12,
 				RemoteCsvDelay:     uint32(12),
 				MinConfs:           int32(12),
 				SpendUnconfirmed:   true,
@@ -138,12 +141,14 @@ func Test_processOpenResponse(t *testing.T) {
 
 	tests := []struct {
 		name    string
+		request commons.OpenChannelRequest
 		input   *lnrpc.OpenStatusUpdate
-		want    *OpenChannelResponse
+		want    commons.OpenChannelResponse
 		wantErr bool
 	}{
 		{
 			"Open pending",
+			commons.OpenChannelRequest{},
 			&lnrpc.OpenStatusUpdate{
 				Update: &lnrpc.OpenStatusUpdate_ChanPending{
 					ChanPending: &lnrpc.PendingUpdate{
@@ -153,8 +158,9 @@ func Test_processOpenResponse(t *testing.T) {
 				},
 				PendingChanId: []byte("1"),
 			},
-			&OpenChannelResponse{
-				Status:              "PENDING",
+			commons.OpenChannelResponse{
+				ReqId:               "TESTREQID",
+				Status:              commons.Opening,
 				ChannelPoint:        "",
 				PendingChannelPoint: "72c09cee568b5637d1c6730a83fb4576689fd8fec32a8b8a8bab9e25d2267cdc:0",
 			},
@@ -162,12 +168,14 @@ func Test_processOpenResponse(t *testing.T) {
 		},
 		{
 			"Channel opened",
+			commons.OpenChannelRequest{},
 			&lnrpc.OpenStatusUpdate{
 				Update:        &update,
 				PendingChanId: nil,
 			},
-			&OpenChannelResponse{
-				Status:              "OPEN",
+			commons.OpenChannelResponse{
+				ReqId:               "TESTREQID",
+				Status:              commons.Open,
 				ChannelPoint:        "72c09cee568b5637d1c6730a83fb4576689fd8fec32a8b8a8bab9e25d2267cdc:0",
 				PendingChannelPoint: "",
 			},
@@ -175,18 +183,19 @@ func Test_processOpenResponse(t *testing.T) {
 		},
 		{
 			"Ready for psbt",
+			commons.OpenChannelRequest{},
 			&lnrpc.OpenStatusUpdate{
 				Update:        &r4PsbtUpdate,
 				PendingChanId: nil,
 			},
-			nil,
+			commons.OpenChannelResponse{},
 			true,
 		},
 	}
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := processOpenResponse(test.input)
+			got, err := processOpenResponse(test.input, test.request, "TESTREQID")
 			if err != nil {
 				if test.wantErr {
 					return

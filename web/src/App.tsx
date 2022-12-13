@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-
 import styles from "./app.module.scss";
 import ToastContext from "./features/toast/context";
 import Toasts, { addToastHandle } from "./features/toast/Toasts";
@@ -10,7 +9,9 @@ function App() {
   const { init, status: i18nStatus } = useTranslations();
   const toastRef = React.useRef<addToastHandle>();
 
-  useEffect(() => { init(); }, []);
+  useEffect(() => {
+    init();
+  }, []);
 
   return i18nStatus === "loading" ? (
     <p>Loading...</p>

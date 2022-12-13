@@ -5,3 +5,8 @@
   grid-row-gap: 30px;
   padding-bottom: 20px;
 }
+.settingsForm {
+  display: flex;
+  flex-direction: column;
+  row-gap: 16px;
+}

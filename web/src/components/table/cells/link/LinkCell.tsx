@@ -3,20 +3,21 @@ import React from "react";
 import classNames from "classnames";
 
 interface LinkCell {
-  current: string;
+  text: string;
   link: string;
   className?: string;
+  totalCell?: boolean;
 }
 
-function LinkCell({ current, link, className }: LinkCell) {
+function LinkCell(props: LinkCell) {
   return (
     <a
-      className={classNames(styles.cell, styles.numericCell, styles.alignRight, className)}
+      className={classNames(styles.cell, styles.numericCell, styles.alignRight, props.className)}
       rel="noreferrer"
       target="_blank"
-      href={link}
+      href={props.link}
     >
-      <div className={classNames(styles.current, styles.text, styles.link)}>{current}</div>
+      {props.totalCell && <div className={classNames(styles.current, styles.text, styles.link)}>{props.text}</div>}
     </a>
   );
 }

@@ -8,7 +8,7 @@ import cellStyles from "components/table/cells/cell.module.scss";
 export interface DateCellProps {
   value?: string | Date;
   className?: string;
-  total?: boolean;
+  totalCell?: boolean;
 }
 
 function DateCell(props: DateCellProps) {
@@ -28,17 +28,21 @@ function DateCell(props: DateCellProps) {
   return (
     <div
       className={classNames(cellStyles.cell, cellStyles.alignLeft, styles.DateCell, props.className, {
-        [cellStyles.totalCell]: props.total,
+        [cellStyles.totalCell]: props.totalCell,
       })}
     >
-      <div className={styles.dateRow}>
-        {displayDate && <DateIcon />}
-        {displayDate}
-      </div>
-      <div className={styles.timeRow}>
-        {displayTime && <TimeIcon />}
-        {displayTime}
-      </div>
+      {!props.totalCell && (
+        <>
+          <div className={styles.dateRow}>
+            {displayDate && <DateIcon />}
+            {displayDate}
+          </div>
+          <div className={styles.timeRow}>
+            {displayTime && <TimeIcon />}
+            {displayTime}
+          </div>
+        </>
+      )}
     </div>
   );
 }

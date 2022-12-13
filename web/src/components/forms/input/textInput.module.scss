@@ -97,6 +97,39 @@
     }
   }
 }
+.inputWrapper.inline {
+  width: 100%;
+  .label {
+    font-size: var(--font-size-small);
+  }
+  .input {
+    display: flex;
+    justify-self: left;
+    align-items: center;
+    font-size: var(--font-size-small);
+    background-color: transparent;
+    height: auto;
+    margin: 0;
+    //width: 100%;
+    border: none;
+    padding: 0px;
+    padding-left: 5px;
+    text-align: left;
+  }
+  .hasLeftIcon {
+    .leftIcon {
+      top: calc(50% - 8px);
+      left: 8px;
+      svg {
+        height: 16px;
+        width: 16px;
+      }
+    }
+    input {
+      padding-left: 32px;
+    }
+  }
+}
 .feedbackWrapper {
   display: flex;
   gap: 4px;

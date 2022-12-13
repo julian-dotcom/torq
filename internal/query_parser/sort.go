@@ -38,12 +38,16 @@ func ParseOrderParams(params string, allowedColumns []string) ([]string, error) 
 }
 
 func (qp *QueryParser) ParseOrder(s Order) (r string, err error) {
-
+	//key, err := GetDBKeyName(s.Key)
+	//if err != nil {
+	//	return r, err
+	//}
+	key := strcase.ToSnake(s.Key)
 	// Prevents SQL injection by only allowing whitelisted column names.
-	if !qp.IsAllowed(s.Key) {
+	if !qp.IsAllowed(key) {
 		return r,
 			fmt.Errorf("sorting by %s is not allwed. Try one of: %v",
-				s.Key,
+				key,
 				strings.Join(qp.AllowedColumns, ", "),
 			)
 	}
@@ -53,7 +57,7 @@ func (qp *QueryParser) ParseOrder(s Order) (r string, err error) {
 		return r, fmt.Errorf("%s is not a valid sort direction. Should be either asc or desc", s.Direction)
 	}
 
-	return fmt.Sprintf("%s %s", s.Key, s.Direction), nil
+	return fmt.Sprintf("%s %s", key, s.Direction), nil
 }
 
 func (qp *QueryParser) ParseOrderClauses(s []Order) (r []string, err error) {

@@ -177,3 +177,9 @@ const (
 	ImportChannelAndRoutingPolicies = ImportType(iota)
 	ImportNodeInformation
 )
+
+const (
+	MEMPOOL string = "https://mempool.space/lightning/channel/"
+	AMBOSS  string = "https://amboss.space/edge/"
+	ONEML   string = "https://1ml.com/channel/"
+)

@@ -1,11 +1,9 @@
 package forwards
 
 import (
-	"fmt"
+	"github.com/lib/pq"
 	"net/http"
 	"time"
-
-	"github.com/lib/pq"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -94,8 +92,6 @@ type forwardsTableRow struct {
 
 func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 	fromTime time.Time, toTime time.Time) (r []*forwardsTableRow, err error) {
-
-	fmt.Println("nodeIds", nodeIds)
 
 	var sqlString = `
 		select

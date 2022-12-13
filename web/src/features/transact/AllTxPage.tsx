@@ -1,4 +1,4 @@
-import { useGetTableViewsQuery } from "apiSlice";
+import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { Link } from "react-router-dom";
 import {
   Filter20Regular as FilterIcon,
@@ -22,7 +22,7 @@ type sections = {
 
 function AllTxPage() {
   // initial getting of the table views from the database
-  useGetTableViewsQuery({page: 'transactions'});
+  const a = useGetTableViewsQuery();
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -67,8 +67,6 @@ function AllTxPage() {
 
   const tableControls = (
     <TableControlSection>
-
-
       <TableControlsButtonGroup>
         <TableControlsButton
           onClickHandler={setSection("columns")}

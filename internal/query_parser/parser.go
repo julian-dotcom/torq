@@ -1,7 +1,20 @@
 package query_parser
 
+import (
+	"github.com/cockroachdb/errors"
+	"reflect"
+)
+
 type QueryParser struct {
 	AllowedColumns []string
+}
+
+func GetDBKeyName(v interface{}) (string, error) {
+	field, ok := reflect.TypeOf(v).Elem().FieldByName("Key")
+	if !ok {
+		return "", errors.New("field not found")
+	}
+	return string(field.Tag.Get("db")), nil
 }
 
 func NewParser(allowedColumns []string) *QueryParser {

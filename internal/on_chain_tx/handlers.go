@@ -8,8 +8,10 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+
 	qp "github.com/lncapital/torq/internal/query_parser"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -101,7 +103,7 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody PayOnChainRequest
+	var requestBody commons.PayOnChainRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -114,7 +116,7 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	sendCoinsResp := PayOnChainResponse{TxId: resp}
+	sendCoinsResp := commons.PayOnChainResponse{Request: requestBody, TxId: resp}
 
 	c.JSON(http.StatusOK, sendCoinsResp)
 }

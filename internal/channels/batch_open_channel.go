@@ -10,18 +10,19 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
-func batchOpenChannels(db *sqlx.DB, req BatchOpenRequest) (r BatchOpenResponse, err error) {
+func batchOpenChannels(db *sqlx.DB, req commons.BatchOpenRequest) (r commons.BatchOpenResponse, err error) {
 	bOpenChanReq, err := checkPrepareReq(req)
 	if err != nil {
-		return BatchOpenResponse{}, err
+		return commons.BatchOpenResponse{}, err
 	}
 
 	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 	if err != nil {
-		return BatchOpenResponse{}, errors.Wrap(err, "Getting node connection details from the db")
+		return commons.BatchOpenResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}
 
 	conn, err := lnd_connect.Connect(
@@ -29,7 +30,7 @@ func batchOpenChannels(db *sqlx.DB, req BatchOpenRequest) (r BatchOpenResponse, 
 		connectionDetails.TLSFileBytes,
 		connectionDetails.MacaroonFileBytes)
 	if err != nil {
-		return BatchOpenResponse{}, errors.Wrap(err, "Connecting to LND")
+		return commons.BatchOpenResponse{}, errors.Wrap(err, "Connecting to LND")
 	}
 	defer conn.Close()
 
@@ -38,19 +39,19 @@ func batchOpenChannels(db *sqlx.DB, req BatchOpenRequest) (r BatchOpenResponse, 
 
 	bocResponse, err := client.BatchOpenChannel(ctx, bOpenChanReq)
 	if err != nil {
-		return BatchOpenResponse{}, errors.Wrap(err, "Batch open channel")
+		return commons.BatchOpenResponse{}, errors.Wrap(err, "Batch open channel")
 	}
 
 	r, err = processBocResponse(bocResponse)
 	if err != nil {
-		return BatchOpenResponse{}, errors.Wrap(err, "Processing boc response")
+		return commons.BatchOpenResponse{}, errors.Wrap(err, "Processing boc response")
 	}
 	//log.Info().Msgf("pending channels: %v", bocResponse.String())
 	return r, nil
 
 }
 
-func checkPrepareReq(bocReq BatchOpenRequest) (req *lnrpc.BatchOpenChannelRequest, err error) {
+func checkPrepareReq(bocReq commons.BatchOpenRequest) (req *lnrpc.BatchOpenChannelRequest, err error) {
 
 	if bocReq.NodeId == 0 {
 		return req, errors.New("Node id is missing")
@@ -88,7 +89,7 @@ func checkPrepareReq(bocReq BatchOpenRequest) (req *lnrpc.BatchOpenChannelReques
 		}
 
 		if channel.MinHtlcMsat != nil {
-			boChannel.MinHtlcMsat = *channel.MinHtlcMsat
+			boChannel.MinHtlcMsat = int64(*channel.MinHtlcMsat)
 		}
 
 		if channel.PushSat != nil {
@@ -112,12 +113,12 @@ func checkPrepareReq(bocReq BatchOpenRequest) (req *lnrpc.BatchOpenChannelReques
 	return batchOpnReq, nil
 }
 
-func processBocResponse(resp *lnrpc.BatchOpenChannelResponse) (r BatchOpenResponse, err error) {
+func processBocResponse(resp *lnrpc.BatchOpenChannelResponse) (r commons.BatchOpenResponse, err error) {
 	for _, pc := range resp.GetPendingChannels() {
-		var bocPC pendingChannel
+		var bocPC commons.PendingChannel
 		chanPoint, err := translateChanPoint(pc.Txid, pc.OutputIndex)
 		if err != nil {
-			r = BatchOpenResponse{}
+			r = commons.BatchOpenResponse{}
 			log.Error().Msgf("Translate channel point err: %v", err)
 			return r, err
 		}
