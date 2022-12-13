@@ -45,6 +45,7 @@ func (wfn WorkflowVersionNode) GetWorkflowNodeStructured() WorkflowNode {
 		Parameters:            wfn.Parameters,
 		VisibilitySettings:    wfn.VisibilitySettings,
 		UpdateOn:              wfn.UpdateOn,
+		WorkflowVersionId:     wfn.WorkflowVersionId,
 	}
 }
 
@@ -60,14 +61,14 @@ type WorkflowVersionNodeLink struct {
 }
 
 type WorkflowVersionNodeLog struct {
-	TriggerType           commons.WorkflowTriggerType `json:"triggerType" db:"trigger_type"`
-	TriggerReference      string                      `json:"triggerReference" db:"trigger_reference"`
-	InputData             string                      `json:"input_data" db:"input_data"`
-	OutputData            string                      `json:"output_data" db:"output_data"`
-	DebugData             string                      `json:"debug_data" db:"debug_data"`
-	ErrorData             string                      `json:"error_data" db:"error_data"`
-	WorkflowVersionNodeId int                         `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
-	CreatedOn             time.Time                   `json:"createdOn" db:"created_on"`
+	TriggerReference               string    `json:"triggerReference" db:"trigger_reference"`
+	InputData                      string    `json:"input_data" db:"input_data"`
+	OutputData                     string    `json:"output_data" db:"output_data"`
+	DebugData                      string    `json:"debug_data" db:"debug_data"`
+	ErrorData                      string    `json:"error_data" db:"error_data"`
+	WorkflowVersionNodeId          int       `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
+	TriggeredWorkflowVersionNodeId int       `json:"triggeredWorkflowVersionNodeId" db:"triggered_workflow_version_node_id"`
+	CreatedOn                      time.Time `json:"createdOn" db:"created_on"`
 }
 
 type WorkflowNode struct {
@@ -78,10 +79,21 @@ type WorkflowNode struct {
 	Parameters            string                   `json:"parameters"`
 	VisibilitySettings    string                   `json:"visibilitySettings"`
 	UpdateOn              time.Time                `json:"updatedOn"`
-	ParentNodes           []*WorkflowNode          `json:"parentNodes"`
-	ChildNodes            []*WorkflowNode          `json:"childNodes"`
+	ParentNodes           map[int][]*WorkflowNode  `json:"parentNodes"`
+	ChildNodes            map[int][]*WorkflowNode  `json:"childNodes"`
+	WorkflowVersionId     int                      `json:"workflowVersionId"`
 }
 
 type WorkflowTree struct {
 	RootNodes []*WorkflowNode `json:"rootNodes"`
+}
+
+type WorkflowNodeParameter struct {
+	Type        commons.WorkflowParameterType `json:"type"`
+	ValueNumber int                           `json:"valueNumber"`
+	ValueString string                        `json:"valueString"`
+}
+
+type WorkflowNodeParameters struct {
+	Parameters []WorkflowNodeParameter `json:"parameters"`
 }

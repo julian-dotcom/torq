@@ -7,6 +7,7 @@ const (
 	VectorService
 	AmbossService
 	TorqService
+	AutomationService
 )
 
 const TorqDummyNodeId = -1337
@@ -60,6 +61,7 @@ const AMBOSS_SLEEP_SECONDS = 25
 const VECTOR_SLEEP_SECONDS = 20
 
 const WORKFLOW_LOG_COUNT = 100
+const WORKFLOW_TICKER_SECONDS = 10
 
 type Status int
 
@@ -193,7 +195,8 @@ const (
 type WorkflowNodeType int
 
 const (
-	WorkflowNodeTrigger = WorkflowNodeType(iota)
+	WorkflowNodeTimeTrigger = WorkflowNodeType(iota)
+	WorkflowNodeEventTrigger
 	WorkflowNodeChannelFilter
 	WorkflowNodeCostParameters
 	WorkflowNodeRebalanceParameters
@@ -207,8 +210,8 @@ const (
 type WorkflowTriggerType int
 
 const (
-	WorkflowTriggerEventService = WorkflowTriggerType(iota)
-	WorkflowTriggerTimingService
+	WorkflowTriggerTimingService = WorkflowTriggerType(iota)
+	WorkflowTriggerEventService
 )
 
 type WorkflowParameter string
@@ -230,3 +233,13 @@ type WorkflowNodeTypeParameters struct {
 	RequiredOutputs  map[string]WorkflowParameter
 	OptionalOutputs  map[string]WorkflowParameter
 }
+
+type WorkflowParameterType int
+
+const (
+	WorkflowParameterTimeInSeconds = WorkflowParameterType(iota)
+	WorkflowParameterBalanceShifted
+	WorkflowParameterVariableName
+	WorkflowParameterVariableValueString
+	WorkflowParameterVariableValueNumber
+)

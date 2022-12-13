@@ -20,6 +20,7 @@ const (
 	READ_ACTIVE_TORQ_NODEIDS
 	READ_ACTIVE_TORQ_PUBLICKEYS
 	READ_ALL_ACTIVE_TORQ_NODEIDS
+	READ_ALL_ACTIVE_TORQ_NODESETTINGS
 	READ_ACTIVE_CHANNEL_NODE
 	READ_CHANNEL_NODE
 	WRITE_ACTIVE_CHANNEL_NODE
@@ -27,20 +28,21 @@ const (
 	INACTIVATE_CHANNEL_NODE
 	READ_ALL_CHANNEL_NODEIDS
 	READ_ALL_CHANNEL_PUBLICKEYS
-	READ_NODE_SETTINGS
+	READ_NODE_SETTING
 )
 
 type ManagedNode struct {
-	Type              ManagedNodeCacheOperationType
-	NodeId            int
-	Chain             *Chain
-	Network           *Network
-	PublicKey         string
-	Name              *string
-	Out               chan ManagedNode
-	NodeIdsOut        chan []int
-	NodeIdSettingsOut chan ManagedNodeSettings
-	PublicKeysOut     chan []string
+	Type            ManagedNodeCacheOperationType
+	NodeId          int
+	Chain           *Chain
+	Network         *Network
+	PublicKey       string
+	Name            *string
+	Out             chan ManagedNode
+	NodeIdsOut      chan []int
+	NodeSettingOut  chan ManagedNodeSettings
+	NodeSettingsOut chan []ManagedNodeSettings
+	PublicKeysOut   chan []string
 }
 
 type ManagedNodeSettings struct {
@@ -192,6 +194,27 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			}
 		}
 		SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, nodeIds)
+	case READ_ALL_ACTIVE_TORQ_NODESETTINGS:
+		var nodes []ManagedNodeSettings
+		if managedNode.Chain == nil || managedNode.Network == nil {
+			for chain, networkMap := range activeTorqNodeIdCache {
+				if managedNode.Chain == nil || *managedNode.Chain == chain {
+					for network, publicKeyMap := range networkMap {
+						if managedNode.Network == nil || *managedNode.Network == network {
+							for _, nodeId := range publicKeyMap {
+								nodes = append(nodes, nodeSettingsByNodeIdCache[nodeId])
+							}
+						}
+					}
+				}
+			}
+		} else {
+			initializeIdCache(activeTorqNodeIdCache, *managedNode.Chain, *managedNode.Network)
+			for _, nodeId := range activeTorqNodeIdCache[*managedNode.Chain][*managedNode.Network] {
+				nodes = append(nodes, nodeSettingsByNodeIdCache[nodeId])
+			}
+		}
+		SendToManagedNodeSettingsChannel(managedNode.NodeSettingsOut, nodes)
 	case READ_ALL_CHANNEL_PUBLICKEYS:
 		var channelPublicKeys []string
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -203,17 +226,17 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			}
 		}
 		SendToManagedPublicKeysChannel(managedNode.PublicKeysOut, channelPublicKeys)
-	case READ_NODE_SETTINGS:
+	case READ_NODE_SETTING:
 		if managedNode.NodeId == 0 {
 			log.Error().Msgf("No empty nodeId (%v) allowed", managedNode.NodeId)
-			SendToManagedNodeSettingsChannel(managedNode.NodeIdSettingsOut, ManagedNodeSettings{})
+			SendToManagedNodeSettingChannel(managedNode.NodeSettingOut, ManagedNodeSettings{})
 		} else {
 			nodeName, exists := torqNodeNameByNodeIdCache[managedNode.NodeId]
 			nodeSettings := nodeSettingsByNodeIdCache[managedNode.NodeId]
 			if exists {
 				nodeSettings.Name = &nodeName
 			}
-			SendToManagedNodeSettingsChannel(managedNode.NodeIdSettingsOut, nodeSettings)
+			SendToManagedNodeSettingChannel(managedNode.NodeSettingOut, nodeSettings)
 		}
 	case WRITE_INACTIVE_TORQ_NODE:
 		if managedNode.Name == nil || *managedNode.Name == "" || managedNode.PublicKey == "" || managedNode.NodeId == 0 ||
@@ -389,6 +412,16 @@ func GetAllActiveTorqNodeIds(chain *Chain, network *Network) []int {
 	return <-nodeIdsResponseChannel
 }
 
+func GetActiveTorqNodeSettings() []ManagedNodeSettings {
+	nodesResponseChannel := make(chan []ManagedNodeSettings)
+	managedNode := ManagedNode{
+		Type:            READ_ALL_ACTIVE_TORQ_NODESETTINGS,
+		NodeSettingsOut: nodesResponseChannel,
+	}
+	ManagedNodeChannel <- managedNode
+	return <-nodesResponseChannel
+}
+
 // SetTorqNode When active then also adds to channelNodes
 func SetTorqNode(nodeId int, name string, status Status, publicKey string, chain Chain, network Network) {
 	if status == Active {
@@ -479,9 +512,9 @@ func InactivateChannelNode(publicKey string, chain Chain, network Network) {
 func GetNodeSettingsByNodeId(nodeId int) ManagedNodeSettings {
 	nodeResponseChannel := make(chan ManagedNodeSettings)
 	managedNode := ManagedNode{
-		NodeId:            nodeId,
-		Type:              READ_NODE_SETTINGS,
-		NodeIdSettingsOut: nodeResponseChannel,
+		NodeId:         nodeId,
+		Type:           READ_NODE_SETTING,
+		NodeSettingOut: nodeResponseChannel,
 	}
 	ManagedNodeChannel <- managedNode
 	return <-nodeResponseChannel

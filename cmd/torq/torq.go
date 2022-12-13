@@ -17,6 +17,7 @@ import (
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/cmd/torq/internal/amboss_ping"
+	"github.com/lncapital/torq/cmd/torq/internal/automation"
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
 	"github.com/lncapital/torq/cmd/torq/internal/vector_ping"
@@ -155,6 +156,7 @@ func main() {
 			commons.RunningServices[commons.VectorService] = &commons.Services{ServiceType: commons.VectorService}
 			commons.RunningServices[commons.AmbossService] = &commons.Services{ServiceType: commons.AmbossService}
 			commons.RunningServices[commons.TorqService] = &commons.Services{ServiceType: commons.TorqService}
+			commons.RunningServices[commons.AutomationService] = &commons.Services{ServiceType: commons.AutomationService}
 
 			ctxGlobal, cancelGlobal := context.WithCancel(context.Background())
 			defer cancelGlobal()
@@ -206,6 +208,8 @@ func main() {
 										log.Error().Err(err).Msg("Torq cannot be initialized (Loading caches in memory).")
 									}
 									serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndService}
+								case commons.Active:
+									serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AutomationService}
 								}
 							}
 							if serviceEvent.Type == commons.LndService {
@@ -573,6 +577,50 @@ func main() {
 									} else {
 										log.Error().Msgf("Requested Amboss Ping Service start failed. A start is already running.")
 									}
+								}
+							}
+							if serviceCmd.ServiceCommand == commons.Kill {
+								serviceCmd.Out <- services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay, eventChannel)
+							}
+						}
+						if serviceCmd.ServiceType == commons.AutomationService {
+							if serviceCmd.ServiceCommand == commons.Boot {
+								log.Info().Msgf("Verifying Automation service requirement.")
+								bootLock := services.GetBootLock(commons.TorqDummyNodeId)
+								successful := bootLock.TryLock()
+								if successful {
+									go (func(bootLock *sync.Mutex,
+										services *commons.Services,
+										serviceChannel chan commons.ServiceChannelMessage,
+										eventChannel chan interface{}) {
+										defer func() {
+											if commons.MutexLocked(bootLock) {
+												bootLock.Unlock()
+											}
+										}()
+										ctx := context.Background()
+										ctx, cancel := context.WithCancel(ctx)
+
+										log.Info().Msgf("Generating Automation service")
+										services.AddSubscription(commons.TorqDummyNodeId, cancel, eventChannel)
+										services.Booted(commons.TorqDummyNodeId, bootLock, eventChannel)
+										log.Info().Msgf("Automation Service booted")
+										err = automation.Start(ctx, db, broadcaster, eventChannel)
+										if err != nil {
+											log.Error().Err(err).Msgf("Automation ended")
+										}
+										log.Info().Msgf("Automation Service stopped")
+										services.RemoveSubscription(commons.TorqDummyNodeId, eventChannel)
+										if services.IsNoDelay(commons.TorqDummyNodeId) || serviceCmd.NoDelay {
+											log.Info().Msgf("Automation Service will be restarted")
+										} else {
+											log.Info().Msgf("Automation Service will be restarted in %v seconds", commons.SERVICES_ERROR_SLEEP_SECONDS)
+											time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
+										}
+										serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: commons.TorqDummyNodeId}
+									})(bootLock, services, serviceChannel, eventChannel)
+								} else {
+									log.Error().Msgf("Requested Automation Service start failed. A start is already running.")
 								}
 							}
 							if serviceCmd.ServiceCommand == commons.Kill {
