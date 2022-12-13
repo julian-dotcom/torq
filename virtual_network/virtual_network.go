@@ -607,7 +607,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	log.Printf("Alice's pubkey is: %s\n", alicePubkey)
 
-	aliceInspection, err := de.Client.ContainerInspect(ctx, aliceConf.Instance.ID)
+	aliceInspection, err := de.Client.ContainerInspect(ctx, aliceConf.Id)
 	if err != nil {
 		return errors.Wrap(err, "Getting Carol's IP Address")
 	}

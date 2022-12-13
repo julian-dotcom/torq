@@ -5,15 +5,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/lncapital/torq/virtual_network"
 	"github.com/playwright-community/playwright-go"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"testing"
-	"github.com/lncapital/torq/virtual_network"
 )
 
 const torqPort = "4927"
