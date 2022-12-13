@@ -520,6 +520,9 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, dest
 			invoiceEvent.AmountPaidMsat = uint64(invoice.AmtPaidMsat)
 			invoiceEvent.SettledDate = time.Unix(invoice.SettleDate, 0)
 		}
+		if channelId != nil {
+			invoiceEvent.ChannelId = *channelId
+		}
 		eventChannel <- invoiceEvent
 	}
 	return nil
