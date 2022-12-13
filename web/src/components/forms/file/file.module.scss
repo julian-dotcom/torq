@@ -1,0 +1,42 @@
+@import "../input-colors.module";
+.fileDropWrapper {
+  color: var(--input-color);
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+  label {
+    color: var(--input-label-color);
+  }
+}
+.fileDropArea {
+  padding: 26px 10px;
+  background-color: var(--input-default-background);
+  border-style: dashed;
+  border-color: var(--input-focus-border-color);
+  border-width: 1px;
+  border-radius: var(--radius-default);
+  display: grid;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  &:hover {
+    background-color: var(--input-hover-background);
+  }
+}
+.fileDropArea.dragging:after {
+  content: "";
+  background-color: var(--input-hover-background);
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+}
+.dragging {
+  background-color: var(--content-subtle);
+}
+.error {
+  background-color: var(--color-red-300);
+}

@@ -6,7 +6,7 @@ import styles from "./sidebar.module.scss";
 type SidebarProps = {
   title: string;
   children?: React.ReactNode;
-  closeSidebarHandler: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  closeSidebarHandler: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
 };
 
 function Sidebar(props: SidebarProps) {

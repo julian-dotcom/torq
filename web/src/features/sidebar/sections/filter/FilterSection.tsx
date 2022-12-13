@@ -1,35 +1,42 @@
-import clone from "clone";
 import styles from "./filter-section.module.scss";
-import { deserialiseQuery, Clause, AndClause, FilterInterface } from "./filter";
 import FilterComponent from "./FilterComponent";
-import { ColumnMetaData } from "features/table/Table";
+import { ColumnMetaData } from "features/table/types";
+import { updateFilters } from "features/viewManagement/viewSlice";
+import { AllViewsResponse } from "features/viewManagement/types";
+import { Clause } from "./filter";
+import { useAppDispatch } from "store/hooks";
 
-type FilterSectionProps = {
-  columnsMeta: Array<ColumnMetaData>;
+type FilterSectionProps<T> = {
+  page: keyof AllViewsResponse;
+  viewIndex: number;
   filters: Clause;
-  filterUpdateHandler: (filters: Clause) => void;
-  defaultFilter: FilterInterface;
+  filterableColumns: Array<ColumnMetaData<T>>;
+  defaultFilter: any;
 };
 
-const FilterSection = (props: FilterSectionProps) => {
-  const filtersFromStore = clone<Clause>(props.filters);
-  const filters = filtersFromStore ? deserialiseQuery(filtersFromStore) : new AndClause();
-
+function FilterSection<T>(props: FilterSectionProps<T>) {
+  const dispatch = useAppDispatch();
   const handleFilterUpdate = () => {
-    props.filterUpdateHandler(filters);
+    dispatch(
+      updateFilters({
+        page: props.page,
+        viewIndex: props.viewIndex,
+        filterUpdate: props.filters.toJSON(),
+      })
+    );
   };
 
   return (
     <div className={styles.filterPopoverContent}>
       <FilterComponent
-        columnsMeta={props.columnsMeta}
-        filters={filters}
+        filters={props.filters}
+        columns={props.filterableColumns}
         defaultFilter={props.defaultFilter}
-        onFilterUpdate={handleFilterUpdate}
         child={false}
+        onFilterUpdate={handleFilterUpdate}
       />
     </div>
   );
-};
+}
 
 export default FilterSection;

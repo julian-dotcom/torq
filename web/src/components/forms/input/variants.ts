@@ -4,6 +4,7 @@ export enum InputSizeVariant {
   normal = "normal",
   small = "small",
   tiny = "tiny",
+  inline = "inline",
 }
 
 export enum InputColorVaraint {
@@ -20,6 +21,7 @@ export const inputSizeClasses = new Map<InputSizeVariant, string>([
   [InputSizeVariant.normal, styles.normal],
   [InputSizeVariant.small, styles.small],
   [InputSizeVariant.tiny, styles.tiny],
+  [InputSizeVariant.inline, styles.inline],
 ]);
 
 export const colorVaraintClasses = new Map<InputColorVaraint, string>([

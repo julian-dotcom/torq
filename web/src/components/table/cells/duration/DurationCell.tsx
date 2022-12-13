@@ -7,11 +7,12 @@ import classNames from "classnames";
 interface DurationCellProps {
   seconds: number;
   className?: string;
+  totalCell?: boolean;
 }
 
 const subSecFormat = format("0.2f");
 
-function DurationCell({ seconds, className }: DurationCellProps) {
+function DurationCell({ seconds, className, totalCell }: DurationCellProps) {
   let pif = "Unknown";
   if (seconds >= 1) {
     const d = intervalToDuration({ start: 0, end: seconds * 1000 });
@@ -28,7 +29,7 @@ function DurationCell({ seconds, className }: DurationCellProps) {
   }
   return (
     <div className={classNames(styles.cell, styles.alignLeft, styles.DurationCell, className)}>
-      <div className={styles.current}>{pif}</div>
+      {!totalCell && <div className={styles.current}>{pif}</div>}
     </div>
   );
 }

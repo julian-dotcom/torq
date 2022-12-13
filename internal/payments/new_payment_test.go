@@ -1,19 +1,23 @@
 package payments
 
 import (
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 func Test_processResponse(t *testing.T) {
 	tests := []struct {
 		name    string
 		reqId   string
+		req     commons.NewPaymentRequest
 		input   *lnrpc.Payment
-		want    NewPaymentResponse
+		want    commons.NewPaymentResponse
 		wantErr bool
 	}{{
 		name:  "Successful payment",
@@ -59,9 +63,8 @@ func Test_processResponse(t *testing.T) {
 			PaymentIndex:  234,
 			FailureReason: lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 		},
-		want: NewPaymentResponse{
+		want: commons.NewPaymentResponse{
 			ReqId:          "Unique ID here",
-			Type:           "newPayment",
 			Status:         "SUCCEEDED",
 			FailureReason:  "FAILURE_REASON_NONE",
 			Hash:           "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
@@ -70,18 +73,18 @@ func Test_processResponse(t *testing.T) {
 			AmountMsat:     12000,
 			CreationDate:   time.Unix(1661252258, 0),
 			FeePaidMsat:    100,
-			Attempt: attempt{
+			Attempt: commons.Attempt{
 				AttemptId: 1234,
 				Status:    "SUCCEEDED",
-				Route: route{
+				Route: commons.Route{
 					TotalTimeLock: 10,
-					Hops: []hops{
+					Hops: []commons.Hops{
 						{
 							ChanId:           "708152x2971x1",
 							Expiry:           0,
 							AmtToForwardMsat: 0,
 							PubKey:           "",
-							MppRecord: MppRecord{
+							MppRecord: commons.MppRecord{
 								PaymentAddr:  "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
 								TotalAmtMsat: 1200,
 							},
@@ -92,7 +95,7 @@ func Test_processResponse(t *testing.T) {
 				AttemptTimeNs: time.Unix(1661252259, 0),
 				ResolveTimeNs: time.Unix(1661252260, 0),
 				Preimage:      "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
-				Failure:       failureDetails{},
+				Failure:       commons.FailureDetails{},
 			},
 		},
 	},
@@ -144,9 +147,8 @@ func Test_processResponse(t *testing.T) {
 				PaymentIndex:  234,
 				FailureReason: 0,
 			},
-			want: NewPaymentResponse{
+			want: commons.NewPaymentResponse{
 				ReqId:          "Unique ID here",
-				Type:           "newPayment",
 				Status:         "FAILED",
 				FailureReason:  "FAILURE_REASON_NONE",
 				Hash:           "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
@@ -155,18 +157,18 @@ func Test_processResponse(t *testing.T) {
 				AmountMsat:     12000,
 				CreationDate:   time.Unix(1661252258, 0),
 				FeePaidMsat:    100,
-				Attempt: attempt{
+				Attempt: commons.Attempt{
 					AttemptId: 12345,
 					Status:    "FAILED",
-					Route: route{
+					Route: commons.Route{
 						TotalTimeLock: 10,
-						Hops: []hops{
+						Hops: []commons.Hops{
 							{
 								ChanId:           "708152x2971x1",
 								Expiry:           0,
 								AmtToForwardMsat: 0,
 								PubKey:           "",
-								MppRecord: MppRecord{
+								MppRecord: commons.MppRecord{
 									PaymentAddr:  "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
 									TotalAmtMsat: 1200,
 								},
@@ -177,7 +179,7 @@ func Test_processResponse(t *testing.T) {
 					AttemptTimeNs: time.Unix(1661252259, 0),
 					ResolveTimeNs: time.Unix(0, 0),
 					Preimage:      "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
-					Failure: failureDetails{
+					Failure: commons.FailureDetails{
 						Reason:             "INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS",
 						FailureSourceIndex: 1,
 						Height:             11,
@@ -189,7 +191,7 @@ func Test_processResponse(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := processResponse(test.input, test.reqId)
+			got := processResponse(test.input, test.req, test.reqId)
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("%d: processResponse()\nGot:\n%v\nWant:\n%v\n", i, got, test.want)
 			}
@@ -206,12 +208,12 @@ func Test_newSendPaymentRequest(t *testing.T) {
 	tests := []struct {
 		name  string
 		reqId string
-		input NewPaymentRequest
+		input commons.NewPaymentRequest
 		want  *routerrpc.SendPaymentRequest
 	}{
 		{
 			name: "with allow self and fee limit",
-			input: NewPaymentRequest{
+			input: commons.NewPaymentRequest{
 				Invoice:          &destination,
 				TimeOutSecs:      3600,
 				Dest:             nil,
@@ -230,7 +232,7 @@ func Test_newSendPaymentRequest(t *testing.T) {
 		},
 		{
 			name: "with out any optional params",
-			input: NewPaymentRequest{
+			input: commons.NewPaymentRequest{
 				Invoice:     &destination,
 				TimeOutSecs: 3600,
 			},

@@ -1,13 +1,14 @@
 .cell {
   display: flex;
   flex-direction: column;
-  grid-row-gap: 4px;
+  row-gap: 4px;
   padding: 10px 15px;
   align-items: flex-end;
   align-content: center;
   text-align: right;
   background-color: var(--bg-default);
-  border-bottom: 1px solid var(--primary-100);
+  border-bottom: 1px solid var(--color-border-primary-faint);
+  white-space: nowrap;
   @media only screen and (max-width: 900px) {
     min-width: 0px;
   }
@@ -32,66 +33,22 @@
   }
 }
 
-.barCell {
-  position: relative;
-  z-index: 2;
-  grid-row-gap: 4px;
-  min-width: 200px;
-  @media only screen and (max-width: 900px) {
-    min-width: 150px;
-  }
-  .barWrapper {
-    display: grid;
-    width: 100%;
-    justify-items: flex-end;
-    background-color: var(--accent1-300);
-  }
-  .bar {
-    height: 5px;
-    min-width: 2px;
-    background-color: var(--accent1-400);
-  }
-  &.totalCell {
-    .bar-wrapper {
-      display: none;
-    }
-  }
-  .barWrapperDouble {
-    display: grid;
-    width: 100%;
-    justify-items: flex-end;
-    background-color: var(--accent1-400);
-  }
-  .barDouble {
-    height: 5px;
-    min-width: 2px;
-    background-color: var(--accent1-500);
-  }
-}
-
 .totalCell {
   position: sticky;
+  z-index: 100;
   bottom: 0;
   background-color: var(--primary-50); //var(--bg-alt-faint);
-  border-top: 1px solid var(--primary-500); //var(--bg-alt-strong);
-  border-bottom: 1px solid var(--primary-500);
-  &.alias {
-    border-right: 1px solid var(--primary-500);
-  }
+  //border-top: 1px solid var(--primary-500); //var(--bg-alt-strong);
   .barWrapper {
     display: none !important;
   }
 }
 .totalCell.empty.locked {
-  border-bottom-left-radius: 3px;
-  border-left: 1px solid var(--primary-500);
 }
-.totalCell.lastTotalCell {
-  border-right: 1px solid var(--primary-500);
+.lastTotalCell {
   right: 0;
   bottom: 0;
   z-index: 7;
-  border-bottom-right-radius: 3px;
 }
 
 .header {
@@ -105,12 +62,10 @@
   padding: 20px 20px 10px 20px;
   border-bottom: 1px solid var(--primary-100);
   background-color: var(--bg-default);
-  border-top: 1px solid var(--material-layer-3);
   color: var(--primary-600);
   white-space: nowrap;
   font-size: var(--font-size-small);
-  &:global(.alias) {
-    padding-right: 50px;
+  &.locked {
     justify-items: start;
   }
   .content {
@@ -121,42 +76,35 @@
 }
 
 // TODO: Clean this up after deciding on limitations to column freezing
-:global(.alias),
 .locked {
   position: sticky;
-  left: 10px;
+  left: 8px;
   top: 0;
   //padding-left: 20px !important;
   z-index: 5;
   border-right: 1px solid var(--primary-100);
 }
 .firstEmptyCell {
+  max-width: 8px;
 }
 .lastEmptyCell {
-  border-right: 1px solid var(--primary-150);
   position: -webkit-sticky;
   position: sticky;
   right: 0;
   top: 0;
   z-index: 2;
 }
-.header:global(.alias),
+.header.locked,
 .header.firstEmptyHeader,
 .header.lastEmptyHeader {
   z-index: 7;
-  border-right: 1px solid var(--primary-100);
-  border-bottom: 1px solid var(--primary-100);
-  border-top-right-radius: 3px;
+  border-top-right-radius: var(--radius-large);
 }
 .header.firstEmptyHeader {
-  border-top-left-radius: 3px;
-  border-left: 1px solid var(--primary-150);
-  border-top: 1px solid var(--primary-150);
+  border-top-left-radius: var(--radius-large);
 }
 .header.lastEmptyHeader {
-  border-top-right-radius: 3px;
-  border-right: 1px solid var(--primary-150);
-  border-top: 1px solid var(--primary-150);
+  border-top-right-radius: var(--radius-large);
   position: sticky;
   right: 0;
   top: 0;
@@ -165,12 +113,11 @@
 
 .empty {
   padding: 0;
-  min-width: 10px;
+  min-width: 8px;
 }
 .empty.locked {
   left: 0;
   border-right: none;
-  border-left: 1px solid var(--material-layer-3);
 }
 
 .header.TextCell,
@@ -186,8 +133,8 @@
 .cell.DurationCell {
   justify-items: start;
 }
-.cell:global(.alias),
-.header:global(.alias) {
+.cell.locked,
+.header.locked {
   .text {
     max-width: 200px;
     white-space: nowrap;
@@ -222,19 +169,15 @@
 }
 
 .noTotalsRow {
-  border-bottom: 2px solid var(--primary-100);
   min-height: 10px;
   min-width: 10px;
   position: sticky;
   bottom: 0px;
   z-index: 7;
+  border: none;
   &.firstEmptyCell {
     z-index: 8;
     left: 0;
-    border-bottom-left-radius: 3px;
-  }
-  &.lastEmptyCell {
-    border-bottom-right-radius: 3px;
   }
 }
 
@@ -249,19 +192,24 @@
     min-width: 10px;
     padding: 0;
   }
-  :global(.alias),
   .locked {
     position: sticky;
     left: 10px;
   }
 }
 
+.tableRow {
+  display: contents;
+}
+.tableRow:hover .cell {
+  background-color: var(--color-primary-layer-2);
+}
 .outbound {
-  color: #78B0E6;
+  color: #78b0e6;
 }
 
 .outboundIcon {
-  color: #78B0E6;
+  color: #78b0e6;
   top: 2px;
   position: relative;
 }
@@ -269,4 +217,19 @@
 .inboundIcon {
   top: 2px;
   position: relative;
+}
+.totalsRow {
+  .cell {
+    background-color: var(--color-primary-layer-2) !important;
+    position: sticky;
+    z-index: 100;
+    bottom: 0;
+
+    .barWrapper {
+      display: none !important;
+    }
+    &.locked {
+      z-index: 105;
+    }
+  }
 }

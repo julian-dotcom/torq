@@ -1,36 +1,42 @@
 import styles from "components/table/cells/cell.module.scss";
 import { Link } from "react-router-dom";
-import React from "react";
 import classNames from "classnames";
 
 interface AliasCell {
   current: string;
-  lndShortChannelId: string;
-  open?: number;
+  channelId?: string;
+  open?: boolean;
   className?: string;
 }
 
-function OpenText(open: number) {
-  if (open > 1) {
-    return `Open (${open})`;
-  } else if (open === 1) {
+function OpenText(open: boolean) {
+  if (open) {
     return `Open`;
-  } else {
-    return `Closed`;
   }
+  return `Closed`;
 }
 
-function AliasCell({ current, lndShortChannelId, open, className }: AliasCell) {
-  return (
-    <Link className={classNames(styles.cell, styles.alignLeft, className)} to={"/analyse/inspect/" + lndShortChannelId}>
-      <div className={classNames(styles.current, styles.text)}>{current}</div>
+function AliasCell({ current, channelId, open, className }: AliasCell) {
+
+  const content = (
+    <>
+    <div className={classNames(styles.current, styles.text)}>{current}</div>
       {open !== undefined && (
         <div className={classNames(styles.past, { [styles.positive]: open, [styles.negative]: !open })}>
           {OpenText(open)}
         </div>
       )}
-    </Link>
-  );
+    </>
+  )
+
+  if (channelId) {
+    return (
+      <Link className={classNames(styles.cell, styles.alignLeft, className)} to={"/analyse/inspect/" + channelId}>
+      {content}
+      </Link>
+    )
+  }
+
+  return <div className={classNames(styles.cell, styles.alignLeft, className)}>{content}</div>
 }
-const AliasCellMemo = React.memo(AliasCell);
-export default AliasCellMemo;
+export default AliasCell;

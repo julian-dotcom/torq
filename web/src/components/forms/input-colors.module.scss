@@ -1,6 +1,6 @@
 .normal {
   --input-font-size: var(--font-size-normal);
-  --label-font-size: var(--font-size-small);
+  --label-font-size: var(--font-size-normal);
   --feedback-font-size: var(--font-size-small);
   --input-height: 40px;
   --indicator-padding: 8px;
@@ -14,6 +14,13 @@
 }
 .tiny {
   --input-height: 24px;
+  --input-font-size: var(--font-size-tiny);
+  --label-font-size: var(--font-size-tiny);
+  --feedback-font-size: var(--font-size-tiny);
+  --indicator-padding: 4px;
+}
+.inline {
+  --input-height: 36px;
   --input-font-size: var(--font-size-tiny);
   --label-font-size: var(--font-size-tiny);
   --feedback-font-size: var(--font-size-tiny);

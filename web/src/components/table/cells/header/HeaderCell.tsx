@@ -11,7 +11,7 @@ interface headerCell {
 
 function HeaderCell({ heading, className, locked }: headerCell) {
   return (
-    <div className={classNames(styles.header, className)}>
+    <div className={classNames(styles.header, className, {[styles.locked]: locked})}>
       <div className={styles.content}>
         {locked ? (
           <div className="icon small">

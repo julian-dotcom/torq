@@ -1,7 +1,10 @@
 .header {
   cursor: pointer;
   display: flex;
-  column-gap: 12px;
+  column-gap: 16px;
+  padding: 16px 24px;
+  background-color: var(--color-primary-layer-2);
+  border-radius: var(--radius-default);
   .connectionIcon {
     width: 32px;
     height: 32px;
@@ -51,11 +54,19 @@
   }
 }
 .borderSection {
-  margin-top: 15px;
-  border-top: 1px solid var(--primary-150);
-  padding-top: 15px;
+  //padding-top: 15px;;
 }
-
+.nodeDetailsCollapseContainer {
+  background-color: var(--color-layer-0);
+  padding: 0px 16px 16px;
+  border-radius: 0 0 4px 4px;
+  border: 1px solid var(--color-border-primary-faint);
+  border-top: none;
+  &.addMode {
+    padding: 0;
+    border: none;
+  }
+}
 .detailHeader {
   display: flex;
   justify-content: space-between;
@@ -113,7 +124,11 @@
     margin-bottom: 15px;
   }
 }
-
+.nodeForm {
+  display: flex;
+  flex-direction: column;
+  row-gap: 16px;
+}
 .importFailedPayments {
   margin-bottom: var(--form-margin-bottom);
 }

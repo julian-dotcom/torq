@@ -2,8 +2,6 @@ import Select, { Props, components } from "react-select";
 
 import { ChevronDown16Regular as ChevronDownIcon } from "@fluentui/react-icons";
 
-export type SelectOptionType = { value: string; label: string };
-
 const customStyles = {
   indicatorSeparator: () => {
     return {};

@@ -17,7 +17,7 @@ import {
 import Spinny from "features/spinny/Spinny";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
-import File from "features/forms/File";
+import File from "components/forms/file/File";
 import Input from "components/forms/input/Input";
 import {
   useGetNodeConfigurationQuery,
@@ -43,6 +43,20 @@ interface nodeProps {
   onAddFailure?: () => void;
 }
 
+const nodeConfigurationTemplate = {
+    createdOn: undefined,
+    grpcAddress: "",
+    macaroonFileName: "",
+    name: "",
+    tlsFileName: "",
+    updatedOn: undefined,
+    implementation: 0,
+    nodeId: 0,
+    status: 0,
+    pingSystem: 0,
+    customSettings: 0,
+  }
+
 const NodeSettings = React.forwardRef(function NodeSettings(
   { nodeId, collapsed, addMode, onAddSuccess }: nodeProps,
   ref
@@ -59,7 +73,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [setNodeConfigurationStatus] = useUpdateNodeConfigurationStatusMutation();
   const [setNodePingSystemStatus] = useUpdateNodePingSystemStatusMutation();
 
-  const [nodeConfigurationState, setNodeConfigurationState] = useState({} as nodeConfiguration);
+  const [nodeConfigurationState, setNodeConfigurationState] = useState<nodeConfiguration>(nodeConfigurationTemplate);
   const [collapsedState, setCollapsedState] = useState(collapsed ?? false);
   const [showModalState, setShowModalState] = useState(false);
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
@@ -95,7 +109,13 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setShowModalState(false);
     setDeleteConfirmationTextInputState("");
     setDeleteEnabled(false);
-    setNodeConfigurationState({} as nodeConfiguration);
+    setNodeConfigurationState({
+      implementation: 0,
+      nodeId: 0,
+      status: 0,
+      pingSystem: 0,
+      customSettings: 0,
+    });
   };
 
   const handleDeleteClick = () => {
@@ -158,11 +178,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   };
 
   React.useEffect(() => {
-    if (nodeConfigurationData) {
-      setNodeConfigurationState(nodeConfigurationData);
-    } else {
-      setNodeConfigurationState({ implementation: 0, nodeId: 0, status: 0, pingSystem: 0, customSettings: 0 } as nodeConfiguration);
-    }
+    setNodeConfigurationState(nodeConfigurationData || nodeConfigurationTemplate);
   }, [nodeConfigurationData]);
 
   const handleTLSFileChange = (file: File | null) => {
@@ -178,11 +194,17 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   };
 
   const handleImportFailedPaymentsClick = () => {
-    const importFailedPaymentsActive = nodeConfigurationState.customSettings%2 >= 1
+    const importFailedPaymentsActive = nodeConfigurationState.customSettings % 2 >= 1;
     if (importFailedPaymentsActive) {
-      setNodeConfigurationState({ ...nodeConfigurationState, customSettings: nodeConfigurationState.customSettings-1 })
+      setNodeConfigurationState({
+        ...nodeConfigurationState,
+        customSettings: nodeConfigurationState.customSettings - 1,
+      });
     } else {
-      setNodeConfigurationState({ ...nodeConfigurationState, customSettings: nodeConfigurationState.customSettings+1 });
+      setNodeConfigurationState({
+        ...nodeConfigurationState,
+        customSettings: nodeConfigurationState.customSettings + 1,
+      });
     }
   };
 
@@ -227,14 +249,14 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   };
 
   const handleAmbossPingClick = () => {
-    const ambossActive = nodeConfigurationState.pingSystem%2 >= 1
-    setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 1, statusId: ambossActive?0:1 })
+    const ambossActive = nodeConfigurationState.pingSystem % 2 >= 1;
+    setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 1, statusId: ambossActive ? 0 : 1 })
       .unwrap()
       .then((_) => {
         if (ambossActive) {
-          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem-1 })
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem - 1 });
         } else {
-          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem+1 });
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem + 1 });
         }
       })
       .catch((error) => {
@@ -246,14 +268,14 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   };
 
   const handleVectorPingClick = () => {
-    const vectorActive = nodeConfigurationState.pingSystem%4 >= 2
-    setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 2, statusId: vectorActive?0:1 })
+    const vectorActive = nodeConfigurationState.pingSystem % 4 >= 2;
+    setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 2, statusId: vectorActive ? 0 : 1 })
       .unwrap()
       .then((_) => {
         if (vectorActive) {
-          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem-2 });
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem - 2 });
         } else {
-          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem+2 });
+          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem + 2 });
         }
       })
       .catch((error) => {
@@ -360,8 +382,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 <div className={styles.importFailedPayments}>
                   <Switch
                     label={t.importFailedPayments}
-                    checked={nodeConfigurationState.customSettings%2 >= 1}
-                    onClick={handleImportFailedPaymentsClick}
+                    checked={nodeConfigurationState.customSettings % 2 >= 1}
+                    onChange={handleImportFailedPaymentsClick}
                   />
                 </div>
                 <Button
@@ -377,15 +399,15 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   <div className={styles.ambossPingSystem}>
                     <Switch
                       label="Amboss Ping"
-                      checked={nodeConfigurationState.pingSystem%2 >= 1}
-                      onClick={handleAmbossPingClick}
+                      checked={nodeConfigurationState.pingSystem % 2 >= 1}
+                      onChange={handleAmbossPingClick}
                     />
                   </div>
                   <div className={styles.vectorPingSystem}>
                     <Switch
                       label="Vector Ping"
-                      checked={nodeConfigurationState.pingSystem%4 >= 2}
-                      onClick={handleVectorPingClick}
+                      checked={nodeConfigurationState.pingSystem % 4 >= 2}
+                      onChange={handleVectorPingClick}
                     />
                   </div>
                 </div>

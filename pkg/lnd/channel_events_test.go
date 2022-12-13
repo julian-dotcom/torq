@@ -10,8 +10,11 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
 )
@@ -117,6 +120,24 @@ func TestSubscribeChannelEvents(t *testing.T) {
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	err = settings.InitializeManagedSettingsCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
+	}
+
+	err = settings.InitializeManagedNodeCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
+	}
+
+	err = channels.InitializeManagedChannelCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
 	}
 
 	// testDBCleanup := func() {

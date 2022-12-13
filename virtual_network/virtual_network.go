@@ -251,7 +251,7 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 	if err = WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress); err != nil {
 		return errors.Wrap(err, "Write connection details")
 	}
-	PrintInstructions()
+	PrintInstructions(carolPubkey, carolIPAddress, bobPubkey, bobIPAddress, alicePubkey, aliceIPAddress)
 
 	return nil
 }
@@ -607,6 +607,14 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	log.Printf("Alice's pubkey is: %s\n", alicePubkey)
 
+	aliceInspection, err := de.Client.ContainerInspect(ctx, aliceConf.Instance.ID)
+	if err != nil {
+		return errors.Wrap(err, "Getting Carol's IP Address")
+	}
+	aliceIPAddress := aliceInspection.NetworkSettings.Networks[name].IPAddress
+	log.Println("Alice's IP address is:")
+	log.Println(aliceIPAddress)
+
 	log.Println("Verifing Alice is a peer of Bob")
 
 	alicePeerExists, err := CheckPeerExists(ctx, de.Client, bobConf.Id, alicePubkey)
@@ -756,12 +764,12 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 	if err = WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress); err != nil {
 		log.Fatalf("Unable to write connection details: %v", err)
 	}
-	PrintInstructions()
+	PrintInstructions(carolPubkey, carolIPAddress, bobPubkey, bobIPAddress, alicePubkey, aliceIPAddress)
 
 	return nil
 }
 
-func PrintInstructions() {
+func PrintInstructions(carolPublicKey, carolIpAddress, bobPublicKey, bobIpAddress, alicePublicKey, aliceIpAddress string) {
 	fmt.Println("\nVirtual network is ready. Start Torq by running:")
 	fmt.Println("\n\tgo build ./cmd/torq && ./torq --torq.password password --db.user postgres --db.port 5444 " +
 		"--db.password password start")
@@ -785,6 +793,9 @@ func PrintInstructions() {
 		"lnd/data/chain/bitcoin/simnet/admin.macaroon\" --network=simnet $@\"}; \n" +
 		"vbtcd() { docker exec -it  dev-btcd /bin/bash -c \"btcctl --simnet --rpcuser=devuser --rpcpass=devpass" +
 		" --rpccert=/rpc/rpc.cert --rpcserver=localhost $@\"};")
+	fmt.Printf("\n\nCarol: %v (%v)", carolPublicKey, carolIpAddress)
+	fmt.Printf("\nBob: %v (%v)", bobPublicKey, bobIpAddress)
+	fmt.Printf("\nAlice: %v (%v)", alicePublicKey, aliceIpAddress)
 
 }
 

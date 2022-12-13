@@ -3,14 +3,14 @@ import { RootState } from "store/store";
 
 type keyOption = { value: "revenue" | "amount" | "count"; label: string };
 
-export interface NavState {
+export type ChannelState = {
   flowKey: keyOption;
   eventChartKey: keyOption;
   profitChartKey: keyOption;
   balanceChanID: { value: number; label: string };
-}
+};
 
-const initialState: NavState = {
+const initialState: ChannelState = {
   profitChartKey: { value: "revenue", label: "Revenue" },
   eventChartKey: { value: "amount", label: "Amount" },
   flowKey: { value: "amount", label: "Amount" },

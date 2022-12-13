@@ -7,6 +7,8 @@ import { useLoginMutation } from "apiSlice";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import type { LoginResponse } from "types/api";
+import Input from "components/forms/input/Input";
+import Button, { buttonColor } from "components/buttons/Button";
 
 function LoginPage() {
   const [login] = useLoginMutation();
@@ -21,10 +23,16 @@ function LoginPage() {
   const toastRef = React.useContext(ToastContext);
   let from = (location.state as LocationState)?.from?.pathname || "/";
   // Don't redirect back to logout/login/services.
-  if (from === "/logout" || from === "/login" || from === "/services" ||
-    from === "logout" || from === "login" || from === "services" ||
-    from === "" || from === "/") {
-
+  if (
+    from === "/logout" ||
+    from === "/login" ||
+    from === "/services" ||
+    from === "logout" ||
+    from === "login" ||
+    from === "services" ||
+    from === "" ||
+    from === "/"
+  ) {
     from = "/";
   }
 
@@ -49,11 +57,15 @@ function LoginPage() {
           <TorqLogo />
         </div>
         <form className="login-form" onSubmit={submit}>
-          <input type="password" name={"password"} className={"password-field"} placeholder={"Password..."} />
-          <button type="submit" className={"submit-button"}>
-            <UnlockIcon />
-            Login
-          </button>
+          <Input type="password" name={"password"} placeholder={"Password..."} id={"password-field"} />
+          <Button
+            type="submit"
+            submit={true}
+            text={"Login"}
+            icon={<UnlockIcon />}
+            buttonColor={buttonColor.green}
+            id={"submit-button"}
+          />
         </form>
       </div>
     </div>

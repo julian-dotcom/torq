@@ -264,7 +264,7 @@ func insertRoutingPolicy(
 		cu.RoutingPolicy.FeeBaseMsat != channelEvent.FeeBaseMsat ||
 		cu.RoutingPolicy.FeeRateMilliMsat != channelEvent.FeeRateMilliMsat ||
 		cu.RoutingPolicy.MaxHtlcMsat != channelEvent.MaxHtlcMsat ||
-		cu.RoutingPolicy.MinHtlc != channelEvent.MinHtlc ||
+		uint64(cu.RoutingPolicy.MinHtlc) != channelEvent.MinHtlcMsat ||
 		cu.RoutingPolicy.TimeLockDelta != channelEvent.TimeLockDelta {
 
 		_, err := db.Exec(`
@@ -296,7 +296,7 @@ func insertRoutingPolicy(
 					FeeBaseMsat:      uint64(cu.RoutingPolicy.FeeBaseMsat),
 					MaxHtlcMsat:      cu.RoutingPolicy.MaxHtlcMsat,
 					Disabled:         cu.RoutingPolicy.Disabled,
-					MinHtlc:          cu.RoutingPolicy.MinHtlc,
+					MinHtlcMsat:      uint64(cu.RoutingPolicy.MinHtlc),
 				},
 			}
 			if channelEvent.ChannelId != 0 {
@@ -307,7 +307,7 @@ func insertRoutingPolicy(
 					FeeBaseMsat:      uint64(channelEvent.FeeBaseMsat),
 					MaxHtlcMsat:      channelEvent.MaxHtlcMsat,
 					Disabled:         channelEvent.Disabled,
-					MinHtlc:          channelEvent.MinHtlc,
+					MinHtlcMsat:      channelEvent.MinHtlcMsat,
 				}
 			}
 			eventChannel <- channelGraphEvent

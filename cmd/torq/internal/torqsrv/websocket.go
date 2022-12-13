@@ -16,17 +16,18 @@ import (
 	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/pkg/broadcast"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type wsRequest struct {
-	ReqId               string                         `json:"reqId"`
-	Type                string                         `json:"type"`
-	NewPaymentRequest   *payments.NewPaymentRequest    `json:"newPaymentRequest"`
-	PayOnChainRequest   *on_chain_tx.PayOnChainRequest `json:"payOnChainRequest"`
-	OpenChannelRequest  *channels.OpenChannelRequest   `json:"openChannelRequest"`
-	CloseChannelRequest *channels.CloseChannelRequest  `json:"closeChannelRequest"`
-	Password            *string                        `json:"password"`
-	NewAddressRequest   *on_chain_tx.NewAddressRequest `json:"newAddressRequest"`
+	ReqId               string                       `json:"reqId"`
+	Type                string                       `json:"type"`
+	NewPaymentRequest   *commons.NewPaymentRequest   `json:"newPaymentRequest"`
+	PayOnChainRequest   *commons.PayOnChainRequest   `json:"payOnChainRequest"`
+	OpenChannelRequest  *commons.OpenChannelRequest  `json:"openChannelRequest"`
+	CloseChannelRequest *commons.CloseChannelRequest `json:"closeChannelRequest"`
+	Password            *string                      `json:"password"`
+	NewAddressRequest   *commons.NewAddressRequest   `json:"newAddressRequest"`
 }
 
 type Pong struct {
@@ -49,95 +50,38 @@ func processWsReq(db *sqlx.DB, c *gin.Context, eventChannel, webSocketChannel ch
 		return
 	}
 
-	// Validate request
 	if req.ReqId == "" {
-		webSocketChannel <- wsError{
-			ReqId: req.ReqId,
-			Type:  "Error",
-			Error: "ReqId cannot be empty",
-		}
+		sendError(fmt.Errorf("unknown ReqId for type: %s", req.Type), req, webSocketChannel)
 		return
 	}
 
 	switch req.Type {
 	case "newPayment":
 		if req.NewPaymentRequest == nil {
-			webSocketChannel <- wsError{
-				ReqId: req.ReqId,
-				Type:  "Error",
-				Error: "newPaymentRequest cannot be empty",
-			}
+			sendError(fmt.Errorf("unknown NewPaymentRequest for type: %s", req.Type), req, webSocketChannel)
 			break
 		}
-		// Process a valid payment request
-		err := payments.SendNewPayment(eventChannel, db, c, *req.NewPaymentRequest, req.ReqId)
-		if err != nil {
-			webSocketChannel <- wsError{
-				ReqId: req.ReqId,
-				Type:  "Error",
-				Error: err.Error(),
-			}
-		}
+		sendError(payments.SendNewPayment(eventChannel, db, c, *req.NewPaymentRequest, req.ReqId), req, webSocketChannel)
 	case "newAddress":
 		if req.NewAddressRequest == nil {
-			webSocketChannel <- wsError{
-				ReqId: req.ReqId,
-				Type:  "Error",
-				Error: "newAddressRequest cannot be empty",
-			}
+			sendError(fmt.Errorf("unknown NewAddressRequest for type: %s", req.Type), req, webSocketChannel)
 			break
 		}
-		// Process a valid payment request
-		err := on_chain_tx.NewAddress(eventChannel, db, c, *req.NewAddressRequest, req.ReqId)
-		if err != nil {
-			webSocketChannel <- wsError{
-				ReqId: req.ReqId,
-				Type:  "Error",
-				Error: err.Error(),
-			}
-		}
+		sendError(on_chain_tx.NewAddress(eventChannel, db, c, *req.NewAddressRequest, req.ReqId), req, webSocketChannel)
 	case "closeChannel":
 		if req.CloseChannelRequest == nil {
-			webSocketChannel <- wsError{
-				ReqId: req.ReqId,
-				Type:  "Error",
-				Error: "Close Channel request cannot be empty",
-			}
+			sendError(fmt.Errorf("unknown CloseChannelRequest for type: %s", req.Type), req, webSocketChannel)
 			break
 		}
-		// Process a valid payment request
-		err := channels.CloseChannel(eventChannel, db, c, *req.CloseChannelRequest, req.ReqId)
-		if err != nil {
-			webSocketChannel <- wsError{
-				ReqId: req.ReqId,
-				Type:  "Error",
-				Error: err.Error(),
-			}
-		}
+		sendError(channels.CloseChannel(eventChannel, db, c, *req.CloseChannelRequest, req.ReqId), req, webSocketChannel)
 	case "openChannel":
 		if req.OpenChannelRequest == nil {
-			webSocketChannel <- wsError{
-				ReqId: req.ReqId,
-				Type:  "Error",
-				Error: "OpenChannelRequest cannot be empty",
-			}
+			sendError(fmt.Errorf("unknown OpenChannelRequest for type: %s", req.Type), req, webSocketChannel)
 			break
 		}
-		err := channels.OpenChannel(db, eventChannel, *req.OpenChannelRequest, req.ReqId)
-		if err != nil {
-			webSocketChannel <- wsError{
-				ReqId: req.ReqId,
-				Type:  "Error",
-				Error: err.Error(),
-			}
-		}
+		sendError(channels.OpenChannel(eventChannel, db, *req.OpenChannelRequest, req.ReqId), req, webSocketChannel)
 	default:
-		err := fmt.Errorf("Unknown request type: %s", req.Type)
-		webSocketChannel <- wsError{
-			ReqId: req.ReqId,
-			Type:  "Error",
-			Error: err.Error(),
-		}
+		sendError(fmt.Errorf("unknown request type: %s", req.Type), req, webSocketChannel)
 	}
 }
 
@@ -204,16 +148,16 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 				broadcaster.CancelSubscription(listener)
 				return
 			default:
-				// TODO FIXME FILTER OUT ONLY THE EVENTS THE USER ACTUALLY WANTS!!!
-				if openChannelEvent, ok := event.(channels.OpenChannelResponse); ok {
-					webSocketChannel <- openChannelEvent
-				} else if closeChannelEvent, ok := event.(channels.CloseChannelResponse); ok {
-					webSocketChannel <- closeChannelEvent
-				} else if newAddressEvent, ok := event.(on_chain_tx.NewAddressResponse); ok {
-					webSocketChannel <- newAddressEvent
-				} else if newPaymentEvent, ok := event.(payments.NewPaymentResponse); ok {
-					webSocketChannel <- newPaymentEvent
-				}
+			}
+			// TODO FIXME FILTER OUT ONLY THE EVENTS THE USER ACTUALLY WANTS!!!
+			if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
+				webSocketChannel <- openChannelEvent
+			} else if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
+				webSocketChannel <- closeChannelEvent
+			} else if newAddressEvent, ok := event.(commons.NewAddressResponse); ok {
+				webSocketChannel <- newAddressEvent
+			} else if newPaymentEvent, ok := event.(commons.NewPaymentResponse); ok {
+				webSocketChannel <- newPaymentEvent
 			}
 		}
 	}()
@@ -228,6 +172,16 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 				log.Error().Err(err).Msg("Writing JSON to WebSocket failure.")
 				return errors.New("Writing JSON to WebSocket failure.")
 			}
+		}
+	}
+}
+
+func sendError(err error, req wsRequest, webSocketChannel chan interface{}) {
+	if err != nil {
+		webSocketChannel <- wsError{
+			ReqId: req.ReqId,
+			Type:  "Error",
+			Error: err.Error(),
 		}
 	}
 }

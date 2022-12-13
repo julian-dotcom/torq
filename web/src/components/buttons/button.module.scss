@@ -1,11 +1,12 @@
 .button {
-  border-radius: 2px;
+  border-radius: var(--radius-default);
   display: flex;
 
   align-items: center;
   justify-content: center;
-  column-gap: 5px;
-  padding: 11px 14px 10px;
+  column-gap: 4px;
+  padding: 8px 12px 8px;
+  height: 40px;
   cursor: pointer;
   border: 1px solid transparent;
   background-color: transparent;
@@ -123,13 +124,13 @@ Tab Button
 */
 .tabButton {
   display: flex;
-  height: 44px;
+  height: 40px;
   align-items: center;
   justify-items: center;
   grid-auto-flow: column;
   grid-column-gap: 4px;
   padding: 8px;
-  border-bottom: 1px solid var(--primary-150);
+  border-bottom: 1px solid var(--color-border-primary-faded);
   color: var(--content-default);
   white-space: nowrap;
   &:hover {

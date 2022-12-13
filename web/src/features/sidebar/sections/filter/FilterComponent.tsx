@@ -1,14 +1,14 @@
-import FilterRow from "./FilterRow";
 import classNames from "classnames";
 import { AddSquare20Regular as AddFilterIcon, AddSquareMultiple20Regular as AddGroupIcon } from "@fluentui/react-icons";
-
+import FilterRow from "./FilterRow";
+import { AndClause, OrClause, FilterClause, FilterInterface } from "./filter";
+import { ColumnMetaData } from "features/table/types";
 import styles from "./filter-section.module.scss";
-import { AndClause, OrClause, Clause, FilterClause, FilterInterface } from "./filter";
-import { ColumnMetaData } from "features/table/Table";
+import useTranslations from "services/i18n/useTranslations";
 
-interface filterProps {
-  columnsMeta: Array<ColumnMetaData>;
-  filters: Clause;
+export interface FilterComponentProps<T> {
+  columns: Array<ColumnMetaData<T>>;
+  filters: AndClause | OrClause | FilterClause;
   defaultFilter: FilterInterface;
   onFilterUpdate: () => void;
   onNoChildrenLeft?: () => void;
@@ -20,7 +20,8 @@ const combinerOptions = new Map<string, string>([
   ["$or", "Or"],
 ]);
 
-const FilterComponent = (props: filterProps) => {
+function FilterComponent<T>(props: FilterComponentProps<T>) {
+  const { t } = useTranslations();
   const updateFilter = () => {
     props.onFilterUpdate();
   };
@@ -46,38 +47,34 @@ const FilterComponent = (props: filterProps) => {
   };
 
   const addFilter = () => {
-    if (!props.filters) {
+    if (props.filters && !Object.hasOwn(props.filters, "childClauses")) {
       props.filters = new AndClause();
     }
-    const filters = props.filters as AndClause | OrClause;
-    filters.addChildClause(new FilterClause(props.defaultFilter));
-    props.onFilterUpdate();
+    if (props.filters && Object.hasOwn(props.filters, "childClauses")) {
+      ((props.filters as AndClause) || OrClause).addChildClause(new FilterClause(props.defaultFilter));
+      props.onFilterUpdate();
+    }
   };
 
   const addGroup = () => {
     if (!props.filters) {
       props.filters = new AndClause();
     }
-    const filters = props.filters as AndClause | OrClause;
-    filters.addChildClause(
-      new AndClause([
-        new FilterClause({
-          funcName: "gte",
-          category: "number",
-          parameter: 0,
-        }),
-      ])
-    );
-    props.onFilterUpdate();
+    if (props.filters instanceof AndClause || OrClause) {
+      ((props.filters as AndClause) || OrClause).addChildClause(new AndClause([new FilterClause(props.defaultFilter)]));
+      props.onFilterUpdate();
+    }
   };
 
   const handleCombinerChange = () => {
-    // this effectively changes the type of the object from AndClause to OrClause or vice versa
-    props.filters.prefix = props.filters.prefix === "$and" ? "$or" : "$and";
-    props.onFilterUpdate();
+    if (props.filters?.prefix) {
+      // this effectively changes the type of the object from AndClause to OrClause or vice versa
+      props.filters.prefix = props.filters.prefix === "$and" ? "$or" : "$and";
+      props.onFilterUpdate();
+    }
   };
 
-  const filterOptions = props.columnsMeta.slice().map((column: any) => {
+  const filterOptions = props.columns.slice().map((column: any) => {
     const columnOption: any = {
       value: column.key,
       label: column.heading,
@@ -106,9 +103,8 @@ const FilterComponent = (props: filterProps) => {
   return (
     <div className={classNames({ [styles.childFilter]: props.child })}>
       <div className={styles.filterRows}>
-        {!props.filters.length && <div className={styles.noFilters}>No filters</div>}
-
-        {(props.filters as AndClause | OrClause).childClauses.map((filter, index) => {
+        {!props.filters && <div className={styles.noFilters}>No filters</div>}
+        {((props.filters as AndClause | OrClause).childClauses || []).map((filter, index) => {
           if (filter.prefix === "$filter") {
             return (
               <div
@@ -140,7 +136,7 @@ const FilterComponent = (props: filterProps) => {
                 <FilterComponent
                   child={true}
                   defaultFilter={props.defaultFilter}
-                  columnsMeta={props.columnsMeta}
+                  columns={props.columns}
                   filters={filter}
                   onNoChildrenLeft={handleNoChildrenLeft(index)}
                   onFilterUpdate={props.onFilterUpdate}
@@ -165,6 +161,6 @@ const FilterComponent = (props: filterProps) => {
       </div>
     </div>
   );
-};
+}
 
 export default FilterComponent;

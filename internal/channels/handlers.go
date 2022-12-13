@@ -16,38 +16,9 @@ import (
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
-type failedUpdate struct {
-	OutPoint    OutPoint `json:"outPoint"`
-	Reason      string   `json:"reason"`
-	UpdateError string   `json:"updateError"`
-}
-
-type OutPoint struct {
-	Txid        string `json:"txId"`
-	OutputIndex uint32 `json:"outputIndex"`
-}
-
-type updateResponse struct {
-	Status        string         `json:"status"`
-	FailedUpdates []failedUpdate `json:"failedUpdates"`
-}
-
-type updateChanRequestBody struct {
-	NodeId                 int     `json:"nodeId"`
-	FundingTransactionHash *string `json:"fundingTransactionHash"`
-	FundingOutputIndex     *int    `json:"fundingOutputIndex"`
-	FeeRatePpm             *uint32 `json:"feeRatePpm"`
-	BaseFeeMsat            *int64  `json:"baseFeeMsat"`
-	MaxHtlcMsat            *uint64 `json:"maxHtlcMsat"`
-	MinHtlcMsat            *uint64 `json:"minHtlcMsat"`
-	TimeLockDelta          uint32  `json:"timeLockDelta"`
-}
-type pendingChannel struct {
-	PendingChannelPoint string `json:"pendingChannelPoint"`
-}
-
 type channelBody struct {
 	NodeId                       int                  `json:"nodeId"`
+	ChannelId                    int                  `json:"channelId"`
 	ChannelPoint                 string               `json:"channelPoint"`
 	NodeName                     string               `json:"nodeName"`
 	Active                       bool                 `json:"active"`
@@ -55,7 +26,7 @@ type channelBody struct {
 	RemotePubkey                 string               `json:"remotePubkey"`
 	FundingTransactionHash       string               `json:"fundingTransactionHash"`
 	FundingOutputIndex           int                  `json:"fundingOutputIndex"`
-	LNDShortChannelId            uint64               `json:"lndShortChannelId"`
+	LNDShortChannelId            string               `json:"lndShortChannelId"`
 	ShortChannelId               string               `json:"shortChannelId"`
 	Capacity                     int64                `json:"capacity"`
 	LocalBalance                 int64                `json:"localBalance"`
@@ -64,16 +35,16 @@ type channelBody struct {
 	CommitFee                    int64                `json:"commitFee"`
 	CommitWeight                 int64                `json:"commitWeight"`
 	FeePerKw                     int64                `json:"feePerKw"`
-	BaseFeeMsat                  uint64               `json:"baseFeeMsat"`
-	MinHtlc                      int64                `json:"minHtlc"`
+	FeeBaseMsat                  uint64               `json:"feeBaseMsat"`
+	MinHtlcMsat                  uint64               `json:"minHtlcMsat"`
 	MaxHtlcMsat                  uint64               `json:"maxHtlcMsat"`
 	TimeLockDelta                uint32               `json:"timeLockDelta"`
-	FeeRatePpm                   uint64               `json:"feeRatePpm"`
-	RemoteBaseFeeMsat            uint64               `json:"remoteBaseFeeMsat"`
-	RemoteMinHtlc                int64                `json:"remoteMinHtlc"`
+	FeeRateMilliMsat             uint64               `json:"feeRateMilliMsat"`
+	RemoteFeeBaseMsat            uint64               `json:"remoteFeeBaseMsat"`
+	RemoteMinHtlcMsat            uint64               `json:"remoteMinHtlcMsat"`
 	RemoteMaxHtlcMsat            uint64               `json:"remoteMaxHtlcMsat"`
 	RemoteTimeLockDelta          uint32               `json:"remoteTimeLockDelta"`
-	RemoteFeeRatePpm             uint64               `json:"remoteFeeRatePpm"`
+	RemoteFeeRateMilliMsat       uint64               `json:"remoteFeeRateMilliMsat"`
 	PendingForwardingHTLCsCount  int                  `json:"pendingForwardingHTLCsCount"`
 	PendingForwardingHTLCsAmount int64                `json:"pendingForwardingHTLCsAmount"`
 	PendingLocalHTLCsCount       int                  `json:"pendingLocalHTLCsCount"`
@@ -91,7 +62,7 @@ type channelBody struct {
 	TotalSatoshisReceived        int64                `json:"totalSatoshisReceived"`
 	MempoolSpace                 string               `json:"mempoolSpace"`
 	AmbossSpace                  string               `json:"ambossSpace"`
-	OneMl                        string               `json:"1ml"`
+	OneMl                        string               `json:"oneMl"`
 	PeerAlias                    string               `json:"peerAlias"`
 }
 
@@ -107,7 +78,7 @@ type PendingHtlcs struct {
 type ChannelPolicy struct {
 	Disabled        bool   `json:"disabled" db:"disabled"`
 	TimeLockDelta   uint32 `json:"timeLockDelta" db:"time_lock_delta"`
-	MinHtlc         int64  `json:"minHtlc" db:"min_htlc"`
+	MinHtlcMsat     uint64 `json:"minHtlcMsat" db:"min_htlc"`
 	MaxHtlcMsat     uint64 `json:"maxHtlcMsat" db:"max_htlc_msat"`
 	FeeRateMillMsat uint64 `json:"feeRateMillMsat" db:"fee_rate_mill_msat"`
 	ShortChannelId  string `json:"shortChannelId" db:"short_channel_id"`
@@ -116,21 +87,14 @@ type ChannelPolicy struct {
 	RemoteNodeId    int    `json:"RemoteodeId" db:"remote_node_id"`
 }
 
-const (
-	MEMPOOL string = "https://mempool.space/lightning/channel/"
-	AMBOSS  string = "https://amboss.space/edge/"
-	ONEML   string = "https://1ml.com/channel/"
-)
-
-func updateChannelsHandler(c *gin.Context, db *sqlx.DB) {
-	requestBody := updateChanRequestBody{}
-
+func updateChannelsHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}) {
+	var requestBody commons.UpdateChannelRequest
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	response, err := updateChannels(db, requestBody)
+	response, err := updateChannels(db, requestBody, eventChannel)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Update channel/s policy")
 		return
@@ -139,27 +103,8 @@ func updateChannelsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-type batchOpenChannel struct {
-	NodePubkey         string `json:"nodePubkey"`
-	LocalFundingAmount int64  `json:"localFundingAmount"`
-	PushSat            *int64 `json:"pushSat"`
-	Private            *bool  `json:"private"`
-	MinHtlcMsat        *int64 `json:"minHtlcMsat"`
-}
-
-type BatchOpenRequest struct {
-	NodeId      int                `json:"nodeId"`
-	Channels    []batchOpenChannel `json:"channels"`
-	TargetConf  *int32             `json:"targetConf"`
-	SatPerVbyte *int64             `json:"satPerVbyte"`
-}
-
-type BatchOpenResponse struct {
-	PendingChannels []pendingChannel `json:"pendingChannels"`
-}
-
 func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
-	var batchOpnReq BatchOpenRequest
+	var batchOpnReq commons.BatchOpenRequest
 	if err := c.BindJSON(&batchOpnReq); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
@@ -183,6 +128,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	if len(activeNcds) != 0 {
 		for _, ncd := range activeNcds {
+			// Force Response because we don't care about balance accuracy
 			channelBalanceStates := commons.GetChannelStates(ncd.NodeId, true)
 			nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
 			for _, channel := range channelBalanceStates {
@@ -196,6 +142,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 				remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
 				chanBody := channelBody{
 					NodeId:                       ncd.NodeId,
+					ChannelId:                    channelSettings.ChannelId,
 					NodeName:                     *nodeSettings.Name,
 					Active:                       !channel.LocalDisabled,
 					ChannelPoint:                 commons.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
@@ -203,7 +150,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 					RemotePubkey:                 remoteNode.PublicKey,
 					FundingTransactionHash:       channelSettings.FundingTransactionHash,
 					FundingOutputIndex:           channelSettings.FundingOutputIndex,
-					LNDShortChannelId:            channelSettings.LndShortChannelId,
+					LNDShortChannelId:            lndShortChannelIdString,
 					ShortChannelId:               channelSettings.ShortChannelId,
 					Capacity:                     channelSettings.Capacity,
 					LocalBalance:                 channel.LocalBalance,
@@ -220,24 +167,24 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 					CommitFee:                    channel.CommitFee,
 					CommitWeight:                 channel.CommitWeight,
 					FeePerKw:                     channel.FeePerKw,
-					BaseFeeMsat:                  channel.LocalFeeBaseMsat,
-					MinHtlc:                      channel.LocalMinHtlc,
+					FeeBaseMsat:                  channel.LocalFeeBaseMsat,
+					MinHtlcMsat:                  channel.LocalMinHtlcMsat,
 					MaxHtlcMsat:                  channel.LocalMaxHtlcMsat,
 					TimeLockDelta:                channel.LocalTimeLockDelta,
-					FeeRatePpm:                   channel.LocalFeeRateMilliMsat,
-					RemoteBaseFeeMsat:            channel.RemoteFeeBaseMsat,
-					RemoteMinHtlc:                channel.RemoteMinHtlc,
+					FeeRateMilliMsat:             channel.LocalFeeRateMilliMsat,
+					RemoteFeeBaseMsat:            channel.RemoteFeeBaseMsat,
+					RemoteMinHtlcMsat:            channel.RemoteMinHtlcMsat,
 					RemoteMaxHtlcMsat:            channel.RemoteMaxHtlcMsat,
 					RemoteTimeLockDelta:          channel.RemoteTimeLockDelta,
-					RemoteFeeRatePpm:             channel.RemoteFeeRateMilliMsat,
+					RemoteFeeRateMilliMsat:       channel.RemoteFeeRateMilliMsat,
 					NumUpdates:                   channel.NumUpdates,
 					Initiator:                    channelSettings.InitiatingNodeId != nil && *channelSettings.InitiatingNodeId == ncd.NodeId,
 					ChanStatusFlags:              channel.ChanStatusFlags,
 					CommitmentType:               channel.CommitmentType,
 					Lifetime:                     channel.Lifetime,
-					MempoolSpace:                 MEMPOOL + lndShortChannelIdString,
-					AmbossSpace:                  AMBOSS + channelSettings.ShortChannelId,
-					OneMl:                        ONEML + lndShortChannelIdString,
+					MempoolSpace:                 commons.MEMPOOL + lndShortChannelIdString,
+					AmbossSpace:                  commons.AMBOSS + channelSettings.ShortChannelId,
+					OneMl:                        commons.ONEML + lndShortChannelIdString,
 				}
 
 				peerInfo, err := GetNodePeerAlias(ncd.NodeId, channel.RemoteNodeId, db)

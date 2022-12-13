@@ -19,7 +19,7 @@ import { nodeConfiguration } from "apiTypes";
 import Select, { SelectOptions } from "features/forms/Select";
 import { ActionMeta } from "react-select";
 import classNames from "classnames";
-import NumberFormat, { NumberFormatValues } from "react-number-format";
+import { NumberFormatValues } from "react-number-format";
 import Input from "components/forms/input/Input";
 import { SectionContainer } from "features/section/SectionContainer";
 import useWebSocket from "react-use-websocket";
@@ -112,15 +112,19 @@ function OpenChannelModal() {
 
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
-          <Select
-            label={t.yourNode}
-            onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-              const selectOptions = newValue as SelectOptions;
-              handleNodeSelection(selectOptions?.value as number);
-            }}
-            options={nodeConfigurationOptions}
-            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
-          />
+          <div className={styles.openChannelTableRow}>
+            <FormRow>
+              <Select
+                label={t.yourNode}
+                onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
+                  const selectOptions = newValue as SelectOptions;
+                  handleNodeSelection(selectOptions?.value as number);
+                }}
+                options={nodeConfigurationOptions}
+                value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
+              />
+            </FormRow>
+          </div>
           <div className={styles.openChannelTableRow}>
             <FormRow>
               <div className={styles.openChannelTableSingle}>
@@ -178,9 +182,10 @@ function OpenChannelModal() {
                 <div className={styles.openChannelTableSingle}>
                   <span className={styles.label}>{"Channel Size"}</span>
                   <div className={styles.input}>
-                    <NumberFormat
+                    <Input
+                      formatted={true}
                       className={styles.single}
-                      thousandSeparator={false}
+                      thousandSeparator={","}
                       value={localFundingAmount}
                       onValueChange={(values: NumberFormatValues) => {
                         setLocalFundingAmount(values.floatValue as number);
@@ -195,9 +200,10 @@ function OpenChannelModal() {
                 <div className={styles.openChannelTableSingle}>
                   <span className={styles.label}>{"Sats per vbyte"}</span>
                   <div className={styles.input}>
-                    <NumberFormat
+                    <Input
+                      formatted={true}
                       className={styles.single}
-                      thousandSeparator={false}
+                      thousandSeparator={","}
                       value={satPerVbyte}
                       onValueChange={(values: NumberFormatValues) => {
                         setSatPerVbyte(values.floatValue as number);
@@ -220,9 +226,10 @@ function OpenChannelModal() {
                   <div className={styles.openChannelTableSingle}>
                     <span className={styles.label}>{"Push Amount"}</span>
                     <div className={styles.input}>
-                      <NumberFormat
+                      <Input
+                        formatted={true}
                         className={styles.single}
-                        thousandSeparator={false}
+                        thousandSeparator={","}
                         value={pushSat}
                         onValueChange={(values: NumberFormatValues) => {
                           setPushSat(values.floatValue as number);
@@ -237,9 +244,10 @@ function OpenChannelModal() {
                   <div className={styles.openChannelTableSingle}>
                     <span className={styles.label}>{"HTLC min sat"}</span>
                     <div className={styles.input}>
-                      <NumberFormat
+                      <Input
+                        formatted={true}
                         className={styles.single}
-                        thousandSeparator={false}
+                        thousandSeparator={","}
                         value={minHtlcMsat}
                         onValueChange={(values: NumberFormatValues) => {
                           setMinHtlcMsat(values.floatValue as number);
@@ -254,9 +262,10 @@ function OpenChannelModal() {
                   <div className={styles.openChannelTableSingle}>
                     <span className={styles.label}>{"Minimum Confirmations"}</span>
                     <div className={styles.input}>
-                      <NumberFormat
+                      <Input
+                        formatted={true}
                         className={styles.single}
-                        thousandSeparator={false}
+                        thousandSeparator={","}
                         value={minConfs}
                         onValueChange={(values: NumberFormatValues) => {
                           setMinConfs(values.floatValue as number);

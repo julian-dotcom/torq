@@ -25,7 +25,7 @@ type Payment struct {
 	PaymentHash             string    `json:"paymentHash" db:"payment_hash"`
 	PaymentPreimage         string    `json:"paymentPreimage" db:"payment_preimage"`
 	PaymentRequest          *string   `json:"paymentRequest" db:"payment_request"`
-	IsRebalance             *bool     `json:"isREebalance" db:"is_rebalance"`
+	IsRebalance             *bool     `json:"isRebalance" db:"is_rebalance"`
 	IsMPP                   bool      `json:"isMpp" db:"is_mpp"`
 	CountSuccessfulAttempts int       `json:"countSuccessful_attempts" db:"count_successful_attempts"`
 	CountFailedAttempts     int       `json:"countFailedAttempts" db:"count_failed_attempts"`
@@ -73,7 +73,6 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 
 	//language=PostgreSQL
 	qb := sq.Select("*").
-		PlaceholderFormat(sq.Dollar).
 		FromSelect(
 			sq.Select(`
 				payment_index,
@@ -93,12 +92,12 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 				count_failed_attempts,
 				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000, 0))-creation_timestamp))::numeric as seconds_in_flight
 			`).
-				PlaceholderFormat(sq.Dollar).
-				From("payment"),
+				From("payment").
+				Prefix(`WITH pub_keys as (select ?::text[])`, pq.Array(publicKeys)),
 			"subquery").
+		PlaceholderFormat(sq.Dollar).
 		Where(filter).
-		OrderBy(order...).
-		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(publicKeys))
+		OrderBy(order...)
 
 	if limit > 0 {
 		qb = qb.Limit(limit).Offset(offset)
@@ -166,11 +165,11 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 				count_failed_attempts,
 				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000, 0))-creation_timestamp))::numeric as seconds_in_flight
 			`).
-				PlaceholderFormat(sq.Dollar).
-				From("payment"),
+				From("payment").
+				Prefix(`WITH pub_keys as(select ?::text[])`, pq.Array(publicKeys)),
 			"subquery").
-		Where(filter).
-		Prefix(`WITH pub_keys as(select $1::text[])`, pq.Array(publicKeys))
+		PlaceholderFormat(sq.Dollar).
+		Where(filter)
 
 	totalQs, args, err := totalQb.ToSql()
 	if err != nil {
