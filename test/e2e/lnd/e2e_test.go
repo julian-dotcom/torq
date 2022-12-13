@@ -5,16 +5,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/lncapital/torq/virtual_network"
 	"github.com/playwright-community/playwright-go"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/lncapital/torq/virtual_network"
 )
 
 const torqPort = "4927"
@@ -28,14 +26,14 @@ const aliceColor = "#AA0000"
 const carolName = "e2e-carol"
 const carolColor = "#CC0000"
 
-var ctx context.Context                              //nolint:gochecknoglobals
-var cli *client.Client                               //nolint:gochecknoglobals
-var torq dockercontainer.ContainerCreateCreatedBody  //nolint:gochecknoglobals
-var btcd dockercontainer.ContainerCreateCreatedBody  //nolint:gochecknoglobals
-var alice dockercontainer.ContainerCreateCreatedBody //nolint:gochecknoglobals
-var bob dockercontainer.ContainerCreateCreatedBody   //nolint:gochecknoglobals
-var carol dockercontainer.ContainerCreateCreatedBody //nolint:gochecknoglobals
-var bobIPAddress string                              //nolint:gochecknoglobals
+var ctx context.Context //nolint:gochecknoglobals
+var cli *client.Client  //nolint:gochecknoglobals
+var torqId string       //nolint:gochecknoglobals
+var btcdId string       //nolint:gochecknoglobals
+var aliceId string      //nolint:gochecknoglobals
+var bobId string        //nolint:gochecknoglobals
+var carolId string      //nolint:gochecknoglobals
+var bobIPAddress string //nolint:gochecknoglobals
 
 func TestMain(m *testing.M) {
 
@@ -76,6 +74,7 @@ func TestMain(m *testing.M) {
 		nil,
 		[]string{"POSTGRES_PASSWORD=password"},
 		nil,
+		"",
 		"")
 
 	// Add config for Torq
@@ -91,6 +90,7 @@ func TestMain(m *testing.M) {
 			"--torq.port", torqPort,
 			"start"},
 		torqPort,
+		"",
 	)
 
 	// Add config for btcd
@@ -103,6 +103,7 @@ func TestMain(m *testing.M) {
 		},
 		[]string{"NETWORK=simnet"},
 		nil,
+		"",
 		"",
 	)
 
@@ -117,6 +118,7 @@ func TestMain(m *testing.M) {
 		[]string{"NETWORK=simnet", "COLOR=" + aliceColor},
 		nil,
 		"",
+		"",
 	)
 
 	// Add config for bob
@@ -130,6 +132,7 @@ func TestMain(m *testing.M) {
 		[]string{"NETWORK=simnet", "COLOR=" + bobColor},
 		nil,
 		"",
+		"",
 	)
 
 	// Add config for carol
@@ -142,6 +145,7 @@ func TestMain(m *testing.M) {
 		},
 		[]string{"NETWORK=simnet", "COLOR=" + carolColor},
 		nil,
+		"",
 		"",
 	)
 
@@ -198,14 +202,14 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	btcd = btcdConf.Instance
+	btcdId = btcdConf.Id
 
 	log.Println("Starting Alice")
 	err = de.InitContainer(ctx, aliceConf)
 	if err != nil {
 		log.Fatal(err)
 	}
-	alice = aliceConf.Instance
+	aliceId = aliceConf.Id
 
 	// Example looking at container logs
 	//out, err := cli.ContainerLogs(ctx, btcd.ID, types.ContainerLogsOptions{ShowStdout: true})
@@ -216,7 +220,7 @@ func TestMain(m *testing.M) {
 
 	log.Println("Creating new mining address on Alice")
 
-	aliceAddress, err := virtual_network.GetNewAddress(ctx, cli, alice)
+	aliceAddress, err := virtual_network.GetNewAddress(ctx, cli, aliceId)
 	if err != nil {
 		log.Fatalf("Getting alice mining address: %v", err)
 	}
@@ -240,11 +244,11 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	btcd = btcdConf.Instance
+	btcdId = btcdConf.Id
 
 	log.Println("Generate 400 blocks (we need at least \"100 >=\" blocks because of coinbase block maturity and \"300 ~=\" in order to activate segwit)")
 
-	err = virtual_network.MineBlocks(ctx, cli, btcd, 400)
+	err = virtual_network.MineBlocks(ctx, cli, btcdId, 400)
 	if err != nil {
 		log.Fatalf("Mining blocks: %v", err)
 	}
@@ -264,10 +268,10 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	alice = aliceConf.Instance
+	aliceId = aliceConf.Id
 
 	log.Println("Checking that segwit is active")
-	err = virtual_network.SegWitActive(ctx, cli, btcd)
+	err = virtual_network.SegWitActive(ctx, cli, btcdId)
 	if err != nil {
 		log.Fatalf("btcd checking segwit is active: %v", err)
 	}
@@ -289,7 +293,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	carol = carolConf.Instance
+	carolId = carolConf.Id
 
 	// start Bob and Carol AFTER btcd has restarted
 	log.Println("Starting Bob")
@@ -297,10 +301,10 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bob = bobConf.Instance
+	bobId = bobConf.Id
 
 	log.Println("Get Bob's pubkey")
-	bobInspection, err := cli.ContainerInspect(ctx, bob.ID)
+	bobInspection, err := cli.ContainerInspect(ctx, bobId)
 	if err != nil {
 		log.Fatalf("Getting Bob's IP Address: %v", err)
 	}
@@ -308,7 +312,7 @@ func TestMain(m *testing.M) {
 	log.Println("Bob's IP address is:")
 	log.Println(bobIPAddress)
 
-	bobPubkey, err := virtual_network.GetPubKey(ctx, cli, bob)
+	bobPubkey, err := virtual_network.GetPubKey(ctx, cli, bobId)
 	if err != nil {
 		log.Fatalf("Getting Bob's pubkey: %v", err)
 	}
@@ -316,14 +320,14 @@ func TestMain(m *testing.M) {
 
 	log.Println("Connecting Bob to Alice")
 
-	err = virtual_network.ConnectPeer(ctx, cli, alice, bobPubkey, bobIPAddress)
+	err = virtual_network.ConnectPeer(ctx, cli, aliceId, bobPubkey, bobIPAddress)
 	if err != nil {
 		log.Fatalf("Connecting Bob to Alice: %v", err)
 	}
 
 	log.Println("Verifing Bob is a peer of Alice")
 
-	bobPeerExists, err := virtual_network.CheckPeerExists(ctx, cli, alice, bobPubkey)
+	bobPeerExists, err := virtual_network.CheckPeerExists(ctx, cli, aliceId, bobPubkey)
 	if err != nil || !bobPeerExists {
 		log.Fatalf("Checking that Bob is a peer of Alice: %v", err)
 	}
@@ -331,7 +335,7 @@ func TestMain(m *testing.M) {
 	log.Println("Bob confirmed as peer of Alice")
 
 	log.Println("Getting Alice's pubkey")
-	alicePubkey, err := virtual_network.GetPubKey(ctx, cli, alice)
+	alicePubkey, err := virtual_network.GetPubKey(ctx, cli, aliceId)
 	if err != nil {
 		log.Fatalf("Getting Alice's pubkey: %v", err)
 	}
@@ -340,7 +344,7 @@ func TestMain(m *testing.M) {
 
 	log.Println("Verifing Alice is a peer of Bob")
 
-	alicePeerExists, err := virtual_network.CheckPeerExists(ctx, cli, bob, alicePubkey)
+	alicePeerExists, err := virtual_network.CheckPeerExists(ctx, cli, bobId, alicePubkey)
 	if err != nil || !alicePeerExists {
 		log.Fatalf("Checking that Alice is a peer of Bob: %v", err)
 	}
@@ -348,14 +352,14 @@ func TestMain(m *testing.M) {
 
 	log.Println("Create the Alice<->Bob channel")
 
-	aliceBobChannelPoint, err := virtual_network.CreateChannel(ctx, cli, alice, bobPubkey, "12000000", btcd)
+	aliceBobChannelPoint, err := virtual_network.CreateChannel(ctx, cli, aliceId, bobPubkey, "12000000", btcdId)
 	if err != nil {
 		log.Fatalf("Creating Alice<->Bob channel: %v", err)
 	}
 
 	log.Println("Generating invoice for payment to Bob")
 
-	bobEncodedInvoice, err := virtual_network.GenerateInvoice(ctx, cli, bob, "4100000")
+	bobEncodedInvoice, err := virtual_network.GenerateInvoice(ctx, cli, bobId, "4100000")
 	if err != nil {
 		log.Fatalf("Creating Bob invoice: %v", err)
 	}
@@ -364,13 +368,13 @@ func TestMain(m *testing.M) {
 
 	log.Println("Alice paying invoice sending payment to Bob")
 
-	err = virtual_network.PayInvoice(ctx, cli, alice, bobEncodedInvoice)
+	err = virtual_network.PayInvoice(ctx, cli, aliceId, bobEncodedInvoice, nil)
 	if err != nil {
 		log.Fatalf("Sending Alice->Bob payment: %v", err)
 	}
 
 	log.Println("Checking payment received by Bob")
-	bobChannelBalance, err := virtual_network.GetChannelBalance(ctx, cli, bob)
+	bobChannelBalance, err := virtual_network.GetChannelBalance(ctx, cli, bobId)
 	if err != nil {
 		log.Fatalf("Checking Bob's balance: %v", err)
 	}
@@ -380,7 +384,7 @@ func TestMain(m *testing.M) {
 
 	log.Println("Close Alice<->Bob channel to gain on chain funds for Bob")
 
-	aliceBobClosingTxId, err := virtual_network.CloseChannel(ctx, cli, alice, aliceBobChannelPoint)
+	aliceBobClosingTxId, err := virtual_network.CloseChannel(ctx, cli, aliceId, aliceBobChannelPoint)
 	if err != nil {
 		log.Fatalf("Closing Alice<->Bob channel: %v", err)
 	}
@@ -389,12 +393,12 @@ func TestMain(m *testing.M) {
 
 	log.Println("Mining some blocks to confirm closing transaction")
 
-	err = virtual_network.MineBlocks(ctx, cli, btcd, 3)
+	err = virtual_network.MineBlocks(ctx, cli, btcdId, 3)
 	if err != nil {
 		log.Fatalf("Mining blocks: %v", err)
 	}
 
-	bobOnChainBalance, err := virtual_network.GetOnchainBalance(ctx, cli, bob)
+	bobOnChainBalance, err := virtual_network.GetOnchainBalance(ctx, cli, bobId)
 	if err != nil {
 		log.Fatalf("Getting Bob's balance: %v", err)
 	}
@@ -408,16 +412,16 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	torq = torqConf.Instance
+	torqId = torqConf.Id
 
 	log.Println("Getting Carol's pubkey")
-	carolPubkey, err := virtual_network.GetPubKey(ctx, cli, carol)
+	carolPubkey, err := virtual_network.GetPubKey(ctx, cli, carolId)
 	if err != nil {
 		log.Fatalf("Getting Carol's pubkey: %v", err)
 	}
 	log.Printf("Carol's pubkey: %s\n", carolPubkey)
 
-	carolInspection, err := cli.ContainerInspect(ctx, carol.ID)
+	carolInspection, err := cli.ContainerInspect(ctx, carolId)
 	if err != nil {
 		log.Fatalf("Getting Carol's IP Address: %v", err)
 	}
@@ -427,14 +431,14 @@ func TestMain(m *testing.M) {
 
 	log.Println("Connecting Carol to Bob")
 
-	err = virtual_network.ConnectPeer(ctx, cli, bob, carolPubkey, carolIPAddress)
+	err = virtual_network.ConnectPeer(ctx, cli, bobId, carolPubkey, carolIPAddress)
 	if err != nil {
 		log.Fatalf("Connecting Carol to Bob: %v", err)
 	}
 
 	log.Println("Verifing Carol is a peer of Bob")
 
-	carolPeerExists, err := virtual_network.CheckPeerExists(ctx, cli, bob, carolPubkey)
+	carolPeerExists, err := virtual_network.CheckPeerExists(ctx, cli, bobId, carolPubkey)
 	if err != nil || !carolPeerExists {
 		log.Fatalf("Checking that Carol is a peer of Bob: %v", err)
 	}
@@ -442,33 +446,33 @@ func TestMain(m *testing.M) {
 	log.Println("Carol confirmed as peer of Bob")
 
 	log.Println("Verifing Bob is a peer of Carol")
-	carolBobPeerExists, err := virtual_network.CheckPeerExists(ctx, cli, carol, bobPubkey)
+	carolBobPeerExists, err := virtual_network.CheckPeerExists(ctx, cli, carolId, bobPubkey)
 	if err != nil || !carolBobPeerExists {
 		log.Fatalf("Checking that Bob is a peer of Carol: %v", err)
 	}
 	log.Println("Bob confirmed as peer of Carol")
 
-	err = virtual_network.MineBlocks(ctx, cli, btcd, 30)
+	err = virtual_network.MineBlocks(ctx, cli, btcdId, 30)
 	if err != nil {
 		log.Fatalf("Mining blocks: %v\n", err)
 	}
 	log.Println("Create the Bob<->Carol channel")
 
-	_, err = virtual_network.CreateChannel(ctx, cli, bob, carolPubkey, "100000", btcd)
+	_, err = virtual_network.CreateChannel(ctx, cli, bobId, carolPubkey, "100000", btcdId)
 	if err != nil {
 		log.Fatalf("Creating Bob<->Carol channel: %v", err)
 	}
 
 	log.Println("Recreate the Alice<->Bob channel")
 
-	_, err = virtual_network.CreateChannel(ctx, cli, alice, bobPubkey, "1000000", btcd)
+	_, err = virtual_network.CreateChannel(ctx, cli, aliceId, bobPubkey, "1000000", btcdId)
 	if err != nil {
 		log.Fatalf("Creating Alice<->Bob channel: %v", err)
 	}
 
 	log.Println("Generating invoice for payment to Carol")
 
-	carolEncodedInvoice, err := virtual_network.GenerateInvoice(ctx, cli, carol, "10")
+	carolEncodedInvoice, err := virtual_network.GenerateInvoice(ctx, cli, carolId, "10")
 	if err != nil {
 		log.Fatalf("Creating Carol invoice: %v", err)
 	}
@@ -477,13 +481,13 @@ func TestMain(m *testing.M) {
 
 	log.Println("Alice paying invoice sending payment via Bob to Carol")
 
-	err = virtual_network.PayInvoice(ctx, cli, alice, carolEncodedInvoice)
+	err = virtual_network.PayInvoice(ctx, cli, aliceId, carolEncodedInvoice, nil)
 	if err != nil {
 		log.Fatalf("Sending Alice->Bob->Carol payment: %v", err)
 	}
 
 	log.Println("Checking payment received by Carol")
-	carolChannelBalance, err := virtual_network.GetChannelBalance(ctx, cli, carol)
+	carolChannelBalance, err := virtual_network.GetChannelBalance(ctx, cli, carolId)
 	if err != nil {
 		log.Fatalf("Checking Carol's balance: %v", err)
 	}
@@ -509,7 +513,7 @@ func TestMain(m *testing.M) {
 func TestPayCarolFromAlice(t *testing.T) {
 	log.Println("Generating invoice for payment to Carol")
 
-	carolEncodedInvoice, err := virtual_network.GenerateInvoice(ctx, cli, carol, "10")
+	carolEncodedInvoice, err := virtual_network.GenerateInvoice(ctx, cli, carolId, "10")
 	if err != nil {
 		log.Fatalf("Creating Carol invoice: %v", err)
 	}
@@ -518,13 +522,13 @@ func TestPayCarolFromAlice(t *testing.T) {
 
 	log.Println("Alice paying invoice sending payment via Bob to Carol")
 
-	err = virtual_network.PayInvoice(ctx, cli, alice, carolEncodedInvoice)
+	err = virtual_network.PayInvoice(ctx, cli, aliceId, carolEncodedInvoice, nil)
 	if err != nil {
 		log.Fatalf("Sending Alice->Bob->Carol payment: %v", err)
 	}
 
 	log.Println("Checking payment received by Carol")
-	carolChannelBalance, err := virtual_network.GetChannelBalance(ctx, cli, carol)
+	carolChannelBalance, err := virtual_network.GetChannelBalance(ctx, cli, carolId)
 	if err != nil {
 		log.Fatalf("Checking Carol's balance: %v", err)
 	}

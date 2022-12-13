@@ -3,19 +3,18 @@ package virtual_network
 import (
 	"context"
 	"github.com/cockroachdb/errors"
-	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"strconv"
 )
 
-func MineBlocks(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody,
+func MineBlocks(ctx context.Context, cli *client.Client, containerId string,
 	numberOfBlocks int) error {
 	err := Retry(func() error {
 		var output []string
 		cmd := []string{"/start-btcctl.sh", "generate", strconv.Itoa(numberOfBlocks)}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &output)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &output)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on btcd %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on btcd %s", containerId)
 		}
 		if len(output) == 0 {
 			return errors.New("Blocks not mined")
@@ -28,7 +27,7 @@ func MineBlocks(ctx context.Context, cli *client.Client, container dockercontain
 	return nil
 }
 
-func SegWitActive(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody) error {
+func SegWitActive(ctx context.Context, cli *client.Client, containerId string) error {
 	err := Retry(func() error {
 		var blockchainInfo struct {
 			Bip9Softforks struct {
@@ -38,9 +37,9 @@ func SegWitActive(ctx context.Context, cli *client.Client, container dockerconta
 			} `json:"bip9_softforks"`
 		}
 		cmd := []string{"/start-btcctl.sh", "getblockchaininfo"}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &blockchainInfo)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &blockchainInfo)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on btcd %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on btcd %s", containerId)
 		}
 		if blockchainInfo.Bip9Softforks.Segwit.Status != "active" {
 			return errors.New("Segwit not active")

@@ -30,7 +30,7 @@ type ContainerConfig struct {
 	Binds      []string
 	Cmd        []string
 	MappedPort string
-	Instance   dockercontainer.ContainerCreateCreatedBody
+	Id         string
 }
 
 type DockerDevEnvironment struct {
@@ -62,7 +62,7 @@ func (de *DockerDevEnvironment) CleanupDefaultVolumes(ctx context.Context) error
 }
 
 func (de *DockerDevEnvironment) AddContainer(name string, image string, binds []string, env []string, cmd []string,
-	mappedPort string) *ContainerConfig {
+	mappedPort string, id string) *ContainerConfig {
 	if de.Containers == nil {
 		de.Containers = make(map[string]*ContainerConfig)
 	}
@@ -74,7 +74,7 @@ func (de *DockerDevEnvironment) AddContainer(name string, image string, binds []
 		Env:        env,
 		Cmd:        cmd,
 		MappedPort: mappedPort,
-		Instance:   dockercontainer.ContainerCreateCreatedBody{},
+		Id:         id,
 	}
 	return de.Containers[name]
 }
@@ -108,7 +108,7 @@ func (de *DockerDevEnvironment) CreateContainer(ctx context.Context, container *
 	if err != nil {
 		return errors.Wrapf(err, "Creating %s container", container.Name)
 	}
-	container.Instance = r
+	container.Id = r.ID
 	return nil
 }
 
@@ -117,7 +117,7 @@ func (de *DockerDevEnvironment) InitContainer(ctx context.Context, container *Co
 	if err != nil {
 		return err
 	}
-	if err := de.Client.ContainerStart(ctx, container.Instance.ID, types.ContainerStartOptions{}); err != nil {
+	if err := de.Client.ContainerStart(ctx, container.Id, types.ContainerStartOptions{}); err != nil {
 		return errors.Wrapf(err, "can't start %s container", container.Name)
 	}
 	return nil
@@ -131,7 +131,7 @@ func (de *DockerDevEnvironment) StartContainer(ctx context.Context, cc *Containe
 	if err := de.Client.ContainerStart(ctx, container.ID, types.ContainerStartOptions{}); err != nil {
 		return errors.Wrapf(err, "can't start %s container", cc.Name)
 	}
-	cc.Instance = dockercontainer.ContainerCreateCreatedBody{ID: container.ID}
+	cc.Id = container.ID
 	return nil
 }
 
@@ -308,12 +308,14 @@ func printBuildOutput(rd io.Reader) error {
 	return nil
 }
 
-func ExecJSONReturningCommand(ctx context.Context, cli *client.Client,
-	container dockercontainer.ContainerCreateCreatedBody,
+func ExecJSONReturningCommand(ctx context.Context, cli *client.Client, containerId string,
 	cmd []string, returnObject interface{}) error {
 
-	bufStdout, bufStderr, err := ExecCommand(ctx, cli, container, cmd)
+	bufStdout, bufStderr, err := ExecCommand(ctx, cli, containerId, cmd)
 	if err != nil {
+		if len(os.Getenv("DEBUG")) > 0 {
+			log.Printf("%s\n", string(err.Error()))
+		}
 		return errors.Wrap(err, "Exec command on container")
 	}
 	if len(bufStderr.Bytes()) > 0 {
@@ -329,12 +331,15 @@ func ExecJSONReturningCommand(ctx context.Context, cli *client.Client,
 }
 
 func ExecCommand(ctx context.Context, cli *client.Client,
-	container dockercontainer.ContainerCreateCreatedBody,
+	containerId string,
 	cmd []string) (bufStdout bytes.Buffer, bufStderr bytes.Buffer, err error) {
 
 	c := types.ExecConfig{AttachStdout: true, AttachStderr: true,
 		Cmd: cmd}
-	execID, _ := cli.ContainerExecCreate(ctx, container.ID, c)
+	execID, err := cli.ContainerExecCreate(ctx, containerId, c)
+	if err != nil {
+		return bufStdout, bufStderr, errors.Wrap(err, "Container exec create")
+	}
 
 	res, err := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
 	if err != nil {

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
-	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
 
@@ -47,16 +46,15 @@ type channel struct {
 	RemoteConstraints     struct{}      `json:"remote_constraints"`
 }
 
-func GetChannelBalance(ctx context.Context, cli *client.Client,
-	container dockercontainer.ContainerCreateCreatedBody) (balance string, err error) {
+func GetChannelBalance(ctx context.Context, cli *client.Client, containerId string) (balance string, err error) {
 	err = Retry(func() error {
 		var channelBalance struct {
 			Balance string `json:"balance"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "channelbalance"}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &channelBalance)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &channelBalance)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if channelBalance.Balance == "" {
 			return errors.New("Payment not received")
@@ -73,14 +71,20 @@ func GetChannelBalance(ctx context.Context, cli *client.Client,
 	return balance, nil
 }
 
-func PayInvoice(ctx context.Context, cli *client.Client,
-	container dockercontainer.ContainerCreateCreatedBody, invoice string) error {
+func PayInvoice(ctx context.Context, cli *client.Client, containerId string, invoice string, waitTime *int) error {
+	retryWaitTime := 0
+	if waitTime != nil {
+		retryWaitTime = *waitTime
+	}
+	if retryWaitTime == 0 {
+		retryWaitTime = defaultMaxDurationMS
+	}
 	err := Retry(func() error {
 		cmd := []string{"lncli", "--network=simnet", "sendpayment", "--force", "--pay_req=" + invoice}
 		var stderr bytes.Buffer
-		stdout, stderr, err := ExecCommand(ctx, cli, container, cmd)
+		stdout, stderr, err := ExecCommand(ctx, cli, containerId, cmd)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if len(stderr.Bytes()) > 0 {
 			log.Println("Standard error not empty, retrying")
@@ -96,23 +100,22 @@ func PayInvoice(ctx context.Context, cli *client.Client,
 		}
 		log.Println("Pay invoice command complete")
 		return nil
-	}, defautDelayMS, defaultMaxDurationMS)
+	}, defautDelayMS, retryWaitTime)
 	if err != nil {
 		return errors.Wrap(err, "Sending payment")
 	}
 	return nil
 }
 
-func GenerateInvoice(ctx context.Context, cli *client.Client,
-	container dockercontainer.ContainerCreateCreatedBody, amount string) (encodedInvoice string, err error) {
+func GenerateInvoice(ctx context.Context, cli *client.Client, containerId string, amount string) (encodedInvoice string, err error) {
 	err = Retry(func() error {
 		var addInvoice struct {
 			EncodedPayReq string `json:"payment_request"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "addinvoice", "--amt=" + amount}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &addInvoice)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &addInvoice)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if addInvoice.EncodedPayReq == "" {
 			return errors.New("Invoice not generated")
@@ -126,8 +129,7 @@ func GenerateInvoice(ctx context.Context, cli *client.Client,
 	return encodedInvoice, nil
 }
 
-func CheckPeerExists(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody,
-	remotePubkey string) (bool, error) {
+func CheckPeerExists(ctx context.Context, cli *client.Client, containerId string, remotePubkey string) (bool, error) {
 	var listPeers struct {
 		Peers []struct {
 			Pubkey   string `json:"pub_key"`
@@ -136,9 +138,9 @@ func CheckPeerExists(ctx context.Context, cli *client.Client, container dockerco
 	}
 	err := Retry(func() error {
 		cmd := []string{"lncli", "--network=simnet", "listpeers"}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &listPeers)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &listPeers)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Alice %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on Alice %s", containerId)
 		}
 		for _, peer := range listPeers.Peers {
 			if peer.Pubkey == remotePubkey {
@@ -157,14 +159,13 @@ func CheckPeerExists(ctx context.Context, cli *client.Client, container dockerco
 	return true, nil
 }
 
-func ConnectPeer(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody,
-	remotePubkey string, remoteIPAddress string) error {
+func ConnectPeer(ctx context.Context, cli *client.Client, containerId string, remotePubkey string, remoteIPAddress string) error {
 	err := Retry(func() error {
 		cmd := []string{"lncli", "--network=simnet", "connect", remotePubkey + "@" + remoteIPAddress}
 		var stderr bytes.Buffer
-		_, stderr, err := ExecCommand(ctx, cli, container, cmd)
+		_, stderr, err := ExecCommand(ctx, cli, containerId, cmd)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if len(stderr.Bytes()) > 0 {
 			if !strings.Contains(string(stderr.String()), "already connected to peer") {
@@ -173,7 +174,7 @@ func ConnectPeer(ctx context.Context, cli *client.Client, container dockercontai
 		}
 
 		// immediately check if the peer is connected as sometimes it seems to succeed and didn't
-		peerConnected, err := CheckPeerExists(ctx, cli, container, remotePubkey)
+		peerConnected, err := CheckPeerExists(ctx, cli, containerId, remotePubkey)
 		if err != nil || !peerConnected {
 			return errors.New("Peer didn't connect")
 		}
@@ -186,7 +187,7 @@ func ConnectPeer(ctx context.Context, cli *client.Client, container dockercontai
 	return nil
 }
 
-func CloseChannel(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody,
+func CloseChannel(ctx context.Context, cli *client.Client, containerId string,
 	channelPoint string) (closeTxId string, err error) {
 	err = Retry(func() error {
 		var closeChannel struct {
@@ -195,9 +196,9 @@ func CloseChannel(ctx context.Context, cli *client.Client, container dockerconta
 		fundingTxId := channelPoint[:strings.IndexByte(channelPoint, ':')]
 		outputIndex := channelPoint[strings.IndexByte(channelPoint, ':')+1:]
 		cmd := []string{"lncli", "--network=simnet", "closechannel", "--funding_txid=" + fundingTxId, "--output_index=" + outputIndex}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &closeChannel)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &closeChannel)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Alice %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on Alice %s", containerId)
 		}
 		if closeChannel.ClosingTxId == "" {
 			return errors.New("Channel not closed")
@@ -211,8 +212,8 @@ func CloseChannel(ctx context.Context, cli *client.Client, container dockerconta
 	return closeTxId, nil
 }
 
-func CreateChannel(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody,
-	remotePubkey string, amount string, btcd dockercontainer.ContainerCreateCreatedBody) (channelPoint string, err error) {
+func CreateChannel(ctx context.Context, cli *client.Client, containerId string, remotePubkey string,
+	amount string, btcdId string) (channelPoint string, err error) {
 
 	var fundingTxId string
 	err = Retry(func() error {
@@ -220,9 +221,9 @@ func CreateChannel(ctx context.Context, cli *client.Client, container dockercont
 			FundingTxId string `json:"funding_txid"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "openchannel", "--node_key=" + remotePubkey, "--local_amt=" + amount}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &openChannel)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &openChannel)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if openChannel.FundingTxId == "" {
 			return errors.New("Channel not created")
@@ -237,7 +238,7 @@ func CreateChannel(ctx context.Context, cli *client.Client, container dockercont
 
 	log.Println("Include funding transaction in block thereby opening the channel")
 
-	err = MineBlocks(ctx, cli, btcd, 30)
+	err = MineBlocks(ctx, cli, btcdId, 30)
 	if err != nil {
 		return "", errors.Wrap(err, "Mining blocks")
 	}
@@ -252,9 +253,9 @@ func CreateChannel(ctx context.Context, cli *client.Client, container dockercont
 			} `json:"channels"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "listchannels"}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &listChannels)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &listChannels)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if len(listChannels.Channels) == 0 {
 			return errors.New("Channel not open")
@@ -274,16 +275,16 @@ func CreateChannel(ctx context.Context, cli *client.Client, container dockercont
 
 }
 
-func GetNewAddress(ctx context.Context, cli *client.Client, instance dockercontainer.ContainerCreateCreatedBody) (addr string, err error) {
+func GetNewAddress(ctx context.Context, cli *client.Client, instanceId string) (addr string, err error) {
 
 	err = Retry(func() error {
 		var address struct {
 			Address string `json:"address"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "newaddress", "np2wkh"}
-		err := ExecJSONReturningCommand(ctx, cli, instance, cmd, &address)
+		err := ExecJSONReturningCommand(ctx, cli, instanceId, cmd, &address)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on Alice %s", instance.ID)
+			return errors.Wrapf(err, "Running exec command on Alice %s", instanceId)
 		}
 		if address.Address == "" {
 			return errors.New("Not a valid address")
@@ -298,15 +299,15 @@ func GetNewAddress(ctx context.Context, cli *client.Client, instance dockerconta
 	return addr, nil
 }
 
-func GetPubKey(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody) (pubkey string, err error) {
+func GetPubKey(ctx context.Context, cli *client.Client, containerId string) (pubkey string, err error) {
 	var getInfo struct {
 		IdentityPubkey string `json:"identity_pubkey"`
 	}
 	err = Retry(func() error {
 		cmd := []string{"lncli", "--network=simnet", "getinfo"}
-		err = ExecJSONReturningCommand(ctx, cli, container, cmd, &getInfo)
+		err = ExecJSONReturningCommand(ctx, cli, containerId, cmd, &getInfo)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if getInfo.IdentityPubkey == "" {
 			return errors.New("Invalid Pubkey")
@@ -320,15 +321,15 @@ func GetPubKey(ctx context.Context, cli *client.Client, container dockercontaine
 	return pubkey, nil
 }
 
-func GetOnchainBalance(ctx context.Context, cli *client.Client, container dockercontainer.ContainerCreateCreatedBody) (balance string, err error) {
+func GetOnchainBalance(ctx context.Context, cli *client.Client, containerId string) (balance string, err error) {
 	err = Retry(func() error {
 		var walletBalance struct {
 			ConfirmedBalance string `json:"confirmed_balance"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "walletbalance"}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &walletBalance)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &walletBalance)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if walletBalance.ConfirmedBalance == "" {
 			return errors.New("Balance not confirmed")
@@ -346,16 +347,15 @@ func GetOnchainBalance(ctx context.Context, cli *client.Client, container docker
 
 }
 
-func ListNodeChannels(ctx context.Context, cli *client.Client,
-	container dockercontainer.ContainerCreateCreatedBody, pubkey string) (channels []string, err error) {
+func ListNodeChannels(ctx context.Context, cli *client.Client, containerId string, pubkey string) (channels []string, err error) {
 	err = Retry(func() error {
 		var channelsList struct {
 			Channels []channel `json:"channels"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "listchannels", "--peer=" + pubkey}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &channelsList)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &channelsList)
 		if err != nil {
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if len(channelsList.Channels) == 0 {
 			return nil
@@ -372,17 +372,16 @@ func ListNodeChannels(ctx context.Context, cli *client.Client,
 	return channels, nil
 }
 
-func AddressSendCoins(ctx context.Context, cli *client.Client,
-	container dockercontainer.ContainerCreateCreatedBody, address string, amt string) (txId string, err error) {
+func AddressSendCoins(ctx context.Context, cli *client.Client, containerId string, address string, amt string) (txId string, err error) {
 	err = Retry(func() error {
 		var transID struct {
 			TxId string `json:"txId"`
 		}
 		cmd := []string{"lncli", "--network=simnet", "sendcoins", address, amt}
-		err := ExecJSONReturningCommand(ctx, cli, container, cmd, &transID)
+		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &transID)
 		if err != nil {
 			log.Println("Error ", err)
-			return errors.Wrapf(err, "Running exec command on %s", container.ID)
+			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 
 		if transID.TxId == "" {
