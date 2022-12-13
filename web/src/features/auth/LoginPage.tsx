@@ -60,6 +60,7 @@ function LoginPage() {
           <Input type="password" name={"password"} placeholder={"Password..."} id={"password-field"} />
           <Button
             type="submit"
+            submit={true}
             text={"Login"}
             icon={<UnlockIcon />}
             buttonColor={buttonColor.green}
