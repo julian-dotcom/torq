@@ -2,7 +2,6 @@ package views
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/iancoleman/strcase"
@@ -148,7 +147,6 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 	for _, view := range views {
 		switch view.Page {
 		case "forwards":
-			fmt.Println(view)
 			response.Forwards = append(response.Forwards, *view)
 		case "channel":
 			response.Channel = append(response.Channel, *view)
