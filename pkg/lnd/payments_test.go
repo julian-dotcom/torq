@@ -230,7 +230,7 @@ func TestSubscribePayments(t *testing.T) {
 
 	t.Run("Last payment index is stored correctly", func(t *testing.T) {
 		var expected uint64 = 15
-		returned, err := fetchLastPaymentIndex(db)
+		returned, err := fetchLastPaymentIndex(db, 1)
 		switch {
 		case err != nil:
 			testutil.Fatalf(t, "We get an error: %v", err)
