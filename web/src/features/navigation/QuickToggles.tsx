@@ -24,8 +24,11 @@ function QuickToggles() {
           }
           className={"right"}
         >
-          <div>
-            <h3>I have opened myself to allow someone to toggle on me</h3>
+          <div className={styles.quickToggleContent}>
+            <Button buttonColor={buttonColor.subtle} text="Mainnet"></Button>
+            <Button buttonColor={buttonColor.subtle} text="Testnet"></Button>
+            <Button buttonColor={buttonColor.primary} text="Regtest"></Button>
+            <Button buttonColor={buttonColor.subtle} text="Simnet"></Button>
           </div>
         </Popover>
       </div>
