@@ -65,15 +65,6 @@ function ChannelsPage() {
     <TableControlSection>
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
-          {/*{!currentView.saved && (*/}
-          {/*  <Button*/}
-          {/*    buttonColor={buttonColor.green}*/}
-          {/*    icon={<SaveIcon />}*/}
-          {/*    text={"Save"}*/}
-          {/*    onClick={saveView}*/}
-          {/*    className={"collapse-tablet"}*/}
-          {/*  />*/}
-          {/*)}*/}
           <Button
             buttonColor={buttonColor.green}
             text={t.openChannel}
@@ -86,7 +77,11 @@ function ChannelsPage() {
         </TableControlsTabsGroup>
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
-        <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
+        <TableControlsButton
+          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+          icon={OptionsIcon}
+          id={"tableControlsButton"}
+        />
       </TableControlsButtonGroup>
     </TableControlSection>
   );

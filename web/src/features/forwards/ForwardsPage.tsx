@@ -87,7 +87,11 @@ function ForwardsPage() {
     <TableControlSection>
       <TableControlsButtonGroup>
         <TableControlsTabsGroup></TableControlsTabsGroup>
-        <TableControlsButton onClickHandler={() => setSidebarExpanded(!sidebarExpanded)} icon={OptionsIcon} />
+        <TableControlsButton
+          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+          icon={OptionsIcon}
+          id={"tableControlsButton"}
+        />
       </TableControlsButtonGroup>
     </TableControlSection>
   );

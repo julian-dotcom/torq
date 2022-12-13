@@ -678,26 +678,30 @@ func TestPlaywrightVideo(t *testing.T) {
 	click("text=Summary")
 
 	click("text=Forwards")
-
-	click("text=Default View")
+	click("id=tableControlsButton")
 
 	click("text=Channels")
+	click("id=tableControlsButton")
 
-	click("text=Default View")
-
-	click("text=Transactions")
-
-	click("id=collapse-navigation")
+	click("text=Payments")
+	click("id=tableControlsButton")
 
 	click("text=Invoices")
+	click("id=tableControlsButton")
 
 	click("text=On-Chain")
-
 	click("id=tableControlsButton")
+
+	click("text=Columns")
+
+	click("text=Destination Addresses Count")
 
 	click("text=Filter")
 
 	click("text=Add filter")
 
-	click("text=Sort")
+	click("text=Filter")
+
+	click("id=collapse-navigation")
+
 }
