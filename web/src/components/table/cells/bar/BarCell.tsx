@@ -6,7 +6,7 @@ import barCellStyles from "./barCell.module.scss";
 
 interface barCell {
   current: number;
-  total: number;
+  max: number;
   className?: string;
   showPercent?: boolean;
 }
@@ -22,8 +22,8 @@ function formatPercent(num: number) {
 const formatterDetailed = format(",.2f");
 const formatter = format(",.0f");
 
-function BarCell({ current, total, className, showPercent }: barCell) {
-  const percent = (current || 0) / total;
+function BarCell({ current, max, className, showPercent }: barCell) {
+  const percent = (current || 0) / max;
   let data = current % 1 != 0 ? formatterDetailed(current) : formatter(current);
 
   if (showPercent) {

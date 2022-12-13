@@ -35,7 +35,7 @@ function useForwardsTotals(data: Array<Forward>): Forward | undefined {
   return data.reduce((prev: Forward, current: Forward, currentIndex: number) => {
     return {
       ...prev,
-      alias: "Totals",
+      alias: "Total",
       locked: true,
       capacity: prev.capacity + current.capacity,
       amountIn: prev.amountIn + current.amountIn,
@@ -50,6 +50,32 @@ function useForwardsTotals(data: Array<Forward>): Forward | undefined {
       turnoverOut: prev.turnoverOut + current.turnoverOut,
       turnoverIn: prev.turnoverIn + current.turnoverIn,
       turnoverTotal: prev.turnoverTotal + current.turnoverTotal,
+    };
+  });
+}
+
+function useForwardsMaximums(data: Array<Forward>): Forward | undefined {
+  if (!data.length) {
+    return undefined;
+  }
+
+  return data.reduce((prev: Forward, current: Forward, currentIndex: number) => {
+    return {
+      ...prev,
+      alias: "Max",
+      capacity: Math.max(prev.capacity, current.capacity),
+      amountIn: Math.max(prev.amountIn, current.amountIn),
+      amountOut: Math.max(prev.amountOut, current.amountOut),
+      amountTotal: Math.max(prev.amountTotal, current.amountTotal),
+      revenueOut: Math.max(prev.revenueOut, current.revenueOut),
+      revenueIn: Math.max(prev.revenueIn, current.revenueIn),
+      revenueTotal: Math.max(prev.revenueTotal, current.revenueTotal),
+      countOut: Math.max(prev.countOut, current.countOut),
+      countIn: Math.max(prev.countIn, current.countIn),
+      countTotal: Math.max(prev.countTotal, current.countTotal),
+      turnoverOut: Math.max(prev.turnoverOut, current.turnoverOut),
+      turnoverIn: Math.max(prev.turnoverIn, current.turnoverIn),
+      turnoverTotal: Math.max(prev.turnoverTotal, current.turnoverTotal),
     };
   });
 }
@@ -75,6 +101,7 @@ function ForwardsPage() {
   const filteredData = useFilterData(forwardsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
   const totalsRowData = useForwardsTotals(sortedData);
+  const maxRowData = useForwardsMaximums(sortedData);
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -132,6 +159,7 @@ function ForwardsPage() {
         activeColumns={viewResponse.view.columns || []}
         data={sortedData}
         totalRow={totalsRowData ? totalsRowData : undefined}
+        maxRow={maxRowData ? maxRowData : undefined}
         cellRenderer={forwardsCellRenderer}
         isLoading={forwardsResponse.isLoading || forwardsResponse.isFetching || forwardsResponse.isUninitialized}
         showTotals={true}

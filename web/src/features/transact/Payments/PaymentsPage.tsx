@@ -16,7 +16,7 @@ import TablePageTemplate, {
 import { useState } from "react";
 import { useLocation } from "react-router";
 import { Link, useNavigate } from "react-router-dom";
-import { PaymentsResponse } from "./types";
+import { Payment, PaymentsResponse } from "./types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import useTranslations from "services/i18n/useTranslations";
 import {
@@ -34,6 +34,28 @@ import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
 import { selectPaymentsView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
+
+function useMaximums(data: Array<Payment>): Payment | undefined {
+  if (!data.length) {
+    return undefined;
+  }
+
+  return data.reduce((prev: Payment, current: Payment, currentIndex: number) => {
+    return {
+      ...prev,
+      alias: "Max",
+      paymentIndex: Math.max(prev.paymentIndex, current.paymentIndex),
+      value: Math.max(prev.value, current.value),
+      fee: Math.max(prev.fee, current.fee),
+      ppm: Math.max(prev.ppm, current.ppm),
+      paymentHash: Math.max(prev.paymentHash, current.paymentHash),
+      paymentPreimage: Math.max(prev.paymentPreimage, current.paymentPreimage),
+      countFailedAttempts: Math.max(prev.countFailedAttempts, current.countFailedAttempts),
+      countSuccessfulAttempts: Math.max(prev.countSuccessfulAttempts, current.countSuccessfulAttempts),
+      secondsInFlight: Math.max(prev.secondsInFlight, current.secondsInFlight),
+    };
+  });
+}
 
 function PaymentsPage() {
   const { t } = useTranslations();
@@ -72,6 +94,8 @@ function PaymentsPage() {
       status: status,
     };
   });
+
+  const maxRow = useMaximums(data);
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -139,6 +163,7 @@ function PaymentsPage() {
         data={data}
         activeColumns={viewResponse.view.columns || []}
         isLoading={paymentsResponse.isLoading || paymentsResponse.isFetching || paymentsResponse.isUninitialized}
+        maxRow={maxRow}
       />
     </TablePageTemplate>
   );

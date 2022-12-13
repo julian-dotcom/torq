@@ -16,7 +16,7 @@ import { useState } from "react";
 import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
-import { InvoicesResponse } from "./invoiceTypes";
+import { Invoice, InvoicesResponse } from "./invoiceTypes";
 import {
   AllInvoicesColumns,
   InvoiceFilterTemplate,
@@ -32,10 +32,30 @@ import { useAppSelector } from "store/hooks";
 import { selectInvoicesView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 
+function useMaximums(data: Array<Invoice>): Invoice | undefined {
+  if (!data.length) {
+    return undefined;
+  }
+
+  return data.reduce((prev: Invoice, current: Invoice, currentIndex: number) => {
+    return {
+      ...prev,
+      alias: "Max",
+      addIndex: Math.max(prev.addIndex, current.addIndex),
+      settleIndex: Math.max(prev.settleIndex, current.settleIndex),
+      value: Math.max(prev.value, current.value),
+      amtPaid: Math.max(prev.amtPaid, current.amtPaid),
+      expiry: Math.max(prev.expiry, current.expiry),
+      cltvExpiry: Math.max(prev.cltvExpiry, current.cltvExpiry),
+    };
+  });
+}
+
 const statusTypes: any = {
   OPEN: "Open",
   SETTLED: "Settled",
   EXPIRED: "Expired",
+  CANCELED: "Canceled",
 };
 
 function InvoicesPage() {
@@ -67,16 +87,19 @@ function InvoicesPage() {
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
-  // if (invoicesResponse?.data?.data) {
-  //   data = invoicesResponse?.data?.data.map((invoice: any) => {
-  //     const invoice_state = statusTypes[invoice.invoice_state];
-  //
-  //     return {
-  //       ...invoice,
-  //       invoice_state,
-  //     };
-  //   });
-  // }
+  let data: Array<Invoice> = [];
+  if (invoicesResponse?.data?.data) {
+    data = invoicesResponse?.data?.data.map((invoice: Invoice) => {
+      const invoiceState = statusTypes[invoice.invoiceState];
+
+      return {
+        ...invoice,
+        invoiceState,
+      };
+    });
+  }
+
+  const maxrow = useMaximums(data || []);
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
@@ -138,9 +161,10 @@ function InvoicesPage() {
     >
       <Table
         cellRenderer={DefaultCellRenderer}
-        data={invoicesResponse?.data?.data || []}
+        data={data}
         activeColumns={viewResponse.view.columns || []}
         isLoading={invoicesResponse.isLoading || invoicesResponse.isFetching || invoicesResponse.isUninitialized}
+        maxRow={maxrow}
       />
     </TablePageTemplate>
   );

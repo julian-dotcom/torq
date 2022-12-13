@@ -139,7 +139,6 @@ function closeChannelModal() {
                     setStepIndex(1);
                     setDetailState(ProgressStepState.completed);
                     setResultState(ProgressStepState.completed);
-                    console.log(satPerVbyte);
                     sendJsonMessage({
                       reqId: "randId",
                       type: "closeChannel",

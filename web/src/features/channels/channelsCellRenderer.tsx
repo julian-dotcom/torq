@@ -9,7 +9,9 @@ export default function channelsCellRenderer(
   row: channel,
   rowIndex: number,
   column: ColumnMetaData<channel>,
-  columnIndex: number
+  columnIndex: number,
+  isTotalsRow?: boolean,
+  maxRow?: channel
 ): JSX.Element {
   if (column.key === "peerAlias") {
     return (
@@ -36,5 +38,5 @@ export default function channelsCellRenderer(
   }
 
   // Use the defualt
-  return DefaultCellRenderer(row, rowIndex, column, columnIndex);
+  return DefaultCellRenderer(row, rowIndex, column, columnIndex, false, maxRow);
 }

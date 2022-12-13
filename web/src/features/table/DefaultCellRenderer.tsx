@@ -17,7 +17,8 @@ export default function DefaultCellRenderer<T>(
   rowIndex: number,
   column: ColumnMetaData<T>,
   columnIndex: number,
-  totalsRow?: boolean
+  totalsRow?: boolean,
+  maxRow?: T
 ): JSX.Element {
   const dataKey = column.key as keyof T;
   const dataKey2 = column.key2 as keyof T;
@@ -103,7 +104,7 @@ export default function DefaultCellRenderer<T>(
           return (
             <BarCell
               current={row[dataKey] as number}
-              total={column.max as number}
+              max={maxRow ? (maxRow[dataKey] as number) : 0}
               showPercent={percent}
               key={dataKey.toString() + rowIndex + columnIndex}
             />
