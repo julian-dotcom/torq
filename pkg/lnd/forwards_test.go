@@ -169,7 +169,7 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 	testutil.WhenF(t, "We need to check that fetchLastForwardTime returns the expected nanosecond.")
 	{
 		var expected uint64 = 1000000000
-		returned, err := fetchLastForwardTime(db)
+		returned, err := fetchLastForwardTime(db, 1)
 		switch {
 		case err != nil:
 			testutil.Fatalf(t, "We get an error: %v", err)
