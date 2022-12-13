@@ -17,7 +17,7 @@ import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_ADDRESS } from "constants/routes";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
-import { OnChainResponse } from "./types";
+import { OnChainResponse, OnChainTx } from "./types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import {
   AllOnChainColumns,
@@ -32,6 +32,22 @@ import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
 import { selectOnChainView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
+
+function useMaximums(data: Array<OnChainTx>): OnChainTx | undefined {
+  if (!data.length) {
+    return undefined;
+  }
+
+  return data.reduce((prev: OnChainTx, current: OnChainTx, currentIndex: number) => {
+    return {
+      ...prev,
+      alias: "Max",
+      amount: Math.max(prev.amount, current.amount),
+      totalFees: Math.max(prev.totalFees, current.totalFees),
+      txHash: Math.max(prev.txHash, current.txHash),
+    };
+  });
+}
 
 function OnChainPage() {
   const { t } = useTranslations();
@@ -58,25 +74,14 @@ function OnChainPage() {
     { skip: !isSuccess }
   );
 
-  // let data: any = [];
-  //
-  // if (onchainResponse?.data?.data) {
-  //   data = onchainResponse?.data?.data.map((invoice: any) => {
-  //     const invoice_state = statusTypes[invoice.invoice_state];
-  //
-  //     return {
-  //       ...invoice,
-  //       invoice_state,
-  //     };
-  //   });
-  // }
-
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
   };
+
+  const maxRow = useMaximums(onChainTxResponse.data?.data || []);
 
   const tableControls = (
     <TableControlSection>
@@ -137,6 +142,7 @@ function OnChainPage() {
         data={onChainTxResponse?.data?.data || []}
         activeColumns={viewResponse.view.columns}
         isLoading={onChainTxResponse.isLoading || onChainTxResponse.isFetching || onChainTxResponse.isUninitialized}
+        maxRow={maxRow}
       />
     </TablePageTemplate>
   );

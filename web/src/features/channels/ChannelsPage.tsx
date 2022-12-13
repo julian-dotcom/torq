@@ -34,6 +34,56 @@ import { useFilterData, useSortData } from "features/viewManagement/hooks";
 import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import channelsCellRenderer from "./channelsCellRenderer";
 
+function useMaximums(data: Array<channel>): channel | undefined {
+  if (!data.length) {
+    return undefined;
+  }
+
+  return data.reduce((prev: channel, current: channel, currentIndex: number) => {
+    return {
+      ...prev,
+      alias: "Max",
+      feeBaseMsat: Math.max(prev.feeBaseMsat, current.feeBaseMsat),
+      capacity: Math.max(prev.capacity, current.capacity),
+      commitFee: Math.max(prev.commitFee, current.commitFee),
+      commitmentType: Math.max(prev.commitmentType, current.commitmentType),
+      commitWeight: Math.max(prev.commitWeight, current.commitWeight),
+      feePerKw: Math.max(prev.feePerKw, current.feePerKw),
+      feeRateMilliMsat: Math.max(prev.feeRateMilliMsat, current.feeRateMilliMsat),
+      fundingOutputIndex: Math.max(prev.fundingOutputIndex, current.fundingOutputIndex),
+      gauge: Math.max(prev.gauge, current.gauge),
+      lifetime: Math.max(prev.lifetime, current.lifetime),
+      lndShortChannelId: Math.max(prev.lndShortChannelId, current.lndShortChannelId),
+      balance: Math.max(prev.balance, current.balance), // NB! This column only exists in the frontend!
+      localBalance: Math.max(prev.localBalance, current.localBalance),
+      localChanReserveSat: Math.max(prev.localChanReserveSat, current.localChanReserveSat),
+      maxHtlcMsat: Math.max(prev.maxHtlcMsat, current.maxHtlcMsat),
+      minHtlcMsat: Math.max(prev.minHtlcMsat, current.minHtlcMsat),
+      nodeId: Math.max(prev.nodeId, current.nodeId),
+      channelId: Math.max(prev.channelId, current.channelId),
+      numUpdates: Math.max(prev.numUpdates, current.numUpdates),
+      pendingForwardingHTLCsAmount: Math.max(prev.pendingForwardingHTLCsAmount, current.pendingForwardingHTLCsAmount),
+      pendingForwardingHTLCsCount: Math.max(prev.pendingForwardingHTLCsCount, current.pendingForwardingHTLCsCount),
+      pendingLocalHTLCsAmount: Math.max(prev.pendingLocalHTLCsAmount, current.pendingLocalHTLCsAmount),
+      pendingLocalHTLCsCount: Math.max(prev.pendingLocalHTLCsCount, current.pendingLocalHTLCsCount),
+      pendingTotalHTLCsAmount: Math.max(prev.pendingTotalHTLCsAmount, current.pendingTotalHTLCsAmount),
+      pendingTotalHTLCsCount: Math.max(prev.pendingTotalHTLCsCount, current.pendingTotalHTLCsCount),
+      remoteBalance: Math.max(prev.remoteBalance, current.remoteBalance),
+      remoteFeeBaseMsat: Math.max(prev.remoteFeeBaseMsat, current.remoteFeeBaseMsat),
+      remoteChanReserveSat: Math.max(prev.remoteChanReserveSat, current.remoteChanReserveSat),
+      remoteFeeRateMilliMsat: Math.max(prev.remoteFeeRateMilliMsat, current.remoteFeeRateMilliMsat),
+      remoteMaxHtlcMsat: Math.max(prev.remoteMaxHtlcMsat, current.remoteMaxHtlcMsat),
+      remoteMinHtlcMsat: Math.max(prev.remoteMinHtlcMsat, current.remoteMinHtlcMsat),
+      remotePubkey: Math.max(prev.remotePubkey, current.remotePubkey),
+      remoteTimeLockDelta: Math.max(prev.remoteTimeLockDelta, current.remoteTimeLockDelta),
+      timeLockDelta: Math.max(prev.timeLockDelta, current.timeLockDelta),
+      totalSatoshisReceived: Math.max(prev.totalSatoshisReceived, current.totalSatoshisReceived),
+      totalSatoshisSent: Math.max(prev.totalSatoshisSent, current.totalSatoshisSent),
+      unsettledBalance: Math.max(prev.unsettledBalance, current.unsettledBalance),
+    };
+  });
+}
+
 function ChannelsPage() {
   const { t } = useTranslations();
   const navigate = useNavigate();
@@ -53,6 +103,7 @@ function ChannelsPage() {
   const filteredData = useFilterData(channelsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
   const data = useGroupBy<channel>(sortedData, viewResponse.view.groupBy);
+  const maxRow = useMaximums(data);
 
   // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
@@ -122,6 +173,7 @@ function ChannelsPage() {
         data={data}
         activeColumns={viewResponse.view.columns || []}
         isLoading={channelsResponse.isLoading || channelsResponse.isFetching || channelsResponse.isUninitialized}
+        maxRow={maxRow}
       />
     </TablePageTemplate>
   );

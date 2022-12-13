@@ -74,6 +74,7 @@ function Table<T>(props: TableProps<T>) {
               selectable={props.selectable}
               selected={false}
               isTotalsRow={false}
+              maxRow={props.maxRow}
             />
           );
         })}

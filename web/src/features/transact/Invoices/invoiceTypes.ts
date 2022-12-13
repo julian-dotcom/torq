@@ -17,7 +17,7 @@ export type Invoice = {
   memo: string;
   value: number;
   amtPaid: number;
-  invoiceState: number;
+  invoiceState: string;
   isRebalance: boolean;
   isKeysend: boolean;
   isAmp: boolean;

@@ -19,6 +19,7 @@ export type TableProps<T> = {
   isLoading: boolean;
   showTotals?: boolean;
   totalRow?: T;
+  maxRow?: T;
   cellRenderer: CellRendererFunction<T>;
   selectable?: boolean;
   selectedRowIds?: Array<number>;
@@ -29,7 +30,8 @@ export type CellRendererFunction<T> = (
   rowIndex: number,
   columnMeta: ColumnMetaData<T>,
   columnIndex: number,
-  isTotalsRow?: boolean
+  isTotalsRow?: boolean,
+  maxValues?: T
 ) => JSX.Element;
 
 export type RowProp<T> = {
@@ -40,4 +42,5 @@ export type RowProp<T> = {
   selected: boolean;
   cellRenderer: CellRendererFunction<T>;
   isTotalsRow?: boolean;
+  maxRow?: T;
 };

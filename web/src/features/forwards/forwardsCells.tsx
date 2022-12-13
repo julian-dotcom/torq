@@ -9,7 +9,8 @@ export default function channelsCellRenderer(
   rowIndex: number,
   column: ColumnMetaData<Forward>,
   columnIndex: number,
-  isTotalsRow?: boolean
+  isTotalsRow?: boolean,
+  maxRow?: Forward
 ): JSX.Element {
   if (column.key === "alias") {
     return (
@@ -24,5 +25,5 @@ export default function channelsCellRenderer(
   }
 
   // Use the defualt
-  return DefaultCellRenderer(row, rowIndex, column, columnIndex, isTotalsRow);
+  return DefaultCellRenderer(row, rowIndex, column, columnIndex, isTotalsRow, maxRow);
 }
