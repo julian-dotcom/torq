@@ -336,8 +336,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 				switch managedChannelState.Status {
 				case Active:
 					channelSetting.LocalDisabled = false
+					nodeChannels[managedChannelState.ChannelId] = channelSetting
 				case Inactive:
 					channelSetting.LocalDisabled = true
+					nodeChannels[managedChannelState.ChannelId] = channelSetting
 				case Deleted:
 					delete(nodeChannels, managedChannelState.ChannelId)
 				}
@@ -367,6 +369,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					channelSetting.LocalMaxHtlcMsat = managedChannelState.MaxHtlcMsat
 					channelSetting.LocalFeeBaseMsat = managedChannelState.FeeBaseMsat
 					channelSetting.LocalFeeRateMilliMsat = managedChannelState.FeeRateMilliMsat
+					nodeChannels[managedChannelState.ChannelId] = channelSetting
 				} else {
 					channelSetting.RemoteDisabled = managedChannelState.Disabled
 					channelSetting.RemoteTimeLockDelta = managedChannelState.TimeLockDelta
@@ -374,6 +377,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					channelSetting.RemoteMaxHtlcMsat = managedChannelState.MaxHtlcMsat
 					channelSetting.RemoteFeeBaseMsat = managedChannelState.FeeBaseMsat
 					channelSetting.RemoteFeeRateMilliMsat = managedChannelState.FeeRateMilliMsat
+					nodeChannels[managedChannelState.ChannelId] = channelSetting
 				}
 			} else {
 				log.Error().Msgf("Received channel graph event for uncached channel with channelId: %v", managedChannelState.ChannelId)
@@ -393,6 +397,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 				channelSetting.NumUpdates = channelSetting.NumUpdates + 1
 				channelSetting.LocalBalance = channelSetting.LocalBalance + managedChannelState.Amount
 				channelSetting.RemoteBalance = channelSetting.LocalBalance - managedChannelState.Amount
+				nodeChannels[managedChannelState.ChannelId] = channelSetting
 			} else {
 				log.Error().Msgf("Received channel balance update for uncached channel with channelId: %v", managedChannelState.ChannelId)
 			}
@@ -432,6 +437,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 						channelSetting.UnsettledBalance = channelSetting.UnsettledBalance + int64(*managedChannelState.HtlcEvent.IncomingAmtMsat/1000)
 					}
 					channelSetting.PendingHtlcs = pendingHtlc
+					nodeChannels[*managedChannelState.HtlcEvent.IncomingChannelId] = channelSetting
 				} else {
 					if !channelExists {
 						log.Error().Msgf("Received Incoming HTLC channel balance update for uncached channel with channelId: %v", *managedChannelState.HtlcEvent.IncomingChannelId)
@@ -461,6 +467,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 						channelSetting.UnsettledBalance = channelSetting.UnsettledBalance - int64(*managedChannelState.HtlcEvent.IncomingAmtMsat/1000)
 					}
 					channelSetting.PendingHtlcs = pendingHtlc
+					nodeChannels[*managedChannelState.HtlcEvent.OutgoingChannelId] = channelSetting
 				} else {
 					if !channelExists {
 						log.Error().Msgf("Received Outgoing HTLC channel balance update for uncached channel with channelId: %v", *managedChannelState.HtlcEvent.OutgoingChannelId)
