@@ -243,7 +243,7 @@ func TestSubscribePayments(t *testing.T) {
 
 	t.Run("List of in flight payments is correct.", func(t *testing.T) {
 		var expected = []uint64{11, 12, 14, 15}
-		returned, err := fetchInFlightPaymentIndexes(db)
+		returned, err := fetchInFlightPaymentIndexes(db, 1)
 		switch {
 		case err != nil:
 			testutil.Fatalf(t, "We get an error: %v", err)
@@ -359,7 +359,7 @@ func TestSubscribePayments(t *testing.T) {
 
 	t.Run("List of in flight payments is correct after update.", func(t *testing.T) {
 		var expected = []uint64{11}
-		returned, err := fetchInFlightPaymentIndexes(db)
+		returned, err := fetchInFlightPaymentIndexes(db, 1)
 		switch {
 		case err != nil:
 			testutil.Fatalf(t, "We get an error: %v", err)

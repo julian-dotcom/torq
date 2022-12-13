@@ -265,7 +265,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		case <-ctx.Done():
 			return
 		case <-ticker:
-			inFlightIndexes, err := fetchInFlightPaymentIndexes(db)
+			inFlightIndexes, err := fetchInFlightPaymentIndexes(db, nodeSettings.NodeId)
 			if err != nil {
 				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS)
@@ -328,14 +328,15 @@ type Payment struct {
 	CreationTimestamp int64  `json:"creation_timestamp" db:"creation_timestamp"`
 }
 
-func fetchInFlightPaymentIndexes(db *sqlx.DB) (r []uint64, err error) {
+func fetchInFlightPaymentIndexes(db *sqlx.DB, nodeId int) (r []uint64, err error) {
 
 	rows, err := db.Query(`
 		select payment_index
 		from payment
 		where status = 'IN_FLIGHT'
+		and node_id = $1
 		order by payment_index asc;
-	`)
+	`, nodeId)
 	if err != nil {
 		return nil, errors.Wrap(err, "DB Query of inflight payment indexes")
 	}
