@@ -27,6 +27,7 @@ import CloseChannelModal from "features/channels/closeChannel/CloseChannelModal"
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
 import NewInvoiceModal from "features/transact/newInvoice/NewInvoiceModal";
 import * as routes from "constants/routes";
+import WorkflowPage from "./pages/automationCanvas/WorkflowPage";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -70,7 +71,6 @@ const authenticatedRoutes: RouteObject = {
       element: <RequireAuth />,
       children: [
         {
-
           element: <RequireTorq />,
           children: [
             {
@@ -78,13 +78,14 @@ const authenticatedRoutes: RouteObject = {
               element: <DashboardPage />,
               children: modalRoutes.children,
             },
-        {
-          path: routes.MANAGE,
-          children: [
-            { path: routes.CHANNELS, element: <ChannelsPage /> },
-            // { path: routes.TAGS, element: <TagsPage /> },
-          ],
-        },
+            {
+              path: routes.MANAGE,
+              children: [
+                { path: routes.CHANNELS, element: <ChannelsPage /> },
+                { path: routes.WORKFLOW, element: <WorkflowPage /> },
+                // { path: routes.TAGS, element: <TagsPage /> },
+              ],
+            },
             {
               path: routes.ANALYSE,
               children: [
