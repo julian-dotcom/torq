@@ -1,9 +1,12 @@
 package forwards
 
 import (
-	"github.com/lib/pq"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/lib/pq"
+	"github.com/rs/zerolog/log"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -25,10 +28,21 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	network := c.Query("network")
-	chain := c.Query("chain")
+	if c.Query("network") == "" {
+		server_errors.SendBadRequest(c, "Network missing")
+		return
+	}
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
 
-	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), from, to)
+	chain := commons.Bitcoin
+
+	log.Debug().Msgf("%v", commons.GetAllTorqNodeIds(chain, commons.Network(network)))
+
+	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

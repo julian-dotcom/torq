@@ -2,10 +2,11 @@ import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "store/store";
 
 export enum Network {
-  Mainnet,
-  Testnet,
-  Regtest,
-  Simnet,
+  MainNet,
+  TestNet,
+  RegTest,
+  SigNet,
+  SimNet,
 }
 
 export interface NetworkState {
@@ -13,7 +14,7 @@ export interface NetworkState {
 }
 
 const initialState: NetworkState = {
-  activeNetwork: Network.Mainnet,
+  activeNetwork: Network.MainNet,
 };
 
 export const networkSlice = createSlice({

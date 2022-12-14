@@ -27,24 +27,29 @@ function QuickToggles() {
         >
           <div className={styles.quickToggleContent}>
             <Button
-              buttonColor={activeNetwork === Network.Mainnet ? buttonColor.primary : buttonColor.subtle}
+              buttonColor={activeNetwork === Network.MainNet ? buttonColor.primary : buttonColor.subtle}
               text="Mainnet"
-              onClick={() => dispatch(setActiveNetwork(Network.Mainnet))}
+              onClick={() => dispatch(setActiveNetwork(Network.MainNet))}
             ></Button>
             <Button
-              buttonColor={activeNetwork === Network.Testnet ? buttonColor.primary : buttonColor.subtle}
+              buttonColor={activeNetwork === Network.TestNet ? buttonColor.primary : buttonColor.subtle}
               text="Testnet"
-              onClick={() => dispatch(setActiveNetwork(Network.Testnet))}
+              onClick={() => dispatch(setActiveNetwork(Network.TestNet))}
             ></Button>
             <Button
-              buttonColor={activeNetwork === Network.Regtest ? buttonColor.primary : buttonColor.subtle}
+              buttonColor={activeNetwork === Network.RegTest ? buttonColor.primary : buttonColor.subtle}
               text="Regtest"
-              onClick={() => dispatch(setActiveNetwork(Network.Regtest))}
+              onClick={() => dispatch(setActiveNetwork(Network.RegTest))}
             ></Button>
             <Button
-              buttonColor={activeNetwork === Network.Simnet ? buttonColor.primary : buttonColor.subtle}
+              buttonColor={activeNetwork === Network.SigNet ? buttonColor.primary : buttonColor.subtle}
+              text="Regtest"
+              onClick={() => dispatch(setActiveNetwork(Network.SigNet))}
+            ></Button>
+            <Button
+              buttonColor={activeNetwork === Network.SimNet ? buttonColor.primary : buttonColor.subtle}
               text="Simnet"
-              onClick={() => dispatch(setActiveNetwork(Network.Simnet))}
+              onClick={() => dispatch(setActiveNetwork(Network.SimNet))}
             ></Button>
           </div>
         </Popover>
