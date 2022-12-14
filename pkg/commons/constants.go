@@ -196,7 +196,7 @@ type WorkflowNodeType int
 
 const (
 	WorkflowNodeTimeTrigger = WorkflowNodeType(iota)
-	WorkflowNodeEventTrigger
+	WorkflowNodeChannelBalanceEventTrigger
 	WorkflowNodeChannelFilter
 	WorkflowNodeCostParameters
 	WorkflowNodeRebalanceParameters

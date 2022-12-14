@@ -99,8 +99,15 @@ func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) s
 
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 	return map[WorkflowNodeType]WorkflowNodeTypeParameters{
-		WorkflowNodeTrigger: {
-			WorkflowNodeType: WorkflowNodeTrigger,
+		WorkflowNodeTimeTrigger: {
+			WorkflowNodeType: WorkflowNodeTimeTrigger,
+			RequiredInputs:   map[string]WorkflowParameter{},
+			OptionalInputs:   map[string]WorkflowParameter{},
+			RequiredOutputs:  map[string]WorkflowParameter{"triggered": WorkflowParameterTriggered},
+			OptionalOutputs:  map[string]WorkflowParameter{},
+		},
+		WorkflowNodeChannelBalanceEventTrigger: {
+			WorkflowNodeType: WorkflowNodeChannelBalanceEventTrigger,
 			RequiredInputs:   map[string]WorkflowParameter{},
 			OptionalInputs:   map[string]WorkflowParameter{},
 			RequiredOutputs:  map[string]WorkflowParameter{"triggered": WorkflowParameterTriggered},

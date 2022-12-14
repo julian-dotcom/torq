@@ -12,7 +12,8 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB, workflowNode WorkflowNode, triggeredWorkflowVersionNodeId int,
+func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings, workflowNode WorkflowNode, triggeredWorkflowVersionNodeId int,
 	reference string, inputs map[string]string, eventChannel chan interface{}, iteration int) (map[string]string, error) {
 
 	iteration++
@@ -69,8 +70,8 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB, workflowNode Workflow
 				continue
 			}
 			for _, childNode := range childNodeOutputArray {
-				childOutputs, err := ProcessWorkflowNode(ctx, db, *childNode, workflowNode.WorkflowVersionNodeId, reference, outputs, eventChannel, iteration)
-				AddWorkflowVersionNodeLog(db, reference, workflowNode.WorkflowVersionNodeId, inputs, childOutputs, err)
+				childOutputs, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId, reference, outputs, eventChannel, iteration)
+				AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, inputs, childOutputs, err)
 				if err != nil {
 					return nil, err
 				}
@@ -83,10 +84,11 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB, workflowNode Workflow
 	return outputs, nil
 }
 
-func AddWorkflowVersionNodeLog(db *sqlx.DB, reference string, workflowVersionNodeId int,
+func AddWorkflowVersionNodeLog(db *sqlx.DB, nodeId int, reference string, workflowVersionNodeId int,
 	inputs map[string]string, outputs map[string]string, workflowError error) {
 
 	workflowVersionNodeLog := WorkflowVersionNodeLog{
+		NodeId:                nodeId,
 		WorkflowVersionNodeId: workflowVersionNodeId,
 		TriggerReference:      reference,
 	}

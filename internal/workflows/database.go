@@ -550,9 +550,9 @@ func removeWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLinkId int) (
 func addWorkflowVersionNodeLog(db *sqlx.DB, workflowVersionNodeLog WorkflowVersionNodeLog) (WorkflowVersionNodeLog, error) {
 	workflowVersionNodeLog.CreatedOn = time.Now().UTC()
 	_, err := db.Exec(`INSERT INTO workflow_version_node_log
-    	(trigger_reference, input_data, output_data, debug_data, error_data, workflow_version_node_id, triggered_workflow_version_node_id, created_on)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
-		workflowVersionNodeLog.TriggerReference,
+    	(node_id, trigger_reference, input_data, output_data, debug_data, error_data, workflow_version_node_id, triggered_workflow_version_node_id, created_on)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
+		workflowVersionNodeLog.NodeId, workflowVersionNodeLog.TriggerReference,
 		workflowVersionNodeLog.InputData, workflowVersionNodeLog.OutputData, workflowVersionNodeLog.DebugData,
 		workflowVersionNodeLog.ErrorData, workflowVersionNodeLog.WorkflowVersionNodeId,
 		workflowVersionNodeLog.TriggeredWorkflowVersionNodeId, workflowVersionNodeLog.CreatedOn)

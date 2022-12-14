@@ -44,6 +44,7 @@ CREATE TABLE workflow_version_node_link (
 );
 
 CREATE TABLE workflow_version_node_log (
+    node_id INTEGER NOT NULL REFERENCES node(node_id),
     --A unique reference to the automated process (thread/routine) so logs can be bundled together for a single process
     trigger_reference TEXT NOT NULL,
     input_data JSONB NOT NULL,
@@ -56,19 +57,4 @@ CREATE TABLE workflow_version_node_log (
 );
 
 SELECT create_hypertable('workflow_version_node_log','created_on');
-
-
-SELECT wfvn.workflow_version_node_id
-FROM workflow_version_node wfvn
-JOIN workflow_version wfv ON wfv.workflow_version_id = wfvn.workflow_version_id AND wfv.status=1
-JOIN workflow wf ON wf.workflow_id = wfv.workflow_id AND wfv.status=1
-LEFT JOIN workflow_version_node_link parentLink ON parentLink.child_workflow_version_node_id = wfvn.workflow_version_node_id
-WHERE wfvn.status=1 AND wfvn.type IN (0,1) AND parentLink.child_workflow_version_node_id IS NULL AND wfv.workflow_version_id IN (
-    SELECT ranked.workflow_version_id
-    FROM (
-        SELECT v_wfv.workflow_version_id, RANK() OVER (PARTITION BY v_wfv.workflow_version_id ORDER BY version DESC) version_rank
-        FROM workflow_version v_wfv
-    ) ranked
-    WHERE ranked.version_rank = 1
-)
 

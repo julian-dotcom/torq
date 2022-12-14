@@ -285,6 +285,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctx)
 		go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
 		go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)
+		go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctx)
 
 		// initialise package level var for keeping state of subsciptions
 		commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)
@@ -292,6 +293,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		commons.RunningServices[commons.VectorService] = &commons.Services{ServiceType: commons.VectorService}
 		commons.RunningServices[commons.AmbossService] = &commons.Services{ServiceType: commons.AmbossService}
 		commons.RunningServices[commons.TorqService] = &commons.Services{ServiceType: commons.TorqService}
+		commons.RunningServices[commons.AutomationService] = &commons.Services{ServiceType: commons.AutomationService}
 
 	}
 

@@ -168,6 +168,7 @@ func main() {
 			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctxGlobal)
 			go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctxGlobal)
 			go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctxGlobal)
+			go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctxGlobal)
 
 			// This listens to events:
 			// When Torq has status initializing it loads the caches and starts the LndServices
@@ -586,41 +587,78 @@ func main() {
 						if serviceCmd.ServiceType == commons.AutomationService {
 							if serviceCmd.ServiceCommand == commons.Boot {
 								log.Info().Msgf("Verifying Automation service requirement.")
-								bootLock := services.GetBootLock(commons.TorqDummyNodeId)
-								successful := bootLock.TryLock()
-								if successful {
-									go (func(bootLock *sync.Mutex,
-										services *commons.Services,
-										serviceChannel chan commons.ServiceChannelMessage,
-										eventChannel chan interface{}) {
-										defer func() {
-											if commons.MutexLocked(bootLock) {
-												bootLock.Unlock()
-											}
-										}()
-										ctx := context.Background()
-										ctx, cancel := context.WithCancel(ctx)
-
-										log.Info().Msgf("Generating Automation service")
-										services.AddSubscription(commons.TorqDummyNodeId, cancel, eventChannel)
-										services.Booted(commons.TorqDummyNodeId, bootLock, eventChannel)
-										log.Info().Msgf("Automation Service booted")
-										err = automation.Start(ctx, db, broadcaster, eventChannel)
-										if err != nil {
-											log.Error().Err(err).Msgf("Automation ended")
-										}
-										log.Info().Msgf("Automation Service stopped")
-										services.RemoveSubscription(commons.TorqDummyNodeId, eventChannel)
-										if services.IsNoDelay(commons.TorqDummyNodeId) || serviceCmd.NoDelay {
-											log.Info().Msgf("Automation Service will be restarted")
-										} else {
-											log.Info().Msgf("Automation Service will be restarted in %v seconds", commons.SERVICES_ERROR_SLEEP_SECONDS)
-											time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
-										}
-										serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: commons.TorqDummyNodeId}
-									})(bootLock, services, serviceChannel, eventChannel)
+								if serviceCmd.NodeId != 0 {
+									enforcedServiceStatus = services.GetEnforcedServiceStatusCheck(serviceCmd.NodeId)
+								}
+								if serviceCmd.EnforcedServiceStatus != nil {
+									enforcedServiceStatus = serviceCmd.EnforcedServiceStatus
+								}
+								if serviceCmd.NodeId == 0 {
+									commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, nil, eventChannel)
+									nodes, err = settings.GetActiveNodesConnectionDetails(db)
+									if err != nil {
+										log.Error().Err(err).Msg("Getting connection details")
+									}
 								} else {
-									log.Error().Msgf("Requested Automation Service start failed. A start is already running.")
+									if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Inactive {
+										nodes = []settings.ConnectionDetails{}
+									} else {
+										node, err := settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
+										if err != nil {
+											log.Error().Err(errors.Wrap(err, "Getting connection details")).Send()
+											return
+										}
+										if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
+											nodes = []settings.ConnectionDetails{node}
+										} else {
+											if node.Status != commons.Active {
+												nodes = []settings.ConnectionDetails{}
+											} else {
+												nodes = []settings.ConnectionDetails{node}
+											}
+										}
+									}
+								}
+
+								for _, node := range nodes {
+									if serviceCmd.NodeId == 0 || serviceCmd.NodeId == node.NodeId {
+										bootLock := services.GetBootLock(node.NodeId)
+										successful := bootLock.TryLock()
+										if successful {
+											go (func(node settings.ConnectionDetails, bootLock *sync.Mutex,
+												services *commons.Services,
+												serviceChannel chan commons.ServiceChannelMessage,
+												eventChannel chan interface{}) {
+												defer func() {
+													if commons.MutexLocked(bootLock) {
+														bootLock.Unlock()
+													}
+												}()
+
+												ctx := context.Background()
+												ctx, cancel := context.WithCancel(ctx)
+
+												services.AddSubscription(node.NodeId, cancel, eventChannel)
+												services.Booted(node.NodeId, bootLock, eventChannel)
+												log.Info().Msgf("Automation Service booted")
+												err = automation.Start(ctx, db, node.NodeId, broadcaster, eventChannel)
+												if err != nil {
+													log.Error().Err(err).Msgf("Automation ended")
+												}
+												log.Info().Msgf("Automation Service stopped")
+												services.RemoveSubscription(node.NodeId, eventChannel)
+												if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
+													log.Info().Msgf("Automation Service will be restarted")
+												} else {
+													log.Info().Msgf("Automation Service will be restarted in %v seconds", commons.SERVICES_ERROR_SLEEP_SECONDS)
+													time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
+												}
+												serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
+											})(node, bootLock, services, serviceChannel, eventChannel)
+										} else {
+											log.Error().Msgf("Requested Automation Service start failed. A start is already running.")
+										}
+									}
 								}
 							}
 							if serviceCmd.ServiceCommand == commons.Kill {

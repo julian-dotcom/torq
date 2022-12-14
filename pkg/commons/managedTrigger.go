@@ -3,6 +3,8 @@ package commons
 import (
 	"context"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 var ManagedTriggerChannel = make(chan ManagedTrigger) //nolint:gochecknoglobals
@@ -18,6 +20,7 @@ const (
 
 type ManagedTrigger struct {
 	Type                           ManagedTriggerCacheOperationType
+	NodeId                         int
 	WorkflowVersionId              int
 	TriggeredWorkflowVersionNodeId int
 	Reference                      string
@@ -32,6 +35,7 @@ type ManagedTrigger struct {
 
 type ManagedTriggerSettings struct {
 	WorkflowVersionId              int
+	NodeId                         int
 	TriggeredWorkflowVersionNodeId int
 	Reference                      string
 	CancelFunction                 context.CancelFunc
@@ -49,7 +53,7 @@ type ManagedTriggerChannelBalanceBounds struct {
 }
 
 func ManagedTriggerCache(ch chan ManagedTrigger, ctx context.Context) {
-	triggerCache := make(map[int]ManagedTriggerSettings, 0)
+	triggerCache := make(map[int]map[int]ManagedTriggerSettings, 0)
 	for {
 		select {
 		case <-ctx.Done():
@@ -60,12 +64,24 @@ func ManagedTriggerCache(ch chan ManagedTrigger, ctx context.Context) {
 	}
 }
 
-func processManagedTrigger(managedTrigger ManagedTrigger, triggerCache map[int]ManagedTriggerSettings) {
+func processManagedTrigger(managedTrigger ManagedTrigger, triggerCache map[int]map[int]ManagedTriggerSettings) {
 	switch managedTrigger.Type {
 	case READ_TRIGGER_SETTINGS:
-		SendToManagedTriggerSettingsChannel(managedTrigger.TriggerSettingsOut, triggerCache[managedTrigger.WorkflowVersionId])
+		if managedTrigger.NodeId == 0 {
+			log.Error().Msgf("No empty NodeId (%v) allowed", managedTrigger.NodeId)
+			SendToManagedTriggerSettingsChannel(managedTrigger.TriggerSettingsOut, ManagedTriggerSettings{})
+			return
+		}
+		initializeTriggerCache(triggerCache, managedTrigger.NodeId)
+		SendToManagedTriggerSettingsChannel(managedTrigger.TriggerSettingsOut, triggerCache[managedTrigger.NodeId][managedTrigger.WorkflowVersionId])
 	case WRITE_TRIGGER:
-		triggerCache[managedTrigger.WorkflowVersionId] = ManagedTriggerSettings{
+		if managedTrigger.NodeId == 0 {
+			log.Error().Msgf("No empty NodeId (%v) allowed", managedTrigger.NodeId)
+			SendToManagedTriggerSettingsChannel(managedTrigger.TriggerSettingsOut, ManagedTriggerSettings{})
+			return
+		}
+		initializeTriggerCache(triggerCache, managedTrigger.NodeId)
+		triggerCache[managedTrigger.NodeId][managedTrigger.WorkflowVersionId] = ManagedTriggerSettings{
 			WorkflowVersionId:              managedTrigger.WorkflowVersionId,
 			TriggeredWorkflowVersionNodeId: managedTrigger.TriggeredWorkflowVersionNodeId,
 			Reference:                      managedTrigger.Reference,
@@ -75,15 +91,28 @@ func processManagedTrigger(managedTrigger ManagedTrigger, triggerCache map[int]M
 			PreviousState:                  managedTrigger.PreviousState,
 		}
 	case WRITE_TRIGGER_VERIFICATIONTIME:
-		triggerSettings := triggerCache[managedTrigger.WorkflowVersionId]
+		if managedTrigger.NodeId == 0 {
+			log.Error().Msgf("No empty NodeId (%v) allowed", managedTrigger.NodeId)
+			SendToManagedTriggerSettingsChannel(managedTrigger.TriggerSettingsOut, ManagedTriggerSettings{})
+			return
+		}
+		initializeTriggerCache(triggerCache, managedTrigger.NodeId)
+		triggerSettings := triggerCache[managedTrigger.NodeId][managedTrigger.WorkflowVersionId]
 		triggerSettings.VerificationTime = managedTrigger.VerificationTime
-		triggerCache[managedTrigger.WorkflowVersionId] = triggerSettings
+		triggerCache[managedTrigger.NodeId][managedTrigger.WorkflowVersionId] = triggerSettings
 	}
 }
 
-func GetTriggerSettingsByWorkflowVersionId(workflowVersionId int) ManagedTriggerSettings {
+func initializeTriggerCache(triggerCache map[int]map[int]ManagedTriggerSettings, nodeId int) {
+	if triggerCache[nodeId] == nil {
+		triggerCache[nodeId] = make(map[int]ManagedTriggerSettings, 0)
+	}
+}
+
+func GetTriggerSettingsByWorkflowVersionId(nodeId int, workflowVersionId int) ManagedTriggerSettings {
 	triggerSettingsChannel := make(chan ManagedTriggerSettings)
 	managedTrigger := ManagedTrigger{
+		NodeId:             nodeId,
 		WorkflowVersionId:  workflowVersionId,
 		Type:               READ_TRIGGER_SETTINGS,
 		TriggerSettingsOut: triggerSettingsChannel,
@@ -92,21 +121,23 @@ func GetTriggerSettingsByWorkflowVersionId(workflowVersionId int) ManagedTrigger
 	return <-triggerSettingsChannel
 }
 
-func SetTriggerVerificationTime(workflowVersionId int, verificationTime time.Time) {
+func SetTriggerVerificationTime(nodeId int, workflowVersionId int, verificationTime time.Time) {
 	ManagedTriggerChannel <- ManagedTrigger{
+		NodeId:            nodeId,
 		WorkflowVersionId: workflowVersionId,
 		VerificationTime:  &verificationTime,
 		Type:              WRITE_TRIGGER_VERIFICATIONTIME,
 	}
 }
 
-func SetTrigger(reference string, workflowVersionId int, triggeredWorkflowVersionNodeId int, status Status, cancel context.CancelFunc) {
+func SetTrigger(nodeId int, reference string, workflowVersionId int, triggeredWorkflowVersionNodeId int, status Status, cancel context.CancelFunc) {
 	var bootTime *time.Time
 	if status == Active {
 		now := time.Now()
 		bootTime = &now
 	}
 	ManagedTriggerChannel <- ManagedTrigger{
+		NodeId:                         nodeId,
 		WorkflowVersionId:              workflowVersionId,
 		TriggeredWorkflowVersionNodeId: triggeredWorkflowVersionNodeId,
 		Status:                         status,

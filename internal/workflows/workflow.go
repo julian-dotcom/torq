@@ -61,6 +61,7 @@ type WorkflowVersionNodeLink struct {
 }
 
 type WorkflowVersionNodeLog struct {
+	NodeId                         int       `json:"nodeId" db:"node_id"`
 	TriggerReference               string    `json:"triggerReference" db:"trigger_reference"`
 	InputData                      string    `json:"input_data" db:"input_data"`
 	OutputData                     string    `json:"output_data" db:"output_data"`

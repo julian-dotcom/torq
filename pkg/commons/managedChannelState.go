@@ -350,10 +350,6 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			log.Error().Msgf("Received channel event for uncached node with nodeId: %v", managedChannelState.NodeId)
 		}
 	case WRITE_CHANNELSTATE_ROUTINGPOLICY:
-		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
-			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
-			break
-		}
 		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
 			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
 			return
