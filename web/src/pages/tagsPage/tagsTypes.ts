@@ -1,4 +1,4 @@
-export type tag = {
+export type Tag = {
   tagId: number;
   name: string;
   style: string;

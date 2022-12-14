@@ -29,6 +29,8 @@ import NewInvoiceModal from "features/transact/newInvoice/NewInvoiceModal";
 import * as routes from "constants/routes";
 import WorkflowPage from "./pages/WorkflowPage/WorkflowPage";
 import WorkflowsTablePage from "./pages/WorkflowPage/WorkflowsTablePage";
+import TagsPage from "./pages/tagsPage/TagsPage";
+import ModifyTagModal from "./pages/tagsPage/ModifyTagModal";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -62,6 +64,7 @@ const modalRoutes: RouteObject = {
     { path: routes.UPDATE_CHANNEL, element: <UpdateChannelModal /> },
     { path: routes.OPEN_CHANNEL, element: <OpenChannelModal /> },
     { path: routes.CLOSE_CHANNEL, element: <CloseChannelModal /> },
+    { path: routes.TAG, element: <ModifyTagModal /> },
   ],
 };
 
@@ -84,6 +87,7 @@ const authenticatedRoutes: RouteObject = {
               children: [
                 { path: routes.CHANNELS, element: <ChannelsPage /> },
                 { path: routes.WORKFLOWS, element: <WorkflowsTablePage /> },
+                { path: routes.TAGS, element: <TagsPage /> },
                 { path: routes.WORKFLOW, element: <WorkflowPage /> },
                 // { path: routes.TAGS, element: <TagsPage /> },
               ],

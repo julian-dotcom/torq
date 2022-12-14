@@ -1,9 +1,9 @@
 // import { uuid } from "uuidv4";
-import { tag } from "./tagsTypes";
+import { Tag } from "./tagsTypes";
 import { ViewResponse } from "features/viewManagement/types";
 import { ColumnMetaData } from "features/table/types";
 
-export const TagsColumns: Array<ColumnMetaData<tag>> = [
+export const TagsColumns: Array<ColumnMetaData<Tag>> = [
   {
     key: "name",
     heading: "Tag",
@@ -12,7 +12,7 @@ export const TagsColumns: Array<ColumnMetaData<tag>> = [
   },
 ];
 
-export const DefaultTagsView: ViewResponse<tag> = {
+export const DefaultTagsView: ViewResponse<Tag> = {
   page: "invoices",
   dirty: true,
   view: {
