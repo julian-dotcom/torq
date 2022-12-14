@@ -138,8 +138,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 				"triggered":         WorkflowParameterTriggered,
 			},
 		},
-		WorkflowNodeDeferredApply: {
-			WorkflowNodeType: WorkflowNodeDeferredApply,
+		WorkflowNodeDeferredLink: {
+			WorkflowNodeType: WorkflowNodeDeferredLink,
 			RequiredInputs:   map[string]WorkflowParameter{"deferredData": WorkflowParameterDeferredData},
 			OptionalInputs:   map[string]WorkflowParameter{},
 			RequiredOutputs:  map[string]WorkflowParameter{},

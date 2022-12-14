@@ -200,7 +200,7 @@ const (
 	WorkflowNodeChannelFilter
 	WorkflowNodeCostParameters
 	WorkflowNodeRebalanceParameters
-	WorkflowNodeDeferredApply
+	WorkflowNodeDeferredLink
 	WorkflowNodeRebalanceRun
 	WorkflowNodeRoutingPolicyRun
 	WorkflowNodeSetVariable

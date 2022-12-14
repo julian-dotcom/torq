@@ -26,6 +26,22 @@ func GetWorkflow(db *sqlx.DB, workflowId int) (Workflow, error) {
 	return wf, nil
 }
 
+func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflow, error) {
+	var wf Workflow
+	err := db.Get(&wf, `
+		SELECT wf.*
+		FROM workflow_version wfv
+		JOIN workflow wf ON wf.workflow_id=wfv.workflow_id
+		WHERE wfv.workflow_version_id=$1;`, workflowVersionId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Workflow{}, nil
+		}
+		return Workflow{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return wf, nil
+}
+
 func GetWorkflows(db *sqlx.DB) ([]Workflow, error) {
 	var wfs []Workflow
 	err := db.Select(&wfs, `SELECT * FROM workflow;`)
@@ -531,7 +547,7 @@ func removeWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLinkId int) (
 	return rowsAffected, nil
 }
 
-func AddWorkflowVersionNodeLog(db *sqlx.DB, workflowVersionNodeLog WorkflowVersionNodeLog) (WorkflowVersionNodeLog, error) {
+func addWorkflowVersionNodeLog(db *sqlx.DB, workflowVersionNodeLog WorkflowVersionNodeLog) (WorkflowVersionNodeLog, error) {
 	workflowVersionNodeLog.CreatedOn = time.Now().UTC()
 	_, err := db.Exec(`INSERT INTO workflow_version_node_log
     	(trigger_reference, input_data, output_data, debug_data, error_data, workflow_version_node_id, triggered_workflow_version_node_id, created_on)
