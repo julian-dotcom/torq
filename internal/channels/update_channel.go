@@ -58,13 +58,6 @@ func createPolicyRequest(req commons.UpdateChannelRequest) (r *lnrpc.PolicyUpdat
 		return r, errors.New("Node id is missing")
 	}
 
-	//Minimum supported value for TimeLockDelta is 18
-	if req.TimeLockDelta == nil || *req.TimeLockDelta < 18 {
-		updChanReq.TimeLockDelta = 18
-	} else {
-		updChanReq.TimeLockDelta = *req.TimeLockDelta
-	}
-
 	if req.ChannelId != nil && *req.ChannelId != 0 {
 		channelSettings := commons.GetChannelSettingByChannelId(*req.ChannelId)
 		updChanReq.Scope, err = processChannelPoint(channelSettings.FundingTransactionHash,
@@ -74,6 +67,15 @@ func createPolicyRequest(req commons.UpdateChannelRequest) (r *lnrpc.PolicyUpdat
 		}
 	} else {
 		updChanReq.Scope = &lnrpc.PolicyUpdateRequest_Global{Global: true}
+	}
+
+	//Minimum supported value for TimeLockDelta is 18
+	if req.TimeLockDelta != nil {
+		if *req.TimeLockDelta < 18 {
+			updChanReq.TimeLockDelta = 18
+		} else {
+			updChanReq.TimeLockDelta = *req.TimeLockDelta
+		}
 	}
 
 	if req.FeeRateMilliMsat != nil {
