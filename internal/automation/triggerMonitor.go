@@ -17,60 +17,91 @@ import (
 
 func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
 	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
+	bootstrapping := true
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker:
 			var bootedWorkflowVersionIds []int
-			workflowTriggerNodes, err := workflows.GetActiveTriggerNodes(db)
+			workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeTimeTrigger)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain root nodes (trigger nodes)")
+				log.Error().Err(err).Msg("Failed to obtain root nodes (time trigger nodes)")
 				continue
 			}
+			// When bootstrapping the automations run ALL workflows because we might have missed some events.
+			if bootstrapping {
+				workflowChannelBalanceTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeChannelBalanceEventTrigger)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to obtain root nodes (channel balance trigger nodes)")
+					continue
+				}
+				workflowTriggerNodes = append(workflowTriggerNodes, workflowChannelBalanceTriggerNodes...)
+			}
 			for _, workflowTriggerNode := range workflowTriggerNodes {
+				commons.SetTriggerVerificationTime(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId, time.Now())
 				if slices.Contains(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId) {
 					continue
 				}
-				shouldTrigger, err := workflows.ShouldTrigger(db, nodeSettings, workflowTriggerNode)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to verify trigger activation for workflowVersionId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+				triggerSettings := commons.GetTriggerSettingsByWorkflowVersionId(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId)
+				if triggerSettings.Status == commons.Active {
+					log.Error().Err(err).Msgf("Trigger is already active with reference: %v.", triggerSettings.Reference)
 					continue
 				}
-				if shouldTrigger {
-					workflow, err := workflows.GetWorkflowByWorkflowVersionId(db, workflowTriggerNode.WorkflowVersionId)
+				if workflowTriggerNode.Type == commons.WorkflowNodeTimeTrigger {
+					triggerParameters, err := workflows.GetWorkflowNodeParameters(workflowTriggerNode)
 					if err != nil {
-						log.Error().Err(err).Msgf("Failed to obtain workflow for workflowVersionId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+						log.Error().Err(err).Msgf("Obtaining trigger parameters for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 						continue
 					}
-					bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
-					triggerCtx, triggerCancel := context.WithCancel(context.Background())
-					reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-					commons.SetTrigger(nodeSettings.NodeId, reference,
-						workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
-						commons.Active, triggerCancel)
-					switch workflowTriggerNode.Type {
-					case commons.WorkflowNodeTimeTrigger:
+					foundIt := false
+					for _, triggerParameter := range triggerParameters.Parameters {
+						if triggerParameter.Type == commons.WorkflowParameterTimeInSeconds && triggerParameter.ValueNumber != 0 {
+							if triggerSettings.BootTime != nil && int(time.Since(*triggerSettings.BootTime).Seconds()) < triggerParameter.ValueNumber {
+								continue
+							}
+							foundIt = true
+						}
+					}
+					if !foundIt {
+						log.Error().Err(err).Msgf("Trigger parameter could not be found for WorkflowVersionNodeId: %v.", workflowTriggerNode.WorkflowVersionNodeId)
+						continue
+					}
+				}
+
+				workflow, err := workflows.GetWorkflowByWorkflowVersionId(db, workflowTriggerNode.WorkflowVersionId)
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to obtain workflow for workflowVersionId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+					continue
+				}
+				bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
+				triggerCtx, triggerCancel := context.WithCancel(context.Background())
+				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+				commons.SetTrigger(nodeSettings.NodeId, reference,
+					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
+					commons.Active, triggerCancel)
+				switch workflowTriggerNode.Type {
+				case commons.WorkflowNodeTimeTrigger:
+					if workflow.Type == commons.WorkFlowDeferredLink {
+						go processWorkflowNodeDeferredLinkRoutine(triggerCtx, db, nodeSettings,
+							workflowTriggerNode, workflowTriggerNodes, reference, 0, eventChannel)
+					} else {
+						go processWorkflowNodeRoutine(triggerCtx, db, nodeSettings,
+							workflowTriggerNode, reference, 0, eventChannel)
+					}
+				case commons.WorkflowNodeChannelBalanceEventTrigger:
+					for _, channelId := range commons.GetChannelIdsByNodeId(nodeSettings.NodeId) {
 						if workflow.Type == commons.WorkFlowDeferredLink {
 							go processWorkflowNodeDeferredLinkRoutine(triggerCtx, db, nodeSettings,
-								workflowTriggerNode, workflowTriggerNodes, reference, 0, eventChannel)
+								workflowTriggerNode, workflowTriggerNodes, reference, channelId, eventChannel)
 						} else {
 							go processWorkflowNodeRoutine(triggerCtx, db, nodeSettings,
-								workflowTriggerNode, reference, 0, eventChannel)
-						}
-					case commons.WorkflowNodeChannelBalanceEventTrigger:
-						for _, channelId := range commons.GetChannelIdsByNodeId(nodeSettings.NodeId) {
-							if workflow.Type == commons.WorkFlowDeferredLink {
-								go processWorkflowNodeDeferredLinkRoutine(triggerCtx, db, nodeSettings,
-									workflowTriggerNode, workflowTriggerNodes, reference, channelId, eventChannel)
-							} else {
-								go processWorkflowNodeRoutine(triggerCtx, db, nodeSettings,
-									workflowTriggerNode, reference, channelId, eventChannel)
-							}
+								workflowTriggerNode, reference, channelId, eventChannel)
 						}
 					}
 				}
 			}
+			bootstrapping = false
 		}
 	}
 }
@@ -85,34 +116,31 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 		default:
 		}
 
-		if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
-			// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
-		}
-
-		channelId := 0
 		if channelEvent, ok := event.(commons.ChannelBalanceEvent); ok {
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 				return
 			}
-			channelId = channelEvent.ChannelId
-		}
 
-		var bootedWorkflowVersionIds []int
-		workflowTriggerNodes, err := workflows.GetActiveTriggerNodes(db)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to obtain root nodes (trigger nodes)")
-			continue
-		}
-		for _, workflowTriggerNode := range workflowTriggerNodes {
-			if slices.Contains(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId) {
-				continue
-			}
-			shouldTrigger, err := workflows.ShouldTrigger(db, nodeSettings, workflowTriggerNode)
+			//if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
+			// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
+			//}
+
+			var bootedWorkflowVersionIds []int
+			workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeChannelBalanceEventTrigger)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed to verify trigger activation for workflowVersionId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+				log.Error().Err(err).Msg("Failed to obtain root nodes (trigger nodes)")
 				continue
 			}
-			if shouldTrigger {
+			for _, workflowTriggerNode := range workflowTriggerNodes {
+				if slices.Contains(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId) {
+					continue
+				}
+				triggerSettings := commons.GetTriggerSettingsByWorkflowVersionId(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId)
+				if triggerSettings.Status == commons.Active {
+					log.Info().Msgf("Trigger is already active with reference: %v.", triggerSettings.Reference)
+					continue
+				}
+				commons.SetTriggerVerificationTime(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId, time.Now())
 				workflow, err := workflows.GetWorkflowByWorkflowVersionId(db, workflowTriggerNode.WorkflowVersionId)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to obtain workflow for workflowVersionId: %v", workflowTriggerNode.WorkflowVersionNodeId)
@@ -124,10 +152,10 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 				commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
 				if workflow.Type == commons.WorkFlowDeferredLink {
 					go processWorkflowNodeDeferredLinkRoutine(triggerCtx, db, nodeSettings,
-						workflowTriggerNode, workflowTriggerNodes, reference, channelId, eventChannel)
+						workflowTriggerNode, workflowTriggerNodes, reference, channelEvent.ChannelId, eventChannel)
 				} else {
 					go processWorkflowNodeRoutine(triggerCtx, db, nodeSettings,
-						workflowTriggerNode, reference, channelId, eventChannel)
+						workflowTriggerNode, reference, channelEvent.ChannelId, eventChannel)
 				}
 			}
 		}

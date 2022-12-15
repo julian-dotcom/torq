@@ -6,8 +6,6 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
-
-	"github.com/lncapital/torq/pkg/broadcast"
 )
 
 var ManagedChannelStateChannel = make(chan ManagedChannelState) //nolint:gochecknoglobals
@@ -165,7 +163,7 @@ type ManagedChannelBalanceStateSettings struct {
 }
 
 // ManagedChannelStateCache parameter Context is for test cases...
-func ManagedChannelStateCache(ch chan ManagedChannelState, broadcaster broadcast.BroadcastServer, ctx context.Context) {
+func ManagedChannelStateCache(ch chan ManagedChannelState, ctx context.Context, channelEvent chan interface{}) {
 	channelStateSettingsByChannelIdCache := make(map[int]map[int]ManagedChannelStateSettings, 0)
 	channelStateSettingsStatusCache := make(map[int]Status, 0)
 	channelStateSettingsDeactivationTimeCache := make(map[int]time.Time, 0)
@@ -176,7 +174,7 @@ func ManagedChannelStateCache(ch chan ManagedChannelState, broadcaster broadcast
 		case managedChannelState := <-ch:
 			processManagedChannelStateSettings(managedChannelState,
 				channelStateSettingsStatusCache, channelStateSettingsByChannelIdCache,
-				channelStateSettingsDeactivationTimeCache)
+				channelStateSettingsDeactivationTimeCache, channelEvent)
 		}
 	}
 }
@@ -184,7 +182,8 @@ func ManagedChannelStateCache(ch chan ManagedChannelState, broadcaster broadcast
 func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 	channelStateSettingsStatusCache map[int]Status,
 	channelStateSettingsByChannelIdCache map[int]map[int]ManagedChannelStateSettings,
-	channelStateSettingsDeactivationTimeCache map[int]time.Time) {
+	channelStateSettingsDeactivationTimeCache map[int]time.Time,
+	channelEvent chan interface{}) {
 	switch managedChannelState.Type {
 	case READ_CHANNELSTATE:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {

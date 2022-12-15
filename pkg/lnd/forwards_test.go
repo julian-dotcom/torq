@@ -66,7 +66,7 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 		panic(err)
 	}
 
-	db, cancel, err := srv.NewTestDatabase(true)
+	db, cancel, _, _, err := srv.NewTestDatabase(true)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)

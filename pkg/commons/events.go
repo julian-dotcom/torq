@@ -141,6 +141,19 @@ type ForwardEvent struct {
 	IncomingChannelId *int      `json:"incomingChannelId"`
 }
 
+type ChannelBalanceEvent struct {
+	EventData
+	ChannelId                      int    `json:"channelId"`
+	Balance                        uint64 `json:"balance"`
+	BalanceRatio                   int    `json:"balanceRatio"`
+	AggregatedBalance              uint64 `json:"aggregatedBalance"`
+	AggregatedBalanceRatio         int    `json:"aggregatedBalanceRatio"`
+	PreviousBalance                uint64 `json:"previousBalance"`
+	PreviousBalanceRatio           int    `json:"previousBalanceRatio"`
+	PreviousAggregatedBalance      uint64 `json:"previousAggregatedBalance"`
+	PreviousAggregatedBalanceRatio int    `json:"previousAggregatedBalanceRatio"`
+}
+
 // GENERIC REQUEST/RESPONSE STRUCTS
 type FailedRequest struct {
 	Reason string `json:"reason"`

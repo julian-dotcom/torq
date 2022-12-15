@@ -18,11 +18,11 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 
 	iteration++
 	if iteration > 100 {
-		return nil, errors.Newf("Infinate loop for WorkflowVersionId: %v", workflowNode.WorkflowVersionId)
+		return nil, errors.New(fmt.Sprintf("Infinite loop for WorkflowVersionId: %v", workflowNode.WorkflowVersionId))
 	}
 	select {
 	case <-ctx.Done():
-		return nil, errors.Newf("Context terminated for WorkflowVersionId: %v", workflowNode.WorkflowVersionId)
+		return nil, errors.New(fmt.Sprintf("Context terminated for WorkflowVersionId: %v", workflowNode.WorkflowVersionId))
 	default:
 	}
 	outputs := copyInputs(inputs)
@@ -30,7 +30,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	var workflowNodeParameters WorkflowNodeParameters
 	activeOutputIndex := -1
 	if workflowNode.Status == commons.Active {
-		workflowNodeParameters, err = getWorkflowNodeParameters(workflowNode)
+		workflowNodeParameters, err = GetWorkflowNodeParameters(workflowNode)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Obtaining parameters for WorkflowVersionId: %v", workflowNode.WorkflowVersionId)
 		}
