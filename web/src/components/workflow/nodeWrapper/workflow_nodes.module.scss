@@ -1,0 +1,29 @@
+.workflowNodeCard {
+  display: grid;
+  align-items: center;
+  position: absolute;
+  border-radius: var(--radius-default);
+  cursor: initial;
+  will-change: transform;
+  .dragging {
+    // Add a box shadow to the element when dragging
+    box-shadow: 0px 1px 14px rgba(53, 78, 102, 0.12), 0px 3px 5px rgba(53, 78, 102, 0.2);
+    cursor: default;
+  }
+}
+.workflowNodeHeader {
+  background-color: var(--color-accent-1-faint);
+  color: var(--color-white);
+  padding: 6px 16px;
+
+  height: 32px;
+  border-top-left-radius: var(--radius-default);
+  border-top-right-radius: var(--radius-default);
+}
+.workflowNodeBodyWrapper {
+  background-color: var(--color-white);
+  padding: 16px;
+  min-width: 250px;
+  border-bottom-left-radius: var(--radius-default);
+  border-bottom-right-radius: var(--radius-default);
+}

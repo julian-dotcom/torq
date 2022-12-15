@@ -27,7 +27,7 @@ import CloseChannelModal from "features/channels/closeChannel/CloseChannelModal"
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
 import NewInvoiceModal from "features/transact/newInvoice/NewInvoiceModal";
 import * as routes from "constants/routes";
-import WorkflowPage from "./pages/automationCanvas/WorkflowPage";
+import WorkflowPage from "./pages/WorkflowPage/WorkflowPage";
 
 function Logout() {
   const [logout] = useLogoutMutation();

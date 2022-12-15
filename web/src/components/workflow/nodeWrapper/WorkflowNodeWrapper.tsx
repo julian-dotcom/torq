@@ -1,16 +1,16 @@
 import useTranslations from "services/i18n/useTranslations";
-import styles from "./workflow_page.module.scss";
+import styles from "./workflow_nodes.module.scss";
 import { MutableRefObject, useRef, useState } from "react";
 import classNames from "classnames";
 
 type WorkflowNodeProps = {
-  heading?: string;
+  heading: string;
   canvasRef: MutableRefObject<HTMLDivElement>;
   blankImageRef: MutableRefObject<HTMLCanvasElement>;
   children?: React.ReactNode;
 };
 
-function WorkflowNode<T>(props: WorkflowNodeProps) {
+function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const { t } = useTranslations();
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
@@ -68,4 +68,4 @@ function WorkflowNode<T>(props: WorkflowNodeProps) {
   );
 }
 
-export default WorkflowNode;
+export default WorkflowNodeWrapper;
