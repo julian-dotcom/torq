@@ -26,6 +26,7 @@ import { Forward } from "./forwardsTypes";
 import forwardsCellRenderer from "./forwardsCells";
 import Table from "features/table/Table";
 import { useFilterData, useSortData } from "features/viewManagement/hooks";
+import { selectActiveNetwork } from "features/network/networkSlice";
 
 function useForwardsTotals(data: Array<Forward>): Forward | undefined {
   if (!data.length) {
@@ -85,6 +86,7 @@ function ForwardsPage() {
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
 
+  const activeNetwork = useAppSelector(selectActiveNetwork);
   const { viewResponse, selectedViewIndex } = useAppSelector(selectForwardsView);
   const currentPeriod = useAppSelector(selectTimeInterval);
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
@@ -96,7 +98,7 @@ function ForwardsPage() {
     isFetching: boolean;
     isUninitialized: boolean;
     isSuccess: boolean;
-  }>({ from: from, to: to }, { skip: !isSuccess });
+  }>({ from: from, to: to, network: activeNetwork }, { skip: !isSuccess });
 
   const filteredData = useFilterData(forwardsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);

@@ -43,7 +43,6 @@
 .navCategory {
   margin-bottom: 24px;
 }
-.eventsButton,
 .collapseButton {
   padding: 8px;
   margin: -8px;
@@ -73,16 +72,34 @@
 .logoWrapper {
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: auto min-content;
+  grid-template-columns: auto min-content min-content;
   column-gap: 16px;
   justify-items: start;
-  //justify-content: space-between;
   align-items: center;
   padding: 32px 24px 0px;
   height: 52px;
 }
 .logo svg {
   height: 20px;
+}
+
+.quickToggles {
+  border-radius: 28px;
+  background-color: var(--color-primary-layer-1);
+  height: 32px;
+  display: flex;
+  align-items: center;
+  svg {
+    display: block;
+    color: var(--color-green-500);
+  }
+}
+
+.quickToggleContent {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
 }
 
 @media only screen and (min-width: 901px) {
@@ -106,6 +123,9 @@
       padding: 0;
       grid-template-columns: auto;
       justify-items: center;
+    }
+    .quickToggles {
+      display: none;
     }
   }
 }
@@ -225,12 +245,18 @@
     width: 100vw;
     position: fixed;
     display: grid;
-    grid-auto-flow: column;
-    justify-content: space-between;
+    grid-template-columns: auto min-content min-content;
+    align-items: center;
+    column-gap: 16px;
     top: 0;
     z-index: 10;
-    padding: 16px 24px 12px;
+    padding: 0 24px;
     background-color: var(--bg-default);
     border-bottom: 1px solid var(--primary-100);
+    .topCollapseButton {
+      svg {
+        display: block;
+      }
+    }
   }
 }

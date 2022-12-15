@@ -14,11 +14,11 @@ import {
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
-  // Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
 import * as routes from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
+import QuickToggles from "./QuickToggles";
 
 function Navigation() {
   const dispatch = useAppDispatch();
@@ -31,9 +31,7 @@ function Navigation() {
           <TorqLogo />
         </div>
 
-        {/*<div className={classNames(styles.eventsButton)}>*/}
-        {/*  <EventsIcon />*/}
-        {/*</div>*/}
+        <QuickToggles />
 
         <div className={styles.collapseButton} id={"collapse-navigation"} onClick={() => dispatch(toggleNav())}>
           <CollapseIcon />

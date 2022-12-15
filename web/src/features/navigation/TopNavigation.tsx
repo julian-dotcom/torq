@@ -1,5 +1,6 @@
 import { useAppDispatch } from "store/hooks";
 import { toggleNav } from "./navSlice";
+import QuickToggles from "./QuickToggles";
 import classNames from "classnames";
 import { ReactComponent as TorqLogo } from "icons/torq-logo.svg";
 import { Navigation20Regular as CollapseIcon } from "@fluentui/react-icons";
@@ -13,9 +14,7 @@ function TopNavigation() {
         <TorqLogo />
       </div>
 
-      {/*<div className={classNames(styles.eventsButton)}>*/}
-      {/*  <EventsIcon />*/}
-      {/*</div>*/}
+      <QuickToggles />
 
       <div className={styles.topCollapseButton} onClick={() => dispatch(toggleNav())}>
         <CollapseIcon />

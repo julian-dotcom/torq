@@ -1,0 +1,7 @@
+UPDATE node set network = CASE
+      WHEN network = 0  THEN 0
+      WHEN network = 1  THEN 3
+	  WHEN network = 2  THEN 4
+	  WHEN network = 3  THEN 2
+	  WHEN network = 4  THEN 1
+END;

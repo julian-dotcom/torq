@@ -89,10 +89,10 @@ type Network int
 
 const (
 	MainNet = Network(iota)
+	TestNet
+	RegTest
 	SigNet
 	SimNet
-	RegTest
-	TestNet
 )
 
 type ChannelStatus int
@@ -153,14 +153,13 @@ var SubscriptionStreams = []SubscriptionStream{ //nolint:gochecknoglobals
 }
 
 func (ss *SubscriptionStream) IsChannelBalanceCache() bool {
-	if ss != nil && (
-		*ss == ForwardStream ||
-			*ss == InvoiceStream ||
-			*ss == PaymentStream ||
-			*ss == PeerEventStream ||
-			*ss == ChannelEventStream ||
-			*ss == GraphEventStream ||
-			*ss == HtlcEventStream) {
+	if ss != nil && (*ss == ForwardStream ||
+		*ss == InvoiceStream ||
+		*ss == PaymentStream ||
+		*ss == PeerEventStream ||
+		*ss == ChannelEventStream ||
+		*ss == GraphEventStream ||
+		*ss == HtlcEventStream) {
 		return true
 	}
 	return false

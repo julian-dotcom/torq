@@ -1,3 +1,4 @@
+import { Network } from "features/network/networkSlice";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 type Paginable = {
@@ -8,6 +9,10 @@ type Paginable = {
 export type FromAndTo = {
   from: string;
   to: string;
+};
+
+export type ActiveNetwork = {
+  network: Network;
 };
 
 export type BaseQueryCollectionParams = Paginable & {
@@ -28,7 +33,7 @@ export type GetChannelHistoryData = {
   queryParams: GetChannelHistoryQueryParams;
 };
 
-export type GetForwardsQueryParams = FromAndTo;
+export type GetForwardsQueryParams = FromAndTo & ActiveNetwork;
 
 export type GetDecodedInvoiceQueryParams = {
   invoice: string;
