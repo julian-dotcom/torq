@@ -29,18 +29,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
 		serviceStatus, eventChannel, subscriptionStream, lndClient, db, mutex)
 
-	go func() {
-		listener := broadcaster.Subscribe()
-		for event := range listener {
-			select {
-			case <-ctx.Done():
-				broadcaster.CancelSubscription(listener)
-				return
-			default:
-			}
-			processBroadcastedEvent(event)
-		}
-	}()
+	go processBroadcastedEventRoutine(ctx, broadcaster)
 
 	for {
 		select {
@@ -50,6 +39,19 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
 				serviceStatus, eventChannel, subscriptionStream, lndClient, db, mutex)
 		}
+	}
+}
+
+func processBroadcastedEventRoutine(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.Subscribe()
+	for event := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscription(listener)
+			return
+		default:
+		}
+		processBroadcastedEvent(event)
 	}
 }
 

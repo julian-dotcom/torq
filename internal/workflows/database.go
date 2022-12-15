@@ -190,7 +190,7 @@ func GetActiveTriggerNodes(db *sqlx.DB) ([]WorkflowNode, error) {
 				WHERE v_wfv.status=$1
 			) ranked
 			WHERE ranked.version_rank = 1
-		);`, commons.Active, commons.WorkflowNodeTimeTrigger, commons.WorkflowNodeEventTrigger)
+		);`, commons.Active, commons.WorkflowNodeTimeTrigger, commons.WorkflowNodeChannelBalanceEventTrigger)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowNode{}, nil
@@ -208,13 +208,13 @@ func GetActiveTriggerNodes(db *sqlx.DB) ([]WorkflowNode, error) {
 	return response, nil
 }
 
-func ShouldTrigger(db *sqlx.DB, triggerNode WorkflowNode) (bool, error) {
-	triggerSettings := commons.GetTriggerSettingsByWorkflowVersionId(triggerNode.WorkflowVersionId)
+func ShouldTrigger(db *sqlx.DB, nodeSettings commons.ManagedNodeSettings, triggerNode WorkflowNode) (bool, error) {
+	triggerSettings := commons.GetTriggerSettingsByWorkflowVersionId(nodeSettings.NodeId, triggerNode.WorkflowVersionId)
 	if triggerSettings.Status == commons.Active {
 		return false, errors.New(fmt.Sprintf("Trigger is already active with reference: %v.", triggerSettings.Reference))
 	}
 
-	defer commons.SetTriggerVerificationTime(triggerNode.WorkflowVersionId, time.Now())
+	defer commons.SetTriggerVerificationTime(nodeSettings.NodeId, triggerNode.WorkflowVersionId, time.Now())
 
 	switch triggerNode.Type {
 	case commons.WorkflowNodeTimeTrigger:
@@ -232,7 +232,7 @@ func ShouldTrigger(db *sqlx.DB, triggerNode WorkflowNode) (bool, error) {
 				}
 			}
 		}
-	case commons.WorkflowNodeEventTrigger:
+	case commons.WorkflowNodeChannelBalanceEventTrigger:
 		if triggerSettings.WorkflowVersionId != 0 {
 			// Trigger is event based and was already initially verified since Torq booted
 			return false, nil

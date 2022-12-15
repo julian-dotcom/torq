@@ -70,13 +70,13 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				continue
 			}
 			for _, childNode := range childNodeOutputArray {
-				childOutputs, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId, reference, outputs, eventChannel, iteration)
-				AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, inputs, childOutputs, err)
+				childOutputs, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId,
+					reference, outputs, eventChannel, iteration)
+				AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference,
+					workflowNode.WorkflowVersionNodeId, triggeredWorkflowVersionNodeId, inputs, childOutputs, err)
 				if err != nil {
+					// Probably doesn't make sense to wrap in recursive loop
 					return nil, err
-				}
-				for k, v := range childOutputs {
-					outputs[k] = v
 				}
 			}
 		}
@@ -85,12 +85,13 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 }
 
 func AddWorkflowVersionNodeLog(db *sqlx.DB, nodeId int, reference string, workflowVersionNodeId int,
-	inputs map[string]string, outputs map[string]string, workflowError error) {
+	triggeredWorkflowVersionNodeId int, inputs map[string]string, outputs map[string]string, workflowError error) {
 
 	workflowVersionNodeLog := WorkflowVersionNodeLog{
-		NodeId:                nodeId,
-		WorkflowVersionNodeId: workflowVersionNodeId,
-		TriggerReference:      reference,
+		NodeId:                         nodeId,
+		WorkflowVersionNodeId:          workflowVersionNodeId,
+		TriggeredWorkflowVersionNodeId: triggeredWorkflowVersionNodeId,
+		TriggerReference:               reference,
 	}
 	if len(inputs) > 0 {
 		marshalledInputs, err := json.Marshal(inputs)

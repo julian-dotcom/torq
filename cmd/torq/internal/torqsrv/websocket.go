@@ -113,54 +113,9 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 	defer conn.Close()
 
 	webSocketChannel := make(chan interface{})
-
 	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		for {
-			req := wsRequest{}
-			err := conn.ReadJSON(&req)
-			switch err.(type) {
-			case *websocket.CloseError:
-				log.Debug().Err(err).Msg("WebSocket Close Error.")
-				return
-			case *websocket.HandshakeError:
-				log.Debug().Err(err).Msg("WebSocket Handshake Error.")
-				return
-			case nil:
-				go processWsReq(db, c, eventChannel, webSocketChannel, req)
-			default:
-				wsr := wsError{
-					ReqId: req.ReqId,
-					Type:  "Error",
-					Error: "Could not parse request, please check that your JSON is correctly formated.",
-				}
-				webSocketChannel <- wsr
-			}
-		}
-	}()
-
-	go func() {
-		listener := broadcaster.Subscribe()
-		for event := range listener {
-			select {
-			case <-done:
-				broadcaster.CancelSubscription(listener)
-				return
-			default:
-			}
-			// TODO FIXME FILTER OUT ONLY THE EVENTS THE USER ACTUALLY WANTS!!!
-			if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
-				webSocketChannel <- openChannelEvent
-			} else if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
-				webSocketChannel <- closeChannelEvent
-			} else if newAddressEvent, ok := event.(commons.NewAddressResponse); ok {
-				webSocketChannel <- newAddressEvent
-			} else if newPaymentEvent, ok := event.(commons.NewPaymentResponse); ok {
-				webSocketChannel <- newPaymentEvent
-			}
-		}
-	}()
+	go processWebsocketRequests(c, conn, done, db, eventChannel, webSocketChannel)
+	go processBroadcasterEvents(done, broadcaster, webSocketChannel)
 
 	for {
 		select {
@@ -172,6 +127,55 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 				log.Error().Err(err).Msg("Writing JSON to WebSocket failure.")
 				return errors.New("Writing JSON to WebSocket failure.")
 			}
+		}
+	}
+}
+func processWebsocketRequests(c *gin.Context, conn *websocket.Conn, done chan struct{}, db *sqlx.DB, eventChannel chan interface{},
+	webSocketChannel chan interface{}) {
+	defer close(done)
+	for {
+		req := wsRequest{}
+		err := conn.ReadJSON(&req)
+		switch err.(type) {
+		case *websocket.CloseError:
+			log.Debug().Err(err).Msg("WebSocket Close Error.")
+			return
+		case *websocket.HandshakeError:
+			log.Debug().Err(err).Msg("WebSocket Handshake Error.")
+			return
+		case nil:
+			go processWsReq(db, c, eventChannel, webSocketChannel, req)
+		default:
+			wsr := wsError{
+				ReqId: req.ReqId,
+				Type:  "Error",
+				Error: "Could not parse request, please check that your JSON is correctly formated.",
+			}
+			webSocketChannel <- wsr
+		}
+	}
+}
+
+func processBroadcasterEvents(done chan struct{}, broadcaster broadcast.BroadcastServer,
+	webSocketChannel chan interface{}) {
+
+	listener := broadcaster.Subscribe()
+	for event := range listener {
+		select {
+		case <-done:
+			broadcaster.CancelSubscription(listener)
+			return
+		default:
+		}
+		// TODO FIXME FILTER OUT ONLY THE EVENTS THE USER ACTUALLY WANTS!!!
+		if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
+			webSocketChannel <- openChannelEvent
+		} else if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
+			webSocketChannel <- closeChannelEvent
+		} else if newAddressEvent, ok := event.(commons.NewAddressResponse); ok {
+			webSocketChannel <- newAddressEvent
+		} else if newPaymentEvent, ok := event.(commons.NewPaymentResponse); ok {
+			webSocketChannel <- newPaymentEvent
 		}
 	}
 }

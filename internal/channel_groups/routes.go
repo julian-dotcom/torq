@@ -103,13 +103,15 @@ func addChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Refresh Corridor Cache By Type.")
 		return
 	}
-	go func() {
-		err := GenerateChannelGroupsByOrigin(db, origin)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to generate channel groups.")
-		}
-	}()
+	go generateChannelGroupsByOriginRoutine(db, origin)
 	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully added channel group configuration."})
+}
+
+func generateChannelGroupsByOriginRoutine(db *sqlx.DB, origin groupOrigin) {
+	err := GenerateChannelGroupsByOrigin(db, origin)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate channel groups.")
+	}
 }
 
 func removeChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
@@ -155,12 +157,7 @@ func removeChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Refresh Corridor Cache By Type.")
 		return
 	}
-	go func() {
-		err := GenerateChannelGroupsByOrigin(db, origin)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to generate channel groups.")
-		}
-	}()
+	go generateChannelGroupsByOriginRoutine(db, origin)
 	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully deleted channel group(s)."})
 }
 
