@@ -15,36 +15,59 @@
   }
 }
 .workspaceWrapper {
+  position: relative;
   padding-bottom: 24px;
   margin-right: 32px;
-  //margin-bottom: -15px;
+
   @media only screen and (max-width: 900px) {
     padding-bottom: 12px;
     padding-right: 12px;
   }
   border-radius: var(--radius-default);
   overflow: hidden;
+  max-height: calc(100% - 24px);
 }
-.workspaceContainer {
-  height: 100%;
-  position: relative;
+.workspaceCanvas {
+  height: 4000px;
+  width: 4000px;
   background-color: var(--color-primary-layer-2);
   background-image: url("./workflow_canvas_pattern.svg");
   background-repeat: repeat;
+  overflow: hidden;
+  cursor: grab;
+  will-change: transform;
+  &.dragging {
+    cursor: grabbing;
+  }
 }
 
 .workflowNodeCard {
-  background-color: red;
-  width: 200px;
-  height: 200px;
+  display: grid;
+  align-items: center;
   position: absolute;
-  //top: 100px;
-  //left: 100px;
   border-radius: var(--radius-default);
-  //will-change: transform;
+  cursor: initial;
+  will-change: transform;
+  .dragging {
+    // Add a box shadow to the element when dragging
+    box-shadow: 0px 1px 14px rgba(53, 78, 102, 0.12), 0px 3px 5px rgba(53, 78, 102, 0.2);
+    cursor: default;
+  }
 }
-.dragging {
-  background-color: white;
-  box-shadow: none !important;
-  //cursor: move;
+.workflowNodeHeader {
+  background-color: var(--color-accent-1-faint);
+  color: var(--color-white);
+  padding: 6px 16px;
+
+  height: 32px;
+  border-top-left-radius: var(--radius-default);
+  border-top-right-radius: var(--radius-default);
+}
+.workflowNodeBodyWrapper {
+  background-color: var(--color-white);
+  padding: 16px;
+  min-width: 250px;
+  height: 100px;
+  border-bottom-left-radius: var(--radius-default);
+  border-bottom-right-radius: var(--radius-default);
 }
