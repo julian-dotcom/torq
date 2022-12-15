@@ -50,14 +50,14 @@ func updateChannels(db *sqlx.DB, req commons.UpdateChannelRequest, eventChannel 
 	return r, nil
 }
 
-func createPolicyRequest(req commons.UpdateChannelRequest) (r *lnrpc.PolicyUpdateRequest, err error) {
-
-	updChanReq := &lnrpc.PolicyUpdateRequest{}
+func createPolicyRequest(req commons.UpdateChannelRequest) (*lnrpc.PolicyUpdateRequest, error) {
+	var err error
 
 	if req.NodeId == 0 {
-		return r, errors.New("Node id is missing")
+		return nil, errors.New("Node id is missing")
 	}
 
+	updChanReq := &lnrpc.PolicyUpdateRequest{}
 	if req.ChannelId != nil && *req.ChannelId != 0 {
 		channelSettings := commons.GetChannelSettingByChannelId(*req.ChannelId)
 		updChanReq.Scope, err = processChannelPoint(channelSettings.FundingTransactionHash,
@@ -65,12 +65,23 @@ func createPolicyRequest(req commons.UpdateChannelRequest) (r *lnrpc.PolicyUpdat
 		if err != nil {
 			return nil, err
 		}
+		if req.TimeLockDelta == nil {
+			cachedState := commons.GetChannelState(req.NodeId, *req.ChannelId, true)
+			if cachedState != nil {
+				existingLocalTimeLockDelta := cachedState.LocalTimeLockDelta
+				if existingLocalTimeLockDelta >= 18 {
+					req.TimeLockDelta = &existingLocalTimeLockDelta
+				}
+			}
+		}
 	} else {
 		updChanReq.Scope = &lnrpc.PolicyUpdateRequest_Global{Global: true}
 	}
 
 	//Minimum supported value for TimeLockDelta is 18
-	if req.TimeLockDelta != nil {
+	if req.TimeLockDelta == nil {
+		return nil, errors.New("TimeLockDelta is missing")
+	} else {
 		if *req.TimeLockDelta < 18 {
 			updChanReq.TimeLockDelta = 18
 		} else {
