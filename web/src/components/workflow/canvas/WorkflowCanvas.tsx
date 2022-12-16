@@ -78,13 +78,17 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
       <div className={styles.workspaceWrapper} ref={wrapperRef}>
         <div
           className={classNames(styles.workspaceCanvas, { [styles.dragging]: isDragging })}
-          draggable="true"
-          onDrag={handleDrag}
-          onDragEnd={handleDragEnd}
-          onDragStart={handleDragStart}
           onDragOver={(e) => e.preventDefault()}
           style={{ backgroundPosition: `${p.x}px ${p.y}px` }}
         >
+          <div
+            className={styles.canvasDragSurface}
+            draggable="true"
+            onDrag={handleDrag}
+            onDragEnd={handleDragEnd}
+            onDragStart={handleDragStart}
+            onDragOver={(e) => e.preventDefault()}
+          />
           <div style={{ transform: "translate(" + p.x + "px, " + p.y + "px)" }} ref={canvasRef}>
             {props.children}
             {/*<svg ref={svgRef} className={styles.connectorLinesCanvas}>*/}
