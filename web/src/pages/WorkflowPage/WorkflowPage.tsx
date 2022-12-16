@@ -15,10 +15,12 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
   const bradcrumbs = props.breadcrumbs || ["Workflow", "1"];
   const id1 = useId();
   const id2 = useId();
+  const id3 = useId();
 
   const nodes = new Map([
-    ["node2", <ChannelPolicyNode id={id1} key={"node2"} />],
-    ["node1", <ChannelPolicyNode id={id2} key={"node1"} />],
+    ["node1", <ChannelPolicyNode id={id1} key={"node1"} nodeName={"firstNode"} />],
+    ["node2", <ChannelPolicyNode id={id2} key={"node2"} nodeName={"secondNode"} />],
+    ["node3", <ChannelPolicyNode id={id3} key={"node3"} nodeName={"thirdNode"} />],
   ]);
 
   return (

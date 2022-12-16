@@ -1,19 +1,20 @@
 import useTranslations from "services/i18n/useTranslations";
 import styles from "./workflow_nodes.module.scss";
-import React, { createRef, MutableRefObject, useContext, useRef, useState } from "react";
+import React, { createRef, MutableRefObject, useContext, useId, useRef, useState } from "react";
 import classNames from "classnames";
-// import * as d3 from "d3";
-import NodeConnector, { connectorVariant } from "./NodeConnector";
+import NodeConnector from "./NodeConnector";
 import { CanvasContext } from "../canvas/WorkflowCanvas";
 
-type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null };
+type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
   nodeRef: null,
+  nodeName: "",
 });
 
 export type WorkflowNodeProps = {
   id: string;
   heading?: string;
+  nodeName: string;
   children?: React.ReactNode;
   nextNodeRef?: MutableRefObject<HTMLCanvasElement>;
 };
@@ -51,15 +52,23 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   }
 
   function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
+    // e.preventDefault();
+    // e.stopPropagation();
     setIsDragging(false);
   }
+
+  function stopAllEvents(e: React.MouseEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  const connectorId = useId();
 
   return (
     <NodeContext.Provider
       value={{
         nodeRef: nodeRef,
+        nodeName: props.nodeName,
       }}
     >
       <div
@@ -77,9 +86,8 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
           onDragStart={handleDragStart}
           onDragOver={(e) => e.preventDefault()}
         >
-          <NodeConnector connectorVariant={connectorVariant.nodeInput} />
-          <div>{props.heading}</div>
-          <NodeConnector connectorVariant={connectorVariant.nodeOutput} />
+          <div>{props.heading + ": " + props.nodeName}</div>
+          <NodeConnector id={connectorId} name={props.nodeName} />
         </div>
         <div className={styles.workflowNodeBodyWrapper}>{props.children}</div>
       </div>

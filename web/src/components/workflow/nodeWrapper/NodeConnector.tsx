@@ -5,18 +5,9 @@ import classNames from "classnames";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
 import { NodeContext } from "./WorkflowNodeWrapper";
 
-export enum connectorVariant {
-  nodeInput = "nodeInput",
-  nodeOutput = "nodeOutput",
-}
-
-const nodeConnectorVariantClass = new Map([
-  [connectorVariant.nodeInput, styles.nodeInput],
-  [connectorVariant.nodeOutput, styles.nodeOutput],
-]);
-
 export type NodeConnectorProps = {
-  connectorVariant: connectorVariant;
+  id: string;
+  name: string;
 };
 
 function NodeConnector<T>(props: NodeConnectorProps) {
@@ -30,22 +21,35 @@ function NodeConnector<T>(props: NodeConnectorProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    // Hide the drag image (silly HTML5 default)
+    e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+
+    // Set the drag effect to link
+    e.dataTransfer.effectAllowed = "link";
+
+    // Set the information about which node and connector is being dragged.
     const nodeId = nodeRef?.current?.id ? nodeRef?.current?.id : "unknown";
     e.dataTransfer.setData("node/id", nodeId);
-    e.dataTransfer.setData("node/connectorId", props.connectorVariant);
+    e.dataTransfer.setData("node/connectorId", props.id);
+    nodeRef?.current?.classList.add(styles.connecting);
+    e.dataTransfer.setData("node/name", props.name);
+
+    // Get the current position of the dragged connector.
     const nodeBB = connectorRef.current.getBoundingClientRect();
-    e.dataTransfer.effectAllowed = "move";
+
     const x = e.clientX - nodeBB.left;
     const y = e.clientY - nodeBB.top;
-    e.dataTransfer.setDragImage(blankImgRef.current, x, y);
+
     setIsDragging(true);
     setNodeBB({ left: x, top: y });
+    e.stopPropagation();
   }
 
   function handleDrag(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
-    const bb = canvasRef?.current !== undefined || null ? canvasRef.current.getBoundingClientRect() : { x: 0, y: 0 };
+
+    const bb = connectorRef?.current?.getBoundingClientRect() || { x: 0, y: 0 };
     if (e.clientX !== 0 && e.clientY !== 0) {
       const newX = e.clientX - bb.x - nodeBB.left;
       const newY = e.clientY - bb.y - nodeBB.top;
@@ -54,43 +58,25 @@ function NodeConnector<T>(props: NodeConnectorProps) {
   }
 
   function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
-    // e.preventDefault();
-    // e.stopPropagation();
+    nodeRef?.current?.classList.remove(styles.connecting);
+    setPosition({ x: 0, y: 0 });
     setIsDragging(false);
-  }
-
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    // Get the id of the nodes connector that was dropped
-    const nodeid = e.dataTransfer.getData("node/id");
-    const connectorId = e.dataTransfer.getData("node/connectorId");
-    // e.dataTransfer.clearData("node/id");
-    console.log(
-      "Dropped from node: " +
-        nodeid +
-        " with connector: " +
-        connectorId +
-        " on node: " +
-        nodeRef?.current?.id +
-        " with connector: " +
-        props.connectorVariant
-    );
   }
 
   return (
     <div
-      className={classNames(styles.nodeConnector, nodeConnectorVariantClass.get(props.connectorVariant))}
+      className={classNames(styles.nodeConnector)}
       draggable="true"
       onDrag={handleDrag}
       ref={connectorRef}
       onDragEnd={handleDragEnd}
       onDragStart={handleDragStart}
-      onDrop={handleDrop}
     >
+      <div
+        className={classNames(styles.nodeConnectorDragDot, { [styles.dragging]: isDragging })}
+        style={{ transform: "translate(" + position.x + "px, " + position.y + "px)" }}
+      />
       <div className={styles.nodeConnectorDot} />
-      {/*<div*/}
-      {/*  className={classNames(styles.nodeConnectorDragDot, { [styles.dragging]: isDragging })}*/}
-      {/*  // style={{ left: position.x, top: position.y }}*/}
-      {/*/>*/}
     </div>
   );
 }

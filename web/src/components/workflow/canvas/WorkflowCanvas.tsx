@@ -8,12 +8,17 @@ type WorkflowCanvasProps = {
 
 // canvasRef is used to allow workflow nodes to use the canvas position as reference
 const canvasRef = createRef() as MutableRefObject<HTMLDivElement>;
+
+// svgRef is used to place connecting lines between workflow nodes
+const svgRef = createRef() as MutableRefObject<SVGSVGElement>;
+
 // blankImgRef is only used to have a blank image as drag image when dragging nodes, hiding the default ugly image.
 const blankImgRef = createRef() as MutableRefObject<HTMLCanvasElement>;
 
 // Context provider is used to pass these references to the workflow nodes without having to pass them as props
 export const CanvasContext = React.createContext({
   canvasRef: canvasRef,
+  svgRef: svgRef,
   blankImgRef: blankImgRef,
 });
 
@@ -59,8 +64,6 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
   }
 
   function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
     setIsDragging(false);
   }
 
@@ -68,6 +71,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
     <CanvasContext.Provider
       value={{
         canvasRef: canvasRef,
+        svgRef: svgRef,
         blankImgRef: blankImgRef,
       }}
     >
@@ -83,6 +87,9 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
         >
           <div style={{ transform: "translate(" + p.x + "px, " + p.y + "px)" }} ref={canvasRef}>
             {props.children}
+            {/*<svg ref={svgRef} className={styles.connectorLinesCanvas}>*/}
+            {/*  <line x1="10" y1="10" x2="90" y2="90" stroke="black" strokeWidth="2" />*/}
+            {/*</svg>*/}
           </div>
           <canvas ref={blankImgRef} style={{ width: "1px", height: "1px" }} />
         </div>
