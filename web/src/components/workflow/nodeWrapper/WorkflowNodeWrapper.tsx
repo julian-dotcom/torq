@@ -13,10 +13,9 @@ export const NodeContext = React.createContext<nodeRefType>({
 
 export type WorkflowNodeProps = {
   id: string;
-  heading?: string;
   nodeName: string;
+  heading?: string;
   children?: React.ReactNode;
-  nextNodeRef?: MutableRefObject<HTMLCanvasElement>;
 };
 
 function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {

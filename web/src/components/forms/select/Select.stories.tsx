@@ -1,7 +1,7 @@
 import { Meta, Story } from "@storybook/react";
 import Select, { SelectProps } from "./Select";
-import { InputColorVaraint } from "components/forms/select/variants";
-import { InputSizeVariant } from "./variants";
+import { InputColorVaraint } from "components/forms/variants";
+import { InputSizeVariant } from "../variants";
 // import { useArgs } from "@storybook/client-api";
 
 export default {

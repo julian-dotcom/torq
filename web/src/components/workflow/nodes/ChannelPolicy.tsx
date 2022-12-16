@@ -4,7 +4,7 @@ import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/node
 import Input from "components/forms/input/Input";
 import { InputSizeVariant } from "components/forms/input/variants";
 import Form from "components/forms/form/Form";
-import SocketInput from "../socketInput/SocketInput";
+import Socket from "components/forms/socket/Socket";
 
 type ChannelPolicyNodeProps = WorkflowNodeProps;
 
@@ -37,8 +37,7 @@ function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
   return (
     <WorkflowNodeWrapper {...wrapperProps} heading={t.channelPolicy}>
       <Form>
-        <SocketInput id={"sss"} connectedNodeName={"something"} />
-        <SocketInput id={"aaa"} connectedNodeName={"else"} />
+        <Socket label={"Channels"} id={"sss"} connectedNodeName={"something"} />
         <Input
           formatted={true}
           value={channelPolicy.feeRate}

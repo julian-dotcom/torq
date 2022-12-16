@@ -1,4 +1,4 @@
-import styles from "../input-colors.module.scss";
+import styles from "./input-colors.module.scss";
 
 export enum InputSizeVariant {
   normal = "normal",

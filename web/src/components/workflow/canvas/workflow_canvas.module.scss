@@ -8,6 +8,7 @@
   grid-template-rows: min-content;
   grid-column-gap: 32px;
   grid-row-gap: 0;
+  min-height: 300px;
 }
 @media only screen and (max-width: 900px) {
   .contentWrapper {
@@ -15,6 +16,7 @@
   }
 }
 .workspaceWrapper {
+  min-height: 300px;
   position: relative;
   padding-bottom: 24px;
   margin-right: 32px;
@@ -27,6 +29,7 @@
   overflow: hidden;
 }
 .workspaceCanvas {
+  min-height: 300px;
   height: 100%;
   background-color: var(--color-primary-layer-2);
   background-image: url("workflow_canvas_pattern.svg");
