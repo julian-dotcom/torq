@@ -1,26 +1,48 @@
 import styles from "./workflow_canvas.module.scss";
-import { MutableRefObject, ReactNode, useRef, useState } from "react";
+import React, { createRef, MutableRefObject, ReactNode, useContext, useRef, useState } from "react";
 import classNames from "classnames";
 
 type WorkflowCanvasProps = {
-  canvasRef: MutableRefObject<HTMLDivElement>;
-  blankImgRef: MutableRefObject<HTMLCanvasElement>;
   children: ReactNode;
 };
 
+// canvasRef is used to allow workflow nodes to use the canvas position as reference
+const canvasRef = createRef() as MutableRefObject<HTMLDivElement>;
+// blankImgRef is only used to have a blank image as drag image when dragging nodes, hiding the default ugly image.
+const blankImgRef = createRef() as MutableRefObject<HTMLCanvasElement>;
+
+// Context provider is used to pass these references to the workflow nodes without having to pass them as props
+export const CanvasContext = React.createContext({
+  canvasRef: canvasRef,
+  blankImgRef: blankImgRef,
+});
+
 function WorkflowCanvas(props: WorkflowCanvasProps) {
+  // p is used to store the current position of the canvas
   const [p, setPosition] = useState({ x: 0, y: 0 });
+
+  const { canvasRef, blankImgRef } = useContext(CanvasContext);
+
+  // wrapperRef is used to refer to the wrapper element that surrounds the canvas
   const wrapperRef = useRef() as MutableRefObject<HTMLDivElement>;
 
+  // canvasPosition is used to store the initial position of the canvas when a drag starts
   const [canvasPosition, setCanvasPositionBB] = useState({ left: 0, top: 0 });
   const [isDragging, setIsDragging] = useState(false);
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
-    const canvasPosition = props.canvasRef.current.getBoundingClientRect();
+    // Set the type of drag-and-drop operation that is allowed for the element being dragged
     e.dataTransfer.effectAllowed = "move";
+
+    // Calculate the x and y coordinates of the mouse cursor relative to the top-left corner of the canvas
+    const canvasPosition = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - canvasPosition.left;
     const y = e.clientY - canvasPosition.top;
-    e.dataTransfer.setDragImage(props.blankImgRef.current, x, y);
+
+    // Set the image that is shown as the element is being dragged
+    e.dataTransfer.setDragImage(blankImgRef.current, x, y);
+
+    // Set the isDragging and canvasPositionBB state variables
     setIsDragging(true);
     setCanvasPositionBB({ left: x, top: y });
   }
@@ -43,22 +65,29 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
   }
 
   return (
-    <div className={styles.workspaceWrapper} ref={wrapperRef}>
-      <div
-        className={classNames(styles.workspaceCanvas, { [styles.dragging]: isDragging })}
-        draggable="true"
-        onDrag={handleDrag}
-        onDragEnd={handleDragEnd}
-        onDragStart={handleDragStart}
-        onDragOver={(e) => e.preventDefault()}
-        style={{ backgroundPosition: `${p.x}px ${p.y}px` }}
-      >
-        <div style={{ transform: "translate(" + p.x + "px, " + p.y + "px)" }} ref={props.canvasRef}>
-          {props.children}
+    <CanvasContext.Provider
+      value={{
+        canvasRef: canvasRef,
+        blankImgRef: blankImgRef,
+      }}
+    >
+      <div className={styles.workspaceWrapper} ref={wrapperRef}>
+        <div
+          className={classNames(styles.workspaceCanvas, { [styles.dragging]: isDragging })}
+          draggable="true"
+          onDrag={handleDrag}
+          onDragEnd={handleDragEnd}
+          onDragStart={handleDragStart}
+          onDragOver={(e) => e.preventDefault()}
+          style={{ backgroundPosition: `${p.x}px ${p.y}px` }}
+        >
+          <div style={{ transform: "translate(" + p.x + "px, " + p.y + "px)" }} ref={canvasRef}>
+            {props.children}
+          </div>
+          <canvas ref={blankImgRef} style={{ width: "1px", height: "1px" }} />
         </div>
-        <canvas ref={props.blankImgRef} style={{ width: "1px", height: "1px" }} />
       </div>
-    </div>
+    </CanvasContext.Provider>
   );
 }
 

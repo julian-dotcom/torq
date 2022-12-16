@@ -1,14 +1,11 @@
 import useTranslations from "services/i18n/useTranslations";
-import { MutableRefObject, useState } from "react";
-import WorkflowNodeWrapper from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
+import { useState } from "react";
+import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Input from "components/forms/input/Input";
 import { InputSizeVariant } from "components/forms/input/variants";
 import Form from "components/forms/form/Form";
 
-type ChannelPolicyNodeProps = {
-  canvasRef: MutableRefObject<HTMLDivElement>;
-  blankImgRef: MutableRefObject<HTMLCanvasElement>;
-};
+type ChannelPolicyNodeProps = WorkflowNodeProps;
 
 type channelPolicy = {
   feeRate: number | undefined;
@@ -17,7 +14,7 @@ type channelPolicy = {
   maxHTLCAmount: number | undefined;
 };
 
-function ChannelPolicyNode<T>(props: ChannelPolicyNodeProps) {
+function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
   const { t } = useTranslations();
 
   const [channelPolicy, setChannelPolicy] = useState<channelPolicy>({
@@ -37,7 +34,7 @@ function ChannelPolicyNode<T>(props: ChannelPolicyNodeProps) {
   }
 
   return (
-    <WorkflowNodeWrapper canvasRef={props.canvasRef} heading={t.channelPolicy} blankImageRef={props.blankImgRef}>
+    <WorkflowNodeWrapper {...wrapperProps} heading={t.channelPolicy}>
       <Form>
         <Input
           formatted={true}
