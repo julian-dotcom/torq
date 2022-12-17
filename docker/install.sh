@@ -22,7 +22,7 @@ stty echo
 printf "\n"
 
 printf "\n"
-echo Please set a web ui password
+echo Please set a web UI password
 stty -echo
 printf "UI Password: "
 read UIPASSWORD
@@ -85,6 +85,6 @@ echo "${Red}${DELETE_COMMAND}${NC}\t (WARNING: This command deletes Torq _includ
 echo "${Green}Optional:${NC} you can add these scripts to your PATH by running:"
 echo "sudo ln -s ${TORQDIR}/* /usr/local/bin/"
 
-echo "\nTry it out! Start Torq now with:"
+echo "\nTry it out now! Make sure the Docker daemon is running, and then start Torq with:"
 echo "${Green}${TORQDIR}/${START_COMMAND}${NC}"
 echo "\n"
