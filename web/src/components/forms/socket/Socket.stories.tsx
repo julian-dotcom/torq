@@ -18,9 +18,12 @@ const Template: Story<SocketProps> = (args) => {
   return (
     <Provider store={store}>
       <WorkflowCanvas>
-        <WorkflowNodeWrapper nodeName={"socket-test"} id={"test"} heading={"test"}>
+        <WorkflowNodeWrapper nodeName={"secondSocketRest"} id={"test"} heading={"test"}>
           <Socket {...args} />
         </WorkflowNodeWrapper>
+        <WorkflowNodeWrapper nodeName={"socketTest"} id={"test"} heading={"test"}>
+          <Socket {...args} />
+        </WorkflowNodeWrapper>{" "}
       </WorkflowCanvas>
     </Provider>
   );

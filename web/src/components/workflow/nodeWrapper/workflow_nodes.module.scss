@@ -19,21 +19,37 @@
   z-index: -1 !important;
 }
 .workflowNodeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   background-color: var(--color-accent-1-faint);
   color: var(--color-white);
   padding: 6px 16px;
   height: 32px;
   border-top-left-radius: var(--radius-default);
   border-top-right-radius: var(--radius-default);
+  transition: border-radius 0.2s ease-in-out;
   overflow-y: visible;
   overflow-x: visible;
+  svg {
+    transform: scale(1, -1);
+  }
 }
 .workflowNodeBodyWrapper {
   background-color: var(--color-white);
-  padding: 16px;
-  min-width: 250px;
+  min-width: 300px;
   border-bottom-left-radius: var(--radius-default);
   border-bottom-right-radius: var(--radius-default);
+  transition: height 250ms ease-in-out;
+  overflow-y: visible;
+  overflow-x: visible !important;
+}
+.workflowNodeBody {
+  padding: 16px;
+}
+.workflowNodeHeader.headerCollapsed {
+  border-radius: var(--radius-default);
 }
 .nodeConnector {
   position: absolute;
@@ -62,7 +78,6 @@
 }
 
 .nodeConnectorDragDot {
-  //display: none;
   position: absolute;
   width: 20px;
   height: 20px;
