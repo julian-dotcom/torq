@@ -4,25 +4,20 @@ import NumberFormat, { NumberFormatProps } from "react-number-format";
 import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
 import { GetColorClass, GetSizeClass, InputColorVaraint, InputSizeVariant } from "components/forms/input/variants";
 import styles from "./textInput.module.scss";
+import { BasicInputType } from "components/forms/formTypes";
 
-export type InputProps = React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & {
+export type InputProps = React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> &
+  BasicInputType;
+
+export type FormattedInputProps = {
   label?: string;
-  formatted?: never;
+  formatted?: boolean;
   sizeVariant?: InputSizeVariant;
   colorVariant?: InputColorVaraint;
   leftIcon?: React.ReactNode;
   errorText?: string;
   warningText?: string;
-};
-export type FormattedInputProps = NumberFormatProps & {
-  label?: string;
-  formatted: boolean;
-  sizeVariant?: InputSizeVariant;
-  colorVariant?: InputColorVaraint;
-  leftIcon?: React.ReactNode;
-  errorText?: string;
-  warningText?: string;
-};
+} & NumberFormatProps;
 
 function Input({
   label,

@@ -1,0 +1,91 @@
+.workflowNodeCard {
+  display: grid;
+  align-items: center;
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  border-radius: var(--radius-default);
+  cursor: initial;
+  will-change: transform;
+  overflow: initial;
+  .dragging {
+    // Add a box shadow to the element when dragging
+    box-shadow: 0px 1px 14px rgba(53, 78, 102, 0.12), 0px 3px 5px rgba(53, 78, 102, 0.2);
+    cursor: default;
+  }
+}
+.connecting {
+  z-index: -1 !important;
+}
+.workflowNodeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background-color: var(--color-accent-1-faint);
+  color: var(--color-white);
+  padding: 6px 16px;
+  height: 32px;
+  border-top-left-radius: var(--radius-default);
+  border-top-right-radius: var(--radius-default);
+  transition: border-radius 0.2s ease-in-out;
+  overflow-y: visible;
+  overflow-x: visible;
+  svg {
+    transform: scale(1, -1);
+  }
+}
+.workflowNodeBodyWrapper {
+  background-color: var(--color-white);
+  min-width: 300px;
+  border-bottom-left-radius: var(--radius-default);
+  border-bottom-right-radius: var(--radius-default);
+  transition: height 250ms ease-in-out;
+  overflow-y: visible;
+  overflow-x: visible !important;
+}
+.workflowNodeBody {
+  padding: 16px;
+}
+.workflowNodeHeader.headerCollapsed {
+  border-radius: var(--radius-default);
+}
+.nodeConnector {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  top: -4px;
+  right: -20px;
+
+  .nodeConnectorDot {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 10px;
+    right: 10px;
+    border-radius: 50%;
+    border: 4px solid var(--color-primary-layer-2);
+    background-color: var(--color-accent-1-layer-4);
+    box-shadow: none;
+  }
+
+  &:hover {
+    .nodeConnectorDot {
+      background-color: var(--color-accent-1-faint);
+    }
+  }
+}
+
+.nodeConnectorDragDot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 4px solid var(--color-primary-layer-2);
+  background-color: var(--color-accent-1-faint);
+  border-radius: 50%;
+  top: 10px;
+  left: 10px;
+  box-shadow: none !important;
+  z-index: 10;
+}

@@ -6,7 +6,7 @@ import {
 } from "@fluentui/react-icons";
 import styles from "./select.module.scss";
 import classNames from "classnames";
-import { GetColorClass, GetSizeClass, InputColorVaraint, InputSizeVariant } from "./variants";
+import { GetColorClass, GetSizeClass, InputColorVaraint, InputSizeVariant } from "../variants";
 import { useId } from "react";
 
 export type SelectOptionType = { value: string; label: string };
@@ -117,11 +117,13 @@ export default function TorqSelect({
   }
   return (
     <div className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}>
-      <div className={styles.labelWrapper}>
-        <label htmlFor={selectProps.id || inputId} className={styles.label}>
-          {label}
-        </label>
-      </div>
+      {label && (
+        <div className={styles.labelWrapper}>
+          <label htmlFor={selectProps.id || inputId} className={styles.label}>
+            {label}
+          </label>
+        </div>
+      )}
       <Select
         id={selectProps.id || inputId}
         components={{ DropdownIndicator }}
