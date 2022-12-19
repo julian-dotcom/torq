@@ -26,7 +26,9 @@ const Modal = (props: ModalProps) => {
             <DismissIcon />
           </span>
         </div>
-        {props.children}
+        <div className={styles.modalBodyWrapper}>
+          <div className={styles.modalBody}>{props.children}</div>
+        </div>
       </div>
     </div>
   );

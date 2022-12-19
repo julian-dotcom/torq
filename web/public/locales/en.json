@@ -109,9 +109,10 @@
     "tags": "Tags",
     "peerTag": "Peer tag",
     "channelTag": "Channel tag",
+    "pingNoteHeader": "Monitoring",
     "pingSystem": "All Ping Systems Require a macaroon that can sign messages. Please make sure the certificates on your system are up-to-date.",
-    "ambossPingSystem": "Amboss Ping: When enabled you consent to Torq sending uptime pings to Amboss.",
-    "vectorPingSystem": "Vector Ping: When enabled you consent to Torq sending the output from `lncli getinfo` to vector.ln.capital"
+    "ambossPingSystem": "When Amboss ping is enabled Torq sending uptime pings to Amboss.",
+    "vectorPingSystem": "Vector sends the output from `lncli getinfo` to vector.ln.capital. This allow you to see if your node is up and if the chain and network graphs is up to date."
   },
   "newInvoice": {
     "title": "New Invoice",

@@ -1,18 +1,17 @@
-import Box from "./Box";
 import styles from "./NodeSettings.module.scss";
 import Select, { SelectOption } from "features/forms/Select";
 import React, { useState } from "react";
 import {
-  Save20Regular as SaveIcon,
-  Play16Regular as ConnectedIcon,
-  Pause16Regular as DisconnectedIcon,
   ChevronDown20Regular as CollapsedIcon,
+  Delete20Regular as DeleteIcon,
+  Delete24Regular as DeleteIconHeader,
   LineHorizontal120Regular as ExpandedIcon,
   MoreCircle20Regular as MoreIcon,
-  Delete24Regular as DeleteIconHeader,
-  Delete20Regular as DeleteIcon,
+  Pause16Regular as DisconnectedIcon,
   Pause20Regular as PauseIcon,
+  Play16Regular as ConnectedIcon,
   Play20Regular as PlayIcon,
+  Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import Spinny from "features/spinny/Spinny";
 import { toastCategory } from "features/toast/Toasts";
@@ -20,9 +19,9 @@ import ToastContext from "features/toast/context";
 import File from "components/forms/file/File";
 import Input from "components/forms/input/Input";
 import {
+  useAddNodeConfigurationMutation,
   useGetNodeConfigurationQuery,
   useUpdateNodeConfigurationMutation,
-  useAddNodeConfigurationMutation,
   useUpdateNodeConfigurationStatusMutation,
   useUpdateNodePingSystemStatusMutation,
 } from "apiSlice";
@@ -34,6 +33,8 @@ import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
 import Modal from "features/modal/Modal";
 import Switch from "components/forms/switch/Switch";
 import useTranslations from "services/i18n/useTranslations";
+import Form from "components/forms/form/Form";
+import Note, { NoteType } from "../note/Note";
 
 interface nodeProps {
   nodeId: number;
@@ -44,18 +45,18 @@ interface nodeProps {
 }
 
 const nodeConfigurationTemplate = {
-    createdOn: undefined,
-    grpcAddress: "",
-    macaroonFileName: "",
-    name: "",
-    tlsFileName: "",
-    updatedOn: undefined,
-    implementation: 0,
-    nodeId: 0,
-    status: 0,
-    pingSystem: 0,
-    customSettings: 0,
-  }
+  createdOn: undefined,
+  grpcAddress: "",
+  macaroonFileName: "",
+  name: "",
+  tlsFileName: "",
+  updatedOn: undefined,
+  implementation: 0,
+  nodeId: 0,
+  status: 0,
+  pingSystem: 0,
+  customSettings: 0,
+};
 
 const NodeSettings = React.forwardRef(function NodeSettings(
   { nodeId, collapsed, addMode, onAddSuccess }: nodeProps,
@@ -286,171 +287,180 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
   };
 
-  const implementationOptions = [{ value: "0", label: "LND" } as SelectOption];
+  const implementationOptions: Array<SelectOption> = [{ value: "0", label: "LND" }];
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
   return (
-    <Box>
-      <>
-        {!addMode && (
-          <div className={styles.header} onClick={handleCollapseClick}>
-            <div
-              className={classNames(styles.connectionIcon, {
-                [styles.connected]: true,
-                [styles.disabled]: nodeConfigurationState.status == 0,
-              })}
-            >
-              {nodeConfigurationState.status == 0 && <DisconnectedIcon />}
-              {nodeConfigurationState.status == 1 && <ConnectedIcon />}
-            </div>
-            <div className={styles.title}>{nodeConfigurationState?.name}</div>
-            <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
-              {collapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
-            </div>
-          </div>
-        )}
-        <Collapse collapsed={collapsedState} animate={!addMode}>
-          <>
-            {!addMode && (
-              <>
-                <div className={styles.borderSection}>
-                  <div className={styles.detailHeader}>
-                    <h4 className={styles.detailsTitle}>Node Details</h4>
-                    <Popover button={menuButton} className={classNames("right", styles.moreButton)} ref={popoverRef}>
-                      <div className={styles.nodeMenu}>
-                        <Button
-                          buttonColor={buttonColor.secondary}
-                          text={nodeConfigurationState.status == 0 ? "Enable node" : "Disable node"}
-                          icon={nodeConfigurationState.status == 0 ? <PlayIcon /> : <PauseIcon />}
-                          onClick={handleStatusClick}
-                          disabled={!enableEnableButtonState}
-                        />
-                        <Button
-                          buttonColor={buttonColor.warning}
-                          text={"Delete node"}
-                          icon={<DeleteIcon />}
-                          onClick={handleDeleteClick}
-                        />
-                      </div>
-                    </Popover>
-                  </div>
-                </div>
-              </>
-            )}
-            <div className={""}>
-              <form onSubmit={handleSubmit}>
-                <Select
-                  label={t.implementation}
-                  onChange={() => {
-                    return;
-                  }}
-                  options={implementationOptions}
-                  value={implementationOptions.find((io) => io.value == "" + nodeConfigurationState.implementation)}
-                />
-                <span id="name">
-                  <Input
-                    label={t.nodeName}
-                    value={nodeConfigurationState.name}
-                    type={"text"}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNodeNameChange(e.target.value)}
-                    placeholder="Node 1"
-                  />
-                </span>
-                <span id="address">
-                  <Input
-                    label={t.grpcAddress}
-                    type={"text"}
-                    value={nodeConfigurationState.grpcAddress}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAddressChange(e.target.value)}
-                    placeholder="100.100.100.100:10009"
-                  />
-                </span>
-                <span id="tls">
-                  <File
-                    label={t.tlsCertificate}
-                    onFileChange={handleTLSFileChange}
-                    fileName={nodeConfigurationState?.tlsFileName}
-                  />
-                </span>
-                <span id="macaroon">
-                  <File
-                    label={t.macaroon}
-                    onFileChange={handleMacaroonFileChange}
-                    fileName={nodeConfigurationState?.macaroonFileName}
-                  />
-                </span>
-                <div className={styles.importFailedPayments}>
-                  <Switch
-                    label={t.importFailedPayments}
-                    checked={nodeConfigurationState.customSettings % 2 >= 1}
-                    onChange={handleImportFailedPaymentsClick}
-                  />
-                </div>
-                <Button
-                  id={"save-node"}
-                  buttonColor={buttonColor.green}
-                  text={addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
-                  icon={saveEnabledState ? <SaveIcon /> : <Spinny />}
-                  onClick={submitNodeSettings}
-                  buttonPosition={buttonPosition.fullWidth}
-                  disabled={!saveEnabledState}
-                />
-                <div className={styles.pingSystems}>
-                  <div className={styles.ambossPingSystem}>
-                    <Switch
-                      label="Amboss Ping"
-                      checked={nodeConfigurationState.pingSystem % 2 >= 1}
-                      onChange={handleAmbossPingClick}
-                    />
-                  </div>
-                  <div className={styles.vectorPingSystem}>
-                    <Switch
-                      label="Vector Ping"
-                      checked={nodeConfigurationState.pingSystem % 4 >= 2}
-                      onChange={handleVectorPingClick}
-                    />
-                  </div>
-                </div>
-              </form>
-            </div>
-          </>
-        </Collapse>
-        <Modal
-          title={"Are you sure?"}
-          icon={<DeleteIconHeader />}
-          onClose={handleConfirmationModalClose}
-          show={showModalState}
+    <>
+      {!addMode && (
+        <div
+          className={classNames(styles.header, { [styles.expanded]: !collapsedState })}
+          onClick={handleCollapseClick}
         >
-          <div className={styles.deleteConfirm}>
-            <p>
-              Deleting the node will prevent you from viewing it&apos;s data in Torq. Alternatively set node to disabled
-              to simply stop the data subscription but keep data collected so far.
-            </p>
-            <p>
-              This operation cannot be undone, type &quot;<span className={styles.red}>delete</span>&quot; to confirm.
-            </p>
-
-            <Input
-              value={deleteConfirmationTextInputState}
-              type={"text"}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleDeleteConfirmationTextInputChange(e.target.value)
-              }
-            />
-            <div className={styles.deleteConfirmButtons}>
-              <Button
-                buttonColor={buttonColor.warning}
-                buttonPosition={buttonPosition.fullWidth}
-                text={"Delete node"}
-                icon={<DeleteIcon />}
-                onClick={handleModalDeleteClick}
-                disabled={!deleteEnabled}
-              />
-            </div>
+          <div
+            className={classNames(styles.connectionIcon, {
+              [styles.connected]: true,
+              [styles.disabled]: nodeConfigurationState.status == 0,
+            })}
+          >
+            {nodeConfigurationState.status == 0 && <DisconnectedIcon />}
+            {nodeConfigurationState.status == 1 && <ConnectedIcon />}
           </div>
-        </Modal>
-      </>
-    </Box>
+          <div className={styles.title}>{nodeConfigurationState?.name}</div>
+          <div className={classNames(styles.collapseIcon, { [styles.collapsed]: collapsedState })}>
+            {collapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
+          </div>
+        </div>
+      )}
+      <Collapse collapsed={collapsedState} animate={!addMode}>
+        <div className={classNames(styles.collapseContentWrappper, { [styles.addMode]: addMode })}>
+          {!addMode && (
+            <>
+              <div className={styles.borderSection}>
+                <div className={styles.detailHeader}>
+                  <h4 className={styles.detailsTitle}>Node Details</h4>
+                  <Popover button={menuButton} className={classNames("right", styles.moreButton)} ref={popoverRef}>
+                    <div className={styles.nodeMenu}>
+                      <Button
+                        buttonColor={buttonColor.secondary}
+                        text={nodeConfigurationState.status == 0 ? "Enable node" : "Disable node"}
+                        icon={nodeConfigurationState.status == 0 ? <PlayIcon /> : <PauseIcon />}
+                        onClick={handleStatusClick}
+                        disabled={!enableEnableButtonState}
+                      />
+                      <Button
+                        buttonColor={buttonColor.warning}
+                        text={"Delete node"}
+                        icon={<DeleteIcon />}
+                        onClick={handleDeleteClick}
+                      />
+                    </div>
+                  </Popover>
+                </div>
+              </div>
+            </>
+          )}
+          <div className={""}>
+            <Form onSubmit={handleSubmit}>
+              <Select
+                label={t.implementation}
+                onChange={() => {
+                  return;
+                }}
+                options={implementationOptions}
+                value={implementationOptions.find((io) => io.value == "" + nodeConfigurationState.implementation)}
+              />
+              <span id="name">
+                <Input
+                  label={t.nodeName}
+                  value={nodeConfigurationState.name}
+                  type={"text"}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNodeNameChange(e.target.value)}
+                  placeholder="Node 1"
+                />
+              </span>
+              <span id="address">
+                <Input
+                  label={t.grpcAddress}
+                  type={"text"}
+                  value={nodeConfigurationState.grpcAddress}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAddressChange(e.target.value)}
+                  placeholder="100.100.100.100:10009"
+                />
+              </span>
+              <span id="tls">
+                <File
+                  label={t.tlsCertificate}
+                  onFileChange={handleTLSFileChange}
+                  fileName={nodeConfigurationState?.tlsFileName}
+                />
+              </span>
+              <span id="macaroon">
+                <File
+                  label={t.macaroon}
+                  onFileChange={handleMacaroonFileChange}
+                  fileName={nodeConfigurationState?.macaroonFileName}
+                />
+              </span>
+              <div className={styles.importFailedPayments}>
+                <Switch
+                  label={"Import failed payments"}
+                  checked={nodeConfigurationState.customSettings % 2 >= 1}
+                  onChange={handleImportFailedPaymentsClick}
+                />
+                <Note title={"Failed Payments"} noteType={NoteType.warning}>
+                  {t.importFailedPayments}
+                </Note>
+              </div>
+              <Button
+                id={"save-node"}
+                buttonColor={buttonColor.green}
+                text={addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
+                icon={saveEnabledState ? <SaveIcon /> : <Spinny />}
+                onClick={submitNodeSettings}
+                buttonPosition={buttonPosition.fullWidth}
+                disabled={!saveEnabledState}
+              />
+              <div className={styles.pingSystems}>
+                <div className={styles.vectorPingSystem}>
+                  <Switch
+                    label="Vector Ping"
+                    checked={nodeConfigurationState.pingSystem % 4 >= 2}
+                    onChange={handleVectorPingClick}
+                  />
+                </div>
+                <div className={styles.ambossPingSystem}>
+                  <Switch
+                    label="Amboss Ping"
+                    checked={nodeConfigurationState.pingSystem % 2 >= 1}
+                    onChange={handleAmbossPingClick}
+                  />
+                </div>
+                <Note title={t.header.pingNoteHeader} noteType={NoteType.info}>
+                  <p>{t.pingNote}</p>
+                  <p>{t.header.pingSystem}</p>
+                  <p>{t.header.vectorPingSystem}</p>
+                  <p>{t.header.ambossPingSystem}</p>
+                </Note>
+              </div>
+            </Form>
+          </div>
+        </div>
+      </Collapse>
+      <Modal
+        title={"Are you sure?"}
+        icon={<DeleteIconHeader />}
+        onClose={handleConfirmationModalClose}
+        show={showModalState}
+      >
+        <div className={styles.deleteConfirm}>
+          <p>
+            Deleting the node will prevent you from viewing it&apos;s data in Torq. Alternatively set node to disabled
+            to simply stop the data subscription but keep data collected so far.
+          </p>
+          <p>
+            This operation cannot be undone, type &quot;<span className={styles.red}>delete</span>&quot; to confirm.
+          </p>
+          <Input
+            value={deleteConfirmationTextInputState}
+            type={"text"}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleDeleteConfirmationTextInputChange(e.target.value)
+            }
+          />
+          <div className={styles.deleteConfirmButtons}>
+            <Button
+              buttonColor={buttonColor.warning}
+              buttonPosition={buttonPosition.fullWidth}
+              text={"Delete node"}
+              icon={<DeleteIcon />}
+              onClick={handleModalDeleteClick}
+              disabled={!deleteEnabled}
+            />
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 });
 export default NodeSettings;
