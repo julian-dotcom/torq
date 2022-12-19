@@ -57,9 +57,9 @@ func GetWorkflows(db *sqlx.DB) ([]Workflow, error) {
 func addWorkflow(db *sqlx.DB, workflow Workflow) (Workflow, error) {
 	workflow.CreatedOn = time.Now().UTC()
 	workflow.UpdateOn = workflow.CreatedOn
-	err := db.QueryRowx(`INSERT INTO workflow (name, type, status, created_on, updated_on)
-		VALUES ($1, $2, $3, $4, $5) RETURNING workflow_id;`,
-		workflow.Name, workflow.Type, workflow.Status, workflow.CreatedOn, workflow.UpdateOn).Scan(&workflow.WorkflowId)
+	err := db.QueryRowx(`INSERT INTO workflow (name, status, created_on, updated_on)
+		VALUES ($1, $2, $3, $4) RETURNING workflow_id;`,
+		workflow.Name, workflow.Status, workflow.CreatedOn, workflow.UpdateOn).Scan(&workflow.WorkflowId)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -73,8 +73,8 @@ func addWorkflow(db *sqlx.DB, workflow Workflow) (Workflow, error) {
 
 func setWorkflow(db *sqlx.DB, workflow Workflow) (Workflow, error) {
 	workflow.UpdateOn = time.Now().UTC()
-	_, err := db.Exec(`UPDATE workflow SET name=$1, type=$2, status=$3, updated_on=$5 WHERE workflow_id=$6;`,
-		workflow.Name, workflow.Type, workflow.Status, workflow.UpdateOn, workflow.WorkflowId)
+	_, err := db.Exec(`UPDATE workflow SET name=$1, status=$2, updated_on=$3 WHERE workflow_id=$4;`,
+		workflow.Name, workflow.Status, workflow.UpdateOn, workflow.WorkflowId)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -218,6 +218,33 @@ func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType commons.WorkflowNodeType) 
 	return response, nil
 }
 
+func GetActiveSortedStageTriggerNodeForWorkflowVersionId(db *sqlx.DB, workflowVersionId int) ([]WorkflowNode, error) {
+	var workflowVersionRootNodeIds []int
+	err := db.Select(&workflowVersionRootNodeIds, `
+		SELECT wfvn.workflow_version_node_id
+		FROM workflow_version_node wfvn
+		JOIN workflow_version wfv ON wfv.workflow_version_id = wfvn.workflow_version_id AND wfv.status=$1
+		JOIN workflow wf ON wf.workflow_id = wfv.workflow_id AND wfv.status=$1
+		LEFT JOIN workflow_version_node_link parentLink ON parentLink.child_workflow_version_node_id = wfvn.workflow_version_node_id
+		WHERE wfvn.status=$1 AND wfvn.type=$2 AND wfv.workflow_version_id=$3 AND parentLink.child_workflow_version_node_id IS NULL
+		ORDER BY wfvn.stage;`, commons.Active, commons.WorkflowNodeStageTrigger, workflowVersionId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []WorkflowNode{}, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	var response []WorkflowNode
+	for _, workflowVersionStageNodeId := range workflowVersionRootNodeIds {
+		workflowNode, err := GetWorkflowNode(db, workflowVersionStageNodeId)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Obtaining WorkflowNode for workflowVersionStageNodeId: %v", workflowVersionStageNodeId)
+		}
+		response = append(response, workflowNode)
+	}
+	return response, nil
+}
+
 func GetWorkflowNodeParameters(triggerNode WorkflowNode) (WorkflowNodeParameters, error) {
 	var triggerParameters WorkflowNodeParameters
 	err := json.Unmarshal([]byte(triggerNode.Parameters), &triggerParameters)
@@ -280,37 +307,64 @@ func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, erro
 }
 
 // GetWorkflowTree this code assumes recursive loops from the root nodes are not allowed
-func GetWorkflowTree(db *sqlx.DB, workflowVersionId int) (WorkflowTree, error) {
+func GetWorkflowTree(db *sqlx.DB, workflowVersionId int) (WorkflowForest, error) {
 	var rootVersionNodeIds []int
 	err := db.Select(&rootVersionNodeIds, `
 		SELECT n.workflow_version_node_id
 		FROM workflow_version_node n
 		LEFT JOIN workflow_version_node_link parentLink ON parentLink.child_workflow_version_node_id = n.workflow_version_node_id
-		WHERE n.workflow_version_id=$1 AND parentLink.child_workflow_version_node_id IS NULL;`, workflowVersionId)
+		WHERE n.workflow_version_id=$1 AND parentLink.child_workflow_version_node_id IS NULL AND n.stage IS NULL;`, workflowVersionId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return WorkflowTree{}, nil
+			return WorkflowForest{}, nil
 		}
-		return WorkflowTree{}, errors.Wrap(err, database.SqlExecutionError)
+		return WorkflowForest{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 
 	processedNodes := make(map[int]*WorkflowNode)
-	var rootNodesStructured []*WorkflowNode
+	rootNodesStructured := make(map[int][]*WorkflowNode)
 	if len(rootVersionNodeIds) > 0 {
 		for _, rootVersionNodeId := range rootVersionNodeIds {
 			workflowVersionNode, err := GetWorkflowVersionNode(db, rootVersionNodeId)
 			if err != nil {
-				return WorkflowTree{}, err
+				return WorkflowForest{}, err
 			}
 			workflowNode := workflowVersionNode.GetWorkflowNodeStructured()
 			err = processNodeRecursion(processedNodes, db, &workflowNode, nil, nil)
 			if err != nil {
-				return WorkflowTree{}, err
+				return WorkflowForest{}, err
 			}
-			rootNodesStructured = append(rootNodesStructured, &workflowNode)
+			rootNodesStructured[0] = append(rootNodesStructured[0], &workflowNode)
 		}
 	}
-	return WorkflowTree{RootNodes: rootNodesStructured}, nil
+	var versionStageNodeIds []int
+	err = db.Select(&versionStageNodeIds, `
+		SELECT n.workflow_version_node_id
+		FROM workflow_version_node n
+		LEFT JOIN workflow_version_node_link parentLink ON parentLink.child_workflow_version_node_id = n.workflow_version_node_id
+		WHERE n.workflow_version_id=$1 AND parentLink.child_workflow_version_node_id IS NULL AND n.stage IS NOT NULL
+		ORDER BY n.stage;`, workflowVersionId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return WorkflowForest{}, nil
+		}
+		return WorkflowForest{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	if len(versionStageNodeIds) > 0 {
+		for _, versionStageNodeId := range versionStageNodeIds {
+			workflowVersionNode, err := GetWorkflowVersionNode(db, versionStageNodeId)
+			if err != nil {
+				return WorkflowForest{}, err
+			}
+			workflowNode := workflowVersionNode.GetWorkflowNodeStructured()
+			err = processNodeRecursion(processedNodes, db, &workflowNode, nil, nil)
+			if err != nil {
+				return WorkflowForest{}, err
+			}
+			rootNodesStructured[*workflowVersionNode.Stage] = append(rootNodesStructured[*workflowVersionNode.Stage], &workflowNode)
+		}
+	}
+	return WorkflowForest{SortedStageTrees: rootNodesStructured}, nil
 }
 
 func processNodeRecursion(processedNodes map[int]*WorkflowNode, db *sqlx.DB, workflowNode *WorkflowNode,

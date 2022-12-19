@@ -2,7 +2,6 @@
 CREATE TABLE workflow (
     workflow_id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
-    type INTEGER NOT NULL,
     status INTEGER NOT NULL,
     created_on TIMESTAMPTZ NOT NULL,
     updated_on TIMESTAMPTZ NOT NULL,
@@ -23,6 +22,7 @@ CREATE TABLE workflow_version (
 
 CREATE TABLE workflow_version_node (
     workflow_version_node_id SERIAL PRIMARY KEY,
+    stage INTEGER,
     name TEXT NOT NULL,
     status INTEGER NOT NULL,
     type INTEGER NOT NULL,

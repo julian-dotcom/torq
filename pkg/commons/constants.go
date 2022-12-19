@@ -185,13 +185,6 @@ const (
 	ONEML   string = "https://1ml.com/channel/"
 )
 
-type WorkflowType int
-
-const (
-	WorkFlowRegular = WorkflowType(iota)
-	WorkFlowDeferredLink
-)
-
 type WorkflowNodeType int
 
 const (
@@ -200,7 +193,7 @@ const (
 	WorkflowNodeChannelFilter
 	WorkflowNodeCostParameters
 	WorkflowNodeRebalanceParameters
-	WorkflowNodeDeferredLink
+	WorkflowNodeStageTrigger
 	WorkflowNodeRebalanceRun
 	WorkflowNodeRoutingPolicyRun
 	WorkflowNodeSetVariable

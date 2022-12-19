@@ -97,6 +97,14 @@ func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) s
 	return fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)
 }
 
+func CopyParameters(parameters map[string]string) map[string]string {
+	parametersCopy := make(map[string]string)
+	for k, v := range parameters {
+		parametersCopy[k] = v
+	}
+	return parametersCopy
+}
+
 type WorkflowParameterWithLabel struct {
 	Label string
 	WorkflowParameter
@@ -148,8 +156,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
 			},
 		},
-		WorkflowNodeDeferredLink: {
-			WorkflowNodeType: WorkflowNodeDeferredLink,
+		WorkflowNodeStageTrigger: {
+			WorkflowNodeType: WorkflowNodeStageTrigger,
 			RequiredInputs:   []WorkflowParameterWithLabel{},
 			OptionalInputs:   []WorkflowParameterWithLabel{},
 			RequiredOutputs:  []WorkflowParameterWithLabel{},

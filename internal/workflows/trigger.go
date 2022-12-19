@@ -27,7 +27,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		return nil, commons.Inactive, errors.New(fmt.Sprintf("Context terminated for WorkflowVersionId: %v", workflowNode.WorkflowVersionId))
 	default:
 	}
-	outputs := copyInputs(inputs)
+	outputs := commons.CopyParameters(inputs)
 	var err error
 
 	workflowNodeCached, cached := workflowNodeCache[workflowNode.WorkflowVersionNodeId]
@@ -85,7 +85,11 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			}
 		case commons.WorkflowNodeChannelFilter:
 
-		case commons.WorkflowNodeDeferredLink:
+		case commons.WorkflowNodeStageTrigger:
+			if iteration > 0 {
+				// There shouldn't be any stage nodes except when it's the first node
+				return outputs, commons.Deleted, nil
+			}
 		case commons.WorkflowNodeCostParameters:
 		case commons.WorkflowNodeRebalanceParameters:
 		case commons.WorkflowNodeRebalanceRun:
@@ -158,12 +162,4 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB, nodeId int, reference string, workfl
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v", workflowVersionNodeId)
 	}
-}
-
-func copyInputs(inputs map[string]string) map[string]string {
-	inputsCopy := make(map[string]string)
-	for k, v := range inputs {
-		inputsCopy[k] = v
-	}
-	return inputsCopy
 }

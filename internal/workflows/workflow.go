@@ -7,12 +7,11 @@ import (
 )
 
 type Workflow struct {
-	WorkflowId int                  `json:"workflowId" db:"workflow_id"`
-	Name       string               `json:"name" db:"name"`
-	Type       commons.WorkflowType `json:"type" db:"type"`
-	Status     commons.Status       `json:"status" db:"status"`
-	CreatedOn  time.Time            `json:"createdOn" db:"created_on"`
-	UpdateOn   time.Time            `json:"updatedOn" db:"updated_on"`
+	WorkflowId int            `json:"workflowId" db:"workflow_id"`
+	Name       string         `json:"name" db:"name"`
+	Status     commons.Status `json:"status" db:"status"`
+	CreatedOn  time.Time      `json:"createdOn" db:"created_on"`
+	UpdateOn   time.Time      `json:"updatedOn" db:"updated_on"`
 }
 
 type WorkflowVersion struct {
@@ -28,6 +27,7 @@ type WorkflowVersion struct {
 type WorkflowVersionNode struct {
 	WorkflowVersionNodeId int                      `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
 	Name                  string                   `json:"name" db:"name"`
+	Stage                 *int                     `json:"stage" db:"stage"`
 	Status                commons.Status           `json:"status" db:"status"`
 	Type                  commons.WorkflowNodeType `json:"type" db:"type"`
 	Parameters            string                   `json:"parameters" db:"parameters"`
@@ -89,8 +89,8 @@ type WorkflowNode struct {
 	WorkflowVersionId     int                             `json:"workflowVersionId"`
 }
 
-type WorkflowTree struct {
-	RootNodes []*WorkflowNode `json:"rootNodes"`
+type WorkflowForest struct {
+	SortedStageTrees map[int][]*WorkflowNode `json:"sortedStageTrees"`
 }
 
 type WorkflowNodeParameter struct {
