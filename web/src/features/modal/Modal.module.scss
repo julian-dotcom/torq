@@ -53,8 +53,8 @@
 }
 .modalBodyWrapper {
   display: flex;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 .modalBody {
-  margin: 0 24px 24px;
+  margin: 0 24px 0px;
 }

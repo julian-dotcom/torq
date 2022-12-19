@@ -442,6 +442,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
             This operation cannot be undone, type &quot;<span className={styles.red}>delete</span>&quot; to confirm.
           </p>
           <Input
+            placeholder={t.header.typeDeleteHere}
             value={deleteConfirmationTextInputState}
             type={"text"}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>

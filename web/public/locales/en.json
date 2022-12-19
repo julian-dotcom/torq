@@ -112,7 +112,8 @@
     "pingNoteHeader": "Monitoring",
     "pingSystem": "All Ping Systems Require a macaroon that can sign messages. Please make sure the certificates on your system are up-to-date.",
     "ambossPingSystem": "When Amboss ping is enabled Torq sending uptime pings to Amboss.",
-    "vectorPingSystem": "Vector sends the output from `lncli getinfo` to vector.ln.capital. This allow you to see if your node is up and if the chain and network graphs is up to date."
+    "vectorPingSystem": "Vector sends the output from `lncli getinfo` to vector.ln.capital. This allow you to see if your node is up and if the chain and network graphs is up to date.",
+    "typeDeleteHere": "Type delete here"
   },
   "newInvoice": {
     "title": "New Invoice",
