@@ -314,14 +314,14 @@ func GetWorkflowTree(db *sqlx.DB, workflowVersionId int) (WorkflowTree, error) {
 }
 
 func processNodeRecursion(processedNodes map[int]*WorkflowNode, db *sqlx.DB, workflowNode *WorkflowNode,
-	workflowParentNode *WorkflowNode, workflowParentNodeLink *WorkflowNodeLink) error {
+	workflowParentNode *WorkflowNode, workflowParentNodeLink *WorkflowVersionNodeLink) error {
 
 	if workflowParentNode != nil && workflowParentNodeLink != nil {
 		if workflowNode.ParentNodes == nil {
 			workflowNode.ParentNodes = make(map[int]*WorkflowNode)
 		}
 		if workflowNode.LinkDetails == nil {
-			workflowNode.LinkDetails = make(map[int]WorkflowNodeLink)
+			workflowNode.LinkDetails = make(map[int]WorkflowVersionNodeLink)
 		}
 		workflowNode.ParentNodes[workflowParentNodeLink.WorkflowVersionNodeLinkId] = workflowParentNode
 		workflowNode.LinkDetails[workflowParentNodeLink.WorkflowVersionNodeLinkId] = *workflowParentNodeLink
@@ -346,7 +346,7 @@ func processNodeRecursion(processedNodes map[int]*WorkflowNode, db *sqlx.DB, wor
 	}
 	workflowNode.ChildNodes = childNodesStructured
 	if workflowNode.LinkDetails == nil {
-		workflowNode.LinkDetails = make(map[int]WorkflowNodeLink)
+		workflowNode.LinkDetails = make(map[int]WorkflowVersionNodeLink)
 	}
 	for childNodeLinkId, childNodeLink := range childNodeLinkDetails {
 		workflowNode.LinkDetails[childNodeLinkId] = childNodeLink
@@ -354,10 +354,13 @@ func processNodeRecursion(processedNodes map[int]*WorkflowNode, db *sqlx.DB, wor
 	return nil
 }
 
-func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNode, map[int]WorkflowNodeLink, error) {
+func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNode, map[int]WorkflowVersionNodeLink, error) {
 	rows, err := db.Query(`
 		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
-		       n.workflow_version_id, n.updated_on, l.parent_output_index, l.name linkName, l.child_input_index
+		       n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
+		       l.parent_workflow_version_node_id, l.parent_output_index,
+		       l.name linkName, l.visibility_settings,
+		       l.child_workflow_version_node_id, l.child_input_index, l.updated_on
 		FROM workflow_version_node_link l
 		JOIN workflow_version_node n ON n.workflow_version_node_id=l.child_workflow_version_node_id
 		WHERE l.child_workflow_version_node_id=$1
@@ -368,7 +371,7 @@ func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNo
 		}
 	}
 	parentNodes := make(map[int]*WorkflowNode)
-	parentNodeLinkDetails := make(map[int]WorkflowNodeLink)
+	parentNodeLinkDetails := make(map[int]WorkflowVersionNodeLink)
 	err = parseNodesResultSet(rows, parentNodes, parentNodeLinkDetails)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "Parsing the resulset for parentNodes with workflowVersionNodeId: %v", workflowVersionNodeId)
@@ -376,10 +379,13 @@ func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNo
 	return parentNodes, parentNodeLinkDetails, nil
 }
 
-func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNode, map[int]WorkflowNodeLink, error) {
+func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNode, map[int]WorkflowVersionNodeLink, error) {
 	rows, err := db.Query(`
 		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
-		       n.workflow_version_id, n.updated_on, l.parent_output_index, l.name linkName, l.child_input_index
+		       n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
+		       l.parent_workflow_version_node_id, l.parent_output_index,
+		       l.name linkName, l.visibility_settings,
+		       l.child_workflow_version_node_id, l.child_input_index, l.updated_on
 		FROM workflow_version_node_link l
 		JOIN workflow_version_node n ON n.workflow_version_node_id=l.parent_workflow_version_node_id
 		WHERE l.parent_workflow_version_node_id=$1
@@ -390,7 +396,7 @@ func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNod
 		}
 	}
 	childNodes := make(map[int]*WorkflowNode)
-	childNodeLinkDetails := make(map[int]WorkflowNodeLink)
+	childNodeLinkDetails := make(map[int]WorkflowVersionNodeLink)
 	err = parseNodesResultSet(rows, childNodes, childNodeLinkDetails)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "Parsing the resulset for childNodes with workflowVersionNodeId: %v", workflowVersionNodeId)
@@ -398,34 +404,44 @@ func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNod
 	return childNodes, childNodeLinkDetails, nil
 }
 
-func parseNodesResultSet(rows *sql.Rows, nodes map[int]*WorkflowNode, nodeLinkDetails map[int]WorkflowNodeLink) error {
+func parseNodesResultSet(rows *sql.Rows, nodes map[int]*WorkflowNode, nodeLinkDetails map[int]WorkflowVersionNodeLink) error {
 	for rows.Next() {
 		var versionNodeId int
+		var parentsVersionNodeId int
+		var childsVersionNodeId int
 		var name string
 		var status commons.Status
 		var nodeType commons.WorkflowNodeType
 		var parameters string
 		var visibilitySettings string
-		var versionId int
+		var workflowVersionId int
 		var updatedOn time.Time
+		var linkUpdatedOn time.Time
 		var versionNodeLinkId int
 		var parentsOutputIndex int
 		var linkName string
+		var linkVisibilitySettings string
 		var childsInputIndex int
-		err := rows.Scan(&versionNodeId, &name, &status, &nodeType, &parameters, &visibilitySettings, &versionId, &updatedOn,
-			&versionNodeLinkId, &parentsOutputIndex, &linkName, &childsInputIndex)
+		err := rows.Scan(&versionNodeId, &name, &status, &nodeType, &parameters, &visibilitySettings, &workflowVersionId, &updatedOn,
+			&versionNodeLinkId, &parentsVersionNodeId, &parentsOutputIndex, &linkName, &linkVisibilitySettings,
+			&childsVersionNodeId, &childsInputIndex, &linkUpdatedOn)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining nodeId and publicKey from the resultSet")
 		}
-		nodeLinkDetails[versionNodeLinkId] = WorkflowNodeLink{
-			WorkflowVersionNodeLinkId: versionNodeLinkId,
-			ParentOutputIndex:         parentsOutputIndex,
-			ChildInputIndex:           childsInputIndex,
-			Name:                      linkName,
+		nodeLinkDetails[versionNodeLinkId] = WorkflowVersionNodeLink{
+			WorkflowVersionNodeLinkId:   versionNodeLinkId,
+			ParentWorkflowVersionNodeId: parentsVersionNodeId,
+			ParentOutputIndex:           parentsOutputIndex,
+			ChildWorkflowVersionNodeId:  childsVersionNodeId,
+			ChildInputIndex:             childsInputIndex,
+			WorkflowVersionId:           workflowVersionId,
+			UpdateOn:                    linkUpdatedOn,
+			Name:                        linkName,
+			VisibilitySettings:          linkVisibilitySettings,
 		}
 		nodes[versionNodeLinkId] = &WorkflowNode{
 			WorkflowVersionNodeId: versionNodeId,
-			WorkflowVersionId:     versionId,
+			WorkflowVersionId:     workflowVersionId,
 			Type:                  nodeType,
 			Status:                status,
 			Parameters:            parameters,

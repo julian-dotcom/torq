@@ -76,24 +76,17 @@ type WorkflowVersionNodeLog struct {
 }
 
 type WorkflowNode struct {
-	WorkflowVersionNodeId int                      `json:"workflowVersionNodeId"`
-	Name                  string                   `json:"name"`
-	Status                commons.Status           `json:"status"`
-	Type                  commons.WorkflowNodeType `json:"type"`
-	Parameters            string                   `json:"parameters"`
-	VisibilitySettings    string                   `json:"visibilitySettings"`
-	UpdateOn              time.Time                `json:"updatedOn"`
-	ParentNodes           map[int]*WorkflowNode    `json:"parentNodes"`
-	ChildNodes            map[int]*WorkflowNode    `json:"childNodes"`
-	LinkDetails           map[int]WorkflowNodeLink `json:"LinkDetails"`
-	WorkflowVersionId     int                      `json:"workflowVersionId"`
-}
-
-type WorkflowNodeLink struct {
-	WorkflowVersionNodeLinkId int    `json:"workflowVersionNodeLinkId"`
-	ParentOutputIndex         int    `json:"parentOutputIndex"`
-	Name                      string `json:"name"`
-	ChildInputIndex           int    `json:"childInputIndex"`
+	WorkflowVersionNodeId int                             `json:"workflowVersionNodeId"`
+	Name                  string                          `json:"name"`
+	Status                commons.Status                  `json:"status"`
+	Type                  commons.WorkflowNodeType        `json:"type"`
+	Parameters            string                          `json:"parameters"`
+	VisibilitySettings    string                          `json:"visibilitySettings"`
+	UpdateOn              time.Time                       `json:"updatedOn"`
+	ParentNodes           map[int]*WorkflowNode           `json:"parentNodes"`
+	ChildNodes            map[int]*WorkflowNode           `json:"childNodes"`
+	LinkDetails           map[int]WorkflowVersionNodeLink `json:"LinkDetails"`
+	WorkflowVersionId     int                             `json:"workflowVersionId"`
 }
 
 type WorkflowTree struct {
