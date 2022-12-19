@@ -170,7 +170,7 @@ function Settings() {
                 ))}
             </div>
             <Button
-              buttonColor={buttonColor.primary}
+              buttonColor={buttonColor.green}
               onClick={addNodeConfiguration}
               icon={<AddIcon />}
               text={t.addNode}
