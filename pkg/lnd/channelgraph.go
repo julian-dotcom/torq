@@ -300,8 +300,8 @@ func insertRoutingPolicy(
 				},
 			}
 			if channelEvent.ChannelId != 0 {
-				channelGraphEvent.PreviousEventTime = channelEvent.EventTime
-				channelGraphEvent.PreviousEventData = commons.ChannelGraphEventData{
+				channelGraphEvent.PreviousEventTime = &channelEvent.EventTime
+				channelGraphEvent.PreviousEventData = &commons.ChannelGraphEventData{
 					TimeLockDelta:    channelEvent.TimeLockDelta,
 					FeeRateMilliMsat: uint64(channelEvent.FeeRateMilliMsat),
 					FeeBaseMsat:      uint64(channelEvent.FeeBaseMsat),
@@ -375,8 +375,8 @@ func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias st
 				},
 			}
 			if nodeEvent.NodeId != 0 {
-				nodeGraphEvent.PreviousEventTime = nodeEvent.EventTime
-				nodeGraphEvent.PreviousEventData = commons.NodeGraphEventData{
+				nodeGraphEvent.PreviousEventTime = &nodeEvent.EventTime
+				nodeGraphEvent.PreviousEventData = &commons.NodeGraphEventData{
 					Alias:     nodeEvent.Alias,
 					Color:     nodeEvent.Color,
 					Addresses: nodeEvent.NodeAddresses,

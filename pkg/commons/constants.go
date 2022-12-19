@@ -228,10 +228,10 @@ const (
 
 type WorkflowNodeTypeParameters struct {
 	WorkflowNodeType WorkflowNodeType
-	RequiredInputs   map[string]WorkflowParameter
-	OptionalInputs   map[string]WorkflowParameter
-	RequiredOutputs  map[string]WorkflowParameter
-	OptionalOutputs  map[string]WorkflowParameter
+	RequiredInputs   []WorkflowParameterWithLabel
+	OptionalInputs   []WorkflowParameterWithLabel
+	RequiredOutputs  []WorkflowParameterWithLabel
+	OptionalOutputs  []WorkflowParameterWithLabel
 }
 
 type WorkflowParameterType int

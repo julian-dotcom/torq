@@ -17,6 +17,7 @@ type Workflow struct {
 
 type WorkflowVersion struct {
 	WorkflowVersionId int            `json:"workflowVersionId" db:"workflow_version_id"`
+	Name              string         `json:"name" db:"name"`
 	Version           int            `json:"version" db:"version"`
 	Status            commons.Status `json:"status" db:"status"`
 	WorkflowId        int            `json:"workflowId" db:"workflow_id"`
@@ -51,11 +52,13 @@ func (wfn WorkflowVersionNode) GetWorkflowNodeStructured() WorkflowNode {
 
 type WorkflowVersionNodeLink struct {
 	WorkflowVersionNodeLinkId   int       `json:"workflowVersionNodeLinkId" db:"workflow_version_node_link_id"`
+	Name                        string    `json:"name" db:"name"`
 	VisibilitySettings          string    `json:"visibilitySettings" db:"visibility_settings"`
-	ParentParameterIndex        int       `json:"parentParameterIndex" db:"parent_parameter_index"`
+	ParentOutputIndex           int       `json:"parentOutputIndex" db:"parent_output_index"`
 	ParentWorkflowVersionNodeId int       `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
-	ChildParameterIndex         int       `json:"childParameterIndex" db:"child_parameter_index"`
+	ChildInputIndex             int       `json:"childInputIndex" db:"child_input_index"`
 	ChildWorkflowVersionNodeId  int       `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
+	WorkflowVersionId           int       `json:"workflowVersionId" db:"workflow_version_id"`
 	CreatedOn                   time.Time `json:"createdOn" db:"created_on"`
 	UpdateOn                    time.Time `json:"updatedOn" db:"updated_on"`
 }
@@ -80,9 +83,17 @@ type WorkflowNode struct {
 	Parameters            string                   `json:"parameters"`
 	VisibilitySettings    string                   `json:"visibilitySettings"`
 	UpdateOn              time.Time                `json:"updatedOn"`
-	ParentNodes           map[int][]*WorkflowNode  `json:"parentNodes"`
-	ChildNodes            map[int][]*WorkflowNode  `json:"childNodes"`
+	ParentNodes           map[int]*WorkflowNode    `json:"parentNodes"`
+	ChildNodes            map[int]*WorkflowNode    `json:"childNodes"`
+	LinkDetails           map[int]WorkflowNodeLink `json:"LinkDetails"`
 	WorkflowVersionId     int                      `json:"workflowVersionId"`
+}
+
+type WorkflowNodeLink struct {
+	WorkflowVersionNodeLinkId int    `json:"workflowVersionNodeLinkId"`
+	ParentOutputIndex         int    `json:"parentOutputIndex"`
+	Name                      string `json:"name"`
+	ChildInputIndex           int    `json:"childInputIndex"`
 }
 
 type WorkflowTree struct {
@@ -97,4 +108,28 @@ type WorkflowNodeParameter struct {
 
 type WorkflowNodeParameters struct {
 	Parameters []WorkflowNodeParameter `json:"parameters"`
+}
+
+func getWorkflowNodeInputsStatus(workflowNode WorkflowNode, inputs map[string]string,
+	stagingParameters map[string]string) (commons.Status, map[string]string) {
+
+	requiredInputs := commons.GetWorkflowNodes()[workflowNode.Type].RequiredInputs
+	for _, label := range requiredInputs {
+		_, exists := inputs[label.Label]
+		if exists {
+			continue
+		}
+		foundIt := false
+		for stagingLabel, inputData := range stagingParameters {
+			if label.Label == stagingLabel {
+				foundIt = true
+				inputs[label.Label] = inputData
+				continue
+			}
+		}
+		if !foundIt {
+			return commons.Pending, inputs
+		}
+	}
+	return commons.Active, inputs
 }

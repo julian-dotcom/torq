@@ -35,6 +35,15 @@ type ChannelGraphEventData struct {
 	FeeRateMilliMsat uint64 `json:"feeRateMilliMsat"`
 }
 
+type ChannelBalanceEventData struct {
+	Capacity                            int64 `json:"capacity"`
+	LocalBalance                        int64 `json:"localBalance"`
+	LocalBalancePerMilleRatio           int   `json:"localBalancePerMilleRatio"`
+	RemoteBalance                       int64 `json:"remoteBalance"`
+	AggregatedLocalBalance              int64 `json:"aggregatedLocalBalance"`
+	AggregatedLocalBalancePerMilleRatio int   `json:"aggregatedLocalBalancePerMilleRatio"`
+}
+
 type ServiceEvent struct {
 	EventData
 	Type               ServiceType
@@ -46,15 +55,22 @@ type ServiceEvent struct {
 type NodeGraphEvent struct {
 	GraphEventData
 	NodeGraphEventData
-	PreviousEventTime time.Time          `json:"previousEventTime"`
-	PreviousEventData NodeGraphEventData `json:"previous"`
+	PreviousEventTime *time.Time          `json:"previousEventTime"`
+	PreviousEventData *NodeGraphEventData `json:"previous"`
 }
 
 type ChannelGraphEvent struct {
 	GraphEventData
 	ChannelGraphEventData
-	PreviousEventTime time.Time             `json:"previousEventTime"`
-	PreviousEventData ChannelGraphEventData `json:"previous"`
+	PreviousEventTime *time.Time             `json:"previousEventTime"`
+	PreviousEventData *ChannelGraphEventData `json:"previous"`
+}
+
+type ChannelBalanceEvent struct {
+	EventData
+	ChannelId int `json:"channelId"`
+	ChannelBalanceEventData
+	PreviousEventData *ChannelBalanceEventData `json:"previous"`
 }
 
 type TransactionEvent struct {
@@ -139,19 +155,6 @@ type ForwardEvent struct {
 	AmountOutMsat     uint64    `json:"amountOutMsat"`
 	OutgoingChannelId *int      `json:"outgoingChannelId"`
 	IncomingChannelId *int      `json:"incomingChannelId"`
-}
-
-type ChannelBalanceEvent struct {
-	EventData
-	ChannelId                      int    `json:"channelId"`
-	Balance                        uint64 `json:"balance"`
-	BalanceRatio                   int    `json:"balanceRatio"`
-	AggregatedBalance              uint64 `json:"aggregatedBalance"`
-	AggregatedBalanceRatio         int    `json:"aggregatedBalanceRatio"`
-	PreviousBalance                uint64 `json:"previousBalance"`
-	PreviousBalanceRatio           int    `json:"previousBalanceRatio"`
-	PreviousAggregatedBalance      uint64 `json:"previousAggregatedBalance"`
-	PreviousAggregatedBalanceRatio int    `json:"previousAggregatedBalanceRatio"`
 }
 
 // GENERIC REQUEST/RESPONSE STRUCTS

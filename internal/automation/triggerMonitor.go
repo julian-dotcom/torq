@@ -2,6 +2,7 @@ package automation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -82,21 +83,78 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 					commons.Active, triggerCancel)
 				switch workflowTriggerNode.Type {
 				case commons.WorkflowNodeTimeTrigger:
+					inputs := make(map[string]string)
+					marshalledTimerEvent, err := json.Marshal(workflowTriggerNode)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to marshal WorkflowNodeTimeTrigger for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+						continue
+					}
+					inputs["commons.WorkflowNodeTimeTrigger"] = string(marshalledTimerEvent)
 					if workflow.Type == commons.WorkFlowDeferredLink {
 						go processWorkflowNodeDeferredLinkRoutine(triggerCtx, db, nodeSettings,
-							workflowTriggerNode, workflowTriggerNodes, reference, 0, eventChannel)
+							workflowTriggerNode, workflowTriggerNodes, reference, inputs, eventChannel)
 					} else {
 						go processWorkflowNodeRoutine(triggerCtx, db, nodeSettings,
-							workflowTriggerNode, reference, 0, eventChannel)
+							workflowTriggerNode, reference, inputs, eventChannel)
 					}
 				case commons.WorkflowNodeChannelBalanceEventTrigger:
+					eventTime := time.Now()
+					dummyChannelBalanceEvents := make(map[int]map[int]*commons.ChannelBalanceEvent)
 					for _, channelId := range commons.GetChannelIdsByNodeId(nodeSettings.NodeId) {
-						if workflow.Type == commons.WorkFlowDeferredLink {
-							go processWorkflowNodeDeferredLinkRoutine(triggerCtx, db, nodeSettings,
-								workflowTriggerNode, workflowTriggerNodes, reference, channelId, eventChannel)
-						} else {
-							go processWorkflowNodeRoutine(triggerCtx, db, nodeSettings,
-								workflowTriggerNode, reference, channelId, eventChannel)
+						channelSettings := commons.GetChannelSettingByChannelId(channelId)
+						capacity := channelSettings.Capacity
+						remoteNodeId := channelSettings.FirstNodeId
+						if remoteNodeId == nodeSettings.NodeId {
+							remoteNodeId = channelSettings.SecondNodeId
+						}
+						if dummyChannelBalanceEvents[remoteNodeId] == nil {
+							dummyChannelBalanceEvents[remoteNodeId] = make(map[int]*commons.ChannelBalanceEvent)
+						}
+						channelState := commons.GetChannelState(nodeSettings.NodeId, channelId, true)
+						dummyChannelBalanceEvents[remoteNodeId][channelId] = &commons.ChannelBalanceEvent{
+							EventData: commons.EventData{
+								EventTime: eventTime,
+								NodeId:    nodeSettings.NodeId,
+							},
+							ChannelId: channelId,
+							ChannelBalanceEventData: commons.ChannelBalanceEventData{
+								Capacity:                  capacity,
+								LocalBalance:              channelState.LocalBalance,
+								RemoteBalance:             channelState.RemoteBalance,
+								LocalBalancePerMilleRatio: int(channelState.LocalBalance / capacity * 1000),
+							},
+						}
+					}
+					aggregateLocalBalance := make(map[int]int64)
+					aggregateLocalBalancePerMilleRatio := make(map[int]int)
+					for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
+						var localBalanceAggregate int64
+						var capacityAggregate int64
+						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
+							localBalanceAggregate += dummyChannelBalanceEvent.LocalBalance
+							capacityAggregate += dummyChannelBalanceEvent.Capacity
+						}
+						aggregateLocalBalance[remoteNodeId] = localBalanceAggregate
+						aggregateLocalBalancePerMilleRatio[remoteNodeId] = int(localBalanceAggregate / capacityAggregate * 1000)
+					}
+					for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
+						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
+							dummyChannelBalanceEvent.AggregatedLocalBalance = aggregateLocalBalance[remoteNodeId]
+							dummyChannelBalanceEvent.AggregatedLocalBalancePerMilleRatio = aggregateLocalBalancePerMilleRatio[remoteNodeId]
+							inputs := make(map[string]string)
+							marshalledChannelBalanceEvent, err := json.Marshal(dummyChannelBalanceEvent)
+							if err != nil {
+								log.Error().Err(err).Msgf("Failed to marshal ChannelBalanceEvent for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+								continue
+							}
+							inputs["commons.ChannelBalanceEvent"] = string(marshalledChannelBalanceEvent)
+							if workflow.Type == commons.WorkFlowDeferredLink {
+								go processWorkflowNodeDeferredLinkRoutine(triggerCtx, db, nodeSettings,
+									workflowTriggerNode, workflowTriggerNodes, reference, inputs, eventChannel)
+							} else {
+								go processWorkflowNodeRoutine(triggerCtx, db, nodeSettings,
+									workflowTriggerNode, reference, inputs, eventChannel)
+							}
 						}
 					}
 				}
@@ -106,7 +164,9 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 	}
 }
 
-func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings, broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
+func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
+	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
+
 	listener := broadcaster.Subscribe()
 	for event := range listener {
 		select {
@@ -147,15 +207,23 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 					continue
 				}
 				bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
+				inputs := make(map[string]string)
+				marshalledChannelBalanceEvent, err := json.Marshal(channelEvent)
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to marshal channelEvent for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+					continue
+				}
+				inputs["commons.ChannelBalanceEvent"] = string(marshalledChannelBalanceEvent)
 				triggerCtx, triggerCancel := context.WithCancel(context.Background())
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-				commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
+				commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
+					workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
 				if workflow.Type == commons.WorkFlowDeferredLink {
 					go processWorkflowNodeDeferredLinkRoutine(triggerCtx, db, nodeSettings,
-						workflowTriggerNode, workflowTriggerNodes, reference, channelEvent.ChannelId, eventChannel)
+						workflowTriggerNode, workflowTriggerNodes, reference, inputs, eventChannel)
 				} else {
 					go processWorkflowNodeRoutine(triggerCtx, db, nodeSettings,
-						workflowTriggerNode, reference, channelEvent.ChannelId, eventChannel)
+						workflowTriggerNode, reference, inputs, eventChannel)
 				}
 			}
 		}
@@ -163,12 +231,16 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 }
 
 func processWorkflowNodeRoutine(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
-	workflowTriggerNode workflows.WorkflowNode, reference string, channelId int, eventChannel chan interface{}) {
+	workflowTriggerNode workflows.WorkflowNode, reference string, inputs map[string]string,
+	eventChannel chan interface{}) {
 
-	outputs, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowTriggerNode,
-		0, reference, make(map[string]string), eventChannel, 0)
+	workflowNodeCache := make(map[int]workflows.WorkflowNode)
+	workflowNodeStatus := make(map[int]commons.Status)
+	workflowNodeStagingParametersCache := make(map[int]map[string]string)
+	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowTriggerNode,
+		0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, eventChannel, 0)
 	workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionNodeId,
-		0, nil, outputs, err)
+		0, inputs, outputs, err)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 		return
@@ -177,12 +249,15 @@ func processWorkflowNodeRoutine(ctx context.Context, db *sqlx.DB, nodeSettings c
 
 func processWorkflowNodeDeferredLinkRoutine(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
 	workflowTriggerNode workflows.WorkflowNode, workflowTriggerNodes []workflows.WorkflowNode, reference string,
-	channelId int, eventChannel chan interface{}) {
+	inputs map[string]string, eventChannel chan interface{}) {
 
-	outputs, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowTriggerNode,
-		0, reference, make(map[string]string), eventChannel, 0)
+	workflowNodeCache := make(map[int]workflows.WorkflowNode)
+	workflowNodeStatus := make(map[int]commons.Status)
+	workflowNodeStagingParametersCache := make(map[int]map[string]string)
+	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowTriggerNode,
+		0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, eventChannel, 0)
 	workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionNodeId,
-		0, nil, outputs, err)
+		0, inputs, outputs, err)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 		return
@@ -190,8 +265,8 @@ func processWorkflowNodeDeferredLinkRoutine(ctx context.Context, db *sqlx.DB, no
 	for _, workflowDeferredLinkNode := range workflowTriggerNodes {
 		if workflowDeferredLinkNode.Type == commons.WorkflowNodeDeferredLink &&
 			workflowDeferredLinkNode.WorkflowVersionId == workflowTriggerNode.WorkflowVersionId {
-			deferredOutputs, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowDeferredLinkNode,
-				0, reference, outputs, eventChannel, 0)
+			deferredOutputs, _, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowDeferredLinkNode,
+				0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, eventChannel, 0)
 			workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
 				0, outputs, deferredOutputs, err)
 			if err != nil {
