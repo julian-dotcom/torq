@@ -66,6 +66,7 @@
   "retry": "Retry",
   "bootstrapping": "Bootstrapping",
   "workflow": "Workflow",
+  "workflows": "Workflows",
   "tableLayout": {
     "tableOptions": "Table options"
   },

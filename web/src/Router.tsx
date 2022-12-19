@@ -28,6 +28,7 @@ import PaymentsPage from "features/transact/Payments/PaymentsPage";
 import NewInvoiceModal from "features/transact/newInvoice/NewInvoiceModal";
 import * as routes from "constants/routes";
 import WorkflowPage from "./pages/WorkflowPage/WorkflowPage";
+import WorkflowsTablePage from "./pages/WorkflowPage/WorkflowsTablePage";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -82,6 +83,7 @@ const authenticatedRoutes: RouteObject = {
               path: routes.MANAGE,
               children: [
                 { path: routes.CHANNELS, element: <ChannelsPage /> },
+                { path: routes.WORKFLOWS, element: <WorkflowsTablePage /> },
                 { path: routes.WORKFLOW, element: <WorkflowPage /> },
                 // { path: routes.TAGS, element: <TagsPage /> },
               ],

@@ -6,6 +6,7 @@ import { OnChainTx } from "features/transact/OnChain/types";
 import { Payment } from "features/transact/Payments/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { Forward } from "features/forwards/forwardsTypes";
+import { workflowListItem } from "pages/WorkflowPage/workflowTypes";
 
 export type ViewResponse<T> = {
   view: ViewInterface<T>;
@@ -14,7 +15,7 @@ export type ViewResponse<T> = {
   dirty?: boolean;
 };
 
-export type TableResponses = Forward | OnChainTx | Payment | Invoice | tag | channel;
+export type TableResponses = Forward | OnChainTx | Payment | Invoice | tag | channel | workflowListItem;
 
 export type AllViewsResponse = {
   forwards: Array<ViewResponse<Forward>>;

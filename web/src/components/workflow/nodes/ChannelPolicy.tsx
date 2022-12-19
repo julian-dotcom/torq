@@ -37,7 +37,7 @@ function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
   return (
     <WorkflowNodeWrapper {...wrapperProps} heading={t.channelPolicy}>
       <Form>
-        <Socket label={"Channels"} id={"sss"} connectedNodeName={"something"} />
+        <Socket label={"Channels"} id={"sss"} />
         <Input
           formatted={true}
           value={channelPolicy.feeRate}

@@ -4,15 +4,19 @@ import styles from "./workflow_page.module.scss";
 import PageTitle from "features/templates/PageTitle";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import ChannelPolicyNode from "components/workflow/nodes/ChannelPolicy";
+import { useParams } from "react-router-dom";
 
 type WorkflowPageProps = {
   title?: string;
+  workflowId?: string;
   breadcrumbs?: Array<any>;
 };
 
 function WorkflowPage<T>(props: WorkflowPageProps) {
   const { t } = useTranslations();
-  const bradcrumbs = props.breadcrumbs || ["Workflow", "1"];
+  const { workflowId } = useParams();
+
+  const bradcrumbs = props.breadcrumbs || [t.manage, t.workflow, workflowId];
   const id1 = useId();
   const id2 = useId();
   const id3 = useId();
