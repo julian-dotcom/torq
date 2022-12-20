@@ -382,8 +382,7 @@ func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, erro
 	return response, nil
 }
 
-// GetWorkflowTree this code assumes recursive loops from the root nodes are not allowed
-func GetWorkflowTree(db *sqlx.DB, workflowVersionId int) (WorkflowForest, error) {
+func GetWorkflowForest(db *sqlx.DB, workflowVersionId int) (WorkflowForest, error) {
 	var rootVersionNodeIds []int
 	err := db.Select(&rootVersionNodeIds, `
 		SELECT n.workflow_version_node_id

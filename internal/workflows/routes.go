@@ -222,12 +222,12 @@ func getWorkflowVersionNodesHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionId in the request.")
 		return
 	}
-	workflowTree, err := GetWorkflowTree(db, workflowVersionId)
+	workflowForest, err := GetWorkflowForest(db, workflowVersionId)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Getting workflow tree.")
+		server_errors.WrapLogAndSendServerError(c, err, "Getting workflow forest.")
 		return
 	}
-	c.JSON(http.StatusOK, workflowTree)
+	c.JSON(http.StatusOK, workflowForest)
 }
 
 func addWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
