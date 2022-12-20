@@ -29,12 +29,14 @@ import ProfitsChart from "./revenueChart/ProfitsChart";
 import Modal from "features/modal/Modal";
 import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
+import { selectActiveNetwork } from "features/network/networkSlice";
 
 const ft = d3.format(",.0f");
 
 function ChannelPage() {
   const { data: nodeConfigurations, isSuccess: nodeConfigurationsQueryHasRun } = useGetNodeConfigurationsQuery();
   const navigate = useNavigate();
+  const activeNetwork = useAppSelector(selectActiveNetwork);
 
   const handleConfirmationModalClose = () => {
     setShowModalState(false);
@@ -56,6 +58,7 @@ function ChannelPage() {
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
     chanIds: chanId || "1",
+    network: activeNetwork,
   };
 
   const { data, isLoading } = useGetFlowQuery(flowQueryParams);
@@ -65,6 +68,7 @@ function ChannelPage() {
     queryParams: {
       from: from,
       to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
+      network: activeNetwork,
     },
   };
 

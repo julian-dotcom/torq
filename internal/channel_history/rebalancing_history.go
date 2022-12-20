@@ -38,8 +38,9 @@ func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time
 			WHERE status = 'SUCCEEDED' AND
 				htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY($1) AND
 				creation_timestamp::timestamp AT TIME ZONE ($4) >= $2::timestamp AND
-				creation_timestamp::timestamp AT TIME ZONE ($4) <= $3::timestamp
-		) AS a;`, pq.Array(publicKeys), from, to, settings.PreferredTimeZone)
+				creation_timestamp::timestamp AT TIME ZONE ($4) <= $3::timestamp AND
+				node_id = ANY($5)
+		) AS a;`, pq.Array(publicKeys), from, to, settings.PreferredTimeZone, pq.Array(nodeIds))
 	var cost RebalancingDetails
 	err := row.Scan(
 		&cost.AmountMsat,

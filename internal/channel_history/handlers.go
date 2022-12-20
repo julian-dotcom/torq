@@ -102,25 +102,34 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	// Get the total values for the whole requested time range (from - to)
-	r, err := getChannelTotal(db, all, channelIds, from, to)
+	network, err := strconv.Atoi(c.Query("network"))
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+
+	chain := commons.Bitcoin
+	networkNodeIds := commons.GetAllTorqNodeIds(chain, commons.Network(network))
+
+	// Get the total values for the whole requested time range (from - to)
+	r, err := getChannelTotal(db, networkNodeIds, all, channelIds, from, to)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Getting channel totals")
 		return
 	}
 
 	// Get the details for the requested channels
-	channels, err := channels.GetChannels(db, all, channelIds)
+	channels, err := channels.GetChannels(db, networkNodeIds, all, channelIds)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.WrapLogAndSendServerError(c, err, "Getting channels")
 		return
 	}
 	r.Channels = channels
 
 	// Get the daily values
-	chanHistory, err := getChannelHistory(db, all, channelIds, from, to)
+	chanHistory, err := getChannelHistory(db, networkNodeIds, all, channelIds, from, to)
 	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
+		server_errors.WrapLogAndSendServerError(c, err, "Getting channel history")
 		return
 	}
 	r.History = chanHistory
@@ -241,8 +250,14 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 
 	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
 
-	network := c.Query("network")
-	chain := c.Query("chain")
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+
+	chain := commons.Bitcoin
+	networkNodeIds := commons.GetAllTorqNodeIds(chain, commons.Network(network))
 
 	var all = false
 	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
@@ -250,7 +265,7 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	if all {
-		reb, err := getRebalancingCost(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), from, to)
+		reb, err := getRebalancingCost(db, networkNodeIds, from, to)
 		r.RebalancingCost = &reb.TotalCostMsat
 		r.RebalancingDetails = reb
 		if err != nil {
@@ -258,7 +273,7 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 			return
 		}
 	} else {
-		reb, err := getChannelRebalancing(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), lndShortChannelIdStrings, from, to)
+		reb, err := getChannelRebalancing(db, networkNodeIds, lndShortChannelIdStrings, from, to)
 		r.RebalancingCost = &reb.SplitCostMsat
 		r.RebalancingDetails = reb
 		if err != nil {
@@ -288,18 +303,24 @@ func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 
 	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
 
-	network := c.Query("network")
-	chain := c.Query("chain")
-
 	var all = false
 	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
 		all = true
 	}
 
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+
+	chain := commons.Bitcoin
+	networkNodeIds := commons.GetAllTorqNodeIds(chain, commons.Network(network))
+
 	if all {
-		r.OnChainCost, err = getTotalOnChainCost(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), from, to)
+		r.OnChainCost, err = getTotalOnChainCost(db, networkNodeIds, from, to)
 	} else {
-		r.OnChainCost, err = getChannelOnChainCost(db, lndShortChannelIdStrings)
+		r.OnChainCost, err = getChannelOnChainCost(db, networkNodeIds, lndShortChannelIdStrings)
 	}
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)

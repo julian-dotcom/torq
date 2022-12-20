@@ -57,13 +57,20 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	chanIds := strings.Split(c.Query("chanIds"), ",")
-
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	r, err := getFlow(db, chanIds, from, to)
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+
+	chain := commons.Bitcoin
+
+	r, err := getFlow(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), chanIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -71,7 +78,7 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
+func getFlow(db *sqlx.DB, nodeIds []int, lndShortChannelIdStrings []string, fromTime time.Time,
 	toTime time.Time) (r []*channelFlowData,
 	err error) {
 
@@ -125,6 +132,7 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 				where time >= $1
 					and time <= $2
 					and ($3 or incoming_channel_id = ANY($4))
+					and node_id = ANY($5)
 				group by outgoing_channel_id
 			) as o
 			full outer join (
@@ -137,6 +145,7 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 				where time >= $1
 					and time <= $2
 					and ($3 or outgoing_channel_id = ANY($4))
+					and node_id = ANY($5)
 				group by incoming_channel_id
 			) as i
 				on o.outgoing_channel_id = i.incoming_channel_id
@@ -163,7 +172,7 @@ func getFlow(db *sqlx.DB, lndShortChannelIdStrings []string, fromTime time.Time,
 		left join node n on ne.event_node_id = n.node_id
 	`
 
-	rows, err := db.Queryx(sql, fromTime, toTime, getAll, pq.Array(channelIds))
+	rows, err := db.Queryx(sql, fromTime, toTime, getAll, pq.Array(channelIds), pq.Array(nodeIds))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running flow query")
 	}

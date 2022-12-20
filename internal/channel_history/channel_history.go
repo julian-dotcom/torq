@@ -38,7 +38,7 @@ type ChannelHistoryRecords struct {
 	CountTotal *uint64 `json:"countTotal"`
 }
 
-func getChannelHistory(db *sqlx.DB, all bool, channelIds []int, from time.Time,
+func getChannelHistory(db *sqlx.DB, nodeIds []int, all bool, channelIds []int, from time.Time,
 	to time.Time) (r []*ChannelHistoryRecords,
 	err error) {
 
@@ -55,7 +55,7 @@ func getChannelHistory(db *sqlx.DB, all bool, channelIds []int, from time.Time,
 			sum(coalesce(i.count,0)) as count_in,
 			sum(coalesce(o.count,0)) as count_out,
 			sum(coalesce((coalesce(i.count,0) + coalesce(o.count,0)), 0)) as count_total
-		from settings, (
+		from (
 			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE ($5), $1, $2) as date,
 				   outgoing_channel_id channel_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
@@ -65,6 +65,7 @@ func getChannelHistory(db *sqlx.DB, all bool, channelIds []int, from time.Time,
 			where ($3 or outgoing_channel_id = ANY ($4))
 				and time::timestamp AT TIME ZONE ($5) >= $1::timestamp
 				and time::timestamp AT TIME ZONE ($5) <= $2::timestamp
+				and node_id = ANY($6)
 			group by date, outgoing_channel_id
 			) as o
 		full outer join (
@@ -77,13 +78,14 @@ func getChannelHistory(db *sqlx.DB, all bool, channelIds []int, from time.Time,
 			where ($3 or incoming_channel_id = ANY ($4))
 				and time::timestamp AT TIME ZONE ($5) >= $1::timestamp
 				and time::timestamp AT TIME ZONE ($5) <= $2::timestamp
+				and node_id = ANY($6)
 			group by date, incoming_channel_id)  as i
 		on (i.channel_id = o.channel_id) and (i.date = o.date)
 		group by (coalesce(i.date, o.date)), ($5)
 		order by date;
 	`
 
-	rows, err := db.Queryx(sql, from, to, all, pq.Array(channelIds), commons.GetSettings().PreferredTimeZone)
+	rows, err := db.Queryx(sql, from, to, all, pq.Array(channelIds), commons.GetSettings().PreferredTimeZone, pq.Array(nodeIds))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Getting channel history")
 	}

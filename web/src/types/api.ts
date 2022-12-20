@@ -20,14 +20,15 @@ export type BaseQueryCollectionParams = Paginable & {
   filter?: any;
 };
 
-export type GetFlowQueryParams = FromAndTo & {
-  chanIds: string;
-};
+export type GetFlowQueryParams = FromAndTo &
+  ActiveNetwork & {
+    chanIds: string;
+  };
 
 export type GetChannelHistoryParams = {
   chanId: string;
 };
-export type GetChannelHistoryQueryParams = FromAndTo;
+export type GetChannelHistoryQueryParams = FromAndTo & ActiveNetwork;
 export type GetChannelHistoryData = {
   params: GetChannelHistoryParams;
   queryParams: GetChannelHistoryQueryParams;
