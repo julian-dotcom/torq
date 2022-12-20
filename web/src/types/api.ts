@@ -72,7 +72,7 @@ type LoginSuccess = {
 
 export type GetPaymentsQueryParams = BaseQueryCollectionParams & ActiveNetwork;
 
-export type GetInvoicesQueryParams = BaseQueryCollectionParams;
+export type GetInvoicesQueryParams = BaseQueryCollectionParams & ActiveNetwork;
 
 export type GetOnChainTransactionsQueryParams = BaseQueryCollectionParams;
 

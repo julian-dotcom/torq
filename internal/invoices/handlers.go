@@ -1,15 +1,17 @@
 package invoices
 
 import (
+	"net/http"
+	"strconv"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	qp "github.com/lncapital/torq/internal/query_parser"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"net/http"
-	"strconv"
 )
 
 func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
@@ -108,7 +110,15 @@ func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	r, total, err := getInvoices(db, filter, sort, limit, offset)
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+
+	chain := commons.Bitcoin
+
+	r, total, err := getInvoices(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -125,7 +135,15 @@ func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 
 func getInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 
-	r, err := getInvoiceDetails(db, c.Param("identifier"))
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+
+	chain := commons.Bitcoin
+
+	r, err := getInvoiceDetails(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), c.Param("identifier"))
 	switch err.(type) {
 	case nil:
 		break

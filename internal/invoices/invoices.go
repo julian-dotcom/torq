@@ -34,7 +34,7 @@ type Invoice struct {
 	Private           *bool      `json:"private" db:"private"`
 }
 
-func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Invoice,
+func getInvoices(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Invoice,
 	total uint64, err error) {
 
 	qb := sq.Select("*").FromSelect(sq.Select(`
@@ -59,7 +59,9 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				expiry,
 				cltv_expiry,
 				private
-			`).From("invoice").LeftJoin("payment p on (invoice.r_hash = p.payment_hash)"), "subq").
+			`).From("invoice").
+		Where(sq.Eq{"invoice.node_id": nodeIds}).
+		LeftJoin("payment p on (invoice.r_hash = p.payment_hash)"), "subq").
 		PlaceholderFormat(sq.Dollar).
 		Where(filter).
 		OrderBy(order...)
@@ -137,7 +139,9 @@ func getInvoices(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, o
 				expiry,
 				cltv_expiry,
 				private
-			`).From("invoice").LeftJoin("payment p on (invoice.r_hash = p.payment_hash)"), "subquery").
+			`).From("invoice").
+				Where(sq.Eq{"invoice.node_id": nodeIds}).
+				LeftJoin("payment p on (invoice.r_hash = p.payment_hash)"), "subquery").
 		Where(filter)
 
 	totalQs, args, err := totalQb.ToSql()
@@ -202,7 +206,7 @@ func (e ErrInvoiceNotFound) Error() string {
 	return "Invoice not found"
 }
 
-func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) {
+func getInvoiceDetails(db *sqlx.DB, nodeIds []int, identifier string) (*InvoiceDetails, error) {
 
 	//language=PostgreSQL
 	qb := sq.Select(`
@@ -234,6 +238,7 @@ func getInvoiceDetails(db *sqlx.DB, identifier string) (*InvoiceDetails, error) 
 			`).
 		PlaceholderFormat(sq.Dollar).
 		From("invoice").
+		Where(sq.Eq{"invoice.node_id": nodeIds}).
 		LeftJoin("payment p on (invoice.r_hash = p.payment_hash)").
 		Where(
 			sq.Or{
