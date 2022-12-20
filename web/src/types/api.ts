@@ -70,7 +70,7 @@ type LoginSuccess = {
   message: string;
 };
 
-export type GetPaymentsQueryParams = BaseQueryCollectionParams;
+export type GetPaymentsQueryParams = BaseQueryCollectionParams & ActiveNetwork;
 
 export type GetInvoicesQueryParams = BaseQueryCollectionParams;
 

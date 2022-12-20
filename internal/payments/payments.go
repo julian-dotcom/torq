@@ -93,6 +93,7 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000, 0))-creation_timestamp))::numeric as seconds_in_flight
 			`).
 				From("payment").
+				Where(sq.Eq{"node_id": nodeIds}).
 				Prefix(`WITH pub_keys as (select ?::text[])`, pq.Array(publicKeys)),
 			"subquery").
 		PlaceholderFormat(sq.Dollar).
@@ -166,6 +167,7 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 				extract(epoch from (to_timestamp(coalesce(NULLIF(resolved_ns, 0)/1000000000, 0))-creation_timestamp))::numeric as seconds_in_flight
 			`).
 				From("payment").
+				Where(sq.Eq{"node_id": nodeIds}).
 				Prefix(`WITH pub_keys as(select ?::text[])`, pq.Array(publicKeys)),
 			"subquery").
 		PlaceholderFormat(sq.Dollar).
@@ -220,8 +222,8 @@ func getPaymentDetails(db *sqlx.DB, nodeIds []int, identifier string) (*PaymentD
 			successful_routes,
 			failed_routes
 		FROM payment
-		WHERE payment_hash=$2 OR payment_request=$2 OR payment_preimage=$2
-		LIMIT 1;`, pq.Array(publicKeys), identifier)
+		WHERE node_id = ANY ($3) AND (payment_hash=$2 OR payment_request=$2 OR payment_preimage=$2)
+		LIMIT 1;`, pq.Array(publicKeys), identifier, pq.Array(nodeIds))
 	if row != nil {
 		r := PaymentDetails{}
 		var sr []byte
