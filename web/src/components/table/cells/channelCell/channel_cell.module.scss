@@ -1,5 +1,9 @@
-a.updateLink, a.closeChannelLink {
-  &:link, &:visited, &:hover, &:active {
+a.updateLink,
+a.closeChannelLink {
+  &:link,
+  &:visited,
+  &:hover,
+  &:active {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -12,8 +16,11 @@ a.updateLink, a.closeChannelLink {
     border-radius: var(--radius-default);
   }
 }
- a.closeChannelLink {
-  &:link, &:visited, &:hover, &:active {
+a.closeChannelLink {
+  &:link,
+  &:visited,
+  &:hover,
+  &:active {
     background-color: var(--color-error-layer-3);
     color: var(--color-text-error-strong);
   }
@@ -29,4 +36,15 @@ a.updateLink, a.closeChannelLink {
 }
 .channelCellWrapper:hover .actionButtons {
   opacity: 1;
+}
+.workflowCellWrapper {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  column-gap: 8px;
+  .workflowCellContent,
+  div {
+    display: flex;
+    height: 100%;
+  }
 }

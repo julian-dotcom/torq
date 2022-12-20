@@ -4,6 +4,7 @@ import Table from "features/table/Table";
 import { ColumnMetaData } from "features/table/types";
 import { workflowListItem } from "./workflowTypes";
 import workflowCellRenderer from "./workflowCellRenderer";
+import { useGetWorkflowsQuery } from "./workflowApi";
 
 // type WorkflowsTablePageProps = {};
 
@@ -11,27 +12,24 @@ function WorkflowsTablePage() {
   const { t } = useTranslations();
   const breadcrumbs = [t.manage, t.workflows];
 
-  const data = [
-    {
-      id: 1,
-      name: "Workflow 1",
-    },
-    {
-      id: 2,
-      name: "Workflow 2",
-    },
-  ];
+  const workflowListResponse = useGetWorkflowsQuery();
 
   const columns: Array<ColumnMetaData<workflowListItem>> = [
-    // {
-    //   key: "id",
-    //   heading: "ID",
-    //   valueType: "number",
-    //   type: "NumberCell",
-    // },
     {
-      key: "name",
+      key: "workflowName",
       heading: "Name",
+      valueType: "string",
+      type: "TextCell",
+    },
+    {
+      key: "workflowStatus",
+      heading: "Active",
+      valueType: "boolean",
+      type: "BooleanCell",
+    },
+    {
+      key: "activeVersionName",
+      heading: "Active Version",
       valueType: "string",
       type: "TextCell",
     },
@@ -39,7 +37,12 @@ function WorkflowsTablePage() {
 
   return (
     <TablePageTemplate title={t.workflows} breadcrumbs={breadcrumbs} tableControls={<div />}>
-      <Table cellRenderer={workflowCellRenderer} data={data} activeColumns={columns} isLoading={false} />
+      <Table
+        cellRenderer={workflowCellRenderer}
+        data={workflowListResponse.data || []}
+        activeColumns={columns}
+        isLoading={false}
+      />
     </TablePageTemplate>
   );
 }

@@ -1,9 +1,7 @@
 import cellStyles from "components/table/cells/cell.module.scss";
-// import { Edit16Regular as UpdateIcon } from "@fluentui/react-icons";
 import styles from "./channel_cell.module.scss";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import classNames from "classnames";
-import useTranslations from "services/i18n/useTranslations";
 
 interface WorkflowCell {
   name: string;
@@ -12,14 +10,13 @@ interface WorkflowCell {
 }
 
 function WorkflowCell(props: WorkflowCell) {
-  const { t } = useTranslations();
-  const location = useLocation();
+  // const { t } = useTranslations();
+  // const location = useLocation();
 
   const content = (
-    <>
+    <div className={styles.workflowCellContent}>
       <div className={classNames(cellStyles.current, cellStyles.text)}>{props.name}</div>
       <div className={styles.actionButtons}>
-        close
         {/*<Link to={`${props.workflowId}`} className={classNames(cellStyles.action, styles.updateLink)}>*/}
         {/*  <UpdateIcon /> {t.edit}*/}
         {/*</Link>*/}
@@ -31,11 +28,11 @@ function WorkflowCell(props: WorkflowCell) {
         {/*  <CloseIcon /> Close*/}
         {/*</Link>*/}
       </div>
-    </>
+    </div>
   );
 
   return (
-    <Link to={`${props.workflowId}`}>
+    <Link to={`${props.workflowId}`} className={styles.workflowCellWrapper}>
       <div className={classNames(cellStyles.cell, cellStyles.alignLeft, props.className, styles.channelCellWrapper)}>
         {content}
       </div>

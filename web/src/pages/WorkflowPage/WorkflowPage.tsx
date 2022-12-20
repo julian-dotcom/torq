@@ -5,6 +5,7 @@ import PageTitle from "features/templates/PageTitle";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import ChannelPolicyNode from "components/workflow/nodes/ChannelPolicy";
 import { useParams } from "react-router-dom";
+import { useGetWorkflowQuery } from "./workflowApi";
 
 type WorkflowPageProps = {
   title?: string;
@@ -14,7 +15,11 @@ type WorkflowPageProps = {
 
 function WorkflowPage<T>(props: WorkflowPageProps) {
   const { t } = useTranslations();
-  const { workflowId } = useParams();
+  const { workflowId, workflowVersionId } = useParams();
+
+  const workflowResponse = useGetWorkflowQuery({ workflowVersionId: parseInt(workflowVersionId || "") });
+
+  console.log(workflowResponse.data);
 
   const bradcrumbs = props.breadcrumbs || [t.manage, t.workflow, workflowId];
   const id1 = useId();

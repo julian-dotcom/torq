@@ -42,14 +42,21 @@ func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflo
 	return wf, nil
 }
 
-func GetWorkflows(db *sqlx.DB) ([]Workflow, error) {
-	var wfs []Workflow
-	err := db.Select(&wfs, `SELECT * FROM workflow;`)
+func GetWorkflows(db *sqlx.DB) ([]WorkflowTableRow, error) {
+	var wfs []WorkflowTableRow
+	err := db.Select(&wfs, `SELECT
+			w.workflow_id, w.name as workflow_name, w.status as workflow_status,
+			wv.name as latest_version_name, wv.version as latest_version, wv.workflow_version_id as latest_workflow_version_id, wv.status as latest_version_status,
+			awv.name as active_version_name, awv.version as active_version, awv.workflow_version_id as active_workflow_version_id, awv.status as active_version_status
+		FROM workflow as w
+		left join (select * from workflow_version where workflow_id = 2 order by workflow_version_id limit 1) as wv on w.workflow_id = wv.workflow_id
+		left join (select * from workflow_version where workflow_id = 2 and status = 1 order by workflow_version_id limit 1) as awv on w.workflow_id = awv.workflow_id
+		WHERE w.workflow_id=2;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []Workflow{}, nil
+			return []WorkflowTableRow{}, nil
 		}
-		return []Workflow{}, errors.Wrap(err, database.SqlExecutionError)
+		return []WorkflowTableRow{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return wfs, nil
 }
@@ -451,6 +458,7 @@ func processNodeRecursion(processedNodes map[int]*WorkflowNode, db *sqlx.DB, wor
 		workflowNode.ParentNodes[workflowParentNodeLink.WorkflowVersionNodeLinkId] = workflowParentNode
 		workflowNode.LinkDetails[workflowParentNodeLink.WorkflowVersionNodeLinkId] = *workflowParentNodeLink
 	}
+
 	childNodes, childNodeLinkDetails, err := getChildNodes(db, workflowNode.WorkflowVersionNodeId)
 	if err != nil {
 		return errors.Wrapf(err, "Obtaining child nodes for workflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
@@ -723,9 +731,8 @@ func addWorkflowVersionNodeLog(db *sqlx.DB, workflowVersionNodeLog WorkflowVersi
 func GetWorkflowVersionNodeLogs(db *sqlx.DB, workflowVersionNodeId int, maximumResultCount int) ([]WorkflowVersionNodeLog, error) {
 	var wfvnls []WorkflowVersionNodeLog
 	err := db.Get(&wfvnls,
-		fmt.Sprintf(
-			"SELECT * FROM workflow_version_node_log WHERE workflow_version_node_id=$1 ORDER BY created_on DESC LIMIT %d;", maximumResultCount),
-		workflowVersionNodeId)
+		"SELECT * FROM workflow_version_node_log WHERE workflow_version_node_id=$1 ORDER BY created_on DESC LIMIT $2;",
+		workflowVersionNodeId, maximumResultCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowVersionNodeLog{}, nil
@@ -737,16 +744,13 @@ func GetWorkflowVersionNodeLogs(db *sqlx.DB, workflowVersionNodeId int, maximumR
 
 func GetWorkflowLogs(db *sqlx.DB, workflowId int, maximumResultCount int) ([]WorkflowVersionNodeLog, error) {
 	var wfvnls []WorkflowVersionNodeLog
-	err := db.Get(&wfvnls,
-		fmt.Sprintf(
-			"SELECT * "+
-				"FROM workflow_version_node_log wfvnls "+
-				"JOIN workflow_version_node wfvn ON wfvn.workflow_version_node_id=wfvnls.workflow_version_node_id "+
-				"JOIN workflow_version wfv ON wfv.workflow_version_id=wfvn.workflow_version_id "+
-				"WHERE wfv.workflow_id=$1 "+
-				"ORDER BY created_on DESC "+
-				"LIMIT %d;", maximumResultCount),
-		workflowId)
+	err := db.Get(&wfvnls, `SELECT *
+				FROM workflow_version_node_log wfvnls
+				JOIN workflow_version_node wfvn ON wfvn.workflow_version_node_id=wfvnls.workflow_version_node_id
+				JOIN workflow_version wfv ON wfv.workflow_version_id=wfvn.workflow_version_id
+				WHERE wfv.workflow_id=$1
+				ORDER BY created_on DESC
+				LIMIT $2;`, workflowId, maximumResultCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowVersionNodeLog{}, nil

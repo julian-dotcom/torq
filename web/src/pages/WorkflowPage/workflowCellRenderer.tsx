@@ -12,13 +12,13 @@ export default function workflowCellRenderer(
   isTotalsRow?: boolean,
   maxRow?: workflowListItem
 ): JSX.Element {
-  if (column.key === "name") {
+  if (column.key === "workflowName") {
     return (
       <WorkflowCell
-        name={row.name}
-        workflowId={row.id}
+        name={row.workflowName}
+        workflowId={row.workflowId}
         className={cellStyles.locked}
-        key={"workflow-" + row.id + "-" + rowIndex}
+        key={"workflow-" + row.workflowId + "-" + rowIndex}
       />
     );
   }

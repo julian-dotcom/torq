@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/broadcast"
@@ -23,8 +21,8 @@ type RebalanceAttempt struct {
 func RebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
 
-	client := lnrpc.NewLightningClient(conn)
-	router := routerrpc.NewRouterClient(conn)
+	//client := lnrpc.NewLightningClient(conn)
+	//router := routerrpc.NewRouterClient(conn)
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 

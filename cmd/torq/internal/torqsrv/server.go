@@ -217,7 +217,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 			flow.RegisterFlowRoutes(flowRoutes, db)
 		}
 
-		workflowRoutes := api.Group("/workflow")
+		workflowRoutes := api.Group("/workflows")
 		{
 			workflows.RegisterWorkflowRoutes(workflowRoutes, db)
 		}

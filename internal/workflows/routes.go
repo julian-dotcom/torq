@@ -14,11 +14,12 @@ import (
 )
 
 func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("getWorkflow/:workflowId", func(c *gin.Context) { getWorkflowHandler(c, db) })
-	r.GET("allWorkflows", func(c *gin.Context) { getWorkflowsHandler(c, db) })
-	r.POST("addWorkflow", func(c *gin.Context) { addWorkflowHandler(c, db) })
-	r.PUT("setWorkflow", func(c *gin.Context) { setWorkflowHandler(c, db) })
-	r.DELETE("removeWorkflow/:workflowId", func(c *gin.Context) { removeWorkflowHandler(c, db) })
+
+	r.GET("", func(c *gin.Context) { getWorkflowsHandler(c, db) })
+	r.POST("", func(c *gin.Context) { addWorkflowHandler(c, db) })
+	r.PUT("", func(c *gin.Context) { setWorkflowHandler(c, db) })
+	r.DELETE("/:workflowId", func(c *gin.Context) { removeWorkflowHandler(c, db) })
+	r.GET("/:workflowVersionId", func(c *gin.Context) { getWorkflowVersionNodesHandler(c, db) })
 
 	r.GET("getWorkflowVersion/:workflowVersionId", func(c *gin.Context) { getWorkflowVersionHandler(c, db) })
 	r.GET("getWorkflowVersions/:workflowId", func(c *gin.Context) { getWorkflowVersionsHandler(c, db) })
@@ -29,7 +30,7 @@ func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
 	// getWorkflowVersionNode is not recursive and only returns direct parent/child relations without further nesting.
 	r.GET("getWorkflowVersionNode/:workflowVersionNodeId", func(c *gin.Context) { getWorkflowVersionNodeHandler(c, db) })
-	r.GET("getWorkflowVersionNodes/:workflowVersionId", func(c *gin.Context) { getWorkflowVersionNodesHandler(c, db) })
+
 	r.POST("addWorkflowVersionNode", func(c *gin.Context) { addWorkflowVersionNodeHandler(c, db) })
 	r.PUT("setWorkflowVersionNode", func(c *gin.Context) { setWorkflowVersionNodeHandler(c, db) })
 	r.DELETE("removeWorkflowVersionNode", func(c *gin.Context) { removeWorkflowVersionNodeHandler(c, db) })
