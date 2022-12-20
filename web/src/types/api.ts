@@ -74,7 +74,7 @@ export type GetPaymentsQueryParams = BaseQueryCollectionParams & ActiveNetwork;
 
 export type GetInvoicesQueryParams = BaseQueryCollectionParams & ActiveNetwork;
 
-export type GetOnChainTransactionsQueryParams = BaseQueryCollectionParams;
+export type GetOnChainTransactionsQueryParams = BaseQueryCollectionParams & ActiveNetwork;
 
 type InvoiceFeature = {
   Name: string;

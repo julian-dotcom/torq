@@ -21,7 +21,7 @@ type Transaction struct {
 	LndShortChannelId  *string        `json:"lndShortChanId" db:"lnd_short_chan_id"`
 }
 
-func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Transaction,
+func getOnChainTxs(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string, limit uint64, offset uint64) (r []*Transaction,
 	total uint64, err error) {
 
 	//language=PostgreSQL
@@ -43,7 +43,8 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
        		   (regexp_matches(label, '\d{1,}:(openchannel|closechannel):shortchanid-(\d{18,18})|$') )[2] as lnd_short_chan_id
 			`).
 				PlaceholderFormat(sq.Dollar).
-				From("tx"),
+				From("tx").
+				Where(sq.Eq{"tx.node_id": nodeIds}),
 			"subquery").
 		Where(filter).
 		OrderBy(order...)
@@ -101,7 +102,8 @@ func getOnChainTxs(db *sqlx.DB, filter sq.Sqlizer, order []string, limit uint64,
        		   (regexp_matches(label, '\d{1,}:(openchannel|closechannel):shortchanid-(\d{18,18})|$') )[2] as lnd_short_chan_id
 			`).
 				PlaceholderFormat(sq.Dollar).
-				From("tx"),
+				From("tx").
+				Where(sq.Eq{"tx.node_id": nodeIds}),
 			"subquery").
 		Where(filter)
 
