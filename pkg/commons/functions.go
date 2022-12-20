@@ -105,6 +105,17 @@ func CopyParameters(parameters map[string]string) map[string]string {
 	return parametersCopy
 }
 
+func GetServiceTypes() []ServiceType {
+	return []ServiceType{
+		LndService,
+		VectorService,
+		AmbossService,
+		TorqService,
+		AutomationService,
+		RoutingPolicyService,
+		RebalanceService}
+}
+
 type WorkflowParameterWithLabel struct {
 	Label string
 	WorkflowParameter
@@ -136,8 +147,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			RequiredOutputs: []WorkflowParameterWithLabel{{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds}},
 			OptionalOutputs: []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
 		},
-		WorkflowNodeCostParameters: {
-			WorkflowNodeType: WorkflowNodeCostParameters,
+		WorkflowNodeRoutingPolicyParameters: {
+			WorkflowNodeType: WorkflowNodeRoutingPolicyParameters,
 			RequiredInputs:   []WorkflowParameterWithLabel{},
 			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
 			RequiredOutputs:  []WorkflowParameterWithLabel{},

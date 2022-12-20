@@ -230,11 +230,9 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 
 	// initialise package level var for keeping state of subsciptions
 	commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)
-	commons.RunningServices[commons.LndService] = &commons.Services{ServiceType: commons.LndService}
-	commons.RunningServices[commons.VectorService] = &commons.Services{ServiceType: commons.VectorService}
-	commons.RunningServices[commons.AmbossService] = &commons.Services{ServiceType: commons.AmbossService}
-	commons.RunningServices[commons.TorqService] = &commons.Services{ServiceType: commons.TorqService}
-	commons.RunningServices[commons.AutomationService] = &commons.Services{ServiceType: commons.AutomationService}
+	for _, serviceType := range commons.GetServiceTypes() {
+		commons.RunningServices[serviceType] = &commons.Services{ServiceType: serviceType}
+	}
 
 	return db, cancel, broadcaster, eventChannelGlobal, nil
 }

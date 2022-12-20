@@ -90,10 +90,34 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				// There shouldn't be any stage nodes except when it's the first node
 				return outputs, commons.Deleted, nil
 			}
-		case commons.WorkflowNodeCostParameters:
+		case commons.WorkflowNodeRoutingPolicyParameters:
 		case commons.WorkflowNodeRebalanceParameters:
 		case commons.WorkflowNodeRebalanceRun:
+			//if eventChannel != nil {
+			//	eventChannel <- commons.RebalanceRequest{
+			//		NodeId: nodeSettings.NodeId,
+			//		SourceChannelIds: strconv.Atoi(inputs["channelId"]),
+			//		DestinationChannelIds: strconv.Atoi(inputs["channelId"]),
+			//		MaxCost: ,
+			//	}
+			//}
 		case commons.WorkflowNodeRoutingPolicyRun:
+			//if eventChannel != nil {
+			//	eventChannel <- commons.ChannelStatusUpdateRequest{
+			//		NodeId: nodeSettings.NodeId,
+			//		ChannelId: strconv.Atoi(inputs["channelId"]),
+			//		ChannelStatus: ,
+			//	}
+			//	eventChannel <- commons.RoutingPolicyUpdateRequest{
+			//		NodeId: nodeSettings.NodeId,
+			//		ChannelId: strconv.Atoi(inputs["channelId"]),
+			//		FeeRateMilliMsat: ,
+			//		FeeBaseMsat: ,
+			//		MinHtlcMsat: ,
+			//		MaxHtlcMsat: ,
+			//		TimeLockDelta: ,
+			//	}
+			//}
 		}
 		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
 		for childLinkId, childNode := range workflowNode.ChildNodes {

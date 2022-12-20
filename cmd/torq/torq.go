@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
+	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/cmd/torq/internal/amboss_ping"
@@ -152,11 +153,9 @@ func main() {
 
 			// initialise package level var for keeping state of subsciptions
 			commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)
-			commons.RunningServices[commons.LndService] = &commons.Services{ServiceType: commons.LndService}
-			commons.RunningServices[commons.VectorService] = &commons.Services{ServiceType: commons.VectorService}
-			commons.RunningServices[commons.AmbossService] = &commons.Services{ServiceType: commons.AmbossService}
-			commons.RunningServices[commons.TorqService] = &commons.Services{ServiceType: commons.TorqService}
-			commons.RunningServices[commons.AutomationService] = &commons.Services{ServiceType: commons.AutomationService}
+			for _, serviceType := range commons.GetServiceTypes() {
+				commons.RunningServices[serviceType] = &commons.Services{ServiceType: serviceType}
+			}
 
 			ctxGlobal, cancelGlobal := context.WithCancel(context.Background())
 			defer cancelGlobal()
@@ -334,6 +333,21 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 		var serviceNode settings.ConnectionDetails
 		var err error
 		var enforcedServiceStatus *commons.Status
+		var name string
+		switch serviceCmd.ServiceType {
+		case commons.LndService:
+			name = "LND"
+		case commons.VectorService:
+			name = "Vector Ping"
+		case commons.AmbossService:
+			name = "Amboss Ping"
+		case commons.AutomationService:
+			name = "Automation"
+		case commons.RoutingPolicyService:
+			name = "RoutingPolicy"
+		case commons.RebalanceService:
+			name = "RebalanceService"
+		}
 		if serviceCmd.ServiceCommand == commons.Kill {
 			serviceCmd.Out <- services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay, eventChannel)
 		}
@@ -350,7 +364,7 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 				} else {
 					serviceNode, err = settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
 					if err != nil {
-						log.Error().Err(errors.Wrap(err, "Service Boot: Getting connection details")).Send()
+						log.Error().Err(errors.Wrapf(err, "%v Service Boot: Getting connection details", name)).Send()
 						return
 					}
 					if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
@@ -362,118 +376,66 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 					}
 				}
 			}
-			if serviceCmd.ServiceType == commons.LndService {
-				log.Info().Msgf("LND Service: Verifying requirement.")
+			if name != "" {
+				log.Info().Msgf("%v Service: Verifying requirement.", name)
 				if nodes == nil {
 					if serviceCmd.NodeId == 0 {
-						commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, nil, eventChannel)
-						nodes, err = settings.GetActiveNodesConnectionDetails(db)
+						if serviceCmd.ServiceType == commons.LndService {
+							commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, nil, eventChannel)
+						}
+						switch serviceCmd.ServiceType {
+						case commons.VectorService:
+							nodes, err = settings.GetVectorPingNodesConnectionDetails(db)
+						case commons.AmbossService:
+							nodes, err = settings.GetAmbossPingNodesConnectionDetails(db)
+						default:
+							nodes, err = settings.GetActiveNodesConnectionDetails(db)
+						}
 						if err != nil {
-							log.Error().Err(err).Msg("LND Service: Getting connection details")
+							log.Error().Err(err).Msgf("%v Service: Getting connection details", name)
 						}
 					} else {
-						if serviceNode.Status == commons.Active {
-							nodes = []settings.ConnectionDetails{serviceNode}
-						} else {
-							nodes = []settings.ConnectionDetails{}
+						switch serviceCmd.ServiceType {
+						case commons.VectorService:
+							if serviceNode.Status == commons.Active && serviceNode.HasPingSystem(commons.Vector) {
+								nodes = []settings.ConnectionDetails{serviceNode}
+							} else {
+								nodes = []settings.ConnectionDetails{}
+							}
+						case commons.AmbossService:
+							if serviceNode.Status == commons.Active && serviceNode.HasPingSystem(commons.Amboss) {
+								nodes = []settings.ConnectionDetails{serviceNode}
+							} else {
+								nodes = []settings.ConnectionDetails{}
+							}
+						default:
+							if serviceNode.Status == commons.Active {
+								nodes = []settings.ConnectionDetails{serviceNode}
+							} else {
+								nodes = []settings.ConnectionDetails{}
+							}
 						}
 					}
 				}
 				for _, node := range nodes {
-					if serviceCmd.NodeId == 0 || serviceCmd.NodeId == node.NodeId {
-						bootLock := services.GetBootLock(node.NodeId)
-						successful := bootLock.TryLock()
-						if successful {
+					bootLock := services.GetBootLock(node.NodeId)
+					successful := bootLock.TryLock()
+					if successful {
+						switch serviceCmd.ServiceType {
+						case commons.LndService:
 							go processLndBoot(db, node, bootLock, services, serviceCmd, serviceChannel, broadcaster, eventChannel)
-						} else {
-							log.Error().Msgf("LND Service: Requested start failed. A start is already running.")
-						}
-					}
-				}
-			}
-			if serviceCmd.ServiceType == commons.VectorService {
-				log.Info().Msgf("Vector Ping Service: Verifying requirement.")
-				if nodes == nil {
-					if serviceCmd.NodeId == 0 {
-						nodes, err = settings.GetVectorPingNodesConnectionDetails(db)
-						if err != nil {
-							log.Error().Err(err).Msg("Vector Ping Service: Getting connection details")
+						default:
+							go processServiceBoot(name, db, node, bootLock, services, serviceCmd, serviceChannel, broadcaster, eventChannel)
 						}
 					} else {
-						if serviceNode.Status == commons.Active && serviceNode.HasPingSystem(commons.Vector) {
-							nodes = []settings.ConnectionDetails{serviceNode}
-						} else {
-							nodes = []settings.ConnectionDetails{}
-						}
-					}
-				}
-				for _, node := range nodes {
-					bootLock := services.GetBootLock(node.NodeId)
-					successful := bootLock.TryLock()
-					if successful {
-						go processVectorPingBoot(node, bootLock, services, serviceCmd, serviceChannel, eventChannel)
-					} else {
-						log.Error().Msgf("Vector Ping Service: Requested start failed. A start is already running.")
-					}
-				}
-			}
-			if serviceCmd.ServiceType == commons.AmbossService {
-				log.Info().Msgf("Amboss Ping Service: : Verifying requirement.")
-				if nodes == nil {
-					if serviceCmd.NodeId == 0 {
-						nodes, err = settings.GetAmbossPingNodesConnectionDetails(db)
-						if err != nil {
-							log.Error().Err(err).Msg("Amboss Ping Service: Getting connection details")
-						}
-					} else {
-						if serviceNode.Status == commons.Active && serviceNode.HasPingSystem(commons.Amboss) {
-							nodes = []settings.ConnectionDetails{serviceNode}
-						} else {
-							nodes = []settings.ConnectionDetails{}
-						}
-					}
-				}
-				for _, node := range nodes {
-					bootLock := services.GetBootLock(node.NodeId)
-					successful := bootLock.TryLock()
-					if successful {
-						go processAmbossPingBoot(node, bootLock, services, serviceCmd, serviceChannel, eventChannel)
-					} else {
-						log.Error().Msgf("Amboss Ping Service: Requested start failed. A start is already running.")
-					}
-				}
-			}
-			if serviceCmd.ServiceType == commons.AutomationService {
-				log.Info().Msgf("Automation Service: Verifying requirement.")
-				if nodes == nil {
-					if serviceCmd.NodeId == 0 {
-						nodes, err = settings.GetActiveNodesConnectionDetails(db)
-						if err != nil {
-							log.Error().Err(err).Msg("Automation Service: Getting connection details")
-						}
-					} else {
-						if serviceNode.Status == commons.Active {
-							nodes = []settings.ConnectionDetails{serviceNode}
-						} else {
-							nodes = []settings.ConnectionDetails{}
-						}
-					}
-				}
-				for _, node := range nodes {
-					if serviceCmd.NodeId == 0 || serviceCmd.NodeId == node.NodeId {
-						bootLock := services.GetBootLock(node.NodeId)
-						successful := bootLock.TryLock()
-						if successful {
-							go processAutomationBoot(db, node, bootLock, services, serviceCmd, serviceChannel, broadcaster, eventChannel)
-						} else {
-							log.Error().Msgf("Automation Service: Requested start failed. A start is already running.")
-						}
+						log.Error().Msgf("%v Service: Requested start failed. A start is already running.", name)
 					}
 				}
 			}
 		}
 	}
 }
+
 func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, broadcaster broadcast.BroadcastServer) {
 	for {
 		listener := broadcaster.Subscribe()
@@ -578,91 +540,7 @@ func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync
 	serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
 }
 
-func processVectorPingBoot(node settings.ConnectionDetails, bootLock *sync.Mutex,
-	services *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
-	eventChannel chan interface{}) {
-
-	defer func() {
-		if commons.MutexLocked(bootLock) {
-			bootLock.Unlock()
-		}
-	}()
-
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-
-	log.Info().Msgf("Generating Vector ping service for node id: %v", node.NodeId)
-	services.AddSubscription(node.NodeId, cancel, eventChannel)
-	conn, err := lnd_connect.Connect(
-		node.GRPCAddress,
-		node.TLSFileBytes,
-		node.MacaroonFileBytes)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
-		services.RemoveSubscription(node.NodeId, eventChannel)
-		return
-	}
-
-	services.Booted(node.NodeId, bootLock, eventChannel)
-	log.Info().Msgf("Vector Ping Service booted for node id: %v", node.NodeId)
-	err = vector_ping.Start(ctx, conn)
-	if err != nil {
-		log.Error().Err(err).Msgf("Vector ping ended for node id: %v", node.NodeId)
-	}
-	log.Info().Msgf("Vector Ping Service stopped for node id: %v", node.NodeId)
-	services.RemoveSubscription(node.NodeId, eventChannel)
-	if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
-		log.Info().Msgf("Vector Ping Service will be restarted (when active) for node id: %v", node.NodeId)
-	} else {
-		log.Info().Msgf("Vector Ping Service will be restarted (when active) in %v seconds for node id: %v", commons.SERVICES_ERROR_SLEEP_SECONDS, node.NodeId)
-		time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
-	}
-	serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
-}
-
-func processAmbossPingBoot(node settings.ConnectionDetails, bootLock *sync.Mutex,
-	services *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
-	eventChannel chan interface{}) {
-
-	defer func() {
-		if commons.MutexLocked(bootLock) {
-			bootLock.Unlock()
-		}
-	}()
-
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-
-	log.Info().Msgf("Generating Amboss ping service for node id: %v", node.NodeId)
-	services.AddSubscription(node.NodeId, cancel, eventChannel)
-	conn, err := lnd_connect.Connect(
-		node.GRPCAddress,
-		node.TLSFileBytes,
-		node.MacaroonFileBytes)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
-		services.RemoveSubscription(node.NodeId, eventChannel)
-		return
-	}
-
-	services.Booted(node.NodeId, bootLock, eventChannel)
-	log.Info().Msgf("Amboss Ping Service booted for node id: %v", node.NodeId)
-	err = amboss_ping.Start(ctx, conn)
-	if err != nil {
-		log.Error().Err(err).Msgf("Amboss ping ended for node id: %v", node.NodeId)
-	}
-	log.Info().Msgf("Amboss Ping Service stopped for node id: %v", node.NodeId)
-	services.RemoveSubscription(node.NodeId, eventChannel)
-	if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
-		log.Info().Msgf("Amboss Ping Service will be restarted (when active) for node id: %v", node.NodeId)
-	} else {
-		log.Info().Msgf("Amboss Ping Service will be restarted (when active) in %v seconds for node id: %v", commons.SERVICES_ERROR_SLEEP_SECONDS, node.NodeId)
-		time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
-	}
-	serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
-}
-
-func processAutomationBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync.Mutex,
+func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync.Mutex,
 	services *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
 	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
 
@@ -675,19 +553,53 @@ func processAutomationBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLoc
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
+	log.Info().Msgf("Generating %v Service for node id: %v", name, node.NodeId)
 	services.AddSubscription(node.NodeId, cancel, eventChannel)
-	services.Booted(node.NodeId, bootLock, eventChannel)
-	log.Info().Msgf("Automation Service booted")
-	err := automation.Start(ctx, db, node.NodeId, broadcaster, eventChannel)
-	if err != nil {
-		log.Error().Err(err).Msgf("Automation ended")
+
+	var conn *grpc.ClientConn
+	var err error
+	switch serviceCmd.ServiceType {
+	case commons.VectorService:
+		fallthrough
+	case commons.AmbossService:
+		fallthrough
+	case commons.RoutingPolicyService:
+		fallthrough
+	case commons.RebalanceService:
+		conn, err = lnd_connect.Connect(
+			node.GRPCAddress,
+			node.TLSFileBytes,
+			node.MacaroonFileBytes)
+		if err != nil {
+			log.Error().Err(err).Msgf("%v Service Failed to connect to lnd for node id: %v", name, node.NodeId)
+			services.RemoveSubscription(node.NodeId, eventChannel)
+			return
+		}
 	}
-	log.Info().Msgf("Automation Service stopped")
+
+	services.Booted(node.NodeId, bootLock, eventChannel)
+	log.Info().Msgf("%v Service booted for node id: %v", name, node.NodeId)
+	switch serviceCmd.ServiceType {
+	case commons.VectorService:
+		err = vector_ping.Start(ctx, conn)
+	case commons.AmbossService:
+		err = amboss_ping.Start(ctx, conn)
+	case commons.AutomationService:
+		err = automation.Start(ctx, db, node.NodeId, broadcaster, eventChannel)
+	case commons.RoutingPolicyService:
+		err = automation.StartRoutingPolicyService(ctx, conn, db, node.NodeId, broadcaster, eventChannel)
+	case commons.RebalanceService:
+		err = automation.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster, eventChannel)
+	}
+	if err != nil {
+		log.Error().Err(err).Msgf("%v Service ended for node id: %v", name, node.NodeId)
+	}
+	log.Info().Msgf("%v Service stopped for node id: %v", name, node.NodeId)
 	services.RemoveSubscription(node.NodeId, eventChannel)
 	if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
-		log.Info().Msgf("Automation Service will be restarted")
+		log.Info().Msgf("%v Service will be restarted (when active) for node id: %v", name, node.NodeId)
 	} else {
-		log.Info().Msgf("Automation Service will be restarted in %v seconds", commons.SERVICES_ERROR_SLEEP_SECONDS)
+		log.Info().Msgf("%v Service will be restarted (when active) in %v seconds for node id: %v", name, commons.SERVICES_ERROR_SLEEP_SECONDS, node.NodeId)
 		time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
 	}
 	serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}

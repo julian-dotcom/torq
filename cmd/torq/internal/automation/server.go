@@ -6,13 +6,15 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) error {
+func Start(ctx context.Context, db *sqlx.DB, nodeId int,
+	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) error {
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 
@@ -42,6 +44,52 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 			}
 		}()
 		automation.EventTriggerMonitor(ctx, db, nodeSettings, broadcaster, eventChannel)
+	})()
+
+	wg.Wait()
+
+	return nil
+}
+
+func StartRoutingPolicyService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
+	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) error {
+
+	var wg sync.WaitGroup
+
+	// Fee Service
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
+				automation.RoutingPolicyService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+			}
+		}()
+		automation.RoutingPolicyService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+	})()
+
+	wg.Wait()
+
+	return nil
+}
+
+func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
+	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) error {
+
+	var wg sync.WaitGroup
+
+	// Rebalance Service
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
+				automation.RebalanceService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+			}
+		}()
+		automation.RebalanceService(ctx, conn, db, nodeId, broadcaster, eventChannel)
 	})()
 
 	wg.Wait()

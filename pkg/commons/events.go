@@ -349,3 +349,37 @@ type BatchOpenResponse struct {
 type PendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
 }
+
+type ChannelStatusUpdateRequest struct {
+	NodeId        int    `json:"nodeId"`
+	ChannelId     int    `json:"channelId"`
+	ChannelStatus Status `json:"channelStatus"`
+}
+
+type ChannelStatusUpdateResponse struct {
+	Request ChannelStatusUpdateRequest `json:"request"`
+	Status  Status                     `json:"status"`
+}
+
+type RoutingPolicyUpdateRequest struct {
+	NodeId           int     `json:"nodeId"`
+	ChannelId        int     `json:"channelId"`
+	FeeRateMilliMsat *uint64 `json:"feeRateMilliMsat"`
+	FeeBaseMsat      *uint64 `json:"feeBaseMsat"`
+	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
+	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
+	TimeLockDelta    *uint32 `json:"timeLockDelta"`
+}
+
+type RoutingPolicyUpdateResponse struct {
+	Request       RoutingPolicyUpdateRequest `json:"request"`
+	Status        Status                     `json:"status"`
+	FailedUpdates []FailedRequest            `json:"failedUpdates"`
+}
+
+type RebalanceRequest struct {
+	NodeId             int   `json:"nodeId"`
+	OutgoingChannelIds []int `json:"outgoingChannelIds"`
+	IncomingChannelId  int   `json:"incomingChannelId"`
+	MaximumCost        int   `json:"maximumCost"`
+}

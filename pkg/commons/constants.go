@@ -2,12 +2,15 @@ package commons
 
 type ServiceType int
 
+// When adding here also add to GetServiceTypes
 const (
 	LndService = ServiceType(iota)
 	VectorService
 	AmbossService
 	TorqService
 	AutomationService
+	RoutingPolicyService
+	RebalanceService
 )
 
 const TorqDummyNodeId = -1337
@@ -191,7 +194,7 @@ const (
 	WorkflowNodeTimeTrigger = WorkflowNodeType(iota)
 	WorkflowNodeChannelBalanceEventTrigger
 	WorkflowNodeChannelFilter
-	WorkflowNodeCostParameters
+	WorkflowNodeRoutingPolicyParameters
 	WorkflowNodeRebalanceParameters
 	WorkflowNodeStageTrigger
 	WorkflowNodeRebalanceRun
@@ -213,7 +216,6 @@ const (
 	WorkflowParameterAny                   = WorkflowParameter("any")
 	WorkflowParameterTriggered             = WorkflowParameter("triggered")
 	WorkflowParameterChannelIds            = WorkflowParameter("channelIds")
-	WorkflowParameterDeferredData          = WorkflowParameter("deferredData")
 	WorkflowParameterRoutingPolicySettings = WorkflowParameter("routingPolicySettings")
 	WorkflowParameterRebalanceSettings     = WorkflowParameter("rebalanceSettings")
 	WorkflowParameterStatus                = WorkflowParameter("status")
