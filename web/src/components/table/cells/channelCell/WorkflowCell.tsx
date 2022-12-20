@@ -6,6 +6,7 @@ import classNames from "classnames";
 interface WorkflowCell {
   name: string;
   workflowId: number;
+  workflowVersionId: number;
   className?: string;
 }
 
@@ -32,7 +33,7 @@ function WorkflowCell(props: WorkflowCell) {
   );
 
   return (
-    <Link to={`${props.workflowId}`} className={styles.workflowCellWrapper}>
+    <Link to={`${props.workflowId}/versions/${props.workflowVersionId}`} className={styles.workflowCellWrapper}>
       <div className={classNames(cellStyles.cell, cellStyles.alignLeft, props.className, styles.channelCellWrapper)}>
         {content}
       </div>

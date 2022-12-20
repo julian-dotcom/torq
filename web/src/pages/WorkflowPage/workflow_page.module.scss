@@ -4,13 +4,72 @@
   position: relative;
   display: grid;
   grid-auto-flow: row;
-  grid-template-columns: auto;
-  grid-template-rows: min-content;
+  grid-template-columns: auto min-content;
+  grid-template-rows: min-content min-content auto;
+  grid-template-areas:
+    "Controls Sidebar"
+    "TableControls Sidebar"
+    "Table Sidebar";
   grid-column-gap: 32px;
   grid-row-gap: 0;
+  @media only screen and (max-width: 900px) {
+    grid-template-columns: auto;
+    grid-template-rows: min-content min-content auto min-content;
+    grid-template-areas:
+      "Controls"
+      "TableControls"
+      "Table"
+      "Pagination";
+  }
 }
 @media only screen and (max-width: 900px) {
   .contentWrapper {
     grid-column-gap: 0;
   }
+}
+.pageSidebarWrapper {
+  width: 0;
+  transition: width 200ms;
+  background-color: var(--bg-default);
+  grid-area: Sidebar;
+  position: relative;
+  overflow: hidden;
+  border-left: 1px solid var(--primary-100);
+  > div {
+    width: 320px;
+  }
+  @media only screen and (max-width: 900px) {
+    position: absolute;
+    right: 0px;
+    top: 0;
+    bottom: 0;
+    z-index: 20;
+  }
+}
+.pageSidebarWrapper.sidebarExpanded {
+  width: 320px;
+}
+.tableWrapper {
+  padding-bottom: 24px;
+  margin-right: 0px;
+  //margin-bottom: -15px;
+  @media only screen and (max-width: 900px) {
+    padding-bottom: 12px;
+    padding-right: 12px;
+  }
+}
+.tableContainer {
+  height: 100%;
+  position: relative;
+  grid-area: Table;
+}
+.tableExpander {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  position: absolute;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  top: 0;
 }

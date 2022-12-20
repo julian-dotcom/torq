@@ -17,6 +17,7 @@ export default function workflowCellRenderer(
       <WorkflowCell
         name={row.workflowName}
         workflowId={row.workflowId}
+        workflowVersionId={row.latestWorkflowVersionId}
         className={cellStyles.locked}
         key={"workflow-" + row.workflowId + "-" + rowIndex}
       />

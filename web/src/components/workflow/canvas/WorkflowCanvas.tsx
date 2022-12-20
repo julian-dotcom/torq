@@ -75,7 +75,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
         blankImgRef: blankImgRef,
       }}
     >
-      <div className={styles.workspaceWrapper} ref={wrapperRef}>
+      <div className={styles.workflowWrapper} ref={wrapperRef}>
         <div
           className={classNames(styles.workspaceCanvas, { [styles.dragging]: isDragging })}
           onDragOver={(e) => e.preventDefault()}

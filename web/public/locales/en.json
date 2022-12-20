@@ -67,6 +67,9 @@
   "bootstrapping": "Bootstrapping",
   "workflow": "Workflow",
   "workflows": "Workflows",
+  "nodes": "Nodes",
+  "deploy": "Deploy",
+  "saveDraft": "Save Draft",
   "tableLayout": {
     "tableOptions": "Table options"
   },
