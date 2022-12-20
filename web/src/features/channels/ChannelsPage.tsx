@@ -107,9 +107,7 @@ function ChannelsPage() {
 
   // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
-    return () => {
-      setSidebarExpanded(false);
-    };
+    setSidebarExpanded(false);
   };
 
   const tableControls = (
