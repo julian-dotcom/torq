@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import {
-  Options20Regular as OptionsIcon,
+  PuzzlePiece20Regular as NodesIcon,
   Play20Regular as DeployIcon,
   Save20Regular as SaveDraftIcon,
 } from "@fluentui/react-icons";
@@ -79,7 +79,7 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
           text={t.nodes}
           className={"collapse-tablet"}
           id={"tableControlsButton"}
-          icon={<OptionsIcon />}
+          icon={<NodesIcon />}
           onClick={() => {
             setSidebarExpanded(!sidebarExpanded);
           }}
