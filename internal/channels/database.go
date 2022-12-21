@@ -28,14 +28,14 @@ func GetChannels(db *sqlx.DB, nodeIds []int, all bool, channelIds []int) ([]*Cha
 	sql := `SELECT * FROM channel WHERE ($1 OR channel_id = ANY ($2)) AND (first_node_id = ANY($3) OR second_node_id = ANY($3));`
 	rows, err := db.Queryx(sql, all, pq.Array(channelIds), pq.Array(nodeIds))
 	if err != nil {
-		return nil, errors.Wrapf(err, "Running getChannels query")
+		return nil, errors.Wrapf(err, "Running getChannels query all: %v, channelIds: %v", all, channelIds)
 	}
 	var r []*Channel
 	for rows.Next() {
 		c := &Channel{}
 		err = rows.StructScan(&c)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Running getChannels query StructScan")
+			return nil, errors.Wrapf(err, "Running getChannels query StructScan all: %v, channelIds: %v", all, channelIds)
 		}
 		r = append(r, c)
 	}
