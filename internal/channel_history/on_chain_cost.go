@@ -31,13 +31,14 @@ func getTotalOnChainCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Tim
 	return &Cost, nil
 }
 
-func getChannelOnChainCost(db *sqlx.DB, lndShortChannelIdStrings []string) (cost *uint64, err error) {
+func getChannelOnChainCost(db *sqlx.DB, nodeIds []int, lndShortChannelIdStrings []string) (cost *uint64, err error) {
 
 	q := `select coalesce(sum(total_fees), 0) as on_chain_cost
 		from tx
-		where split_part(label, '-', 2) = ANY ($1)`
+		where split_part(label, '-', 2) = ANY ($1)
+			AND node_id = ANY ($2)`
 
-	row := db.QueryRowx(q, pq.Array(lndShortChannelIdStrings))
+	row := db.QueryRowx(q, pq.Array(lndShortChannelIdStrings), pq.Array(nodeIds))
 	err = row.Scan(&cost)
 
 	if err == sql.ErrNoRows {

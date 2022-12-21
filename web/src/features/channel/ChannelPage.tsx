@@ -39,6 +39,7 @@ import {
 import EventsChart from "./eventsChart/EventsChart";
 import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
+import { selectActiveNetwork } from "features/network/networkSlice";
 
 const ft = d3.format(",.0f");
 
@@ -60,6 +61,7 @@ function ChannelPage(_: ChannelPageProps) {
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
+  const activeNetwork = useAppSelector(selectActiveNetwork);
   const [allToggle, setAllToggle] = React.useState(true);
   const [selectedEvents, setSelectedEvents] = React.useState(
     new Map<string, boolean>([
@@ -82,6 +84,7 @@ function ChannelPage(_: ChannelPageProps) {
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
     chanIds: chanId || "1",
+    network: activeNetwork,
   };
   const { data, isLoading } = useGetFlowQuery(flowQueryParams);
 
@@ -90,6 +93,7 @@ function ChannelPage(_: ChannelPageProps) {
     queryParams: {
       from: from,
       to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
+      network: activeNetwork,
     },
   };
 
@@ -107,6 +111,7 @@ function ChannelPage(_: ChannelPageProps) {
   const profitKey = useAppSelector(selectProfitChartKey);
   const eventKey = useAppSelector(selectEventChartKey);
   let balanceChanId = useAppSelector(selectBalanceChanID);
+
   if (balanceChanId.label === "") {
     balanceChanId = { value: 0, label: balance?.channelBalances ? balance.channelBalances[0]?.lndShortChannelId : "" };
   }

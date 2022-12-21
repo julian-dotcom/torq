@@ -20,14 +20,15 @@ export type BaseQueryCollectionParams = Paginable & {
   filter?: any;
 };
 
-export type GetFlowQueryParams = FromAndTo & {
-  chanIds: string;
-};
+export type GetFlowQueryParams = FromAndTo &
+  ActiveNetwork & {
+    chanIds: string;
+  };
 
 export type GetChannelHistoryParams = {
   chanId: string;
 };
-export type GetChannelHistoryQueryParams = FromAndTo;
+export type GetChannelHistoryQueryParams = FromAndTo & ActiveNetwork;
 export type GetChannelHistoryData = {
   params: GetChannelHistoryParams;
   queryParams: GetChannelHistoryQueryParams;
@@ -70,11 +71,11 @@ type LoginSuccess = {
   message: string;
 };
 
-export type GetPaymentsQueryParams = BaseQueryCollectionParams;
+export type GetPaymentsQueryParams = BaseQueryCollectionParams & ActiveNetwork;
 
-export type GetInvoicesQueryParams = BaseQueryCollectionParams;
+export type GetInvoicesQueryParams = BaseQueryCollectionParams & ActiveNetwork;
 
-export type GetOnChainTransactionsQueryParams = BaseQueryCollectionParams;
+export type GetOnChainTransactionsQueryParams = BaseQueryCollectionParams & ActiveNetwork;
 
 type InvoiceFeature = {
   Name: string;

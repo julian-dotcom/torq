@@ -33,13 +33,14 @@ import { useState } from "react";
 import { useFilterData, useSortData } from "features/viewManagement/hooks";
 import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import channelsCellRenderer from "./channelsCellRenderer";
+import { selectActiveNetwork } from "features/network/networkSlice";
 
 function useMaximums(data: Array<channel>): channel | undefined {
   if (!data.length) {
     return undefined;
   }
 
-  return data.reduce((prev: channel, current: channel, currentIndex: number) => {
+  return data.reduce((prev: channel, current: channel) => {
     return {
       ...prev,
       alias: "Max",
@@ -91,6 +92,7 @@ function ChannelsPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectChannelView);
+  const activeNetwork = useAppSelector(selectActiveNetwork);
 
   const channelsResponse = useGetChannelsQuery<{
     data: Array<channel>;
@@ -98,7 +100,7 @@ function ChannelsPage() {
     isFetching: boolean;
     isUninitialized: boolean;
     isSuccess: boolean;
-  }>(undefined, { skip: !isSuccess });
+  }>({ network: activeNetwork }, { skip: !isSuccess });
 
   const filteredData = useFilterData(channelsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);

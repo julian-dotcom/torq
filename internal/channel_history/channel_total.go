@@ -8,7 +8,7 @@ import (
 	"github.com/lib/pq"
 )
 
-func getChannelTotal(db *sqlx.DB, all bool, channelIds []int, from time.Time, to time.Time) (r ChannelHistory, err error) {
+func getChannelTotal(db *sqlx.DB, nodeIds []int, all bool, channelIds []int, from time.Time, to time.Time) (r ChannelHistory, err error) {
 	sql := `
 		select
 			sum(coalesce(i.amount,0)) as amount_in,
@@ -31,6 +31,7 @@ func getChannelTotal(db *sqlx.DB, all bool, channelIds []int, from time.Time, to
 			where ($1 or outgoing_channel_id = ANY($2))
 			and time >= $3::timestamp
 			and time <= $4::timestamp
+			and node_id = ANY($5)
 			group by outgoing_channel_id
 			) as o
 		full outer join (
@@ -42,12 +43,13 @@ func getChannelTotal(db *sqlx.DB, all bool, channelIds []int, from time.Time, to
 			where ($1 or incoming_channel_id = ANY($2))
 			and time >= $3::timestamp
 			and time <= $4::timestamp
+			and node_id = ANY($5)
 			group by incoming_channel_id
 			) as i
 		on (i.incoming_channel_id = o.outgoing_channel_id);
 `
 
-	rows, err := db.Queryx(sql, all, pq.Array(channelIds), from, to)
+	rows, err := db.Queryx(sql, all, pq.Array(channelIds), from, to, pq.Array(nodeIds))
 	if err != nil {
 		return ChannelHistory{}, errors.Wrap(err, "Getting channel total")
 	}

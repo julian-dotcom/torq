@@ -31,13 +31,14 @@ import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
 import { selectInvoicesView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
+import { selectActiveNetwork } from "features/network/networkSlice";
 
 function useMaximums(data: Array<Invoice>): Invoice | undefined {
   if (!data.length) {
     return undefined;
   }
 
-  return data.reduce((prev: Invoice, current: Invoice, currentIndex: number) => {
+  return data.reduce((prev: Invoice, current: Invoice) => {
     return {
       ...prev,
       alias: "Max",
@@ -67,6 +68,7 @@ function InvoicesPage() {
   const { viewResponse, selectedViewIndex } = useAppSelector(selectInvoicesView);
 
   const [getPagination, limit, offset] = usePagination("invoices");
+  const activeNetwork = useAppSelector(selectActiveNetwork);
 
   const invoicesResponse = useGetInvoicesQuery<{
     data: InvoicesResponse;
@@ -80,6 +82,7 @@ function InvoicesPage() {
       offset: offset,
       order: viewResponse.view.sortBy,
       filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
+      network: activeNetwork,
     },
     { skip: !isSuccess }
   );
