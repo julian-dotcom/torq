@@ -186,7 +186,7 @@ type OpenChannelRequest struct {
 }
 
 type OpenChannelResponse struct {
-	ReqId               string             `json:"reqId"`
+	RequestId           string             `json:"requestId"`
 	Request             OpenChannelRequest `json:"request"`
 	Status              ChannelStatus      `json:"status"`
 	ChannelPoint        string             `json:"channelPoint,omitempty"`
@@ -204,7 +204,7 @@ type CloseChannelRequest struct {
 }
 
 type CloseChannelResponse struct {
-	ReqId                    string              `json:"reqId"`
+	RequestId                string              `json:"requestId"`
 	Request                  CloseChannelRequest `json:"request"`
 	Status                   ChannelStatus       `json:"status"`
 	ClosePendingChannelPoint ChannelPoint        `json:"closePendingChannelPoint"`
@@ -225,9 +225,9 @@ type NewAddressRequest struct {
 }
 
 type NewAddressResponse struct {
-	ReqId   string            `json:"reqId"`
-	Request NewAddressRequest `json:"request"`
-	Address string            `json:"address"`
+	RequestId string            `json:"requestId"`
+	Request   NewAddressRequest `json:"request"`
+	Address   string            `json:"address"`
 }
 
 // NEW PAYMENT
@@ -277,7 +277,7 @@ type Attempt struct {
 	Failure       FailureDetails `json:"failure"`
 }
 type NewPaymentResponse struct {
-	ReqId          string            `json:"reqId"`
+	RequestId      string            `json:"requestId"`
 	Request        NewPaymentRequest `json:"request"`
 	Status         string            `json:"status"`
 	FailureReason  string            `json:"failureReason"`
@@ -309,23 +309,6 @@ type PayOnChainResponse struct {
 	TxId    string            `json:"txId"`
 }
 
-// UPDATE CHANNEL
-type UpdateChannelRequest struct {
-	NodeId           int     `json:"nodeId"`
-	ChannelId        *int    `json:"channelId"`
-	FeeRateMilliMsat *uint64 `json:"feeRateMilliMsat"`
-	FeeBaseMsat      *uint64 `json:"feeBaseMsat"`
-	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
-	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
-	TimeLockDelta    *uint32 `json:"timeLockDelta"`
-}
-
-type UpdateChannelResponse struct {
-	Request       UpdateChannelRequest `json:"request"`
-	Status        Status               `json:"status"`
-	FailedUpdates []FailedRequest      `json:"failedUpdates"`
-}
-
 // BATCH OPEN CHANNELS
 type BatchOpenChannel struct {
 	NodePubkey         string  `json:"nodePubkey"`
@@ -350,20 +333,33 @@ type PendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
 }
 
+// Request/Response for lightningCommunication
+type CommunicationRequest struct {
+	RequestId       string `json:"requestId"`
+	NodeId          int    `json:"nodeId"`
+	ResponseChannel chan interface{}
+}
+
+type CommunicationResponse struct {
+	Status  Status `json:"status"`
+	Message string `json:"message"`
+	Error   string `json:"error"`
+}
+
 type ChannelStatusUpdateRequest struct {
-	NodeId        int    `json:"nodeId"`
+	CommunicationRequest
 	ChannelId     int    `json:"channelId"`
 	ChannelStatus Status `json:"channelStatus"`
 }
 
 type ChannelStatusUpdateResponse struct {
-	Request ChannelStatusUpdateRequest `json:"request"`
-	Status  Status                     `json:"status"`
+	CommunicationResponse
+	Request ChannelStatusUpdateRequest
 }
 
 type RoutingPolicyUpdateRequest struct {
-	NodeId           int     `json:"nodeId"`
-	ChannelId        int     `json:"channelId"`
+	CommunicationRequest
+	ChannelId        *int    `json:"channelId"`
 	FeeRateMilliMsat *uint64 `json:"feeRateMilliMsat"`
 	FeeBaseMsat      *uint64 `json:"feeBaseMsat"`
 	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
@@ -372,13 +368,13 @@ type RoutingPolicyUpdateRequest struct {
 }
 
 type RoutingPolicyUpdateResponse struct {
-	Request       RoutingPolicyUpdateRequest `json:"request"`
-	Status        Status                     `json:"status"`
-	FailedUpdates []FailedRequest            `json:"failedUpdates"`
+	Request RoutingPolicyUpdateRequest
+	CommunicationResponse
+	FailedUpdates []FailedRequest `json:"failedUpdates"`
 }
 
 type RebalanceRequest struct {
-	NodeId             int   `json:"nodeId"`
+	CommunicationRequest
 	OutgoingChannelIds []int `json:"outgoingChannelIds"`
 	IncomingChannelId  int   `json:"incomingChannelId"`
 	MaximumCost        int   `json:"maximumCost"`

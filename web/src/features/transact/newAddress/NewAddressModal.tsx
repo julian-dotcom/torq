@@ -24,7 +24,7 @@ export type NewAddressRequest = {
 };
 
 export type NewAddressResponse = {
-  reqId: string;
+  requestId: string;
   type: string;
   status: string;
   address: string;
@@ -111,7 +111,7 @@ function NewAddressModal() {
     setAddressTypeState(ProgressStepState.completed);
     setDoneState(ProgressStepState.processing);
     sendJsonMessage({
-      reqId: "randId",
+      requestId: "randId",
       type: "newAddress",
       newAddressRequest: {
         nodeId: selectedNodeId,

@@ -264,7 +264,7 @@ func processBroadcastedEvent(event interface{}) {
 			return
 		}
 		commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, commons.Deleted)
-	} else if updateChannelEvent, ok := event.(commons.UpdateChannelResponse); ok {
+	} else if updateChannelEvent, ok := event.(commons.RoutingPolicyUpdateResponse); ok {
 		if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == nil || *updateChannelEvent.Request.ChannelId == 0 {
 			return
 		}

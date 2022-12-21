@@ -100,7 +100,7 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
             text={"Confirm"}
             onClick={() => {
               props.sendJsonMessage({
-                reqId: "randId",
+                requestId: "randId",
                 type: "newPayment",
                 NewPaymentRequest: {
                   nodeId: props.selectedNodeId,

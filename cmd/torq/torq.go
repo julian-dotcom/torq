@@ -343,8 +343,8 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 			name = "Amboss Ping"
 		case commons.AutomationService:
 			name = "Automation"
-		case commons.RoutingPolicyService:
-			name = "RoutingPolicy"
+		case commons.LightningCommunicationService:
+			name = "LightningCommunication"
 		case commons.RebalanceService:
 			name = "RebalanceService"
 		}
@@ -477,11 +477,20 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 				}
 				if serviceEvent.Type == commons.LndService {
 					if serviceEvent.Status == commons.Active && serviceEvent.SubscriptionStream == nil {
-						log.Debug().Msgf("LndService booted checking for Vector activation for nodeId: %v", serviceEvent.NodeId)
+						log.Debug().Msgf("LndService booted for nodeId: %v", serviceEvent.NodeId)
+						log.Debug().Msgf("Starting LightningCommunication Service for nodeId: %v", serviceEvent.NodeId)
+						if commons.RunningServices[commons.LightningCommunicationService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
+							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LightningCommunicationService, NodeId: serviceEvent.NodeId}
+						}
+						log.Debug().Msgf("Starting Rebalance Service for nodeId: %v", serviceEvent.NodeId)
+						if commons.RunningServices[commons.RebalanceService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
+							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.RebalanceService, NodeId: serviceEvent.NodeId}
+						}
+						log.Debug().Msgf("Checking for Vector activation for nodeId: %v", serviceEvent.NodeId)
 						if commons.RunningServices[commons.VectorService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
 							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.VectorService, NodeId: serviceEvent.NodeId}
 						}
-						log.Debug().Msgf("LndService booted checking for Amboss activation for nodeId: %v", serviceEvent.NodeId)
+						log.Debug().Msgf("Checking for Amboss activation for nodeId: %v", serviceEvent.NodeId)
 						if commons.RunningServices[commons.AmbossService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
 							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AmbossService, NodeId: serviceEvent.NodeId}
 						}
@@ -563,7 +572,7 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 		fallthrough
 	case commons.AmbossService:
 		fallthrough
-	case commons.RoutingPolicyService:
+	case commons.LightningCommunicationService:
 		fallthrough
 	case commons.RebalanceService:
 		conn, err = lnd_connect.Connect(
@@ -586,8 +595,8 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 		err = amboss_ping.Start(ctx, conn)
 	case commons.AutomationService:
 		err = automation.Start(ctx, db, node.NodeId, broadcaster, eventChannel)
-	case commons.RoutingPolicyService:
-		err = automation.StartRoutingPolicyService(ctx, conn, db, node.NodeId, broadcaster, eventChannel)
+	case commons.LightningCommunicationService:
+		err = automation.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster, eventChannel)
 	case commons.RebalanceService:
 		err = automation.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster, eventChannel)
 	}

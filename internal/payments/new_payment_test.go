@@ -13,15 +13,15 @@ import (
 
 func Test_processResponse(t *testing.T) {
 	tests := []struct {
-		name    string
-		reqId   string
-		req     commons.NewPaymentRequest
-		input   *lnrpc.Payment
-		want    commons.NewPaymentResponse
-		wantErr bool
+		name      string
+		requestId string
+		req       commons.NewPaymentRequest
+		input     *lnrpc.Payment
+		want      commons.NewPaymentResponse
+		wantErr   bool
 	}{{
-		name:  "Successful payment",
-		reqId: "Unique ID here",
+		name:      "Successful payment",
+		requestId: "Unique ID here",
 		input: &lnrpc.Payment{
 			PaymentHash:     "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
 			PaymentPreimage: "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
@@ -64,7 +64,7 @@ func Test_processResponse(t *testing.T) {
 			FailureReason: lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 		},
 		want: commons.NewPaymentResponse{
-			ReqId:          "Unique ID here",
+			RequestId:      "Unique ID here",
 			Status:         "SUCCEEDED",
 			FailureReason:  "FAILURE_REASON_NONE",
 			Hash:           "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
@@ -100,8 +100,8 @@ func Test_processResponse(t *testing.T) {
 		},
 	},
 		{
-			name:  "Failed payment",
-			reqId: "Unique ID here",
+			name:      "Failed payment",
+			requestId: "Unique ID here",
 			input: &lnrpc.Payment{
 				PaymentHash:     "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
 				PaymentPreimage: "00000",
@@ -148,7 +148,7 @@ func Test_processResponse(t *testing.T) {
 				FailureReason: 0,
 			},
 			want: commons.NewPaymentResponse{
-				ReqId:          "Unique ID here",
+				RequestId:      "Unique ID here",
 				Status:         "FAILED",
 				FailureReason:  "FAILURE_REASON_NONE",
 				Hash:           "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
@@ -191,7 +191,7 @@ func Test_processResponse(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := processResponse(test.input, test.req, test.reqId)
+			got := processResponse(test.input, test.req, test.requestId)
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("%d: processResponse()\nGot:\n%v\nWant:\n%v\n", i, got, test.want)
 			}
@@ -206,10 +206,10 @@ func Test_newSendPaymentRequest(t *testing.T) {
 	var feeLimitMsat int64 = 100
 	var destination = "abcd"
 	tests := []struct {
-		name  string
-		reqId string
-		input commons.NewPaymentRequest
-		want  *routerrpc.SendPaymentRequest
+		name      string
+		requestId string
+		input     commons.NewPaymentRequest
+		want      *routerrpc.SendPaymentRequest
 	}{
 		{
 			name: "with allow self and fee limit",

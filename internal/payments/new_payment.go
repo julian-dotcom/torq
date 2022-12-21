@@ -38,7 +38,7 @@ func SendNewPayment(
 	db *sqlx.DB,
 	c *gin.Context,
 	npReq commons.NewPaymentRequest,
-	reqId string,
+	requestId string,
 ) (err error) {
 
 	if npReq.NodeId == 0 {
@@ -58,7 +58,7 @@ func SendNewPayment(
 	}
 	defer conn.Close()
 	client := routerrpc.NewRouterClient(conn)
-	return sendPayment(client, npReq, eventChannel, reqId)
+	return sendPayment(client, npReq, eventChannel, requestId)
 }
 
 func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPaymentRequest, err error) {
@@ -96,7 +96,7 @@ func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPa
 	return newPayReq, nil
 }
 
-func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, eventChannel chan interface{}, reqId string) (err error) {
+func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, eventChannel chan interface{}, requestId string) (err error) {
 
 	// Create and validate payment request details
 	newPayReq, err := newSendPaymentRequest(npReq)
@@ -142,14 +142,14 @@ func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, 
 
 		if eventChannel != nil {
 			// Write the payment status to the client
-			eventChannel <- processResponse(resp, npReq, reqId)
+			eventChannel <- processResponse(resp, npReq, requestId)
 		}
 	}
 }
 
-func processResponse(p *lnrpc.Payment, req commons.NewPaymentRequest, reqId string) commons.NewPaymentResponse {
+func processResponse(p *lnrpc.Payment, req commons.NewPaymentRequest, requestId string) commons.NewPaymentResponse {
 	r := commons.NewPaymentResponse{
-		ReqId:         reqId,
+		RequestId:     requestId,
 		Request:       req,
 		Status:        p.Status.String(),
 		Hash:          p.PaymentHash,

@@ -24,7 +24,7 @@ type PsbtDetails struct {
 	Psbt           []byte `json:"psbt,omitempty"`
 }
 
-func OpenChannel(eventChannel chan interface{}, db *sqlx.DB, req commons.OpenChannelRequest, reqId string) (err error) {
+func OpenChannel(eventChannel chan interface{}, db *sqlx.DB, req commons.OpenChannelRequest, requestId string) (err error) {
 	openChanReq, err := prepareOpenRequest(req)
 	if err != nil {
 		return errors.Wrap(err, "Preparing open request")
@@ -81,7 +81,7 @@ func OpenChannel(eventChannel chan interface{}, db *sqlx.DB, req commons.OpenCha
 			return errors.Wrapf(err, "Opening channel")
 		}
 
-		r, err := processOpenResponse(resp, req, reqId)
+		r, err := processOpenResponse(resp, req, requestId)
 		if err != nil {
 			return errors.Wrap(err, "Processing open response")
 		}
@@ -153,7 +153,7 @@ func prepareOpenRequest(ocReq commons.OpenChannelRequest) (r *lnrpc.OpenChannelR
 	return openChanReq, nil
 }
 
-func processOpenResponse(resp *lnrpc.OpenStatusUpdate, req commons.OpenChannelRequest, reqId string) (commons.OpenChannelResponse, error) {
+func processOpenResponse(resp *lnrpc.OpenStatusUpdate, req commons.OpenChannelRequest, requestId string) (commons.OpenChannelResponse, error) {
 	switch resp.GetUpdate().(type) {
 	case *lnrpc.OpenStatusUpdate_ChanPending:
 		log.Info().Msgf("Channel pending")
@@ -166,7 +166,7 @@ func processOpenResponse(resp *lnrpc.OpenStatusUpdate, req commons.OpenChannelRe
 		}
 
 		return commons.OpenChannelResponse{
-			ReqId:               reqId,
+			RequestId:           requestId,
 			Request:             req,
 			Status:              commons.Opening,
 			PendingChannelPoint: pcp,
@@ -183,7 +183,7 @@ func processOpenResponse(resp *lnrpc.OpenStatusUpdate, req commons.OpenChannelRe
 		}
 
 		return commons.OpenChannelResponse{
-			ReqId:        reqId,
+			RequestId:    requestId,
 			Request:      req,
 			Status:       commons.Open,
 			ChannelPoint: ocp,
