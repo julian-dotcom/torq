@@ -20,10 +20,17 @@ func routingPolicyUpdate(request commons.RoutingPolicyUpdateRequest,
 	request.ResponseChannel = responseChannel
 
 	if eventChannel != nil {
-		eventChannel <- request
-		response := <-responseChannel
-		if updateResponse, ok := response.(commons.RoutingPolicyUpdateResponse); ok {
-			return updateResponse, nil
+		if commons.RunningServices[commons.LightningCommunicationService].GetStatus(request.NodeId) == commons.Active {
+			eventChannel <- request
+			response := <-responseChannel
+			if updateResponse, ok := response.(commons.RoutingPolicyUpdateResponse); ok {
+				return updateResponse, nil
+			}
+		} else {
+			return commons.RoutingPolicyUpdateResponse{},
+				errors.New(
+					fmt.Sprintf("Lightning communication service is not active for nodeId: %v, channelId: %v",
+						request.NodeId, request.ChannelId))
 		}
 	}
 	return commons.RoutingPolicyUpdateResponse{},
