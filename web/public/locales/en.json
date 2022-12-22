@@ -72,6 +72,7 @@
   "saveDraft": "Save Draft",
   "newWorkflow": "New Workflow",
   "version": "Versions",
+  "automation": "Automation",
   "tableLayout": {
     "tableOptions": "Table options"
   },

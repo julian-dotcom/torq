@@ -14,6 +14,7 @@ import {
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
+  PuzzlePiece20Regular as WorkflowsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
 import * as routes from "constants/routes";
@@ -49,6 +50,7 @@ function Navigation() {
 
         <NavCategory text={"Manage"} collapsed={false}>
           <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/manage/channels"} />
+          <MenuItem text={t.automation} icon={<WorkflowsIcon />} routeTo={"/manage/workflows"} />
           {/*<MenuItem text={"Tags"} icon={<TagsIcon />} routeTo={"/manage/tags"} />*/}
         </NavCategory>
 
