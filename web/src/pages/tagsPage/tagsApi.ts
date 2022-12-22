@@ -1,5 +1,5 @@
 import { torqApi } from "apiSlice";
-import { channelTag, Tag } from "./tagsTypes";
+import { channelTag, Tag, ChannelNode } from "./tagsTypes";
 import { stringMap } from "apiTypes";
 
 // Define a service using a base URL and expected endpoints
@@ -43,8 +43,17 @@ export const onChainApi = torqApi.injectEndpoints({
         body: channelTag,
       }),
     }),
+    getNodesChannels: builder.query<ChannelNode, void>({
+      query: () => ({
+        url: `channels/nodes`,
+        method: "GET",
+      }),
+    }),
   }),
 });
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useGetTagsQuery } = onChainApi;
+export const {
+  useGetTagsQuery,
+  useGetNodesChannelsQuery,
+} = onChainApi;

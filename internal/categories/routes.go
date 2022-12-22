@@ -14,7 +14,7 @@ import (
 
 func RegisterCategoryRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("get/:categoryId", func(c *gin.Context) { getCategoryHandler(c, db) })
-	r.GET("all", func(c *gin.Context) { getCategoriesHandler(c, db) })
+	r.GET("", func(c *gin.Context) { getCategoriesHandler(c, db) })
 	r.POST("add", func(c *gin.Context) { addCategoryHandler(c, db) })
 	r.PUT("set", func(c *gin.Context) { setCategoryHandler(c, db) })
 }

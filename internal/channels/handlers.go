@@ -86,6 +86,23 @@ type ChannelPolicy struct {
 	RemoteNodeId    int    `json:"RemoteodeId" db:"remote_node_id"`
 }
 
+type ChannelsNodes struct {
+	Channels []ChannelForTag `json:"channels"`
+	Nodes    []NodeForTag    `json:"nodes"`
+}
+
+type ChannelForTag struct {
+	ShortChannelId string `json:"shortChannelId" db:"short_channel_id"`
+	Alias          string `json:"alias" db:"alias"`
+	Type           string `json:"type" db:"type"`
+}
+
+type NodeForTag struct {
+	NodeId string `json:"nodeId" db:"node_id"`
+	Alias  string `json:"alias" db:"alias"`
+	Type   string `json:"type" db:"type"`
+}
+
 func updateChannelsHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}) {
 	var requestBody commons.UpdateChannelRequest
 	if err := c.BindJSON(&requestBody); err != nil {
@@ -223,4 +240,25 @@ func calculateHTLCs(htlcs []commons.Htlc) PendingHtlcs {
 	pendingHTLCs.TotalCount = pendingHTLCs.ForwardingCount + pendingHTLCs.LocalCount
 
 	return pendingHTLCs
+}
+
+func getChannelAndNodeListHandler(c *gin.Context, db *sqlx.DB) {
+	channels, err := GetChannelsForTag(db)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "List channels")
+		return
+	}
+
+	nodes, err := GetNodesForTag(db)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "List nodes")
+		return
+	}
+
+	nodesChannels := ChannelsNodes{
+		Channels: channels,
+		Nodes:    nodes,
+	}
+
+	c.JSON(http.StatusOK, nodesChannels)
 }

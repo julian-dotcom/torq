@@ -21,3 +21,20 @@ export interface channelTag {
   channelId: number;
   tagId: number;
 }
+
+export type ChannelNode = {
+  channels: ChannelForTag[]
+  nodes: NodeForTag[]
+}
+
+export type ChannelForTag = {
+  shortChannelId: string;
+  alias: string;
+  type: string;
+}
+
+export type NodeForTag = {
+  nodeId: string;
+  alias: string;
+  type: string;
+}

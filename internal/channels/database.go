@@ -141,6 +141,36 @@ func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err 
 	return channels, nil
 }
 
+func GetChannelsForTag(db *sqlx.DB) (channels []ChannelForTag, err error) {
+	err = db.Select(&channels, `
+		select distinct short_channel_id, ne.alias, 'channel' as type
+		from channel c
+		inner join node_event ne on c.first_node_id = ne.node_id
+		and ne.event_node_id = c.first_node_id
+		and c.status_id = 1`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return channels, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return channels, nil
+}
+
+func GetNodesForTag(db *sqlx.DB) (nodes []NodeForTag, err error) {
+	err = db.Select(&nodes, `
+		select distinct n.node_id, ne.alias, 'node' as type  from node n
+		inner join node_event ne on ne.node_id = n.node_id
+		and ne.event_node_id = n.node_id;`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nodes, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nodes, nil
+}
+
 func InitializeManagedChannelCache(db *sqlx.DB) error {
 	log.Debug().Msg("Pushing channels to ManagedChannel cache.")
 	rows, err := db.Query(`
