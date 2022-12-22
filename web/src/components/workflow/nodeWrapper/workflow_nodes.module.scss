@@ -36,17 +36,13 @@
     transform: scale(1, -1);
   }
 }
-.workflowNodeBodyWrapper {
+
+.workflowNodeBody {
+  padding: 16px;
   background-color: var(--color-white);
   min-width: 300px;
   border-bottom-left-radius: var(--radius-default);
   border-bottom-right-radius: var(--radius-default);
-  transition: height 250ms ease-in-out;
-  overflow-y: visible;
-  overflow-x: visible !important;
-}
-.workflowNodeBody {
-  padding: 16px;
 }
 .workflowNodeHeader.headerCollapsed {
   border-radius: var(--radius-default);
