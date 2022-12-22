@@ -180,16 +180,20 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 					log.Error().Msgf("The payment HTLCs and/or Hops are unknown for paymentHash: %v", payment.PaymentHash)
 				}
 			} else {
-				incomingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[0].ChanId)
-				outgoingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[len(payment.Htlcs[0].Route.Hops)-1].ChanId)
+				incomingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[len(payment.Htlcs[0].Route.Hops)-1].ChanId)
+				outgoingChannelId = getChannelIdByLndShortChannelId(payment.Htlcs[0].Route.Hops[0].ChanId)
 				if outgoingChannelId == nil {
 					if payment.Status != lnrpc.Payment_FAILED {
 						log.Error().Msgf("The payment HTLCs has an unknown outgoingChannel for paymentHash: %v", payment.PaymentHash)
 					}
 				}
 				if incomingChannelId != nil && *incomingChannelId != 0 {
-					rebalanceAmountMsatV := uint64(payment.Htlcs[0].Route.Hops[0].AmtToForwardMsat)
-					rebalanceAmountMsat = &rebalanceAmountMsatV
+					channelSettings := commons.GetChannelSettingByChannelId(*incomingChannelId)
+					if channelSettings.FirstNodeId == nodeSettings.NodeId ||
+						channelSettings.SecondNodeId == nodeSettings.NodeId {
+						rebalanceAmountMsatV := uint64(payment.Htlcs[0].Route.Hops[0].AmtToForwardMsat)
+						rebalanceAmountMsat = &rebalanceAmountMsatV
+					}
 				}
 			}
 			if _, err := tx.Exec(q,
