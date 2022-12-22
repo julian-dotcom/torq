@@ -14,21 +14,21 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflow, error) {
-	var wf Workflow
-	err := db.Get(&wf, `
-		SELECT wf.*
-		FROM workflow_version wfv
-		JOIN workflow wf ON wf.workflow_id=wfv.workflow_id
-		WHERE wfv.workflow_version_id=$1;`, workflowVersionId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Workflow{}, nil
-		}
-		return Workflow{}, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return wf, nil
-}
+//func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflow, error) {
+//	var wf Workflow
+//	err := db.Get(&wf, `
+//		SELECT wf.*
+//		FROM workflow_version wfv
+//		JOIN workflow wf ON wf.workflow_id=wfv.workflow_id
+//		WHERE wfv.workflow_version_id=$1;`, workflowVersionId)
+//	if err != nil {
+//		if errors.Is(err, sql.ErrNoRows) {
+//			return Workflow{}, nil
+//		}
+//		return Workflow{}, errors.Wrap(err, database.SqlExecutionError)
+//	}
+//	return wf, nil
+//}
 
 //func GetWorkflow(db *sqlx.DB, workflowId int) (WorkflowTableRow, error) {
 //	var wfs WorkflowTableRow
@@ -53,6 +53,18 @@ func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflo
 //	}
 //	return wfs, nil
 //}
+
+func GetWorkflow(db *sqlx.DB, workflowId int) (Workflow, error) {
+	var wf Workflow
+	err := db.Get(&wf, `SELECT * FROM workflow WHERE workflow_id=$1;`, workflowId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Workflow{}, nil
+		}
+		return Workflow{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return wf, nil
+}
 
 func GetWorkflows(db *sqlx.DB) ([]WorkflowTableRow, error) {
 	var wfs []WorkflowTableRow

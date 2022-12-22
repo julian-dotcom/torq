@@ -213,9 +213,15 @@ func getWorkflowVersionNodesHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
+	workflow, err := GetWorkflow(db, workflowId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow for workflowId: %v", workflowId))
+		return
+	}
+
 	workflowVersion, err := GetWorkflowVersion(db, workflowId, versionId)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow for workflowId: %v version %v", workflowId, versionId))
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow version for workflowId: %v version %v", workflowId, versionId))
 		return
 	}
 
@@ -224,7 +230,14 @@ func getWorkflowVersionNodesHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting workflow forest.")
 		return
 	}
-	c.JSON(http.StatusOK, workflowForest)
+
+	r := WorkflowPage{
+		Workflow:       workflow,
+		Version:        workflowVersion,
+		WorkflowForest: workflowForest,
+	}
+
+	c.JSON(http.StatusOK, r)
 }
 
 func addWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {

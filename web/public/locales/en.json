@@ -71,6 +71,7 @@
   "deploy": "Deploy",
   "saveDraft": "Save Draft",
   "newWorkflow": "New Workflow",
+  "version": "Versions",
   "tableLayout": {
     "tableOptions": "Table options"
   },

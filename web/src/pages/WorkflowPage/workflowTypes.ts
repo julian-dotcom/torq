@@ -12,7 +12,7 @@ export type workflowListItem = {
   activeVersionStatus: number;
 };
 
-export type workflow = {
+export type WorkflowNode = {
   LinkDetails: {};
   childNodes: {};
   name: string;
@@ -24,4 +24,36 @@ export type workflow = {
   visibilitySettings: number;
   workflowVersionId: number;
   workflowVersionNodeId: number;
+};
+
+export type WorkflowVersion = {
+  workflowVersionId: number;
+  name: string;
+  version: number;
+  status: number;
+  workflowId: number;
+  createdOn: Date;
+  updatedOn: Date;
+};
+
+export type Workflow = {
+  workflowId: number;
+  name: string;
+  status: number;
+  createdOn: Date;
+  updatedOn: Date;
+};
+
+export type WorkflowStages = {
+  [key: number]: Array<WorkflowNode>;
+};
+
+export type WorkflowForest = {
+  sortedStageTrees: WorkflowStages;
+};
+
+export type FullWorkflow = {
+  workflow: Workflow;
+  version: WorkflowVersion;
+  workflowForest: WorkflowForest;
 };

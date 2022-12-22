@@ -107,6 +107,12 @@ type WorkflowForest struct {
 	SortedStageTrees map[int][]*WorkflowNode `json:"sortedStageTrees"`
 }
 
+type WorkflowPage struct {
+	Workflow       Workflow        `json:"workflow"`
+	Version        WorkflowVersion `json:"version"`
+	WorkflowForest WorkflowForest  `json:"workflowForest"`
+}
+
 type WorkflowNodeParameter struct {
 	Type        commons.WorkflowParameterType `json:"type"`
 	ValueNumber int                           `json:"valueNumber"`

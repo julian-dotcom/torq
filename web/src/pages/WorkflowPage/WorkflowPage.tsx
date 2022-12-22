@@ -31,7 +31,7 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
   const { t } = useTranslations();
   const { workflowId, version } = useParams();
 
-  const workflowResponse = useGetWorkflowQuery(
+  const { data } = useGetWorkflowQuery(
     {
       workflowId: parseInt(workflowId || ""),
       version: parseInt(version || ""),
@@ -39,14 +39,12 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
     { skip: !workflowId || !version }
   );
 
-  console.log(workflowResponse);
-
   const bradcrumbs = props.breadcrumbs || [
-    t.manage,
     <Link to={`/${MANAGE}/${WORKFLOWS}`} key={"workflowsLink"}>
       {t.workflows}
     </Link>,
-    workflowId,
+    data?.workflow?.name,
+    data?.version?.name,
   ];
   const id1 = useId();
   const id2 = useId();
@@ -103,9 +101,7 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
 
   return (
     <div className={styles.contentWrapper}>
-      <PageTitle breadcrumbs={bradcrumbs} title={t.workflow}>
-        {props.title}
-      </PageTitle>
+      <PageTitle breadcrumbs={bradcrumbs} title={(data && data.workflow.name) || ""} />
       {workflowControls}
       <div className={styles.tableWrapper}>
         <div className={styles.tableContainer}>

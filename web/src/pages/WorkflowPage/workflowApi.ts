@@ -1,7 +1,7 @@
 import { torqApi } from "apiSlice";
 // import { GetOnChainTransactionsQueryParams } from "types/api";
 // import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import { workflow, workflowListItem } from "./workflowTypes";
+import { FullWorkflow, workflowListItem } from "./workflowTypes";
 
 // Define a service using a base URL and expected endpoints
 export const workflowApi = torqApi.injectEndpoints({
@@ -10,7 +10,7 @@ export const workflowApi = torqApi.injectEndpoints({
       query: (params) => "workflows",
       providesTags: ["workflows"],
     }),
-    getWorkflow: builder.query<workflow, { version: number; workflowId: number }>({
+    getWorkflow: builder.query<FullWorkflow, { version: number; workflowId: number }>({
       query: (params) => `workflows/${params.workflowId}/versions/${params.version}`,
     }),
     newWorkflow: builder.mutation<{ workflowId: number; version: number }, void>({

@@ -11,7 +11,7 @@ import { ColumnMetaData } from "features/table/types";
 import { workflowListItem } from "./workflowTypes";
 import workflowCellRenderer from "./workflowCellRenderer";
 import { useGetWorkflowsQuery, useNewWorkflowMutation } from "./workflowApi";
-import Button, { buttonColor } from "../../components/buttons/Button";
+import Button, { buttonColor } from "components/buttons/Button";
 import { useNavigate } from "react-router";
 
 // type WorkflowsTablePageProps = {};
@@ -49,6 +49,12 @@ function WorkflowsTablePage() {
       heading: "Active",
       valueType: "boolean",
       type: "BooleanCell",
+    },
+    {
+      key: "latestVersionName",
+      heading: "Latest Draft",
+      valueType: "string",
+      type: "TextCell",
     },
     {
       key: "activeVersionName",
