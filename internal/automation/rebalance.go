@@ -11,11 +11,16 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-type RebalanceAttempt struct {
+type Rebalance struct {
 	OutgoingChannelIds []int
 	IncomingChannelId  int
 	InitiationTime     time.Time
 	MaximumCost        int
+	Ctx                context.Context
+	Cancel             context.CancelFunc
+	Iteration          int
+	AttemptCtx         context.Context
+	AttemptCancel      context.CancelFunc
 }
 
 func RebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
@@ -26,7 +31,7 @@ func RebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, n
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 
-	rebalanceAttempts := make(map[int]RebalanceAttempt)
+	rebalanceAttempts := make(map[int]Rebalance)
 
 	for {
 		select {
@@ -53,7 +58,7 @@ func RebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, n
 					return
 				}
 				// TODO check if rebalancer isn't already running
-				rebalanceAttempts[rebalanceEvent.IncomingChannelId] = RebalanceAttempt{
+				rebalanceAttempts[rebalanceEvent.IncomingChannelId] = Rebalance{
 					OutgoingChannelIds: rebalanceEvent.OutgoingChannelIds,
 					IncomingChannelId:  rebalanceEvent.IncomingChannelId,
 					InitiationTime:     time.Now().UTC(),

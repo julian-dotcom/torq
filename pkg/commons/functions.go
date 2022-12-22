@@ -112,7 +112,7 @@ func GetServiceTypes() []ServiceType {
 		AmbossService,
 		TorqService,
 		AutomationService,
-		RoutingPolicyService,
+		LightningCommunicationService,
 		RebalanceService}
 }
 

@@ -322,7 +322,7 @@ function OpenChannelModal() {
                     setDetailState(ProgressStepState.completed);
                     setResultState(ProgressStepState.completed);
                     sendJsonMessage({
-                      reqId: "randId",
+                      requestId: "randId",
                       type: "openChannel",
                       openChannelRequest: {
                         nodeId: selectedNodeId,

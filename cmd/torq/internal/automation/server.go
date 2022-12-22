@@ -51,7 +51,7 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int,
 	return nil
 }
 
-func StartRoutingPolicyService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
+func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) error {
 
 	var wg sync.WaitGroup
@@ -63,10 +63,10 @@ func StartRoutingPolicyService(ctx context.Context, conn *grpc.ClientConn, db *s
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				automation.RoutingPolicyService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+				automation.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, eventChannel)
 			}
 		}()
-		automation.RoutingPolicyService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+		automation.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, eventChannel)
 	})()
 
 	wg.Wait()

@@ -140,7 +140,7 @@ function closeChannelModal() {
                     setDetailState(ProgressStepState.completed);
                     setResultState(ProgressStepState.completed);
                     sendJsonMessage({
-                      reqId: "randId",
+                      requestId: "randId",
                       type: "closeChannel",
                       closeChannelRequest: {
                         nodeId: nodeId,

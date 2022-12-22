@@ -229,7 +229,7 @@ func cloneWorkflowVersion(db *sqlx.DB, workflowId int, cloneVersionId *int) (Wor
 	var tx *sql.Tx
 	tx, err = db.Begin()
 	if err != nil {
-		return WorkflowVersion{}, err
+		return WorkflowVersion{}, errors.Wrap(err, "adding workflow_version transaction failed to initialise")
 	}
 
 	// newWfv is the new workflow version that will be created with all the cloned data

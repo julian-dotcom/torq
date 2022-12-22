@@ -9,7 +9,7 @@ const (
 	AmbossService
 	TorqService
 	AutomationService
-	RoutingPolicyService
+	LightningCommunicationService
 	RebalanceService
 )
 
