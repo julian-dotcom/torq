@@ -1,4 +1,3 @@
-import { Add16Regular as NewWorkflowIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import TablePageTemplate, {
   TableControlsButtonGroup,
@@ -10,32 +9,16 @@ import Table from "features/table/Table";
 import { ColumnMetaData } from "features/table/types";
 import { workflowListItem } from "./workflowTypes";
 import workflowCellRenderer from "./workflowCellRenderer";
-import { useGetWorkflowsQuery, useNewWorkflowMutation } from "./workflowApi";
-import Button, { buttonColor } from "components/buttons/Button";
-import { useNavigate } from "react-router";
+import { useGetWorkflowsQuery } from "./workflowApi";
+import { useNewWorkflowButton } from "./workflowHooks";
 
 // type WorkflowsTablePageProps = {};
 
 function WorkflowsTablePage() {
   const { t } = useTranslations();
   const breadcrumbs = [t.manage, t.workflows];
-  const navigate = useNavigate();
 
   const workflowListResponse = useGetWorkflowsQuery();
-  const [newWorkflow] = useNewWorkflowMutation();
-
-  function newWorkflowHandler() {
-    const response = newWorkflow();
-    response
-      .then((res) => {
-        console.log(res);
-        const data = (res as { data: { workflowId: number; version: number } }).data;
-        navigate(`/manage/workflows/${data.workflowId}/versions/${data.version}`);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }
 
   const columns: Array<ColumnMetaData<workflowListItem>> = [
     {
@@ -64,18 +47,12 @@ function WorkflowsTablePage() {
     },
   ];
 
+  const NewWorkflowButton = useNewWorkflowButton();
+
   const workflowControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            buttonColor={buttonColor.green}
-            text={t.newWorkflow}
-            className={"collapse-tablet"}
-            icon={<NewWorkflowIcon />}
-            onClick={newWorkflowHandler}
-          />
-        </TableControlsTabsGroup>
+        <TableControlsTabsGroup>{NewWorkflowButton}</TableControlsTabsGroup>
       </TableControlsButtonGroup>
     </TableControlSection>
   );
