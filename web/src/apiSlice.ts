@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import {channel, PolicyInterface} from "features/channels/channelsTypes";
+import { channel, PolicyInterface } from "features/channels/channelsTypes";
 import { getRestEndpoint, getWsEndpoint } from "utils/apiUrlBuilder";
 import { UpdateChannelResponse } from "features/channels/channelsTypes";
 import {
@@ -45,7 +45,7 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
 export const torqApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRedirect,
-  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "services", "tags"],
+  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "services", "tags", "workflows"],
   endpoints: (builder) => ({
     getTags: builder.query<tag[], void>({
       query: () => `tags/all`,

@@ -14,18 +14,6 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func GetWorkflow(db *sqlx.DB, workflowId int) (Workflow, error) {
-	var wf Workflow
-	err := db.Get(&wf, `SELECT * FROM workflow WHERE workflow_id=$1;`, workflowId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Workflow{}, nil
-		}
-		return Workflow{}, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return wf, nil
-}
-
 func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflow, error) {
 	var wf Workflow
 	err := db.Get(&wf, `
@@ -42,6 +30,30 @@ func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflo
 	return wf, nil
 }
 
+//func GetWorkflow(db *sqlx.DB, workflowId int) (WorkflowTableRow, error) {
+//	var wfs WorkflowTableRow
+//	err := db.Select(&wfs, `SELECT
+//			w.workflow_id, w.name as workflow_name, w.status as workflow_status,
+//			wv.name as latest_version_name, wv.version as latest_version, wv.workflow_version_id as latest_workflow_version_id, wv.status as latest_version_status,
+//			awv.name as active_version_name, awv.version as active_version, awv.workflow_version_id as active_workflow_version_id, awv.status as active_version_status
+//		FROM workflow as w
+//		left join (
+//			select * from (select *,
+//							ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
+//							from workflow_version order by rank) as wv where rank = 1) as wv on w.workflow_id = wv.workflow_id
+//		left join (select * from (select *,
+//								 	ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
+//						    from workflow_version where status = 1 order by rank) as wv where rank = 1) as awv on w.workflow_id = awv.workflow_id
+//		WHERE w.workflow_id=$1;`, workflowId)
+//	if err != nil {
+//		if errors.Is(err, sql.ErrNoRows) {
+//			return WorkflowTableRow{}, nil
+//		}
+//		return WorkflowTableRow{}, errors.Wrap(err, database.SqlExecutionError)
+//	}
+//	return wfs, nil
+//}
+
 func GetWorkflows(db *sqlx.DB) ([]WorkflowTableRow, error) {
 	var wfs []WorkflowTableRow
 	err := db.Select(&wfs, `SELECT
@@ -49,9 +61,13 @@ func GetWorkflows(db *sqlx.DB) ([]WorkflowTableRow, error) {
 			wv.name as latest_version_name, wv.version as latest_version, wv.workflow_version_id as latest_workflow_version_id, wv.status as latest_version_status,
 			awv.name as active_version_name, awv.version as active_version, awv.workflow_version_id as active_workflow_version_id, awv.status as active_version_status
 		FROM workflow as w
-		left join (select * from workflow_version where workflow_id = 2 order by workflow_version_id limit 1) as wv on w.workflow_id = wv.workflow_id
-		left join (select * from workflow_version where workflow_id = 2 and status = 1 order by workflow_version_id limit 1) as awv on w.workflow_id = awv.workflow_id
-		WHERE w.workflow_id=2;`)
+		left join (
+			select * from (select *,
+							ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
+							from workflow_version order by rank) as wv where rank = 1) as wv on w.workflow_id = wv.workflow_id
+		left join (select * from (select *,
+								 	ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
+						    from workflow_version where status = 1 order by rank) as wv where rank = 1) as awv on w.workflow_id = awv.workflow_id;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowTableRow{}, nil
@@ -61,12 +77,35 @@ func GetWorkflows(db *sqlx.DB) ([]WorkflowTableRow, error) {
 	return wfs, nil
 }
 
-func addWorkflow(db *sqlx.DB, workflow Workflow) (Workflow, error) {
-	workflow.CreatedOn = time.Now().UTC()
-	workflow.UpdateOn = workflow.CreatedOn
-	err := db.QueryRowx(`INSERT INTO workflow (name, status, created_on, updated_on)
-		VALUES ($1, $2, $3, $4) RETURNING workflow_id;`,
+func createWorkflow(db *sqlx.DB) (Workflow, error) {
+	createdTime := time.Now().UTC()
+	workflow := Workflow{
+		Name:      "New Workflow",
+		CreatedOn: createdTime,
+		UpdateOn:  createdTime,
+	}
+
+	err := db.QueryRowx(`
+			INSERT INTO workflow (name, status, created_on, updated_on)
+			VALUES(
+				(SELECT(
+					SELECT
+						CASE WHEN count(*) = 0 THEN $1
+							 ELSE $1 || ' ' || (
+								 SELECT max(coalesce(regexp_replace(name, ($1 || ' (\d+)'), '\1'), '0')::integer) + 1
+								 FROM workflow
+								 WHERE name ~* ($1 || ' (\d+)')
+							 )
+						END
+					FROM workflow
+					WHERE name = $1)
+			    ),
+				$2,
+				$3,
+				$4)
+			RETURNING workflow_id;`,
 		workflow.Name, workflow.Status, workflow.CreatedOn, workflow.UpdateOn).Scan(&workflow.WorkflowId)
+
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -105,9 +144,9 @@ func removeWorkflow(db *sqlx.DB, workflowId int) (int64, error) {
 	return rowsAffected, nil
 }
 
-func GetWorkflowVersion(db *sqlx.DB, workflowVersionId int) (WorkflowVersion, error) {
+func GetWorkflowVersion(db *sqlx.DB, workflowId int, versionId int) (WorkflowVersion, error) {
 	var wfv WorkflowVersion
-	err := db.Get(&wfv, `SELECT * FROM workflow_version WHERE workflow_version_id=$1;`, workflowVersionId)
+	err := db.Get(&wfv, `SELECT * FROM workflow_version WHERE workflow_id = $1 and version = $2  limit 1;`, workflowId, versionId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return WorkflowVersion{}, nil
@@ -129,119 +168,158 @@ func GetWorkflowVersions(db *sqlx.DB, workflowId int) ([]WorkflowVersion, error)
 	return wfvs, nil
 }
 
-func addWorkflowVersion(db *sqlx.DB, workflowId int, name string) (WorkflowVersion, error) {
-	return cloneWorkflowVersion(db, workflowId, 0, name)
+func createWorkflowVersion(db *sqlx.DB, workflowId int) (WorkflowVersion, error) {
+	wfv := WorkflowVersion{}
+	wfv.WorkflowId = workflowId
+	wfv.Name = "Initial Version"
+	wfv.Version = 1
+	wfv.CreatedOn = time.Now().UTC()
+	wfv.UpdateOn = wfv.CreatedOn
+
+	err := db.QueryRowx(`INSERT INTO workflow_version (name, version, status, workflow_id, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6) RETURNING workflow_version_id;`,
+		wfv.Name,
+		wfv.Version,
+		wfv.Status,
+		wfv.WorkflowId,
+		wfv.CreatedOn,
+		wfv.UpdateOn).
+		Scan(&wfv.WorkflowVersionId)
+	if err != nil {
+		return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return wfv, nil
 }
 
-func cloneWorkflowVersion(db *sqlx.DB, workflowId int, version int, name string) (WorkflowVersion, error) {
-	var wfv WorkflowVersion
-	var err error
-	var maxVersion int
-	err = db.Get(&maxVersion, `SELECT max(version) FROM workflow_version WHERE workflow_id=$1;`, workflowId)
-	newVersion := maxVersion + 1
+func cloneWorkflowVersion(db *sqlx.DB, workflowId int, cloneVersionId *int) (WorkflowVersion, error) {
+
+	var newVersion int
+	err := db.Get(&newVersion, `SELECT coalesce(max(version),0)+1 FROM workflow_version WHERE workflow_id=$1;`, workflowId)
 	if err != nil {
 		return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
 	}
-	if version == 0 {
-		//close latest or when nothing exists create new empty version
+
+	//Clone latest when no cloneVersionId is passed in
+	var wfv WorkflowVersion
+	if cloneVersionId == nil {
 		err = db.Get(&wfv, `SELECT * FROM workflow_version WHERE workflow_id=$1 ORDER BY version DESC LIMIT 1;`, workflowId)
 	} else {
-		err = db.Get(&wfv, `SELECT * FROM workflow_version WHERE workflow_id=$1 AND version=$2;`, workflowId, version)
+		err = db.Get(&wfv, `SELECT * FROM workflow_version WHERE workflow_id=$1 AND version=$2;`, workflowId, *cloneVersionId)
 	}
+
 	if err != nil {
 		return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
 	}
-	if wfv.WorkflowVersionId == 0 {
-		wfv = WorkflowVersion{}
-		wfv.CreatedOn = time.Now().UTC()
-		if name == "" {
-			wfv.Name = fmt.Sprintf("%v", wfv.CreatedOn.Format("20060102.150405.000000"))
-		} else {
-			wfv.Name = name
+
+	// Get all the nodes belonging to the version to be cloned
+	var wfvns []WorkflowVersionNode
+	err = db.Select(&wfvns, `SELECT * FROM workflow_version_node WHERE workflow_version_id=$1;`, wfv.WorkflowVersionId)
+	if err != nil {
+		return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	// Get all the links (edges) belonging to the version to be cloned
+	var wfvnls []WorkflowVersionNodeLink
+	err = db.Select(&wfvnls, `SELECT * FROM workflow_version_node_link WHERE workflow_version_id=$1;`, wfv.WorkflowVersionId)
+	if err != nil {
+		return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	// Strart a new transaction so that we can rollback if something goes wrong
+	var tx *sql.Tx
+	tx, err = db.Begin()
+	if err != nil {
+		return WorkflowVersion{}, err
+	}
+
+	// newWfv is the new workflow version that will be created with all the cloned data
+	newWfv := WorkflowVersion{}
+
+	// Populate the new workflow version with the data from the old one
+	newWfv.CreatedOn = time.Now().UTC()
+	// TODO: Create a better and unique workflow version name or remove the unique constraint and use a default name
+	newWfv.Name = fmt.Sprintf("%v", wfv.CreatedOn.Format("20060102.150405.000000"))
+	newWfv.UpdateOn = newWfv.CreatedOn
+	newWfv.WorkflowId = workflowId
+	newWfv.Version = newVersion
+
+	err = tx.QueryRow(`
+			INSERT INTO workflow_version (name, version, status, workflow_id, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			RETURNING workflow_version_id;`,
+		newWfv.Name,
+		newWfv.Version,
+		newWfv.Status,
+		newWfv.WorkflowId,
+		newWfv.CreatedOn,
+		newWfv.UpdateOn).Scan(&newWfv.WorkflowVersionId)
+
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return WorkflowVersion{}, errors.Wrap(rollbackErr, "adding workflow_version failed (rollback failed too)")
 		}
-		wfv.UpdateOn = wfv.CreatedOn
-		wfv.WorkflowId = workflowId
-		wfv.Version = newVersion
-		err = db.QueryRowx(`INSERT INTO workflow_version (name, version, status, workflow_id, created_on, updated_on)
-		VALUES ($1, $2, $3, $4, $5, $6) RETURNING workflow_version_id;`,
-			wfv.Name, wfv.Version, wfv.Status, wfv.WorkflowId, wfv.CreatedOn, wfv.UpdateOn).Scan(&wfv.WorkflowVersionId)
-		if err != nil {
-			return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
-		}
-	} else {
-		var wfvns []WorkflowVersionNode
-		err = db.Select(&wfvns, `SELECT * FROM workflow_version_node WHERE workflow_version_id=$1;`, wfv.WorkflowVersionId)
-		if err != nil {
-			return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
-		}
-		var wfvnls []WorkflowVersionNodeLink
-		err = db.Select(&wfvnls, `SELECT * FROM workflow_version_node_link WHERE workflow_version_id=$1;`, wfv.WorkflowVersionId)
-		if err != nil {
-			return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
-		}
-		var tx *sql.Tx
-		tx, err = db.Begin()
-		if err != nil {
-			return WorkflowVersion{}, err
-		}
-		newWfv := WorkflowVersion{}
-		newWfv.CreatedOn = time.Now().UTC()
-		if name == "" {
-			newWfv.Name = fmt.Sprintf("%v", wfv.CreatedOn.Format("20060102.150405.000000"))
-		} else {
-			newWfv.Name = name
-		}
-		newWfv.UpdateOn = newWfv.CreatedOn
-		newWfv.WorkflowId = workflowId
-		newWfv.Version = newVersion
-		err = tx.QueryRow(`INSERT INTO workflow_version (name, version, status, workflow_id, created_on, updated_on)
-		VALUES ($1, $2, $3, $4, $5, $6) RETURNING workflow_version_id;`,
-			newWfv.Name, newWfv.Version, newWfv.Status, newWfv.WorkflowId, newWfv.CreatedOn, newWfv.UpdateOn).Scan(&newWfv.WorkflowVersionId)
+		return WorkflowVersion{}, errors.Wrap(err, "adding workflow_version failed (rollback done)")
+	}
+
+	fromToWorkflowVersionNodeIds := make(map[int]int)
+
+	// Clone the old node and assign them to the new node ids
+	for _, workflowVersionNode := range wfvns {
+		existingWorkflowVersionNodeId := workflowVersionNode.WorkflowVersionNodeId
+		workflowVersionNode.WorkflowVersionId = newWfv.WorkflowVersionId
+
+		err = db.QueryRowx(`
+				INSERT INTO workflow_version_node
+					(name, status, type, parameters, visibility_settings, workflow_version_id, created_on, updated_on)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING workflow_version_node_id;`,
+			workflowVersionNode.Name,
+			workflowVersionNode.Status,
+			workflowVersionNode.Type,
+			workflowVersionNode.Parameters,
+			workflowVersionNode.VisibilitySettings,
+			workflowVersionNode.WorkflowVersionId,
+			workflowVersionNode.CreatedOn,
+			workflowVersionNode.UpdateOn).Scan(&workflowVersionNode.WorkflowVersionNodeId)
 		if err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				return WorkflowVersion{}, errors.Wrap(rollbackErr, "adding workflow_version failed (rollback failed too)")
+				return WorkflowVersion{}, errors.Wrap(rollbackErr, "adding workflow_version_node failed (rollback failed too)")
 			}
-			return WorkflowVersion{}, errors.Wrap(err, "adding workflow_version failed (rollback done)")
+			return WorkflowVersion{}, errors.Wrap(err, "adding workflow_version_node failed (rollback done)")
 		}
-		fromToWorkflowVersionNodeIds := make(map[int]int)
-		for _, workflowVersionNode := range wfvns {
-			existingWorkflowVersionNodeId := workflowVersionNode.WorkflowVersionNodeId
-			workflowVersionNode.WorkflowVersionId = newWfv.WorkflowVersionId
-			err = db.QueryRowx(`INSERT INTO workflow_version_node
-				(name, status, type, parameters, visibility_settings, workflow_version_id, created_on, updated_on)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING workflow_version_node_id;`,
-				workflowVersionNode.Name, workflowVersionNode.Status, workflowVersionNode.Type, workflowVersionNode.Parameters,
-				workflowVersionNode.VisibilitySettings, workflowVersionNode.WorkflowVersionId, workflowVersionNode.CreatedOn,
-				workflowVersionNode.UpdateOn).Scan(&workflowVersionNode.WorkflowVersionNodeId)
-			if err != nil {
-				if rollbackErr := tx.Rollback(); rollbackErr != nil {
-					return WorkflowVersion{}, errors.Wrap(rollbackErr, "adding workflow_version_node failed (rollback failed too)")
-				}
-				return WorkflowVersion{}, errors.Wrap(err, "adding workflow_version_node failed (rollback done)")
-			}
-			fromToWorkflowVersionNodeIds[existingWorkflowVersionNodeId] = workflowVersionNode.WorkflowVersionNodeId
-		}
-		for _, workflowVersionNodeLink := range wfvnls {
-			workflowVersionNodeLink.WorkflowVersionId = newWfv.WorkflowVersionId
-			workflowVersionNodeLink.ParentWorkflowVersionNodeId = fromToWorkflowVersionNodeIds[workflowVersionNodeLink.ParentWorkflowVersionNodeId]
-			workflowVersionNodeLink.ChildWorkflowVersionNodeId = fromToWorkflowVersionNodeIds[workflowVersionNodeLink.ChildWorkflowVersionNodeId]
-			err = db.QueryRowx(`INSERT INTO workflow_version_node_link
-				(name, visibility_settings, parent_output_index, parent_workflow_version_node_id,
-				 child_input_index, child_workflow_version_node_id, workflow_version_id, created_on, updated_on)
+		// If there are no errors map old to new workflow_version_node_id
+		fromToWorkflowVersionNodeIds[existingWorkflowVersionNodeId] = workflowVersionNode.WorkflowVersionNodeId
+	}
+
+	// wfl = Workflow Version Node Link
+	// Clone the old links and assign them to the new node ids
+	for _, wvnl := range wfvnls {
+
+		wvnl.WorkflowVersionId = newWfv.WorkflowVersionId
+		wvnl.ParentWorkflowVersionNodeId = fromToWorkflowVersionNodeIds[wvnl.ParentWorkflowVersionNodeId]
+		wvnl.ChildWorkflowVersionNodeId = fromToWorkflowVersionNodeIds[wvnl.ChildWorkflowVersionNodeId]
+
+		err = db.QueryRowx(`
+				INSERT INTO workflow_version_node_link
+					(name, visibility_settings, parent_output_index, parent_workflow_version_node_id,
+					 child_input_index, child_workflow_version_node_id, workflow_version_id, created_on, updated_on)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING workflow_version_node_link_id;`,
-				workflowVersionNodeLink.Name, workflowVersionNodeLink.VisibilitySettings,
-				workflowVersionNodeLink.ParentOutputIndex, workflowVersionNodeLink.ParentWorkflowVersionNodeId,
-				workflowVersionNodeLink.ChildInputIndex, workflowVersionNodeLink.ChildWorkflowVersionNodeId,
-				workflowVersionNodeLink.WorkflowVersionId,
-				workflowVersionNodeLink.CreatedOn, workflowVersionNodeLink.UpdateOn).Scan(&workflowVersionNodeLink.WorkflowVersionNodeLinkId)
-			if err != nil {
-				if rollbackErr := tx.Rollback(); rollbackErr != nil {
-					return WorkflowVersion{}, errors.Wrap(rollbackErr, "adding workflow_version_node_link failed (rollback failed too)")
-				}
-				return WorkflowVersion{}, errors.Wrap(err, "adding workflow_version_node_link failed (rollback done)")
+			wvnl.Name,
+			wvnl.VisibilitySettings,
+			wvnl.ParentOutputIndex,
+			wvnl.ParentWorkflowVersionNodeId,
+			wvnl.ChildInputIndex,
+			wvnl.ChildWorkflowVersionNodeId,
+			wvnl.WorkflowVersionId,
+			wvnl.CreatedOn,
+			wvnl.UpdateOn).Scan(&wvnl.WorkflowVersionNodeLinkId)
+		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				return WorkflowVersion{}, errors.Wrap(rollbackErr, "adding workflow_version_node_link failed (rollback failed too)")
 			}
+			return WorkflowVersion{}, errors.Wrap(err, "adding workflow_version_node_link failed (rollback done)")
 		}
 	}
+
 	return wfv, nil
 }
 

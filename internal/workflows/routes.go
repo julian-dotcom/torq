@@ -16,14 +16,17 @@ import (
 func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
 	r.GET("", func(c *gin.Context) { getWorkflowsHandler(c, db) })
-	r.POST("", func(c *gin.Context) { addWorkflowHandler(c, db) })
+	r.POST("", func(c *gin.Context) { createWorkflowHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { setWorkflowHandler(c, db) })
 	r.DELETE("/:workflowId", func(c *gin.Context) { removeWorkflowHandler(c, db) })
-	r.GET("/:workflowVersionId", func(c *gin.Context) { getWorkflowVersionNodesHandler(c, db) })
+	r.GET("/:workflowId/versions/:versionId", func(c *gin.Context) { getWorkflowVersionNodesHandler(c, db) })
 
-	r.GET("getWorkflowVersion/:workflowVersionId", func(c *gin.Context) { getWorkflowVersionHandler(c, db) })
+	//r.GET("getWorkflowVersion/:workflowVersionId", func(c *gin.Context) { getWorkflowVersionHandler(c, db) })
+
 	r.GET("getWorkflowVersions/:workflowId", func(c *gin.Context) { getWorkflowVersionsHandler(c, db) })
-	r.POST("addWorkflowVersion/:workflowId", func(c *gin.Context) { addWorkflowVersionHandler(c, db) })
+
+	//r.POST("addWorkflowVersion/:workflowId", func(c *gin.Context) { addWorkflowVersionHandler(c, db) })
+
 	r.POST("cloneWorkflowVersion/:workflowId/:version", func(c *gin.Context) { cloneWorkflowVersionHandler(c, db) })
 	r.PUT("setWorkflowVersion", func(c *gin.Context) { setWorkflowVersionHandler(c, db) })
 	r.DELETE("removeWorkflowVersion/:workflowVersionId", func(c *gin.Context) { removeWorkflowVersionHandler(c, db) })
@@ -43,20 +46,6 @@ func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("getWorkflowVersionNodeLogs/:workflowVersionNodeId", func(c *gin.Context) { getWorkflowVersionNodeLogsHandler(c, db) })
 }
 
-func getWorkflowHandler(c *gin.Context, db *sqlx.DB) {
-	workflowId, err := strconv.Atoi(c.Param("workflowId"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
-		return
-	}
-	workflow, err := GetWorkflow(db, workflowId)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow for workflowId: %v", workflowId))
-		return
-	}
-	c.JSON(http.StatusOK, workflow)
-}
-
 func getWorkflowsHandler(c *gin.Context, db *sqlx.DB) {
 	workflows, err := GetWorkflows(db)
 	if err != nil {
@@ -66,22 +55,21 @@ func getWorkflowsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, workflows)
 }
 
-func addWorkflowHandler(c *gin.Context, db *sqlx.DB) {
-	var wf Workflow
-	if err := c.BindJSON(&wf); err != nil {
-		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
-		return
-	}
-	if wf.Name == "" {
-		server_errors.SendUnprocessableEntity(c, "Failed to find name in the request.")
-		return
-	}
-	storedWorkflow, err := addWorkflow(db, wf)
+func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
+
+	storedWorkflow, err := createWorkflow(db)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Adding workflow.")
 		return
 	}
-	c.JSON(http.StatusOK, storedWorkflow)
+
+	wv, err := createWorkflowVersion(db, storedWorkflow.WorkflowId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Adding workflow version to new workflow.")
+		return
+	}
+
+	c.JSON(http.StatusOK, wv)
 }
 
 func setWorkflowHandler(c *gin.Context, db *sqlx.DB) {
@@ -114,14 +102,20 @@ func removeWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
-	workflowVersionId, err := strconv.Atoi(c.Param("workflowVersionId"))
+	workflowId, err := strconv.Atoi(c.Param("workflowId"))
 	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionId in the request.")
+		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
 		return
 	}
-	workflowVersion, err := GetWorkflowVersion(db, workflowVersionId)
+	versionId, err := strconv.Atoi(c.Param("versionId"))
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow for workflowId: %v", workflowVersionId))
+		server_errors.SendBadRequest(c, "Failed to find/parse versionId in the request.")
+		return
+	}
+
+	workflowVersion, err := GetWorkflowVersion(db, versionId, workflowId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow for workflowId: %v version %v", workflowId, versionId))
 		return
 	}
 	c.JSON(http.StatusOK, workflowVersion)
@@ -141,36 +135,26 @@ func getWorkflowVersionsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, workflowVersions)
 }
 
-func addWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
-	workflowId, err := strconv.Atoi(c.Param("workflowId"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
-		return
-	}
-	storedWorkflowVersion, err := addWorkflowVersion(db, workflowId, c.Param("name"))
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Adding workflow version.")
-		return
-	}
-	c.JSON(http.StatusOK, storedWorkflowVersion)
-}
-
 func cloneWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
+
 	workflowId, err := strconv.Atoi(c.Param("workflowId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
 		return
 	}
+
 	version, err := strconv.Atoi(c.Param("version"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse version in the request.")
 		return
 	}
-	storedWorkflowVersion, err := cloneWorkflowVersion(db, workflowId, version, c.Param("name"))
+
+	storedWorkflowVersion, err := cloneWorkflowVersion(db, workflowId, &version)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Adding workflow version.")
 		return
 	}
+
 	c.JSON(http.StatusOK, storedWorkflowVersion)
 }
 
@@ -218,12 +202,24 @@ func getWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getWorkflowVersionNodesHandler(c *gin.Context, db *sqlx.DB) {
-	workflowVersionId, err := strconv.Atoi(c.Param("workflowVersionId"))
+	workflowId, err := strconv.Atoi(c.Param("workflowId"))
 	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionId in the request.")
+		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
 		return
 	}
-	workflowForest, err := GetWorkflowForest(db, workflowVersionId)
+	versionId, err := strconv.Atoi(c.Param("versionId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse versionId in the request.")
+		return
+	}
+
+	workflowVersion, err := GetWorkflowVersion(db, workflowId, versionId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow for workflowId: %v version %v", workflowId, versionId))
+		return
+	}
+
+	workflowForest, err := GetWorkflowForest(db, workflowVersion.WorkflowVersionId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting workflow forest.")
 		return

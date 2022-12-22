@@ -11,3 +11,17 @@ export type workflowListItem = {
   activeWorkflowVersionId: number;
   activeVersionStatus: number;
 };
+
+export type workflow = {
+  LinkDetails: {};
+  childNodes: {};
+  name: string;
+  parameters: {};
+  parentNodes: {};
+  status: number;
+  type: number;
+  updatedOn: string;
+  visibilitySettings: number;
+  workflowVersionId: number;
+  workflowVersionNodeId: number;
+};

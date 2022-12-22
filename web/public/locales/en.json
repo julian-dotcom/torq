@@ -70,6 +70,7 @@
   "nodes": "Nodes",
   "deploy": "Deploy",
   "saveDraft": "Save Draft",
+  "newWorkflow": "New Workflow",
   "tableLayout": {
     "tableOptions": "Table options"
   },

@@ -31,4 +31,4 @@ export const CLOSE_CHANNEL = "/close-channel";
 
 // Automation
 export const WORKFLOWS = "workflows";
-export const WORKFLOW = "workflows/:workflowId/versions/:workflowVersionId";
+export const WORKFLOW = "workflows/:workflowId/versions/:versionId";

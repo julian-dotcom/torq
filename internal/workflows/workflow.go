@@ -15,17 +15,17 @@ type Workflow struct {
 }
 
 type WorkflowTableRow struct {
-	WorkflowId              int    `json:"workflowId" db:"workflow_id"`
-	WorkflowName            string `json:"workflowName" db:"workflow_name"`
-	WorkflowStatus          int    `json:"workflowStatus" db:"workflow_status"`
-	LatestVersionName       string `json:"latestVersionName" db:"latest_version_name"`
-	LatestVersion           int    `json:"latestVersion" db:"latest_version"`
-	LatestWorkflowVersionId int    `json:"latestWorkflowVersionId" db:"latest_workflow_version_id"`
-	LatestVersionStatus     int    `json:"latestVersionStatus" db:"latest_version_status"`
-	ActiveVersionName       string `json:"activeVersionName" db:"active_version_name"`
-	ActiveVersion           int    `json:"activeVersion" db:"active_version"`
-	ActiveWorkflowVersionId int    `json:"activeWorkflowVersionId" db:"active_workflow_version_id"`
-	ActiveVersionStatus     int    `json:"activeVersionStatus" db:"active_version_status"`
+	WorkflowId              int     `json:"workflowId" db:"workflow_id"`
+	WorkflowName            string  `json:"workflowName" db:"workflow_name"`
+	WorkflowStatus          int     `json:"workflowStatus" db:"workflow_status"`
+	LatestVersionName       string  `json:"latestVersionName" db:"latest_version_name"`
+	LatestVersion           int     `json:"latestVersion" db:"latest_version"`
+	LatestWorkflowVersionId int     `json:"latestWorkflowVersionId" db:"latest_workflow_version_id"`
+	LatestVersionStatus     int     `json:"latestVersionStatus" db:"latest_version_status"`
+	ActiveVersionName       *string `json:"activeVersionName" db:"active_version_name"`
+	ActiveVersion           *int    `json:"activeVersion" db:"active_version"`
+	ActiveWorkflowVersionId *int    `json:"activeWorkflowVersionId" db:"active_workflow_version_id"`
+	ActiveVersionStatus     *int    `json:"activeVersionStatus" db:"active_version_status"`
 }
 
 type WorkflowVersion struct {

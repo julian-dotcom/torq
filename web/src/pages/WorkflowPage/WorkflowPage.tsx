@@ -9,11 +9,12 @@ import styles from "./workflow_page.module.scss";
 import PageTitle from "features/templates/PageTitle";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import ChannelPolicyNode from "components/workflow/nodes/ChannelPolicy";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useGetWorkflowQuery } from "./workflowApi";
 import Sidebar from "features/sidebar/Sidebar";
 import classNames from "classnames";
 import Button, { buttonColor } from "components/buttons/Button";
+import { WORKFLOWS, MANAGE } from "constants/routes";
 import {
   TableControlsButtonGroup,
   TableControlSection,
@@ -28,13 +29,25 @@ type WorkflowPageProps = {
 
 function WorkflowPage<T>(props: WorkflowPageProps) {
   const { t } = useTranslations();
-  const { workflowId, workflowVersionId } = useParams();
+  const { workflowId, version } = useParams();
 
-  const workflowResponse = useGetWorkflowQuery({ workflowVersionId: parseInt(workflowVersionId || "") });
+  const workflowResponse = useGetWorkflowQuery(
+    {
+      workflowId: parseInt(workflowId || ""),
+      version: parseInt(version || ""),
+    },
+    { skip: !workflowId || !version }
+  );
 
-  console.log(workflowResponse.data);
+  console.log(workflowResponse);
 
-  const bradcrumbs = props.breadcrumbs || [t.manage, t.workflow, workflowId];
+  const bradcrumbs = props.breadcrumbs || [
+    t.manage,
+    <Link to={`/${MANAGE}/${WORKFLOWS}`} key={"workflowsLink"}>
+      {t.workflows}
+    </Link>,
+    workflowId,
+  ];
   const id1 = useId();
   const id2 = useId();
   const id3 = useId();
