@@ -11,11 +11,11 @@ import (
 func routingPolicyUpdate(request commons.RoutingPolicyUpdateRequest,
 	eventChannel chan interface{}) (commons.RoutingPolicyUpdateResponse, error) {
 
-	responseChannel := make(chan interface{})
-	request.ResponseChannel = responseChannel
-
 	if eventChannel != nil {
 		if commons.RunningServices[commons.LightningCommunicationService].GetStatus(request.NodeId) == commons.Active {
+			responseChannel := make(chan interface{})
+			request.ResponseChannel = responseChannel
+
 			eventChannel <- request
 			response := <-responseChannel
 			if updateResponse, ok := response.(commons.RoutingPolicyUpdateResponse); ok {

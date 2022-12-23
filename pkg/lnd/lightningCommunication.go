@@ -41,7 +41,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 			var responseChannel chan interface{}
 			if request, ok := event.(commons.ChannelStatusUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
-					return
+					continue
 				}
 				if request.ResponseChannel != nil {
 					responseChannel = request.ResponseChannel
@@ -50,7 +50,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 			}
 			if request, ok := event.(commons.RoutingPolicyUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
-					return
+					continue
 				}
 				if request.ResponseChannel != nil {
 					responseChannel = request.ResponseChannel
@@ -69,13 +69,13 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	}
 }
 
-func processChannelStatusUpdateRequest(ctx context.Context, request commons.ChannelStatusUpdateRequest, router routerrpc.RouterClient) *commons.ChannelStatusUpdateResponse {
+func processChannelStatusUpdateRequest(ctx context.Context, request commons.ChannelStatusUpdateRequest, router routerrpc.RouterClient) commons.ChannelStatusUpdateResponse {
 	response := validateChannelStatusUpdateRequest(request)
 	if response != nil {
-		return response
+		return *response
 	}
 	if !channelStatusUpdateRequestContainsUpdates(request) {
-		return &commons.ChannelStatusUpdateResponse{
+		return commons.ChannelStatusUpdateResponse{
 			Request: request,
 			CommunicationResponse: commons.CommunicationResponse{
 				Status:  commons.Active,
@@ -86,7 +86,7 @@ func processChannelStatusUpdateRequest(ctx context.Context, request commons.Chan
 	_, err := router.UpdateChanStatus(ctx, constructUpdateChanStatusRequest(request))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to update routing policy for channelId: %v on nodeId: %v", request.ChannelId, request.NodeId)
-		return &commons.ChannelStatusUpdateResponse{
+		return commons.ChannelStatusUpdateResponse{
 			Request: request,
 			CommunicationResponse: commons.CommunicationResponse{
 				Status: commons.Inactive,
@@ -94,7 +94,7 @@ func processChannelStatusUpdateRequest(ctx context.Context, request commons.Chan
 			},
 		}
 	}
-	return &commons.ChannelStatusUpdateResponse{
+	return commons.ChannelStatusUpdateResponse{
 		Request: request,
 		CommunicationResponse: commons.CommunicationResponse{
 			Status: commons.Active,
@@ -150,14 +150,14 @@ func validateChannelStatusUpdateRequest(request commons.ChannelStatusUpdateReque
 	return nil
 }
 
-func processRoutingPolicyUpdateRequest(ctx context.Context, request commons.RoutingPolicyUpdateRequest, client lnrpc.LightningClient) *commons.RoutingPolicyUpdateResponse {
+func processRoutingPolicyUpdateRequest(ctx context.Context, request commons.RoutingPolicyUpdateRequest, client lnrpc.LightningClient) commons.RoutingPolicyUpdateResponse {
 	response := validateRoutingPolicyUpdateRequest(request)
 	if response != nil {
-		return response
+		return *response
 	}
 	channelState := commons.GetChannelState(request.NodeId, request.ChannelId, true)
 	if !routingPolicyUpdateRequestContainsUpdates(request, channelState) {
-		return &commons.RoutingPolicyUpdateResponse{
+		return commons.RoutingPolicyUpdateResponse{
 			Request: request,
 			CommunicationResponse: commons.CommunicationResponse{
 				Status:  commons.Active,
@@ -170,7 +170,7 @@ func processRoutingPolicyUpdateRequest(ctx context.Context, request commons.Rout
 }
 
 func processRoutingPolicyUpdateResponse(request commons.RoutingPolicyUpdateRequest, resp *lnrpc.PolicyUpdateResponse,
-	err error) *commons.RoutingPolicyUpdateResponse {
+	err error) commons.RoutingPolicyUpdateResponse {
 
 	var failedUpdateArray []commons.FailedRequest
 	for _, failedUpdate := range resp.GetFailedUpdates() {
@@ -184,7 +184,7 @@ func processRoutingPolicyUpdateResponse(request commons.RoutingPolicyUpdateReque
 	}
 	if err != nil || len(failedUpdateArray) > 0 {
 		log.Error().Err(err).Msgf("Failed to update routing policy for channelId: %v on nodeId: %v", request.ChannelId, request.NodeId)
-		return &commons.RoutingPolicyUpdateResponse{
+		return commons.RoutingPolicyUpdateResponse{
 			Request: request,
 			CommunicationResponse: commons.CommunicationResponse{
 				Status: commons.Inactive,
@@ -192,7 +192,7 @@ func processRoutingPolicyUpdateResponse(request commons.RoutingPolicyUpdateReque
 			FailedUpdates: failedUpdateArray,
 		}
 	}
-	return &commons.RoutingPolicyUpdateResponse{
+	return commons.RoutingPolicyUpdateResponse{
 		Request: request,
 		CommunicationResponse: commons.CommunicationResponse{
 			Status: commons.Active,

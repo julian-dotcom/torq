@@ -335,9 +335,9 @@ type PendingChannel struct {
 
 // Request/Response for lightningCommunication
 type CommunicationRequest struct {
-	RequestId       string `json:"requestId"`
-	NodeId          int    `json:"nodeId"`
-	ResponseChannel chan interface{}
+	RequestId       string           `json:"requestId"`
+	NodeId          int              `json:"nodeId"`
+	ResponseChannel chan interface{} `json:"-"`
 }
 
 type CommunicationResponse struct {
@@ -353,8 +353,8 @@ type ChannelStatusUpdateRequest struct {
 }
 
 type ChannelStatusUpdateResponse struct {
+	Request ChannelStatusUpdateRequest `json:"request"`
 	CommunicationResponse
-	Request ChannelStatusUpdateRequest
 }
 
 type RoutingPolicyUpdateRequest struct {
@@ -368,7 +368,7 @@ type RoutingPolicyUpdateRequest struct {
 }
 
 type RoutingPolicyUpdateResponse struct {
-	Request RoutingPolicyUpdateRequest
+	Request RoutingPolicyUpdateRequest `json:"request"`
 	CommunicationResponse
 	FailedUpdates []FailedRequest `json:"failedUpdates"`
 }

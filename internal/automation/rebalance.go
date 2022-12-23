@@ -49,13 +49,13 @@ func RebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, n
 			}
 			if rebalanceEvent, ok := event.(commons.RebalanceRequest); ok {
 				if rebalanceEvent.NodeId != nodeSettings.NodeId {
-					return
+					continue
 				}
 				if rebalanceEvent.IncomingChannelId == 0 {
-					return
+					continue
 				}
 				if len(rebalanceEvent.OutgoingChannelIds) == 0 {
-					return
+					continue
 				}
 				// TODO check if rebalancer isn't already running
 				rebalanceAttempts[rebalanceEvent.IncomingChannelId] = Rebalance{
