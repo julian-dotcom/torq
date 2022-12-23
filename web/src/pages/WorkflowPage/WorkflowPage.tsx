@@ -8,11 +8,35 @@ import Sidebar from "features/sidebar/Sidebar";
 import classNames from "classnames";
 import { WORKFLOWS, MANAGE } from "constants/routes";
 import { useExtractNodes, useWorkflowControls, useWorkflowData } from "./workflowHooks";
+import { ReactComponent as StageArrowBack } from "./stageArrowBack.svg";
+import { ReactComponent as StageArrowFront } from "./stageArrowFront.svg";
+import { WorkflowStages } from "./workflowTypes";
 
 type WorkflowPageProps = {
   title?: string;
   workflowId?: string;
 };
+
+export function useStageButtons(
+  stages: WorkflowStages,
+  selectedStage: number,
+  setSelectedStage: (stage: number) => void
+) {
+  const stageButtons = Object.keys(stages).map((stage, index) => {
+    return (
+      <button
+        key={`stage-${stage}`}
+        className={classNames(styles.stageContainer, { [styles.selected]: parseInt(stage) === selectedStage })}
+        onClick={() => setSelectedStage(parseInt(stage))}
+      >
+        {index !== 0 && <StageArrowBack />}
+        <div className={styles.stage}>{`Stage ${stage}`}</div>
+        <StageArrowFront />
+      </button>
+    );
+  });
+  return <div className={styles.stagesWrapper}>{stageButtons}</div>;
+}
 
 function WorkflowPage<T>(props: WorkflowPageProps) {
   const { t } = useTranslations();
@@ -44,6 +68,8 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
     workflowVersion.name,
   ];
 
+  const stageButtons = useStageButtons(stages, selectedStage, setSelectedStage);
+
   return (
     <div className={styles.contentWrapper}>
       <PageTitle breadcrumbs={bradcrumbs} title={workflow.name || ""} />
@@ -52,6 +78,7 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
         <div className={styles.tableContainer}>
           <div className={styles.tableExpander}>
             <WorkflowCanvas>{nodes}</WorkflowCanvas>
+            {stageButtons}
           </div>
         </div>
       </div>

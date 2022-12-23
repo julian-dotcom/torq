@@ -25,7 +25,7 @@ export type WorkflowNodeProps = {
 function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const { t } = useTranslations();
   const [collapsed, setCollapsed] = useState(true);
-  const [position, setPosition] = useState({ x: props.x || 50, y: props.y || 50 });
+  const [position, setPosition] = useState({ x: props.x || 100, y: props.y || 100 });
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
   const { canvasRef, blankImgRef } = useContext(CanvasContext);

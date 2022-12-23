@@ -72,3 +72,100 @@
   bottom: 0;
   top: 0;
 }
+.stagesWrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  flex-grow: 1;
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  column-gap: 0px;
+}
+.stageContainer {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  padding: 0;
+  border-bottom-left-radius: var(--radius-default);
+  border-top-left-radius: var(--radius-default);
+  position: relative;
+  fill: var(--color-primary-layer-4);
+  //mask-image: url("stageArrowBack.svg"), url("stageArrowFront.svg");
+  //mask-repeat: no-repeat, no-repeat;
+  //mask-clip: fill-box;
+  svg {
+    padding: 0;
+  }
+  &:hover {
+    //background-color: var(--color-primary-faint);
+    fill: var(--color-primary-faint);
+  }
+  &.selected {
+    //background-color: var(--color-primary-faint);
+    fill: var(--color-primary-faint);
+  }
+}
+.stageContainer + .stageContainer {
+  margin-left: -8px;
+}
+.stage {
+  background-color: var(--color-primary-layer-4);
+  padding-left: 8px;
+  padding-right: 8px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  //padding: 8px;
+}
+.stage:not(svg + .stage) {
+  border-bottom-left-radius: var(--radius-default);
+  border-top-left-radius: var(--radius-default);
+  padding-left: 12px;
+}
+.stageContainer.selected .stage {
+  background-color: var(--color-primary-faint);
+}
+.stageContainer:hover .stage {
+  background-color: var(--color-primary-faint);
+}
+
+//.stage:before {
+//  content: "";
+//  position: absolute;
+//  top: 0;
+//  left: -18px;
+//  width: 40px;
+//  height: 40px;
+//  //border-top-right-radius: var(--radius-default);
+//  //background-color: var(--color-primary-layer-4);
+//  //transform: rotate(45deg);
+//  //z-index: -1;
+//  background-image: url("stageArrowBack.svg");
+//  background-position: 0px 0px;
+//  background-repeat: no-repeat;
+//}
+//.stage:hover:before {
+//  background-color: var(--color-primary-faint);
+//}
+//.stage:after,
+//.stage:before {
+//  left: 100%;
+//  top: 50%;
+//
+//  border: solid transparent;
+//  content: "";
+//  height: 0;
+//  width: 0;
+//  position: absolute;
+//  pointer-events: none;
+//}
+//
+//.stage:after {
+//  border-left-color: var(--color-primary-layer-4);
+//  border-width: 20px;
+//  margin-top: -20px;
+//}
