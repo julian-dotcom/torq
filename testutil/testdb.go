@@ -191,28 +191,28 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 
 		lndShortChannelId := uint64(1111)
 		shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
-		err = addChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash1, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
+		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash1, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 		if err != nil {
 			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 		}
 
 		lndShortChannelId = 2222
 		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
-		err = addChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash2, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
+		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash2, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 		if err != nil {
 			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 		}
 
 		lndShortChannelId = 3333
 		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
-		err = addChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash3, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
+		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash3, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 		if err != nil {
 			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 		}
 
 		lndShortChannelId = 4444
 		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
-		err = addChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash4, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
+		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash4, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 		if err != nil {
 			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 		}
@@ -262,7 +262,7 @@ func addNodeConnectionDetails(db *sqlx.DB, testNodeId int, cancel context.Cancel
 	return nil
 }
 
-func addChannel(db *sqlx.DB, shortChannelId string, lndShortChannelId uint64,
+func AddChannel(db *sqlx.DB, shortChannelId string, lndShortChannelId uint64,
 	fundingTransactionHash string, foundingOutputIndex int,
 	testNodeId1 int, testNodeId2 int, cancel context.CancelFunc) error {
 

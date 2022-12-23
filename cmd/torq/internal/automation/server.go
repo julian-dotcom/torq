@@ -11,6 +11,7 @@ import (
 	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/lnd"
 )
 
 func Start(ctx context.Context, db *sqlx.DB, nodeId int,
@@ -63,10 +64,10 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				automation.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+				lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, eventChannel)
 			}
 		}()
-		automation.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+		lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, eventChannel)
 	})()
 
 	wg.Wait()

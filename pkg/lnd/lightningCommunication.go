@@ -1,8 +1,7 @@
-package automation
+package lnd
 
 import (
 	"context"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -13,12 +12,6 @@ import (
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
-
-type RoutingPolicyHistory struct {
-	ChannelId     int
-	ExecutionTime time.Time
-	RoutingPolicy lnrpc.RoutingPolicy
-}
 
 func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
@@ -173,6 +166,12 @@ func processRoutingPolicyUpdateRequest(ctx context.Context, request commons.Rout
 		}
 	}
 	resp, err := client.UpdateChannelPolicy(ctx, constructPolicyUpdateRequest(request, channelState))
+	return processRoutingPolicyUpdateResponse(request, resp, err)
+}
+
+func processRoutingPolicyUpdateResponse(request commons.RoutingPolicyUpdateRequest, resp *lnrpc.PolicyUpdateResponse,
+	err error) *commons.RoutingPolicyUpdateResponse {
+
 	var failedUpdateArray []commons.FailedRequest
 	for _, failedUpdate := range resp.GetFailedUpdates() {
 		log.Error().Msgf("Failed to update routing policy for channelId: %v on nodeId: %v (%v)",
