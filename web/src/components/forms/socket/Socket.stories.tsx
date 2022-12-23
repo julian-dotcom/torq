@@ -6,6 +6,7 @@ import { InputSizeVariant, InputColorVaraint } from "components/forms/variants";
 import { useArgs } from "@storybook/client-api";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import WorkflowNodeWrapper from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
+import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
 
 export default {
   title: "components/forms/Socket",
@@ -15,15 +16,30 @@ export default {
 const Template: Story<SocketProps> = (args) => {
   const [_, updateArgs] = useArgs();
 
+  const nodeData: WorkflowNode = {
+    workflowVersionNodeId: 1,
+    name: "sdafsdf",
+    status: 1,
+    type: 1,
+    parameters: {},
+    visibilitySettings: {
+      collapsed: false,
+      xPosition: 100,
+      yPosition: 100,
+    },
+    updatedOn: "2022-12-22T18:01:38.655Z",
+    parentNodes: {},
+    childNodes: {},
+    LinkDetails: {},
+    workflowVersionId: 1,
+  };
+
   return (
     <Provider store={store}>
       <WorkflowCanvas>
-        <WorkflowNodeWrapper nodeName={"secondSocketRest"} id={"test"} heading={"test"}>
+        <WorkflowNodeWrapper id={"test"} heading={"test"} {...nodeData}>
           <Socket {...args} />
         </WorkflowNodeWrapper>
-        <WorkflowNodeWrapper nodeName={"socketTest"} id={"test"} heading={"test"}>
-          <Socket {...args} />
-        </WorkflowNodeWrapper>{" "}
       </WorkflowCanvas>
     </Provider>
   );

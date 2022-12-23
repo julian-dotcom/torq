@@ -50,13 +50,9 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 					continue
 				}
 				if workflowTriggerNode.Type == commons.WorkflowNodeTimeTrigger {
-					triggerParameters, err := workflows.GetWorkflowNodeParameters(workflowTriggerNode)
-					if err != nil {
-						log.Error().Err(err).Msgf("Obtaining trigger parameters for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-						continue
-					}
+
 					foundIt := false
-					for _, triggerParameter := range triggerParameters.Parameters {
+					for _, triggerParameter := range workflowTriggerNode.Parameters.Parameters {
 						if triggerParameter.Type == commons.WorkflowParameterTimeInSeconds && triggerParameter.ValueNumber != 0 {
 							if triggerSettings.BootTime != nil && int(time.Since(*triggerSettings.BootTime).Seconds()) < triggerParameter.ValueNumber {
 								continue
@@ -70,11 +66,6 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 					}
 				}
 
-				//workflow, err := workflows.GetWorkflowByWorkflowVersionId(db, workflowTriggerNode.WorkflowVersionId)
-				//if err != nil {
-				//	log.Error().Err(err).Msgf("Failed to obtain workflow for workflowVersionId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-				//	continue
-				//}
 				bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
 				triggerCtx, triggerCancel := context.WithCancel(context.Background())
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))

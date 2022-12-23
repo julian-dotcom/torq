@@ -1,6 +1,8 @@
 package workflows
 
 import (
+	"encoding/json"
+	"github.com/cockroachdb/errors"
 	"time"
 
 	"github.com/lncapital/torq/pkg/commons"
@@ -39,16 +41,16 @@ type WorkflowVersion struct {
 }
 
 type WorkflowVersionNode struct {
-	WorkflowVersionNodeId int                      `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
-	Name                  string                   `json:"name" db:"name"`
-	Stage                 *int                     `json:"stage" db:"stage"`
-	Status                commons.Status           `json:"status" db:"status"`
-	Type                  commons.WorkflowNodeType `json:"type" db:"type"`
-	Parameters            string                   `json:"parameters" db:"parameters"`
-	VisibilitySettings    string                   `json:"visibilitySettings" db:"visibility_settings"`
-	WorkflowVersionId     int                      `json:"workflowVersionId" db:"workflow_version_id"`
-	CreatedOn             time.Time                `json:"createdOn" db:"created_on"`
-	UpdateOn              time.Time                `json:"updatedOn" db:"updated_on"`
+	WorkflowVersionNodeId int                            `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
+	Name                  string                         `json:"name" db:"name"`
+	Stage                 int                            `json:"stage" db:"stage"`
+	Status                commons.Status                 `json:"status" db:"status"`
+	Type                  commons.WorkflowNodeType       `json:"type" db:"type"`
+	Parameters            WorkflowNodeParameters         `json:"parameters" db:"parameters"`
+	VisibilitySettings    WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
+	WorkflowVersionId     int                            `json:"workflowVersionId" db:"workflow_version_id"`
+	CreatedOn             time.Time                      `json:"createdOn" db:"created_on"`
+	UpdateOn              time.Time                      `json:"updatedOn" db:"updated_on"`
 }
 
 func (wfn WorkflowVersionNode) GetWorkflowNodeStructured() WorkflowNode {
@@ -94,8 +96,8 @@ type WorkflowNode struct {
 	Name                  string                          `json:"name"`
 	Status                commons.Status                  `json:"status"`
 	Type                  commons.WorkflowNodeType        `json:"type"`
-	Parameters            string                          `json:"parameters"`
-	VisibilitySettings    string                          `json:"visibilitySettings"`
+	Parameters            WorkflowNodeParameters          `json:"parameters"`
+	VisibilitySettings    WorkflowNodeVisibilitySettings  `json:"visibilitySettings"`
 	UpdateOn              time.Time                       `json:"updatedOn"`
 	ParentNodes           map[int]*WorkflowNode           `json:"parentNodes"`
 	ChildNodes            map[int]*WorkflowNode           `json:"childNodes"`
@@ -119,8 +121,47 @@ type WorkflowNodeParameter struct {
 	ValueString string                        `json:"valueString"`
 }
 
+func (wp *WorkflowNodeParameter) Scan(val interface{}) (err error) {
+	switch v := val.(type) {
+	case []byte:
+		err = json.Unmarshal(v, &wp)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "Incompatible type for WorkflowNodeParameter")
+	}
+	return nil
+}
+
 type WorkflowNodeParameters struct {
 	Parameters []WorkflowNodeParameter `json:"parameters"`
+}
+
+func (nvp *WorkflowNodeParameters) Scan(val interface{}) (err error) {
+	switch v := val.(type) {
+	case []byte:
+		err = json.Unmarshal(v, &nvp)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "Incompatible type for WorkflowNodeParameters")
+	}
+	return nil
+}
+
+type WorkflowNodeVisibilitySettings struct {
+	YPosition *int  `json:"yPosition" db:"yPosition"`
+	XPosition *int  `json:"xPosition" db:"xPosition"`
+	Collapsed *bool `json:"collapsed" db:"collapsed"`
+}
+
+func (nvs *WorkflowNodeVisibilitySettings) Scan(val interface{}) (err error) {
+	switch v := val.(type) {
+	case []byte:
+		err = json.Unmarshal(v, &nvs)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "Incompatible type for WorkflowNodeVisibilitySettings")
+	}
+	return nil
 }
 
 func getWorkflowNodeInputsStatus(workflowNode WorkflowNode, inputs map[string]string,

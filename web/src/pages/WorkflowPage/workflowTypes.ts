@@ -12,6 +12,12 @@ export type workflowListItem = {
   activeVersionStatus: number;
 };
 
+export type VisibilitySettings = {
+  collapsed: boolean;
+  xPosition: number;
+  yPosition: number;
+};
+
 export type WorkflowNode = {
   LinkDetails: {};
   childNodes: {};
@@ -21,7 +27,7 @@ export type WorkflowNode = {
   status: number;
   type: number;
   updatedOn: string;
-  visibilitySettings: number;
+  visibilitySettings: VisibilitySettings;
   workflowVersionId: number;
   workflowVersionNodeId: number;
 };

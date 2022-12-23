@@ -64,9 +64,9 @@ export function useWorkflowData(workflowId?: string, version?: string) {
 }
 
 export function useExtractNodes(stages: WorkflowStages, selectedStage: number) {
-  return (stages[selectedStage] || []).map((s) => {
-    const nodeId = s.workflowVersionNodeId;
-    return <ChannelPolicyNode key={`node-${nodeId}`} id={`node-${nodeId}`} nodeName={s.name} />;
+  return (stages[selectedStage] || []).map((node) => {
+    const nodeId = node.workflowVersionNodeId;
+    return <ChannelPolicyNode {...node} key={`node-${nodeId}`} id={`node-${nodeId}`} name={node.name} />;
   });
 }
 

@@ -2,7 +2,6 @@ package workflows
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -418,15 +417,6 @@ func GetActiveSortedStageTriggerNodeForWorkflowVersionId(db *sqlx.DB, workflowVe
 	return response, nil
 }
 
-func GetWorkflowNodeParameters(triggerNode WorkflowNode) (WorkflowNodeParameters, error) {
-	var triggerParameters WorkflowNodeParameters
-	err := json.Unmarshal([]byte(triggerNode.Parameters), &triggerParameters)
-	if err != nil {
-		return WorkflowNodeParameters{}, errors.Wrap(err, "JSON unmarshal")
-	}
-	return triggerParameters, nil
-}
-
 func getWorkflowNodeParameter(parameters WorkflowNodeParameters, parameterType commons.WorkflowParameterType) WorkflowNodeParameter {
 	for _, parameter := range parameters.Parameters {
 		if parameter.Type == parameterType {
@@ -529,7 +519,7 @@ func GetWorkflowForest(db *sqlx.DB, workflowVersionId int) (WorkflowForest, erro
 		if err != nil {
 			return WorkflowForest{}, err
 		}
-		rootNodesStructured[*workflowVersionNode.Stage] = append(rootNodesStructured[*workflowVersionNode.Stage], &workflowNode)
+		rootNodesStructured[workflowVersionNode.Stage] = append(rootNodesStructured[workflowVersionNode.Stage], &workflowNode)
 	}
 
 	return WorkflowForest{SortedStageTrees: rootNodesStructured}, nil
@@ -578,7 +568,7 @@ func processNodeRecursion(processedNodes map[int]*WorkflowNode, db *sqlx.DB, wor
 }
 
 func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNode, map[int]WorkflowVersionNodeLink, error) {
-	rows, err := db.Query(`
+	rows, err := db.Queryx(`
 		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
 		       n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
 		       l.parent_workflow_version_node_id, l.parent_output_index,
@@ -603,7 +593,7 @@ func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNo
 }
 
 func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNode, map[int]WorkflowVersionNodeLink, error) {
-	rows, err := db.Query(`
+	rows, err := db.Queryx(`
 		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
 		       n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
 		       l.parent_workflow_version_node_id, l.parent_output_index,
@@ -627,7 +617,7 @@ func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNod
 	return childNodes, childNodeLinkDetails, nil
 }
 
-func parseNodesResultSet(rows *sql.Rows, nodes map[int]*WorkflowNode, nodeLinkDetails map[int]WorkflowVersionNodeLink) error {
+func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkDetails map[int]WorkflowVersionNodeLink) error {
 	for rows.Next() {
 		var versionNodeId int
 		var parentsVersionNodeId int
@@ -635,8 +625,8 @@ func parseNodesResultSet(rows *sql.Rows, nodes map[int]*WorkflowNode, nodeLinkDe
 		var name string
 		var status commons.Status
 		var nodeType commons.WorkflowNodeType
-		var parameters string
-		var visibilitySettings string
+		var parameters WorkflowNodeParameters
+		var visibilitySettings WorkflowNodeVisibilitySettings
 		var workflowVersionId int
 		var updatedOn time.Time
 		var linkUpdatedOn time.Time

@@ -6,6 +6,7 @@ import NodeConnector from "./NodeConnector";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
 import { ExpandUpRight16Regular as ExpandIcon, ContractDownLeft16Regular as CollapseIcon } from "@fluentui/react-icons";
 import Collapse from "features/collapse/Collapse";
+import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -13,9 +14,8 @@ export const NodeContext = React.createContext<nodeRefType>({
   nodeName: "",
 });
 
-export type WorkflowNodeProps = {
+export type WorkflowNodeProps = WorkflowNode & {
   id: string;
-  nodeName: string;
   heading?: string;
   children?: React.ReactNode;
   x?: number;
@@ -25,7 +25,10 @@ export type WorkflowNodeProps = {
 function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const { t } = useTranslations();
   const [collapsed, setCollapsed] = useState(true);
-  const [position, setPosition] = useState({ x: props.x || 100, y: props.y || 100 });
+  const [position, setPosition] = useState({
+    x: props.visibilitySettings.xPosition || 100,
+    y: props.visibilitySettings.yPosition || 100,
+  });
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
   const { canvasRef, blankImgRef } = useContext(CanvasContext);
@@ -84,7 +87,7 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     <NodeContext.Provider
       value={{
         nodeRef: nodeRef,
-        nodeName: props.nodeName,
+        nodeName: props.name,
       }}
     >
       <div
@@ -105,9 +108,9 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
           onDragOver={(e) => e.preventDefault()}
           onClick={handleCollapse}
         >
-          <div>{props.heading + ": " + props.nodeName}</div>
+          <div>{props.heading + ": " + props.name}</div>
           {collapsed ? <ExpandIcon /> : <CollapseIcon />}
-          <NodeConnector id={connectorId} name={props.nodeName} />
+          <NodeConnector id={connectorId} name={props.name} />
         </div>
         <Collapse collapsed={collapsed} animate={true}>
           <div className={styles.workflowNodeBody}>{props.children}</div>
