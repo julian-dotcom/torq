@@ -1,44 +1,56 @@
 #!/usr/bin/env bash
 
-
 echo Configuring docker-compose file
 
+# Set Torq help commands directory
+
 printf "\n"
-echo Please where you want to add the Torq help commands
-stty echo
-printf "Directory (default: ~/.torq):"
-read TORQDIR
-stty echo
+echo Please specify where you want to add the Torq help commands
+read -p "Directory (default: ~/.torq): " TORQDIR
 eval TORQDIR="${TORQDIR:=$HOME/.torq}"
 echo $TORQDIR
 printf "\n"
 
+# Set database password
+
 printf "\n"
-echo Please set a database password
 stty -echo
-printf "DB Password: "
-read DBPASSWORD
+read -p "Please set a database password: " DBPASSWORD
+
+while [[ -z "$DBPASSWORD" ]]; do
+  printf "\n"
+  read -p "The password cannot be empty, please try again: " DBPASSWORD
+done
+
 stty echo
 printf "\n"
 
+
+# Set web UI password
 printf "\n"
-echo Please set a web ui password
 stty -echo
-printf "UI Password: "
-read UIPASSWORD
+read -p "Please set a web UI password: " UIPASSWORD
+
+while [[ -z "$UIPASSWORD" ]]; do
+  printf "\n"
+  read -p "The password cannot be empty, please try again: " UIPASSWORD
+done
+
 stty echo
 printf "\n"
-printf "\n"
+
+# Set web UI port number
 
 printf "\n"
-echo Please choose a port for the web UI.
+echo Please choose a port number for the web UI.
 echo NB! Umbrel users needs to use a different port than 8080. Try 8081.
-stty echo
-printf "Port (default: 8080):"
-read UI_PORT
-stty echo
+read -p "Port number (default: 8080): " UI_PORT
 eval UI_PORT="${UI_PORT:=8080}"
-printf "\n"
+
+while [[ ! $UI_PORT =~ ^[0-9]+$ ]] || [[ $UI_PORT -lt 1 ]] || [[ $UI_PORT -gt 65535 ]]; do
+    read -p "Invalid port number. Please enter a valid port number from 1 through 65535: " UI_PORT
+done
+
 printf "\n"
 
 mkdir -p $TORQDIR
@@ -85,6 +97,6 @@ echo "${Red}${DELETE_COMMAND}${NC}\t (WARNING: This command deletes Torq _includ
 echo "${Green}Optional:${NC} you can add these scripts to your PATH by running:"
 echo "sudo ln -s ${TORQDIR}/* /usr/local/bin/"
 
-echo "\nTry it out! Start Torq now with:"
+echo "\nTry it out now! Make sure the Docker daemon is running, and then start Torq with:"
 echo "${Green}${TORQDIR}/${START_COMMAND}${NC}"
 echo "\n"

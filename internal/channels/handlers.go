@@ -11,7 +11,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -121,16 +120,22 @@ func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 
 func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 	var channelsBody []channelBody
-	activeNcds, err := settings.GetActiveNodesConnectionDetails(db)
+
+	network, err := strconv.Atoi(c.Query("network"))
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "List channels")
+		server_errors.SendBadRequest(c, "Can't process network")
 		return
 	}
-	if len(activeNcds) != 0 {
-		for _, ncd := range activeNcds {
+
+	chain := commons.Bitcoin
+
+	nodeIds := commons.GetAllTorqNodeIds(chain, commons.Network(network))
+
+	if len(nodeIds) != 0 {
+		for _, nodeId := range nodeIds {
 			// Force Response because we don't care about balance accuracy
-			channelBalanceStates := commons.GetChannelStates(ncd.NodeId, true)
-			nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
+			channelBalanceStates := commons.GetChannelStates(nodeId, true)
+			nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 			for _, channel := range channelBalanceStates {
 				channelSettings := commons.GetChannelSettingByChannelId(channel.ChannelId)
 				lndShortChannelIdString := strconv.FormatUint(channelSettings.LndShortChannelId, 10)
@@ -141,7 +146,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 
 				remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
 				chanBody := channelBody{
-					NodeId:                       ncd.NodeId,
+					NodeId:                       nodeId,
 					ChannelId:                    channelSettings.ChannelId,
 					NodeName:                     *nodeSettings.Name,
 					Active:                       !channel.LocalDisabled,
@@ -178,7 +183,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 					RemoteTimeLockDelta:          channel.RemoteTimeLockDelta,
 					RemoteFeeRateMilliMsat:       channel.RemoteFeeRateMilliMsat,
 					NumUpdates:                   channel.NumUpdates,
-					Initiator:                    channelSettings.InitiatingNodeId != nil && *channelSettings.InitiatingNodeId == ncd.NodeId,
+					Initiator:                    channelSettings.InitiatingNodeId != nil && *channelSettings.InitiatingNodeId == nodeId,
 					ChanStatusFlags:              channel.ChanStatusFlags,
 					CommitmentType:               channel.CommitmentType,
 					Lifetime:                     channel.Lifetime,
@@ -187,11 +192,11 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 					OneMl:                        commons.ONEML + lndShortChannelIdString,
 				}
 
-				peerInfo, err := GetNodePeerAlias(ncd.NodeId, channel.RemoteNodeId, db)
+				peerInfo, err := GetNodePeerAlias(nodeId, channel.RemoteNodeId, db)
 				if err == nil {
 					chanBody.PeerAlias = peerInfo
 				} else {
-					log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for Torq nodeId: %v)", channel.RemoteNodeId, ncd.NodeId)
+					log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for Torq nodeId: %v)", channel.RemoteNodeId, nodeId)
 				}
 				channelsBody = append(channelsBody, chanBody)
 			}

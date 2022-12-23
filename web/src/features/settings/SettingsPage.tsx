@@ -160,9 +160,6 @@ function Settings() {
             </div>
             <div>
               <h3>{t.header.nodes}</h3>
-              <h4>{t.header.pingSystem}</h4>
-              <h5>{t.header.ambossPingSystem}</h5>
-              <h5>{t.header.vectorPingSystem}</h5>
               {nodeConfigurationsState &&
                 nodeConfigurationsState?.map((nodeConfiguration) => (
                   <NodeSettings
@@ -173,7 +170,7 @@ function Settings() {
                 ))}
             </div>
             <Button
-              buttonColor={buttonColor.primary}
+              buttonColor={buttonColor.green}
               onClick={addNodeConfiguration}
               icon={<AddIcon />}
               text={t.addNode}

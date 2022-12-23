@@ -26,6 +26,14 @@ func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time
 		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
 
+	// 	Henrik 2022-12-21 on Github wrote:
+	// 	I know this is not part of your change, but I think there is a small problem with this query caused by the fact that we now have multiple nodes.
+	//  The problem is that we check if the last hop in the payments is to one of our own nodes. But a rebalance of a channel is a payment from your own node to the same node, not any of the other nodes you own.
+	//  This might not be that big of a problem, and potentially not a problem at all. Since if you send money between your nodes directly there is no cost. If you are using a non direct route, then you would probably like to include it as a rebalance cost anyway. Since it is...
+	//  So I would say that we do not change this now. Maybe just add a comment about this (for example just copy fasta this text)
+
+	// Kobe 2022-12-22:
+	// By using rebalance_amount_msat on table payment this problem should already be fixed.
 	row := db.QueryRow(`
 		SELECT COALESCE(ROUND(SUM(amount_msat)),0) AS amount_msat,
 			   COALESCE(ROUND(SUM(total_fee_msat)),0) AS total_cost_msat,
@@ -38,8 +46,9 @@ func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time
 			WHERE status = 'SUCCEEDED' AND
 				htlcs->-1->'route'->'hops'->-1->>'pub_key' = ANY($1) AND
 				creation_timestamp::timestamp AT TIME ZONE ($4) >= $2::timestamp AND
-				creation_timestamp::timestamp AT TIME ZONE ($4) <= $3::timestamp
-		) AS a;`, pq.Array(publicKeys), from, to, settings.PreferredTimeZone)
+				creation_timestamp::timestamp AT TIME ZONE ($4) <= $3::timestamp AND
+				node_id = ANY($5)
+		) AS a;`, pq.Array(publicKeys), from, to, settings.PreferredTimeZone, pq.Array(nodeIds))
 	var cost RebalancingDetails
 	err := row.Scan(
 		&cost.AmountMsat,

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/rs/zerolog/log"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -39,8 +38,6 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	chain := commons.Bitcoin
-
-	log.Debug().Msgf("%v", commons.GetAllTorqNodeIds(chain, commons.Network(network)))
 
 	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), from, to)
 	if err != nil {

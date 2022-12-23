@@ -1,8 +1,4 @@
-import {
-  MoneyHand20Regular as TransactionIcon,
-  Options20Regular as OptionsIcon,
-  // Save20Regular as SaveIcon,
-} from "@fluentui/react-icons";
+import { MoneyHand20Regular as TransactionIcon, Options20Regular as OptionsIcon } from "@fluentui/react-icons";
 import { useGetPaymentsQuery } from "./paymentsApi";
 import { NEW_PAYMENT } from "constants/routes";
 import Button, { buttonColor } from "components/buttons/Button";
@@ -18,7 +14,6 @@ import { useLocation } from "react-router";
 import { Link, useNavigate } from "react-router-dom";
 import { Payment, PaymentsResponse } from "./types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
-import useTranslations from "services/i18n/useTranslations";
 import {
   AllPaymentsColumns,
   DefaultPaymentView,
@@ -34,13 +29,14 @@ import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
 import { selectPaymentsView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
+import { selectActiveNetwork } from "features/network/networkSlice";
 
 function useMaximums(data: Array<Payment>): Payment | undefined {
   if (!data.length) {
     return undefined;
   }
 
-  return data.reduce((prev: Payment, current: Payment, currentIndex: number) => {
+  return data.reduce((prev: Payment, current: Payment) => {
     return {
       ...prev,
       alias: "Max",
@@ -58,10 +54,10 @@ function useMaximums(data: Array<Payment>): Payment | undefined {
 }
 
 function PaymentsPage() {
-  const { t } = useTranslations();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const activeNetwork = useAppSelector(selectActiveNetwork);
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectPaymentsView);
 
@@ -79,6 +75,7 @@ function PaymentsPage() {
       offset: offset,
       order: viewResponse.view.sortBy,
       filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
+      network: activeNetwork,
     },
     { skip: !isSuccess }
   );

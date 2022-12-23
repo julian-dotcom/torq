@@ -11,7 +11,13 @@ import {
   FlowData,
 } from "features/channel/channelTypes";
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
-import type { GetForwardsQueryParams, GetFlowQueryParams, GetChannelHistoryData, LoginResponse } from "types/api";
+import type {
+  GetForwardsQueryParams,
+  GetFlowQueryParams,
+  GetChannelHistoryData,
+  LoginResponse,
+  ActiveNetwork,
+} from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import { tag, channelTag } from "pages/tagsPage/tagsTypes";
 import { Forward } from "./features/forwards/forwardsTypes";
@@ -106,9 +112,9 @@ export const torqApi = createApi({
     getForwards: builder.query<Array<Forward>, GetForwardsQueryParams>({
       query: (params) => "forwards" + queryParamsBuilder(params, false),
     }),
-    getChannels: builder.query<channel[], void>({
-      query: () => ({
-        url: `channels`,
+    getChannels: builder.query<channel[], ActiveNetwork>({
+      query: (params) => ({
+        url: `channels` + queryParamsBuilder(params),
         method: "GET",
       }),
       providesTags: ["channels"],

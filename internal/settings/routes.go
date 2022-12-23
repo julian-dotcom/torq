@@ -187,6 +187,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	serviceChannel chan commons.ServiceChannelMessage) {
 
 	var ncd NodeConnectionDetails
+	existingNcd := NodeConnectionDetails{}
 
 	if err := c.Bind(&ncd); err != nil {
 		server_errors.LogAndSendServerError(c, err)
@@ -238,8 +239,34 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 	if node.PublicKey == publicKey && node.Chain == chain && node.Network == network {
-		server_errors.SendUnprocessableEntity(c, "This node already exists")
-		return
+		ncd.NodeId = node.NodeId
+		nodeConnectionDetails, err := getNodeConnectionDetails(db, node.NodeId)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Getting existing node connection details by nodeId")
+			return
+		}
+		if nodeConnectionDetails.NodeId == node.NodeId {
+			existingNcd = nodeConnectionDetails
+			if existingNcd.Status != commons.Deleted {
+				server_errors.SendUnprocessableEntity(c, "This node already exists")
+				return
+			}
+		}
+	}
+	if ncd.NodeId == 0 {
+		nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
+		if nodeId == 0 {
+			newNode := nodes.Node{
+				PublicKey: publicKey,
+				Network:   network,
+				Chain:     chain,
+			}
+			nodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			if err != nil {
+				server_errors.WrapLogAndSendServerError(c, err, "Adding node")
+			}
+		}
+		ncd.NodeId = nodeId
 	}
 
 	ncd, err = processTLS(ncd)
@@ -253,33 +280,42 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
-	if nodeId == 0 {
-		newNode := nodes.Node{
-			PublicKey: publicKey,
-			Network:   network,
-			Chain:     chain,
-		}
-		nodeId, err = nodes.AddNodeWhenNew(db, newNode)
-		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Adding node")
-		}
-	}
-	ncd.NodeId = nodeId
 	ncd.Status = commons.Active
-	if strings.TrimSpace(ncd.Name) == "" {
-		ncd.Name = fmt.Sprintf("Node_%v", ncd.NodeId)
+	if existingNcd.NodeId != ncd.NodeId {
+		if strings.TrimSpace(ncd.Name) == "" {
+			ncd.Name = fmt.Sprintf("Node_%v", ncd.NodeId)
+		}
+		ncd, err = addNodeConnectionDetails(db, ncd)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Adding node connection details")
+			return
+		}
+	} else {
+		if strings.TrimSpace(ncd.Name) != "" {
+			existingNcd.Name = ncd.Name
+		}
+		existingNcd.Implementation = ncd.Implementation
+		existingNcd.GRPCAddress = ncd.GRPCAddress
+		existingNcd.TLSFileName = ncd.TLSFileName
+		existingNcd.TLSDataBytes = ncd.TLSDataBytes
+		existingNcd.TLSFile = ncd.TLSFile
+		existingNcd.MacaroonFileName = ncd.MacaroonFileName
+		existingNcd.MacaroonDataBytes = ncd.MacaroonDataBytes
+		existingNcd.MacaroonFile = ncd.MacaroonFile
+		existingNcd.Status = ncd.Status
+		existingNcd.PingSystem = ncd.PingSystem
+		existingNcd.CustomSettings = ncd.CustomSettings
+		ncd, err = SetNodeConnectionDetails(db, existingNcd)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Updating and reactivating deleted node connection details")
+			return
+		}
 	}
-	ncd, err = addNodeConnectionDetails(db, ncd)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Adding node connection details")
-		return
-	}
-	commons.SetTorqNode(nodeId, ncd.Name, ncd.Status, publicKey, chain, network)
+	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status, publicKey, chain, network)
 
 	if ncd.Status == commons.Active {
 		serviceChannel <- commons.ServiceChannelMessage{
-			NodeId:         nodeId,
+			NodeId:         ncd.NodeId,
 			ServiceType:    commons.LndService,
 			ServiceCommand: commons.Boot,
 		}

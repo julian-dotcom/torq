@@ -32,13 +32,14 @@ import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
 import { selectOnChainView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
+import { selectActiveNetwork } from "features/network/networkSlice";
 
 function useMaximums(data: Array<OnChainTx>): OnChainTx | undefined {
   if (!data.length) {
     return undefined;
   }
 
-  return data.reduce((prev: OnChainTx, current: OnChainTx, currentIndex: number) => {
+  return data.reduce((prev: OnChainTx, current: OnChainTx) => {
     return {
       ...prev,
       alias: "Max",
@@ -57,6 +58,7 @@ function OnChainPage() {
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectOnChainView);
   const [getPagination, limit, offset] = usePagination("onChain");
+  const activeNetwork = useAppSelector(selectActiveNetwork);
 
   const onChainTxResponse = useGetOnChainTxQuery<{
     data: OnChainResponse;
@@ -70,6 +72,7 @@ function OnChainPage() {
       offset: offset,
       order: viewResponse.view.sortBy,
       filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
+      network: activeNetwork,
     },
     { skip: !isSuccess }
   );

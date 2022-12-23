@@ -3,14 +3,12 @@ import React from "react";
 import classNames from "classnames";
 
 export type formProps = {
-  className?: string;
   children: React.ReactNode;
-  formProps?: React.FormHTMLAttributes<HTMLFormElement>;
-};
+} & React.FormHTMLAttributes<HTMLFormElement>;
 
-function Form({ className, children, formProps }: formProps) {
+function Form({ children, ...formProps }: formProps) {
   return (
-    <form {...formProps} className={classNames(styles.formContainer, className, formProps?.className)}>
+    <form {...formProps} className={classNames(styles.formContainer)}>
       {children}
     </form>
   );

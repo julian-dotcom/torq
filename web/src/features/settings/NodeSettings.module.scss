@@ -5,6 +5,10 @@
   padding: 16px 24px;
   background-color: var(--color-primary-layer-2);
   border-radius: var(--radius-default);
+  &.expanded {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
   .connectionIcon {
     width: 32px;
     height: 32px;
@@ -82,7 +86,7 @@
   height: 32px;
   background-color: var(--content-faded);
   border: 1px solid var(--content-subtle);
-  border-radius: 2px;
+  border-radius: var(--radius-default);
   //margin-right: -8px;
   cursor: pointer;
   &:hover {
@@ -131,6 +135,9 @@
 }
 .importFailedPayments {
   margin-bottom: var(--form-margin-bottom);
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
 }
 
 .pingSystems {
@@ -138,8 +145,18 @@
   background-color: var(--color-primary-layer-2);
   border-radius: var(--radius-default);
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  row-gap: 16px;
 }
 
-.ambossPingSystem {
-  padding-bottom: 16px;
+.collapseContentWrappper {
+  padding: 16px;
+  background-color: var(--color-white);
+  border-bottom-left-radius: var(--radius-default);
+  border-bottom-right-radius: var(--radius-default);
+}
+.addMode {
+  padding: 0;
+  border: none;
 }

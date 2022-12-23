@@ -1,0 +1,18 @@
+
+UPDATE payment SET rebalance_amount_msat=NULL, incoming_channel_id=NULL, outgoing_channel_id=NULL;
+
+UPDATE payment p1
+SET incoming_channel_id=ic.channel_id
+FROM channel ic
+WHERE ic.lnd_short_channel_id=((p1.htlcs->-1->'route'->'hops'->-1->>'chan_id')::numeric);
+
+UPDATE payment p1
+SET outgoing_channel_id=oc.channel_id
+FROM channel oc
+WHERE oc.lnd_short_channel_id=((p1.htlcs->-1->'route'->'hops'->0->>'chan_id')::numeric);
+
+UPDATE payment p
+SET rebalance_amount_msat=(p.htlcs->-1->'route'->'hops'->0->>'amt_to_forward_msat')::numeric
+FROM channel c
+WHERE c.channel_id=p.incoming_channel_id AND
+      ( c.first_node_id=p.node_id OR c.second_node_id=p.node_id );

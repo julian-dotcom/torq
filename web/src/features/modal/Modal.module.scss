@@ -1,21 +1,23 @@
 .content {
   z-index: 22;
   background-color: var(--color-white);
-  padding: 20px;
   border: 1px solid var(--primary-150);
   border-radius: 2px;
   width: calc(100% - 32px);
   max-width: 500px;
+  max-height: calc(100vh - 64px);
   display: none;
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  overflow: hidden;
+  padding-bottom: 24px;
 }
 .header {
   display: flex;
   font-size: var(--font-size-M);
-  margin-bottom: 20px;
+  margin: 24px 24px 24px;
   .close {
     margin-left: auto;
   }
@@ -26,6 +28,7 @@
   }
 }
 .modalBackdrop {
+  position: relative;
   z-index: 20;
   //   opacity: 0;
   background-color: var(--backdrop);
@@ -42,8 +45,16 @@
   display: block;
 }
 .content.show {
-  display: block;
+  display: flex;
+  flex-direction: column;
 }
 .content .modalBackdrop {
   display: none;
+}
+.modalBodyWrapper {
+  display: flex;
+  overflow-y: auto;
+}
+.modalBody {
+  margin: 0 24px 0px;
 }

@@ -24,9 +24,9 @@ func GetAllChannels(db *sqlx.DB) (channels []Channel, err error) {
 	return channels, nil
 }
 
-func GetChannels(db *sqlx.DB, all bool, channelIds []int) ([]*Channel, error) {
-	sql := `SELECT * FROM channel WHERE ($1 OR channel_id = ANY ($2));`
-	rows, err := db.Queryx(sql, all, pq.Array(channelIds))
+func GetChannels(db *sqlx.DB, nodeIds []int, all bool, channelIds []int) ([]*Channel, error) {
+	sql := `SELECT * FROM channel WHERE ($1 OR channel_id = ANY ($2)) AND (first_node_id = ANY($3) OR second_node_id = ANY($3));`
+	rows, err := db.Queryx(sql, all, pq.Array(channelIds), pq.Array(nodeIds))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running getChannels query all: %v, channelIds: %v", all, channelIds)
 	}

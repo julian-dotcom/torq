@@ -98,10 +98,15 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	network := c.Query("network")
-	chain := c.Query("chain")
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
 
-	r, total, err := getPayments(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), filter, sort, limit, offset)
+	chain := commons.Bitcoin
+
+	r, total, err := getPayments(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -116,10 +121,15 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
-	network := c.Query("network")
-	chain := c.Query("chain")
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
 
-	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), c.Param("identifier"))
+	chain := commons.Bitcoin
+
+	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), c.Param("identifier"))
 	switch err.(type) {
 	case nil:
 		break

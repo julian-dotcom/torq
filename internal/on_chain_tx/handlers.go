@@ -88,7 +88,15 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	r, total, err := getOnChainTxs(db, filter, sort, limit, offset)
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+
+	chain := commons.Bitcoin
+
+	r, total, err := getOnChainTxs(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
