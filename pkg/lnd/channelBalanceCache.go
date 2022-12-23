@@ -265,11 +265,11 @@ func processBroadcastedEvent(event interface{}) {
 		}
 		commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, commons.Deleted)
 	} else if updateChannelEvent, ok := event.(commons.RoutingPolicyUpdateResponse); ok {
-		if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == nil || *updateChannelEvent.Request.ChannelId == 0 {
+		if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == 0 {
 			return
 		}
 		// Force Response because we don't care about balance accuracy
-		currentStates := commons.GetChannelState(updateChannelEvent.Request.NodeId, *updateChannelEvent.Request.ChannelId, true)
+		currentStates := commons.GetChannelState(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true)
 		timeLockDelta := currentStates.LocalTimeLockDelta
 		if updateChannelEvent.Request.TimeLockDelta != nil {
 			timeLockDelta = *updateChannelEvent.Request.TimeLockDelta
@@ -290,7 +290,7 @@ func processBroadcastedEvent(event interface{}) {
 		if updateChannelEvent.Request.FeeRateMilliMsat != nil {
 			feeRateMilliMsat = *updateChannelEvent.Request.FeeRateMilliMsat
 		}
-		commons.SetChannelStateRoutingPolicy(updateChannelEvent.Request.NodeId, *updateChannelEvent.Request.ChannelId, true,
+		commons.SetChannelStateRoutingPolicy(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true,
 			currentStates.LocalDisabled, timeLockDelta, minHtlcMsat, maxHtlcMsat, feeBaseMsat, feeRateMilliMsat)
 	}
 }

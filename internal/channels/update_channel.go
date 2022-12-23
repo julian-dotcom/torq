@@ -10,12 +10,7 @@ import (
 
 func routingPolicyUpdate(request commons.RoutingPolicyUpdateRequest,
 	eventChannel chan interface{}) (commons.RoutingPolicyUpdateResponse, error) {
-	if request.NodeId == 0 {
-		return commons.RoutingPolicyUpdateResponse{}, errors.New("Node id is missing")
-	}
-	if (request.ChannelId == nil || *request.ChannelId == 0) && request.TimeLockDelta == nil {
-		return commons.RoutingPolicyUpdateResponse{}, errors.New("TimeLockDelta is missing")
-	}
+
 	responseChannel := make(chan interface{})
 	request.ResponseChannel = responseChannel
 
@@ -24,6 +19,9 @@ func routingPolicyUpdate(request commons.RoutingPolicyUpdateRequest,
 			eventChannel <- request
 			response := <-responseChannel
 			if updateResponse, ok := response.(commons.RoutingPolicyUpdateResponse); ok {
+				if updateResponse.Error != "" {
+					return commons.RoutingPolicyUpdateResponse{}, errors.New(updateResponse.Error)
+				}
 				return updateResponse, nil
 			}
 		} else {

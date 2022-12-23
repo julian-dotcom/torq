@@ -359,7 +359,7 @@ type ChannelStatusUpdateResponse struct {
 
 type RoutingPolicyUpdateRequest struct {
 	CommunicationRequest
-	ChannelId        *int    `json:"channelId"`
+	ChannelId        int     `json:"channelId"`
 	FeeRateMilliMsat *uint64 `json:"feeRateMilliMsat"`
 	FeeBaseMsat      *uint64 `json:"feeBaseMsat"`
 	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
