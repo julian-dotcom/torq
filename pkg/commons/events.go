@@ -375,7 +375,14 @@ type RoutingPolicyUpdateResponse struct {
 
 type RebalanceRequest struct {
 	CommunicationRequest
-	OutgoingChannelIds []int `json:"outgoingChannelIds"`
-	IncomingChannelId  int   `json:"incomingChannelId"`
-	MaximumCost        int   `json:"maximumCost"`
+	OriginReference    int                    `json:"originReference"`
+	OriginType         RebalanceRequestOrigin `json:"originType"`
+	OutgoingChannelIds []int                  `json:"outgoingChannelIds"`
+	IncomingChannelId  int                    `json:"incomingChannelId"`
+	MaximumCost        int                    `json:"maximumCost"`
+}
+
+type RebalanceResponse struct {
+	Request RebalanceRequest `json:"request"`
+	CommunicationResponse
 }
