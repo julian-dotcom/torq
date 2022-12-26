@@ -66,6 +66,8 @@ const VECTOR_SLEEP_SECONDS = 20
 const WORKFLOW_LOG_COUNT = 100
 const WORKFLOW_TICKER_SECONDS = 10
 
+const REBALLANCE_SUCCESS_TIMEOUT_SECONDS = 120
+
 type Status int
 
 const (
@@ -237,4 +239,11 @@ const (
 	WorkflowParameterVariableName
 	WorkflowParameterVariableValueString
 	WorkflowParameterVariableValueNumber
+)
+
+type RebalanceRequestOrigin int
+
+const (
+	RebalanceRequestWorkflow = RebalanceRequestOrigin(iota)
+	RebalanceRequestManual
 )
