@@ -26,12 +26,12 @@ func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
 	wv := r.Group("/:workflowId/versions")
 	// Get all versions of a workflow
-	r.GET("", func(c *gin.Context) { getWorkflowVersionsHandler(c, db) })
+	wv.GET("", func(c *gin.Context) { getWorkflowVersionsHandler(c, db) })
 	// Get a workflow version
 	wv.GET("/:versionId", func(c *gin.Context) { getNodesHandler(c, db) })
 	// Clone a workflow version (also used to simply add a new version)
 	wv.POST("/clone", func(c *gin.Context) { cloneWorkflowVersionHandler(c, db) })
-	wv.PUT("", func(c *gin.Context) { setWorkflowVersionHandler(c, db) })
+	wv.PUT("", func(c *gin.Context) { updateWorkflowVersionHandler(c, db) })
 	wv.DELETE("/:versionId", func(c *gin.Context) { removeWorkflowVersionHandler(c, db) })
 
 	// Add, update, delete nodes to a workflow version
@@ -163,7 +163,7 @@ func cloneWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, storedWorkflowVersion)
 }
 
-func setWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
+func updateWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
 	var wfv WorkflowVersion
 	if err := c.BindJSON(&wfv); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
