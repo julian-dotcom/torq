@@ -781,7 +781,7 @@ func setWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVer
 	return workflowVersionNodeLink, nil
 }
 
-func removeWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLinkId int) (int64, error) {
+func removeNodeLink(db *sqlx.DB, workflowVersionNodeLinkId int) (int64, error) {
 	res, err := db.Exec(`DELETE FROM workflow_version_node_link WHERE workflow_version_node_link_id = $1;`, workflowVersionNodeLinkId)
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlExecutionError)
@@ -808,7 +808,7 @@ func addWorkflowVersionNodeLog(db *sqlx.DB, workflowVersionNodeLog WorkflowVersi
 	return workflowVersionNodeLog, nil
 }
 
-func GetWorkflowVersionNodeLogs(db *sqlx.DB, workflowVersionNodeId int, maximumResultCount int) ([]WorkflowVersionNodeLog, error) {
+func GetNodeLogs(db *sqlx.DB, workflowVersionNodeId int, maximumResultCount int) ([]WorkflowVersionNodeLog, error) {
 	var wfvnls []WorkflowVersionNodeLog
 	err := db.Get(&wfvnls,
 		"SELECT * FROM workflow_version_node_log WHERE workflow_version_node_id=$1 ORDER BY created_on DESC LIMIT $2;",

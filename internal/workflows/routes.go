@@ -15,35 +15,40 @@ import (
 
 func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
+	// Workflows Crud
 	r.GET("", func(c *gin.Context) { getWorkflowsHandler(c, db) })
 	r.POST("", func(c *gin.Context) { createWorkflowHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { setWorkflowHandler(c, db) })
 	r.DELETE("/:workflowId", func(c *gin.Context) { removeWorkflowHandler(c, db) })
-	r.GET("/:workflowId/versions/:versionId", func(c *gin.Context) { getWorkflowVersionNodesHandler(c, db) })
 
-	//r.GET("getWorkflowVersion/:workflowVersionId", func(c *gin.Context) { getWorkflowVersionHandler(c, db) })
+	// Workflow Logs
+	r.GET("/logs/:workflowId", func(c *gin.Context) { getWorkflowLogsHandler(c, db) })
 
-	r.GET("getWorkflowVersions/:workflowId", func(c *gin.Context) { getWorkflowVersionsHandler(c, db) })
+	wv := r.Group("/:workflowId/versions")
+	// Get all versions of a workflow
+	r.GET("", func(c *gin.Context) { getWorkflowVersionsHandler(c, db) })
+	// Get a workflow version
+	wv.GET("/:versionId", func(c *gin.Context) { getNodesHandler(c, db) })
+	// Clone a workflow version (also used to simply add a new version)
+	wv.POST("/clone", func(c *gin.Context) { cloneWorkflowVersionHandler(c, db) })
+	wv.PUT("", func(c *gin.Context) { setWorkflowVersionHandler(c, db) })
+	wv.DELETE("/:versionId", func(c *gin.Context) { removeWorkflowVersionHandler(c, db) })
 
-	//r.POST("addWorkflowVersion/:workflowId", func(c *gin.Context) { addWorkflowVersionHandler(c, db) })
+	// Add, update, delete nodes to a workflow version
+	nodes := wv.Group("/nodes")
+	nodes.POST("", func(c *gin.Context) { addNodeHandler(c, db) })
+	nodes.PUT("", func(c *gin.Context) { updateNodeHandler(c, db) })
+	nodes.DELETE("/:nodeId", func(c *gin.Context) { removeNodeHandler(c, db) })
 
-	r.POST("cloneWorkflowVersion/:workflowId/:version", func(c *gin.Context) { cloneWorkflowVersionHandler(c, db) })
-	r.PUT("setWorkflowVersion", func(c *gin.Context) { setWorkflowVersionHandler(c, db) })
-	r.DELETE("removeWorkflowVersion/:workflowVersionId", func(c *gin.Context) { removeWorkflowVersionHandler(c, db) })
+	// Workflow Node Logs
+	nodes.GET("/:nodeId/logs", func(c *gin.Context) { getNodeLogsHandler(c, db) })
 
-	// getWorkflowVersionNode is not recursive and only returns direct parent/child relations without further nesting.
-	r.GET("getWorkflowVersionNode/:workflowVersionNodeId", func(c *gin.Context) { getWorkflowVersionNodeHandler(c, db) })
+	// Add, update, delete node links
+	links := r.Group("/links")
+	links.POST("", func(c *gin.Context) { addNodeLinkHandler(c, db) })
+	links.PUT("", func(c *gin.Context) { updateNodeLinkHandler(c, db) })
+	links.DELETE("/:linkId", func(c *gin.Context) { removeNodeLinkHandler(c, db) })
 
-	r.POST("addWorkflowVersionNode", func(c *gin.Context) { addWorkflowVersionNodeHandler(c, db) })
-	r.PUT("setWorkflowVersionNode", func(c *gin.Context) { setWorkflowVersionNodeHandler(c, db) })
-	r.DELETE("removeWorkflowVersionNode", func(c *gin.Context) { removeWorkflowVersionNodeHandler(c, db) })
-
-	r.POST("addWorkflowVersionNodeLink", func(c *gin.Context) { addWorkflowVersionNodeLinkHandler(c, db) })
-	r.PUT("setWorkflowVersionNodeLink", func(c *gin.Context) { setWorkflowVersionNodeLinkHandler(c, db) })
-	r.DELETE("removeWorkflowVersionNodeLink", func(c *gin.Context) { removeWorkflowVersionNodeLinkHandler(c, db) })
-
-	r.GET("getWorkflowLogs/:workflowId", func(c *gin.Context) { getWorkflowLogsHandler(c, db) })
-	r.GET("getWorkflowVersionNodeLogs/:workflowVersionNodeId", func(c *gin.Context) { getWorkflowVersionNodeLogsHandler(c, db) })
 }
 
 func getWorkflowsHandler(c *gin.Context, db *sqlx.DB) {
@@ -101,25 +106,25 @@ func removeWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully deleted %v workflow(s).", count)})
 }
 
-func getWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
-	workflowId, err := strconv.Atoi(c.Param("workflowId"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
-		return
-	}
-	versionId, err := strconv.Atoi(c.Param("versionId"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse versionId in the request.")
-		return
-	}
-
-	workflowVersion, err := GetWorkflowVersion(db, versionId, workflowId)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow for workflowId: %v version %v", workflowId, versionId))
-		return
-	}
-	c.JSON(http.StatusOK, workflowVersion)
-}
+//func getWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
+//	workflowId, err := strconv.Atoi(c.Param("workflowId"))
+//	if err != nil {
+//		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
+//		return
+//	}
+//	versionId, err := strconv.Atoi(c.Param("versionId"))
+//	if err != nil {
+//		server_errors.SendBadRequest(c, "Failed to find/parse versionId in the request.")
+//		return
+//	}
+//
+//	workflowVersion, err := GetWorkflowVersion(db, versionId, workflowId)
+//	if err != nil {
+//		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow for workflowId: %v version %v", workflowId, versionId))
+//		return
+//	}
+//	c.JSON(http.StatusOK, workflowVersion)
+//}
 
 func getWorkflowVersionsHandler(c *gin.Context, db *sqlx.DB) {
 	workflowId, err := strconv.Atoi(c.Param("workflowId"))
@@ -174,34 +179,47 @@ func setWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func removeWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {
-	workflowVersionId, err := strconv.Atoi(c.Param("workflowVersionId"))
+	workflowId, err := strconv.Atoi(c.Param("workflowId"))
 	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionId in the request.")
+		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
 		return
 	}
-	count, err := removeWorkflowVersion(db, workflowVersionId)
+
+	versionId, err := strconv.Atoi(c.Param("versionId"))
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing workflow version for workflowVersionId: %v", workflowVersionId))
+		server_errors.SendBadRequest(c, "Failed to find/parse versionId in the request.")
+		return
+	}
+
+	workflowVersion, err := GetWorkflowVersion(db, workflowId, versionId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow version for workflowId: %v version %v", workflowId, versionId))
+		return
+	}
+
+	count, err := removeWorkflowVersion(db, workflowVersion.WorkflowVersionId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing workflow version for workflow: %v version %v ", workflowId, versionId))
 		return
 	}
 	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully deleted %v workflow version(s).", count)})
 }
 
-func getWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
-	workflowVersionNodeId, err := strconv.Atoi(c.Param("workflowVersionNodeId"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionNodeId in the request.")
-		return
-	}
-	workflowVersionNode, err := GetWorkflowVersionNode(db, workflowVersionNodeId)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow version for workflowVersionNodeId: %v", workflowVersionNodeId))
-		return
-	}
-	c.JSON(http.StatusOK, workflowVersionNode)
-}
+//func getWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
+//	workflowVersionNodeId, err := strconv.Atoi(c.Param("workflowVersionNodeId"))
+//	if err != nil {
+//		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionNodeId in the request.")
+//		return
+//	}
+//	workflowVersionNode, err := GetWorkflowVersionNode(db, workflowVersionNodeId)
+//	if err != nil {
+//		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow version for workflowVersionNodeId: %v", workflowVersionNodeId))
+//		return
+//	}
+//	c.JSON(http.StatusOK, workflowVersionNode)
+//}
 
-func getWorkflowVersionNodesHandler(c *gin.Context, db *sqlx.DB) {
+func getNodesHandler(c *gin.Context, db *sqlx.DB) {
 	workflowId, err := strconv.Atoi(c.Param("workflowId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
@@ -240,7 +258,7 @@ func getWorkflowVersionNodesHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func addWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
+func addNodeHandler(c *gin.Context, db *sqlx.DB) {
 	var wfvn WorkflowVersionNode
 	if err := c.BindJSON(&wfvn); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -254,7 +272,7 @@ func addWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, storedWorkflowVersionNode)
 }
 
-func setWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
+func updateNodeHandler(c *gin.Context, db *sqlx.DB) {
 	var wfvn WorkflowVersionNode
 	if err := c.BindJSON(&wfvn); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -269,8 +287,8 @@ func setWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, storedWorkflowVersionNode)
 }
 
-func removeWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
-	workflowVersionNodeId, err := strconv.Atoi(c.Param("workflowVersionNodeId"))
+func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
+	workflowVersionNodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionNodeId in the request.")
 		return
@@ -283,7 +301,7 @@ func removeWorkflowVersionNodeHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully deleted %v workflow version node(s).", count)})
 }
 
-func addWorkflowVersionNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
+func addNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
 	var wfvnl WorkflowVersionNodeLink
 	if err := c.BindJSON(&wfvnl); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -297,7 +315,7 @@ func addWorkflowVersionNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, storedWorkflowVersionNodeLink)
 }
 
-func setWorkflowVersionNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
+func updateNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
 	var wfvnl WorkflowVersionNodeLink
 	if err := c.BindJSON(&wfvnl); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -312,13 +330,13 @@ func setWorkflowVersionNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, storedWorkflowVersionNodeLink)
 }
 
-func removeWorkflowVersionNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
-	workflowVersionNodeLinkId, err := strconv.Atoi(c.Param("workflowVersionNodeLinkId"))
+func removeNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
+	workflowVersionNodeLinkId, err := strconv.Atoi(c.Param("linkId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionNodeLinkId in the request.")
 		return
 	}
-	count, err := removeWorkflowVersionNodeLink(db, workflowVersionNodeLinkId)
+	count, err := removeNodeLink(db, workflowVersionNodeLinkId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing workflow version node link for workflowVersionNodeLinkId: %v", workflowVersionNodeLinkId))
 		return
@@ -340,13 +358,13 @@ func getWorkflowLogsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, workflowLogs)
 }
 
-func getWorkflowVersionNodeLogsHandler(c *gin.Context, db *sqlx.DB) {
-	workflowVersionNodeId, err := strconv.Atoi(c.Param("workflowVersionNodeId"))
+func getNodeLogsHandler(c *gin.Context, db *sqlx.DB) {
+	workflowVersionNodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionNodeId in the request.")
 		return
 	}
-	workflowVersionNodeLogs, err := GetWorkflowVersionNodeLogs(db, workflowVersionNodeId, commons.WORKFLOW_LOG_COUNT)
+	workflowVersionNodeLogs, err := GetNodeLogs(db, workflowVersionNodeId, commons.WORKFLOW_LOG_COUNT)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow version node logs for workflowVersionNodeId: %v", workflowVersionNodeId))
 		return
