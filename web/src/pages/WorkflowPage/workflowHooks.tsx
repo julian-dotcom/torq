@@ -15,6 +15,7 @@ import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/
 import { ReactNode } from "react";
 import { WorkflowStages } from "./workflowTypes";
 import ChannelPolicyNode from "components/workflow/nodes/ChannelPolicy";
+import WorkflowCanvas from "../../components/workflow/canvas/WorkflowCanvas";
 
 export function useNewWorkflowButton(): ReactNode {
   const { t } = useTranslations();
@@ -63,10 +64,22 @@ export function useWorkflowData(workflowId?: string, version?: string) {
   return { workflow, workflowVersion, stages };
 }
 
-export function useExtractNodes(stages: WorkflowStages, selectedStage: number) {
-  return (stages[selectedStage] || []).map((node) => {
+export function useNodes(stages: WorkflowStages, stageNumber: number) {
+  return (stages[stageNumber] || []).map((node) => {
     const nodeId = node.workflowVersionNodeId;
     return <ChannelPolicyNode {...node} key={`node-${nodeId}`} id={`node-${nodeId}`} name={node.name} />;
+  });
+}
+
+export function useStages(stages: WorkflowStages, selectedStage: number) {
+  return Object.entries(stages).map((stage) => {
+    const stageNumber = parseInt(stage[0]);
+    const nodes = useNodes(stages, stageNumber);
+    return (
+      <WorkflowCanvas active={selectedStage === stageNumber} key={`stage-${stageNumber}`}>
+        {nodes}
+      </WorkflowCanvas>
+    );
   });
 }
 

@@ -7,6 +7,7 @@ import { useArgs } from "@storybook/client-api";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import WorkflowNodeWrapper from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
+import { useState } from "react";
 
 export default {
   title: "components/forms/Socket",
@@ -33,10 +34,14 @@ const Template: Story<SocketProps> = (args) => {
     LinkDetails: {},
     workflowVersionId: 1,
   };
+  const [positionsState, setPositionsState] = useState({ 1: { x: 100, y: 100 } });
+  function handlePositionChange(stage: number, position: { x: number; y: number }) {
+    setPositionsState({ ...positionsState, [stage]: position });
+  }
 
   return (
     <Provider store={store}>
-      <WorkflowCanvas>
+      <WorkflowCanvas active={true}>
         <WorkflowNodeWrapper id={"test"} heading={"test"} {...nodeData}>
           <Socket {...args} />
         </WorkflowNodeWrapper>

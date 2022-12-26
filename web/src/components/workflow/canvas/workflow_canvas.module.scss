@@ -28,6 +28,10 @@
   }
   border-radius: var(--radius-default);
   overflow: hidden;
+  display: none;
+  &.selectedStage {
+    display: block;
+  }
 }
 .workspaceCanvas {
   min-height: 300px;

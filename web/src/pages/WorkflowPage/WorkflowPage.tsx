@@ -2,12 +2,11 @@ import { useState } from "react";
 import useTranslations from "services/i18n/useTranslations";
 import styles from "./workflow_page.module.scss";
 import PageTitle from "features/templates/PageTitle";
-import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import { Link, useParams } from "react-router-dom";
 import Sidebar from "features/sidebar/Sidebar";
 import classNames from "classnames";
 import { WORKFLOWS, MANAGE } from "constants/routes";
-import { useExtractNodes, useWorkflowControls, useWorkflowData } from "./workflowHooks";
+import { useStages, useWorkflowControls, useWorkflowData } from "./workflowHooks";
 import { ReactComponent as StageArrowBack } from "./stageArrowBack.svg";
 import { ReactComponent as StageArrowFront } from "./stageArrowFront.svg";
 import { WorkflowStages } from "./workflowTypes";
@@ -45,16 +44,11 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
   const { workflowId, version } = useParams();
   const { workflow, workflowVersion, stages } = useWorkflowData(workflowId, version);
 
-  // Extract the nodes from the selected stage
-  // TODO: Add stage selection buttons
-  const [selectedStage, setSelectedStage] = useState<number>(1);
-  const nodes = useExtractNodes(stages, selectedStage);
-
-  // console.log("stage 1", stages[selectedStage]);
-
   // construct the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
   const workflowControls = useWorkflowControls(sidebarExpanded, setSidebarExpanded);
+
+  const [selectedStage, setSelectedStage] = useState<number>(1);
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
@@ -70,6 +64,8 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
 
   const stageButtons = useStageButtons(stages, selectedStage, setSelectedStage);
 
+  const stagedCanvases = useStages(stages, selectedStage);
+
   return (
     <div className={styles.contentWrapper}>
       <PageTitle breadcrumbs={bradcrumbs} title={workflow.name || ""} />
@@ -77,7 +73,7 @@ function WorkflowPage<T>(props: WorkflowPageProps) {
       <div className={styles.tableWrapper}>
         <div className={styles.tableContainer}>
           <div className={styles.tableExpander}>
-            <WorkflowCanvas>{nodes}</WorkflowCanvas>
+            {stagedCanvases}
             {stageButtons}
           </div>
         </div>

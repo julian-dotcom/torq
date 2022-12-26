@@ -42,7 +42,9 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     // Set the drag effect and remove the default drag image set by HTML5
-    e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+    if (blankImgRef) {
+      e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+    }
     e.dataTransfer.effectAllowed = "move";
 
     // Set the dragging state to true to allow for css changes
@@ -61,7 +63,7 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     e.stopPropagation();
 
     // Get the position of the canvas
-    const bb = canvasRef?.current !== undefined || null ? canvasRef.current.getBoundingClientRect() : { x: 0, y: 0 };
+    const bb = canvasRef !== null ? canvasRef.current.getBoundingClientRect() : { x: 0, y: 0 };
 
     if (e.clientX !== 0 && e.clientY !== 0) {
       // Calculate the new position of the node based on the mouse position (e.clientX/Y),

@@ -1,32 +1,35 @@
 import styles from "./workflow_canvas.module.scss";
-import React, { createRef, MutableRefObject, ReactNode, useContext, useRef, useState } from "react";
+import React, { createRef, MutableRefObject, ReactNode, useRef, useState } from "react";
 import classNames from "classnames";
 
 type WorkflowCanvasProps = {
   children: ReactNode;
+  active: boolean;
 };
 
-// canvasRef is used to allow workflow nodes to use the canvas position as reference
-const canvasRef = createRef() as MutableRefObject<HTMLDivElement>;
-
-// svgRef is used to place connecting lines between workflow nodes
-const svgRef = createRef() as MutableRefObject<SVGSVGElement>;
-
-// blankImgRef is only used to have a blank image as drag image when dragging nodes, hiding the default ugly image.
-const blankImgRef = createRef() as MutableRefObject<HTMLCanvasElement>;
-
 // Context provider is used to pass these references to the workflow nodes without having to pass them as props
-export const CanvasContext = React.createContext({
-  canvasRef: canvasRef,
-  svgRef: svgRef,
-  blankImgRef: blankImgRef,
+export const CanvasContext = React.createContext<{
+  canvasRef: MutableRefObject<HTMLDivElement> | null;
+  svgRef: MutableRefObject<SVGSVGElement> | null;
+  blankImgRef: MutableRefObject<HTMLCanvasElement> | null;
+}>({
+  canvasRef: null,
+  svgRef: null,
+  blankImgRef: null,
 });
 
 function WorkflowCanvas(props: WorkflowCanvasProps) {
   // p is used to store the current position of the canvas
-  const [p, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
 
-  const { canvasRef, blankImgRef } = useContext(CanvasContext);
+  // canvasRef is used to allow workflow nodes to use the canvas position as reference
+  const canvasRef = createRef() as MutableRefObject<HTMLDivElement>;
+
+  // svgRef is used to place connecting lines between workflow nodes
+  const svgRef = createRef() as MutableRefObject<SVGSVGElement>;
+
+  // blankImgRef is only used to have a blank image as drag image when dragging nodes, hiding the default ugly image.
+  const blankImgRef = createRef() as MutableRefObject<HTMLCanvasElement>;
 
   // wrapperRef is used to refer to the wrapper element that surrounds the canvas
   const wrapperRef = useRef() as MutableRefObject<HTMLDivElement>;
@@ -60,6 +63,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
       const newX = e.clientX - bb.x - canvasPosition.left;
       const newY = e.clientY - bb.y - canvasPosition.top;
       setPosition({ x: newX, y: newY });
+      // props.onPositionChange(props.stage, { x: newX, y: newY });
     }
   }
 
@@ -75,11 +79,11 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
         blankImgRef: blankImgRef,
       }}
     >
-      <div className={styles.workflowWrapper} ref={wrapperRef}>
+      <div className={classNames(styles.workflowWrapper, { [styles.selectedStage]: props.active })} ref={wrapperRef}>
         <div
           className={classNames(styles.workspaceCanvas, { [styles.dragging]: isDragging })}
           onDragOver={(e) => e.preventDefault()}
-          style={{ backgroundPosition: `${p.x}px ${p.y}px` }}
+          style={{ backgroundPosition: `${position.x}px ${position.y}px` }}
         >
           <div
             className={styles.canvasDragSurface}
@@ -89,11 +93,8 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
             onDragStart={handleDragStart}
             onDragOver={(e) => e.preventDefault()}
           />
-          <div style={{ transform: "translate(" + p.x + "px, " + p.y + "px)" }} ref={canvasRef}>
+          <div style={{ transform: "translate(" + position.x + "px, " + position.y + "px)" }} ref={canvasRef}>
             {props.children}
-            {/*<svg ref={svgRef} className={styles.connectorLinesCanvas}>*/}
-            {/*  <line x1="10" y1="10" x2="90" y2="90" stroke="black" strokeWidth="2" />*/}
-            {/*</svg>*/}
           </div>
           <canvas ref={blankImgRef} style={{ width: "1px", height: "1px" }} />
         </div>

@@ -22,7 +22,9 @@ function NodeConnector<T>(props: NodeConnectorProps) {
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     // Hide the drag image (silly HTML5 default)
-    e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+    if (blankImgRef) {
+      e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+    }
 
     // Set the drag effect to link
     e.dataTransfer.effectAllowed = "link";
