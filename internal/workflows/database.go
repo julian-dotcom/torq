@@ -2,6 +2,7 @@ package workflows
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -678,18 +679,40 @@ func GetWorkflowVersionNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowVer
 	return wfvn, nil
 }
 
-func addWorkflowVersionNode(db *sqlx.DB, workflowVersionNode WorkflowVersionNode) (WorkflowVersionNode, error) {
-	workflowVersionNode.CreatedOn = time.Now().UTC()
-	if workflowVersionNode.Name == "" {
-		workflowVersionNode.Name = fmt.Sprintf("%v", workflowVersionNode.CreatedOn.Format("20060102.150405.000000"))
+func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, err error) {
+
+	wfvn.WorkflowVersionId = req.WorkflowVersionId
+	wfvn.VisibilitySettings = req.VisibilitySettings
+	wfvn.Type = req.Type
+	wfvn.Stage = req.Stage
+
+	wfvn.Status = commons.Active // TODO: Question: Should this be active or inactive?
+	wfvn.CreatedOn = time.Now().UTC()
+	if wfvn.Name == "" {
+		wfvn.Name = fmt.Sprintf("%v", wfvn.CreatedOn.Format("20060102.150405.000000"))
 	}
-	workflowVersionNode.UpdateOn = workflowVersionNode.CreatedOn
-	err := db.QueryRowx(`INSERT INTO workflow_version_node
-    	(name, status, type, parameters, visibility_settings, workflow_version_id, created_on, updated_on)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING workflow_version_node_id;`,
-		workflowVersionNode.Name, workflowVersionNode.Status, workflowVersionNode.Type, workflowVersionNode.Parameters,
-		workflowVersionNode.VisibilitySettings, workflowVersionNode.WorkflowVersionId, workflowVersionNode.CreatedOn,
-		workflowVersionNode.UpdateOn).Scan(&workflowVersionNode.WorkflowVersionNodeId)
+	wfvn.UpdateOn = wfvn.CreatedOn
+
+	visibilitySettingsJson, err := json.Marshal(req.VisibilitySettings)
+	if err != nil {
+		return WorkflowVersionNode{}, errors.Wrap(err, "Unmarshalling visibilitySettingsJson")
+	}
+
+	err = db.QueryRowx(`INSERT
+			INTO workflow_version_node
+				(name, stage, status, type, parameters, visibility_settings, workflow_version_id, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			RETURNING workflow_version_node_id;`,
+		wfvn.Name,
+		wfvn.Stage,
+		wfvn.Status,
+		wfvn.Type,
+		[]byte("{}"),
+		visibilitySettingsJson,
+		wfvn.WorkflowVersionId,
+		wfvn.CreatedOn,
+		wfvn.UpdateOn).Scan(&wfvn.WorkflowVersionNodeId)
+
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -698,17 +721,26 @@ func addWorkflowVersionNode(db *sqlx.DB, workflowVersionNode WorkflowVersionNode
 		}
 		return WorkflowVersionNode{}, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return workflowVersionNode, nil
+
+	return wfvn, nil
 }
 
-func setWorkflowVersionNode(db *sqlx.DB, workflowVersionNode WorkflowVersionNode) (WorkflowVersionNode, error) {
+func updateNode(db *sqlx.DB, workflowVersionNode WorkflowVersionNode) (WorkflowVersionNode, error) {
 	workflowVersionNode.UpdateOn = time.Now().UTC()
-	_, err := db.Exec(`UPDATE workflow_version_node
-		SET name=$1, status=$2, type=$3, parameters=$4, visibility_settings=$5, workflow_version_id=$6, updated_on=$7
-		WHERE workflow_version_node_id=$8;`,
-		workflowVersionNode.Name, workflowVersionNode.Status, workflowVersionNode.Type, workflowVersionNode.Parameters,
-		workflowVersionNode.VisibilitySettings, workflowVersionNode.WorkflowVersionId, workflowVersionNode.UpdateOn,
+
+	_, err := db.Exec(`
+			UPDATE workflow_version_node
+			SET name=$1, status=$2, type=$3, parameters=$4, visibility_settings=$5, workflow_version_id=$6, updated_on=$7
+			WHERE workflow_version_node_id=$8;`,
+		workflowVersionNode.Name,
+		workflowVersionNode.Status,
+		workflowVersionNode.Type,
+		workflowVersionNode.Parameters,
+		workflowVersionNode.VisibilitySettings,
+		workflowVersionNode.WorkflowVersionId,
+		workflowVersionNode.UpdateOn,
 		workflowVersionNode.WorkflowVersionNodeId)
+
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -717,19 +749,21 @@ func setWorkflowVersionNode(db *sqlx.DB, workflowVersionNode WorkflowVersionNode
 		}
 		return WorkflowVersionNode{}, errors.Wrap(err, database.SqlExecutionError)
 	}
+
 	return workflowVersionNode, nil
 }
 
-func removeWorkflowVersionNode(db *sqlx.DB, workflowVersionNodeId int) (int64, error) {
+func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
 	res, err := db.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id = $1;`, workflowVersionNodeId)
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}
-	rowsAffected, err := res.RowsAffected()
+	_, err = res.RowsAffected()
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
-	return rowsAffected, nil
+
+	return workflowVersionNodeId, nil
 }
 
 func addWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVersionNodeLink) (WorkflowVersionNodeLink, error) {

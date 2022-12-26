@@ -1,7 +1,5 @@
 import { torqApi } from "apiSlice";
-// import { GetOnChainTransactionsQueryParams } from "types/api";
-// import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import { FullWorkflow, workflowListItem } from "./workflowTypes";
+import { FullWorkflow, NewWorkflowNodeRequest, workflowListItem } from "./workflowTypes";
 
 // Define a service using a base URL and expected endpoints
 export const workflowApi = torqApi.injectEndpoints({
@@ -12,6 +10,7 @@ export const workflowApi = torqApi.injectEndpoints({
     }),
     getWorkflow: builder.query<FullWorkflow, { version: number; workflowId: number }>({
       query: (params) => `workflows/${params.workflowId}/versions/${params.version}`,
+      providesTags: ["workflow"],
     }),
     newWorkflow: builder.mutation<{ workflowId: number; version: number }, void>({
       query: (body: void) => ({
@@ -21,8 +20,16 @@ export const workflowApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["workflows"],
     }),
+    addNode: builder.mutation<void, NewWorkflowNodeRequest>({
+      query: (body: NewWorkflowNodeRequest) => ({
+        url: `workflows/nodes`,
+        method: "POST",
+        body: body,
+      }),
+      invalidatesTags: ["workflow"],
+    }),
   }),
 });
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useGetWorkflowsQuery, useGetWorkflowQuery, useNewWorkflowMutation } = workflowApi;
+export const { useGetWorkflowsQuery, useGetWorkflowQuery, useNewWorkflowMutation, useAddNodeMutation } = workflowApi;

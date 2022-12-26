@@ -1,10 +1,13 @@
 import styles from "./workflow_canvas.module.scss";
 import React, { createRef, MutableRefObject, ReactNode, useRef, useState } from "react";
 import classNames from "classnames";
+import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
 
 type WorkflowCanvasProps = {
-  children: ReactNode;
+  workflowVersionId: number;
+  stageNumber: number;
   active: boolean;
+  children: ReactNode;
 };
 
 // Context provider is used to pass these references to the workflow nodes without having to pass them as props
@@ -19,6 +22,8 @@ export const CanvasContext = React.createContext<{
 });
 
 function WorkflowCanvas(props: WorkflowCanvasProps) {
+  const [addNode] = useAddNodeMutation();
+
   // p is used to store the current position of the canvas
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
@@ -76,9 +81,25 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
     e.stopPropagation();
     if (e.dataTransfer.getData("node/event") === "add") {
       const bb = wrapperRef.current.getBoundingClientRect();
+      // const xOffset = parseInt(e.dataTransfer.getData("node/xOffset"));
+      // const yOffset = parseInt(e.dataTransfer.getData("node/xOffset"));
       const newX = e.clientX - bb.x - canvasPosition.left;
       const newY = e.clientY - bb.y - canvasPosition.top;
+
       console.log(e.dataTransfer.getData("node/type"), newX, newY);
+
+      const nodeType = parseInt(e.dataTransfer.getData("node/type"));
+
+      addNode({
+        type: nodeType,
+        visibilitySettings: {
+          xPosition: Math.floor(newX),
+          yPosition: Math.floor(newY),
+          collapsed: false,
+        },
+        workflowVersionId: props.workflowVersionId,
+        stage: props.stageNumber,
+      });
     }
   }
 

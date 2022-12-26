@@ -48,7 +48,7 @@ function WorkflowPage() {
 
   const [selectedStage, setSelectedStage] = useState<number>(1);
   const stageButtons = useStageButtons(stages, selectedStage, setSelectedStage);
-  const stagedCanvases = useStages(stages, selectedStage);
+  const stagedCanvases = useStages(workflowVersion?.workflowVersionId || 0, stages, selectedStage);
 
   // construct the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
@@ -70,19 +70,17 @@ function WorkflowPage() {
     });
   };
 
-  const [triggersSectionExpanded, setTriggersSectionExpanded] = useState<boolean>(true);
-
   const bradcrumbs = [
     <Link to={`/${MANAGE}/${WORKFLOWS}`} key={"workflowsLink"}>
       {t.workflows}
     </Link>,
-    workflow.name,
-    workflowVersion.name,
+    workflow?.name,
+    workflowVersion?.name,
   ];
 
   return (
     <div className={styles.contentWrapper}>
-      <PageTitle breadcrumbs={bradcrumbs} title={workflow.name || ""} />
+      <PageTitle breadcrumbs={bradcrumbs} title={workflow?.name || ""} />
       {workflowControls}
       <div className={styles.tableWrapper}>
         <div className={styles.tableContainer}>

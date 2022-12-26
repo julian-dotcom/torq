@@ -13,7 +13,7 @@ import useTranslations from "services/i18n/useTranslations";
 import { useNavigate } from "react-router";
 import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/workflowApi";
 import { ReactNode } from "react";
-import { WorkflowStages } from "./workflowTypes";
+import { Workflow, WorkflowStages, WorkflowVersion } from "./workflowTypes";
 import ChannelPolicyNode from "components/workflow/nodes/channelPolicy/ChannelPolicy";
 import WorkflowCanvas from "../../components/workflow/canvas/WorkflowCanvas";
 
@@ -56,8 +56,8 @@ export function useWorkflowData(workflowId?: string, version?: string) {
     { skip: !workflowId || !version }
   );
 
-  const workflow = data?.workflow || { name: "Workflow" };
-  const workflowVersion = data?.version || { name: "Draft" };
+  const workflow: Workflow | undefined = data?.workflow;
+  const workflowVersion: WorkflowVersion | undefined = data?.version;
 
   const stages: WorkflowStages = data?.workflowForest?.sortedStageTrees || {}; //.map((s) => parseInt(s));
 
@@ -71,12 +71,17 @@ export function useNodes(stages: WorkflowStages, stageNumber: number) {
   });
 }
 
-export function useStages(stages: WorkflowStages, selectedStage: number) {
+export function useStages(workflowVersionId: number, stages: WorkflowStages, selectedStage: number) {
   return Object.entries(stages).map((stage) => {
     const stageNumber = parseInt(stage[0]);
     const nodes = useNodes(stages, stageNumber);
     return (
-      <WorkflowCanvas active={selectedStage === stageNumber} key={`stage-${stageNumber}`}>
+      <WorkflowCanvas
+        active={selectedStage === stageNumber}
+        key={`stage-${stageNumber}`}
+        workflowVersionId={workflowVersionId}
+        stageNumber={stageNumber}
+      >
         {nodes}
       </WorkflowCanvas>
     );

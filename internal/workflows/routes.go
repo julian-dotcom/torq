@@ -15,7 +15,7 @@ import (
 
 func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
-	// Workflows Crud
+	// Workflows Crud (/api/workflows)
 	r.GET("", func(c *gin.Context) { getWorkflowsHandler(c, db) })
 	r.POST("", func(c *gin.Context) { createWorkflowHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { setWorkflowHandler(c, db) })
@@ -35,7 +35,7 @@ func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	wv.DELETE("/:versionId", func(c *gin.Context) { removeWorkflowVersionHandler(c, db) })
 
 	// Add, update, delete nodes to a workflow version
-	nodes := wv.Group("/nodes")
+	nodes := r.Group("/nodes")
 	nodes.POST("", func(c *gin.Context) { addNodeHandler(c, db) })
 	nodes.PUT("", func(c *gin.Context) { updateNodeHandler(c, db) })
 	nodes.DELETE("/:nodeId", func(c *gin.Context) { removeNodeHandler(c, db) })
@@ -259,12 +259,12 @@ func getNodesHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func addNodeHandler(c *gin.Context, db *sqlx.DB) {
-	var wfvn WorkflowVersionNode
-	if err := c.BindJSON(&wfvn); err != nil {
+	var req CreateNodeRequest
+	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	storedWorkflowVersionNode, err := addWorkflowVersionNode(db, wfvn)
+	storedWorkflowVersionNode, err := createNode(db, req)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Adding workflow version node.")
 		return
@@ -278,7 +278,7 @@ func updateNodeHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	storedWorkflowVersionNode, err := setWorkflowVersionNode(db, wfvn)
+	storedWorkflowVersionNode, err := updateNode(db, wfvn)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow version node for workflowVersionNodeId: %v", wfvn.WorkflowVersionNodeId))
 		return
@@ -293,7 +293,7 @@ func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionNodeId in the request.")
 		return
 	}
-	count, err := removeWorkflowVersionNode(db, workflowVersionNodeId)
+	count, err := deleteNode(db, workflowVersionNodeId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing workflow version node for workflowVersionNodeId: %v", workflowVersionNodeId))
 		return

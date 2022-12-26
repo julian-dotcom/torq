@@ -32,6 +32,13 @@ export type WorkflowNode = {
   workflowVersionNodeId: number;
 };
 
+export type NewWorkflowNodeRequest = {
+  type: number;
+  visibilitySettings: VisibilitySettings;
+  workflowVersionId: number;
+  stage: number;
+};
+
 export type WorkflowVersion = {
   workflowVersionId: number;
   name: string;

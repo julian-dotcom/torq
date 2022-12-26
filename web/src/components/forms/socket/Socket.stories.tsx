@@ -6,7 +6,7 @@ import { InputSizeVariant, InputColorVaraint } from "components/forms/variants";
 import { useArgs } from "@storybook/client-api";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import WorkflowNodeWrapper from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
-import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
+import { WorkflowNode, WorkflowVersion } from "pages/WorkflowPage/workflowTypes";
 import { useState } from "react";
 
 export default {
@@ -41,7 +41,7 @@ const Template: Story<SocketProps> = (args) => {
 
   return (
     <Provider store={store}>
-      <WorkflowCanvas active={true}>
+      <WorkflowCanvas active={true} workflowVersionId={1} stageNumber={1}>
         <WorkflowNodeWrapper id={"test"} heading={"test"} {...nodeData}>
           <Socket {...args} />
         </WorkflowNodeWrapper>

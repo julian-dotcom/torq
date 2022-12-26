@@ -53,6 +53,13 @@ type WorkflowVersionNode struct {
 	UpdateOn              time.Time                      `json:"updatedOn" db:"updated_on"`
 }
 
+type CreateNodeRequest struct {
+	WorkflowVersionId  int                            `json:"workflowVersionId" db:"workflow_version_id"`
+	Type               commons.WorkflowNodeType       `json:"type" db:"type"`
+	Stage              int                            `json:"stage" db:"stage"`
+	VisibilitySettings WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
+}
+
 func (wfn WorkflowVersionNode) GetWorkflowNodeStructured() WorkflowNode {
 	return WorkflowNode{
 		WorkflowVersionNodeId: wfn.WorkflowVersionNodeId,
