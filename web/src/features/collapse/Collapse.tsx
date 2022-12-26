@@ -1,4 +1,4 @@
-import { ReactElement, useLayoutEffect, useRef, useState } from "react";
+import { ReactNode, useLayoutEffect, useRef, useState } from "react";
 
 function useDefaultStyles(defaultCollapsed: boolean, animate: boolean) {
   let initialStyles = {
@@ -13,10 +13,10 @@ function useDefaultStyles(defaultCollapsed: boolean, animate: boolean) {
 }
 
 export default function Collapse(props: {
-  children: ReactElement;
   collapsed: boolean;
   animate: boolean;
   className?: string;
+  children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 

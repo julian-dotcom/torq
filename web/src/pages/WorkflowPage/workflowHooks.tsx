@@ -14,7 +14,7 @@ import { useNavigate } from "react-router";
 import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/workflowApi";
 import { ReactNode } from "react";
 import { WorkflowStages } from "./workflowTypes";
-import ChannelPolicyNode from "components/workflow/nodes/ChannelPolicy";
+import ChannelPolicyNode from "components/workflow/nodes/channelPolicy/ChannelPolicy";
 import WorkflowCanvas from "../../components/workflow/canvas/WorkflowCanvas";
 
 export function useNewWorkflowButton(): ReactNode {

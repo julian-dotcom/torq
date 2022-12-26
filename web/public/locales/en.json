@@ -73,6 +73,8 @@
   "newWorkflow": "New Workflow",
   "version": "Versions",
   "automation": "Automation",
+  "triggers": "Triggers",
+  "actions": "Actions",
   "tableLayout": {
     "tableOptions": "Table options"
   },

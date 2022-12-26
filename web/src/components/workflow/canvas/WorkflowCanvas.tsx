@@ -71,6 +71,17 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
     setIsDragging(false);
   }
 
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.getData("node/event") === "add") {
+      const bb = wrapperRef.current.getBoundingClientRect();
+      const newX = e.clientX - bb.x - canvasPosition.left;
+      const newY = e.clientY - bb.y - canvasPosition.top;
+      console.log(e.dataTransfer.getData("node/type"), newX, newY);
+    }
+  }
+
   return (
     <CanvasContext.Provider
       value={{
@@ -88,6 +99,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
           <div
             className={styles.canvasDragSurface}
             draggable="true"
+            onDrop={handleDrop}
             onDrag={handleDrag}
             onDragEnd={handleDragEnd}
             onDragStart={handleDragStart}

@@ -18,8 +18,6 @@ export type WorkflowNodeProps = WorkflowNode & {
   id: string;
   heading?: string;
   children?: React.ReactNode;
-  x?: number;
-  y?: number;
 };
 
 function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {

@@ -1,0 +1,18 @@
+.nodeButtonWrapper {
+  background-color: var(--color-accent-1-layer-2);
+  color: var(--color-text-accent-1-strong);
+  display: flex;
+  height: 40px;
+  align-items: center;
+  column-gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-default);
+  cursor: grab;
+  &:hover {
+    background-color: var(--color-accent-1-layer-3);
+  }
+  &:active {
+    cursor: grabbing;
+    background-color: var(--color-accent-1-layer-4);
+  }
+}

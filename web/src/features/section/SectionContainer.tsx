@@ -6,6 +6,7 @@ import {
 } from "@fluentui/react-icons";
 import classNames from "classnames";
 import React from "react";
+import Collapse from "features/collapse/Collapse";
 
 type SectionContainerProps = {
   title: string;
@@ -26,9 +27,13 @@ export function SectionContainer(props: SectionContainerProps) {
         <div className={styles.sidebarTitle}>{props.title}</div>
         <div className={styles.sidebarIcon}>{props.expanded ? <ExpandedIcon /> : <CollapsedIcon />}</div>
       </div>
-      <div className={classNames(styles.sidebarSectionContent, { [styles.expanded]: props.expanded })}>
-        {props.children}
-      </div>
+      <Collapse
+        className={classNames(styles.sectionContainer, { [styles.disabled]: props.disabled })}
+        collapsed={!props.expanded}
+        animate={true}
+      >
+        <div className={classNames(styles.sidebarSectionContent)}>{props.children}</div>
+      </Collapse>
     </div>
   );
 }
