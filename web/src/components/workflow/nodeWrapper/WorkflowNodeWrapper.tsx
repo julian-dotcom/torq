@@ -8,11 +8,14 @@ import {
   ContractDownLeft20Regular as CollapseIcon,
   ExpandUpRight20Regular as ExpandIcon,
   MoreVertical20Regular as OptionsIcon,
+  Delete16Regular as DeleteIcon,
 } from "@fluentui/react-icons";
 import Collapse from "features/collapse/Collapse";
 import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
-import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
+import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
+import PopoverButton from "features/popover/Popover";
+import Button, { buttonColor, buttonSize } from "components/buttons/Button";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -46,6 +49,7 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [nameInputVisible, setNameInputVisible] = useState(false);
   const [updateNode] = useUpdateNodeMutation();
+  const [deleteNode] = useDeleteNodeMutation();
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     if (nameInputVisible) {
@@ -145,9 +149,23 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
           <div className={classNames(styles.icon, styles.collapseIcon)} onClick={handleCollapse}>
             {collapsed ? <ExpandIcon /> : <CollapseIcon />}
           </div>
-          <div className={classNames(styles.icon, styles.optionsIcon)}>
-            <OptionsIcon />
-          </div>
+          <PopoverButton
+            button={
+              <div className={classNames(styles.icon, styles.optionsIcon)}>
+                <OptionsIcon />
+              </div>
+            }
+          >
+            <Button
+              text={"Delete"}
+              icon={<DeleteIcon />}
+              buttonColor={buttonColor.warning}
+              buttonSize={buttonSize.small}
+              onClick={() => {
+                deleteNode({ nodeId: props.workflowVersionNodeId });
+              }}
+            />
+          </PopoverButton>
           <NodeConnector id={connectorId} name={props.name} />
         </div>
         <Collapse collapsed={collapsed} animate={true}>
