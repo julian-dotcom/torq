@@ -1,5 +1,5 @@
 import styles from "./workflow_canvas.module.scss";
-import React, { createRef, MutableRefObject, ReactNode, useRef, useState } from "react";
+import React, { createRef, MutableRefObject, ReactNode, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
 
@@ -38,6 +38,12 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
 
   // wrapperRef is used to refer to the wrapper element that surrounds the canvas
   const wrapperRef = useRef() as MutableRefObject<HTMLDivElement>;
+
+  // On load place the canvas in the center of the wrapper
+  useEffect(() => {
+    const bb = wrapperRef.current.getBoundingClientRect();
+    setPosition({ x: 50, y: bb.height / 2 });
+  }, []);
 
   // canvasPosition is used to store the initial position of the canvas when a drag starts
   const [canvasPosition, setCanvasPositionBB] = useState({ left: 0, top: 0 });
