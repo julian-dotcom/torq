@@ -60,6 +60,8 @@ function NodeConnector<T>(props: NodeConnectorProps) {
   }
 
   function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
     nodeRef?.current?.classList.remove(styles.connecting);
     setPosition({ x: 0, y: 0 });
     setIsDragging(false);
