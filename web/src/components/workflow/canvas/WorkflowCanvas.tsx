@@ -81,12 +81,11 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
     e.stopPropagation();
     if (e.dataTransfer.getData("node/event") === "add") {
       const bb = wrapperRef.current.getBoundingClientRect();
-      // const xOffset = parseInt(e.dataTransfer.getData("node/xOffset"));
-      // const yOffset = parseInt(e.dataTransfer.getData("node/xOffset"));
-      const newX = e.clientX - bb.x - canvasPosition.left;
-      const newY = e.clientY - bb.y - canvasPosition.top;
 
-      console.log(e.dataTransfer.getData("node/type"), newX, newY);
+      // Calculate the x and y coordinates of the mouse cursor (e.client) relative to the top-left corner of the canvas (bb.left/top), then
+      // add the current position of the canvas (position.x/y).
+      const newX = e.clientX - bb.left - position.x;
+      const newY = e.clientY - bb.top - position.y;
 
       const nodeType = parseInt(e.dataTransfer.getData("node/type"));
 
