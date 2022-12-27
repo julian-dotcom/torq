@@ -131,3 +131,11 @@ input.input {
     outline: none;
   }
 }
+// TODO: Move this!
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 8px;
+  align-items: stretch;
+}
