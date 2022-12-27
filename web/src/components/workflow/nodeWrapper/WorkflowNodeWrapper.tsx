@@ -29,7 +29,7 @@ export type WorkflowNodeProps = WorkflowNode & {
 
 function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const { t } = useTranslations();
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(props.visibilitySettings.collapsed);
   const [position, setPosition] = useState({
     x: props.visibilitySettings.xPosition || 100,
     y: props.visibilitySettings.yPosition || 100,
@@ -104,6 +104,10 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
 
   function handleCollapse() {
     // Toggle the collapsed state
+    updateNode({
+      workflowVersionNodeId: props.workflowVersionNodeId,
+      visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: !collapsed },
+    });
     setCollapsed(!collapsed);
   }
 
