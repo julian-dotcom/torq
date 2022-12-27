@@ -23,7 +23,7 @@ export default function tagsCellRenderer(
     return (
       <TagCell
         label={row["name"] as string}
-        locked={row["tagId"] <= 0}
+        locked={row.tagId ? row.tagId <= 0 : false}
         colorVariant={color.get(row["name"] as string)}
         key={"tag-name" + rowIndex + columnIndex}
         cellWrapperClassName={column.locked ? cellStyles.locked : ""}

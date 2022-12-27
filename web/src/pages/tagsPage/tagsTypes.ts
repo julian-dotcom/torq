@@ -1,9 +1,10 @@
 export type Tag = {
-  tagId: number;
+  tagId?: number;
   name: string;
   style: string;
-  createdOn: Date;
-  updateOn: Date;
+  categoryId?: number;
+  createdOn?: Date;
+  updateOn?: Date;
 };
 
 export type TagsSidebarSections = {
@@ -29,12 +30,21 @@ export type ChannelNode = {
 
 export type ChannelForTag = {
   shortChannelId: string;
+  channelId: number;
+  nodeId: number;
   alias: string;
   type: string;
 }
 
 export type NodeForTag = {
-  nodeId: string;
+  nodeId: number;
   alias: string;
   type: string;
+}
+
+export type ChannelGroup = {
+  nodeId: number;
+  categoryId?: number;
+  tagId: number;
+  channelId?: number;
 }

@@ -1,0 +1,124 @@
+.labelWrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.label {
+  color: var(--content-muted);
+  font-size: var(--font-size-small);
+  font-weight: 500;
+}
+
+.modifyTagsResultIconWrapper {
+  padding: 8px;
+  width: min-content;
+  border-radius: 100%;
+  margin: 12px auto;
+  svg {
+    font-size: 124px;
+  }
+}
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.inFlight {
+  color: var(--color-baige-700);
+  background-color: var(--color-baige-300);
+  svg {
+    font-size: 124px;
+    animation: rotate 1s infinite linear 0s;
+  }
+}
+.success {
+  background-color: var(--secondary-2-100);
+  color: var(--secondary-2-600);
+}
+.failed {
+  background-color: var(--color-red-300);
+  color: var(--color-red-500);
+}
+.modifyTagsStatusMessage {
+  font-size: var(--font-size-M);
+  text-align: center;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  color: red;
+}
+
+.input {
+  padding-top: 10px;
+  .single {
+    width: 100%;
+    height: 38px;
+    left: 0;
+    top: 24px;
+    padding: 4px 8px 4px 8px;
+    font-size: 14px;
+  }
+
+  .double {
+    width: 100%;
+    height: 38px;
+    left: 0;
+    top: 24px;
+    padding: 4px 8px 4px 8px;
+    font-size: 14px;
+  }
+}
+
+.errorBox {
+  margin: 10px;
+  background-color: var(--color-red-300);
+  border-radius: 3px;
+  padding: 15px 4px 10px 12px;
+}
+
+.successeBox {
+  margin: 10px;
+  background-color: var(--color-purple-100);
+  border-radius: 3px;
+  padding: 15px 4px 10px 12px;
+}
+
+.errorIcon {
+  color: var(--color-red-500);
+  float: left;
+  margin-right: 10px;
+}
+
+.successIcon {
+  color: var(--color-purple-250);
+  float: left;
+  margin-right: 10px;
+}
+
+.errorNote {
+  color: var(--color-red-500);
+  font-weight: bold;
+  float: left;
+}
+
+.successNote {
+  color: var(--color-purple-250);
+  font-weight: bold;
+  float: left;
+}
+
+.errorMessage {
+  clear: both;
+  word-wrap: break-word;
+}
+
+.successMessage {
+  clear: both;
+  word-wrap: break-word;
+}

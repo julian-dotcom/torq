@@ -1,49 +1,74 @@
-import { Tag24Regular as TagHeaderIcon } from "@fluentui/react-icons";
+import {
+  ArrowSyncFilled as ProcessingIcon,
+  CheckmarkRegular as SuccessIcon,
+  DismissRegular as FailedIcon,
+  Tag24Regular as TagHeaderIcon,
+  Note20Regular as NoteIcon,
+} from "@fluentui/react-icons";
 import { WS_URL } from "apiSlice";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
-import styles from "features/transact/newAddress/newAddress.module.scss";
+import styles from "./modifyTagModal.module.scss";
 import useTranslations from "services/i18n/useTranslations";
 import Select, { SelectOptions } from "features/forms/Select";
 import { ActionMeta } from "react-select";
+import clone from "clone";
 // import { nodeConfiguration } from "apiTypes";
-import Note, { NoteType } from "features/note/Note";
-import {
-  DetailsContainer,
-  DetailsRowLinkAndCopy,
-} from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
-import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";
+// import Note, { NoteType } from "features/note/Note";
+// import {
+//   DetailsContainer,
+//   DetailsRowLinkAndCopy,
+// } from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
+import classNames from "classnames";
 import { NewAddressResponse, NewAddressError, AddressType } from "features/transact/newAddress/NewAddressModal"
 import FormRow from "features/forms/FormWrappers";
 import Input from "components/forms/input/Input";
 import { useGetCategoriesQuery } from "pages/categoriesPage/categoriesApi";
 import { Category } from "pages/categoriesPage/categoriesTypes";
-import { useGetNodesChannelsQuery } from "./tagsApi";
+import { useGetNodesChannelsQuery, useAddTagMutation, useAddChannelsGroupsMutation } from "./tagsApi";
 import { ChannelNode, ChannelForTag, NodeForTag } from "./tagsTypes"
+
+
+const updateStatusClass = {
+  IN_FLIGHT: styles.inFlight,
+  FAILED: styles.failed,
+  SUCCEEDED: styles.success,
+};
+
+const updateStatusIcon = {
+  IN_FLIGHT: <ProcessingIcon />,
+  FAILED: <FailedIcon />,
+  SUCCEEDED: <SuccessIcon />,
+  NOTE: <NoteIcon />,
+};
+
 
 function ModifyTagModal() {
   const { t } = useTranslations();
 
   const [createTageState, setCreateTagState] = useState(ProgressStepState.active);
-  const [updateTagState, setUpdateTagState] = useState(ProgressStepState.active);
   const [doneState, setDoneState] = useState(ProgressStepState.disabled);
+  const [errMessage, setErrorMessage] = useState<any[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [response, setResponse] = useState<NewAddressResponse>();
   const [newAddressError, setNewAddressError] = useState("");
   const [tagName, setTagName] = useState<string>("");
+  const [tagId, setTagId] = useState<number>(0);
+  const [nodeId, setNodeId] = useState<number>(0);
+  const [channelId, setChannelId] = useState<number>(0);
   const tagColorOptions: SelectOptions[] = [
-    { value: 0, label: "Select your color" },
-    { value: 1, label: "Yellow" },
-    { value: 2, label: "Red" },
-    { value: 3, label: "Orange" },
+    { value: "", label: "Select your color" },
+    { value: "Yellow", label: "Yellow" },
+    { value: "Red", label: "Red" },
+    { value: "Orange", label: "Orange" },
   ];
 
-  const [selectedTagColor, setTagColor] = useState<number>(tagColorOptions[0].value as number);
+  const [selectedTagColor, setTagColor] = useState<string>(tagColorOptions[0].value as string);
 
   const { data: categoriesResponse }  = useGetCategoriesQuery<{
     data: Array<Category>;
@@ -52,10 +77,10 @@ function ModifyTagModal() {
     isUninitialized: boolean;
     isSuccess: boolean;
   }>();
-  let tagCategorieOptions: SelectOptions[] = [{ value: 0, label: "Select your Category" }];
+  let tagCategorieOptions: SelectOptions[] = [{ value: 0, label: "Select your Category"}];
   if (categoriesResponse !== undefined) {
     tagCategorieOptions = categoriesResponse.map((tagCategorieOptions: Category) => {
-      return { value: tagCategorieOptions.categoryId, label: tagCategorieOptions.name };
+      return { value: tagCategorieOptions.categoryId, label: tagCategorieOptions.name};
     });
   }
   const [selectedTagCategory, setTagCategory] = useState<number>(tagCategorieOptions[0].value as number);
@@ -67,21 +92,79 @@ function ModifyTagModal() {
     isUninitialized: boolean;
     isSuccess: boolean;
   }>();
-  console.log('channelsNodesResponse', channelsNodesResponse)
-  let channelsNodesOptions: SelectOptions[] = [{ value: 0, label: "Channel or Node" }];
+  let channelsNodesOptions: SelectOptions[] = [{ value: 0, label: "Channel or Node"}];
+
+  const [selectedTarget, setTarget] = useState<number>(channelsNodesOptions[0].value as number);
+  const [selectedType, setType] = useState<string>("");
   let channelsOptions: SelectOptions[] = [];
   let nodesOptions: SelectOptions[] = [];
   if (channelsNodesResponse !== undefined) {
     channelsOptions = channelsNodesResponse.nodes.map((nodesOptions: NodeForTag) => {
-      return { value: nodesOptions.nodeId, label: nodesOptions.alias };
+      return { value: nodesOptions.nodeId, label: nodesOptions.alias, type: 'node' };
     });
     nodesOptions = channelsNodesResponse.channels.map((channelsOptions: ChannelForTag) => {
-      return { value: channelsOptions.shortChannelId, label: channelsOptions.shortChannelId };
+      return { value: channelsOptions.channelId, label: channelsOptions.shortChannelId, type: 'channel' };
     });
   }
   channelsNodesOptions = nodesOptions.concat(channelsOptions)
-  console.log('channelsNodesOptions', channelsNodesOptions)
-  const [selectedTarget, setTarget] = useState<number>(channelsNodesOptions[0].value as number);
+
+  const [addTagMutation, addTagResponse] = useAddTagMutation();
+  const [addChannelsGroupsMutation, addChannelsGroupsResponse] = useAddChannelsGroupsMutation();
+
+
+  useEffect(() => {
+    let tag
+    const message = clone(errMessage) || [];
+    if (addTagResponse.isSuccess) {
+      tag = addTagResponse.data.tagId ? addTagResponse.data.tagId : 0;
+      setTagId(tag)
+      if (addTagResponse.status != 'fulfilled') {
+        setDoneState(ProgressStepState.error);
+        message.push(
+          <span key={0} className={classNames(styles.modifyTagsStatusMessage)}>
+            {"Error saving the tag"}
+          </span>
+        );
+        setErrorMessage(message)
+      } else {
+        addChannelsGroupsMutation({
+          tagId: tag,
+          nodeId,
+          channelId,
+          categoryId: selectedTagCategory
+
+        })
+        setDoneState(ProgressStepState.completed);
+      }
+     }
+    if (addTagResponse.isError) {
+      setDoneState(ProgressStepState.error);
+      message.push(
+        <span key={0} className={classNames(styles.modifyTagsStatusMessage)}>
+          {"Error saving the tag"}
+        </span>
+      );
+      setErrorMessage(message)
+
+    }
+  }, [addTagResponse]);
+
+  function handleTarget(value: number, type: string) {
+    setTarget(value);
+    setType(type);
+    let selectedChannelNode;
+    if (type == 'channel') {
+      selectedChannelNode = channelsNodesResponse.channels.find((channelsOptions: ChannelForTag) => {
+        if (channelsOptions.channelId == value) {
+          return channelsOptions
+        }
+      });
+      setChannelId(value)
+      setNodeId(selectedChannelNode?.nodeId as number | 0)
+    } else {
+      setNodeId(value)
+    }
+  }
 
 
   function onNewAddressMessage(event: MessageEvent<string>) {
@@ -96,7 +179,6 @@ function ModifyTagModal() {
   }
 
   function onNewAddressResponse(resp: NewAddressResponse) {
-    console.log(resp.address.length);
     setResponse(resp);
     if (resp.address.length) {
       setDoneState(ProgressStepState.completed);
@@ -108,7 +190,6 @@ function ModifyTagModal() {
 
   function onNewAddressError(message: NewAddressError) {
     setDoneState(ProgressStepState.error);
-    console.log("error", message);
   }
 
   // This can also be an async getter function. See notes below on Async Urls.
@@ -158,7 +239,6 @@ function ModifyTagModal() {
                 <div className={styles.input}>
                   <Input
                     label={"Name"}
-                    formatted={true}
                     className={styles.simple}
                     value={tagName}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -174,7 +254,7 @@ function ModifyTagModal() {
                   label={t.tagColor}
                   onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
                     const selectOptions = newValue as SelectOptions;
-                    setTagColor(selectOptions?.value as number);
+                    setTagColor(selectOptions?.value as string);
                   }}
                   options={tagColorOptions}
                   value={tagColorOptions.find((option) => option.value === selectedTagColor)}
@@ -195,42 +275,73 @@ function ModifyTagModal() {
             <FormRow>
             <div className={styles.openChannelTableRow}>
                 <Select
-                  label={t.tagColor}
+                  label={t.tagTarget}
                   onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
                     const selectOptions = newValue as SelectOptions;
-                    setTarget(selectOptions?.value as number);
+                    handleTarget(selectOptions?.value as number, selectOptions?.type as string);
                   }}
                   options={channelsNodesOptions}
-                  value={channelsNodesOptions.find((option) => option.value === selectedTarget)}
+                  value={channelsNodesOptions.find((option) => option.value === selectedTarget && option.type == selectedType)}
                 />
               </div>
             </FormRow>
+            <ButtonWrapper
+              className={styles.customButtonWrapperStyles}
+              rightChildren={
+                <Button
+                  text={t.newTag}
+                  onClick={() => {
+                    setStepIndex(1);
+                    setCreateTagState(ProgressStepState.completed);
+                    setDoneState(ProgressStepState.active);
+                    addTagMutation({
+                      style: selectedTagColor,
+                      name: tagName,
+                      categoryId: selectedTagCategory
+                    });
+                  }}
+                  buttonColor={buttonColor.subtle}
+                />
+              }
+            />
 
           </div>
        </ProgressTabContainer>
 
        <ProgressTabContainer>
-         {newAddressError && (
-           <Note title={"Error"} noteType={NoteType.error}>
-             {newAddressError}
-           </Note>
-         )}
-         {!newAddressError && <StatusIcon state={response?.address ? "success" : "processing"} />}
-         <DetailsContainer>
-           <DetailsRowLinkAndCopy label={"Address:"} copy={response?.address}>
-             {response?.address}
-           </DetailsRowLinkAndCopy>
-         </DetailsContainer>
+          <div
+            className={classNames(
+              styles.modifyTagsResultIconWrapper,
+              { [styles.failed]: !addTagResponse.data },
+              updateStatusClass[addTagResponse?.status == "fulfilled" ? "SUCCEEDED" : "FAILED"]
+            )}
+          >
+            {" "}
+            {updateStatusIcon[addTagResponse.status == "fulfilled" ? "SUCCEEDED" : "FAILED"]}
+          </div>
+          <div className={errMessage.length ? styles.errorBox : styles.successeBox}>
+            <div>
+              <div className={errMessage.length ? styles.errorIcon : styles.successIcon}>
+                {updateStatusIcon["NOTE"]}
+              </div>
+              <div className={errMessage.length ? styles.errorNote : styles.successNote}>
+                {errMessage.length ? t.openCloseChannel.error : t.openCloseChannel.note}
+              </div>
+            </div>
+            <div className={errMessage.length ? styles.errorMessage : styles.successMessage}>
+              {errMessage.length ? errMessage : t.tagsModal.addConfirmedMessage}
+            </div>
+          </div>
          <ButtonWrapper
            className={styles.customButtonWrapperStyles}
            rightChildren={
              <Button
-               text={t.newAddress}
+               text={t.newTag}
                onClick={() => {
                 setCreateTagState(ProgressStepState.active);
-                 setDoneState(ProgressStepState.disabled);
-                 setStepIndex(0);
-                 setResponse(undefined);
+                setDoneState(ProgressStepState.disabled);
+                setStepIndex(0);
+                setErrorMessage([]);
                }}
                buttonColor={buttonColor.subtle}
              />

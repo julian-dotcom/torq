@@ -143,7 +143,7 @@ func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err 
 
 func GetChannelsForTag(db *sqlx.DB) (channels []ChannelForTag, err error) {
 	err = db.Select(&channels, `
-		select distinct short_channel_id, ne.alias, 'channel' as type
+		select distinct short_channel_id, ne.alias, channel_id, c.first_node_id as node_id, 'channel' as type
 		from channel c
 		inner join node_event ne on c.first_node_id = ne.node_id
 		and ne.event_node_id = c.first_node_id

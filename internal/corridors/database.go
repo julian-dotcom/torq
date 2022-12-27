@@ -132,7 +132,7 @@ func AddCorridor(db *sqlx.DB, c Corridor) (*Corridor, error) {
 		err = db.QueryRowx(`INSERT INTO corridor (corridor_type_id, reference_id, flag, inverse, priority,
                       from_category_id, from_tag_id, from_node_id, to_category_id, to_tag_id, to_node_id, channel_id,
                       created_on, updated_on)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING corridor_id;`,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING corridor_id;`,
 			c.CorridorTypeId, c.ReferenceId, c.Flag, c.Inverse, c.Priority,
 			c.FromCategoryId, c.FromTagId, c.FromNodeId, c.ToCategoryId, c.ToTagId, c.ToNodeId, c.ChannelId,
 			c.CreatedOn, c.UpdateOn).

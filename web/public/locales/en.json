@@ -55,10 +55,15 @@
   "customTag": "Custom Tag",
   "tagColor": "Tag Color",
   "category": "Category",
+  "tagTarget": "Add Target",
+  "newTag": "New Tag",
   "manage": "Manage",
   "payments": "Payments",
   "invoices": "Invoices",
   "onChain": "On-Chain",
+  "tagsModal": {
+    "addConfirmedMessage": "tag and target created"
+  },
   "importFailedPayments": "When this is enabled Torq will import failed payments. (Please be cautious with this as this could cause performance problems for LND. This is not advised for nodes with aggressive rebalancing and/or lightweight hardware.)",
   "implementation": "Implementation",
   "nodeName": "Node Name",
