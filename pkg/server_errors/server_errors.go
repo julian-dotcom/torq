@@ -77,6 +77,10 @@ func SendBadRequest(c *gin.Context, message string) {
 	c.JSON(http.StatusBadRequest, SingleServerError(message))
 }
 
+func SendBadRequestFieldError(c *gin.Context, se *ServerError) {
+	c.JSON(http.StatusBadRequest, se)
+}
+
 func SendUnprocessableEntity(c *gin.Context, message string) {
 	c.JSON(http.StatusUnprocessableEntity, SingleServerError(message))
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	sq "github.com/Masterminds/squirrel"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -725,32 +726,34 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	return wfvn, nil
 }
 
-func updateNode(db *sqlx.DB, workflowVersionNode WorkflowVersionNode) (WorkflowVersionNode, error) {
-	workflowVersionNode.UpdateOn = time.Now().UTC()
+func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 
-	_, err := db.Exec(`
-			UPDATE workflow_version_node
-			SET name=$1, status=$2, type=$3, parameters=$4, visibility_settings=$5, workflow_version_id=$6, updated_on=$7
-			WHERE workflow_version_node_id=$8;`,
-		workflowVersionNode.Name,
-		workflowVersionNode.Status,
-		workflowVersionNode.Type,
-		workflowVersionNode.Parameters,
-		workflowVersionNode.VisibilitySettings,
-		workflowVersionNode.WorkflowVersionId,
-		workflowVersionNode.UpdateOn,
-		workflowVersionNode.WorkflowVersionNodeId)
+	qb := sq.Update("workflow_version_node").PlaceholderFormat(sq.Dollar).
+		Set("updated_on", time.Now().UTC())
 
-	if err != nil {
-		if err, ok := err.(*pq.Error); ok {
-			if err.Code == "23505" {
-				return WorkflowVersionNode{}, errors.Wrap(err, database.SqlUniqueConstraintError)
-			}
-		}
-		return WorkflowVersionNode{}, errors.Wrap(err, database.SqlExecutionError)
+	if req.Name != nil {
+		qb = qb.Set("name", req.Name)
 	}
 
-	return workflowVersionNode, nil
+	if req.Status != nil {
+		qb = qb.Set("status", req.Status)
+	}
+
+	if req.VisibilitySettings != nil {
+		qb = qb.Set("status", req.VisibilitySettings)
+	}
+
+	if req.Parameters != nil {
+		qb = qb.Set("status", req.Status)
+	}
+
+	_, err := qb.Where(sq.Eq{"workflow_version_node_id": req.WorkflowVersionNodeId}).RunWith(db).Exec()
+	if err != nil {
+		// TODO: Handle wrapped error while still being able to check for unique constraint violation
+		return 0, err //nolint:wrapcheck
+	}
+
+	return req.WorkflowVersionNodeId, nil
 }
 
 func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {

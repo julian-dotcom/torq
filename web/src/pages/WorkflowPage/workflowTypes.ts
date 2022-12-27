@@ -39,6 +39,14 @@ export type NewWorkflowNodeRequest = {
   stage: number;
 };
 
+export type UpdateWorkflowNodeRequest = Partial<{
+  workflowVersionNodeId: number;
+  name: string;
+  status: number;
+  visibilitySettings?: VisibilitySettings;
+  parameters?: {};
+}>;
+
 export type WorkflowVersion = {
   workflowVersionId: number;
   name: string;

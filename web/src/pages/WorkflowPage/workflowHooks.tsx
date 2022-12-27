@@ -15,7 +15,7 @@ import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/
 import { ReactNode } from "react";
 import { Workflow, WorkflowStages, WorkflowVersion } from "./workflowTypes";
 import ChannelPolicyNode from "components/workflow/nodes/channelPolicy/ChannelPolicy";
-import WorkflowCanvas from "../../components/workflow/canvas/WorkflowCanvas";
+import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 
 export function useNewWorkflowButton(): ReactNode {
   const { t } = useTranslations();

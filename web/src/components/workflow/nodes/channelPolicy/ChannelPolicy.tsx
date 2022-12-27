@@ -1,5 +1,6 @@
 import useTranslations from "services/i18n/useTranslations";
 import { useState } from "react";
+import { MoneySettings20Regular as ChannelPolicyIcon } from "@fluentui/react-icons";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Input from "components/forms/input/Input";
 import { InputSizeVariant } from "components/forms/input/variants";
@@ -35,7 +36,7 @@ function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
   }
 
   return (
-    <WorkflowNodeWrapper {...wrapperProps} heading={t.channelPolicy}>
+    <WorkflowNodeWrapper {...wrapperProps} heading={t.channelPolicy} headerIcon={<ChannelPolicyIcon />}>
       <Form>
         <Socket label={"Channels"} id={"sss"} />
         <Input

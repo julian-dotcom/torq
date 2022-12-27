@@ -4,9 +4,14 @@ import React, { createRef, MutableRefObject, useContext, useId, useRef, useState
 import classNames from "classnames";
 import NodeConnector from "./NodeConnector";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
-import { ExpandUpRight16Regular as ExpandIcon, ContractDownLeft16Regular as CollapseIcon } from "@fluentui/react-icons";
+import {
+  ContractDownLeft20Regular as CollapseIcon,
+  ExpandUpRight20Regular as ExpandIcon,
+  MoreVertical20Regular as OptionsIcon,
+} from "@fluentui/react-icons";
 import Collapse from "features/collapse/Collapse";
 import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
+import NodeName from "./NodeNameInput";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -17,6 +22,7 @@ export const NodeContext = React.createContext<nodeRefType>({
 export type WorkflowNodeProps = WorkflowNode & {
   id: string;
   heading?: string;
+  headerIcon?: JSX.Element;
   children?: React.ReactNode;
 };
 
@@ -37,8 +43,13 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const headerRef = useRef() as MutableRefObject<HTMLDivElement>;
   const [nodeBB, setNodeBB] = useState({ left: 0, top: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [nameInputVisible, setNameInputVisible] = useState(false);
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    if (nameInputVisible) {
+      e.preventDefault();
+      return;
+    }
     // Set the drag effect and remove the default drag image set by HTML5
     if (blankImgRef) {
       e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
@@ -59,6 +70,9 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   function handleDrag(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
+    if (nameInputVisible) {
+      return;
+    }
 
     // Get the position of the canvas
     const bb = canvasRef !== null ? canvasRef.current.getBoundingClientRect() : { x: 0, y: 0 };
@@ -73,6 +87,9 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   }
 
   function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
+    if (nameInputVisible) {
+      return;
+    }
     setIsDragging(false);
   }
 
@@ -106,10 +123,20 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
           onDragEnd={handleDragEnd}
           onDragStart={handleDragStart}
           onDragOver={(e) => e.preventDefault()}
-          onClick={handleCollapse}
         >
-          <div>{props.heading + ": " + props.name}</div>
-          {collapsed ? <ExpandIcon /> : <CollapseIcon />}
+          <div className={styles.icon}>{props.headerIcon}</div>
+          <NodeName
+            nodeId={props.workflowVersionNodeId}
+            name={props.name}
+            isVisible={nameInputVisible}
+            setVisible={setNameInputVisible}
+          />
+          <div className={classNames(styles.icon, styles.collapseIcon)} onClick={handleCollapse}>
+            {collapsed ? <ExpandIcon /> : <CollapseIcon />}
+          </div>
+          <div className={classNames(styles.icon, styles.optionsIcon)}>
+            <OptionsIcon />
+          </div>
           <NodeConnector id={connectorId} name={props.name} />
         </div>
         <Collapse collapsed={collapsed} animate={true}>

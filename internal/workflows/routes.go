@@ -2,6 +2,7 @@ package workflows
 
 import (
 	"fmt"
+	"github.com/lib/pq"
 	"net/http"
 	"strconv"
 
@@ -273,18 +274,30 @@ func addNodeHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func updateNodeHandler(c *gin.Context, db *sqlx.DB) {
-	var wfvn WorkflowVersionNode
-	if err := c.BindJSON(&wfvn); err != nil {
+	var req UpdateNodeRequest
+	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	storedWorkflowVersionNode, err := updateNode(db, wfvn)
+	resp, err := updateNode(db, req)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow version node for workflowVersionNodeId: %v", wfvn.WorkflowVersionNodeId))
+		err, ok := err.(*pq.Error)
+		if !ok {
+			server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow version node for workflowVersionNodeId: %v", req.WorkflowVersionNodeId))
+		}
+		switch true {
+		case err.Constraint == "workflow_version_node_workflow_version_id_name_key":
+			se := server_errors.SingleFieldError("name", "Name already exists.")
+			se.AddServerError(err.Error())
+			server_errors.SendBadRequestFieldError(c, se)
+		default:
+			server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow version node for workflowVersionNodeId: %v", req.WorkflowVersionNodeId))
+		}
+
 		return
 	}
 
-	c.JSON(http.StatusOK, storedWorkflowVersionNode)
+	c.JSON(http.StatusOK, resp)
 }
 
 func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
