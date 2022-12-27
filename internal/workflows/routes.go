@@ -75,6 +75,26 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
+	xPosition := 0
+	yPosition := 0
+	collapsed := true
+
+	initialNode := CreateNodeRequest{
+		WorkflowVersionId: wv.WorkflowVersionId,
+		Type:              1,
+		Stage:             1,
+		VisibilitySettings: WorkflowNodeVisibilitySettings{
+			YPosition: &xPosition,
+			XPosition: &yPosition,
+			Collapsed: &collapsed,
+		},
+	}
+	_, err = createNode(db, initialNode)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Adding initial node to new workflow.")
+		return
+	}
+
 	c.JSON(http.StatusOK, wv)
 }
 
