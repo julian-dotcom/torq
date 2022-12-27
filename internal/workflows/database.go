@@ -740,11 +740,19 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 	}
 
 	if req.VisibilitySettings != nil {
-		qb = qb.Set("status", req.VisibilitySettings)
+		vs, err := json.Marshal(req.VisibilitySettings)
+		if err != nil {
+			return 0, errors.Wrap(err, "JSON Marshaling VisibilitySettings")
+		}
+		qb = qb.Set("visibility_settings", vs)
 	}
 
 	if req.Parameters != nil {
-		qb = qb.Set("status", req.Status)
+		param, err := json.Marshal(req.Parameters)
+		if err != nil {
+			return 0, errors.Wrap(err, "JSON Marshaling Parameters")
+		}
+		qb = qb.Set("parameters", param)
 	}
 
 	_, err := qb.Where(sq.Eq{"workflow_version_node_id": req.WorkflowVersionNodeId}).RunWith(db).Exec()

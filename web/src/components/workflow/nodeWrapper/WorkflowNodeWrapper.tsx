@@ -12,6 +12,7 @@ import {
 import Collapse from "features/collapse/Collapse";
 import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
+import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -44,6 +45,7 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const [nodeBB, setNodeBB] = useState({ left: 0, top: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [nameInputVisible, setNameInputVisible] = useState(false);
+  const [updateNode] = useUpdateNodeMutation();
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     if (nameInputVisible) {
@@ -91,6 +93,11 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
       return;
     }
     setIsDragging(false);
+
+    updateNode({
+      workflowVersionNodeId: props.workflowVersionNodeId,
+      visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: collapsed },
+    });
   }
 
   const connectorId = useId();
