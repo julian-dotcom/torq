@@ -1,6 +1,7 @@
 import styles from "./button_variations.module.scss";
 
 export enum SizeVariant { // SizeVariant
+  large = "large",
   normal = "normal",
   small = "small",
   tiny = "tiny",
@@ -19,6 +20,7 @@ export enum ColorVariant {
 }
 
 export const sizeClasses = new Map<SizeVariant, string>([
+  [SizeVariant.large, styles.large],
   [SizeVariant.normal, styles.normal],
   [SizeVariant.small, styles.small],
   [SizeVariant.tiny, styles.tiny],

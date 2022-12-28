@@ -12,8 +12,6 @@ import workflowCellRenderer from "./workflowCellRenderer";
 import { useGetWorkflowsQuery } from "./workflowApi";
 import { useNewWorkflowButton } from "./workflowHooks";
 
-// type WorkflowsTablePageProps = {};
-
 function WorkflowsTablePage() {
   const { t } = useTranslations();
   const breadcrumbs = [t.manage, t.workflows];

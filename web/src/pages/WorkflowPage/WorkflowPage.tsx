@@ -17,6 +17,7 @@ import {
   Scales20Regular as EventTriggerIcon,
   ArrowRouting20Regular as ChannelOpenIcon,
 } from "@fluentui/react-icons";
+import { useUpdateWorkflowMutation } from "./workflowApi";
 
 export function useStageButtons(
   stages: WorkflowStages,
@@ -54,6 +55,12 @@ function WorkflowPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
   const workflowControls = useWorkflowControls(sidebarExpanded, setSidebarExpanded);
 
+  const [updateWorkflow] = useUpdateWorkflowMutation();
+
+  function handleWorkflowNameChange(name: string) {
+    updateWorkflow({ workflowId: parseInt(workflowId || "0"), name: name });
+  }
+
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
   };
@@ -80,7 +87,7 @@ function WorkflowPage() {
 
   return (
     <div className={styles.contentWrapper}>
-      <PageTitle breadcrumbs={bradcrumbs} title={workflow?.name || ""} />
+      <PageTitle breadcrumbs={bradcrumbs} title={workflow?.name || ""} onNameChange={handleWorkflowNameChange} />
       {workflowControls}
       <div className={styles.tableWrapper}>
         <div className={styles.tableContainer}>

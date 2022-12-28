@@ -32,8 +32,9 @@ export const workflowApi = torqApi.injectEndpoints({
         method: "PUT",
         body: body,
       }),
-      invalidatesTags: ["workflows"],
+      invalidatesTags: ["workflow", "workflows"],
     }),
+    // deleteWorflow is currently not used
     deleteWorkflow: builder.mutation<void, { workflowId: number }>({
       query: (params) => ({
         url: `workflows/${params.workflowId}`,
