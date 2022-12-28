@@ -32,6 +32,7 @@
   "transactions": "Transactions",
   "onChainTx": "On-chain",
   "next": "Next",
+  "back": "Back",
   "confirm": "Confirm",
   "newAddress": "New Address",
   "openChannel": "Open Channel",
@@ -55,6 +56,7 @@
   "analyse": "Analyse",
   "tags": "Tags",
   "manage": "Manage",
+  "newPayment" : "New Payment",
   "importFailedPayments": "When this is enabled Torq will import failed payments. (Please be cautious with this as this could cause performance problems for LND. This is not advised for nodes with aggressive rebalancing and/or lightweight hardware.)",
   "implementation": "Implementation",
   "nodeName": "Node Name",
@@ -78,6 +80,11 @@
   "automation": "Automation",
   "triggers": "Triggers",
   "actions": "Actions",
+  "MainNet": "MainNet",
+  "TestNet": "TestNet",
+  "RegTest":  "RegTest",
+  "SigNet": "SigNet",
+  "SimNet":  "SimNet",
   "tableLayout": {
     "tableOptions": "Table options"
   },

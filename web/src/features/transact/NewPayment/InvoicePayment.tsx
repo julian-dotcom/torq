@@ -1,5 +1,5 @@
 import { Options20Regular as OptionsIcon } from "@fluentui/react-icons";
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import { useState } from "react";
 import Input from "components/forms/input/Input";
 import { ProgressStepState } from "features/progressTabs/ProgressHeader";
@@ -86,18 +86,18 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
         className={styles.customButtonWrapperStyles}
         leftChildren={
           <Button
-            text={"Back"}
             onClick={() => {
               props.setStepIndex(0);
               props.setDestState(ProgressStepState.completed);
               props.setConfirmState(ProgressStepState.active);
             }}
-            buttonColor={buttonColor.ghost}
-          />
+            buttonColor={ColorVariant.primary}
+          >
+            {"Back"}
+          </Button>
         }
         rightChildren={
           <Button
-            text={"Confirm"}
             onClick={() => {
               props.sendJsonMessage({
                 requestId: "randId",
@@ -118,8 +118,10 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
               props.setConfirmState(ProgressStepState.completed);
               props.setProcessState(ProgressStepState.processing);
             }}
-            buttonColor={buttonColor.green}
-          />
+            buttonColor={ColorVariant.success}
+          >
+            {"Confirm"}
+          </Button>
         }
       />
     </ProgressTabContainer>

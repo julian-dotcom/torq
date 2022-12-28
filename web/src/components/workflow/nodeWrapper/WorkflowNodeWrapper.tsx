@@ -15,7 +15,7 @@ import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
 import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
-import Button, { buttonColor, buttonPosition, buttonSize } from "components/buttons/Button";
+import Button, { ColorVariant, buttonPosition, SizeVariant } from "components/buttons/Button";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -158,10 +158,9 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
           >
             <div className={styles.buttonGroup}>
               <Button
-                text={props.status === 0 ? t.activate : t.deactivate}
                 icon={<DeleteIcon />}
-                buttonColor={buttonColor.subtle}
-                buttonSize={buttonSize.small}
+                buttonColor={ColorVariant.primary}
+                buttonSize={SizeVariant.small}
                 buttonPosition={buttonPosition.fullWidth}
                 onClick={() => {
                   updateNode({
@@ -170,17 +169,20 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
                     status: props.status === 0 ? 1 : 0,
                   });
                 }}
-              />
+              >
+                {props.status === 0 ? t.activate : t.deactivate}
+              </Button>
               <Button
-                text={t.delete}
                 icon={<DeleteIcon />}
-                buttonColor={buttonColor.warning}
-                buttonSize={buttonSize.small}
+                buttonColor={ColorVariant.error}
+                buttonSize={SizeVariant.small}
                 buttonPosition={buttonPosition.fullWidth}
                 onClick={() => {
                   deleteNode({ nodeId: props.workflowVersionNodeId });
                 }}
-              />
+              >
+                {t.delete}
+              </Button>
             </div>
           </PopoverButton>
           <NodeConnector id={connectorId} name={props.name} />

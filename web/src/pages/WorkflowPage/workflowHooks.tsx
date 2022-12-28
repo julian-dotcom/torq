@@ -8,7 +8,7 @@ import {
   TableControlSection,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
-import Button, { buttonColor } from "components/buttons/Button";
+import Button, { ColorVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
 import { useNavigate } from "react-router";
 import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/workflowApi";
@@ -38,12 +38,13 @@ export function useNewWorkflowButton(): ReactNode {
 
   return (
     <Button
-      buttonColor={buttonColor.green}
-      text={t.newWorkflow}
+      buttonColor={ColorVariant.success}
       className={"collapse-tablet"}
       icon={<NewWorkflowIcon />}
       onClick={newWorkflowHandler}
-    />
+    >
+      {t.newWorkflow}
+    </Button>
   );
 }
 
@@ -95,25 +96,27 @@ export function useWorkflowControls(sidebarExpanded: boolean, setSidebarExpanded
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
-            buttonColor={buttonColor.green}
-            text={t.deploy}
+            buttonColor={ColorVariant.success}
             className={"collapse-tablet"}
             icon={<DeployIcon />}
             onClick={() => {
               console.log("Not implemented yet");
             }}
-          />
+          >
+            {t.deploy}
+          </Button>
         </TableControlsTabsGroup>
         <Button
-          buttonColor={buttonColor.subtle}
-          text={t.nodes}
+          buttonColor={ColorVariant.primary}
           className={"collapse-tablet"}
           id={"tableControlsButton"}
           icon={<NodesIcon />}
           onClick={() => {
             setSidebarExpanded(!sidebarExpanded);
           }}
-        />
+        >
+          {t.nodes}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );

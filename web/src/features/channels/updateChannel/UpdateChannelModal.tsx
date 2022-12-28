@@ -7,7 +7,7 @@ import {
 } from "@fluentui/react-icons";
 import { useUpdateChannelMutation } from "apiSlice";
 import { useState, useEffect } from "react";
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./updateChannel.module.scss";
@@ -180,7 +180,6 @@ function NodechannelModal() {
             <ButtonWrapper
               rightChildren={
                 <Button
-                  text={t.updateChannelPolicy.update}
                   onClick={() => {
                     setStepIndex(1);
                     setPolicyState(ProgressStepState.completed);
@@ -195,8 +194,10 @@ function NodechannelModal() {
                       nodeId: nodeId,
                     });
                   }}
-                  buttonColor={buttonColor.green}
-                />
+                  buttonColor={ColorVariant.success}
+                >
+                  {t.updateChannelPolicy.update}
+                </Button>
               }
             />
           </div>
@@ -206,12 +207,12 @@ function NodechannelModal() {
             className={classNames(
               styles.updateChannelResultIconWrapper,
               { [styles.failed]: !response.data },
-              updateStatusClass[response.data?.status==1 ? "SUCCEEDED" : "FAILED"]
+              updateStatusClass[response.data?.status == 1 ? "SUCCEEDED" : "FAILED"]
             )}
           >
             {" "}
             {!response.data && updateStatusIcon["FAILED"]}
-            {updateStatusIcon[response.data?.status==1 ? "SUCCEEDED" : "FAILED"]}
+            {updateStatusIcon[response.data?.status == 1 ? "SUCCEEDED" : "FAILED"]}
           </div>
           <div className={errMessage.length ? styles.errorBox : styles.successeBox}>
             <div>
@@ -229,15 +230,16 @@ function NodechannelModal() {
           <ButtonWrapper
             rightChildren={
               <Button
-                text={t.updateChannelPolicy.newUpdate}
                 onClick={() => {
                   setStepIndex(0);
                   setPolicyState(ProgressStepState.active);
                   setResultState(ProgressStepState.disabled);
                   setErrorMessage([]);
                 }}
-                buttonColor={buttonColor.subtle}
-              />
+                buttonColor={ColorVariant.primary}
+              >
+                {t.updateChannelPolicy.newUpdate}
+              </Button>
             }
           />
         </ProgressTabContainer>

@@ -1,4 +1,4 @@
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./newInvoice.module.scss";
 import classNames from "classnames";
@@ -15,6 +15,7 @@ import {
   DetailsRow,
   DetailsRowLinkAndCopy,
 } from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
+import useTranslations from "services/i18n/useTranslations";
 
 const f = format(",.0f");
 
@@ -34,6 +35,7 @@ type NewInvoiceResponseProps = {
 };
 
 export function NewInvoiceResponseStep(props: NewInvoiceResponseProps) {
+  const { t } = useTranslations();
   useEffect(() => {
     if (props.response?.isSuccess) {
       props.setDoneState(ProgressStepState.completed);
@@ -72,12 +74,13 @@ export function NewInvoiceResponseStep(props: NewInvoiceResponseProps) {
         className={styles.customButtonWrapperStyles}
         rightChildren={
           <Button
-            text={"New payment"}
             onClick={() => {
               props.clearFlow();
             }}
-            buttonColor={buttonColor.subtle}
-          />
+            buttonColor={ColorVariant.primary}
+          >
+            {t.newPayment}
+          </Button>
         }
       />
     </ProgressTabContainer>

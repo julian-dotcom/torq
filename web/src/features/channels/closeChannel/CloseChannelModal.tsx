@@ -7,7 +7,7 @@ import {
 } from "@fluentui/react-icons";
 import { WS_URL } from "apiSlice";
 import { useState, ChangeEvent } from "react";
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./closeChannel.module.scss";
@@ -134,7 +134,6 @@ function closeChannelModal() {
             <ButtonWrapper
               rightChildren={
                 <Button
-                  text={t.openCloseChannel.closeChannel}
                   onClick={() => {
                     setStepIndex(1);
                     setDetailState(ProgressStepState.completed);
@@ -151,8 +150,10 @@ function closeChannelModal() {
                       },
                     });
                   }}
-                  buttonColor={buttonColor.green}
-                />
+                  buttonColor={ColorVariant.success}
+                >
+                  {t.openCloseChannel.closeChannel}
+                </Button>
               }
             />
           </div>

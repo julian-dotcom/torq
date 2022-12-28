@@ -1,6 +1,7 @@
-import cellStyles from "components/table/cells/cell.module.scss";
-import styles from "./channel_cell.module.scss";
+import { Delete12Regular as CloseIcon } from "@fluentui/react-icons"; // Edit16Regular as UpdateIcon,
 import { Link } from "react-router-dom";
+import cellStyles from "components/table/cells/cell.module.scss";
+import styles from "./workflow_cell.module.scss";
 import classNames from "classnames";
 
 interface WorkflowCell {
@@ -21,13 +22,9 @@ function WorkflowCell(props: WorkflowCell) {
         {/*<Link to={`${props.workflowId}`} className={classNames(cellStyles.action, styles.updateLink)}>*/}
         {/*  <UpdateIcon /> {t.edit}*/}
         {/*</Link>*/}
-        {/*<Link*/}
-        {/*  to={`${}?nodeId=${props.nodeId}&channelId=${props.channelId}`}*/}
-        {/*  state={{ background: location }}*/}
-        {/*  className={classNames(cellStyles.action, styles.closeChannelLink)}*/}
-        {/*>*/}
-        {/*  <CloseIcon /> Close*/}
-        {/*</Link>*/}
+        <div className={classNames(cellStyles.action, styles.closeChannelLink)}>
+          <CloseIcon /> Close
+        </div>
       </div>
     </div>
   );

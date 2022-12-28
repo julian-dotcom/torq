@@ -17,7 +17,7 @@ import React from "react";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "store/hooks";
-import Button, { buttonColor, buttonSize } from "components/buttons/Button";
+import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import EventsCard from "features/eventsCard/EventsCard";
 import Select from "components/forms/select/Select";
 import Switch from "components/forms/switch/Switch";
@@ -415,13 +415,14 @@ function ChannelPage(_: ChannelPageProps) {
                 <Popover
                   button={
                     <Button
-                      buttonColor={buttonColor.ghost}
-                      buttonSize={buttonSize.small}
+                      buttonColor={ColorVariant.primary}
+                      buttonSize={SizeVariant.small}
                       isOpen={selectedEventsCount > 0}
-                      text={`${selectedEventsCount}`}
                       icon={<EventFlagIcon />}
                       className={"collapse-tablet"}
-                    />
+                    >
+                      {selectedEventsCount}
+                    </Button>
                   }
                   className={"right"}
                 >

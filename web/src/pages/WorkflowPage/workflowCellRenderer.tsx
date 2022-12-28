@@ -2,7 +2,7 @@ import cellStyles from "components/table/cells/cell.module.scss";
 import { ColumnMetaData } from "features/table/types";
 import { workflowListItem } from "./workflowTypes";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
-import WorkflowCell from "components/table/cells/channelCell/WorkflowCell";
+import WorkflowCell from "components/table/cells/workflow/WorkflowCell";
 
 export default function workflowCellRenderer(
   row: workflowListItem,

@@ -4,7 +4,7 @@ import styles from "./table-page-template.module.scss";
 import classNames from "classnames";
 import { FluentIconsProps } from "@fluentui/react-icons";
 import PageTitle from "features/templates/PageTitle";
-import Button, { buttonColor } from "components/buttons/Button";
+import Button, { ColorVariant } from "components/buttons/Button";
 
 type TablePageTemplateProps = {
   title: string;
@@ -57,12 +57,13 @@ export function TableControlsButton(props: TableControlsButtonProps) {
     <div className={classNames(styles.tableControlsButtonWrapper, { [styles.active]: props.active })}>
       <Button
         id={props.id}
-        text={props.text}
         className={styles.tableControlsButtonIcon}
         onClick={props.onClickHandler}
-        buttonColor={buttonColor.subtle}
+        buttonColor={ColorVariant.primary}
         icon={<props.icon />}
-      />
+      >
+        {props.text}
+      </Button>
       {/*<div className={styles.title}>{props.title}</div>*/}
     </div>
   );

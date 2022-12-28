@@ -1,0 +1,84 @@
+.normal {
+  --button-height: 40px;
+  --button-padding: 8px 16px;
+  --input-font-size: var(--font-size-normal);
+  --button-icon-gap: 8px;
+  --default-icon-size: 20px;
+}
+.small {
+  --button-height: 32px;
+  --button-padding: 8px 12px;
+  --button-font-size: var(--font-size-small);
+  --button-icon-gap: 6px;
+  --default-icon-size: 16px;
+}
+.tiny {
+  --button-height: 24px;
+  --button-padding: 4px 6px;
+  --button-font-size: var(--font-size-tiny);
+  --button-icon-gap: 4px;
+  --default-icon-size: 12px;
+}
+
+.primary {
+  --button-default-background: var(--color-primary-layer-2);
+  --button-hover-background: var(--color-primary-layer-4);
+  --button-active-background: var(--color-primary-layer-1);
+  --button-color: var(--color-text-primary-strong);
+}
+
+.ghost {
+  --button-default-background: transparent;
+  --button-hover-background: transparent;
+  --button-active-background: transparent;
+  --button-color: inherit;
+}
+
+.success {
+  --button-default-background: var(--color-success-layer-2);
+  --button-hover-background: var(--color-success-layer-3);
+  --button-active-background: var(--color-success-layer-1);
+  --button-color: var(--color-text-success-strong);
+}
+.warning {
+  --button-default-background: var(--color-warning-layer-2);
+  --button-hover-background: var(--color-warning-layer-4);
+  --button-active-background: var(--color-warning-layer-1);
+  --button-color: var(--color-text-warning-strong);
+}
+
+.error {
+  --button-default-background: var(--color-error-layer-2);
+  --button-hover-background: var(--color-error-layer-3);
+  --button-active-background: var(--color-error-layer-1);
+  --button-color: var(--color-text-error-faded);
+}
+
+button[disabled],
+.disabled {
+  --button-default-background: var(--color-gray-layer-2);
+  --button-hover-background: var(--color-gray-layer-2);
+  --button-active-background: var(--color-gray-layer-2);
+  --button-color: var(--color-gray-layer-faded);
+}
+
+.accent1 {
+  --button-default-background: var(--color-accent-1-layer-2);
+  --button-hover-background: var(--color-accent-1-layer-3);
+  --button-active-background: var(--color-accent-1-layer-1);
+  --button-color: var(--color-text-accent-1-strong);
+}
+
+.accent2 {
+  --button-default-background: var(--color-accent-2-layer-2);
+  --button-hover-background: var(--color-accent-2-layer-3);
+  --button-active-background: var(--color-accent-2-layer-1);
+  --button-color: var(--color-text-accent-2-strong);
+}
+
+.accent3 {
+  --button-default-background: var(--color-accent-3-layer-2);
+  --button-hover-background: var(--color-accent-3-layer-3);
+  --button-active-background: var(--color-accent-3-layer-1);
+  --button-color: var(--color-text-accent-3-strong);
+}

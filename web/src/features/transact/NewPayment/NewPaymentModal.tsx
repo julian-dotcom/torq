@@ -2,7 +2,7 @@ import { MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icon
 import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
 import { useGetDecodedInvoiceQuery, useSendOnChainMutation } from "./newPaymentApi";
 import classNames from "classnames";
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
@@ -272,7 +272,6 @@ function NewPaymentModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
-                text={"Next"}
                 disabled={!destinationType || decodedInvRes.isError}
                 onClick={() => {
                   if (destination) {
@@ -281,8 +280,10 @@ function NewPaymentModal() {
                     setConfirmState(ProgressStepState.active);
                   }
                 }}
-                buttonColor={decodedInvRes?.isError ? buttonColor.warning : buttonColor.subtle}
-              />
+                buttonColor={decodedInvRes?.isError ? ColorVariant.warning : ColorVariant.primary}
+              >
+                {t.next}
+              </Button>
             }
           />
         </ProgressTabContainer>

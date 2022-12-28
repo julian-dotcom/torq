@@ -100,8 +100,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
+  &:hover {
+    background-color: var(--color-accent-1-faint);
+    filter: brightness(105%);
+  }
 }
 .nameForm {
   position: relative;
@@ -135,7 +139,6 @@ input.input {
 .buttonGroup {
   display: flex;
   flex-direction: column;
-  align-items: start;
   gap: 8px;
   align-items: stretch;
 }

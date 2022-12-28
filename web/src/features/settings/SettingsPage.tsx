@@ -1,6 +1,6 @@
 import { AddSquare20Regular as AddIcon, Save20Regular as SaveIcon } from "@fluentui/react-icons";
 import Page from "layout/Page";
-import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
+import Button, { ColorVariant, buttonPosition } from "components/buttons/Button";
 import styles from "features/settings/settings.module.css";
 import { SelectOption } from "features/forms/Select";
 import Select from "components/forms/select/Select";
@@ -150,12 +150,12 @@ function Settings() {
                 />
                 <Button
                   type={"submit"}
-                  submit={true}
-                  text={t.save}
                   icon={<SaveIcon />}
-                  buttonColor={buttonColor.green}
+                  buttonColor={ColorVariant.success}
                   buttonPosition={buttonPosition.fullWidth}
-                />
+                >
+                  {t.save}
+                </Button>
               </form>
             </div>
             <div>
@@ -169,12 +169,9 @@ function Settings() {
                   />
                 ))}
             </div>
-            <Button
-              buttonColor={buttonColor.green}
-              onClick={addNodeConfiguration}
-              icon={<AddIcon />}
-              text={t.addNode}
-            />
+            <Button buttonColor={ColorVariant.success} onClick={addNodeConfiguration} icon={<AddIcon />}>
+              {t.addNode}
+            </Button>
             <Modal title={t.addNode} show={showAddNodeState} onClose={handleNewNodeModalOnClose}>
               <NodeSettings
                 ref={addNodeRef}

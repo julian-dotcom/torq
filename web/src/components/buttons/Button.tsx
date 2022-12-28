@@ -1,24 +1,13 @@
 import classNames from "classnames";
 import styles from "./button.module.scss";
-
-export enum buttonColor {
-  primary,
-  secondary,
-  ghost,
-  warning,
-  green,
-  subtle,
-}
+import { SizeVariant, ColorVariant as bc, GetSizeClass, GetColorClass } from "./buttonVariants";
+import { ReactNode } from "react";
+// Exporting them here again so that we don't have to import from two different places
+export { SizeVariant, ColorVariant } from "./buttonVariants";
 
 export enum buttonPosition {
   center,
   fullWidth,
-}
-
-export enum buttonSize {
-  medium,
-  small,
-  large,
 }
 
 const buttonPositionClass = {
@@ -28,59 +17,42 @@ const buttonPositionClass = {
   3: styles.positionFullWidth,
 };
 
-const buttonColorClass = {
-  0: styles.primary,
-  1: styles.secondary,
-  2: styles.ghost,
-  3: styles.warning,
-  4: styles.green,
-  5: styles.subtle,
-};
-
-const buttonSizeClass = {
-  0: styles.medium,
-  1: styles.small,
-  2: styles.large,
-};
-
-export default function Button(props: {
-  id?: string;
-  text?: string;
-  type?: string;
+export type ButtonProps = React.DetailedHTMLProps<React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & {
   icon?: any;
-  onClick?: () => void;
-  className?: string;
   isOpen?: boolean;
-  buttonColor: buttonColor;
+  buttonColor: bc;
   buttonPosition?: buttonPosition;
-  buttonSize?: buttonSize;
-  submit?: boolean;
-  disabled?: boolean;
-}) {
-  const handleClick = () => {
-    if (props.onClick) {
-      props.onClick();
-    }
-  };
+  buttonSize?: SizeVariant;
+  children?: ReactNode;
+};
+
+export default function Button({
+  icon,
+  isOpen,
+  buttonColor,
+  buttonPosition,
+  buttonSize,
+  children,
+  ...buttonProps
+}: ButtonProps) {
+  const color = buttonProps.disabled ? bc.disabled : buttonColor;
+
   return (
     <button
-      id={props.id}
-      type={props.submit ? "submit" : "button"}
+      {...buttonProps}
       className={classNames(
         styles.button,
-        props.className,
-        buttonColorClass[props.buttonColor],
-        buttonPositionClass[props.buttonPosition || 0],
-        buttonSizeClass[props.buttonSize || 0],
+        GetColorClass(color),
+        buttonPositionClass[buttonPosition || 0],
+        GetSizeClass(buttonSize),
         {
-          [styles.open]: props.isOpen,
-        }
+          [styles.open]: isOpen,
+        },
+        buttonProps.className
       )}
-      onClick={handleClick}
-      disabled={props.disabled}
     >
-      {props.icon && props.icon}
-      {props.text && <div className="text">{props.text}</div>}
+      {icon && <span>{icon}</span>}
+      {children && <span className={styles.text}>{children}</span>}
     </button>
   );
 }

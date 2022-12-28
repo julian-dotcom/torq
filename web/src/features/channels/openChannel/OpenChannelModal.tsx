@@ -8,7 +8,7 @@ import {
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
 import { ChangeEvent, useState } from "react";
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./openChannel.module.scss";
@@ -163,15 +163,16 @@ function OpenChannelModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
-                text={"Comfirm"}
                 disabled={host == "" || nodePubKey == "" || selectedNodeId == 0}
                 onClick={() => {
                   setStepIndex(1);
                   setConnectState(ProgressStepState.completed);
                   setDetailState(ProgressStepState.active);
                 }}
-                buttonColor={buttonColor.subtle}
-              />
+                buttonColor={ColorVariant.primary}
+              >
+                {"Comfirm"}
+              </Button>
             }
           />
         </ProgressTabContainer>
@@ -316,7 +317,6 @@ function OpenChannelModal() {
             <ButtonWrapper
               rightChildren={
                 <Button
-                  text={t.openCloseChannel.confirm}
                   onClick={() => {
                     setStepIndex(2);
                     setDetailState(ProgressStepState.completed);
@@ -339,8 +339,10 @@ function OpenChannelModal() {
                       },
                     });
                   }}
-                  buttonColor={buttonColor.green}
-                />
+                  buttonColor={ColorVariant.success}
+                >
+                  {t.confirm}
+                </Button>
               }
             />
           </div>
@@ -370,15 +372,16 @@ function OpenChannelModal() {
           <ButtonWrapper
             rightChildren={
               <Button
-                text={t.openCloseChannel.openNewChannel}
                 onClick={() => {
                   setStepIndex(0);
                   setConnectState(ProgressStepState.active);
                   setDetailState(ProgressStepState.disabled);
                   setResultState(ProgressStepState.disabled);
                 }}
-                buttonColor={buttonColor.subtle}
-              />
+                buttonColor={ColorVariant.primary}
+              >
+                {t.openCloseChannel.openNewChannel}
+              </Button>
             }
           />
         </ProgressTabContainer>
