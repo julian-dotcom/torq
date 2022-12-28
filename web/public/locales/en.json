@@ -33,6 +33,8 @@
   "onChainTx": "On-chain",
   "next": "Next",
   "back": "Back",
+  "edit": "Edit",
+  "delete": "Delete",
   "confirm": "Confirm",
   "newAddress": "New Address",
   "openChannel": "Open Channel",

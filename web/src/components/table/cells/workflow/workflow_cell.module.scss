@@ -1,50 +1,10 @@
-.updateLink,
-.closeChannelLink {
-  &:link,
-  &:visited,
-  &:hover,
-  &:active {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0px 8px;
-    column-gap: 4px;
-    color: var(--color-text-success-strong);
-    background-color: var(--color-success-layer-3);
-    font-size: var(--font-size-tiny);
-    height: 24px;
-    border-radius: var(--radius-default);
-  }
+.name {
+  font-size: var(--font-size-normal);
+  margin-bottom: 8px;
+  padding: 4px 8px 4px 0;
 }
-.closeChannelLink {
-  &:link,
-  &:visited,
-  &:hover,
-  &:active {
-    background-color: var(--color-error-layer-3);
-    color: var(--color-text-error-strong);
-  }
-}
-.channelCellWrapper {
-  row-gap: 8px;
-}
-.channelCellWrapper .actionButtons {
+.actionButtons {
   display: flex;
   column-gap: 8px;
-  opacity: 0.3;
   font-size: var(--font-size-tiny);
-}
-.channelCellWrapper:hover .actionButtons {
-  opacity: 1;
-}
-.workflowCellWrapper {
-  display: flex;
-  height: 100%;
-  align-items: center;
-  column-gap: 8px;
-  .workflowCellContent,
-  div {
-    display: flex;
-    height: 100%;
-  }
 }

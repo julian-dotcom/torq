@@ -20,6 +20,12 @@ export const workflowApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["workflows"],
     }),
+    deleteWorkflow: builder.mutation<void, { workflowId: number }>({
+      query: (params) => ({
+        url: `workflows/${params.workflowId}`,
+        method: "DELETE",
+      }),
+    }),
     addNode: builder.mutation<void, NewWorkflowNodeRequest>({
       query: (body: NewWorkflowNodeRequest) => ({
         url: `workflows/nodes`,
@@ -51,6 +57,7 @@ export const {
   useGetWorkflowsQuery,
   useGetWorkflowQuery,
   useNewWorkflowMutation,
+  useDeleteWorkflowMutation,
   useAddNodeMutation,
   useUpdateNodeMutation,
   useDeleteNodeMutation,

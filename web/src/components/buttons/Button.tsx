@@ -1,7 +1,8 @@
 import classNames from "classnames";
 import styles from "./button.module.scss";
-import { SizeVariant, ColorVariant as bc, GetSizeClass, GetColorClass } from "./buttonVariants";
+import { SizeVariant, ColorVariant, GetSizeClass, GetColorClass } from "./buttonVariants";
 import { ReactNode } from "react";
+import { Link, LinkProps } from "react-router-dom";
 // Exporting them here again so that we don't have to import from two different places
 export { SizeVariant, ColorVariant } from "./buttonVariants";
 
@@ -17,10 +18,10 @@ const buttonPositionClass = {
   3: styles.positionFullWidth,
 };
 
-export type ButtonProps = React.DetailedHTMLProps<React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & {
+export type ButtonProps = {
   icon?: any;
   isOpen?: boolean;
-  buttonColor: bc;
+  buttonColor?: ColorVariant;
   buttonPosition?: buttonPosition;
   buttonSize?: SizeVariant;
   children?: ReactNode;
@@ -34,8 +35,8 @@ export default function Button({
   buttonSize,
   children,
   ...buttonProps
-}: ButtonProps) {
-  const color = buttonProps.disabled ? bc.disabled : buttonColor;
+}: React.DetailedHTMLProps<React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & ButtonProps) {
+  const color = buttonProps.disabled ? ColorVariant.disabled : buttonColor;
 
   return (
     <button
@@ -43,6 +44,32 @@ export default function Button({
       className={classNames(
         styles.button,
         GetColorClass(color),
+        buttonPositionClass[buttonPosition || 0],
+        GetSizeClass(buttonSize),
+        buttonProps.className
+      )}
+    >
+      {icon && <span>{icon}</span>}
+      {children && <span className={styles.text}>{children}</span>}
+    </button>
+  );
+}
+
+export function LinkButton({
+  icon,
+  isOpen,
+  buttonColor,
+  buttonPosition,
+  buttonSize,
+  children,
+  ...buttonProps
+}: LinkProps & ButtonProps) {
+  return (
+    <Link
+      {...buttonProps}
+      className={classNames(
+        styles.button,
+        GetColorClass(buttonColor),
         buttonPositionClass[buttonPosition || 0],
         GetSizeClass(buttonSize),
         {
@@ -53,7 +80,7 @@ export default function Button({
     >
       {icon && <span>{icon}</span>}
       {children && <span className={styles.text}>{children}</span>}
-    </button>
+    </Link>
   );
 }
 
