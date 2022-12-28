@@ -76,11 +76,13 @@ func GetWorkflows(db *sqlx.DB) ([]WorkflowTableRow, error) {
 		FROM workflow as w
 		left join (
 			select * from (select *,
-							ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
-							from workflow_version order by rank) as wv where rank = 1) as wv on w.workflow_id = wv.workflow_id
-		left join (select * from (select *,
-								 	ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
-						    from workflow_version where status = 1 order by rank) as wv where rank = 1) as awv on w.workflow_id = awv.workflow_id;`)
+				ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
+				from workflow_version order by rank) as wv where rank = 1) as wv on w.workflow_id = wv.workflow_id
+		left join (
+			select * from (select *,
+				ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
+				from workflow_version where status = 1 order by rank) as wv where rank = 1) as awv on w.workflow_id = awv.workflow_id
+		where w.status != $1;`, commons.Archived)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowTableRow{}, nil
@@ -130,19 +132,27 @@ func createWorkflow(db *sqlx.DB) (Workflow, error) {
 	return workflow, nil
 }
 
-func setWorkflow(db *sqlx.DB, workflow Workflow) (Workflow, error) {
-	workflow.UpdateOn = time.Now().UTC()
-	_, err := db.Exec(`UPDATE workflow SET name=$1, status=$2, updated_on=$3 WHERE workflow_id=$4;`,
-		workflow.Name, workflow.Status, workflow.UpdateOn, workflow.WorkflowId)
-	if err != nil {
-		if err, ok := err.(*pq.Error); ok {
-			if err.Code == "23505" {
-				return Workflow{}, errors.Wrap(err, database.SqlUniqueConstraintError)
-			}
-		}
-		return Workflow{}, errors.Wrap(err, database.SqlExecutionError)
+func updateWorkflow(db *sqlx.DB, req UpdateWorkflow) (UpdateWorkflow, error) {
+
+	qb := sq.Update("workflow").PlaceholderFormat(sq.Dollar).
+		Set("updated_on", time.Now().UTC())
+
+	if req.Name != nil {
+		qb = qb.Set("name", req.Name)
 	}
-	return workflow, nil
+
+	if req.Status != nil {
+		qb = qb.Set("status", req.Status)
+	}
+
+	_, err := qb.Where(sq.Eq{"workflow_id": req.WorkflowId}).RunWith(db).Exec()
+
+	if err != nil {
+		// TODO: Handle wrapped error while still being able to check for unique constraint violation
+		return UpdateWorkflow{}, err //nolint:wrapcheck
+	}
+
+	return req, nil
 }
 
 func removeWorkflow(db *sqlx.DB, workflowId int) (int64, error) {

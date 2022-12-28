@@ -16,6 +16,12 @@ type Workflow struct {
 	UpdateOn   time.Time      `json:"updatedOn" db:"updated_on"`
 }
 
+type UpdateWorkflow struct {
+	WorkflowId int             `json:"workflowId" db:"workflow_id"`
+	Name       *string         `json:"name" db:"name"`
+	Status     *commons.Status `json:"status" db:"status"`
+}
+
 type WorkflowTableRow struct {
 	WorkflowId              int     `json:"workflowId" db:"workflow_id"`
 	WorkflowName            string  `json:"workflowName" db:"workflow_name"`

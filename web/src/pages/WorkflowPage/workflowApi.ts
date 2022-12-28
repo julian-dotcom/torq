@@ -1,5 +1,11 @@
 import { torqApi } from "apiSlice";
-import { FullWorkflow, NewWorkflowNodeRequest, UpdateWorkflowNodeRequest, workflowListItem } from "./workflowTypes";
+import {
+  FullWorkflow,
+  NewWorkflowNodeRequest,
+  UpdateWorkflow,
+  UpdateWorkflowNodeRequest,
+  workflowListItem,
+} from "./workflowTypes";
 
 // Define a service using a base URL and expected endpoints
 export const workflowApi = torqApi.injectEndpoints({
@@ -20,11 +26,20 @@ export const workflowApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["workflows"],
     }),
+    updateWorkflow: builder.mutation<void, UpdateWorkflow>({
+      query: (body: UpdateWorkflow) => ({
+        url: `workflows`,
+        method: "PUT",
+        body: body,
+      }),
+      invalidatesTags: ["workflows"],
+    }),
     deleteWorkflow: builder.mutation<void, { workflowId: number }>({
       query: (params) => ({
         url: `workflows/${params.workflowId}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["workflows"],
     }),
     addNode: builder.mutation<void, NewWorkflowNodeRequest>({
       query: (body: NewWorkflowNodeRequest) => ({
@@ -58,6 +73,7 @@ export const {
   useGetWorkflowQuery,
   useNewWorkflowMutation,
   useDeleteWorkflowMutation,
+  useUpdateWorkflowMutation,
   useAddNodeMutation,
   useUpdateNodeMutation,
   useDeleteNodeMutation,

@@ -76,6 +76,7 @@ const (
 	Pending
 	Deleted
 	Initializing
+	Archived
 )
 
 type Implementation int

@@ -19,7 +19,7 @@ func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	// Workflows Crud (/api/workflows)
 	r.GET("", func(c *gin.Context) { getWorkflowsHandler(c, db) })
 	r.POST("", func(c *gin.Context) { createWorkflowHandler(c, db) })
-	r.PUT("", func(c *gin.Context) { setWorkflowHandler(c, db) })
+	r.PUT("", func(c *gin.Context) { updateWorkflowHandler(c, db) })
 	r.DELETE("/:workflowId", func(c *gin.Context) { removeWorkflowHandler(c, db) })
 
 	// Workflow Logs
@@ -98,21 +98,35 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, wv)
 }
 
-func setWorkflowHandler(c *gin.Context, db *sqlx.DB) {
-	var wf Workflow
-	if err := c.BindJSON(&wf); err != nil {
+func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
+	var req UpdateWorkflow
+	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	storedWorkflow, err := setWorkflow(db, wf)
+	storedWorkflow, err := updateWorkflow(db, req)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow for workflowId: %v", wf.WorkflowId))
+		pqErr, ok := err.(*pq.Error)
+		if !ok {
+			server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow for workflowId: %v", req.WorkflowId))
+		}
+		switch true {
+		case pqErr.Constraint == "workflow_name_key":
+			se := server_errors.SingleFieldError("name", "Name already exists.")
+			se.AddServerError(err.Error())
+			server_errors.SendBadRequestFieldError(c, se)
+		default:
+			server_errors.WrapLogAndSendServerError(c, pqErr, fmt.Sprintf("Updating workflow for workflowId: %v", req.WorkflowId))
+		}
+
 		return
 	}
 
 	c.JSON(http.StatusOK, storedWorkflow)
 }
 
+// TODO: update removeWorkflowHandler to remove a workflow and all of its versions, nodes and links.
+//   At the moment it only removes the workflow and is not in use.
 func removeWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 	workflowId, err := strconv.Atoi(c.Param("workflowId"))
 	if err != nil {
@@ -301,17 +315,17 @@ func updateNodeHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	resp, err := updateNode(db, req)
 	if err != nil {
-		err, ok := err.(*pq.Error)
+		pqErr, ok := err.(*pq.Error)
 		if !ok {
 			server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow version node for workflowVersionNodeId: %v", req.WorkflowVersionNodeId))
 		}
 		switch true {
-		case err.Constraint == "workflow_version_node_workflow_version_id_name_key":
+		case pqErr.Constraint == "workflow_version_node_workflow_version_id_name_key":
 			se := server_errors.SingleFieldError("name", "Name already exists.")
 			se.AddServerError(err.Error())
 			server_errors.SendBadRequestFieldError(c, se)
 		default:
-			server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow version node for workflowVersionNodeId: %v", req.WorkflowVersionNodeId))
+			server_errors.WrapLogAndSendServerError(c, pqErr, fmt.Sprintf("Setting workflow version node for workflowVersionNodeId: %v", req.WorkflowVersionNodeId))
 		}
 
 		return

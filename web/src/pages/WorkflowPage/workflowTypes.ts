@@ -1,3 +1,5 @@
+import { Status } from "constants/backend";
+
 export type workflowListItem = {
   workflowId: number;
   workflowName: string;
@@ -77,4 +79,10 @@ export type FullWorkflow = {
   workflow: Workflow;
   version: WorkflowVersion;
   workflowForest: WorkflowForest;
+};
+
+export type UpdateWorkflow = {
+  workflowId: number;
+  name?: string;
+  status?: Status;
 };

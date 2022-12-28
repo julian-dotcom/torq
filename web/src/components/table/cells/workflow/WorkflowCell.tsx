@@ -4,7 +4,8 @@ import styles from "./workflow_cell.module.scss";
 import classNames from "classnames";
 import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
-import { useDeleteWorkflowMutation } from "pages/WorkflowPage/workflowApi";
+import { useUpdateWorkflowMutation } from "pages/WorkflowPage/workflowApi";
+import { Status } from "../../../../constants/backend";
 
 interface WorkflowCell {
   name: string;
@@ -16,11 +17,15 @@ interface WorkflowCell {
 function WorkflowCell(props: WorkflowCell) {
   const { t } = useTranslations();
 
-  const [deleteWorkflow] = useDeleteWorkflowMutation();
+  const [updateWorkflow] = useUpdateWorkflowMutation();
 
-  function handleDelete() {
-    deleteWorkflow({ workflowId: props.workflowId });
+  function archiveWorkflow() {
+    updateWorkflow({ workflowId: props.workflowId, status: Status.Archived });
   }
+
+  // function handleWorkflowNameChange(name: string) {
+  //   updateWorkflow({ workflowId: props.workflowId, name: name });
+  // }
 
   const content = (
     <div className={styles.workflowCellContent}>
@@ -37,9 +42,9 @@ function WorkflowCell(props: WorkflowCell) {
           icon={<CloseIcon />}
           buttonSize={SizeVariant.small}
           buttonColor={ColorVariant.error}
-          onClick={handleDelete}
+          onClick={archiveWorkflow}
         >
-          {t.delete}
+          {t.archive}
         </Button>
       </div>
     </div>
