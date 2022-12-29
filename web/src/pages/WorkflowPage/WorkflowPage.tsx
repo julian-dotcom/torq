@@ -5,9 +5,9 @@ import PageTitle from "features/templates/PageTitle";
 import { Link, useParams } from "react-router-dom";
 import { WORKFLOWS, MANAGE } from "constants/routes";
 import { useStages, useWorkflowControls, useWorkflowData } from "./workflowHooks";
-import { StageSelector } from "./WorkflowStageSelector";
+import { StageSelector } from "components/workflow/stages/WorkflowStageSelector";
 import { useUpdateWorkflowMutation } from "./workflowApi";
-import WorkflowSidebar from "../../components/workflow/sidebar/WorkflowSidebar";
+import WorkflowSidebar from "components/workflow/sidebar/WorkflowSidebar";
 
 function WorkflowPage() {
   const { t } = useTranslations();
