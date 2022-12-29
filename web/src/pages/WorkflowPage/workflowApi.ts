@@ -65,6 +65,13 @@ export const workflowApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["workflow"],
     }),
+    deleteStage: builder.mutation<void, { workflowId: number; version: number; stage: number }>({
+      query: (params) => ({
+        url: `workflows/${params.workflowId}/versions/${params.version}/stage/${params.stage}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["workflow"],
+    }),
   }),
 });
 // Export hooks for usage in functional components, which are
@@ -78,4 +85,5 @@ export const {
   useAddNodeMutation,
   useUpdateNodeMutation,
   useDeleteNodeMutation,
+  useDeleteStageMutation,
 } = workflowApi;

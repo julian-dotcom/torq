@@ -34,6 +34,8 @@ func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	wv.POST("/clone", func(c *gin.Context) { cloneWorkflowVersionHandler(c, db) })
 	wv.PUT("", func(c *gin.Context) { updateWorkflowVersionHandler(c, db) })
 	wv.DELETE("/:versionId", func(c *gin.Context) { removeWorkflowVersionHandler(c, db) })
+	// Delete a workflow Stage
+	wv.DELETE("/:versionId/stage/:stage", func(c *gin.Context) { deleteStageHandler(c, db) })
 
 	// Add, update, delete nodes to a workflow version
 	nodes := r.Group("/nodes")
@@ -139,6 +141,39 @@ func removeWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully deleted %v workflow(s).", count)})
+}
+
+func deleteStageHandler(c *gin.Context, db *sqlx.DB) {
+
+	workflowId, err := strconv.Atoi(c.Param("workflowId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
+		return
+	}
+	versionId, err := strconv.Atoi(c.Param("versionId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse versionId in the request.")
+		return
+	}
+
+	stage, err := strconv.Atoi(c.Param("stage"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse stage in the request.")
+		return
+	}
+
+	workflowVersion, err := GetWorkflowVersion(db, workflowId, versionId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow version for workflowId: %v version %v", workflowId, versionId))
+		return
+	}
+
+	err = deleteStage(db, workflowVersion.WorkflowVersionId, stage)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Deleting stage %v for workflowVersionId: %v", stage, workflowVersion.WorkflowVersionId))
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully deleted stage."})
 }
 
 //func getWorkflowVersionHandler(c *gin.Context, db *sqlx.DB) {

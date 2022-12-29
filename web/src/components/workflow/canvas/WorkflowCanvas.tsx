@@ -21,6 +21,21 @@ export const CanvasContext = React.createContext<{
   blankImgRef: null,
 });
 
+export function useIsVisible(ref: MutableRefObject<HTMLDivElement>) {
+  const [isIntersecting, setIntersecting] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => setIntersecting(entry.isIntersecting));
+
+    observer.observe(ref.current);
+    return () => {
+      observer.disconnect();
+    };
+  }, [ref]);
+
+  return isIntersecting;
+}
+
 function WorkflowCanvas(props: WorkflowCanvasProps) {
   const [addNode] = useAddNodeMutation();
 
@@ -39,11 +54,15 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
   // wrapperRef is used to refer to the wrapper element that surrounds the canvas
   const wrapperRef = useRef() as MutableRefObject<HTMLDivElement>;
 
+  const isVisible = useIsVisible(wrapperRef);
+
   // On load place the canvas in the center of the wrapper
   useEffect(() => {
-    const bb = wrapperRef.current.getBoundingClientRect();
-    setPosition({ x: 50, y: bb.height / 2 });
-  }, []);
+    if (isVisible && position.x === 0 && position.y === 0) {
+      const bb = wrapperRef.current.getBoundingClientRect();
+      setPosition({ x: 50, y: bb.height / 2 });
+    }
+  }, [isVisible]);
 
   // canvasPosition is used to store the initial position of the canvas when a drag starts
   const [canvasPosition, setCanvasPositionBB] = useState({ left: 0, top: 0 });
@@ -74,7 +93,6 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
       const newX = e.clientX - bb.x - canvasPosition.left;
       const newY = e.clientY - bb.y - canvasPosition.top;
       setPosition({ x: newX, y: newY });
-      // props.onPositionChange(props.stage, { x: newX, y: newY });
     }
   }
 

@@ -10,3 +10,9 @@ export enum WorkflowNodeType {
   SetVariable,
   FilterOnVariable,
 }
+
+const triggerNodeTypes = [
+  WorkflowNodeType.TimeTrigger,
+  WorkflowNodeType.ChannelBalanceEventTrigger,
+  WorkflowNodeType.StageTrigger,
+];

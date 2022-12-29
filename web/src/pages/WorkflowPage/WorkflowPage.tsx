@@ -6,7 +6,7 @@ import { Link, useParams } from "react-router-dom";
 import Sidebar from "features/sidebar/Sidebar";
 import classNames from "classnames";
 import { WORKFLOWS, MANAGE } from "constants/routes";
-import { useStageButtons, useStages, useWorkflowControls, useWorkflowData } from "./workflowHooks";
+import { StageButtons, useStages, useWorkflowControls, useWorkflowData } from "./workflowHooks";
 import NodeButtonWrapper from "components/workflow/nodeButtonWrapper/NodeButtonWrapper";
 import { SectionContainer } from "features/section/SectionContainer";
 import {
@@ -24,12 +24,6 @@ function WorkflowPage() {
   const { workflow, workflowVersion, stages } = useWorkflowData(workflowId, version);
 
   const [selectedStage, setSelectedStage] = useState<number>(1);
-  const stageButtons = useStageButtons(
-    stages,
-    selectedStage,
-    setSelectedStage,
-    workflowVersion?.workflowVersionId || 0
-  );
   const stagedCanvases = useStages(workflowVersion?.workflowVersionId || 0, stages, selectedStage);
 
   // construct the sidebar
@@ -74,7 +68,15 @@ function WorkflowPage() {
         <div className={styles.tableContainer}>
           <div className={styles.tableExpander}>
             {stagedCanvases}
-            {stageButtons}
+            <StageButtons
+              stages={stages}
+              selectedStage={selectedStage}
+              setSelectedStage={setSelectedStage}
+              workflowVersionId={workflowVersion?.workflowVersionId || 0}
+              workflowId={workflow?.workflowId || 0}
+              version={workflowVersion?.version || 0}
+            />
+            ;
           </div>
         </div>
       </div>

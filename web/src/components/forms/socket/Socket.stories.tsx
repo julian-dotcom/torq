@@ -21,7 +21,7 @@ const Template: Story<SocketProps> = (args) => {
     workflowVersionNodeId: 1,
     name: "sdafsdf",
     status: 1,
-    type: 1,
+    type: 3,
     parameters: {},
     visibilitySettings: {
       collapsed: false,

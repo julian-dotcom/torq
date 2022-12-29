@@ -16,6 +16,7 @@ import NodeName from "./NodeNameInput";
 import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
 import Button, { ColorVariant, buttonPosition, SizeVariant } from "components/buttons/Button";
+import { WorkflowNodeType } from "../../../pages/WorkflowPage/constants";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -52,10 +53,18 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const [deleteNode] = useDeleteNodeMutation();
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    // Don't initiate dragging with the user is editing the node name
     if (nameInputVisible) {
       e.preventDefault();
       return;
     }
+
+    // Don't drag trigger nodes
+    if ([WorkflowNodeType.StageTrigger, WorkflowNodeType.TimeTrigger].includes(props.type)) {
+      e.preventDefault();
+      return;
+    }
+
     // Set the drag effect and remove the default drag image set by HTML5
     if (blankImgRef) {
       e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);

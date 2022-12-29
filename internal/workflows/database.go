@@ -787,6 +787,37 @@ func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
 	return workflowVersionNodeId, nil
 }
 
+// deleteStage deletes a stage by deleting all nodes and node links in a stage
+func deleteStage(db *sqlx.DB, workflowVersionId int, stage int) error {
+	tx := db.MustBegin()
+
+	// Delete all workflow_version_node_link where workflow_version_node_id is in the stage
+	_, err := tx.Exec(`
+			WITH nodes AS (
+			    SELECT workflow_version_node_id FROM workflow_version_node
+					WHERE workflow_version_id = $1 AND stage = $2)
+			DELETE FROM workflow_version_node_link
+    		WHERE (parent_workflow_version_node_id) IN ((table nodes)) OR (child_workflow_version_node_id) IN ((table nodes));`, workflowVersionId, stage)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return errors.Wrap(rollbackErr, "deleting workflow stage node links failed (rollback failed too)")
+		}
+		return errors.Wrap(err, "deleting workflow stage node links failed")
+	}
+
+	_, err = tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_id = $1 AND stage = $2;`, workflowVersionId, stage)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return errors.Wrap(rollbackErr, "deleting workflow stage nodes failed (rollback failed too)")
+		}
+		return errors.Wrap(err, "deleting workflow stage nodes failed")
+	}
+
+	err = tx.Commit()
+
+	return nil
+}
+
 func addWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVersionNodeLink) (WorkflowVersionNodeLink, error) {
 	workflowVersionNodeLink.CreatedOn = time.Now().UTC()
 	if workflowVersionNodeLink.Name == "" {

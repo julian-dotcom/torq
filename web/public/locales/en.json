@@ -76,6 +76,8 @@
   "workflow": "Workflow",
   "workflows": "Workflows",
   "nodes": "Nodes",
+  "stage": "Stage",
+  "stages": "Stages",
   "deploy": "Deploy",
   "saveDraft": "Save Draft",
   "newWorkflow": "New Workflow",

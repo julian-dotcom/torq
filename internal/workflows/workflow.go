@@ -22,6 +22,11 @@ type UpdateWorkflow struct {
 	Status     *commons.Status `json:"status" db:"status"`
 }
 
+type DeleteStageRequest struct {
+	WorkflowVersionId int `json:"workflowVersionId"`
+	Stage             int `json:"stage"`
+}
+
 type WorkflowTableRow struct {
 	WorkflowId              int     `json:"workflowId" db:"workflow_id"`
 	WorkflowName            string  `json:"workflowName" db:"workflow_name"`
