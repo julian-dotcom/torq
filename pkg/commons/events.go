@@ -335,9 +335,8 @@ type PendingChannel struct {
 
 // Request/Response for lightningCommunication
 type CommunicationRequest struct {
-	RequestId       string           `json:"requestId"`
-	NodeId          int              `json:"nodeId"`
-	ResponseChannel chan interface{} `json:"-"`
+	RequestId string `json:"requestId"`
+	NodeId    int    `json:"nodeId"`
 }
 
 type CommunicationResponse struct {
@@ -347,6 +346,7 @@ type CommunicationResponse struct {
 }
 
 type ChannelStatusUpdateRequest struct {
+	ResponseChannel chan ChannelStatusUpdateResponse `json:"-"`
 	CommunicationRequest
 	ChannelId     int    `json:"channelId"`
 	ChannelStatus Status `json:"channelStatus"`
@@ -359,12 +359,13 @@ type ChannelStatusUpdateResponse struct {
 
 type RoutingPolicyUpdateRequest struct {
 	CommunicationRequest
-	ChannelId        int     `json:"channelId"`
-	FeeRateMilliMsat *uint64 `json:"feeRateMilliMsat"`
-	FeeBaseMsat      *uint64 `json:"feeBaseMsat"`
-	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
-	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
-	TimeLockDelta    *uint32 `json:"timeLockDelta"`
+	ResponseChannel  chan RoutingPolicyUpdateResponse `json:"-"`
+	ChannelId        int                              `json:"channelId"`
+	FeeRateMilliMsat *uint64                          `json:"feeRateMilliMsat"`
+	FeeBaseMsat      *uint64                          `json:"feeBaseMsat"`
+	MaxHtlcMsat      *uint64                          `json:"maxHtlcMsat"`
+	MinHtlcMsat      *uint64                          `json:"minHtlcMsat"`
+	TimeLockDelta    *uint32                          `json:"timeLockDelta"`
 }
 
 type RoutingPolicyUpdateResponse struct {
@@ -375,7 +376,8 @@ type RoutingPolicyUpdateResponse struct {
 
 type RebalanceRequest struct {
 	CommunicationRequest
-	Origin RebalanceRequestOrigin `json:"origin"`
+	ResponseChannel chan RebalanceResponse `json:"-"`
+	Origin          RebalanceRequestOrigin `json:"origin"`
 	// Either manually generated number for manual rebalance or
 	// WorkflowVersionNodeId for rebalance originating from workflows
 	OriginId           int    `json:"originId"`

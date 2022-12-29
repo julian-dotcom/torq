@@ -37,29 +37,25 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 				return
 			default:
 			}
-			var response interface{}
-			var responseChannel chan interface{}
 			if request, ok := event.(commons.ChannelStatusUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
 					continue
 				}
+				response := processChannelStatusUpdateRequest(ctx, request, router)
 				if request.ResponseChannel != nil {
-					responseChannel = request.ResponseChannel
+					request.ResponseChannel <- response
 				}
-				response = processChannelStatusUpdateRequest(ctx, request, router)
+				if eventChannel != nil {
+					eventChannel <- response
+				}
 			}
 			if request, ok := event.(commons.RoutingPolicyUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
 					continue
 				}
+				response := processRoutingPolicyUpdateRequest(ctx, request, client)
 				if request.ResponseChannel != nil {
-					responseChannel = request.ResponseChannel
-				}
-				response = processRoutingPolicyUpdateRequest(ctx, request, client)
-			}
-			if response != nil {
-				if responseChannel != nil {
-					responseChannel <- response
+					request.ResponseChannel <- response
 				}
 				if eventChannel != nil {
 					eventChannel <- response

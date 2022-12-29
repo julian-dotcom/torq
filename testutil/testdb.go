@@ -15,6 +15,7 @@ import (
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/lnd"
 )
 
 const superuserName = "postgres"
@@ -227,6 +228,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
 	go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)
 	go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctx)
+	go lnd.ManagedRebalanceCache(lnd.ManagedRebalanceChannel, ctx)
 
 	// initialise package level var for keeping state of subsciptions
 	commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)

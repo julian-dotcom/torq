@@ -13,17 +13,14 @@ func routingPolicyUpdate(request commons.RoutingPolicyUpdateRequest,
 
 	if eventChannel != nil {
 		if commons.RunningServices[commons.LightningCommunicationService].GetStatus(request.NodeId) == commons.Active {
-			responseChannel := make(chan interface{})
+			responseChannel := make(chan commons.RoutingPolicyUpdateResponse)
 			request.ResponseChannel = responseChannel
-
 			eventChannel <- request
 			response := <-responseChannel
-			if updateResponse, ok := response.(commons.RoutingPolicyUpdateResponse); ok {
-				if updateResponse.Error != "" {
-					return commons.RoutingPolicyUpdateResponse{}, errors.New(updateResponse.Error)
-				}
-				return updateResponse, nil
+			if response.Error != "" {
+				return commons.RoutingPolicyUpdateResponse{}, errors.New(response.Error)
 			}
+			return response, nil
 		} else {
 			return commons.RoutingPolicyUpdateResponse{},
 				errors.New(

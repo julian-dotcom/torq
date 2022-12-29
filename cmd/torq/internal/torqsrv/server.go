@@ -17,6 +17,7 @@ import (
 	"github.com/ulule/limiter/v3/drivers/store/memory"
 
 	"github.com/lncapital/torq/internal/auth"
+	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/categories"
 	"github.com/lncapital/torq/internal/channel_groups"
 	"github.com/lncapital/torq/internal/channel_history"
@@ -222,6 +223,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 			workflows.RegisterWorkflowRoutes(workflowRoutes, db)
 		}
 
+		automationRoutes := api.Group("/automation")
+		{
+			automation.RegisterAutomationRoutes(automationRoutes, db, eventChannel)
+		}
+
 		messageRoutes := api.Group("messages")
 		{
 			messages.RegisterMessagesRoutes(messageRoutes, db)
@@ -238,7 +244,6 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 			})
 		})
 	}
-
 }
 
 func registerStaticRoutes(r *gin.Engine) {
