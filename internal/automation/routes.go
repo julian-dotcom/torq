@@ -21,6 +21,15 @@ func rebalanceHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
+	if rr.NodeId == 0 {
+		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
+		return
+	}
+	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(rr.NodeId) != commons.Active {
+		server_errors.SendBadRequest(c, "The node for the provided nodeId is not active (yet?).")
+		return
+	}
+
 	responseChannel := make(chan commons.RebalanceResponse)
 	rr.ResponseChannel = responseChannel
 	eventChannel <- rr

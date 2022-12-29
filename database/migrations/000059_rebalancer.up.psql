@@ -5,7 +5,7 @@ CREATE TABLE rebalance (
     outgoing_channel_id INTEGER REFERENCES channel(channel_id),
     status INTEGER NOT NULL,
     origin INTEGER NOT NULL,
-    origin_id INTEGER,
+    origin_id INTEGER NOT NULL,
     origin_reference TEXT NOT NULL,
     amount_msat NUMERIC NOT NULL,
     maximum_concurrency INTEGER NOT NULL,

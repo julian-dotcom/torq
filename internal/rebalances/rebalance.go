@@ -8,11 +8,11 @@ import (
 
 type Rebalance struct {
 	RebalanceId        int                            `json:"rebalanceId" db:"rebalance_id"`
-	OutgoingChannelId  int                            `json:"outgoingChannelId" db:"outgoing_channel_id"`
-	IncomingChannelId  int                            `json:"incomingChannelId" db:"incoming_channel_id"`
+	OutgoingChannelId  *int                           `json:"outgoingChannelId" db:"outgoing_channel_id"`
+	IncomingChannelId  *int                           `json:"incomingChannelId" db:"incoming_channel_id"`
 	Status             commons.Status                 `json:"status" db:"status"`
 	Origin             commons.RebalanceRequestOrigin `json:"origin" db:"origin"`
-	OriginId           *int                           `json:"originId" db:"origin_id"`
+	OriginId           int                            `json:"originId" db:"origin_id"`
 	OriginReference    string                         `json:"originReference" db:"origin_reference"`
 	AmountMsat         uint64                         `json:"amountMsat" db:"amount_msat"`
 	MaximumConcurrency int                            `json:"maximumConcurrency" db:"maximum_concurrency"`

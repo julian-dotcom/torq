@@ -54,7 +54,7 @@ func ManagedRebalanceCache(ch chan ManagedRebalance, ctx context.Context) {
 		case managedRebalance := <-ch:
 			switch managedRebalance.Type {
 			case READ_REBALANCER:
-				if !isValidRequest(managedRebalance.Type, managedRebalance) {
+				if !isValidRequest(managedRebalance) {
 					SendToManagedRebalanceChannel(managedRebalance.Out, managedRebalance)
 					continue
 				}
@@ -62,7 +62,7 @@ func ManagedRebalanceCache(ch chan ManagedRebalance, ctx context.Context) {
 				managedRebalance.Rebalancer = getRebalancersCache(managedRebalance, incomingRebalancers, outgoingRebalancers)
 				SendToManagedRebalanceChannel(managedRebalance.Out, managedRebalance)
 			case READ_REBALANCE_RESULT:
-				if !isValidRequest(managedRebalance.Type, managedRebalance) {
+				if !isValidRequest(managedRebalance) {
 					SendToManagedRebalanceResultChannel(managedRebalance.RebalanceResultOut, RebalanceResult{})
 					continue
 				}
@@ -70,7 +70,8 @@ func ManagedRebalanceCache(ch chan ManagedRebalance, ctx context.Context) {
 				rebalanceResults := getRebalanceResultsCache(managedRebalance, incomingRebalanceResultsCache, outgoingRebalanceResultsCache)
 				SendToManagedRebalanceResultChannel(managedRebalance.RebalanceResultOut, getLatestResultWithStatus(rebalanceResults, managedRebalance))
 			case WRITE_REBALANCER:
-				if !isValidRequest(managedRebalance.Type, managedRebalance) {
+				managedRebalance = copyFromRebalancer(managedRebalance)
+				if !isValidRequest(managedRebalance) {
 					commons.SendToManagedBoolChannel(managedRebalance.BoolOut, false)
 					continue
 				}
@@ -82,13 +83,14 @@ func ManagedRebalanceCache(ch chan ManagedRebalance, ctx context.Context) {
 				setRebalancersCache(managedRebalance, incomingRebalancers, outgoingRebalancers)
 				commons.SendToManagedBoolChannel(managedRebalance.BoolOut, true)
 			case WRITE_REBALANCE_RESULT:
-				if !isValidRequest(managedRebalance.Type, managedRebalance) {
+				if !isValidRequest(managedRebalance) {
 					continue
 				}
 				initializeResultsCache(managedRebalance, incomingRebalanceResultsCache, outgoingRebalanceResultsCache)
 				appendRebalanceResult(managedRebalance, incomingRebalanceResultsCache, outgoingRebalanceResultsCache)
 			case DELETE_REBALANCER:
-				if !isValidRequest(managedRebalance.Type, managedRebalance) {
+				managedRebalance = copyFromRebalancer(managedRebalance)
+				if !isValidRequest(managedRebalance) {
 					continue
 				}
 				initializeRebalancersCache(managedRebalance, incomingRebalancers, outgoingRebalancers)
@@ -101,10 +103,26 @@ func ManagedRebalanceCache(ch chan ManagedRebalance, ctx context.Context) {
 	}
 }
 
+func copyFromRebalancer(managedRebalance ManagedRebalance) ManagedRebalance {
+	switch managedRebalance.Type {
+	case DELETE_REBALANCER:
+		fallthrough
+	case WRITE_REBALANCER:
+		managedRebalance.Origin = managedRebalance.Rebalancer.Origin
+		managedRebalance.OriginId = managedRebalance.Rebalancer.OriginId
+		managedRebalance.OriginReference = managedRebalance.Rebalancer.OriginReference
+		managedRebalance.IncomingChannelId = managedRebalance.Rebalancer.IncomingChannelId
+		managedRebalance.OutgoingChannelId = managedRebalance.Rebalancer.OutgoingChannelId
+	}
+	return managedRebalance
+}
+
 func getLatestResultWithStatus(rebalanceResults []RebalanceResult, managedRebalance ManagedRebalance) RebalanceResult {
-	for i := len(rebalanceResults) - 1; i < 0; i-- {
-		if rebalanceResults[i].Status == managedRebalance.Status {
-			return rebalanceResults[i]
+	if len(rebalanceResults) != 0 {
+		for i := len(rebalanceResults) - 1; i < 0; i-- {
+			if rebalanceResults[i].Status == managedRebalance.Status {
+				return rebalanceResults[i]
+			}
 		}
 	}
 	return RebalanceResult{}
@@ -224,17 +242,7 @@ func initializeRebalancersCache(managedRebalance ManagedRebalance,
 	}
 }
 
-func isValidRequest(operationType ManagedRebalanceCacheOperationType, managedRebalance ManagedRebalance) bool {
-	switch operationType {
-	case DELETE_REBALANCER:
-		fallthrough
-	case WRITE_REBALANCER:
-		managedRebalance.Origin = managedRebalance.Rebalancer.Origin
-		managedRebalance.OriginId = managedRebalance.Rebalancer.OriginId
-		managedRebalance.OriginReference = managedRebalance.Rebalancer.OriginReference
-		managedRebalance.IncomingChannelId = managedRebalance.Rebalancer.IncomingChannelId
-		managedRebalance.OutgoingChannelId = managedRebalance.Rebalancer.OutgoingChannelId
-	}
+func isValidRequest(managedRebalance ManagedRebalance) bool {
 	if managedRebalance.IncomingChannelId != 0 && managedRebalance.OutgoingChannelId != 0 {
 		log.Error().Msgf("IncomingChannelId (%v) and OutgoingChannelId (%v) cannot both be populated at the same time",
 			managedRebalance.IncomingChannelId, managedRebalance.OutgoingChannelId)
@@ -299,12 +307,16 @@ func addRebalancer(rebalancer *Rebalancer) bool {
 	return <-responseChannel
 }
 
-func addRebalanceResult(origin commons.RebalanceRequestOrigin, originId int, rebalanceResult RebalanceResult) {
+func addRebalanceResult(origin commons.RebalanceRequestOrigin, originId int, incomingChannelId int, outgoingChannelId int,
+	rebalanceResult RebalanceResult) {
+
 	managedRebalance := ManagedRebalance{
-		OriginId:        originId,
-		Origin:          origin,
-		RebalanceResult: rebalanceResult,
-		Type:            WRITE_REBALANCE_RESULT,
+		Origin:            origin,
+		OriginId:          originId,
+		IncomingChannelId: incomingChannelId,
+		OutgoingChannelId: outgoingChannelId,
+		RebalanceResult:   rebalanceResult,
+		Type:              WRITE_REBALANCE_RESULT,
 	}
 	ManagedRebalanceChannel <- managedRebalance
 }

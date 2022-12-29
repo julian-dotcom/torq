@@ -70,6 +70,10 @@ func processChannelStatusUpdateRequest(ctx context.Context, request commons.Chan
 	if response != nil {
 		return *response
 	}
+
+	// TODO CHECK if change was already done in the last minute
+	// to prevent back-and-forth
+
 	if !channelStatusUpdateRequestContainsUpdates(request) {
 		return commons.ChannelStatusUpdateResponse{
 			Request: request,
