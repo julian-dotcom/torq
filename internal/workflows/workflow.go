@@ -67,7 +67,7 @@ type WorkflowVersionNode struct {
 type CreateNodeRequest struct {
 	WorkflowVersionId  int                            `json:"workflowVersionId" db:"workflow_version_id"`
 	Type               commons.WorkflowNodeType       `json:"type" db:"type"`
-	Stage              int                            `json:"stage" db:"stage"`
+	Stage              commons.Status                 `json:"stage" db:"stage"`
 	VisibilitySettings WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
 }
 

@@ -9,15 +9,18 @@ import {
   ExpandUpRight20Regular as ExpandIcon,
   MoreVertical20Regular as OptionsIcon,
   Delete16Regular as DeleteIcon,
+  Pause16Regular as DeactivateIcon,
+  Play16Regular as ActivateIcon,
 } from "@fluentui/react-icons";
 import Collapse from "features/collapse/Collapse";
 import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
 import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
-import Button, { ColorVariant, buttonPosition, SizeVariant } from "components/buttons/Button";
+import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
 import { NodeColorVariant, GetColorClass } from "components/workflow/nodes/nodeVariants";
+import { Status } from "constants/backend";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -174,10 +177,9 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
           >
             <div className={styles.buttonGroup}>
               <Button
-                icon={<DeleteIcon />}
+                icon={props.status === Status.Active ? <DeactivateIcon /> : <ActivateIcon />}
                 buttonColor={ColorVariant.primary}
                 buttonSize={SizeVariant.small}
-                buttonPosition={buttonPosition.fullWidth}
                 onClick={() => {
                   updateNode({
                     workflowVersionNodeId: props.workflowVersionNodeId,
@@ -192,7 +194,6 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
                 icon={<DeleteIcon />}
                 buttonColor={ColorVariant.error}
                 buttonSize={SizeVariant.small}
-                buttonPosition={buttonPosition.fullWidth}
                 onClick={() => {
                   deleteNode({ nodeId: props.workflowVersionNodeId });
                 }}
