@@ -2,6 +2,7 @@ import styles from "./workflow_canvas.module.scss";
 import React, { createRef, MutableRefObject, ReactNode, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
+import { useIsVisible } from "pages/WorkflowPage/workflowHooks";
 
 type WorkflowCanvasProps = {
   workflowVersionId: number;
@@ -20,21 +21,6 @@ export const CanvasContext = React.createContext<{
   svgRef: null,
   blankImgRef: null,
 });
-
-export function useIsVisible(ref: MutableRefObject<HTMLDivElement>) {
-  const [isIntersecting, setIntersecting] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => setIntersecting(entry.isIntersecting));
-
-    observer.observe(ref.current);
-    return () => {
-      observer.disconnect();
-    };
-  }, [ref]);
-
-  return isIntersecting;
-}
 
 function WorkflowCanvas(props: WorkflowCanvasProps) {
   const [addNode] = useAddNodeMutation();

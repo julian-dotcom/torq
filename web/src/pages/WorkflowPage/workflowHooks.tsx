@@ -12,7 +12,7 @@ import Button, { ColorVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
 import { useNavigate } from "react-router";
 import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/workflowApi";
-import { ReactNode } from "react";
+import { MutableRefObject, ReactNode, useEffect, useState } from "react";
 import { Workflow, WorkflowStages, WorkflowVersion } from "./workflowTypes";
 import ChannelPolicyNode from "components/workflow/nodes/channelPolicy/ChannelPolicy";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
@@ -120,4 +120,19 @@ export function useWorkflowControls(sidebarExpanded: boolean, setSidebarExpanded
       </TableControlsButtonGroup>
     </TableControlSection>
   );
+}
+
+export function useIsVisible(ref: MutableRefObject<HTMLDivElement>) {
+  const [isIntersecting, setIntersecting] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => setIntersecting(entry.isIntersecting));
+
+    observer.observe(ref.current);
+    return () => {
+      observer.disconnect();
+    };
+  }, [ref]);
+
+  return isIntersecting;
 }
