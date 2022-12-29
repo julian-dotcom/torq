@@ -6,7 +6,8 @@ import { Link, useParams } from "react-router-dom";
 import Sidebar from "features/sidebar/Sidebar";
 import classNames from "classnames";
 import { WORKFLOWS, MANAGE } from "constants/routes";
-import { StageButtons, useStages, useWorkflowControls, useWorkflowData } from "./workflowHooks";
+import { useStages, useWorkflowControls, useWorkflowData } from "./workflowHooks";
+import { StageSelector } from "./WorkflowStageSelector";
 import NodeButtonWrapper from "components/workflow/nodeButtonWrapper/NodeButtonWrapper";
 import { SectionContainer } from "features/section/SectionContainer";
 import {
@@ -52,7 +53,7 @@ function WorkflowPage() {
     });
   };
 
-  const bradcrumbs = [
+  const breadcrumbs = [
     <Link to={`/${MANAGE}/${WORKFLOWS}`} key={"workflowsLink"}>
       {t.workflows}
     </Link>,
@@ -62,13 +63,13 @@ function WorkflowPage() {
 
   return (
     <div className={styles.contentWrapper}>
-      <PageTitle breadcrumbs={bradcrumbs} title={workflow?.name || ""} onNameChange={handleWorkflowNameChange} />
+      <PageTitle breadcrumbs={breadcrumbs} title={workflow?.name || ""} onNameChange={handleWorkflowNameChange} />
       {workflowControls}
       <div className={styles.tableWrapper}>
         <div className={styles.tableContainer}>
           <div className={styles.tableExpander}>
             {stagedCanvases}
-            <StageButtons
+            <StageSelector
               stages={stages}
               selectedStage={selectedStage}
               setSelectedStage={setSelectedStage}
@@ -76,7 +77,6 @@ function WorkflowPage() {
               workflowId={workflow?.workflowId || 0}
               version={workflowVersion?.version || 0}
             />
-            ;
           </div>
         </div>
       </div>
