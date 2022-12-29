@@ -1,5 +1,9 @@
 package commons
 
+func SendToManagedBoolChannel(ch chan bool, result bool) {
+	ch <- result
+}
+
 func SendToManagedNodeIdsChannel(ch chan []int, nodeIds []int) {
 	ch <- nodeIds
 }
@@ -54,10 +58,6 @@ func SendToManagedChannelStatesSettingsChannel(ch chan []ManagedChannelStateSett
 
 func SendToManagedChannelStateSettingsChannel(ch chan *ManagedChannelStateSettings, managedChannelStateSettings *ManagedChannelStateSettings) {
 	ch <- managedChannelStateSettings
-}
-
-func SendToManagedTriggerChannel(ch chan ManagedTrigger, managedTrigger ManagedTrigger) {
-	ch <- managedTrigger
 }
 
 func SendToManagedTriggerSettingsChannel(ch chan ManagedTriggerSettings, managedTriggerSettings ManagedTriggerSettings) {

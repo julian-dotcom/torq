@@ -375,11 +375,17 @@ type RoutingPolicyUpdateResponse struct {
 
 type RebalanceRequest struct {
 	CommunicationRequest
-	OriginReference    int                    `json:"originReference"`
-	OriginType         RebalanceRequestOrigin `json:"originType"`
-	OutgoingChannelIds []int                  `json:"outgoingChannelIds"`
-	IncomingChannelId  int                    `json:"incomingChannelId"`
-	MaximumCost        int                    `json:"maximumCost"`
+	Origin RebalanceRequestOrigin `json:"origin"`
+	// Either manually generated number for manual rebalance or
+	// WorkflowVersionNodeId for rebalance originating from workflows
+	OriginId           int    `json:"originId"`
+	OriginReference    string `json:"originReference"`
+	OutgoingChannelId  int    `json:"outgoingChannelIds"`
+	IncomingChannelId  int    `json:"incomingChannelId"`
+	ChannelIds         []int  `json:"channelIds"`
+	AmountMsat         uint64 `json:"amountMsat"`
+	MaximumCostMsat    uint64 `json:"maximumCostMsat"`
+	MaximumConcurrency int    `json:"maximumConcurrency"`
 }
 
 type RebalanceResponse struct {

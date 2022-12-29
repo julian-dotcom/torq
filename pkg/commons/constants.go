@@ -66,7 +66,14 @@ const VECTOR_SLEEP_SECONDS = 20
 const WORKFLOW_LOG_COUNT = 100
 const WORKFLOW_TICKER_SECONDS = 10
 
-const REBALLANCE_SUCCESS_TIMEOUT_SECONDS = 120
+const REBALANCE_ROUTE_FAILED_HOP_ALLOWED_DELTA_PER_MILLE = 10
+const REBALANCE_REBALANCE_DELAY_MILLISECONDS = 500
+const REBALLANCE_SUCCESS_TIMEOUT_SECONDS = 60 * 2
+const REBALANCE_RUNNER_TIMEOUT_SECONDS = 120 * 60
+const REBALANCE_ROUTES_TIMEOUT_SECONDS = 1 * 60
+const REBALANCE_ROUTE_TIMEOUT_SECONDS = 10 * 60
+const REBALANCE_TIMEOUT_SECONDS = 60 * 60
+const REBALANCE_RESULTS_TIMEOUT_SECONDS = 5 * 60
 
 type Status int
 
@@ -245,6 +252,6 @@ const (
 type RebalanceRequestOrigin int
 
 const (
-	RebalanceRequestWorkflow = RebalanceRequestOrigin(iota)
+	RebalanceRequestWorkflowNode = RebalanceRequestOrigin(iota)
 	RebalanceRequestManual
 )
