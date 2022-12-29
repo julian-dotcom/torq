@@ -96,6 +96,7 @@
   border-top-left-radius: var(--radius-default);
   position: relative;
   fill: var(--color-primary-layer-4);
+  transition: fill 100ms ease-in-out;
   svg {
     padding: 0;
   }
@@ -111,6 +112,7 @@
 }
 .stage {
   background-color: var(--color-primary-layer-4);
+  transition: background-color 100ms ease-in-out, color 100ms ease-in-out;
   padding-left: 8px;
   padding-right: 8px;
   height: 40px;
