@@ -81,10 +81,11 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 	yPosition := 0
 	collapsed := true
 
+	const InitialStage = 1
 	initialNode := CreateNodeRequest{
 		WorkflowVersionId: wv.WorkflowVersionId,
-		Type:              1,
-		Stage:             1,
+		Type:              commons.WorkflowNodeTimeTrigger,
+		Stage:             InitialStage,
 		VisibilitySettings: WorkflowNodeVisibilitySettings{
 			YPosition: &xPosition,
 			XPosition: &yPosition,
