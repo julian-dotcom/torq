@@ -21,6 +21,13 @@
     }
   }
 }
+.triggerNodeContainer {
+  .workflowNodeCard {
+    position: relative;
+    top: initial;
+    left: initial;
+  }
+}
 .connecting {
   z-index: -1 !important;
 }
@@ -141,4 +148,23 @@ input.input {
   flex-direction: column;
   gap: 8px;
   align-items: stretch;
+}
+
+.triggerNodeWrapper {
+  height: 0;
+  width: 0;
+}
+.triggerNodeContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  //height: 0;
+  display: flex;
+  border-radius: var(--radius-default);
+  flex-direction: column-reverse;
+  gap: 8px;
+  align-items: stretch;
+  padding: 16px 40px 16px 16px;
+  border: 2px solid var(--color-border-primary-faded);
+  background-color: var(--color-primary-layer-3);
 }

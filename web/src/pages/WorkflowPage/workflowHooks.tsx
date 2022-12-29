@@ -12,10 +12,12 @@ import Button, { ColorVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
 import { useNavigate } from "react-router";
 import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/workflowApi";
-import { MutableRefObject, ReactNode, useEffect, useState } from "react";
+import { ReactNode } from "react";
 import { Workflow, WorkflowStages, WorkflowVersion } from "./workflowTypes";
 import ChannelPolicyNode from "components/workflow/nodes/channelPolicy/ChannelPolicy";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
+import { TriggerNodeTypes } from "./constants";
+import nodeStyles from "components/workflow/nodeWrapper/workflow_nodes.module.scss";
 
 export function useNewWorkflowButton(): ReactNode {
   const { t } = useTranslations();
@@ -66,16 +68,35 @@ export function useWorkflowData(workflowId?: string, version?: string) {
 }
 
 export function useNodes(stages: WorkflowStages, stageNumber: number) {
-  return (stages[stageNumber] || []).map((node) => {
-    const nodeId = node.workflowVersionNodeId;
-    return <ChannelPolicyNode {...node} key={`node-${nodeId}`} id={`node-${nodeId}`} name={node.name} />;
-  });
+  const triggerNodes = (stages[stageNumber] || [])
+    .filter((node) => {
+      // Filter out the trigger nodes
+      return TriggerNodeTypes.includes(node.type);
+    })
+    .map((node) => {
+      const nodeId = node.workflowVersionNodeId;
+      return <ChannelPolicyNode {...node} key={`node-${nodeId}`} id={`node-${nodeId}`} name={node.name} />;
+    })
+    .sort((a, b) => a.props.id.localeCompare(b.props.id));
+
+  const actionNodes = (stages[stageNumber] || [])
+    .filter((node) => {
+      // Filter out the trigger nodes
+      return !TriggerNodeTypes.includes(node.type);
+    })
+    .map((node) => {
+      const nodeId = node.workflowVersionNodeId;
+      return <ChannelPolicyNode {...node} key={`node-${nodeId}`} id={`node-${nodeId}`} name={node.name} />;
+    })
+    .sort((a, b) => a.props.id.localeCompare(b.props.id));
+
+  return { triggerNodes, actionNodes };
 }
 
 export function useStages(workflowVersionId: number, stages: WorkflowStages, selectedStage: number) {
   return Object.entries(stages).map((stage) => {
     const stageNumber = parseInt(stage[0]);
-    const nodes = useNodes(stages, stageNumber);
+    const { triggerNodes, actionNodes } = useNodes(stages, stageNumber);
     return (
       <WorkflowCanvas
         active={selectedStage === stageNumber}
@@ -83,7 +104,10 @@ export function useStages(workflowVersionId: number, stages: WorkflowStages, sel
         workflowVersionId={workflowVersionId}
         stageNumber={stageNumber}
       >
-        {nodes}
+        <div className={nodeStyles.triggerNodeWrapper}>
+          <div className={nodeStyles.triggerNodeContainer}>{triggerNodes}</div>
+        </div>
+        {actionNodes}
       </WorkflowCanvas>
     );
   });
@@ -120,19 +144,4 @@ export function useWorkflowControls(sidebarExpanded: boolean, setSidebarExpanded
       </TableControlsButtonGroup>
     </TableControlSection>
   );
-}
-
-export function useIsVisible(ref: MutableRefObject<HTMLDivElement>) {
-  const [isIntersecting, setIntersecting] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => setIntersecting(entry.isIntersecting));
-
-    observer.observe(ref.current);
-    return () => {
-      observer.disconnect();
-    };
-  }, [ref]);
-
-  return isIntersecting;
 }

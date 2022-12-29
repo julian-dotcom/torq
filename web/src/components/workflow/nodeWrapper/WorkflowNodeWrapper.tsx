@@ -16,7 +16,7 @@ import NodeName from "./NodeNameInput";
 import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
 import Button, { ColorVariant, buttonPosition, SizeVariant } from "components/buttons/Button";
-import { WorkflowNodeType } from "../../../pages/WorkflowPage/constants";
+import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -60,7 +60,7 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     }
 
     // Don't drag trigger nodes
-    if ([WorkflowNodeType.StageTrigger, WorkflowNodeType.TimeTrigger].includes(props.type)) {
+    if (TriggerNodeTypes.includes(props.type)) {
       e.preventDefault();
       return;
     }
@@ -124,6 +124,11 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     setCollapsed(!collapsed);
   }
 
+  const transform =
+    TriggerNodeTypes.includes(props.type) === true
+      ? `translate(0px, 0px)`
+      : `translate(${position.x}px, ${position.y}px)`;
+
   return (
     <NodeContext.Provider
       value={{
@@ -135,8 +140,9 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
         id={props.id}
         className={classNames(styles.workflowNodeCard, {
           [styles.dragging]: isDragging,
+          [styles.triggerNode]: TriggerNodeTypes.includes(props.type),
         })}
-        style={{ transform: "translate(" + position.x + "px, " + position.y + "px)" }}
+        style={{ transform: `${transform}` }}
         ref={nodeRef}
       >
         <div

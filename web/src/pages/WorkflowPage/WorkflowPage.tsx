@@ -90,7 +90,7 @@ function WorkflowPage() {
           >
             <NodeButtonWrapper title={"Interval"} nodeType={1} icon={<TriggersIcon />} />
             <NodeButtonWrapper title={"Channel Balance "} nodeType={2} icon={<EventTriggerIcon />} />
-            <NodeButtonWrapper title={"Channel Opened"} nodeType={3} icon={<ChannelOpenIcon />} />
+            <NodeButtonWrapper title={"Channel Opened"} nodeType={10} icon={<ChannelOpenIcon />} />
           </SectionContainer>
           <SectionContainer
             title={t.actions}

@@ -1,8 +1,7 @@
 import styles from "./workflow_canvas.module.scss";
-import React, { createRef, MutableRefObject, ReactNode, useEffect, useRef, useState } from "react";
+import React, { createRef, MutableRefObject, ReactNode, useRef, useState } from "react";
 import classNames from "classnames";
 import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
-import { useIsVisible } from "pages/WorkflowPage/workflowHooks";
 
 type WorkflowCanvasProps = {
   workflowVersionId: number;
@@ -26,7 +25,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
   const [addNode] = useAddNodeMutation();
 
   // p is used to store the current position of the canvas
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState({ x: 50, y: 300 });
 
   // canvasRef is used to allow workflow nodes to use the canvas position as reference
   const canvasRef = createRef() as MutableRefObject<HTMLDivElement>;
@@ -39,16 +38,6 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
 
   // wrapperRef is used to refer to the wrapper element that surrounds the canvas
   const wrapperRef = useRef() as MutableRefObject<HTMLDivElement>;
-
-  const isVisible = useIsVisible(wrapperRef);
-
-  // On load place the canvas in the center of the wrapper
-  useEffect(() => {
-    if (isVisible && position.x === 0 && position.y === 0) {
-      const bb = wrapperRef.current.getBoundingClientRect();
-      setPosition({ x: 50, y: bb.height / 2 });
-    }
-  }, [isVisible]);
 
   // canvasPosition is used to store the initial position of the canvas when a drag starts
   const [canvasPosition, setCanvasPositionBB] = useState({ left: 0, top: 0 });
