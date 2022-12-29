@@ -28,7 +28,6 @@ type ManagedTrigger struct {
 	BootTime                       *time.Time
 	VerificationTime               *time.Time
 	Status                         Status
-	Out                            chan ManagedTrigger
 	TriggerSettingsOut             chan ManagedTriggerSettings
 }
 
