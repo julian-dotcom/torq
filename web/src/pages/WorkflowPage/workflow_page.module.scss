@@ -27,28 +27,7 @@
     grid-column-gap: 0;
   }
 }
-.pageSidebarWrapper {
-  width: 0;
-  transition: width 200ms;
-  background-color: var(--bg-default);
-  grid-area: Sidebar;
-  position: relative;
-  overflow: hidden;
-  border-left: 1px solid var(--primary-100);
-  > div {
-    width: 320px;
-  }
-  @media only screen and (max-width: 900px) {
-    position: absolute;
-    right: 0px;
-    top: 0;
-    bottom: 0;
-    z-index: 20;
-  }
-}
-.pageSidebarWrapper.sidebarExpanded {
-  width: 320px;
-}
+
 .tableWrapper {
   padding-bottom: 24px;
   margin-right: 0px;
