@@ -14,10 +14,11 @@ import { useNavigate } from "react-router";
 import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/workflowApi";
 import { ReactNode } from "react";
 import { Workflow, WorkflowStages, WorkflowVersion } from "./workflowTypes";
-import ChannelPolicyNode from "components/workflow/nodes/channelPolicy/ChannelPolicy";
+import { ChannelPolicyNode } from "components/workflow/nodes/nodes";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import { TriggerNodeTypes } from "./constants";
 import nodeStyles from "components/workflow/nodeWrapper/workflow_nodes.module.scss";
+import { TimeTriggerNode } from "components/workflow/nodes/timeTrigger/TimeTriggerNode";
 
 export function useNewWorkflowButton(): ReactNode {
   const { t } = useTranslations();
@@ -75,7 +76,7 @@ export function useNodes(stages: WorkflowStages, stageNumber: number) {
     })
     .map((node) => {
       const nodeId = node.workflowVersionNodeId;
-      return <ChannelPolicyNode {...node} key={`node-${nodeId}`} id={`node-${nodeId}`} name={node.name} />;
+      return <TimeTriggerNode {...node} key={`node-${nodeId}`} id={`node-${nodeId}`} name={node.name} />;
     })
     .sort((a, b) => a.props.id.localeCompare(b.props.id));
 

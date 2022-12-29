@@ -6,8 +6,9 @@ import Input from "components/forms/input/Input";
 import { InputSizeVariant } from "components/forms/input/variants";
 import Form from "components/forms/form/Form";
 import Socket from "components/forms/socket/Socket";
+import { NodeColorVariant } from "../nodeVariants";
 
-type ChannelPolicyNodeProps = WorkflowNodeProps;
+type ChannelPolicyNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 type channelPolicy = {
   feeRate: number | undefined;
@@ -16,7 +17,7 @@ type channelPolicy = {
   maxHTLCAmount: number | undefined;
 };
 
-function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
+export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
   const { t } = useTranslations();
 
   const [channelPolicy, setChannelPolicy] = useState<channelPolicy>({
@@ -36,7 +37,12 @@ function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
   }
 
   return (
-    <WorkflowNodeWrapper {...wrapperProps} heading={t.channelPolicy} headerIcon={<ChannelPolicyIcon />}>
+    <WorkflowNodeWrapper
+      {...wrapperProps}
+      heading={t.channelPolicyConfiguration}
+      headerIcon={<ChannelPolicyIcon />}
+      colorVariant={NodeColorVariant.accent1}
+    >
       <Form>
         <Socket label={"Channels"} id={"sss"} />
         <Input
@@ -79,5 +85,3 @@ function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
     </WorkflowNodeWrapper>
   );
 }
-
-export default ChannelPolicyNode;

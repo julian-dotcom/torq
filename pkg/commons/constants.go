@@ -211,6 +211,7 @@ const (
 	WorkflowNodeRoutingPolicyRun
 	WorkflowNodeSetVariable
 	WorkflowNodeFilterOnVariable
+	ChannelPolicyConfigurator
 )
 
 type WorkflowTriggerType int

@@ -134,8 +134,12 @@ function AddStageButton(props: AddStageButtonProps) {
   }
 
   return (
-    <button className={styles.addStageButton} onClick={handleAddStage}>
-      <NewStageIcon />
+    <button className={classNames(styles.stageContainer, styles.addStageButton)} onClick={handleAddStage}>
+      <StageArrowBack />
+      <div className={styles.stage}>
+        <NewStageIcon />
+      </div>
+      <StageArrowFront />
     </button>
   );
 }

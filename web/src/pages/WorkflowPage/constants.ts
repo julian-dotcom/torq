@@ -9,6 +9,7 @@ export enum WorkflowNodeType {
   RoutingPolicyRun,
   SetVariable,
   FilterOnVariable,
+  ChannelPolicyConfigurator,
 }
 
 export const TriggerNodeTypes = [

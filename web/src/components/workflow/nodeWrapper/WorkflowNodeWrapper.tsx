@@ -17,6 +17,7 @@ import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage
 import PopoverButton from "features/popover/Popover";
 import Button, { ColorVariant, buttonPosition, SizeVariant } from "components/buttons/Button";
 import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
+import { NodeColorVariant, GetColorClass } from "components/workflow/nodes/nodeVariants";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -28,6 +29,7 @@ export type WorkflowNodeProps = WorkflowNode & {
   id: string;
   heading?: string;
   headerIcon?: JSX.Element;
+  colorVariant: NodeColorVariant;
   children?: React.ReactNode;
 };
 
@@ -124,10 +126,9 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     setCollapsed(!collapsed);
   }
 
-  const transform =
-    TriggerNodeTypes.includes(props.type) === true
-      ? `translate(0px, 0px)`
-      : `translate(${position.x}px, ${position.y}px)`;
+  const transform = TriggerNodeTypes.includes(props.type)
+    ? `translate(0px, 0px)`
+    : `translate(${position.x}px, ${position.y}px)`;
 
   return (
     <NodeContext.Provider
@@ -138,7 +139,7 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     >
       <div
         id={props.id}
-        className={classNames(styles.workflowNodeCard, {
+        className={classNames(styles.workflowNodeCard, GetColorClass(props.colorVariant), {
           [styles.dragging]: isDragging,
           [styles.triggerNode]: TriggerNodeTypes.includes(props.type),
         })}

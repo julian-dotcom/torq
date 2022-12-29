@@ -1,11 +1,13 @@
 import React, { MutableRefObject, useRef, useState } from "react";
 import styles from "./node_button_wrapper.module.scss";
 import classNames from "classnames";
+import { GetColorClass, NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 
 export type WorkflowNodeButtonProps = {
-  icon?: React.ReactNode;
   title: string;
+  icon?: React.ReactNode;
   nodeType: number;
+  colorVariant: NodeColorVariant;
 };
 
 function WorkflowNodeButtonWrapper<T>(props: WorkflowNodeButtonProps) {
@@ -29,7 +31,11 @@ function WorkflowNodeButtonWrapper<T>(props: WorkflowNodeButtonProps) {
   }
   return (
     <div
-      className={classNames(styles.nodeButtonWrapper, { [styles.dragging]: isDragging })}
+      className={classNames(
+        styles.nodeButtonWrapper,
+        { [styles.dragging]: isDragging },
+        GetColorClass(props.colorVariant)
+      )}
       draggable={true}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}

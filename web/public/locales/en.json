@@ -94,6 +94,10 @@
   "tableLayout": {
     "tableOptions": "Table options"
   },
+  "workflowNodes": {
+    "channelPolicyConfiguration": "Channel Policy Configuration",
+    "timeTrigger": "Time Trigger"
+  },
   "updateChannelPolicy": {
     "title": "Update Channel Policy",
     "back": "Back",

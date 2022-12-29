@@ -1,0 +1,12 @@
+.accent2 {
+  --header-background-color: var(--color-accent-2-faint);
+  --header-text-color: var(--color-accent-2-layer-1);
+  --header-hover-background-color: var(--color-accent-2-faded);
+  --header-active-background-color: var(--color-accent-2-faded);
+}
+.accent1 {
+  --header-background-color: var(--color-accent-1-faint);
+  --header-text-color: var(--color-accent-1-layer-1);
+  --header-hover-background-color: var(--color-accent-1-faded);
+  --header-active-background-color: var(--color-accent-1-faded);
+}

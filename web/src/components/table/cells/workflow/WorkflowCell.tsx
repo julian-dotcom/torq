@@ -5,7 +5,7 @@ import classNames from "classnames";
 import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
 import { useUpdateWorkflowMutation } from "pages/WorkflowPage/workflowApi";
-import { Status } from "../../../../constants/backend";
+import { Status } from "constants/backend";
 
 interface WorkflowCell {
   name: string;

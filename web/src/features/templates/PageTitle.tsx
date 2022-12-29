@@ -3,7 +3,7 @@ import classNames from "classnames";
 import { Save28Regular as SaveTitleIcon, Edit28Regular as EditTitleIcon } from "@fluentui/react-icons";
 import styles from "./templates.module.scss";
 import Breadcrumbs from "features/breadcrumbs/Breadcrumbs";
-import Button, { ColorVariant, SizeVariant } from "../../components/buttons/Button";
+import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 
 export type PageNameInputProps = React.DetailedHTMLProps<
   React.InputHTMLAttributes<HTMLInputElement>,
