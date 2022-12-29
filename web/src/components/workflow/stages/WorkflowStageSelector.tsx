@@ -34,6 +34,7 @@ export function StageSelector({
       {Object.keys(stages).map((stage, index) => {
         return (
           <SelectStageButton
+            key={`stage-${stage}`}
             selectedStage={selectedStage}
             setSelectedStage={setSelectedStage}
             stage={parseInt(stage)}
@@ -82,15 +83,17 @@ function SelectStageButton(props: SelectStageButtonProps) {
     });
   }
 
+  // NB: The stage is the stage ID used on the nodes. The buttonIndex is used to display the stage number.
+  //   This is because the user can delete a stage in between two stages, and then the stage numbers will not be consecutive.
+
   return (
     <button
-      key={`stage-${stage}`}
       className={classNames(styles.stageContainer, { [styles.selected]: stage === selectedStage })}
       onClick={() => setSelectedStage(stage)}
     >
       {buttonIndex !== 0 && <StageArrowBack />}
       <div className={styles.stage}>
-        {`${t.stage} ${stage}`}
+        {`${t.stage} ${buttonIndex + 1}`}
         {buttonIndex !== 0 && (
           <div className={styles.deleteStage} onClick={() => handleDeleteStage(stage)}>
             <DeleteIcon />
