@@ -71,6 +71,9 @@ export function StageSelector({
       },
       workflowVersionId: workflowVersionId,
       stage: Math.max(...Object.keys(stages).map((stage) => parseInt(stage))) + 1,
+    }).then(() => {
+      // On success, select the new stage
+      setSelectedStage(Math.max(...Object.keys(stages).map((stage) => parseInt(stage))) + 1);
     });
   }
 
