@@ -31,6 +31,10 @@ export function StageSelector({
   const stageNumbers = Object.keys(stages).map((s) => parseInt(s));
 
   function handleDeleteStage(stage: number) {
+    // Ask the user to confirm deletion of the stage
+    if (!confirm(t.deleteStageConfirm)) {
+      return;
+    }
     deleteStage({ workflowId, version, stage }).then(() => {
       // On success, select the preceding stage
       const precedingStage = stageNumbers.slice(0, stageNumbers.indexOf(stage)).pop();

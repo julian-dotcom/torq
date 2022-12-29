@@ -90,6 +90,7 @@
   "RegTest":  "RegTest",
   "SigNet": "SigNet",
   "SimNet":  "SimNet",
+  "deleteStageConfirm": "Are you sure you want to delete this stage?",
   "tableLayout": {
     "tableOptions": "Table options"
   },
