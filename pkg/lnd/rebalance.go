@@ -687,49 +687,54 @@ func verifyNotZeroInt(request commons.RebalanceRequest, value int64, label strin
 }
 
 func updateExistingRebalanceRequest(db *sqlx.DB, request commons.RebalanceRequest) *commons.RebalanceResponse {
-	rebalancer := getRebalancer(request.Origin, request.OriginId, request.IncomingChannelId, request.OutgoingChannelId)
-	if rebalancer != nil && rebalancer.RebalanceId != 0 {
-		var err error
-		if rebalancer.AmountMsat != request.AmountMsat {
-			err = setRebalancer(db, request, rebalancer)
-		} else if rebalancer.MaximumCostMsat != request.MaximumCostMsat {
-			err = setRebalancer(db, request, rebalancer)
-		} else if rebalancer.MaximumConcurrency != request.MaximumConcurrency {
-			err = setRebalancer(db, request, rebalancer)
-		} else if len(rebalancer.ChannelIds) != len(request.ChannelIds) {
-			err = setRebalancer(db, request, rebalancer)
-		} else {
-			for _, channelId := range rebalancer.ChannelIds {
-				if !slices.Contains(request.ChannelIds, channelId) {
-					err = setRebalancer(db, request, rebalancer)
-					break
-				}
+	rebalancer := getRebalancer(request.Origin, request.OriginId)
+	if rebalancer == nil {
+		return nil
+	}
+	if rebalancer.IncomingChannelId != request.IncomingChannelId || rebalancer.OutgoingChannelId != request.OutgoingChannelId {
+		removeRebalancer(rebalancer)
+		rebalancer.RebalanceCancel()
+		return nil
+	}
+	var err error
+	if rebalancer.AmountMsat != request.AmountMsat {
+		err = setRebalancer(db, request, rebalancer)
+	} else if rebalancer.MaximumCostMsat != request.MaximumCostMsat {
+		err = setRebalancer(db, request, rebalancer)
+	} else if rebalancer.MaximumConcurrency != request.MaximumConcurrency {
+		err = setRebalancer(db, request, rebalancer)
+	} else if len(rebalancer.ChannelIds) != len(request.ChannelIds) {
+		err = setRebalancer(db, request, rebalancer)
+	} else {
+		for _, channelId := range rebalancer.ChannelIds {
+			if !slices.Contains(request.ChannelIds, channelId) {
+				err = setRebalancer(db, request, rebalancer)
+				break
 			}
 		}
-		if err != nil {
-			return &commons.RebalanceResponse{
-				Request: request,
-				CommunicationResponse: commons.CommunicationResponse{
-					Status: commons.Inactive,
-					Error: fmt.Sprintf(
-						"(%v) for IncomingChannelId: %v, OutgoingChannelId: %v that already has a running rebalancer for origin: %v with originId: %v (ref: %v)",
-						err.Error(), rebalancer.IncomingChannelId, rebalancer.OutgoingChannelId, rebalancer.Origin, rebalancer.OriginId,
-						rebalancer.OriginReference),
-				},
-			}
-		}
+	}
+	if err != nil {
 		return &commons.RebalanceResponse{
 			Request: request,
 			CommunicationResponse: commons.CommunicationResponse{
 				Status: commons.Inactive,
 				Error: fmt.Sprintf(
-					"IncomingChannelId: %v, OutgoingChannelId: %v already has a running rebalancer for origin: %v with originId: %v (ref: %v)",
-					rebalancer.IncomingChannelId, rebalancer.OutgoingChannelId, rebalancer.Origin, rebalancer.OriginId,
+					"(%v) for IncomingChannelId: %v, OutgoingChannelId: %v that already has a running rebalancer for origin: %v with originId: %v (ref: %v)",
+					err.Error(), rebalancer.IncomingChannelId, rebalancer.OutgoingChannelId, rebalancer.Origin, rebalancer.OriginId,
 					rebalancer.OriginReference),
 			},
 		}
 	}
-	return nil
+	return &commons.RebalanceResponse{
+		Request: request,
+		CommunicationResponse: commons.CommunicationResponse{
+			Status: commons.Inactive,
+			Error: fmt.Sprintf(
+				"IncomingChannelId: %v, OutgoingChannelId: %v already has a running rebalancer for origin: %v with originId: %v (ref: %v)",
+				rebalancer.IncomingChannelId, rebalancer.OutgoingChannelId, rebalancer.Origin, rebalancer.OriginId,
+				rebalancer.OriginReference),
+		},
+	}
 }
 
 func setRebalancer(db *sqlx.DB, request commons.RebalanceRequest, rebalancer *Rebalancer) error {
