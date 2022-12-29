@@ -1,7 +1,9 @@
+import classNames from "classnames";
 import {
   PuzzlePiece20Regular as NodesIcon,
   Play20Regular as DeployIcon,
   Add16Regular as NewWorkflowIcon,
+  Add16Regular as NewStageIcon,
 } from "@fluentui/react-icons";
 import {
   TableControlsButtonGroup,
@@ -16,6 +18,11 @@ import { ReactNode } from "react";
 import { Workflow, WorkflowStages, WorkflowVersion } from "./workflowTypes";
 import ChannelPolicyNode from "components/workflow/nodes/channelPolicy/ChannelPolicy";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
+import styles from "./workflow_page.module.scss";
+import { ReactComponent as StageArrowBack } from "./stageArrowBack.svg";
+import { ReactComponent as StageArrowFront } from "./stageArrowFront.svg";
+import { useAddNodeMutation } from "./workflowApi";
+import { WorkflowNodeType } from "./constants";
 
 export function useNewWorkflowButton(): ReactNode {
   const { t } = useTranslations();
@@ -87,6 +94,59 @@ export function useStages(workflowVersionId: number, stages: WorkflowStages, sel
       </WorkflowCanvas>
     );
   });
+}
+
+export function useStageButtons(
+  stages: WorkflowStages,
+  selectedStage: number,
+  setSelectedStage: (stage: number) => void,
+  workflowVersionId: number
+) {
+  const stageButtons = Object.keys(stages).map((stage, index) => {
+    return (
+      <button
+        key={`stage-${stage}`}
+        className={classNames(styles.stageContainer, { [styles.selected]: parseInt(stage) === selectedStage })}
+        onClick={() => setSelectedStage(parseInt(stage))}
+      >
+        {index !== 0 && <StageArrowBack />}
+        <div className={styles.stage}>{`Stage ${stage}`}</div>
+        <StageArrowFront />
+      </button>
+    );
+  });
+
+  const [addNode] = useAddNodeMutation();
+
+  function addStage() {
+    addNode({
+      type: WorkflowNodeType.StageTrigger,
+      visibilitySettings: {
+        xPosition: 0,
+        yPosition: 0,
+        collapsed: false,
+      },
+      workflowVersionId: workflowVersionId,
+      stage: Math.max(...Object.keys(stages).map((stage) => parseInt(stage))) + 1,
+    });
+  }
+
+  const addStageButton = (
+    <button key={`stage-add-stage`} className={classNames(styles.stageContainer)} onClick={addStage}>
+      <StageArrowBack />
+      <div className={styles.stage}>
+        <NewStageIcon />
+      </div>
+      <StageArrowFront />
+    </button>
+  );
+
+  return (
+    <div className={styles.stagesWrapper}>
+      {stageButtons}
+      {addStageButton}
+    </div>
+  );
 }
 
 export function useWorkflowControls(sidebarExpanded: boolean, setSidebarExpanded: (expanded: boolean) => void) {
