@@ -76,7 +76,7 @@ type UpdateNodeRequest struct {
 	WorkflowVersionNodeId int                             `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
 	Name                  *string                         `json:"name" db:"name"`
 	Status                *commons.Status                 `json:"status" db:"status"`
-	Parameters            *WorkflowNodeParameters         `json:"parameters" db:"parameters"`
+	Parameters            *interface{}                    `json:"parameters" db:"parameters"`
 	VisibilitySettings    *WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
 }
 
