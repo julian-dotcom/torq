@@ -81,6 +81,7 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 	yPosition := 0
 	collapsed := true
 
+	ONE_HOUR := 60 * 60
 	initialNode := CreateNodeRequest{
 		WorkflowVersionId: wv.WorkflowVersionId,
 		Name:              "Time Trigger",
@@ -90,6 +91,10 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 			YPosition: &xPosition,
 			XPosition: &yPosition,
 			Collapsed: &collapsed,
+		},
+		Parameters: TimeTriggerParameters{
+			Seconds:  60 * 60,
+			TimeUnit: ONE_HOUR,
 		},
 	}
 	_, err = createNode(db, initialNode)

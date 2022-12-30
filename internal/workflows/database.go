@@ -719,6 +719,7 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	wfvn.Type = req.Type
 	wfvn.Stage = req.Stage
 	wfvn.Name = req.Name
+	// TODO: We need to add default parameters for the specific node type
 
 	wfvn.Status = commons.Active
 	wfvn.CreatedOn = time.Now().UTC()
