@@ -65,6 +65,7 @@ const modalRoutes: RouteObject = {
     { path: routes.OPEN_CHANNEL, element: <OpenChannelModal /> },
     { path: routes.CLOSE_CHANNEL, element: <CloseChannelModal /> },
     { path: routes.TAG, element: <ModifyTagModal /> },
+    { path: routes.UPDATE_TAG, element: <ModifyTagModal /> },
   ],
 };
 
@@ -89,7 +90,6 @@ const authenticatedRoutes: RouteObject = {
                 { path: routes.WORKFLOWS, element: <WorkflowsTablePage /> },
                 { path: routes.TAGS, element: <TagsPage /> },
                 { path: routes.WORKFLOW, element: <WorkflowPage /> },
-                // { path: routes.TAGS, element: <TagsPage /> },
               ],
             },
             {

@@ -10,6 +10,9 @@
   color: var(--content-muted);
   font-size: var(--font-size-small);
   font-weight: 500;
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-bottom: 5px;
 }
 
 .modifyTagsResultIconWrapper {
@@ -121,4 +124,89 @@
 .successMessage {
   clear: both;
   word-wrap: break-word;
+}
+
+.header {
+  cursor: pointer;
+  display: flex;
+  column-gap: 16px;
+  padding: 11px 24px;
+  background-color: var(--color-primary-layer-2);
+  border-radius: var(--radius-default);
+  &.expanded {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .connectionIcon {
+    width: 32px;
+    height: 32px;
+    color: var(--color-red-500);
+    background-color: var(--color-red-300);
+    border: 1px solid var(--color-red-500);
+    border-radius: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    &.connected {
+      color: var(--secondary-2-600);
+      background-color: var(--secondary-2-150);
+      border: 1px solid var(--secondary-2-300);
+    }
+    &.disabled {
+      color: var(--content-muted);
+      background-color: var(--content-faded) !important;
+      border: 1px solid var(--content-subtle);
+    }
+  }
+  .collapseIcon {
+    margin-left: auto;
+    transition: 0.3s transform ease-in-out;
+    transform: rotate(0deg);
+
+  }
+  .title {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: var(--font-size-default);
+  }
+  .title,
+  .collapseIcon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+.colapsedLabels {
+  background-color: var(--color-primary-layer-4);
+  border-color: transparent;
+  border-radius: 4px;
+  border-width: 1px;
+}
+
+.collapsGroup {
+  background-color: var(--color-primary-layer-2);
+  border-width: 1px;
+  margin-bottom: 5px;
+}
+
+.target {
+  margin-bottom: 13px;
+}
+
+.targetText {
+  position: relative;
+  bottom: 5px;
+}
+
+.targetRows {
+  margin-bottom: 1px;
+}
+
+.tagbutton {
+  color: var(--secondary-2-700) !important;
+  background-color: var(--secondary-2-50) !important;
+  border-color: var(--secondary-2-350) !important;
 }

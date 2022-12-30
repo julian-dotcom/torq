@@ -34,7 +34,7 @@ function TagsPage() {
         <TableControlsTabsGroup>
           <Button
             buttonColor={buttonColor.green}
-            text={t.createTag}
+            text={t.tagsModal.createTag}
             icon={<NewTagIcon />}
             className={"collapse-tablet"}
             onClick={() => {

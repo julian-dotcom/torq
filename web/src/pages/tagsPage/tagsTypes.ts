@@ -48,3 +48,16 @@ export type ChannelGroup = {
   tagId: number;
   channelId?: number;
 }
+
+export type CorridorFields = {
+  referenceId: number;
+  alias: string;
+  shortChannelId: string;
+  corridorId: number;
+}
+
+export type Corridor = {
+  corridors: CorridorFields[];
+  totalNodes: number;
+  totalChannels: number;
+}

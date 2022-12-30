@@ -1,16 +1,16 @@
 import { torqApi } from "apiSlice";
-import { channelTag, Tag, ChannelNode, ChannelGroup } from "./tagsTypes";
+import { channelTag, Tag, ChannelNode, ChannelGroup, Corridor } from "./tagsTypes";
 import { stringMap } from "apiTypes";
 
 // Define a service using a base URL and expected endpoints
 export const onChainApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     getTags: builder.query<Tag[], void>({
-      query: () => `tags/all`,
+      query: () => `tags`,
       providesTags: ["tags"],
     }),
     getTag: builder.query<Tag, number>({
-      query: (tagId) => `tags/get/${tagId}`,
+      query: (tagId) => `tags/${tagId}`,
       providesTags: ["tags"],
     }),
     addTag: builder.mutation<Tag, Tag>({
@@ -23,7 +23,7 @@ export const onChainApi = torqApi.injectEndpoints({
     }),
     setTag: builder.mutation<Tag, Tag>({
       query: (tag) => ({
-        url: `tags/set`,
+        url: `tags`,
         method: "PUT",
         body: tag,
       }),
@@ -56,13 +56,22 @@ export const onChainApi = torqApi.injectEndpoints({
         body: channelGroups,
       }),
     }),
+    getCorridorByReference: builder.query<Corridor, number>({
+      query: (tagId) => ({
+        url: `corridors/${tagId}`,
+        method: "GET",
+      }),
+    }),
   }),
 });
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
 export const {
   useGetTagsQuery,
+  useGetTagQuery,
+  useGetCorridorByReferenceQuery,
   useAddTagMutation,
   useAddChannelsGroupsMutation,
+  useSetTagMutation,
   useGetNodesChannelsQuery,
 } = onChainApi;

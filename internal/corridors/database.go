@@ -57,6 +57,43 @@ func getCorridorsByCorridorTypeId(db *sqlx.DB, corridorTypeId int) (corridors []
 	return getCorridorsByCorridorType(db, *getCorridorTypeFromId(corridorTypeId))
 }
 
+func getCorridorsByTagId(db *sqlx.DB, tagId int) (corridors []*CorridorFields, err error) {
+	err = db.Select(&corridors, `SELECT distinct corridor_id, reference_id, ne.alias, ch.short_channel_id
+    	FROM corridor co
+    	LEFT JOIN node_event ne ON co.from_node_id = ne.node_id
+    	AND co.from_node_id = ne.event_node_id
+    	LEFT JOIN channel ch ON ch.channel_id = co.channel_id WHERE reference_id = $1;`, tagId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return corridors, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return corridors, nil
+}
+
+func getCorridorsNodesByTagId(db *sqlx.DB, tagId int) (totalNodes int, err error) {
+	err = db.Get(&totalNodes, `SELECT COUNT(corridor_id) FROM corridor  WHERE reference_id = $1 AND channel_id IS NULL;`, tagId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return totalNodes, nil
+		}
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return totalNodes, nil
+}
+
+func getCorridorsChannelsByTagId(db *sqlx.DB, tagId int) (totalChannels int, err error) {
+	err = db.Get(&totalChannels, `SELECT COUNT(corridor_id) FROM corridor WHERE reference_id = $1 AND channel_id IS NOT NULL;`, tagId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return totalChannels, nil
+		}
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return totalChannels, nil
+}
+
 func getCorridorsByCorridorType(db *sqlx.DB, corridorType CorridorType) (corridors []*Corridor, err error) {
 	err = db.Select(&corridors, `SELECT * FROM corridor WHERE corridor_type_id = $1;`, corridorType.CorridorTypeId)
 	if err != nil {

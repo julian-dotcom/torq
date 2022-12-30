@@ -67,8 +67,8 @@ func addTag(db *sqlx.DB, tag Tag) (Tag, error) {
 // setTag you cannot update the category! If you want to reassign a tag to a new category you need to recreate the tag.
 func setTag(db *sqlx.DB, tag Tag) (Tag, error) {
 	tag.UpdateOn = time.Now().UTC()
-	_, err := db.Exec(`UPDATE tag SET name=$1, style=$2, updated_on=$3 WHERE tag_id=$4;`,
-		tag.Name, tag.Style, tag.UpdateOn, tag.TagId, tag.CategoryId)
+	_, err := db.Exec(`UPDATE tag SET name=$1, style=$2, updated_on=$3, category_id=$4 WHERE tag_id=$5;`,
+		tag.Name, tag.Style, tag.UpdateOn, tag.CategoryId, tag.TagId)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {

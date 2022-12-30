@@ -4,6 +4,7 @@ import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import TagCell from "components/table/cells/tag/TagCell";
 import cellStyles from "components/table/cells/cell.module.scss";
 import { TagColor } from "../../components/tags/Tag";
+// import { Link } from "react-router-dom";
 
 export default function tagsCellRenderer(
   row: Tag,
@@ -27,6 +28,7 @@ export default function tagsCellRenderer(
         colorVariant={color.get(row["name"] as string)}
         key={"tag-name" + rowIndex + columnIndex}
         cellWrapperClassName={column.locked ? cellStyles.locked : ""}
+        tagId={row.tagId ? row.tagId : 0}
       />
     );
   }
