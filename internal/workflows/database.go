@@ -791,10 +791,15 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 	}
 
 	if req.Parameters != nil {
-		param, err := json.Marshal(req.Parameters)
-		if err != nil {
-			return 0, errors.Wrap(err, "JSON Marshaling Parameters")
+		// check if the parameters are valid
+		param := *req.Parameters
+		switch t := param.(type) {
+		case TimeTriggerParameters:
+			break
+		default:
+			return 0, errors.New(fmt.Sprintf("Invalid Parameters %v", t))
 		}
+
 		qb = qb.Set("parameters", param)
 	}
 

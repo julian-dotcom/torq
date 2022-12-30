@@ -34,6 +34,8 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
 
+require gopkg.in/validator.v2 v2.0.1 // indirect
+
 require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect

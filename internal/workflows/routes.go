@@ -2,12 +2,12 @@ package workflows
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
 
 	"github.com/cockroachdb/errors"
-	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/pkg/commons"
@@ -349,11 +349,20 @@ func addNodeHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func updateNodeHandler(c *gin.Context, db *sqlx.DB) {
+
+	//if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+	//	err := v.RegisterValidation("validParams", ValidateParams)
+	//	if err != nil {
+	//		return
+	//	}
+	//}
+
 	var req UpdateNodeRequest
 	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
+	// Validate the request
 	resp, err := updateNode(db, req)
 	if err != nil {
 		pqErr, ok := err.(*pq.Error)
