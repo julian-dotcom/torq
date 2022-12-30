@@ -104,7 +104,7 @@
 .title {
   padding-right: 16px;
   cursor: text;
-  width: 200px;
+  min-width: 200px;
 }
 .icon {
   display: flex;
@@ -119,11 +119,11 @@
 }
 .nameForm {
   position: relative;
-  width: 200px;
+  width: 300px;
   button {
     display: flex;
     align-items: center;
-    justify-content: start;
+    justify-content: center;
     position: absolute;
     top: 50%;
     right: 4px;

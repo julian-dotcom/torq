@@ -106,11 +106,11 @@ func createWorkflow(db *sqlx.DB) (Workflow, error) {
 				(SELECT(
 					SELECT
 						CASE WHEN count(*) = 0 THEN $1
-							 ELSE $1 || ' ' || (
+							 ELSE $1 || ' ' || coalesce((
 								 SELECT max(coalesce(regexp_replace(name, ($1 || ' (\d+)'), '\1'), '0')::integer) + 1
 								 FROM workflow
 								 WHERE name ~* ($1 || ' (\d+)')
-							 )
+							 ), '1')
 						END
 					FROM workflow
 					WHERE name = $1)
@@ -195,6 +195,7 @@ func createWorkflowVersion(db *sqlx.DB, workflowId int) (WorkflowVersion, error)
 	wfv := WorkflowVersion{}
 	wfv.WorkflowId = workflowId
 	wfv.Name = "Initial Version"
+	wfv.Status = commons.Inactive
 	wfv.Version = 1
 	wfv.CreatedOn = time.Now().UTC()
 	wfv.UpdateOn = wfv.CreatedOn
@@ -696,12 +697,10 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	wfvn.VisibilitySettings = req.VisibilitySettings
 	wfvn.Type = req.Type
 	wfvn.Stage = req.Stage
+	wfvn.Name = req.Name
 
-	wfvn.Status = commons.Active // TODO: Question: Should this be active or inactive?
+	wfvn.Status = commons.Active
 	wfvn.CreatedOn = time.Now().UTC()
-	if wfvn.Name == "" {
-		wfvn.Name = fmt.Sprintf("%v", wfvn.CreatedOn.Format("20060102.150405.000000"))
-	}
 	wfvn.UpdateOn = wfvn.CreatedOn
 
 	visibilitySettingsJson, err := json.Marshal(req.VisibilitySettings)
@@ -712,7 +711,18 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	err = db.QueryRowx(`INSERT
 			INTO workflow_version_node
 				(name, stage, status, type, parameters, visibility_settings, workflow_version_id, created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			VALUES ((SELECT(
+					SELECT
+						CASE WHEN count(*) = 0 THEN $1
+							 ELSE $1 || ' ' || coalesce((
+								 SELECT max(coalesce(regexp_replace(name, ($1 || ' (\d+)'), '\1'), '0')::integer) + 1
+								 FROM workflow_version_node
+								 WHERE name ~* ($1 || ' (\d+)')
+							 ), '1')
+						END
+					FROM workflow_version_node
+					WHERE name = $1 and workflow_version_id = $2)
+			    ), $2, $3, $4, $5, $6, $7, $8, $9)
 			RETURNING workflow_version_node_id;`,
 		wfvn.Name,
 		wfvn.Stage,

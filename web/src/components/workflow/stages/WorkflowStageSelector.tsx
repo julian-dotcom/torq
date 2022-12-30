@@ -120,6 +120,7 @@ function AddStageButton(props: AddStageButtonProps) {
   function handleAddStage() {
     addNode({
       type: WorkflowNodeType.StageTrigger,
+      name: `${t.stage} ${nextStage}`,
       visibilitySettings: {
         xPosition: 0,
         yPosition: 0,

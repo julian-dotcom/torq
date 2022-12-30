@@ -24,6 +24,7 @@ function WorkflowNodeButtonWrapper<T>(props: WorkflowNodeButtonProps) {
 
     e.dataTransfer.setData("node/type", props.nodeType.toString());
     e.dataTransfer.setData("node/event", "add");
+    e.dataTransfer.setData("node/name", props.title);
   }
 
   function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {

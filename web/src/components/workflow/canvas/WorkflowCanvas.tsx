@@ -87,9 +87,11 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
       const newY = e.clientY - bb.top - position.y;
 
       const nodeType = parseInt(e.dataTransfer.getData("node/type"));
+      const nodeName = e.dataTransfer.getData("node/name");
 
       addNode({
         type: nodeType,
+        name: nodeName,
         visibilitySettings: {
           xPosition: Math.floor(newX),
           yPosition: Math.floor(newY),

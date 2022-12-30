@@ -31,10 +31,10 @@ type WorkflowTableRow struct {
 	WorkflowId              int     `json:"workflowId" db:"workflow_id"`
 	WorkflowName            string  `json:"workflowName" db:"workflow_name"`
 	WorkflowStatus          int     `json:"workflowStatus" db:"workflow_status"`
-	LatestVersionName       string  `json:"latestVersionName" db:"latest_version_name"`
-	LatestVersion           int     `json:"latestVersion" db:"latest_version"`
-	LatestWorkflowVersionId int     `json:"latestWorkflowVersionId" db:"latest_workflow_version_id"`
-	LatestVersionStatus     int     `json:"latestVersionStatus" db:"latest_version_status"`
+	LatestVersionName       *string `json:"latestVersionName" db:"latest_version_name"`
+	LatestVersion           *int    `json:"latestVersion" db:"latest_version"`
+	LatestWorkflowVersionId *int    `json:"latestWorkflowVersionId" db:"latest_workflow_version_id"`
+	LatestVersionStatus     *int    `json:"latestVersionStatus" db:"latest_version_status"`
 	ActiveVersionName       *string `json:"activeVersionName" db:"active_version_name"`
 	ActiveVersion           *int    `json:"activeVersion" db:"active_version"`
 	ActiveWorkflowVersionId *int    `json:"activeWorkflowVersionId" db:"active_workflow_version_id"`
@@ -66,8 +66,9 @@ type WorkflowVersionNode struct {
 
 type CreateNodeRequest struct {
 	WorkflowVersionId  int                            `json:"workflowVersionId" db:"workflow_version_id"`
+	Name               string                         `json:"name" db:"name"`
 	Type               commons.WorkflowNodeType       `json:"type" db:"type"`
-	Stage              commons.Status                 `json:"stage" db:"stage"`
+	Stage              int                            `json:"stage" db:"stage"`
 	VisibilitySettings WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
 }
 
