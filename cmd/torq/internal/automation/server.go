@@ -14,9 +14,7 @@ import (
 	"github.com/lncapital/torq/pkg/lnd"
 )
 
-func Start(ctx context.Context, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) error {
-
+func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.BroadcastServer) error {
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 
 	var wg sync.WaitGroup
@@ -28,10 +26,10 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int,
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				automation.TimeTriggerMonitor(ctx, db, nodeSettings, eventChannel)
+				automation.TimeTriggerMonitor(ctx, db, nodeSettings)
 			}
 		}()
-		automation.TimeTriggerMonitor(ctx, db, nodeSettings, eventChannel)
+		automation.TimeTriggerMonitor(ctx, db, nodeSettings)
 	})()
 
 	// Event Trigger Monitor
@@ -41,10 +39,10 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int,
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in EventTriggerMonitor %v", panicError)
-				automation.EventTriggerMonitor(ctx, db, nodeSettings, broadcaster, eventChannel)
+				automation.EventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
 			}
 		}()
-		automation.EventTriggerMonitor(ctx, db, nodeSettings, broadcaster, eventChannel)
+		automation.EventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
 	})()
 
 	wg.Wait()
@@ -53,7 +51,7 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int,
 }
 
 func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) error {
+	broadcaster broadcast.BroadcastServer) error {
 
 	var wg sync.WaitGroup
 
@@ -64,10 +62,10 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+				lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster)
 			}
 		}()
-		lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+		lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster)
 	})()
 
 	wg.Wait()
@@ -76,7 +74,7 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 }
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) error {
+	broadcaster broadcast.BroadcastServer) error {
 
 	var wg sync.WaitGroup
 
@@ -87,10 +85,10 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				lnd.RebalanceService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+				lnd.RebalanceService(ctx, conn, db, nodeId, broadcaster)
 			}
 		}()
-		lnd.RebalanceService(ctx, conn, db, nodeId, broadcaster, eventChannel)
+		lnd.RebalanceService(ctx, conn, db, nodeId, broadcaster)
 	})()
 
 	wg.Wait()

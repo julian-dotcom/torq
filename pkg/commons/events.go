@@ -335,8 +335,9 @@ type PendingChannel struct {
 
 // Request/Response for lightningCommunication
 type CommunicationRequest struct {
-	RequestId string `json:"requestId"`
-	NodeId    int    `json:"nodeId"`
+	RequestId   string     `json:"requestId"`
+	RequestTime *time.Time `json:"requestTime"`
+	NodeId      int        `json:"nodeId"`
 }
 
 type CommunicationResponse struct {
@@ -380,10 +381,12 @@ type RebalanceRequest struct {
 	Origin          RebalanceRequestOrigin `json:"origin"`
 	// Either manually generated number for manual rebalance or
 	// WorkflowVersionNodeId for rebalance originating from workflows
-	OriginId           int    `json:"originId"`
-	OriginReference    string `json:"originReference"`
+	OriginId        int    `json:"originId"`
+	OriginReference string `json:"originReference"`
+	// Either IncomingChannelId is populated or OutgoingChannelId is.
+	IncomingChannelId int `json:"incomingChannelId"`
+	// Either OutgoingChannelId is populated or IncomingChannelId is.
 	OutgoingChannelId  int    `json:"outgoingChannelIds"`
-	IncomingChannelId  int    `json:"incomingChannelId"`
 	ChannelIds         []int  `json:"channelIds"`
 	AmountMsat         uint64 `json:"amountMsat"`
 	MaximumCostMsat    uint64 `json:"maximumCostMsat"`

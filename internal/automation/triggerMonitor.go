@@ -16,7 +16,7 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) {
 	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
 	bootstrapping := true
 	for {
@@ -92,7 +92,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 						continue
 					}
 					inputs["commons.WorkflowNodeTimeTrigger"] = string(marshalledTimerEvent)
-					processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs, eventChannel)
+					processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
 				case commons.WorkflowNodeChannelBalanceEventTrigger:
 					eventTime := time.Now()
 					dummyChannelBalanceEvents := make(map[int]map[int]*commons.ChannelBalanceEvent)
@@ -144,7 +144,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 								continue
 							}
 							inputs["commons.ChannelBalanceEvent"] = string(marshalledChannelBalanceEvent)
-							processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs, eventChannel)
+							processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
 						}
 					}
 				}
@@ -155,7 +155,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 }
 
 func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
-	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
+	broadcaster broadcast.BroadcastServer) {
 
 	listener := broadcaster.Subscribe()
 	for event := range listener {
@@ -208,22 +208,21 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
 				commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
 					workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
-				processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs, eventChannel)
+				processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
 			}
 		}
 	}
 }
 
 func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
-	workflowTriggerNode workflows.WorkflowNode, reference string, inputs map[string]string,
-	eventChannel chan interface{}) {
+	workflowTriggerNode workflows.WorkflowNode, reference string, inputs map[string]string) {
 
 	workflowNodeCache := make(map[int]workflows.WorkflowNode)
 	workflowNodeStatus := make(map[int]commons.Status)
 	workflowNodeStagingParametersCache := make(map[int]map[string]string)
 
 	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowTriggerNode,
-		0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, eventChannel, 0)
+		0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
 	workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionNodeId,
 		0, inputs, outputs, err)
 	if err != nil {
@@ -241,7 +240,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 	for _, workflowDeferredLinkNode := range workflowChannelBalanceTriggerNodes {
 		inputs = commons.CopyParameters(outputs)
 		outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowDeferredLinkNode,
-			0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, eventChannel, 0)
+			0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
 		workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
 			0, inputs, outputs, err)
 		if err != nil {

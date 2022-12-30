@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"time"
 
+	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -20,51 +22,42 @@ import (
 )
 
 type Rebalancer struct {
-	NodeId      int
-	RebalanceId int
-	ChannelIds  []int
-	// Either IncomingChannelId is populated or OutgoingChannelId is.
-	IncomingChannelId int
-	// Either OutgoingChannelId is populated or IncomingChannelId is.
-	OutgoingChannelId  int
-	Origin             commons.RebalanceRequestOrigin
-	OriginId           int
-	OriginReference    string
-	MaximumConcurrency int
-	AmountMsat         uint64
-	MaximumCostMsat    uint64
-	CreatedOn          time.Time
-	UpdateOn           time.Time
-	GlobalCtx          context.Context
-	RebalanceCtx       context.Context
-	RebalanceCancel    context.CancelFunc
-	Runners            map[int]*RebalanceRunner
+	NodeId          int
+	RebalanceId     int
+	Status          commons.Status
+	CreatedOn       time.Time
+	UpdateOn        time.Time
+	GlobalCtx       context.Context
+	RebalanceCtx    context.Context
+	RebalanceCancel context.CancelFunc
+	Runners         map[int]*RebalanceRunner
+	Request         commons.RebalanceRequest
 }
 
 func (rebalancer *Rebalancer) getRebalance() rebalances.Rebalance {
 	rebalance := rebalances.Rebalance{
-		Origin:             rebalancer.Origin,
-		OriginId:           rebalancer.OriginId,
-		OriginReference:    rebalancer.OriginReference,
-		Status:             commons.Active,
-		AmountMsat:         rebalancer.AmountMsat,
-		MaximumCostMsat:    rebalancer.MaximumCostMsat,
-		MaximumConcurrency: rebalancer.MaximumConcurrency,
+		Origin:             rebalancer.Request.Origin,
+		OriginId:           rebalancer.Request.OriginId,
+		OriginReference:    rebalancer.Request.OriginReference,
+		Status:             rebalancer.Status,
+		AmountMsat:         rebalancer.Request.AmountMsat,
+		MaximumCostMsat:    rebalancer.Request.MaximumCostMsat,
+		MaximumConcurrency: rebalancer.Request.MaximumConcurrency,
 		CreatedOn:          rebalancer.CreatedOn,
 		UpdateOn:           rebalancer.UpdateOn,
 	}
-	if rebalancer.IncomingChannelId != 0 {
-		rebalance.IncomingChannelId = &rebalancer.IncomingChannelId
+	if rebalancer.Request.IncomingChannelId != 0 {
+		rebalance.IncomingChannelId = &rebalancer.Request.IncomingChannelId
 	}
-	if rebalancer.OutgoingChannelId != 0 {
-		rebalance.OutgoingChannelId = &rebalancer.OutgoingChannelId
+	if rebalancer.Request.OutgoingChannelId != 0 {
+		rebalance.OutgoingChannelId = &rebalancer.Request.OutgoingChannelId
 	}
 	return rebalance
 }
 
 func (rebalancer *Rebalancer) getRebalanceChannels() []rebalances.RebalanceChannel {
 	var channels []rebalances.RebalanceChannel
-	for _, channelId := range rebalancer.ChannelIds {
+	for _, channelId := range rebalancer.Request.ChannelIds {
 		channels = append(channels, rebalances.RebalanceChannel{
 			ChannelId:   channelId,
 			Status:      commons.Active,
@@ -133,10 +126,12 @@ func (result RebalanceResult) getLog() rebalances.RebalanceLog {
 }
 
 func RebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
+	broadcaster broadcast.BroadcastServer) {
 
 	client := lnrpc.NewLightningClient(conn)
 	router := routerrpc.NewRouterClient(conn)
+
+	go initiateDelayedRebalancers(ctx, db, client, router)
 
 	for {
 		select {
@@ -156,23 +151,53 @@ func RebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, n
 				if request.NodeId != nodeId {
 					continue
 				}
+				if request.RequestTime == nil {
+					now := time.Now().UTC()
+					request.RequestTime = &now
+				}
 				// Previous rebalance cleanup delay
 				time.Sleep(time.Millisecond * commons.REBALANCE_REBALANCE_DELAY_MILLISECONDS)
-				processRebalanceRequest(ctx, db, request, client, router, nodeId, eventChannel)
+				processRebalanceRequest(ctx, db, request, nodeId)
 			}
 		}
 	}
 }
 
-func processRebalanceRequest(
-	ctx context.Context,
-	db *sqlx.DB,
-	request commons.RebalanceRequest,
-	client lnrpc.LightningClient,
-	router routerrpc.RouterClient,
-	nodeId int,
-	eventChannel chan interface{}) {
+func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
+	client lnrpc.LightningClient, router routerrpc.RouterClient) {
 
+	ticker := clock.New().Tick(commons.REBALANCE_QUEUE_TICKER_SECONDS * time.Second)
+	pending := commons.Pending
+	active := commons.Active
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker:
+			activeRebalancers := getRebalancers(&active)
+			if len(activeRebalancers) > commons.REBALANCE_MAXIMUM_CONCURRENCY {
+				continue
+			}
+
+			pendingRebalancers := getRebalancers(&pending)
+			if len(pendingRebalancers) > 0 {
+				sort.Slice(pendingRebalancers, func(i, j int) bool {
+					return pendingRebalancers[i].CreatedOn.Before(pendingRebalancers[j].CreatedOn)
+				})
+
+				if pendingRebalancers[0].CreatedOn.Before(time.Now()) {
+					go pendingRebalancers[0].start(db, client, router,
+						commons.REBALANCE_RUNNER_TIMEOUT_SECONDS,
+						commons.REBALANCE_ROUTES_TIMEOUT_SECONDS,
+						commons.REBALANCE_ROUTE_TIMEOUT_SECONDS)
+				}
+			}
+		}
+	}
+}
+
+func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.RebalanceRequest, nodeId int) {
 	response := validateRebalanceRequest(request)
 	if response != nil {
 		sendResponse(request, *response)
@@ -185,28 +210,28 @@ func processRebalanceRequest(
 		return
 	}
 
-	// TODO FIXME there should be a maximum amount of concurrent rebalancer
-	// we should implement a FIFO queue for the rebalancers once the maximum concurrency was reached
-
 	// TODO CHECK if other direction ran before in the last 5 minutes
 	// to prevent back-and-forth
 
 	createdOn := time.Now().UTC()
+
+	latestResult := getLatestResult(request.Origin, request.OriginId, request.IncomingChannelId, request.OutgoingChannelId, nil)
+	if latestResult.RebalanceId != 0 {
+		runningFor := request.RequestTime.Sub(latestResult.UpdateOn)
+		if runningFor.Seconds() < commons.REBALANCE_MINIMUM_DELTA_SECONDS {
+			sleepTime := commons.REBALANCE_MINIMUM_DELTA_SECONDS*time.Second - runningFor
+			createdOn.Add(sleepTime)
+		}
+	}
+
 	rebalancer := &Rebalancer{
-		NodeId:             nodeId,
-		Origin:             request.Origin,
-		OriginId:           request.OriginId,
-		OriginReference:    request.OriginReference,
-		IncomingChannelId:  request.IncomingChannelId,
-		OutgoingChannelId:  request.OutgoingChannelId,
-		ChannelIds:         request.ChannelIds,
-		AmountMsat:         request.AmountMsat,
-		MaximumCostMsat:    request.MaximumCostMsat,
-		MaximumConcurrency: request.MaximumConcurrency,
-		CreatedOn:          createdOn,
-		UpdateOn:           createdOn,
-		GlobalCtx:          ctx,
-		Runners:            make(map[int]*RebalanceRunner),
+		NodeId:    nodeId,
+		CreatedOn: createdOn,
+		UpdateOn:  createdOn,
+		GlobalCtx: ctx,
+		Runners:   make(map[int]*RebalanceRunner),
+		Request:   request,
+		Status:    commons.Pending,
 	}
 	rebalancerCtx, rebalancerCancel := context.WithTimeout(rebalancer.GlobalCtx,
 		time.Second*time.Duration(commons.REBALANCE_TIMEOUT_SECONDS))
@@ -219,14 +244,26 @@ func processRebalanceRequest(
 				Status: commons.Inactive,
 				Error: fmt.Sprintf(
 					"IncomingChannelId: %v already has a running rebalancer for origin: %v with reference number: %v",
-					rebalancer.IncomingChannelId, rebalancer.Origin, rebalancer.OriginReference),
+					rebalancer.Request.IncomingChannelId, rebalancer.Request.Origin, rebalancer.Request.OriginReference),
 			},
 		}
 		sendResponse(request, *response)
 		return
 	}
+}
 
-	previousSuccess := getLatestResult(rebalancer.Origin, rebalancer.OriginId, rebalancer.IncomingChannelId, rebalancer.OutgoingChannelId, commons.Active)
+func (rebalancer *Rebalancer) start(
+	db *sqlx.DB,
+	client lnrpc.LightningClient,
+	router routerrpc.RouterClient,
+	runnerTimeout int,
+	routesTimeout int,
+	routeTimeout int) {
+
+	active := commons.Active
+	rebalancer.Status = commons.Active
+	previousSuccess := getLatestResult(rebalancer.Request.Origin, rebalancer.Request.OriginId,
+		rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, &active)
 	if time.Since(previousSuccess.UpdateOn).Seconds() > commons.REBALANCE_SUCCESS_TIMEOUT_SECONDS {
 		previousSuccess = RebalanceResult{}
 	}
@@ -234,42 +271,19 @@ func processRebalanceRequest(
 	rebalanceId, err := rebalances.AddRebalanceAndChannels(db, (*rebalancer).getRebalance(), (*rebalancer).getRebalanceChannels())
 	if err != nil {
 		log.Error().Err(err).Msgf("Storing rebalance for origin: %v, originReference: %v and incomingChannelId: %v",
-			rebalancer.Origin, rebalancer.OriginReference, rebalancer.IncomingChannelId)
-		response = &commons.RebalanceResponse{
-			Request: request,
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId)
+		response := &commons.RebalanceResponse{
+			Request: rebalancer.Request,
 			CommunicationResponse: commons.CommunicationResponse{
 				Status: commons.Inactive,
 				Error:  "AddRebalancer was not completed",
 			},
 		}
-		sendResponse(request, *response)
-		rebalancerCancel()
+		sendResponse(rebalancer.Request, *response)
+		rebalancer.RebalanceCancel()
 		return
 	}
 	rebalancer.RebalanceId = rebalanceId
-	go rebalancer.start(request, previousSuccess, db, client, router,
-		commons.REBALANCE_RUNNER_TIMEOUT_SECONDS,
-		commons.REBALANCE_ROUTES_TIMEOUT_SECONDS,
-		commons.REBALANCE_ROUTE_TIMEOUT_SECONDS,
-		eventChannel)
-	sendResponse(request, commons.RebalanceResponse{
-		Request: request,
-		CommunicationResponse: commons.CommunicationResponse{
-			Status: commons.Active,
-		},
-	})
-}
-
-func (rebalancer *Rebalancer) start(
-	request commons.RebalanceRequest,
-	previousSuccess RebalanceResult,
-	db *sqlx.DB,
-	client lnrpc.LightningClient,
-	router routerrpc.RouterClient,
-	runnerTimeout int,
-	routesTimeout int,
-	routeTimeout int,
-	eventChannel chan interface{}) {
 
 	if previousSuccess.Hops != "" && previousSuccess.Route != nil {
 		dummyRunner := &RebalanceRunner{
@@ -280,7 +294,7 @@ func (rebalancer *Rebalancer) start(
 			FailedHops:        make(map[string]uint64),
 			Status:            commons.Active,
 		}
-		if rebalancer.IncomingChannelId != 0 {
+		if rebalancer.Request.IncomingChannelId != 0 {
 			// When incoming channel is provided then the runners loop over the outgoing channels
 			rebalancer.Runners[previousSuccess.OutgoingChannelId] = dummyRunner
 		} else {
@@ -294,34 +308,32 @@ func (rebalancer *Rebalancer) start(
 		if result.Status == commons.Active {
 			return
 		}
-		if rebalancer.IncomingChannelId != 0 {
+		if rebalancer.Request.IncomingChannelId != 0 {
 			// When incoming channel is provided then the runners loop over the outgoing channels
 			delete(rebalancer.Runners, previousSuccess.OutgoingChannelId)
 		} else {
 			delete(rebalancer.Runners, previousSuccess.IncomingChannelId)
 		}
 	}
-	for i := 0; i < rebalancer.MaximumConcurrency; i++ {
-		go rebalancer.createRunner(request, db, client, router, runnerTimeout, routesTimeout, routeTimeout, eventChannel)
+	for i := 0; i < rebalancer.Request.MaximumConcurrency; i++ {
+		go rebalancer.createRunner(db, client, router, runnerTimeout, routesTimeout, routeTimeout)
 	}
 }
 
 func (rebalancer *Rebalancer) createRunner(
-	request commons.RebalanceRequest,
 	db *sqlx.DB,
 	client lnrpc.LightningClient,
 	router routerrpc.RouterClient,
 	runnerTimeout int,
 	routesTimeout int,
-	routeTimeout int,
-	eventChannel chan interface{}) {
+	routeTimeout int) {
 
 	result := RebalanceResult{
 		Status:            commons.Initializing,
 		RebalanceId:       rebalancer.RebalanceId,
 		CreatedOn:         time.Now().UTC(),
-		IncomingChannelId: rebalancer.IncomingChannelId,
-		OutgoingChannelId: rebalancer.OutgoingChannelId,
+		IncomingChannelId: rebalancer.Request.IncomingChannelId,
+		OutgoingChannelId: rebalancer.Request.OutgoingChannelId,
 	}
 	channelId := rebalancer.getPendingChannelId()
 	if channelId == 0 {
@@ -332,16 +344,18 @@ func (rebalancer *Rebalancer) createRunner(
 		}
 		removeRebalancer(rebalancer)
 		rebalancer.RebalanceCancel()
-		if eventChannel != nil {
-			runningFor := time.Since(rebalancer.CreatedOn).Round(1 * time.Second)
-			log.Info().Msgf("Pending ChannelId got exhausted for rebalanceId: %v (%s)", rebalancer.RebalanceId, runningFor)
-			if runningFor.Seconds() < commons.REBALANCE_MINIMUM_DELTA_SECONDS {
-				sleepTime := commons.REBALANCE_MINIMUM_DELTA_SECONDS*time.Second - runningFor
-				log.Info().Msgf("Sleeping rebalanceId: %v for %s", rebalancer.RebalanceId, sleepTime)
-				time.Sleep(commons.REBALANCE_MINIMUM_DELTA_SECONDS*time.Second - runningFor)
-			}
-			log.Info().Msgf("Starting identical rebalancer similar to rebalanceId: %v", rebalancer.RebalanceId)
-			eventChannel <- request
+		runningFor := time.Since(rebalancer.CreatedOn).Round(1 * time.Second)
+		log.Info().Msgf("Pending ChannelId got exhausted for Origin: %v, OriginId: %v (%s)",
+			rebalancer.Request.Origin, rebalancer.Request.OriginId, runningFor)
+		if runningFor.Seconds() < commons.REBALANCE_MINIMUM_DELTA_SECONDS {
+			sleepTime := commons.REBALANCE_MINIMUM_DELTA_SECONDS*time.Second - runningFor
+			rebalancer.CreatedOn = time.Now().UTC()
+			rebalancer.CreatedOn = rebalancer.CreatedOn.Add(sleepTime)
+		}
+		rebalancer.Status = commons.Pending
+		if !addRebalancer(rebalancer) {
+			log.Error().Msgf("Failed to reschedule the rebalancer for Origin: %v, OriginId: %v",
+				rebalancer.Request.Origin, rebalancer.Request.OriginId)
 		}
 		return
 	}
@@ -358,7 +372,7 @@ func (rebalancer *Rebalancer) createRunner(
 	runner.Cancel()
 	runner.Status = commons.Inactive
 
-	rebalancer.createRunner(request, db, client, router, runnerTimeout, routesTimeout, routeTimeout, eventChannel)
+	rebalancer.createRunner(db, client, router, runnerTimeout, routesTimeout, routeTimeout)
 }
 
 func (rebalancer *Rebalancer) startRunner(
@@ -372,7 +386,8 @@ func (rebalancer *Rebalancer) startRunner(
 
 	routesCtx, routesCancel := context.WithTimeout(runner.Ctx, time.Second*time.Duration(routesTimeout))
 	defer routesCancel()
-	routes, err := runner.getRoutes(routesCtx, client, router, rebalancer.NodeId, rebalancer.AmountMsat, rebalancer.MaximumCostMsat)
+	routes, err := runner.getRoutes(routesCtx, client, router, rebalancer.NodeId,
+		rebalancer.Request.AmountMsat, rebalancer.Request.MaximumCostMsat)
 	if err != nil {
 		result.Status = commons.Inactive
 		result.Error = err.Error()
@@ -385,7 +400,7 @@ func (rebalancer *Rebalancer) startRunner(
 
 	for _, route := range routes {
 		routeCtx, routeCancel := context.WithTimeout(runner.Ctx, time.Second*time.Duration(routeTimeout))
-		result = runner.pay(routeCtx, client, router, rebalancer.AmountMsat, route)
+		result = runner.pay(routeCtx, client, router, rebalancer.Request.AmountMsat, route)
 		routeCancel()
 		if routeCtx.Err() == context.DeadlineExceeded {
 			result.Error = routeCtx.Err().Error()
@@ -403,7 +418,7 @@ func (rebalancer *Rebalancer) startRunner(
 
 func (rebalancer *Rebalancer) getPendingChannelId() int {
 outer:
-	for _, channelId := range rebalancer.ChannelIds {
+	for _, channelId := range rebalancer.Request.ChannelIds {
 		for existingChannelId := range rebalancer.Runners {
 			if existingChannelId == channelId {
 				continue outer
@@ -423,7 +438,7 @@ func (rebalancer *Rebalancer) rerunPreviousSuccess(
 
 	routeCtx, routeCancel := context.WithTimeout(rebalancer.RebalanceCtx, time.Second*time.Duration(routeTimeout))
 	defer routeCancel()
-	return runner.pay(routeCtx, client, router, rebalancer.AmountMsat, route)
+	return runner.pay(routeCtx, client, router, rebalancer.Request.AmountMsat, route)
 }
 
 func (rebalancer *Rebalancer) addRunner(channelId int, runnerCtx context.Context, runnerCancel context.CancelFunc) *RebalanceRunner {
@@ -436,12 +451,12 @@ func (rebalancer *Rebalancer) addRunner(channelId int, runnerCtx context.Context
 		Status:      commons.Active,
 	}
 
-	if rebalancer.IncomingChannelId != 0 {
-		runner.IncomingChannelId = rebalancer.IncomingChannelId
+	if rebalancer.Request.IncomingChannelId != 0 {
+		runner.IncomingChannelId = rebalancer.Request.IncomingChannelId
 		runner.OutgoingChannelId = channelId
 	} else {
 		runner.IncomingChannelId = channelId
-		runner.OutgoingChannelId = rebalancer.OutgoingChannelId
+		runner.OutgoingChannelId = rebalancer.Request.OutgoingChannelId
 	}
 
 	rebalancer.Runners[channelId] = &runner
@@ -450,7 +465,8 @@ func (rebalancer *Rebalancer) addRunner(channelId int, runnerCtx context.Context
 
 func (rebalancer *Rebalancer) processResult(db *sqlx.DB, result RebalanceResult) {
 	result.UpdateOn = time.Now().UTC()
-	addRebalanceResult(rebalancer.Origin, rebalancer.OriginId, rebalancer.IncomingChannelId, rebalancer.OutgoingChannelId, result)
+	addRebalanceResult(rebalancer.Request.Origin, rebalancer.Request.OriginId,
+		rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, result)
 	err := rebalances.AddRebalanceLog(db, result.getLog())
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to add rebalance log entry for rebalanceId: %v", rebalancer.RebalanceId)
@@ -547,6 +563,7 @@ func (runner *RebalanceRunner) pay(
 		return rebalanceResult
 	}
 	if result.Status == lnrpc.HTLCAttempt_FAILED {
+		rebalanceResult.Status = commons.Inactive
 		if result.Failure.FailureSourceIndex >= uint32(len(route.Hops)) {
 			rebalanceResult.Error = fmt.Sprintf("%s unknown hop index: %d. Maximum hop index: %d",
 				result.Failure.Code.String(), result.Failure.FailureSourceIndex, len(route.Hops))
@@ -560,6 +577,7 @@ func (runner *RebalanceRunner) pay(
 		prevHop := route.Hops[result.Failure.FailureSourceIndex-1]
 		failedHop := route.Hops[result.Failure.FailureSourceIndex]
 		if result.Failure.Code == lnrpc.Failure_TEMPORARY_CHANNEL_FAILURE {
+			rebalanceResult.Status = commons.Pending
 			runner.addFailedHop(prevHop.PubKey, failedHop.PubKey, uint64(prevHop.AmtToForwardMsat))
 		}
 		rebalanceResult.Error = fmt.Sprintf("error: %s occured at hop index %d (%v -> %v)",
@@ -694,22 +712,34 @@ func updateExistingRebalanceRequest(db *sqlx.DB, request commons.RebalanceReques
 	if rebalancer == nil {
 		return nil
 	}
-	if rebalancer.IncomingChannelId != request.IncomingChannelId || rebalancer.OutgoingChannelId != request.OutgoingChannelId {
+	if request.RequestTime != nil && rebalancer.UpdateOn.After(*request.RequestTime) {
+		return &commons.RebalanceResponse{
+			Request: request,
+			CommunicationResponse: commons.CommunicationResponse{
+				Status: commons.Inactive,
+				Error: fmt.Sprintf(
+					"IncomingChannelId: %v, OutgoingChannelId: %v already has a more recent running rebalancer for origin: %v with originId: %v (ref: %v)",
+					rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, rebalancer.Request.Origin, rebalancer.Request.OriginId,
+					rebalancer.Request.OriginReference),
+			},
+		}
+	}
+	if rebalancer.Request.IncomingChannelId != request.IncomingChannelId || rebalancer.Request.OutgoingChannelId != request.OutgoingChannelId {
 		removeRebalancer(rebalancer)
 		rebalancer.RebalanceCancel()
 		return nil
 	}
 	var err error
-	if rebalancer.AmountMsat != request.AmountMsat {
+	if rebalancer.Request.AmountMsat != request.AmountMsat {
 		err = setRebalancer(db, request, rebalancer)
-	} else if rebalancer.MaximumCostMsat != request.MaximumCostMsat {
+	} else if rebalancer.Request.MaximumCostMsat != request.MaximumCostMsat {
 		err = setRebalancer(db, request, rebalancer)
-	} else if rebalancer.MaximumConcurrency != request.MaximumConcurrency {
+	} else if rebalancer.Request.MaximumConcurrency != request.MaximumConcurrency {
 		err = setRebalancer(db, request, rebalancer)
-	} else if len(rebalancer.ChannelIds) != len(request.ChannelIds) {
+	} else if len(rebalancer.Request.ChannelIds) != len(request.ChannelIds) {
 		err = setRebalancer(db, request, rebalancer)
 	} else {
-		for _, channelId := range rebalancer.ChannelIds {
+		for _, channelId := range rebalancer.Request.ChannelIds {
 			if !slices.Contains(request.ChannelIds, channelId) {
 				err = setRebalancer(db, request, rebalancer)
 				break
@@ -723,8 +753,8 @@ func updateExistingRebalanceRequest(db *sqlx.DB, request commons.RebalanceReques
 				Status: commons.Inactive,
 				Error: fmt.Sprintf(
 					"(%v) for IncomingChannelId: %v, OutgoingChannelId: %v that already has a running rebalancer for origin: %v with originId: %v (ref: %v)",
-					err.Error(), rebalancer.IncomingChannelId, rebalancer.OutgoingChannelId, rebalancer.Origin, rebalancer.OriginId,
-					rebalancer.OriginReference),
+					err.Error(), rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId,
+					rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OriginReference),
 			},
 		}
 	}
@@ -734,24 +764,20 @@ func updateExistingRebalanceRequest(db *sqlx.DB, request commons.RebalanceReques
 			Status: commons.Inactive,
 			Error: fmt.Sprintf(
 				"IncomingChannelId: %v, OutgoingChannelId: %v already has a running rebalancer for origin: %v with originId: %v (ref: %v)",
-				rebalancer.IncomingChannelId, rebalancer.OutgoingChannelId, rebalancer.Origin, rebalancer.OriginId,
-				rebalancer.OriginReference),
+				rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId,
+				rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OriginReference),
 		},
 	}
 }
 
 func setRebalancer(db *sqlx.DB, request commons.RebalanceRequest, rebalancer *Rebalancer) error {
-	rebalancer.OriginReference = request.OriginReference
-	rebalancer.ChannelIds = request.ChannelIds
-	rebalancer.AmountMsat = request.AmountMsat
-	rebalancer.MaximumCostMsat = request.MaximumCostMsat
-	rebalancer.MaximumConcurrency = request.MaximumConcurrency
 	rebalancer.UpdateOn = time.Now().UTC()
+	rebalancer.Request = request
 	err := rebalances.SetRebalanceAndChannels(db, rebalancer.getRebalance(), rebalancer.getRebalanceChannels())
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to add rebalance log entry for rebalanceId: %v", rebalancer.RebalanceId)
 	}
 	return errors.Wrapf(err,
 		"Updating the database with the new rebalance settings for origin: %v with originId: %v (ref: %v)",
-		rebalancer.Origin, rebalancer.OriginId, rebalancer.OriginReference)
+		rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OriginReference)
 }

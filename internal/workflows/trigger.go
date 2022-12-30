@@ -15,8 +15,8 @@ import (
 // ProcessWorkflowNode workflowNodeStagingParametersCache[WorkflowVersionNodeId][inputLabel] (i.e. inputLabel = sourceChannelIds)
 func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, workflowNode WorkflowNode, triggeredWorkflowVersionNodeId int,
-	workflowNodeCache map[int]WorkflowNode, workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[string]string, reference string, inputs map[string]string,
-	eventChannel chan interface{}, iteration int) (map[string]string, commons.Status, error) {
+	workflowNodeCache map[int]WorkflowNode, workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[string]string,
+	reference string, inputs map[string]string, iteration int) (map[string]string, commons.Status, error) {
 
 	iteration++
 	if iteration > 100 {
@@ -137,7 +137,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				}
 			}
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId,
-				workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, eventChannel, iteration)
+				workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)
 			if childProcessingStatus != commons.Pending {
 				AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference,
 					workflowNode.WorkflowVersionNodeId, triggeredWorkflowVersionNodeId, inputs, childOutputs, err)

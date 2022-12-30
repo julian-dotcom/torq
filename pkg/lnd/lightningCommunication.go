@@ -14,7 +14,7 @@ import (
 )
 
 func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
+	broadcaster broadcast.BroadcastServer) {
 
 	client := lnrpc.NewLightningClient(conn)
 	router := routerrpc.NewRouterClient(conn)
@@ -45,9 +45,6 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 				if request.ResponseChannel != nil {
 					request.ResponseChannel <- response
 				}
-				if eventChannel != nil {
-					eventChannel <- response
-				}
 			}
 			if request, ok := event.(commons.RoutingPolicyUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
@@ -56,9 +53,6 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 				response := processRoutingPolicyUpdateRequest(ctx, request, client)
 				if request.ResponseChannel != nil {
 					request.ResponseChannel <- response
-				}
-				if eventChannel != nil {
-					eventChannel <- response
 				}
 			}
 		}

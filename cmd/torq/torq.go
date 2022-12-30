@@ -596,11 +596,11 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 	case commons.AmbossService:
 		err = amboss_ping.Start(ctx, conn)
 	case commons.AutomationService:
-		err = automation.Start(ctx, db, node.NodeId, broadcaster, eventChannel)
+		err = automation.Start(ctx, db, node.NodeId, broadcaster)
 	case commons.LightningCommunicationService:
-		err = automation.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster, eventChannel)
+		err = automation.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster)
 	case commons.RebalanceService:
-		err = automation.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster, eventChannel)
+		err = automation.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster)
 	}
 	if err != nil {
 		log.Error().Err(err).Msgf("%v Service ended for node id: %v", name, node.NodeId)
