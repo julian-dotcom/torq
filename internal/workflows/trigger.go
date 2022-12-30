@@ -55,31 +55,31 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			// When the node is pending then not all inputs are available yet
 			return nil, commons.Pending, nil
 		}
-		parameters := workflowNode.Parameters
+		//parameters := workflowNode.Parameters
 		activeOutputIndex := -1
 		switch workflowNode.Type {
 		case commons.WorkflowNodeSetVariable:
-			variableName := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableName).ValueString
-			stringVariableParameter := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableValueString)
-			if stringVariableParameter.ValueString != "" {
-				outputs[variableName] = stringVariableParameter.ValueString
-			} else {
-				outputs[variableName] = fmt.Sprintf("%d", getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableValueNumber).ValueNumber)
-			}
+			//variableName := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableName).ValueString
+			//stringVariableParameter := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableValueString)
+			//if stringVariableParameter.ValueString != "" {
+			//	outputs[variableName] = stringVariableParameter.ValueString
+			//} else {
+			//	outputs[variableName] = fmt.Sprintf("%d", getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableValueNumber).ValueNumber)
+			//}
 		case commons.WorkflowNodeFilterOnVariable:
-			variableName := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableName).ValueString
-			stringVariableParameter := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableValueString)
-			stringValue := ""
-			if stringVariableParameter.ValueString != "" {
-				stringValue = stringVariableParameter.ValueString
-			} else {
-				stringValue = fmt.Sprintf("%d", getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableValueNumber).ValueNumber)
-			}
-			if inputs[variableName] == stringValue {
-				activeOutputIndex = 0
-			} else {
-				activeOutputIndex = 1
-			}
+			//variableName := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableName).ValueString
+			//stringVariableParameter := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableValueString)
+			//stringValue := ""
+			//if stringVariableParameter.ValueString != "" {
+			//	stringValue = stringVariableParameter.ValueString
+			//} else {
+			//	stringValue = fmt.Sprintf("%d", getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableValueNumber).ValueNumber)
+			//}
+			//if inputs[variableName] == stringValue {
+			//	activeOutputIndex = 0
+			//} else {
+			//	activeOutputIndex = 1
+			//}
 		case commons.WorkflowNodeChannelFilter:
 
 		case commons.WorkflowNodeStageTrigger:

@@ -51,19 +51,30 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 				}
 				if workflowTriggerNode.Type == commons.WorkflowNodeTimeTrigger {
 
-					foundIt := false
-					for _, triggerParameter := range workflowTriggerNode.Parameters.Parameters {
-						if triggerParameter.Type == commons.WorkflowParameterTimeInSeconds && triggerParameter.ValueNumber != 0 {
-							if triggerSettings.BootTime != nil && int(time.Since(*triggerSettings.BootTime).Seconds()) < triggerParameter.ValueNumber {
-								continue
-							}
-							foundIt = true
-						}
-					}
-					if !foundIt {
-						log.Error().Err(err).Msgf("Trigger parameter could not be found for WorkflowVersionNodeId: %v.", workflowTriggerNode.WorkflowVersionNodeId)
+					param, ok := workflowTriggerNode.Parameters.(workflows.TimeTriggerParameters)
+					if !ok {
+						log.Error().Err(err).Msgf("Failed to obtain parameters for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 						continue
 					}
+
+					// TODO: Check if this is correct
+					if triggerSettings.BootTime != nil && int32(time.Since(*triggerSettings.BootTime).Seconds()) < param.Seconds {
+						continue
+					}
+
+					//foundIt := false
+					//for _, triggerParameter := range workflowTriggerNode.Parameters.Parameters {
+					//	if triggerParameter.Type == commons.WorkflowParameterTimeInSeconds && triggerParameter.ValueNumber != 0 {
+					//		if triggerSettings.BootTime != nil && int(time.Since(*triggerSettings.BootTime).Seconds()) < triggerParameter.ValueNumber {
+					//			continue
+					//		}
+					//		foundIt = true
+					//	}
+					//}
+					//if !foundIt {
+					//	log.Error().Err(err).Msgf("Trigger parameter could not be found for WorkflowVersionNodeId: %v.", workflowTriggerNode.WorkflowVersionNodeId)
+					//	continue
+					//}
 				}
 
 				bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)

@@ -1,16 +1,19 @@
-import useTranslations from "services/i18n/useTranslations";
 import { useState } from "react";
-import { MoneySettings20Regular as ChannelPolicyIcon } from "@fluentui/react-icons";
+import { MoneySettings20Regular as ChannelPolicyIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Input from "components/forms/input/Input";
 import { InputSizeVariant } from "components/forms/input/variants";
 import Form from "components/forms/form/Form";
 import Socket from "components/forms/socket/Socket";
 import { NodeColorVariant } from "../nodeVariants";
+import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
+import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
+import { NumberFormatValues } from "react-number-format";
 
 type ChannelPolicyNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
-type channelPolicy = {
+type channelPolicyConfigurationNode = {
   feeRate: number | undefined;
   baseFee: number | undefined;
   minHTLCAmount: number | undefined;
@@ -20,20 +23,30 @@ type channelPolicy = {
 export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
   const { t } = useTranslations();
 
-  const [channelPolicy, setChannelPolicy] = useState<channelPolicy>({
+  const [updateNode] = useUpdateNodeMutation();
+
+  const [channelPolicy, setChannelPolicy] = useState<channelPolicyConfigurationNode>({
     feeRate: undefined,
     baseFee: undefined,
     minHTLCAmount: undefined,
     maxHTLCAmount: undefined,
   });
 
-  function createChangeHandler(key: keyof channelPolicy) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
+  function createChangeHandler(key: keyof channelPolicyConfigurationNode) {
+    return (e: NumberFormatValues) => {
       setChannelPolicy((prev) => ({
         ...prev,
-        [key]: e.target.value,
+        [key]: e.floatValue,
       }));
     };
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    updateNode({
+      workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
+      parameters: channelPolicy,
+    });
   }
 
   return (
@@ -43,14 +56,14 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
       headerIcon={<ChannelPolicyIcon />}
       colorVariant={NodeColorVariant.accent1}
     >
-      <Form>
+      <Form onSubmit={handleSubmit}>
         <Socket label={"Channels"} id={"sss"} />
         <Input
           formatted={true}
           value={channelPolicy.feeRate}
           thousandSeparator={","}
           suffix={" ppm"}
-          onChange={createChangeHandler("feeRate")}
+          onValueChange={createChangeHandler("feeRate")}
           label={t.feeRate}
           sizeVariant={InputSizeVariant.small}
         />
@@ -59,7 +72,7 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
           value={channelPolicy.baseFee}
           thousandSeparator={","}
           suffix={" sat"}
-          onChange={createChangeHandler("baseFee")}
+          onValueChange={createChangeHandler("baseFee")}
           label={t.baseFee}
           sizeVariant={InputSizeVariant.small}
         />
@@ -68,7 +81,7 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
           value={channelPolicy.minHTLCAmount}
           thousandSeparator={","}
           suffix={" sat"}
-          onChange={createChangeHandler("minHTLCAmount")}
+          onValueChange={createChangeHandler("minHTLCAmount")}
           label={t.minHTLCAmount}
           sizeVariant={InputSizeVariant.small}
         />
@@ -77,10 +90,13 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
           value={channelPolicy.maxHTLCAmount}
           thousandSeparator={","}
           suffix={" sat"}
-          onChange={createChangeHandler("maxHTLCAmount")}
+          onValueChange={createChangeHandler("maxHTLCAmount")}
           label={t.maxHTLCAmount}
           sizeVariant={InputSizeVariant.small}
         />
+        <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
+          {t.save.toString()}
+        </Button>
       </Form>
     </WorkflowNodeWrapper>
   );

@@ -51,13 +51,46 @@ type WorkflowVersion struct {
 	UpdateOn          time.Time      `json:"updatedOn" db:"updated_on"`
 }
 
+type TimeTriggerParameters struct {
+	Seconds int32 `json:"seconds" db:"seconds"`
+}
+
+type ChannelPolicyConfigurationParameters struct {
+	FeeRate       int64 `json:"feeRate"`
+	BaseFee       int64 `json:"baseFee"`
+	MaxHtlcAmount int64 `json:"maxHtlcAmount"`
+	MinHtlcAmount int64 `json:"minHtlcAmount"`
+}
+
+type TagAction int
+
+const (
+	TagActionAdd = TagAction(iota)
+	TagActionRemove
+	TagActionToggle
+)
+
+type ModifyTagsParameters struct {
+	TagNames  []string  `json:"tagNames"`
+	TagAction TagAction `json:"tagAction"`
+}
+
+type ReBalanceParameters struct {
+	OutgoingChannelId  int    `json:"outgoingChannelIds"`
+	IncomingChannelId  int    `json:"incomingChannelId"`
+	ChannelIds         []int  `json:"channelIds"`
+	AmountMsat         uint64 `json:"amountMsat"`
+	MaximumCostMsat    uint64 `json:"maximumCostMsat"`
+	MaximumConcurrency int    `json:"maximumConcurrency"`
+}
+
 type WorkflowVersionNode struct {
 	WorkflowVersionNodeId int                            `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
 	Name                  string                         `json:"name" db:"name"`
 	Stage                 int                            `json:"stage" db:"stage"`
 	Status                commons.Status                 `json:"status" db:"status"`
 	Type                  commons.WorkflowNodeType       `json:"type" db:"type"`
-	Parameters            WorkflowNodeParameters         `json:"parameters" db:"parameters"`
+	Parameters            interface{}                    `json:"parameters" db:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
 	WorkflowVersionId     int                            `json:"workflowVersionId" db:"workflow_version_id"`
 	CreatedOn             time.Time                      `json:"createdOn" db:"created_on"`
@@ -123,7 +156,7 @@ type WorkflowNode struct {
 	Name                  string                          `json:"name"`
 	Status                commons.Status                  `json:"status"`
 	Type                  commons.WorkflowNodeType        `json:"type"`
-	Parameters            WorkflowNodeParameters          `json:"parameters"`
+	Parameters            interface{}                     `json:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings  `json:"visibilitySettings"`
 	UpdateOn              time.Time                       `json:"updatedOn"`
 	ParentNodes           map[int]*WorkflowNode           `json:"parentNodes"`
