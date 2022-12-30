@@ -104,6 +104,7 @@ type CreateNodeRequest struct {
 	Type               commons.WorkflowNodeType       `json:"type" db:"type"`
 	Stage              int                            `json:"stage" db:"stage"`
 	VisibilitySettings WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
+	Parameters         interface{}                    `json:"parameters" db:"parameters"`
 }
 
 type UpdateNodeRequest struct {

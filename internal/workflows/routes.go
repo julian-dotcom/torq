@@ -94,7 +94,7 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		},
 		Parameters: TimeTriggerParameters{
 			Seconds:  60 * 60,
-			TimeUnit: ONE_HOUR,
+			TimeUnit: ONE_HOUR, // 1 hour
 		},
 	}
 	_, err = createNode(db, initialNode)
