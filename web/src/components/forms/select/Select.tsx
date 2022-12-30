@@ -1,4 +1,4 @@
-import Select, { Props, components } from "react-select";
+import ReactSelect, { Props, components } from "react-select";
 import {
   ChevronDown16Regular as ChevronDownIcon,
   WarningRegular as WarningIcon,
@@ -92,7 +92,7 @@ export type SelectProps = Props & {
   errorText?: string;
 };
 
-export default function TorqSelect({
+export default function Select({
   label,
   colorVariant,
   sizeVariant,
@@ -124,7 +124,7 @@ export default function TorqSelect({
           </label>
         </div>
       )}
-      <Select
+      <ReactSelect
         id={selectProps.id || inputId}
         components={{ DropdownIndicator }}
         className={selectProps.className}

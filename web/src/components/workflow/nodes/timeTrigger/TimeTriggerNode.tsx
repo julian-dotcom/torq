@@ -1,35 +1,86 @@
+import { Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import { useEffect, useState } from "react";
 import useTranslations from "services/i18n/useTranslations";
-import { useState } from "react";
 import { Timer16Regular as TimeTriggerIcon } from "@fluentui/react-icons";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
-import Input from "components/forms/input/Input";
-import { InputSizeVariant } from "components/forms/input/variants";
-import Form from "components/forms/form/Form";
-import Socket from "components/forms/socket/Socket";
-import { NodeColorVariant } from "../nodeVariants";
+import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
+import { Form, Input, InputRow, InputSizeVariant, Select } from "components/forms/forms";
+import { ActionMeta } from "react-select";
+import { NumberFormatValues } from "react-number-format";
+import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
+import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 
 type TimeTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
+enum timeUnits {
+  seconds = 1,
+  minutes = 60,
+  hours = 3600,
+}
+
 type channelPolicy = {
-  frequency: number | undefined;
-  timeUnit: string | undefined;
+  seconds: number;
+  frequency: number;
+  timeUnit: string;
 };
+
+type timeUnitOption = { value: number; label: string };
+
+// A function for checking that the option passed into the handle select function is a timeUnitOptions
+function isTimeUnit(option: unknown): option is timeUnitOption {
+  return (option as timeUnitOption).value !== undefined;
+}
+
+// function that converts between time units
+function convertTimeUnits(from: timeUnits, to: timeUnits, value: number): number {
+  return (value * from) / to;
+}
+
+const initialSeconds = 60 * 60; // 1 hour
 
 export function TimeTriggerNode<T>({ ...wrapperProps }: TimeTriggerNodeProps) {
   const { t } = useTranslations();
 
-  const [channelPolicy, setChannelPolicy] = useState<channelPolicy>({
-    frequency: undefined,
-    timeUnit: undefined,
-  });
+  const [updateNode] = useUpdateNodeMutation();
 
-  function createChangeHandler(key: keyof channelPolicy) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      setChannelPolicy((prev) => ({
-        ...prev,
-        [key]: e.target.value,
-      }));
-    };
+  const [selectedTimeUnit, setSelectedTimeUnit] = useState<timeUnits>(timeUnits.hours);
+  const [frequency, setFrequency] = useState<number>(
+    convertTimeUnits(timeUnits.seconds, selectedTimeUnit, initialSeconds)
+  );
+  const [seconds, setSeconds] = useState<number>(initialSeconds);
+
+  const timeUnitOptions = [
+    { value: timeUnits.seconds, label: t.seconds },
+    { value: timeUnits.minutes, label: t.minutes },
+    { value: timeUnits.hours, label: t.hours },
+  ];
+
+  const selectedOption = timeUnitOptions.find((option) => option.value === selectedTimeUnit);
+
+  useEffect(() => {
+    setSeconds(convertTimeUnits(selectedTimeUnit, timeUnits.seconds, frequency));
+  }, [frequency, selectedTimeUnit]);
+
+  function handleFrequencyChange(values: NumberFormatValues) {
+    const value = values.floatValue ? values.floatValue : 0;
+    setFrequency(value);
+  }
+
+  function handleTimeUnitChange(newValue: unknown, actionMeta: ActionMeta<unknown>) {
+    if (isTimeUnit(newValue)) {
+      setFrequency(convertTimeUnits(selectedTimeUnit, newValue.value, frequency));
+      setSelectedTimeUnit(newValue.value);
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    updateNode({
+      workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
+      parameters: {
+        seconds: seconds,
+      },
+    });
   }
 
   return (
@@ -39,17 +90,29 @@ export function TimeTriggerNode<T>({ ...wrapperProps }: TimeTriggerNodeProps) {
       headerIcon={<TimeTriggerIcon />}
       colorVariant={NodeColorVariant.accent2}
     >
-      <Form>
-        <Socket label={"Channels"} id={"sss"} />
-        <Input
-          formatted={true}
-          value={channelPolicy.frequency}
-          thousandSeparator={","}
-          suffix={" ppm"}
-          onChange={createChangeHandler("frequency")}
-          label={t.feeRate}
-          sizeVariant={InputSizeVariant.small}
-        />
+      <Form onSubmit={handleSubmit}>
+        <InputRow>
+          <div style={{ flexGrow: 1 }}>
+            <Input
+              formatted={true}
+              value={frequency}
+              thousandSeparator={true}
+              suffix={` ${selectedOption?.label}`}
+              onValueChange={handleFrequencyChange}
+              label={t.TriggerEvery}
+              sizeVariant={InputSizeVariant.small}
+            />
+          </div>
+          <Select
+            options={timeUnitOptions}
+            onChange={handleTimeUnitChange}
+            value={selectedOption}
+            sizeVariant={InputSizeVariant.small}
+          />
+        </InputRow>
+        <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
+          {t.save.toString()}
+        </Button>
       </Form>
     </WorkflowNodeWrapper>
   );
