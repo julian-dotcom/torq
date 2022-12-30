@@ -185,6 +185,9 @@ func processRebalanceRequest(
 		return
 	}
 
+	// TODO FIXME there should be a maximum amount of concurrent rebalancer
+	// we should implement a FIFO queue for the rebalancers once the maximum concurrency was reached
+
 	// TODO CHECK if other direction ran before in the last 5 minutes
 	// to prevent back-and-forth
 
