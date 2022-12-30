@@ -679,14 +679,35 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 	return nil
 }
 
+type gw struct {
+	WorkflowVersionNode
+	Parameters []byte
+}
+
 func GetWorkflowVersionNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowVersionNode, error) {
-	var wfvn WorkflowVersionNode
-	err := db.Get(&wfvn, `SELECT * FROM workflow_version_node WHERE workflow_version_node_id=$1;`, workflowVersionNodeId)
+	var g gw
+	err := db.Get(&g, `SELECT * FROM workflow_version_node WHERE workflow_version_node_id=$1;`, workflowVersionNodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return WorkflowVersionNode{}, nil
 		}
 		return WorkflowVersionNode{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	// Unmarshal the parameters
+	wfvn := WorkflowVersionNode{
+		WorkflowVersionNodeId: g.WorkflowVersionNodeId,
+		Name:                  g.Name,
+		Stage:                 g.Stage,
+		Status:                g.Status,
+		Type:                  g.Type,
+		VisibilitySettings:    g.VisibilitySettings,
+		WorkflowVersionId:     g.WorkflowVersionId,
+		CreatedOn:             g.CreatedOn,
+		UpdateOn:              g.UpdateOn,
+	}
+	err = json.Unmarshal(g.Parameters, &wfvn.Parameters)
+	if err != nil {
+		return WorkflowVersionNode{}, errors.Wrap(err, "Unmarshalling the parameters for the workflow version node")
 	}
 	return wfvn, nil
 }

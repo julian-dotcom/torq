@@ -52,7 +52,8 @@ type WorkflowVersion struct {
 }
 
 type TimeTriggerParameters struct {
-	Seconds int32 `json:"seconds" db:"seconds"`
+	Seconds  int32 `json:"seconds" db:"seconds"`
+	TimeUnit int   `json:"timeUnit" db:"time_unit"` // Time Unit is just used in the frontend
 }
 
 type ChannelPolicyConfigurationParameters struct {

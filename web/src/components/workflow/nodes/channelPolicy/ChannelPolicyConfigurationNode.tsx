@@ -30,6 +30,7 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
     baseFee: undefined,
     minHTLCAmount: undefined,
     maxHTLCAmount: undefined,
+    ...wrapperProps.parameters,
   });
 
   function createChangeHandler(key: keyof channelPolicyConfigurationNode) {

@@ -36,18 +36,33 @@ function convertTimeUnits(from: timeUnits, to: timeUnits, value: number): number
   return (value * from) / to;
 }
 
-const initialSeconds = 60 * 60; // 1 hour
+const ONE_HOUR = 60 * 60; // 1 hour
+
+type TimeTriggerParameters = {
+  seconds: number;
+  timeUnit: timeUnits;
+};
+
+// Function for checking if the parameters passed into the node are of type TimeTriggerParameters
+function isTimeTriggerParameters(parameters: unknown): parameters is TimeTriggerParameters {
+  const p = parameters as TimeTriggerParameters;
+  return p.seconds !== undefined;
+}
 
 export function TimeTriggerNode<T>({ ...wrapperProps }: TimeTriggerNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
 
-  const [selectedTimeUnit, setSelectedTimeUnit] = useState<timeUnits>(timeUnits.hours);
+  const parameters = isTimeTriggerParameters(wrapperProps.parameters)
+    ? wrapperProps.parameters
+    : { seconds: ONE_HOUR, timeUnit: timeUnits.hours };
+
+  const [selectedTimeUnit, setSelectedTimeUnit] = useState<timeUnits>(parameters.timeUnit || timeUnits.seconds);
   const [frequency, setFrequency] = useState<number>(
-    convertTimeUnits(timeUnits.seconds, selectedTimeUnit, initialSeconds)
+    convertTimeUnits(timeUnits.seconds, selectedTimeUnit, parameters.seconds)
   );
-  const [seconds, setSeconds] = useState<number>(initialSeconds);
+  const [seconds, setSeconds] = useState<number>(ONE_HOUR);
 
   const timeUnitOptions = [
     { value: timeUnits.seconds, label: t.seconds },
@@ -79,6 +94,7 @@ export function TimeTriggerNode<T>({ ...wrapperProps }: TimeTriggerNodeProps) {
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: {
         seconds: seconds,
+        timeUnit: selectedTimeUnit,
       },
     });
   }
