@@ -730,18 +730,18 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	if err != nil {
 		return WorkflowVersionNode{}, errors.Wrap(err, "Unmarshalling visibilitySettingsJson")
 	}
-	
+
 	err = db.QueryRowx(`INSERT
 			INTO workflow_version_node
 				(name, stage, status, type, parameters, visibility_settings, workflow_version_id, created_on, updated_on)
 			VALUES ((SELECT(
 					SELECT
 						CASE WHEN count(*) = 0 THEN $1
-							 ELSE $1 || ' ' || (
-								 SELECT max(regexp_replace(name, ($1 || ' (\d+)'), '\1')::integer) + 1
+							 ELSE $1 || ' ' || coalesce((
+								 SELECT max(coalesce(regexp_replace(name, ($1 || ' (\d+)'), '\1'), '0')::numeric) + 1
 								 FROM workflow_version_node
-								 WHERE name ~* ($1 || ' (\d+)') and workflow_version_id = $7
-							 )
+								 WHERE workflow_version_id = $7 and name ~* ($1 || ' (\d+)')
+							 ), '1')
 						END
 					FROM workflow_version_node
 					WHERE name = $1 and workflow_version_id = $7)
