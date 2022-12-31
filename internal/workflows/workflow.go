@@ -128,17 +128,38 @@ func (wfn WorkflowVersionNode) GetWorkflowNodeStructured() WorkflowNode {
 	}
 }
 
+type WorkflowVersionNodeLinkVisibilitySettings struct{}
+
+func (nvls *WorkflowVersionNodeLinkVisibilitySettings) Scan(val interface{}) (err error) {
+	switch v := val.(type) {
+	case []byte:
+		err = json.Unmarshal(v, &nvls)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "Incompatible type for WorkflowNodeLinkVisibilitySettings")
+	}
+	return nil
+}
+
 type WorkflowVersionNodeLink struct {
-	WorkflowVersionNodeLinkId   int       `json:"workflowVersionNodeLinkId" db:"workflow_version_node_link_id"`
-	Name                        string    `json:"name" db:"name"`
-	VisibilitySettings          string    `json:"visibilitySettings" db:"visibility_settings"`
-	ParentOutputIndex           int       `json:"parentOutputIndex" db:"parent_output_index"`
-	ParentWorkflowVersionNodeId int       `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
-	ChildInputIndex             int       `json:"childInputIndex" db:"child_input_index"`
-	ChildWorkflowVersionNodeId  int       `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
-	WorkflowVersionId           int       `json:"workflowVersionId" db:"workflow_version_id"`
-	CreatedOn                   time.Time `json:"createdOn" db:"created_on"`
-	UpdateOn                    time.Time `json:"updatedOn" db:"updated_on"`
+	WorkflowVersionNodeLinkId   int                                       `json:"workflowVersionNodeLinkId" db:"workflow_version_node_link_id"`
+	Name                        string                                    `json:"name" db:"name"`
+	VisibilitySettings          WorkflowVersionNodeLinkVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
+	ParentOutputIndex           int                                       `json:"parentOutputIndex" db:"parent_output_index"`
+	ParentWorkflowVersionNodeId int                                       `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
+	ChildInputIndex             int                                       `json:"childInputIndex" db:"child_input_index"`
+	ChildWorkflowVersionNodeId  int                                       `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
+	WorkflowVersionId           int                                       `json:"workflowVersionId" db:"workflow_version_id"`
+	CreatedOn                   time.Time                                 `json:"createdOn" db:"created_on"`
+	UpdateOn                    time.Time                                 `json:"updatedOn" db:"updated_on"`
+}
+
+type CreateWorkflowVersionNodeLinkRequest struct {
+	WorkflowVersionId           int `json:"workflowVersionId" db:"workflow_version_id"`
+	ParentOutputIndex           int `json:"parentOutputIndex" db:"parent_output_index"`
+	ParentWorkflowVersionNodeId int `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
+	ChildInputIndex             int `json:"childInputIndex" db:"child_input_index"`
+	ChildWorkflowVersionNodeId  int `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
 }
 
 type WorkflowVersionNodeLog struct {
@@ -172,9 +193,10 @@ type WorkflowForest struct {
 }
 
 type WorkflowPage struct {
-	Workflow       Workflow        `json:"workflow"`
-	Version        WorkflowVersion `json:"version"`
-	WorkflowForest WorkflowForest  `json:"workflowForest"`
+	Workflow Workflow                  `json:"workflow"`
+	Version  WorkflowVersion           `json:"version"`
+	Nodes    []WorkflowVersionNode     `json:"nodes"`
+	Links    []WorkflowVersionNodeLink `json:"links"`
 }
 
 type WorkflowNodeParameter struct {

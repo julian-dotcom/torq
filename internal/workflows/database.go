@@ -250,7 +250,7 @@ func cloneWorkflowVersion(db *sqlx.DB, workflowId int, cloneVersionId *int) (Wor
 		return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 
-	// Strart a new transaction so that we can rollback if something goes wrong
+	// Start a new transaction so that we can roll back if something goes wrong
 	var tx *sql.Tx
 	tx, err = db.Begin()
 	if err != nil {
@@ -431,14 +431,14 @@ func GetActiveSortedStageTriggerNodeForWorkflowVersionId(db *sqlx.DB, workflowVe
 	return response, nil
 }
 
-func getWorkflowNodeParameter(parameters WorkflowNodeParameters, parameterType commons.WorkflowParameterType) WorkflowNodeParameter {
-	for _, parameter := range parameters.Parameters {
-		if parameter.Type == parameterType {
-			return parameter
-		}
-	}
-	return WorkflowNodeParameter{}
-}
+//func getWorkflowNodeParameter(parameters WorkflowNodeParameters, parameterType commons.WorkflowParameterType) WorkflowNodeParameter {
+//	for _, parameter := range parameters.Parameters {
+//		if parameter.Type == parameterType {
+//			return parameter
+//		}
+//	}
+//	return WorkflowNodeParameter{}
+//}
 
 // GetWorkflowNode is not recursive and only returns direct parent/child relations without further nesting.
 func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, error) {
@@ -474,6 +474,19 @@ func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, erro
 	}
 
 	return response, nil
+}
+
+func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int) ([]WorkflowVersionNode, error) {
+	// Query all workflow nodes for the given workflow version
+	var workflowVersionNodes []WorkflowVersionNode
+	err := db.Select(&workflowVersionNodes, `SELECT * FROM workflow_version_node WHERE workflow_version_id=$1;`, workflowVersionId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []WorkflowVersionNode{}, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return workflowVersionNodes, nil
 }
 
 func GetWorkflowForest(db *sqlx.DB, workflowVersionId int) (WorkflowForest, error) {
@@ -647,7 +660,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 		var versionNodeLinkId int
 		var parentsOutputIndex int
 		var linkName string
-		var linkVisibilitySettings string
+		var linkVisibilitySettings WorkflowVersionNodeLinkVisibilitySettings
 		var childsInputIndex int
 		err := rows.Scan(&versionNodeId, &name, &status, &nodeType, &parameters, &visibilitySettings, &workflowVersionId, &updatedOn,
 			&versionNodeLinkId, &parentsVersionNodeId, &parentsOutputIndex, &linkName, &linkVisibilitySettings,
@@ -852,25 +865,62 @@ func deleteStage(db *sqlx.DB, workflowVersionId int, stage int) error {
 	}
 
 	err = tx.Commit()
+	if err != nil {
+		return errors.Wrap(err, "committing workflow stage deletion failed")
+	}
 
 	return nil
 }
 
-func addWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVersionNodeLink) (WorkflowVersionNodeLink, error) {
-	workflowVersionNodeLink.CreatedOn = time.Now().UTC()
-	if workflowVersionNodeLink.Name == "" {
-		workflowVersionNodeLink.Name = fmt.Sprintf("%v", workflowVersionNodeLink.CreatedOn.Format("20060102.150405.000000"))
+func GetWorkflowVersionNodeLinks(db *sqlx.DB, workflowVersionId int) ([]WorkflowVersionNodeLink, error) {
+	var links []WorkflowVersionNodeLink
+	err := db.Select(&links, `SELECT * FROM workflow_version_node_link WHERE workflow_version_id = $1;`, workflowVersionId)
+	if err != nil {
+		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
-	workflowVersionNodeLink.UpdateOn = workflowVersionNodeLink.CreatedOn
-	err := db.QueryRowx(`INSERT INTO workflow_version_node_link
-    	(name, visibility_settings, parent_output_index, parent_workflow_version_node_id,
-    	 child_input_index, child_workflow_version_node_id, workflow_version_id, created_on, updated_on)
+
+	return links, nil
+}
+
+func addWorkflowVersionNodeLink(db *sqlx.DB, req CreateWorkflowVersionNodeLinkRequest) (WorkflowVersionNodeLink, error) {
+	var wvnl WorkflowVersionNodeLink
+
+	wvnl.CreatedOn = time.Now().UTC()
+	wvnl.UpdateOn = time.Now().UTC()
+	wvnl.VisibilitySettings = WorkflowVersionNodeLinkVisibilitySettings{}
+	visibilitySettingsBytes, err := json.Marshal(wvnl.VisibilitySettings)
+	if err != nil {
+		return WorkflowVersionNodeLink{}, errors.Wrap(err, "JSON Marshaling Node Link VisibilitySettings")
+	}
+	// NB: we need to add the same name guard in the SQL if we give the user the ability to change link names.
+	wvnl.Name = wvnl.CreatedOn.Format("20060102.150405.000000")
+
+	wvnl.WorkflowVersionId = req.WorkflowVersionId
+	wvnl.ParentWorkflowVersionNodeId = req.ParentWorkflowVersionNodeId
+	wvnl.ChildWorkflowVersionNodeId = req.ChildWorkflowVersionNodeId
+	wvnl.ParentOutputIndex = req.ParentOutputIndex
+	wvnl.ChildInputIndex = req.ChildInputIndex
+
+	err = db.QueryRowx(`INSERT INTO workflow_version_node_link
+    	(name,
+    	 visibility_settings,
+    	 parent_output_index,
+    	 parent_workflow_version_node_id,
+    	 child_input_index,
+    	 child_workflow_version_node_id,
+    	 workflow_version_id,
+    	 created_on,
+    	 updated_on)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING workflow_version_node_link_id;`,
-		workflowVersionNodeLink.Name, workflowVersionNodeLink.VisibilitySettings,
-		workflowVersionNodeLink.ParentOutputIndex, workflowVersionNodeLink.ParentWorkflowVersionNodeId,
-		workflowVersionNodeLink.ChildInputIndex, workflowVersionNodeLink.ChildWorkflowVersionNodeId,
-		workflowVersionNodeLink.WorkflowVersionId,
-		workflowVersionNodeLink.CreatedOn, workflowVersionNodeLink.UpdateOn).Scan(&workflowVersionNodeLink.WorkflowVersionNodeLinkId)
+		wvnl.Name,
+		visibilitySettingsBytes,
+		wvnl.ParentOutputIndex,
+		wvnl.ParentWorkflowVersionNodeId,
+		wvnl.ChildInputIndex,
+		wvnl.ChildWorkflowVersionNodeId,
+		wvnl.WorkflowVersionId,
+		wvnl.CreatedOn,
+		wvnl.UpdateOn).Scan(&wvnl.WorkflowVersionNodeLinkId)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -879,10 +929,10 @@ func addWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVer
 		}
 		return WorkflowVersionNodeLink{}, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return workflowVersionNodeLink, nil
+	return wvnl, nil
 }
 
-func setWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVersionNodeLink) (WorkflowVersionNodeLink, error) {
+func updateWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVersionNodeLink) (WorkflowVersionNodeLink, error) {
 	workflowVersionNodeLink.UpdateOn = time.Now().UTC()
 	_, err := db.Exec(`UPDATE workflow_version_node_link
 		SET name=$1, visibility_settings=$2, parent_output_index=$3,
@@ -953,7 +1003,7 @@ func GetWorkflowLogs(db *sqlx.DB, workflowId int, maximumResultCount int) ([]Wor
 				JOIN workflow_version_node wfvn ON wfvn.workflow_version_node_id=wfvnls.workflow_version_node_id
 				JOIN workflow_version wfv ON wfv.workflow_version_id=wfvn.workflow_version_id
 				WHERE wfv.workflow_id=$1
-				ORDER BY created_on DESC
+				ORDER BY wfvnls.created_on DESC
 				LIMIT $2;`, workflowId, maximumResultCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

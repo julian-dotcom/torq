@@ -8,6 +8,8 @@ import { NodeContext } from "./WorkflowNodeWrapper";
 export type NodeConnectorProps = {
   id: string;
   name: string;
+  workflowVersionId: number;
+  workflowVersionNodeId: number;
 };
 
 function NodeConnector<T>(props: NodeConnectorProps) {
@@ -31,8 +33,9 @@ function NodeConnector<T>(props: NodeConnectorProps) {
 
     // Set the information about which node and connector is being dragged.
     const nodeId = nodeRef?.current?.id ? nodeRef?.current?.id : "unknown";
-    e.dataTransfer.setData("node/id", nodeId);
-    e.dataTransfer.setData("node/connectorId", props.id);
+    e.dataTransfer.setData("node/workflowVersionId", props.workflowVersionId.toString());
+    e.dataTransfer.setData("node/parentWorkflowVersionNodeId", props.workflowVersionNodeId.toString());
+    e.dataTransfer.setData("node/parentOutputIndex", "1");
     nodeRef?.current?.classList.add(styles.connecting);
     e.dataTransfer.setData("node/name", props.name);
 

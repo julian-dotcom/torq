@@ -13,7 +13,7 @@ import {
   Play16Regular as ActivateIcon,
 } from "@fluentui/react-icons";
 import Collapse from "features/collapse/Collapse";
-import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
+import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
 import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
@@ -28,7 +28,7 @@ export const NodeContext = React.createContext<nodeRefType>({
   nodeName: "",
 });
 
-export type WorkflowNodeProps = WorkflowNode & {
+export type WorkflowNodeProps = WorkflowVersionNode & {
   id: string;
   heading?: string;
   headerIcon?: JSX.Element;
@@ -202,7 +202,12 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
               </Button>
             </div>
           </PopoverButton>
-          <NodeConnector id={connectorId} name={props.name} />
+          <NodeConnector
+            id={connectorId}
+            name={props.name}
+            workflowVersionNodeId={props.workflowVersionNodeId}
+            workflowVersionId={props.workflowVersionId}
+          />
         </div>
         <Collapse collapsed={collapsed} animate={true}>
           <div className={styles.workflowNodeBody}>{props.children}</div>

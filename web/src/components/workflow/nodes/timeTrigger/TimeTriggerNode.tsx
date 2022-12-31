@@ -116,6 +116,9 @@ export function TimeTriggerNode<T>({ ...wrapperProps }: TimeTriggerNodeProps) {
               suffix={` ${selectedOption?.label}`}
               onValueChange={handleFrequencyChange}
               label={t.TriggerEvery}
+              helpText={
+                "Field sets the frequency of the trigger. For example 1 minute means the trigger will fire every minute."
+              }
               sizeVariant={InputSizeVariant.small}
             />
           </div>

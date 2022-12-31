@@ -58,7 +58,13 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
       colorVariant={NodeColorVariant.accent1}
     >
       <Form onSubmit={handleSubmit}>
-        <Socket label={"Channels"} id={"sss"} />
+        <Socket
+          label={"Channels"}
+          id={"sss"}
+          workflowVersionId={wrapperProps.workflowVersionId}
+          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
+          inputIndex={1}
+        />
         <Input
           formatted={true}
           value={channelPolicy.feeRate}

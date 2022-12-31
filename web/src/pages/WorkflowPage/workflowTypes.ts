@@ -34,6 +34,18 @@ export type WorkflowNode = {
   workflowVersionNodeId: number;
 };
 
+export type WorkflowVersionNode = {
+  name: string;
+  stage: number;
+  parameters: {};
+  status: number;
+  type: number;
+  updatedOn: string;
+  visibilitySettings: VisibilitySettings;
+  workflowVersionId: number;
+  workflowVersionNodeId: number;
+};
+
 export type NewWorkflowNodeRequest = {
   type: number;
   name: string;
@@ -49,6 +61,27 @@ export type UpdateWorkflowNodeRequest = Partial<{
   visibilitySettings?: VisibilitySettings;
   parameters?: {};
 }>;
+
+export type WorkflowVersionNodeLink = {
+  workflowVersionId: number;
+  workflowVersionNodeLinkId: number;
+  name: string;
+  visibilitySettings: string;
+  parentOutputIndex: number;
+  parentWorkflowVersionNodeId: number;
+  childInputIndex: number;
+  childWorkflowVersionNodeId: number;
+  createdOn: Date;
+  updatedOn: Date;
+};
+
+export type CreateWorkflowVersionNodeLink = {
+  workflowVersionId: number;
+  parentOutputIndex: number;
+  parentWorkflowVersionNodeId: number;
+  childInputIndex: number;
+  childWorkflowVersionNodeId: number;
+};
 
 export type WorkflowVersion = {
   workflowVersionId: number;
@@ -69,7 +102,11 @@ export type Workflow = {
 };
 
 export type WorkflowStages = {
-  [key: number]: Array<WorkflowNode>;
+  [key: number]: Array<WorkflowVersionNode>;
+};
+
+export type WorkflowVersionNodeLinks = {
+  [key: number]: WorkflowVersionNodeLink;
 };
 
 export type WorkflowForest = {
@@ -79,7 +116,7 @@ export type WorkflowForest = {
 export type FullWorkflow = {
   workflow: Workflow;
   version: WorkflowVersion;
-  workflowForest: WorkflowForest;
+  nodes: Array<WorkflowVersionNode>;
 };
 
 export type UpdateWorkflow = {

@@ -13,7 +13,7 @@ import useTranslations from "services/i18n/useTranslations";
 import { useNavigate } from "react-router";
 import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/workflowApi";
 import { ReactNode } from "react";
-import { Workflow, WorkflowStages, WorkflowVersion } from "./workflowTypes";
+import { Workflow, WorkflowStages, WorkflowVersion, WorkflowVersionNode } from "./workflowTypes";
 import { ChannelPolicyNode } from "components/workflow/nodes/nodes";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import { TriggerNodeTypes } from "./constants";
@@ -63,7 +63,14 @@ export function useWorkflowData(workflowId?: string, version?: string) {
   const workflow: Workflow | undefined = data?.workflow;
   const workflowVersion: WorkflowVersion | undefined = data?.version;
 
-  const stages: WorkflowStages = data?.workflowForest?.sortedStageTrees || {}; //.map((s) => parseInt(s));
+  // reduce the workflow nodes to an object of stages containing an array of nodes
+  const stages: WorkflowStages =
+    (data?.nodes || []).reduce((acc: WorkflowStages, node: WorkflowVersionNode) => {
+      const stage = acc[node.stage] || [];
+      stage.push(node);
+      acc[node.stage] = stage;
+      return acc;
+    }, {}) || {};
 
   return { workflow, workflowVersion, stages };
 }

@@ -1,5 +1,6 @@
 import { torqApi } from "apiSlice";
 import {
+  CreateWorkflowVersionNodeLink,
   FullWorkflow,
   NewWorkflowNodeRequest,
   UpdateWorkflow,
@@ -72,6 +73,14 @@ export const workflowApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["workflow"],
     }),
+    addNodeLink: builder.mutation<void, CreateWorkflowVersionNodeLink>({
+      query: (body) => ({
+        url: `workflows/links`,
+        method: "POST",
+        body: body,
+      }),
+      invalidatesTags: ["workflow"],
+    }),
   }),
 });
 // Export hooks for usage in functional components, which are
@@ -86,4 +95,5 @@ export const {
   useUpdateNodeMutation,
   useDeleteNodeMutation,
   useDeleteStageMutation,
+  useAddNodeLinkMutation,
 } = workflowApi;

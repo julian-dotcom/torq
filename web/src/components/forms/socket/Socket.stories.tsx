@@ -6,8 +6,7 @@ import { InputSizeVariant, InputColorVaraint } from "components/forms/variants";
 import { useArgs } from "@storybook/client-api";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import WorkflowNodeWrapper from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
-import { WorkflowNode } from "pages/WorkflowPage/workflowTypes";
-import { useState } from "react";
+import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 
 export default {
@@ -18,27 +17,21 @@ export default {
 const Template: Story<SocketProps> = (args) => {
   const [_, updateArgs] = useArgs();
 
-  const nodeData: WorkflowNode = {
+  const nodeData: WorkflowVersionNode = {
     workflowVersionNodeId: 1,
     name: "sdafsdf",
     status: 1,
+    stage: 1,
     type: 3,
     parameters: {},
     visibilitySettings: {
       collapsed: false,
-      xPosition: 100,
-      yPosition: 100,
+      xPosition: 0,
+      yPosition: 0,
     },
     updatedOn: "2022-12-22T18:01:38.655Z",
-    parentNodes: {},
-    childNodes: {},
-    LinkDetails: {},
     workflowVersionId: 1,
   };
-  const [positionsState, setPositionsState] = useState({ 1: { x: 100, y: 100 } });
-  function handlePositionChange(stage: number, position: { x: number; y: number }) {
-    setPositionsState({ ...positionsState, [stage]: position });
-  }
 
   return (
     <Provider store={store}>

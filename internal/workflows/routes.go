@@ -319,16 +319,30 @@ func getNodesHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	workflowForest, err := GetWorkflowForest(db, workflowVersion.WorkflowVersionId)
+	//workflowForest, err := GetWorkflowForest(db, workflowVersion.WorkflowVersionId)
+	//if err != nil {
+	//	server_errors.WrapLogAndSendServerError(c, err, "Getting workflow forest.")
+	//	return
+	//}
+
+	nodes, err := GetWorkflowNodes(db, workflowVersion.WorkflowVersionId)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Getting workflow forest.")
+		server_errors.WrapLogAndSendServerError(c, err, "Getting workflow nodes.")
+		return
+	}
+
+	// get workflow version node links
+	workflowVersionNodeLinks, err := GetWorkflowVersionNodeLinks(db, workflowVersion.WorkflowVersionId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Getting workflow version node links.")
 		return
 	}
 
 	r := WorkflowPage{
-		Workflow:       workflow,
-		Version:        workflowVersion,
-		WorkflowForest: workflowForest,
+		Workflow: workflow,
+		Version:  workflowVersion,
+		Nodes:    nodes,
+		Links:    workflowVersionNodeLinks,
 	}
 
 	c.JSON(http.StatusOK, r)
@@ -399,7 +413,7 @@ func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func addNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
-	var wfvnl WorkflowVersionNodeLink
+	var wfvnl CreateWorkflowVersionNodeLinkRequest
 	if err := c.BindJSON(&wfvnl); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
@@ -418,7 +432,7 @@ func updateNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	storedWorkflowVersionNodeLink, err := setWorkflowVersionNodeLink(db, wfvnl)
+	storedWorkflowVersionNodeLink, err := updateWorkflowVersionNodeLink(db, wfvnl)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow for WorkflowVersionNodeLinkId: %v", wfvnl.WorkflowVersionNodeLinkId))
 		return

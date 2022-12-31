@@ -6,15 +6,20 @@ import styles from "./socket_input.module.scss";
 import { GetColorClass, GetSizeClass, InputColorVaraint } from "components/forms/input/variants";
 import { NodeContext } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { BasicInputType } from "components/forms/formTypes";
+import { useAddNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
 
 export type SocketProps = BasicInputType & {
   id: string;
+  workflowVersionId: number;
+  workflowVersionNodeId: number;
+  inputIndex: number;
   connectedNodeName?: string;
   placeholder?: string;
 };
 
 function Socket<T>(props: SocketProps) {
   const { t } = useTranslations();
+  const [addLink] = useAddNodeLinkMutation();
 
   let inputColorClass = GetColorClass(props.colorVariant);
   if (props.warningText != undefined) {
@@ -31,22 +36,20 @@ function Socket<T>(props: SocketProps) {
     e.preventDefault();
     e.stopPropagation();
     // Get the id of the nodes connector that was dropped
-    const nodeid = e.dataTransfer.getData("node/id");
-    const connectorId = e.dataTransfer.getData("node/connectorId");
+    const parentWorkflowVersionNodeId = parseInt(e.dataTransfer.getData("node/parentWorkflowVersionNodeId"));
+    const parentOutputIndex = parseInt(e.dataTransfer.getData("node/parentOutputIndex"));
     const nodeName = e.dataTransfer.getData("node/name");
-    // e.dataTransfer.clearData("node/id");
+
     if (nodeName) {
-      console.log(
-        "Dropped from node: " +
-          nodeid +
-          " with connector: " +
-          connectorId +
-          " on node: " +
-          nodeRef?.current?.id +
-          " with socket: " +
-          props.id
-      );
       setConnectedNodeName(nodeName);
+
+      addLink({
+        workflowVersionId: props.workflowVersionId,
+        childInputIndex: props.inputIndex,
+        childWorkflowVersionNodeId: props.workflowVersionNodeId,
+        parentOutputIndex: parentOutputIndex,
+        parentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
+      });
     }
   }
 

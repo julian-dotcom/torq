@@ -8,4 +8,5 @@ export type BasicInputType = {
   leftIcon?: React.ReactNode;
   errorText?: string;
   warningText?: string;
+  helpText?: string;
 };
