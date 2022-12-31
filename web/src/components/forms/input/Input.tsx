@@ -1,7 +1,11 @@
 import React from "react";
 import classNames from "classnames";
 import NumberFormat, { NumberFormatProps } from "react-number-format";
-import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
+import {
+  WarningRegular as WarningIcon,
+  ErrorCircleRegular as ErrorIcon,
+  QuestionCircle16Regular as HelpIcon,
+} from "@fluentui/react-icons";
 import { GetColorClass, GetSizeClass, InputColorVaraint, InputSizeVariant } from "components/forms/input/variants";
 import styles from "./textInput.module.scss";
 import { BasicInputType } from "components/forms/formTypes";
@@ -17,6 +21,7 @@ export type FormattedInputProps = {
   leftIcon?: React.ReactNode;
   errorText?: string;
   warningText?: string;
+  helpText?: string;
 } & NumberFormatProps;
 
 function Input({
@@ -27,6 +32,7 @@ function Input({
   leftIcon,
   errorText,
   warningText,
+  helpText,
   ...inputProps
 }: InputProps | FormattedInputProps) {
   const inputId = React.useId();
@@ -62,9 +68,21 @@ function Input({
     <div className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}>
       {label && (
         <div className={styles.labelWrapper}>
-          <label htmlFor={inputProps.id || inputId} className={styles.label}>
+          <label htmlFor={inputProps.id || inputId} className={styles.label} title={"Something"}>
             {label}
           </label>
+          {/* Create a div with a circled question mark icon with a data label named data-title */}
+          {helpText && (
+            <div className={styles.tooltip}>
+              <HelpIcon />
+              <div className={styles.tooltipTextWrapper}>
+                <div className={styles.tooltipTextContainer}>
+                  <div className={styles.tooltipHeader}>{label}</div>
+                  <div className={styles.tooltipText}>{helpText}</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div className={classNames(styles.inputFieldContainer, { [styles.hasLeftIcon]: !!leftIcon })}>
