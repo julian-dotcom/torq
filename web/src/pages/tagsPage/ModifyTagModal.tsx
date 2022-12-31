@@ -10,14 +10,12 @@ import {
   Molecule20Regular as NodesIcon,
   TargetArrow20Regular as TargetIcon,
 } from "@fluentui/react-icons";
-import { WS_URL } from "apiSlice";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import { ChangeEvent, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router";
-import useWebSocket from "react-use-websocket";
 import styles from "./modifyTagModal.module.scss";
 import useTranslations from "services/i18n/useTranslations";
 import Select, { SelectOptions } from "features/forms/Select";
@@ -25,7 +23,6 @@ import { ActionMeta } from "react-select";
 import clone from "clone";
 import classNames from "classnames";
 import Collapse from "features/collapse/Collapse";
-import { NewAddressResponse, NewAddressError, AddressType } from "features/transact/newAddress/NewAddressModal"
 import FormRow from "features/forms/FormWrappers";
 import Input from "components/forms/input/Input";
 import { useGetCategoriesQuery } from "pages/categoriesPage/categoriesApi";
@@ -38,7 +35,7 @@ import {
   useSetTagMutation,
   useGetCorridorByReferenceQuery
 } from "./tagsApi";
-import { ChannelNode, ChannelForTag, NodeForTag, Tag, Corridor, CorridorFields } from "./tagsTypes"
+import { ChannelNode, ChannelForTag, NodeForTag, Tag, Corridor, CorridorFields, ChannelGroup } from "./tagsTypes"
 import TextCell from "components/table/cells/text/TextCell"
 
 
@@ -58,19 +55,14 @@ const updateStatusIcon = {
 
 
 function ModifyTagModal() {
-  const collapsedNode = true;
-  const collapsedChannel = true;
   const { t } = useTranslations();
 
   const [createTageState, setCreateTagState] = useState(ProgressStepState.active);
   const [doneState, setDoneState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMessage] = useState<ReactNode[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
-  const [response, setResponse] = useState<NewAddressResponse>();
-  const [newAddressError, setNewAddressError] = useState("");
   const [tagName, setTagName] = useState<string>("");
   const [tagId, setTagId] = useState<number>(0);
-  console.log('tagId', tagId)
   const [nodeId, setNodeId] = useState<number>(0);
   const [channelId, setChannelId] = useState<number>(0);
   const [totalNodes, setTotalNodes] = useState<number>(0);
@@ -90,7 +82,7 @@ function ModifyTagModal() {
   ];
 
   const queryParameters = new URLSearchParams(window.location.search)
-  const urlTagId = queryParameters.get("tagId")
+  const urlTagId = queryParameters.get("tagId");
 
   const [selectedTagColor, setTagColor] = useState<string>(tagColorOptions[0].value as string);
 
@@ -118,7 +110,7 @@ function ModifyTagModal() {
     isSuccess: boolean;
   }>();
 
-  const tagResponse = useGetTagQuery<{
+  const { data: tagResponse } = useGetTagQuery<{
     data: Tag;
     isLoading: boolean;
     isFetching: boolean;
@@ -126,13 +118,13 @@ function ModifyTagModal() {
     isSuccess: boolean;
   }>(tagId);
 
-  const corridorsResponse = useGetCorridorByReferenceQuery<{
-    data: Corridor;
-    isLoading: boolean;
-    isFetching: boolean;
-    isUninitialized: boolean;
-    isSuccess: boolean;
-  }>(tagId);
+    const { data: corridorsResponse } = useGetCorridorByReferenceQuery<{
+      data: Corridor;
+      isLoading: boolean;
+      isFetching: boolean;
+      isUninitialized: boolean;
+      isSuccess: boolean;
+    }>(tagId);
 
   let channelsNodesOptions: SelectOptions[] = [{ value: 0, label: "Channel or Node"}];
   const [selectedTarget, setTarget] = useState<number>(channelsNodesOptions[0].value as number);
@@ -159,14 +151,6 @@ function ModifyTagModal() {
     let tag = 0
     const message = clone(errMessage) || [];
 
-    if (collapsedNode != undefined) {
-      setCollapsedNodeState(collapsedNode);
-    }
-
-    if (collapsedChannel != undefined) {
-      setCollapsedChannelState(collapsedChannel);
-    }
-
     if (urlTagId) {
       setTagId(Number(urlTagId));
       setModalTitle(t.tagsModal.updateTag);
@@ -174,28 +158,28 @@ function ModifyTagModal() {
       setModalUpdateMode(true);
     }
 
-    if (tagResponse?.data) {
-      setTagName(tagResponse.data.name);
-      setTagColor(tagResponse.data.style);
-      setTagCategory(tagResponse.data?.categoryId || 0);
+    if (tagResponse) {
+      setTagName(tagResponse.name);
+      setTagColor(tagResponse.style);
+      setTagCategory(tagResponse?.categoryId || 0);
       categoriesResponse?.forEach((tagCategorieOptions: Category) => {
-        if (tagResponse.data?.categoryId == tagCategorieOptions.categoryId){
+        if (tagResponse?.categoryId == tagCategorieOptions.categoryId){
           categoryName = tagCategorieOptions.name;
         }
       });
       tagColorOptions.forEach((colors) => {
-        if (tagResponse.data?.style == colors.value){
+        if (tagResponse?.style == colors.value){
           colorName = colors?.label ?  colors?.label : "N/A" ;
         }
       });
     }
 
-    if (corridorsResponse?.data) {
-      setTotalNodes(corridorsResponse.data.totalNodes);
-      setTotalChannels(corridorsResponse.data.totalChannels);
+    if (corridorsResponse) {
+      setTotalNodes(corridorsResponse.totalNodes);
+      setTotalChannels(corridorsResponse.totalChannels);
       const listNodes: ReactNode[] = [];
       const listChannels: ReactNode[] = [];
-      corridorsResponse.data.corridors?.map((c: CorridorFields) => {
+      corridorsResponse.corridors?.map((c: CorridorFields) => {
         if (c.shortChannelId) {
           listChannels.push(
             <FormRow className={styles.targetRows}>
@@ -226,32 +210,18 @@ function ModifyTagModal() {
           );
         }
       })
-      ////////////--------------------
-      // listNodes.push(
-      //   <FormRow>
-      //     <div className={styles.openChannelTableRow} >
-      //       <div className={styles.label}>
-      //         <TextCell
-      //           className={classNames(styles.simple, styles.colapsedLabels)}
-      //           current="bla"
-      //           key="bla"
-      //         />
-      //       </div>
-      //     </div>
-      //   </FormRow>
-      // );
       setTargetNodes(listNodes);
       setTargetChannels(listChannels);
     }
 
-    if (addTagResponse.isSuccess || setTagResponse.isSuccess) {
-      if (addTagResponse.isSuccess) {
+    if ((addTagResponse.isSuccess || setTagResponse.isSuccess) && !addChannelsGroupsResponse?.data && addChannelsGroupsResponse.status != "pending") {
+      if (addTagResponse.isSuccess && !addTagResponse.isLoading) {
         tag = addTagResponse.data.tagId ? addTagResponse.data.tagId : 0;
       }
-      if (setTagResponse.isSuccess) {
+      if (setTagResponse.isSuccess && !setTagResponse.isLoading) {
         tag = tagId;
       }
-      setTagId(tag)
+      setTagId(tag);
       if (addTagResponse.isSuccess && addTagResponse.status != 'fulfilled' ||
       setTagResponse.isSuccess && setTagResponse.status != 'fulfilled') {
         setDoneState(ProgressStepState.error);
@@ -261,14 +231,21 @@ function ModifyTagModal() {
           </span>
         );
         setErrorMessage(message)
-      } else {
-        addChannelsGroupsMutation({
+      }
+
+      if (addTagResponse.isSuccess && addTagResponse.status == 'fulfilled' ||
+      setTagResponse.isSuccess && setTagResponse.status == 'fulfilled') {
+        const channelGoupObj: ChannelGroup = {
           tagId: tag,
           nodeId,
-          channelId,
-          categoryId: selectedTagCategory
-
-        })
+        }
+        if (channelId && channelId > 0) {
+          channelGoupObj.channelId = channelId
+        }
+        if (selectedTagCategory > 0) {
+          channelGoupObj.categoryId = selectedTagCategory
+        }
+        addChannelsGroupsMutation(channelGoupObj);
         setDoneState(ProgressStepState.completed);
       }
      }
@@ -282,7 +259,7 @@ function ModifyTagModal() {
       setErrorMessage(message)
 
     }
-  }, [addTagResponse, urlTagId, tagResponse, collapsedNode, collapsedChannel, setTagResponse, corridorsResponse]);
+  }, [addTagResponse, setTagResponse, tagResponse, corridorsResponse]);
 
   function handleTarget(value: number, type: string) {
     setTarget(value);
@@ -308,59 +285,10 @@ function ModifyTagModal() {
     setCollapsedChannelState(!collapsedChannelState);
   };
 
-  function onNewAddressMessage(event: MessageEvent<string>) {
-    const response = JSON.parse(event.data);
-    setDoneState(ProgressStepState.completed);
-    if (response?.type == "Error") {
-      setNewAddressError(response.error);
-      onNewAddressError(response as NewAddressError);
-      return;
-    }
-    onNewAddressResponse(response as NewAddressResponse);
-  }
-
-  function onNewAddressResponse(resp: NewAddressResponse) {
-    setResponse(resp);
-    if (resp.address.length) {
-      setDoneState(ProgressStepState.completed);
-    } else {
-      setNewAddressError(resp.failureReason);
-      setDoneState(ProgressStepState.error);
-    }
-  }
-
-  function onNewAddressError(message: NewAddressError) {
-    setDoneState(ProgressStepState.error);
-  }
-
-  // This can also be an async getter function. See notes below on Async Urls.
-  const { sendJsonMessage } = useWebSocket(WS_URL, {
-    //Will attempt to reconnect on all close events, such as server shutting down
-    shouldReconnect: () => true,
-    share: true,
-    onMessage: onNewAddressMessage,
-  });
-
   const closeAndReset = () => {
     setStepIndex(0);
     setCreateTagState(ProgressStepState.active);
     setDoneState(ProgressStepState.disabled);
-  };
-
-  const handleClickNext = (addType: AddressType) => {
-    setStepIndex(1);
-    setCreateTagState(ProgressStepState.completed);
-    setDoneState(ProgressStepState.processing);
-    sendJsonMessage({
-      reqId: "randId",
-      type: "newAddress",
-      newAddressRequest: {
-        // nodeId: selectedNodeId,
-        type: addType,
-        // TODO: account empty so the default wallet account is used
-        // account: {account},
-      },
-    });
   };
 
   const navigate = useNavigate();
@@ -394,7 +322,6 @@ function ModifyTagModal() {
                 {tagId >= 0 && (
                   <div className={styles.updateChannelTableDouble}>
                     <Select
-                      isDisabled={tagId && tagId < 0 ? true : false}
                       label={t.tagsModal.color}
                       onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
                         const selectOptions = newValue as SelectOptions;
@@ -509,19 +436,18 @@ function ModifyTagModal() {
                     setStepIndex(1);
                     setCreateTagState(ProgressStepState.completed);
                     setDoneState(ProgressStepState.active);
+                    const tagObj: Tag = {
+                      style: selectedTagColor,
+                      name: tagName,
+                    }
+                    if (selectedTagCategory != 0) {
+                      tagObj.categoryId = selectedTagCategory
+                    }
                     if (modalUpdateMode) {
-                      setTagMutation({
-                        style: selectedTagColor,
-                        name: tagName,
-                        categoryId: selectedTagCategory,
-                        tagId
-                      });
+                      tagObj.tagId = tagId
+                      setTagMutation(tagObj);
                     } else {
-                      addTagMutation({
-                        style: selectedTagColor,
-                        name: tagName,
-                        categoryId: selectedTagCategory
-                      });
+                      addTagMutation(tagObj);
                     }
                   }}
                   buttonColor={buttonColor.subtle}
@@ -537,11 +463,11 @@ function ModifyTagModal() {
             className={classNames(
               styles.modifyTagsResultIconWrapper,
               { [styles.failed]: !addTagResponse.data },
-              updateStatusClass[addTagResponse?.status == "fulfilled" ? "SUCCEEDED" : "FAILED"]
+              updateStatusClass[addTagResponse?.status == "rejected" ? "FAILED" : "SUCCEEDED"]
             )}
           >
             {" "}
-            {updateStatusIcon[addTagResponse.status == "fulfilled" ? "SUCCEEDED" : "FAILED"]}
+            {updateStatusIcon[addTagResponse.status == "rejected" ? "FAILED" : "SUCCEEDED"]}
           </div>
           <div className={errMessage.length ? styles.errorBox : styles.successeBox}>
             <div>
