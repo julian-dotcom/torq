@@ -42,6 +42,8 @@ export type WorkflowVersionNode = {
   type: number;
   updatedOn: string;
   visibilitySettings: VisibilitySettings;
+  workflowId: number;
+  version: number;
   workflowVersionId: number;
   workflowVersionNodeId: number;
 };
@@ -117,6 +119,7 @@ export type FullWorkflow = {
   workflow: Workflow;
   version: WorkflowVersion;
   nodes: Array<WorkflowVersionNode>;
+  links: Array<WorkflowVersionNodeLink>;
 };
 
 export type UpdateWorkflow = {

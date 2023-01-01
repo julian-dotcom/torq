@@ -19,6 +19,8 @@ const Template: Story<SocketProps> = (args) => {
 
   const nodeData: WorkflowVersionNode = {
     workflowVersionNodeId: 1,
+    workflowId: 1,
+    version: 1,
     name: "sdafsdf",
     status: 1,
     stage: 1,

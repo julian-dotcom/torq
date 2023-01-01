@@ -325,7 +325,7 @@ func getNodesHandler(c *gin.Context, db *sqlx.DB) {
 	//	return
 	//}
 
-	nodes, err := GetWorkflowNodes(db, workflowVersion.WorkflowVersionId)
+	nodes, err := GetWorkflowNodes(db, workflowVersion.WorkflowVersionId, workflow.WorkflowId, workflowVersion.Version)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting workflow nodes.")
 		return

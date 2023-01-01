@@ -7,9 +7,10 @@ import { InputSizeVariant } from "components/forms/input/variants";
 import Form from "components/forms/form/Form";
 import Socket from "components/forms/socket/Socket";
 import { NodeColorVariant } from "../nodeVariants";
-import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
+import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
+import { useSelector } from "react-redux";
 
 type ChannelPolicyNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -50,6 +51,24 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
     });
   }
 
+  const nodeLinks = useSelector(
+    SelectWorkflowNodeLinks({
+      version: wrapperProps.version,
+      workflowId: wrapperProps.workflowId,
+      nodeId: wrapperProps.workflowVersionNodeId,
+      childLinks: true,
+    })
+  );
+
+  const parentNodeIds = nodeLinks?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+  const parentNodes = useSelector(
+    SelectWorkflowNodes({
+      version: wrapperProps.version,
+      workflowId: wrapperProps.workflowId,
+      nodeIds: parentNodeIds,
+    })
+  );
+
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
@@ -60,6 +79,7 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
       <Form onSubmit={handleSubmit}>
         <Socket
           label={"Channels"}
+          selectedNodes={parentNodes || []}
           id={"sss"}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}

@@ -78,7 +78,7 @@ export function useWorkflowData(workflowId?: string, version?: string) {
 export function useNodes(stages: WorkflowStages, stageNumber: number) {
   const triggerNodes = (stages[stageNumber] || [])
     .filter((node) => {
-      // Filter out the trigger nodes
+      // Keep only trigger nodes
       return TriggerNodeTypes.includes(node.type);
     })
     .map((node) => {

@@ -476,10 +476,10 @@ func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, erro
 	return response, nil
 }
 
-func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int) ([]WorkflowVersionNode, error) {
+func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int, workflowId int, version int) ([]WorkflowVersionNode, error) {
 	// Query all workflow nodes for the given workflow version
 	var workflowVersionNodes []WorkflowVersionNodeResponse
-	err := db.Select(&workflowVersionNodes, `SELECT * FROM workflow_version_node WHERE workflow_version_id=$1;`, workflowVersionId)
+	err := db.Select(&workflowVersionNodes, `SELECT * FROM workflow_version_node WHERE workflow_version_id=$1  order by name;`, workflowVersionId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowVersionNode{}, nil
@@ -496,6 +496,8 @@ func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int) ([]WorkflowVersionNode
 		wvn.Stage = wvnr.Stage
 		wvn.Name = wvnr.Name
 		wvn.VisibilitySettings = wvnr.VisibilitySettings
+		wvn.WorkflowId = workflowId
+		wvn.Version = version
 
 		wvn.Status = wvnr.Status
 
@@ -826,14 +828,6 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 	}
 
 	if req.Parameters != nil {
-		// check if the parameters are valid
-		//param := *req.Parameters
-		//switch t := param.(type) {
-		//case TimeTriggerParameters:
-		//	break
-		//default:
-		//	return 0, errors.New(fmt.Sprintf("Invalid Parameters %v", t))
-		//}
 		p, err := json.Marshal(*req.Parameters)
 		if err != nil {
 			return 0, errors.Wrap(err, "JSON Marshaling Parameters")
@@ -851,10 +845,30 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 }
 
 func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
-	res, err := db.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id = $1;`, workflowVersionNodeId)
+	tx := db.MustBegin()
+
+	// First delete all node Links that are connected to this node
+	_, err := tx.Exec(`DELETE FROM workflow_version_node_link WHERE parent_workflow_version_node_id = $1 or child_workflow_version_node_id = $1`, workflowVersionNodeId)
 	if err != nil {
-		return 0, errors.Wrap(err, database.SqlExecutionError)
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return 0, errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
+		}
+		return 0, errors.Wrap(err, "Deleting the node links while deleting node")
 	}
+
+	res, err := tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id = $1;`, workflowVersionNodeId)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return 0, errors.Wrap(rollbackErr, "Deleting the node (rollback failed too)")
+		}
+		return 0, errors.Wrap(err, "Deleting the node")
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, errors.Wrap(err, "Committing the transaction while deleting the node")
+	}
+
 	_, err = res.RowsAffected()
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)

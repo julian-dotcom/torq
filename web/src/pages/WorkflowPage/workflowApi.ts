@@ -7,13 +7,13 @@ import {
   UpdateWorkflowNodeRequest,
   workflowListItem,
 } from "./workflowTypes";
+import { createSelector } from "@reduxjs/toolkit";
 
 // Define a service using a base URL and expected endpoints
 export const workflowApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     getWorkflows: builder.query<Array<workflowListItem>, void>({
       query: (params) => "workflows",
-      providesTags: ["workflows"],
     }),
     getWorkflow: builder.query<FullWorkflow, { version: number; workflowId: number }>({
       query: (params) => `workflows/${params.workflowId}/versions/${params.version}`,
@@ -97,3 +97,44 @@ export const {
   useDeleteStageMutation,
   useAddNodeLinkMutation,
 } = workflowApi;
+
+type State = {
+  fullWorkflow: FullWorkflow;
+};
+
+// // Select the FullWorkflow object from the state
+// const selectFullWorkflow = (state: State) => state.fullWorkflow;
+//
+// // Create a selector that filters the links array within FullWorkflow by the specific workflow version node
+// export const selectLinksForWorkflowVersionNode = createSelector(
+//   [selectFullWorkflow],
+//   (fullWorkflow: FullWorkflow) => (workflowVersionNodeId: number) =>
+//     fullWorkflow.links.filter(
+//       (link: WorkflowVersionNodeLink) => link.childWorkflowVersionNodeId === workflowVersionNodeId
+//     )
+// );
+
+type SelectWorkflowNode = { version: number; workflowId: number; nodeIds: Array<number> };
+
+// Create a selector that get a specific workflow node from the workflow in the store
+export const SelectWorkflowNodes = (props: SelectWorkflowNode) => {
+  return createSelector(
+    [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
+    (workflow) => {
+      return workflow?.data?.nodes.filter((node) => props.nodeIds.includes(node.workflowVersionNodeId));
+    }
+  );
+};
+
+export type selectWorkflowNodeLinks = { version: number; workflowId: number; nodeId: number; childLinks: boolean };
+
+// Create a selector that get specific workflow node links from the workflow in the store
+export const SelectWorkflowNodeLinks = (props: selectWorkflowNodeLinks) => {
+  return createSelector(
+    [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
+    (workflow) => {
+      const linkType = props.childLinks ? "childWorkflowVersionNodeId" : "parentWorkflowVersionNodeId";
+      return (workflow?.data?.links || []).filter((link) => link[linkType] === props.nodeId);
+    }
+  );
+};

@@ -86,6 +86,9 @@ type ReBalanceParameters struct {
 }
 
 type WorkflowVersionNode struct {
+	WorkflowId            int                            `json:"workflowId" db:"workflow_id"`
+	Version               int                            `json:"version" db:"version"`
+	WorkflowVersionId     int                            `json:"workflowVersionId" db:"workflow_version_id"`
 	WorkflowVersionNodeId int                            `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
 	Name                  string                         `json:"name" db:"name"`
 	Stage                 int                            `json:"stage" db:"stage"`
@@ -93,7 +96,6 @@ type WorkflowVersionNode struct {
 	Type                  commons.WorkflowNodeType       `json:"type" db:"type"`
 	Parameters            interface{}                    `json:"parameters" db:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
-	WorkflowVersionId     int                            `json:"workflowVersionId" db:"workflow_version_id"`
 	CreatedOn             time.Time                      `json:"createdOn" db:"created_on"`
 	UpdateOn              time.Time                      `json:"updatedOn" db:"updated_on"`
 }

@@ -34,7 +34,7 @@ import Modal from "features/modal/Modal";
 import Switch from "components/forms/switch/Switch";
 import useTranslations from "services/i18n/useTranslations";
 import Form from "components/forms/form/Form";
-import Note, { NoteType } from "../note/Note";
+import Note, { NoteType } from "features/note/Note";
 
 interface nodeProps {
   nodeId: number;

@@ -1,19 +1,20 @@
 import useTranslations from "services/i18n/useTranslations";
 import classNames from "classnames";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
 import styles from "./socket_input.module.scss";
 import { GetColorClass, GetSizeClass, InputColorVaraint } from "components/forms/input/variants";
 import { NodeContext } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { BasicInputType } from "components/forms/formTypes";
 import { useAddNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
+import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 
 export type SocketProps = BasicInputType & {
   id: string;
   workflowVersionId: number;
   workflowVersionNodeId: number;
+  selectedNodes: Array<WorkflowVersionNode>;
   inputIndex: number;
-  connectedNodeName?: string;
   placeholder?: string;
 };
 
@@ -30,7 +31,13 @@ function Socket<T>(props: SocketProps) {
   }
 
   const { nodeRef } = useContext(NodeContext);
-  const [connectedNodeName, setConnectedNodeName] = useState<string>(props.connectedNodeName || "");
+  const [connectedNodeName, setConnectedNodeName] = useState<string>(
+    props.selectedNodes.map((n) => n.name).toString() || ""
+  );
+
+  useEffect(() => {
+    setConnectedNodeName(props.selectedNodes.map((n) => n.name).toString() || "");
+  }, [props.selectedNodes]);
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -41,7 +48,7 @@ function Socket<T>(props: SocketProps) {
     const nodeName = e.dataTransfer.getData("node/name");
 
     if (nodeName) {
-      setConnectedNodeName(nodeName);
+      // setConnectedNodeName(nodeName);
 
       addLink({
         workflowVersionId: props.workflowVersionId,
