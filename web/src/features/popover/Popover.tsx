@@ -1,34 +1,19 @@
 import "./popover.scss";
-import React, { ReactChild, SetStateAction, useEffect, Dispatch, useRef, useState } from "react";
+import React, { useRef, useState, ReactNode } from "react";
 import classNames from "classnames";
-
-function useOutsideClose(ref: any, setIsPopoverOpen: Dispatch<SetStateAction<boolean>>) {
-  useEffect(() => {
-    function handleClickOutside(event: any) {
-      if (ref.current && !ref.current.contains(event.target)) {
-        setIsPopoverOpen(false);
-      }
-    }
-    // Bind the event listener
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      // Unbind the event listener on clean up
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [ref]);
-}
+import { useClickOutside } from "utils/hooks";
 
 interface PopoverInterface {
   className?: string;
-  button?: ReactChild;
-  children?: ReactChild;
+  button?: ReactNode;
+  children?: ReactNode;
 }
 
 const PopoverButton = React.forwardRef(function popoverButton({ className, button, children }: PopoverInterface, ref) {
   const wrapperRef = useRef(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  useOutsideClose(wrapperRef, setIsPopoverOpen);
+  useClickOutside(wrapperRef, () => setIsPopoverOpen(false));
 
   React.useImperativeHandle(ref, () => ({
     close() {

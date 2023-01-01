@@ -21,6 +21,7 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
 import { NodeColorVariant, GetColorClass } from "components/workflow/nodes/nodeVariants";
 import { Status } from "constants/backend";
+import { useClickOutside } from "utils/hooks";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -38,6 +39,8 @@ export type WorkflowNodeProps = WorkflowVersionNode & {
 
 function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const { t } = useTranslations();
+  const [nodeIsSelected, setNodeIsSelected] = useState<boolean>(false);
+
   const [collapsed, setCollapsed] = useState(props.visibilitySettings.collapsed);
   const [position, setPosition] = useState({
     x: props.visibilitySettings.xPosition || 100,
@@ -133,6 +136,12 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     ? `translate(0px, 0px)`
     : `translate(${position.x}px, ${position.y}px)`;
 
+  // TODO: Add selected status to a node, so that it can be styled differently and z index can be increased to ensure it is on top of other nodes
+
+  useClickOutside(nodeRef, () => {
+    setNodeIsSelected(false);
+  });
+
   return (
     <NodeContext.Provider
       value={{
@@ -142,9 +151,11 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     >
       <div
         id={props.id}
+        onClick={() => setNodeIsSelected(true)}
         className={classNames(styles.workflowNodeCard, GetColorClass(props.colorVariant), {
           [styles.dragging]: isDragging,
           [styles.triggerNode]: TriggerNodeTypes.includes(props.type),
+          [styles.selected]: nodeIsSelected,
         })}
         style={{ transform: `${transform}` }}
         ref={nodeRef}
