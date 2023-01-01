@@ -478,7 +478,7 @@ func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, erro
 
 func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int) ([]WorkflowVersionNode, error) {
 	// Query all workflow nodes for the given workflow version
-	var workflowVersionNodes []WorkflowVersionNode
+	var workflowVersionNodes []WorkflowVersionNodeResponse
 	err := db.Select(&workflowVersionNodes, `SELECT * FROM workflow_version_node WHERE workflow_version_id=$1;`, workflowVersionId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -486,7 +486,29 @@ func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int) ([]WorkflowVersionNode
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return workflowVersionNodes, nil
+	// Loop thorugh and replace WorkflowVersionNodeResponse  with WorkflowVersionNode and unmarcahs the parameters
+	var response []WorkflowVersionNode
+	for _, wvnr := range workflowVersionNodes {
+		var wvn WorkflowVersionNode
+		wvn.WorkflowVersionNodeId = wvnr.WorkflowVersionNodeId
+		wvn.WorkflowVersionId = wvnr.WorkflowVersionId
+		wvn.Type = wvnr.Type
+		wvn.Stage = wvnr.Stage
+		wvn.Name = wvnr.Name
+		wvn.VisibilitySettings = wvnr.VisibilitySettings
+
+		wvn.Status = wvnr.Status
+
+		// Unmarshal parameters
+		err = json.Unmarshal(wvnr.Parameters, &wvn.Parameters)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Unmarshalling parameters for workflowVersionNodeId: %v", wvnr.WorkflowVersionNodeId)
+		}
+
+		response = append(response, wvn)
+	}
+
+	return response, nil
 }
 
 func GetWorkflowForest(db *sqlx.DB, workflowVersionId int) (WorkflowForest, error) {
@@ -693,13 +715,13 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 	return nil
 }
 
-type gw struct {
+type WorkflowVersionNodeResponse struct {
 	WorkflowVersionNode
 	Parameters []byte
 }
 
 func GetWorkflowVersionNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowVersionNode, error) {
-	var g gw
+	var g WorkflowVersionNodeResponse
 	err := db.Get(&g, `SELECT * FROM workflow_version_node WHERE workflow_version_node_id=$1;`, workflowVersionNodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -805,15 +827,18 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 
 	if req.Parameters != nil {
 		// check if the parameters are valid
-		param := *req.Parameters
-		switch t := param.(type) {
-		case TimeTriggerParameters:
-			break
-		default:
-			return 0, errors.New(fmt.Sprintf("Invalid Parameters %v", t))
+		//param := *req.Parameters
+		//switch t := param.(type) {
+		//case TimeTriggerParameters:
+		//	break
+		//default:
+		//	return 0, errors.New(fmt.Sprintf("Invalid Parameters %v", t))
+		//}
+		p, err := json.Marshal(*req.Parameters)
+		if err != nil {
+			return 0, errors.Wrap(err, "JSON Marshaling Parameters")
 		}
-
-		qb = qb.Set("parameters", param)
+		qb = qb.Set("parameters", p)
 	}
 
 	_, err := qb.Where(sq.Eq{"workflow_version_node_id": req.WorkflowVersionNodeId}).RunWith(db).Exec()
