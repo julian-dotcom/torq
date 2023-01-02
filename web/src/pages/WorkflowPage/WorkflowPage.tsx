@@ -15,7 +15,7 @@ function WorkflowPage() {
 
   // Fetch the workflow data
   const { workflowId, version } = useParams();
-  const { workflow, workflowVersion, stages } = useWorkflowData(workflowId, version);
+  const { workflow, workflowVersion, stageNumbers } = useWorkflowData(workflowId, version);
 
   const [selectedStage, setSelectedStage] = useState<number>(1);
 
@@ -51,7 +51,7 @@ function WorkflowPage() {
               version={workflowVersion?.version || 0}
             />
             <StageSelector
-              stages={stages}
+              stageNumbers={stageNumbers}
               selectedStage={selectedStage}
               setSelectedStage={setSelectedStage}
               workflowVersionId={workflowVersion?.workflowVersionId || 0}

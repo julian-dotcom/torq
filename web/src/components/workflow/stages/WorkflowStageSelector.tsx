@@ -6,11 +6,10 @@ import { ReactComponent as StageArrowBack } from "pages/WorkflowPage/stageArrowB
 import { ReactComponent as StageArrowFront } from "pages/WorkflowPage/stageArrowFront.svg";
 import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
-import { WorkflowStages } from "pages/WorkflowPage/workflowTypes";
 import useTranslations from "services/i18n/useTranslations";
 
 type StageSelectorProps = {
-  stages: WorkflowStages;
+  stageNumbers: Array<number>;
   selectedStage: number;
   setSelectedStage: (stage: number) => void;
   workflowVersionId: number;
@@ -19,7 +18,7 @@ type StageSelectorProps = {
 };
 
 export function StageSelector({
-  stages,
+  stageNumbers,
   selectedStage,
   setSelectedStage,
   workflowVersionId,
@@ -27,17 +26,16 @@ export function StageSelector({
   version,
 }: StageSelectorProps) {
   const { t } = useTranslations();
-  const stageNumbers = Object.keys(stages).map((s) => parseInt(s));
 
   return (
     <div className={styles.stagesWrapper}>
-      {Object.keys(stages).map((stage, index) => {
+      {stageNumbers.map((stage, index) => {
         return (
           <SelectStageButton
             key={`stage-${stage}`}
             selectedStage={selectedStage}
             setSelectedStage={setSelectedStage}
-            stage={parseInt(stage)}
+            stage={stage}
             stageNumbers={stageNumbers}
             buttonIndex={index}
             workflowId={workflowId}

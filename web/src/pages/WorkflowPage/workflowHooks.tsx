@@ -13,7 +13,7 @@ import useTranslations from "services/i18n/useTranslations";
 import { useNavigate } from "react-router";
 import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/workflowApi";
 import { ReactNode } from "react";
-import { Workflow, WorkflowStages, WorkflowVersion, WorkflowVersionNode } from "./workflowTypes";
+import { Workflow, WorkflowVersion, WorkflowVersionNode } from "./workflowTypes";
 
 export function useNewWorkflowButton(): ReactNode {
   const { t } = useTranslations();
@@ -59,15 +59,16 @@ export function useWorkflowData(workflowId?: string, version?: string) {
   const workflowVersion: WorkflowVersion | undefined = data?.version;
 
   // reduce the workflow nodes to an object of stages containing an array of nodes
-  const stages: WorkflowStages =
-    (data?.nodes || []).reduce((acc: WorkflowStages, node: WorkflowVersionNode) => {
-      const stage = acc[node.stage] || [];
-      stage.push(node);
-      acc[node.stage] = stage;
+  const stageNumbers: Array<number> = (
+    (data?.nodes || []).reduce((acc: Array<number>, node: WorkflowVersionNode) => {
+      if (node.stage && !acc.includes(node.stage)) {
+        acc.push(node.stage);
+      }
       return acc;
-    }, {}) || {};
+    }, []) || []
+  ).sort((a, b) => a - b);
 
-  return { workflow, workflowVersion, stages };
+  return { workflow, workflowVersion, stageNumbers };
 }
 
 export function useWorkflowControls(sidebarExpanded: boolean, setSidebarExpanded: (expanded: boolean) => void) {
