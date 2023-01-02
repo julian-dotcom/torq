@@ -1,6 +1,6 @@
 import useTranslations from "services/i18n/useTranslations";
 import classNames from "classnames";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
 import styles from "./socket_input.module.scss";
 import { GetColorClass, GetSizeClass, InputColorVaraint } from "components/forms/input/variants";
@@ -31,17 +31,29 @@ function Socket<T>(props: SocketProps) {
   }
 
   const { nodeRef } = useContext(NodeContext);
-  const [connectedNodeName, setConnectedNodeName] = useState<string>(
-    props.selectedNodes.map((n) => n.name).toString() || ""
-  );
 
-  useEffect(() => {
-    setConnectedNodeName(props.selectedNodes.map((n) => n.name).toString() || "");
-  }, [props.selectedNodes]);
+  const [isDragover, setIsDragover] = useState(false);
+
+  // useEffect(() => {
+  //   setConnectedNodeName(props.selectedNodes.map((n) => n.name).toString() || "");
+  // }, [props.selectedNodes]);
+
+  // Handle drag enter event on the socket by setting setIsDragover to true
+  function handleDragEnter(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragover(true);
+  }
+
+  // Handle drag leave event on the socket by setting setIsDragover to false
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragover(false);
+  }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
+    setIsDragover(false);
     // Get the id of the nodes connector that was dropped
     const parentWorkflowVersionNodeId = parseInt(e.dataTransfer.getData("node/parentWorkflowVersionNodeId"));
     const parentOutputIndex = parseInt(e.dataTransfer.getData("node/parentOutputIndex"));
@@ -61,7 +73,11 @@ function Socket<T>(props: SocketProps) {
   }
 
   return (
-    <div className={classNames(styles.socketInputWrapper, inputColorClass)}>
+    <div
+      className={classNames(styles.socketInputWrapper, inputColorClass, { [styles.dragOver]: isDragover })}
+      onDragOver={handleDragEnter}
+      onDragLeave={handleDragLeave}
+    >
       {props.label && (
         <div className={styles.labelWrapper}>
           <label className={styles.label}>{props.label}</label>
@@ -71,7 +87,15 @@ function Socket<T>(props: SocketProps) {
         <div className={classNames(styles.nodeSocket, styles.socket)}>
           <div className={styles.socketDot} />
         </div>
-        <div className={styles.connectedNodeName}>{connectedNodeName || props.placeholder}</div>
+        <div className={styles.connectedNodeNames}>
+          {props.selectedNodes.map((n, index) => {
+            return (
+              <span className={styles.connectionTag} key={n.workflowVersionNodeId + "-" + index}>
+                {n.name}
+              </span>
+            );
+          }) || props.placeholder}
+        </div>
       </div>
       {props.errorText && (
         <div className={classNames(styles.feedbackWrapper, styles.feedbackError)}>

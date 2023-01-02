@@ -33,6 +33,7 @@
   z-index: -1 !important;
 }
 .workflowNodeHeader {
+  width: 350px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -53,6 +54,7 @@
   }
 }
 .workflowNodeBody {
+  width: 350px;
   padding: 16px;
   background-color: var(--color-white);
   min-width: 300px;
@@ -101,16 +103,18 @@
   z-index: 10;
 }
 .title {
-  flex-grow: 1;
-  padding-right: 16px;
   cursor: text;
   min-width: 200px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  flex-grow: 1;
 }
 .icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
+  min-width: 38px;
   height: 38px;
   &:hover {
     background-color: var(--header-hover-background-color);
@@ -119,7 +123,6 @@
 }
 .nameForm {
   position: relative;
-  width: 300px;
   button {
     display: flex;
     align-items: center;
@@ -140,7 +143,6 @@
 input.input {
   border: none;
   overflow: hidden;
-  padding-right: 40px !important;
   &:focus {
     outline: none;
   }

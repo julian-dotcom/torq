@@ -99,6 +99,7 @@
   "SigNet": "SigNet",
   "SimNet":  "SimNet",
   "note": "Note",
+  "inputs": "Inputs",
   "deleteStageConfirm": "Are you sure you want to delete this stage?",
   "stageTriggerDetails": {
     "stageTriggerDescription": "This stage will be triggered when the previous stage has completed.",

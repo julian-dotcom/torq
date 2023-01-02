@@ -78,7 +78,7 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
     >
       <Form onSubmit={handleSubmit}>
         <Socket
-          label={"Channels"}
+          label={t.inputs}
           selectedNodes={parentNodes || []}
           id={"sss"}
           workflowVersionId={wrapperProps.workflowVersionId}

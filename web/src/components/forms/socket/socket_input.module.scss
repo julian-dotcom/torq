@@ -4,16 +4,23 @@
   flex-direction: column;
   gap: 5px;
   color: var(--input-color);
+  font-size: var(--font-size-small);
 }
 .socketInputContainer {
+  display: flex;
+  align-items: center;
   position: relative;
   width: 100%;
-  height: 32px;
+  min-height: 32px;
   color: var(--input-color);
   background-color: var(--input-default-background);
   z-index: 30;
   border-radius: var(--radius-default);
-  padding: 8px 16px;
+  padding: 6px 16px;
+}
+.dragOver .socketInputContainer {
+  background-color: var(--input-hover-background) !important;
+  //border: 1px solid var(--input-focus-border-color);
 }
 label {
   color: var(--input-label-color);
@@ -24,9 +31,10 @@ label {
   align-items: center;
   justify-content: center;
   width: 40px;
-  height: 40px;
-  top: -4px;
+  min-height: 40px;
+  top: 50%;
   left: 10px;
+  transform: translateY(-50%);
 
   .socketDot {
     width: 10px;
@@ -47,6 +55,23 @@ label {
       background-color: var(--input-hover-background);
     }
   }
+}
+.connectedNodeNames {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+.connectionTag {
+  background-color: var(--color-border-primary-faded);
+  color: var(--color-primary-layer-1);
+  padding: 4px 8px;
+  border-radius: var(--radius-default);
+  // Overflow elipsis
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 .feedbackWrapper {
   display: flex;
