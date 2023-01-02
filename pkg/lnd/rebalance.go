@@ -345,6 +345,10 @@ func (rebalancer *Rebalancer) createRunner(
 	routesTimeout int,
 	routeTimeout int) {
 
+	if rebalancer.Status == commons.Inactive {
+		return
+	}
+
 	result := RebalanceResult{
 		Status:            commons.Initializing,
 		RebalanceId:       rebalancer.RebalanceId,
@@ -385,12 +389,20 @@ func (rebalancer *Rebalancer) createRunner(
 	result.IncomingChannelId = runner.IncomingChannelId
 	result.OutgoingChannelId = runner.OutgoingChannelId
 
-	rebalancer.startRunner(db, client, router, runner, routesTimeout, routeTimeout, result)
+	result = rebalancer.startRunner(db, client, router, runner, routesTimeout, routeTimeout, result)
+	if result.Status == commons.Active {
+		removeRebalancer(rebalancer)
+		rebalancer.RebalanceCancel()
+		runningFor := time.Since(rebalancer.CreatedOn).Round(1 * time.Second)
+		log.Info().Msgf("Successfully rebalanced for Origin: %v, OriginId: %v (%s)",
+			rebalancer.Request.Origin, rebalancer.Request.OriginId, runningFor)
+		rebalancer.Status = commons.Inactive
+	} else {
+		runner.Cancel()
+		runner.Status = commons.Inactive
 
-	runner.Cancel()
-	runner.Status = commons.Inactive
-
-	rebalancer.createRunner(db, client, router, runnerTimeout, routesTimeout, routeTimeout)
+		rebalancer.createRunner(db, client, router, runnerTimeout, routesTimeout, routeTimeout)
+	}
 }
 
 func (rebalancer *Rebalancer) startRunner(
@@ -400,7 +412,7 @@ func (rebalancer *Rebalancer) startRunner(
 	runner *RebalanceRunner,
 	routesTimeout int,
 	routeTimeout int,
-	result RebalanceResult) {
+	result RebalanceResult) RebalanceResult {
 
 	routesCtx, routesCancel := context.WithTimeout(runner.Ctx, time.Second*time.Duration(routesTimeout))
 	defer routesCancel()
@@ -425,13 +437,14 @@ func (rebalancer *Rebalancer) startRunner(
 		}
 		rebalancer.processResult(db, result)
 		if result.Status == commons.Active {
-			break
+			return result
 		}
 	}
 
 	if result.Status == commons.Pending {
-		rebalancer.startRunner(db, client, router, runner, routesTimeout, routeTimeout, result)
+		result = rebalancer.startRunner(db, client, router, runner, routesTimeout, routeTimeout, result)
 	}
+	return result
 }
 
 func (rebalancer *Rebalancer) getPendingChannelId() int {
@@ -503,8 +516,6 @@ func (runner *RebalanceRunner) getRoutes(
 	amountMsat uint64,
 	fixedFeeMsat uint64) ([]*lnrpc.Route, error) {
 
-	var err error
-
 	outgoingChannel := commons.GetChannelSettingByChannelId(runner.OutgoingChannelId)
 	incomingChannel := commons.GetChannelSettingByChannelId(runner.IncomingChannelId)
 	var remoteNode commons.ManagedNodeSettings
@@ -518,8 +529,7 @@ func (runner *RebalanceRunner) getRoutes(
 		return nil, errors.Wrapf(err, "Decoding public key for outgoing nodeId: %v", outgoingChannel.SecondNodeId)
 	}
 
-	var routes *lnrpc.QueryRoutesResponse
-	routes, err = client.QueryRoutes(ctx, &lnrpc.QueryRoutesRequest{
+	routes, err := client.QueryRoutes(ctx, &lnrpc.QueryRoutesRequest{
 		PubKey:            commons.GetNodeSettingsByNodeId(nodeId).PublicKey,
 		OutgoingChanId:    outgoingChannel.LndShortChannelId,
 		LastHopPubkey:     remoteNodePublicKey,
@@ -641,7 +651,7 @@ func (runner *RebalanceRunner) createInvoice(
 	if exists {
 		return invoice, nil
 	}
-	invoice, err := client.AddInvoice(ctx, &lnrpc.Invoice{Value: int64(amountMsat),
+	invoice, err := client.AddInvoice(ctx, &lnrpc.Invoice{ValueMsat: int64(amountMsat),
 		Memo:   "Rebalance attempt",
 		Expiry: int64(commons.REBALANCE_TIMEOUT_SECONDS)})
 	if err != nil {
