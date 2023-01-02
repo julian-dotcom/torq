@@ -15,13 +15,14 @@ import {
 import Collapse from "features/collapse/Collapse";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
-import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
+import { SelectWorkflowNodeLinks, useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
 import { NodeColorVariant, GetColorClass } from "components/workflow/nodes/nodeVariants";
 import { Status } from "constants/backend";
 import { useClickOutside } from "utils/hooks";
+import { useSelector } from "react-redux";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -52,6 +53,15 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
   const { canvasRef, blankImgRef } = useContext(CanvasContext);
+
+  // Get all links that are connected to this node using useSelector
+  const { parentLinks, childLinks } = useSelector(
+    SelectWorkflowNodeLinks({
+      workflowId: props.workflowId,
+      version: props.version,
+      nodeId: props.workflowVersionNodeId,
+    })
+  );
 
   // nodeRef is used by the NodeConnector to allow for drag and drop interaction between nodes.
   const nodeRef = createRef() as MutableRefObject<HTMLDivElement>;
@@ -123,6 +133,9 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
       workflowVersionNodeId: props.workflowVersionNodeId,
       visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: collapsed },
     });
+    // parentLinks.forEach((link) => {
+    //   updateNodeLink
+    // }
   }
 
   const connectorId = useId();

@@ -51,16 +51,15 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
     });
   }
 
-  const nodeLinks = useSelector(
+  const { childLinks } = useSelector(
     SelectWorkflowNodeLinks({
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
       nodeId: wrapperProps.workflowVersionNodeId,
-      childLinks: true,
     })
   );
 
-  const parentNodeIds = nodeLinks?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+  const parentNodeIds = childLinks?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
   const parentNodes = useSelector(
     SelectWorkflowNodes({
       version: wrapperProps.version,

@@ -2,14 +2,13 @@ export enum WorkflowNodeType {
   TimeTrigger,
   ChannelBalanceEventTrigger,
   ChannelFilter,
-  RoutingPolicyParameters,
+  ChannelPolicyConfigurator,
   RebalanceParameters,
   StageTrigger,
   RebalanceRun,
   RoutingPolicyRun,
   SetVariable,
   FilterOnVariable,
-  ChannelPolicyConfigurator,
 }
 
 export const TriggerNodeTypes = [

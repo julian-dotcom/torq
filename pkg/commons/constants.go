@@ -207,14 +207,13 @@ const (
 	WorkflowNodeTimeTrigger = WorkflowNodeType(iota)
 	WorkflowNodeChannelBalanceEventTrigger
 	WorkflowNodeChannelFilter
-	WorkflowNodeRoutingPolicyParameters
+	WorkflowNodeChannelPolicyConfigurator
 	WorkflowNodeRebalanceParameters
 	WorkflowNodeStageTrigger
 	WorkflowNodeRebalanceRun
-	WorkflowNodeRoutingPolicyRun
+	WorkflowNodeChannelPolicyRun
 	WorkflowNodeSetVariable
 	WorkflowNodeFilterOnVariable
-	ChannelPolicyConfigurator
 )
 
 type WorkflowTriggerType int

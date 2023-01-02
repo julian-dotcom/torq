@@ -147,8 +147,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			RequiredOutputs: []WorkflowParameterWithLabel{{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds}},
 			OptionalOutputs: []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
 		},
-		WorkflowNodeRoutingPolicyParameters: {
-			WorkflowNodeType: WorkflowNodeRoutingPolicyParameters,
+		WorkflowNodeChannelPolicyConfigurator: {
+			WorkflowNodeType: WorkflowNodeChannelPolicyConfigurator,
 			RequiredInputs:   []WorkflowParameterWithLabel{},
 			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
 			RequiredOutputs:  []WorkflowParameterWithLabel{},
@@ -191,8 +191,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
 			},
 		},
-		WorkflowNodeRoutingPolicyRun: {
-			WorkflowNodeType: WorkflowNodeRoutingPolicyRun,
+		WorkflowNodeChannelPolicyRun: {
+			WorkflowNodeType: WorkflowNodeChannelPolicyRun,
 			RequiredInputs: []WorkflowParameterWithLabel{
 				{Label: "routingPolicySettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
 				{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds},

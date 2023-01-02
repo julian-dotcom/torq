@@ -87,7 +87,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				// There shouldn't be any stage nodes except when it's the first node
 				return outputs, commons.Deleted, nil
 			}
-		case commons.WorkflowNodeRoutingPolicyParameters:
+		case commons.WorkflowNodeChannelPolicyConfigurator:
 		case commons.WorkflowNodeRebalanceParameters:
 		case commons.WorkflowNodeRebalanceRun:
 			//if eventChannel != nil {
@@ -98,7 +98,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//		MaxCost: ,
 			//	}
 			//}
-		case commons.WorkflowNodeRoutingPolicyRun:
+		case commons.WorkflowNodeChannelPolicyRun:
 			//if eventChannel != nil {
 			//	eventChannel <- commons.ChannelStatusUpdateRequest{
 			//		NodeId: nodeSettings.NodeId,

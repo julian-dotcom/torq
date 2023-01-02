@@ -20,6 +20,11 @@ export type VisibilitySettings = {
   yPosition: number;
 };
 
+export type LinkVisibilitySettings = {
+  child: { xPosition: number; yPosition: number };
+  parent: { xPosition: number; yPosition: number };
+};
+
 export type WorkflowNode = {
   LinkDetails: {};
   childNodes: {};
@@ -68,7 +73,7 @@ export type WorkflowVersionNodeLink = {
   workflowVersionId: number;
   workflowVersionNodeLinkId: number;
   name: string;
-  visibilitySettings: string;
+  visibilitySettings: LinkVisibilitySettings;
   parentOutputIndex: number;
   parentWorkflowVersionNodeId: number;
   childInputIndex: number;
@@ -83,6 +88,16 @@ export type CreateWorkflowVersionNodeLink = {
   parentWorkflowVersionNodeId: number;
   childInputIndex: number;
   childWorkflowVersionNodeId: number;
+  visibilitySettings: LinkVisibilitySettings;
+};
+
+export type UpdateWorkflowVersionNodeLink = {
+  workflowVersionNodeLinkId: number;
+  parentOutputIndex: number;
+  parentWorkflowVersionNodeId: number;
+  childInputIndex: number;
+  childWorkflowVersionNodeId: number;
+  visibilitySettings: LinkVisibilitySettings;
 };
 
 export type WorkflowVersion = {

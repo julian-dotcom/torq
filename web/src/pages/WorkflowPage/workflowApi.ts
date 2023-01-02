@@ -82,6 +82,19 @@ export const workflowApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["workflow"],
     }),
+    updateNodeLink: builder.mutation<void, CreateWorkflowVersionNodeLink>({
+      query: (body) => ({
+        url: `workflows/links`,
+        method: "PUT",
+        body: body,
+      }),
+    }),
+    deleteNodeLink: builder.mutation<void, { linkId: number }>({
+      query: (body) => ({
+        url: `workflows/links/${body.linkId}`,
+        method: "DELETE",
+      }),
+    }),
   }),
 });
 // Export hooks for usage in functional components, which are
@@ -123,15 +136,32 @@ export const SelectWorkflowNodes = (props: SelectWorkflowNode) => {
   );
 };
 
-export type selectWorkflowNodeLinks = { version: number; workflowId: number; nodeId: number; childLinks: boolean };
+type SelectWorkflowLinks = { version: number; workflowId: number };
+
+// Get all links
+export const SelectWorkflowLinks = (props: SelectWorkflowLinks) => {
+  return createSelector(
+    [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
+    (workflow) => {
+      return workflow?.data?.links || [];
+    }
+  );
+};
+
+export type selectWorkflowNodeLinks = { version: number; workflowId: number; nodeId: number };
 
 // Get specific workflow node links from the workflow in the store
 export const SelectWorkflowNodeLinks = (props: selectWorkflowNodeLinks) => {
   return createSelector(
     [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
     (workflow) => {
-      const linkType = props.childLinks ? "childWorkflowVersionNodeId" : "parentWorkflowVersionNodeId";
-      return (workflow?.data?.links || []).filter((link) => link[linkType] === props.nodeId);
+      const parentLinks = (workflow?.data?.links || []).filter(
+        (link) => link.parentWorkflowVersionNodeId === props.nodeId
+      );
+      const childLinks = (workflow?.data?.links || []).filter(
+        (link) => link.childWorkflowVersionNodeId === props.nodeId
+      );
+      return { parentLinks, childLinks };
     }
   );
 };

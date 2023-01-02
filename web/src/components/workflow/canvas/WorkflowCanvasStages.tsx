@@ -13,6 +13,7 @@ import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
 import useTranslations from "services/i18n/useTranslations";
 import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
+import WorkflowLinks from "../links/WorkflowLinks";
 
 type WorkflowCanvasStagesProps = {
   workflowId: number;
@@ -45,6 +46,11 @@ export function WorkflowCanvases(props: WorkflowCanvasStagesProps) {
           </div>
         </div>
         {actionNodes}
+        <WorkflowLinks
+          workflowId={props.workflowId}
+          version={props.version}
+          workflowVersionId={props.workflowVersionId}
+        />
       </WorkflowCanvas>
     );
   });

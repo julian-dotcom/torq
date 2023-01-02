@@ -130,7 +130,15 @@ func (wfn WorkflowVersionNode) GetWorkflowNodeStructured() WorkflowNode {
 	}
 }
 
-type WorkflowVersionNodeLinkVisibilitySettings struct{}
+type LinkVisibilitySettings struct {
+	XPosition int `json:"xPosition"`
+	YPosition int `json:"yPosition"`
+}
+
+type WorkflowVersionNodeLinkVisibilitySettings struct {
+	Child  LinkVisibilitySettings `json:"child"`
+	Parent LinkVisibilitySettings `json:"parent"`
+}
 
 func (nvls *WorkflowVersionNodeLinkVisibilitySettings) Scan(val interface{}) (err error) {
 	switch v := val.(type) {

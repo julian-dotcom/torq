@@ -68,6 +68,16 @@ function Socket<T>(props: SocketProps) {
         childWorkflowVersionNodeId: props.workflowVersionNodeId,
         parentOutputIndex: parentOutputIndex,
         parentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
+        visibilitySettings: {
+          parent: {
+            xPosition: 100,
+            yPosition: 100,
+          },
+          child: {
+            xPosition: 100,
+            yPosition: 100,
+          },
+        },
       });
     }
   }
