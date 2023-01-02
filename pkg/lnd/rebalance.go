@@ -266,6 +266,25 @@ func (rebalancer *Rebalancer) start(
 	routesTimeout int,
 	routeTimeout int) {
 
+	if rebalancer.Request.IncomingChannelId != 0 {
+		incomingChannel := commons.GetChannelSettingByChannelId(rebalancer.Request.IncomingChannelId)
+		if incomingChannel.Capacity == 0 || incomingChannel.Status != commons.Open {
+			log.Error().Msgf("IncomingChannelId is invalid for origin: %v, originReference: %v and incomingChannelId: %v",
+				rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId)
+			rebalancer.RebalanceCancel()
+			return
+		}
+	}
+	if rebalancer.Request.OutgoingChannelId != 0 {
+		outgoingChannel := commons.GetChannelSettingByChannelId(rebalancer.Request.OutgoingChannelId)
+		if outgoingChannel.Capacity == 0 || outgoingChannel.Status != commons.Open {
+			log.Error().Msgf("OutgoingChannelId is invalid for origin: %v, originReference: %v and outgoingChannelId: %v",
+				rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.OutgoingChannelId)
+			rebalancer.RebalanceCancel()
+			return
+		}
+	}
+
 	active := commons.Active
 	rebalancer.Status = commons.Active
 	previousSuccess := getLatestResult(rebalancer.Request.Origin, rebalancer.Request.OriginId,
@@ -278,13 +297,6 @@ func (rebalancer *Rebalancer) start(
 	if err != nil {
 		log.Error().Err(err).Msgf("Storing rebalance for origin: %v, originReference: %v and incomingChannelId: %v",
 			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId)
-		sendResponse(rebalancer.Request, commons.RebalanceResponse{
-			Request: rebalancer.Request,
-			CommunicationResponse: commons.CommunicationResponse{
-				Status: commons.Inactive,
-				Error:  "AddRebalancer was not completed",
-			},
-		})
 		rebalancer.RebalanceCancel()
 		return
 	}
@@ -357,6 +369,7 @@ func (rebalancer *Rebalancer) createRunner(
 			rebalancer.CreatedOn = time.Now().UTC()
 			rebalancer.CreatedOn = rebalancer.CreatedOn.Add(sleepTime)
 		}
+		rebalancer.Runners = make(map[int]*RebalanceRunner)
 		rebalancer.Status = commons.Pending
 		if !addRebalancer(rebalancer) {
 			log.Error().Msgf("Failed to reschedule the rebalancer for Origin: %v, OriginId: %v",
@@ -429,6 +442,10 @@ outer:
 				continue outer
 			}
 		}
+		channelSettings := commons.GetChannelSettingByChannelId(channelId)
+		if channelSettings.Capacity == 0 || channelSettings.Status != commons.Open {
+			continue outer
+		}
 		return channelId
 	}
 	return 0
@@ -489,11 +506,12 @@ func (runner *RebalanceRunner) getRoutes(
 	var err error
 
 	outgoingChannel := commons.GetChannelSettingByChannelId(runner.OutgoingChannelId)
+	incomingChannel := commons.GetChannelSettingByChannelId(runner.IncomingChannelId)
 	var remoteNode commons.ManagedNodeSettings
 	if outgoingChannel.FirstNodeId == nodeId {
-		remoteNode = commons.GetNodeSettingsByNodeId(outgoingChannel.SecondNodeId)
+		remoteNode = commons.GetNodeSettingsByNodeId(incomingChannel.SecondNodeId)
 	} else {
-		remoteNode = commons.GetNodeSettingsByNodeId(outgoingChannel.FirstNodeId)
+		remoteNode = commons.GetNodeSettingsByNodeId(incomingChannel.FirstNodeId)
 	}
 	remoteNodePublicKey, err := hex.DecodeString(remoteNode.PublicKey)
 	if err != nil {
@@ -658,6 +676,50 @@ func validateRebalanceRequest(request commons.RebalanceRequest) *commons.Rebalan
 			},
 		}
 	}
+
+	if request.IncomingChannelId != 0 {
+		incomingChannel := commons.GetChannelSettingByChannelId(request.IncomingChannelId)
+		if incomingChannel.Capacity == 0 || incomingChannel.Status != commons.Open {
+			return &commons.RebalanceResponse{
+				Request: request,
+				CommunicationResponse: commons.CommunicationResponse{
+					Status: commons.Inactive,
+					Error:  "IncomingChannelId is invalid",
+				},
+			}
+		}
+		if slices.Contains(request.ChannelIds, request.IncomingChannelId) {
+			return &commons.RebalanceResponse{
+				Request: request,
+				CommunicationResponse: commons.CommunicationResponse{
+					Status: commons.Inactive,
+					Error:  "ChannelIds also contain IncomingChannelId",
+				},
+			}
+		}
+	}
+	if request.OutgoingChannelId != 0 {
+		outgoingChannel := commons.GetChannelSettingByChannelId(request.OutgoingChannelId)
+		if outgoingChannel.Capacity == 0 || outgoingChannel.Status != commons.Open {
+			return &commons.RebalanceResponse{
+				Request: request,
+				CommunicationResponse: commons.CommunicationResponse{
+					Status: commons.Inactive,
+					Error:  "OutgoingChannelId is invalid",
+				},
+			}
+		}
+		if slices.Contains(request.ChannelIds, request.OutgoingChannelId) {
+			return &commons.RebalanceResponse{
+				Request: request,
+				CommunicationResponse: commons.CommunicationResponse{
+					Status: commons.Inactive,
+					Error:  "ChannelIds also contain OutgoingChannelId",
+				},
+			}
+		}
+	}
+
 	response := verifyNotZeroInt(request, int64(request.MaximumConcurrency), "MaximumConcurrency")
 	if response != nil {
 		return response
@@ -681,6 +743,19 @@ func validateRebalanceRequest(request commons.RebalanceRequest) *commons.Rebalan
 				Status: commons.Inactive,
 				Error:  "ChannelIds are not specified",
 			},
+		}
+	}
+
+	for _, channelId := range request.ChannelIds {
+		channelSettings := commons.GetChannelSettingByChannelId(channelId)
+		if channelSettings.Capacity == 0 || channelSettings.Status != commons.Open {
+			return &commons.RebalanceResponse{
+				Request: request,
+				CommunicationResponse: commons.CommunicationResponse{
+					Status: commons.Inactive,
+					Error:  "ChannelIds contain an invalid channelId",
+				},
+			}
 		}
 	}
 	return nil
