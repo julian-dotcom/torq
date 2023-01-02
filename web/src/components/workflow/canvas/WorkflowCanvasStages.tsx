@@ -3,11 +3,16 @@ import { SelectWorkflowStages } from "pages/WorkflowPage/workflowApi";
 import WorkflowCanvas from "./WorkflowCanvas";
 import styles from "./workflow_canvas.module.scss";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
-import { ChannelPolicyNode, TimeTriggerNode, StageTriggerNode } from "components/workflow/nodes/nodes";
+import {
+  ChannelPolicyNode,
+  TimeTriggerNode,
+  StageTriggerNode,
+  ChannelFilterNode,
+} from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
 import useTranslations from "services/i18n/useTranslations";
-import NodeConnector from "../nodeWrapper/NodeConnector";
+import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
 
 type WorkflowCanvasStagesProps = {
   workflowId: number;
@@ -56,6 +61,8 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <StageTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelPolicyConfigurator:
       return <ChannelPolicyNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.ChannelFilter:
+      return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     default:
       return null;
   }

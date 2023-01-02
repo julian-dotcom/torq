@@ -110,7 +110,8 @@
   },
   "workflowNodes": {
     "channelPolicyConfiguration": "Channel Policy Configuration",
-    "timeTrigger": "Time Trigger"
+    "timeTrigger": "Time Trigger",
+    "channelFilter": "Channel Filter"
   },
   "updateChannelPolicy": {
     "title": "Update Channel Policy",

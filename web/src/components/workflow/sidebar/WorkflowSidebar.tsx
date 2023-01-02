@@ -3,9 +3,13 @@ import classNames from "classnames";
 import styles from "./workflow_sidebar.module.scss";
 import Sidebar from "features/sidebar/Sidebar";
 import { SectionContainer } from "features/section/SectionContainer";
-import { Timer20Regular as TriggersIcon, Flash20Regular as ActionsIcon } from "@fluentui/react-icons";
+import { Timer20Regular as TriggersIcon, ArrowRouting20Regular as ChannelsIcon } from "@fluentui/react-icons";
 import { useState } from "react";
-import { ChannelPolicyConfigurationNodeButton, TimeTriggerNodeButton } from "components/workflow/nodes/nodes";
+import {
+  ChannelPolicyConfigurationNodeButton,
+  TimeTriggerNodeButton,
+  ChannelFilterNodeButton,
+} from "components/workflow/nodes/nodes";
 
 export type WorkflowSidebarProps = {
   expanded: boolean;
@@ -45,12 +49,13 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           <TimeTriggerNodeButton />
         </SectionContainer>
         <SectionContainer
-          title={t.actions}
-          icon={ActionsIcon}
+          title={t.channels}
+          icon={ChannelsIcon}
           expanded={sectionState.actions}
           handleToggle={() => toggleSection("actions")}
         >
           <ChannelPolicyConfigurationNodeButton />
+          <ChannelFilterNodeButton />
         </SectionContainer>
       </Sidebar>
     </div>

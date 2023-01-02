@@ -3,3 +3,5 @@ export { ChannelPolicyNode } from "./channelPolicy/ChannelPolicyConfigurationNod
 export { TimeTriggerNodeButton } from "./timeTrigger/TimeTriggerNodeButton";
 export { TimeTriggerNode } from "./timeTrigger/TimeTriggerNode";
 export { StageTriggerNode } from "./stageTrigger/StageTriggerNode";
+export { ChannelFilterNode } from "./channelsFilter/ChannelFilterNode";
+export { ChannelFilterNodeButton } from "./channelsFilter/ChannelFilterNodeButton";
