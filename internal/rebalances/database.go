@@ -43,10 +43,8 @@ func SetRebalanceAndChannels(db *sqlx.DB, rebalance Rebalance, rebalanceChannels
 			UPDATE rebalance
 			SET origin_reference=$1, amount_msat=$2, maximum_concurrency=$3, maximum_costmsat=$4, updated_on=$5
 			WHERE rebalance_id=$6;`,
-		rebalance.IncomingChannelId, rebalance.OutgoingChannelId, rebalance.Status,
-		rebalance.Origin, rebalance.OriginId, rebalance.OriginReference,
-		rebalance.AmountMsat, rebalance.MaximumConcurrency, rebalance.MaximumCostMsat,
-		rebalance.CreatedOn, rebalance.UpdateOn)
+		rebalance.OriginReference, rebalance.AmountMsat, rebalance.MaximumConcurrency, rebalance.MaximumCostMsat,
+		rebalance.UpdateOn, rebalance.RebalanceId)
 	if err != nil {
 		if rb := tx.Rollback(); rb != nil {
 			log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)

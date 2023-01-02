@@ -36,6 +36,7 @@ type Rebalancer struct {
 
 func (rebalancer *Rebalancer) getRebalance() rebalances.Rebalance {
 	rebalance := rebalances.Rebalance{
+		RebalanceId:        rebalancer.RebalanceId,
 		Origin:             rebalancer.Request.Origin,
 		OriginId:           rebalancer.Request.OriginId,
 		OriginReference:    rebalancer.Request.OriginReference,
@@ -238,7 +239,7 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 	rebalancer.RebalanceCtx = rebalancerCtx
 	rebalancer.RebalanceCancel = rebalancerCancel
 	if !addRebalancer(rebalancer) {
-		response = &commons.RebalanceResponse{
+		sendResponse(request, commons.RebalanceResponse{
 			Request: request,
 			CommunicationResponse: commons.CommunicationResponse{
 				Status: commons.Inactive,
@@ -246,10 +247,15 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 					"IncomingChannelId: %v already has a running rebalancer for origin: %v with reference number: %v",
 					rebalancer.Request.IncomingChannelId, rebalancer.Request.Origin, rebalancer.Request.OriginReference),
 			},
-		}
-		sendResponse(request, *response)
+		})
 		return
 	}
+	sendResponse(request, commons.RebalanceResponse{
+		Request: request,
+		CommunicationResponse: commons.CommunicationResponse{
+			Status: commons.Active,
+		},
+	})
 }
 
 func (rebalancer *Rebalancer) start(
@@ -272,14 +278,13 @@ func (rebalancer *Rebalancer) start(
 	if err != nil {
 		log.Error().Err(err).Msgf("Storing rebalance for origin: %v, originReference: %v and incomingChannelId: %v",
 			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId)
-		response := &commons.RebalanceResponse{
+		sendResponse(rebalancer.Request, commons.RebalanceResponse{
 			Request: rebalancer.Request,
 			CommunicationResponse: commons.CommunicationResponse{
 				Status: commons.Inactive,
 				Error:  "AddRebalancer was not completed",
 			},
-		}
-		sendResponse(rebalancer.Request, *response)
+		})
 		rebalancer.RebalanceCancel()
 		return
 	}
@@ -761,10 +766,9 @@ func updateExistingRebalanceRequest(db *sqlx.DB, request commons.RebalanceReques
 	return &commons.RebalanceResponse{
 		Request: request,
 		CommunicationResponse: commons.CommunicationResponse{
-			Status: commons.Inactive,
-			Error: fmt.Sprintf(
-				"IncomingChannelId: %v, OutgoingChannelId: %v already has a running rebalancer for origin: %v with originId: %v (ref: %v)",
-				rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId,
+			Status: commons.Active,
+			Message: fmt.Sprintf(
+				"Updated existing rebalancer for origin: %v with originId: %v (ref: %v)",
 				rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OriginReference),
 		},
 	}
