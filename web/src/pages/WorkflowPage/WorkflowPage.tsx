@@ -4,10 +4,11 @@ import styles from "./workflow_page.module.scss";
 import PageTitle from "features/templates/PageTitle";
 import { Link, useParams } from "react-router-dom";
 import { WORKFLOWS, MANAGE } from "constants/routes";
-import { useStages, useWorkflowControls, useWorkflowData } from "./workflowHooks";
-import { StageSelector } from "components/workflow/stages/WorkflowStageSelector";
+import { useWorkflowControls, useWorkflowData } from "./workflowHooks";
 import { useUpdateWorkflowMutation } from "./workflowApi";
 import WorkflowSidebar from "components/workflow/sidebar/WorkflowSidebar";
+import { WorkflowCanvases } from "components/workflow/canvas/WorkflowCanvasStages";
+import { StageSelector } from "components/workflow/stages/WorkflowStageSelector";
 
 function WorkflowPage() {
   const { t } = useTranslations();
@@ -17,7 +18,6 @@ function WorkflowPage() {
   const { workflow, workflowVersion, stages } = useWorkflowData(workflowId, version);
 
   const [selectedStage, setSelectedStage] = useState<number>(1);
-  const stagedCanvases = useStages(workflowVersion?.workflowVersionId || 0, stages, selectedStage);
 
   // construct the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
@@ -44,7 +44,12 @@ function WorkflowPage() {
       <div className={styles.tableWrapper}>
         <div className={styles.tableContainer}>
           <div className={styles.tableExpander}>
-            {stagedCanvases}
+            <WorkflowCanvases
+              selectedStage={selectedStage}
+              workflowVersionId={workflowVersion?.workflowVersionId || 0}
+              workflowId={workflow?.workflowId || 0}
+              version={workflowVersion?.version || 0}
+            />
             <StageSelector
               stages={stages}
               selectedStage={selectedStage}

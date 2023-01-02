@@ -30,7 +30,6 @@ export const NodeContext = React.createContext<nodeRefType>({
 });
 
 export type WorkflowNodeProps = WorkflowVersionNode & {
-  id: string;
   heading?: string;
   headerIcon?: JSX.Element;
   colorVariant: NodeColorVariant;
@@ -150,7 +149,6 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
       }}
     >
       <div
-        id={props.id}
         onClick={() => setNodeIsSelected(true)}
         className={classNames(styles.workflowNodeCard, GetColorClass(props.colorVariant), {
           [styles.dragging]: isDragging,

@@ -8,6 +8,7 @@ import {
   workflowListItem,
 } from "./workflowTypes";
 import { createSelector } from "@reduxjs/toolkit";
+import { TriggerNodeTypes } from "./constants";
 
 // Define a service using a base URL and expected endpoints
 export const workflowApi = torqApi.injectEndpoints({
@@ -98,10 +99,6 @@ export const {
   useAddNodeLinkMutation,
 } = workflowApi;
 
-type State = {
-  fullWorkflow: FullWorkflow;
-};
-
 // // Select the FullWorkflow object from the state
 // const selectFullWorkflow = (state: State) => state.fullWorkflow;
 //
@@ -116,7 +113,7 @@ type State = {
 
 type SelectWorkflowNode = { version: number; workflowId: number; nodeIds: Array<number> };
 
-// Create a selector that get a specific workflow node from the workflow in the store
+// Get specific workflow nodes from the workflow in the store
 export const SelectWorkflowNodes = (props: SelectWorkflowNode) => {
   return createSelector(
     [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
@@ -128,13 +125,48 @@ export const SelectWorkflowNodes = (props: SelectWorkflowNode) => {
 
 export type selectWorkflowNodeLinks = { version: number; workflowId: number; nodeId: number; childLinks: boolean };
 
-// Create a selector that get specific workflow node links from the workflow in the store
+// Get specific workflow node links from the workflow in the store
 export const SelectWorkflowNodeLinks = (props: selectWorkflowNodeLinks) => {
   return createSelector(
     [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
     (workflow) => {
       const linkType = props.childLinks ? "childWorkflowVersionNodeId" : "parentWorkflowVersionNodeId";
       return (workflow?.data?.links || []).filter((link) => link[linkType] === props.nodeId);
+    }
+  );
+};
+
+function getStageNodes(workflow: FullWorkflow, stage: number) {
+  const stageNodes = workflow.nodes.filter((node) => node.stage === stage);
+  const triggers = stageNodes?.filter((node) => TriggerNodeTypes.includes(node.type));
+  const actions = stageNodes?.filter((node) => !TriggerNodeTypes.includes(node.type));
+  return { triggers, actions };
+}
+
+// Get nodes belonging to a stage divided into an array of trigger nodes and an array of action nodes
+export const SelectWorkflowStageNodes = (props: { version: number; workflowId: number; stage: number }) => {
+  return createSelector(
+    [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
+    (workflow) => {
+      return getStageNodes(workflow?.data || ({} as FullWorkflow), props.stage);
+    }
+  );
+};
+
+// Get trigger and action nodes per stage for a workflow
+export const SelectWorkflowStages = (props: { version: number; workflowId: number }) => {
+  return createSelector(
+    [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
+    (workflow) => {
+      const stages = workflow?.data?.nodes.reduce((acc: Array<number>, node) => {
+        if (!acc.includes(node.stage)) {
+          acc.push(node.stage);
+        }
+        return acc;
+      }, []);
+      return (stages || [])?.map((stage) => {
+        return { ...getStageNodes(workflow?.data || ({} as FullWorkflow), stage), stage: stage };
+      });
     }
   );
 };

@@ -38,7 +38,7 @@ const Template: Story<SocketProps> = (args) => {
   return (
     <Provider store={store}>
       <WorkflowCanvas active={true} workflowVersionId={1} stageNumber={1}>
-        <WorkflowNodeWrapper id={"test"} heading={"test"} {...nodeData} colorVariant={NodeColorVariant.accent2}>
+        <WorkflowNodeWrapper heading={"test"} {...nodeData} colorVariant={NodeColorVariant.accent2}>
           <Socket {...args} />
         </WorkflowNodeWrapper>
       </WorkflowCanvas>
