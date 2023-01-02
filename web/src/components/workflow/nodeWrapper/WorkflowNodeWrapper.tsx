@@ -33,6 +33,10 @@ export type WorkflowNodeProps = WorkflowVersionNode & {
   heading?: string;
   headerIcon?: JSX.Element;
   colorVariant: NodeColorVariant;
+  noDeletion?: boolean;
+  noDeactivation?: boolean;
+  noOptions?: boolean;
+  noConnector?: boolean;
   children?: React.ReactNode;
 };
 
@@ -60,6 +64,7 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const [deleteNode] = useDeleteNodeMutation();
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    setNodeIsSelected(true);
     // Don't initiate dragging with the user is editing the node name
     if (nameInputVisible) {
       e.preventDefault();
@@ -177,46 +182,54 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
           <div className={classNames(styles.icon, styles.collapseIcon)} onClick={handleCollapse}>
             {collapsed ? <ExpandIcon /> : <CollapseIcon />}
           </div>
-          <PopoverButton
-            button={
-              <div className={classNames(styles.icon, styles.optionsIcon)}>
-                <OptionsIcon />
+          {!props.noOptions && (
+            <PopoverButton
+              button={
+                <div className={classNames(styles.icon, styles.optionsIcon)}>
+                  <OptionsIcon />
+                </div>
+              }
+            >
+              <div className={styles.buttonGroup}>
+                {!props.noDeactivation && (
+                  <Button
+                    icon={props.status === Status.Active ? <DeactivateIcon /> : <ActivateIcon />}
+                    buttonColor={ColorVariant.primary}
+                    buttonSize={SizeVariant.small}
+                    onClick={() => {
+                      updateNode({
+                        workflowVersionNodeId: props.workflowVersionNodeId,
+                        // TODO: Switch to enum here
+                        status: props.status === 0 ? 1 : 0,
+                      });
+                    }}
+                  >
+                    {props.status === 0 ? t.activate : t.deactivate}
+                  </Button>
+                )}
+                {!props.noDeletion && (
+                  <Button
+                    icon={<DeleteIcon />}
+                    buttonColor={ColorVariant.error}
+                    buttonSize={SizeVariant.small}
+                    onClick={() => {
+                      deleteNode({ nodeId: props.workflowVersionNodeId });
+                    }}
+                  >
+                    {t.delete}
+                  </Button>
+                )}
               </div>
-            }
-          >
-            <div className={styles.buttonGroup}>
-              <Button
-                icon={props.status === Status.Active ? <DeactivateIcon /> : <ActivateIcon />}
-                buttonColor={ColorVariant.primary}
-                buttonSize={SizeVariant.small}
-                onClick={() => {
-                  updateNode({
-                    workflowVersionNodeId: props.workflowVersionNodeId,
-                    // TODO: Switch to enum here
-                    status: props.status === 0 ? 1 : 0,
-                  });
-                }}
-              >
-                {props.status === 0 ? t.activate : t.deactivate}
-              </Button>
-              <Button
-                icon={<DeleteIcon />}
-                buttonColor={ColorVariant.error}
-                buttonSize={SizeVariant.small}
-                onClick={() => {
-                  deleteNode({ nodeId: props.workflowVersionNodeId });
-                }}
-              >
-                {t.delete}
-              </Button>
-            </div>
-          </PopoverButton>
-          <NodeConnector
-            id={connectorId}
-            name={props.name}
-            workflowVersionNodeId={props.workflowVersionNodeId}
-            workflowVersionId={props.workflowVersionId}
-          />
+            </PopoverButton>
+          )}
+          {!props.noConnector && (
+            <NodeConnector
+              id={connectorId}
+              name={props.name}
+              workflowVersionNodeId={props.workflowVersionNodeId}
+              workflowVersionId={props.workflowVersionId}
+            />
+          )}
         </div>
         <Collapse collapsed={collapsed} animate={true}>
           <div className={styles.workflowNodeBody}>{props.children}</div>

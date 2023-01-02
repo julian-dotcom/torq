@@ -1,3 +1,5 @@
+@import "../nodes/node_variants.module.scss";
+
 .contentWrapper {
   width: 100%;
   height: 100%;
@@ -67,4 +69,36 @@
   &.dragging {
     cursor: grabbing;
   }
+}
+
+.triggerNodeWrapper {
+  height: 0;
+  width: 0;
+}
+.triggerNodeContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 380px;
+}
+.triggerBody {
+  border-bottom-left-radius: var(--radius-default);
+  border-bottom-right-radius: var(--radius-default);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  align-items: stretch;
+  padding: 16px 16px 16px 16px;
+  background-color: var(--color-primary-layer-4);
+}
+.triggerContainerHeading {
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 8px 16px;
+  background-color: var(--color-primary-faint);
+  border-top-left-radius: var(--radius-default);
+  border-top-right-radius: var(--radius-default);
+  color: var(--color-white);
 }

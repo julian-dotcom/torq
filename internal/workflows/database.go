@@ -479,7 +479,7 @@ func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, erro
 func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int, workflowId int, version int) ([]WorkflowVersionNode, error) {
 	// Query all workflow nodes for the given workflow version
 	var workflowVersionNodes []WorkflowVersionNodeResponse
-	err := db.Select(&workflowVersionNodes, `SELECT * FROM workflow_version_node WHERE workflow_version_id=$1  order by name;`, workflowVersionId)
+	err := db.Select(&workflowVersionNodes, `SELECT * FROM workflow_version_node WHERE workflow_version_id=$1  order by created_on desc;`, workflowVersionId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowVersionNode{}, nil

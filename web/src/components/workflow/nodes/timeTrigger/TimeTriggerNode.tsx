@@ -105,6 +105,7 @@ export function TimeTriggerNode<T>({ ...wrapperProps }: TimeTriggerNodeProps) {
       heading={t.channelPolicyConfiguration}
       headerIcon={<TimeTriggerIcon />}
       colorVariant={NodeColorVariant.accent2}
+      noConnector={true}
     >
       <Form onSubmit={handleSubmit}>
         <InputRow>

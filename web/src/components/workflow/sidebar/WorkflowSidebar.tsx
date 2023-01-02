@@ -5,8 +5,7 @@ import Sidebar from "features/sidebar/Sidebar";
 import { SectionContainer } from "features/section/SectionContainer";
 import { Timer20Regular as TriggersIcon, Flash20Regular as ActionsIcon } from "@fluentui/react-icons";
 import { useState } from "react";
-import { ChannelPolicyConfigurationNodeButton } from "components/workflow/nodes/nodes";
-import { TimeTriggerNodeButton } from "../nodes/timeTrigger/TimeTriggerNodeButton";
+import { ChannelPolicyConfigurationNodeButton, TimeTriggerNodeButton } from "components/workflow/nodes/nodes";
 
 export type WorkflowSidebarProps = {
   expanded: boolean;
