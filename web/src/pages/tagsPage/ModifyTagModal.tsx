@@ -9,6 +9,7 @@ import {
   ArrowRouting20Regular as ChannelsIcon,
   Molecule20Regular as NodesIcon,
   TargetArrow20Regular as TargetIcon,
+  Dismiss20Regular as DeleteIcon,
 } from "@fluentui/react-icons";
 import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
@@ -33,7 +34,8 @@ import {
   useAddChannelsGroupsMutation,
   useGetTagQuery,
   useSetTagMutation,
-  useGetCorridorByReferenceQuery
+  useGetCorridorByReferenceQuery,
+  useDeleteChannelGroupByTagMutation
 } from "./tagsApi";
 import { ChannelNode, ChannelForTag, NodeForTag, Tag, Corridor, CorridorFields, ChannelGroup } from "./tagsTypes"
 import TextCell from "components/table/cells/text/TextCell"
@@ -145,7 +147,11 @@ function ModifyTagModal() {
   const [setTagMutation, setTagResponse] = useSetTagMutation();
 
   const [addChannelsGroupsMutation, addChannelsGroupsResponse] = useAddChannelsGroupsMutation();
+  const [deleteChannelGroupByTagMutation, deleteChannelGroupByTagResponse] = useDeleteChannelGroupByTagMutation();
 
+  function handleDeleteTarget(corridorId: number) {
+    deleteChannelGroupByTagMutation(corridorId)
+  }
 
   useEffect(() => {
     let tag = 0
@@ -163,12 +169,12 @@ function ModifyTagModal() {
       setTagColor(tagResponse.style);
       setTagCategory(tagResponse?.categoryId || 0);
       categoriesResponse?.forEach((tagCategorieOptions: Category) => {
-        if (tagResponse?.categoryId == tagCategorieOptions.categoryId){
+        if (tagResponse?.categoryId == tagCategorieOptions.categoryId) {
           categoryName = tagCategorieOptions.name;
         }
       });
       tagColorOptions.forEach((colors) => {
-        if (tagResponse?.style == colors.value){
+        if (tagResponse?.style == colors.value) {
           colorName = colors?.label ?  colors?.label : "N/A" ;
         }
       });
@@ -186,10 +192,13 @@ function ModifyTagModal() {
               <div className={styles.openChannelTableRow} >
                 <div className={styles.label}>
                   <TextCell
-                    className={classNames(styles.simple, styles.colapsedLabels)}
+                    className={classNames(styles.simple, styles.colapsedLabels, styles.textLeft)}
                     current={c.shortChannelId}
                     key={c.shortChannelId}
                   />
+                  <div className={classNames(styles.deleteButtons)} onClick={() => {handleDeleteTarget(c.corridorId)}}>
+                    <DeleteIcon/>
+                  </div>
                 </div>
               </div>
             </FormRow>
@@ -200,10 +209,13 @@ function ModifyTagModal() {
               <div className={styles.openChannelTableRow} >
                 <div className={styles.label}>
                   <TextCell
-                    className={classNames(styles.simple, styles.colapsedLabels)}
+                    className={classNames(styles.simple, styles.colapsedLabels, styles.textLeft)}
                     current={c.alias}
                     key={c.alias}
                   />
+                  <div className={classNames(styles.deleteButtons)} onClick={() => {handleDeleteTarget(c.corridorId)}}>
+                    <DeleteIcon/>
+                  </div>
                 </div>
               </div>
             </FormRow>
@@ -259,7 +271,8 @@ function ModifyTagModal() {
       setErrorMessage(message)
 
     }
-  }, [addTagResponse, setTagResponse, tagResponse, corridorsResponse]);
+
+  }, [addTagResponse, setTagResponse, tagResponse, corridorsResponse, deleteChannelGroupByTagResponse]);
 
   function handleTarget(value: number, type: string) {
     setTarget(value);
@@ -289,6 +302,10 @@ function ModifyTagModal() {
     setStepIndex(0);
     setCreateTagState(ProgressStepState.active);
     setDoneState(ProgressStepState.disabled);
+    setTagName("");
+    setTagColor(tagColorOptions[0].value as string);
+    setTagCategory(tagCategorieOptions[0].value as number);
+    setTarget(channelsNodesOptions[0].value as number);
   };
 
   const navigate = useNavigate();
@@ -482,22 +499,28 @@ function ModifyTagModal() {
               {errMessage.length ? errMessage : t.tagsModal.addConfirmedMessage}
             </div>
           </div>
-         <ButtonWrapper
-           className={styles.customButtonWrapperStyles}
-           rightChildren={
-             <Button
-               className={styles.tagbutton}
-               text={t.tagsModal.newTag}
-               onClick={() => {
-                setCreateTagState(ProgressStepState.active);
-                setDoneState(ProgressStepState.disabled);
-                setStepIndex(0);
-                setErrorMessage([]);
-               }}
-               buttonColor={buttonColor.subtle}
-             />
-           }
-         />
+          {!modalUpdateMode && (
+            <ButtonWrapper
+              className={styles.customButtonWrapperStyles}
+              rightChildren={
+                <Button
+                  className={styles.tagbutton}
+                  text={t.tagsModal.newTag}
+                  onClick={() => {
+                    setCreateTagState(ProgressStepState.active);
+                    setDoneState(ProgressStepState.disabled);
+                    setStepIndex(0);
+                    setErrorMessage([]);
+                    setTagName("");
+                    setTagColor(tagColorOptions[0].value as string);
+                    setTagCategory(tagCategorieOptions[0].value as number);
+                    setTarget(channelsNodesOptions[0].value as number);
+                  }}
+                  buttonColor={buttonColor.subtle}
+                />
+              }
+            />
+          )}
        </ProgressTabContainer>
       </ProgressTabs>
     </PopoutPageTemplate>

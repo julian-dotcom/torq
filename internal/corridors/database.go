@@ -39,6 +39,18 @@ func GetCorridorsReferencingTag(db *sqlx.DB, tagId int) (corridors []*Corridor, 
 	return corridors, nil
 }
 
+func GetCorridor(db *sqlx.DB, corridorId int) (Corridor, error) {
+	co := Corridor{}
+	err := db.Get(&co, "SELECT * FROM corridor WHERE corridor_id = $1;", corridorId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Corridor{}, nil
+		}
+		return Corridor{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return co, nil
+}
+
 func GetCorridorsReferencingNode(db *sqlx.DB, nodeId int) (corridors []*Corridor, err error) {
 	err = db.Select(&corridors, `
 		SELECT *

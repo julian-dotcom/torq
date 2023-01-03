@@ -55,12 +55,21 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: channelGroups,
       }),
+      invalidatesTags: ["corridors"],
     }),
     getCorridorByReference: builder.query<Corridor, number>({
       query: (tagId) => ({
         url: `corridors/${tagId}`,
         method: "GET",
       }),
+      providesTags: ["corridors"],
+    }),
+    deleteChannelGroupByTag: builder.mutation<number, number>({
+      query: (corridorId) => ({
+        url: `channelGroups/corridor/${corridorId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["corridors"],
     }),
   }),
 });
@@ -72,6 +81,7 @@ export const {
   useGetCorridorByReferenceQuery,
   useAddTagMutation,
   useAddChannelsGroupsMutation,
+  useDeleteChannelGroupByTagMutation,
   useSetTagMutation,
   useGetNodesChannelsQuery,
 } = onChainApi;

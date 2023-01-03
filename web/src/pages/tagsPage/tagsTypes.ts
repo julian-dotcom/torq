@@ -61,3 +61,9 @@ export type Corridor = {
   totalNodes: number;
   totalChannels: number;
 }
+
+export type TagNodeChannel = {
+  tagId: number;
+  channelId?: number;
+  nodeId: number;
+}
