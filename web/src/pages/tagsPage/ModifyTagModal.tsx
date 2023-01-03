@@ -11,7 +11,7 @@ import {
   TargetArrow20Regular as TargetIcon,
   Dismiss20Regular as DeleteIcon,
 } from "@fluentui/react-icons";
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
@@ -448,7 +448,6 @@ function ModifyTagModal() {
               rightChildren={
                 <Button
                   className={styles.tagbutton}
-                  text={modalButton}
                   onClick={() => {
                     setStepIndex(1);
                     setCreateTagState(ProgressStepState.completed);
@@ -467,8 +466,9 @@ function ModifyTagModal() {
                       addTagMutation(tagObj);
                     }
                   }}
-                  buttonColor={buttonColor.subtle}
-                />
+                  buttonColor={ColorVariant.primary}>
+                  {modalButton}
+                </Button>
               }
             />
 
@@ -505,7 +505,6 @@ function ModifyTagModal() {
               rightChildren={
                 <Button
                   className={styles.tagbutton}
-                  text={t.tagsModal.newTag}
                   onClick={() => {
                     setCreateTagState(ProgressStepState.active);
                     setDoneState(ProgressStepState.disabled);
@@ -516,8 +515,9 @@ function ModifyTagModal() {
                     setTagCategory(tagCategorieOptions[0].value as number);
                     setTarget(channelsNodesOptions[0].value as number);
                   }}
-                  buttonColor={buttonColor.subtle}
-                />
+                  buttonColor={ColorVariant.primary}>
+                  {t.tagsModal.newTag}
+                </Button>
               }
             />
           )}

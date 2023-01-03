@@ -6,7 +6,7 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
-import Button, { buttonColor } from "components/buttons/Button";
+import Button, { ColorVariant } from "components/buttons/Button";
 import { TAG } from "constants/routes";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
@@ -33,14 +33,14 @@ function TagsPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
-            buttonColor={buttonColor.green}
-            text={t.tagsModal.createTag}
+            buttonColor={ColorVariant.primary}
             icon={<NewTagIcon />}
             className={"collapse-tablet"}
             onClick={() => {
               navigate(TAG, { state: { background: location } });
-            }}
-          />
+            }}>
+            {t.tagsModal.createTag}
+          </Button>
         </TableControlsTabsGroup>
       </TableControlsButtonGroup>
     </TableControlSection>
