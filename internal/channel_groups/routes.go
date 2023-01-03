@@ -21,6 +21,7 @@ func RegisterChannelGroupRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("channelGroupsByChannel/:channelId/:include", func(c *gin.Context) { getChannelGroupsByChannelIdHandler(c, db) })
 	r.POST("", func(c *gin.Context) { addChannelGroupHandler(c, db) })
 	r.DELETE("/channelGroup/:channelGroupId", func(c *gin.Context) { removeChannelGroupHandler(c, db) })
+	r.DELETE("/corridor/:corridorId", func(c *gin.Context) { removeChannelGroupByCorridorIdHandler(c, db) })
 	r.DELETE("/category/:categoryId", func(c *gin.Context) { removeCategoryHandler(c, db) })
 	r.DELETE("/tag/:tagId", func(c *gin.Context) { removeTagHandler(c, db) })
 }
@@ -158,6 +159,38 @@ func removeChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	go generateChannelGroupsByOriginRoutine(db, origin)
+	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully deleted channel group(s)."})
+}
+
+func removeChannelGroupByCorridorIdHandler(c *gin.Context, db *sqlx.DB) {
+	corridorId, err := strconv.Atoi(c.Param("corridorId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse corridorId in the request.")
+		return
+	}
+	origin := tagCorridor
+
+	co, err := corridors.GetCorridor(db, corridorId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Obtaining corridor for corridorId: %v", corridorId))
+		return
+	}
+
+	if co.ReferenceId == nil {
+		origin = categoryCorridor
+	}
+	_, err = corridors.RemoveCorridor(db, corridorId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing corridor with corridorId: %v", corridorId))
+		return
+	}
+
+	go func() {
+		err := GenerateChannelGroupsByOrigin(db, origin)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to generate channel groups.")
+		}
+	}()
 	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully deleted channel group(s)."})
 }
 

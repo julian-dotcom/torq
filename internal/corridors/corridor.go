@@ -69,6 +69,19 @@ type Corridor struct {
 	UpdateOn       time.Time `json:"updatedOn" db:"updated_on"`
 }
 
+type CorridorNodesChannels struct {
+	Corridors     []*CorridorFields `json:"corridors"`
+	TotalNodes    int               `json:"totalNodes" db:"total_nodes"`
+	TotalChannels int               `json:"totalChannels" db:"total_channels"`
+}
+
+type CorridorFields struct {
+	CorridorId     int     `json:"corridorId" db:"corridor_id"`
+	ReferenceId    *int    `json:"referenceId" db:"reference_id"`
+	Alias          *string `json:"alias" db:"alias"`
+	ShortChannelId *string `json:"shortChannelId" db:"short_channel_id"`
+}
+
 type corridorCacheByType struct {
 	corridorCacheLock       sync.RWMutex
 	corridorCacheMap        map[int]map[CorridorKey]Corridor

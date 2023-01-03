@@ -15,6 +15,7 @@ import {
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
   Flash20Regular as WorkflowsIcon,
+  Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
 import * as routes from "constants/routes";
@@ -48,17 +49,17 @@ function Navigation() {
           {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
         </NavCategory>
 
-        <NavCategory text={"Manage"} collapsed={false}>
+        <NavCategory text={t.manage} collapsed={false}>
           <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/manage/channels"} />
           <MenuItem text={t.automation} icon={<WorkflowsIcon />} routeTo={"/manage/workflows"} />
-          {/*<MenuItem text={"Tags"} icon={<TagsIcon />} routeTo={"/manage/tags"} />*/}
+          <MenuItem text={t.tags} icon={<TagsIcon />} routeTo={"/manage/tags"} />
         </NavCategory>
 
-        <NavCategory text={"Transactions"} collapsed={false}>
-          <MenuItem text={"Payments"} icon={<PaymentsIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`} />
-          <MenuItem text={"Invoices"} icon={<InvoicesIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`} />
+        <NavCategory text={t.transactions} collapsed={false}>
+          <MenuItem text={t.payments} icon={<PaymentsIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`} />
+          <MenuItem text={t.invoices} icon={<InvoicesIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`} />
           <MenuItem
-            text={"On-Chain"}
+            text={t.onChain}
             icon={<OnChainTransactionIcon />}
             routeTo={`/${routes.TRANSACTIONS}/${routes.ONCHAIN}`}
           />

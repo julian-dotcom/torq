@@ -216,7 +216,7 @@ function NodechannelModal() {
           </div>
           <div className={errMessage.length ? styles.errorBox : styles.successeBox}>
             <div>
-              <div className={errMessage.length ? styles.errorIcon : styles.successIcon}>
+              <div className={errMessage.length ? styles.errorIcon : styles.successIcon}> 
                 {updateStatusIcon["NOTE"]}
               </div>
               <div className={errMessage.length ? styles.errorNote : styles.successNote}>
