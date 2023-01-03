@@ -85,10 +85,10 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				lnd.RebalanceService(ctx, conn, db, nodeId, broadcaster)
+				commons.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster)
 			}
 		}()
-		lnd.RebalanceService(ctx, conn, db, nodeId, broadcaster)
+		commons.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster)
 	})()
 
 	wg.Wait()

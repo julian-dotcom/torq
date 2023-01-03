@@ -7,10 +7,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
 )
@@ -38,24 +35,6 @@ func TestStoreTransaction(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-
-	err = settings.InitializeManagedSettingsCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
-	}
-
-	err = settings.InitializeManagedNodeCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
-	}
-
-	err = channels.InitializeManagedChannelCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
-	}
 
 	expected := Transaction{
 		Amount:           100000,

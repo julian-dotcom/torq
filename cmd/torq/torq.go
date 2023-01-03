@@ -28,7 +28,6 @@ import (
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
-	"github.com/lncapital/torq/pkg/lnd"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
@@ -169,7 +168,7 @@ func main() {
 			go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctxGlobal)
 			go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctxGlobal)
 			go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctxGlobal)
-			go lnd.ManagedRebalanceCache(lnd.ManagedRebalanceChannel, ctxGlobal)
+			go commons.ManagedRebalanceCache(commons.ManagedRebalanceChannel, ctxGlobal)
 
 			// This listens to events:
 			// When Torq has status initializing it loads the caches and starts the LndServices

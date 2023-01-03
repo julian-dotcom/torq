@@ -1,8 +1,9 @@
 package lnd
 
 import (
-	"github.com/btcsuite/btcd/chaincfg"
 	"testing"
+
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 //func TestFetchLastInvoiceIndexes(t *testing.T) {

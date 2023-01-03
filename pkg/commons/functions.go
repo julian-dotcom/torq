@@ -116,6 +116,16 @@ func GetServiceTypes() []ServiceType {
 		RebalanceService}
 }
 
+func getDeltaPerMille(base uint64, amt uint64) int {
+	if base > amt {
+		return int((base - amt) / base * 1_000)
+	} else if base == amt {
+		return 0
+	} else {
+		return int((amt - base) / amt * 1_000)
+	}
+}
+
 type WorkflowParameterWithLabel struct {
 	Label string
 	WorkflowParameter

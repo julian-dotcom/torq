@@ -9,10 +9,7 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/mixer/clock"
-	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
 
@@ -62,24 +59,6 @@ func TestSubscribePayments(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-
-	err = settings.InitializeManagedSettingsCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
-	}
-
-	err = settings.InitializeManagedNodeCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
-	}
-
-	err = channels.InitializeManagedChannelCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
-	}
 
 	mockTickerInterval := 1 * time.Millisecond
 	opt := PayOptions{

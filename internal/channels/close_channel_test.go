@@ -7,7 +7,6 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
 )
@@ -106,24 +105,6 @@ func Test_prepareCloseRequest(t *testing.T) {
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	err = settings.InitializeManagedSettingsCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
-	}
-
-	err = settings.InitializeManagedNodeCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
-	}
-
-	err = InitializeManagedChannelCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
 	}
 
 	lndShortChannelId := uint64(9999)
