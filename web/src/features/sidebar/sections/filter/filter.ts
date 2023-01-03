@@ -70,12 +70,12 @@ export const FilterFunctions = new Map<string, Map<string, FilterFunc>>([
       [
         "eq",
         (input, key, parameter) =>
-          !!(input[key] as Array<unknown>).filter((value: any) => (parameter as Array<unknown>).includes(value)),
+          !!(input[key] as Array<unknown>).filter((value: unknown) => (parameter as Array<unknown>).includes(value)),
       ],
       [
         "neq",
         (input, key, parameter) =>
-          !(input[key] as Array<unknown>).filter((value: any) => (parameter as Array<unknown>).includes(value)),
+          !(input[key] as Array<unknown>).filter((value: unknown) => (parameter as Array<unknown>).includes(value)),
       ],
     ]),
   ],
@@ -88,11 +88,11 @@ export type FilterInterface = {
   parameter: FilterParameterType;
   key: string;
   selectOptions?: Array<SelectOption>;
-  value?: any;
+  value?: unknown;
   label?: string;
 };
 
-export function applyFilters(filters: Clause, data: Array<any>): any[] {
+export function applyFilters<T extends Record<string, unknown>>(filters: Clause, data: Array<T>): Array<T> {
   return data.filter((item) => processQuery(filters, item));
 }
 
@@ -140,7 +140,13 @@ type ClauseWithResult = Clause & {
   result?: boolean;
 };
 
-const parseClause = (clause: ClauseWithResult, data: any) => {
+export interface FilterQueryObject {
+  $filter?: FilterInterface;
+  $or?: Array<FilterQueryObject>;
+  $and?: Array<FilterQueryObject>;
+}
+
+const parseClause = <T extends Record<string, unknown>>(clause: ClauseWithResult, data: T) => {
   // const toastRef = React.useContext(ToastContext);
   typeSwitch: switch (clause.prefix) {
     case "$filter": {
@@ -193,7 +199,7 @@ const parseClause = (clause: ClauseWithResult, data: any) => {
   }
 };
 
-const processQuery = (query: any, data: any): boolean => {
+const processQuery = <T extends Record<string, unknown>>(query: ClauseWithResult, data: T): boolean => {
   // clone query to modify it and leave original untouched
   const clonedQuery = clone<ClauseWithResult>(query);
   parseClause(clonedQuery, data);
@@ -203,18 +209,18 @@ const processQuery = (query: any, data: any): boolean => {
   return clonedQuery.result;
 };
 
-const deserialiseQuery = (query: any): Clause => {
+const deserialiseQuery = (query: FilterQueryObject): Clause => {
   if (!query) {
     return new AndClause();
   }
-  if (Object.keys(query)[0] === "$filter") {
+  if (query.$filter) {
     return new FilterClause(query.$filter);
   }
-  if (Object.keys(query)[0] === "$and" && query.$and) {
-    return new AndClause(query.$and.map((subclause: Clause) => deserialiseQuery(subclause)));
+  if (query.$and) {
+    return new AndClause(query.$and.map((subclause) => deserialiseQuery(subclause)));
   }
-  if (Object.keys(query)[0] === "$or" && query.$or) {
-    return new OrClause(query.$or.map((subclause: Clause) => deserialiseQuery(subclause)));
+  if (query.$or) {
+    return new OrClause(query.$or.map((subclause) => deserialiseQuery(subclause)));
   }
   throw new Error("Expected JSON to contain $filter, $or or $and");
 };

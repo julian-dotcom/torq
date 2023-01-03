@@ -10,7 +10,7 @@ import { DefaultChannelsView } from "features/channels/channelsDefaults";
 import { DefaultTagsView } from "pages/tagsPage/tagsDefaults";
 import { ColumnMetaData } from "features/table/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
-import { deserialiseQuery } from "features/sidebar/sections/filter/filter";
+import { deserialiseQuery, FilterQueryObject } from "features/sidebar/sections/filter/filter";
 
 const initialState = {
   initiated: false,
@@ -180,7 +180,7 @@ export const viewsSlice = createSlice({
     // --------------------- Filters ---------------------
     updateFilters: (
       state: ViewSliceState,
-      actions: PayloadAction<{ page: ViewSliceStatePages; viewIndex: number; filterUpdate: object | undefined }>
+      actions: PayloadAction<{ page: ViewSliceStatePages; viewIndex: number; filterUpdate: FilterQueryObject }>
     ) => {
       const { page, viewIndex, filterUpdate } = actions.payload;
       const q = deserialiseQuery(filterUpdate);
