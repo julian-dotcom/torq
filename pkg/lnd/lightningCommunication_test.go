@@ -268,13 +268,13 @@ func Test_processUpdateResponse(t *testing.T) {
 		name  string
 		req   commons.RoutingPolicyUpdateRequest
 		input *lnrpc.PolicyUpdateResponse
-		want  *commons.RoutingPolicyUpdateResponse
+		want  commons.RoutingPolicyUpdateResponse
 	}{
 		{
 			"Update succeeded",
 			commons.RoutingPolicyUpdateRequest{},
 			&lnrpc.PolicyUpdateResponse{FailedUpdates: []*lnrpc.FailedUpdate{}},
-			&commons.RoutingPolicyUpdateResponse{
+			commons.RoutingPolicyUpdateResponse{
 				Request: commons.RoutingPolicyUpdateRequest{},
 				CommunicationResponse: commons.CommunicationResponse{
 					Status: commons.Active,
@@ -294,7 +294,7 @@ func Test_processUpdateResponse(t *testing.T) {
 				Reason:      2,
 				UpdateError: "not found",
 			}}},
-			&commons.RoutingPolicyUpdateResponse{
+			commons.RoutingPolicyUpdateResponse{
 				Request: commons.RoutingPolicyUpdateRequest{},
 				CommunicationResponse: commons.CommunicationResponse{
 					Status: commons.Inactive,

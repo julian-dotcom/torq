@@ -234,24 +234,6 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	for _, serviceType := range commons.GetServiceTypes() {
 		commons.RunningServices[serviceType] = &commons.Services{ServiceType: serviceType}
 	}
-	//
-	//err = settings.InitializeManagedSettingsCache(db)
-	//if err != nil {
-	//	cancel()
-	//	log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
-	//}
-	//
-	//err = settings.InitializeManagedNodeCache(db)
-	//if err != nil {
-	//	cancel()
-	//	log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
-	//}
-	//
-	//err = channels.InitializeManagedChannelCache(db)
-	//if err != nil {
-	//	cancel()
-	//	log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
-	//}
 
 	return db, cancel, broadcaster, eventChannelGlobal, nil
 }

@@ -9,7 +9,10 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/mixer/clock"
+	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
 
@@ -60,10 +63,45 @@ func TestSubscribePayments(t *testing.T) {
 	}
 	defer db.Close()
 
+	err = settings.InitializeManagedSettingsCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
+	}
+
+	err = settings.InitializeManagedNodeCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
+	}
+
+	err = channels.InitializeManagedChannelCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
+	}
+
 	mockTickerInterval := 1 * time.Millisecond
 	opt := PayOptions{
 		Tick: c.Tick(mockTickerInterval),
 	}
+
+	var hops []*lnrpc.Hop
+	hops = append(hops, &lnrpc.Hop{
+		ChanId: 1111,
+		PubKey: testutil.TestPublicKey1,
+	})
+	hops = append(hops, &lnrpc.Hop{
+		ChanId: 2222,
+		PubKey: testutil.TestPublicKey1,
+	})
+	var htlcs []*lnrpc.HTLCAttempt
+	htlcs = append(htlcs, &lnrpc.HTLCAttempt{
+		AttemptId: 1,
+		Route: &lnrpc.Route{
+			Hops: hops,
+		},
+	})
 
 	createdAt := time.Now().UTC()
 	mclient := mockLightningClient_ListPayments{
@@ -85,7 +123,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: createdAt.UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 			},
 			{
@@ -105,7 +143,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: time.Unix(1624108877, 0).UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 			},
 			{
@@ -125,7 +163,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: createdAt.UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NO_ROUTE,
 			},
 			{
@@ -145,7 +183,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: createdAt.UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_TIMEOUT,
 			},
 			{
@@ -165,7 +203,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: createdAt.UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_TIMEOUT,
 			},
 			{
@@ -185,7 +223,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: time.Unix(1630415433, 0).UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 			},
 		},
