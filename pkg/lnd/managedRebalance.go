@@ -19,6 +19,7 @@ const (
 	WRITE_REBALANCER
 	DELETE_REBALANCER
 	READ_REBALANCE_RESULT
+	READ_REBALANCE_RESULT_BY_ORIGIN
 	WRITE_REBALANCE_RESULT
 )
 
@@ -81,8 +82,16 @@ func ManagedRebalanceCache(ch chan ManagedRebalance, ctx context.Context) {
 					continue
 				}
 				initializeResultsCache(managedRebalance, incomingResultsCache, outgoingResultsCache)
-				rebalanceResults := getRebalanceResultsCache(managedRebalance, incomingResultsCache, outgoingResultsCache)
-				SendToManagedRebalanceResultChannel(managedRebalance.RebalanceResultOut, getLatestResultFromArray(rebalanceResults, managedRebalance))
+				SendToManagedRebalanceResultChannel(managedRebalance.RebalanceResultOut,
+					getRebalanceLatestResultCache(managedRebalance, incomingResultsCache, outgoingResultsCache))
+			case READ_REBALANCE_RESULT_BY_ORIGIN:
+				if !isValidRequest(managedRebalance) {
+					SendToManagedRebalanceResultChannel(managedRebalance.RebalanceResultOut, RebalanceResult{})
+					continue
+				}
+				initializeResultsCache(managedRebalance, incomingResultsCache, outgoingResultsCache)
+				SendToManagedRebalanceResultChannel(managedRebalance.RebalanceResultOut,
+					getRebalanceLatestResultByOriginCache(managedRebalance, incomingResultsCache, outgoingResultsCache))
 			case WRITE_REBALANCER:
 				managedRebalance = copyFromRebalancer(managedRebalance)
 				if !isValidRequest(managedRebalance) {
@@ -131,17 +140,6 @@ func copyFromRebalancer(managedRebalance ManagedRebalance) ManagedRebalance {
 	return managedRebalance
 }
 
-func getLatestResultFromArray(rebalanceResults []RebalanceResult, managedRebalance ManagedRebalance) RebalanceResult {
-	if len(rebalanceResults) != 0 {
-		for i := len(rebalanceResults) - 1; i >= 0; i-- {
-			if managedRebalance.Status == nil || *managedRebalance.Status == rebalanceResults[i].Status {
-				return rebalanceResults[i]
-			}
-		}
-	}
-	return RebalanceResult{}
-}
-
 func appendRebalanceResult(managedRebalance ManagedRebalance,
 	incomingResultsCache map[commons.RebalanceRequestOrigin]map[int]map[int][]RebalanceResult,
 	outgoingResultsCache map[commons.RebalanceRequestOrigin]map[int]map[int][]RebalanceResult) {
@@ -170,14 +168,69 @@ func appendRebalanceResult(managedRebalance ManagedRebalance,
 	}
 }
 
-func getRebalanceResultsCache(managedRebalance ManagedRebalance,
+func getRebalanceLatestResultByOriginCache(managedRebalance ManagedRebalance,
 	incomingResultsCache map[commons.RebalanceRequestOrigin]map[int]map[int][]RebalanceResult,
-	outgoingResultsCache map[commons.RebalanceRequestOrigin]map[int]map[int][]RebalanceResult) []RebalanceResult {
+	outgoingResultsCache map[commons.RebalanceRequestOrigin]map[int]map[int][]RebalanceResult) RebalanceResult {
 
+	var rebalanceResults []RebalanceResult
 	if managedRebalance.IncomingChannelId != 0 {
-		return incomingResultsCache[managedRebalance.Origin][managedRebalance.OriginId][managedRebalance.IncomingChannelId]
+		rebalanceResults = incomingResultsCache[managedRebalance.Origin][managedRebalance.OriginId][managedRebalance.IncomingChannelId]
+	} else {
+		rebalanceResults = outgoingResultsCache[managedRebalance.Origin][managedRebalance.OriginId][managedRebalance.OutgoingChannelId]
 	}
-	return outgoingResultsCache[managedRebalance.Origin][managedRebalance.OriginId][managedRebalance.OutgoingChannelId]
+	if len(rebalanceResults) != 0 {
+		for i := len(rebalanceResults) - 1; i >= 0; i-- {
+			if managedRebalance.Status == nil || *managedRebalance.Status == rebalanceResults[i].Status {
+				return rebalanceResults[i]
+			}
+		}
+	}
+	return RebalanceResult{}
+}
+
+func getRebalanceLatestResultCache(managedRebalance ManagedRebalance,
+	incomingResultsCache map[commons.RebalanceRequestOrigin]map[int]map[int][]RebalanceResult,
+	outgoingResultsCache map[commons.RebalanceRequestOrigin]map[int]map[int][]RebalanceResult) RebalanceResult {
+
+	var latest RebalanceResult
+	if managedRebalance.IncomingChannelId != 0 {
+		latest = processResultsCache(managedRebalance, incomingResultsCache, latest)
+	}
+	if managedRebalance.OutgoingChannelId != 0 {
+		latest = processResultsCache(managedRebalance, outgoingResultsCache, latest)
+	}
+	return latest
+}
+
+func processResultsCache(
+	managedRebalance ManagedRebalance,
+	resultsCache map[commons.RebalanceRequestOrigin]map[int]map[int][]RebalanceResult,
+	latest RebalanceResult) RebalanceResult {
+
+	for origin := range resultsCache {
+		for originId := range resultsCache[origin] {
+			for channelId := range resultsCache[origin][originId] {
+				rebalanceResults := resultsCache[origin][originId][channelId]
+				if len(rebalanceResults) != 0 {
+					for i := len(rebalanceResults) - 1; i >= 0; i-- {
+						if rebalanceResults[i].OutgoingChannelId == managedRebalance.OutgoingChannelId &&
+							rebalanceResults[i].IncomingChannelId == managedRebalance.IncomingChannelId &&
+							(managedRebalance.Status == nil || *managedRebalance.Status == rebalanceResults[i].Status) {
+							if latest.RebalanceId == 0 {
+								latest = rebalanceResults[i]
+								break
+							}
+							if latest.UpdateOn.Before(rebalanceResults[i].UpdateOn) {
+								latest = rebalanceResults[i]
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return latest
 }
 
 func removeRebalancersCache(managedRebalance ManagedRebalance,
@@ -233,7 +286,7 @@ func isValidRequest(managedRebalance ManagedRebalance) bool {
 			managedRebalance.IncomingChannelId, managedRebalance.OutgoingChannelId)
 		return false
 	}
-	if managedRebalance.OriginId == 0 {
+	if managedRebalance.Type != READ_REBALANCE_RESULT && managedRebalance.OriginId == 0 {
 		log.Error().Msgf("No empty OriginId (%v) allowed", managedRebalance.OriginId)
 		return false
 	}
@@ -241,6 +294,8 @@ func isValidRequest(managedRebalance ManagedRebalance) bool {
 	case WRITE_REBALANCE_RESULT:
 		fallthrough
 	case READ_REBALANCE_RESULT:
+		fallthrough
+	case READ_REBALANCE_RESULT_BY_ORIGIN:
 		if managedRebalance.IncomingChannelId == 0 && managedRebalance.OutgoingChannelId == 0 {
 			log.Error().Msgf("IncomingChannelId (%v) and OutgoingChannelId (%v) cannot both be 0",
 				managedRebalance.IncomingChannelId, managedRebalance.OutgoingChannelId)
@@ -286,7 +341,20 @@ func getRebalancers(status *commons.Status) []*Rebalancer {
 	return <-responseChannel
 }
 
-func getLatestResult(origin commons.RebalanceRequestOrigin, originId int,
+func getLatestResult(incomingChannelId int, outgoingChannelId int, status *commons.Status) RebalanceResult {
+	responseChannel := make(chan RebalanceResult)
+	managedRebalance := ManagedRebalance{
+		IncomingChannelId:  incomingChannelId,
+		OutgoingChannelId:  outgoingChannelId,
+		Status:             status,
+		Type:               READ_REBALANCE_RESULT,
+		RebalanceResultOut: responseChannel,
+	}
+	ManagedRebalanceChannel <- managedRebalance
+	return <-responseChannel
+}
+
+func getLatestResultByOrigin(origin commons.RebalanceRequestOrigin, originId int,
 	incomingChannelId int, outgoingChannelId int, status *commons.Status) RebalanceResult {
 	responseChannel := make(chan RebalanceResult)
 	managedRebalance := ManagedRebalance{
@@ -295,7 +363,7 @@ func getLatestResult(origin commons.RebalanceRequestOrigin, originId int,
 		IncomingChannelId:  incomingChannelId,
 		OutgoingChannelId:  outgoingChannelId,
 		Status:             status,
-		Type:               READ_REBALANCE_RESULT,
+		Type:               READ_REBALANCE_RESULT_BY_ORIGIN,
 		RebalanceResultOut: responseChannel,
 	}
 	ManagedRebalanceChannel <- managedRebalance

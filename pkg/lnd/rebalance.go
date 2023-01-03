@@ -211,12 +211,53 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 		return
 	}
 
-	// TODO CHECK if other direction ran before in the last 5 minutes
-	// to prevent back-and-forth
+	pending := commons.Pending
+	pendingRebalancers := getRebalancers(&pending)
+
+	var filteredChannelIds []int
+	if request.IncomingChannelId != 0 {
+		for _, channelId := range request.ChannelIds {
+			// get rebalance attempts for the other direction
+			latestResult := getLatestResult(channelId, request.IncomingChannelId, nil)
+			if latestResult.RebalanceId == 0 || latestResult.UpdateOn.Before(time.Now().Add(-5*time.Minute)) {
+				filteredChannelIds = rebalancePendingForOpositDirection(pendingRebalancers, channelId, request.IncomingChannelId, channelId, filteredChannelIds)
+			} else {
+				log.Info().Msgf(
+					"ChannelId %d was removed because an opposite result already exists (IncomingChannelId: %d) "+
+						"for origin: %v, originId: %v with reference number: %v",
+					channelId, request.IncomingChannelId, request.Origin, request.OriginId, request.OriginReference)
+			}
+		}
+	}
+	if request.OutgoingChannelId != 0 {
+		for _, channelId := range request.ChannelIds {
+			// get rebalance attempts for the other direction
+			latestResult := getLatestResult(request.OutgoingChannelId, channelId, nil)
+			if latestResult.RebalanceId == 0 || latestResult.UpdateOn.Before(time.Now().Add(-5*time.Minute)) {
+				filteredChannelIds = rebalancePendingForOpositDirection(pendingRebalancers, channelId, channelId, request.OutgoingChannelId, filteredChannelIds)
+			} else {
+				log.Info().Msgf(
+					"ChannelId %d was removed because an opposite result already exists (OutgoingChannelId: %d) "+
+						"for origin: %v, originId: %v with reference number: %v",
+					channelId, request.OutgoingChannelId, request.Origin, request.OriginId, request.OriginReference)
+			}
+		}
+	}
+	if len(filteredChannelIds) == 0 {
+		sendResponse(request, commons.RebalanceResponse{
+			Request: request,
+			CommunicationResponse: commons.CommunicationResponse{
+				Status: commons.Inactive,
+				Error:  "No channelIds found after filtering based on historic records",
+			},
+		})
+		return
+	}
+	request.ChannelIds = filteredChannelIds
 
 	createdOn := time.Now().UTC()
 
-	latestResult := getLatestResult(request.Origin, request.OriginId, request.IncomingChannelId, request.OutgoingChannelId, nil)
+	latestResult := getLatestResultByOrigin(request.Origin, request.OriginId, request.IncomingChannelId, request.OutgoingChannelId, nil)
 	if latestResult.RebalanceId != 0 {
 		runningFor := request.RequestTime.Sub(latestResult.UpdateOn)
 		if runningFor.Seconds() < commons.REBALANCE_MINIMUM_DELTA_SECONDS {
@@ -244,8 +285,8 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 			CommunicationResponse: commons.CommunicationResponse{
 				Status: commons.Inactive,
 				Error: fmt.Sprintf(
-					"IncomingChannelId: %v already has a running rebalancer for origin: %v with reference number: %v",
-					rebalancer.Request.IncomingChannelId, rebalancer.Request.Origin, rebalancer.Request.OriginReference),
+					"IncomingChannelId: %v already has a running rebalancer for origin: %v, originId: %v with reference number: %v",
+					rebalancer.Request.IncomingChannelId, rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OriginReference),
 			},
 		})
 		return
@@ -256,6 +297,29 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 			Status: commons.Active,
 		},
 	})
+}
+
+func rebalancePendingForOpositDirection(pendingRebalancers []*Rebalancer, channelId int, incomingChannelId int, outgoingChannelId int, filteredChannelIds []int) []int {
+	if len(pendingRebalancers) == 0 {
+		return append(filteredChannelIds, channelId)
+	}
+	for _, rebalancer := range pendingRebalancers {
+		if rebalancer.Request.IncomingChannelId == outgoingChannelId {
+			for _, rebalanceOutgoingChannelId := range rebalancer.Request.ChannelIds {
+				if rebalanceOutgoingChannelId == incomingChannelId {
+					return filteredChannelIds
+				}
+			}
+		}
+		if rebalancer.Request.OutgoingChannelId == incomingChannelId {
+			for _, rebalanceIncomingChannelId := range rebalancer.Request.ChannelIds {
+				if rebalanceIncomingChannelId == outgoingChannelId {
+					return filteredChannelIds
+				}
+			}
+		}
+	}
+	return append(filteredChannelIds, channelId)
 }
 
 func (rebalancer *Rebalancer) start(
@@ -287,7 +351,7 @@ func (rebalancer *Rebalancer) start(
 
 	active := commons.Active
 	rebalancer.Status = commons.Active
-	previousSuccess := getLatestResult(rebalancer.Request.Origin, rebalancer.Request.OriginId,
+	previousSuccess := getLatestResultByOrigin(rebalancer.Request.Origin, rebalancer.Request.OriginId,
 		rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, &active)
 	if time.Since(previousSuccess.UpdateOn).Seconds() > commons.REBALANCE_SUCCESS_TIMEOUT_SECONDS {
 		previousSuccess = RebalanceResult{}
