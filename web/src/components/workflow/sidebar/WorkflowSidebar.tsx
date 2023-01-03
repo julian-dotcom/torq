@@ -9,6 +9,7 @@ import {
   ChannelPolicyConfigurationNodeButton,
   TimeTriggerNodeButton,
   ChannelFilterNodeButton,
+  ReBalanceChannelNodeButton,
 } from "components/workflow/nodes/nodes";
 
 export type WorkflowSidebarProps = {
@@ -38,7 +39,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
 
   return (
     <div className={classNames(styles.pageSidebarWrapper, { [styles.sidebarExpanded]: expanded })}>
-      <Sidebar title={t.nodes} closeSidebarHandler={closeSidebarHandler}>
+      <Sidebar title={t.actions} closeSidebarHandler={closeSidebarHandler}>
         {" "}
         <SectionContainer
           title={t.triggers}
@@ -56,6 +57,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
         >
           <ChannelPolicyConfigurationNodeButton />
           <ChannelFilterNodeButton />
+          <ReBalanceChannelNodeButton />
         </SectionContainer>
       </Sidebar>
     </div>

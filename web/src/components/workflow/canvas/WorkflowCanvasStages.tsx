@@ -8,6 +8,7 @@ import {
   TimeTriggerNode,
   StageTriggerNode,
   ChannelFilterNode,
+  ReBalanceChannelNode,
 } from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
@@ -69,6 +70,8 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <ChannelPolicyNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelFilter:
       return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.RebalanceParameters:
+      return <ReBalanceChannelNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     default:
       return null;
   }

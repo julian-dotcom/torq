@@ -97,7 +97,7 @@ export function useWorkflowControls(sidebarExpanded: boolean, setSidebarExpanded
             setSidebarExpanded(!sidebarExpanded);
           }}
         >
-          {t.nodes}
+          {t.actions}
         </Button>
       </TableControlsButtonGroup>
     </TableControlSection>

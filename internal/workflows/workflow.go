@@ -77,12 +77,12 @@ type ModifyTagsParameters struct {
 }
 
 type ReBalanceParameters struct {
-	OutgoingChannelId  int    `json:"outgoingChannelIds"`
-	IncomingChannelId  int    `json:"incomingChannelId"`
+	OutgoingChannelId  *int   `json:"outgoingChannelId"`
+	IncomingChannelId  *int   `json:"incomingChannelId"`
 	ChannelIds         []int  `json:"channelIds"`
 	AmountMsat         uint64 `json:"amountMsat"`
 	MaximumCostMsat    uint64 `json:"maximumCostMsat"`
-	MaximumConcurrency int    `json:"maximumConcurrency"`
+	MaximumConcurrency *int   `json:"maximumConcurrency"`
 }
 
 type WorkflowVersionNode struct {
