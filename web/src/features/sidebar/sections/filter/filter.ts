@@ -140,10 +140,10 @@ type ClauseWithResult = Clause & {
   result?: boolean;
 };
 
-export interface FilterQueryObject {
+export interface SerialisableFilterQuery {
   $filter?: FilterInterface;
-  $or?: Array<FilterQueryObject>;
-  $and?: Array<FilterQueryObject>;
+  $or?: Array<SerialisableFilterQuery>;
+  $and?: Array<SerialisableFilterQuery>;
 }
 
 const parseClause = <T extends Record<string, unknown>>(clause: ClauseWithResult, data: T) => {
@@ -209,7 +209,7 @@ const processQuery = <T extends Record<string, unknown>>(query: ClauseWithResult
   return clonedQuery.result;
 };
 
-const deserialiseQuery = (query: FilterQueryObject): Clause => {
+const deserialiseQuery = (query: SerialisableFilterQuery | undefined): Clause => {
   if (!query) {
     return new AndClause();
   }

@@ -1,4 +1,5 @@
 import { Network } from "features/network/networkSlice";
+import { SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 type Paginable = {
@@ -17,7 +18,7 @@ export type ActiveNetwork = {
 
 export type BaseQueryCollectionParams = Paginable & {
   order?: Array<OrderBy>;
-  filter?: any;
+  filter?: SerialisableFilterQuery;
 };
 
 export type GetFlowQueryParams = FromAndTo &

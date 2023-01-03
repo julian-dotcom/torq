@@ -17,7 +17,7 @@ import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_ADDRESS } from "constants/routes";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
-import { OnChainResponse, OnChainTx } from "./types";
+import { OnChainTx } from "./types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import {
   AllOnChainColumns,
@@ -60,13 +60,7 @@ function OnChainPage() {
   const [getPagination, limit, offset] = usePagination("onChain");
   const activeNetwork = useAppSelector(selectActiveNetwork);
 
-  const onChainTxResponse = useGetOnChainTxQuery<{
-    data: OnChainResponse;
-    isLoading: boolean;
-    isFetching: boolean;
-    isUninitialized: boolean;
-    isSuccess: boolean;
-  }>(
+  const onChainTxResponse = useGetOnChainTxQuery(
     {
       limit: limit,
       offset: offset,

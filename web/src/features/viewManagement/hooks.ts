@@ -1,10 +1,10 @@
-import { applyFilters, deserialiseQuery, FilterQueryObject } from "features/sidebar/sections/filter/filter";
+import { applyFilters, deserialiseQuery, SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { orderBy } from "lodash";
 
 export function useFilterData<T extends Record<string, unknown>>(
   data: Array<T>,
-  filters?: FilterQueryObject
+  filters?: SerialisableFilterQuery
 ): Array<T> {
   if (filters && data) {
     return applyFilters(deserialiseQuery(filters), data);

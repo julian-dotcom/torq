@@ -7,6 +7,7 @@ import { Payment } from "features/transact/Payments/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { Forward } from "features/forwards/forwardsTypes";
 import { workflowListItem } from "pages/WorkflowPage/workflowTypes";
+import { SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";
 
 export type ViewResponse<T> = {
   view: ViewInterface<T>;
@@ -35,7 +36,7 @@ export type UpdateViewRequest = { id: number; view: ViewInterface<TableResponses
 
 export type ViewInterface<T> = {
   title: string;
-  filters?: any;
+  filters?: SerialisableFilterQuery;
   columns: Array<ColumnMetaData<T>>;
   sortBy?: Array<OrderBy>;
   groupBy?: "channels" | "peers" | undefined;

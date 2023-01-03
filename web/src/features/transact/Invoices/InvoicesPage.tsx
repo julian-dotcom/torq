@@ -16,7 +16,7 @@ import { useState } from "react";
 import Button, { buttonColor } from "components/buttons/Button";
 import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
-import { Invoice, InvoicesResponse } from "./invoiceTypes";
+import { Invoice } from "./invoiceTypes";
 import {
   AllInvoicesColumns,
   InvoiceFilterTemplate,
@@ -70,13 +70,7 @@ function InvoicesPage() {
   const [getPagination, limit, offset] = usePagination("invoices");
   const activeNetwork = useAppSelector(selectActiveNetwork);
 
-  const invoicesResponse = useGetInvoicesQuery<{
-    data: InvoicesResponse;
-    isLoading: boolean;
-    isFetching: boolean;
-    isUninitialized: boolean;
-    isSuccess: boolean;
-  }>(
+  const invoicesResponse = useGetInvoicesQuery(
     {
       limit: limit,
       offset: offset,

@@ -12,7 +12,7 @@ import TablePageTemplate, {
 import { useState } from "react";
 import { useLocation } from "react-router";
 import { Link, useNavigate } from "react-router-dom";
-import { Payment, PaymentsResponse } from "./types";
+import { Payment } from "./types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import {
   AllPaymentsColumns,
@@ -63,13 +63,7 @@ function PaymentsPage() {
 
   const [getPagination, limit, offset] = usePagination("invoices");
 
-  const paymentsResponse = useGetPaymentsQuery<{
-    data: PaymentsResponse;
-    isLoading: boolean;
-    isFetching: boolean;
-    isUninitialized: boolean;
-    isSuccess: boolean;
-  }>(
+  const paymentsResponse = useGetPaymentsQuery(
     {
       limit: limit,
       offset: offset,
