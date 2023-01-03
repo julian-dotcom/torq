@@ -19,9 +19,8 @@ import type {
   ActiveNetwork,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import { tag, channelTag } from "pages/tagsPage/tagsTypes";
 import { Forward } from "./features/forwards/forwardsTypes";
-import type { nodeConfiguration, settings, timeZone, stringMap, services } from "apiTypes";
+import type { nodeConfiguration, settings, timeZone, services } from "apiTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -51,46 +50,8 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
 export const torqApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRedirect,
-  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "services", "tags"],
+  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "services", "tags", "categories", "corridors"],
   endpoints: (builder) => ({
-    getTags: builder.query<tag[], void>({
-      query: () => `tags/all`,
-      providesTags: ["tags"],
-    }),
-    getTag: builder.query<tag, number>({
-      query: (tagId) => `tags/get/${tagId}`,
-      providesTags: ["tags"],
-    }),
-    addTag: builder.mutation<tag, tag>({
-      query: (tag) => ({
-        url: `tags/add`,
-        method: "POST",
-        body: tag,
-      }),
-      invalidatesTags: ["tags"],
-    }),
-    setTag: builder.mutation<tag, tag>({
-      query: (tag) => ({
-        url: `tags/set`,
-        method: "PUT",
-        body: tag,
-      }),
-      invalidatesTags: ["tags"],
-    }),
-    removeTag: builder.mutation<number, number>({
-      query: (tagId) => ({
-        url: `tags/${tagId}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["tags"],
-    }),
-    addChannelTag: builder.mutation<stringMap<string>, channelTag>({
-      query: (channelTag) => ({
-        url: `channelTags/add`,
-        method: "POST",
-        body: channelTag,
-      }),
-    }),
     getFlow: builder.query<FlowData[], GetFlowQueryParams>({
       query: (params) => "flow" + queryParamsBuilder(params),
     }),
@@ -231,6 +192,5 @@ export const {
   useUpdateNodeConfigurationStatusMutation,
   useUpdateNodePingSystemStatusMutation,
   useUpdateChannelMutation,
-  useGetTagsQuery,
   useGetServicesQuery,
 } = torqApi;

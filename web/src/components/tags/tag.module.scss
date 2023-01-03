@@ -1,0 +1,56 @@
+.tagWrapper {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  column-gap: 8px;
+  width: min-content;
+  background-color: var(--color-primary-layer-2);
+  //background-color: var(--color-text-primary-strong);
+  padding: 6px 8px;
+  border-radius: var(--radius-default);
+  color: var(--color-text-primary-strong);
+}
+.success {
+  background-color: var(--color-success-layer-2);
+  color: var(--color-text-success-strong);
+}
+.warning {
+  background-color: var(--color-warning-layer-2);
+  color: var(--color-text-warning-strong);
+}
+.error {
+  background-color: var(--color-error-layer-2);
+  color: var(--color-text-error-strong);
+}
+.accent1 {
+  background-color: var(--color-accent-1-layer-2);
+  color: var(--color-text-accent-1-strong);
+}
+.accent2 {
+  background-color: var(--color-accent-2-layer-2);
+  color: var(--color-text-accent-2-strong);
+}
+.accent3 {
+  background-color: var(--color-accent-3-layer-2);
+  color: var(--color-text-accent-3-strong);
+}
+
+.small {
+  height: 32px;
+  padding: 6px 6px;
+}
+
+//.tagLabel,
+//.tagLockedIcon {
+//  background: inherit;
+//  -webkit-background-clip: text;
+//  background-clip: text;
+//  color: transparent;
+//  filter: sepia(5) /* add some color to grey so the rest works */ saturate(100)
+//    /* increase strength of color channels */ invert(1) /* invert the color */ grayscale(1) /* make it grey */
+//    contrast(9); /* make it black/white */
+//  svg {
+//    color: inherit;
+//    //filter: inherit;
+//  }
+//}
