@@ -47,9 +47,21 @@ func processManagedSettings(managedSettings ManagedSettings,
 	switch managedSettings.Type {
 	case READ_SETTINGS:
 		managedSettings.DefaultLanguage = defaultLanguage
+		if defaultLanguage == "" {
+			managedSettings.DefaultLanguage = "en"
+		}
 		managedSettings.PreferredTimeZone = preferredTimeZone
+		if preferredTimeZone == "" {
+			managedSettings.PreferredTimeZone = "UTC"
+		}
 		managedSettings.DefaultDateRange = defaultDateRange
+		if defaultDateRange == "" {
+			managedSettings.DefaultDateRange = "last7days"
+		}
 		managedSettings.WeekStartsOn = weekStartsOn
+		if weekStartsOn == "" {
+			managedSettings.WeekStartsOn = "monday"
+		}
 		SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
 	case WRITE_SETTINGS:
 		defaultLanguage = managedSettings.DefaultLanguage
