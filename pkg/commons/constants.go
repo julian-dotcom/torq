@@ -2,11 +2,15 @@ package commons
 
 type ServiceType int
 
+// When adding here also add to GetServiceTypes
 const (
 	LndService = ServiceType(iota)
 	VectorService
 	AmbossService
 	TorqService
+	AutomationService
+	LightningCommunicationService
+	RebalanceService
 )
 
 const TorqDummyNodeId = -1337
@@ -60,6 +64,21 @@ const AMBOSS_SLEEP_SECONDS = 25
 const VECTOR_SLEEP_SECONDS = 20
 
 const WORKFLOW_LOG_COUNT = 100
+const WORKFLOW_TICKER_SECONDS = 10
+
+const ROUTING_POLICY_UPDATE_LIMITER_SECONDS = 5 * 60
+
+const REBALANCE_QUEUE_TICKER_SECONDS = 10
+const REBALANCE_MAXIMUM_CONCURRENCY = 10
+const REBALANCE_ROUTE_FAILED_HOP_ALLOWED_DELTA_PER_MILLE = 10
+const REBALANCE_REBALANCE_DELAY_MILLISECONDS = 500
+const REBALANCE_SUCCESS_TIMEOUT_SECONDS = 2 * 60
+const REBALANCE_TIMEOUT_SECONDS = 2 * 60 * 60
+const REBALANCE_RUNNER_TIMEOUT_SECONDS = 1 * 60 * 60
+const REBALANCE_ROUTES_TIMEOUT_SECONDS = 1 * 60
+const REBALANCE_ROUTE_TIMEOUT_SECONDS = 10 * 60
+const REBALANCE_RESULTS_TIMEOUT_SECONDS = 5 * 60
+const REBALANCE_MINIMUM_DELTA_SECONDS = 10 * 60
 
 type Status int
 
@@ -69,6 +88,7 @@ const (
 	Pending
 	Deleted
 	Initializing
+	Archived
 )
 
 type Implementation int
@@ -181,4 +201,62 @@ const (
 	MEMPOOL string = "https://mempool.space/lightning/channel/"
 	AMBOSS  string = "https://amboss.space/edge/"
 	ONEML   string = "https://1ml.com/channel/"
+)
+
+type WorkflowNodeType int
+
+const (
+	WorkflowNodeTimeTrigger = WorkflowNodeType(iota)
+	WorkflowNodeChannelBalanceEventTrigger
+	WorkflowNodeChannelFilter
+	WorkflowNodeChannelPolicyConfigurator
+	WorkflowNodeRebalanceParameters
+	WorkflowNodeStageTrigger
+	WorkflowNodeRebalanceRun
+	WorkflowNodeChannelPolicyRun
+	WorkflowNodeSetVariable
+	WorkflowNodeFilterOnVariable
+)
+
+type WorkflowTriggerType int
+
+const (
+	WorkflowTriggerTimingService = WorkflowTriggerType(iota)
+	WorkflowTriggerEventService
+)
+
+type WorkflowParameter string
+
+const (
+	WorkflowParameterAny                   = WorkflowParameter("any")
+	WorkflowParameterTriggered             = WorkflowParameter("triggered")
+	WorkflowParameterChannelIds            = WorkflowParameter("channelIds")
+	WorkflowParameterRoutingPolicySettings = WorkflowParameter("routingPolicySettings")
+	WorkflowParameterRebalanceSettings     = WorkflowParameter("rebalanceSettings")
+	WorkflowParameterStatus                = WorkflowParameter("status")
+)
+
+type WorkflowNodeTypeParameters struct {
+	WorkflowNodeType WorkflowNodeType
+	RequiredInputs   []WorkflowParameterWithLabel
+	OptionalInputs   []WorkflowParameterWithLabel
+	RequiredOutputs  []WorkflowParameterWithLabel
+	OptionalOutputs  []WorkflowParameterWithLabel
+}
+
+type WorkflowParameterType int
+
+const (
+	WorkflowParameterTimeInSeconds = WorkflowParameterType(iota)
+	WorkflowParameterBalanceShifted
+	WorkflowParameterVariableName
+	WorkflowParameterVariableValueString
+	WorkflowParameterVariableValueNumber
+)
+
+type RebalanceRequestOrigin int
+
+const (
+	RebalanceRequestWorkflowNode = RebalanceRequestOrigin(iota)
+	RebalanceRequestManual
 )

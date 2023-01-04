@@ -18,16 +18,16 @@ const FundingOutputIndex = 1
 func Test_processResponse(t *testing.T) {
 
 	tests := []struct {
-		name    string
-		reqId   string
-		req     commons.CloseChannelRequest
-		input   *lnrpc.CloseStatusUpdate
-		want    commons.CloseChannelResponse
-		wantErr bool
+		name      string
+		requestId string
+		req       commons.CloseChannelRequest
+		input     *lnrpc.CloseStatusUpdate
+		want      commons.CloseChannelResponse
+		wantErr   bool
 	}{
 		{
-			name:  "Close Pending",
-			reqId: "Test",
+			name:      "Close Pending",
+			requestId: "Test",
 			input: &lnrpc.CloseStatusUpdate{
 				Update: &lnrpc.CloseStatusUpdate_ClosePending{
 					ClosePending: &lnrpc.PendingUpdate{
@@ -38,15 +38,15 @@ func Test_processResponse(t *testing.T) {
 			},
 
 			want: commons.CloseChannelResponse{
-				ReqId:                    "Test",
+				RequestId:                "Test",
 				Status:                   commons.Closing,
 				ClosePendingChannelPoint: commons.ChannelPoint{TxId: []byte("test"), OutputIndex: 0},
 				CloseChannelStatus:       commons.CloseChannelStatus{},
 			},
 		},
 		{
-			name:  "Closed",
-			reqId: "Test",
+			name:      "Closed",
+			requestId: "Test",
 			input: &lnrpc.CloseStatusUpdate{
 				Update: &lnrpc.CloseStatusUpdate_ChanClose{
 					ChanClose: &lnrpc.ChannelCloseUpdate{
@@ -56,7 +56,7 @@ func Test_processResponse(t *testing.T) {
 				},
 			},
 			want: commons.CloseChannelResponse{
-				ReqId:                    "Test",
+				RequestId:                "Test",
 				Status:                   commons.CooperativeClosed,
 				ClosePendingChannelPoint: commons.ChannelPoint{},
 				CloseChannelStatus:       commons.CloseChannelStatus{ClosingTxId: []byte("test"), Success: false},
@@ -66,7 +66,7 @@ func Test_processResponse(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := processCloseResponse(test.input, test.req, test.reqId)
+			got, err := processCloseResponse(test.input, test.req, test.requestId)
 			if err != nil {
 				t.Errorf("processCloseResponse error: %v", err)
 			}
@@ -102,7 +102,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		panic(err)
 	}
 
-	db, cancel, err := srv.NewTestDatabase(true)
+	db, cancel, _, _, err := srv.NewTestDatabase(true)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
@@ -118,12 +118,6 @@ func Test_prepareCloseRequest(t *testing.T) {
 	if err != nil {
 		cancel()
 		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
-	}
-
-	err = InitializeManagedChannelCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
 	}
 
 	lndShortChannelId := uint64(9999)
@@ -143,6 +137,12 @@ func Test_prepareCloseRequest(t *testing.T) {
 		log.Fatal().Err(err).Msgf("Problem initializing channel: %v", err)
 	}
 	log.Info().Msgf("Created OPEN channel to be closed with channelId: %v", channel.ChannelID)
+
+	err = InitializeManagedChannelCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
+	}
 
 	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: FundingTransactionHash}
 	var channelPoint = &lnrpc.ChannelPoint{FundingTxid: fundingTxid, OutputIndex: FundingOutputIndex}

@@ -31,7 +31,7 @@ func NewAddress(
 	db *sqlx.DB,
 	context *gin.Context,
 	newAddressRequest commons.NewAddressRequest,
-	reqId string,
+	requestId string,
 ) (err error) {
 
 	if newAddressRequest.NodeId == 0 {
@@ -51,7 +51,7 @@ func NewAddress(
 	}
 	defer conn.Close()
 	client := walletrpc.NewWalletKitClient(conn)
-	return newAddress(client, newAddressRequest, eventChannel, reqId)
+	return newAddress(client, newAddressRequest, eventChannel, requestId)
 }
 
 func createLndAddressRequest(newAddressRequest commons.NewAddressRequest) (r *walletrpc.AddrRequest, err error) {
@@ -72,7 +72,7 @@ func createLndAddressRequest(newAddressRequest commons.NewAddressRequest) (r *wa
 	return lndAddressRequest, nil
 }
 
-func newAddress(client rpcClientNewAddress, newAddressRequest commons.NewAddressRequest, eventChannel chan interface{}, reqId string) (err error) {
+func newAddress(client rpcClientNewAddress, newAddressRequest commons.NewAddressRequest, eventChannel chan interface{}, requestId string) (err error) {
 	// Create and validate payment request details
 	lndAddressRequest, err := createLndAddressRequest(newAddressRequest)
 	if err != nil {
@@ -86,15 +86,15 @@ func newAddress(client rpcClientNewAddress, newAddressRequest commons.NewAddress
 	}
 
 	if eventChannel != nil {
-		eventChannel <- processResponse(lndResponse, newAddressRequest, reqId)
+		eventChannel <- processResponse(lndResponse, newAddressRequest, requestId)
 	}
 	return nil
 }
 
-func processResponse(lndResponse *walletrpc.AddrResponse, req commons.NewAddressRequest, reqId string) commons.NewAddressResponse {
+func processResponse(lndResponse *walletrpc.AddrResponse, req commons.NewAddressRequest, requestId string) commons.NewAddressResponse {
 	return commons.NewAddressResponse{
-		ReqId:   reqId,
-		Request: req,
-		Address: lndResponse.Addr,
+		RequestId: requestId,
+		Request:   req,
+		Address:   lndResponse.Addr,
 	}
 }

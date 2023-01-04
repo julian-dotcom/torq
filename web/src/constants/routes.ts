@@ -32,4 +32,4 @@ export const TAG = "/create-tag";
 export const UPDATE_TAG = "/update-tag";
 // Automation
 export const WORKFLOWS = "workflows";
-export const WORKFLOW = "workflows/:workflowId";
+export const WORKFLOW = "workflows/:workflowId/versions/:version";

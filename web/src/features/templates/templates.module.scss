@@ -4,7 +4,7 @@
   grid-auto-flow: column;
   grid-template-columns: 50% 50%;
   justify-content: space-between;
-  padding-bottom: 16px;
+  padding-bottom: 8px;
   align-items: end;
   @media only screen and (max-width: 900px) {
     padding-top: 16px;
@@ -18,14 +18,27 @@
     padding-bottom: 8px;
     padding-right: 12px;
   }
+  .editNameButton {
+    display: none;
+  }
+  &:hover {
+    .editNameButton {
+      display: block;
+    }
+  }
 }
 
 .titleContainer {
-  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  column-gap: 16px;
+  margin-top: 4px;
   padding-top: 0;
   line-height: 1em;
-  padding-bottom: 0.25em;
-  margin-bottom: -0.25em;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  height: 48px;
   font-size: var(--font-XXL-regular);
   text-overflow: ellipsis;
   overflow: hidden;
@@ -34,6 +47,36 @@
     width: calc(100vw - 24px);
   }
   @media only screen and (max-width: 700px) {
+    height: 32px;
     font-size: var(--font-L-regular);
+  }
+}
+.pageNameInputWrapper {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: center;
+  column-gap: 8px;
+}
+.pageNameInput {
+  flex-grow: 1;
+  height: 48px;
+  padding: 8px 16px;
+  width: 100%;
+  border-radius: var(--radius-default);
+  font-size: inherit;
+  font-weight: inherit;
+  background-color: var(--color-primary-layer-2);
+  border: none;
+  overflow: visible;
+  line-height: 125%;
+  &:hover {
+    background-color: var(--color-primary-layer-3);
+  }
+
+  &:active,
+  &:focus {
+    outline: none;
+    background-color: var(--color-primary-layer-4);
   }
 }

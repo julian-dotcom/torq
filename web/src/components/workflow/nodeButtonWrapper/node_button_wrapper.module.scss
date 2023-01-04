@@ -1,0 +1,19 @@
+@import "../nodes/node_variants.module.scss";
+.nodeButtonWrapper {
+  background-color: var(--header-background-color);
+  color: var(--header-text-color);
+  display: flex;
+  height: 40px;
+  align-items: center;
+  column-gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-default);
+  cursor: grab;
+  &:hover {
+    background-color: var(--header-hover-background-color);
+  }
+  &:active {
+    cursor: grabbing;
+    background-color: var(--header-active-background-color);
+  }
+}

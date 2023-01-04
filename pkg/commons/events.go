@@ -35,6 +35,15 @@ type ChannelGraphEventData struct {
 	FeeRateMilliMsat uint64 `json:"feeRateMilliMsat"`
 }
 
+type ChannelBalanceEventData struct {
+	Capacity                            int64 `json:"capacity"`
+	LocalBalance                        int64 `json:"localBalance"`
+	LocalBalancePerMilleRatio           int   `json:"localBalancePerMilleRatio"`
+	RemoteBalance                       int64 `json:"remoteBalance"`
+	AggregatedLocalBalance              int64 `json:"aggregatedLocalBalance"`
+	AggregatedLocalBalancePerMilleRatio int   `json:"aggregatedLocalBalancePerMilleRatio"`
+}
+
 type ServiceEvent struct {
 	EventData
 	Type               ServiceType
@@ -46,15 +55,22 @@ type ServiceEvent struct {
 type NodeGraphEvent struct {
 	GraphEventData
 	NodeGraphEventData
-	PreviousEventTime time.Time          `json:"previousEventTime"`
-	PreviousEventData NodeGraphEventData `json:"previous"`
+	PreviousEventTime *time.Time          `json:"previousEventTime"`
+	PreviousEventData *NodeGraphEventData `json:"previous"`
 }
 
 type ChannelGraphEvent struct {
 	GraphEventData
 	ChannelGraphEventData
-	PreviousEventTime time.Time             `json:"previousEventTime"`
-	PreviousEventData ChannelGraphEventData `json:"previous"`
+	PreviousEventTime *time.Time             `json:"previousEventTime"`
+	PreviousEventData *ChannelGraphEventData `json:"previous"`
+}
+
+type ChannelBalanceEvent struct {
+	EventData
+	ChannelId int `json:"channelId"`
+	ChannelBalanceEventData
+	PreviousEventData *ChannelBalanceEventData `json:"previous"`
 }
 
 type TransactionEvent struct {
@@ -170,7 +186,7 @@ type OpenChannelRequest struct {
 }
 
 type OpenChannelResponse struct {
-	ReqId               string             `json:"reqId"`
+	RequestId           string             `json:"requestId"`
 	Request             OpenChannelRequest `json:"request"`
 	Status              ChannelStatus      `json:"status"`
 	ChannelPoint        string             `json:"channelPoint,omitempty"`
@@ -188,7 +204,7 @@ type CloseChannelRequest struct {
 }
 
 type CloseChannelResponse struct {
-	ReqId                    string              `json:"reqId"`
+	RequestId                string              `json:"requestId"`
 	Request                  CloseChannelRequest `json:"request"`
 	Status                   ChannelStatus       `json:"status"`
 	ClosePendingChannelPoint ChannelPoint        `json:"closePendingChannelPoint"`
@@ -209,9 +225,9 @@ type NewAddressRequest struct {
 }
 
 type NewAddressResponse struct {
-	ReqId   string            `json:"reqId"`
-	Request NewAddressRequest `json:"request"`
-	Address string            `json:"address"`
+	RequestId string            `json:"requestId"`
+	Request   NewAddressRequest `json:"request"`
+	Address   string            `json:"address"`
 }
 
 // NEW PAYMENT
@@ -261,7 +277,7 @@ type Attempt struct {
 	Failure       FailureDetails `json:"failure"`
 }
 type NewPaymentResponse struct {
-	ReqId          string            `json:"reqId"`
+	RequestId      string            `json:"requestId"`
 	Request        NewPaymentRequest `json:"request"`
 	Status         string            `json:"status"`
 	FailureReason  string            `json:"failureReason"`
@@ -293,23 +309,6 @@ type PayOnChainResponse struct {
 	TxId    string            `json:"txId"`
 }
 
-// UPDATE CHANNEL
-type UpdateChannelRequest struct {
-	NodeId           int     `json:"nodeId"`
-	ChannelId        *int    `json:"channelId"`
-	FeeRateMilliMsat *uint64 `json:"feeRateMilliMsat"`
-	FeeBaseMsat      *uint64 `json:"feeBaseMsat"`
-	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
-	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
-	TimeLockDelta    *uint32 `json:"timeLockDelta"`
-}
-
-type UpdateChannelResponse struct {
-	Request       UpdateChannelRequest `json:"request"`
-	Status        Status               `json:"status"`
-	FailedUpdates []FailedRequest      `json:"failedUpdates"`
-}
-
 // BATCH OPEN CHANNELS
 type BatchOpenChannel struct {
 	NodePubkey         string  `json:"nodePubkey"`
@@ -332,4 +331,69 @@ type BatchOpenResponse struct {
 
 type PendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
+}
+
+// Request/Response for lightningCommunication
+type CommunicationRequest struct {
+	RequestId   string     `json:"requestId"`
+	RequestTime *time.Time `json:"requestTime"`
+	NodeId      int        `json:"nodeId"`
+}
+
+type CommunicationResponse struct {
+	Status  Status `json:"status"`
+	Message string `json:"message"`
+	Error   string `json:"error"`
+}
+
+type ChannelStatusUpdateRequest struct {
+	ResponseChannel chan ChannelStatusUpdateResponse `json:"-"`
+	CommunicationRequest
+	ChannelId     int    `json:"channelId"`
+	ChannelStatus Status `json:"channelStatus"`
+}
+
+type ChannelStatusUpdateResponse struct {
+	Request ChannelStatusUpdateRequest `json:"request"`
+	CommunicationResponse
+}
+
+type RoutingPolicyUpdateRequest struct {
+	CommunicationRequest
+	ResponseChannel  chan RoutingPolicyUpdateResponse `json:"-"`
+	ChannelId        int                              `json:"channelId"`
+	FeeRateMilliMsat *uint64                          `json:"feeRateMilliMsat"`
+	FeeBaseMsat      *uint64                          `json:"feeBaseMsat"`
+	MaxHtlcMsat      *uint64                          `json:"maxHtlcMsat"`
+	MinHtlcMsat      *uint64                          `json:"minHtlcMsat"`
+	TimeLockDelta    *uint32                          `json:"timeLockDelta"`
+}
+
+type RoutingPolicyUpdateResponse struct {
+	Request RoutingPolicyUpdateRequest `json:"request"`
+	CommunicationResponse
+	FailedUpdates []FailedRequest `json:"failedUpdates"`
+}
+
+type RebalanceRequest struct {
+	CommunicationRequest
+	ResponseChannel chan RebalanceResponse `json:"-"`
+	Origin          RebalanceRequestOrigin `json:"origin"`
+	// Either manually generated number for manual rebalance or
+	// WorkflowVersionNodeId for rebalance originating from workflows
+	OriginId        int    `json:"originId"`
+	OriginReference string `json:"originReference"`
+	// Either IncomingChannelId is populated or OutgoingChannelId is.
+	IncomingChannelId int `json:"incomingChannelId"`
+	// Either OutgoingChannelId is populated or IncomingChannelId is.
+	OutgoingChannelId  int    `json:"outgoingChannelIds"`
+	ChannelIds         []int  `json:"channelIds"`
+	AmountMsat         uint64 `json:"amountMsat"`
+	MaximumCostMsat    uint64 `json:"maximumCostMsat"`
+	MaximumConcurrency int    `json:"maximumConcurrency"`
+}
+
+type RebalanceResponse struct {
+	Request RebalanceRequest `json:"request"`
+	CommunicationResponse
 }

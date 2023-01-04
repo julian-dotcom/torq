@@ -159,7 +159,7 @@ func Test_processOpenResponse(t *testing.T) {
 				PendingChanId: []byte("1"),
 			},
 			commons.OpenChannelResponse{
-				ReqId:               "TESTREQID",
+				RequestId:           "TESTREQID",
 				Status:              commons.Opening,
 				ChannelPoint:        "",
 				PendingChannelPoint: "72c09cee568b5637d1c6730a83fb4576689fd8fec32a8b8a8bab9e25d2267cdc:0",
@@ -174,7 +174,7 @@ func Test_processOpenResponse(t *testing.T) {
 				PendingChanId: nil,
 			},
 			commons.OpenChannelResponse{
-				ReqId:               "TESTREQID",
+				RequestId:           "TESTREQID",
 				Status:              commons.Open,
 				ChannelPoint:        "72c09cee568b5637d1c6730a83fb4576689fd8fec32a8b8a8bab9e25d2267cdc:0",
 				PendingChannelPoint: "",

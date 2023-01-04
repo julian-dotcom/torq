@@ -1,6 +1,6 @@
 import { MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
@@ -24,7 +24,7 @@ export type NewAddressRequest = {
 };
 
 export type NewAddressResponse = {
-  reqId: string;
+  requestId: string;
   type: string;
   status: string;
   address: string;
@@ -111,7 +111,7 @@ function NewAddressModal() {
     setAddressTypeState(ProgressStepState.completed);
     setDoneState(ProgressStepState.processing);
     sendJsonMessage({
-      reqId: "randId",
+      requestId: "randId",
       type: "newAddress",
       newAddressRequest: {
         nodeId: selectedNodeId,
@@ -151,16 +151,17 @@ function NewAddressModal() {
               {addressTypeOptions.map((addType, index) => {
                 return (
                   <Button
-                    text={addType.label}
                     disabled={!selectedNodeId}
-                    buttonColor={buttonColor.subtle}
+                    buttonColor={ColorVariant.primary}
                     key={index + addType.label}
                     onClick={() => {
                       if (selectedNodeId) {
                         handleClickNext(addType.value);
                       }
                     }}
-                  />
+                  >
+                    {addType.label}
+                  </Button>
                 );
               })}
             </div>
@@ -183,15 +184,16 @@ function NewAddressModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
-                text={t.newAddress}
                 onClick={() => {
                   setAddressTypeState(ProgressStepState.active);
                   setDoneState(ProgressStepState.disabled);
                   setStepIndex(0);
                   setResponse(undefined);
                 }}
-                buttonColor={buttonColor.subtle}
-              />
+                buttonColor={ColorVariant.primary}
+              >
+                {t.newAddress}
+              </Button>
             }
           />
         </ProgressTabContainer>

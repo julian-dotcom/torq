@@ -8,6 +8,8 @@ import { NodeContext } from "./WorkflowNodeWrapper";
 export type NodeConnectorProps = {
   id: string;
   name: string;
+  workflowVersionId: number;
+  workflowVersionNodeId: number;
 };
 
 function NodeConnector<T>(props: NodeConnectorProps) {
@@ -22,15 +24,18 @@ function NodeConnector<T>(props: NodeConnectorProps) {
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     // Hide the drag image (silly HTML5 default)
-    e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+    if (blankImgRef) {
+      e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+    }
 
     // Set the drag effect to link
     e.dataTransfer.effectAllowed = "link";
 
     // Set the information about which node and connector is being dragged.
     const nodeId = nodeRef?.current?.id ? nodeRef?.current?.id : "unknown";
-    e.dataTransfer.setData("node/id", nodeId);
-    e.dataTransfer.setData("node/connectorId", props.id);
+    e.dataTransfer.setData("node/workflowVersionId", props.workflowVersionId.toString());
+    e.dataTransfer.setData("node/parentWorkflowVersionNodeId", props.workflowVersionNodeId.toString());
+    e.dataTransfer.setData("node/parentOutputIndex", "1");
     nodeRef?.current?.classList.add(styles.connecting);
     e.dataTransfer.setData("node/name", props.name);
 
@@ -58,6 +63,8 @@ function NodeConnector<T>(props: NodeConnectorProps) {
   }
 
   function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
     nodeRef?.current?.classList.remove(styles.connecting);
     setPosition({ x: 0, y: 0 });
     setIsDragging(false);

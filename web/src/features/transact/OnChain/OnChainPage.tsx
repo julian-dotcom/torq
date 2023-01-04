@@ -13,7 +13,7 @@ import TablePageTemplate, {
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import Button, { buttonColor } from "components/buttons/Button";
+import Button, { ColorVariant } from "components/buttons/Button";
 import { NEW_ADDRESS } from "constants/routes";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
@@ -85,14 +85,15 @@ function OnChainPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
-            buttonColor={buttonColor.green}
-            text={t.newAddress}
+            buttonColor={ColorVariant.success}
             icon={<NewOnChainAddressIcon />}
             className={"collapse-tablet"}
             onClick={() => {
               navigate(NEW_ADDRESS, { state: { background: location } });
             }}
-          />
+          >
+            {t.newAddress}
+          </Button>
         </TableControlsTabsGroup>
         <TableControlsButton
           onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}

@@ -1,4 +1,4 @@
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./newPayments.module.scss";
 import { DecodedInvoice } from "types/api";
@@ -7,6 +7,7 @@ import { InvoiceStatusType, NewPaymentResponse } from "features/transact/Payment
 import { useEffect, useState } from "react";
 import { format } from "d3";
 import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";
+import useTranslations from "services/i18n/useTranslations";
 import {
   DetailsContainer,
   DetailsRow,
@@ -25,6 +26,7 @@ type InvoicePaymentResponseProps = {
 };
 
 export function InvoicePaymentResponse(props: InvoicePaymentResponseProps) {
+  const { t } = useTranslations();
   const lastResponse = props.responses[props.responses.length - 1];
   const [status, setStatus] = useState<InvoiceStatusType>("IN_FLIGHT");
 
@@ -66,12 +68,13 @@ export function InvoicePaymentResponse(props: InvoicePaymentResponseProps) {
         className={styles.customButtonWrapperStyles}
         rightChildren={
           <Button
-            text={"New payment"}
             onClick={() => {
               props.clearPaymentFlow();
             }}
-            buttonColor={buttonColor.subtle}
-          />
+            buttonColor={ColorVariant.primary}
+          >
+            {t.newPayment}
+          </Button>
         }
       />
     </ProgressTabContainer>

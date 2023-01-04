@@ -8,7 +8,7 @@ export type formProps = {
 
 function Form({ children, ...formProps }: formProps) {
   return (
-    <form {...formProps} className={classNames(styles.formContainer)}>
+    <form {...formProps} className={classNames(styles.formContainer, formProps.className)}>
       {children}
     </form>
   );

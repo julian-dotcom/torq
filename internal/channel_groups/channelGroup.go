@@ -12,7 +12,7 @@ type channelGroup struct {
 	TagId          *int      `json:"tagId" db:"tag_id"`
 	ChannelId      int       `json:"channelId" db:"channel_id"`
 	CreatedOn      time.Time `json:"createdOn" db:"created_on"`
-	// No UpdateOn as there will never be an update always create/delete.
+	// No UpdatedOn as there will never be an update always create/delete.
 }
 
 type groupOrigin int

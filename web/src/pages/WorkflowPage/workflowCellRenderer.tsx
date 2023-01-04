@@ -2,7 +2,7 @@ import cellStyles from "components/table/cells/cell.module.scss";
 import { ColumnMetaData } from "features/table/types";
 import { workflowListItem } from "./workflowTypes";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
-import WorkflowCell from "components/table/cells/channelCell/WorkflowCell";
+import WorkflowCell from "components/table/cells/workflow/WorkflowCell";
 
 export default function workflowCellRenderer(
   row: workflowListItem,
@@ -12,13 +12,14 @@ export default function workflowCellRenderer(
   isTotalsRow?: boolean,
   maxRow?: workflowListItem
 ): JSX.Element {
-  if (column.key === "name") {
+  if (column.key === "workflowName") {
     return (
       <WorkflowCell
-        name={row.name}
-        workflowId={row.id}
+        name={row.workflowName}
+        workflowId={row.workflowId}
+        workflowVersionId={row.latestVersion}
         className={cellStyles.locked}
-        key={"workflow-" + row.id + "-" + rowIndex}
+        key={"workflow-" + row.workflowId + "-" + rowIndex}
       />
     );
   }

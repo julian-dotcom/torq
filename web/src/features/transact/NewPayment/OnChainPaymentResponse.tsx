@@ -1,4 +1,4 @@
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./newPayments.module.scss";
 import { SendOnChainResponse } from "types/api";
@@ -74,12 +74,13 @@ export function OnChainPaymentResponse(props: OnChainPaymentResponseProps) {
         className={styles.customButtonWrapperStyles}
         rightChildren={
           <Button
-            text={"New payment"}
             onClick={() => {
               props.clearPaymentFlow();
             }}
-            buttonColor={buttonColor.subtle}
-          />
+            buttonColor={ColorVariant.primary}
+          >
+            {"New payment"}
+          </Button>
         }
       />
     </ProgressTabContainer>

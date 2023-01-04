@@ -8,7 +8,7 @@ import {
 } from "@fluentui/react-icons";
 import DropDown from "./SortDropDown";
 import { ColumnMetaData } from "features/table/types";
-import Button, { buttonColor, buttonSize } from "components/buttons/Button";
+import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { useStrictDroppable } from "utils/UseStrictDroppable";
@@ -189,12 +189,13 @@ function SortSection<T>(props: SortSectionProps<T>) {
 
         <div className={styles.buttonsRow}>
           <Button
-            buttonColor={buttonColor.ghost}
-            buttonSize={buttonSize.small}
+            buttonColor={ColorVariant.primary}
+            buttonSize={SizeVariant.small}
             onClick={() => handleAddSort()}
-            text={t.Add}
             icon={<AddIcon />}
-          />
+          >
+            {t.Add}
+          </Button>
         </div>
       </div>
     </DragDropContext>

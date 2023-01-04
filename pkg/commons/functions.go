@@ -88,11 +88,147 @@ func ParseChannelPoint(channelPoint string) (string, int) {
 		if err == nil {
 			return parts[0], outputIndex
 		}
-			log.Debug().Err(err).Msgf("Failed to parse channelPoint %v", channelPoint)
-		}
+		log.Debug().Err(err).Msgf("Failed to parse channelPoint %v", channelPoint)
+	}
 	return "", 0
 }
 
 func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) string {
 	return fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)
+}
+
+func CopyParameters(parameters map[string]string) map[string]string {
+	parametersCopy := make(map[string]string)
+	for k, v := range parameters {
+		parametersCopy[k] = v
+	}
+	return parametersCopy
+}
+
+func GetServiceTypes() []ServiceType {
+	return []ServiceType{
+		LndService,
+		VectorService,
+		AmbossService,
+		TorqService,
+		AutomationService,
+		LightningCommunicationService,
+		RebalanceService}
+}
+
+func getDeltaPerMille(base uint64, amt uint64) int {
+	if base > amt {
+		return int((base - amt) / base * 1_000)
+	} else if base == amt {
+		return 0
+	} else {
+		return int((amt - base) / amt * 1_000)
+	}
+}
+
+type WorkflowParameterWithLabel struct {
+	Label string
+	WorkflowParameter
+}
+
+func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
+	return map[WorkflowNodeType]WorkflowNodeTypeParameters{
+		WorkflowNodeTimeTrigger: {
+			WorkflowNodeType: WorkflowNodeTimeTrigger,
+			RequiredInputs:   []WorkflowParameterWithLabel{},
+			OptionalInputs:   []WorkflowParameterWithLabel{},
+			RequiredOutputs:  []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
+			OptionalOutputs:  []WorkflowParameterWithLabel{},
+		},
+		WorkflowNodeChannelBalanceEventTrigger: {
+			WorkflowNodeType: WorkflowNodeChannelBalanceEventTrigger,
+			RequiredInputs:   []WorkflowParameterWithLabel{},
+			OptionalInputs:   []WorkflowParameterWithLabel{},
+			RequiredOutputs:  []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
+			OptionalOutputs:  []WorkflowParameterWithLabel{},
+		},
+		WorkflowNodeChannelFilter: {
+			WorkflowNodeType: WorkflowNodeChannelFilter,
+			RequiredInputs:   []WorkflowParameterWithLabel{},
+			OptionalInputs: []WorkflowParameterWithLabel{
+				{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds},
+				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
+			},
+			RequiredOutputs: []WorkflowParameterWithLabel{{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds}},
+			OptionalOutputs: []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
+		},
+		WorkflowNodeChannelPolicyConfigurator: {
+			WorkflowNodeType: WorkflowNodeChannelPolicyConfigurator,
+			RequiredInputs:   []WorkflowParameterWithLabel{},
+			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+			RequiredOutputs:  []WorkflowParameterWithLabel{},
+			OptionalOutputs: []WorkflowParameterWithLabel{
+				{Label: "routingPolicySettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
+				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
+			},
+		},
+		WorkflowNodeRebalanceParameters: {
+			WorkflowNodeType: WorkflowNodeRebalanceParameters,
+			RequiredInputs:   []WorkflowParameterWithLabel{},
+			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+			RequiredOutputs:  []WorkflowParameterWithLabel{},
+			OptionalOutputs: []WorkflowParameterWithLabel{
+				{Label: "rebalanceSettings", WorkflowParameter: WorkflowParameterRebalanceSettings},
+				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
+			},
+		},
+		WorkflowNodeStageTrigger: {
+			WorkflowNodeType: WorkflowNodeStageTrigger,
+			RequiredInputs:   []WorkflowParameterWithLabel{},
+			OptionalInputs:   []WorkflowParameterWithLabel{},
+			RequiredOutputs:  []WorkflowParameterWithLabel{},
+			OptionalOutputs:  []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+		},
+		WorkflowNodeRebalanceRun: {
+			WorkflowNodeType: WorkflowNodeRebalanceRun,
+			RequiredInputs: []WorkflowParameterWithLabel{
+				{Label: "rebalanceSettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
+				{Label: "sourceChannels", WorkflowParameter: WorkflowParameterChannelIds},
+				{Label: "destinationChannels", WorkflowParameter: WorkflowParameterChannelIds},
+			},
+			OptionalInputs:  []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
+			RequiredOutputs: []WorkflowParameterWithLabel{},
+			OptionalOutputs: []WorkflowParameterWithLabel{
+				{Label: "rebalanceSettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
+				{Label: "sourceChannels", WorkflowParameter: WorkflowParameterChannelIds},
+				{Label: "destinationChannels", WorkflowParameter: WorkflowParameterChannelIds},
+				{Label: "status", WorkflowParameter: WorkflowParameterStatus},
+				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
+			},
+		},
+		WorkflowNodeChannelPolicyRun: {
+			WorkflowNodeType: WorkflowNodeChannelPolicyRun,
+			RequiredInputs: []WorkflowParameterWithLabel{
+				{Label: "routingPolicySettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
+				{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds},
+			},
+			OptionalInputs:  []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
+			RequiredOutputs: []WorkflowParameterWithLabel{},
+			OptionalOutputs: []WorkflowParameterWithLabel{
+				{Label: "routingPolicySettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
+				{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds},
+				{Label: "status", WorkflowParameter: WorkflowParameterStatus},
+				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
+			},
+		},
+		WorkflowNodeSetVariable: {
+			WorkflowNodeType: WorkflowNodeSetVariable,
+			RequiredInputs:   []WorkflowParameterWithLabel{},
+			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+			RequiredOutputs:  []WorkflowParameterWithLabel{},
+			OptionalOutputs:  []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+		},
+		WorkflowNodeFilterOnVariable: {
+			WorkflowNodeType: WorkflowNodeFilterOnVariable,
+			RequiredInputs:   []WorkflowParameterWithLabel{},
+			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+			RequiredOutputs:  []WorkflowParameterWithLabel{},
+			OptionalOutputs:  []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+		},
+	}
 }

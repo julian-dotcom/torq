@@ -29,12 +29,12 @@ import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
 import Collapse from "features/collapse/Collapse";
 import Popover from "features/popover/Popover";
-import Button, { buttonColor, buttonPosition } from "components/buttons/Button";
+import Button, { ColorVariant, buttonPosition } from "components/buttons/Button";
 import Modal from "features/modal/Modal";
 import Switch from "components/forms/switch/Switch";
 import useTranslations from "services/i18n/useTranslations";
 import Form from "components/forms/form/Form";
-import Note, { NoteType } from "../note/Note";
+import Note, { NoteType } from "features/note/Note";
 
 interface nodeProps {
   nodeId: number;
@@ -322,18 +322,16 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   <Popover button={menuButton} className={classNames("right", styles.moreButton)} ref={popoverRef}>
                     <div className={styles.nodeMenu}>
                       <Button
-                        buttonColor={buttonColor.secondary}
-                        text={nodeConfigurationState.status == 0 ? "Enable node" : "Disable node"}
+                        buttonColor={ColorVariant.warning}
                         icon={nodeConfigurationState.status == 0 ? <PlayIcon /> : <PauseIcon />}
                         onClick={handleStatusClick}
                         disabled={!enableEnableButtonState}
-                      />
-                      <Button
-                        buttonColor={buttonColor.warning}
-                        text={"Delete node"}
-                        icon={<DeleteIcon />}
-                        onClick={handleDeleteClick}
-                      />
+                      >
+                        {nodeConfigurationState.status == 0 ? "Enable node" : "Disable node"}
+                      </Button>
+                      <Button buttonColor={ColorVariant.error} icon={<DeleteIcon />} onClick={handleDeleteClick}>
+                        {"Delete node"}
+                      </Button>
                     </div>
                   </Popover>
                 </div>
@@ -394,13 +392,14 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               </div>
               <Button
                 id={"save-node"}
-                buttonColor={buttonColor.green}
-                text={addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
+                buttonColor={ColorVariant.success}
                 icon={saveEnabledState ? <SaveIcon /> : <Spinny />}
                 onClick={submitNodeSettings}
                 buttonPosition={buttonPosition.fullWidth}
                 disabled={!saveEnabledState}
-              />
+              >
+                {addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
+              </Button>
               <div className={styles.pingSystems}>
                 <div className={styles.vectorPingSystem}>
                   <Switch
@@ -451,13 +450,14 @@ const NodeSettings = React.forwardRef(function NodeSettings(
           />
           <div className={styles.deleteConfirmButtons}>
             <Button
-              buttonColor={buttonColor.warning}
+              buttonColor={ColorVariant.error}
               buttonPosition={buttonPosition.fullWidth}
-              text={"Delete node"}
               icon={<DeleteIcon />}
               onClick={handleModalDeleteClick}
               disabled={!deleteEnabled}
-            />
+            >
+              {"Delete node"}
+            </Button>
           </div>
         </div>
       </Modal>

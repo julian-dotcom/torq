@@ -116,7 +116,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		panic(err)
 	}
 
-	db, cancel, err := srv.NewTestDatabase(true)
+	db, cancel, _, _, err := srv.NewTestDatabase(true)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
@@ -139,15 +139,6 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		cancel()
 		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
 	}
-
-	// testDBCleanup := func() {
-	// 	db.Close()
-	// 	err = srv.Cleanup()
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-	// }
-	// defer testDBCleanup()
 
 	t.Run("Open Channel Event", func(t *testing.T) {
 		lndShortChannelId := uint64(1337)

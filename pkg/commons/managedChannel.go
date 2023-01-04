@@ -153,6 +153,7 @@ func processManagedChannel(managedChannel ManagedChannel,
 			allChannelSettingsByChannelIdCache[managedChannel.ChannelId] = ManagedChannelSettings{
 				ChannelId:              managedChannel.ChannelId,
 				ShortChannelId:         managedChannel.ShortChannelId,
+				LndShortChannelId:      managedChannel.LndShortChannelId,
 				Status:                 managedChannel.Status,
 				FundingTransactionHash: managedChannel.FundingTransactionHash,
 				FundingOutputIndex:     managedChannel.FundingOutputIndex,
@@ -347,7 +348,7 @@ func GetChannelSettingByChannelId(channelId int) ManagedChannelSettings {
 	return <-channelResponseChannel
 }
 
-func SetChannel(channelId int, shortChannelId *string, status ChannelStatus,
+func SetChannel(channelId int, shortChannelId *string, lndShortChannelId *uint64, status ChannelStatus,
 	fundingTransactionHash string, fundingOutputIndex int, capacity int64, private bool, firstNodeId, secondNodeId int,
 	initiatingNodeId, acceptingNodeId *int) {
 	managedChannel := ManagedChannel{
@@ -365,6 +366,9 @@ func SetChannel(channelId int, shortChannelId *string, status ChannelStatus,
 	}
 	if shortChannelId != nil && *shortChannelId != "" {
 		managedChannel.ShortChannelId = *shortChannelId
+	}
+	if lndShortChannelId != nil && *lndShortChannelId != 0 {
+		managedChannel.LndShortChannelId = *lndShortChannelId
 	}
 	ManagedChannelChannel <- managedChannel
 }

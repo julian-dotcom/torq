@@ -72,7 +72,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		commons.SetChannelNode(remoteNodeId, remotePublicKey, nodeSettings.Chain, nodeSettings.Network, channel.Status)
 
 		// This allows torq to listen to the graph for channel updates
-		commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.Status,
+		commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.LNDShortChannelID, channel.Status,
 			channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
 			channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 

@@ -1,18 +1,28 @@
-import { ReactElement, useLayoutEffect, useRef, useState } from "react";
+import { ReactNode, useLayoutEffect, useRef, useState } from "react";
+
+function useDefaultStyles(defaultCollapsed: boolean, animate: boolean) {
+  let initialStyles = {
+    overflow: "hidden",
+    transition: animate ? "height 250ms ease-in-out" : "none",
+    height: "auto",
+  };
+  if (defaultCollapsed) {
+    initialStyles = { ...initialStyles, height: "0" };
+  }
+  return initialStyles;
+}
 
 export default function Collapse(props: {
-  children: ReactElement;
   collapsed: boolean;
   animate: boolean;
   className?: string;
+  children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const [styleState, setStyleState] = useState({
-    height: "auto",
-    overflow: "hidden",
-    transition: props.animate ? "height 250ms ease-in-out" : "none",
-  });
+  const initialStyles = useDefaultStyles(props.collapsed, props.animate);
+
+  const [styleState, setStyleState] = useState(initialStyles);
 
   useLayoutEffect(() => {
     if (!ref.current) {

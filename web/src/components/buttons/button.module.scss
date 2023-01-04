@@ -1,33 +1,39 @@
-.button {
-  border-radius: var(--radius-default);
-  display: flex;
+@import "./button_variations.module";
 
+.button {
+  display: flex;
   align-items: center;
   justify-content: center;
-  column-gap: 4px;
-  padding: 8px 12px 8px;
-  height: 40px;
+  column-gap: var(--button-icon-gap);
+
   cursor: pointer;
-  border: 1px solid transparent;
-  background-color: transparent;
+  border-radius: var(--radius-default);
+
+  padding: var(--button-padding);
+  height: var(--button-height);
+  min-width: var(--button-height);
+
+  font-size: var(--button-font-size);
+  color: var(--button-color);
   white-space: nowrap;
   text-align: center;
+
+  svg {
+    font-size: var(--default-icon-size);
+  }
+
+  background-color: var(--button-default-background);
+  &:hover {
+    background-color: var(--button-hover-background);
+  }
+  &:active {
+    background-color: var(--button-active-background);
+  }
 
   &:disabled {
     opacity: 50%;
   }
 
-  &.primary {
-    background-color: var(--content-default);
-    border-color: var(--content-faded);
-    color: var(--primary-50);
-    &:hover {
-      background-color: var(--primary-800);
-    }
-    &:active {
-      background-color: var(--primary-900);
-    }
-  }
   &.secondary {
     background-color: var(--content-faint);
     border-color: var(--content-subtle);
@@ -39,62 +45,10 @@
       background-color: var(--content-subtle);
     }
   }
-  &.ghost {
-    background-color: transparent;
-    color: var(--content-default);
-    // hover / active and disabled needs designing
-  }
-  &.subtle {
-    background-color: var(--primary-50);
-    color: var(--content-default);
-    border-color: var(--primary-250);
-    // hover / active and disabled needs designing
-  }
-  &.warning {
-    background-color: var(--color-red);
-    color: var(--color-white);
-    // hover / active and disabled needs designing
-  }
-  &.green {
-    color: var(--secondary-2-700);
-    background-color: var(--secondary-2-50);
-    border-color: var(--secondary-2-350);
-    // hover / active and disabled needs designing
-  }
-
-  &.open {
-    background-color: var(--accent1-300);
-    border: 1px solid var(--accent1-400);
-  }
-
-  //&:global(.small),
-  //&:global(.small) :global(.icon) {
-  //  font-size: var(--font-size-small);
-  //}
-
-  //&:global(.small) {
-  //  padding: 2px 4px;
-  //}
-
-  &:global(.disabled) {
-    color: var(--fg-muted);
-    border: 1px solid var(--fg-subtle);
-    background-color: transparent;
-  }
-
-  &:global(.danger) {
-    color: var(--fg-default);
-    background-color: var(--secondary-300);
-    border: 1px solid var(--secondary-400);
-  }
-
-  &:global(.secondary2) {
-    background-color: var(--secondary-2-50);
-    border: 1px solid var(--secondary-2-250);
-  }
-
-  :global(.text) {
-    text-overflow: ellipsis;
+  span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -143,16 +97,6 @@ Tab Button
   }
 }
 
-.small {
-  font-size: var(--font-size-small);
-  padding: 0px 7px;
-}
-.medium {
-  font-size: var(--font-size-default);
-}
-.large {
-  font-size: var(--font-size-M);
-}
 .buttonWrapper {
   display: flex;
   align-items: center;

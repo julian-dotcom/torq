@@ -6,6 +6,8 @@ import { InputSizeVariant, InputColorVaraint } from "components/forms/variants";
 import { useArgs } from "@storybook/client-api";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import WorkflowNodeWrapper from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
+import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
+import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 
 export default {
   title: "components/forms/Socket",
@@ -15,15 +17,30 @@ export default {
 const Template: Story<SocketProps> = (args) => {
   const [_, updateArgs] = useArgs();
 
+  const nodeData: WorkflowVersionNode = {
+    workflowVersionNodeId: 1,
+    workflowId: 1,
+    version: 1,
+    name: "sdafsdf",
+    status: 1,
+    stage: 1,
+    type: 3,
+    parameters: {},
+    visibilitySettings: {
+      collapsed: false,
+      xPosition: 0,
+      yPosition: 0,
+    },
+    updatedOn: "2022-12-22T18:01:38.655Z",
+    workflowVersionId: 1,
+  };
+
   return (
     <Provider store={store}>
-      <WorkflowCanvas>
-        <WorkflowNodeWrapper nodeName={"secondSocketRest"} id={"test"} heading={"test"}>
+      <WorkflowCanvas active={true} workflowVersionId={1} stageNumber={1}>
+        <WorkflowNodeWrapper heading={"test"} {...nodeData} colorVariant={NodeColorVariant.accent2}>
           <Socket {...args} />
         </WorkflowNodeWrapper>
-        <WorkflowNodeWrapper nodeName={"socketTest"} id={"test"} heading={"test"}>
-          <Socket {...args} />
-        </WorkflowNodeWrapper>{" "}
       </WorkflowCanvas>
     </Provider>
   );

@@ -22,6 +22,7 @@ const testDbPort = 5433
 const testDBPrefix = "torq_test_"
 const TestPublicKey1 = "PublicKey1"
 const TestPublicKey2 = "PublicKey2"
+const TestFundingOutputIndex = 3
 const TestFundingTransactionHash1 = "0101010101010101010101010101010101010101010101010101010101010101"
 const TestChannelPoint1 = TestFundingTransactionHash1 + ":3"
 const TestFundingTransactionHash2 = "0101010101010101010101010101010101010101010101010101010101010102"
@@ -143,18 +144,18 @@ func (srv *Server) createDatabase() (string, error) {
 }
 
 // NewTestDatabase opens a connection to a freshly created database on the server.
-func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, error) {
+func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, broadcast.BroadcastServer, chan interface{}, error) {
 
 	// Create the new test database based on the main server connection
 	dns, err := srv.createDatabase()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "srv.createDatabase(ctx)")
+		return nil, nil, nil, nil, errors.Wrap(err, "srv.createDatabase(ctx)")
 	}
 
 	// Connect to the new test database
 	db, err := sqlx.Open("postgres", dns)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "sqlx.Open(\"postgres\", %s)", dns)
+		return nil, nil, nil, nil, errors.Wrapf(err, "sqlx.Open(\"postgres\", %s)", dns)
 	}
 
 	ctx := context.Background()
@@ -165,103 +166,108 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		err = database.MigrateUp(db)
 		if err != nil {
 			cancel()
-			return nil, nil, errors.Wrap(err, "Database Migrate Up")
+			return nil, nil, nil, nil, errors.Wrap(err, "Database Migrate Up")
 		}
 
-		var testNodeId1 int
-		err = db.QueryRowx("INSERT INTO node (public_key, chain, network, created_on) VALUES ($1, $2, $3, $4) RETURNING node_id;",
-			TestPublicKey1, commons.Bitcoin, commons.SigNet, time.Now().UTC()).Scan(&testNodeId1)
+		testNodeId1, err := addNode(db, TestPublicKey1, cancel)
 		if err != nil {
-			cancel()
-			return nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
+			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
 		}
-		log.Debug().Msgf("Added test node with publicKey: %v nodeId: %v", TestPublicKey1, testNodeId1)
 
-		var testNodeId2 int
-		err = db.QueryRowx("INSERT INTO node (public_key, chain, network, created_on) VALUES ($1, $2, $3, $4) RETURNING node_id;",
-			TestPublicKey2, commons.Bitcoin, commons.SigNet, time.Now().UTC()).Scan(&testNodeId2)
+		testNodeId2, err := addNode(db, TestPublicKey2, cancel)
 		if err != nil {
-			cancel()
-			return nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey2)
+			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey2)
 		}
-		log.Debug().Msgf("Added test node with publicKey: %v nodeId: %v", TestPublicKey2, testNodeId2)
 
-		_, err = db.Exec(`INSERT INTO node_connection_details
-			(node_id, name, implementation, status_id, ping_system, custom_settings, created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
-			testNodeId1, "Node_1", commons.LND, commons.Active, 0, 0, time.Now().UTC(), time.Now().UTC())
+		err = addNodeConnectionDetails(db, testNodeId1, cancel)
 		if err != nil {
-			cancel()
-			return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
+			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
 		}
-		log.Debug().Msgf("Added test active node connection details with nodeId: %v", testNodeId1)
 
-		_, err = db.Exec(`INSERT INTO node_connection_details
-			(node_id, name, implementation, status_id, ping_system, custom_settings, created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
-			testNodeId2, "Node_2", commons.LND, commons.Active, 0, 0, time.Now().UTC(), time.Now().UTC())
+		err = addNodeConnectionDetails(db, testNodeId2, cancel)
 		if err != nil {
-			cancel()
-			return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
+			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
 		}
 
 		lndShortChannelId := uint64(1111)
 		shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
-		_, err = db.Exec(`INSERT INTO channel (
-			  short_channel_id, funding_transaction_hash, funding_output_index,
-			  closing_transaction_hash, closing_node_id,
-			  lnd_short_channel_id, first_node_id, second_node_id, initiating_node_id, accepting_node_id, capacity, private,
-			  status_id, created_on, updated_on
-			) values (
-			  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
-			);`,
-			shortChannelId, TestFundingTransactionHash1, 3, nil, nil,
-			lndShortChannelId, testNodeId1, testNodeId2, nil, nil, 1_000_000,
-			false, commons.Open, time.Now().UTC(), time.Now().UTC())
+		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash1, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 		if err != nil {
-			cancel()
-			return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 		}
 
 		lndShortChannelId = 2222
 		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
-		_, err = db.Exec(`INSERT INTO channel (
-			  short_channel_id, funding_transaction_hash, funding_output_index,
-			  closing_transaction_hash, closing_node_id,
-			  lnd_short_channel_id, first_node_id, second_node_id, initiating_node_id, accepting_node_id, capacity, private,
-			  status_id, created_on, updated_on
-			) values (
-			  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
-			);`,
-			shortChannelId, TestFundingTransactionHash2, 3, nil, nil,
-			lndShortChannelId, testNodeId1, testNodeId2, nil, nil, 1_000_000,
-			false, commons.Open, time.Now().UTC(), time.Now().UTC())
+		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash2, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 		if err != nil {
-			cancel()
-			return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 		}
 
 		lndShortChannelId = 3333
 		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
-		_, err = db.Exec(`INSERT INTO channel (
-			  short_channel_id, funding_transaction_hash, funding_output_index,
-			  closing_transaction_hash, closing_node_id,
-			  lnd_short_channel_id, first_node_id, second_node_id, initiating_node_id, accepting_node_id, capacity, private,
-			  status_id, created_on, updated_on
-			) values (
-			  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
-			);`,
-			shortChannelId, TestFundingTransactionHash3, 3, nil, nil,
-			lndShortChannelId, testNodeId1, testNodeId2, nil, nil, 1_000_000,
-			false, commons.Open, time.Now().UTC(), time.Now().UTC())
+		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash3, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 		if err != nil {
-			cancel()
-			return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 		}
 
 		lndShortChannelId = 4444
 		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
-		_, err = db.Exec(`INSERT INTO channel (
+		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash4, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
+		if err != nil {
+			return nil, nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+		}
+	}
+
+	var eventChannelGlobal = make(chan interface{})
+	broadcaster := broadcast.NewBroadcastServer(ctx, eventChannelGlobal)
+
+	go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctx)
+	go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctx, eventChannelGlobal)
+	go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctx)
+	go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
+	go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)
+	go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctx)
+	go commons.ManagedRebalanceCache(commons.ManagedRebalanceChannel, ctx)
+
+	// initialise package level var for keeping state of subsciptions
+	commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)
+	for _, serviceType := range commons.GetServiceTypes() {
+		commons.RunningServices[serviceType] = &commons.Services{ServiceType: serviceType}
+	}
+
+	return db, cancel, broadcaster, eventChannelGlobal, nil
+}
+
+func addNode(db *sqlx.DB, testPublicKey string, cancel context.CancelFunc) (int, error) {
+	var testNodeId int
+	err := db.QueryRowx("INSERT INTO node (public_key, chain, network, created_on) VALUES ($1, $2, $3, $4) RETURNING node_id;",
+		testPublicKey, commons.Bitcoin, commons.SigNet, time.Now().UTC()).Scan(&testNodeId)
+	if err != nil {
+		cancel()
+		return 0, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
+	}
+	log.Debug().Msgf("Added test node with publicKey: %v nodeId: %v", TestPublicKey1, testNodeId)
+	return testNodeId, nil
+}
+
+func addNodeConnectionDetails(db *sqlx.DB, testNodeId int, cancel context.CancelFunc) error {
+	_, err := db.Exec(`INSERT INTO node_connection_details
+			(node_id, name, implementation, status_id, ping_system, custom_settings, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
+		testNodeId, fmt.Sprintf("Node_%v", testNodeId), commons.LND, commons.Active, 0, 0, time.Now().UTC(), time.Now().UTC())
+	if err != nil {
+		cancel()
+		return errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId)
+	}
+	log.Debug().Msgf("Added test active node connection details with nodeId: %v", testNodeId)
+	return nil
+}
+
+func AddChannel(db *sqlx.DB, shortChannelId string, lndShortChannelId uint64,
+	fundingTransactionHash string, foundingOutputIndex int,
+	testNodeId1 int, testNodeId2 int, cancel context.CancelFunc) error {
+
+	_, err := db.Exec(`INSERT INTO channel (
 			  short_channel_id, funding_transaction_hash, funding_output_index,
 			  closing_transaction_hash, closing_node_id,
 			  lnd_short_channel_id, first_node_id, second_node_id, initiating_node_id, accepting_node_id, capacity, private,
@@ -269,31 +275,12 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 			) values (
 			  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 			);`,
-			shortChannelId, TestFundingTransactionHash4, 3, nil, nil,
-			lndShortChannelId, testNodeId1, testNodeId2, nil, nil, 1_000_000,
-			false, commons.Open, time.Now().UTC(), time.Now().UTC())
-		if err != nil {
-			cancel()
-			return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
-		}
-
-		var eventChannelGlobal = make(chan interface{})
-		broadcaster := broadcast.NewBroadcastServer(ctx, eventChannelGlobal)
-
-		go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctx)
-		go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, broadcaster, ctx)
-		go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctx)
-		go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
-		go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)
-
-		// initialise package level var for keeping state of subsciptions
-		commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)
-		commons.RunningServices[commons.LndService] = &commons.Services{ServiceType: commons.LndService}
-		commons.RunningServices[commons.VectorService] = &commons.Services{ServiceType: commons.VectorService}
-		commons.RunningServices[commons.AmbossService] = &commons.Services{ServiceType: commons.AmbossService}
-		commons.RunningServices[commons.TorqService] = &commons.Services{ServiceType: commons.TorqService}
-
+		shortChannelId, fundingTransactionHash, foundingOutputIndex, nil, nil,
+		lndShortChannelId, testNodeId1, testNodeId2, nil, nil, 1_000_000,
+		false, commons.Open, time.Now().UTC(), time.Now().UTC())
+	if err != nil {
+		cancel()
+		return errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
-
-	return db, cancel, nil
+	return nil
 }

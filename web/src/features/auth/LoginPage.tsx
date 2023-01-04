@@ -8,7 +8,7 @@ import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import type { LoginResponse } from "types/api";
 import Input from "components/forms/input/Input";
-import Button, { buttonColor } from "components/buttons/Button";
+import Button, { ColorVariant } from "components/buttons/Button";
 
 function LoginPage() {
   const [login] = useLoginMutation();
@@ -58,14 +58,9 @@ function LoginPage() {
         </div>
         <form className="login-form" onSubmit={submit}>
           <Input type="password" name={"password"} placeholder={"Password..."} id={"password-field"} />
-          <Button
-            type="submit"
-            submit={true}
-            text={"Login"}
-            icon={<UnlockIcon />}
-            buttonColor={buttonColor.green}
-            id={"submit-button"}
-          />
+          <Button type="submit" icon={<UnlockIcon />} buttonColor={ColorVariant.success} id={"submit-button"}>
+            {"Login"}
+          </Button>
         </form>
       </div>
     </div>

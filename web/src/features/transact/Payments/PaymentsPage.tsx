@@ -1,7 +1,7 @@
 import { MoneyHand20Regular as TransactionIcon, Options20Regular as OptionsIcon } from "@fluentui/react-icons";
 import { useGetPaymentsQuery } from "./paymentsApi";
 import { NEW_PAYMENT } from "constants/routes";
-import Button, { buttonColor } from "components/buttons/Button";
+import Button, { ColorVariant } from "components/buttons/Button";
 import Table from "features/table/Table";
 import TablePageTemplate, {
   TableControlsButton,
@@ -30,6 +30,7 @@ import { useAppSelector } from "store/hooks";
 import { selectPaymentsView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectActiveNetwork } from "features/network/networkSlice";
+import useTranslations from "services/i18n/useTranslations";
 
 function useMaximums(data: Array<Payment>): Payment | undefined {
   if (!data.length) {
@@ -54,6 +55,7 @@ function useMaximums(data: Array<Payment>): Payment | undefined {
 }
 
 function PaymentsPage() {
+  const { t } = useTranslations();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -100,14 +102,15 @@ function PaymentsPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
-            buttonColor={buttonColor.green}
-            text={"New Payment"}
+            buttonColor={ColorVariant.success}
             className={"collapse-tablet"}
             icon={<TransactionIcon />}
             onClick={() => {
               navigate(NEW_PAYMENT, { state: { background: location } });
             }}
-          />
+          >
+            {t.newPayment}
+          </Button>
         </TableControlsTabsGroup>
         <TableControlsButton
           onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}

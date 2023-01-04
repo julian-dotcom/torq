@@ -1,0 +1,66 @@
+
+CREATE TABLE workflow (
+    workflow_id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    status INTEGER NOT NULL,
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL,
+    UNIQUE (name)
+);
+
+CREATE TABLE workflow_version (
+    workflow_version_id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    status INTEGER NOT NULL,
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL,
+    workflow_id INTEGER NOT NULL REFERENCES workflow(workflow_id),
+    UNIQUE (workflow_id, version),
+    UNIQUE (workflow_id, name)
+);
+
+CREATE TABLE workflow_version_node (
+    workflow_version_node_id SERIAL PRIMARY KEY,
+    stage INTEGER,
+    name TEXT NOT NULL,
+    status INTEGER NOT NULL,
+    type INTEGER NOT NULL,
+    parameters JSONB NOT NULL,
+    visibility_settings JSONB NOT NULL,
+    workflow_version_id INTEGER NOT NULL REFERENCES workflow_version(workflow_version_id),
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL,
+    UNIQUE (workflow_version_id, name)
+);
+
+CREATE TABLE workflow_version_node_link (
+    workflow_version_node_link_id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    visibility_settings JSONB NOT NULL,
+    parent_output_index INTEGER NOT NULL,
+    parent_workflow_version_node_id INTEGER NOT NULL REFERENCES workflow_version_node(workflow_version_node_id),
+    child_input_index INTEGER NOT NULL,
+    child_workflow_version_node_id INTEGER NOT NULL REFERENCES workflow_version_node(workflow_version_node_id),
+    workflow_version_id INTEGER NOT NULL REFERENCES workflow_version(workflow_version_id),
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL,
+    UNIQUE (parent_workflow_version_node_id, parent_output_index, child_workflow_version_node_id, child_input_index),
+    UNIQUE (workflow_version_id, name)
+);
+
+CREATE TABLE workflow_version_node_log (
+    node_id INTEGER NOT NULL REFERENCES node(node_id),
+    --A unique reference to the automated process (thread/routine) so logs can be bundled together for a single process
+    trigger_reference TEXT NOT NULL,
+    input_data JSONB NOT NULL,
+    output_data JSONB NOT NULL,
+    debug_data TEXT NOT NULL,
+    error_data TEXT NOT NULL,
+    workflow_version_node_id INTEGER NOT NULL REFERENCES workflow_version_node(workflow_version_node_id),
+    triggered_workflow_version_node_id INTEGER NOT NULL REFERENCES workflow_version_node(workflow_version_node_id),
+    created_on TIMESTAMPTZ NOT NULL
+);
+
+SELECT create_hypertable('workflow_version_node_log','created_on');
+

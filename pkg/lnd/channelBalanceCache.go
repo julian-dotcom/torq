@@ -29,18 +29,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
 		serviceStatus, eventChannel, subscriptionStream, lndClient, db, mutex)
 
-	go func() {
-		listener := broadcaster.Subscribe()
-		for event := range listener {
-			select {
-			case <-ctx.Done():
-				broadcaster.CancelSubscription(listener)
-				return
-			default:
-			}
-			processBroadcastedEvent(event)
-		}
-	}()
+	go processBroadcastedEventRoutine(ctx, broadcaster)
 
 	for {
 		select {
@@ -50,6 +39,19 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
 				serviceStatus, eventChannel, subscriptionStream, lndClient, db, mutex)
 		}
+	}
+}
+
+func processBroadcastedEventRoutine(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.Subscribe()
+	for event := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscription(listener)
+			return
+		default:
+		}
+		processBroadcastedEvent(event)
 	}
 }
 
@@ -262,12 +264,12 @@ func processBroadcastedEvent(event interface{}) {
 			return
 		}
 		commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, commons.Deleted)
-	} else if updateChannelEvent, ok := event.(commons.UpdateChannelResponse); ok {
-		if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == nil || *updateChannelEvent.Request.ChannelId == 0 {
+	} else if updateChannelEvent, ok := event.(commons.RoutingPolicyUpdateResponse); ok {
+		if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == 0 {
 			return
 		}
 		// Force Response because we don't care about balance accuracy
-		currentStates := commons.GetChannelState(updateChannelEvent.Request.NodeId, *updateChannelEvent.Request.ChannelId, true)
+		currentStates := commons.GetChannelState(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true)
 		timeLockDelta := currentStates.LocalTimeLockDelta
 		if updateChannelEvent.Request.TimeLockDelta != nil {
 			timeLockDelta = *updateChannelEvent.Request.TimeLockDelta
@@ -288,7 +290,7 @@ func processBroadcastedEvent(event interface{}) {
 		if updateChannelEvent.Request.FeeRateMilliMsat != nil {
 			feeRateMilliMsat = *updateChannelEvent.Request.FeeRateMilliMsat
 		}
-		commons.SetChannelStateRoutingPolicy(updateChannelEvent.Request.NodeId, *updateChannelEvent.Request.ChannelId, true,
+		commons.SetChannelStateRoutingPolicy(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true,
 			currentStates.LocalDisabled, timeLockDelta, minHtlcMsat, maxHtlcMsat, feeBaseMsat, feeRateMilliMsat)
 	}
 }

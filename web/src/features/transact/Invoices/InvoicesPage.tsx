@@ -13,7 +13,7 @@ import TablePageTemplate, {
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
-import Button, { buttonColor } from "components/buttons/Button";
+import Button, { ColorVariant } from "components/buttons/Button";
 import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import { Invoice } from "./invoiceTypes";
@@ -107,14 +107,15 @@ function InvoicesPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
-            buttonColor={buttonColor.green}
-            text={t.header.newInvoice}
+            buttonColor={ColorVariant.success}
             className={"collapse-tablet"}
             icon={<InvoiceIcon />}
             onClick={() => {
               navigate(NEW_INVOICE, { state: { background: location } });
             }}
-          />
+          >
+            {t.header.newInvoice}
+          </Button>
         </TableControlsTabsGroup>
         <TableControlsButton
           onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}

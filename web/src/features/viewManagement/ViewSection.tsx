@@ -1,7 +1,7 @@
 import styles from "./views.module.scss";
 import { DragDropContext, Droppable, DropResult, ResponderProvided } from "react-beautiful-dnd";
 import { Add16Regular as AddIcon } from "@fluentui/react-icons";
-import Button, { buttonColor, buttonSize } from "components/buttons/Button";
+import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { AllViewsResponse, TableResponses, ViewOrderInterface, ViewResponse } from "./types";
 import {
   useCreateTableViewMutation,
@@ -133,9 +133,8 @@ function ViewsPopover<T>(props: ViewSection<T>) {
         </Droppable>
         <div className={styles.buttonsRow}>
           <Button
-            buttonColor={buttonColor.subtle}
-            buttonSize={buttonSize.small}
-            text={t.addView}
+            buttonColor={ColorVariant.primary}
+            buttonSize={SizeVariant.small}
             icon={<AddIcon />}
             onClick={() => {
               const view: ViewResponse<TableResponses> = {
@@ -148,7 +147,9 @@ function ViewsPopover<T>(props: ViewSection<T>) {
               dispatch(addView({ view: view }));
               setDraftcount(draftCount + 1);
             }}
-          />
+          >
+            {t.addView}
+          </Button>
         </div>
       </div>
     </DragDropContext>

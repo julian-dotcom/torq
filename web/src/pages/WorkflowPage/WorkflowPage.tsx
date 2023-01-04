@@ -1,38 +1,67 @@
-import { useId } from "react";
+import { useState } from "react";
 import useTranslations from "services/i18n/useTranslations";
 import styles from "./workflow_page.module.scss";
 import PageTitle from "features/templates/PageTitle";
-import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
-import ChannelPolicyNode from "components/workflow/nodes/ChannelPolicy";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { WORKFLOWS, MANAGE } from "constants/routes";
+import { useWorkflowControls, useWorkflowData } from "./workflowHooks";
+import { useUpdateWorkflowMutation } from "./workflowApi";
+import WorkflowSidebar from "components/workflow/sidebar/WorkflowSidebar";
+import { WorkflowCanvases } from "components/workflow/canvas/WorkflowCanvasStages";
+import { StageSelector } from "components/workflow/stages/WorkflowStageSelector";
 
-type WorkflowPageProps = {
-  title?: string;
-  workflowId?: string;
-  breadcrumbs?: Array<any>;
-};
-
-function WorkflowPage<T>(props: WorkflowPageProps) {
+function WorkflowPage() {
   const { t } = useTranslations();
-  const { workflowId } = useParams();
 
-  const bradcrumbs = props.breadcrumbs || [t.manage, t.workflow, workflowId];
-  const id1 = useId();
-  const id2 = useId();
-  const id3 = useId();
+  // Fetch the workflow data
+  const { workflowId, version } = useParams();
+  const { workflow, workflowVersion, stageNumbers } = useWorkflowData(workflowId, version);
 
-  const nodes = new Map([
-    ["node1", <ChannelPolicyNode id={id1} key={"node1"} nodeName={"firstNode"} />],
-    ["node2", <ChannelPolicyNode id={id2} key={"node2"} nodeName={"secondNode"} />],
-    ["node3", <ChannelPolicyNode id={id3} key={"node3"} nodeName={"thirdNode"} />],
-  ]);
+  const [selectedStage, setSelectedStage] = useState<number>(1);
+
+  // construct the sidebar
+  const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
+  const workflowControls = useWorkflowControls(sidebarExpanded, setSidebarExpanded);
+
+  const [updateWorkflow] = useUpdateWorkflowMutation();
+
+  function handleWorkflowNameChange(name: string) {
+    updateWorkflow({ workflowId: parseInt(workflowId || "0"), name: name });
+  }
+
+  const breadcrumbs = [
+    <Link to={`/${MANAGE}/${WORKFLOWS}`} key={"workflowsLink"}>
+      {t.workflows}
+    </Link>,
+    workflow?.name,
+    workflowVersion?.name,
+  ];
 
   return (
     <div className={styles.contentWrapper}>
-      <PageTitle breadcrumbs={bradcrumbs} title={t.workflow}>
-        {props.title}
-      </PageTitle>
-      <WorkflowCanvas>{Array.from(nodes.values())}</WorkflowCanvas>
+      <PageTitle breadcrumbs={breadcrumbs} title={workflow?.name || ""} onNameChange={handleWorkflowNameChange} />
+      {workflowControls}
+      <div className={styles.tableWrapper}>
+        <div className={styles.tableContainer}>
+          <div className={styles.tableExpander}>
+            <WorkflowCanvases
+              selectedStage={selectedStage}
+              workflowVersionId={workflowVersion?.workflowVersionId || 0}
+              workflowId={workflow?.workflowId || 0}
+              version={workflowVersion?.version || 0}
+            />
+            <StageSelector
+              stageNumbers={stageNumbers}
+              selectedStage={selectedStage}
+              setSelectedStage={setSelectedStage}
+              workflowVersionId={workflowVersion?.workflowVersionId || 0}
+              workflowId={workflow?.workflowId || 0}
+              version={workflowVersion?.version || 0}
+            />
+          </div>
+        </div>
+      </div>
+      <WorkflowSidebar expanded={sidebarExpanded} setExpanded={setSidebarExpanded} />
     </div>
   );
 }

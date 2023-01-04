@@ -1,0 +1,46 @@
+package rebalances
+
+import (
+	"time"
+
+	"github.com/lncapital/torq/pkg/commons"
+)
+
+type Rebalance struct {
+	RebalanceId        int                            `json:"rebalanceId" db:"rebalance_id"`
+	OutgoingChannelId  *int                           `json:"outgoingChannelId" db:"outgoing_channel_id"`
+	IncomingChannelId  *int                           `json:"incomingChannelId" db:"incoming_channel_id"`
+	Status             commons.Status                 `json:"status" db:"status"`
+	Origin             commons.RebalanceRequestOrigin `json:"origin" db:"origin"`
+	OriginId           int                            `json:"originId" db:"origin_id"`
+	OriginReference    string                         `json:"originReference" db:"origin_reference"`
+	AmountMsat         uint64                         `json:"amountMsat" db:"amount_msat"`
+	MaximumConcurrency int                            `json:"maximumConcurrency" db:"maximum_concurrency"`
+	MaximumCostMsat    uint64                         `json:"maximumCostMsat" db:"maximum_costmsat"`
+	CreatedOn          time.Time                      `json:"createdOn" db:"created_on"`
+	UpdateOn           time.Time                      `json:"updatedOn" db:"updated_on"`
+}
+
+type RebalanceChannel struct {
+	RebalanceChannelId int            `json:"rebalanceChannelId" db:"rebalance_channel_id"`
+	ChannelId          int            `json:"channelId" db:"channel_id"`
+	Status             commons.Status `json:"status" db:"status"`
+	RebalanceId        int            `json:"rebalanceId" db:"rebalance_id"`
+	CreatedOn          time.Time      `json:"createdOn" db:"created_on"`
+	UpdateOn           time.Time      `json:"updatedOn" db:"updated_on"`
+}
+
+type RebalanceLog struct {
+	RebalanceLogId    int            `json:"rebalanceLogId" db:"rebalance_log_id"`
+	IncomingChannelId int            `json:"incomingChannelId" db:"incoming_channel_id"`
+	OutgoingChannelId int            `json:"outgoingChannelId" db:"outgoing_channel_id"`
+	Hops              string         `json:"hops" db:"hops"`
+	Status            commons.Status `json:"status" db:"status"`
+	TotalTimeLock     uint32         `json:"totalTimeLock" db:"total_time_lock"`
+	TotalFeeMsat      uint64         `json:"totalFeeMsat" db:"total_fee_msat"`
+	TotalAmountMsat   uint64         `json:"totalAmountMsat" db:"total_amount_msat"`
+	Error             string         `json:"error" db:"error"`
+	RebalanceId       int            `json:"rebalanceId" db:"rebalance_id"`
+	CreatedOn         time.Time      `json:"createdOn" db:"created_on"`
+	UpdateOn          time.Time      `json:"updatedOn" db:"updated_on"`
+}

@@ -56,7 +56,7 @@ func TestSubscribePayments(t *testing.T) {
 		panic(err)
 	}
 
-	db, dbCancel, err := srv.NewTestDatabase(true)
+	db, dbCancel, _, _, err := srv.NewTestDatabase(true)
 	defer dbCancel()
 	if err != nil {
 		t.Fatal(err)
@@ -86,6 +86,23 @@ func TestSubscribePayments(t *testing.T) {
 		Tick: c.Tick(mockTickerInterval),
 	}
 
+	var hops []*lnrpc.Hop
+	hops = append(hops, &lnrpc.Hop{
+		ChanId: 1111,
+		PubKey: testutil.TestPublicKey1,
+	})
+	hops = append(hops, &lnrpc.Hop{
+		ChanId: 2222,
+		PubKey: testutil.TestPublicKey1,
+	})
+	var htlcs []*lnrpc.HTLCAttempt
+	htlcs = append(htlcs, &lnrpc.HTLCAttempt{
+		AttemptId: 1,
+		Route: &lnrpc.Route{
+			Hops: hops,
+		},
+	})
+
 	createdAt := time.Now().UTC()
 	mclient := mockLightningClient_ListPayments{
 		Payments: []*lnrpc.Payment{
@@ -106,7 +123,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: createdAt.UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 			},
 			{
@@ -126,7 +143,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: time.Unix(1624108877, 0).UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 			},
 			{
@@ -146,7 +163,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: createdAt.UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NO_ROUTE,
 			},
 			{
@@ -166,7 +183,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: createdAt.UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_TIMEOUT,
 			},
 			{
@@ -186,7 +203,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: createdAt.UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_TIMEOUT,
 			},
 			{
@@ -206,7 +223,7 @@ func TestSubscribePayments(t *testing.T) {
 				FeeSat:         10,
 				FeeMsat:        10000,
 				CreationTimeNs: time.Unix(1630415433, 0).UnixNano(),
-				Htlcs:          nil,
+				Htlcs:          htlcs,
 				FailureReason:  lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 			},
 		},

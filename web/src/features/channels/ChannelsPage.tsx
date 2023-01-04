@@ -10,7 +10,7 @@ import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
-import Button, { buttonColor } from "components/buttons/Button";
+import Button, { ColorVariant } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
 import { channel } from "./channelsTypes";
@@ -117,14 +117,15 @@ function ChannelsPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
-            buttonColor={buttonColor.green}
-            text={t.openChannel}
+            buttonColor={ColorVariant.success}
             className={"collapse-tablet"}
             icon={<ChannelsIcon />}
             onClick={() => {
               navigate(OPEN_CHANNEL, { state: { background: location } });
             }}
-          />
+          >
+            {t.openChannel}
+          </Button>
         </TableControlsTabsGroup>
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>

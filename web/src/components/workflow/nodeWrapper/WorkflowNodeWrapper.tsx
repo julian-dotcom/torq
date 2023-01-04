@@ -4,8 +4,25 @@ import React, { createRef, MutableRefObject, useContext, useId, useRef, useState
 import classNames from "classnames";
 import NodeConnector from "./NodeConnector";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
-import { ExpandUpRight16Regular as ExpandIcon, ContractDownLeft16Regular as CollapseIcon } from "@fluentui/react-icons";
-// import { ChevronDown16Regular as ExpandIcon, ChevronUp16Regular as CollapseIcon } from "@fluentui/react-icons";
+import {
+  ContractDownLeft20Regular as CollapseIcon,
+  ExpandUpRight20Regular as ExpandIcon,
+  MoreVertical20Regular as OptionsIcon,
+  Delete16Regular as DeleteIcon,
+  Pause16Regular as DeactivateIcon,
+  Play16Regular as ActivateIcon,
+} from "@fluentui/react-icons";
+import Collapse from "features/collapse/Collapse";
+import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
+import NodeName from "./NodeNameInput";
+import { SelectWorkflowNodeLinks, useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
+import PopoverButton from "features/popover/Popover";
+import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
+import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
+import { NodeColorVariant, GetColorClass } from "components/workflow/nodes/nodeVariants";
+import { Status } from "constants/backend";
+import { useClickOutside } from "utils/hooks";
+import { useSelector } from "react-redux";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -13,36 +30,67 @@ export const NodeContext = React.createContext<nodeRefType>({
   nodeName: "",
 });
 
-export type WorkflowNodeProps = {
-  id: string;
-  nodeName: string;
+export type WorkflowNodeProps = WorkflowVersionNode & {
   heading?: string;
+  headerIcon?: JSX.Element;
+  colorVariant: NodeColorVariant;
+  noDeletion?: boolean;
+  noDeactivation?: boolean;
+  noOptions?: boolean;
+  noConnector?: boolean;
   children?: React.ReactNode;
-  x?: number;
-  y?: number;
 };
 
 function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   const { t } = useTranslations();
-  const [collapsed, setCollapsed] = useState(true);
-  const [position, setPosition] = useState({ x: props.x || 50, y: props.y || 50 });
-  const [bodyStyle, setBodyStyle] = useState({ height: "0px", overflow: "hidden" });
+  const [nodeIsSelected, setNodeIsSelected] = useState<boolean>(false);
+
+  const [collapsed, setCollapsed] = useState(props.visibilitySettings.collapsed);
+  const [position, setPosition] = useState({
+    x: props.visibilitySettings.xPosition || 100,
+    y: props.visibilitySettings.yPosition || 100,
+  });
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
   const { canvasRef, blankImgRef } = useContext(CanvasContext);
 
+  // Get all links that are connected to this node using useSelector
+  const { parentLinks, childLinks } = useSelector(
+    SelectWorkflowNodeLinks({
+      workflowId: props.workflowId,
+      version: props.version,
+      nodeId: props.workflowVersionNodeId,
+    })
+  );
+
   // nodeRef is used by the NodeConnector to allow for drag and drop interaction between nodes.
   const nodeRef = createRef() as MutableRefObject<HTMLDivElement>;
-
-  const nodeBodyRef = createRef() as MutableRefObject<HTMLDivElement>;
 
   const headerRef = useRef() as MutableRefObject<HTMLDivElement>;
   const [nodeBB, setNodeBB] = useState({ left: 0, top: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [nameInputVisible, setNameInputVisible] = useState(false);
+  const [updateNode] = useUpdateNodeMutation();
+  const [deleteNode] = useDeleteNodeMutation();
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    setNodeIsSelected(true);
+    // Don't initiate dragging with the user is editing the node name
+    if (nameInputVisible) {
+      e.preventDefault();
+      return;
+    }
+
+    // Don't drag trigger nodes
+    if (TriggerNodeTypes.includes(props.type)) {
+      e.preventDefault();
+      return;
+    }
+
     // Set the drag effect and remove the default drag image set by HTML5
-    e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+    if (blankImgRef) {
+      e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+    }
     e.dataTransfer.effectAllowed = "move";
 
     // Set the dragging state to true to allow for css changes
@@ -59,9 +107,12 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   function handleDrag(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
+    if (nameInputVisible) {
+      return;
+    }
 
     // Get the position of the canvas
-    const bb = canvasRef?.current !== undefined || null ? canvasRef.current.getBoundingClientRect() : { x: 0, y: 0 };
+    const bb = canvasRef !== null ? canvasRef.current.getBoundingClientRect() : { x: 0, y: 0 };
 
     if (e.clientX !== 0 && e.clientY !== 0) {
       // Calculate the new position of the node based on the mouse position (e.clientX/Y),
@@ -73,52 +124,56 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   }
 
   function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
+    if (nameInputVisible) {
+      return;
+    }
     setIsDragging(false);
+
+    updateNode({
+      workflowVersionNodeId: props.workflowVersionNodeId,
+      visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: collapsed },
+    });
+    // parentLinks.forEach((link) => {
+    //   updateNodeLink
+    // }
   }
 
   const connectorId = useId();
 
   function handleCollapse() {
     // Toggle the collapsed state
+    updateNode({
+      workflowVersionNodeId: props.workflowVersionNodeId,
+      visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: !collapsed },
+    });
     setCollapsed(!collapsed);
-
-    // The bounding box of the child element will always be there even if the parrent height is 0px.
-    // This allows us to use the currenty bounding box to set the height of the parrent.
-    const bb = nodeBodyRef.current.getBoundingClientRect();
-
-    if (collapsed) {
-      // Expand the body conetent by setting the body wrapper to the current height of the body.
-      setBodyStyle({ height: bb.height + "px", overflow: "hidden" });
-
-      // Wait before applying the overflow property to avoid content becoming visible too early,
-      // but still allowing dropdowns etc. to show. We also want to set the height to auto, so that
-      // the content can expand to fit the available space.
-      setTimeout(() => {
-        setBodyStyle({ height: "auto", overflow: "visible" });
-      }, 250);
-    } else {
-      // Since we set the height to auto, we need to set it to the current height and wait 1ms before we can transition
-      // to 0px. If not, then the transition will not work and the box size jumps streight to 0.
-      setBodyStyle({ height: bb.height + "px", overflow: "hidden" });
-      setTimeout(() => {
-        setBodyStyle({ height: "0px", overflow: "hidden" });
-      }, 1);
-    }
   }
+
+  const transform = TriggerNodeTypes.includes(props.type)
+    ? `translate(0px, 0px)`
+    : `translate(${position.x}px, ${position.y}px)`;
+
+  // TODO: Add selected status to a node, so that it can be styled differently and z index can be increased to ensure it is on top of other nodes
+
+  useClickOutside(nodeRef, () => {
+    setNodeIsSelected(false);
+  });
 
   return (
     <NodeContext.Provider
       value={{
         nodeRef: nodeRef,
-        nodeName: props.nodeName,
+        nodeName: props.name,
       }}
     >
       <div
-        id={props.id}
-        className={classNames(styles.workflowNodeCard, {
+        onClick={() => setNodeIsSelected(true)}
+        className={classNames(styles.workflowNodeCard, GetColorClass(props.colorVariant), {
           [styles.dragging]: isDragging,
+          [styles.triggerNode]: TriggerNodeTypes.includes(props.type),
+          [styles.selected]: nodeIsSelected,
         })}
-        style={{ transform: "translate(" + position.x + "px, " + position.y + "px)" }}
+        style={{ transform: `${transform}` }}
         ref={nodeRef}
       >
         <div
@@ -129,17 +184,69 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
           onDragEnd={handleDragEnd}
           onDragStart={handleDragStart}
           onDragOver={(e) => e.preventDefault()}
-          onClick={handleCollapse}
         >
-          <div>{props.heading + ": " + props.nodeName}</div>
-          {collapsed ? <ExpandIcon /> : <CollapseIcon />}
-          <NodeConnector id={connectorId} name={props.nodeName} />
-        </div>
-        <div className={classNames(styles.workflowNodeBodyWrapper)} style={bodyStyle}>
-          <div className={styles.workflowNodeBody} ref={nodeBodyRef}>
-            {props.children}
+          <div className={styles.icon}>{props.headerIcon}</div>
+          <NodeName
+            nodeId={props.workflowVersionNodeId}
+            name={props.name}
+            isVisible={nameInputVisible}
+            setVisible={setNameInputVisible}
+          />
+          <div className={classNames(styles.icon, styles.collapseIcon)} onClick={handleCollapse}>
+            {collapsed ? <ExpandIcon /> : <CollapseIcon />}
           </div>
+          {!props.noOptions && (
+            <PopoverButton
+              button={
+                <div className={classNames(styles.icon, styles.optionsIcon)}>
+                  <OptionsIcon />
+                </div>
+              }
+            >
+              <div className={styles.buttonGroup}>
+                {!props.noDeactivation && (
+                  <Button
+                    icon={props.status === Status.Active ? <DeactivateIcon /> : <ActivateIcon />}
+                    buttonColor={ColorVariant.primary}
+                    buttonSize={SizeVariant.small}
+                    onClick={() => {
+                      updateNode({
+                        workflowVersionNodeId: props.workflowVersionNodeId,
+                        // TODO: Switch to enum here
+                        status: props.status === 0 ? 1 : 0,
+                      });
+                    }}
+                  >
+                    {props.status === 0 ? t.activate : t.deactivate}
+                  </Button>
+                )}
+                {!props.noDeletion && (
+                  <Button
+                    icon={<DeleteIcon />}
+                    buttonColor={ColorVariant.error}
+                    buttonSize={SizeVariant.small}
+                    onClick={() => {
+                      deleteNode({ nodeId: props.workflowVersionNodeId });
+                    }}
+                  >
+                    {t.delete}
+                  </Button>
+                )}
+              </div>
+            </PopoverButton>
+          )}
+          {!props.noConnector && (
+            <NodeConnector
+              id={connectorId}
+              name={props.name}
+              workflowVersionNodeId={props.workflowVersionNodeId}
+              workflowVersionId={props.workflowVersionId}
+            />
+          )}
         </div>
+        <Collapse collapsed={collapsed} animate={true}>
+          <div className={styles.workflowNodeBody}>{props.children}</div>
+        </Collapse>
       </div>
     </NodeContext.Provider>
   );

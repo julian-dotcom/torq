@@ -17,15 +17,7 @@
   scrollbar-gutter: stable;
   border-radius: var(--radius-large);
   overflow: hidden;
-  @media only screen and (max-width: 900px) {
-    padding-right: 12px;
-  }
 }
-//@media only screen and (max-width: 900px) {
-//  .tableWrapper {
-//    height: calc(100% - 170px);
-//  }
-//}
 
 .loading {
   opacity: 0.5;

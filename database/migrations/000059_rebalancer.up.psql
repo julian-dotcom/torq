@@ -1,0 +1,40 @@
+
+CREATE TABLE rebalance (
+    rebalance_id SERIAL PRIMARY KEY,
+    incoming_channel_id INTEGER REFERENCES channel(channel_id),
+    outgoing_channel_id INTEGER REFERENCES channel(channel_id),
+    status INTEGER NOT NULL,
+    origin INTEGER NOT NULL,
+    origin_id INTEGER NOT NULL,
+    origin_reference TEXT NOT NULL,
+    amount_msat NUMERIC NOT NULL,
+    maximum_concurrency INTEGER NOT NULL,
+    maximum_costmsat NUMERIC NOT NULL,
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE rebalance_channel (
+    rebalance_channel_id SERIAL PRIMARY KEY,
+    channel_id INTEGER NOT NULL REFERENCES channel(channel_id),
+    status INTEGER NOT NULL,
+    rebalance_id INTEGER NOT NULL REFERENCES rebalance(rebalance_id),
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL,
+    UNIQUE (rebalance_id, channel_id)
+);
+
+CREATE TABLE rebalance_log (
+    rebalance_log_id SERIAL PRIMARY KEY,
+    incoming_channel_id INTEGER NOT NULL REFERENCES channel(channel_id),
+    outgoing_channel_id INTEGER NOT NULL REFERENCES channel(channel_id),
+    hops TEXT NOT NULL,
+    status INTEGER NOT NULL,
+    total_time_lock NUMERIC,
+    total_fee_msat NUMERIC,
+    total_amount_msat NUMERIC,
+    error TEXT,
+    rebalance_id INTEGER NOT NULL REFERENCES rebalance(rebalance_id),
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL
+);

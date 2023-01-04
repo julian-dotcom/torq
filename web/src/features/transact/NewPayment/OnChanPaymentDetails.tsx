@@ -1,5 +1,5 @@
 import { Options20Regular as OptionsIcon } from "@fluentui/react-icons";
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import { ChangeEvent, useState } from "react";
 import Input from "components/forms/input/Input";
 import { ProgressStepState } from "features/progressTabs/ProgressHeader";
@@ -12,6 +12,7 @@ import { MutationTrigger } from "@reduxjs/toolkit/dist/query/react/buildHooks";
 import { BaseQueryFn, FetchArgs, FetchBaseQueryError, MutationDefinition } from "@reduxjs/toolkit/query";
 import { SendOnChainRequest } from "types/api";
 import LargeAmountInput from "components/forms/largeAmountInput/LargeAmountInput";
+import useTranslations from "services/i18n/useTranslations";
 
 type BtcStepProps = {
   sendCoinsMutation: MutationTrigger<
@@ -34,6 +35,7 @@ type BtcStepProps = {
 };
 
 export default function OnChanPaymentDetails(props: BtcStepProps) {
+  const { t } = useTranslations();
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>(undefined);
   const [description, setDescription] = useState<string | undefined>(undefined);
@@ -103,18 +105,18 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
         className={styles.customButtonWrapperStyles}
         leftChildren={
           <Button
-            text={"Back"}
             onClick={() => {
               props.setStepIndex(0);
               props.setDestState(ProgressStepState.completed);
               props.setConfirmState(ProgressStepState.active);
             }}
-            buttonColor={buttonColor.ghost}
-          />
+            buttonColor={ColorVariant.primary}
+          >
+            {t.back}
+          </Button>
         }
         rightChildren={
           <Button
-            text={"Confirm"}
             onClick={() => {
               props.setStepIndex(2);
               props.setConfirmState(ProgressStepState.completed);
@@ -125,8 +127,10 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
                 amountSat: props.amount,
               });
             }}
-            buttonColor={buttonColor.green}
-          />
+            buttonColor={ColorVariant.success}
+          >
+            {t.confirm}
+          </Button>
         }
       />
     </ProgressTabContainer>

@@ -1,7 +1,7 @@
 import { Options20Regular as OptionsIcon, MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery } from "apiSlice";
 import { useNewInvoiceMutation } from "./newInvoiceApi";
-import Button, { buttonColor, ButtonWrapper } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
@@ -159,12 +159,13 @@ function NewInvoiceModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
-                text={"Confirm"}
                 onClick={() => {
                   handleClickNext();
                 }}
-                buttonColor={buttonColor.green}
-              />
+                buttonColor={ColorVariant.success}
+              >
+                {t.confirm}
+              </Button>
             }
           />
         </ProgressTabContainer>

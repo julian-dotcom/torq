@@ -174,7 +174,7 @@ func GetNodesForTag(db *sqlx.DB) (nodes []NodeForTag, err error) {
 func InitializeManagedChannelCache(db *sqlx.DB) error {
 	log.Debug().Msg("Pushing channels to ManagedChannel cache.")
 	rows, err := db.Query(`
-		SELECT channel_id, short_channel_id, funding_transaction_hash, funding_output_index, status_id, capacity, private,
+		SELECT channel_id, short_channel_id, lnd_short_channel_id, funding_transaction_hash, funding_output_index, status_id, capacity, private,
 		       first_node_id, second_node_id, initiating_node_id, accepting_node_id
 		FROM channel;`)
 	if err != nil {
@@ -183,6 +183,7 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 	for rows.Next() {
 		var channelId int
 		var shortChannelId *string
+		var lndShortChannelId *uint64
 		var fundingTransactionHash string
 		var fundingOutputIndex int
 		var capacity int64
@@ -192,11 +193,11 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		var initiatingNodeId *int
 		var acceptingNodeId *int
 		var status commons.ChannelStatus
-		err = rows.Scan(&channelId, &shortChannelId, &fundingTransactionHash, &fundingOutputIndex, &status, &capacity, &private, &firstNodeId, &secondNodeId, &initiatingNodeId, &acceptingNodeId)
+		err = rows.Scan(&channelId, &shortChannelId, &lndShortChannelId, &fundingTransactionHash, &fundingOutputIndex, &status, &capacity, &private, &firstNodeId, &secondNodeId, &initiatingNodeId, &acceptingNodeId)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining channelId and shortChannelId from the resultSet")
 		}
-		commons.SetChannel(channelId, shortChannelId, status, fundingTransactionHash, fundingOutputIndex, capacity, private, firstNodeId, secondNodeId, initiatingNodeId, acceptingNodeId)
+		commons.SetChannel(channelId, shortChannelId, lndShortChannelId, status, fundingTransactionHash, fundingOutputIndex, capacity, private, firstNodeId, secondNodeId, initiatingNodeId, acceptingNodeId)
 	}
 	return nil
 }
@@ -267,7 +268,7 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	if err != nil {
 		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
 	}
-	commons.SetChannel(channel.ChannelID, channel.ShortChannelID,
+	commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.LNDShortChannelID,
 		channel.Status, channel.FundingTransactionHash, channel.FundingOutputIndex, channel.Capacity, channel.Private,
 		channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId)
 	return channel, nil

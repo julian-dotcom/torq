@@ -6,15 +6,21 @@ import styles from "./socket_input.module.scss";
 import { GetColorClass, GetSizeClass, InputColorVaraint } from "components/forms/input/variants";
 import { NodeContext } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { BasicInputType } from "components/forms/formTypes";
+import { useAddNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
+import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 
 export type SocketProps = BasicInputType & {
   id: string;
-  connectedNodeName?: string;
+  workflowVersionId: number;
+  workflowVersionNodeId: number;
+  selectedNodes: Array<WorkflowVersionNode>;
+  inputIndex: number;
   placeholder?: string;
 };
 
 function Socket<T>(props: SocketProps) {
   const { t } = useTranslations();
+  const [addLink] = useAddNodeLinkMutation();
 
   let inputColorClass = GetColorClass(props.colorVariant);
   if (props.warningText != undefined) {
@@ -25,33 +31,63 @@ function Socket<T>(props: SocketProps) {
   }
 
   const { nodeRef } = useContext(NodeContext);
-  const [connectedNodeName, setConnectedNodeName] = useState<string>(props.connectedNodeName || "");
+
+  const [isDragover, setIsDragover] = useState(false);
+
+  // useEffect(() => {
+  //   setConnectedNodeName(props.selectedNodes.map((n) => n.name).toString() || "");
+  // }, [props.selectedNodes]);
+
+  // Handle drag enter event on the socket by setting setIsDragover to true
+  function handleDragEnter(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragover(true);
+  }
+
+  // Handle drag leave event on the socket by setting setIsDragover to false
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragover(false);
+  }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
+    setIsDragover(false);
     // Get the id of the nodes connector that was dropped
-    const nodeid = e.dataTransfer.getData("node/id");
-    const connectorId = e.dataTransfer.getData("node/connectorId");
+    const parentWorkflowVersionNodeId = parseInt(e.dataTransfer.getData("node/parentWorkflowVersionNodeId"));
+    const parentOutputIndex = parseInt(e.dataTransfer.getData("node/parentOutputIndex"));
     const nodeName = e.dataTransfer.getData("node/name");
-    // e.dataTransfer.clearData("node/id");
+
     if (nodeName) {
-      console.log(
-        "Dropped from node: " +
-          nodeid +
-          " with connector: " +
-          connectorId +
-          " on node: " +
-          nodeRef?.current?.id +
-          " with socket: " +
-          props.id
-      );
-      setConnectedNodeName(nodeName);
+      // setConnectedNodeName(nodeName);
+
+      addLink({
+        workflowVersionId: props.workflowVersionId,
+        childInputIndex: props.inputIndex,
+        childWorkflowVersionNodeId: props.workflowVersionNodeId,
+        parentOutputIndex: parentOutputIndex,
+        parentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
+        visibilitySettings: {
+          parent: {
+            xPosition: 100,
+            yPosition: 100,
+          },
+          child: {
+            xPosition: 100,
+            yPosition: 100,
+          },
+        },
+      });
     }
   }
 
   return (
-    <div className={classNames(styles.socketInputWrapper, inputColorClass)}>
+    <div
+      className={classNames(styles.socketInputWrapper, inputColorClass, { [styles.dragOver]: isDragover })}
+      onDragOver={handleDragEnter}
+      onDragLeave={handleDragLeave}
+    >
       {props.label && (
         <div className={styles.labelWrapper}>
           <label className={styles.label}>{props.label}</label>
@@ -61,7 +97,15 @@ function Socket<T>(props: SocketProps) {
         <div className={classNames(styles.nodeSocket, styles.socket)}>
           <div className={styles.socketDot} />
         </div>
-        <div className={styles.connectedNodeName}>{connectedNodeName || props.placeholder}</div>
+        <div className={styles.connectedNodeNames}>
+          {props.selectedNodes.map((n, index) => {
+            return (
+              <span className={styles.connectionTag} key={n.workflowVersionNodeId + "-" + index}>
+                {n.name}
+              </span>
+            );
+          }) || props.placeholder}
+        </div>
       </div>
       {props.errorText && (
         <div className={classNames(styles.feedbackWrapper, styles.feedbackError)}>

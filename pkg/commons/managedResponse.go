@@ -1,5 +1,9 @@
 package commons
 
+func SendToManagedBoolChannel(ch chan bool, result bool) {
+	ch <- result
+}
+
 func SendToManagedNodeIdsChannel(ch chan []int, nodeIds []int) {
 	ch <- nodeIds
 }
@@ -20,7 +24,11 @@ func SendToManagedNodeChannel(ch chan ManagedNode, managedNode ManagedNode) {
 	ch <- managedNode
 }
 
-func SendToManagedNodeSettingsChannel(ch chan ManagedNodeSettings, nodeSettings ManagedNodeSettings) {
+func SendToManagedNodeSettingChannel(ch chan ManagedNodeSettings, nodeSetting ManagedNodeSettings) {
+	ch <- nodeSetting
+}
+
+func SendToManagedNodeSettingsChannel(ch chan []ManagedNodeSettings, nodeSettings []ManagedNodeSettings) {
 	ch <- nodeSettings
 }
 
@@ -50,4 +58,8 @@ func SendToManagedChannelStatesSettingsChannel(ch chan []ManagedChannelStateSett
 
 func SendToManagedChannelStateSettingsChannel(ch chan *ManagedChannelStateSettings, managedChannelStateSettings *ManagedChannelStateSettings) {
 	ch <- managedChannelStateSettings
+}
+
+func SendToManagedTriggerSettingsChannel(ch chan ManagedTriggerSettings, managedTriggerSettings ManagedTriggerSettings) {
+	ch <- managedTriggerSettings
 }

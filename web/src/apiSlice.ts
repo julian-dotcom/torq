@@ -50,7 +50,7 @@ const baseQueryWithRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
 export const torqApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRedirect,
-  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "services", "tags", "categories", "corridors"],
+  tagTypes: ["settings", "tableView", "nodeConfigurations", "channels", "services", "tags", "categories", "corridors", "workflows", "workflow"],
   endpoints: (builder) => ({
     getFlow: builder.query<FlowData[], GetFlowQueryParams>({
       query: (params) => "flow" + queryParamsBuilder(params),
