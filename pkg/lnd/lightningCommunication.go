@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -20,8 +21,6 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	router := routerrpc.NewRouterClient(conn)
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
-
-	// TODO FIXME IMPLEMENT SAME CHANNEL POLICY UPDATE RATE LIMITER
 
 	for {
 		select {
@@ -41,7 +40,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 				if request.NodeId != nodeSettings.NodeId {
 					continue
 				}
-				response := processChannelStatusUpdateRequest(ctx, request, router)
+				response := processChannelStatusUpdateRequest(ctx, db, request, router)
 				if request.ResponseChannel != nil {
 					request.ResponseChannel <- response
 				}
@@ -50,7 +49,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 				if request.NodeId != nodeSettings.NodeId {
 					continue
 				}
-				response := processRoutingPolicyUpdateRequest(ctx, request, client)
+				response := processRoutingPolicyUpdateRequest(ctx, db, request, client)
 				if request.ResponseChannel != nil {
 					request.ResponseChannel <- response
 				}
@@ -59,14 +58,11 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	}
 }
 
-func processChannelStatusUpdateRequest(ctx context.Context, request commons.ChannelStatusUpdateRequest, router routerrpc.RouterClient) commons.ChannelStatusUpdateResponse {
+func processChannelStatusUpdateRequest(ctx context.Context, db *sqlx.DB, request commons.ChannelStatusUpdateRequest, router routerrpc.RouterClient) commons.ChannelStatusUpdateResponse {
 	response := validateChannelStatusUpdateRequest(request)
 	if response != nil {
 		return *response
 	}
-
-	// TODO CHECK if change was already done in the last minute
-	// to prevent back-and-forth
 
 	if !channelStatusUpdateRequestContainsUpdates(request) {
 		return commons.ChannelStatusUpdateResponse{
@@ -77,6 +73,12 @@ func processChannelStatusUpdateRequest(ctx context.Context, request commons.Chan
 			},
 		}
 	}
+
+	response = channelStatusUpdateRequestIsRepeated(db, request)
+	if response != nil {
+		return *response
+	}
+
 	_, err := router.UpdateChanStatus(ctx, constructUpdateChanStatusRequest(request))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to update routing policy for channelId: %v on nodeId: %v", request.ChannelId, request.NodeId)
@@ -108,6 +110,41 @@ func constructUpdateChanStatusRequest(request commons.ChannelStatusUpdateRequest
 			OutputIndex: uint32(channelSettings.FundingOutputIndex)},
 		Action: action,
 	}
+}
+
+func channelStatusUpdateRequestIsRepeated(db *sqlx.DB, request commons.ChannelStatusUpdateRequest) *commons.ChannelStatusUpdateResponse {
+	secondsAgo := commons.ROUTING_POLICY_UPDATE_LIMITER_SECONDS
+	channelEventsFromGraph, err := graph_events.GetChannelEventFromGraph(db, request.ChannelId, &secondsAgo)
+	if err != nil {
+		return &commons.ChannelStatusUpdateResponse{
+			Request: request,
+			CommunicationResponse: commons.CommunicationResponse{
+				Status: commons.Inactive,
+				Error:  err.Error(),
+			},
+		}
+	}
+
+	if len(channelEventsFromGraph) > 1 {
+		disabled := channelEventsFromGraph[0].Disabled
+		disabledCounter := 0
+		for i := 0; i < len(channelEventsFromGraph); i++ {
+			if disabled != channelEventsFromGraph[i].Disabled {
+				disabledCounter++
+				disabled = channelEventsFromGraph[i].Disabled
+			}
+		}
+		if disabledCounter > 2 {
+			return &commons.ChannelStatusUpdateResponse{
+				Request: request,
+				CommunicationResponse: commons.CommunicationResponse{
+					Status: commons.Inactive,
+					Error:  err.Error(),
+				},
+			}
+		}
+	}
+	return nil
 }
 
 func channelStatusUpdateRequestContainsUpdates(request commons.ChannelStatusUpdateRequest) bool {
@@ -144,11 +181,12 @@ func validateChannelStatusUpdateRequest(request commons.ChannelStatusUpdateReque
 	return nil
 }
 
-func processRoutingPolicyUpdateRequest(ctx context.Context, request commons.RoutingPolicyUpdateRequest, client lnrpc.LightningClient) commons.RoutingPolicyUpdateResponse {
+func processRoutingPolicyUpdateRequest(ctx context.Context, db *sqlx.DB, request commons.RoutingPolicyUpdateRequest, client lnrpc.LightningClient) commons.RoutingPolicyUpdateResponse {
 	response := validateRoutingPolicyUpdateRequest(request)
 	if response != nil {
 		return *response
 	}
+
 	channelState := commons.GetChannelState(request.NodeId, request.ChannelId, true)
 	if !routingPolicyUpdateRequestContainsUpdates(request, channelState) {
 		return commons.RoutingPolicyUpdateResponse{
@@ -159,6 +197,12 @@ func processRoutingPolicyUpdateRequest(ctx context.Context, request commons.Rout
 			},
 		}
 	}
+
+	response = routingPolicyUpdateRequestIsRepeated(db, request)
+	if response != nil {
+		return *response
+	}
+
 	resp, err := client.UpdateChannelPolicy(ctx, constructPolicyUpdateRequest(request, channelState))
 	return processRoutingPolicyUpdateResponse(request, resp, err)
 }
@@ -282,4 +326,66 @@ func routingPolicyUpdateRequestContainsUpdates(request commons.RoutingPolicyUpda
 		return true
 	}
 	return false
+}
+
+func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPolicyUpdateRequest) *commons.RoutingPolicyUpdateResponse {
+	secondsAgo := commons.ROUTING_POLICY_UPDATE_LIMITER_SECONDS
+	channelEventsFromGraph, err := graph_events.GetChannelEventFromGraph(db, request.ChannelId, &secondsAgo)
+	if err != nil {
+		return &commons.RoutingPolicyUpdateResponse{
+			Request: request,
+			CommunicationResponse: commons.CommunicationResponse{
+				Status: commons.Inactive,
+				Error:  err.Error(),
+			},
+		}
+	}
+
+	if len(channelEventsFromGraph) > 1 {
+		timeLockDelta := channelEventsFromGraph[0].TimeLockDelta
+		timeLockDeltaCounter := 0
+		minHtlcMsat := channelEventsFromGraph[0].MinHtlcMsat
+		minHtlcMsatCounter := 0
+		maxHtlcMsat := channelEventsFromGraph[0].MaxHtlcMsat
+		maxHtlcMsatCounter := 0
+		feeBaseMsat := channelEventsFromGraph[0].FeeBaseMsat
+		feeBaseMsatCounter := 0
+		feeRateMilliMsat := channelEventsFromGraph[0].FeeRateMilliMsat
+		feeRateMilliMsatCounter := 0
+		for i := 0; i < len(channelEventsFromGraph); i++ {
+			if timeLockDelta != channelEventsFromGraph[i].TimeLockDelta {
+				timeLockDeltaCounter++
+				timeLockDelta = channelEventsFromGraph[i].TimeLockDelta
+			}
+			if minHtlcMsat != channelEventsFromGraph[i].MinHtlcMsat {
+				minHtlcMsatCounter++
+				minHtlcMsat = channelEventsFromGraph[i].MinHtlcMsat
+			}
+			if maxHtlcMsat != channelEventsFromGraph[i].MaxHtlcMsat {
+				maxHtlcMsatCounter++
+				maxHtlcMsat = channelEventsFromGraph[i].MaxHtlcMsat
+			}
+			if feeBaseMsat != channelEventsFromGraph[i].FeeBaseMsat {
+				feeBaseMsatCounter++
+				feeBaseMsat = channelEventsFromGraph[i].FeeBaseMsat
+			}
+			if feeRateMilliMsat != channelEventsFromGraph[i].FeeRateMilliMsat {
+				feeRateMilliMsatCounter++
+				feeRateMilliMsat = channelEventsFromGraph[i].FeeRateMilliMsat
+			}
+		}
+		if timeLockDeltaCounter > 2 ||
+			minHtlcMsatCounter > 2 || maxHtlcMsatCounter > 2 ||
+			feeBaseMsatCounter > 2 || feeRateMilliMsatCounter > 2 {
+
+			return &commons.RoutingPolicyUpdateResponse{
+				Request: request,
+				CommunicationResponse: commons.CommunicationResponse{
+					Status: commons.Inactive,
+					Error:  err.Error(),
+				},
+			}
+		}
+	}
+	return nil
 }
