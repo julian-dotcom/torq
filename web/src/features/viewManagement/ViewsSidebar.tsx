@@ -29,7 +29,7 @@ type ViewSidebarProps<T> = {
   filterableColumns: ColumnMetaData<T>[];
   sortableColumns: ColumnMetaData<T>[];
   sortByTemplate: OrderBy;
-  filterTemplate: any;
+  filterTemplate: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   enableGroupBy?: boolean;
 };
 

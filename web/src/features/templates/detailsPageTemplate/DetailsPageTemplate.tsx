@@ -8,6 +8,7 @@ type DetailsPageProps = {
   titleContent?: React.ReactNode;
   sidebarExpanded?: boolean;
   sidebar?: React.ReactNode;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   breadcrumbs?: Array<any>;
   children?: React.ReactNode;
 };

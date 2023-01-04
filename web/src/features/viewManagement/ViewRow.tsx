@@ -16,7 +16,7 @@ import { deleteView, updateSelectedView, updateViewTitle } from "./viewSlice";
 import Input from "components/forms/input/Input";
 import { InputSizeVariant } from "components/forms/input/variants";
 
-type ViewRow<T> = {
+type ViewRow = {
   id?: number;
   title: string;
   page: keyof AllViewsResponse;
@@ -27,12 +27,13 @@ type ViewRow<T> = {
   onSaveView: (viewIndex: number) => void;
 };
 
-export default function ViewRowComponent<T>(props: ViewRow<T>) {
+export default function ViewRowComponent(props: ViewRow) {
   const dispatch = useAppDispatch();
   const [deleteTableView] = useDeleteTableViewMutation();
   const [editView, setEditView] = useState(false);
   const [localTitle, setLocalTitle] = useState(props.title);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleInputChange(e: any) {
     setLocalTitle(e.target.value);
   }
@@ -40,11 +41,6 @@ export default function ViewRowComponent<T>(props: ViewRow<T>) {
   function handleInputSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setEditView(false);
-    dispatch(updateViewTitle({ page: props.page, viewIndex: props.viewIndex, title: localTitle }));
-  }
-
-  function handleSaveView(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
     dispatch(updateViewTitle({ page: props.page, viewIndex: props.viewIndex, title: localTitle }));
   }
 

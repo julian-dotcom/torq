@@ -27,7 +27,7 @@ type OrderByOption = {
   label: string;
 };
 
-type SortRowProps<T> = {
+type SortRowProps = {
   orderBy: OrderBy;
   options: Array<OrderByOption>;
   page: keyof AllViewsResponse;
@@ -35,8 +35,9 @@ type SortRowProps<T> = {
   index: number;
 };
 
-function SortRow<T>(props: SortRowProps<T>) {
+function SortRow(props: SortRowProps) {
   const dispatch = useAppDispatch();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUpdate = (newValue: any, _: unknown) => {
     const newOrderBy: OrderBy = {
       ...props.orderBy,
@@ -47,7 +48,7 @@ function SortRow<T>(props: SortRowProps<T>) {
     );
   };
 
-  const updateDirection = (selected: OrderBy) => {
+  const toggleDirection = () => {
     const direction = props.orderBy.direction === "asc" ? "desc" : "asc";
     const newOrderBy: OrderBy = {
       ...props.orderBy,
@@ -75,15 +76,21 @@ function SortRow<T>(props: SortRowProps<T>) {
             <DropDown
               onChange={handleUpdate}
               options={props.options}
-              getOptionLabel={(option: any): string => option["label"]}
-              getOptionValue={(option: any): string => option["value"]}
+              getOptionLabel={
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (option: any): string => option["label"]
+              }
+              getOptionValue={
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (option: any): string => option["value"]
+              }
               value={props.options.find((option) => option.value === props.orderBy.key)}
             />
           </div>
 
           <div
             className={classNames(styles.directionWrapper, { [styles.asc]: props.orderBy.direction === "asc" })}
-            onClick={() => updateDirection(props.orderBy)}
+            onClick={() => toggleDirection()}
           >
             {<SortDescIcon />}
           </div>
@@ -131,6 +138,7 @@ function SortSection<T>(props: SortSectionProps<T>) {
 
   const droppableContainerId = "sort-list-droppable";
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onDragEnd = (result: any) => {
     const { destination, source } = result;
 

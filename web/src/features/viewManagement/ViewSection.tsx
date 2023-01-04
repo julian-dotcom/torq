@@ -1,5 +1,5 @@
 import styles from "./views.module.scss";
-import { DragDropContext, Droppable, DropResult, ResponderProvided } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
 import { Add16Regular as AddIcon } from "@fluentui/react-icons";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { AllViewsResponse, TableResponses, ViewOrderInterface, ViewResponse } from "./types";
@@ -48,7 +48,7 @@ function ViewsPopover<T>(props: ViewSection<T>) {
     }
   }
 
-  const onDragEnd = (result: DropResult, provided: ResponderProvided) => {
+  const onDragEnd = (result: DropResult) => {
     const { destination, source } = result;
 
     // Dropped outside of container

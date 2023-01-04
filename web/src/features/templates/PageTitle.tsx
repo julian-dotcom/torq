@@ -41,6 +41,7 @@ function PageNameInput(props: PageNameInputProps) {
 
 type PageTitleProps = {
   title: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   breadcrumbs?: Array<any>;
   className?: string;
   children?: React.ReactNode;

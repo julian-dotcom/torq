@@ -110,9 +110,12 @@ function NewInvoiceModal() {
           />
           <Select
             label={t.yourNode}
-            onChange={(newValue: any) => {
-              setSelectedNodeId(newValue?.value || 0);
-            }}
+            onChange={
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (newValue: any) => {
+                setSelectedNodeId(newValue?.value || 0);
+              }
+            }
             options={nodeConfigurationOptions}
             value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
           />
