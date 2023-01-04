@@ -6,7 +6,7 @@ export const useStrictDroppable = (loading: boolean) => {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    let animation: any;
+    let animation: number;
 
     if (!loading) {
       animation = requestAnimationFrame(() => setEnabled(true));

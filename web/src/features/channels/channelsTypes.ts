@@ -8,7 +8,7 @@ type FailedRequest = {
   error: string;
 };
 
-export interface channel {
+export type channel = {
   active: boolean;
   ambossSpace: string;
   feeBaseMsat: number;
@@ -57,7 +57,7 @@ export interface channel {
   totalSatoshisReceived: number;
   totalSatoshisSent: number;
   unsettledBalance: number;
-}
+};
 
 export type PolicyInterface = {
   feeRateMilliMsat?: number;
