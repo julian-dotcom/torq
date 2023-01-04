@@ -108,6 +108,18 @@ func Test_prepareCloseRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	err = settings.InitializeManagedSettingsCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
+	}
+
+	err = settings.InitializeManagedNodeCache(db)
+	if err != nil {
+		cancel()
+		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
+	}
+
 	lndShortChannelId := uint64(9999)
 	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
 	channel, err := addChannel(db, Channel{
@@ -125,18 +137,6 @@ func Test_prepareCloseRequest(t *testing.T) {
 		log.Fatal().Err(err).Msgf("Problem initializing channel: %v", err)
 	}
 	log.Info().Msgf("Created OPEN channel to be closed with channelId: %v", channel.ChannelID)
-
-	err = settings.InitializeManagedSettingsCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
-	}
-
-	err = settings.InitializeManagedNodeCache(db)
-	if err != nil {
-		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
-	}
 
 	err = InitializeManagedChannelCache(db)
 	if err != nil {
