@@ -39,7 +39,7 @@ import {
 } from "./tagsApi";
 import { ChannelNode, ChannelForTag, NodeForTag, Tag, Corridor, CorridorFields, ChannelGroup } from "./tagsTypes"
 import TextCell from "components/table/cells/text/TextCell"
-
+import { TagColor } from "components/tags/Tag"
 
 
 const updateStatusClass = {
@@ -76,11 +76,16 @@ function ModifyTagModal() {
   const [collapsedChannelState, setCollapsedChannelState] = useState<boolean>(true);
   const [targetNodes, setTargetNodes] = useState<ReactNode[]>([]);
   const [targetChannels, setTargetChannels] = useState<ReactNode[]>([]);
+  const [colorName, setColorName] = useState<string>("N/A");
   const tagColorOptions: SelectOptions[] = [
     { value: "", label: "Select your color" },
-    { value: "Yellow", label: "Yellow" },
-    { value: "Red", label: "Red" },
-    { value: "Orange", label: "Orange" },
+    { value: TagColor.primary, label: TagColor.primary.charAt(0).toUpperCase() + TagColor.primary.slice(1) },
+    { value: TagColor.success, label: TagColor.success.charAt(0).toUpperCase() + TagColor.success.slice(1) },
+    { value: TagColor.warning, label: TagColor.warning.charAt(0).toUpperCase() + TagColor.warning.slice(1) },
+    { value: TagColor.error, label: TagColor.error.charAt(0).toUpperCase() + TagColor.error.slice(1) },
+    { value: TagColor.accent1, label: TagColor.accent1.charAt(0).toUpperCase() + TagColor.accent1.slice(1) },
+    { value: TagColor.accent3, label: TagColor.accent3.charAt(0).toUpperCase() + TagColor.accent3.slice(1) },
+    { value: TagColor.custom, label: TagColor.custom.charAt(0).toUpperCase() + TagColor.custom.slice(1) },
   ];
 
   const queryParameters = new URLSearchParams(window.location.search)
@@ -103,7 +108,6 @@ function ModifyTagModal() {
   }
   const [selectedTagCategory, setTagCategory] = useState<number>(tagCategorieOptions[0].value as number);
   let categoryName = "N/A";
-  let colorName = "N/A";
   const { data: channelsNodesResponse } = useGetNodesChannelsQuery<{
     data: ChannelNode;
     isLoading: boolean;
@@ -168,14 +172,15 @@ function ModifyTagModal() {
       setTagName(tagResponse.name);
       setTagColor(tagResponse.style);
       setTagCategory(tagResponse?.categoryId || 0);
+
       categoriesResponse?.forEach((tagCategorieOptions: Category) => {
         if (tagResponse?.categoryId == tagCategorieOptions.categoryId) {
           categoryName = tagCategorieOptions.name;
         }
       });
       tagColorOptions.forEach((colors) => {
-        if (tagResponse?.style == colors.value) {
-          colorName = colors?.label ?  colors?.label : "N/A" ;
+        if (tagResponse.style == colors.value as string) {
+          setColorName(colors?.label || "N/A")
         }
       });
     }

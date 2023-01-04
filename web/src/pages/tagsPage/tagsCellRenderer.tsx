@@ -16,16 +16,20 @@ export default function tagsCellRenderer(
 ): JSX.Element {
   if (column.key === "name") {
     const color = new Map<string, TagColor>([
-      ["drain", TagColor.error],
-      ["source", TagColor.success],
-      ["routing", TagColor.warning],
+      ["error", TagColor.error],
+      ["success", TagColor.success],
+      ["warning", TagColor.warning],
+      ["accent1", TagColor.accent1],
+      ["accent2", TagColor.accent2],
+      ["accent3", TagColor.accent3],
+      ["primary", TagColor.primary],
     ]);
 
     return (
       <TagCell
         label={row["name"] as string}
         locked={row.tagId ? row.tagId <= 0 : false}
-        colorVariant={color.get(row["name"] as string)}
+        colorVariant={color.get(row["style"] as string)}
         key={"tag-name" + rowIndex + columnIndex}
         cellWrapperClassName={column.locked ? cellStyles.locked : ""}
         tagId={row.tagId ? row.tagId : 0}
