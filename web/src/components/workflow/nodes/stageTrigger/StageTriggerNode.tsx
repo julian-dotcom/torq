@@ -6,7 +6,7 @@ import Note, { NoteType } from "features/note/Note";
 
 type StageTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
-export function StageTriggerNode<T>({ ...wrapperProps }: StageTriggerNodeProps) {
+export function StageTriggerNode({ ...wrapperProps }: StageTriggerNodeProps) {
   const { t } = useTranslations();
 
   return (

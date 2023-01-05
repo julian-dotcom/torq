@@ -26,7 +26,7 @@ export function WorkflowCanvases(props: WorkflowCanvasStagesProps) {
   const { t } = useTranslations();
   const stages = useSelector(SelectWorkflowStages({ workflowId: props.workflowId, version: props.version }));
 
-  const stageComponents = stages.map((stage, index) => {
+  const stageComponents = stages.map((stage) => {
     const triggerNodes = stage.triggers.map(getNodeComponent);
     const actionNodes = stage.actions.map(getNodeComponent);
     return (

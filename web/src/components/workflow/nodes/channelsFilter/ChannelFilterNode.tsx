@@ -7,7 +7,6 @@ import Socket from "components/forms/socket/Socket";
 import { NodeColorVariant } from "../nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
-import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
@@ -19,27 +18,18 @@ type channelPolicyConfigurationNode = {
   maxHTLCAmount: number | undefined;
 };
 
-export function ChannelFilterNode<T>({ ...wrapperProps }: FilterChannelsNodeProps) {
+export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
 
-  const [channelPolicy, setChannelPolicy] = useState<channelPolicyConfigurationNode>({
+  const [channelPolicy, _] = useState<channelPolicyConfigurationNode>({
     feeRate: undefined,
     baseFee: undefined,
     minHTLCAmount: undefined,
     maxHTLCAmount: undefined,
     ...wrapperProps.parameters,
   });
-
-  function createChangeHandler(key: keyof channelPolicyConfigurationNode) {
-    return (e: NumberFormatValues) => {
-      setChannelPolicy((prev) => ({
-        ...prev,
-        [key]: e.floatValue,
-      }));
-    };
-  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

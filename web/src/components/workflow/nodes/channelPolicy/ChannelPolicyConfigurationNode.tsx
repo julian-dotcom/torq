@@ -21,7 +21,7 @@ type channelPolicyConfigurationNode = {
   maxHTLCAmount: number | undefined;
 };
 
-export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps) {
+export function ChannelPolicyNode({ ...wrapperProps }: ChannelPolicyNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();

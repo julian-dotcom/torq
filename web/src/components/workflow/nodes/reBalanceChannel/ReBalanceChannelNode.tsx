@@ -25,7 +25,7 @@ export type RebalanceParameters = {
   maximumConcurrency?: number;
 };
 
-export function ReBalanceChannelNode<T>({ ...wrapperProps }: ReBalanceChannelNodeProps) {
+export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
@@ -39,15 +39,6 @@ export function ReBalanceChannelNode<T>({ ...wrapperProps }: ReBalanceChannelNod
     maximumConcurrency: undefined,
     ...wrapperProps.parameters,
   });
-
-  function createChangeHandler(key: keyof RebalanceParameters) {
-    return (e: NumberFormatValues) => {
-      setParameters((prev) => ({
-        ...prev,
-        [key]: e.floatValue,
-      }));
-    };
-  }
 
   const [amountSat, setAmountSat] = useState<number | undefined>(
     ((wrapperProps.parameters as RebalanceParameters).amountMsat || 0) / 1000
