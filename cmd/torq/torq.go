@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof" //nolint:gosec
 	"os"
 	"sync"
 	"time"
@@ -57,6 +59,16 @@ func main() {
 		},
 
 		// Torq details
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:  "torq.pprof.active",
+			Value: false,
+			Usage: "Enable pprof",
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "torq.pprof.path",
+			Value: "localhost:6060",
+			Usage: "Set pprof path",
+		}),
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:  "torq.debug",
 			Value: false,
@@ -189,6 +201,10 @@ func main() {
 				go serviceChannelDummyRoutine(serviceChannelGlobal)
 			}
 
+			if c.Bool("torq.pprof.active") {
+				go pprofStartup(c)
+			}
+
 			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
 				db, eventChannelGlobal, broadcasterGlobal, serviceChannelGlobal); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
@@ -237,7 +253,13 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Send()
 	}
+}
 
+func pprofStartup(c *cli.Context) {
+	err := http.ListenAndServe(c.String("torq.pprof.path"), nil) //nolint:gosec
+	if err != nil {
+		log.Error().Err(err).Msg("Torq could not start pprof")
+	}
 }
 
 func loadFlags() func(context *cli.Context) (altsrc.InputSourceContext, error) {
