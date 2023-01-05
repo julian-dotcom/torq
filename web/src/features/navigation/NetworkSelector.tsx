@@ -6,7 +6,7 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { selectActiveNetwork, setActiveNetwork, Network } from "features/network/networkSlice";
 import useTranslations from "services/i18n/useTranslations";
 
-function QuickToggles() {
+function NetworkSelector() {
   const { t } = useTranslations();
   const dispatch = useAppDispatch();
   const activeNetwork = useAppSelector(selectActiveNetwork);
@@ -62,4 +62,4 @@ function QuickToggles() {
   );
 }
 
-export default QuickToggles;
+export default NetworkSelector;
