@@ -12,8 +12,8 @@ import {
   Dismiss20Regular as DeleteIcon,
 } from "@fluentui/react-icons";
 import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
-import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
-import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
+// import { ProgressStepState } from "features/progressTabs/ProgressHeader";
+import ProgressTabs from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import { ChangeEvent, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router";
@@ -59,8 +59,8 @@ const updateStatusIcon = {
 function ModifyTagModal() {
   const { t } = useTranslations();
 
-  const [createTageState, setCreateTagState] = useState(ProgressStepState.active);
-  const [doneState, setDoneState] = useState(ProgressStepState.disabled);
+  // const [createTageState, setCreateTagState] = useState(ProgressStepState.active);
+  // const [doneState, setDoneState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMessage] = useState<ReactNode[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [tagName, setTagName] = useState<string>("");
@@ -241,7 +241,6 @@ function ModifyTagModal() {
       setTagId(tag);
       if (addTagResponse.isSuccess && addTagResponse.status != 'fulfilled' ||
       setTagResponse.isSuccess && setTagResponse.status != 'fulfilled') {
-        setDoneState(ProgressStepState.error);
         message.push(
           <span key={0} className={classNames(styles.modifyTagsStatusMessage)}>
             {"Error saving the tag"}
@@ -252,28 +251,28 @@ function ModifyTagModal() {
 
       if (addTagResponse.isSuccess && addTagResponse.status == 'fulfilled' ||
       setTagResponse.isSuccess && setTagResponse.status == 'fulfilled') {
-        const channelGoupObj: ChannelGroup = {
-          tagId: tag,
-          nodeId,
+        if (nodeId && nodeId > 0 ) {
+          const channelGoupObj: ChannelGroup = {
+            tagId: tag,
+            nodeId,
+          }
+          if (channelId && channelId > 0) {
+            channelGoupObj.channelId = channelId
+          }
+          if (selectedTagCategory > 0) {
+            channelGoupObj.categoryId = selectedTagCategory
+          }
+          addChannelsGroupsMutation(channelGoupObj);
         }
-        if (channelId && channelId > 0) {
-          channelGoupObj.channelId = channelId
-        }
-        if (selectedTagCategory > 0) {
-          channelGoupObj.categoryId = selectedTagCategory
-        }
-        addChannelsGroupsMutation(channelGoupObj);
-        setDoneState(ProgressStepState.completed);
       }
      }
     if (addTagResponse.isError || setTagResponse.isError) {
-      setDoneState(ProgressStepState.error);
       message.push(
         <span key={0} className={classNames(styles.modifyTagsStatusMessage)}>
           {"Error saving the tag"}
         </span>
       );
-      setErrorMessage(message)
+      setErrorMessage(message);
 
     }
 
@@ -305,25 +304,19 @@ function ModifyTagModal() {
 
   const closeAndReset = () => {
     setStepIndex(0);
-    setCreateTagState(ProgressStepState.active);
-    setDoneState(ProgressStepState.disabled);
     setTagName("");
     setTagColor(tagColorOptions[0].value as string);
     setTagCategory(tagCategorieOptions[0].value as number);
     setTarget(channelsNodesOptions[0].value as number);
+    navigate(-1);
   };
 
   const navigate = useNavigate();
 
   return (
-    <PopoutPageTemplate title={modalTitle} show={true} onClose={() => navigate(-1)} icon={<TagHeaderIcon />}>
-      <ProgressHeader modalCloseHandler={closeAndReset}>
-        <Step label={t.tagsModal.customTag} state={createTageState} last={false} />
-        <Step label={"Done"} state={doneState} last={true} />
-      </ProgressHeader>
+    <PopoutPageTemplate title={modalTitle} show={true} onClose={() => closeAndReset()} icon={<TagHeaderIcon />}>
 
       <ProgressTabs showTabIndex={stepIndex}>
-        <ProgressTabContainer>
           <div className={styles.activeColumns}>
             <FormRow>
               <div className={styles.updateChannelTableDouble}>
@@ -331,7 +324,7 @@ function ModifyTagModal() {
                   <Input
                     disabled={tagId && tagId < 0 ? true : false}
                     label={"Name"}
-                    className={styles.simple}
+                    className={classNames(styles.simple, { [ styles.lockedInput]: tagId < 0 })}
                     value={tagName}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       setTagName(e.target.value);
@@ -360,7 +353,7 @@ function ModifyTagModal() {
                     <Input
                       disabled={tagId && tagId < 0 ? true : false}
                       label={t.tagsModal.color}
-                      className={styles.simple}
+                      className={classNames(styles.simple, styles.lockedInput)}
                       value={colorName}
                     />
                   </div>
@@ -386,7 +379,7 @@ function ModifyTagModal() {
                     <Input
                       disabled={tagId && tagId < 0 ? true : false}
                       label={t.tagsModal.category}
-                      className={styles.simple}
+                      className={classNames(styles.simple, styles.lockedInput)}
                       value={categoryName}
                     />
                   </div>
@@ -406,6 +399,35 @@ function ModifyTagModal() {
                 />
               </div>
             </FormRow>
+
+            {tagId >= 0 && (
+            <ButtonWrapper
+            className={styles.customButtonWrapperStyles}
+            rightChildren={
+              <Button
+                className={styles.tagbutton}
+                onClick={() => {
+                  setStepIndex(0);
+                  const tagObj: Tag = {
+                    style: selectedTagColor,
+                    name: tagName,
+                  }
+                  if (selectedTagCategory != 0) {
+                    tagObj.categoryId = selectedTagCategory
+                  }
+                  if (modalUpdateMode) {
+                    tagObj.tagId = tagId
+                    setTagMutation(tagObj);
+                  } else {
+                    addTagMutation(tagObj);
+                  }
+                }}
+                buttonColor={ColorVariant.primary}>
+                {modalButton}
+              </Button>
+            }
+          />
+            )}
 
             {modalUpdateMode && (targetNodes.length > 0 || targetChannels.length > 0) && (
               <div className={styles.target}><TargetIcon className={styles.targetIcon}/> <span  className={styles.targetText}>Applied to</span></div>
@@ -447,40 +469,38 @@ function ModifyTagModal() {
               </div>
             </Collapse>
             </div>
-
-            <ButtonWrapper
-              className={styles.customButtonWrapperStyles}
-              rightChildren={
-                <Button
-                  className={styles.tagbutton}
-                  onClick={() => {
-                    setStepIndex(1);
-                    setCreateTagState(ProgressStepState.completed);
-                    setDoneState(ProgressStepState.active);
-                    const tagObj: Tag = {
-                      style: selectedTagColor,
-                      name: tagName,
-                    }
-                    if (selectedTagCategory != 0) {
-                      tagObj.categoryId = selectedTagCategory
-                    }
-                    if (modalUpdateMode) {
-                      tagObj.tagId = tagId
-                      setTagMutation(tagObj);
-                    } else {
-                      addTagMutation(tagObj);
-                    }
-                  }}
+            {tagId < 0 && (
+              <ButtonWrapper
+                className={styles.customButtonWrapperStyles}
+                rightChildren={
+                  <Button
+                    className={styles.tagbutton}
+                    onClick={() => {
+                      setStepIndex(0);
+                      const tagObj: Tag = {
+                        style: selectedTagColor,
+                        name: tagName,
+                      }
+                      if (selectedTagCategory != 0) {
+                        tagObj.categoryId = selectedTagCategory
+                      }
+                      if (modalUpdateMode) {
+                        tagObj.tagId = tagId
+                        setTagMutation(tagObj);
+                      } else {
+                        addTagMutation(tagObj);
+                      }
+                    }}
                   buttonColor={ColorVariant.primary}>
                   {modalButton}
                 </Button>
-              }
-            />
-
+                }
+              />
+            )}
           </div>
-       </ProgressTabContainer>
 
-       <ProgressTabContainer>
+
+       {/* <ProgressTabContainer>
           <div
             className={classNames(
               styles.modifyTagsResultIconWrapper,
@@ -526,7 +546,7 @@ function ModifyTagModal() {
               }
             />
           )}
-       </ProgressTabContainer>
+       </ProgressTabContainer> */}
       </ProgressTabs>
     </PopoutPageTemplate>
   );
