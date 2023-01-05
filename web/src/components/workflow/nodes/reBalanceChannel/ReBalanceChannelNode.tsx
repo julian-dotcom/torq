@@ -85,6 +85,7 @@ export function ReBalanceChannelNode<T>({ ...wrapperProps }: ReBalanceChannelNod
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
       nodeId: wrapperProps.workflowVersionNodeId,
+      stage: wrapperProps.stage,
     })
   );
 

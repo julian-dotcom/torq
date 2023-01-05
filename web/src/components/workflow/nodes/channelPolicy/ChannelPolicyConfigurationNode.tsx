@@ -56,6 +56,7 @@ export function ChannelPolicyNode<T>({ ...wrapperProps }: ChannelPolicyNodeProps
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
       nodeId: wrapperProps.workflowVersionNodeId,
+      stage: wrapperProps.stage,
     })
   );
 

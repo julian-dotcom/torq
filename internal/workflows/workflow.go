@@ -162,6 +162,7 @@ type WorkflowVersionNodeLink struct {
 	WorkflowVersionId           int                                       `json:"workflowVersionId" db:"workflow_version_id"`
 	CreatedOn                   time.Time                                 `json:"createdOn" db:"created_on"`
 	UpdateOn                    time.Time                                 `json:"updatedOn" db:"updated_on"`
+	Stage                       int                                       `json:"stage" db:"stage"`
 }
 
 type CreateWorkflowVersionNodeLinkRequest struct {

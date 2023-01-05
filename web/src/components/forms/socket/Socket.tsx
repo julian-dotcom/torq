@@ -104,7 +104,7 @@ function Socket<T>(props: SocketProps) {
                 {n.name}
               </span>
             );
-          }) || props.placeholder}
+          }) || "Drag connection here"}
         </div>
       </div>
       {props.errorText && (

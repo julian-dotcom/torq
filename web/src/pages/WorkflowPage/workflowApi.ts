@@ -136,30 +136,32 @@ export const SelectWorkflowNodes = (props: SelectWorkflowNode) => {
   );
 };
 
-type SelectWorkflowLinks = { version: number; workflowId: number };
+type SelectWorkflowLinks = { version: number; workflowId: number; stage: number };
 
 // Get all links
 export const SelectWorkflowLinks = (props: SelectWorkflowLinks) => {
   return createSelector(
     [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
     (workflow) => {
-      return workflow?.data?.links || [];
+      return workflow?.data?.links.filter((link) => link.stage === props.stage) || [];
     }
   );
 };
 
-export type selectWorkflowNodeLinks = { version: number; workflowId: number; nodeId: number };
+export type selectWorkflowNodeLinks = { version: number; workflowId: number; nodeId: number; stage: number };
 
 // Get specific workflow node links from the workflow in the store
 export const SelectWorkflowNodeLinks = (props: selectWorkflowNodeLinks) => {
   return createSelector(
     [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
     (workflow) => {
-      const parentLinks = (workflow?.data?.links || []).filter(
-        (link) => link.parentWorkflowVersionNodeId === props.nodeId
-      );
+      const parentLinks = (workflow?.data?.links || []).filter((link) => {
+        if (link.parentWorkflowVersionNodeId === props.nodeId && link.stage === props.stage) {
+          return true;
+        }
+      });
       const childLinks = (workflow?.data?.links || []).filter(
-        (link) => link.childWorkflowVersionNodeId === props.nodeId
+        (link) => link.childWorkflowVersionNodeId === props.nodeId && link.stage === props.stage
       );
       return { parentLinks, childLinks };
     }

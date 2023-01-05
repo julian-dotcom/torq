@@ -26,11 +26,11 @@ export type LinkVisibilitySettings = {
 };
 
 export type WorkflowNode = {
-  LinkDetails: {[k: string | number | symbol]: unknown};
-  childNodes: {[k: string | number | symbol]: unknown};
+  LinkDetails: { [k: string | number | symbol]: unknown };
+  childNodes: { [k: string | number | symbol]: unknown };
   name: string;
-  parameters: {[k: string | number | symbol]: unknown};
-  parentNodes: {[k: string | number | symbol]: unknown};
+  parameters: { [k: string | number | symbol]: unknown };
+  parentNodes: { [k: string | number | symbol]: unknown };
   status: number;
   type: number;
   updatedOn: string;
@@ -42,7 +42,7 @@ export type WorkflowNode = {
 export type WorkflowVersionNode = {
   name: string;
   stage: number;
-  parameters: {[k: string | number | symbol]: unknown};
+  parameters: { [k: string | number | symbol]: unknown };
   status: number;
   type: number;
   updatedOn: string;
@@ -66,10 +66,11 @@ export type UpdateWorkflowNodeRequest = Partial<{
   name: string;
   status: number;
   visibilitySettings?: VisibilitySettings;
-  parameters?: {[k: string | number | symbol]: unknown};
+  parameters?: { [k: string | number | symbol]: unknown };
 }>;
 
 export type WorkflowVersionNodeLink = {
+  stage: number;
   workflowVersionId: number;
   workflowVersionNodeLinkId: number;
   name: string;

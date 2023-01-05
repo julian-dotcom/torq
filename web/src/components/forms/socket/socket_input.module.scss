@@ -16,7 +16,7 @@
   background-color: var(--input-default-background);
   z-index: 30;
   border-radius: var(--radius-default);
-  padding: 6px 16px;
+  padding: 5px 12px;
 }
 .dragOver .socketInputContainer {
   background-color: var(--input-hover-background) !important;
@@ -30,30 +30,23 @@ label {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
+  width: 56px;
   min-height: 40px;
+  padding-right: 16px;
   top: 50%;
-  left: 10px;
   transform: translateY(-50%);
-
-  .socketDot {
-    width: 10px;
-    height: 20px;
-
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
-    z-index: 2;
-    background-color: white;
-    box-shadow: none;
-  }
+  left: -56px;
 }
-.nodeSocket {
-  left: -31px;
-  .socketDot {
-    background-color: var(--color-primary-layer-2);
-    &.dragOver {
-      background-color: var(--input-hover-background);
-    }
+.socketDot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--input-focus-border-color);
+  border-radius: 10px;
+  z-index: 2;
+  box-shadow: none;
+  background-color: var(--color-primary-layer-4);
+  &.dragOver {
+    background-color: var(--input-hover-background);
   }
 }
 .connectedNodeNames {

@@ -913,7 +913,26 @@ func deleteStage(db *sqlx.DB, workflowVersionId int, stage int) error {
 
 func GetWorkflowVersionNodeLinks(db *sqlx.DB, workflowVersionId int) ([]WorkflowVersionNodeLink, error) {
 	var links []WorkflowVersionNodeLink
-	err := db.Select(&links, `SELECT * FROM workflow_version_node_link WHERE workflow_version_id = $1;`, workflowVersionId)
+	err := db.Select(&links, `
+			-- select all the links belonging to this workflow and join in the parent node and add the stage to the link
+			SELECT
+				l.workflow_version_node_link_id,
+				l.parent_workflow_version_node_id,
+				l.child_workflow_version_node_id,
+				l.parent_output_index,
+				l.child_input_index,
+				l.name,
+				l.visibility_settings,
+				l.created_on,
+				l.updated_on,
+				l.workflow_version_id,
+				n.stage AS stage
+			FROM workflow_version_node_link l
+			-- Only joining in the parent node because nodes should never be joiner across stages
+			LEFT JOIN workflow_version_node as n ON n.workflow_version_node_id = l.parent_workflow_version_node_id
+			WHERE l.workflow_version_id = $1
+			ORDER BY l.created_on;
+			`, workflowVersionId)
 	if err != nil {
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}

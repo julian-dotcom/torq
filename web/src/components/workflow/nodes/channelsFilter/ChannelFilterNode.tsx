@@ -54,6 +54,7 @@ export function ChannelFilterNode<T>({ ...wrapperProps }: FilterChannelsNodeProp
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
       nodeId: wrapperProps.workflowVersionNodeId,
+      stage: wrapperProps.stage,
     })
   );
 

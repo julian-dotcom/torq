@@ -2,9 +2,12 @@ import styles from "./workflow_canvas.module.scss";
 import React, { createRef, MutableRefObject, ReactNode, useRef, useState } from "react";
 import classNames from "classnames";
 import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
+import WorkflowLinks from "../links/WorkflowLinks";
 
 type WorkflowCanvasProps = {
   workflowVersionId: number;
+  workflowId: number;
+  version: number;
   stageNumber: number;
   active: boolean;
   children: ReactNode;
@@ -128,6 +131,13 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
           />
           <div style={{ transform: "translate(" + position.x + "px, " + position.y + "px)" }} ref={canvasRef}>
             {props.children}
+            <WorkflowLinks
+              stage={props.stageNumber}
+              active={props.active}
+              workflowId={props.workflowId}
+              version={props.version}
+              workflowVersionId={props.workflowVersionId}
+            />
           </div>
           <canvas ref={blankImgRef} style={{ width: "1px", height: "1px" }} />
         </div>

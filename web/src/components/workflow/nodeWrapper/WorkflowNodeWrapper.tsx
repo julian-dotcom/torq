@@ -1,6 +1,6 @@
 import useTranslations from "services/i18n/useTranslations";
 import styles from "./workflow_nodes.module.scss";
-import React, { createRef, MutableRefObject, useContext, useId, useRef, useState } from "react";
+import React, { createRef, MutableRefObject, useContext, useEffect, useId, useRef, useState } from "react";
 import classNames from "classnames";
 import NodeConnector from "./NodeConnector";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
@@ -13,7 +13,7 @@ import {
   Play16Regular as ActivateIcon,
 } from "@fluentui/react-icons";
 import Collapse from "features/collapse/Collapse";
-import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
+import { WorkflowVersionNode, WorkflowVersionNodeLink } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
 import { SelectWorkflowNodeLinks, useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
@@ -60,8 +60,37 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
       workflowId: props.workflowId,
       version: props.version,
       nodeId: props.workflowVersionNodeId,
+      stage: props.stage,
     })
   );
+
+  function updateLinks(
+    links: Array<WorkflowVersionNodeLink>,
+    x: number,
+    y: number,
+    nodeId: number,
+    linkType: "child" | "parent"
+  ) {
+    const nodeIdKey = linkType === "parent" ? "parentWorkflowVersionNodeId" : "childWorkflowVersionNodeId";
+    const indexKey = linkType === "parent" ? "parentOutputIndex" : "childInputIndex";
+
+    links.forEach((link) => {
+      const eventName = `${linkType}LinkMove-${link[nodeIdKey].toString()}-${link[indexKey].toString()}`;
+      const event = new CustomEvent(eventName, {
+        detail: {
+          x: x,
+          y: y,
+          nodeId: nodeId,
+        },
+      });
+      window.dispatchEvent(event);
+    });
+  }
+
+  useEffect(() => {
+    updateLinks(parentLinks, position.x, position.y, props.workflowVersionNodeId, "parent");
+    updateLinks(childLinks, position.x, position.y, props.workflowVersionNodeId, "child");
+  }, [parentLinks, childLinks, position.x, position.y, props.stage]);
 
   // nodeRef is used by the NodeConnector to allow for drag and drop interaction between nodes.
   const nodeRef = createRef() as MutableRefObject<HTMLDivElement>;
