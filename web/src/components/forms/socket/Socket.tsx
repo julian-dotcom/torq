@@ -1,6 +1,6 @@
 import useTranslations from "services/i18n/useTranslations";
 import classNames from "classnames";
-import { useContext, useState } from "react";
+import { MutableRefObject, useContext, useEffect, useRef, useState } from "react";
 import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
 import styles from "./socket_input.module.scss";
 import { GetColorClass, GetSizeClass, InputColorVaraint } from "components/forms/input/variants";
@@ -8,6 +8,7 @@ import { NodeContext } from "components/workflow/nodeWrapper/WorkflowNodeWrapper
 import { BasicInputType } from "components/forms/formTypes";
 import { useAddNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
+import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
 
 export type SocketProps = BasicInputType & {
   id: string;
@@ -31,6 +32,8 @@ function Socket<T>(props: SocketProps) {
   }
 
   const { nodeRef } = useContext(NodeContext);
+  const { canvasRef } = useContext(CanvasContext);
+  const connectorRef = useRef() as MutableRefObject<HTMLDivElement>;
 
   const [isDragover, setIsDragover] = useState(false);
 
@@ -82,6 +85,51 @@ function Socket<T>(props: SocketProps) {
     }
   }
 
+  function updater() {
+    if (canvasRef !== null) {
+      const connBB = connectorRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const x = connBB.x - canvasBB.x + connBB.width / 2 - 14; // -14 because of the 16 padding right on the connector and 4px line width
+      const y = connBB.y - canvasBB.y + connBB.height / 2 - 12;
+      const eventName = `childLinkMove-${props.workflowVersionNodeId}-${props.inputIndex}`;
+      const event = new CustomEvent(eventName, {
+        detail: {
+          x: x,
+          y: y,
+          nodeId: props.workflowVersionNodeId.toString(),
+        },
+      });
+      window.dispatchEvent(event);
+    }
+  }
+
+  function updatePosition(mutations: MutationRecord[]) {
+    mutations.forEach(function (mutationRecord) {
+      updater();
+    });
+  }
+
+  // Add a listener to the node card to update the position of the connector when the node is moved.
+  useEffect(() => {
+    const observer = new MutationObserver(updatePosition);
+
+    if (nodeRef !== null && nodeRef.current !== undefined) {
+      observer.observe(nodeRef.current, { attributes: true, attributeFilter: ["style"] });
+    }
+
+    return () => {
+      if (nodeRef !== null && nodeRef.current !== undefined) {
+        observer.disconnect();
+      }
+    };
+  }, [canvasRef?.current, nodeRef?.current, connectorRef?.current]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updater();
+    }, 10);
+    return () => clearInterval(interval);
+  });
   return (
     <div
       className={classNames(styles.socketInputWrapper, inputColorClass, { [styles.dragOver]: isDragover })}
@@ -94,7 +142,7 @@ function Socket<T>(props: SocketProps) {
         </div>
       )}
       <div className={classNames(styles.socketInputContainer, GetSizeClass(props.sizeVariant))} onDrop={handleDrop}>
-        <div className={classNames(styles.nodeSocket, styles.socket)}>
+        <div className={classNames(styles.nodeSocket, styles.socket)} ref={connectorRef}>
           <div className={styles.socketDot} />
         </div>
         <div className={styles.connectedNodeNames}>

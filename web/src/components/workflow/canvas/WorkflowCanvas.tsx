@@ -131,14 +131,15 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
           />
           <div style={{ transform: "translate(" + position.x + "px, " + position.y + "px)" }} ref={canvasRef}>
             {props.children}
-            <WorkflowLinks
-              stage={props.stageNumber}
-              active={props.active}
-              workflowId={props.workflowId}
-              version={props.version}
-              workflowVersionId={props.workflowVersionId}
-            />
           </div>
+          <WorkflowLinks
+            style={{ transform: "translate(" + position.x + "px, " + position.y + "px)" }}
+            stage={props.stageNumber}
+            active={props.active}
+            workflowId={props.workflowId}
+            version={props.version}
+            workflowVersionId={props.workflowVersionId}
+          />
           <canvas ref={blankImgRef} style={{ width: "1px", height: "1px" }} />
         </div>
       </div>

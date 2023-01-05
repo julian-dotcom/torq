@@ -50,6 +50,7 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     x: props.visibilitySettings.xPosition || 100,
     y: props.visibilitySettings.yPosition || 100,
   });
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
   const { canvasRef, blankImgRef } = useContext(CanvasContext);
@@ -88,8 +89,8 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
   }
 
   useEffect(() => {
-    updateLinks(parentLinks, position.x, position.y, props.workflowVersionNodeId, "parent");
-    updateLinks(childLinks, position.x, position.y, props.workflowVersionNodeId, "child");
+    // updateLinks(parentLinks, position.x, position.y, props.workflowVersionNodeId, "parent");
+    // updateLinks(childLinks, position.x, position.y, props.workflowVersionNodeId, "child");
   }, [parentLinks, childLinks, position.x, position.y, props.stage]);
 
   // nodeRef is used by the NodeConnector to allow for drag and drop interaction between nodes.
