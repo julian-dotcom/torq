@@ -143,7 +143,7 @@ export const SelectWorkflowLinks = (props: SelectWorkflowLinks) => {
   return createSelector(
     [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
     (workflow) => {
-      return workflow?.data?.links.filter((link) => link.stage === props.stage) || [];
+      return (workflow?.data?.links || []).filter((link) => link.stage === props.stage) || [];
     }
   );
 };
