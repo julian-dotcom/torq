@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" //nolint:gosec
 	"os"
 	"sync"
 	"time"
@@ -256,7 +256,7 @@ func main() {
 }
 
 func pprofStartup(c *cli.Context) {
-	err := http.ListenAndServe(c.String("torq.pprof.path"), nil)
+	err := http.ListenAndServe(c.String("torq.pprof.path"), nil) //nolint:gosec
 	if err != nil {
 		log.Error().Err(err).Msg("Torq could not start pprof")
 	}
