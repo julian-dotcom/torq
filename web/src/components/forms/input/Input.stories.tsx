@@ -2,7 +2,6 @@ import { Story, Meta } from "@storybook/react";
 import { SearchRegular as LeftIcon } from "@fluentui/react-icons";
 import Input from "./Input";
 import { InputSizeVariant, InputColorVaraint } from "./variants";
-import { useArgs } from "@storybook/client-api";
 
 export default {
   title: "components/forms/Input",
@@ -10,8 +9,6 @@ export default {
 } as Meta;
 
 const Template: Story<typeof Input> = (args) => {
-  const [_, updateArgs] = useArgs();
-
   return <Input {...args} />;
 };
 

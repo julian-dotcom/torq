@@ -10,7 +10,7 @@ export type WorkflowNodeButtonProps = {
   colorVariant: NodeColorVariant;
 };
 
-function WorkflowNodeButtonWrapper<T>(props: WorkflowNodeButtonProps) {
+function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
   const buttonRef = useRef() as MutableRefObject<HTMLDivElement>;
 
   const [isDragging, setIsDragging] = useState(false);
@@ -27,7 +27,7 @@ function WorkflowNodeButtonWrapper<T>(props: WorkflowNodeButtonProps) {
     e.dataTransfer.setData("node/name", props.title);
   }
 
-  function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
+  function handleDragEnd() {
     setIsDragging(false);
   }
   return (

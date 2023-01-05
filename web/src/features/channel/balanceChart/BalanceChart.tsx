@@ -12,6 +12,7 @@ import clone from "clone";
 import { useGetSettingsQuery } from "apiSlice";
 
 type BalanceChart = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[];
   totalCapacity: number;
   from: string;
@@ -25,6 +26,7 @@ function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
   const settings = useGetSettingsQuery();
 
   // Check and update the chart size if the navigation changes the container size
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navCheck = (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
     return () => {
       const boundingBox = container?.node()?.getBoundingClientRect();
@@ -38,7 +40,9 @@ function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
 
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let paddedData: any[] = [];
 
       if (data?.length > 0) {

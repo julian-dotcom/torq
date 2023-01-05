@@ -4,13 +4,13 @@ import * as d3 from "d3";
 import eventIcons from "./eventIcons";
 
 type eventsPlotConfig = basePlotConfig & {
-  events: any[];
+  events: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 export class EventsPlot extends AbstractPlot {
   config: eventsPlotConfig;
-  events: any[];
-  clusteredEvents: any[] = [];
+  events: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  clusteredEvents: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   lastWidth?: number;
   lastHeight?: number;
@@ -48,9 +48,11 @@ export class EventsPlot extends AbstractPlot {
       .selectAll(".event-wrapper")
       .data(
         this.events
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((d: any, _: number) => {
             return d.date;
           })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .filter((value: any, index: number, self: any[]) => {
             return self.indexOf(value) === index;
           })
@@ -58,6 +60,7 @@ export class EventsPlot extends AbstractPlot {
       .enter()
       .append("div")
       .attr("class", "event-wrapper")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .attr("id", function (_: any, i) {
         return "event-" + i;
       })
@@ -65,15 +68,18 @@ export class EventsPlot extends AbstractPlot {
         return `position:absolute; left: ${this.xPoint(new Date(d))}px; bottom:5px;`;
       })
       .selectAll(".event-item")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .data((d: any, _: number) => {
         return this.clusteredEvents[d];
       })
       .enter()
       .append("div")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .attr("class", (d: any, _) => {
         const outbound = d.outbound ? "outbound" : "inbound";
         return `event-item ${d.type} ${outbound}`;
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .html((d: any, _) => {
         const icon = eventIcons.get(d.type) || "";
         const text = d.value > 1 ? d3.format(".2s")(d.value) : d.value;

@@ -73,7 +73,7 @@ function ProgressHeader(props: progressHeaderProps) {
       >
         {!Array.isArray(props.children)
           ? props.children
-          : props.children.map((step, index) => {
+          : props.children.map((step) => {
               return step;
             })}
       </div>

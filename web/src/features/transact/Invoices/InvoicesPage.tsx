@@ -52,6 +52,7 @@ function useMaximums(data: Array<Invoice>): Invoice | undefined {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const statusTypes: any = {
   OPEN: "Open",
   SETTLED: "Settled",

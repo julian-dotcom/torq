@@ -9,16 +9,16 @@ type linePlotConfig = basePlotConfig & {
   labels?: boolean;
   legendLabel?: string;
   rightAxis: boolean;
-  curveFunction?: any;
+  curveFunction?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 type linePlotConfigInit = Partial<linePlotConfig> & basePlotConfig;
 
 export class LinePlot extends AbstractPlot {
   config: linePlotConfig;
-  legend: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
-  legendTextBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
-  legendColorBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  legend: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  legendTextBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  legendColorBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   constructor(chart: ChartCanvas, config: linePlotConfigInit) {
     super(chart, config);

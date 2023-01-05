@@ -8,6 +8,7 @@ import clone from "clone";
 type areaPlotConfig = basePlotConfig & {
   areaColor: string;
   areaGradient?: Array<string>[2];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   curveFunction?: any;
   legendLabel?: string;
   addBuffer: boolean;
@@ -18,8 +19,11 @@ type areaPlotConfigInit = Partial<areaPlotConfig> & basePlotConfig;
 
 export class AreaPlot extends AbstractPlot {
   config: areaPlotConfig;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   legend: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   legendTextBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   legendColorBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
 
   constructor(chart: ChartCanvas, config: areaPlotConfigInit) {

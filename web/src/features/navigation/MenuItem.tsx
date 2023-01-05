@@ -3,11 +3,12 @@ import styles from "./nav.module.scss";
 import classNames from "classnames";
 import { NavLink, useMatch, useResolvedPath } from "react-router-dom";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function MenuItem(props: { text: string; icon?: any; routeTo: string }) {
   const resolvedPath = useResolvedPath(props.routeTo);
   const hasMatch = useMatch({ path: resolvedPath.pathname, end: true });
 
-  const resolvedClassNames = classNames(styles.title, { [styles.selected] : hasMatch });
+  const resolvedClassNames = classNames(styles.title, { [styles.selected]: hasMatch });
 
   return (
     <div className={classNames(styles.item)}>

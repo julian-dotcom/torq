@@ -18,7 +18,10 @@ const resolveBasename = () => {
 const basename = resolveBasename();
 
 const appContainer = document.getElementById("root");
-const root = createRoot(appContainer!);
+if (!appContainer) {
+  throw new Error("No root element");
+}
+const root = createRoot(appContainer);
 root.render(
   <StrictMode>
     <BrowserRouter basename={basename}>

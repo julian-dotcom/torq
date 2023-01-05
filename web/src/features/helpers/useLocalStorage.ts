@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function useLocalStorage(key: any, initialValue: any) {
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
@@ -20,6 +21,7 @@ export default function useLocalStorage(key: any, initialValue: any) {
   });
   // Return a wrapped version of useState's setter function that ...
   // ... persists the new value to localStorage.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const setValue = (value: any) => {
     try {
       // Allow value to be a function so we have same API as useState

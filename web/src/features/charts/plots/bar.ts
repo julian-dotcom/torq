@@ -19,8 +19,11 @@ type barInputConfig = Partial<barsConfig> & Required<Pick<barsConfig, "id" | "ke
 
 export class BarPlot extends AbstractPlot {
   config: barsConfig;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   legend: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   legendTextBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   legendColorBox: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
   /**
    * Plots bars on a chart canvas. To use it add it to the plots map on the Chart instance.
@@ -77,6 +80,7 @@ export class BarPlot extends AbstractPlot {
     return this.chart.tickWidth();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   drawBar(context: CanvasRenderingContext2D, dataPoint: any, fillColor: string) {
     context.fillStyle = fillColor;
     context.strokeStyle = fillColor;

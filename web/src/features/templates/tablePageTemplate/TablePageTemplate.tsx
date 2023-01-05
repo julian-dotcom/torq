@@ -14,6 +14,7 @@ type TablePageTemplateProps = {
   pagination?: React.ReactNode;
   pageTotals?: React.ReactNode;
   tableControls?: React.ReactNode;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   breadcrumbs?: Array<any>;
   children?: React.ReactNode;
 };

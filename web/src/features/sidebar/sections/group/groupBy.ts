@@ -1,6 +1,7 @@
 const nonSummableFields: Array<string> = ["alias", "pub_key", "color"];
 const arrayAggKeys: Array<string> = ["channelId", "channel_point", "shortChannelId", "chan_id"];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useGroupBy<T>(data: Array<any>, by: string | undefined): Array<T> {
   if (by !== "peers") {
     return data;
@@ -28,14 +29,17 @@ export function useGroupBy<T>(data: Array<any>, by: string | undefined): Array<T
       if (arrayAggKeys.includes(key)) {
         // If the previous result is not already an Array, create a new one
         if (!Array.isArray(summedChan[key as keyof typeof summedChan])) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (summedChan as { [key: string]: any })[key] = [summedChan[key as keyof typeof summedChan], value];
           continue;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (summedChan as { [key: string]: any })[key] = [...summedChan[key as keyof typeof summedChan], value];
         continue;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (summedChan as { [key: string]: any })[key] = (summedChan[key as keyof typeof summedChan] as number) + value;
     }
   }

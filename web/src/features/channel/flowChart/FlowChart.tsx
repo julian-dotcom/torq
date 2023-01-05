@@ -17,6 +17,7 @@ function FlowChart({ data }: FlowChart) {
   const flowKey = useAppSelector(selectFlowKeys);
 
   // Check and update the chart size if the navigation changes the container size
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navCheck = (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
     return () => {
       const boundingBox = container?.node()?.getBoundingClientRect();
@@ -29,12 +30,16 @@ function FlowChart({ data }: FlowChart) {
   };
 
   const ref = useD3(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
       const keyOut = (flowKey.value + "Out") as keyof Omit<
         FlowData,
         "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash"
       >;
-      const keyIn = (flowKey.value + "In") as keyof Omit<FlowData, "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash">;
+      const keyIn = (flowKey.value + "In") as keyof Omit<
+        FlowData,
+        "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash"
+      >;
       flowChart = new FlowChartCanvas(container, data, { keyOut: keyOut, keyIn: keyIn });
       flowChart.draw();
       setInterval(navCheck(container), 200);

@@ -47,7 +47,7 @@ const StringCellOptions: SelectOptionType[] = [
   { label: "Long Text", value: "LongTextCell" },
 ];
 
-const Options = new Map<string, Array<{ label: string, value: string }>> ([
+const Options = new Map<string, Array<{ label: string; value: string }>>([
   ["number", NumericCellOptions],
   ["string", StringCellOptions],
   ["boolean", [{ label: "Boolean", value: "BooleanCell" }]],
@@ -55,7 +55,7 @@ const Options = new Map<string, Array<{ label: string, value: string }>> ([
   ["array", [{ label: "Array", value: "EnumCell" }]],
   ["date", [{ label: "Date", value: "DateCell" }]],
   ["duration", [{ label: "Duration", value: "TextCell" }]],
-])
+]);
 
 type ColumnRow<T> = {
   page: ViewSliceStatePages;
@@ -122,7 +122,7 @@ function LockedColumnRow<T>(props: ColumnRow<T>) {
 function ColumnRow<T>(props: ColumnRow<T>) {
   const dispatch = useAppDispatch();
 
-  const selectedOption: {value: string, label: string} = CellOptions.filter((option) => {
+  const selectedOption: { value: string; label: string } = CellOptions.filter((option) => {
     if (option.value === props.column.type) {
       return true;
     }
@@ -222,6 +222,7 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
   const dispatch = useAppDispatch();
   const droppableContainerId = "column-list-droppable";
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onDragEnd = (result: any, _: unknown) => {
     const { destination, source } = result;
 

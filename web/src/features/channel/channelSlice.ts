@@ -23,15 +23,19 @@ export const channelSlice = createSlice({
 
   // The `reducers` field lets us define reducers and generate associated actions
   reducers: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateFlowKey: (state: any, action: any) => {
       state.flowKey = action.payload.flowKey;
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateProfitChartKey: (state: any, action: any) => {
       state.profitChartKey = action.payload.key;
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateEventChartKey: (state: any, action: any) => {
       state.eventChartKey = action.payload.key;
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateBalanceChanID: (state: any, action: any) => {
       state.balanceChanID = action.payload.key;
     },

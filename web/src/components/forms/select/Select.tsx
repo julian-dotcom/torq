@@ -15,6 +15,7 @@ const customStyles = {
   indicatorSeparator: () => {
     return {};
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: (provided: any, state: any) => ({
     ...provided,
     borderRadius: 4,
@@ -29,6 +30,7 @@ const customStyles = {
     height: "var(--input-height)",
     minHeight: "var(--input-height)",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   placeholder: (provided: any) => {
     return {
       ...provided,
@@ -36,22 +38,26 @@ const customStyles = {
       fontSize: "var(--input-font-size)",
     };
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dropdownIndicator: (provided: any, _: any) => ({
     ...provided,
     color: "var(--input-color)",
     fontSize: "var(--input-font-size)",
     padding: "var(--indicator-padding)",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   singleValue: (provided: any) => ({
     ...provided,
     color: "var(--input-color)",
     fontSize: "var(--input-font-size)",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   input: (provided: any) => ({
     ...provided,
     margin: "0",
     padding: "0",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   option: (provided: any, state: any) => ({
     ...provided,
     color: "var(--input-color)",
@@ -63,6 +69,7 @@ const customStyles = {
     },
     borderRadius: "4px",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   menuList: (provided: any, _: any) => ({
     ...provided,
     borderColor: "transparent",
@@ -72,6 +79,7 @@ const customStyles = {
     flexDirection: "column",
     gap: "4px",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   menu: (provided: any, _: any) => ({
     ...provided,
     margin: "8px 4px",
@@ -100,6 +108,7 @@ export default function Select({
   errorText,
   ...selectProps
 }: SelectProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const DropdownIndicator = (props: any) => {
     return (
       <components.DropdownIndicator {...props}>

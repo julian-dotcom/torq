@@ -4,7 +4,6 @@ import FilterRow from "./FilterRow";
 import { AndClause, OrClause, FilterClause, FilterInterface } from "./filter";
 import { ColumnMetaData } from "features/table/types";
 import styles from "./filter-section.module.scss";
-import useTranslations from "services/i18n/useTranslations";
 
 export interface FilterComponentProps<T> {
   columns: Array<ColumnMetaData<T>>;
@@ -21,7 +20,6 @@ const combinerOptions = new Map<string, string>([
 ]);
 
 function FilterComponent<T>(props: FilterComponentProps<T>) {
-  const { t } = useTranslations();
   const updateFilter = () => {
     props.onFilterUpdate();
   };
@@ -74,7 +72,9 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filterOptions = props.columns.slice().map((column: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const columnOption: any = {
       value: column.key,
       label: column.heading,
@@ -90,6 +90,7 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
     return columnOption;
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filterOptions.sort((a: any, b: any) => {
     if (a.label < b.label) {
       return -1;

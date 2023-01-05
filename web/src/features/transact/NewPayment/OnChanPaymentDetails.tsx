@@ -20,7 +20,7 @@ type BtcStepProps = {
       SendOnChainRequest,
       BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
       "channels" | "settings" | "tableView" | "nodeConfigurations",
-      any,
+      any, // eslint-disable-line @typescript-eslint/no-explicit-any
       "api"
     >
   >;

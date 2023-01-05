@@ -10,7 +10,7 @@ type InputRowProps = {
 export default function InputRow({ className, children }: InputRowProps) {
   return (
     <div className={classNames(styles.inputRowWrapper, className)}>
-      {React.Children.map(children, (child, index) => {
+      {React.Children.map(children, (child) => {
         return child;
       })}
     </div>

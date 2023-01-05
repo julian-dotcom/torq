@@ -1,4 +1,3 @@
-import useTranslations from "services/i18n/useTranslations";
 import styles from "./workflow_nodes.module.scss";
 import React, { createRef, MutableRefObject, useContext, useEffect, useId, useRef, useState } from "react";
 import classNames from "classnames";
@@ -23,6 +22,7 @@ import { NodeColorVariant, GetColorClass } from "components/workflow/nodes/nodeV
 import { Status } from "constants/backend";
 import { useClickOutside } from "utils/hooks";
 import { useSelector } from "react-redux";
+import useTranslations from "services/i18n/useTranslations";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -41,7 +41,7 @@ export type WorkflowNodeProps = WorkflowVersionNode & {
   children?: React.ReactNode;
 };
 
-function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
+function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   const { t } = useTranslations();
   const [nodeIsSelected, setNodeIsSelected] = useState<boolean>(false);
 
@@ -153,7 +153,7 @@ function WorkflowNodeWrapper<T>(props: WorkflowNodeProps) {
     }
   }
 
-  function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
+  function handleDragEnd() {
     if (nameInputVisible) {
       return;
     }

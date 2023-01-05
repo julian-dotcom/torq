@@ -1,5 +1,6 @@
 import { useGroupBy } from "./groupBy";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const testData: Array<any> = [
   {
     alias: "Some Node",
@@ -74,6 +75,7 @@ test("grouping by channels returns exactly what was input", () => {
 test("grouping by peers returns correctly grouped channels", () => {
   const result = useGroupBy(testData, "peers");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const expected: Array<any> = [
     {
       alias: "Some Node",

@@ -37,6 +37,7 @@ function TimeIntervalSelect(props: { className?: string }) {
 
   const dispatch = useAppDispatch();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChange = (item: any) => {
     const interval = {
       from: item.selection1.startDate.toString(),
@@ -116,6 +117,7 @@ function TimeIntervalSelect(props: { className?: string }) {
                 isSelected() {
                   const definedRange = this.range();
                   return (
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     defaultStaticRanges.findIndex((item: any) => {
                       // Mark Custom if definedRange is not found in predefined staticRanges
                       return (

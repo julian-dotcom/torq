@@ -42,6 +42,7 @@ function NodechannelModal() {
 
   const [updateChannelMutation, response] = useUpdateChannelMutation();
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [errMessage, setErrorMessage] = useState<any[]>([]);
 
   useEffect(() => {
@@ -216,7 +217,7 @@ function NodechannelModal() {
           </div>
           <div className={errMessage.length ? styles.errorBox : styles.successeBox}>
             <div>
-              <div className={errMessage.length ? styles.errorIcon : styles.successIcon}> 
+              <div className={errMessage.length ? styles.errorIcon : styles.successIcon}>
                 {updateStatusIcon["NOTE"]}
               </div>
               <div className={errMessage.length ? styles.errorNote : styles.successNote}>

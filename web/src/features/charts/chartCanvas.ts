@@ -32,6 +32,7 @@ type chartConfig = {
   xScale: ScaleTime<number, number, number | undefined>;
   xAxisFormatter: (domainValue: NumberValue | Date, index: number) => string;
   xAxisLabelFormatter: (domainValue: NumberValue | Date) => string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   xAxisTickFunction?: any;
   from: Date;
   to: Date;
@@ -71,31 +72,46 @@ class ChartCanvas {
     timezone: "America/Montserrat",
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Array<any> = [];
   plots: Map<string, object> = new Map<string, object>();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   canvas: Selection<HTMLCanvasElement, Record<string, never>, HTMLElement, any>;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   interactionLayer: Selection<HTMLCanvasElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   chartContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   xAxisContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   leftYAxisContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rightYAxisContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventsContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   legendContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   xAxisLabelContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   leftYAxisLabelContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rightYAxisLabelContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
 
   context: CanvasRenderingContext2D;
   interactionContext: CanvasRenderingContext2D;
 
   constructor(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: Array<any>,
     config: Partial<chartConfig>
   ) {
@@ -106,7 +122,8 @@ class ChartCanvas {
     this.config = { ...this.config, ...config };
 
     this.data = data
-      ? clone(data).map((row: any) => {
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        clone(data).map((row: any) => {
           row.date = utcToZonedTime(row.date, this.config.timezone);
           return row;
         })
@@ -332,8 +349,10 @@ class ChartCanvas {
     return "rgb(" + ret.join(",") + ")";
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   figures: Map<string, { plot: BarPlot; drawConfig: any }> = new Map<string, { plot: BarPlot; drawConfig: any }>();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getFigure(xLocation: number, yLocation: number): { plot: BarPlot; drawConfig: any } | undefined {
     const colorData = this.interactionContext.getImageData(xLocation, yLocation, 1, 1).data;
 
@@ -349,6 +368,7 @@ class ChartCanvas {
   addMouseOutListener() {
     this.canvas.on("mouseleave", (_) => {
       this.clearCanvas();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.plots.forEach((plot: any, _: string) => {
         plot.draw({});
       });
@@ -365,6 +385,7 @@ class ChartCanvas {
 
       let xIndex: number | undefined = undefined;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // this.data.forEach((d: any, i) => {
       //   if (
       //     addHours(this.config.xScale.invert(xPosition), 12) >= d?.date &&
@@ -395,6 +416,7 @@ class ChartCanvas {
         rightYAxisValues.push(this.config.rightYScale(rightYValue));
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.plots.forEach((plot: any, _: string) => {
         plot.draw({
           xPosition,
@@ -443,6 +465,7 @@ class ChartCanvas {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plot(PlotItem: any, config: { [key: string | number]: any } & { id: string; key: string }) {
     this.plots.set(config.id, new PlotItem(this, config));
   }

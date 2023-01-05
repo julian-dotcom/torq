@@ -77,6 +77,8 @@ function PaymentsPage() {
   );
 
   let data = paymentsResponse.data?.data || [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data = data.map((payment: any) => {
     const failureReason = FailureReasonLabels.get(payment.failure_reason) || "";
     const status = StatusTypeLabels.get(payment.status) || "";

@@ -22,7 +22,7 @@ type sections = {
 
 function AllTxPage() {
   // initial getting of the table views from the database
-  const a = useGetTableViewsQuery();
+  useGetTableViewsQuery();
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);

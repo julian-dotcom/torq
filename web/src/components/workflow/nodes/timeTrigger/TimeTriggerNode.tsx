@@ -5,7 +5,6 @@ import { Timer16Regular as TimeTriggerIcon } from "@fluentui/react-icons";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { Form, Input, InputRow, InputSizeVariant, Select } from "components/forms/forms";
-import { ActionMeta } from "react-select";
 import { NumberFormatValues } from "react-number-format";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
@@ -17,12 +16,6 @@ enum timeUnits {
   minutes = 60,
   hours = 3600,
 }
-
-type channelPolicy = {
-  seconds: number;
-  frequency: number;
-  timeUnit: string;
-};
 
 type timeUnitOption = { value: number; label: string };
 
@@ -49,7 +42,7 @@ function isTimeTriggerParameters(parameters: unknown): parameters is TimeTrigger
   return p.seconds !== undefined;
 }
 
-export function TimeTriggerNode<T>({ ...wrapperProps }: TimeTriggerNodeProps) {
+export function TimeTriggerNode({ ...wrapperProps }: TimeTriggerNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
@@ -81,7 +74,7 @@ export function TimeTriggerNode<T>({ ...wrapperProps }: TimeTriggerNodeProps) {
     setFrequency(value);
   }
 
-  function handleTimeUnitChange(newValue: unknown, actionMeta: ActionMeta<unknown>) {
+  function handleTimeUnitChange(newValue: unknown) {
     if (isTimeUnit(newValue)) {
       setFrequency(convertTimeUnits(selectedTimeUnit, newValue.value, frequency));
       setSelectedTimeUnit(newValue.value);

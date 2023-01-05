@@ -62,6 +62,7 @@ export const timeIntervalSlice = createSlice({
 
 function setRangeToDefault(state: Draft<TimeIntervalState>, defaultDateRange: string) {
   const defaultStaticRanges = defaultStaticRangesFn(state.weekStartsOn);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const staticRange = defaultStaticRanges.find((sr: any) => sr.code === defaultDateRange);
   state.to = staticRange.range().endDate.toString();
   state.from = staticRange.range().startDate.toString();

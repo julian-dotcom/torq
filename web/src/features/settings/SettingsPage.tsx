@@ -72,14 +72,17 @@ function Settings() {
     { label: supportedLangs.nl, value: "nl" },
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleDefaultDateRangeChange = (combiner: any) => {
     setSettingsState({ ...settingsState, defaultDateRange: combiner.value });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleDefaultLanguageRangeChange = (combiner: any) => {
     setSettingsState({ ...settingsState, defaultLanguage: combiner.value });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handlePreferredTimezoneChange = (combiner: any) => {
     setSettingsState({
       ...settingsState,
@@ -87,6 +90,7 @@ function Settings() {
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleWeekStartsOnChange = (combiner: any) => {
     setSettingsState({ ...settingsState, weekStartsOn: combiner.value });
   };

@@ -14,14 +14,14 @@ import { TriggerNodeTypes } from "./constants";
 export const workflowApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     getWorkflows: builder.query<Array<workflowListItem>, void>({
-      query: (params) => "workflows",
+      query: () => "workflows",
     }),
     getWorkflow: builder.query<FullWorkflow, { version: number; workflowId: number }>({
       query: (params) => `workflows/${params.workflowId}/versions/${params.version}`,
       providesTags: ["workflow"],
     }),
     newWorkflow: builder.mutation<{ workflowId: number; version: number }, void>({
-      query: (body: void) => ({
+      query: () => ({
         url: "workflows",
         method: "POST",
         body: {},
@@ -136,10 +136,10 @@ export const SelectWorkflowNodes = (props: SelectWorkflowNode) => {
   );
 };
 
-type SelectWorkflowLinks = { version: number; workflowId: number; stage: number };
+type SelectWorkflowLinksType = { version: number; workflowId: number; stage: number };
 
 // Get all links
-export const SelectWorkflowLinks = (props: SelectWorkflowLinks) => {
+export const SelectWorkflowLinks = (props: SelectWorkflowLinksType) => {
   return createSelector(
     [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
     (workflow) => {

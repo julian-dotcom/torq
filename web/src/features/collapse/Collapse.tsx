@@ -29,10 +29,6 @@ export default function Collapse(props: {
       // setStyleState({ ...styleState, height: props.collapsed ? "0" : ref.current.scrollHeight + "px" });
       return;
     }
-    // The bounding box of the child element will always be there even if the parrent height is 0px.
-    // This allows us to use the currenty bounding box to set the height of the parrent.
-    const bb = ref.current.getBoundingClientRect();
-
     if (!props.collapsed) {
       // Expand the body content by setting the body wrapper to the current height of the body.
       setStyleState({ ...styleState, height: ref.current.scrollHeight + "px", overflow: "hidden" });

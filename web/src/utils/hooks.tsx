@@ -15,8 +15,10 @@ export function useIsVisible(ref: MutableRefObject<HTMLDivElement>) {
   return isIntersecting;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useClickOutside(ref: any, handleClose: () => void) {
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function handleClickOutside(event: any) {
       if (ref.current && !ref.current.contains(event.target)) {
         handleClose();

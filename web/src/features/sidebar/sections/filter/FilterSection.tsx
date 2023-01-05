@@ -11,7 +11,7 @@ type FilterSectionProps<T> = {
   viewIndex: number;
   filters: Clause;
   filterableColumns: Array<ColumnMetaData<T>>;
-  defaultFilter: any;
+  defaultFilter: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 function FilterSection<T>(props: FilterSectionProps<T>) {

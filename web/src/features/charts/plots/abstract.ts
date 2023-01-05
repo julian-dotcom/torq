@@ -73,5 +73,6 @@ export abstract class AbstractPlot {
     return this.height(yValue) + this.offset();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abstract draw(drawConfig: drawConfig): any;
 }

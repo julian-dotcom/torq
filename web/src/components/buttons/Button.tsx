@@ -19,6 +19,7 @@ const buttonPositionClass = {
 };
 
 export type ButtonProps = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   icon?: any;
   isOpen?: boolean;
   buttonColor?: ColorVariant;
@@ -29,7 +30,6 @@ export type ButtonProps = {
 
 export default function Button({
   icon,
-  isOpen,
   buttonColor,
   buttonPosition,
   buttonSize,

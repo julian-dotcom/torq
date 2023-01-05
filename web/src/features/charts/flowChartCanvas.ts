@@ -3,7 +3,6 @@ import { FlowData } from "features/channel/channelTypes";
 import { ScaleLinear, Selection } from "d3";
 import clone from "clone";
 
-
 type chartConfig = {
   margin: {
     top: number;
@@ -27,7 +26,6 @@ type chartConfig = {
   yScale: ScaleLinear<number, number, never>;
   xScale: ScaleLinear<number, number, number | undefined>;
 };
-
 
 class FlowChartCanvas {
   config: chartConfig = {
@@ -59,18 +57,24 @@ class FlowChartCanvas {
   dataRaw: Array<FlowData> = [];
   data: Array<FlowData> = [];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   chartContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   labelsContainer: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   canvas: Selection<HTMLCanvasElement, Record<string, never>, HTMLElement, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   interactionLayer: Selection<HTMLCanvasElement, Record<string, never>, HTMLElement, any>;
 
   context: CanvasRenderingContext2D;
   interactionContext: CanvasRenderingContext2D;
 
   constructor(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>,
     data: Array<FlowData>,
     config: Partial<chartConfig>
@@ -89,9 +93,11 @@ class FlowChartCanvas {
     this.config.width = this.getWidth();
     this.config.height = this.getHeight();
 
-    this.config.totalInbound = data?.map((d) => d[this.config.keyIn] as number)
+    this.config.totalInbound = data
+      ?.map((d) => d[this.config.keyIn] as number)
       .reduce((partialSum, a) => partialSum + a, 0);
-    this.config.totalOutbound = data?.map((d) => d[this.config.keyOut] as number)
+    this.config.totalOutbound = data
+      ?.map((d) => d[this.config.keyOut] as number)
       .reduce((partialSum, a) => partialSum + a, 0);
     const threshold = Math.max(this.config.totalOutbound, this.config.totalInbound) * 0.02;
 
@@ -246,9 +252,11 @@ class FlowChartCanvas {
 
     this.config.height = this.getHeight();
 
-    this.config.totalInbound = this.data?.map((d) => d[this.config.keyIn] as number)
+    this.config.totalInbound = this.data
+      ?.map((d) => d[this.config.keyIn] as number)
       .reduce((partialSum, a) => partialSum + a, 0);
-    this.config.totalOutbound = this.data?.map((d) => d[this.config.keyOut] as number)
+    this.config.totalOutbound = this.data
+      ?.map((d) => d[this.config.keyOut] as number)
       .reduce((partialSum, a) => partialSum + a, 0);
 
     const longestIndex = Math.max(
@@ -571,7 +579,8 @@ class FlowChartCanvas {
       hoverOutboundClass = "hover";
     }
 
-    this.data?.filter((d) => (d[this.config.keyOut] as number) !== 0)
+    this.data
+      ?.filter((d) => (d[this.config.keyOut] as number) !== 0)
       .sort((a, b) => {
         return (b[this.config.keyOut] as number) - (a[this.config.keyOut] as number);
       })
@@ -628,7 +637,8 @@ class FlowChartCanvas {
         outboundSum += d[this.config.keyOut] as number;
       });
 
-    this.data?.filter((d) => (d[this.config.keyIn] as number) !== 0)
+    this.data
+      ?.filter((d) => (d[this.config.keyIn] as number) !== 0)
       .sort((a, b) => {
         return (b[this.config.keyIn] as number) - (a[this.config.keyIn] as number);
       })

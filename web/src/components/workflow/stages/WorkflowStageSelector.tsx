@@ -25,8 +25,6 @@ export function StageSelector({
   workflowId,
   version,
 }: StageSelectorProps) {
-  const { t } = useTranslations();
-
   return (
     <div className={styles.stagesWrapper}>
       {stageNumbers.map((stage, index) => {

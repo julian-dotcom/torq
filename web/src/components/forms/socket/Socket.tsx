@@ -1,14 +1,13 @@
-import useTranslations from "services/i18n/useTranslations";
 import classNames from "classnames";
 import { MutableRefObject, useContext, useEffect, useRef, useState } from "react";
 import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
 import styles from "./socket_input.module.scss";
 import { GetColorClass, GetSizeClass, InputColorVaraint } from "components/forms/input/variants";
-import { NodeContext } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { BasicInputType } from "components/forms/formTypes";
 import { useAddNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
+import { NodeContext } from "../../workflow/nodeWrapper/WorkflowNodeWrapper";
 
 export type SocketProps = BasicInputType & {
   id: string;
@@ -19,8 +18,7 @@ export type SocketProps = BasicInputType & {
   placeholder?: string;
 };
 
-function Socket<T>(props: SocketProps) {
-  const { t } = useTranslations();
+function Socket(props: SocketProps) {
   const [addLink] = useAddNodeLinkMutation();
 
   let inputColorClass = GetColorClass(props.colorVariant);
@@ -36,10 +34,6 @@ function Socket<T>(props: SocketProps) {
   const connectorRef = useRef() as MutableRefObject<HTMLDivElement>;
 
   const [isDragover, setIsDragover] = useState(false);
-
-  // useEffect(() => {
-  //   setConnectedNodeName(props.selectedNodes.map((n) => n.name).toString() || "");
-  // }, [props.selectedNodes]);
 
   // Handle drag enter event on the socket by setting setIsDragover to true
   function handleDragEnter(e: React.DragEvent<HTMLDivElement>) {
@@ -63,8 +57,6 @@ function Socket<T>(props: SocketProps) {
     const nodeName = e.dataTransfer.getData("node/name");
 
     if (nodeName) {
-      // setConnectedNodeName(nodeName);
-
       addLink({
         workflowVersionId: props.workflowVersionId,
         childInputIndex: props.inputIndex,
@@ -104,7 +96,7 @@ function Socket<T>(props: SocketProps) {
   }
 
   function updatePosition(mutations: MutationRecord[]) {
-    mutations.forEach(function (mutationRecord) {
+    mutations.forEach(function () {
       updater();
     });
   }
