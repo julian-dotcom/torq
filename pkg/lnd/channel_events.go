@@ -633,7 +633,7 @@ func getShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 
 	url := fmt.Sprintf("https://vector.ln.capital/api/bitcoin/shortChannelId/%v/%v/%v/%v",
 		fundingTransactionHash, fundingOutputIndex, utcUnixTimeInt, response.Signature)
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec
 	if err != nil {
 		log.Error().Msgf("Failed (http.Get) to obtain shortChannelId for closed channel with channel point %v:%v",
 			fundingTransactionHash, fundingOutputIndex)
