@@ -2,14 +2,12 @@ import { useState } from "react";
 import { MoneySettings20Regular as ChannelPolicyIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
-import Form from "components/forms/form/Form";
-import Socket from "components/forms/socket/Socket";
 import { NodeColorVariant } from "../nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
-import { Input, InputSizeVariant } from "../../../forms/forms";
+import { Input, InputSizeVariant, Socket, Form } from "components/forms/forms";
 
 type ReBalanceChannelNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 

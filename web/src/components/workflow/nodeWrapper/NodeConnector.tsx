@@ -1,6 +1,6 @@
 import useTranslations from "services/i18n/useTranslations";
 import styles from "./workflow_nodes.module.scss";
-import { MutableRefObject, useContext, useRef, useState } from "react";
+import { MutableRefObject, useContext, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
 import { NodeContext } from "./WorkflowNodeWrapper";
@@ -69,6 +69,52 @@ function NodeConnector<T>(props: NodeConnectorProps) {
     setPosition({ x: 0, y: 0 });
     setIsDragging(false);
   }
+
+  function updater() {
+    if (canvasRef !== null) {
+      const connBB = connectorRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const x = connBB.x - canvasBB.x + connBB.width / 2 + 4; // -14 because of the 16 padding right on the connector and 4px line width
+      const y = connBB.y - canvasBB.y + connBB.height / 2 - 14;
+      const eventName = `parentLinkMove-${props.workflowVersionNodeId}-${1}`;
+      const event = new CustomEvent(eventName, {
+        detail: {
+          x: x,
+          y: y,
+          nodeId: props.workflowVersionNodeId,
+        },
+      });
+      window.dispatchEvent(event);
+    }
+  }
+
+  function updatePosition(mutations: MutationRecord[]) {
+    mutations.forEach(function (mutationRecord) {
+      updater();
+    });
+  }
+
+  // Add a listener to the node card to update the position of the connector when the node is moved.
+  useEffect(() => {
+    const observer = new MutationObserver(updatePosition);
+
+    if (nodeRef !== null && nodeRef.current !== undefined) {
+      observer.observe(nodeRef.current, { attributes: true, attributeFilter: ["style"] });
+    }
+    return () => {
+      if (nodeRef !== null && nodeRef.current !== undefined) {
+        observer.disconnect();
+      }
+    };
+  }, [canvasRef?.current, nodeRef?.current, connectorRef?.current]);
+
+  // run updater every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updater();
+    }, 10);
+    return () => clearInterval(interval);
+  });
 
   return (
     <div
