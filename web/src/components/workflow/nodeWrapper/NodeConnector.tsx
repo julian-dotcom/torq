@@ -13,7 +13,7 @@ export type NodeConnectorProps = {
 
 function NodeConnector(props: NodeConnectorProps) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const { blankImgRef } = useContext(CanvasContext);
+  const { canvasRef, blankImgRef } = useContext(CanvasContext);
   const { nodeRef } = useContext(NodeContext);
 
   const connectorRef = useRef() as MutableRefObject<HTMLDivElement>;
@@ -86,7 +86,7 @@ function NodeConnector(props: NodeConnectorProps) {
   }
 
   function updatePosition(mutations: MutationRecord[]) {
-    mutations.forEach(function (mutationRecord) {
+    mutations.forEach(function () {
       updater();
     });
   }

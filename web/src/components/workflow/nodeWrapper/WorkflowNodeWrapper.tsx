@@ -12,7 +12,7 @@ import {
   Play16Regular as ActivateIcon,
 } from "@fluentui/react-icons";
 import Collapse from "features/collapse/Collapse";
-import { WorkflowVersionNode, WorkflowVersionNodeLink } from "pages/WorkflowPage/workflowTypes";
+import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
 import { SelectWorkflowNodeLinks, useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
@@ -50,7 +50,6 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
     x: props.visibilitySettings.xPosition || 100,
     y: props.visibilitySettings.yPosition || 100,
   });
-  const [isLoaded, setIsLoaded] = useState(false);
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
   const { canvasRef, blankImgRef } = useContext(CanvasContext);
@@ -64,29 +63,6 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
       stage: props.stage,
     })
   );
-
-  function updateLinks(
-    links: Array<WorkflowVersionNodeLink>,
-    x: number,
-    y: number,
-    nodeId: number,
-    linkType: "child" | "parent"
-  ) {
-    const nodeIdKey = linkType === "parent" ? "parentWorkflowVersionNodeId" : "childWorkflowVersionNodeId";
-    const indexKey = linkType === "parent" ? "parentOutputIndex" : "childInputIndex";
-
-    links.forEach((link) => {
-      const eventName = `${linkType}LinkMove-${link[nodeIdKey].toString()}-${link[indexKey].toString()}`;
-      const event = new CustomEvent(eventName, {
-        detail: {
-          x: x,
-          y: y,
-          nodeId: nodeId,
-        },
-      });
-      window.dispatchEvent(event);
-    });
-  }
 
   useEffect(() => {
     // updateLinks(parentLinks, position.x, position.y, props.workflowVersionNodeId, "parent");
