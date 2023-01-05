@@ -16,18 +16,45 @@ function WorkflowLink(props: WorkflowLinkProp) {
   const linkRef = useRef<SVGLineElement>(null);
   const parentEventName = `parentLinkMove-${props.link.parentWorkflowVersionNodeId.toString()}-${props.link.parentOutputIndex.toString()}`;
   const childEventName = `childLinkMove-${props.link.childWorkflowVersionNodeId.toString()}-${props.link.childInputIndex.toString()}`;
+  const initialPath = "M 0 0 C 1 1 1 1 2 2";
+
+  function setPath(path: { x1: number; y1: number; x2: number; y2: number }) {
+    if (linkRef === null) {
+      return;
+    }
+    const { x1, y1, x2, y2 } = path;
+    const t = 0.5;
+
+    const controlPoint1X = x1 + t * (x2 - x1);
+    const controlPoint2X = x2 - t * (x2 - x1);
+
+    linkRef?.current &&
+      linkRef.current.setAttribute("d", `M ${x1} ${y1} C ${controlPoint1X} ${y1} ${controlPoint2X} ${y2} ${x2} ${y2}`);
+  }
 
   function handleParentPositionUpdate(e: CustomEventInit<LinkPositionEventDetails>) {
     if (linkRef !== null && linkRef.current !== null) {
-      linkRef.current.setAttribute("x1", (e.detail?.x || 0).toString());
-      linkRef.current.setAttribute("y1", (e.detail?.y || 0).toString());
+      const x1 = e.detail?.x || 0;
+      const y1 = e.detail?.y || 0;
+
+      const pathCommands = (linkRef?.current?.getAttribute("d") || initialPath).split(" ");
+      const x2 = parseFloat(pathCommands[8]);
+      const y2 = parseFloat(pathCommands[9]);
+
+      setPath({ x1, y1, x2, y2 });
     }
   }
 
   function handleChildPositionUpdate(e: CustomEventInit<LinkPositionEventDetails>) {
     if (linkRef !== null && linkRef.current !== null) {
-      linkRef.current.setAttribute("x2", (e.detail?.x || 0).toString());
-      linkRef.current.setAttribute("y2", (e.detail?.y || 0).toString());
+      const x2 = e.detail?.x || 0;
+      const y2 = e.detail?.y || 0;
+
+      const pathCommands = (linkRef?.current?.getAttribute("d") || initialPath).split(" ");
+      const x1 = parseFloat(pathCommands[1]);
+      const y1 = parseFloat(pathCommands[2]);
+
+      setPath({ x1, y1, x2, y2 });
     }
   }
 
@@ -43,7 +70,7 @@ function WorkflowLink(props: WorkflowLinkProp) {
   }, []);
 
   return (
-    <line ref={linkRef} id={"link-" + link.workflowVersionNodeLinkId} key={"link-" + link.workflowVersionNodeLinkId} />
+    <path ref={linkRef} id={"link-" + link.workflowVersionNodeLinkId} key={"link-" + link.workflowVersionNodeLinkId} />
   );
 }
 
