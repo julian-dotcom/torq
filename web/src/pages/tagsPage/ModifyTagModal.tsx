@@ -1,9 +1,5 @@
 import {
-  ArrowSyncFilled as ProcessingIcon,
-  CheckmarkRegular as SuccessIcon,
-  DismissRegular as FailedIcon,
   Tag24Regular as TagHeaderIcon,
-  Note20Regular as NoteIcon,
   ChevronDown20Regular as CollapsedIcon,
   LineHorizontal120Regular as ExpandedIcon,
   ArrowRouting20Regular as ChannelsIcon,
@@ -12,7 +8,6 @@ import {
   Dismiss20Regular as DeleteIcon,
 } from "@fluentui/react-icons";
 import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
-// import { ProgressStepState } from "features/progressTabs/ProgressHeader";
 import ProgressTabs from "features/progressTabs/ProgressTab";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import { ChangeEvent, useState, useEffect, ReactNode } from "react";
@@ -41,26 +36,9 @@ import { ChannelNode, ChannelForTag, NodeForTag, Tag, Corridor, CorridorFields, 
 import TextCell from "components/table/cells/text/TextCell"
 import { TagColor } from "components/tags/Tag"
 
-
-const updateStatusClass = {
-  IN_FLIGHT: styles.inFlight,
-  FAILED: styles.failed,
-  SUCCEEDED: styles.success,
-};
-
-const updateStatusIcon = {
-  IN_FLIGHT: <ProcessingIcon />,
-  FAILED: <FailedIcon />,
-  SUCCEEDED: <SuccessIcon />,
-  NOTE: <NoteIcon />,
-};
-
-
 function ModifyTagModal() {
   const { t } = useTranslations();
 
-  // const [createTageState, setCreateTagState] = useState(ProgressStepState.active);
-  // const [doneState, setDoneState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMessage] = useState<ReactNode[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [tagName, setTagName] = useState<string>("");
@@ -499,54 +477,6 @@ function ModifyTagModal() {
             )}
           </div>
 
-
-       {/* <ProgressTabContainer>
-          <div
-            className={classNames(
-              styles.modifyTagsResultIconWrapper,
-              { [styles.failed]: !addTagResponse.data },
-              updateStatusClass[addTagResponse?.status == "rejected" ? "FAILED" : "SUCCEEDED"]
-            )}
-          >
-            {" "}
-            {updateStatusIcon[addTagResponse.status == "rejected" ? "FAILED" : "SUCCEEDED"]}
-          </div>
-          <div className={errMessage.length ? styles.errorBox : styles.successeBox}>
-            <div>
-              <div className={errMessage.length ? styles.errorIcon : styles.successIcon}>
-                {updateStatusIcon["NOTE"]}
-              </div>
-              <div className={errMessage.length ? styles.errorNote : styles.successNote}>
-                {errMessage.length ? t.openCloseChannel.error : t.openCloseChannel.note}
-              </div>
-            </div>
-            <div className={errMessage.length ? styles.errorMessage : styles.successMessage}>
-              {errMessage.length ? errMessage : t.tagsModal.addConfirmedMessage}
-            </div>
-          </div>
-          {!modalUpdateMode && (
-            <ButtonWrapper
-              className={styles.customButtonWrapperStyles}
-              rightChildren={
-                <Button
-                  className={styles.tagbutton}
-                  onClick={() => {
-                    setCreateTagState(ProgressStepState.active);
-                    setDoneState(ProgressStepState.disabled);
-                    setStepIndex(0);
-                    setErrorMessage([]);
-                    setTagName("");
-                    setTagColor(tagColorOptions[0].value as string);
-                    setTagCategory(tagCategorieOptions[0].value as number);
-                    setTarget(channelsNodesOptions[0].value as number);
-                  }}
-                  buttonColor={ColorVariant.primary}>
-                  {t.tagsModal.newTag}
-                </Button>
-              }
-            />
-          )}
-       </ProgressTabContainer> */}
       </ProgressTabs>
     </PopoutPageTemplate>
   );
