@@ -34,8 +34,10 @@ import (
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
-var eventChannelGlobal = make(chan interface{})                     //nolint:gochecknoglobals
-var serviceChannelGlobal = make(chan commons.ServiceChannelMessage) //nolint:gochecknoglobals
+var eventChannelGlobal = make(chan interface{})                         //nolint:gochecknoglobals
+var serviceChannelGlobal = make(chan commons.ServiceChannelMessage)     //nolint:gochecknoglobals
+var lightningRequestChannelGlobal = make(chan interface{})              //nolint:gochecknoglobals
+var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequest) //nolint:gochecknoglobals
 
 func main() {
 
@@ -198,7 +200,11 @@ func main() {
 
 			// go routine that responds to commands to boot and kill services
 			if !c.Bool("torq.no-sub") {
-				go serviceChannelRoutine(db, serviceChannelGlobal, eventChannelGlobal, broadcasterGlobal)
+				go serviceChannelRoutine(db,
+					serviceChannelGlobal,
+					lightningRequestChannelGlobal,
+					rebalanceRequestChannelGlobal,
+					eventChannelGlobal, broadcasterGlobal)
 			} else {
 				go serviceChannelDummyRoutine(serviceChannelGlobal)
 			}
@@ -356,7 +362,11 @@ func serviceChannelDummyRoutine(serviceChannel chan commons.ServiceChannelMessag
 	}
 }
 
-func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer) {
+func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage,
+	lightningRequestChannel chan interface{},
+	rebalanceRequestChannel chan commons.RebalanceRequest,
+	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer) {
+
 	for {
 		serviceCmd := <-serviceChannel
 		services := commons.RunningServices[serviceCmd.ServiceType]
@@ -459,9 +469,11 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 					if successful {
 						switch serviceCmd.ServiceType {
 						case commons.LndService:
-							go processLndBoot(db, node, bootLock, services, serviceCmd, serviceChannel, broadcaster, eventChannel)
+							go processLndBoot(db, node, bootLock, services, serviceCmd, serviceChannel,
+								lightningRequestChannel, broadcaster, eventChannel)
 						default:
-							go processServiceBoot(name, db, node, bootLock, services, serviceCmd, serviceChannel, broadcaster, eventChannel)
+							go processServiceBoot(name, db, node, bootLock, services, serviceCmd, serviceChannel,
+								lightningRequestChannel, rebalanceRequestChannel, broadcaster, eventChannel)
 						}
 					} else {
 						log.Error().Msgf("%v Service: Requested start failed. A start is already running.", name)
@@ -539,6 +551,7 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 
 func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync.Mutex,
 	services *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
+	lightningRequestChannel chan interface{},
 	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
 
 	defer func() {
@@ -572,7 +585,7 @@ func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync
 	commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Active, serviceCmd.ServiceType, nil)
 	commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 	log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
-	err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster, eventChannel, serviceChannel)
+	err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster, eventChannel, serviceChannel, lightningRequestChannel)
 	if err != nil {
 		log.Error().Err(err).Send()
 		// only log the error, don't return
@@ -591,6 +604,8 @@ func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync
 
 func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync.Mutex,
 	services *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
+	lightningCommunicationChannel chan interface{},
+	rebalanceRequestChannel chan commons.RebalanceRequest,
 	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
 
 	defer func() {
@@ -639,9 +654,9 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 	case commons.AutomationService:
 		err = automation.Start(ctx, db, node.NodeId, broadcaster)
 	case commons.LightningCommunicationService:
-		err = automation.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster)
+		err = automation.StartLightningCommunicationService(ctx, conn, db, node.NodeId, lightningCommunicationChannel)
 	case commons.RebalanceService:
-		err = automation.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster)
+		err = automation.StartRebalanceService(ctx, conn, db, node.NodeId, rebalanceRequestChannel)
 	}
 	if err != nil {
 		log.Error().Err(err).Msgf("%v Service ended for node id: %v", name, node.NodeId)

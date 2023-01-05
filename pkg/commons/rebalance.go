@@ -17,7 +17,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/broadcast"
 )
 
 type Rebalancer struct {
@@ -74,7 +73,7 @@ type RebalanceResult struct {
 }
 
 func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) {
+	rebalanceRequestChannel chan RebalanceRequest) {
 
 	client := lnrpc.NewLightningClient(conn)
 	router := routerrpc.NewRouterClient(conn)
@@ -85,28 +84,17 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		select {
 		case <-ctx.Done():
 			return
-		default:
-		}
-		listener := broadcaster.Subscribe()
-		for event := range listener {
-			select {
-			case <-ctx.Done():
-				broadcaster.CancelSubscription(listener)
-				return
-			default:
+		case request := <-rebalanceRequestChannel:
+			if request.NodeId != nodeId {
+				continue
 			}
-			if request, ok := event.(RebalanceRequest); ok {
-				if request.NodeId != nodeId {
-					continue
-				}
-				if request.RequestTime == nil {
-					now := time.Now().UTC()
-					request.RequestTime = &now
-				}
-				// Previous rebalance cleanup delay
-				time.Sleep(time.Millisecond * REBALANCE_REBALANCE_DELAY_MILLISECONDS)
-				processRebalanceRequest(ctx, db, request, nodeId)
+			if request.RequestTime == nil {
+				now := time.Now().UTC()
+				request.RequestTime = &now
 			}
+			// Previous rebalance cleanup delay
+			time.Sleep(time.Millisecond * REBALANCE_REBALANCE_DELAY_MILLISECONDS)
+			processRebalanceRequest(ctx, db, request, nodeId)
 		}
 	}
 }

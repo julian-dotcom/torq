@@ -25,7 +25,7 @@ import (
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
 func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, broadcaster broadcast.BroadcastServer,
-	eventChannel chan interface{}, serviceChannel chan commons.ServiceChannelMessage) error {
+	eventChannel chan interface{}, serviceChannel chan commons.ServiceChannelMessage, lightningRequestChannel chan interface{}) error {
 
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
@@ -56,7 +56,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 				if importRequest.ImportType == commons.ImportChannelAndRoutingPolicies {
 					var err error
 					//Import Open channels
-					err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, nodeSettings)
+					err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, nodeSettings, lightningRequestChannel)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to import open channels.")
 						importRequest.Out <- err
@@ -64,7 +64,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 					}
 
 					// Import Closed channels
-					err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, nodeSettings)
+					err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, nodeSettings, lightningRequestChannel)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to import closed channels.")
 						importRequest.Out <- err
