@@ -2,8 +2,8 @@ import classNames from "classnames";
 import cellStyles from "components/table/cells/cell.module.scss";
 import styles from "./tag_cell.module.scss";
 import Tag, { TagProps } from "components/tags/Tag";
-import {Link, useLocation} from "react-router-dom";
-import { UPDATE_TAG} from "constants/routes";
+import {Link, useLocation } from "react-router-dom";
+import { UPDATE_TAG } from "constants/routes";
 
 export type TagCellProps = TagProps & {
   cellWrapperClassName?: string;

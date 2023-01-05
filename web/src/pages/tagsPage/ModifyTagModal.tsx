@@ -35,8 +35,12 @@ import {
 import { ChannelNode, ChannelForTag, NodeForTag, Tag, Corridor, CorridorFields, ChannelGroup } from "./tagsTypes"
 import TextCell from "components/table/cells/text/TextCell"
 import { TagColor } from "components/tags/Tag"
+import { useLocation } from "react-router";
+import { UPDATE_TAG } from "constants/routes";
 
 function ModifyTagModal() {
+
+  const location = useLocation();
   const { t } = useTranslations();
 
   const [errMessage, setErrorMessage] = useState<ReactNode[]>([]);
@@ -241,6 +245,10 @@ function ModifyTagModal() {
             channelGoupObj.categoryId = selectedTagCategory
           }
           addChannelsGroupsMutation(channelGoupObj);
+        }
+        if (addTagResponse.isSuccess) {
+          location.pathname = '/manage/tags';
+          navigate(`${UPDATE_TAG}?tagId=${tag}`, { state: { background: location }, replace: true })
         }
       }
      }
