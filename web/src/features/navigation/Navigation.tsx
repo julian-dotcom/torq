@@ -20,7 +20,7 @@ import {
 import styles from "./nav.module.scss";
 import * as routes from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
-import QuickToggles from "./QuickToggles";
+import NetworkSelector from "./NetworkSelector";
 
 function Navigation() {
   const dispatch = useAppDispatch();
@@ -33,7 +33,7 @@ function Navigation() {
           <TorqLogo />
         </div>
 
-        <QuickToggles />
+        <NetworkSelector />
 
         <div className={styles.collapseButton} id={"collapse-navigation"} onClick={() => dispatch(toggleNav())}>
           <CollapseIcon />

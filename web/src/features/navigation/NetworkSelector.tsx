@@ -27,31 +27,31 @@ function NetworkSelector() {
       >
         <div className={styles.quickToggleContent}>
           <Button
-            buttonColor={activeNetwork === Network.MainNet ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.MainNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.MainNet))}
           >
             {t.MainNet}
           </Button>
           <Button
-            buttonColor={activeNetwork === Network.TestNet ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.TestNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.TestNet))}
           >
             {t.TestNet}
           </Button>
           <Button
-            buttonColor={activeNetwork === Network.RegTest ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.RegTest ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.RegTest))}
           >
             {t.RegTest}
           </Button>
           <Button
-            buttonColor={activeNetwork === Network.SigNet ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.SigNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.SigNet))}
           >
             {t.SigNet}
           </Button>
           <Button
-            buttonColor={activeNetwork === Network.SimNet ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.SimNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.SimNet))}
           >
             {t.SimNet}
