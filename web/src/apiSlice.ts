@@ -88,6 +88,7 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["channels"],
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     logout: builder.mutation<any, void>({
       query: () => ({
         url: "logout",
@@ -98,6 +99,7 @@ export const torqApi = createApi({
       query: (form) => ({
         url: "login",
         method: "POST",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         body: new URLSearchParams(form as any),
       }),
     }),
@@ -112,6 +114,7 @@ export const torqApi = createApi({
       query: () => `settings`,
       providesTags: ["settings"],
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateSettings: builder.mutation<any, settings>({
       query: (settings) => ({
         url: "settings",
@@ -131,6 +134,7 @@ export const torqApi = createApi({
       query: (nodeId) => `settings/nodeConnectionDetails/${nodeId}`,
       providesTags: ["nodeConfigurations"],
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     addNodeConfiguration: builder.mutation<any, FormData>({
       query: (nodeConfiguration) => ({
         url: "settings/nodeConnectionDetails",
@@ -139,6 +143,7 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["nodeConfigurations", "channels"],
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateNodeConfiguration: builder.mutation<any, FormData>({
       query: (nodeConfiguration) => ({
         url: `settings/nodeConnectionDetails`,
@@ -147,6 +152,7 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["nodeConfigurations", "channels"],
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateNodeConfigurationStatus: builder.mutation<any, { nodeId: number; status: number }>({
       query: (nodeConfiguration) => ({
         url: `settings/nodeConnectionDetails/${nodeConfiguration.nodeId}/${nodeConfiguration.status}`,
@@ -154,6 +160,7 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["nodeConfigurations", "channels"],
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateNodePingSystemStatus: builder.mutation<any, { nodeId: number; pingSystem: number; statusId: number }>({
       query: (nodeConfiguration) => ({
         url: `settings/nodePingSystem/${nodeConfiguration.nodeId}/${nodeConfiguration.pingSystem}/${nodeConfiguration.statusId}`,

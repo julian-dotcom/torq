@@ -1,10 +1,7 @@
 import React from "react";
 import classNames from "classnames";
-import ToastContext from "features/toast/context";
-import { copyToClipboard } from "utils/copyToClipboard";
 import cellStyles from "components/table/cells/cell.module.scss";
 import styles from "./text_cell.module.scss";
-import { toastCategory } from "features/toast/Toasts";
 
 export type TextCellProps = {
   current: string;
@@ -15,13 +12,6 @@ export type TextCellProps = {
 };
 
 const TextCell = (props: TextCellProps) => {
-  const toastRef = React.useContext(ToastContext);
-
-  const copyText = () => {
-    copyToClipboard(props.copyText || "");
-    toastRef?.current?.addToast("Copied to clipboard", toastCategory.success);
-  };
-
   return (
     <div
       className={classNames(

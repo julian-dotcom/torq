@@ -48,9 +48,12 @@ function renderPages(
         menuPlacement={"top"}
         className={styles.offsetSelector}
         value={{ value: offset / limit, label: `Page ${offset / limit + 1} of ${pages}` }}
-        onChange={(item: any) => {
-          offsetHandler(item.value * limit);
-        }}
+        onChange={
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (item: any) => {
+            offsetHandler(item.value * limit);
+          }
+        }
       />
 
       <button
@@ -88,10 +91,13 @@ function Pagination(props: PaginationProps) {
           menuPlacement={"top"}
           className={styles.limitSelector}
           value={limitOptions.find(({ value }) => value === props.limit)}
-          onChange={(item: any) => {
-            props.perPageHandler(item.value);
-            props.offsetHandler(0);
-          }}
+          onChange={
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (item: any) => {
+              props.perPageHandler(item.value);
+              props.offsetHandler(0);
+            }
+          }
         />
       </div>
       <div className={styles.paginationButtons}>

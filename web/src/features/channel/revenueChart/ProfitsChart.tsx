@@ -10,6 +10,7 @@ import { useAppSelector } from "store/hooks";
 import { useGetSettingsQuery } from "apiSlice";
 
 type ProfitsChart = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[];
   dashboard?: boolean;
   from: string;
@@ -23,6 +24,7 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
   const settings = useGetSettingsQuery();
 
   // Check and update the chart size if the navigation changes the container size
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navCheck = (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
     return () => {
       const boundingBox = container?.node()?.getBoundingClientRect();
@@ -36,6 +38,7 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
 
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
       if (dashboard) {
         chart = new ChartCanvas(container, data, {

@@ -7,9 +7,10 @@ import "features/charts/chart.scss";
 import { useAppSelector } from "store/hooks";
 import { selectEventChartKey } from "../channelSlice";
 import { useGetSettingsQuery } from "apiSlice";
-import { ChannelEventResponse } from "features/channel/channelTypes"
+import { ChannelEventResponse } from "features/channel/channelTypes";
 
 type EventsChart = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[];
   events: ChannelEventResponse;
   selectedEventTypes: Map<string, boolean>;
@@ -24,6 +25,7 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
   const settings = useGetSettingsQuery();
 
   // Check and update the chart size if the navigation changes the container size
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navCheck = (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
     return () => {
       const boundingBox = container?.node()?.getBoundingClientRect();
@@ -37,6 +39,7 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
 
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
       chart = new ChartCanvas(container, data, {
         from: new Date(from),

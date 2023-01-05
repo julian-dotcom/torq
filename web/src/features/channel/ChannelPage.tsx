@@ -175,12 +175,14 @@ function ChannelPage(_: ChannelPageProps) {
       .map((d: Channel, _: number) => {
         return d.alias;
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((value: any, index: number, self: any[]) => {
         return self.indexOf(value) === index;
       })
       .join(", ");
   let channelBalanceOptions = [{ value: 0, label: "" }];
   if (balance?.channelBalances) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     channelBalanceOptions = balance.channelBalances.map((d: any, i: number) => {
       return { value: i, label: d.ChanId };
     });
@@ -456,7 +458,7 @@ function ChannelPage(_: ChannelPageProps) {
                             <Switch
                               label={eventNames.get(item[0]) || ""}
                               checked={selectedEvents.get(item[0])}
-                              onChange={(e) => handleSelectEventUpdate(item[0])}
+                              onChange={() => handleSelectEventUpdate(item[0])}
                             />
                           </div>
                         </div>

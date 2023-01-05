@@ -40,6 +40,7 @@ interface filterRowInterface {
   index: number;
   child: boolean;
   filterClause: FilterClause;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filterOptions: Array<{ label: string; value: any; valueType?: FilterCategoryType; selectOptions?: Array<any> }>;
   onUpdateFilter: () => void;
   onRemoveFilter: (index: number) => void;
@@ -70,9 +71,11 @@ function FilterRow({
     key: keyOption,
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleKeyChange = (item: any) => {
     const newRow = { ...rowValues };
     newRow.key = item.value;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newCategory = filterOptions.find((item: any) => item.value === newRow.key)?.valueType || "number";
     switch (newCategory) {
       case "number":
@@ -104,12 +107,14 @@ function FilterRow({
     onUpdateFilter();
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleFunctionChange = (item: any) => {
     const newRow = { ...rowValues, funcName: item.value };
     filterClause.filter = newRow;
     onUpdateFilter();
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleParamChange = (e: any) => {
     const newRow = { ...rowValues };
     switch (newRow.category) {
@@ -135,6 +140,7 @@ function FilterRow({
   const label = filterOptions.find((item) => item.value === rowValues.key)?.label;
   const options = filterOptions.find((item) => item.value === rowValues.key)?.selectOptions;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getInputField = (handleParamChange: any) => {
     switch (rowValues.category) {
       case "number":

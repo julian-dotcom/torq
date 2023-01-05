@@ -3,7 +3,6 @@ import { Provider } from "react-redux";
 import { Story, Meta } from "@storybook/react";
 import Socket, { SocketProps } from "./Socket";
 import { InputSizeVariant, InputColorVaraint } from "components/forms/variants";
-import { useArgs } from "@storybook/client-api";
 import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
 import WorkflowNodeWrapper from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
@@ -15,8 +14,6 @@ export default {
 } as Meta;
 
 const Template: Story<SocketProps> = (args) => {
-  const [_, updateArgs] = useArgs();
-
   const nodeData: WorkflowVersionNode = {
     workflowVersionNodeId: 1,
     workflowId: 1,

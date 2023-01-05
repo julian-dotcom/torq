@@ -33,7 +33,7 @@ function useForwardsTotals(data: Array<Forward>): Forward | undefined {
     return undefined;
   }
 
-  return data.reduce((prev: Forward, current: Forward, currentIndex: number) => {
+  return data.reduce((prev: Forward, current: Forward) => {
     return {
       ...prev,
       alias: "Total",
@@ -60,7 +60,7 @@ function useForwardsMaximums(data: Array<Forward>): Forward | undefined {
     return undefined;
   }
 
-  return data.reduce((prev: Forward, current: Forward, currentIndex: number) => {
+  return data.reduce((prev: Forward, current: Forward) => {
     return {
       ...prev,
       alias: "Max",

@@ -34,7 +34,7 @@ function File({ label, onFileChange, fileName }: fileProps) {
     e.stopPropagation();
   };
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleClick = () => {
     hiddenFileRef.current?.click();
   };
 

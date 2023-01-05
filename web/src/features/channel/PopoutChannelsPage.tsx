@@ -1,5 +1,4 @@
 import { MoneyHand24Regular as TransactionIconModal } from "@fluentui/react-icons";
-import { useState } from "react";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import ChannelPage from "features/channel/ChannelPage";
 
@@ -9,12 +8,6 @@ type PopoutChannelsPageProps = {
 };
 
 function PopoutChannelsPage(props: PopoutChannelsPageProps) {
-  const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
-
-  // const handleAdvancedToggle = () => {
-  //   setExpandAdvancedOptions(!expandAdvancedOptions);
-  // };
-
   return (
     <PopoutPageTemplate
       title={"Channel"}

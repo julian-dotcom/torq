@@ -1,4 +1,3 @@
-import useTranslations from "services/i18n/useTranslations";
 import styles from "./workflow_nodes.module.scss";
 import { MutableRefObject, useContext, useRef, useState } from "react";
 import classNames from "classnames";
@@ -12,10 +11,9 @@ export type NodeConnectorProps = {
   workflowVersionNodeId: number;
 };
 
-function NodeConnector<T>(props: NodeConnectorProps) {
-  const { t } = useTranslations();
+function NodeConnector(props: NodeConnectorProps) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const { canvasRef, blankImgRef } = useContext(CanvasContext);
+  const { blankImgRef } = useContext(CanvasContext);
   const { nodeRef } = useContext(NodeContext);
 
   const connectorRef = useRef() as MutableRefObject<HTMLDivElement>;
@@ -32,7 +30,6 @@ function NodeConnector<T>(props: NodeConnectorProps) {
     e.dataTransfer.effectAllowed = "link";
 
     // Set the information about which node and connector is being dragged.
-    const nodeId = nodeRef?.current?.id ? nodeRef?.current?.id : "unknown";
     e.dataTransfer.setData("node/workflowVersionId", props.workflowVersionId.toString());
     e.dataTransfer.setData("node/parentWorkflowVersionNodeId", props.workflowVersionNodeId.toString());
     e.dataTransfer.setData("node/parentOutputIndex", "1");

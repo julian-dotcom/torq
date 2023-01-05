@@ -74,7 +74,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
     }
   }
 
-  function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
+  function handleDragEnd() {
     setIsDragging(false);
   }
 

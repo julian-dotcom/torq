@@ -8,23 +8,27 @@ const customStyles = {
   indicatorSeparator: () => {
     return {};
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   input: (provided: any, _: any) => ({
     ...provided,
     borderRadius: "0px",
     padding: "0",
     margin: "0",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   valueContainer: (provided: any, _: any) => ({
     ...provided,
     paddingLeft: "8px",
     paddingRight: "8px",
     borderRadius: "0px",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dropdownIndicator: (provided: any, _: any) => ({
     ...provided,
     color: "var(--secondary-2-500)",
     // padding: "0",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: (provided: any, _: any) => ({
     ...provided,
     border: "1px solid transparent",
@@ -39,10 +43,12 @@ const customStyles = {
       borderRadius: "0px",
     },
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   singleValue: (provided: any) => ({
     ...provided,
     // fontSize: "var(--font-size-small)",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   option: (provided: any, state: any) => ({
     ...provided,
     color: "var(--content-default)",
@@ -55,6 +61,7 @@ const customStyles = {
     },
     // fontSize: "var(--font-size-small)",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   menuList: (provided: any, _: any) => ({
     ...provided,
     // background: "",
@@ -63,10 +70,12 @@ const customStyles = {
     borderRadius: "2px",
     // background: "var(--secondary-2-500)",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   menu: (provided: any, _: any) => ({
     ...provided,
     boxShadow: "none",
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   container: (provided: any, _: any) => ({
     ...provided,
     border: "1px solid var(--secondary-2-100)",
@@ -80,6 +89,7 @@ const customStyles = {
 };
 
 export default function TorqSelect(props: Props) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const DropdownIndicator = (props: any) => {
     return (
       <components.DropdownIndicator {...props}>
