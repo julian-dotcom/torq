@@ -26,7 +26,6 @@ function WorkflowLink(props: WorkflowLinkProp) {
   function handleDeleteLink() {
     deleteLink({ linkId: link.workflowVersionNodeLinkId });
   }
-
   function setPath(path: { x1: number; y1: number; x2: number; y2: number }) {
     if (linkRef === null) {
       return;

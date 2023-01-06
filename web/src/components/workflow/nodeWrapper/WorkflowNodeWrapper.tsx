@@ -139,9 +139,6 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
       workflowVersionNodeId: props.workflowVersionNodeId,
       visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: collapsed },
     });
-    // parentLinks.forEach((link) => {
-    //   updateNodeLink
-    // }
   }
 
   const connectorId = useId();
