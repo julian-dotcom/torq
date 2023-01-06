@@ -229,3 +229,21 @@
     }
   }
 }
+.alias {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+  min-height: 52px;
+  align-items: flex-start;
+  .buttonWrapper {
+    display: flex;
+    gap: 4px;
+  }
+}
+.alias .totalCell {
+  display: none;
+}
+.alias .editChannelButton {
+  display: flex;
+  gap: 4px;
+}

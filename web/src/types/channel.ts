@@ -16,7 +16,7 @@ type Balance = {
 };
 
 type ChannelBalance = {
-  lndShortChannelId: string;
+  channelId: number;
   balances: Balance[];
 };
 

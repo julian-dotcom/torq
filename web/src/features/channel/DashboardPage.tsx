@@ -27,7 +27,7 @@ import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartK
 import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
 import Modal from "features/modal/Modal";
-import Button, { ColorVariant, buttonPosition } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { selectActiveNetwork } from "features/network/networkSlice";
 
@@ -275,7 +275,7 @@ function ChannelPage() {
           <div className={styles.settingsConfirmation}>
             <Button
               buttonColor={ColorVariant.success}
-              buttonPosition={buttonPosition.fullWidth}
+              buttonPosition={ButtonPosition.fullWidth}
               icon={<CheckmarkIcon />}
               onClick={handleModalSettingsClick}
               className={styles.settingsConfirmationButton}
@@ -284,7 +284,7 @@ function ChannelPage() {
             </Button>
             <Button
               buttonColor={ColorVariant.error}
-              buttonPosition={buttonPosition.fullWidth}
+              buttonPosition={ButtonPosition.fullWidth}
               icon={<DismissIcon />}
               onClick={handleConfirmationModalClose}
               className={styles.settingsConfirmationButton}

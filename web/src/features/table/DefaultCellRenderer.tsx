@@ -7,8 +7,6 @@ import BooleanCell from "components/table/cells/boolean/BooleanCell";
 import DateCell from "components/table/cells/date/DateCell";
 import EnumCell from "components/table/cells/enum/EnumCell";
 import NumericDoubleCell from "components/table/cells/numeric/NumericDoubleCell";
-import AliasCell from "components/table/cells/alias/AliasCell";
-import styles from "components/table/cells/cell.module.scss";
 import LongTextCell from "components/table/cells/longText/LongTextCell";
 import LinkCell from "components/table/cells/link/LinkCell";
 
@@ -29,14 +27,6 @@ export default function DefaultCellRenderer<T>(
   switch (column.valueType) {
     case "string":
       switch (column.type) {
-        case "AliasCell":
-          return (
-            <AliasCell
-              current={row[dataKey] as string}
-              key={dataKey.toString() + rowIndex}
-              className={column.locked ? styles.locked : ""}
-            />
-          );
         case "LongTextCell":
           return (
             <LongTextCell

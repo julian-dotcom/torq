@@ -1,42 +1,72 @@
 import styles from "components/table/cells/cell.module.scss";
-import { Link } from "react-router-dom";
+import {
+  Delete12Regular as CloseIcon,
+  EditRegular as EditIcon,
+  Eye12Regular as InspectIcon,
+} from "@fluentui/react-icons";
 import classNames from "classnames";
+import { ButtonPosition, ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
+import useTranslations from "services/i18n/useTranslations";
+import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
 
 interface AliasCell {
   current: string;
-  channelId?: string;
+  channelId: number;
+  nodeIds: Array<number>;
   open?: boolean;
   className?: string;
+  isTotalsRow?: boolean;
 }
 
-function OpenText(open: boolean) {
-  if (open) {
-    return `Open`;
-  }
-  return `Closed`;
-}
-
-function AliasCell({ current, channelId, open, className }: AliasCell) {
-
+function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }: AliasCell) {
+  const { t } = useTranslations();
   const content = (
-    <>
-    <div className={classNames(styles.current, styles.text)}>{current}</div>
+    <div className={styles.alias}>
+      <div className={classNames(styles.current, styles.text)}>{current}</div>
       {open !== undefined && (
-        <div className={classNames(styles.past, { [styles.positive]: open, [styles.negative]: !open })}>
-          {OpenText(open)}
+        <div className={classNames(styles.buttonWrapper, { [styles.totalCell]: isTotalsRow })}>
+          <LinkButton
+            key={"buttons-node-inspect"}
+            to={"/analyse/inspect/" + channelId}
+            icon={<InspectIcon />}
+            buttonSize={SizeVariant.tiny}
+            buttonColor={ColorVariant.accent1}
+            buttonPosition={ButtonPosition.center}
+          >
+            {t.inspect}
+          </LinkButton>
+          {nodeIds.map((nodeId) => {
+            return (
+              <div className={styles.editChannelButton} key={"buttons-node-" + nodeId}>
+                <LinkButton
+                  to={`${UPDATE_CHANNEL}?nodeId=${nodeId}&channelId=${channelId}`}
+                  state={{ background: location }}
+                  className={classNames(styles.action, styles.updateLink)}
+                  buttonSize={SizeVariant.tiny}
+                  buttonColor={ColorVariant.success}
+                  icon={<EditIcon />}
+                >
+                  Update
+                </LinkButton>
+
+                <LinkButton
+                  to={`${CLOSE_CHANNEL}?nodeId=${nodeId}&channelId=${channelId}`}
+                  state={{ background: location }}
+                  className={classNames(styles.action, styles.closeChannelLink)}
+                  buttonSize={SizeVariant.tiny}
+                  buttonColor={ColorVariant.error}
+                  icon={<CloseIcon />}
+                >
+                  Close
+                </LinkButton>
+              </div>
+            );
+          })}
         </div>
       )}
-    </>
-  )
+    </div>
+  );
 
-  if (channelId) {
-    return (
-      <Link className={classNames(styles.cell, styles.alignLeft, className)} to={"/analyse/inspect/" + channelId}>
-      {content}
-      </Link>
-    )
-  }
-
-  return <div className={classNames(styles.cell, styles.alignLeft, className)}>{content}</div>
+  return <div className={classNames(styles.cell, styles.alignLeft, className)}>{content}</div>;
 }
 export default AliasCell;

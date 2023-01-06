@@ -29,7 +29,7 @@ import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
 import Collapse from "features/collapse/Collapse";
 import Popover from "features/popover/Popover";
-import Button, { ColorVariant, buttonPosition } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
 import Modal from "features/modal/Modal";
 import Switch from "components/forms/switch/Switch";
 import useTranslations from "services/i18n/useTranslations";
@@ -395,7 +395,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 buttonColor={ColorVariant.success}
                 icon={saveEnabledState ? <SaveIcon /> : <Spinny />}
                 onClick={submitNodeSettings}
-                buttonPosition={buttonPosition.fullWidth}
+                buttonPosition={ButtonPosition.fullWidth}
                 disabled={!saveEnabledState}
               >
                 {addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
@@ -451,7 +451,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
           <div className={styles.deleteConfirmButtons}>
             <Button
               buttonColor={ColorVariant.error}
-              buttonPosition={buttonPosition.fullWidth}
+              buttonPosition={ButtonPosition.fullWidth}
               icon={<DeleteIcon />}
               onClick={handleModalDeleteClick}
               disabled={!deleteEnabled}

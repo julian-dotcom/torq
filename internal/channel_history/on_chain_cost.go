@@ -35,7 +35,9 @@ func getChannelOnChainCost(db *sqlx.DB, nodeIds []int, lndShortChannelIdStrings 
 
 	q := `select coalesce(sum(total_fees), 0) as on_chain_cost
 		from tx
-		where split_part(label, '-', 2) = ANY ($1)
+		where split_part(label, '-', 2) = ANY (
+		    (select array_agg(lnd_short_channel_id) from channel where channel_id = ANY ($1))::text[]
+		)
 			AND node_id = ANY ($2)`
 
 	row := db.QueryRowx(q, pq.Array(lndShortChannelIdStrings), pq.Array(nodeIds))

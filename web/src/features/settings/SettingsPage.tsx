@@ -1,6 +1,6 @@
 import { AddSquare20Regular as AddIcon, Save20Regular as SaveIcon } from "@fluentui/react-icons";
 import Page from "layout/Page";
-import Button, { ColorVariant, buttonPosition } from "components/buttons/Button";
+import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
 import styles from "features/settings/settings.module.css";
 import { SelectOption } from "features/forms/Select";
 import Select from "components/forms/select/Select";
@@ -149,7 +149,7 @@ function Settings() {
                   type={"submit"}
                   icon={<SaveIcon />}
                   buttonColor={ColorVariant.success}
-                  buttonPosition={buttonPosition.fullWidth}
+                  buttonPosition={ButtonPosition.fullWidth}
                 >
                   {t.save}
                 </Button>

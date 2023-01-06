@@ -78,23 +78,23 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, r)
 }
 
-func getFlow(db *sqlx.DB, nodeIds []int, lndShortChannelIdStrings []string, fromTime time.Time,
+func getFlow(db *sqlx.DB, nodeIds []int, chanIdStrings []string, fromTime time.Time,
 	toTime time.Time) (r []*channelFlowData,
 	err error) {
 
 	var channelIds []int
 	var getAll = false
-	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
 		// TODO: Clean up Quick hack to simplify logic for fetching all channels
 		channelIds = []int{0}
 		getAll = true
 	} else {
-		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
-			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+		for _, chanIdString := range chanIdStrings {
+			chanId, err := strconv.Atoi(chanIdString)
 			if err != nil {
 				return nil, errors.Wrapf(err, "Converting LND short channel id from string")
 			}
-			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(commons.ConvertLNDShortChannelID(lndShortChannelId)))
+			channelIds = append(channelIds, chanId)
 		}
 	}
 

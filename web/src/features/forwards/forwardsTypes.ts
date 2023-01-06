@@ -22,4 +22,5 @@ export type Forward = {
   turnoverOut: number;
   turnoverIn: number;
   turnoverTotal: number;
+  localNodeIds: Array<number>;
 };

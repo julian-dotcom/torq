@@ -3,7 +3,7 @@
 .button {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   column-gap: var(--button-icon-gap);
 
   cursor: pointer;

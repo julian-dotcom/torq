@@ -83,22 +83,24 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
+	chanIdStrings := strings.Split(c.Param("chanIds"), ",")
 
 	var channelIds []int
 	var all = false
-	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
 		// TODO: Clean up Quick hack to simplify logic for fetching all channels
 		channelIds = []int{0}
 		all = true
 	} else {
-		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
-			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+		for _, chanIdString := range chanIdStrings {
+
+			// convert string to int
+			chanId, err := strconv.Atoi(chanIdString)
 			if err != nil {
-				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
+				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting channel id from string"))
 				return
 			}
-			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(commons.ConvertLNDShortChannelID(lndShortChannelId)))
+			channelIds = append(channelIds, chanId)
 		}
 	}
 
@@ -159,20 +161,22 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
+	chanIdStrings := strings.Split(c.Param("chanIds"), ",")
 
 	var channelIds []int
-	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
 		// TODO: Clean up Quick hack to simplify logic for fetching all channels
 		channelIds = []int{0}
 	} else {
-		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
-			lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+		for _, chanIdString := range chanIdStrings {
+
+			// convert string to int
+			chanId, err := strconv.Atoi(chanIdString)
 			if err != nil {
-				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting LND short channel id from string"))
+				server_errors.LogAndSendServerError(c, errors.Wrapf(err, "Converting channel id from string"))
 				return
 			}
-			channelIds = append(channelIds, commons.GetChannelIdByShortChannelId(commons.ConvertLNDShortChannelID(lndShortChannelId)))
+			channelIds = append(channelIds, chanId)
 		}
 	}
 	network := c.Query("network")
@@ -204,16 +208,15 @@ func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
+	chanIdStrings := strings.Split(c.Param("chanIds"), ",")
 
 	var all = false
-	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
 		all = true
 	}
-
 	if !all {
-		for _, lndShortChannelIdString := range lndShortChannelIdStrings {
-			cb, err := getChannelBalance(db, lndShortChannelIdString, from, to)
+		for _, chanIdString := range chanIdStrings {
+			cb, err := getChannelBalance(db, chanIdString, from, to)
 			if err != nil {
 				server_errors.LogAndSendServerError(c, err)
 				return
@@ -301,10 +304,10 @@ func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	lndShortChannelIdStrings := strings.Split(c.Param("chanIds"), ",")
+	chanIdStrings := strings.Split(c.Param("chanIds"), ",")
 
 	var all = false
-	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
 		all = true
 	}
 
@@ -320,7 +323,7 @@ func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 	if all {
 		r.OnChainCost, err = getTotalOnChainCost(db, networkNodeIds, from, to)
 	} else {
-		r.OnChainCost, err = getChannelOnChainCost(db, networkNodeIds, lndShortChannelIdStrings)
+		r.OnChainCost, err = getChannelOnChainCost(db, networkNodeIds, chanIdStrings)
 	}
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
