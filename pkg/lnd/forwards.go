@@ -161,8 +161,15 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				}
 				lastTimestamp := lastNs / uint64(time.Second)
 
+				// if not bootstrapping and we have imported at least one forward, offset + 1 to prevent getting the same forward record again and again
+				offset := uint32(0)
+				if lastNs != 0 && !bootStrapping {
+					offset = 1
+				}
+
 				fwhReq := &lnrpc.ForwardingHistoryRequest{
 					StartTime:    lastTimestamp,
+					IndexOffset:  offset,
 					NumMaxEvents: uint32(maxEvents),
 				}
 				fwh, err := client.ForwardingHistory(ctx, fwhReq)
