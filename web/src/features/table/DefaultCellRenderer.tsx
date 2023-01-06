@@ -80,12 +80,10 @@ export default function DefaultCellRenderer<T>(
       break;
     case "date":
       return <DateCell value={row[dataKey] as Date} key={dataKey.toString() + rowIndex} totalCell={totalsRow} />;
-      break;
     case "duration":
       return (
         <DurationCell seconds={row[dataKey] as number} key={dataKey.toString() + rowIndex} totalCell={totalsRow} />
       );
-      break;
     case "link":
       return (
         <LinkCell
@@ -95,7 +93,6 @@ export default function DefaultCellRenderer<T>(
           totalCell={totalsRow}
         />
       );
-      break;
     case "number":
       switch (column.type) {
         case "NumericCell":

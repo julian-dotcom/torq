@@ -89,8 +89,7 @@ function FilterRow({
         newRow.funcName = "eq";
         break;
       case "date": {
-        const nd = new Date().toISOString().slice(0, 10) + "T00:00:00";
-        newRow.parameter = nd;
+        newRow.parameter = new Date().toISOString().slice(0, 10) + "T00:00:00";
         newRow.funcName = "gte";
         break;
       }
@@ -109,8 +108,7 @@ function FilterRow({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleFunctionChange = (item: any) => {
-    const newRow = { ...rowValues, funcName: item.value };
-    filterClause.filter = newRow;
+    filterClause.filter = { ...rowValues, funcName: item.value };
     onUpdateFilter();
   };
 

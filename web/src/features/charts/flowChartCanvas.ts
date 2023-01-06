@@ -463,7 +463,7 @@ class FlowChartCanvas {
     index: number
   ) {
     let hoverClass = "";
-    if (index === this.mouseOver?.index && this.mouseOver.outbound === true) {
+    if (index === this.mouseOver?.index && this.mouseOver.outbound) {
       hoverClass = "hover";
     }
     this.labelsContainer
@@ -503,7 +503,7 @@ class FlowChartCanvas {
     index: number
   ) {
     let hoverClass = "";
-    if (index === this.mouseOver?.index && this.mouseOver.outbound === false) {
+    if (index === this.mouseOver?.index && !this.mouseOver.outbound) {
       hoverClass = "hover";
     }
 

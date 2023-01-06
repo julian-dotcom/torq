@@ -14,9 +14,7 @@ export type BalanceCellProps = {
 
 const calculateAvailableBalance = (amount: number, capacity: number) => {
   const calculate = amount / capacity;
-  const formatted = format(".2%")(calculate);
-
-  return formatted;
+  return format(".2%")(calculate);
 };
 
 const formatAmount = (amount: number) => format(",.0f")(amount);
