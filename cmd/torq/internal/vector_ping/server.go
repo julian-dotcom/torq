@@ -57,7 +57,6 @@ type VectorPingChain struct {
 func Start(ctx context.Context, conn *grpc.ClientConn) error {
 	_, monitorCancel := context.WithCancel(context.Background())
 
-	const vectorUrl = "https://vector.ln.capital/api/publicNodeEvents/ping"
 	client := lnrpc.NewLightningClient(conn)
 
 	for {
@@ -116,7 +115,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn) error {
 			return errors.Wrapf(err, "Marshalling message: %v", string(pingInfoJsonByteArray))
 		}
 
-		resp, err := http.Post(vectorUrl, "application/json", bytes.NewBuffer(b))
+		resp, err := http.Post(commons.VECTOR_PING_URL, "application/json", bytes.NewBuffer(b))
 		if err != nil {
 			monitorCancel()
 			return errors.Wrapf(err, "Posting message: %v", string(pingInfoJsonByteArray))
