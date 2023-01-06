@@ -29,6 +29,7 @@ function ChannelCell(props: ChannelCell) {
       <div className={styles.actionButtons}>
         <LinkButton
           key={"buttons-node-inspect"}
+          state={{ background: location }}
           to={"/analyse/inspect/" + props.channelId}
           icon={<InspectIcon />}
           buttonSize={SizeVariant.tiny}

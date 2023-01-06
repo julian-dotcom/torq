@@ -12,10 +12,8 @@ import type { GetChannelHistoryData, GetFlowQueryParams } from "types/api";
 import classNames from "classnames";
 import * as d3 from "d3";
 import { addDays, format } from "date-fns";
-import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
 import React from "react";
-import { useParams } from "react-router";
-import { Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import EventsCard from "features/eventsCard/EventsCard";
@@ -40,7 +38,7 @@ import EventsChart from "./eventsChart/EventsChart";
 import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import useTranslations from "services/i18n/useTranslations";
+import PopoutPageTemplate from "../templates/popoutPageTemplate/PopoutPageTemplate";
 
 const ft = d3.format(",.0f");
 
@@ -58,7 +56,8 @@ type ChannelPageProps = {
 };
 
 function ChannelPage(_: ChannelPageProps) {
-  const { t } = useTranslations();
+  // const { t } = useTranslations();
+  const navigate = useNavigate();
   const currentPeriod = useAppSelector(selectTimeInterval);
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
@@ -171,17 +170,18 @@ function ChannelPage(_: ChannelPageProps) {
   const historyCapacity = history?.channels?.length ? history?.channels[balanceChanId.value].capacity : 0;
 
   const title =
-    !isLoading &&
-    history &&
-    (history.channels || [])
-      .map((d: Channel, _: number) => {
-        return d.shortChannelId;
-      })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((value: any, index: number, self: any[]) => {
-        return self.indexOf(value) === index;
-      })
-      .join(", ");
+    (!isLoading &&
+      history &&
+      (history.channels || [])
+        .map((d: Channel, _: number) => {
+          return d.shortChannelId;
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((value: any, index: number, self: any[]) => {
+          return self.indexOf(value) === index;
+        })
+        .join(", ")) ||
+    "";
   let channelBalanceOptions = [{ value: 0, label: "" }];
   if (balance?.channelBalances) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -189,16 +189,19 @@ function ChannelPage(_: ChannelPageProps) {
       return { value: i, label: d.channelId };
     });
   }
-  const breadcrumbs = [
-    <span key="b1">{t.analyse}</span>,
-    <span key="b3">{t.forwards}</span>,
-    <span key="b2">{t.inspect}</span>,
-    <Link key="b4" to={`/${t.analyse}/${t.inspect}/${chanId}`}>
-      {chanId}
-    </Link>,
-  ];
+  // const breadcrumbs = [
+  //   <span key="b1">{t.analyse}</span>,
+  //   <span key="b3">{t.forwards}</span>,
+  //   <span key="b2">{t.inspect}</span>,
+  //   <Link key="b4" to={`/${t.analyse}/${t.inspect}/${chanId}`}>
+  //     {chanId}
+  //   </Link>,
+  // ];
   return (
-    <DetailsPageTemplate title={title as string} titleContent={<TimeIntervalSelect />} breadcrumbs={breadcrumbs}>
+    <PopoutPageTemplate title={title} show={true} onClose={() => navigate(-1)} fullWidth={true}>
+      <div className={styles.channelsPageIntervalWrapper}>
+        <TimeIntervalSelect />
+      </div>
       <div className={styles.channelWrapper}>
         <div className={classNames(styles.pageRow, styles.channelSummary)}>
           <div className={styles.shortColumn}>
@@ -567,7 +570,7 @@ function ChannelPage(_: ChannelPageProps) {
           </div>
         </div>
       </div>
-    </DetailsPageTemplate>
+    </PopoutPageTemplate>
   );
 }
 

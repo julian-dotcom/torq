@@ -9,17 +9,18 @@ type PopoutPageTemplateProps = {
   title?: string;
   icon?: React.ReactNode;
   onClose: () => void;
+  fullWidth?: boolean;
 };
 
 const PopoutPageTemplate = (props: PopoutPageTemplateProps) => {
   const handleClose = () => {
     props.onClose();
   };
+
   return (
     <div className={classNames(styles.modal, { [styles.show]: props.show })}>
       <div className={styles.modalBackdrop} onClick={handleClose} />
-
-      <div className={styles.popoutWrapper}>
+      <div className={classNames(styles.popoutWrapper, { [styles.fullWidth]: props.fullWidth })}>
         <div className={styles.header}>
           {props.icon && <span className={styles.icon}>{props.icon}</span>}
           <span className={styles.title}>{props.title}</span>

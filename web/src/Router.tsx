@@ -66,6 +66,7 @@ const modalRoutes: RouteObject = {
     { path: routes.CLOSE_CHANNEL, element: <CloseChannelModal /> },
     { path: routes.TAG, element: <ModifyTagModal /> },
     { path: routes.UPDATE_TAG, element: <ModifyTagModal /> },
+    { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
   ],
 };
 
@@ -97,7 +98,6 @@ const authenticatedRoutes: RouteObject = {
               children: [
                 { path: routes.FORWARDS, element: <ForwardsPage /> },
                 { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
-                { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
               ],
             },
             {

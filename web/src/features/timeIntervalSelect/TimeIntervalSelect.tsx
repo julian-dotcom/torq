@@ -1,5 +1,5 @@
 import "./interval_select.scss";
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { format, startOfDay, addDays, subDays, differenceInDays } from "date-fns";
 import { DateRangePicker } from "react-date-range";
 import { ChevronLeft24Regular as LeftIcon, ChevronRight24Regular as RightIcon } from "@fluentui/react-icons";
@@ -66,8 +66,7 @@ function TimeIntervalSelect(props: { className?: string }) {
     )}`;
   };
 
-  const moveBackwardInTime = (e: React.MouseEvent<HTMLElement>) => {
-    e.stopPropagation();
+  const moveBackwardInTime = () => {
     const diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from));
     const interval = {
       from: startOfDay(subDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
@@ -76,8 +75,7 @@ function TimeIntervalSelect(props: { className?: string }) {
     dispatch(updateInterval(interval));
   };
 
-  const moveForwardInTime = (e: React.MouseEvent<HTMLElement>) => {
-    e.stopPropagation();
+  const moveForwardInTime = () => {
     const diff = differenceInDays(new Date(currentPeriod.to), new Date(currentPeriod.from));
     const interval = {
       from: startOfDay(addDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
@@ -86,12 +84,28 @@ function TimeIntervalSelect(props: { className?: string }) {
     dispatch(updateInterval(interval));
   };
 
+  const keydownHandler = (event: KeyboardEvent) => {
+    if (event.key === "ArrowLeft") {
+      moveBackwardInTime();
+    }
+    if (event.key === "ArrowRight") {
+      moveForwardInTime();
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("keydown", keydownHandler);
+    return () => {
+      window.removeEventListener("keydown", keydownHandler);
+    };
+  }, [currentPeriod]);
+
   const popOverButton = (
     <div className={"date-range-button"}>
       <div className="time-travel-arrow" onClick={moveBackwardInTime}>
         <LeftIcon />
       </div>
-      <Button buttonColor={ColorVariant.primary} className="time-interval-wrapper">
+      <Button buttonColor={ColorVariant.accent1} className="time-interval-wrapper">
         {buttonText()}
       </Button>
       <div className="time-travel-arrow" onClick={moveForwardInTime}>

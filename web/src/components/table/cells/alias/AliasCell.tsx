@@ -29,6 +29,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
         <div className={classNames(styles.buttonWrapper, { [styles.totalCell]: isTotalsRow })}>
           <LinkButton
             key={"buttons-node-inspect"}
+            state={{ background: location }}
             to={"/analyse/inspect/" + channelId}
             icon={<InspectIcon />}
             buttonSize={SizeVariant.tiny}
