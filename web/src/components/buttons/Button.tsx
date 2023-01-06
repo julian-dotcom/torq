@@ -6,23 +6,25 @@ import { Link, LinkProps } from "react-router-dom";
 // Exporting them here again so that we don't have to import from two different places
 export { SizeVariant, ColorVariant } from "./buttonVariants";
 
-export enum buttonPosition {
+export enum ButtonPosition {
+  left,
+  right,
   center,
   fullWidth,
 }
 
-const buttonPositionClass = {
-  0: styles.positionLeft,
-  1: styles.positionRight,
-  2: styles.positionCenter,
-  3: styles.positionFullWidth,
-};
+const ButtonPositionClass = new Map([
+  [ButtonPosition.left, styles.positionLeft],
+  [ButtonPosition.right, styles.positionRight],
+  [ButtonPosition.center, styles.positionCenter],
+  [ButtonPosition.fullWidth, styles.positionFullWidth],
+]);
 
 export type ButtonProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   icon?: any;
   buttonColor?: ColorVariant;
-  buttonPosition?: buttonPosition;
+  buttonPosition?: ButtonPosition;
   buttonSize?: SizeVariant;
   children?: ReactNode;
 };
@@ -43,7 +45,7 @@ export default function Button({
       className={classNames(
         styles.button,
         GetColorClass(color),
-        buttonPositionClass[buttonPosition || 0],
+        ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
         GetSizeClass(buttonSize),
         buttonProps.className
       )}
@@ -68,7 +70,7 @@ export function LinkButton({
       className={classNames(
         styles.button,
         GetColorClass(buttonColor),
-        buttonPositionClass[buttonPosition || 0],
+        ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
         GetSizeClass(buttonSize),
         buttonProps.className
       )}

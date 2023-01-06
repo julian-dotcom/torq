@@ -18,19 +18,17 @@ type Balance struct {
 }
 
 type ChannelBalance struct {
-	LNDShortChannelId string     `json:"lndShortChannelId"`
-	Balances          []*Balance `json:"balances"`
+	ChannelId string     `json:"channelId"`
+	Balances  []*Balance `json:"balances"`
 }
 
-func getChannelBalance(db *sqlx.DB, lndShortChannelIdString string, from time.Time, to time.Time) (ChannelBalance, error) {
-	lndShortChannelId, err := strconv.ParseUint(lndShortChannelIdString, 10, 64)
+func getChannelBalance(db *sqlx.DB, channelIdString string, from time.Time, to time.Time) (ChannelBalance, error) {
+	channelId, err := strconv.ParseUint(channelIdString, 10, 64)
 	if err != nil {
-		return ChannelBalance{}, errors.Wrapf(err, "Converting LND short channel id %v", lndShortChannelId)
+		return ChannelBalance{}, errors.Wrapf(err, "Converting LND short channel id %v", channelIdString)
 	}
-	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
-	channelId := commons.GetChannelIdByShortChannelId(shortChannelId)
 
-	cb := ChannelBalance{LNDShortChannelId: lndShortChannelIdString}
+	cb := ChannelBalance{ChannelId: channelIdString}
 	q := `WITH
 		   initial_balance as (
 				select coalesce((-t.amount)-t.total_fees, 0) as initial_balance
@@ -40,7 +38,11 @@ func getChannelBalance(db *sqlx.DB, lndShortChannelIdString string, from time.Ti
 				where ce.event_type in (0,1) and
 					  c.channel_id = $1
 				limit 1
-			)
+			),
+			lnd_channel_id as (
+    				select lnd_short_channel_id::text
+ 						from channel
+					where channel_id = $1)
 		select time as date,
 		       outbound_capacity,
 		       outbound_capacity - lag(outbound_capacity) over (order by time) as capacity_diff
@@ -61,25 +63,25 @@ func getChannelBalance(db *sqlx.DB, lndShortChannelIdString string, from time.Ti
 				order by time)
 				UNION
 				(select creation_timestamp as time,
-					-(select sum(a) from UNNEST(ARRAY(SELECT jsonb_array_elements_text(jsonb_path_query_array(htlcs, ('$.route[*].hops[0]?(@.chan_id=='|| $5 ||').amt_to_forward_msat')::jsonpath)))::numeric[]) as a) amt
+					-(select sum(a) from UNNEST(ARRAY(SELECT jsonb_array_elements_text(jsonb_path_query_array(htlcs, ('$.route[*].hops[0]?(@.chan_id=='|| (table lnd_channel_id) ||').amt_to_forward_msat')::jsonpath)))::numeric[]) as a) amt
 				from payment p
 				where (status = 'SUCCEEDED')
-					and jsonb_path_query_array(htlcs, ('$.route[*].hops[0].chan_id')::jsonpath) @> $5::jsonb
+					and jsonb_path_query_array(htlcs, ('$.route[*].hops[0].chan_id')::jsonpath) @> (table lnd_channel_id)::jsonb
 				order by time)
 				UNION
 				(select settle_date as time,
 					   -- We need to fetch the amount paid to a channel using MPP.
-				   (select sum(a) from UNNEST(ARRAY(SELECT jsonb_array_elements_text(jsonb_path_query_array(htlcs, ('$?(@.chan_id=='|| $5 ||' && @.state==1).amt_msat')::jsonpath)))::numeric[]) as a) amt
+				   (select sum(a) from UNNEST(ARRAY(SELECT jsonb_array_elements_text(jsonb_path_query_array(htlcs, ('$?(@.chan_id=='|| (table lnd_channel_id) ||' && @.state==1).amt_msat')::jsonpath)))::numeric[]) as a) amt
 				from invoice
 				where invoice_state = 'SETTLED'
-					and jsonb_path_query_array(htlcs, '$[*].chan_id') @> $5::jsonb
+					and jsonb_path_query_array(htlcs, '$[*].chan_id') @> (table lnd_channel_id)::jsonb
 				order by time)
 			) a
 		) b
 	where time::timestamp AT TIME ZONE ($4) between $2 and $3
 ;`
 
-	rows, err := db.Queryx(q, channelId, from, to, commons.GetSettings().PreferredTimeZone, lndShortChannelIdString)
+	rows, err := db.Queryx(q, channelId, from, to, commons.GetSettings().PreferredTimeZone)
 	if err != nil {
 		return cb, errors.Wrap(err, "SQL run query")
 	}

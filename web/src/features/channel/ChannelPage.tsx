@@ -40,6 +40,7 @@ import EventsChart from "./eventsChart/EventsChart";
 import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
 import { selectActiveNetwork } from "features/network/networkSlice";
+import useTranslations from "services/i18n/useTranslations";
 
 const ft = d3.format(",.0f");
 
@@ -57,6 +58,7 @@ type ChannelPageProps = {
 };
 
 function ChannelPage(_: ChannelPageProps) {
+  const { t } = useTranslations();
   const currentPeriod = useAppSelector(selectTimeInterval);
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
@@ -113,7 +115,7 @@ function ChannelPage(_: ChannelPageProps) {
   let balanceChanId = useAppSelector(selectBalanceChanID);
 
   if (balanceChanId.label === "") {
-    balanceChanId = { value: 0, label: balance?.channelBalances ? balance.channelBalances[0]?.lndShortChannelId : "" };
+    balanceChanId = { value: 0, label: balance?.channelBalances ? balance.channelBalances[0]?.channelId : "" };
   }
 
   let totalCapacity = 0;
@@ -166,14 +168,14 @@ function ChannelPage(_: ChannelPageProps) {
     history?.countIn && history?.countOut
       ? Math.min(history?.countIn, history?.countOut) / Math.max(history?.countIn, history?.countOut)
       : 0;
-  const historyCapacity = history?.channels.length ? history?.channels[balanceChanId.value].capacity : 0;
+  const historyCapacity = history?.channels?.length ? history?.channels[balanceChanId.value].capacity : 0;
 
   const title =
     !isLoading &&
     history &&
     (history.channels || [])
       .map((d: Channel, _: number) => {
-        return d.alias;
+        return d.shortChannelId;
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((value: any, index: number, self: any[]) => {
@@ -184,13 +186,14 @@ function ChannelPage(_: ChannelPageProps) {
   if (balance?.channelBalances) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     channelBalanceOptions = balance.channelBalances.map((d: any, i: number) => {
-      return { value: i, label: d.ChanId };
+      return { value: i, label: d.channelId };
     });
   }
   const breadcrumbs = [
-    <span key="b1">Analyse;</span>,
-    <span key="b2">Inspect</span>,
-    <Link key="b3" to={`/analyse/inspect/${chanId}`}>
+    <span key="b1">{t.analyse}</span>,
+    <span key="b2">{t.inspect}</span>,
+    <span key="b3">{t.forwards}</span>,
+    <Link key="b4" to={`/${t.analyse}/${t.inspect}/${chanId}`}>
       {chanId}
     </Link>,
   ];
@@ -494,7 +497,7 @@ function ChannelPage(_: ChannelPageProps) {
                         updateBalanceChanID({
                           key: (newValue as { value: string; label: string }) || {
                             value: 0,
-                            label: balance?.channelBalances ? balance.channelBalances[0]?.lndShortChannelId : "",
+                            label: balance?.channelBalances ? balance.channelBalances[0]?.channelId.toString() : "",
                           },
                         })
                       );

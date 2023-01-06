@@ -1,4 +1,4 @@
-import { Delete12Regular as CloseIcon, Edit16Regular as EditIcon } from "@fluentui/react-icons"; // Edit16Regular as UpdateIcon,
+import { Delete12Regular as CloseIcon, EditRegular as EditIcon } from "@fluentui/react-icons";
 import cellStyles from "components/table/cells/cell.module.scss";
 import styles from "./workflow_cell.module.scss";
 import classNames from "classnames";
@@ -34,13 +34,13 @@ function WorkflowCell(props: WorkflowCell) {
         <LinkButton
           to={`${props.workflowId}/versions/${props.workflowVersionId}`}
           icon={<EditIcon />}
-          buttonSize={SizeVariant.small}
+          buttonSize={SizeVariant.tiny}
         >
           {t.edit}
         </LinkButton>
         <Button
           icon={<CloseIcon />}
-          buttonSize={SizeVariant.small}
+          buttonSize={SizeVariant.tiny}
           buttonColor={ColorVariant.error}
           onClick={archiveWorkflow}
         >

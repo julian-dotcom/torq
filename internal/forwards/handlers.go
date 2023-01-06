@@ -99,6 +99,7 @@ type forwardsTableRow struct {
 	TurnoverOut   float32 `json:"turnoverOut"`
 	TurnoverIn    float32 `json:"turnoverIn"`
 	TurnoverTotal float32 `json:"turnoverTotal"`
+	LocalNodeIds  []int   `json:"localNodeIds"`
 }
 
 func getForwardsTableData(db *sqlx.DB, nodeIds []int,
@@ -240,6 +241,8 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 		if err != nil {
 			return r, errors.Wrap(err, "SQL row scan")
 		}
+
+		c.LocalNodeIds = nodeIds
 
 		// Append to the result
 		r = append(r, c)

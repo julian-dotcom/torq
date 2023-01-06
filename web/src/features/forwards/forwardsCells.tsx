@@ -16,10 +16,12 @@ export default function channelsCellRenderer(
     return (
       <AliasCell
         current={row["alias"] as string}
-        channelId={row["lndShortChannelId"]}
+        channelId={row.channelId}
+        nodeIds={row.localNodeIds}
         open={row["open"]}
         key={"alias" + rowIndex + columnIndex}
         className={column.locked ? styles.locked : ""}
+        isTotalsRow={isTotalsRow}
       />
     );
   }

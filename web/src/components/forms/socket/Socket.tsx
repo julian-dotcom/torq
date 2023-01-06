@@ -7,7 +7,7 @@ import { BasicInputType } from "components/forms/formTypes";
 import { useAddNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
-import { NodeContext } from "../../workflow/nodeWrapper/WorkflowNodeWrapper";
+import { NodeContext } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 
 export type SocketProps = BasicInputType & {
   workflowVersionId: number;

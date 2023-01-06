@@ -6,32 +6,32 @@ export type Sections = {
 };
 
 export type ChannelHistoryResponse = {
-  label: string
-  amountOut: number
-  amountIn: number
-  amountTotal: number
-  revenueOut: number
-  revenueIn: number
-  revenueTotal: number
-  countOut: number
-  countIn: number
-  countTotal: number
-  channels: Channel[]
-  history: History[]
-}
+  label: string;
+  amountOut: number;
+  amountIn: number;
+  amountTotal: number;
+  revenueOut: number;
+  revenueIn: number;
+  revenueTotal: number;
+  countOut: number;
+  countIn: number;
+  countTotal: number;
+  channels: Channel[];
+  history: History[];
+};
 
 type History = {
   alias: string;
-  amountOut: number
-  amountIn: number
-  amountTotal: number
-  revenueOut: number
-  revenueIn: number
-  revenueTotal: number
-  countOut: number
-  countIn: number
-  countTotal: number
-}
+  amountOut: number;
+  amountIn: number;
+  amountTotal: number;
+  revenueOut: number;
+  revenueIn: number;
+  revenueTotal: number;
+  countOut: number;
+  countIn: number;
+  countTotal: number;
+};
 
 export type Channel = {
   alias: string;
@@ -43,32 +43,32 @@ export type Channel = {
   chanId: string;
   open: boolean;
   capacity: number;
-}
+};
 
 export type ChannelRebalancingResponse = {
   rebalancingCost: number;
   rebalancing: Rebalancing;
-}
+};
 
 type Rebalancing = {
   amountMsat: number;
   totalCostMsat: number;
   splitCostMsat: number;
   count: number;
-}
+};
 
 export type ChannelOnchainCostResponse = {
   onChainCost: number;
-}
+};
 
 export type ChannelBalanceResponse = {
   channelBalances: ChannelBalance[] | null;
-}
+};
 
 type ChannelBalance = {
-  lndShortChannelId: string;
+  channelId: string;
   balances: Balance[];
-}
+};
 
 export type FlowData = {
   alias: string;
@@ -85,25 +85,25 @@ export type FlowData = {
 };
 
 type Balance = {
-  date: Date
-  inboundCapacity:  number;
+  date: Date;
+  inboundCapacity: number;
   outboundCapacity: number;
   capacityDiff: number;
-}
+};
 
 export type ChannelEventResponse = {
   events: Event[] | null;
-}
+};
 
 export type Event = {
   date: string;
   datetime: Date;
   fundingTransactionHash: string;
   fundingOutputIndex: number;
-  shortChannelId: string
+  shortChannelId: string;
   type: string;
   outbound: boolean;
   announcingPubKey: string;
   value: number;
   previousValue: number;
-}
+};
