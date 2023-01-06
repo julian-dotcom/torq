@@ -7,7 +7,7 @@
 .bar {
   display: grid;
   width: 100%;
-  justify-items: flex-end;
+  justify-items: end;
   background-color: var(--color-success-faint);
   border-radius: 3px;
   min-width: 250px;

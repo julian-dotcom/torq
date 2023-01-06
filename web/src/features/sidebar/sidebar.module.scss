@@ -14,7 +14,7 @@
   overflow-y: scroll;
   overflow-x: hidden;
   @media only screen and (max-width: 900px) {
-    grid-row-gap: 0px;
+    grid-row-gap: 0;
   }
 }
 .titleContainer {

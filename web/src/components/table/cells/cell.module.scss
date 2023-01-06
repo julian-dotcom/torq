@@ -14,7 +14,7 @@
   }
   &.alignLeft {
     text-align: left;
-    align-items: start;
+    align-items: flex-start;
     min-width: 200px;
   }
   &.alignRight {
@@ -56,8 +56,8 @@
   top: 0;
   z-index: 3;
   display: grid;
-  justify-items: flex-end;
-  align-items: flex-end;
+  justify-items: end;
+  align-items: end;
   grid-row-gap: 5px;
   padding: 16px 16px 12px 16px;
   border-bottom: 1px solid var(--primary-100);
@@ -119,15 +119,15 @@
 .header.TextCell,
 .header.DateCell,
 .header.DurationCell {
-  justify-items: start;
+  justify-items: flex-start;
   min-width: initial;
 }
 .cell.TextCell {
-  justify-items: start;
+  justify-items: flex-start;
 }
 
 .cell.DurationCell {
-  justify-items: start;
+  justify-items: flex-start;
 }
 .cell.locked,
 .header.locked {
