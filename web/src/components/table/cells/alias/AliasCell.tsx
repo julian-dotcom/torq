@@ -8,6 +8,7 @@ import classNames from "classnames";
 import { ButtonPosition, ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
+import { useLocation } from "react-router-dom";
 
 interface AliasCell {
   current: string;
@@ -20,6 +21,7 @@ interface AliasCell {
 
 function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }: AliasCell) {
   const { t } = useTranslations();
+  const location = useLocation();
   const content = (
     <div className={styles.alias}>
       <div className={classNames(styles.current, styles.text)}>{current}</div>

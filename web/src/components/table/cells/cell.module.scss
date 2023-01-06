@@ -35,7 +35,7 @@
 
 .totalCell {
   position: sticky;
-  z-index: 100;
+  z-index: 3;
   bottom: 0;
   background-color: var(--primary-50); //var(--bg-alt-faint);
   //border-top: 1px solid var(--primary-500); //var(--bg-alt-strong);
@@ -218,14 +218,14 @@
   .cell {
     background-color: var(--color-primary-layer-2) !important;
     position: sticky;
-    z-index: 100;
+    z-index: 20;
     bottom: 0;
 
     .barWrapper {
       display: none !important;
     }
     &.locked {
-      z-index: 105;
+      z-index: 20;
     }
   }
 }
