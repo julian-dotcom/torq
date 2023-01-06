@@ -181,6 +181,7 @@ function ModifyTagModal() {
                   <TextCell
                     className={classNames(styles.simple, styles.colapsedLabels, styles.textLeft)}
                     current={c.shortChannelId}
+                    current2={c.alias}
                     key={c.shortChannelId}
                   />
                   <div className={classNames(styles.deleteButtons)} onClick={() => {handleDeleteTarget(c.corridorId)}}>
@@ -263,6 +264,21 @@ function ModifyTagModal() {
     } else {
       setNodeId(value)
     }
+  }
+
+  function handlePostTagInsert() {
+    const channelGoupObj: ChannelGroup = {
+      tagId,
+      nodeId,
+    }
+    if (channelId && channelId > 0) {
+      channelGoupObj.channelId = channelId
+    }
+    if (selectedTagCategory > 0) {
+      channelGoupObj.categoryId = selectedTagCategory
+    }
+    addChannelsGroupsMutation(channelGoupObj);
+    setChannelId(0)
   }
 
   const handleCollapseNodeClick = () => {
@@ -390,18 +406,7 @@ function ModifyTagModal() {
                     tagObj.tagId = tagId
                     setTagMutation(tagObj);
                     if (nodeId && nodeId > 0 ) {
-                      const channelGoupObj: ChannelGroup = {
-                        tagId,
-                        nodeId,
-                      }
-                      if (channelId && channelId > 0) {
-                        channelGoupObj.channelId = channelId
-                      }
-                      if (selectedTagCategory > 0) {
-                        channelGoupObj.categoryId = selectedTagCategory
-                      }
-                      addChannelsGroupsMutation(channelGoupObj);
-                      setChannelId(0)
+                      handlePostTagInsert();
                     }
                   } else {
                     addTagMutation(tagObj);
@@ -473,6 +478,9 @@ function ModifyTagModal() {
                       if (modalUpdateMode) {
                         tagObj.tagId = tagId
                         setTagMutation(tagObj);
+                        if (nodeId && nodeId > 0 ) {
+                          handlePostTagInsert()
+                        }
                       } else {
                         addTagMutation(tagObj);
                       }
