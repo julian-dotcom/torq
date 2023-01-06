@@ -419,7 +419,6 @@ function ChannelPage(_: ChannelPageProps) {
                     <Button
                       buttonColor={ColorVariant.primary}
                       buttonSize={SizeVariant.small}
-                      isOpen={selectedEventsCount > 0}
                       icon={<EventFlagIcon />}
                       className={"collapse-tablet"}
                     >

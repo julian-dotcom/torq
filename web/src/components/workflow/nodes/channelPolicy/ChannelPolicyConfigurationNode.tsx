@@ -78,9 +78,9 @@ export function ChannelPolicyNode({ ...wrapperProps }: ChannelPolicyNodeProps) {
     >
       <Form onSubmit={handleSubmit}>
         <Socket
+          collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.inputs}
           selectedNodes={parentNodes || []}
-          id={"sss"}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputIndex={1}

@@ -1,5 +1,62 @@
 .workflowLinks {
-  stroke: var(--color-primary-layer-4);
-  stroke-width: 4px;
-  fill: transparent;
+  display: inline-block;
+  pointer-events: all;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+  width: 1px;
+  height: 1px;
+}
+.linkWrapper {
+  path.link {
+    stroke: var(--color-primary-faint);
+    stroke-width: 4px;
+    stroke-opacity: 0.4;
+    fill: transparent;
+    cursor: initial;
+  }
+  &:hover path.link {
+    stroke-opacity: 0.8;
+  }
+
+  path.shadowLink {
+    stroke: transparent;
+    stroke-opacity: 0.1;
+    stroke-width: 16px;
+    fill: transparent;
+    cursor: initial;
+  }
+
+  .deleteLinksWrapper {
+    position: relative;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 100ms ease-in-out;
+    cursor: pointer;
+    color: var(--color-error-faint);
+    circle {
+      fill: var(--color-error-layer-2);
+      stroke: transparent;
+    }
+    &:hover {
+      color: var(--color-error-faint);
+      circle {
+        fill: var(--color-error-layer-3);
+      }
+    }
+  }
+  .shadowDeleteLink {
+    fill: transparent !important;
+    //fill-opacity: 0.33;
+  }
+  &:hover .deleteLinksWrapper {
+    opacity: 1;
+  }
+
+  circle {
+    stroke: var(--color-primary-faint);
+    stroke-width: 2px;
+    fill: var(--color-primary-layer-4);
+    stroke-opacity: 1;
+  }
 }

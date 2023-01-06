@@ -10,11 +10,11 @@ import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
 import { NodeContext } from "../../workflow/nodeWrapper/WorkflowNodeWrapper";
 
 export type SocketProps = BasicInputType & {
-  id: string;
   workflowVersionId: number;
   workflowVersionNodeId: number;
   selectedNodes: Array<WorkflowVersionNode>;
   inputIndex: number;
+  collapsed: boolean;
   placeholder?: string;
 };
 
@@ -82,7 +82,7 @@ function Socket(props: SocketProps) {
       const connBB = connectorRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const x = connBB.x - canvasBB.x + connBB.width / 2 - 8; // -14 because of the 16 padding right on the connector and 4px line width
-      const y = connBB.y - canvasBB.y + connBB.height / 2 - 12;
+      const y = connBB.y - canvasBB.y + connBB.height / 2 - 12.5;
       const eventName = `childLinkMove-${props.workflowVersionNodeId}-${props.inputIndex}`;
       const event = new CustomEvent(eventName, {
         detail: {
@@ -122,6 +122,7 @@ function Socket(props: SocketProps) {
     }, 10);
     return () => clearInterval(interval);
   });
+
   return (
     <div
       className={classNames(styles.socketInputWrapper, inputColorClass, { [styles.dragOver]: isDragover })}
@@ -133,7 +134,12 @@ function Socket(props: SocketProps) {
           <label className={styles.label}>{props.label}</label>
         </div>
       )}
-      <div className={classNames(styles.socketInputContainer, GetSizeClass(props.sizeVariant))} onDrop={handleDrop}>
+      <div
+        className={classNames(styles.socketInputContainer, GetSizeClass(props.sizeVariant), {
+          [styles.collapsed]: props.collapsed,
+        })}
+        onDrop={handleDrop}
+      >
         <div className={classNames(styles.nodeSocket, styles.socket)} ref={connectorRef}>
           <div className={styles.socketDot} />
         </div>

@@ -88,12 +88,14 @@ export const workflowApi = torqApi.injectEndpoints({
         method: "PUT",
         body: body,
       }),
+      invalidatesTags: ["workflow"],
     }),
     deleteNodeLink: builder.mutation<void, { linkId: number }>({
       query: (body) => ({
         url: `workflows/links/${body.linkId}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["workflow"],
     }),
   }),
 });
@@ -110,6 +112,7 @@ export const {
   useDeleteNodeMutation,
   useDeleteStageMutation,
   useAddNodeLinkMutation,
+  useDeleteNodeLinkMutation,
 } = workflowApi;
 
 // // Select the FullWorkflow object from the state

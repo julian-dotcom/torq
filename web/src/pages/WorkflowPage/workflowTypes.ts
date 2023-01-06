@@ -74,7 +74,7 @@ export type WorkflowVersionNodeLink = {
   workflowVersionId: number;
   workflowVersionNodeLinkId: number;
   name: string;
-  visibilitySettings: LinkVisibilitySettings;
+  visibilitySettings?: LinkVisibilitySettings;
   parentOutputIndex: number;
   parentWorkflowVersionNodeId: number;
   childInputIndex: number;

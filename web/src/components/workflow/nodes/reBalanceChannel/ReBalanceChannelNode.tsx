@@ -96,28 +96,28 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
     >
       <Form onSubmit={handleSubmit}>
         <Socket
+          collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.target}
           selectedNodes={parentNodes || []}
-          id={"sss"}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputIndex={1}
         />
         <Socket
+          collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.sources}
           selectedNodes={parentNodes || []}
-          id={"sss"}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputIndex={1}
+          inputIndex={2}
         />
         <Socket
+          collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.avoid}
           selectedNodes={parentNodes || []}
-          id={"sss"}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputIndex={1}
+          inputIndex={3}
         />
         <Input
           formatted={true}
