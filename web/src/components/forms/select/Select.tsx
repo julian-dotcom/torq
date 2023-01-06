@@ -84,7 +84,7 @@ const customStyles = {
     ...provided,
     margin: "8px 4px",
     clip: "initial",
-    width: "calc(100% - 8px)",
+    width: "100%",
     borderColor: "transparent",
     borderRadius: "4px",
     boxShadow: "var(--hover-box-shadow)",

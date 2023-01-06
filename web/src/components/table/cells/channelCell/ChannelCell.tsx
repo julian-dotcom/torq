@@ -1,9 +1,15 @@
 import cellStyles from "components/table/cells/cell.module.scss";
-import { EditRegular as UpdateIcon, Delete12Regular as CloseIcon } from "@fluentui/react-icons";
+import {
+  EditRegular as UpdateIcon,
+  Delete12Regular as CloseIcon,
+  Eye12Regular as InspectIcon,
+} from "@fluentui/react-icons";
 import styles from "./channel_cell.module.scss";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import classNames from "classnames";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
+import { ButtonPosition, ColorVariant, LinkButton, SizeVariant } from "../../../buttons/Button";
+import useTranslations from "services/i18n/useTranslations";
 
 interface ChannelCell {
   alias: string;
@@ -14,27 +20,38 @@ interface ChannelCell {
 }
 
 function ChannelCell(props: ChannelCell) {
+  const { t } = useTranslations();
   const location = useLocation();
 
   const content = (
     <>
       <div className={classNames(cellStyles.current, cellStyles.text)}>{props.alias}</div>
       <div className={styles.actionButtons}>
-        <Link
+        <LinkButton
+          key={"buttons-node-inspect"}
+          to={"/analyse/inspect/" + props.channelId}
+          icon={<InspectIcon />}
+          buttonSize={SizeVariant.tiny}
+          buttonColor={ColorVariant.accent1}
+          buttonPosition={ButtonPosition.center}
+        >
+          {t.inspect}
+        </LinkButton>
+        <LinkButton
           to={`${UPDATE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
           state={{ background: location }}
           className={classNames(cellStyles.action, styles.updateLink)}
         >
           <UpdateIcon /> Update
-        </Link>
+        </LinkButton>
 
-        <Link
+        <LinkButton
           to={`${CLOSE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
           state={{ background: location }}
           className={classNames(cellStyles.action, styles.closeChannelLink)}
         >
           <CloseIcon /> Close
-        </Link>
+        </LinkButton>
       </div>
     </>
   );

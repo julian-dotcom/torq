@@ -191,8 +191,8 @@ function ChannelPage(_: ChannelPageProps) {
   }
   const breadcrumbs = [
     <span key="b1">{t.analyse}</span>,
-    <span key="b2">{t.inspect}</span>,
     <span key="b3">{t.forwards}</span>,
+    <span key="b2">{t.inspect}</span>,
     <Link key="b4" to={`/${t.analyse}/${t.inspect}/${chanId}`}>
       {chanId}
     </Link>,
