@@ -66,8 +66,8 @@ function ModifyTagModal() {
     { value: TagColor.warning, label: TagColor.warning.charAt(0).toUpperCase() + TagColor.warning.slice(1) },
     { value: TagColor.error, label: TagColor.error.charAt(0).toUpperCase() + TagColor.error.slice(1) },
     { value: TagColor.accent1, label: TagColor.accent1.charAt(0).toUpperCase() + TagColor.accent1.slice(1) },
+    { value: TagColor.accent2, label: TagColor.accent2.charAt(0).toUpperCase() + TagColor.accent2.slice(1) },
     { value: TagColor.accent3, label: TagColor.accent3.charAt(0).toUpperCase() + TagColor.accent3.slice(1) },
-    { value: TagColor.custom, label: TagColor.custom.charAt(0).toUpperCase() + TagColor.custom.slice(1) },
   ];
 
   const queryParameters = new URLSearchParams(window.location.search)
@@ -231,25 +231,9 @@ function ModifyTagModal() {
         setErrorMessage(message)
       }
 
-      if (addTagResponse.isSuccess && addTagResponse.status == 'fulfilled' ||
-      setTagResponse.isSuccess && setTagResponse.status == 'fulfilled') {
-        if (nodeId && nodeId > 0 ) {
-          const channelGoupObj: ChannelGroup = {
-            tagId: tag,
-            nodeId,
-          }
-          if (channelId && channelId > 0) {
-            channelGoupObj.channelId = channelId
-          }
-          if (selectedTagCategory > 0) {
-            channelGoupObj.categoryId = selectedTagCategory
-          }
-          addChannelsGroupsMutation(channelGoupObj);
-        }
-        if (addTagResponse.isSuccess) {
-          location.pathname = '/manage/tags';
-          navigate(`${UPDATE_TAG}?tagId=${tag}`, { state: { background: location }, replace: true })
-        }
+      if (addTagResponse.isSuccess && addTagResponse.status == 'fulfilled') {
+        location.pathname = '/manage/tags';
+        navigate(`${UPDATE_TAG}?tagId=${tag}`, { state: { background: location }, replace: true })
       }
      }
     if (addTagResponse.isError || setTagResponse.isError) {
@@ -348,7 +332,6 @@ function ModifyTagModal() {
                 {tagId >= 0 && (
                   <div className={styles.updateChannelTableDouble}>
                     <Select
-                      isDisabled={tagId && tagId < 0 ? true : false}
                       label={t.tagsModal.category}
                       onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
                         const selectOptions = newValue as SelectOptions;
@@ -373,17 +356,20 @@ function ModifyTagModal() {
                 )}
             </FormRow>
             <FormRow>
-            <div className={styles.openChannelTableRow}>
-                <Select
-                  label={t.tagsModal.target}
-                  onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-                    const selectOptions = newValue as SelectOptions;
-                    handleTarget(selectOptions?.value as number, selectOptions?.type as string);
-                  }}
-                  options={channelsNodesOptions}
-                  value={channelsNodesOptions.find((option) => option.value === selectedTarget && option.type == selectedType)}
-                />
-              </div>
+              {modalUpdateMode && (
+                <div className={styles.openChannelTableRow}>
+                  <Select
+                    label={t.tagsModal.target}
+                    onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
+                      const selectOptions = newValue as SelectOptions;
+                      handleTarget(selectOptions?.value as number, selectOptions?.type as string);
+                    }}
+                    options={channelsNodesOptions}
+                    value={channelsNodesOptions.find((option) => option.value === selectedTarget && option.type == selectedType)}
+                  />
+                </div>
+              )}
+
             </FormRow>
 
             {tagId >= 0 && (
@@ -393,7 +379,6 @@ function ModifyTagModal() {
               <Button
                 className={styles.tagbutton}
                 onClick={() => {
-                  setStepIndex(0);
                   const tagObj: Tag = {
                     style: selectedTagColor,
                     name: tagName,
@@ -404,9 +389,25 @@ function ModifyTagModal() {
                   if (modalUpdateMode) {
                     tagObj.tagId = tagId
                     setTagMutation(tagObj);
+                    if (nodeId && nodeId > 0 ) {
+                      const channelGoupObj: ChannelGroup = {
+                        tagId,
+                        nodeId,
+                      }
+                      if (channelId && channelId > 0) {
+                        channelGoupObj.channelId = channelId
+                      }
+                      if (selectedTagCategory > 0) {
+                        channelGoupObj.categoryId = selectedTagCategory
+                      }
+                      addChannelsGroupsMutation(channelGoupObj);
+                      setChannelId(0)
+                    }
                   } else {
                     addTagMutation(tagObj);
                   }
+                  setTarget(channelsNodesOptions[0].value as number);
+                  setType("");
                 }}
                 buttonColor={ColorVariant.primary}>
                 {modalButton}
@@ -462,7 +463,6 @@ function ModifyTagModal() {
                   <Button
                     className={styles.tagbutton}
                     onClick={() => {
-                      setStepIndex(0);
                       const tagObj: Tag = {
                         style: selectedTagColor,
                         name: tagName,

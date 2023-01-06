@@ -1,0 +1,16 @@
+--
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-10, 'merchant', 'accent1', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-11, 'exchange', 'accent2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on)
+VALUES (-12, 'wallet', 'accent3', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+--
+UPDATE corridor SET from_category_id = null WHERE from_category_id IN (-4, -5, -6);
+UPDATE channel_group SET category_id = null WHERE category_id IN (-4, -5, -6);
+UPDATE tag SET category_id = null WHERE category_id IN (-4, -5, -6);
+
+--
+DELETE FROM category WHERE category_id IN (-4, -5, -6);
+
