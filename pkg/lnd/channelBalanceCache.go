@@ -71,14 +71,14 @@ func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapp
 		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 	}
 	err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db, mutex)
-	if err == nil {
-		if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) == commons.Active {
-			bootStrapping = false
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
-		}
-	} else {
+	if err != nil {
 		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 		log.Error().Err(err).Msgf("Failed to initialize channel balance cache. This is a critical issue! (nodeId: %v)", nodeSettings.NodeId)
+		return bootStrapping, serviceStatus
+	}
+	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) == commons.Active {
+		bootStrapping = false
+		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 	}
 	return bootStrapping, serviceStatus
 }
