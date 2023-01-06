@@ -12,7 +12,7 @@ import {
   useGetTimeZonesQuery,
   useUpdateSettingsMutation,
 } from "apiSlice";
-import { nodeConfiguration, settings } from "apiTypes";
+import { settings } from "apiTypes";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import NodeSettings from "features/settings/NodeSettings";
@@ -31,19 +31,12 @@ function Settings() {
 
   const [showAddNodeState, setShowAddNodeState] = React.useState(false);
   const [settingsState, setSettingsState] = React.useState({} as settings);
-  const [nodeConfigurationsState, setNodeConfigurationsState] = React.useState([] as nodeConfiguration[]);
 
   React.useEffect(() => {
     if (settingsData) {
       setSettingsState(settingsData);
     }
   }, [settingsData]);
-
-  React.useEffect(() => {
-    if (nodeConfigurations) {
-      setNodeConfigurationsState(nodeConfigurations);
-    }
-  }, [nodeConfigurations]);
 
   const defaultDateRangeLabels: {
     label: string;
@@ -164,8 +157,8 @@ function Settings() {
             </div>
             <div>
               <h3>{t.header.nodes}</h3>
-              {nodeConfigurationsState &&
-                nodeConfigurationsState?.map((nodeConfiguration) => (
+              {nodeConfigurations &&
+                nodeConfigurations?.map((nodeConfiguration) => (
                   <NodeSettings
                     nodeId={nodeConfiguration.nodeId}
                     key={nodeConfiguration.nodeId ?? 0}

@@ -6,7 +6,7 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { selectActiveNetwork, setActiveNetwork, Network } from "features/network/networkSlice";
 import useTranslations from "services/i18n/useTranslations";
 
-function QuickToggles() {
+function NetworkSelector() {
   const { t } = useTranslations();
   const dispatch = useAppDispatch();
   const activeNetwork = useAppSelector(selectActiveNetwork);
@@ -26,31 +26,31 @@ function QuickToggles() {
       >
         <div className={styles.quickToggleContent}>
           <Button
-            buttonColor={activeNetwork === Network.MainNet ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.MainNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.MainNet))}
           >
             {t.MainNet}
           </Button>
           <Button
-            buttonColor={activeNetwork === Network.TestNet ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.TestNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.TestNet))}
           >
             {t.TestNet}
           </Button>
           <Button
-            buttonColor={activeNetwork === Network.RegTest ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.RegTest ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.RegTest))}
           >
             {t.RegTest}
           </Button>
           <Button
-            buttonColor={activeNetwork === Network.SigNet ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.SigNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.SigNet))}
           >
             {t.SigNet}
           </Button>
           <Button
-            buttonColor={activeNetwork === Network.SimNet ? ColorVariant.primary : ColorVariant.primary}
+            buttonColor={activeNetwork === Network.SimNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => dispatch(setActiveNetwork(Network.SimNet))}
           >
             {t.SimNet}
@@ -61,4 +61,4 @@ function QuickToggles() {
   );
 }
 
-export default QuickToggles;
+export default NetworkSelector;
