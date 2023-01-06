@@ -18,6 +18,9 @@
   border-radius: var(--radius-default);
   padding: 5px 12px;
 }
+.collapsed.socketInputContainer {
+  position: static;
+}
 .dragOver .socketInputContainer {
   background-color: var(--input-hover-background) !important;
   //border: 1px solid var(--input-focus-border-color);
@@ -36,6 +39,10 @@ label {
   top: 50%;
   transform: translateY(-50%);
   left: -56px;
+}
+.collapsed .nodeSocket {
+  position: absolute;
+  top: 20px;
 }
 .socketDot {
   width: 16px;

@@ -21,7 +21,6 @@ const buttonPositionClass = {
 export type ButtonProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   icon?: any;
-  isOpen?: boolean;
   buttonColor?: ColorVariant;
   buttonPosition?: buttonPosition;
   buttonSize?: SizeVariant;
@@ -57,7 +56,6 @@ export default function Button({
 
 export function LinkButton({
   icon,
-  isOpen,
   buttonColor,
   buttonPosition,
   buttonSize,
@@ -72,9 +70,6 @@ export function LinkButton({
         GetColorClass(buttonColor),
         buttonPositionClass[buttonPosition || 0],
         GetSizeClass(buttonSize),
-        {
-          [styles.open]: isOpen,
-        },
         buttonProps.className
       )}
     >

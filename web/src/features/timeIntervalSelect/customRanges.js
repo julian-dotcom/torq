@@ -54,10 +54,7 @@ export const defineds = {
 
 export const getCompareRanges = (startDate, endDate) => {
   const daysDifference = differenceInCalendarDays(endDate, startDate);
-  let compareRange = [
-    addDays(startOfDay(startDate), -1),
-    addDays(startOfDay(startDate), -(daysDifference + 1)),
-  ];
+  let compareRange = [addDays(startOfDay(startDate), -1), addDays(startOfDay(startDate), -(daysDifference + 1))];
 
   return compareRange;
 };
@@ -66,10 +63,7 @@ const staticRangeHandler = {
   range: {},
   isSelected(range) {
     const definedRange = this.range();
-    return (
-      isSameDay(range.startDate, definedRange.startDate) &&
-      isSameDay(range.endDate, definedRange.endDate)
-    );
+    return isSameDay(range.startDate, definedRange.startDate) && isSameDay(range.endDate, definedRange.endDate);
   },
 };
 
@@ -209,10 +203,7 @@ export const defaultInputRanges = [
     label: "days up to today",
     range(value) {
       return {
-        startDate: addDays(
-          defineds.startOfToday,
-          (Math.max(Number(value), 1) - 1) * -1
-        ),
+        startDate: addDays(defineds.startOfToday, (Math.max(Number(value), 1) - 1) * -1),
         endDate: defineds.endOfToday,
       };
     },

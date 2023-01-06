@@ -1,5 +1,5 @@
 .DateCell {
-  justify-items: start;
+  justify-items: flex-start;
   min-width: initial;
 }
 .DateCell {
@@ -9,7 +9,7 @@
 .timeRow {
   display: flex;
   column-gap: 5px;
-  justify-items: start;
+  justify-items: flex-start;
   align-items: center;
   svg {
     color: var(--content-muted);

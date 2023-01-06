@@ -28,13 +28,10 @@
   }
 }
 .modalBackdrop {
-  position: relative;
   z-index: 20;
-  //   opacity: 0;
   background-color: var(--backdrop);
   will-change: top, opacity;
   display: none;
-  //   transition: opacity 250ms linear 0s, top 0s linear 250ms;
   position: fixed;
   top: 0;
   left: 0;

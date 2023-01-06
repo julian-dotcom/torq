@@ -1,18 +1,20 @@
 import classNames from "classnames";
-import { useState } from "react";
+import { MutableRefObject, useContext, useEffect, useRef, useState } from "react";
 import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
 import styles from "./socket_input.module.scss";
 import { GetColorClass, GetSizeClass, InputColorVaraint } from "components/forms/input/variants";
 import { BasicInputType } from "components/forms/formTypes";
 import { useAddNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
+import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
+import { NodeContext } from "../../workflow/nodeWrapper/WorkflowNodeWrapper";
 
 export type SocketProps = BasicInputType & {
-  id: string;
   workflowVersionId: number;
   workflowVersionNodeId: number;
   selectedNodes: Array<WorkflowVersionNode>;
   inputIndex: number;
+  collapsed: boolean;
   placeholder?: string;
 };
 
@@ -27,11 +29,11 @@ function Socket(props: SocketProps) {
     inputColorClass = GetColorClass(InputColorVaraint.error);
   }
 
-  const [isDragover, setIsDragover] = useState(false);
+  const { nodeRef } = useContext(NodeContext);
+  const { canvasRef } = useContext(CanvasContext);
+  const connectorRef = useRef() as MutableRefObject<HTMLDivElement>;
 
-  // useEffect(() => {
-  //   setConnectedNodeName(props.selectedNodes.map((n) => n.name).toString() || "");
-  // }, [props.selectedNodes]);
+  const [isDragover, setIsDragover] = useState(false);
 
   // Handle drag enter event on the socket by setting setIsDragover to true
   function handleDragEnter(e: React.DragEvent<HTMLDivElement>) {
@@ -55,8 +57,6 @@ function Socket(props: SocketProps) {
     const nodeName = e.dataTransfer.getData("node/name");
 
     if (nodeName) {
-      // setConnectedNodeName(nodeName);
-
       addLink({
         workflowVersionId: props.workflowVersionId,
         childInputIndex: props.inputIndex,
@@ -77,6 +77,52 @@ function Socket(props: SocketProps) {
     }
   }
 
+  function updater() {
+    if (canvasRef !== null) {
+      const connBB = connectorRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const x = connBB.x - canvasBB.x + connBB.width / 2 - 8; // -14 because of the 16 padding right on the connector and 4px line width
+      const y = connBB.y - canvasBB.y + connBB.height / 2 - 12.5;
+      const eventName = `childLinkMove-${props.workflowVersionNodeId}-${props.inputIndex}`;
+      const event = new CustomEvent(eventName, {
+        detail: {
+          x: x,
+          y: y,
+          nodeId: props.workflowVersionNodeId.toString(),
+        },
+      });
+      window.dispatchEvent(event);
+    }
+  }
+
+  function updatePosition(mutations: MutationRecord[]) {
+    mutations.forEach(function () {
+      updater();
+    });
+  }
+
+  // Add a listener to the node card to update the position of the connector when the node is moved.
+  useEffect(() => {
+    const observer = new MutationObserver(updatePosition);
+
+    if (nodeRef !== null && nodeRef.current !== undefined) {
+      observer.observe(nodeRef.current, { attributes: true, attributeFilter: ["style"] });
+    }
+
+    return () => {
+      if (nodeRef !== null && nodeRef.current !== undefined) {
+        observer.disconnect();
+      }
+    };
+  }, [canvasRef?.current, nodeRef?.current, connectorRef?.current]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updater();
+    }, 10);
+    return () => clearInterval(interval);
+  });
+
   return (
     <div
       className={classNames(styles.socketInputWrapper, inputColorClass, { [styles.dragOver]: isDragover })}
@@ -88,8 +134,13 @@ function Socket(props: SocketProps) {
           <label className={styles.label}>{props.label}</label>
         </div>
       )}
-      <div className={classNames(styles.socketInputContainer, GetSizeClass(props.sizeVariant))} onDrop={handleDrop}>
-        <div className={classNames(styles.nodeSocket, styles.socket)}>
+      <div
+        className={classNames(styles.socketInputContainer, GetSizeClass(props.sizeVariant), {
+          [styles.collapsed]: props.collapsed,
+        })}
+        onDrop={handleDrop}
+      >
+        <div className={classNames(styles.nodeSocket, styles.socket)} ref={connectorRef}>
           <div className={styles.socketDot} />
         </div>
         <div className={styles.connectedNodeNames}>

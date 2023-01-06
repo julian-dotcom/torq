@@ -7,7 +7,7 @@
   .barWrapper {
     display: grid;
     width: 100%;
-    justify-items: flex-end;
+    justify-items: end;
     background-color: var(--color-success-faint);
     border-radius: var(--radius-default);
   }
@@ -25,7 +25,7 @@
   .barWrapperDouble {
     display: grid;
     width: 100%;
-    justify-items: flex-end;
+    justify-items: end;
     background-color: var(--accent1-400);
   }
   .barDouble {

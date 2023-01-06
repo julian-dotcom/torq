@@ -12,7 +12,7 @@ import {
   Play16Regular as ActivateIcon,
 } from "@fluentui/react-icons";
 import Collapse from "features/collapse/Collapse";
-import { WorkflowVersionNode, WorkflowVersionNodeLink } from "pages/WorkflowPage/workflowTypes";
+import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
 import { SelectWorkflowNodeLinks, useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
@@ -64,32 +64,9 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
     })
   );
 
-  function updateLinks(
-    links: Array<WorkflowVersionNodeLink>,
-    x: number,
-    y: number,
-    nodeId: number,
-    linkType: "child" | "parent"
-  ) {
-    const nodeIdKey = linkType === "parent" ? "parentWorkflowVersionNodeId" : "childWorkflowVersionNodeId";
-    const indexKey = linkType === "parent" ? "parentOutputIndex" : "childInputIndex";
-
-    links.forEach((link) => {
-      const eventName = `${linkType}LinkMove-${link[nodeIdKey].toString()}-${link[indexKey].toString()}`;
-      const event = new CustomEvent(eventName, {
-        detail: {
-          x: x,
-          y: y,
-          nodeId: nodeId,
-        },
-      });
-      window.dispatchEvent(event);
-    });
-  }
-
   useEffect(() => {
-    updateLinks(parentLinks, position.x, position.y, props.workflowVersionNodeId, "parent");
-    updateLinks(childLinks, position.x, position.y, props.workflowVersionNodeId, "child");
+    // updateLinks(parentLinks, position.x, position.y, props.workflowVersionNodeId, "parent");
+    // updateLinks(childLinks, position.x, position.y, props.workflowVersionNodeId, "child");
   }, [parentLinks, childLinks, position.x, position.y, props.stage]);
 
   // nodeRef is used by the NodeConnector to allow for drag and drop interaction between nodes.
@@ -162,9 +139,6 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
       workflowVersionNodeId: props.workflowVersionNodeId,
       visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: collapsed },
     });
-    // parentLinks.forEach((link) => {
-    //   updateNodeLink
-    // }
   }
 
   const connectorId = useId();

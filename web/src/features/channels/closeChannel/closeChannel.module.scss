@@ -1,7 +1,7 @@
 .labelWrapper {
   display: flex;
   flex-direction: row;
-  align-items: end;
+  align-items: flex-end;
   justify-content: space-between;
   margin-bottom: 8px;
 }
@@ -112,7 +112,6 @@
   font-weight: bold;
   float: left;
 }
-
 
 .errorMessage {
   clear: both;

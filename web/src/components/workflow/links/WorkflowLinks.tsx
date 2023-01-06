@@ -1,9 +1,10 @@
-import styles from "./workflow_link.module.scss";
+import classNames from "classnames";
 import { useLayoutEffect, useRef } from "react";
 import { useSelector } from "react-redux";
-import { SelectWorkflowLinks } from "pages/WorkflowPage/workflowApi";
+import { DismissCircle24Regular as DeleteLinkIcon } from "@fluentui/react-icons";
+import { SelectWorkflowLinks, useDeleteNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowVersionNodeLink } from "pages/WorkflowPage/workflowTypes";
-import classNames from "classnames";
+import styles from "./workflow_link.module.scss";
 
 type WorkflowLinkProp = {
   link: WorkflowVersionNodeLink;
@@ -13,29 +14,66 @@ export type LinkPositionEventDetails = { x: number; y: number; nodeId: number };
 
 function WorkflowLink(props: WorkflowLinkProp) {
   const { link } = props;
+  const shadowLinkRef = useRef<SVGLineElement>(null);
   const linkRef = useRef<SVGLineElement>(null);
+  const circleRef = useRef<SVGCircleElement>(null);
+  const iconRef = useRef<SVGGElement>(null);
   const parentEventName = `parentLinkMove-${props.link.parentWorkflowVersionNodeId.toString()}-${props.link.parentOutputIndex.toString()}`;
   const childEventName = `childLinkMove-${props.link.childWorkflowVersionNodeId.toString()}-${props.link.childInputIndex.toString()}`;
+  const initialPath = "M 0 0 C 1 1 1 1 2 2";
+  const [deleteLink] = useDeleteNodeLinkMutation();
 
-  function handleParentPositionUpdate(e: CustomEventInit<LinkPositionEventDetails>) {
-    const { x, y, nodeId } = e.detail ? e.detail : { x: 0, y: 0, nodeId: 0 };
-    if (nodeId == 0) {
+  function handleDeleteLink() {
+    deleteLink({ linkId: link.workflowVersionNodeLinkId });
+  }
+  function setPath(path: { x1: number; y1: number; x2: number; y2: number }) {
+    if (linkRef === null) {
       return;
     }
-    if (linkRef.current) {
-      linkRef.current.setAttribute("x1", x.toString());
-      linkRef.current.setAttribute("y1", y.toString());
+    const { x1, y1, x2, y2 } = path;
+    const t = 0.5;
+
+    const controlPoint1X = x1 + t * (x2 - x1);
+    const controlPoint2X = x2 - t * (x2 - x1);
+
+    linkRef?.current &&
+      linkRef.current.setAttribute("d", `M ${x1} ${y1} C ${controlPoint1X} ${y1} ${controlPoint2X} ${y2} ${x2} ${y2}`);
+    shadowLinkRef?.current &&
+      shadowLinkRef.current.setAttribute(
+        "d",
+        `M ${x1} ${y1} C ${controlPoint1X} ${y1} ${controlPoint2X} ${y2} ${x2} ${y2}`
+      );
+    // Place the icon in the middle of the link path and offset it py it's height
+    iconRef?.current &&
+      iconRef.current.setAttribute("transform", `translate(${(x1 + x2) / 2 - 24 / 2}, ${(y1 + y2) / 2 - 24 / 2})`);
+  }
+
+  function handleParentPositionUpdate(e: CustomEventInit<LinkPositionEventDetails>) {
+    if (linkRef !== null && linkRef.current !== null) {
+      const x1 = e.detail?.x || 0;
+      const y1 = e.detail?.y || 0;
+
+      const pathCommands = (linkRef?.current?.getAttribute("d") || initialPath).split(" ");
+      const x2 = parseFloat(pathCommands[8]);
+      const y2 = parseFloat(pathCommands[9]);
+
+      setPath({ x1, y1, x2, y2 });
     }
   }
 
   function handleChildPositionUpdate(e: CustomEventInit<LinkPositionEventDetails>) {
-    const { x, y, nodeId } = e.detail ? e.detail : { x: 0, y: 0, nodeId: 0 };
-    if (nodeId == 0) {
-      return;
+    const x2 = e.detail?.x || 0;
+    const y2 = e.detail?.y || 0;
+    if (linkRef !== null && linkRef.current !== null) {
+      const pathCommands = (linkRef?.current?.getAttribute("d") || initialPath).split(" ");
+      const x1 = parseFloat(pathCommands[1]);
+      const y1 = parseFloat(pathCommands[2]);
+
+      setPath({ x1, y1, x2, y2 });
     }
-    if (linkRef.current) {
-      linkRef.current.setAttribute("x2", x.toString());
-      linkRef.current.setAttribute("y2", y.toString());
+    if (circleRef !== null && circleRef.current !== null) {
+      circleRef.current.setAttribute("cx", x2.toString());
+      circleRef.current.setAttribute("cy", y2.toString());
     }
   }
 
@@ -48,10 +86,29 @@ function WorkflowLink(props: WorkflowLinkProp) {
       window.removeEventListener(parentEventName, handleParentPositionUpdate);
       window.removeEventListener(childEventName, handleChildPositionUpdate);
     };
-  }, []);
+  }, [circleRef, linkRef, shadowLinkRef, iconRef]);
 
   return (
-    <line ref={linkRef} id={"link-" + link.workflowVersionNodeLinkId} key={"link-" + link.workflowVersionNodeLinkId} />
+    <g className={styles.linkWrapper}>
+      <path
+        ref={linkRef}
+        id={"link-" + link.workflowVersionNodeLinkId}
+        key={"link-" + link.workflowVersionNodeLinkId}
+        className={styles.link}
+      />
+      <path
+        ref={shadowLinkRef}
+        id={"shadow-link-" + link.workflowVersionNodeLinkId}
+        key={"shadow-link-" + link.workflowVersionNodeLinkId}
+        className={styles.shadowLink}
+      />
+      <circle r="7" ref={circleRef} />
+      <g ref={iconRef} className={styles.deleteLinksWrapper} onClick={() => handleDeleteLink()}>
+        <circle r={24} cx={12} cy={12} strokeWidth={1} stroke={"transparent"} className={styles.shadowDeleteLink} />
+        <circle r={10} cx={12} cy={12} strokeWidth={1} stroke={"transparent"} />
+        <DeleteLinkIcon />
+      </g>
+    </g>
   );
 }
 
@@ -61,6 +118,7 @@ type WorkflowLinkProps = {
   workflowVersionId: number;
   stage: number;
   active: boolean;
+  style?: React.CSSProperties;
 };
 
 function WorkflowLinks(props: WorkflowLinkProps) {
@@ -69,16 +127,42 @@ function WorkflowLinks(props: WorkflowLinkProps) {
   );
 
   return (
-    <div style={{ height: 0, width: 0, position: "absolute", top: 0 }}>
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+        overflow: "visible",
+        pointerEvents: "none",
+        zIndex: 900,
+      }}
+    >
       <svg
         className={classNames(styles.workflowLinks, { [styles.active]: props.active })}
-        width={"1px"}
-        height={"1px"}
-        overflow={props.active ? "visible" : "hidden"}
+        overflow={"visible"}
+        style={props.style}
       >
         {links.map((link) => {
           return <WorkflowLink key={"link-" + link.workflowVersionNodeLinkId} link={link} />;
         })}
+        {/*<WorkflowLink*/}
+        {/*  key={"link-virtual"}*/}
+        {/*  link={{*/}
+        {/*    name: "virtual",*/}
+        {/*    workflowVersionNodeLinkId: -1,*/}
+        {/*    parentWorkflowVersionNodeId: -1,*/}
+        {/*    parentOutputIndex: -1,*/}
+        {/*    childWorkflowVersionNodeId: -1,*/}
+        {/*    childInputIndex: -1,*/}
+        {/*    createdOn: new Date(),*/}
+        {/*    updatedOn: new Date(),*/}
+        {/*    stage: props.stage,*/}
+        {/*    workflowVersionId: -1,*/}
+        {/*    visibilitySettings: undefined,*/}
+        {/*  }}*/}
+        {/*/>*/}
       </svg>
     </div>
   );

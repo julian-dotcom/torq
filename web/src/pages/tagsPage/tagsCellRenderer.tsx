@@ -3,7 +3,7 @@ import { ColumnMetaData } from "features/table/types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import TagCell from "components/table/cells/tag/TagCell";
 import cellStyles from "components/table/cells/cell.module.scss";
-import { TagColor } from "../../components/tags/Tag";
+import { TagColor } from "components/tags/Tag";
 // import { Link } from "react-router-dom";
 
 export default function tagsCellRenderer(

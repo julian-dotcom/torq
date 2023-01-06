@@ -18,7 +18,6 @@ function NetworkSelector() {
           <Button
             buttonColor={ColorVariant.ghost}
             buttonSize={SizeVariant.small}
-            isOpen={false}
             icon={<GlobeIcon />}
             className={"collapse-tablet"}
           />

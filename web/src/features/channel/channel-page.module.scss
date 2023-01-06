@@ -3,8 +3,6 @@
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: auto auto;
-  justify-items: space-between;
-  align-items: center;
 }
 .leftContainer {
   display: grid;
@@ -119,7 +117,6 @@
   border: 1px solid var(--material-layer-3);
   padding: 20px;
   font-size: var(--font-size-small);
-  //box-shadow: var(--popover-box-shadow);
   border-radius: 3px;
   max-height: 100%;
   display: flex;
@@ -148,7 +145,7 @@
   padding: 5px 0;
 }
 .rowLabel,
-rowValue {
+.rowValue {
   display: grid;
   align-items: center;
   grid-auto-flow: column;
