@@ -8,7 +8,7 @@ import styles from "./channel_cell.module.scss";
 import { useLocation } from "react-router-dom";
 import classNames from "classnames";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
-import { ButtonPosition, ColorVariant, LinkButton, SizeVariant } from "../../../buttons/Button";
+import { ColorVariant, LinkButton, SizeVariant } from "../../../buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
 
 interface ChannelCell {
@@ -32,26 +32,33 @@ function ChannelCell(props: ChannelCell) {
           state={{ background: location }}
           to={"/analyse/inspect/" + props.channelId}
           icon={<InspectIcon />}
+          hideMobileText={true}
           buttonSize={SizeVariant.tiny}
           buttonColor={ColorVariant.accent1}
-          buttonPosition={ButtonPosition.center}
         >
           {t.inspect}
         </LinkButton>
+
         <LinkButton
           to={`${UPDATE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
           state={{ background: location }}
+          hideMobileText={true}
+          icon={<UpdateIcon />}
           className={classNames(cellStyles.action, styles.updateLink)}
+          buttonSize={SizeVariant.tiny}
         >
-          <UpdateIcon /> Update
+          Update
         </LinkButton>
 
         <LinkButton
           to={`${CLOSE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
           state={{ background: location }}
+          hideMobileText={true}
           className={classNames(cellStyles.action, styles.closeChannelLink)}
+          icon={<CloseIcon />}
+          buttonSize={SizeVariant.tiny}
         >
-          <CloseIcon /> Close
+          Close
         </LinkButton>
       </div>
     </>

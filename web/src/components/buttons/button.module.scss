@@ -60,18 +60,6 @@
   width: 100%;
 }
 
-@media only screen and (max-width: 1000px) {
-  .button:global(.small-tablet),
-  .button:global(.small-tablet .icon) {
-    font-size: var(--font-size-small);
-  }
-  .collapseTablet {
-    .text {
-      display: none;
-    }
-  }
-}
-
 /*
 Tab Button
 */
@@ -100,4 +88,12 @@ Tab Button
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+@media only screen and (max-width: 1000px) {
+  .collapseTablet {
+    .text {
+      display: none;
+    }
+  }
 }

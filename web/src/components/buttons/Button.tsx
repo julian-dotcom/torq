@@ -36,6 +36,7 @@ export default function Button({
   buttonPosition,
   buttonSize,
   children,
+  hideMobileText,
   ...buttonProps
 }: React.DetailedHTMLProps<React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & ButtonProps) {
   const color = buttonProps.disabled ? ColorVariant.disabled : buttonColor;
@@ -48,7 +49,7 @@ export default function Button({
         GetColorClass(color),
         ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
         GetSizeClass(buttonSize),
-        { [styles.collapseTablet]: buttonProps.hideMobileText },
+        { [styles.collapseTablet]: hideMobileText || false },
         buttonProps.className
       )}
     >
@@ -64,6 +65,7 @@ export function LinkButton({
   buttonPosition,
   buttonSize,
   children,
+  hideMobileText,
   ...buttonProps
 }: LinkProps & ButtonProps) {
   return (
@@ -74,6 +76,7 @@ export function LinkButton({
         GetColorClass(buttonColor),
         ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
         GetSizeClass(buttonSize),
+        { [styles.collapseTablet]: hideMobileText || false },
         buttonProps.className
       )}
     >

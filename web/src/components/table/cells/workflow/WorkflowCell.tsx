@@ -35,6 +35,7 @@ function WorkflowCell(props: WorkflowCell) {
           to={`${props.workflowId}/versions/${props.workflowVersionId}`}
           icon={<EditIcon />}
           buttonSize={SizeVariant.tiny}
+          hideMobileText={true}
         >
           {t.edit}
         </LinkButton>
@@ -43,6 +44,7 @@ function WorkflowCell(props: WorkflowCell) {
           buttonSize={SizeVariant.tiny}
           buttonColor={ColorVariant.error}
           onClick={archiveWorkflow}
+          hideMobileText={true}
         >
           {t.archive}
         </Button>

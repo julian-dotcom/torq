@@ -32,6 +32,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
             state={{ background: location }}
             to={"/analyse/inspect/" + channelId}
             icon={<InspectIcon />}
+            hideMobileText={true}
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.accent1}
             buttonPosition={ButtonPosition.center}
@@ -47,6 +48,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
                   className={classNames(styles.action, styles.updateLink)}
                   buttonSize={SizeVariant.tiny}
                   buttonColor={ColorVariant.success}
+                  hideMobileText={true}
                   icon={<EditIcon />}
                 >
                   Update
@@ -58,6 +60,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
                   className={classNames(styles.action, styles.closeChannelLink)}
                   buttonSize={SizeVariant.tiny}
                   buttonColor={ColorVariant.error}
+                  hideMobileText={true}
                   icon={<CloseIcon />}
                 >
                   Close

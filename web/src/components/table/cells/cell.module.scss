@@ -10,12 +10,12 @@
   border-bottom: 1px solid var(--color-border-primary-faint);
   white-space: nowrap;
   @media only screen and (max-width: 900px) {
-    min-width: 0px;
+    min-width: 8px;
   }
   &.alignLeft {
     text-align: left;
     align-items: flex-start;
-    min-width: 200px;
+    min-width: 150px;
   }
   &.alignRight {
     align-items: flex-end;
@@ -132,7 +132,7 @@
 .cell.locked,
 .header.locked {
   .text {
-    max-width: 200px;
+    max-width: 150px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -141,7 +141,7 @@
     .text {
       max-width: 100px;
     }
-    min-width: 0px;
+    min-width: 8px;
   }
 }
 .cell.BooleanCell {
@@ -233,7 +233,7 @@
   display: flex;
   gap: 8px;
   flex-direction: column;
-  min-height: 52px;
+  min-height: 40px;
   align-items: flex-start;
   .buttonWrapper {
     display: flex;
