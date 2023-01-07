@@ -14,7 +14,7 @@ export type TagCellProps = TagProps & {
 };
 
 const CheckboxCell = ({ cellWrapperClassName, totalCell, ...tagProps }: TagCellProps) => {
-  const [deleteTagMutation, deleteTagResponse] = useDeleteTagMutation();
+  const [deleteTagMutation] = useDeleteTagMutation();
   const location = useLocation();
   return (
     <div>
