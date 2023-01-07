@@ -77,7 +77,6 @@ function NewAddressModal() {
   }
 
   function onNewAddressResponse(resp: NewAddressResponse) {
-    console.log(resp.address.length);
     setResponse(resp);
     if (resp.address.length) {
       setDoneState(ProgressStepState.completed);

@@ -8,7 +8,7 @@ import styles from "./channel_cell.module.scss";
 import { useLocation } from "react-router-dom";
 import classNames from "classnames";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
-import { ColorVariant, LinkButton, SizeVariant } from "../../../buttons/Button";
+import { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
 
 interface ChannelCell {

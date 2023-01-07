@@ -38,9 +38,9 @@ import EventsChart from "./eventsChart/EventsChart";
 import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import PopoutPageTemplate from "../templates/popoutPageTemplate/PopoutPageTemplate";
-import PageTitle from "../templates/PageTitle";
-import useTranslations from "../../services/i18n/useTranslations";
+import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
+import PageTitle from "features/templates/PageTitle";
+import useTranslations from "services/i18n/useTranslations";
 
 const ft = d3.format(",.0f");
 

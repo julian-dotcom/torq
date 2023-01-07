@@ -24,7 +24,6 @@ export function useNewWorkflowButton(): ReactNode {
     const response = newWorkflow();
     response
       .then((res) => {
-        console.log(res);
         const data = (res as { data: { workflowId: number; version: number } }).data;
         navigate(`/manage/workflows/${data.workflowId}/versions/${data.version}`);
       })

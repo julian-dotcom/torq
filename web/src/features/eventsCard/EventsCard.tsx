@@ -62,7 +62,6 @@ function EventsCard({ events, selectedEvents, channels }: eventCardType) {
               prevAlias = event.channelId;
               const chan: Channel =
                 ((channels?.channels || []).find((c: Channel) => c.channelId === event.channelId) as Channel) || {};
-              console.log("channel", chan);
 
               return (
                 <React.Fragment key={"empty-wrapper-" + index}>
