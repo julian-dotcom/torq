@@ -114,16 +114,7 @@ function ForwardsPage() {
 
   const tableControls = (
     <TableControlSection>
-      <TableControlsButtonGroup>
-        <div className={styles.forwardsControls}>
-          <TimeIntervalSelect />
-          <TableControlsButton
-            onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
-            icon={OptionsIcon}
-            id={"tableControlsButton"}
-          />
-        </div>
-      </TableControlsButtonGroup>
+      <TableControlsButtonGroup></TableControlsButtonGroup>
     </TableControlSection>
   );
 
@@ -155,6 +146,16 @@ function ForwardsPage() {
       title={t.forwards}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
+      titleContent={
+        <div className={styles.forwardsControls}>
+          <TimeIntervalSelect />
+          <TableControlsButton
+            onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+            icon={OptionsIcon}
+            id={"tableControlsButton"}
+          />
+        </div>
+      }
       sidebar={sidebar}
       tableControls={tableControls}
     >

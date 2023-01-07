@@ -21,12 +21,10 @@ type TablePageTemplateProps = {
 
 export default function TablePageTemplate(props: TablePageTemplateProps) {
   return (
-    <div className={styles.contentWrapper}>
+    <div className={classNames(styles.contentWrapper)}>
       <PageTitle breadcrumbs={props.breadcrumbs} title={props.title}>
         {props.titleContent}
       </PageTitle>
-
-      <div className={classNames(styles.totalWrapper)}>{props.pageTotals}</div>
 
       {props.tableControls}
 
