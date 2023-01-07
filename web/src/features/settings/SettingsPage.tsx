@@ -155,7 +155,7 @@ function Settings() {
                 </Button>
               </form>
             </div>
-            <div>
+            <div className={styles.nodeSettingsWrapper}>
               <h3>{t.header.nodes}</h3>
               {nodeConfigurations &&
                 nodeConfigurations?.map((nodeConfiguration) => (
