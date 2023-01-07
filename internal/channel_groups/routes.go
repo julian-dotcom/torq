@@ -109,7 +109,7 @@ func addChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func generateChannelGroupsByOriginRoutine(db *sqlx.DB, origin groupOrigin) {
-	err := GenerateChannelGroupsByOrigin(db, origin)
+	err := GenerateChannelGroupsByOrigin(db, origin, true)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate channel groups.")
 	}
@@ -186,7 +186,7 @@ func removeChannelGroupByCorridorIdHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	go func() {
-		err := GenerateChannelGroupsByOrigin(db, origin)
+		err := GenerateChannelGroupsByOrigin(db, origin, true)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to generate channel groups.")
 		}
@@ -210,10 +210,34 @@ func removeCategoryHandler(c *gin.Context, db *sqlx.DB) {
 
 func removeTagHandler(c *gin.Context, db *sqlx.DB) {
 	tagId, err := strconv.Atoi(c.Param("tagId"))
+	finished := make(chan bool)
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse tagId in the request.")
 		return
 	}
+
+	_, err = corridors.RemoveCorridorByReference(db, tagId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing corridors for tagId: %v", tagId))
+		return
+	}
+
+	_, err = RemoveChannelGroupByTag(db, tagId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing channelgroups for tagId: %v", tagId))
+		return
+	}
+
+	go func() {
+		err := GenerateChannelGroupsByOrigin(db, tagCorridor, false)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to generate channel groups.")
+		}
+		finished <- true
+	}()
+
+	<-finished
+
 	count, err := removeTag(db, tagId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing tag for tagId: %v", tagId))

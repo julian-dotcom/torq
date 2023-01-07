@@ -7,9 +7,6 @@
 }
 
 .label {
-  color: var(--content-muted);
-  font-size: var(--font-size-small);
-  font-weight: 500;
   margin-left: 5px;
   margin-right: 5px;
   margin-bottom: 5px;
@@ -133,6 +130,7 @@
   padding: 11px 24px;
   background-color: var(--color-primary-layer-2);
   border-radius: var(--radius-default);
+  height: 64px;
   &.expanded {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
@@ -217,6 +215,7 @@
 .textLeft {
   float: left;
   width: 92%;
+  height: 64px;
 }
 
 .deleteButtons {
@@ -230,5 +229,11 @@
   border-width: 1px;
   cursor: pointer;
   display: flex;
-  height: 31px;
+  height: 64px;
+  width: 8%;
+}
+
+.lockedInput {
+  color: #85C4FF;
+  background: #F9FCFF;
 }

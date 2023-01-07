@@ -5,6 +5,7 @@ import styles from "./text_cell.module.scss";
 
 export type TextCellProps = {
   current: string;
+  current2?: string;
   link?: string;
   copyText?: string;
   className?: string;
@@ -22,9 +23,16 @@ const TextCell = (props: TextCellProps) => {
       )}
     >
       {!props.totalCell && (
+      <div>
         <div>
           <span className={classNames(styles.content)}>{props.current}</span>
         </div>
+        {props.current2 && (
+          <div>
+            <span className={classNames(styles.content2Row)}>{props.current2}</span>
+          </div>
+        )}
+      </div>
       )}
     </div>
   );

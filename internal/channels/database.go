@@ -159,9 +159,12 @@ func GetChannelsForTag(db *sqlx.DB) (channels []ChannelForTag, err error) {
 
 func GetNodesForTag(db *sqlx.DB) (nodes []NodeForTag, err error) {
 	err = db.Select(&nodes, `
-		select distinct n.node_id, ne.alias, 'node' as type  from node n
-		inner join node_event ne on ne.node_id = n.node_id
-		and ne.event_node_id = n.node_id;`)
+	select distinct ne.event_node_id as node_id, ne.alias, 'node' as type  from node n
+		left join node_event ne on ne.node_id = n.node_id
+		left join channel ch on n.node_id = ch.first_node_id
+		and ch.status_id = 1
+	where ne.event_node_id = n.node_id
+	or ne.event_node_id = ch.second_node_id;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nodes, nil

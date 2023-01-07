@@ -41,3 +41,13 @@
   color: var(--color-text-accent-1-strong);
   background-color: var(--color-accent-1-layer-2);
 }
+
+.content2Row {
+  justify-content: left;
+  display: flex;
+  margin-top: 8px;
+  line-height: 15px;
+  font-size: 12px;
+  color: #5D89B3;
+  font-family: 'Plus Jakarta Sans';
+}

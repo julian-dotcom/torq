@@ -1,0 +1,9 @@
+UPDATE tag SET style = 'primary' WHERE tag_id = -1;
+UPDATE tag SET style = 'primary' WHERE tag_id = -2;
+UPDATE tag SET style = 'primary' WHERE tag_id = -3;
+UPDATE tag SET style = 'primary' WHERE tag_id = -4;
+UPDATE tag SET style = 'primary' WHERE tag_id = -5;
+UPDATE tag SET style = 'warning' WHERE tag_id = -6;
+UPDATE tag SET style = 'error' WHERE tag_id = -7;
+UPDATE tag SET style = 'success' WHERE tag_id = -8;
+UPDATE tag SET style = 'error' WHERE tag_id = -9;

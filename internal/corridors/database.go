@@ -72,8 +72,7 @@ func getCorridorsByCorridorTypeId(db *sqlx.DB, corridorTypeId int) (corridors []
 func getCorridorsByTagId(db *sqlx.DB, tagId int) (corridors []*CorridorFields, err error) {
 	err = db.Select(&corridors, `SELECT distinct corridor_id, reference_id, ne.alias, ch.short_channel_id
     	FROM corridor co
-    	LEFT JOIN node_event ne ON co.from_node_id = ne.node_id
-    	AND co.from_node_id = ne.event_node_id
+    	LEFT JOIN node_event ne ON co.from_node_id = ne.event_node_id
     	LEFT JOIN channel ch ON ch.channel_id = co.channel_id WHERE reference_id = $1;`, tagId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -198,6 +197,18 @@ func AddCorridor(db *sqlx.DB, c Corridor) (*Corridor, error) {
 // RemoveCorridor doesn't refresh the cache!!!
 func RemoveCorridor(db *sqlx.DB, corridorId int) (int64, error) {
 	res, err := db.Exec(`DELETE FROM corridor WHERE corridor_id = $1;`, corridorId)
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+	}
+	return rowsAffected, nil
+}
+
+func RemoveCorridorByReference(db *sqlx.DB, ReferenceId int) (int64, error) {
+	res, err := db.Exec(`DELETE FROM corridor WHERE reference_id = $1;`, ReferenceId)
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}

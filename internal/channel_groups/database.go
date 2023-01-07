@@ -54,7 +54,7 @@ func getChannelGroupsByChannelId(db *sqlx.DB, channelId int, include commons.Cha
 	return commons.GetChannelGroupsByChannelId(channelId, include).ChannelGroups, nil
 }
 
-func GenerateChannelGroupsByOrigin(db *sqlx.DB, origin groupOrigin) error {
+func GenerateChannelGroupsByOrigin(db *sqlx.DB, origin groupOrigin, deleteChannelGroups bool) error {
 	chans, err := channels.GetAllChannels(db)
 	if err != nil {
 		return errors.Wrap(err, "Obtaining channels for channel group generation.")
@@ -63,12 +63,14 @@ func GenerateChannelGroupsByOrigin(db *sqlx.DB, origin groupOrigin) error {
 	if err != nil {
 		return errors.Wrap(err, database.SqlBeginTransactionError)
 	}
-	_, err = tx.Exec("DELETE FROM channel_group WHERE tag_origin_id=$1;", origin)
-	if err != nil {
-		if rb := tx.Rollback(); rb != nil {
-			log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
+	if deleteChannelGroups {
+		_, err = tx.Exec("DELETE FROM channel_group WHERE tag_origin_id=$1;", origin)
+		if err != nil {
+			if rb := tx.Rollback(); rb != nil {
+				log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
+			}
+			return errors.Wrap(err, database.SqlExecutionError)
 		}
-		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	if origin == categoryCorridor {
 		cts, err := categories.GetCategories(db)
@@ -175,6 +177,21 @@ func removeTag(db *sqlx.DB, tagId int) (int64, error) {
 	}
 	res, err := db.Exec(`DELETE FROM tag WHERE tag_id = $1;`, tagId)
 	if err != nil {
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+	}
+	return rowsAffected, nil
+}
+
+func RemoveChannelGroupByTag(db *sqlx.DB, tagId int) (int64, error) {
+	res, err := db.Exec("DELETE FROM channel_group WHERE tag_id = $1;", tagId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
 		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}
 	rowsAffected, err := res.RowsAffected()
