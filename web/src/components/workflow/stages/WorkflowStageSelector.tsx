@@ -120,7 +120,7 @@ function AddStageButton(props: AddStageButtonProps) {
       visibilitySettings: {
         xPosition: 0,
         yPosition: 0,
-        collapsed: true,
+        collapsed: false,
       },
       workflowVersionId: props.workflowVersionId,
       stage: nextStage,

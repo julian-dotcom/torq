@@ -8,7 +8,7 @@ import {
   workflowListItem,
 } from "./workflowTypes";
 import { createSelector } from "@reduxjs/toolkit";
-import { TriggerNodeTypes } from "./constants";
+import { TriggerNodeTypes, WorkflowNodeType } from "./constants";
 
 // Define a service using a base URL and expected endpoints
 export const workflowApi = torqApi.injectEndpoints({
@@ -42,7 +42,7 @@ export const workflowApi = torqApi.injectEndpoints({
         url: `workflows/${params.workflowId}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["workflows"],
+      invalidatesTags: ["workflows", "workflow"],
     }),
     addNode: builder.mutation<void, NewWorkflowNodeRequest>({
       query: (body: NewWorkflowNodeRequest) => ({
@@ -173,10 +173,23 @@ export const SelectWorkflowNodeLinks = (props: selectWorkflowNodeLinks) => {
 
 function getStageNodes(workflow: FullWorkflow, stage: number) {
   const stageNodes = workflow.nodes.filter((node) => node.stage === stage);
+  const mainTriggerNode = stageNodes.find((node) => node.type === WorkflowNodeType.Trigger);
   const triggers = stageNodes?.filter((node) => TriggerNodeTypes.includes(node.type));
-  const actions = stageNodes?.filter((node) => !TriggerNodeTypes.includes(node.type));
-  return { triggers, actions };
+  const actions = stageNodes?.filter(
+    (node) => !TriggerNodeTypes.includes(node.type) && node.type !== WorkflowNodeType.Trigger
+  );
+  return { triggers, actions, mainTriggerNode };
 }
+
+// Select WorkflowNodeType.Trigger node from the workflow
+export const SelectWorkflowMainTriggerNode = (props: { version: number; workflowId: number }) => {
+  return createSelector(
+    [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
+    (workflow) => {
+      return workflow?.data?.nodes.find((node) => node.type === WorkflowNodeType.Trigger);
+    }
+  );
+};
 
 // Get nodes belonging to a stage divided into an array of trigger nodes and an array of action nodes
 export const SelectWorkflowStageNodes = (props: { version: number; workflowId: number; stage: number }) => {

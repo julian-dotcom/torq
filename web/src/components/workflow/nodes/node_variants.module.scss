@@ -1,4 +1,9 @@
 :root {
+  --header-background-color: var(--color-primary-faint);
+  --header-text-color: var(--color-primary-layer-1);
+  --header-hover-background-color: var(--color-primary-faded);
+  --header-active-background-color: var(--color-primary-faded);
+  --header-active-text-color: var(--color-primary-layer-1);
   --box-shadow-border-color: var(--color-primary-faint);
   --box-shadow-border-color-negator: var(--color-primary-layer-2);
 }

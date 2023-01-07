@@ -262,23 +262,23 @@ func (nvs *WorkflowNodeVisibilitySettings) Scan(val interface{}) (err error) {
 func getWorkflowNodeInputsStatus(workflowNode WorkflowNode, inputs map[string]string,
 	stagingParameters map[string]string) (commons.Status, map[string]string) {
 
+	// Get the required inputs for the workflow node's type
 	requiredInputs := commons.GetWorkflowNodes()[workflowNode.Type].RequiredInputs
+	// Iterate over the required inputs
 	for _, label := range requiredInputs {
-		_, exists := inputs[label.Label]
-		if exists {
+		// If the label is already a key in the inputs map, skip the rest of the loop body
+		if _, exists := inputs[label.Label]; exists {
 			continue
 		}
-		foundIt := false
-		for stagingLabel, inputData := range stagingParameters {
-			if label.Label == stagingLabel {
-				foundIt = true
-				inputs[label.Label] = inputData
-				continue
-			}
-		}
-		if !foundIt {
+		// If the label is not a key in the inputs map, check if it is a key in the stagingParameters map
+		if inputData, exists := stagingParameters[label.Label]; exists {
+			// If it is, add an entry to the inputs map with the matching label and value from the stagingParameters map
+			inputs[label.Label] = inputData
+		} else {
+			// If it is not, return commons.Pending and the inputs map
 			return commons.Pending, inputs
 		}
 	}
+	// If all required inputs have been processed, return commons.Active and the inputs map
 	return commons.Active, inputs
 }

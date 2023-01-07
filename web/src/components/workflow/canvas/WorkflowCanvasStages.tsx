@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux";
-import { SelectWorkflowStages } from "pages/WorkflowPage/workflowApi";
+import { SelectWorkflowMainTriggerNode, SelectWorkflowStages } from "pages/WorkflowPage/workflowApi";
 import WorkflowCanvas from "./WorkflowCanvas";
 import styles from "./workflow_canvas.module.scss";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
@@ -22,12 +22,45 @@ type WorkflowCanvasStagesProps = {
   selectedStage: number;
 };
 
-export function WorkflowCanvases(props: WorkflowCanvasStagesProps) {
+function FirstStageTrigger(props: {
+  workflowVersionId: number;
+  version: number;
+  workflowId: number;
+  stage: number;
+  triggers: WorkflowVersionNode[];
+}) {
   const { t } = useTranslations();
+  const triggerNode = useSelector(
+    SelectWorkflowMainTriggerNode({ workflowId: props.workflowId, version: props.version })
+  );
+
+  const triggerNodes = props.triggers.map(getNodeComponent);
+
+  if (props.stage === 1) {
+    return (
+      <div className={classNames(styles.triggerNodeWrapper)}>
+        <div className={styles.triggerNodeContainer}>
+          <NodeConnector
+            id={"ss"}
+            name={t.triggers}
+            workflowVersionNodeId={triggerNode?.workflowVersionNodeId || 0}
+            workflowVersionId={props.workflowVersionId}
+          />
+          <div className={classNames(styles.triggerContainerHeading)}>{t.triggers}</div>
+          <div className={styles.triggerBody}>{triggerNodes}</div>
+        </div>
+      </div>
+    );
+  } else {
+    return <div className={styles.stageTriggerContainer}>{triggerNodes}</div>;
+  }
+}
+
+export function WorkflowCanvases(props: WorkflowCanvasStagesProps) {
   const stages = useSelector(SelectWorkflowStages({ workflowId: props.workflowId, version: props.version }));
+  // Get the trigger node using SelectWorkflowMainTriggerNode
 
   const stageComponents = stages.map((stage) => {
-    const triggerNodes = stage.triggers.map(getNodeComponent);
     const actionNodes = stage.actions.map(getNodeComponent);
     return (
       <WorkflowCanvas
@@ -38,15 +71,13 @@ export function WorkflowCanvases(props: WorkflowCanvasStagesProps) {
         version={props.version}
         active={props.selectedStage === stage.stage}
       >
-        <div className={styles.triggerNodeWrapper}>
-          <div className={styles.triggerNodeContainer}>
-            <div className={classNames(styles.triggerContainerHeading)}>
-              <NodeConnector id={"ss"} name={t.triggers} workflowVersionNodeId={1} workflowVersionId={1} />
-              {t.triggers}
-            </div>
-            <div className={styles.triggerBody}>{triggerNodes}</div>
-          </div>
-        </div>
+        <FirstStageTrigger
+          workflowVersionId={props.workflowVersionId}
+          version={props.version}
+          workflowId={props.workflowId}
+          triggers={stage.triggers}
+          stage={stage.stage}
+        />
         {actionNodes}
       </WorkflowCanvas>
     );
