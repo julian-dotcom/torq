@@ -129,14 +129,6 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
             onDragStart={handleDragStart}
             onDragOver={(e) => e.preventDefault()}
           />
-          <WorkflowLinks
-            style={{ transform: "translate(" + position.x + "px, " + position.y + "px)" }}
-            stage={props.stageNumber}
-            active={props.active}
-            workflowId={props.workflowId}
-            version={props.version}
-            workflowVersionId={props.workflowVersionId}
-          />
           <div
             style={{
               transform: "translate(" + position.x + "px, " + position.y + "px)",
