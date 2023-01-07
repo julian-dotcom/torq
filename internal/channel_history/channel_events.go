@@ -29,7 +29,7 @@ type ChannelEvent struct {
 
 func getChannelEventHistory(db *sqlx.DB, nodeIds []int, channelIds []int, from time.Time, to time.Time) (r []*ChannelEvent, err error) {
 
-	sql := `
+	sql := `select * from (
 -- disabled changes
 select date(ts)::timestamp AT TIME ZONE ($1) as date,
         ts::timestamp AT TIME ZONE ($1) as datetime,
@@ -45,7 +45,7 @@ from (SELECT ts,
             	ELSE False
 			 END AS outbound,
              disabled,
-             lag(disabled, 1, false) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
+             lag(disabled, 1, null) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
       where channel_id = ANY ($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
@@ -69,7 +69,7 @@ from (SELECT ts as ts,
             	ELSE False
 			 END AS outbound,
              fee_rate_mill_msat as fee_rate,
-             lag(fee_rate_mill_msat, 1, 0) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
+             lag(fee_rate_mill_msat, 1, null) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
       where channel_id = ANY($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
@@ -93,7 +93,7 @@ from (SELECT ts as ts,
             	ELSE False
 			 END AS outbound,
              fee_base_msat as fee_base,
-             lag(fee_base_msat, 1, 0) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
+             lag(fee_base_msat, 1, null) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
       where channel_id = ANY($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
@@ -117,7 +117,7 @@ from (SELECT ts as ts,
             	ELSE False
 			 END AS outbound,
              max_htlc_msat,
-             lag(max_htlc_msat, 1, 0) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
+             lag(max_htlc_msat, 1, null) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
       where channel_id = ANY($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
@@ -141,15 +141,15 @@ from (SELECT ts as ts,
             	ELSE False
 			 END AS outbound,
              min_htlc,
-             lag(min_htlc, 1, 0) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
+             lag(min_htlc, 1, null) OVER (PARTITION BY channel_id ORDER BY ts) AS prev
       FROM routing_policy
       where channel_id = ANY($4)
         and ts::timestamp AT TIME ZONE ($1) >= ($2)::timestamp
         and ts::timestamp AT TIME ZONE ($1) <= ($3)::timestamp
 ) as o
-where prev  != min_htlc
-order by datetime desc;
-`
+where prev != min_htlc
+order by datetime desc) as events where prev is not null and value is not null`
+
 	preferredTimeZone := commons.GetSettings().PreferredTimeZone
 	rows, err := db.Queryx(sql, preferredTimeZone, from, to, pq.Array(channelIds), pq.Array(nodeIds))
 	if err != nil {
