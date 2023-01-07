@@ -9,6 +9,9 @@ export enum WorkflowNodeType {
   RoutingPolicyRun,
   SetVariable,
   FilterOnVariable,
+  // Trigger is the main trigger that is used to start the workflow prevent us
+  // from having to add and remove links to every trigger.
+  Trigger,
 }
 
 export const TriggerNodeTypes = [

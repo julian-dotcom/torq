@@ -19,7 +19,7 @@
 .workflowWrapper {
   min-height: 300px;
   position: absolute;
-  top: 0;
+  top: 8px;
   left: 0;
   bottom: 0;
   right: 0;
@@ -70,16 +70,16 @@
     cursor: grabbing;
   }
 }
-
-.triggerNodeWrapper {
-  height: 0;
-  width: 0;
-}
-.triggerNodeContainer {
+.triggerNodeContainer,
+.stageTriggerContainer {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: -1;
   width: 380px;
+}
+.stageTriggerContainer {
+  width: initial;
 }
 .triggerBody {
   border-bottom-left-radius: var(--radius-default);

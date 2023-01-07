@@ -89,7 +89,6 @@ export type CreateWorkflowVersionNodeLink = {
   parentWorkflowVersionNodeId: number;
   childInputIndex: number;
   childWorkflowVersionNodeId: number;
-  visibilitySettings: LinkVisibilitySettings;
 };
 
 export type UpdateWorkflowVersionNodeLink = {

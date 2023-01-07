@@ -1,5 +1,5 @@
 import styles from "./workflow_nodes.module.scss";
-import React, { createRef, MutableRefObject, useContext, useEffect, useId, useRef, useState } from "react";
+import React, { createRef, MutableRefObject, useContext, useId, useRef, useState } from "react";
 import classNames from "classnames";
 import NodeConnector from "./NodeConnector";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
@@ -14,14 +14,13 @@ import {
 import Collapse from "features/collapse/Collapse";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
-import { SelectWorkflowNodeLinks, useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
+import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
 import { NodeColorVariant, GetColorClass } from "components/workflow/nodes/nodeVariants";
 import { Status } from "constants/backend";
 import { useClickOutside } from "utils/hooks";
-import { useSelector } from "react-redux";
 import useTranslations from "services/i18n/useTranslations";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
@@ -53,21 +52,6 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
   const { canvasRef, blankImgRef } = useContext(CanvasContext);
-
-  // Get all links that are connected to this node using useSelector
-  const { parentLinks, childLinks } = useSelector(
-    SelectWorkflowNodeLinks({
-      workflowId: props.workflowId,
-      version: props.version,
-      nodeId: props.workflowVersionNodeId,
-      stage: props.stage,
-    })
-  );
-
-  useEffect(() => {
-    // updateLinks(parentLinks, position.x, position.y, props.workflowVersionNodeId, "parent");
-    // updateLinks(childLinks, position.x, position.y, props.workflowVersionNodeId, "child");
-  }, [parentLinks, childLinks, position.x, position.y, props.stage]);
 
   // nodeRef is used by the NodeConnector to allow for drag and drop interaction between nodes.
   const nodeRef = createRef() as MutableRefObject<HTMLDivElement>;

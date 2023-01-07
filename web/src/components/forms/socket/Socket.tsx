@@ -47,6 +47,16 @@ function Socket(props: SocketProps) {
     setIsDragover(false);
   }
 
+  function addLinkFromDrop(parentOutputIndex: number, parentWorkflowVersionNodeId: number) {
+    addLink({
+      workflowVersionId: props.workflowVersionId,
+      childInputIndex: props.inputIndex,
+      childWorkflowVersionNodeId: props.workflowVersionNodeId,
+      parentOutputIndex: parentOutputIndex,
+      parentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
+    });
+  }
+
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
@@ -54,27 +64,11 @@ function Socket(props: SocketProps) {
     // Get the id of the nodes connector that was dropped
     const parentWorkflowVersionNodeId = parseInt(e.dataTransfer.getData("node/parentWorkflowVersionNodeId"));
     const parentOutputIndex = parseInt(e.dataTransfer.getData("node/parentOutputIndex"));
-    const nodeName = e.dataTransfer.getData("node/name");
+    // const nodeName = e.dataTransfer.getData("node/name");
 
-    if (nodeName) {
-      addLink({
-        workflowVersionId: props.workflowVersionId,
-        childInputIndex: props.inputIndex,
-        childWorkflowVersionNodeId: props.workflowVersionNodeId,
-        parentOutputIndex: parentOutputIndex,
-        parentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
-        visibilitySettings: {
-          parent: {
-            xPosition: 100,
-            yPosition: 100,
-          },
-          child: {
-            xPosition: 100,
-            yPosition: 100,
-          },
-        },
-      });
-    }
+    return addLinkFromDrop(parentOutputIndex, parentWorkflowVersionNodeId);
+
+    // If the node is a trigger add a link to each trigger
   }
 
   function updater() {

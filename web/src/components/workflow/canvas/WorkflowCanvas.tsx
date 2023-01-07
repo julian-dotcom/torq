@@ -1,8 +1,12 @@
 import styles from "./workflow_canvas.module.scss";
-import React, { createRef, MutableRefObject, ReactNode, useRef, useState } from "react";
+import React, { createRef, MutableRefObject, ReactNode, useContext, useRef, useState } from "react";
 import classNames from "classnames";
 import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
 import WorkflowLinks from "../links/WorkflowLinks";
+import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
+import useTranslations from "services/i18n/useTranslations";
 
 type WorkflowCanvasProps = {
   workflowVersionId: number;
@@ -25,6 +29,9 @@ export const CanvasContext = React.createContext<{
 });
 
 function WorkflowCanvas(props: WorkflowCanvasProps) {
+  const { t } = useTranslations();
+  const toastRef = useContext(ToastContext);
+
   const [addNode] = useAddNodeMutation();
 
   // p is used to store the current position of the canvas
@@ -91,6 +98,14 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
 
       const nodeType = parseInt(e.dataTransfer.getData("node/type"));
       const nodeName = e.dataTransfer.getData("node/name");
+
+      if (TriggerNodeTypes.includes(nodeType) && props.stageNumber !== 1) {
+        e.dataTransfer.effectAllowed = "none";
+        // Add a toast to inform the user that trigger nodes can only be added to the first stage
+        toastRef?.current &&
+          toastRef.current.addToast(t.workflowDetails.cantAddTriggerNodeToStages, toastCategory.error);
+        return;
+      }
 
       addNode({
         type: nodeType,

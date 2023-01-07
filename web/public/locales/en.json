@@ -133,6 +133,9 @@
     "channelFilter": "Channel Filter",
     "Rebalance": "Rebalance"
   },
+  "workflowDetails": {
+    "cantAddTriggerNodeToStages":"Trigger nodes can only be added to the first stage."
+  },
   "updateChannelPolicy": {
     "title": "Update Channel Policy",
     "back": "Back",

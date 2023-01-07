@@ -77,29 +77,15 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	xPosition := 0
-	yPosition := 0
-	collapsed := true
-
-	ONE_HOUR := 60 * 60
 	initialNode := CreateNodeRequest{
 		WorkflowVersionId: wv.WorkflowVersionId,
-		Name:              "Time Trigger",
-		Type:              commons.WorkflowNodeTimeTrigger,
+		Name:              "Trigger",
+		Type:              commons.WorkflowTrigger,
 		Stage:             1,
-		VisibilitySettings: WorkflowNodeVisibilitySettings{
-			YPosition: &xPosition,
-			XPosition: &yPosition,
-			Collapsed: &collapsed,
-		},
-		Parameters: TimeTriggerParameters{
-			Seconds:  60 * 60,
-			TimeUnit: ONE_HOUR, // 1 hour
-		},
 	}
 	_, err = createNode(db, initialNode)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Adding initial node to new workflow.")
+		server_errors.WrapLogAndSendServerError(c, err, "Adding initial trigger to new workflow.")
 		return
 	}
 
