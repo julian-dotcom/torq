@@ -37,7 +37,7 @@ func GetTag(db *sqlx.DB, tagId int) (Tag, error) {
 
 func GetTags(db *sqlx.DB) ([]Tag, error) {
 	var tags []Tag
-	err := db.Select(&tags, `SELECT * FROM tag ORDER BY created_on ASC;`)
+	err := db.Select(&tags, `SELECT * FROM tag ORDER BY tag_id ASC;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []Tag{}, nil

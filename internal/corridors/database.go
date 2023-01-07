@@ -208,7 +208,7 @@ func RemoveCorridor(db *sqlx.DB, corridorId int) (int64, error) {
 }
 
 func RemoveCorridorByReference(db *sqlx.DB, ReferenceId int) (int64, error) {
-	res, err := db.Exec(`DELETE FROM corridor WHERE corridor_id = $1;`, ReferenceId)
+	res, err := db.Exec(`DELETE FROM corridor WHERE reference_id = $1;`, ReferenceId)
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}

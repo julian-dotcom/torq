@@ -389,36 +389,36 @@ function ModifyTagModal() {
             </FormRow>
 
             {tagId >= 0 && (
-            <ButtonWrapper
-            className={styles.customButtonWrapperStyles}
-            rightChildren={
-              <Button
-                className={styles.tagbutton}
-                onClick={() => {
-                  const tagObj: Tag = {
-                    style: selectedTagColor,
-                    name: tagName,
-                  }
-                  if (selectedTagCategory != 0) {
-                    tagObj.categoryId = selectedTagCategory
-                  }
-                  if (modalUpdateMode) {
-                    tagObj.tagId = tagId
-                    setTagMutation(tagObj);
-                    if (nodeId && nodeId > 0 ) {
-                      handlePostTagInsert();
+              <ButtonWrapper
+                className={styles.customButtonWrapperStyles}
+                rightChildren={
+                <Button
+                  className={styles.tagbutton}
+                  onClick={() => {
+                    const tagObj: Tag = {
+                      style: selectedTagColor,
+                      name: tagName,
                     }
-                  } else {
-                    addTagMutation(tagObj);
-                  }
-                  setTarget(channelsNodesOptions[0].value as number);
-                  setType("");
-                }}
-                buttonColor={ColorVariant.primary}>
-                {modalButton}
-              </Button>
-            }
-          />
+                    if (selectedTagCategory != 0) {
+                      tagObj.categoryId = selectedTagCategory
+                    }
+                    if (modalUpdateMode) {
+                      tagObj.tagId = tagId
+                      setTagMutation(tagObj);
+                      if (nodeId && nodeId > 0 ) {
+                        handlePostTagInsert();
+                      }
+                    } else {
+                      addTagMutation(tagObj);
+                    }
+                    setTarget(channelsNodesOptions[0].value as number);
+                    setType("");
+                  }}
+                  buttonColor={ColorVariant.primary}>
+                  {modalButton}
+                </Button>
+                }
+              />
             )}
 
             {modalUpdateMode && (targetNodes.length > 0 || targetChannels.length > 0) && (

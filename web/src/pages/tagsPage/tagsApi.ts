@@ -29,9 +29,9 @@ export const onChainApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["tags"],
     }),
-    removeTag: builder.mutation<number, number>({
+    deleteTag: builder.mutation<number, number>({
       query: (tagId) => ({
-        url: `tags/${tagId}`,
+        url: `channelGroups/tag/${tagId}`,
         method: "DELETE",
       }),
       invalidatesTags: ["tags"],
@@ -82,6 +82,7 @@ export const {
   useAddTagMutation,
   useAddChannelsGroupsMutation,
   useDeleteChannelGroupByTagMutation,
+  useDeleteTagMutation,
   useSetTagMutation,
   useGetNodesChannelsQuery,
 } = onChainApi;
