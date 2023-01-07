@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   row-gap: 4px;
-  padding: 8px 15px;
+  padding: 8px;
   align-items: flex-end;
   align-content: center;
   text-align: right;
@@ -218,14 +218,14 @@
   .cell {
     background-color: var(--color-primary-layer-2) !important;
     position: sticky;
-    z-index: 20;
+    z-index: 10;
     bottom: 0;
 
     .barWrapper {
       display: none !important;
     }
     &.locked {
-      z-index: 20;
+      z-index: 11;
     }
   }
 }
@@ -238,6 +238,16 @@
   .buttonWrapper {
     display: flex;
     gap: 4px;
+  }
+  // If the screen is mobile sized make the alias cell limited to 150px and make the content scrollable
+  @media only screen and (max-width: 900px) {
+    max-width: 150px;
+    overflow: scroll;
+    text-overflow: ellipsis;
+    // Hide the scrollbar on both webkit and firefox
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 }
 .alias .totalCell {

@@ -1,6 +1,6 @@
 import "./interval_select.scss";
 import { useEffect, useState } from "react";
-import { format, startOfDay, addDays, subDays, differenceInDays } from "date-fns";
+import { addDays, differenceInDays, format, startOfDay, subDays } from "date-fns";
 import { DateRangePicker } from "react-date-range";
 import { ChevronLeft24Regular as LeftIcon, ChevronRight24Regular as RightIcon } from "@fluentui/react-icons";
 
@@ -8,8 +8,8 @@ import { defaultStaticRangesFn } from "./customRanges";
 
 import Popover from "features/popover/Popover";
 import classNames from "classnames";
-import Button, { ColorVariant } from "components/buttons/Button";
-import { useAppSelector, useAppDispatch } from "store/hooks";
+import Button, { ButtonPosition, ColorVariant } from "components/buttons/Button";
+import { useAppDispatch, useAppSelector } from "store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
 import { useGetSettingsQuery } from "apiSlice";
 
@@ -102,20 +102,19 @@ function TimeIntervalSelect(props: { className?: string }) {
 
   const popOverButton = (
     <div className={"date-range-button"}>
-      <div className="time-travel-arrow" onClick={moveBackwardInTime}>
-        <LeftIcon />
-      </div>
-      <Button buttonColor={ColorVariant.accent1} className="time-interval-wrapper">
+      <Button
+        buttonColor={ColorVariant.accent1}
+        className="time-interval-wrapper"
+        buttonPosition={ButtonPosition.fullWidth}
+      >
         {buttonText()}
       </Button>
-      <div className="time-travel-arrow" onClick={moveForwardInTime}>
-        <RightIcon />
-      </div>
     </div>
   );
 
   return (
     <div className={classNames(dateRangeClass, props.className)}>
+      <Button buttonColor={ColorVariant.accent1} icon={<LeftIcon />} onClick={moveBackwardInTime} />
       <Popover button={popOverButton} className={"no-padding right"}>
         <div className="date-range-popover-content">
           <DateRangePicker
@@ -165,6 +164,7 @@ function TimeIntervalSelect(props: { className?: string }) {
           </div>
         </div>
       </Popover>
+      <Button buttonColor={ColorVariant.accent1} icon={<RightIcon />} onClick={moveForwardInTime} />
     </div>
   );
 }

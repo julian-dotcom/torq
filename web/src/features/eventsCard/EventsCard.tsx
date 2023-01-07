@@ -4,7 +4,7 @@ import styles from "features/channel/channel-page.module.scss";
 import classNames from "classnames";
 import { format } from "date-fns";
 import eventIcons from "features/charts/plots/eventIcons";
-import { ChannelEventResponse, ChannelHistoryResponse, Channel, Event } from "features/channel/channelTypes"
+import { ChannelEventResponse, ChannelHistoryResponse, Channel, Event } from "features/channel/channelTypes";
 
 function fm(value: number): string | number {
   if (value > 1) {
@@ -37,7 +37,7 @@ function formatEventText(type: string, value: number, prev: number, outbound: bo
 
 type eventCardType = {
   events: ChannelEventResponse;
-  channels: ChannelHistoryResponse
+  channels: ChannelHistoryResponse;
   selectedEvents: Map<string, boolean>;
 };
 
@@ -56,12 +56,13 @@ function EventsCard({ events, selectedEvents, channels }: eventCardType) {
             })
             .map((event: Event, index: number) => {
               const icon = eventIcons.get(event.type);
-              const newDate = prev !== event.date as string;
-              const newAlias = prevAlias !== event.fundingTransactionHash;
+              const newDate = prev !== (event.date as string);
+              const newAlias = prevAlias !== event.channelId;
               prev = event.date;
-              prevAlias = event.fundingTransactionHash;
+              prevAlias = event.channelId;
               const chan: Channel =
-                (channels?.channels || []).find((c: Channel) => c.fundingTransactionHash === event.fundingTransactionHash) as Channel || {};
+                ((channels?.channels || []).find((c: Channel) => c.channelId === event.channelId) as Channel) || {};
+              console.log("channel", chan);
 
               return (
                 <React.Fragment key={"empty-wrapper-" + index}>
@@ -74,7 +75,7 @@ function EventsCard({ events, selectedEvents, channels }: eventCardType) {
                     <div key={"name-row" + index} className={styles.eventRowName}>
                       <div className={styles.channelAlias}>{chan.alias}</div>
                       <div>|</div>
-                      <div className={styles.channelPoint}>{chan.fundingTransactionHash}</div>
+                      <div className={styles.channelPoint}>{chan.shortChannelId}</div>
                     </div>
                   )}
                   <div

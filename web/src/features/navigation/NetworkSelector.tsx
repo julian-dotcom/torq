@@ -19,7 +19,7 @@ function NetworkSelector() {
             buttonColor={ColorVariant.ghost}
             buttonSize={SizeVariant.small}
             icon={<GlobeIcon />}
-            className={"collapse-tablet"}
+            hideMobileText={true}
           />
         }
         className={"right"}

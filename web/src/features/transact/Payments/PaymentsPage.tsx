@@ -105,7 +105,7 @@ function PaymentsPage() {
         <TableControlsTabsGroup>
           <Button
             buttonColor={ColorVariant.success}
-            className={"collapse-tablet"}
+            hideMobileText={true}
             icon={<TransactionIcon />}
             onClick={() => {
               navigate(NEW_PAYMENT, { state: { background: location } });

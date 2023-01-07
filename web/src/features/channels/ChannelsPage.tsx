@@ -118,7 +118,7 @@ function ChannelsPage() {
         <TableControlsTabsGroup>
           <Button
             buttonColor={ColorVariant.success}
-            className={"collapse-tablet"}
+            hideMobileText={true}
             icon={<ChannelsIcon />}
             onClick={() => {
               navigate(OPEN_CHANNEL, { state: { background: location } });

@@ -65,9 +65,8 @@
   .button:global(.small-tablet .icon) {
     font-size: var(--font-size-small);
   }
-  .button:global(.collapse-tablet) {
-    padding: 5px 0.5em;
-    :global(.text) {
+  .collapseTablet {
+    .text {
       display: none;
     }
   }

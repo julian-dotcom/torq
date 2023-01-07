@@ -239,7 +239,7 @@ function ChannelPage() {
               </div>
               <div className={styles.profitChartRightControls}>
                 {/*<Popover*/}
-                {/*  button={<Button text={"Settings"} icon={<SettingsIcon />} className={"collapse-tablet"} />}*/}
+                {/*  button={<Button text={"Settings"} icon={<SettingsIcon />} hideMobileText={true} />}*/}
                 {/*  className={"right"}*/}
                 {/*>*/}
                 {/*  Hello*/}

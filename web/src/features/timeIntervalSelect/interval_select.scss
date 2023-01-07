@@ -2,13 +2,9 @@
 @import "react-date-range/dist/theme/default.css";
 
 .date-range-button {
-  display: grid;
-  grid-auto-flow: column;
+  display: flex;
   justify-items: center;
   align-items: center;
-  @media only screen and (max-width: 700px) {
-    grid-template-columns: min-content auto min-content;
-  }
 }
 .popover-open .date-range-button {
   @media only screen and (max-width: 600px) {
@@ -20,14 +16,17 @@
   }
 }
 .date-range-container {
-  display: grid;
-  grid-auto-flow: column;
+  display: flex;
+  flex-grow: 1;
+  width: 100%;
+  max-width: 400px;
   align-items: center;
   justify-content: end;
+  column-gap: 8px;
   z-index: 20;
 
   .time-travel-arrow {
-    display: grid;
+    display: flex;
     justify-items: center;
     width: 33px;
     cursor: pointer;
@@ -225,13 +224,8 @@
     display: none;
   }
   .torq-popover-button-wrapper {
+    flex-grow: 1;
     justify-content: center;
-    @media only screen and (max-width: 700px) {
-      padding-top: 12px;
-      padding-right: 12px;
-      padding-bottom: 12px;
-      width: calc(100vw - 24px);
-    }
   }
 }
 
@@ -273,6 +267,7 @@
 }
 
 .time-interval-wrapper {
+  flex-grow: 1;
   display: grid;
   width: 240px;
   text-align: center;

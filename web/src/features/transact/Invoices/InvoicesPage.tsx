@@ -109,7 +109,7 @@ function InvoicesPage() {
         <TableControlsTabsGroup>
           <Button
             buttonColor={ColorVariant.success}
-            className={"collapse-tablet"}
+            hideMobileText={true}
             icon={<InvoiceIcon />}
             onClick={() => {
               navigate(NEW_INVOICE, { state: { background: location } });

@@ -101,6 +101,7 @@ export type Event = {
   fundingTransactionHash: string;
   fundingOutputIndex: number;
   shortChannelId: string;
+  channelId: string;
   type: string;
   outbound: boolean;
   announcingPubKey: string;

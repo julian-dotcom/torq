@@ -27,6 +27,7 @@ export type ButtonProps = {
   buttonPosition?: ButtonPosition;
   buttonSize?: SizeVariant;
   children?: ReactNode;
+  hideMobileText?: boolean;
 };
 
 export default function Button({
@@ -47,6 +48,7 @@ export default function Button({
         GetColorClass(color),
         ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
         GetSizeClass(buttonSize),
+        { [styles.collapseTablet]: buttonProps.hideMobileText },
         buttonProps.className
       )}
     >

@@ -87,7 +87,7 @@ function OnChainPage() {
           <Button
             buttonColor={ColorVariant.success}
             icon={<NewOnChainAddressIcon />}
-            className={"collapse-tablet"}
+            hideMobileText={true}
             onClick={() => {
               navigate(NEW_ADDRESS, { state: { background: location } });
             }}

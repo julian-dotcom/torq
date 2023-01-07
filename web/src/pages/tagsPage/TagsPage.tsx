@@ -35,10 +35,11 @@ function TagsPage() {
           <Button
             buttonColor={ColorVariant.primary}
             icon={<NewTagIcon />}
-            className={"collapse-tablet"}
+            hideMobileText={true}
             onClick={() => {
               navigate(TAG, { state: { background: location } });
-            }}>
+            }}
+          >
             {t.tagsModal.createTag}
           </Button>
         </TableControlsTabsGroup>

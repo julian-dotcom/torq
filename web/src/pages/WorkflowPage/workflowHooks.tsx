@@ -37,7 +37,7 @@ export function useNewWorkflowButton(): ReactNode {
   return (
     <Button
       buttonColor={ColorVariant.success}
-      className={"collapse-tablet"}
+      hideMobileText={true}
       icon={<NewWorkflowIcon />}
       onClick={newWorkflowHandler}
     >
@@ -79,7 +79,7 @@ export function useWorkflowControls(sidebarExpanded: boolean, setSidebarExpanded
         <TableControlsTabsGroup>
           <Button
             buttonColor={ColorVariant.success}
-            className={"collapse-tablet"}
+            hideMobileText={true}
             icon={<DeployIcon />}
             onClick={() => {
               console.log("Not implemented yet");
@@ -90,7 +90,7 @@ export function useWorkflowControls(sidebarExpanded: boolean, setSidebarExpanded
         </TableControlsTabsGroup>
         <Button
           buttonColor={ColorVariant.primary}
-          className={"collapse-tablet"}
+          hideMobileText={true}
           id={"tableControlsButton"}
           icon={<NodesIcon />}
           onClick={() => {

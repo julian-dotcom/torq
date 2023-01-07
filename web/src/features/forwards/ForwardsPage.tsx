@@ -4,7 +4,6 @@ import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
   TableControlSection,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
@@ -27,6 +26,7 @@ import forwardsCellRenderer from "./forwardsCells";
 import Table from "features/table/Table";
 import { useFilterData, useSortData } from "features/viewManagement/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
+import styles from "./forwards_table.module.scss";
 
 function useForwardsTotals(data: Array<Forward>): Forward | undefined {
   if (!data.length) {
@@ -115,12 +115,14 @@ function ForwardsPage() {
   const tableControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
-        <TableControlsTabsGroup></TableControlsTabsGroup>
-        <TableControlsButton
-          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
-          icon={OptionsIcon}
-          id={"tableControlsButton"}
-        />
+        <div className={styles.forwardsControls}>
+          <TimeIntervalSelect />
+          <TableControlsButton
+            onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+            icon={OptionsIcon}
+            id={"tableControlsButton"}
+          />
+        </div>
       </TableControlsButtonGroup>
     </TableControlSection>
   );
@@ -151,7 +153,6 @@ function ForwardsPage() {
   return (
     <TablePageTemplate
       title={t.forwards}
-      titleContent={<TimeIntervalSelect />}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}

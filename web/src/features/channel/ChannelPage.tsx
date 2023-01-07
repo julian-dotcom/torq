@@ -39,6 +39,8 @@ import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import PopoutPageTemplate from "../templates/popoutPageTemplate/PopoutPageTemplate";
+import PageTitle from "../templates/PageTitle";
+import useTranslations from "../../services/i18n/useTranslations";
 
 const ft = d3.format(",.0f");
 
@@ -56,7 +58,7 @@ type ChannelPageProps = {
 };
 
 function ChannelPage(_: ChannelPageProps) {
-  // const { t } = useTranslations();
+  const { t } = useTranslations();
   const navigate = useNavigate();
   const currentPeriod = useAppSelector(selectTimeInterval);
   const dispatch = useAppDispatch();
@@ -198,10 +200,11 @@ function ChannelPage(_: ChannelPageProps) {
   //   </Link>,
   // ];
   return (
-    <PopoutPageTemplate title={title} show={true} onClose={() => navigate(-1)} fullWidth={true}>
-      <div className={styles.channelsPageIntervalWrapper}>
+    <PopoutPageTemplate title={t.inspectChannel} show={true} onClose={() => navigate(-1)} fullWidth={true}>
+      <PageTitle title={title} className={styles.detailsPageTitle}>
         <TimeIntervalSelect />
-      </div>
+      </PageTitle>
+
       <div className={styles.channelWrapper}>
         <div className={classNames(styles.pageRow, styles.channelSummary)}>
           <div className={styles.shortColumn}>
@@ -426,7 +429,7 @@ function ChannelPage(_: ChannelPageProps) {
                       buttonColor={ColorVariant.primary}
                       buttonSize={SizeVariant.small}
                       icon={<EventFlagIcon />}
-                      className={"collapse-tablet"}
+                      hideMobileText={true}
                     >
                       {selectedEventsCount}
                     </Button>
@@ -551,7 +554,7 @@ function ChannelPage(_: ChannelPageProps) {
               </div>
               <div className={styles.profitChartRightControls}>
                 {/*<Popover*/}
-                {/*  button={<Button text={"Settings"} icon={<SettingsIcon />} className={"collapse-tablet"} />}*/}
+                {/*  button={<Button text={"Settings"} icon={<SettingsIcon />} hideMobileText={true} />}*/}
                 {/*  className={"right"}*/}
                 {/*>*/}
                 {/*  Hello*/}
