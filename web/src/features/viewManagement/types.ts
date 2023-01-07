@@ -1,5 +1,5 @@
 import { ColumnMetaData } from "features/table/types";
-import { Tag } from "pages/tagsPage/tagsTypes";
+import { ExpandedTag } from "pages/tagsPage/tagsTypes";
 import { channel } from "features/channels/channelsTypes";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";
 import { OnChainTx } from "features/transact/OnChain/types";
@@ -16,14 +16,14 @@ export type ViewResponse<T> = {
   dirty?: boolean;
 };
 
-export type TableResponses = Forward | OnChainTx | Payment | Invoice | Tag | channel | workflowListItem;
+export type TableResponses = Forward | OnChainTx | Payment | Invoice | ExpandedTag | channel | workflowListItem;
 
 export type AllViewsResponse = {
   forwards: Array<ViewResponse<Forward>>;
   onChain: Array<ViewResponse<OnChainTx>>;
   payments: Array<ViewResponse<Payment>>;
   invoices: Array<ViewResponse<Invoice>>;
-  tags: Array<ViewResponse<Tag>>;
+  tags: Array<ViewResponse<ExpandedTag>>;
   channel: Array<ViewResponse<channel>>;
 };
 

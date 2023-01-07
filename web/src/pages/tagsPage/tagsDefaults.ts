@@ -1,18 +1,23 @@
-// import { uuid } from "uuidv4";
-import { Tag } from "./tagsTypes";
+import { ExpandedTag } from "./tagsTypes";
 import { ViewResponse } from "features/viewManagement/types";
 import { ColumnMetaData } from "features/table/types";
 
-export const TagsColumns: Array<ColumnMetaData<Tag>> = [
+export const TagsColumns: Array<ColumnMetaData<ExpandedTag>> = [
   {
     key: "name",
     heading: "Tag",
     type: "TextCell",
     valueType: "string",
   },
+  {
+    key: "delete",
+    heading: "Delete",
+    type: "DeleteCell",
+    valueType: "string",
+  },
 ];
 
-export const DefaultTagsView: ViewResponse<Tag> = {
+export const DefaultTagsView: ViewResponse<ExpandedTag> = {
   page: "invoices",
   dirty: true,
   view: {

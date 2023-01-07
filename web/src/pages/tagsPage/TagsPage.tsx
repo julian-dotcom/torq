@@ -48,7 +48,7 @@ function TagsPage() {
   );
 
   const breadcrumbs = [
-    <span key="b1">{t.transactions}</span>,
+    <span key="b1">{t.manage}</span>,
     <Link key="b2" to={`/${t.manage}/${t.tags}`}>
       {t.tags}
     </Link>,
@@ -57,7 +57,6 @@ function TagsPage() {
   return (
     <TablePageTemplate title={t.tags} breadcrumbs={breadcrumbs} tableControls={tableControls}>
       <Table
-        selectable={true}
         cellRenderer={tagsCellRenderer}
         data={tagsResponse?.data || []}
         activeColumns={DefaultTagsView.view.columns}

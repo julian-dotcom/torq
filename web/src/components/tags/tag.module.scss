@@ -4,11 +4,11 @@
   align-items: center;
   column-gap: 8px;
   width: min-content;
-  background-color: var(--color-primary-layer-2);
-  //background-color: var(--color-text-primary-strong);
+  background-color: var(--color-primary-layer-3);
   padding: 6px 8px;
   border-radius: var(--radius-default);
   color: var(--color-text-primary-strong);
+  text-transform: capitalize;
 }
 .success {
   background-color: var(--color-success-layer-2);
@@ -40,17 +40,7 @@
   padding: 6px 6px;
 }
 
-//.tagLabel,
-//.tagLockedIcon {
-//  background: inherit;
-//  -webkit-background-clip: text;
-//  background-clip: text;
-//  color: transparent;
-//  filter: sepia(5) /* add some color to grey so the rest works */ saturate(100)
-//    /* increase strength of color channels */ invert(1) /* invert the color */ grayscale(1) /* make it grey */
-//    contrast(9); /* make it black/white */
-//  svg {
-//    color: inherit;
-//    //filter: inherit;
-//  }
-//}
+.icon {
+  display: flex;
+  align-items: center;
+}
