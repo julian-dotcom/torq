@@ -7,7 +7,6 @@ import TablePageTemplate, {
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import Button, { ColorVariant } from "components/buttons/Button";
-import { TAG } from "constants/routes";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
 import { useGetTagsQuery } from "./tagsApi";
@@ -37,7 +36,7 @@ function TagsPage() {
             icon={<NewTagIcon />}
             hideMobileText={true}
             onClick={() => {
-              navigate(TAG, { state: { background: location } });
+              navigate("/create-tag", { state: { background: location } });
             }}
           >
             {t.tagsModal.createTag}

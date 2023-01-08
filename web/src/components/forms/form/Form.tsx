@@ -4,6 +4,7 @@ import classNames from "classnames";
 
 export type formProps = {
   children: React.ReactNode;
+  ref?: React.RefObject<HTMLFormElement>;
 } & React.FormHTMLAttributes<HTMLFormElement>;
 
 function Form({ children, ...formProps }: formProps) {

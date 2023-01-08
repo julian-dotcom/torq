@@ -3,12 +3,14 @@ export type Tag = {
   name: string;
   style: string;
   categoryId?: number;
+  categoryName?: string;
   createdOn?: Date;
   updateOn?: Date;
 };
 
 export type ExpandedTag = Tag & {
   delete?: boolean;
+  edit?: boolean;
 };
 
 export interface channelTag {

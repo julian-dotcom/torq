@@ -10,6 +10,18 @@ export const TagsColumns: Array<ColumnMetaData<ExpandedTag>> = [
     valueType: "string",
   },
   {
+    key: "categoryId",
+    heading: "Category",
+    type: "TextCell",
+    valueType: "string",
+  },
+  {
+    key: "edit",
+    heading: "Edit",
+    type: "EditCell",
+    valueType: "string",
+  },
+  {
     key: "delete",
     heading: "Delete",
     type: "DeleteCell",

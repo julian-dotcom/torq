@@ -14,6 +14,7 @@ export enum InputColorVaraint {
   accent1 = "accent1",
   accent2 = "accent2",
   accent3 = "accent3",
+  disabled = "disabled",
 }
 
 export const inputSizeClasses = new Map<InputSizeVariant, string>([
@@ -30,6 +31,7 @@ export const colorVaraintClasses = new Map<InputColorVaraint, string>([
   [InputColorVaraint.accent1, styles.accent1],
   [InputColorVaraint.accent2, styles.accent2],
   [InputColorVaraint.accent3, styles.accent3],
+  [InputColorVaraint.disabled, styles.disabled],
 ]);
 
 export function GetColorClass(color: InputColorVaraint | undefined): string {

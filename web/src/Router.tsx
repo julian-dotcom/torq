@@ -30,7 +30,7 @@ import * as routes from "constants/routes";
 import WorkflowPage from "./pages/WorkflowPage/WorkflowPage";
 import WorkflowsTablePage from "./pages/WorkflowPage/WorkflowsTablePage";
 import TagsPage from "./pages/tagsPage/TagsPage";
-import ModifyTagModal from "./pages/tagsPage/ModifyTagModal";
+import TagsModal from "./pages/tagsPage/TagsModal";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -64,8 +64,8 @@ const modalRoutes: RouteObject = {
     { path: routes.UPDATE_CHANNEL, element: <UpdateChannelModal /> },
     { path: routes.OPEN_CHANNEL, element: <OpenChannelModal /> },
     { path: routes.CLOSE_CHANNEL, element: <CloseChannelModal /> },
-    { path: routes.TAG, element: <ModifyTagModal /> },
-    { path: routes.UPDATE_TAG, element: <ModifyTagModal /> },
+    { path: routes.TAG, element: <TagsModal /> },
+    { path: routes.UPDATE_TAG, element: <TagsModal /> },
     { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
   ],
 };

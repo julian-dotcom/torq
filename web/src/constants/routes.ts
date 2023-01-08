@@ -29,7 +29,7 @@ export const UPDATE_CHANNEL = "/update-channel";
 export const OPEN_CHANNEL = "/open-channel";
 export const CLOSE_CHANNEL = "/close-channel";
 export const TAG = "/create-tag";
-export const UPDATE_TAG = "/update-tag";
+export const UPDATE_TAG = "/update-tag/:tagId";
 // Automation
 export const WORKFLOWS = "workflows";
 export const WORKFLOW = "workflows/:workflowId/versions/:version";

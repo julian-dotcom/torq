@@ -5,9 +5,26 @@ import TagCell from "components/table/cells/tag/TagCell";
 import cellStyles from "components/table/cells/cell.module.scss";
 import { TagColor } from "components/tags/Tag";
 import CellWrapper from "components/table/cells/cellWrapper/CellWrapper";
-import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
+import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import { useDeleteTagMutation } from "./tagsApi";
 import useTranslations from "services/i18n/useTranslations";
+import { useLocation } from "react-router-dom";
+
+const color = new Map<string, TagColor>([
+  ["error", TagColor.error],
+  ["success", TagColor.success],
+  ["warning", TagColor.warning],
+  ["accent1", TagColor.accent1],
+  ["accent2", TagColor.accent2],
+  ["accent3", TagColor.accent3],
+  ["primary", TagColor.primary],
+]);
+
+const categoryColor = new Map<string, TagColor>([
+  ["drain", TagColor.error],
+  ["router", TagColor.warning],
+  ["source", TagColor.success],
+]);
 
 export default function tagsCellRenderer(
   row: Tag,
@@ -17,12 +34,27 @@ export default function tagsCellRenderer(
   isTotalsRow?: boolean,
   maxRow?: Tag
 ): JSX.Element {
+  const location = useLocation();
   const [deleteTagMutation] = useDeleteTagMutation();
   const { t } = useTranslations();
 
+  if (column.key === "name") {
+    return (
+      <TagCell
+        editLink={true}
+        label={row["name"] as string}
+        locked={row.tagId ? row.tagId <= 0 : false}
+        colorVariant={color.get(row["style"] as string)}
+        key={"tag-name" + rowIndex + columnIndex}
+        cellWrapperClassName={column.locked ? cellStyles.locked : ""}
+        tagId={row.tagId ? row.tagId : 0}
+      />
+    );
+  }
+
   if (column.key === "delete") {
     return (
-      <CellWrapper>
+      <CellWrapper key={"delete-button-" + row.tagId}>
         <Button
           disabled={!(row.tagId !== undefined && row.tagId >= 0)}
           buttonSize={SizeVariant.small}
@@ -36,25 +68,28 @@ export default function tagsCellRenderer(
       </CellWrapper>
     );
   }
-  if (column.key === "name") {
-    const color = new Map<string, TagColor>([
-      ["error", TagColor.error],
-      ["success", TagColor.success],
-      ["warning", TagColor.warning],
-      ["accent1", TagColor.accent1],
-      ["accent2", TagColor.accent2],
-      ["accent3", TagColor.accent3],
-      ["primary", TagColor.primary],
-    ]);
 
+  if (column.key === "edit") {
+    return (
+      <CellWrapper key={"edit-button-" + row.tagId}>
+        <LinkButton
+          state={{ background: location }}
+          to={`/update-tag/${row.tagId}`}
+          buttonSize={SizeVariant.small}
+          buttonColor={ColorVariant.primary}
+        >
+          {t.edit}
+        </LinkButton>
+      </CellWrapper>
+    );
+  }
+
+  if (column.key === "categoryId" && row.categoryId) {
     return (
       <TagCell
-        label={row["name"] as string}
-        locked={row.tagId ? row.tagId <= 0 : false}
-        colorVariant={color.get(row["style"] as string)}
-        key={"tag-name" + rowIndex + columnIndex}
-        cellWrapperClassName={column.locked ? cellStyles.locked : ""}
-        tagId={row.tagId ? row.tagId : 0}
+        key={"category-name-" + row.tagId}
+        label={t.tagsModal.tagCategories[row.categoryName]}
+        colorVariant={categoryColor.get(row.categoryName as string)}
       />
     );
   }

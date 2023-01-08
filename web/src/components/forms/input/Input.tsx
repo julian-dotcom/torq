@@ -43,6 +43,9 @@ function Input({
   if (errorText != undefined) {
     inputColorClass = GetColorClass(InputColorVaraint.error);
   }
+  if (inputProps.disabled === true) {
+    inputColorClass = GetColorClass(InputColorVaraint.disabled);
+  }
 
   function renderInput() {
     if (formatted) {

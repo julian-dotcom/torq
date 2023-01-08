@@ -124,6 +124,10 @@ export default function Select({
   if (errorText != undefined) {
     inputColorClass = GetColorClass(InputColorVaraint.error);
   }
+  if (selectProps.isDisabled === true) {
+    inputColorClass = GetColorClass(InputColorVaraint.disabled);
+  }
+
   return (
     <div className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}>
       {label && (
