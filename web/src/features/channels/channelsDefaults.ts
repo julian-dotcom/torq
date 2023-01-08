@@ -31,6 +31,13 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     valueType: "string",
   },
   {
+    heading: "Channel Balance (%)",
+    type: "BarCell",
+    key: "gauge",
+    valueType: "number",
+    suffix: "%",
+  },
+  {
     heading: "Remote Balance",
     type: "NumericCell",
     key: "remoteBalance",
@@ -65,6 +72,20 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     valueType: "number",
   },
   {
+    heading: "Remote Fee rate (PPM)",
+    type: "NumericCell",
+    key: "remoteFeeRateMilliMsat",
+    suffix: "ppm",
+    valueType: "number",
+  },
+  {
+    heading: "Remote Base Fee Msat",
+    type: "NumericCell",
+    key: "remoteFeeBaseMsat",
+    suffix: "msat",
+    valueType: "number",
+  },
+  {
     heading: "Minimum HTLC",
     type: "NumericDoubleCell",
     key: "minHtlcMsat",
@@ -73,7 +94,7 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     valueType: "number",
   },
   {
-    heading: "Maximum HTLC Amount",
+    heading: "Maximum HTLC",
     type: "NumericDoubleCell",
     key: "maxHtlcMsat",
     key2: "remoteMaxHtlcMsat",
@@ -81,9 +102,30 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     valueType: "number",
   },
   {
-    heading: "Time Lock Delta",
+    heading: "Remote Minimum HTLC",
     type: "NumericCell",
+    key: "remoteMinHtlcMsat",
+    suffix: "msat",
+    valueType: "number",
+  },
+  {
+    heading: "Remote Maximum HTLC",
+    type: "NumericCell",
+    key: "remoteMaxHtlcMsat",
+    suffix: "msat",
+    valueType: "number",
+  },
+  {
+    heading: "Time Lock Delta",
+    type: "NumericDoubleCell",
     key: "timeLockDelta",
+    key2: "remoteTimeLockDelta",
+    valueType: "number",
+  },
+  {
+    heading: "Remote Time Lock Delta",
+    type: "NumericDoubleCell",
+    key: "remoteTimeLockDelta",
     valueType: "number",
   },
   {
@@ -151,6 +193,21 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     type: "NumericCell",
     key: "pendingTotalHTLCsAmount",
     valueType: "number",
+  },
+  {
+    heading: "Local Channel Reserve",
+    type: "NumericDoubleCell",
+    key: "localChanReserveSat",
+    key2: "remoteChanReserveSat",
+    valueType: "number",
+    suffix: "sat",
+  },
+  {
+    heading: "Remote Channel Reserve",
+    type: "NumericCell",
+    key: "remoteChanReserveSat",
+    valueType: "number",
+    suffix: "sat",
   },
   {
     heading: "Commit Fee",
@@ -221,6 +278,7 @@ export const DefaultChannelsView: ViewResponse<channel> = {
 
 const sortableColumns: Array<keyof channel> = [
   "active",
+  "gauge",
   "peerAlias",
   "shortChannelId",
   "feeRateMilliMsat",
@@ -234,6 +292,12 @@ const sortableColumns: Array<keyof channel> = [
   "feeBaseMsat",
   "minHtlcMsat",
   "maxHtlcMsat",
+  "remoteChanReserveSat",
+  "localChanReserveSat",
+  "remoteFeeRateMilliMsat",
+  "remoteFeeBaseMsat",
+  "remoteMinHtlcMsat",
+  "remoteMaxHtlcMsat",
   "nodeName",
 ];
 

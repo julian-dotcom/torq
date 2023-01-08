@@ -94,6 +94,7 @@ export default function DefaultCellRenderer<T>(
               max={maxRow ? (maxRow[dataKey] as number) : 0}
               showPercent={percent}
               key={dataKey.toString() + rowIndex + columnIndex}
+              suffix={suffix}
             />
           );
         case "NumericDoubleCell":

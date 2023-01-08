@@ -9,6 +9,7 @@ interface barCell {
   max: number;
   className?: string;
   showPercent?: boolean;
+  suffix?: string;
 }
 
 function formatPercent(num: number) {
@@ -22,7 +23,7 @@ function formatPercent(num: number) {
 const formatterDetailed = format(",.2f");
 const formatter = format(",.0f");
 
-function BarCell({ current, max, className, showPercent }: barCell) {
+function BarCell({ current, max, className, showPercent, suffix }: barCell) {
   const percent = (current || 0) / max;
   let data = current % 1 != 0 ? formatterDetailed(current) : formatter(current);
 
@@ -32,7 +33,10 @@ function BarCell({ current, max, className, showPercent }: barCell) {
 
   return (
     <div className={classNames(styles.cell, barCellStyles.barCell, className)}>
-      <div className={styles.current}>{data}</div>
+      <div className={styles.current}>
+        {data}
+        {suffix}
+      </div>
       <div className={barCellStyles.barWrapper}>
         <div className={barCellStyles.bar} style={{ width: percent * 100 + "%" }} />
         <div className={barCellStyles.totalBar} />
