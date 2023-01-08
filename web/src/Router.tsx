@@ -27,10 +27,10 @@ import CloseChannelModal from "features/channels/closeChannel/CloseChannelModal"
 import PaymentsPage from "features/transact/Payments/PaymentsPage";
 import NewInvoiceModal from "features/transact/newInvoice/NewInvoiceModal";
 import * as routes from "constants/routes";
-import WorkflowPage from "./pages/WorkflowPage/WorkflowPage";
-import WorkflowsTablePage from "./pages/WorkflowPage/WorkflowsTablePage";
-import TagsPage from "./pages/tagsPage/TagsPage";
-import TagsModal from "./pages/tagsPage/TagsModal";
+import WorkflowPage from "pages/WorkflowPage/WorkflowPage";
+import WorkflowsTablePage from "pages/WorkflowPage/WorkflowsTablePage";
+import TagsPage from "pages/tagsPage/TagsPage";
+import TagsModal from "pages/tagsPage/TagsModal";
 
 function Logout() {
   const [logout] = useLogoutMutation();
