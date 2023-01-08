@@ -21,7 +21,8 @@ function FlowChart({ data }: FlowChart) {
   const location = useLocation();
 
   function handleNodeClick(channelId: number) {
-    navigate(`/analyse/inspect/${channelId}`, { state: { background: location.state.background } });
+    const state = location?.state?.background || {};
+    navigate(`/analyse/inspect/${channelId}`, { state: state });
   }
 
   // Check and update the chart size if the navigation changes the container size

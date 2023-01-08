@@ -204,7 +204,10 @@ function ChannelPage(_: ChannelPageProps) {
     <PopoutPageTemplate
       title={t.inspectChannel}
       show={true}
-      onClose={() => navigate(location.state.background.pathname)}
+      onClose={() => {
+        const loc = location?.state?.background?.pathname || "/";
+        navigate(loc);
+      }}
       fullWidth={true}
     >
       <PageTitle title={title} className={styles.detailsPageTitle}>
