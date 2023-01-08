@@ -4,13 +4,10 @@
   justify-content: left;
   flex-grow: 1;
   position: absolute;
-  top: 16px;
+  top: 24px;
   left: 16px;
   z-index: 10;
   column-gap: 0px;
-  //padding: 8px 16px;
-  //background-color: var(--color-primary-layer-1);
-  //border-radius: var(--radius-default);
 }
 .stageContainer {
   height: 40px;
@@ -60,7 +57,6 @@
   justify-content: center;
   margin-right: 0px;
   transition: width 200ms ease-in-out, margin-right 200ms ease-in-out;
-  //transition-delay: 350ms;
 }
 .stageContainer.selected .deleteStage {
   margin-right: -20px;

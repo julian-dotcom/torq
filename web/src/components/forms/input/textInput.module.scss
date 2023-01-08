@@ -32,6 +32,9 @@
   &::placeholder {
     color: var(--input-placeholder-color);
   }
+  &:disabled {
+    cursor: not-allowed;
+  }
 }
 .inputFieldContainer {
   position: relative;

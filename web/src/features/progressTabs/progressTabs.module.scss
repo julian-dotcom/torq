@@ -4,10 +4,10 @@
   flex-grow: 1;
 }
 .progressTabsContainer {
-  width: 476px;
+  width: 100%;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 476px;
+  grid-auto-columns: 100%;
   grid-column-gap: 48px;
   will-change: transform;
   transition: transform 200ms;

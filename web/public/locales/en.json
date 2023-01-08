@@ -1,4 +1,5 @@
 {
+  "submit": "Submit",
   "inspect": "Inspect",
   "inspectChannel": "Inspect Channel",
   "seconds": "Seconds",
@@ -72,6 +73,9 @@
   "payments": "Payments",
   "invoices": "Invoices",
   "onChain": "On-Chain",
+  "noCategory": "No Category",
+  "tagNode": "Tag Node",
+  "tagChannel": "Tag Channel",
   "tagsModal": {
     "addConfirmedMessage": "tag and target created",
     "create": "Create",
@@ -82,7 +86,23 @@
     "color": "Tag Color",
     "category": "Category",
     "target": "Add Target",
-    "newTag": "New Tag"
+    "newTag": "New Tag",
+    "noChannelsSelected": "No channels selected",
+    "noNodesSelected": "No nodes selected",
+    "tagColors": {
+      "error": "Red",
+      "warning": "Yellow",
+      "success": "Green",
+      "primary": "Blue",
+      "accent1": "Purple",
+      "accent2": "Teal",
+      "accent3": "Crimson"
+    },
+    "tagCategories": {
+      "drain": "Drain",
+      "source": "Source",
+      "router": "Router"
+    }
   },
   "importFailedPayments": "When this is enabled Torq will import failed payments. (Please be cautious with this as this could cause performance problems for LND. This is not advised for nodes with aggressive rebalancing and/or lightweight hardware.)",
   "implementation": "Implementation",

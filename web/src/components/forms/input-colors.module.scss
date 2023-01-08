@@ -95,3 +95,13 @@
   --input-color: var(--color-text-accent-3-strong);
   --input-label-color: var(--color-text-primary-strong);
 }
+
+.disabled {
+  --input-default-background: var(--color-primary-layer-1);
+  --input-hover-background: var(--color-primary-layer-1);
+  --input-focus-background: var(--color-primary-layer-1);
+  --input-focus-border-color: var(--color-border-primary-faded);
+  --input-placeholder-color: var(--color-text-primary-faded);
+  --input-color: var(--color-text-primary-faint);
+  --input-label-color: var(--color-text-primary-strong);
+}

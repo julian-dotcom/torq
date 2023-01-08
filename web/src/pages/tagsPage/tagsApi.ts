@@ -11,7 +11,7 @@ export const onChainApi = torqApi.injectEndpoints({
     }),
     getTag: builder.query<Tag, number>({
       query: (tagId) => `tags/${tagId}`,
-      providesTags: ["tags"],
+      providesTags: ["tag"],
     }),
     addTag: builder.mutation<Tag, Tag>({
       query: (tag) => ({
@@ -19,7 +19,7 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: tag,
       }),
-      invalidatesTags: ["tags"],
+      invalidatesTags: ["tags", "tag"],
     }),
     setTag: builder.mutation<Tag, Tag>({
       query: (tag) => ({
@@ -27,14 +27,14 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "PUT",
         body: tag,
       }),
-      invalidatesTags: ["tags"],
+      invalidatesTags: ["tags", "tag"],
     }),
     deleteTag: builder.mutation<number, number>({
       query: (tagId) => ({
         url: `channelGroups/tag/${tagId}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["tags"],
+      invalidatesTags: ["tags", "tag"],
     }),
     addChannelTag: builder.mutation<stringMap<string>, channelTag>({
       query: (channelTag) => ({

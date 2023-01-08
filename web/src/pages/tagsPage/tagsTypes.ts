@@ -3,15 +3,14 @@ export type Tag = {
   name: string;
   style: string;
   categoryId?: number;
+  categoryName?: string;
   createdOn?: Date;
   updateOn?: Date;
 };
 
-export type TagsSidebarSections = {
-  filter: boolean;
-  sort: boolean;
-  group: boolean;
-  columns: boolean;
+export type ExpandedTag = Tag & {
+  delete?: boolean;
+  edit?: boolean;
 };
 
 export interface channelTag {
@@ -24,46 +23,46 @@ export interface channelTag {
 }
 
 export type ChannelNode = {
-  channels: ChannelForTag[]
-  nodes: NodeForTag[]
-}
+  channels: ChannelForTag[];
+  nodes: NodeForTag[];
+};
 
 export type ChannelForTag = {
-  shortChannelId: string;
+  shortChannelId?: string;
   channelId: number;
   nodeId: number;
-  alias: string;
+  alias?: string;
   type: string;
-}
+};
 
 export type NodeForTag = {
   nodeId: number;
   alias: string;
   type: string;
-}
+};
 
 export type ChannelGroup = {
   nodeId: number;
   categoryId?: number;
   tagId: number;
   channelId?: number;
-}
+};
 
 export type CorridorFields = {
   referenceId: number;
   alias: string;
   shortChannelId: string;
   corridorId: number;
-}
+};
 
 export type Corridor = {
   corridors: CorridorFields[];
   totalNodes: number;
   totalChannels: number;
-}
+};
 
 export type TagNodeChannel = {
   tagId: number;
   channelId?: number;
   nodeId: number;
-}
+};

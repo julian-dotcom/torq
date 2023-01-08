@@ -7,7 +7,6 @@ import TablePageTemplate, {
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import Button, { ColorVariant } from "components/buttons/Button";
-import { TAG } from "constants/routes";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
 import { useGetTagsQuery } from "./tagsApi";
@@ -37,7 +36,7 @@ function TagsPage() {
             icon={<NewTagIcon />}
             hideMobileText={true}
             onClick={() => {
-              navigate(TAG, { state: { background: location } });
+              navigate("/create-tag", { state: { background: location } });
             }}
           >
             {t.tagsModal.createTag}
@@ -48,7 +47,7 @@ function TagsPage() {
   );
 
   const breadcrumbs = [
-    <span key="b1">{t.transactions}</span>,
+    <span key="b1">{t.manage}</span>,
     <Link key="b2" to={`/${t.manage}/${t.tags}`}>
       {t.tags}
     </Link>,
@@ -57,7 +56,6 @@ function TagsPage() {
   return (
     <TablePageTemplate title={t.tags} breadcrumbs={breadcrumbs} tableControls={tableControls}>
       <Table
-        selectable={true}
         cellRenderer={tagsCellRenderer}
         data={tagsResponse?.data || []}
         activeColumns={DefaultTagsView.view.columns}

@@ -58,7 +58,6 @@ function FirstStageTrigger(props: {
 
 export function WorkflowCanvases(props: WorkflowCanvasStagesProps) {
   const stages = useSelector(SelectWorkflowStages({ workflowId: props.workflowId, version: props.version }));
-  // Get the trigger node using SelectWorkflowMainTriggerNode
 
   const stageComponents = stages.map((stage) => {
     const actionNodes = stage.actions.map(getNodeComponent);

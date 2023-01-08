@@ -2,20 +2,34 @@ import classNames from "classnames";
 import cellStyles from "components/table/cells/cell.module.scss";
 import styles from "./tag_cell.module.scss";
 import Tag, { TagProps } from "components/tags/Tag";
-import {Link, useLocation } from "react-router-dom";
-import { UPDATE_TAG } from "constants/routes";
-import { useDeleteTagMutation } from "pages/tagsPage/tagsApi"
-import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
+import { Link, useLocation } from "react-router-dom";
 
 export type TagCellProps = TagProps & {
   cellWrapperClassName?: string;
   totalCell?: boolean;
   tagId?: number;
+  editLink?: true;
 };
 
-const CheckboxCell = ({ cellWrapperClassName, totalCell, ...tagProps }: TagCellProps) => {
-  const [deleteTagMutation] = useDeleteTagMutation();
+const TagCell = ({ cellWrapperClassName, totalCell, editLink, ...tagProps }: TagCellProps) => {
   const location = useLocation();
+
+  function EditLinkWrapper() {
+    if (editLink) {
+      return (
+        <Link
+          to={`/update-tag/${tagProps.tagId}`}
+          state={{ background: location }}
+          className={classNames(cellStyles.action, styles.updateLink)}
+        >
+          <Tag {...tagProps} />
+        </Link>
+      );
+    } else {
+      return <Tag {...tagProps} />;
+    }
+  }
+
   return (
     <div>
       <div
@@ -26,34 +40,10 @@ const CheckboxCell = ({ cellWrapperClassName, totalCell, ...tagProps }: TagCellP
           cellWrapperClassName
         )}
       >
-        {tagProps?.tagId && tagProps?.tagId < 0 && (
-          <Link to={`${UPDATE_TAG}?tagId=${tagProps.tagId}`} state={{ background: location }} className={classNames(cellStyles.action, styles.updateLink)}>
-            <Tag {...tagProps} />
-          </Link>
-        )}
-        {tagProps?.tagId && tagProps?.tagId > 0 && (
-          <div className={classNames(styles.tagLinks)}>
-            <Link to={`${UPDATE_TAG}?tagId=${tagProps.tagId}`} state={{ background: location }} className={classNames(cellStyles.action, styles.updateLink)}>
-              <Tag {...tagProps} />
-            </Link>
-            <ButtonWrapper
-              className={styles.customButtonWrapperStyles}
-              rightChildren={
-              <Button className={styles.tagbutton}
-                onClick={() => {
-                  deleteTagMutation(tagProps?.tagId || 0)
-                }}
-                buttonColor={ColorVariant.error}>
-                Delete
-              </Button>
-              }
-            />
-          </div>
-        )}
-        </div>
-
+        <EditLinkWrapper />
+      </div>
     </div>
   );
 };
 
-export default CheckboxCell;
+export default TagCell;

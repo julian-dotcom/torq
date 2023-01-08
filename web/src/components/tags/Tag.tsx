@@ -1,6 +1,6 @@
 import classNames from "classnames";
 import styles from "./tag.module.scss";
-import { LockClosed12Regular as LockedIcon } from "@fluentui/react-icons";
+import { LockClosed16Regular as LockedIcon } from "@fluentui/react-icons";
 
 // export enum TagSize {
 //   normal = "normal",
@@ -53,13 +53,13 @@ export default function Tag(props: TagProps) {
     color: props.customTextColor,
   };
   return (
-    <label className={classNames(styles.tagWrapper, colorClass)} style={customColor}>
+    <div className={classNames(styles.tagWrapper, colorClass)} style={customColor}>
       {props.locked && (
-        <div className={classNames(styles.tagLockedIcon)}>
+        <div className={classNames(styles.icon)}>
           <LockedIcon />
         </div>
       )}
       <div className={styles.tagLabel}>{props.label}</div>
-    </label>
+    </div>
   );
 }

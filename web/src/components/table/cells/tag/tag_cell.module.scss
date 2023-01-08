@@ -1,13 +1,14 @@
 .tagCell {
   align-items: flex-start;
 }
-
-
 .tagLinks {
   display: flex;
   column-gap: 8px;
+  cursor: pointer;
 }
-
-.tagbutton {
-  height: 32px;
+.updateLink {
+  cursor: pointer !important;
+  &:hover {
+    font-weight: normal;
+  }
 }
