@@ -1,11 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ReactComponent as TorqLogo } from "icons/torq-logo.svg";
 import { useGetServicesQuery } from "apiSlice";
 import { services } from "apiTypes";
 import "features/services/services_page.scss";
 import Button, { ColorVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 function ServicesPage() {
   const { t } = useTranslations();
@@ -14,16 +14,15 @@ function ServicesPage() {
   const version = servicesState?.torqService ? servicesState?.torqService.version : "Unknown";
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   const retryServices = () => {
     getServices();
     if (servicesState.torqService.status == 1) {
-      navigate("/", { replace: true, state: location });
+      navigate("/");
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (servicesData) {
       setServicesState(servicesData);
     }

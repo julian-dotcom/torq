@@ -6,6 +6,7 @@ import {
   useGetChannelRebalancingQuery,
   useGetChannelEventQuery,
   useGetFlowQuery,
+  useGetChannelsQuery,
 } from "apiSlice";
 import { ChannelHistoryResponse, ChannelEventResponse, Channel } from "features/channel/channelTypes";
 import type { GetChannelHistoryData, GetFlowQueryParams } from "types/api";
@@ -77,6 +78,9 @@ function ChannelPage(_: ChannelPageProps) {
       ["disabled", true],
     ])
   );
+
+  const { data: channelDetails } = useGetChannelsQuery({ network: activeNetwork });
+
   const handleSelectEventUpdate = (type: string) => {
     return (checked: boolean) => {
       setSelectedEvents(new Map(selectedEvents.set(type, checked)));
@@ -172,7 +176,7 @@ function ChannelPage(_: ChannelPageProps) {
       : 0;
   const historyCapacity = history?.channels?.length ? history?.channels[balanceChanId.value].capacity : 0;
 
-  const title =
+  const breadcrumbs =
     (!isLoading &&
       history &&
       (history.channels || [])
@@ -210,7 +214,20 @@ function ChannelPage(_: ChannelPageProps) {
       }}
       fullWidth={true}
     >
-      <PageTitle title={title} className={styles.detailsPageTitle}>
+      <PageTitle
+        title={
+          (channelDetails || [])
+            .filter((chan) => (chanId || "").split(",").includes(chan.channelId.toString()))
+            .map((chan) => chan.peerAlias)
+            // Keep only unique names
+            .filter((value, index, self) => {
+              return self.indexOf(value) === index;
+            })
+            .join(" | ") || breadcrumbs
+        }
+        className={styles.detailsPageTitle}
+        breadcrumbs={[breadcrumbs || ""]}
+      >
         <TimeIntervalSelect />
       </PageTitle>
 

@@ -19,8 +19,10 @@ import type {
   ActiveNetwork,
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
-import { Forward } from "./features/forwards/forwardsTypes";
+import { Forward } from "features/forwards/forwardsTypes";
 import type { nodeConfiguration, settings, timeZone, services } from "apiTypes";
+import { createSelector } from "@reduxjs/toolkit";
+import { Network } from "features/network/networkSlice";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -213,3 +215,16 @@ export const {
   useUpdateChannelMutation,
   useGetServicesQuery,
 } = torqApi;
+
+export const SelectChannel = (props: { network: Network; channelId: number }) => {
+  return createSelector([torqApi.endpoints.getChannels.select({ network: props.network })], (channels) => {
+    return channels?.data?.find((channel) => channel.channelId === props.channelId);
+  });
+};
+export const SelectChannels = (props: { network: Network; channelIds: Array<number> }) => {
+  return createSelector([torqApi.endpoints.getChannels.select({ network: props.network })], (channels) => {
+    return channels?.data?.filter((channel) => {
+      return props.channelIds.includes(channel.channelId);
+    });
+  });
+};
