@@ -1,5 +1,5 @@
 import { torqApi } from "apiSlice";
-import { channelTag, Tag, ChannelNode, ChannelGroup, Corridor } from "./tagsTypes";
+import { channelTag, Tag, ChannelNode, ChannelGroup, Corridor, NewChannelGroupRequest } from "./tagsTypes";
 import { stringMap } from "apiTypes";
 
 // Define a service using a base URL and expected endpoints
@@ -49,7 +49,7 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "GET",
       }),
     }),
-    addChannelsGroups: builder.mutation<ChannelGroup, ChannelGroup>({
+    addChannelsGroups: builder.mutation<ChannelGroup, NewChannelGroupRequest>({
       query: (channelGroups) => ({
         url: `channelGroups`,
         method: "POST",

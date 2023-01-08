@@ -66,7 +66,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
 
   function addTarget(value: number, type: string) {
     if (type === "channel") {
-      const channelsOption = channelsNodesResponse.channels.find((option) => option.channelId !== value);
+      const channelsOption = channelsNodesResponse.channels.find((option) => option.channelId === value);
       if (channelsOption !== undefined) {
         addChannelsGroupsMutation({
           tagId: props.tagId,
@@ -75,7 +75,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
         });
       }
     } else {
-      const nodesOption = channelsNodesResponse.nodes.find((option) => option.nodeId !== value);
+      const nodesOption = channelsNodesResponse.nodes.find((option) => option.nodeId === value);
       if (nodesOption !== undefined) {
         addChannelsGroupsMutation({
           tagId: props.tagId,

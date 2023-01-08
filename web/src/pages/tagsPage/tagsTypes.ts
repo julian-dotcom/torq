@@ -41,6 +41,12 @@ export type NodeForTag = {
   type: string;
 };
 
+export type NewChannelGroupRequest = {
+  nodeId?: number;
+  categoryId?: number;
+  tagId: number;
+  channelId?: number;
+};
 export type ChannelGroup = {
   nodeId: number;
   categoryId?: number;
