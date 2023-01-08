@@ -28,10 +28,10 @@ export type ChannelNode = {
 };
 
 export type ChannelForTag = {
-  shortChannelId: string;
+  shortChannelId?: string;
   channelId: number;
   nodeId: number;
-  alias: string;
+  alias?: string;
   type: string;
 };
 

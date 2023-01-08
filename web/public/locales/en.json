@@ -74,6 +74,8 @@
   "invoices": "Invoices",
   "onChain": "On-Chain",
   "noCategory": "No Category",
+  "tagNode": "Tag Node",
+  "tagChannel": "Tag Channel",
   "tagsModal": {
     "addConfirmedMessage": "tag and target created",
     "create": "Create",

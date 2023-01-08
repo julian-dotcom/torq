@@ -12,6 +12,7 @@ import { useGetCategoriesQuery } from "pages/categoriesPage/categoriesApi";
 import Button, { ButtonWrapper, ColorVariant } from "components/buttons/Button";
 import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
+import TargetsSection from "./targetsSection/TargetsSection";
 
 const inputNames = {
   name: "name",
@@ -122,7 +123,7 @@ export default function TagsModal() {
           />
         </Form>
 
-        {/*<TargetsSection channels={targetChannels} nodes={targetNodes} />*/}
+        {tag.tagId && <TargetsSection tagId={tag.tagId} />}
       </div>
     </PopoutPageTemplate>
   );
@@ -136,7 +137,9 @@ function useGetOrCreateTag() {
     style: TagColor.primary,
   };
 
-  const { data, isLoading } = tagId ? useGetTagQuery(parseInt(tagId)) : { data: newTag, isLoading: false };
+  const { data, isLoading } = tagId
+    ? useGetTagQuery(parseInt(tagId), { skip: isNaN(parseInt(tagId)) })
+    : { data: newTag, isLoading: false };
 
   return {
     tag: data ? data : newTag,

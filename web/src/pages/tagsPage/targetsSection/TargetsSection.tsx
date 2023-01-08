@@ -1,35 +1,45 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import {
   ArrowRouting20Regular as ChannelsIcon,
   Molecule20Regular as NodesIcon,
-  TargetArrow20Regular as TargetIcon,
+  TargetArrow24Regular as TargetIcon,
 } from "@fluentui/react-icons";
 import styles from "./targets_section.module.scss";
 import TargetsHeader from "components/targets/TargetsHeader";
 import Collapse from "features/collapse/Collapse";
 import useTranslations from "services/i18n/useTranslations";
-import { ChannelForTag, ChannelNode, NodeForTag } from "pages/tagsPage/tagsTypes";
-import { useGetNodesChannelsQuery } from "pages/tagsPage/tagsApi";
+import { ChannelNode, Corridor, CorridorFields } from "pages/tagsPage/tagsTypes";
+import {
+  useAddChannelsGroupsMutation,
+  useDeleteChannelGroupByTagMutation,
+  useGetCorridorByReferenceQuery,
+  useGetNodesChannelsQuery,
+} from "pages/tagsPage/tagsApi";
 import { Select } from "components/forms/forms";
-import { ActionMeta } from "react-select";
+import Target from "components/targets/Target";
 
 export type SelectOptions = {
   label?: string;
   value: number | string;
+  type: "node" | "channel" | "group";
 };
 
 type TargetsSectionProps = {
   tagId: number;
-  categoryId?: number;
-  nodes: ReactNode[];
-  channels: ReactNode[];
 };
 
 export default function TargetsSection(props: TargetsSectionProps) {
   const { t } = useTranslations();
-  const [collapsedNode, setCollapsedNode] = useState<boolean>(true);
-  const [collapsedChannel, setCollapsedChannel] = useState<boolean>(true);
-  // const [addChannelsGroupsMutation] = useAddChannelsGroupsMutation();
+  const [collapsedNode, setCollapsedNode] = useState<boolean>(false);
+  const [collapsedChannel, setCollapsedChannel] = useState<boolean>(false);
+  const [targetNodes, setTargetNodes] = useState<ReactNode[]>([]);
+  const [targetChannels, setTargetChannels] = useState<ReactNode[]>([]);
+  const [addChannelsGroupsMutation] = useAddChannelsGroupsMutation();
+  const [deleteChannelGroupByTagMutation] = useDeleteChannelGroupByTagMutation();
+
+  function handleDeleteTarget(corridorId: number) {
+    deleteChannelGroupByTagMutation(corridorId);
+  }
 
   const { data: channelsNodesResponse } = useGetNodesChannelsQuery<{
     data: ChannelNode;
@@ -39,95 +49,147 @@ export default function TargetsSection(props: TargetsSectionProps) {
     isSuccess: boolean;
   }>();
 
-  let channelsNodesOptions: SelectOptions[] = [{ value: 0, label: "Channel or Node" }];
   let channelsOptions: SelectOptions[] = [];
   let nodesOptions: SelectOptions[] = [];
   if (channelsNodesResponse !== undefined) {
-    channelsOptions = channelsNodesResponse.nodes.map((nodesOptions: NodeForTag) => {
-      return { value: nodesOptions.nodeId, label: nodesOptions.alias, type: "node" };
+    channelsOptions = channelsNodesResponse.channels.map((channel) => {
+      return {
+        value: channel.channelId,
+        label: `${channel.shortChannelId?.toString()} | ${channel?.alias}`,
+        type: "channel",
+      };
     });
-    nodesOptions = channelsNodesResponse.channels.map((channelsOptions: ChannelForTag) => {
-      return { value: channelsOptions.channelId, label: channelsOptions.shortChannelId, type: "channel" };
+    nodesOptions = channelsNodesResponse.nodes.map((node) => {
+      return { value: node.nodeId, label: node.alias, type: "node" };
     });
   }
-  channelsNodesOptions = nodesOptions.concat(channelsOptions);
 
-  // function addTarget(value: number, type: string) {
-  //   let request: ChannelGroup = {
-  //     tagId: props.tagId,
-  //   };
-  //   addChannelsGroupsMutation(request);
-  //   // setTarget(channelsNodesOptions[0].value as number);
-  // }
+  function addTarget(value: number, type: string) {
+    if (type === "channel") {
+      const channelsOption = channelsNodesResponse.channels.find((option) => option.channelId !== value);
+      if (channelsOption !== undefined) {
+        addChannelsGroupsMutation({
+          tagId: props.tagId,
+          nodeId: channelsOption.nodeId,
+          channelId: value,
+        });
+      }
+    } else {
+      const nodesOption = channelsNodesResponse.nodes.find((option) => option.nodeId !== value);
+      if (nodesOption !== undefined) {
+        addChannelsGroupsMutation({
+          tagId: props.tagId,
+          nodeId: value,
+        });
+      }
+    }
+  }
 
-  // function handlePostTagInsert() {
-  //   // const channelGoupObj: ChannelGroup = {
-  //   //   tagId,
-  //   //   nodeId,
-  //   // };
-  //   // if (channelId && channelId > 0) {
-  //   //   channelGoupObj.channelId = channelId;
-  //   // }
-  //   // if (selectedTagCategory > 0) {
-  //   //   channelGoupObj.categoryId = selectedTagCategory;
-  //   // }
-  //   // addChannelsGroupsMutation(channelGoupObj);
-  // }
+  const { data: corridorsResponse } = useGetCorridorByReferenceQuery<{
+    data: Corridor;
+    isLoading: boolean;
+    isFetching: boolean;
+    isUninitialized: boolean;
+    isSuccess: boolean;
+  }>(props.tagId);
+
+  useEffect(() => {
+    if (corridorsResponse) {
+      const listNodes: ReactNode[] = [];
+      const listChannels: ReactNode[] = [];
+      corridorsResponse.corridors?.map((c: CorridorFields) => {
+        if (c.shortChannelId) {
+          listChannels.push(
+            <Target
+              onDeleteTarget={() => handleDeleteTarget(c.corridorId)}
+              key={"channel-target-" + c.corridorId}
+              icon={<ChannelsIcon />}
+              details={c.alias}
+              title={c.shortChannelId}
+            />
+          );
+        } else {
+          listNodes.push(
+            <Target
+              onDeleteTarget={() => handleDeleteTarget(c.corridorId)}
+              key={"channel-target-" + c.corridorId}
+              icon={<NodesIcon />}
+              details={"-"}
+              title={c.alias}
+            />
+          );
+        }
+      });
+      setTargetNodes(listNodes);
+      setTargetChannels(listChannels);
+    }
+  }, [corridorsResponse]);
 
   return (
     <div className={styles.targetsSection}>
       <div className={styles.target}>
-        <TargetIcon className={styles.targetIcon} /> <span className={styles.targetText}>Applied to</span>
+        <div className={styles.targetIcon}>
+          <TargetIcon />
+        </div>
+        <div className={styles.targetText}>Applied to</div>
       </div>
 
-      <div className={styles.openChannelTableRow}>
+      <div className={styles.addTagWrapper}>
         <Select
-          label={t.tagsModal.target}
-          onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
+          label={t.tagNode}
+          onChange={(newValue: unknown) => {
             const selectOptions = newValue as SelectOptions;
-            console.log(selectOptions);
-            // addTarget(selectOptions?.value as number, selectOptions?.type as string);
+            addTarget(selectOptions?.value as number, selectOptions?.type as string);
           }}
-          options={channelsNodesOptions}
+          options={nodesOptions}
         />
+        <div className={styles.collapsGroup}>
+          <TargetsHeader
+            title={`${targetNodes.length} ${t.nodes}`}
+            icon={<NodesIcon />}
+            expanded={!collapsedNode}
+            onCollapse={() => setCollapsedNode(!collapsedNode)}
+          />
+          <Collapse collapsed={collapsedNode} animate={true}>
+            <div className={styles.targetsWrapper}>
+              {!targetNodes.length && (
+                <div className={styles.noTargets}>
+                  <span className={styles.noTargetsText}>{t.tagsModal.noNodesSelected}</span>
+                </div>
+              )}
+              {!!targetNodes.length && targetNodes}
+            </div>
+          </Collapse>
+        </div>
       </div>
 
-      <div className={styles.collapsGroup}>
-        <TargetsHeader
-          title={`${props.nodes.length} ${t.nodes}`}
-          icon={<NodesIcon />}
-          expanded={!collapsedNode}
-          onCollapse={() => setCollapsedNode(!collapsedNode)}
+      <div className={styles.addTagWrapper}>
+        <Select
+          label={t.tagChannel}
+          onChange={(newValue: unknown) => {
+            const selectOptions = newValue as SelectOptions;
+            addTarget(selectOptions?.value as number, selectOptions?.type as string);
+          }}
+          options={channelsOptions}
         />
-        <Collapse collapsed={collapsedChannel} animate={true}>
-          <div className={styles.targetsWrapper}>
-            {!props.nodes.length && (
-              <div className={styles.noTargets}>
-                <span className={styles.noTargetsText}>{t.tagsModal.noNodesSelected}</span>
-              </div>
-            )}
-            {!!props.channels.length && props.nodes}
-          </div>
-        </Collapse>
-      </div>
-
-      <div className={styles.collapsGroup}>
-        <TargetsHeader
-          title={`${props.channels.length} ${t.channels}`}
-          icon={<ChannelsIcon />}
-          expanded={!collapsedChannel}
-          onCollapse={() => setCollapsedChannel(!collapsedChannel)}
-        />
-        <Collapse collapsed={collapsedChannel} animate={true}>
-          <div className={styles.targetsWrapper}>
-            {!props.channels.length && (
-              <div className={styles.noTargets}>
-                <span className={styles.noTargetsText}>{t.tagsModal.noChannelsSelected}</span>
-              </div>
-            )}
-            {!!props.channels.length && props.channels}
-          </div>
-        </Collapse>
+        <div className={styles.collapsGroup}>
+          <TargetsHeader
+            title={`${targetChannels.length} ${t.channels}`}
+            icon={<ChannelsIcon />}
+            expanded={!collapsedChannel}
+            onCollapse={() => setCollapsedChannel(!collapsedChannel)}
+          />
+          <Collapse collapsed={collapsedChannel} animate={true}>
+            <div className={styles.targetsWrapper}>
+              {!targetChannels.length && (
+                <div className={styles.noTargets}>
+                  <span className={styles.noTargetsText}>{t.tagsModal.noChannelsSelected}</span>
+                </div>
+              )}
+              {!!targetChannels.length && targetChannels}
+            </div>
+          </Collapse>
+        </div>
       </div>
     </div>
   );

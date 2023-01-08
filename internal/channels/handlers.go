@@ -92,11 +92,11 @@ type ChannelsNodes struct {
 }
 
 type ChannelForTag struct {
-	ShortChannelId string `json:"shortChannelId" db:"short_channel_id"`
-	ChannelId      int    `json:"channelId" db:"channel_id"`
-	NodeId         int    `json:"nodeId" db:"node_id"`
-	Alias          string `json:"alias" db:"alias"`
-	Type           string `json:"type" db:"type"`
+	ShortChannelId *string `json:"shortChannelId" db:"short_channel_id"`
+	ChannelId      int     `json:"channelId" db:"channel_id"`
+	NodeId         int     `json:"nodeId" db:"node_id"`
+	Alias          *string `json:"alias" db:"alias"`
+	Type           string  `json:"type" db:"type"`
 }
 
 type NodeForTag struct {
