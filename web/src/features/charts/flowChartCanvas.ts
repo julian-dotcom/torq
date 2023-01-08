@@ -294,9 +294,12 @@ class FlowChartCanvas {
     this.draw();
   }
 
-  figures: Map<string, { index: number; outbound: boolean }> = new Map<string, { index: number; outbound: boolean }>();
+  figures: Map<string, { index: number; outbound: boolean; channelId: number }> = new Map<
+    string,
+    { index: number; outbound: boolean; channelId: number }
+  >();
 
-  getFigure(xLocation: number, yLocation: number): { index: number; outbound: boolean } | undefined {
+  getFigure(xLocation: number, yLocation: number): { index: number; outbound: boolean; channelId: number } | undefined {
     const colorData = this.interactionContext.getImageData(xLocation, yLocation, 1, 1).data;
 
     return this.figures.get("rgb(" + [colorData[0], colorData[1], colorData[2]].join(",") + ")");
@@ -322,9 +325,11 @@ class FlowChartCanvas {
   }
 
   addClickListener() {
-    this.canvas.on("click", () => {
-      if (this.mouseOver?.index !== undefined) {
-        this.config?.onClick && this.config?.onClick(this.data[this.mouseOver?.index].channelId);
+    this.canvas.on("click", (event) => {
+      const [xPosition, yPosition] = d3.pointer(event);
+      const figure = this.getFigure(xPosition, yPosition);
+      if (figure?.channelId !== undefined) {
+        this.config?.onClick && this.config?.onClick(figure.channelId);
       }
     });
   }
@@ -626,7 +631,7 @@ class FlowChartCanvas {
 
         // Draw the interaction context
         const interactionColor = this.genColor();
-        this.figures.set(interactionColor, { index: i, outbound: true });
+        this.figures.set(interactionColor, { index: i, outbound: true, channelId: d.channelId });
         this.interactionContext.fillStyle = interactionColor;
         this.interactionContext.strokeStyle = interactionColor;
         this.drawOutboundBars(
@@ -676,7 +681,7 @@ class FlowChartCanvas {
 
         //Draw the interaction context
         const interactionColor = this.genColor();
-        this.figures.set(interactionColor, { index: i, outbound: false });
+        this.figures.set(interactionColor, { index: i, outbound: false, channelId: d.channelId });
         this.interactionContext.fillStyle = interactionColor;
         this.interactionContext.strokeStyle = interactionColor;
         this.drawInboundBars(
