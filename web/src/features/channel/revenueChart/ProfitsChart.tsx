@@ -54,7 +54,8 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
           id: profitKey.value + "Out",
           key: profitKey.value + "Out",
           legendLabel: profitKey.label + " out",
-          barColor: "rgba(133, 196, 255, 0.5)",
+          barColor: "rgba(186, 147, 250, 0.6)",
+          barHoverColor: "rgba(186, 147, 250, 0.8)",
           // areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
         });
         chart.draw();

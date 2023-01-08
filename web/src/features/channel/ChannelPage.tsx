@@ -13,7 +13,7 @@ import classNames from "classnames";
 import * as d3 from "d3";
 import { addDays, format } from "date-fns";
 import React from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import EventsCard from "features/eventsCard/EventsCard";
@@ -60,6 +60,7 @@ type ChannelPageProps = {
 function ChannelPage(_: ChannelPageProps) {
   const { t } = useTranslations();
   const navigate = useNavigate();
+  const location = useLocation();
   const currentPeriod = useAppSelector(selectTimeInterval);
   const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
@@ -200,7 +201,12 @@ function ChannelPage(_: ChannelPageProps) {
   //   </Link>,
   // ];
   return (
-    <PopoutPageTemplate title={t.inspectChannel} show={true} onClose={() => navigate(-1)} fullWidth={true}>
+    <PopoutPageTemplate
+      title={t.inspectChannel}
+      show={true}
+      onClose={() => navigate(location.state.background.pathname)}
+      fullWidth={true}
+    >
       <PageTitle title={title} className={styles.detailsPageTitle}>
         <TimeIntervalSelect />
       </PageTitle>

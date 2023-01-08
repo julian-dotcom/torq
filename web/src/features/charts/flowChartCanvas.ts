@@ -25,6 +25,7 @@ type chartConfig = {
   outboundFill: string;
   yScale: ScaleLinear<number, number, never>;
   xScale: ScaleLinear<number, number, number | undefined>;
+  onClick?: (channelId: number) => void;
 };
 
 class FlowChartCanvas {
@@ -106,6 +107,7 @@ class FlowChartCanvas {
 
     const otherChannelsOut: FlowData = {
       alias: "",
+      channelId: 0,
       lndShortChannelId: "",
       fundingTransactionHash: "",
       fundingOutputIndex: 0,
@@ -136,6 +138,7 @@ class FlowChartCanvas {
 
     const otherChannelsIn: FlowData = {
       alias: "",
+      channelId: 0,
       lndShortChannelId: "",
       fundingTransactionHash: "",
       fundingOutputIndex: 0,
@@ -218,6 +221,7 @@ class FlowChartCanvas {
 
     this.addResizeListener();
     this.addHoverListener();
+    this.addClickListener();
     this.addMouseOutListener();
   }
 
@@ -307,10 +311,20 @@ class FlowChartCanvas {
         this.mouseOver = figure;
         this.clearCanvas();
         this.draw();
+        this.canvas.attr("style", "cursor: pointer");
       } else if (figure !== this.mouseOver) {
         this.mouseOver = undefined;
         this.clearCanvas();
         this.draw();
+        this.canvas.attr("style", "cursor: initial");
+      }
+    });
+  }
+
+  addClickListener() {
+    this.canvas.on("click", () => {
+      if (this.mouseOver?.index !== undefined) {
+        this.config?.onClick && this.config?.onClick(this.data[this.mouseOver?.index].channelId);
       }
     });
   }

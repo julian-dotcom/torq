@@ -135,9 +135,9 @@ canvas {
     position: absolute;
     white-space: nowrap;
     color: var(--fg-muted);
-    @media only screen and (max-width: 600px) {
-      display: none;
-    }
+    //@media only screen and (max-width: 600px) {
+    //  display: none;
+    //}
   }
 
   .hover {
@@ -149,11 +149,6 @@ canvas {
     transform: translateY(-50%);
     @media only screen and (max-width: 600px) {
       display: block;
-    }
-    &.hover {
-      @media only screen and (max-width: 600px) {
-        display: none;
-      }
     }
   }
   .flow-inbound-node {

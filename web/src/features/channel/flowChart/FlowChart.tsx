@@ -6,6 +6,8 @@ import FlowChartCanvas from "features/charts/flowChartCanvas";
 import { FlowData } from "features/channel/channelTypes";
 import { useAppSelector } from "store/hooks";
 import { selectFlowKeys } from "../channelSlice";
+import { useNavigate } from "react-router";
+import { useLocation } from "react-router-dom";
 
 type FlowChart = {
   data: Array<FlowData>;
@@ -15,6 +17,12 @@ function FlowChart({ data }: FlowChart) {
   let flowChart: FlowChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
   const flowKey = useAppSelector(selectFlowKeys);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  function handleNodeClick(channelId: number) {
+    navigate(`/analyse/inspect/${channelId}`, { state: { background: location.state.background } });
+  }
 
   // Check and update the chart size if the navigation changes the container size
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,7 +48,7 @@ function FlowChart({ data }: FlowChart) {
         FlowData,
         "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash"
       >;
-      flowChart = new FlowChartCanvas(container, data, { keyOut: keyOut, keyIn: keyIn });
+      flowChart = new FlowChartCanvas(container, data, { keyOut: keyOut, keyIn: keyIn, onClick: handleNodeClick });
       flowChart.draw();
       setInterval(navCheck(container), 200);
     },

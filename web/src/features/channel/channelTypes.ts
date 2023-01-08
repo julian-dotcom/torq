@@ -72,6 +72,7 @@ type ChannelBalance = {
 
 export type FlowData = {
   alias: string;
+  channelId: number;
   lndShortChannelId: string;
   pubKey: string;
   fundingTransactionHash: string;
