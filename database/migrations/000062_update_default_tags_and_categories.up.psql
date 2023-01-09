@@ -1,0 +1,24 @@
+
+-- update tag with the name drained to drain and category id to -3
+UPDATE tag SET name = 'sink' , category_id = -3  WHERE name = 'drained';
+UPDATE tag SET name = 'source' , category_id = -1, style = 'warning'  WHERE name = 'sourced';
+
+INSERT INTO tag (tag_id, name, category_id, style, created_on, updated_on) VALUES (-13, 'balanced', -2, 'success', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-14, 'Routing Node', 'accent3', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+--update tag wallet with the  style to accent1
+UPDATE tag SET style = 'accent1' WHERE name = 'wallet';
+UPDATE tag SET style = 'accent1' WHERE name = 'exchange';
+UPDATE tag SET style = 'accent1' WHERE name = 'merchant';
+
+
+UPDATE category SET name = 'source', style='warning' WHERE name = 'source';
+UPDATE category SET name = 'sink', style='error' WHERE name = 'drain';
+UPDATE category SET name = 'balanced', style='success' WHERE name = 'router';
+
+-- drop the tag named normal
+DELETE FROM tag WHERE name = 'normal';
+DELETE FROM tag WHERE name = 'idle';
+DELETE FROM tag WHERE name = 'expensive';
+DELETE FROM tag WHERE name = 'cheap';
+DELETE FROM tag WHERE name = 'insufficient';

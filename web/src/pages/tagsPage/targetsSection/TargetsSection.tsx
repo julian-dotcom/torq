@@ -51,7 +51,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
 
   let channelsOptions: SelectOptions[] = [];
   let nodesOptions: SelectOptions[] = [];
-  if (channelsNodesResponse !== undefined) {
+  if (channelsNodesResponse?.channels?.length !== undefined) {
     channelsOptions = channelsNodesResponse.channels.map((channel) => {
       return {
         value: channel.channelId,
@@ -59,6 +59,8 @@ export default function TargetsSection(props: TargetsSectionProps) {
         type: "channel",
       };
     });
+  }
+  if (channelsNodesResponse?.nodes?.length !== undefined) {
     nodesOptions = channelsNodesResponse.nodes.map((node) => {
       return { value: node.nodeId, label: node.alias, type: "node" };
     });

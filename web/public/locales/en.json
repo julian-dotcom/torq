@@ -99,9 +99,9 @@
       "accent3": "Crimson"
     },
     "tagCategories": {
-      "drain": "Drain",
+      "sink": "Sink",
       "source": "Source",
-      "router": "Router"
+      "balanced": "Balanced"
     }
   },
   "importFailedPayments": "When this is enabled Torq will import failed payments. (Please be cautious with this as this could cause performance problems for LND. This is not advised for nodes with aggressive rebalancing and/or lightweight hardware.)",

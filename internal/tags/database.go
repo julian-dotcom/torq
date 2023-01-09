@@ -40,7 +40,7 @@ func GetTags(db *sqlx.DB) ([]Tag, error) {
 	err := db.Select(&tags, `
 			SELECT tag.*, category.name as category_name FROM tag
 			left JOIN category ON category.category_id = tag.category_id
-			ORDER BY tag_id ASC ;`)
+			ORDER BY name ASC ;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []Tag{}, nil

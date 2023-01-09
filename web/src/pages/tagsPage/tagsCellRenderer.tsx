@@ -21,9 +21,9 @@ const color = new Map<string, TagColor>([
 ]);
 
 const categoryColor = new Map<string, TagColor>([
-  ["drain", TagColor.error],
-  ["router", TagColor.warning],
-  ["source", TagColor.success],
+  ["sink", TagColor.error],
+  ["balanced", TagColor.success],
+  ["source", TagColor.warning],
 ]);
 
 export default function tagsCellRenderer(
