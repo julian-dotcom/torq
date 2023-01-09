@@ -657,6 +657,11 @@ func getShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 		return ""
 	}
 	req, err := http.NewRequest("GET", commons.VECTOR_SHORTCHANNELID_URL, bytes.NewBuffer(requestObjectBytes))
+	if err != nil {
+		log.Error().Msgf("Failed (http.NewRequest) to obtain shortChannelId for closed channel with channel point %v:%v",
+			fundingTransactionHash, fundingOutputIndex)
+		return ""
+	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
