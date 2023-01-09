@@ -65,22 +65,20 @@ sed -i.bak "s/<YourPort>/$UI_PORT/g" $TORQDIR/start-torq && rm $TORQDIR/start-to
 
 echo 'Docker compose file (docker-compose.yml) created in '$TORQDIR
 
-Green='\033[0;32m' # Green text color
-Cyan='\033[0;36m'
-Red='\033[0;31m'
-NC='\033[0m' ## Reset text color
+printf "\n"
 
+echo "We have added these scripts to ${TORQDIR}:"
+echo "${START_COMMAND} (This command starts Torq)"
+echo "${STOP_COMMAND} (This command stops Torq)"
+echo "${UPDATE_COMMAND} (This command updates Torq)"
+echo "${DELETE_COMMAND} (WARNING: This command deletes Torq _including_ all collected data!)"
 
-echo "We have added these scripts to ${TORQDIR}:\n"
-echo "${Cyan}${START_COMMAND}${NC}\t (This command starts Torq)"
-echo "${Cyan}${STOP_COMMAND}${NC}\t (This command stops Torq)"
-echo "${Cyan}${UPDATE_COMMAND}${NC}\t (This command updates Torq)"
-echo "${Red}${DELETE_COMMAND}${NC}\t (WARNING: This command deletes Torq _including_ all collected data!)"
+printf "\n"
 
-
-echo "${Green}Optional:${NC} you can add these scripts to your PATH by running:"
+echo "Optional you can add these scripts to your PATH by running:"
 echo "sudo ln -s ${TORQDIR}/* /usr/local/bin/"
 
-echo "\nTry it out now! Make sure the Docker daemon is running, and then start Torq with:"
-echo "${Green}${TORQDIR}/${START_COMMAND}${NC}"
-echo "\n"
+printf "\n"
+
+echo "Try it out now! Make sure the Docker daemon is running, and then start Torq with:"
+echo "${TORQDIR}/${START_COMMAND}"
