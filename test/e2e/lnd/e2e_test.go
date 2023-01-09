@@ -5,14 +5,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/docker/docker/client"
-	"github.com/lncapital/torq/virtual_network"
-	"github.com/playwright-community/playwright-go"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/docker/docker/client"
+	"github.com/lncapital/torq/virtual_network"
+	"github.com/playwright-community/playwright-go"
 )
 
 const torqPort = "4927"
@@ -57,11 +58,14 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Getting new docker client: %v\n", err)
 	}
+	defer cli.Close()
 
 	de := virtual_network.DockerDevEnvironment{
-		Client:           cli,
-		NetworkName:      "e2e",
-		SharedVolumeName: "e2e-shared",
+		Client:            cli,
+		NetworkName:       "e2e",
+		SharedVolumeName:  "e2e-shared",
+		DockerHubUsername: os.Getenv("DOCKER_USERNAME"),
+		DockerHubPassword: os.Getenv("DOCKER_PASSWORD"),
 	}
 
 	// cleanup any old networks or containers that might have been left around from a failed run

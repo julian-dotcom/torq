@@ -5,11 +5,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -34,11 +36,13 @@ type ContainerConfig struct {
 }
 
 type DockerDevEnvironment struct {
-	Client           *client.Client
-	NetworkName      string
-	NetworkingConfig network.NetworkingConfig
-	Containers       map[string]*ContainerConfig
-	SharedVolumeName string
+	Client            *client.Client
+	NetworkName       string
+	NetworkingConfig  network.NetworkingConfig
+	Containers        map[string]*ContainerConfig
+	SharedVolumeName  string
+	DockerHubUsername string
+	DockerHubPassword string
 }
 
 func (de *DockerDevEnvironment) CleanupContainers(ctx context.Context) error {
@@ -79,7 +83,51 @@ func (de *DockerDevEnvironment) AddContainer(name string, image string, binds []
 	return de.Containers[name]
 }
 
+func (de *DockerDevEnvironment) pullImage(ctx context.Context, container *ContainerConfig) (err error) {
+	// pull image if we don't have it already
+	// locally built images should be built before calling this function
+	if de.DockerHubUsername != "" && de.DockerHubPassword != "" {
+		images, err := de.Client.ImageList(ctx, types.ImageListOptions{})
+		if err != nil {
+			return errors.Wrap(err, "Listing available docker images")
+		}
+
+		imageAlreadyExists := false
+		for _, image := range images {
+			for _, tag := range image.RepoTags {
+				if strings.Contains(tag, container.Image) {
+					imageAlreadyExists = true
+				}
+			}
+		}
+
+		// pull image using docker hub authentication to prevent us hitting download limits
+		if !imageAlreadyExists {
+			authConfig := types.AuthConfig{
+				Username: de.DockerHubUsername,
+				Password: de.DockerHubPassword,
+			}
+			encodedJSON, err := json.Marshal(authConfig)
+			if err != nil {
+				return errors.Wrap(err, "JSON marshall of auth config")
+			}
+			authStr := base64.URLEncoding.EncodeToString(encodedJSON)
+
+			_, err = de.Client.ImagePull(ctx, container.Image, types.ImagePullOptions{RegistryAuth: authStr})
+			if err != nil {
+				return errors.Wrap(err, "Docker pulling image")
+			}
+		}
+	}
+	return nil
+}
+
 func (de *DockerDevEnvironment) CreateContainer(ctx context.Context, container *ContainerConfig) (err error) {
+
+	if err = de.pullImage(ctx, container); err != nil {
+		return errors.Wrap(err, "Pulling image")
+	}
+
 	hostConfig := &dockercontainer.HostConfig{
 		Binds: container.Binds,
 	}
@@ -256,9 +304,10 @@ func (de *DockerDevEnvironment) BuildImage(ctx context.Context, path string, nam
 	}
 
 	opts := types.ImageBuildOptions{
-		Dockerfile: "Dockerfile",
-		Tags:       []string{name},
-		Remove:     true,
+		Dockerfile:  "Dockerfile",
+		Tags:        []string{name},
+		Remove:      true,
+		AuthConfigs: map[string]types.AuthConfig{"https://index.docker.io/v1/": {Username: de.DockerHubUsername, Password: de.DockerHubPassword}},
 	}
 
 	res, err := de.Client.ImageBuild(ctx, tar, opts)
