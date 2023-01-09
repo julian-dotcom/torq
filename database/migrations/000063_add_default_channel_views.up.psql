@@ -1,0 +1,60 @@
+
+INSERT INTO
+    TABLE_VIEW (
+        view, page, view_order, version, created_on, updated_on)
+    VALUES (
+    '{"title":"All Channels","columns":[{"heading":"Peer Alias","type":"AliasCell","key":"peerAlias","locked":true,"valueType":"string"},{"heading":"Balance","type":"BalanceCell","key":"balance","valueType":"number"},{"heading":"Fee rate (PPM)","type":"NumericDoubleCell","key":"feeRateMilliMsat","key2":"remoteFeeRateMilliMsat","suffix":"ppm","valueType":"number"},{"heading":"Base Fee Msat","type":"NumericDoubleCell","key":"feeBaseMsat","key2":"remoteFeeBaseMsat","suffix":"msat","valueType":"number"},{"heading":"Time Lock Delta","type":"NumericDoubleCell","key":"timeLockDelta","key2":"remoteTimeLockDelta","valueType":"number"},{"heading":"Minimum HTLC","type":"NumericDoubleCell","key":"minHtlcMsat","key2":"remoteMinHtlcMsat","suffix":"msat","valueType":"number"},{"heading":"Maximum HTLC","type":"NumericDoubleCell","key":"maxHtlcMsat","key2":"remoteMaxHtlcMsat","suffix":"sat","valueType":"number"},{"heading":"LND Short Channel ID","type":"LongTextCell","key":"lndShortChannelId","valueType":"string"},{"heading":"Short Channel ID","type":"LongTextCell","key":"shortChannelId","valueType":"string"}],"sortBy":[{"key":"peerAlias","direction":"asc"}]}',
+    'channel',
+        (SELECT coalesce(MAX( view_order ), 0) + 1 FROM table_view where page = 'channel'),
+        'v2',
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP);
+
+INSERT INTO
+    TABLE_VIEW (
+        view, page, view_order, version, created_on, updated_on)
+    VALUES (
+    '{"title":"Drained","columns":[{"heading":"Peer Alias","type":"AliasCell","key":"peerAlias","locked":true,"valueType":"string"},{"heading":"Active","type":"BooleanCell","key":"active","valueType":"boolean","locked":false},{"heading":"Balance","type":"BalanceCell","key":"balance","valueType":"number"},{"heading":"Fee rate (PPM)","type":"NumericDoubleCell","key":"feeRateMilliMsat","key2":"remoteFeeRateMilliMsat","suffix":"ppm","valueType":"number"},{"heading":"Base Fee Msat","type":"NumericDoubleCell","key":"feeBaseMsat","key2":"remoteFeeBaseMsat","suffix":"msat","valueType":"number"},{"heading":"Time Lock Delta","type":"NumericDoubleCell","key":"timeLockDelta","key2":"remoteTimeLockDelta","valueType":"number"},{"heading":"Minimum HTLC","type":"NumericDoubleCell","key":"minHtlcMsat","key2":"remoteMinHtlcMsat","suffix":"msat","valueType":"number"},{"heading":"Maximum HTLC","type":"NumericDoubleCell","key":"maxHtlcMsat","key2":"remoteMaxHtlcMsat","suffix":"sat","valueType":"number"},{"heading":"Short Channel ID","type":"LongTextCell","key":"shortChannelId","valueType":"string"}],"sortBy":[{"key":"gauge","direction":"asc"}],"filters":{"$and":[{"$filter":{"funcName":"lt","category":"number","parameter":5,"key":"gauge"}}]}}',
+    'channel',
+        (SELECT coalesce(MAX( view_order ), 0) + 1 FROM table_view where page = 'channel'),
+        'v2',
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP);
+
+INSERT INTO
+    TABLE_VIEW (
+        view, page, view_order, version, created_on, updated_on)
+    VALUES (
+    '{"title":"Full","columns":[{"heading":"Peer Alias","type":"AliasCell","key":"peerAlias","locked":true,"valueType":"string"},{"heading":"Active","type":"BooleanCell","key":"active","valueType":"boolean","locked":false},{"heading":"Balance","type":"BalanceCell","key":"balance","valueType":"number"},{"heading":"Fee rate (PPM)","type":"NumericDoubleCell","key":"feeRateMilliMsat","key2":"remoteFeeRateMilliMsat","suffix":"ppm","valueType":"number"},{"heading":"Base Fee Msat","type":"NumericDoubleCell","key":"feeBaseMsat","key2":"remoteFeeBaseMsat","suffix":"msat","valueType":"number"},{"heading":"Time Lock Delta","type":"NumericDoubleCell","key":"timeLockDelta","key2":"remoteTimeLockDelta","valueType":"number"},{"heading":"Minimum HTLC","type":"NumericDoubleCell","key":"minHtlcMsat","key2":"remoteMinHtlcMsat","suffix":"msat","valueType":"number"},{"heading":"Maximum HTLC","type":"NumericDoubleCell","key":"maxHtlcMsat","key2":"remoteMaxHtlcMsat","suffix":"sat","valueType":"number"}],"sortBy":[{"key":"gauge","direction":"desc"}],"filters":{"$and":[{"$filter":{"funcName":"gte","category":"number","parameter":80,"key":"gauge"}}]}}',
+    'channel',
+        (SELECT coalesce(MAX( view_order ), 0) + 1 FROM table_view where page = 'channel'),
+        'v2',
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP);
+
+INSERT INTO
+    TABLE_VIEW (
+        view, page, view_order, version, created_on, updated_on)
+    VALUES (
+    '{"title":"Remote Expensive","columns":[{"heading":"Peer Alias","type":"AliasCell","key":"peerAlias","locked":true,"valueType":"string"},{"heading":"Active","type":"BooleanCell","key":"active","valueType":"boolean","locked":false},{"heading":"Balance","type":"BalanceCell","key":"balance","valueType":"number"},{"heading":"Short Channel ID","type":"LongTextCell","key":"shortChannelId","valueType":"string"},{"heading":"Fee rate (PPM)","type":"NumericDoubleCell","key":"feeRateMilliMsat","key2":"remoteFeeRateMilliMsat","suffix":"ppm","valueType":"number"},{"heading":"Base Fee Msat","type":"NumericDoubleCell","key":"feeBaseMsat","key2":"remoteFeeBaseMsat","suffix":"msat","valueType":"number"},{"heading":"Minimum HTLC","type":"NumericDoubleCell","key":"minHtlcMsat","key2":"remoteMinHtlcMsat","suffix":"msat","valueType":"number"},{"heading":"Maximum HTLC","type":"NumericDoubleCell","key":"maxHtlcMsat","key2":"remoteMaxHtlcMsat","suffix":"sat","valueType":"number"},{"heading":"Time Lock Delta","type":"NumericDoubleCell","key":"timeLockDelta","key2":"remoteTimeLockDelta","valueType":"number"}],"sortBy":[{"key":"remoteFeeRateMilliMsat","direction":"desc"},{"key":"remoteFeeBaseMsat","direction":"desc"}],"filters":{"$or":[{"$filter":{"funcName":"gte","category":"number","parameter":1000,"key":"remoteFeeRateMilliMsat"}},{"$filter":{"funcName":"gte","category":"number","parameter":100000,"key":"remoteFeeBaseMsat"}}]}}',
+    'channel',
+        (SELECT coalesce(MAX( view_order ), 0) + 1 FROM table_view where page = 'channel'),
+        'v2',
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP);
+
+INSERT INTO
+    TABLE_VIEW (
+        view, page, view_order, version, created_on, updated_on)
+    VALUES (
+    '{"title":"Large Channels","columns":[{"heading":"Peer Alias","type":"AliasCell","key":"peerAlias","locked":true,"valueType":"string"},{"heading":"Balance","type":"BalanceCell","key":"balance","valueType":"number"},{"heading":"Fee rate (PPM)","type":"NumericDoubleCell","key":"feeRateMilliMsat","key2":"remoteFeeRateMilliMsat","suffix":"ppm","valueType":"number"},{"heading":"Base Fee Msat","type":"NumericDoubleCell","key":"feeBaseMsat","key2":"remoteFeeBaseMsat","suffix":"msat","valueType":"number"},{"heading":"Time Lock Delta","type":"NumericDoubleCell","key":"timeLockDelta","key2":"remoteTimeLockDelta","valueType":"number"},{"heading":"Minimum HTLC","type":"NumericDoubleCell","key":"minHtlcMsat","key2":"remoteMinHtlcMsat","suffix":"msat","valueType":"number"},{"heading":"Maximum HTLC","type":"NumericDoubleCell","key":"maxHtlcMsat","key2":"remoteMaxHtlcMsat","suffix":"sat","valueType":"number"},{"heading":"Short Channel ID","type":"LongTextCell","key":"shortChannelId","valueType":"string"},{"heading":"LND Short Channel ID","type":"LongTextCell","key":"lndShortChannelId","valueType":"string"}],"sortBy":[{"key":"peerAlias","direction":"asc"}],"filters":{"$and":[{"$filter":{"funcName":"gte","category":"number","parameter":10000000,"key":"capacity"}}]}}',
+    'channel',
+        (SELECT coalesce(MAX( view_order ), 0) + 1 FROM table_view where page = 'channel'),
+        'v2',
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP);
+
+
+
+
+
