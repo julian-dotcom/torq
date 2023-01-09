@@ -11,21 +11,6 @@ eval TORQDIR="${TORQDIR:=$HOME/.torq}"
 echo $TORQDIR
 printf "\n"
 
-# Set database password
-
-printf "\n"
-stty -echo
-read -p "Please set a database password: " DBPASSWORD
-
-while [[ -z "$DBPASSWORD" ]]; do
-  printf "\n"
-  read -p "The password cannot be empty, please try again: " DBPASSWORD
-done
-
-stty echo
-printf "\n"
-
-
 # Set web UI password
 printf "\n"
 stty -echo
@@ -74,7 +59,6 @@ chmod +x $TORQDIR/$UPDATE_COMMAND
 chmod +x $TORQDIR/$DELETE_COMMAND
 
 # https://stackoverflow.com/questions/16745988/sed-command-with-i-option-in-place-editing-works-fine-on-ubuntu-but-not-mac
-sed -i.bak "s/<YourDBPassword>/$DBPASSWORD/" $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
 sed -i.bak "s/<YourUIPassword>/$UIPASSWORD/" $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
 sed -i.bak "s/<YourPort>/$UI_PORT/g" $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
 sed -i.bak "s/<YourPort>/$UI_PORT/g" $TORQDIR/start-torq && rm $TORQDIR/start-torq.bak

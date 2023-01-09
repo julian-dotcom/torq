@@ -9,7 +9,7 @@ services:
       - --db.host
       - db
       - --db.password
-      - "<YourDBPassword>" # Must match db password below
+      - runningtorq
       - --torq.password
       - "<YourUIPassword>" # Set password here to connect to login to the web ui
       - --torq.port
@@ -20,7 +20,7 @@ services:
   db:
     image: "timescale/timescaledb:latest-pg14"
     environment:
-      POSTGRES_PASSWORD: "<YourDBPassword>" # Must match db password set above
+      POSTGRES_PASSWORD: "runningtorq" # Must match db password set above
     volumes:
       - torq_db:/var/lib/postgresql/data
 volumes:
