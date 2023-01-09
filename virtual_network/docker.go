@@ -304,10 +304,13 @@ func (de *DockerDevEnvironment) BuildImage(ctx context.Context, path string, nam
 	}
 
 	opts := types.ImageBuildOptions{
-		Dockerfile:  "Dockerfile",
-		Tags:        []string{name},
-		Remove:      true,
-		AuthConfigs: map[string]types.AuthConfig{"https://index.docker.io/v1/": {Username: de.DockerHubUsername, Password: de.DockerHubPassword}},
+		Dockerfile: "Dockerfile",
+		Tags:       []string{name},
+		Remove:     true,
+	}
+
+	if de.DockerHubUsername != "" && de.DockerHubPassword != "" {
+		opts.AuthConfigs = map[string]types.AuthConfig{"https://index.docker.io/v1/": {Username: de.DockerHubUsername, Password: de.DockerHubPassword}}
 	}
 
 	res, err := de.Client.ImageBuild(ctx, tar, opts)
