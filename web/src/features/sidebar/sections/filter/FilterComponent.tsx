@@ -75,11 +75,12 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filterOptions = props.columns.slice().map((column: any) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const columnOption: any = {
-      value: column.key,
-      label: column.heading,
+    const columnOption = {
+      value: column.key as string,
+      label: column.heading as string,
       valueType: column.valueType as "string" | "number" | "boolean" | "date" | "array",
       selectOptions: column.selectOptions,
+      arrayOptions: undefined as undefined | { value: boolean; label: string }[],
     };
     if (column.valueType === "array") {
       columnOption.arrayOptions = [

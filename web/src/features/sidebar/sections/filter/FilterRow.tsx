@@ -1,13 +1,13 @@
 import classNames from "classnames";
 import { Delete16Regular as RemoveIcon } from "@fluentui/react-icons";
 import Select from "./FilterDropDown";
-import { FilterClause, FilterParameterType } from "./filter";
+import { FilterClause, FilterInterface, FilterParameterType } from "./filter";
 import styles from "./filter-section.module.scss";
 import { FilterFunctions } from "./filter";
-import NumberFormat from "react-number-format";
 import { useState } from "react";
 import { format } from "d3";
 import { FilterCategoryType } from "./filter";
+import { Input } from "components/forms/forms";
 
 const formatter = format(",.0f");
 
@@ -136,84 +136,9 @@ function FilterRow({
   };
 
   const label = filterOptions.find((item) => item.value === rowValues.key)?.label;
-  const options = filterOptions.find((item) => item.value === rowValues.key)?.selectOptions;
+  const options = filterOptions.find((item) => item.value === rowValues.key)?.selectOptions || [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getInputField = (handleParamChange: any) => {
-    switch (rowValues.category) {
-      case "number":
-        return (
-          <NumberFormat
-            className={classNames(styles.filterInputField, styles.small)}
-            thousandSeparator=","
-            value={rowValues.parameter as keyof FilterParameterType}
-            onValueChange={handleParamChange}
-          />
-        );
-      case "boolean":
-        return (
-          <Select
-            selectProps={{
-              options: [
-                { label: "True", value: true },
-                { label: "False", value: false },
-              ],
-              value: { label: !rowValues.parameter ? "False" : "True", value: rowValues.parameter },
-              onChange: handleParamChange,
-            }}
-            child={child}
-          />
-        );
-      case "array": {
-        const label = options?.find((item) => {
-          return item.value === rowValues.parameter ? item : "";
-        })?.label;
-        return (
-          <Select
-            selectProps={{
-              options: options,
-              value: { value: rowValues.parameter, label: label },
-              onChange: handleParamChange,
-            }}
-            child={child}
-          />
-        );
-      }
-      case "enum": {
-        const label = options?.find((item) => {
-          return item.value === rowValues.parameter ? item : "";
-        })?.label;
-        return (
-          <Select
-            selectProps={{
-              options: options,
-              value: { value: rowValues.parameter, label: label },
-              onChange: handleParamChange,
-            }}
-            child={child}
-          />
-        );
-      }
-      case "date":
-        return (
-          <input
-            type="datetime-local"
-            className={"torq-input-field"}
-            value={rowValues.parameter as string}
-            onChange={handleParamChange}
-          />
-        );
-      default:
-        return (
-          <input
-            type="text"
-            className={"torq-input-field"}
-            value={rowValues.parameter as keyof FilterParameterType}
-            onChange={handleParamChange}
-          />
-        );
-    }
-  };
 
   const getParameter = () => {
     switch (rowValues.category) {
@@ -268,10 +193,96 @@ function FilterRow({
           />
         </div>
 
-        <div className={styles.filterParameterContainer}>{getInputField(handleParamChange)}</div>
+        <div className={styles.filterParameterContainer}>
+          <FilterInputField onChange={handleParamChange} rowValues={rowValues} options={options} child={child} />
+        </div>
       </div>
     </div>
   );
 }
 
 export default FilterRow;
+
+function FilterInputField(props: {
+  onChange: (e: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  rowValues: FilterInterface;
+  child: boolean;
+  options: Array<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+}) {
+  switch (props.rowValues.category) {
+    case "number":
+      return (
+        <Input
+          formatted={true}
+          className={classNames(styles.filterInputField, styles.small)}
+          thousandSeparator=","
+          defaultValue={props.rowValues.parameter as keyof FilterParameterType}
+          onValueChange={(e) => {
+            props.onChange(e);
+          }}
+        />
+      );
+    case "boolean":
+      return (
+        <Select
+          selectProps={{
+            options: [
+              { label: "True", value: true },
+              { label: "False", value: false },
+            ],
+            value: { label: !props.rowValues.parameter ? "False" : "True", value: props.rowValues.parameter },
+            onChange: props.onChange,
+          }}
+          child={props.child}
+        />
+      );
+    case "array": {
+      const label = props.options?.find((item) => {
+        return item.value === props.rowValues.parameter ? item : "";
+      })?.label;
+      return (
+        <Select
+          selectProps={{
+            options: props.options,
+            value: { value: props.rowValues.parameter, label: label },
+            onChange: props.onChange,
+          }}
+          child={props.child}
+        />
+      );
+    }
+    case "enum": {
+      const label = props.options?.find((item) => {
+        return item.value === props.rowValues.parameter ? item : "";
+      })?.label;
+      return (
+        <Select
+          selectProps={{
+            options: props.options,
+            value: { value: props.rowValues.parameter, label: label },
+            onChange: props.onChange,
+          }}
+          child={props.child}
+        />
+      );
+    }
+    case "date":
+      return (
+        <input
+          type="datetime-local"
+          className={"torq-input-field"}
+          value={props.rowValues.parameter as string}
+          onChange={props.onChange}
+        />
+      );
+    default:
+      return (
+        <input
+          type="text"
+          className={"torq-input-field"}
+          value={props.rowValues.parameter as keyof FilterParameterType}
+          onChange={props.onChange}
+        />
+      );
+  }
+}

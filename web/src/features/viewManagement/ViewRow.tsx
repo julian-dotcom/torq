@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, MouseEvent, useState } from "react";
 import classNames from "classnames";
 import { Draggable } from "react-beautiful-dnd";
 import {
@@ -44,7 +44,9 @@ export default function ViewRowComponent(props: ViewRow) {
     dispatch(updateViewTitle({ page: props.page, viewIndex: props.viewIndex, title: localTitle }));
   }
 
-  function handleSelectView() {
+  function handleSelectView(event: MouseEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
     dispatch(updateSelectedView({ page: props.page, viewIndex: props.viewIndex }));
   }
 
@@ -86,16 +88,14 @@ export default function ViewRowComponent(props: ViewRow) {
               <EditIcon />
             </div>
           )}
-          {props.dirty && (
-            <div
-              className={styles.viewRowSave}
-              onClick={() => {
-                props.onSaveView(props.viewIndex);
-              }}
-            >
-              <SaveIcon />
-            </div>
-          )}
+          <div
+            className={classNames(styles.viewRowSave, { [styles.clean]: !props.dirty })}
+            onClick={() => {
+              props.onSaveView(props.viewIndex);
+            }}
+          >
+            <SaveIcon />
+          </div>
           {!props.singleView && (
             <div
               className={styles.removeView}

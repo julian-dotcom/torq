@@ -120,7 +120,7 @@ function ViewsPopover<T>(props: ViewSection<T>) {
                       viewIndex={viewIndex}
                       page={view.page}
                       dirty={view.dirty}
-                      key={"view-row-" + viewIndex + "-dirty-" + view.view.title}
+                      key={"view-row-" + viewIndex + "-draft-" + view.view.title}
                       selected={viewResponse.selected === viewIndex}
                       singleView={singleView}
                       onSaveView={handleSaveView}
