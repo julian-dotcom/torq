@@ -3,6 +3,7 @@
   flex-direction: column;
   row-gap: 4px;
   padding: 8px;
+  height: 100%;
   align-items: flex-end;
   align-content: center;
   text-align: right;
@@ -200,17 +201,21 @@
 .tableRow:hover .cell {
   background-color: var(--color-primary-layer-2);
 }
-.outbound {
+.remote,
+.local {
+  display: flex;
+  align-items: center;
+  column-gap: 4px;
+}
+.remote {
   color: #78b0e6;
 }
-
-.outboundIcon {
-  color: #78b0e6;
+.inboundIcon {
   top: 2px;
   position: relative;
 }
 
-.inboundIcon {
+.outboundIcon {
   top: 2px;
   position: relative;
 }

@@ -1,4 +1,4 @@
-import { ExpandedTag, Tag } from "./tagsTypes";
+import { ExpandedTag } from "./tagsTypes";
 import { ColumnMetaData } from "features/table/types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import TagCell from "components/table/cells/tag/TagCell";
@@ -6,9 +6,12 @@ import cellStyles from "components/table/cells/cell.module.scss";
 import { TagColor } from "components/tags/Tag";
 import CellWrapper from "components/table/cells/cellWrapper/CellWrapper";
 import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
+import { MoleculeRegular as NodeIcon, ArrowRoutingRegular as ChannelIcon } from "@fluentui/react-icons";
+
 import { useDeleteTagMutation } from "./tagsApi";
 import useTranslations from "services/i18n/useTranslations";
 import { useLocation } from "react-router-dom";
+import NumericDoubleCell from "components/table/cells/numeric/NumericDoubleCell";
 
 const color = new Map<string, TagColor>([
   ["error", TagColor.error],
@@ -27,12 +30,12 @@ const categoryColor = new Map<string, TagColor>([
 ]);
 
 export default function tagsCellRenderer(
-  row: Tag,
+  row: ExpandedTag,
   rowIndex: number,
   column: ColumnMetaData<ExpandedTag>,
   columnIndex: number,
   isTotalsRow?: boolean,
-  maxRow?: Tag
+  maxRow?: ExpandedTag
 ): JSX.Element {
   const location = useLocation();
   const [deleteTagMutation] = useDeleteTagMutation();
@@ -66,6 +69,18 @@ export default function tagsCellRenderer(
           {t.delete}
         </Button>
       </CellWrapper>
+    );
+  }
+
+  if (column.key === "channels") {
+    return (
+      <NumericDoubleCell
+        key={"channels-" + rowIndex + columnIndex}
+        topValue={row.nodes?.length || 0}
+        bottomValue={row.channels?.length || 0}
+        bottomIcon={<ChannelIcon />}
+        topIcon={<NodeIcon />}
+      />
     );
   }
 

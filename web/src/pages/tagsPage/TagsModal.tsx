@@ -3,7 +3,7 @@ import useTranslations from "services/i18n/useTranslations";
 import { useParams } from "react-router-dom";
 import { TagColor } from "components/tags/Tag";
 import { useGetTagQuery, useAddTagMutation, useSetTagMutation } from "./tagsApi";
-import { Tag } from "./tagsTypes";
+import { ExpandedTag, TagResponse } from "./tagsTypes";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import { Form, Select, Input, InputRow } from "components/forms/forms";
 import styles from "./modifyTagModal.module.scss";
@@ -49,7 +49,7 @@ export default function TagsModal() {
     const categoryValue = data.get(inputNames.categoryId);
     const category = categoryValue ? parseInt(categoryValue.toString()) : undefined;
 
-    const tagRequest: Tag = {
+    const tagRequest: ExpandedTag = {
       ...tag,
       name: data.get("name") as string,
       style: data.get(inputNames.style) as TagColor,
@@ -123,7 +123,7 @@ export default function TagsModal() {
           />
         </Form>
 
-        {tag.tagId && <TargetsSection tagId={tag.tagId} />}
+        {tag.tagId && <TargetsSection tagId={tag.tagId} channels={tag.channels} nodes={tag.nodes} />}
       </div>
     </PopoutPageTemplate>
   );
@@ -132,9 +132,11 @@ export default function TagsModal() {
 function useGetOrCreateTag() {
   const { tagId } = useParams<{ tagId: string }>();
 
-  const newTag: Tag = {
+  const newTag: TagResponse = {
     name: "",
     style: TagColor.primary,
+    channels: [],
+    nodes: [],
   };
 
   const { data, isLoading } = tagId
@@ -163,7 +165,7 @@ function useTagColorOptions(tag: string) {
   return { tagColorOptions, selectedTag };
 }
 
-function hasTagsData(result: unknown): result is { data: Tag } {
+function hasTagsData(result: unknown): result is { data: ExpandedTag } {
   return result !== null && Object.hasOwn(result || {}, "data");
 }
 

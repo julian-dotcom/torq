@@ -15,6 +15,7 @@ export const TagsColumns: Array<ColumnMetaData<ExpandedTag>> = [
     type: "TextCell",
     valueType: "string",
   },
+  { key: "channels", heading: "Applied to", type: "NumericDoubleCell", valueType: "string" },
   {
     key: "edit",
     heading: "Edit",

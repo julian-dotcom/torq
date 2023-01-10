@@ -1,0 +1,9 @@
+CREATE TABLE tagged_entity (
+  tagged_entity_id SERIAL PRIMARY KEY NOT NULL,
+  tag_id INT NOT NULL REFERENCES tag(tag_id) ON DELETE CASCADE,
+  channel_id INT REFERENCES channel(channel_id) ON DELETE CASCADE,
+  node_id    INT REFERENCES node(node_id) ON DELETE CASCADE,
+  CONSTRAINT unique_tagged_channel UNIQUE (tag_id, channel_id),
+  CONSTRAINT unique_tagged_node UNIQUE (tag_id, node_id),
+  CONSTRAINT valid_tagged_entity CHECK ((channel_id IS NULL AND node_id IS NOT NULL) OR (channel_id IS NOT NULL AND node_id IS NULL))
+)

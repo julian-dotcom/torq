@@ -1,19 +1,18 @@
 import { torqApi } from "apiSlice";
-import { channelTag, Tag, ChannelNode, ChannelGroup, Corridor, NewChannelGroupRequest } from "./tagsTypes";
-import { stringMap } from "apiTypes";
+import { ChannelNode, TagChannelRequest, TagNodeRequest, TagResponse } from "./tagsTypes";
 
 // Define a service using a base URL and expected endpoints
 export const onChainApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
-    getTags: builder.query<Tag[], void>({
+    getTags: builder.query<Array<TagResponse>, void>({
       query: () => `tags`,
       providesTags: ["tags"],
     }),
-    getTag: builder.query<Tag, number>({
+    getTag: builder.query<TagResponse, number>({
       query: (tagId) => `tags/${tagId}`,
       providesTags: ["tag"],
     }),
-    addTag: builder.mutation<Tag, Tag>({
+    addTag: builder.mutation<TagResponse, TagResponse>({
       query: (tag) => ({
         url: `tags`,
         method: "POST",
@@ -21,7 +20,7 @@ export const onChainApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["tags", "tag"],
     }),
-    setTag: builder.mutation<Tag, Tag>({
+    setTag: builder.mutation<TagResponse, TagResponse>({
       query: (tag) => ({
         url: `tags`,
         method: "PUT",
@@ -31,45 +30,49 @@ export const onChainApi = torqApi.injectEndpoints({
     }),
     deleteTag: builder.mutation<number, number>({
       query: (tagId) => ({
-        url: `channelGroups/tag/${tagId}`,
+        url: `tags/${tagId}`,
         method: "DELETE",
       }),
       invalidatesTags: ["tags", "tag"],
     }),
-    addChannelTag: builder.mutation<stringMap<string>, channelTag>({
-      query: (channelTag) => ({
-        url: `channelTags/add`,
+    tagChannel: builder.mutation<void, TagChannelRequest>({
+      query: (tagChannel) => ({
+        url: `tags/tag`,
         method: "POST",
-        body: channelTag,
+        body: tagChannel,
       }),
+      invalidatesTags: ["tags", "tag"],
     }),
+    tagNode: builder.mutation<void, TagNodeRequest>({
+      query: (tagNode) => ({
+        url: `tags/tag`,
+        method: "POST",
+        body: tagNode,
+      }),
+      invalidatesTags: ["tags", "tag"],
+    }),
+    untagNode: builder.mutation<void, TagNodeRequest>({
+      query: (tagNode) => ({
+        url: `tags/untag`,
+        method: "POST",
+        body: tagNode,
+      }),
+      invalidatesTags: ["tags", "tag"],
+    }),
+    untagChannel: builder.mutation<void, TagChannelRequest>({
+      query: (tagChannel) => ({
+        url: `tags/untag`,
+        method: "POST",
+        body: tagChannel,
+      }),
+      invalidatesTags: ["tags", "tag"],
+    }),
+
     getNodesChannels: builder.query<ChannelNode, void>({
       query: () => ({
         url: `channels/nodes`,
         method: "GET",
       }),
-    }),
-    addChannelsGroups: builder.mutation<ChannelGroup, NewChannelGroupRequest>({
-      query: (channelGroups) => ({
-        url: `channelGroups`,
-        method: "POST",
-        body: channelGroups,
-      }),
-      invalidatesTags: ["corridors"],
-    }),
-    getCorridorByReference: builder.query<Corridor, number>({
-      query: (tagId) => ({
-        url: `corridors/${tagId}`,
-        method: "GET",
-      }),
-      providesTags: ["corridors"],
-    }),
-    deleteChannelGroupByTag: builder.mutation<number, number>({
-      query: (corridorId) => ({
-        url: `channelGroups/corridor/${corridorId}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["corridors"],
     }),
   }),
 });
@@ -78,10 +81,11 @@ export const onChainApi = torqApi.injectEndpoints({
 export const {
   useGetTagsQuery,
   useGetTagQuery,
-  useGetCorridorByReferenceQuery,
+  useTagChannelMutation,
+  useTagNodeMutation,
+  useUntagNodeMutation,
+  useUntagChannelMutation,
   useAddTagMutation,
-  useAddChannelsGroupsMutation,
-  useDeleteChannelGroupByTagMutation,
   useDeleteTagMutation,
   useSetTagMutation,
   useGetNodesChannelsQuery,
