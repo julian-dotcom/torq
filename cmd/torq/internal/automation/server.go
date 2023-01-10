@@ -51,7 +51,7 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 }
 
 func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) error {
+	lightningCommunicationChannel chan interface{}) error {
 
 	var wg sync.WaitGroup
 
@@ -61,11 +61,11 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster)
+				log.Error().Msgf("Panic occurred in LightningCommunicationService %v", panicError)
+				lnd.LightningCommunicationService(ctx, conn, db, nodeId, lightningCommunicationChannel)
 			}
 		}()
-		lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster)
+		lnd.LightningCommunicationService(ctx, conn, db, nodeId, lightningCommunicationChannel)
 	})()
 
 	wg.Wait()
@@ -74,7 +74,7 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 }
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) error {
+	rebalanceRequestChannel chan commons.RebalanceRequest) error {
 
 	var wg sync.WaitGroup
 
@@ -84,11 +84,11 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				commons.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster)
+				log.Error().Msgf("Panic occurred in RebalanceServiceStart %v", panicError)
+				commons.RebalanceServiceStart(ctx, conn, db, nodeId, rebalanceRequestChannel)
 			}
 		}()
-		commons.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster)
+		commons.RebalanceServiceStart(ctx, conn, db, nodeId, rebalanceRequestChannel)
 	})()
 
 	wg.Wait()

@@ -1,9 +1,11 @@
 package lnd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -396,7 +398,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 }
 
 func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, client lnrpc.LightningClient,
-	nodeSettings commons.ManagedNodeSettings) error {
+	nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan interface{}) error {
 	ctx := context.Background()
 	switch t {
 	case lnrpc.ChannelEventUpdate_OPEN_CHANNEL:
@@ -406,7 +408,7 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 			return errors.Wrap(err, "LND: List channels")
 		}
 
-		err = storeImportedOpenChannels(db, r.Channels, nodeSettings)
+		err = storeImportedOpenChannels(db, r.Channels, nodeSettings, lightningRequestChannel)
 		if err != nil {
 			return errors.Wrap(err, "Store imported open channels")
 		}
@@ -418,7 +420,7 @@ func ImportChannelList(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB, clien
 			return errors.Wrap(err, "LND: Get closed channels")
 		}
 
-		err = storeImportedClosedChannels(db, r.Channels, nodeSettings)
+		err = storeImportedClosedChannels(db, r.Channels, nodeSettings, lightningRequestChannel)
 		if err != nil {
 			return errors.Wrap(err, "Store imported closed channels")
 		}
@@ -458,7 +460,8 @@ func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB
 	return existingChannelIds, nil
 }
 
-func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeSettings commons.ManagedNodeSettings) error {
+func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeSettings commons.ManagedNodeSettings,
+	lightningRequestChannel chan interface{}) error {
 
 	if len(c) == 0 {
 		return nil
@@ -497,10 +500,7 @@ icoLoop:
 		}
 
 		if lndChannel.ChanId == 0 {
-			// TODO FIXME GET DATA FROM VECTOR
-			fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(lndChannel.ChannelPoint)
-			log.Error().Msgf("Failed to obtain shortChannelId for open channel with channel point %v:%v",
-				fundingTransactionHash, fundingOutputIndex)
+			lndChannel.ChanId = processEmptyChanId(lndChannel.ChannelPoint, nodeSettings, lightningRequestChannel)
 		}
 
 		// skip if we have an existing channel open channel event
@@ -526,8 +526,8 @@ icoLoop:
 	return nil
 }
 
-func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary,
-	nodeSettings commons.ManagedNodeSettings) error {
+func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary, nodeSettings commons.ManagedNodeSettings,
+	lightningRequestChannel chan interface{}) error {
 
 	if len(c) == 0 {
 		return nil
@@ -566,17 +566,15 @@ icoLoop:
 		} else if lndChannel.CloseInitiator == lnrpc.Initiator_INITIATOR_REMOTE {
 			closingNodeId = &remoteNodeId
 		}
+
+		if lndChannel.ChanId == 0 {
+			lndChannel.ChanId = processEmptyChanId(lndChannel.ChannelPoint, nodeSettings, lightningRequestChannel)
+		}
+
 		channel, err := addChannelOrUpdateStatus(lndChannel.ChannelPoint, lndChannel.ChanId, nil, lndChannel.Capacity, nil,
 			&lndChannel.CloseType, &lndChannel.ClosingTxHash, nodeSettings, remoteNodeId, initiatingNodeId, closingNodeId, db)
 		if err != nil {
 			return errors.Wrap(err, "ImportedClosedChannels: Add Channel Or Update Status")
-		}
-
-		if lndChannel.ChanId == 0 {
-			// TODO FIXME GET DATA FROM VECTOR
-			fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(lndChannel.ChannelPoint)
-			log.Error().Msgf("Failed to obtain shortChannelId for closed channel with channel point %v:%v",
-				fundingTransactionHash, fundingOutputIndex)
 		}
 
 		// skip if we already have channel close channel event for this channel
@@ -600,6 +598,92 @@ icoLoop:
 		commons.SetChannelNode(remoteNodeId, lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network, channels.GetClosureStatus(lndChannel.CloseType))
 	}
 	return nil
+}
+
+func processEmptyChanId(channelPoint string, nodeSettings commons.ManagedNodeSettings,
+	lightningRequestChannel chan interface{}) uint64 {
+
+	fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
+	channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+	if channelId != 0 {
+		channelSettings := commons.GetChannelSettingByChannelId(channelId)
+		if channelSettings.LndShortChannelId != 0 {
+			return channelSettings.LndShortChannelId
+		}
+	}
+
+	shortChannelId := getShortChannelIdFromVector(fundingTransactionHash, fundingOutputIndex, nodeSettings, lightningRequestChannel)
+	if shortChannelId == "" {
+		log.Error().Msgf("Failed to obtain shortChannelId for closed channel with channel point %v:%v",
+			fundingTransactionHash, fundingOutputIndex)
+		return 0
+	}
+	lndShortChannelId, err := commons.ConvertShortChannelIDToLND(shortChannelId)
+	if err != nil {
+		log.Error().Msgf("Failed (ConvertShortChannelIDToLND) to obtain shortChannelId for closed channel with channel point %v:%v",
+			fundingTransactionHash, fundingOutputIndex)
+	}
+	return lndShortChannelId
+}
+
+func getShortChannelIdFromVector(fundingTransactionHash string, fundingOutputIndex int,
+	nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan interface{}) string {
+
+	unixTime := time.Now()
+	message := fmt.Sprintf("%v/%v/%v", fundingTransactionHash, fundingOutputIndex, unixTime.Unix())
+
+	responseChannel := make(chan commons.SignMessageResponse)
+	lightningRequestChannel <- commons.SignMessageRequest{
+		CommunicationRequest: commons.CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeSettings.NodeId,
+		},
+		ResponseChannel: responseChannel,
+		Message:         message,
+	}
+	response := <-responseChannel
+
+	requestObject := commons.ShortChannelIdHttpRequest{
+		TransactionHash: fundingTransactionHash,
+		OutputIndex:     fundingOutputIndex,
+		UnixTime:        unixTime.Unix(),
+		Signature:       response.Signature,
+	}
+	requestObjectBytes, err := json.Marshal(requestObject)
+	if err != nil {
+		log.Error().Msgf("Failed (Marshal) to obtain shortChannelId for closed channel with channel point %v:%v",
+			fundingTransactionHash, fundingOutputIndex)
+		return ""
+	}
+	req, err := http.NewRequest("GET", commons.VECTOR_SHORTCHANNELID_URL, bytes.NewBuffer(requestObjectBytes))
+	if err != nil {
+		log.Error().Msgf("Failed (http.NewRequest) to obtain shortChannelId for closed channel with channel point %v:%v",
+			fundingTransactionHash, fundingOutputIndex)
+		return ""
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Error().Msgf("Failed (http.Get) to obtain shortChannelId for closed channel with channel point %v:%v",
+			fundingTransactionHash, fundingOutputIndex)
+		return ""
+	}
+	var vectorResponse commons.ShortChannelIdHttpResponse
+	err = json.NewDecoder(resp.Body).Decode(&vectorResponse)
+	if err != nil {
+		log.Error().Msgf("Failed (Decode) to obtain shortChannelId for closed channel with channel point %v:%v",
+			fundingTransactionHash, fundingOutputIndex)
+		return ""
+	}
+	err = resp.Body.Close()
+	if err != nil {
+		log.Error().Msgf("Failed (Body.Close) to obtain shortChannelId for closed channel with channel point %v:%v",
+			fundingTransactionHash, fundingOutputIndex)
+		return ""
+	}
+	return vectorResponse.ShortChannelId
 }
 
 func insertChannelEvent(db *sqlx.DB, eventTime time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,

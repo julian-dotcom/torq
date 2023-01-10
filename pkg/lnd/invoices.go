@@ -198,8 +198,6 @@ func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIn
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
 
-	var stream lnrpc.Lightning_SubscribeInvoicesClient
-	var invoice *lnrpc.Invoice
 	var serviceStatus commons.Status
 	bootStrapping := true
 	subscriptionStream := commons.InvoiceStream
@@ -238,7 +236,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		} else {
 			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
-		for _, invoice = range listInvoiceResponse.Invoices {
+		for _, invoice := range listInvoiceResponse.Invoices {
 			processInvoice(invoice, nodeSettings, db, eventChannel, bootStrapping)
 		}
 		if bootStrapping && len(listInvoiceResponse.Invoices) < commons.STREAM_LND_MAX_INVOICES {
@@ -262,11 +260,13 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			continue
 		}
 
-		stream, err = client.SubscribeInvoices(ctx, &lnrpc.InvoiceSubscription{
+		streamCtx, cancel := context.WithCancel(ctx)
+		stream, err := client.SubscribeInvoices(streamCtx, &lnrpc.InvoiceSubscription{
 			AddIndex:    addIndex,
 			SettleIndex: settleIndex,
 		})
 		if err != nil {
+			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
@@ -275,8 +275,9 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 
 		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
-		invoice, err = stream.Recv()
+		invoice, err := stream.Recv()
 		if err != nil {
+			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
@@ -284,6 +285,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			continue
 		}
 		processInvoice(invoice, nodeSettings, db, eventChannel, bootStrapping)
+		cancel()
 	}
 }
 

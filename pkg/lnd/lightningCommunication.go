@@ -10,12 +10,11 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/graph_events"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
 func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) {
+	lightningRequestChannel chan interface{}) {
 
 	client := lnrpc.NewLightningClient(conn)
 	router := routerrpc.NewRouterClient(conn)
@@ -26,17 +25,8 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 		select {
 		case <-ctx.Done():
 			return
-		default:
-		}
-		listener := broadcaster.Subscribe()
-		for event := range listener {
-			select {
-			case <-ctx.Done():
-				broadcaster.CancelSubscription(listener)
-				return
-			default:
-			}
-			if request, ok := event.(commons.ChannelStatusUpdateRequest); ok {
+		case lightningRequest := <-lightningRequestChannel:
+			if request, ok := lightningRequest.(commons.ChannelStatusUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
 					continue
 				}
@@ -45,7 +35,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 					request.ResponseChannel <- response
 				}
 			}
-			if request, ok := event.(commons.RoutingPolicyUpdateRequest); ok {
+			if request, ok := lightningRequest.(commons.RoutingPolicyUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
 					continue
 				}
@@ -54,11 +44,83 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 					request.ResponseChannel <- response
 				}
 			}
+			if request, ok := lightningRequest.(commons.SignatureVerificationRequest); ok {
+				if request.NodeId != nodeSettings.NodeId {
+					continue
+				}
+				response := processSignatureVerificationRequest(ctx, request, client)
+				if request.ResponseChannel != nil {
+					request.ResponseChannel <- response
+				}
+			}
+			if request, ok := lightningRequest.(commons.SignMessageRequest); ok {
+				if request.NodeId != nodeSettings.NodeId {
+					continue
+				}
+				response := processSignMessageRequest(ctx, request, client)
+				if request.ResponseChannel != nil {
+					request.ResponseChannel <- response
+				}
+			}
 		}
 	}
 }
 
-func processChannelStatusUpdateRequest(ctx context.Context, db *sqlx.DB, request commons.ChannelStatusUpdateRequest, router routerrpc.RouterClient) commons.ChannelStatusUpdateResponse {
+func processSignMessageRequest(ctx context.Context, request commons.SignMessageRequest,
+	client lnrpc.LightningClient) commons.SignMessageResponse {
+
+	response := commons.SignMessageResponse{
+		Request: request,
+		CommunicationResponse: commons.CommunicationResponse{
+			Status: commons.Inactive,
+		},
+	}
+
+	signMsgReq := lnrpc.SignMessageRequest{
+		Msg: []byte(request.Message),
+	}
+	signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	response.Status = commons.Active
+	response.Signature = signMsgResp.Signature
+	return response
+}
+
+func processSignatureVerificationRequest(ctx context.Context, request commons.SignatureVerificationRequest,
+	client lnrpc.LightningClient) commons.SignatureVerificationResponse {
+
+	response := commons.SignatureVerificationResponse{
+		Request: request,
+		CommunicationResponse: commons.CommunicationResponse{
+			Status: commons.Inactive,
+		},
+	}
+
+	verifyMsgReq := lnrpc.VerifyMessageRequest{
+		Msg:       []byte(request.Message),
+		Signature: request.Signature,
+	}
+	verifyMsgResp, err := client.VerifyMessage(ctx, &verifyMsgReq)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	if !verifyMsgResp.Valid {
+		response.Message = "Signature is not valid"
+		return response
+	}
+
+	response.Status = commons.Active
+	response.PublicKey = verifyMsgResp.Pubkey
+	return response
+}
+
+func processChannelStatusUpdateRequest(ctx context.Context, db *sqlx.DB, request commons.ChannelStatusUpdateRequest,
+	router routerrpc.RouterClient) commons.ChannelStatusUpdateResponse {
 	response := validateChannelStatusUpdateRequest(request)
 	if response != nil {
 		return *response
@@ -181,7 +243,9 @@ func validateChannelStatusUpdateRequest(request commons.ChannelStatusUpdateReque
 	return nil
 }
 
-func processRoutingPolicyUpdateRequest(ctx context.Context, db *sqlx.DB, request commons.RoutingPolicyUpdateRequest, client lnrpc.LightningClient) commons.RoutingPolicyUpdateResponse {
+func processRoutingPolicyUpdateRequest(ctx context.Context, db *sqlx.DB, request commons.RoutingPolicyUpdateRequest,
+	client lnrpc.LightningClient) commons.RoutingPolicyUpdateResponse {
+
 	response := validateRoutingPolicyUpdateRequest(request)
 	if response != nil {
 		return *response

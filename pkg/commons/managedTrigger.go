@@ -18,29 +18,29 @@ const (
 )
 
 type ManagedTrigger struct {
-	Type                           ManagedTriggerCacheOperationType
-	NodeId                         int
-	WorkflowVersionId              int
-	TriggeredWorkflowVersionNodeId int
-	Reference                      string
-	CancelFunction                 context.CancelFunc
-	PreviousState                  string
-	BootTime                       *time.Time
-	VerificationTime               *time.Time
-	Status                         Status
-	TriggerSettingsOut             chan ManagedTriggerSettings
+	Type                            ManagedTriggerCacheOperationType
+	NodeId                          int
+	WorkflowVersionId               int
+	TriggeringWorkflowVersionNodeId int
+	Reference                       string
+	CancelFunction                  context.CancelFunc
+	PreviousState                   string
+	BootTime                        *time.Time
+	VerificationTime                *time.Time
+	Status                          Status
+	TriggerSettingsOut              chan ManagedTriggerSettings
 }
 
 type ManagedTriggerSettings struct {
-	WorkflowVersionId              int
-	NodeId                         int
-	TriggeredWorkflowVersionNodeId int
-	Reference                      string
-	CancelFunction                 context.CancelFunc
-	PreviousState                  string
-	BootTime                       *time.Time
-	VerificationTime               *time.Time
-	Status                         Status
+	WorkflowVersionId               int
+	NodeId                          int
+	TriggeringWorkflowVersionNodeId int
+	Reference                       string
+	CancelFunction                  context.CancelFunc
+	PreviousState                   string
+	BootTime                        *time.Time
+	VerificationTime                *time.Time
+	Status                          Status
 }
 
 func ManagedTriggerCache(ch chan ManagedTrigger, ctx context.Context) {
@@ -77,13 +77,13 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 		}
 		initializeTriggerCache(triggerCache, managedTrigger.NodeId)
 		triggerCache[managedTrigger.NodeId][managedTrigger.WorkflowVersionId] = ManagedTriggerSettings{
-			WorkflowVersionId:              managedTrigger.WorkflowVersionId,
-			TriggeredWorkflowVersionNodeId: managedTrigger.TriggeredWorkflowVersionNodeId,
-			Reference:                      managedTrigger.Reference,
-			Status:                         managedTrigger.Status,
-			CancelFunction:                 managedTrigger.CancelFunction,
-			BootTime:                       managedTrigger.BootTime,
-			PreviousState:                  managedTrigger.PreviousState,
+			WorkflowVersionId:               managedTrigger.WorkflowVersionId,
+			TriggeringWorkflowVersionNodeId: managedTrigger.TriggeringWorkflowVersionNodeId,
+			Reference:                       managedTrigger.Reference,
+			Status:                          managedTrigger.Status,
+			CancelFunction:                  managedTrigger.CancelFunction,
+			BootTime:                        managedTrigger.BootTime,
+			PreviousState:                   managedTrigger.PreviousState,
 		}
 	case WRITE_TRIGGER_VERIFICATIONTIME:
 		if managedTrigger.NodeId == 0 {
@@ -126,20 +126,20 @@ func SetTriggerVerificationTime(nodeId int, workflowVersionId int, verificationT
 	}
 }
 
-func SetTrigger(nodeId int, reference string, workflowVersionId int, triggeredWorkflowVersionNodeId int, status Status, cancel context.CancelFunc) {
+func SetTrigger(nodeId int, reference string, workflowVersionId int, triggeringWorkflowVersionNodeId int, status Status, cancel context.CancelFunc) {
 	var bootTime *time.Time
 	if status == Active {
 		now := time.Now()
 		bootTime = &now
 	}
 	ManagedTriggerChannel <- ManagedTrigger{
-		NodeId:                         nodeId,
-		WorkflowVersionId:              workflowVersionId,
-		TriggeredWorkflowVersionNodeId: triggeredWorkflowVersionNodeId,
-		Status:                         status,
-		BootTime:                       bootTime,
-		Reference:                      reference,
-		CancelFunction:                 cancel,
-		Type:                           WRITE_TRIGGER,
+		NodeId:                          nodeId,
+		WorkflowVersionId:               workflowVersionId,
+		TriggeringWorkflowVersionNodeId: triggeringWorkflowVersionNodeId,
+		Status:                          status,
+		BootTime:                        bootTime,
+		Reference:                       reference,
+		CancelFunction:                  cancel,
+		Type:                            WRITE_TRIGGER,
 	}
 }

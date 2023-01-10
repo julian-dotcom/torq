@@ -157,12 +157,6 @@ type ForwardEvent struct {
 	IncomingChannelId *int      `json:"incomingChannelId"`
 }
 
-// GENERIC REQUEST/RESPONSE STRUCTS
-type FailedRequest struct {
-	Reason string `json:"reason"`
-	Error  string `json:"error"`
-}
-
 type ChannelPoint struct {
 	TxId        []byte `json:"txId"`
 	OutputIndex uint32 `json:"outputIndex"`
@@ -333,6 +327,26 @@ type PendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
 }
 
+// GENERIC REQUEST/RESPONSE STRUCTS
+type FailedRequest struct {
+	Reason string `json:"reason"`
+	Error  string `json:"error"`
+}
+
+// Request/Response for Vector
+type ShortChannelIdRequest struct {
+	CommunicationRequest
+	ResponseChannel chan ShortChannelIdResponse `json:"-"`
+	TransactionHash string                      `json:"transactionHash"`
+	OutputIndex     int                         `json:"outputIndex"`
+}
+
+type ShortChannelIdResponse struct {
+	Request ShortChannelIdRequest `json:"request"`
+	CommunicationResponse
+	ShortChannelId string `json:"shortChannelId"`
+}
+
 // Request/Response for lightningCommunication
 type CommunicationRequest struct {
 	RequestId   string     `json:"requestId"`
@@ -373,6 +387,31 @@ type RoutingPolicyUpdateResponse struct {
 	Request RoutingPolicyUpdateRequest `json:"request"`
 	CommunicationResponse
 	FailedUpdates []FailedRequest `json:"failedUpdates"`
+}
+
+type SignatureVerificationRequest struct {
+	CommunicationRequest
+	ResponseChannel chan SignatureVerificationResponse `json:"-"`
+	Message         string                             `json:"message"`
+	Signature       string                             `json:"signature"`
+}
+
+type SignatureVerificationResponse struct {
+	Request SignatureVerificationRequest `json:"request"`
+	CommunicationResponse
+	PublicKey string `json:"publicKey"`
+}
+
+type SignMessageRequest struct {
+	CommunicationRequest
+	ResponseChannel chan SignMessageResponse `json:"-"`
+	Message         string                   `json:"message"`
+}
+
+type SignMessageResponse struct {
+	Request SignMessageRequest `json:"request"`
+	CommunicationResponse
+	Signature string `json:"signature"`
 }
 
 type RebalanceRequest struct {

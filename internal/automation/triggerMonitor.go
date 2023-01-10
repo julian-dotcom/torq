@@ -51,9 +51,10 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 				}
 				if workflowTriggerNode.Type == commons.WorkflowNodeTimeTrigger {
 
-					param, ok := workflowTriggerNode.Parameters.(workflows.TimeTriggerParameters)
-					if !ok {
-						log.Error().Err(err).Msgf("Failed to obtain parameters for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+					var param workflows.TimeTriggerParameters
+					err := json.Unmarshal([]byte(workflowTriggerNode.Parameters.([]uint8)), &param)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to parse parameters for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 						continue
 					}
 
