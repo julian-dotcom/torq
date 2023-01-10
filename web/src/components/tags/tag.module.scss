@@ -35,9 +35,19 @@
   color: var(--color-text-accent-3-strong);
 }
 
+.tiny {
+  height: 24px;
+  padding: 4px 8px;
+  font-size: var(--font-size-tiny);
+}
 .small {
   height: 32px;
   padding: 6px 6px;
+  font-size: var(--font-size-small);
+}
+.normal {
+  height: 40px;
+  padding: 8px 8px;
 }
 
 .icon {

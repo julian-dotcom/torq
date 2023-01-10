@@ -25,6 +25,12 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     valueType: "number",
   },
   {
+    heading: "Tags",
+    type: "TagsCell",
+    key: "tags",
+    valueType: "tag",
+  },
+  {
     heading: "Short Channel ID",
     type: "LongTextCell",
     key: "shortChannelId",

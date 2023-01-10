@@ -2,17 +2,17 @@ import classNames from "classnames";
 import styles from "./tag.module.scss";
 import { LockClosed16Regular as LockedIcon } from "@fluentui/react-icons";
 
-// export enum TagSize {
-//   normal = "normal",
-//   small = "small",
-//   tiny = "tiny",
-// }
-//
-// const TagSizeClasses = new Map<TagSize, string>([
-//   [TagSize.normal, styles.normal],
-//   [TagSize.small, styles.small],
-//   [TagSize.tiny, styles.tiny],
-// ]);
+export enum TagSize {
+  normal = "normal",
+  small = "small",
+  tiny = "tiny",
+}
+
+const TagSizeClasses = new Map<TagSize, string>([
+  [TagSize.normal, styles.normal],
+  [TagSize.small, styles.small],
+  [TagSize.tiny, styles.tiny],
+]);
 
 export enum TagColor {
   primary = "primary",
@@ -37,7 +37,7 @@ const TagColorClasses = new Map<TagColor, string>([
 ]);
 
 export type TagProps = {
-  // sizeVariant?: TagSize;
+  sizeVariant?: TagSize;
   colorVariant?: TagColor;
   customBackgroundColor?: string;
   customTextColor?: string;
@@ -46,14 +46,14 @@ export type TagProps = {
 };
 
 export default function Tag(props: TagProps) {
-  // const sizeClass = TagSizeClasses.get(props.sizeVariant || TagSize.normal);
+  const sizeClass = TagSizeClasses.get(props.sizeVariant || TagSize.small);
   const colorClass = TagColorClasses.get(props.colorVariant || TagColor.primary);
   const customColor = {
     backgroundColor: props.customBackgroundColor,
     color: props.customTextColor,
   };
   return (
-    <div className={classNames(styles.tagWrapper, colorClass)} style={customColor}>
+    <div className={classNames(styles.tagWrapper, colorClass, sizeClass)} style={customColor}>
       {props.locked && (
         <div className={classNames(styles.icon)}>
           <LockedIcon />

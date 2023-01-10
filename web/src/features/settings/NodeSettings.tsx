@@ -29,7 +29,7 @@ import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
 import Collapse from "features/collapse/Collapse";
 import Popover from "features/popover/Popover";
-import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
+import Button, { ButtonPosition, ColorVariant } from "components/buttons/Button";
 import Modal from "features/modal/Modal";
 import Switch from "components/forms/switch/Switch";
 import useTranslations from "services/i18n/useTranslations";
@@ -329,7 +329,12 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       >
                         {nodeConfigurationState.status == 0 ? "Enable node" : "Disable node"}
                       </Button>
-                      <Button buttonColor={ColorVariant.error} icon={<DeleteIcon />} onClick={handleDeleteClick}>
+                      <Button
+                        buttonColor={ColorVariant.error}
+                        icon={<DeleteIcon />}
+                        onClick={handleDeleteClick}
+                        buttonPosition={ButtonPosition.fullWidth}
+                      >
                         {"Delete node"}
                       </Button>
                     </div>

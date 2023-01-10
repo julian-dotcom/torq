@@ -1,9 +1,12 @@
+import { TagColor } from "components/tags/Tag";
+
 export type Tag = {
   tagId?: number;
   name: string;
-  style: string;
+  style: TagColor;
   categoryId?: number;
   categoryName?: string;
+  categoryStyle?: string;
   createdOn?: Date;
   updateOn?: Date;
 };

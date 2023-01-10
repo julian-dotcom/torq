@@ -1,3 +1,5 @@
+import { Tag } from "../../pages/tagsPage/tagsTypes";
+
 export type UpdateChannelResponse = {
   status: number;
   failedUpdates: null | FailedRequest[];
@@ -10,6 +12,7 @@ type FailedRequest = {
 
 export type channel = {
   active: boolean;
+  tags: Tag[];
   ambossSpace: string;
   feeBaseMsat: number;
   capacity: number;

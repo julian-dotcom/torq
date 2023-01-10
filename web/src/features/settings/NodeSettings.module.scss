@@ -105,14 +105,7 @@
   input {
     margin: 10px 0;
   }
-  .deleteConfirmButtons {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    button {
-      margin-left: 30px;
-    }
-  }
+
   .red {
     color: var(--color-red);
   }

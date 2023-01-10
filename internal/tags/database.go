@@ -252,7 +252,7 @@ func GetChannelTags(db *sqlx.DB, req ChannelTagsRequest) ([]Tag, error) {
 				left JOIN category ON category.category_id = tag.category_id
 				left JOIN tagged_entity ON tagged_entity.tag_id = tag.tag_id
 				WHERE tagged_entity.channel_id = $1
-				OR ($2 IS NOT NULL AND tagged_entity.node_id = $2)
+				OR ($2::int IS NOT NULL AND tagged_entity.node_id = $2::int)
 				ORDER BY name ASC ;`, req.ChannelId, req.NodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

@@ -4,6 +4,7 @@ import BalanceCell from "components/table/cells/balance/BalanceCell";
 import { channel } from "./channelsTypes";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import ChannelCell from "components/table/cells/channelCell/ChannelCell";
+import TagsCell from "../../components/table/cells/tags/TagsCell";
 
 export default function channelsCellRenderer(
   row: channel,
@@ -35,6 +36,10 @@ export default function channelsCellRenderer(
         key={"balanceCell" + rowIndex}
       />
     );
+  }
+
+  if (column.key === "tags") {
+    return <TagsCell tags={row.tags} key={"tagsCell" + rowIndex} />;
   }
 
   // Use the defualt

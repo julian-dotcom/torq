@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"github.com/lncapital/torq/internal/tags"
 	"net/http"
 	"strconv"
 
@@ -20,6 +21,7 @@ type channelBody struct {
 	ChannelId                    int                  `json:"channelId"`
 	ChannelPoint                 string               `json:"channelPoint"`
 	NodeName                     string               `json:"nodeName"`
+	Tags                         []tags.Tag           `json:"tags"`
 	Active                       bool                 `json:"active"`
 	Gauge                        float64              `json:"gauge"`
 	RemotePubkey                 string               `json:"remotePubkey"`
@@ -163,9 +165,19 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 
 				gauge := (float64(channel.LocalBalance) / float64(channelSettings.Capacity)) * 100
 
+				channelTags, err := tags.GetChannelTags(db, tags.ChannelTagsRequest{
+					ChannelId: channelSettings.ChannelId,
+					NodeId:    &channel.RemoteNodeId,
+				})
+				if err != nil {
+					server_errors.WrapLogAndSendServerError(c, err, "Get channel tags for channel")
+					return
+				}
+
 				remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
 				chanBody := channelBody{
 					NodeId:                       nodeId,
+					Tags:                         channelTags,
 					ChannelId:                    channelSettings.ChannelId,
 					NodeName:                     *nodeSettings.Name,
 					Active:                       !channel.LocalDisabled,
