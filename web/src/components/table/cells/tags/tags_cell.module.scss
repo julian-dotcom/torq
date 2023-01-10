@@ -1,5 +1,10 @@
 .tagCell {
   align-items: flex-start !important;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 200px;
+  column-gap: 4px;
 }
 .tagLinks {
   display: flex;

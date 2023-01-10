@@ -1,4 +1,4 @@
-import { ExpandedTag } from "./tagsTypes";
+import { ExpandedTag } from "../tagsTypes";
 import { ColumnMetaData } from "features/table/types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import TagCell from "components/table/cells/tag/TagCell";
@@ -8,7 +8,7 @@ import CellWrapper from "components/table/cells/cellWrapper/CellWrapper";
 import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import { MoleculeRegular as NodeIcon, ArrowRoutingRegular as ChannelIcon } from "@fluentui/react-icons";
 
-import { useDeleteTagMutation } from "./tagsApi";
+import { useDeleteTagMutation } from "../tagsApi";
 import useTranslations from "services/i18n/useTranslations";
 import { useLocation } from "react-router-dom";
 import NumericDoubleCell from "components/table/cells/numeric/NumericDoubleCell";

@@ -1,9 +1,5 @@
 import { Link } from "react-router-dom";
-import {
-  Options20Regular as OptionsIcon,
-  // Save20Regular as SaveIcon,
-  ArrowRouting20Regular as ChannelsIcon,
-} from "@fluentui/react-icons";
+import { Options20Regular as OptionsIcon, ArrowRouting20Regular as ChannelsIcon } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,

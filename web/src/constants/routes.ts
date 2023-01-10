@@ -30,6 +30,8 @@ export const OPEN_CHANNEL = "/open-channel";
 export const CLOSE_CHANNEL = "/close-channel";
 export const TAG = "/create-tag";
 export const UPDATE_TAG = "/update-tag/:tagId";
+export const TAG_CHANNEL = "/tag-channel/:channelId";
+export const TAG_NODE = "/tag-node/:nodeId";
 // Automation
 export const WORKFLOWS = "workflows";
 export const WORKFLOW = "workflows/:workflowId/versions/:version";

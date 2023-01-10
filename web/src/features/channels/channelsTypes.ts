@@ -1,4 +1,4 @@
-import { Tag } from "../../pages/tagsPage/tagsTypes";
+import { Tag } from "pages/tags/tagsTypes";
 
 export type UpdateChannelResponse = {
   status: number;
@@ -41,6 +41,7 @@ export type channel = {
   numUpdates: number;
   oneMl: string;
   peerAlias: string;
+  peerNodeId: number;
   pendingForwardingHTLCsAmount: number;
   pendingForwardingHTLCsCount: number;
   pendingLocalHTLCsAmount: number;

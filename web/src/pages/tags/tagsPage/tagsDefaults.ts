@@ -1,4 +1,4 @@
-import { ExpandedTag } from "./tagsTypes";
+import { ExpandedTag } from "../tagsTypes";
 import { ViewResponse } from "features/viewManagement/types";
 import { ColumnMetaData } from "features/table/types";
 
