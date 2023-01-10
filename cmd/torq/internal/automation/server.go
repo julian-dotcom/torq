@@ -84,7 +84,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in RebalanceService %v", panicError)
+				log.Error().Msgf("Panic occurred in RebalanceServiceStart %v", panicError)
 				commons.RebalanceServiceStart(ctx, conn, db, nodeId, rebalanceRequestChannel)
 			}
 		}()
