@@ -137,7 +137,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
         />
         <div className={styles.collapsGroup}>
           <TargetsHeader
-            title={`${props.nodes?.length} ${t.nodes}`}
+            title={`${props.nodes?.length || 0} ${t.nodes}`}
             icon={<NodesIcon />}
             expanded={!collapsedNode}
             onCollapse={() => setCollapsedNode(!collapsedNode)}
@@ -176,7 +176,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
         />
         <div className={styles.collapsGroup}>
           <TargetsHeader
-            title={`${props.channels?.length} ${t.channels}`}
+            title={`${props.channels?.length || 0} ${t.channels}`}
             icon={<ChannelsIcon />}
             expanded={!collapsedChannel}
             onCollapse={() => setCollapsedChannel(!collapsedChannel)}

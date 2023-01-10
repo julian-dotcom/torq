@@ -69,7 +69,7 @@ func GetTagsByCategoryId(db *sqlx.DB, categoryId int) ([]TagResponse, error) {
 func GetTags(db *sqlx.DB) ([]TagResponse, error) {
 	var tags []TagResponse
 	err := db.Select(&tags, `
-			SELECT tag.*, category.name as category_name FROM tag
+			SELECT tag.*, category.name as category_name, category.style as category_style FROM tag
 			left JOIN category ON category.category_id = tag.category_id
 			ORDER BY name ASC ;`)
 	if err != nil {
@@ -79,12 +79,12 @@ func GetTags(db *sqlx.DB) ([]TagResponse, error) {
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
 
-	for _, tag := range tags {
-		tag.Channels, err = getTagChannels(db, tag.TagId)
+	for i, tag := range tags {
+		tags[i].Channels, err = getTagChannels(db, tag.TagId)
 		if err != nil {
 			return []TagResponse{}, errors.Wrap(err, database.SqlExecutionError)
 		}
-		tag.Nodes, err = getTagNodes(db, tag.TagId)
+		tags[i].Nodes, err = getTagNodes(db, tag.TagId)
 		if err != nil {
 			return []TagResponse{}, errors.Wrap(err, database.SqlExecutionError)
 		}

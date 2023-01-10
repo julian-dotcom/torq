@@ -1,5 +1,5 @@
 import { torqApi } from "apiSlice";
-import { Tag, ChannelNode, TagChannelRequest, TagNodeRequest, TagResponse } from "./tagsTypes";
+import { ChannelNode, TagChannelRequest, TagNodeRequest, TagResponse } from "./tagsTypes";
 
 // Define a service using a base URL and expected endpoints
 export const onChainApi = torqApi.injectEndpoints({
@@ -12,7 +12,7 @@ export const onChainApi = torqApi.injectEndpoints({
       query: (tagId) => `tags/${tagId}`,
       providesTags: ["tag"],
     }),
-    addTag: builder.mutation<TagResponse, Tag>({
+    addTag: builder.mutation<TagResponse, TagResponse>({
       query: (tag) => ({
         url: `tags`,
         method: "POST",
@@ -20,7 +20,7 @@ export const onChainApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["tags", "tag"],
     }),
-    setTag: builder.mutation<TagResponse, Tag>({
+    setTag: builder.mutation<TagResponse, TagResponse>({
       query: (tag) => ({
         url: `tags`,
         method: "PUT",

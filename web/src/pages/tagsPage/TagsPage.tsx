@@ -10,7 +10,7 @@ import Button, { ColorVariant } from "components/buttons/Button";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
 import { useGetTagsQuery } from "./tagsApi";
-import { Tag } from "./tagsTypes";
+import { ExpandedTag } from "./tagsTypes";
 import { DefaultTagsView } from "./tagsDefaults";
 import tagsCellRenderer from "./tagsCellRenderer";
 
@@ -20,7 +20,7 @@ function TagsPage() {
   const location = useLocation();
 
   const tagsResponse = useGetTagsQuery<{
-    data: Array<Tag>;
+    data: Array<ExpandedTag>;
     isLoading: boolean;
     isFetching: boolean;
     isUninitialized: boolean;

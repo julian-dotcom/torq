@@ -100,8 +100,8 @@ export default function DefaultCellRenderer<T>(
         case "NumericDoubleCell":
           return (
             <NumericDoubleCell
-              local={row[dataKey] as number}
-              remote={row[dataKey2] as number}
+              topValue={row[dataKey] as number}
+              bottomValue={row[dataKey2] as number}
               suffix={suffix as string}
               className={dataKey.toString()}
               key={dataKey.toString() + rowIndex + columnIndex}
