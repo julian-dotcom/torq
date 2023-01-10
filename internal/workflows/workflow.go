@@ -2,8 +2,9 @@ package workflows
 
 import (
 	"encoding/json"
-	"github.com/cockroachdb/errors"
 	"time"
+
+	"github.com/cockroachdb/errors"
 
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -174,15 +175,15 @@ type CreateWorkflowVersionNodeLinkRequest struct {
 }
 
 type WorkflowVersionNodeLog struct {
-	NodeId                         int       `json:"nodeId" db:"node_id"`
-	TriggerReference               string    `json:"triggerReference" db:"trigger_reference"`
-	InputData                      string    `json:"input_data" db:"input_data"`
-	OutputData                     string    `json:"output_data" db:"output_data"`
-	DebugData                      string    `json:"debug_data" db:"debug_data"`
-	ErrorData                      string    `json:"error_data" db:"error_data"`
-	WorkflowVersionNodeId          int       `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
-	TriggeredWorkflowVersionNodeId int       `json:"triggeredWorkflowVersionNodeId" db:"triggered_workflow_version_node_id"`
-	CreatedOn                      time.Time `json:"createdOn" db:"created_on"`
+	NodeId                          int       `json:"nodeId" db:"node_id"`
+	TriggerReference                string    `json:"triggerReference" db:"trigger_reference"`
+	InputData                       string    `json:"input_data" db:"input_data"`
+	OutputData                      string    `json:"output_data" db:"output_data"`
+	DebugData                       string    `json:"debug_data" db:"debug_data"`
+	ErrorData                       string    `json:"error_data" db:"error_data"`
+	WorkflowVersionNodeId           int       `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
+	TriggeringWorkflowVersionNodeId *int      `json:"triggeringWorkflowVersionNodeId" db:"triggering_workflow_version_node_id"`
+	CreatedOn                       time.Time `json:"createdOn" db:"created_on"`
 }
 
 type WorkflowNode struct {

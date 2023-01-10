@@ -14,7 +14,7 @@ import (
 
 // ProcessWorkflowNode workflowNodeStagingParametersCache[WorkflowVersionNodeId][inputLabel] (i.e. inputLabel = sourceChannelIds)
 func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, workflowNode WorkflowNode, triggeredWorkflowVersionNodeId int,
+	nodeSettings commons.ManagedNodeSettings, workflowNode WorkflowNode, triggeringWorkflowVersionNodeId int,
 	workflowNodeCache map[int]WorkflowNode, workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[string]string,
 	reference string, inputs map[string]string, iteration int) (map[string]string, commons.Status, error) {
 
@@ -146,10 +146,10 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId,
 				workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)
-			// If childProcessingStatus is not equal to commons.Pending, call AddWorkflowVersionNodeLog with several arguments, including nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, triggeredWorkflowVersionNodeId, inputs, and childOutputs
+			// If childProcessingStatus is not equal to commons.Pending, call AddWorkflowVersionNodeLog with several arguments, including nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, triggeringWorkflowVersionNodeId, inputs, and childOutputs
 			if childProcessingStatus != commons.Pending {
 				AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference,
-					workflowNode.WorkflowVersionNodeId, triggeredWorkflowVersionNodeId, inputs, childOutputs, err)
+					workflowNode.WorkflowVersionNodeId, triggeringWorkflowVersionNodeId, inputs, childOutputs, err)
 			}
 			// If err is not nil, return nil, commons.Inactive, and err
 			if err != nil {
@@ -162,13 +162,14 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 }
 
 func AddWorkflowVersionNodeLog(db *sqlx.DB, nodeId int, reference string, workflowVersionNodeId int,
-	triggeredWorkflowVersionNodeId int, inputs map[string]string, outputs map[string]string, workflowError error) {
-
+	triggeringWorkflowVersionNodeId int, inputs map[string]string, outputs map[string]string, workflowError error) {
 	workflowVersionNodeLog := WorkflowVersionNodeLog{
-		NodeId:                         nodeId,
-		WorkflowVersionNodeId:          workflowVersionNodeId,
-		TriggeredWorkflowVersionNodeId: triggeredWorkflowVersionNodeId,
-		TriggerReference:               reference,
+		NodeId:                nodeId,
+		WorkflowVersionNodeId: workflowVersionNodeId,
+		TriggerReference:      reference,
+	}
+	if triggeringWorkflowVersionNodeId > 0 {
+		workflowVersionNodeLog.TriggeringWorkflowVersionNodeId = &triggeringWorkflowVersionNodeId
 	}
 	if len(inputs) > 0 {
 		marshalledInputs, err := json.Marshal(inputs)
