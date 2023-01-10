@@ -23,15 +23,15 @@ type Tag struct {
 }
 
 type TaggedNodes struct {
-	Name         string `db:"name" json:"name"`
-	NodeId       int    `db:"node_id" json:"node_id"`
-	ChannelCount int    `db:"channel_count" json:"channel_count"`
+	Name         *string `db:"name" json:"name"`
+	NodeId       int     `db:"node_id" json:"nodeId"`
+	ChannelCount int     `db:"channel_count" json:"channelCount"`
 }
 
 type TaggedChannels struct {
-	Name           string `db:"name" json:"name"`
-	ShortChannelID string `db:"short_channel_id" json:"short_channel_id"`
-	ChannelId      int    `db:"channel_id" json:"channel_id"`
+	Name           *string `db:"name" json:"name"`
+	ShortChannelId string  `db:"short_channel_id" json:"shortChannelId"`
+	ChannelId      int     `db:"channel_id" json:"channelId"`
 }
 
 type TagResponse struct {
@@ -149,6 +149,14 @@ func updateTag(db *sqlx.DB, tag Tag) (Tag, error) {
 	return tag, nil
 }
 
+func deleteTag(db *sqlx.DB, tagId int) error {
+	_, err := db.Exec(`DELETE FROM tag WHERE tag_id=$1;`, tagId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
+}
+
 type TagEntityRequest struct {
 	TagId     int  `db:"tag_id"`
 	ChannelId *int `db:"channel_id"`
@@ -180,6 +188,30 @@ func tagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 				return errors.Wrap(err, database.SqlUniqueConstraintError)
 			}
 		}
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
+}
+
+func untagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
+	// Chack that either the channel or the node exists
+	if req.ChannelId == nil && req.NodeId == nil {
+		return errors.New("channel_id and node_id cannot both be nil")
+	}
+
+	if req.ChannelId != nil && req.NodeId != nil {
+		return errors.New("channel_id and node_id cannot both be set")
+	}
+
+	if req.ChannelId != nil {
+		_, err = db.Exec(`DELETE FROM tagged_entity WHERE tag_id=$1 AND channel_id=$2;`, req.TagId, *req.ChannelId)
+	}
+
+	if req.NodeId != nil {
+		_, err = db.Exec(`DELETE FROM tagged_entity WHERE tag_id=$1 AND node_id=$2;`, req.TagId, *req.NodeId)
+	}
+
+	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nil
@@ -235,9 +267,9 @@ func GetChannelTags(db *sqlx.DB, req ChannelTagsRequest) ([]Tag, error) {
 func getTagChannels(db *sqlx.DB, tagId int) ([]TaggedChannels, error) {
 	var channels []TaggedChannels
 	err := db.Select(&channels, `
-				SELECT channel.*, node.name as node_name FROM channel
-				left JOIN tagged_entity ON tagged_entity.channel_id = channel.channel_id
-				left JOIN node ON node.node_id = channel.second_node_id
+				SELECT channel.channel_id, channel.short_channel_id, ne.name FROM channel
+				LEFT JOIN tagged_entity ON tagged_entity.channel_id = channel.channel_id
+				left JOIN (select last(alias, timestamp) as name, last(node_id, timestamp) as ni, event_node_id from node_event group by event_node_id) as ne ON ne.event_node_id = channel.second_node_id
 				WHERE tagged_entity.tag_id = $1;`, tagId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -252,11 +284,12 @@ func getTagChannels(db *sqlx.DB, tagId int) ([]TaggedChannels, error) {
 func getTagNodes(db *sqlx.DB, tagId int) ([]TaggedNodes, error) {
 	var nodes []TaggedNodes
 	err := db.Select(&nodes, `
-				SELECT node.*, count(channel.channel_id) as channel_count FROM node
+				SELECT ne.name, node.node_id, count(channel.channel_id) as channel_count FROM node
 				left JOIN tagged_entity ON tagged_entity.node_id = node.node_id
 				left JOIN channel ON channel.second_node_id = node.node_id
+				left JOIN (select last(alias, timestamp) as name, last(node_id, timestamp) as ni, event_node_id from node_event group by event_node_id) as ne ON ne.event_node_id = channel.second_node_id
 				WHERE tagged_entity.tag_id = $1
-				GROUP BY node.node_id;`, tagId)
+				GROUP BY node.node_id, ne.name;`, tagId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []TaggedNodes{}, nil

@@ -14,12 +14,14 @@ import (
 
 func RegisterTagRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET(":tagId", func(c *gin.Context) { getTagHandler(c, db) })
+	r.DELETE(":tagId", func(c *gin.Context) { deleteTagHandler(c, db) })
 	r.GET("", func(c *gin.Context) { getTagsHandler(c, db) })
 	r.GET("/category/:categoryId", func(c *gin.Context) { getTagsByCategoryHandler(c, db) })
 	r.POST("", func(c *gin.Context) { createTagHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateTagHandler(c, db) })
 	// Ads a tag to an entity (i.e. adds a tag to a channel or a node)
 	r.POST("tag", func(c *gin.Context) { tagEntityHandler(c, db) })
+	r.POST("untag", func(c *gin.Context) { untagEntityHandler(c, db) })
 
 	// Get all tags for a channel
 	r.GET("/channel/:channelId", func(c *gin.Context) { getChannelTagsHandler(c, db) })
@@ -41,6 +43,21 @@ func getTagHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	c.JSON(http.StatusOK, tag)
+}
+
+func deleteTagHandler(c *gin.Context, db *sqlx.DB) {
+	tagId, err := strconv.Atoi(c.Param("tagId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse tagId in the request.")
+		return
+	}
+	err = deleteTag(db, tagId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Deleting tag for tagId: %v", tagId))
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
 }
 
 func getTagsHandler(c *gin.Context, db *sqlx.DB) {
@@ -106,6 +123,21 @@ func tagEntityHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	err := tagEntity(db, t)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting tag for tagId: %v", t.TagId))
+		return
+	}
+
+	c.JSON(http.StatusOK, t)
+}
+
+func untagEntityHandler(c *gin.Context, db *sqlx.DB) {
+	var t TagEntityRequest
+	if err := c.BindJSON(&t); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+	err := untagEntity(db, t)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting tag for tagId: %v", t.TagId))
 		return

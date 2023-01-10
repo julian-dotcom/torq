@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ArrowRouting20Regular as ChannelsIcon,
   Molecule20Regular as NodesIcon,
@@ -8,12 +8,13 @@ import styles from "./targets_section.module.scss";
 import TargetsHeader from "components/targets/TargetsHeader";
 import Collapse from "features/collapse/Collapse";
 import useTranslations from "services/i18n/useTranslations";
-import { ChannelNode, Corridor, CorridorFields } from "pages/tagsPage/tagsTypes";
+import { ChannelNode, TaggedChannels, TaggedNodes } from "pages/tagsPage/tagsTypes";
 import {
-  useAddChannelsGroupsMutation,
-  useDeleteChannelGroupByTagMutation,
-  useGetCorridorByReferenceQuery,
   useGetNodesChannelsQuery,
+  useTagChannelMutation,
+  useTagNodeMutation,
+  useUntagChannelMutation,
+  useUntagNodeMutation,
 } from "pages/tagsPage/tagsApi";
 import { Select } from "components/forms/forms";
 import Target from "components/targets/Target";
@@ -26,20 +27,18 @@ export type SelectOptions = {
 
 type TargetsSectionProps = {
   tagId: number;
+  channels: TaggedChannels[];
+  nodes: TaggedNodes[];
 };
 
 export default function TargetsSection(props: TargetsSectionProps) {
   const { t } = useTranslations();
   const [collapsedNode, setCollapsedNode] = useState<boolean>(false);
   const [collapsedChannel, setCollapsedChannel] = useState<boolean>(false);
-  const [targetNodes, setTargetNodes] = useState<ReactNode[]>([]);
-  const [targetChannels, setTargetChannels] = useState<ReactNode[]>([]);
-  const [addChannelsGroupsMutation] = useAddChannelsGroupsMutation();
-  const [deleteChannelGroupByTagMutation] = useDeleteChannelGroupByTagMutation();
-
-  function handleDeleteTarget(corridorId: number) {
-    deleteChannelGroupByTagMutation(corridorId);
-  }
+  const [tagChannel] = useTagChannelMutation();
+  const [tagNode] = useTagNodeMutation();
+  const [untagChannel] = useUntagChannelMutation();
+  const [untagNode] = useUntagNodeMutation();
 
   const { data: channelsNodesResponse } = useGetNodesChannelsQuery<{
     data: ChannelNode;
@@ -70,16 +69,15 @@ export default function TargetsSection(props: TargetsSectionProps) {
     if (type === "channel") {
       const channelsOption = channelsNodesResponse.channels.find((option) => option.channelId === value);
       if (channelsOption !== undefined) {
-        addChannelsGroupsMutation({
+        tagChannel({
           tagId: props.tagId,
-          nodeId: channelsOption.nodeId,
           channelId: value,
         });
       }
     } else {
       const nodesOption = channelsNodesResponse.nodes.find((option) => option.nodeId === value);
       if (nodesOption !== undefined) {
-        addChannelsGroupsMutation({
+        tagNode({
           tagId: props.tagId,
           nodeId: value,
         });
@@ -87,45 +85,37 @@ export default function TargetsSection(props: TargetsSectionProps) {
     }
   }
 
-  const { data: corridorsResponse } = useGetCorridorByReferenceQuery<{
-    data: Corridor;
-    isLoading: boolean;
-    isFetching: boolean;
-    isUninitialized: boolean;
-    isSuccess: boolean;
-  }>(props.tagId);
-
-  useEffect(() => {
-    if (corridorsResponse) {
-      const listNodes: ReactNode[] = [];
-      const listChannels: ReactNode[] = [];
-      corridorsResponse.corridors?.map((c: CorridorFields) => {
-        if (c.shortChannelId) {
-          listChannels.push(
-            <Target
-              onDeleteTarget={() => handleDeleteTarget(c.corridorId)}
-              key={"channel-target-" + c.corridorId}
-              icon={<ChannelsIcon />}
-              details={c.alias}
-              title={c.shortChannelId}
-            />
-          );
-        } else {
-          listNodes.push(
-            <Target
-              onDeleteTarget={() => handleDeleteTarget(c.corridorId)}
-              key={"channel-target-" + c.corridorId}
-              icon={<NodesIcon />}
-              details={"-"}
-              title={c.alias}
-            />
-          );
-        }
-      });
-      setTargetNodes(listNodes);
-      setTargetChannels(listChannels);
-    }
-  }, [corridorsResponse]);
+  // useEffect(() => {
+  //   if (corridorsResponse) {
+  //     const listNodes: ReactNode[] = [];
+  //     const listChannels: ReactNode[] = [];
+  //     channels.map((c: CorridorFields) => {
+  //       if (c.shortChannelId) {
+  //         listChannels.push(
+  //           <Target
+  //             onDeleteTarget={() => handleDeleteTarget(c.corridorId)}
+  //             key={"channel-target-" + c.corridorId}
+  //             icon={<ChannelsIcon />}
+  //             details={c.alias}
+  //             title={c.shortChannelId}
+  //           />
+  //         );
+  //       } else {
+  //         listNodes.push(
+  //           <Target
+  //             onDeleteTarget={() => handleDeleteTarget(c.corridorId)}
+  //             key={"channel-target-" + c.corridorId}
+  //             icon={<NodesIcon />}
+  //             details={"-"}
+  //             title={c.alias}
+  //           />
+  //         );
+  //       }
+  //     });
+  //     setTargetNodes(listNodes);
+  //     setTargetChannels(listChannels);
+  //   }
+  // }, [corridorsResponse]);
 
   return (
     <div className={styles.targetsSection}>
@@ -147,19 +137,29 @@ export default function TargetsSection(props: TargetsSectionProps) {
         />
         <div className={styles.collapsGroup}>
           <TargetsHeader
-            title={`${targetNodes.length} ${t.nodes}`}
+            title={`${props.nodes?.length} ${t.nodes}`}
             icon={<NodesIcon />}
             expanded={!collapsedNode}
             onCollapse={() => setCollapsedNode(!collapsedNode)}
           />
           <Collapse collapsed={collapsedNode} animate={true}>
             <div className={styles.targetsWrapper}>
-              {!targetNodes.length && (
+              {!props.nodes?.length && (
                 <div className={styles.noTargets}>
                   <span className={styles.noTargetsText}>{t.tagsModal.noNodesSelected}</span>
                 </div>
               )}
-              {!!targetNodes.length && targetNodes}
+              {props.nodes?.map((c) => {
+                return (
+                  <Target
+                    onDeleteTarget={() => untagNode({ tagId: props.tagId, nodeId: c.nodeId })}
+                    key={"node-target-" + c.nodeId}
+                    icon={<NodesIcon />}
+                    details={"Channels " + c.channelCount}
+                    title={c.name}
+                  />
+                );
+              })}
             </div>
           </Collapse>
         </div>
@@ -176,19 +176,29 @@ export default function TargetsSection(props: TargetsSectionProps) {
         />
         <div className={styles.collapsGroup}>
           <TargetsHeader
-            title={`${targetChannels.length} ${t.channels}`}
+            title={`${props.channels?.length} ${t.channels}`}
             icon={<ChannelsIcon />}
             expanded={!collapsedChannel}
             onCollapse={() => setCollapsedChannel(!collapsedChannel)}
           />
           <Collapse collapsed={collapsedChannel} animate={true}>
             <div className={styles.targetsWrapper}>
-              {!targetChannels.length && (
+              {!props.channels?.length && (
                 <div className={styles.noTargets}>
                   <span className={styles.noTargetsText}>{t.tagsModal.noChannelsSelected}</span>
                 </div>
               )}
-              {!!targetChannels.length && targetChannels}
+              {props.channels?.map((c) => {
+                return (
+                  <Target
+                    onDeleteTarget={() => untagChannel({ tagId: props.tagId, channelId: c.channelId })}
+                    key={"channel-target-" + c.channelId}
+                    icon={<ChannelsIcon />}
+                    details={c.name}
+                    title={c.shortChannelId}
+                  />
+                );
+              })}
             </div>
           </Collapse>
         </div>

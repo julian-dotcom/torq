@@ -8,6 +8,31 @@ export type Tag = {
   updateOn?: Date;
 };
 
+export type TaggedNodes = {
+  name: string;
+  nodeId: number;
+  channelCount: number;
+};
+
+export type TaggedChannels = {
+  name: string;
+  shortChannelId: string;
+  channelId: number;
+};
+
+export type TagResponse = {
+  tagId?: number;
+  name: string;
+  style: string;
+  categoryId?: number;
+  categoryName?: string;
+  categoryStyle?: string;
+  createdOn?: Date;
+  updateOn?: Date;
+  channels: Array<TaggedChannels>;
+  nodes: Array<TaggedNodes>;
+};
+
 export type ExpandedTag = Tag & {
   delete?: boolean;
   edit?: boolean;
@@ -21,6 +46,15 @@ export interface channelTag {
   channelId: number;
   tagId: number;
 }
+
+export type TagChannelRequest = {
+  tagId: number;
+  channelId: number;
+};
+export type TagNodeRequest = {
+  tagId: number;
+  nodeId: number;
+};
 
 export type ChannelNode = {
   channels: ChannelForTag[];
@@ -65,10 +99,4 @@ export type Corridor = {
   corridors: CorridorFields[];
   totalNodes: number;
   totalChannels: number;
-};
-
-export type TagNodeChannel = {
-  tagId: number;
-  channelId?: number;
-  nodeId: number;
 };
