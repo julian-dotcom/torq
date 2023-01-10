@@ -357,7 +357,14 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					AggregatedLocalBalancePerMilleRatio: previousAggregateLocalBalancePerMilleRatio[channelStateSetting.RemoteNodeId],
 				}
 			}
-			channelEvent <- channelBalanceEvent
+			if channelBalanceEvent.PreviousEventData != nil &&
+				(channelBalanceEvent.PreviousEventData.LocalBalance != channelBalanceEvent.LocalBalance ||
+					channelBalanceEvent.PreviousEventData.RemoteBalance != channelBalanceEvent.RemoteBalance ||
+					channelBalanceEvent.PreviousEventData.LocalBalancePerMilleRatio != channelBalanceEvent.LocalBalancePerMilleRatio ||
+					channelBalanceEvent.PreviousEventData.AggregatedLocalBalance != channelBalanceEvent.AggregatedLocalBalance ||
+					channelBalanceEvent.PreviousEventData.AggregatedLocalBalancePerMilleRatio != channelBalanceEvent.AggregatedLocalBalancePerMilleRatio) {
+				channelEvent <- channelBalanceEvent
+			}
 		}
 		channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = settingsByChannel
 	case WRITE_CHANNELSTATE_NODESTATUS:
@@ -384,7 +391,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 		}
 		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
 			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
-			return
+			break
 		}
 		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 		if nodeExists {
@@ -409,7 +416,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 	case WRITE_CHANNELSTATE_ROUTINGPOLICY:
 		if !isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
 			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
-			return
+			break
 		}
 		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 		if nodeExists {
