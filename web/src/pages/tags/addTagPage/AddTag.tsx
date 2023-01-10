@@ -7,9 +7,8 @@ import { Select } from "components/forms/forms";
 import { useParams } from "react-router-dom";
 import { SelectOptionType } from "components/forms/select/Select";
 
-// Function for checking that the returned value is a tagOption type
-function isOption(tag: any): tag is SelectOptionType {
-  return tag?.value !== undefined;
+function isOption(result: unknown): result is SelectOptionType {
+  return result !== null && typeof result === "object" && "value" in result && "label" in result;
 }
 
 export default function AddTagModal() {
