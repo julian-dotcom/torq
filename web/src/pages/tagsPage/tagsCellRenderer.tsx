@@ -76,10 +76,10 @@ export default function tagsCellRenderer(
     return (
       <NumericDoubleCell
         key={"channels-" + rowIndex + columnIndex}
-        topValue={row.channels?.length || 0}
-        bottomValue={row.nodes?.length || 0}
-        topIcon={<ChannelIcon />}
-        bottomIcon={<NodeIcon />}
+        topValue={row.nodes?.length || 0}
+        bottomValue={row.channels?.length || 0}
+        bottomIcon={<ChannelIcon />}
+        topIcon={<NodeIcon />}
       />
     );
   }
