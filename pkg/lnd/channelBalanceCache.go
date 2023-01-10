@@ -175,7 +175,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettingsList = append(channelStateSettingsList, channelStateSettings)
 	}
 	commons.SetChannelStates(nodeId, channelStateSettingsList)
-	commons.SetChannelStateNodeStatus(nodeId, commons.RunningServices[commons.LndService].GetStatus(nodeId))
+	commons.SetChannelStateNodeStatus(nodeId, commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeId))
 	return nil
 }
 
@@ -184,10 +184,13 @@ func processBroadcastedEvent(event interface{}) {
 		if serviceEvent.NodeId == 0 || serviceEvent.Type != commons.LndService {
 			return
 		}
+		if serviceEvent.SubscriptionStream == nil {
+			return
+		}
 		if !serviceEvent.SubscriptionStream.IsChannelBalanceCache() {
 			return
 		}
-		commons.SetChannelStateNodeStatus(serviceEvent.NodeId, serviceEvent.Status)
+		commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(serviceEvent.NodeId))
 	} else if channelEvent, ok := event.(commons.ChannelEvent); ok {
 		if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 			return
@@ -237,7 +240,8 @@ func processBroadcastedEvent(event interface{}) {
 		if htlcEvent.NodeId == 0 {
 			return
 		}
-		commons.SetChannelStateBalanceHtlcEvent(htlcEvent)
+		// TODO FIXME Causes some kind of locking. This is temporary disabled since Pending HTLC's aren't currently used in automations.
+		//commons.SetChannelStateBalanceHtlcEvent(htlcEvent)
 	} else if peerEvent, ok := event.(commons.PeerEvent); ok {
 		if peerEvent.NodeId == 0 || peerEvent.EventNodeId == 0 {
 			return

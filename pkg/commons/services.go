@@ -29,7 +29,7 @@ type Services struct {
 
 var RunningServices map[ServiceType]*Services //nolint:gochecknoglobals
 
-func (rs *Services) AddSubscription(nodeId int, cancelFunc func(), eventChannel chan interface{}) {
+func (rs *Services) AddSubscription(nodeId int, cancelFunc func()) Status {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -41,11 +41,10 @@ func (rs *Services) AddSubscription(nodeId int, cancelFunc func(), eventChannel 
 	if rs.ServiceType == LndService {
 		setStreamStatuses(nodeId, rs, Inactive)
 	}
-
-	sendServiceEvent(nodeId, eventChannel, previousStatus, rs.serviceStatus[nodeId], rs.ServiceType, nil)
+	return previousStatus
 }
 
-func (rs *Services) RemoveSubscription(nodeId int, eventChannel chan interface{}) {
+func (rs *Services) RemoveSubscription(nodeId int) Status {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -60,11 +59,10 @@ func (rs *Services) RemoveSubscription(nodeId int, eventChannel chan interface{}
 	if rs.ServiceType == LndService {
 		setStreamStatuses(nodeId, rs, Inactive)
 	}
-
-	sendServiceEvent(nodeId, eventChannel, previousStatus, rs.serviceStatus[nodeId], rs.ServiceType, nil)
+	return previousStatus
 }
 
-func (rs *Services) Cancel(nodeId int, enforcedServiceStatus *Status, noDelay bool, eventChannel chan interface{}) Status {
+func (rs *Services) Cancel(nodeId int, enforcedServiceStatus *Status, noDelay bool) (Status, Status) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -74,7 +72,7 @@ func (rs *Services) Cancel(nodeId int, enforcedServiceStatus *Status, noDelay bo
 	if exists {
 		_, exists = rs.bootLock[nodeId]
 		if exists && MutexLocked(rs.bootLock[nodeId]) {
-			return Pending
+			return previousStatus, Pending
 		}
 		rs.noDelay[nodeId] = noDelay
 		rs.enforcedServiceStatus[nodeId] = enforcedServiceStatus
@@ -83,10 +81,9 @@ func (rs *Services) Cancel(nodeId int, enforcedServiceStatus *Status, noDelay bo
 		rs.cancelTime[nodeId] = time.Now().UTC()
 		rs.serviceStatus[nodeId] = Inactive
 		setStreamStatuses(nodeId, rs, Inactive)
-		sendServiceEvent(nodeId, eventChannel, previousStatus, rs.serviceStatus[nodeId], rs.ServiceType, nil)
-		return Active
+		return previousStatus, Active
 	}
-	return Inactive
+	return previousStatus, Inactive
 }
 
 func (rs *Services) GetEnforcedServiceStatusCheck(nodeId int) *Status {
@@ -329,17 +326,17 @@ func (rs *Services) SetIncludeIncomplete(nodeId int, includeIncomplete bool) {
 	rs.includeIncomplete[nodeId] = includeIncomplete
 }
 
-func (rs *Services) Initialising(nodeId int, eventChannel chan interface{}) {
+func (rs *Services) Initialising(nodeId int) Status {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
 	initServiceMaps(rs, nodeId)
 	previousStatus := rs.serviceStatus[nodeId]
 	rs.serviceStatus[nodeId] = Initializing
-	sendServiceEvent(nodeId, eventChannel, previousStatus, rs.serviceStatus[nodeId], rs.ServiceType, nil)
+	return previousStatus
 }
 
-func (rs *Services) Booted(nodeId int, bootLock *sync.Mutex, eventChannel chan interface{}) {
+func (rs *Services) Booted(nodeId int, bootLock *sync.Mutex) Status {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -354,10 +351,10 @@ func (rs *Services) Booted(nodeId int, bootLock *sync.Mutex, eventChannel chan i
 	if rs.ServiceType == LndService {
 		setStreamStatuses(nodeId, rs, Pending)
 	}
-	sendServiceEvent(nodeId, eventChannel, previousStatus, rs.serviceStatus[nodeId], rs.ServiceType, nil)
+	return previousStatus
 }
 
-func (rs *Services) SetStreamStatus(nodeId int, stream SubscriptionStream, status Status, eventChannel chan interface{}) {
+func (rs *Services) SetStreamStatus(nodeId int, stream SubscriptionStream, status Status) Status {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -367,13 +364,13 @@ func (rs *Services) SetStreamStatus(nodeId int, stream SubscriptionStream, statu
 	}
 	previousStatus := rs.streamStatus[nodeId][stream]
 	if previousStatus == status {
-		return
+		return previousStatus
 	}
 	rs.streamStatus[nodeId][stream] = status
 	if status == Active {
 		rs.streamBootTime[nodeId][stream] = time.Now().UTC()
 	}
-	sendServiceEvent(nodeId, eventChannel, previousStatus, rs.streamStatus[nodeId][stream], rs.ServiceType, &stream)
+	return previousStatus
 }
 
 func initServiceMaps(rs *Services, nodeId int) {
@@ -404,7 +401,7 @@ func initServiceMaps(rs *Services, nodeId int) {
 	}
 }
 
-func sendServiceEvent(nodeId int, eventChannel chan interface{}, previousStatus Status, status Status,
+func SendServiceEvent(nodeId int, eventChannel chan interface{}, previousStatus Status, status Status,
 	serviceType ServiceType, subscriptionStream *SubscriptionStream) {
 	if previousStatus != status {
 		if eventChannel != nil {

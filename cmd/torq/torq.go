@@ -6,6 +6,7 @@ import (
 	"net/http"
 	_ "net/http/pprof" //nolint:gosec
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -188,7 +189,8 @@ func main() {
 			// When LndService has status active other services like Amboss and Vector are booted (they depend on LND)
 			go processServiceEvents(db, serviceChannelGlobal, broadcasterGlobal)
 
-			commons.RunningServices[commons.TorqService].AddSubscription(commons.TorqDummyNodeId, cancelGlobal, eventChannelGlobal)
+			previousStatus := commons.RunningServices[commons.TorqService].AddSubscription(commons.TorqDummyNodeId, cancelGlobal)
+			commons.SendServiceEvent(commons.TorqDummyNodeId, eventChannelGlobal, previousStatus, commons.Pending, commons.TorqService, nil)
 
 			// This function initiates the database migration(s) and parses command line parameters
 			// When done the TorqService is set to Initialising
@@ -256,6 +258,9 @@ func main() {
 }
 
 func pprofStartup(c *cli.Context) {
+	runtime.SetBlockProfileRate(1)
+	runtime.SetMutexProfileFraction(1)
+	runtime.SetCPUProfileRate(1)
 	err := http.ListenAndServe(c.String("torq.pprof.path"), nil) //nolint:gosec
 	if err != nil {
 		log.Error().Err(err).Msg("Torq could not start pprof")
@@ -281,7 +286,8 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context, eventChannel chan i
 	err := database.MigrateUp(db)
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Error().Err(err).Msg("Torq could not migrate the database.")
-		commons.RunningServices[commons.TorqService].RemoveSubscription(commons.TorqDummyNodeId, eventChannel)
+		previousStatus := commons.RunningServices[commons.TorqService].RemoveSubscription(commons.TorqDummyNodeId)
+		commons.SendServiceEvent(commons.TorqDummyNodeId, eventChannel, previousStatus, commons.Inactive, commons.TorqService, nil)
 		return
 	}
 
@@ -331,14 +337,16 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context, eventChannel chan i
 				log.Info().Msg("Node specified in config is present, updating Macaroon and TLS files")
 				if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, commons.Active, grpcAddress, tlsFile, macaroonFile); err != nil {
 					log.Error().Err(err).Msg("Problem updating node files")
-					commons.RunningServices[commons.TorqService].RemoveSubscription(commons.TorqDummyNodeId, eventChannel)
+					previousStatus := commons.RunningServices[commons.TorqService].RemoveSubscription(commons.TorqDummyNodeId)
+					commons.SendServiceEvent(commons.TorqDummyNodeId, eventChannel, previousStatus, commons.Inactive, commons.TorqService, nil)
 				}
 			}
 		}
 		break
 	}
 
-	commons.RunningServices[commons.TorqService].Initialising(commons.TorqDummyNodeId, eventChannel)
+	previousStatus := commons.RunningServices[commons.TorqService].Initialising(commons.TorqDummyNodeId)
+	commons.SendServiceEvent(commons.TorqDummyNodeId, eventChannel, previousStatus, commons.Initializing, commons.TorqService, nil)
 }
 
 func serviceChannelDummyRoutine(serviceChannel chan commons.ServiceChannelMessage) {
@@ -372,7 +380,11 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 			name = "RebalanceService"
 		}
 		if serviceCmd.ServiceCommand == commons.Kill {
-			serviceCmd.Out <- services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay, eventChannel)
+			previousStatus, cancelStatus := services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay)
+			if cancelStatus == commons.Active {
+				commons.SendServiceEvent(serviceCmd.NodeId, eventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
+			}
+			serviceCmd.Out <- cancelStatus
 		}
 		if serviceCmd.ServiceCommand == commons.Boot {
 			if serviceCmd.NodeId != 0 {
@@ -404,7 +416,8 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 				if nodes == nil {
 					if serviceCmd.NodeId == 0 {
 						if serviceCmd.ServiceType == commons.LndService {
-							commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, nil, eventChannel)
+							previousStatus := commons.RunningServices[commons.TorqService].Booted(commons.TorqDummyNodeId, nil)
+							commons.SendServiceEvent(commons.TorqDummyNodeId, eventChannel, previousStatus, commons.Active, commons.TorqService, nil)
 						}
 						switch serviceCmd.ServiceType {
 						case commons.VectorService:
@@ -538,7 +551,8 @@ func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync
 	ctx, cancel := context.WithCancel(ctx)
 
 	log.Info().Msgf("Subscribing to LND for node id: %v", node.NodeId)
-	services.AddSubscription(node.NodeId, cancel, eventChannel)
+	previousStatus := services.AddSubscription(node.NodeId, cancel)
+	commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Pending, serviceCmd.ServiceType, nil)
 	conn, err := lnd_connect.Connect(
 		node.GRPCAddress,
 		node.TLSFileBytes,
@@ -546,14 +560,16 @@ func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
-		services.RemoveSubscription(node.NodeId, eventChannel)
+		previousStatus = services.RemoveSubscription(node.NodeId)
+		commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
 		log.Info().Msgf("LND Subscription will be restarted (when active) in 10 seconds for node id: %v", node.NodeId)
 		time.Sleep(10 * time.Second)
 		serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
 		return
 	}
 
-	services.Booted(node.NodeId, bootLock, eventChannel)
+	previousStatus = services.Booted(node.NodeId, bootLock)
+	commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Active, serviceCmd.ServiceType, nil)
 	commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 	log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
 	err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster, eventChannel, serviceChannel)
@@ -562,7 +578,8 @@ func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync
 		// only log the error, don't return
 	}
 	log.Info().Msgf("LND Subscription stopped for node id: %v", node.NodeId)
-	services.RemoveSubscription(node.NodeId, eventChannel)
+	previousStatus = services.RemoveSubscription(node.NodeId)
+	commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
 	if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
 		log.Info().Msgf("LND Subscription will be restarted (when active) for node id: %v", node.NodeId)
 	} else {
@@ -586,7 +603,8 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 	ctx, cancel := context.WithCancel(ctx)
 
 	log.Info().Msgf("Generating %v Service for node id: %v", name, node.NodeId)
-	services.AddSubscription(node.NodeId, cancel, eventChannel)
+	previousStatus := services.AddSubscription(node.NodeId, cancel)
+	commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Pending, serviceCmd.ServiceType, nil)
 
 	var conn *grpc.ClientConn
 	var err error
@@ -604,12 +622,14 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 			node.MacaroonFileBytes)
 		if err != nil {
 			log.Error().Err(err).Msgf("%v Service Failed to connect to lnd for node id: %v", name, node.NodeId)
-			services.RemoveSubscription(node.NodeId, eventChannel)
+			previousStatus = services.RemoveSubscription(node.NodeId)
+			commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
 			return
 		}
 	}
 
-	services.Booted(node.NodeId, bootLock, eventChannel)
+	previousStatus = services.Booted(node.NodeId, bootLock)
+	commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Active, serviceCmd.ServiceType, nil)
 	log.Info().Msgf("%v Service booted for node id: %v", name, node.NodeId)
 	switch serviceCmd.ServiceType {
 	case commons.VectorService:
@@ -627,7 +647,8 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 		log.Error().Err(err).Msgf("%v Service ended for node id: %v", name, node.NodeId)
 	}
 	log.Info().Msgf("%v Service stopped for node id: %v", name, node.NodeId)
-	services.RemoveSubscription(node.NodeId, eventChannel)
+	previousStatus = services.RemoveSubscription(node.NodeId)
+	commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
 	if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
 		log.Info().Msgf("%v Service will be restarted (when active) for node id: %v", name, node.NodeId)
 	} else {

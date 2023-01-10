@@ -168,7 +168,7 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 
 		if channelEvent, ok := event.(commons.ChannelBalanceEvent); ok {
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
-				return
+				continue
 			}
 
 			//if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
