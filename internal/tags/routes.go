@@ -15,9 +15,18 @@ import (
 func RegisterTagRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET(":tagId", func(c *gin.Context) { getTagHandler(c, db) })
 	r.GET("", func(c *gin.Context) { getTagsHandler(c, db) })
-	r.POST("", func(c *gin.Context) { addTagHandler(c, db) })
-	// setTagHandler you cannot reassign a tag to a new category!
-	r.PUT("", func(c *gin.Context) { setTagHandler(c, db) })
+	r.GET("/category/:categoryId", func(c *gin.Context) { getTagsByCategoryHandler(c, db) })
+	r.POST("", func(c *gin.Context) { createTagHandler(c, db) })
+	r.PUT("", func(c *gin.Context) { updateTagHandler(c, db) })
+	// Ads a tag to an entity (i.e. adds a tag to a channel or a node)
+	r.POST("tag", func(c *gin.Context) { tagEntityHandler(c, db) })
+
+	// Get all tags for a channel
+	r.GET("/channel/:channelId", func(c *gin.Context) { getChannelTagsHandler(c, db) })
+	// Get all tags for a channel including tags assigned to the channel node
+	r.GET("/channel/:channelId/node/:nodeId", func(c *gin.Context) { getChannelTagsHandler(c, db) })
+	// Get all tags for a node
+	r.GET("/node/:nodeId", func(c *gin.Context) { getNodeTagsHandler(c, db) })
 }
 
 func getTagHandler(c *gin.Context, db *sqlx.DB) {
@@ -43,7 +52,21 @@ func getTagsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, tags)
 }
 
-func addTagHandler(c *gin.Context, db *sqlx.DB) {
+func getTagsByCategoryHandler(c *gin.Context, db *sqlx.DB) {
+	categoryId, err := strconv.Atoi(c.Param("categoryId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse categoryId in the request.")
+		return
+	}
+	tags, err := GetTagsByCategoryId(db, categoryId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Getting tags.")
+		return
+	}
+	c.JSON(http.StatusOK, tags)
+}
+
+func createTagHandler(c *gin.Context, db *sqlx.DB) {
 	var t Tag
 	if err := c.BindJSON(&t); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -53,7 +76,7 @@ func addTagHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendUnprocessableEntity(c, "Failed to find name in the request.")
 		return
 	}
-	storedTag, err := addTag(db, t)
+	storedTag, err := createTag(db, t)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Adding tag.")
 		return
@@ -61,17 +84,72 @@ func addTagHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, storedTag)
 }
 
-func setTagHandler(c *gin.Context, db *sqlx.DB) {
+func updateTagHandler(c *gin.Context, db *sqlx.DB) {
 	var t Tag
 	if err := c.BindJSON(&t); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	storedTag, err := setTag(db, t)
+	storedTag, err := updateTag(db, t)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting tag for tagId: %v", t.TagId))
 		return
 	}
 
 	c.JSON(http.StatusOK, storedTag)
+}
+
+func tagEntityHandler(c *gin.Context, db *sqlx.DB) {
+	var t TagEntityRequest
+	if err := c.BindJSON(&t); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+	err := tagEntity(db, t)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting tag for tagId: %v", t.TagId))
+		return
+	}
+
+	c.JSON(http.StatusOK, t)
+}
+
+func getChannelTagsHandler(c *gin.Context, db *sqlx.DB) {
+	req := ChannelTagsRequest{}
+	channelId, err := strconv.Atoi(c.Param("channelId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse channelId in the request.")
+		return
+	}
+	req.ChannelId = channelId
+
+	if c.Param("nodeId") != "" {
+		nodeId, err := strconv.Atoi(c.Param("nodeId"))
+		if err != nil {
+			server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
+			return
+		}
+		req.NodeId = &nodeId
+	}
+
+	tags, err := GetChannelTags(db, req)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Getting tags.")
+		return
+	}
+	c.JSON(http.StatusOK, tags)
+}
+
+func getNodeTagsHandler(c *gin.Context, db *sqlx.DB) {
+	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
+		return
+	}
+	tags, err := GetNodeTags(db, nodeId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Getting tags.")
+		return
+	}
+	c.JSON(http.StatusOK, tags)
 }
