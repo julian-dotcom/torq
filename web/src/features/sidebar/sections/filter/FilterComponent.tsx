@@ -55,13 +55,13 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
 
   const addFilter = () => {
     const filters = clone(props.filters);
-    filters.childClauses.push(new FilterClause(props.defaultFilter));
+    filters.addChildClause(new FilterClause(props.defaultFilter));
     props.onFilterUpdate(filters);
   };
 
   const addGroup = () => {
     const filters = clone(props.filters);
-    filters.childClauses.push(new AndClause([new FilterClause(props.defaultFilter)]));
+    filters.addChildClause(new AndClause([new FilterClause(props.defaultFilter)]));
     props.onFilterUpdate(filters);
   };
 
