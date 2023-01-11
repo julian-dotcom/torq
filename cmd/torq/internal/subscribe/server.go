@@ -55,8 +55,16 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 				}
 				if importRequest.ImportType == commons.ImportChannelAndRoutingPolicies {
 					var err error
+					//Import Pending channels
+					err = lnd.ImportPendingChannels(db, client, nodeSettings, lightningRequestChannel)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to import pending channels.")
+						importRequest.Out <- err
+						continue
+					}
+
 					//Import Open channels
-					err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_OPEN_CHANNEL, db, client, nodeSettings, lightningRequestChannel)
+					err = lnd.ImportOpenChannels(db, client, nodeSettings, lightningRequestChannel)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to import open channels.")
 						importRequest.Out <- err
@@ -64,7 +72,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 					}
 
 					// Import Closed channels
-					err = lnd.ImportChannelList(lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, db, client, nodeSettings, lightningRequestChannel)
+					err = lnd.ImportClosedChannels(db, client, nodeSettings, lightningRequestChannel)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to import closed channels.")
 						importRequest.Out <- err
