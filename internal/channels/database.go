@@ -2,6 +2,7 @@ package channels
 
 import (
 	"database/sql"
+	"github.com/lncapital/torq/internal/tags"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -37,6 +38,18 @@ func GetChannels(db *sqlx.DB, nodeIds []int, all bool, channelIds []int) ([]*Cha
 		if err != nil {
 			return nil, errors.Wrapf(err, "Running getChannels query StructScan all: %v, channelIds: %v", all, channelIds)
 		}
+
+		// Improve this. Get all tags for all channels in one query
+		t, err := tags.GetChannelTags(db, tags.ChannelTagsRequest{
+			ChannelId: c.ChannelID,
+			NodeId:    &c.SecondNodeId,
+		})
+		c.Tags = t
+
+		if err != nil {
+			return r, errors.Wrap(err, "Getting channel tags in forwards")
+		}
+
 		r = append(r, c)
 	}
 	return r, nil

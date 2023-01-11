@@ -1,3 +1,5 @@
+import { Tag } from "pages/tags/tagsTypes";
+
 type Channel = {
   alias: string;
   channelId: number;
@@ -56,6 +58,7 @@ type Event = {
 
 export type ChannelHistory = {
   label: string;
+  tags: Tag[];
   onChainCost: number;
   rebalancingCost: number;
   amountOut: number;

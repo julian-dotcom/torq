@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"github.com/lncapital/torq/internal/tags"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -32,8 +33,8 @@ func GetClosureStatus(lndClosureType lnrpc.ChannelCloseSummary_ClosureType) comm
 
 type Channel struct {
 	// ChannelID A database primary key. NOT a channel_id as specified in BOLT 2
-	ChannelID int `json:"channelId" db:"channel_id"`
-	// ShortChannelID In the c-lighting and BOLT format e.g. 505580:1917:1
+	ChannelID              int                   `json:"channelId" db:"channel_id"`
+	Tags                   []tags.Tag            `json:"tags" db:"tags"`
 	ShortChannelID         *string               `json:"shortChannelId" db:"short_channel_id"`
 	FundingTransactionHash string                `json:"fundingTransactionHash" db:"funding_transaction_hash"`
 	FundingOutputIndex     int                   `json:"fundingOutputIndex" db:"funding_output_index"`

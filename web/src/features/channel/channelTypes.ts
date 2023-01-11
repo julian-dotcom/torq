@@ -1,3 +1,5 @@
+import { Tag } from "pages/tags/tagsTypes";
+
 export type Sections = {
   filter: boolean;
   sort: boolean;
@@ -35,6 +37,7 @@ type History = {
 
 export type Channel = {
   alias: string;
+  tags: Tag[];
   channelId: string;
   fundingTransactionHash: string;
   fundingOutputIndex: string;

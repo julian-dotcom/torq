@@ -4,7 +4,6 @@ import {
   ArrowRoutingRegular as ChannelsIcon,
 } from "@fluentui/react-icons";
 import {
-  SelectChannelTags,
   useGetChannelBalanceQuery,
   useGetChannelEventQuery,
   useGetChannelHistoryQuery,
@@ -47,7 +46,6 @@ import { selectActiveNetwork } from "features/network/networkSlice";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import PageTitle from "features/templates/PageTitle";
 import useTranslations from "services/i18n/useTranslations";
-import { useSelector } from "react-redux";
 import Tag, { TagColor } from "components/tags/Tag";
 
 const ft = d3.format(",.0f");
@@ -112,11 +110,6 @@ function ChannelPage(_: ChannelPageProps) {
       network: activeNetwork,
     },
   };
-
-  const tagsResponse =
-    (chanId || "").split(",")?.length === 1
-      ? useSelector(SelectChannelTags({ channelId: parseInt(chanId || "1"), network: activeNetwork }))
-      : { tags: [] };
 
   const { data: balance } = useGetChannelBalanceQuery(channelHistoryQueryData);
 
@@ -209,14 +202,6 @@ function ChannelPage(_: ChannelPageProps) {
       return { value: i, label: d.channelId };
     });
   }
-  // const breadcrumbs = [
-  //   <span key="b1">{t.analyse}</span>,
-  //   <span key="b3">{t.forwards}</span>,
-  //   <span key="b2">{t.inspect}</span>,
-  //   <Link key="b4" to={`/${t.analyse}/${t.inspect}/${chanId}`}>
-  //     {chanId}
-  //   </Link>,
-  // ];
   return (
     <PopoutPageTemplate
       title={t.inspectChannel}
@@ -246,11 +231,10 @@ function ChannelPage(_: ChannelPageProps) {
 
       <div className={styles.channelWrapper}>
         <div className={styles.tags}>
-          {channelDetails?.length &&
-            (tagsResponse?.tags || []).map((tag) => (
-              <Tag key={"tag-" + tag.tagId} label={tag.name} colorVariant={TagColor[tag.style]} />
-            ))}
-          {channelDetails?.length && (
+          {((history?.channels && history.channels[0].tags) || []).map((tag) => (
+            <Tag key={"tag-" + tag.tagId} label={tag.name} colorVariant={TagColor[tag.style]} />
+          ))}
+          {channelDetails?.length && history?.channels?.length === 1 && (
             <>
               <LinkButton
                 to={`/tag-channel/${chanId}`}

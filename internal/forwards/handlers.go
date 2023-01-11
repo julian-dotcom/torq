@@ -55,10 +55,10 @@ type forwardsTableRow struct {
 	FirstNodeId  int         `json:"firstNodeId"`
 	SecondNodeId int         `json:"secondNodeId"`
 	// Database primary key of channel
-	ChannelID              null.Int `json:"channelId"`
-	FundingTransactionHash string   `json:"fundingTransactionHash"`
-	FundingOutputIndex     string   `json:"fundingOutputIndex"`
-	ChannelPoint           string   `json:"channelPoint"`
+	ChannelID              *int   `json:"channelId"`
+	FundingTransactionHash string `json:"fundingTransactionHash"`
+	FundingOutputIndex     string `json:"fundingOutputIndex"`
+	ChannelPoint           string `json:"channelPoint"`
 	// The remote public key
 	PubKey null.String `json:"pubKey"`
 	// Short channel id in c-lightning / BOLT format
@@ -113,7 +113,7 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			coalesce(c.first_node_id, 0) as first_node_id,
 			coalesce(c.second_node_id, 0) as second_node_id,
 			coalesce(c.channel_id, 0) as channel_id,
-			coalesce(c.funding_transaction_hash, 'Funding tansaction missing') as funding_transaction_hash,
+			coalesce(c.funding_transaction_hash, 'Funding transaction missing') as funding_transaction_hash,
 			coalesce(c.funding_output_index, 0) as funding_output_index,
 			coalesce(c.funding_transaction_hash, '') || ':'::text || coalesce(c.funding_output_index,0)::text as channel_point,
 			coalesce(scn.public_key, '') as pub_key,
@@ -122,7 +122,6 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 			coalesce(scne.node_color, 'Color missing') as color,
 			coalesce(c.status_id, 3) <= 1 as open,
 			coalesce(c.status_id, 3) as status_id,
-
 
 			coalesce(ce.capacity::numeric, 0) as capacity,
 
@@ -245,6 +244,18 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 		}
 
 		c.LocalNodeIds = nodeIds
+		if c.ChannelID != nil {
+
+			// TODO: Improve this by using a single query
+			c.Tags, err = tags.GetChannelTags(db, tags.ChannelTagsRequest{
+				ChannelId: *c.ChannelID,
+				NodeId:    &c.SecondNodeId,
+			})
+
+			if err != nil {
+				return r, errors.Wrap(err, "Getting channel tags in forwards")
+			}
+		}
 
 		// Append to the result
 		r = append(r, c)

@@ -39,7 +39,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
           >
             {t.inspect}
           </LinkButton>
-          {nodeIds.map((nodeId) => {
+          {(nodeIds || []).map((nodeId) => {
             return (
               <div className={styles.editChannelButton} key={"buttons-node-" + nodeId}>
                 <LinkButton

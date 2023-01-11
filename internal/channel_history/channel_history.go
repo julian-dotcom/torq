@@ -1,6 +1,7 @@
 package channel_history
 
 import (
+	"github.com/lncapital/torq/internal/tags"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -11,9 +12,9 @@ import (
 )
 
 type ChannelHistoryRecords struct {
-	Alias string `json:"alias"`
-
-	Date time.Time `json:"date"`
+	Alias string     `json:"alias"`
+	Tags  []tags.Tag `json:"tags"`
+	Date  time.Time  `json:"date"`
 	// The  outbound amount in sats (Satoshis)
 	AmountOut *uint64 `json:"amountOut"`
 	// The inbound amount in sats (Satoshis)
