@@ -2,14 +2,14 @@ import { useState } from "react";
 import { Tag20Regular as TagIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
-import { useGetTagsQuery } from "pages/tagsPage/tagsApi";
+import { useGetTagsQuery } from "pages/tags/tagsApi";
 import Form from "components/forms/form/Form";
 import Socket from "components/forms/socket/Socket";
 import { NodeColorVariant } from "../nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
-import { Tag } from "pages/tagsPage/tagsTypes";
+import { Tag } from "pages/tags/tagsTypes";
 import { Select } from "components/forms/forms";
 
 type SelectOptions = {
