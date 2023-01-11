@@ -3,25 +3,25 @@ import FilterComponent from "./FilterComponent";
 import { ColumnMetaData } from "features/table/types";
 import { updateFilters } from "features/viewManagement/viewSlice";
 import { AllViewsResponse } from "features/viewManagement/types";
-import { Clause } from "./filter";
+import { AndClause, OrClause, FilterInterface } from "./filter";
 import { useAppDispatch } from "store/hooks";
 
 type FilterSectionProps<T> = {
   page: keyof AllViewsResponse;
   viewIndex: number;
-  filters: Clause;
+  filters: OrClause | AndClause;
   filterableColumns: Array<ColumnMetaData<T>>;
-  defaultFilter: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  defaultFilter: FilterInterface;
 };
 
 function FilterSection<T>(props: FilterSectionProps<T>) {
   const dispatch = useAppDispatch();
-  const handleFilterUpdate = () => {
+  const handleFilterUpdate = (filters: AndClause | OrClause) => {
     dispatch(
       updateFilters({
         page: props.page,
         viewIndex: props.viewIndex,
-        filterUpdate: props.filters.toJSON(),
+        filterUpdate: filters.toJSON(),
       })
     );
   };

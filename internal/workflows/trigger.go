@@ -82,6 +82,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//	activeOutputIndex = 1
 			//}
 		case commons.WorkflowNodeChannelFilter:
+			log.Debug().Msg("I am a running Channel Filter")
 
 		case commons.WorkflowTag:
 			var params TagParameters
