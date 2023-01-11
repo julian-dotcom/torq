@@ -56,7 +56,9 @@ export const torqApi = createApi({
     "settings",
     "tableView",
     "nodeConfigurations",
+    "forwards",
     "channels",
+    "channelHistory",
     "services",
     "tags",
     "tag",
@@ -73,6 +75,7 @@ export const torqApi = createApi({
     }),
     getChannelHistory: builder.query<ChannelHistoryResponse, GetChannelHistoryData>({
       query: (data) => `channels/${data.params.chanId}/history` + queryParamsBuilder(data.queryParams),
+      providesTags: ["channelHistory"],
     }),
     getChannelEvent: builder.query<ChannelEventResponse, GetChannelHistoryData>({
       query: (data) => `channels/${data.params.chanId}/event` + queryParamsBuilder(data.queryParams),
@@ -88,6 +91,7 @@ export const torqApi = createApi({
     }),
     getForwards: builder.query<Array<Forward>, GetForwardsQueryParams>({
       query: (params) => "forwards" + queryParamsBuilder(params, false),
+      providesTags: ["forwards"],
     }),
     getChannels: builder.query<channel[], ActiveNetwork>({
       query: (params) => ({

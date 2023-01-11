@@ -9,6 +9,7 @@
   border-radius: var(--radius-default);
   color: var(--color-text-primary-strong);
   text-transform: capitalize;
+  white-space: nowrap;
 }
 .success {
   background-color: var(--color-success-layer-2);

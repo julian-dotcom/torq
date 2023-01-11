@@ -31,26 +31,27 @@ function EditLinkWrapper(props: { tag: TagType }) {
 const TagsCell = (props: TagsCellProps) => {
   const location = useLocation();
   return (
-    <div>
-      <div className={classNames(cellStyles.cell, styles.tagCell, { [cellStyles.totalCell]: props.totalCell })}>
-        {(props.tags || []).map((tag) => (
-          <EditLinkWrapper tag={tag} key={"tag-" + tag.tagId} />
-        ))}
-        <LinkButton
-          to={`/tag-channel/${props.channelId}`}
-          state={{ background: location }}
-          icon={<ChannelsIcon />}
-          buttonSize={SizeVariant.tiny}
-          buttonColor={ColorVariant.disabled}
-        />
-        <LinkButton
-          to={`/tag-node/${props.nodeId}`}
-          state={{ background: location }}
-          icon={<NodeIcon />}
-          buttonSize={SizeVariant.tiny}
-          buttonColor={ColorVariant.disabled}
-        />
-      </div>
+    <div className={classNames(cellStyles.cell, styles.tagCell, { [cellStyles.totalCell]: props.totalCell })}>
+      {!props.totalCell && (props.tags || []).map((tag) => <EditLinkWrapper tag={tag} key={"tag-" + tag.tagId} />)}
+
+      {!props.totalCell && (
+        <>
+          <LinkButton
+            to={`/tag-channel/${props.channelId}`}
+            state={{ background: location }}
+            icon={<ChannelsIcon />}
+            buttonSize={SizeVariant.tiny}
+            buttonColor={ColorVariant.disabled}
+          />
+          <LinkButton
+            to={`/tag-node/${props.nodeId}`}
+            state={{ background: location }}
+            icon={<NodeIcon />}
+            buttonSize={SizeVariant.tiny}
+            buttonColor={ColorVariant.disabled}
+          />
+        </>
+      )}
     </div>
   );
 };

@@ -1,22 +1,27 @@
-import { Flag16Regular as EventFlagIcon } from "@fluentui/react-icons";
 import {
-  useGetChannelHistoryQuery,
+  Flag16Regular as EventFlagIcon,
+  MoleculeRegular as NodeIcon,
+  ArrowRoutingRegular as ChannelsIcon,
+} from "@fluentui/react-icons";
+import {
+  SelectChannelTags,
   useGetChannelBalanceQuery,
+  useGetChannelEventQuery,
+  useGetChannelHistoryQuery,
   useGetChannelOnChainCostQuery,
   useGetChannelRebalancingQuery,
-  useGetChannelEventQuery,
-  useGetFlowQuery,
   useGetChannelsQuery,
+  useGetFlowQuery,
 } from "apiSlice";
-import { ChannelHistoryResponse, ChannelEventResponse, Channel } from "features/channel/channelTypes";
+import { Channel, ChannelEventResponse, ChannelHistoryResponse } from "features/channel/channelTypes";
 import type { GetChannelHistoryData, GetFlowQueryParams } from "types/api";
 import classNames from "classnames";
 import * as d3 from "d3";
 import { addDays, format } from "date-fns";
 import React from "react";
-import { useNavigate, useParams, useLocation } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { useAppDispatch, useAppSelector } from "store/hooks";
-import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
+import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import EventsCard from "features/eventsCard/EventsCard";
 import Select from "components/forms/select/Select";
 import Switch from "components/forms/switch/Switch";
@@ -42,6 +47,8 @@ import { selectActiveNetwork } from "features/network/networkSlice";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import PageTitle from "features/templates/PageTitle";
 import useTranslations from "services/i18n/useTranslations";
+import { useSelector } from "react-redux";
+import Tag, { TagColor } from "components/tags/Tag";
 
 const ft = d3.format(",.0f");
 
@@ -79,8 +86,6 @@ function ChannelPage(_: ChannelPageProps) {
     ])
   );
 
-  const { data: channelDetails } = useGetChannelsQuery({ network: activeNetwork });
-
   const handleSelectEventUpdate = (type: string) => {
     return (checked: boolean) => {
       setSelectedEvents(new Map(selectedEvents.set(type, checked)));
@@ -88,6 +93,9 @@ function ChannelPage(_: ChannelPageProps) {
   };
 
   const { chanId } = useParams();
+
+  const { data: channelDetails } = useGetChannelsQuery({ network: activeNetwork });
+
   const flowQueryParams: GetFlowQueryParams = {
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
@@ -104,6 +112,11 @@ function ChannelPage(_: ChannelPageProps) {
       network: activeNetwork,
     },
   };
+
+  const tagsResponse =
+    (chanId || "").split(",")?.length === 1
+      ? useSelector(SelectChannelTags({ channelId: parseInt(chanId || "1"), network: activeNetwork }))
+      : { tags: [] };
 
   const { data: balance } = useGetChannelBalanceQuery(channelHistoryQueryData);
 
@@ -232,6 +245,30 @@ function ChannelPage(_: ChannelPageProps) {
       </PageTitle>
 
       <div className={styles.channelWrapper}>
+        <div className={styles.tags}>
+          {channelDetails?.length &&
+            (tagsResponse?.tags || []).map((tag) => (
+              <Tag key={"tag-" + tag.tagId} label={tag.name} colorVariant={TagColor[tag.style]} />
+            ))}
+          {channelDetails?.length && (
+            <>
+              <LinkButton
+                to={`/tag-channel/${chanId}`}
+                state={{ background: location }}
+                icon={<ChannelsIcon />}
+                buttonSize={SizeVariant.small}
+                buttonColor={ColorVariant.disabled}
+              />
+              <LinkButton
+                to={`/tag-node/${channelDetails.find((c) => c.channelId === parseInt(chanId || "") || 0)?.peerNodeId}`}
+                state={{ background: location }}
+                icon={<NodeIcon />}
+                buttonSize={SizeVariant.small}
+                buttonColor={ColorVariant.disabled}
+              />
+            </>
+          )}
+        </div>
         <div className={classNames(styles.pageRow, styles.channelSummary)}>
           <div className={styles.shortColumn}>
             <div className={styles.card}>

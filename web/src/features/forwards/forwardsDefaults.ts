@@ -43,6 +43,12 @@ export const AllForwardsColumns: ColumnMetaData<Forward>[] = [
     valueType: "number",
   },
   {
+    heading: "Tags",
+    type: "TagsCell",
+    key: "tags",
+    valueType: "tags",
+  },
+  {
     heading: "Turnover Outbound",
     type: "BarCell",
     key: "turnoverOut",

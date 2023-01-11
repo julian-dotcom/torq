@@ -44,6 +44,8 @@
 }
 
 .show {
+  position: relative;
+  z-index: 9999;
   .modalBackdrop {
     top: 0;
     opacity: 1;

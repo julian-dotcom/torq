@@ -20,7 +20,7 @@ import { selectForwardsView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
-import { useGetForwardsQuery } from "apiSlice";
+import { useGetChannelsQuery, useGetForwardsQuery } from "apiSlice";
 import { Forward } from "./forwardsTypes";
 import forwardsCellRenderer from "./forwardsCells";
 import Table from "features/table/Table";
@@ -99,6 +99,7 @@ function ForwardsPage() {
     isUninitialized: boolean;
     isSuccess: boolean;
   }>({ from: from, to: to, network: activeNetwork }, { skip: !isSuccess });
+  useGetChannelsQuery({ network: activeNetwork });
 
   const filteredData = useFilterData(forwardsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);

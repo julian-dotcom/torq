@@ -342,3 +342,9 @@
   padding-top: 16px;
   padding-bottom: 16px;
 }
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  column-gap: 8px;
+}

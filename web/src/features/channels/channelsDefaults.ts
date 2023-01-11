@@ -275,6 +275,7 @@ export const ChannelsSortTemplate: { key: keyof channel; direction: "desc" | "as
 
 export const DefaultChannelsView: ViewResponse<channel> = {
   page: "channel",
+  dirty: true,
   view: {
     title: "Draft View",
     columns: DefaultChannelsColumns,

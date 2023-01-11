@@ -3,6 +3,11 @@ import { ColumnMetaData } from "features/table/types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import AliasCell from "components/table/cells/alias/AliasCell";
 import { Forward } from "./forwardsTypes";
+import { SelectChannelTags } from "apiSlice";
+import { useAppSelector } from "store/hooks";
+import { selectActiveNetwork } from "../network/networkSlice";
+import { useSelector } from "react-redux";
+import TagsCell from "components/table/cells/tags/TagsCell";
 
 export default function channelsCellRenderer(
   row: Forward,
@@ -22,6 +27,20 @@ export default function channelsCellRenderer(
         key={"alias" + rowIndex + columnIndex}
         className={column.locked ? styles.locked : ""}
         isTotalsRow={isTotalsRow}
+      />
+    );
+  }
+
+  if (column.key === "tags") {
+    const activeNetwork = useAppSelector(selectActiveNetwork);
+    const tags = useSelector(SelectChannelTags({ channelId: row.channelId, network: activeNetwork }));
+    return (
+      <TagsCell
+        tags={tags.tags || []}
+        key={"tags" + rowIndex + columnIndex}
+        channelId={row.channelId}
+        nodeId={row.secondNodeId}
+        totalCell={isTotalsRow}
       />
     );
   }

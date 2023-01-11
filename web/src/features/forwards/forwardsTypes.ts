@@ -1,3 +1,5 @@
+import { Tag } from "pages/tags/tagsTypes";
+
 export type Forward = {
   alias: string;
   channelId: number;
@@ -23,4 +25,7 @@ export type Forward = {
   turnoverIn: number;
   turnoverTotal: number;
   localNodeIds: Array<number>;
+  tags: Array<Tag>;
+  secondNodeId: number;
+  firstNodeId: number;
 };
