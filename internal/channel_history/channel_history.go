@@ -57,7 +57,7 @@ func getChannelHistory(db *sqlx.DB, nodeIds []int, all bool, channelIds []int, f
 			sum(coalesce(o.count,0)) as count_out,
 			sum(coalesce((coalesce(i.count,0) + coalesce(o.count,0)), 0)) as count_total
 		from (
-			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE ($5), $1, $2) as date,
+			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE ($5), $1::timestamp, $2::timestamp) as date,
 				   outgoing_channel_id channel_id,
 				   floor(sum(outgoing_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
@@ -70,7 +70,7 @@ func getChannelHistory(db *sqlx.DB, nodeIds []int, all bool, channelIds []int, f
 			group by date, outgoing_channel_id
 			) as o
 		full outer join (
-			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE ($5), $1, $2) as date,
+			select time_bucket_gapfill('1 days', time::timestamp AT TIME ZONE ($5), $1::timestamp, $2::timestamp) as date,
 				   incoming_channel_id as channel_id,
 				   floor(sum(incoming_amount_msat)/1000) as amount,
 				   floor(sum(fee_msat)/1000) as revenue,
