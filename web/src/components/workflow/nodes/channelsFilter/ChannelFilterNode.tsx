@@ -9,7 +9,8 @@ import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } f
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import FilterComponent from "features/sidebar/sections/filter/FilterComponent";
-import { AndClause, FilterInterface, OrClause } from "features/sidebar/sections/filter/filter";
+import { AndClause, deserialiseQuery, FilterInterface, OrClause } from "features/sidebar/sections/filter/filter";
+import { ColumnMetaData } from "features/table/types";
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -17,8 +18,6 @@ type dummyData = {
   name: string;
   age: number;
 };
-
-import { ColumnMetaData } from "features/table/types";
 
 const dummyColumns: ColumnMetaData<dummyData>[] = [
   {
@@ -49,7 +48,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
 
   const [updateNode] = useUpdateNodeMutation();
 
-  const [filterState, setFilterState] = useState(new AndClause());
+  const [filterState, setFilterState] = useState(deserialiseQuery(wrapperProps.parameters) as AndClause | OrClause);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
