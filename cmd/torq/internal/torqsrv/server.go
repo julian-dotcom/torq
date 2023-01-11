@@ -42,6 +42,7 @@ import (
 
 func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer,
+	lightningRequestChannel chan interface{},
 	serviceChannel chan commons.ServiceChannelMessage) error {
 
 	r := gin.Default()
@@ -55,7 +56,7 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 		return errors.Wrap(err, "Creating Gin Session")
 	}
 
-	registerRoutes(r, db, apiPswd, cookiePath, eventChannel, broadcaster, serviceChannel)
+	registerRoutes(r, db, apiPswd, cookiePath, eventChannel, broadcaster, lightningRequestChannel, serviceChannel)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -116,6 +117,7 @@ func equalASCIIFold(s, t string) bool {
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string,
 	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer,
+	lightningRequestChannel chan interface{},
 	serviceChannel chan commons.ServiceChannelMessage) {
 
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
@@ -205,7 +207,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		channelRoutes := api.Group("/channels")
 		{
 			channel_history.RegisterChannelHistoryRoutes(channelRoutes, db)
-			channels.RegisterChannelRoutes(channelRoutes, db, eventChannel)
+			channels.RegisterChannelRoutes(channelRoutes, db, lightningRequestChannel)
 		}
 
 		forwardRoutes := api.Group("/forwards")

@@ -14,14 +14,14 @@ func GetChannelEventFromGraph(db *sqlx.DB, channelId int, secondsAgo *int) ([]Ch
 	var channelEventsFromGraph []ChannelEventFromGraph
 	var err error
 	if secondsAgo == nil {
-		err = db.Select(channelEventsFromGraph,
+		err = db.Select(&channelEventsFromGraph,
 			`SELECT *
 			FROM routing_policy
 			WHERE channel_id=$1
 			ORDER BY ts DESC;`,
 			channelId)
 	} else {
-		err = db.Select(channelEventsFromGraph,
+		err = db.Select(&channelEventsFromGraph,
 			`SELECT *
 			FROM routing_policy
 			WHERE channel_id=$1 AND ts >= $2
