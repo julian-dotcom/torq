@@ -1,23 +1,17 @@
-// copy pasta from https://stackoverflow.com/questions/28150967/typescript-cloning-object/28152032#28152032
+// https://javascript.plainenglish.io/deep-clone-an-object-and-preserve-its-type-with-typescript-d488c35e5574
+// With a modification to make readonly properties writable so we can clone a clone
 const clone = <T>(source: T): T => {
-  if (source === null) return source;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (source instanceof Date) return new Date(source.getTime()) as any;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (source instanceof Array) return source.map((item: any) => clone<any>(item)) as any;
-
-  if (typeof source === "object" && source !== undefined) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const clonnedObj = { ...(source as { [key: string]: any }) } as { [key: string]: any };
-    Object.keys(clonnedObj).forEach((prop) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      clonnedObj[prop] = clone<any>(clonnedObj[prop]);
-    });
-    return clonnedObj as T;
-  }
-  return source;
+  return Array.isArray(source)
+    ? source.map((item) => clone(item))
+    : source instanceof Date
+    ? new Date(source.getTime())
+    : source && typeof source === "object"
+    ? Object.getOwnPropertyNames(source).reduce((o, prop) => {
+        Object.defineProperty(o, prop, { ...Object.getOwnPropertyDescriptor(source, prop)!, writable: true });
+        o[prop] = clone((source as { [key: string]: any })[prop]);
+        return o;
+      }, Object.create(Object.getPrototypeOf(source)))
+    : (source as T);
 };
 
 export default clone;

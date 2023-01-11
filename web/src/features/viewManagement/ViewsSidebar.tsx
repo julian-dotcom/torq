@@ -17,7 +17,7 @@ import { SectionContainer } from "features/section/SectionContainer";
 import GroupBySection from "features/sidebar/sections/group/GroupBySection";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import useTranslations from "services/i18n/useTranslations";
-import { deserialiseQuery } from "features/sidebar/sections/filter/filter";
+import { AndClause, deserialiseQuery, OrClause } from "features/sidebar/sections/filter/filter";
 
 type ViewSidebarProps<T> = {
   expanded: boolean;
@@ -59,7 +59,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
     };
   };
 
-  const filterClause = deserialiseQuery(props.viewResponse.view.filters);
+  const filterClause = deserialiseQuery(props.viewResponse.view.filters) as AndClause | OrClause;
 
   return (
     <Sidebar title={"Options"} closeSidebarHandler={() => props.onExpandToggle()}>

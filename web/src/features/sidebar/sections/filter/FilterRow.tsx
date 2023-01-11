@@ -1,12 +1,14 @@
 import classNames from "classnames";
 import { Delete16Regular as RemoveIcon } from "@fluentui/react-icons";
 import { FilterCategoryType, FilterClause, FilterFunctions, FilterInterface, FilterParameterType } from "./filter";
+import { Clause, FilterClause, FilterInterface, FilterParameterType } from "./filter";
 import styles from "./filter-section.module.scss";
 import { useState } from "react";
 import { format } from "d3";
 import { Input, InputColorVaraint, InputSizeVariant, Select } from "components/forms/forms";
 import { TagResponse } from "pages/tags/tagsTypes";
 import { useGetTagsQuery } from "pages/tags/tagsApi";
+import clone from "clone";
 
 const formatter = format(",.0f");
 
@@ -41,7 +43,7 @@ interface filterRowInterface {
   filterClause: FilterClause;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filterOptions: Array<{ label: string; value: any; valueType?: FilterCategoryType; selectOptions?: Array<any> }>;
-  onUpdateFilter: () => void;
+  onUpdateFilter: (filters: Clause) => void;
   onRemoveFilter: (index: number) => void;
   handleCombinerChange: () => void;
   combiner?: string;
@@ -108,14 +110,16 @@ function FilterRow({
         newRow.funcName = "like";
     }
     newRow.category = newCategory;
-    filterClause.filter = newRow;
-    onUpdateFilter();
+    const updatedFilterClause = clone(filterClause);
+    updatedFilterClause.filter = newRow;
+    onUpdateFilter(updatedFilterClause);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleFunctionChange = (item: any) => {
-    filterClause.filter = { ...rowValues, funcName: item.value };
-    onUpdateFilter();
+    const updatedFilterClause = clone(filterClause);
+    updatedFilterClause.filter = { ...rowValues, funcName: item.value };
+    onUpdateFilter(updatedFilterClause);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -140,8 +144,9 @@ function FilterRow({
       default:
         newRow.parameter = e.target.value ? e.target.value : "";
     }
-    filterClause.filter = newRow;
-    onUpdateFilter();
+    const updatedFilterClause = clone(filterClause);
+    updatedFilterClause.filter = newRow;
+    onUpdateFilter(updatedFilterClause);
   };
 
   const label = filterOptions.find((item) => item.value === rowValues.key)?.label;
