@@ -41,7 +41,7 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagChannel,
       }),
-      invalidatesTags: ["tags", "tag"],
+      invalidatesTags: ["tags", "tag", "channels"],
     }),
     tagNode: builder.mutation<void, TagNodeRequest>({
       query: (tagNode) => ({
@@ -49,7 +49,7 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagNode,
       }),
-      invalidatesTags: ["tags", "tag"],
+      invalidatesTags: ["tags", "tag", "channels"],
     }),
     untagNode: builder.mutation<void, TagNodeRequest>({
       query: (tagNode) => ({
@@ -57,7 +57,7 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagNode,
       }),
-      invalidatesTags: ["tags", "tag"],
+      invalidatesTags: ["tags", "tag", "channels"],
     }),
     untagChannel: builder.mutation<void, TagChannelRequest>({
       query: (tagChannel) => ({
@@ -65,9 +65,16 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagChannel,
       }),
-      invalidatesTags: ["tags", "tag"],
+      invalidatesTags: ["tags", "tag", "channels"],
     }),
-
+    // getChannelsForTag: builder.query<ChannelNode, number>({
+    //   query: (tagId) => `tags/${tagId}/channels`,
+    //   providesTags: ["tagsForChannel"],
+    // }),
+    // getNodesForTag: builder.query<ChannelNode, number>({
+    //   query: (tagId) => `tags/${tagId}/nodes`,
+    //   providesTags: ["tagsForNodes"],
+    // }),
     getNodesChannels: builder.query<ChannelNode, void>({
       query: () => ({
         url: `channels/nodes`,

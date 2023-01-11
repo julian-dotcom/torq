@@ -64,6 +64,8 @@ export const torqApi = createApi({
     "corridors",
     "workflows",
     "workflow",
+    // "tagsForChannel",
+    // "tagsForNodes",
   ],
   endpoints: (builder) => ({
     getFlow: builder.query<FlowData[], GetFlowQueryParams>({
@@ -221,6 +223,22 @@ export const SelectChannel = (props: { network: Network; channelId: number }) =>
     return channels?.data?.find((channel) => channel.channelId === props.channelId);
   });
 };
+
+// Select channel and node tags for a given channel
+export const SelectChannelTags = (props: { network: Network; channelId: number }) => {
+  return createSelector(
+    [
+      SelectChannel({ network: props.network, channelId: props.channelId }),
+      torqApi.endpoints.getChannels.select({ network: props.network }),
+    ],
+    (channel) => {
+      return {
+        tags: channel?.tags,
+      };
+    }
+  );
+};
+
 export const SelectChannels = (props: { network: Network; channelIds: Array<number> }) => {
   return createSelector([torqApi.endpoints.getChannels.select({ network: props.network })], (channels) => {
     return channels?.data?.filter((channel) => {

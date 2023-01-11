@@ -1,9 +1,9 @@
-import { Tag24Regular as TagHeaderIcon } from "@fluentui/react-icons"; // ArrowRouting20Regular as ChannelsIcon
+import { Tag24Regular as TagHeaderIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import { useParams } from "react-router-dom";
 import { TagColor } from "components/tags/Tag";
-import { useGetTagQuery, useAddTagMutation, useSetTagMutation } from "./tagsApi";
-import { ExpandedTag, TagResponse } from "./tagsTypes";
+import { useGetTagQuery, useAddTagMutation, useSetTagMutation } from "../tagsApi";
+import { ExpandedTag, TagResponse } from "../tagsTypes";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import { Form, Select, Input, InputRow } from "components/forms/forms";
 import styles from "./modifyTagModal.module.scss";
@@ -12,7 +12,7 @@ import { useGetCategoriesQuery } from "pages/categoriesPage/categoriesApi";
 import Button, { ButtonWrapper, ColorVariant } from "components/buttons/Button";
 import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
-import TargetsSection from "./targetsSection/TargetsSection";
+import TargetsSection from "features/targetsSection/TargetsSection";
 
 const inputNames = {
   name: "name",

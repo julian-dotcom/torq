@@ -19,6 +19,7 @@ import (
 
 type channelBody struct {
 	NodeId                       int                  `json:"nodeId"`
+	PeerNodeId                   int                  `json:"peerNodeId"`
 	ChannelId                    int                  `json:"channelId"`
 	ChannelPoint                 string               `json:"channelPoint"`
 	NodeName                     string               `json:"nodeName"`
@@ -178,6 +179,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 				remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
 				chanBody := channelBody{
 					NodeId:                       nodeId,
+					PeerNodeId:                   channel.RemoteNodeId,
 					Tags:                         channelTags,
 					ChannelId:                    channelSettings.ChannelId,
 					NodeName:                     *nodeSettings.Name,

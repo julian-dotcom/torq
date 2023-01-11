@@ -7,7 +7,7 @@ import { DefaultOnChainView } from "features/transact/OnChain/onChainDefaults";
 import { DefaultPaymentView } from "features/transact/Payments/paymentDefaults";
 import { DefaultInvoiceView } from "features/transact/Invoices/invoiceDefaults";
 import { DefaultChannelsView } from "features/channels/channelsDefaults";
-import { DefaultTagsView } from "pages/tagsPage/tagsDefaults";
+import { DefaultTagsView } from "pages/tags/tagsPage/tagsDefaults";
 import { ColumnMetaData } from "features/table/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { deserialiseQuery, SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";

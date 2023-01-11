@@ -9,8 +9,7 @@ import TablePageTemplate, {
 import Button, { ColorVariant } from "components/buttons/Button";
 import { useLocation } from "react-router";
 import useTranslations from "services/i18n/useTranslations";
-import { useGetTagsQuery } from "./tagsApi";
-import { ExpandedTag } from "./tagsTypes";
+import { useGetTagsQuery } from "../tagsApi";
 import { DefaultTagsView } from "./tagsDefaults";
 import tagsCellRenderer from "./tagsCellRenderer";
 
@@ -19,13 +18,7 @@ function TagsPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const tagsResponse = useGetTagsQuery<{
-    data: Array<ExpandedTag>;
-    isLoading: boolean;
-    isFetching: boolean;
-    isUninitialized: boolean;
-    isSuccess: boolean;
-  }>();
+  const tagsResponse = useGetTagsQuery();
 
   const tableControls = (
     <TableControlSection>

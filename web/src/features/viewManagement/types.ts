@@ -1,5 +1,5 @@
 import { ColumnMetaData } from "features/table/types";
-import { ExpandedTag } from "pages/tagsPage/tagsTypes";
+import { ExpandedTag } from "pages/tags/tagsTypes";
 import { channel } from "features/channels/channelsTypes";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";
 import { OnChainTx } from "features/transact/OnChain/types";

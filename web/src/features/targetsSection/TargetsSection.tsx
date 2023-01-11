@@ -8,14 +8,14 @@ import styles from "./targets_section.module.scss";
 import TargetsHeader from "components/targets/TargetsHeader";
 import Collapse from "features/collapse/Collapse";
 import useTranslations from "services/i18n/useTranslations";
-import { ChannelNode, TaggedChannels, TaggedNodes } from "pages/tagsPage/tagsTypes";
+import { ChannelNode, TaggedChannels, TaggedNodes } from "pages/tags/tagsTypes";
 import {
   useGetNodesChannelsQuery,
   useTagChannelMutation,
   useTagNodeMutation,
   useUntagChannelMutation,
   useUntagNodeMutation,
-} from "pages/tagsPage/tagsApi";
+} from "pages/tags/tagsApi";
 import { Select } from "components/forms/forms";
 import Target from "components/targets/Target";
 
@@ -84,38 +84,6 @@ export default function TargetsSection(props: TargetsSectionProps) {
       }
     }
   }
-
-  // useEffect(() => {
-  //   if (corridorsResponse) {
-  //     const listNodes: ReactNode[] = [];
-  //     const listChannels: ReactNode[] = [];
-  //     channels.map((c: CorridorFields) => {
-  //       if (c.shortChannelId) {
-  //         listChannels.push(
-  //           <Target
-  //             onDeleteTarget={() => handleDeleteTarget(c.corridorId)}
-  //             key={"channel-target-" + c.corridorId}
-  //             icon={<ChannelsIcon />}
-  //             details={c.alias}
-  //             title={c.shortChannelId}
-  //           />
-  //         );
-  //       } else {
-  //         listNodes.push(
-  //           <Target
-  //             onDeleteTarget={() => handleDeleteTarget(c.corridorId)}
-  //             key={"channel-target-" + c.corridorId}
-  //             icon={<NodesIcon />}
-  //             details={"-"}
-  //             title={c.alias}
-  //           />
-  //         );
-  //       }
-  //     });
-  //     setTargetNodes(listNodes);
-  //     setTargetChannels(listChannels);
-  //   }
-  // }, [corridorsResponse]);
 
   return (
     <div className={styles.targetsSection}>

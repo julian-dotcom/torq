@@ -1,6 +1,7 @@
 package forwards
 
 import (
+	"github.com/lncapital/torq/internal/tags"
 	"net/http"
 	"strconv"
 	"time"
@@ -50,6 +51,7 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 type forwardsTableRow struct {
 	// Alias of remote peer
 	Alias        null.String `json:"alias"`
+	Tags         []tags.Tag  `json:"tags"`
 	FirstNodeId  int         `json:"firstNodeId"`
 	SecondNodeId int         `json:"secondNodeId"`
 	// Database primary key of channel
