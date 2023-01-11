@@ -19,13 +19,11 @@ import (
 type channelFlowData struct {
 	// Alias of remote peer
 	Alias                  null.String `json:"alias"`
-	ChannelId              string      `json:"channelId"`
+	ChannelId              *string     `json:"channelId"`
 	FundingTransactionHash string      `json:"fundingTransactionHash"`
 	FundingOutputIndex     int         `json:"fundingOutputIndex"`
 	// The remote public key
 	PubKey null.String `json:"pubKey"`
-	// Short channel id in c-lightning / BOLT format
-	LNDShortChannelId null.String `json:"lndShortChannelId"`
 
 	// The  outbound amount in sats (Satoshis)
 	AmountOut uint64 `json:"amountOut"`
@@ -102,7 +100,6 @@ func getFlow(db *sqlx.DB, nodeIds []int, chanIdStrings []string, fromTime time.T
 	const sql = `
 		select
 			ne.alias,
-			fw.channel_id,
 			c.channel_id,
 			COALESCE(c.funding_transaction_hash, ''),
 			COALESCE(c.funding_output_index, 0),
@@ -184,7 +181,6 @@ func getFlow(db *sqlx.DB, nodeIds []int, chanIdStrings []string, fromTime time.T
 		err = rows.Scan(
 			&c.Alias,
 			&c.ChannelId,
-			&c.LNDShortChannelId,
 			&c.FundingTransactionHash,
 			&c.FundingOutputIndex,
 			&c.PubKey,
