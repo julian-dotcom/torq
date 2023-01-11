@@ -194,6 +194,11 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
+	success := fixBindFailures(c, ncd)
+	if !success {
+		return
+	}
+
 	if ncd.TLSFile == nil || ncd.MacaroonFile == nil || ncd.GRPCAddress == nil || *ncd.GRPCAddress == "" {
 		server_errors.SendBadRequest(c, "All node details are required to add new node connection details")
 		return
@@ -333,29 +338,10 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	// TODO c.Bind cannot process status?
-	statusId, err := strconv.Atoi(c.Request.Form.Get("status"))
-	if err != nil || statusId > int(commons.Deleted) {
-		server_errors.SendBadRequest(c, "Failed to find/parse status in the request.")
+	success := fixBindFailures(c, ncd)
+	if !success {
 		return
 	}
-	ncd.Status = commons.Status(statusId)
-
-	// TODO c.Bind cannot process customSettings?
-	customSettings, err := strconv.Atoi(c.Request.Form.Get("customSettings"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse status in the request.")
-		return
-	}
-	ncd.CustomSettings = commons.NodeConnectionDetailCustomSettings(customSettings)
-
-	// TODO c.Bind cannot process pingSystem?
-	pingSystem, err := strconv.Atoi(c.Request.Form.Get("pingSystem"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse status in the request.")
-		return
-	}
-	ncd.PingSystem = commons.PingSystem(pingSystem)
 
 	if ncd.NodeId == 0 {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
@@ -480,6 +466,45 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	}
 
 	c.JSON(http.StatusOK, ncd)
+}
+
+func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) bool {
+	// TODO c.Bind cannot process status?
+	statusId, err := strconv.Atoi(c.Request.Form.Get("status"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse status in the request.")
+		return false
+	}
+	if statusId > int(commons.Archived) {
+		server_errors.SendBadRequest(c, "Failed to parse status in the request.")
+		return false
+	}
+	ncd.Status = commons.Status(statusId)
+
+	// TODO c.Bind cannot process pingSystem?
+	pingSystem, err := strconv.Atoi(c.Request.Form.Get("pingSystem"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse pingSystem in the request.")
+		return false
+	}
+	if pingSystem > commons.PingSystemMax {
+		server_errors.SendBadRequest(c, "Failed to parse pingSystem in the request.")
+		return false
+	}
+	ncd.PingSystem = commons.PingSystem(pingSystem)
+
+	// TODO c.Bind cannot process customSettings?
+	customSettings, err := strconv.Atoi(c.Request.Form.Get("customSettings"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse customSettings in the request.")
+		return false
+	}
+	if customSettings > commons.NodeConnectionDetailCustomSettingsMax {
+		server_errors.SendBadRequest(c, "Failed to parse customSettings in the request.")
+		return false
+	}
+	ncd.CustomSettings = commons.NodeConnectionDetailCustomSettings(customSettings)
+	return true
 }
 
 func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
