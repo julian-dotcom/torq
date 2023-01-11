@@ -493,15 +493,6 @@ func storeImportedWaitingCloseChannels(
 		return nil
 	}
 
-	var channelIds []int
-	for _, channel := range waitingCloseChannels {
-		fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channel.GetChannel().ChannelPoint)
-		channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
-		if channelId != 0 {
-			channelIds = append(channelIds, channelId)
-		}
-	}
-
 	for _, waitingCloseChannel := range waitingCloseChannels {
 		lndChannel := waitingCloseChannel.GetChannel()
 		closing := commons.Closing
@@ -649,15 +640,6 @@ func storeImportedPendingForceClosingChannels(
 
 	if len(pendingForceClosingChannels) == 0 {
 		return nil
-	}
-
-	var channelIds []int
-	for _, channel := range pendingForceClosingChannels {
-		fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channel.GetChannel().ChannelPoint)
-		channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
-		if channelId != 0 {
-			channelIds = append(channelIds, channelId)
-		}
 	}
 
 	for _, pendingForceClosingChannel := range pendingForceClosingChannels {
