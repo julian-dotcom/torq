@@ -9,16 +9,9 @@ import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } f
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import FilterComponent from "features/sidebar/sections/filter/FilterComponent";
-import { AndClause, FilterInterface } from "features/sidebar/sections/filter/filter";
+import { AndClause, FilterInterface, OrClause } from "features/sidebar/sections/filter/filter";
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
-
-type channelPolicyConfigurationNode = {
-  feeRate: number | undefined;
-  baseFee: number | undefined;
-  minHTLCAmount: number | undefined;
-  maxHTLCAmount: number | undefined;
-};
 
 type dummyData = {
   name: string;
@@ -58,19 +51,11 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
 
   const [filterState, setFilterState] = useState(new AndClause());
 
-  const [channelPolicy, _] = useState<channelPolicyConfigurationNode>({
-    feeRate: undefined,
-    baseFee: undefined,
-    minHTLCAmount: undefined,
-    maxHTLCAmount: undefined,
-    ...wrapperProps.parameters,
-  });
-
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
-      parameters: channelPolicy,
+      parameters: filterState as unknown as Record<string, unknown>,
     });
   }
 
@@ -92,7 +77,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
     })
   );
 
-  const handleFilterUpdate = (filter: any) => {
+  const handleFilterUpdate = (filter: AndClause | OrClause) => {
     setFilterState(filter);
   };
 

@@ -1,4 +1,5 @@
 import { Status } from "constants/backend";
+import { AnyObject } from "utils/types";
 
 export type workflowListItem = {
   workflowId: number;
@@ -42,7 +43,7 @@ export type WorkflowNode = {
 export type WorkflowVersionNode = {
   name: string;
   stage: number;
-  parameters: { [k: string | number | symbol]: unknown };
+  parameters: AnyObject;
   status: number;
   type: number;
   updatedOn: string;
@@ -66,7 +67,7 @@ export type UpdateWorkflowNodeRequest = Partial<{
   name: string;
   status: number;
   visibilitySettings?: VisibilitySettings;
-  parameters?: { [k: string | number | symbol]: unknown };
+  parameters?: AnyObject;
 }>;
 
 export type WorkflowVersionNodeLink = {
