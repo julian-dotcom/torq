@@ -9,13 +9,13 @@ import (
 )
 
 func routingPolicyUpdate(request commons.RoutingPolicyUpdateRequest,
-	eventChannel chan interface{}) (commons.RoutingPolicyUpdateResponse, error) {
+	lightningRequestChannel chan interface{}) (commons.RoutingPolicyUpdateResponse, error) {
 
-	if eventChannel != nil {
+	if lightningRequestChannel != nil {
 		if commons.RunningServices[commons.LightningCommunicationService].GetStatus(request.NodeId) == commons.Active {
 			responseChannel := make(chan commons.RoutingPolicyUpdateResponse)
 			request.ResponseChannel = responseChannel
-			eventChannel <- request
+			lightningRequestChannel <- request
 			response := <-responseChannel
 			if response.Error != "" {
 				return commons.RoutingPolicyUpdateResponse{}, errors.New(response.Error)

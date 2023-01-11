@@ -1,9 +1,10 @@
 package channels
 
 import (
-	"github.com/lncapital/torq/internal/tags"
 	"net/http"
 	"strconv"
+
+	"github.com/lncapital/torq/internal/tags"
 
 	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
@@ -107,14 +108,14 @@ type NodeForTag struct {
 	Type   string `json:"type" db:"type"`
 }
 
-func updateChannelsHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}) {
+func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interface{}) {
 	var requestBody commons.RoutingPolicyUpdateRequest
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	response, err := routingPolicyUpdate(requestBody, eventChannel)
+	response, err := routingPolicyUpdate(requestBody, lightningRequestChannel)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Update channel/s policy")
 		return

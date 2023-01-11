@@ -214,7 +214,7 @@ func main() {
 			}
 
 			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
-				db, eventChannelGlobal, broadcasterGlobal, serviceChannelGlobal); err != nil {
+				db, eventChannelGlobal, broadcasterGlobal, lightningRequestChannelGlobal, serviceChannelGlobal); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}
 
