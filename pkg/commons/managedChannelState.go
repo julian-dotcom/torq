@@ -408,7 +408,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					delete(nodeChannels, managedChannelState.ChannelId)
 				}
 			} else {
-				log.Error().Msgf("Received channel event for uncached channel with channelId: %v", managedChannelState.ChannelId)
+				managedChannelSettings := GetChannelSettingByChannelId(managedChannelState.ChannelId)
+				if managedChannelSettings.Status == Open {
+					log.Error().Msgf("Received channel event for uncached channel with channelId: %v", managedChannelState.ChannelId)
+				}
 			}
 		} else {
 			log.Error().Msgf("Received channel event for uncached node with nodeId: %v", managedChannelState.NodeId)
@@ -440,7 +443,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					nodeChannels[managedChannelState.ChannelId] = channelSetting
 				}
 			} else {
-				log.Error().Msgf("Received channel graph event for uncached channel with channelId: %v", managedChannelState.ChannelId)
+				managedChannelSettings := GetChannelSettingByChannelId(managedChannelState.ChannelId)
+				if managedChannelSettings.Status == Open {
+					log.Error().Msgf("Received channel graph event for uncached channel with channelId: %v", managedChannelState.ChannelId)
+				}
 			}
 		} else {
 			log.Error().Msgf("Received channel graph event for uncached node with nodeId: %v", managedChannelState.NodeId)
@@ -459,7 +465,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 				channelSetting.RemoteBalance = channelSetting.LocalBalance - managedChannelState.Amount
 				nodeChannels[managedChannelState.ChannelId] = channelSetting
 			} else {
-				log.Error().Msgf("Received channel balance update for uncached channel with channelId: %v", managedChannelState.ChannelId)
+				managedChannelSettings := GetChannelSettingByChannelId(managedChannelState.ChannelId)
+				if managedChannelSettings.Status == Open {
+					log.Error().Msgf("Received channel balance update for uncached channel with channelId: %v", managedChannelState.ChannelId)
+				}
 			}
 		} else {
 			log.Error().Msgf("Received channel balance update for uncached node with nodeId: %v", managedChannelState.NodeId)
@@ -500,7 +509,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					nodeChannels[*managedChannelState.HtlcEvent.IncomingChannelId] = channelSetting
 				} else {
 					if !channelExists {
-						log.Error().Msgf("Received Incoming HTLC channel balance update for uncached channel with channelId: %v", *managedChannelState.HtlcEvent.IncomingChannelId)
+						managedChannelSettings := GetChannelSettingByChannelId(*managedChannelState.HtlcEvent.IncomingChannelId)
+						if managedChannelSettings.Status == Open {
+							log.Error().Msgf("Received Incoming HTLC channel balance update for uncached channel with channelId: %v", *managedChannelState.HtlcEvent.IncomingChannelId)
+						}
 					}
 				}
 			}
@@ -530,7 +542,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					nodeChannels[*managedChannelState.HtlcEvent.OutgoingChannelId] = channelSetting
 				} else {
 					if !channelExists {
-						log.Error().Msgf("Received Outgoing HTLC channel balance update for uncached channel with channelId: %v", *managedChannelState.HtlcEvent.OutgoingChannelId)
+						managedChannelSettings := GetChannelSettingByChannelId(*managedChannelState.HtlcEvent.OutgoingChannelId)
+						if managedChannelSettings.Status == Open {
+							log.Error().Msgf("Received Outgoing HTLC channel balance update for uncached channel with channelId: %v", *managedChannelState.HtlcEvent.OutgoingChannelId)
+						}
 					}
 				}
 			}
