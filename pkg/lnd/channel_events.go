@@ -14,6 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 
+	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
@@ -872,6 +873,7 @@ func getShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 		return ""
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Torq-Version", build.Version())
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
