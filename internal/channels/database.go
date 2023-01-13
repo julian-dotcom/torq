@@ -192,11 +192,11 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 	rows, err := db.Query(`
 		SELECT channel_id, short_channel_id, lnd_short_channel_id,
 		       funding_transaction_hash, funding_output_index,
-		       funding_block_height, funding_transaction_on, funded_on,
+		       funding_block_height, funded_on,
 		       status_id, capacity, private,
 		       first_node_id, second_node_id, initiating_node_id, accepting_node_id,
 		       closing_transaction_hash, closing_node_id,
-		       closing_block_height, closing_transaction_on, closed_on
+		       closing_block_height, closed_on
 		FROM channel;`)
 	if err != nil {
 		return errors.Wrap(err, "Obtaining channelIds and shortChannelIds")
@@ -208,7 +208,6 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		var fundingTransactionHash string
 		var fundingOutputIndex int
 		var fundingBlockHeight *int64
-		var fundingTransactionOn *time.Time
 		var fundedOn *time.Time
 		var capacity int64
 		var private bool
@@ -220,22 +219,21 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		var closingTransactionHash *string
 		var closingNodeId *int
 		var closingBlockHeight *int64
-		var closingTransactionOn *time.Time
 		var closedOn *time.Time
 		err = rows.Scan(&channelId, &shortChannelId, &lndShortChannelId,
 			&fundingTransactionHash, &fundingOutputIndex,
-			&fundingBlockHeight, &fundingTransactionOn, &fundedOn,
+			&fundingBlockHeight, &fundedOn,
 			&status, &capacity, &private,
 			&firstNodeId, &secondNodeId, &initiatingNodeId, &acceptingNodeId,
 			&closingTransactionHash, &closingNodeId,
-			&closingBlockHeight, &closingTransactionOn, &closedOn)
+			&closingBlockHeight, &closedOn)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining channelId and shortChannelId from the resultSet")
 		}
 		commons.SetChannel(channelId, shortChannelId, lndShortChannelId, status,
-			fundingTransactionHash, fundingOutputIndex, fundingBlockHeight, fundingTransactionOn, fundedOn,
+			fundingTransactionHash, fundingOutputIndex, fundingBlockHeight, fundedOn,
 			capacity, private, firstNodeId, secondNodeId, initiatingNodeId, acceptingNodeId,
-			closingTransactionHash, closingNodeId, closingBlockHeight, closingTransactionOn, closedOn)
+			closingTransactionHash, closingNodeId, closingBlockHeight, closedOn)
 	}
 	return nil
 }
@@ -282,18 +280,18 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	err := db.QueryRowx(`
 		INSERT INTO channel (
 		  short_channel_id,
-		  funding_transaction_hash, funding_output_index, funding_block_height, funding_transaction_on, funded_on,
-		  closing_transaction_hash, closing_node_id, closing_block_height, closing_transaction_on, closed_on,
+		  funding_transaction_hash, funding_output_index, funding_block_height, funded_on,
+		  closing_transaction_hash, closing_node_id, closing_block_height, closed_on,
 		  lnd_short_channel_id,
 		  first_node_id, second_node_id, initiating_node_id, accepting_node_id,
 		  capacity, private, status_id,
 		  created_on, updated_on
 		) VALUES (
-		  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+		  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 		) RETURNING channel_id;`,
 		channel.ShortChannelID,
-		channel.FundingTransactionHash, channel.FundingOutputIndex, channel.FundingBlockHeight, channel.FundingTransactionOn, channel.FundedOn,
-		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosingTransactionOn, channel.ClosedOn,
+		channel.FundingTransactionHash, channel.FundingOutputIndex, channel.FundingBlockHeight, channel.FundedOn,
+		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn,
 		channel.LNDShortChannelID,
 		channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId,
 		channel.Capacity, channel.Private, channel.Status,
@@ -302,8 +300,8 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.LNDShortChannelID, channel.Status,
-		channel.FundingTransactionHash, channel.FundingOutputIndex, channel.FundingBlockHeight, channel.FundingTransactionOn, channel.FundedOn,
+		channel.FundingTransactionHash, channel.FundingOutputIndex, channel.FundingBlockHeight, channel.FundedOn,
 		channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId,
-		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosingTransactionOn, channel.ClosedOn)
+		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
 	return channel, nil
 }

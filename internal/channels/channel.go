@@ -52,10 +52,8 @@ type Channel struct {
 	CreatedOn              time.Time             `json:"createdOn" db:"created_on"`
 	UpdateOn               *time.Time            `json:"updatedOn" db:"updated_on"`
 	FundingBlockHeight     *int64                `json:"fundingBlockHeight" db:"funding_block_height"`
-	FundingTransactionOn   *time.Time            `json:"fundingTransactionOn" db:"funding_transaction_on"`
 	FundedOn               *time.Time            `json:"fundedOn" db:"funded_on"`
 	ClosingBlockHeight     *int64                `json:"closingBlockHeight" db:"closing_block_height"`
-	ClosingTransactionOn   *time.Time            `json:"closingTransactionOn" db:"closing_transaction_on"`
 	ClosedOn               *time.Time            `json:"closedOn" db:"closed_on"`
 }
 
@@ -150,10 +148,10 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 	}
 	commons.SetChannel(existingChannelId, channel.ShortChannelID, channel.LNDShortChannelID, channel.Status,
 		channel.FundingTransactionHash, channel.FundingOutputIndex,
-		channel.FundingBlockHeight, channel.FundingTransactionOn, channel.FundedOn,
+		channel.FundingBlockHeight, channel.FundedOn,
 		channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,
 		channel.InitiatingNodeId, channel.AcceptingNodeId,
-		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosingTransactionOn, channel.ClosedOn)
+		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
 	return existingChannelId, nil
 }
 
