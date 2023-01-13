@@ -78,7 +78,7 @@ func getChannelBalance(db *sqlx.DB, channelIdString string, from time.Time, to t
 				order by time)
 			) a
 		) b
-	where time::timestamp AT TIME ZONE ($4) between $2 and $3
+	where time::timestamp AT TIME ZONE ($4) between $2::timestamp and $3::timestamp
 ;`
 
 	rows, err := db.Queryx(q, channelId, from, to, commons.GetSettings().PreferredTimeZone)
