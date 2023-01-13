@@ -830,7 +830,7 @@ func processEmptyChanId(channelPoint string, nodeSettings commons.ManagedNodeSet
 		return 0
 	}
 
-	shortChannelId := commons.GetShortChannelIdFromVector(fundingTransactionHash, fundingOutputIndex, nodeSettings.NodeId, lightningRequestChannel)
+	shortChannelId := commons.GetShortChannelIdFromVector(fundingTransactionHash, fundingOutputIndex, nodeSettings, lightningRequestChannel)
 	if shortChannelId == "" {
 		log.Error().Msgf("Failed to obtain shortChannelId for closed channel with channel point %v:%v",
 			fundingTransactionHash, fundingOutputIndex)

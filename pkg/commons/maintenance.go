@@ -36,7 +36,7 @@ func processMissingChannelData(db *sqlx.DB, nodeSettings ManagedNodeSettings, li
 	channelSettings := GetChannelSettingsByNodeId(nodeSettings.NodeId)
 	for _, channelSetting := range channelSettings {
 		if hasMissingClosingDetails(channelSetting) {
-			transactionDetails := GetTransactionDetailsFromVector(*channelSetting.ClosingTransactionHash, nodeSettings.NodeId, lightningCommunicationChannel)
+			transactionDetails := GetTransactionDetailsFromVector(*channelSetting.ClosingTransactionHash, nodeSettings, lightningCommunicationChannel)
 			err := updateClosingDetails(db, channelSetting, transactionDetails)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to update closing details from vector for channelId: %v", channelSetting.ChannelId)
@@ -44,7 +44,7 @@ func processMissingChannelData(db *sqlx.DB, nodeSettings ManagedNodeSettings, li
 			time.Sleep(MAINTENANCE_VECTOR_DELAY_MILLISECONDS * time.Millisecond)
 		}
 		if hasMissingFundingDetails(channelSetting) {
-			transactionDetails := GetTransactionDetailsFromVector(channelSetting.FundingTransactionHash, nodeSettings.NodeId, lightningCommunicationChannel)
+			transactionDetails := GetTransactionDetailsFromVector(channelSetting.FundingTransactionHash, nodeSettings, lightningCommunicationChannel)
 			err := updateFundingDetails(db, channelSetting, transactionDetails)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)

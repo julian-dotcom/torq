@@ -7,6 +7,7 @@ type ShortChannelIdHttpRequest struct {
 	OutputIndex     int    `json:"outputIndex"`
 	UnixTime        int64  `json:"unixTime"`
 	Signature       string `json:"signature"`
+	PublicKey       string `json:"publicKey"`
 }
 
 type ShortChannelIdHttpResponse struct {
@@ -18,6 +19,7 @@ type TransactionDetailsHttpRequest struct {
 	TransactionHash string `json:"transactionHash"`
 	UnixTime        int64  `json:"unixTime"`
 	Signature       string `json:"signature"`
+	PublicKey       string `json:"publicKey"`
 }
 
 type TransactionDetailsHttpResponse struct {
