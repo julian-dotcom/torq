@@ -21,10 +21,10 @@ type TransactionDetailsHttpRequest struct {
 }
 
 type TransactionDetailsHttpResponse struct {
-	Request              TransactionDetailsHttpRequest `json:"request"`
-	TransactionCount     int                           `json:"transactionCount"`
-	TransactionTimestamp time.Time                     `json:"transactionTimestamp"`
-	BlockHash            string                        `json:"blockHash"`
-	BlockTimestamp       time.Time                     `json:"blockTimestamp"`
-	BlockHeight          int64                         `json:"blockHeight"`
+	Request          TransactionDetailsHttpRequest `json:"request"`
+	TransactionCount int                           `json:"transactionCount"`
+	TransactionIndex int                           `json:"transactionIndex"`
+	BlockHash        string                        `json:"blockHash"`
+	BlockTimestamp   time.Time                     `json:"blockTimestamp"`
+	BlockHeight      int64                         `json:"blockHeight"`
 }

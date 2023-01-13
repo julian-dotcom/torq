@@ -68,9 +68,6 @@ func hasMissingClosingDetails(channelSetting ManagedChannelSettings) bool {
 		return false
 	}
 	if channelSetting.FundingTransactionHash != "" {
-		if channelSetting.FundingTransactionOn == nil {
-			return true
-		}
 		if channelSetting.FundingBlockHeight == nil || *channelSetting.FundingBlockHeight == 0 {
 			return true
 		}
@@ -84,22 +81,21 @@ func hasMissingClosingDetails(channelSetting ManagedChannelSettings) bool {
 func updateClosingDetails(db *sqlx.DB, channel ManagedChannelSettings, transactionDetails TransactionDetailsHttpResponse) error {
 	if transactionDetails.BlockHeight != 0 {
 		channel.ClosedOn = &transactionDetails.BlockTimestamp
-		channel.ClosingTransactionOn = &transactionDetails.TransactionTimestamp
 		channel.ClosingBlockHeight = &transactionDetails.BlockHeight
 		_, err := db.Exec(`
 		UPDATE channel
-		SET closing_block_height=$2, closing_transaction_on=$3, closed_on=$4, updated_on=$5
+		SET closing_block_height=$2, closed_on=$3, updated_on=$4
 		WHERE channel_id=$1;`,
-			channel.ChannelId, channel.ClosingBlockHeight, channel.ClosingTransactionOn, channel.ClosedOn, time.Now().UTC())
+			channel.ChannelId, channel.ClosingBlockHeight, channel.ClosedOn, time.Now().UTC())
 		if err != nil {
 			return errors.Wrap(err, database.SqlExecutionError)
 		}
 		SetChannel(channel.ChannelId, &channel.ShortChannelId, &channel.LndShortChannelId, channel.Status,
 			channel.FundingTransactionHash, channel.FundingOutputIndex,
-			channel.FundingBlockHeight, channel.FundingTransactionOn, channel.FundedOn,
+			channel.FundingBlockHeight, channel.FundedOn,
 			channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,
 			channel.InitiatingNodeId, channel.AcceptingNodeId,
-			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosingTransactionOn, channel.ClosedOn)
+			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
 	}
 	return nil
 }
@@ -115,9 +111,6 @@ func hasMissingFundingDetails(channelSetting ManagedChannelSettings) bool {
 		return false
 	}
 	if channelSetting.FundingTransactionHash != "" {
-		if channelSetting.FundingTransactionOn == nil {
-			return true
-		}
 		if channelSetting.FundingBlockHeight == nil || *channelSetting.FundingBlockHeight == 0 {
 			return true
 		}
@@ -131,22 +124,21 @@ func hasMissingFundingDetails(channelSetting ManagedChannelSettings) bool {
 func updateFundingDetails(db *sqlx.DB, channel ManagedChannelSettings, transactionDetails TransactionDetailsHttpResponse) error {
 	if transactionDetails.BlockHeight != 0 {
 		channel.FundedOn = &transactionDetails.BlockTimestamp
-		channel.FundingTransactionOn = &transactionDetails.TransactionTimestamp
 		channel.FundingBlockHeight = &transactionDetails.BlockHeight
 		_, err := db.Exec(`
 		UPDATE channel
-		SET funding_block_height=$2, funding_transaction_on=$3, funded_on=$4, updated_on=$5
+		SET funding_block_height=$2, funded_on=$3, updated_on=$4
 		WHERE channel_id=$1;`,
-			channel.ChannelId, channel.FundingBlockHeight, channel.FundingTransactionOn, channel.FundedOn, time.Now().UTC())
+			channel.ChannelId, channel.FundingBlockHeight, channel.FundedOn, time.Now().UTC())
 		if err != nil {
 			return errors.Wrap(err, database.SqlExecutionError)
 		}
 		SetChannel(channel.ChannelId, &channel.ShortChannelId, &channel.LndShortChannelId, channel.Status,
 			channel.FundingTransactionHash, channel.FundingOutputIndex,
-			channel.FundingBlockHeight, channel.FundingTransactionOn, channel.FundedOn,
+			channel.FundingBlockHeight, channel.FundedOn,
 			channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,
 			channel.InitiatingNodeId, channel.AcceptingNodeId,
-			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosingTransactionOn, channel.ClosedOn)
+			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
 	}
 	return nil
 }

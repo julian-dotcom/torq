@@ -75,10 +75,10 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		// This allows torq to listen to the graph for channel updates
 		commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.LNDShortChannelID, channel.Status,
 			channel.FundingTransactionHash, channel.FundingOutputIndex,
-			channel.FundingBlockHeight, channel.FundingTransactionOn, channel.FundedOn,
+			channel.FundingBlockHeight, channel.FundedOn,
 			channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,
 			channel.InitiatingNodeId, channel.AcceptingNodeId,
-			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosingTransactionOn, channel.ClosedOn)
+			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
 
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channel.ChannelID, false, jsonByteArray,
 			channelEvent, eventChannel)

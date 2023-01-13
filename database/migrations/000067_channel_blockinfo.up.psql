@@ -1,7 +1,5 @@
 
 ALTER TABLE channel ADD COLUMN funding_block_height INTEGER;
-ALTER TABLE channel ADD COLUMN funding_transaction_on TIMESTAMPTZ;
 ALTER TABLE channel ADD COLUMN funded_on TIMESTAMPTZ;
 ALTER TABLE channel ADD COLUMN closing_block_height INTEGER;
-ALTER TABLE channel ADD COLUMN closing_transaction_on TIMESTAMPTZ;
 ALTER TABLE channel ADD COLUMN closed_on TIMESTAMPTZ;
