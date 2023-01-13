@@ -67,11 +67,11 @@ func hasMissingClosingDetails(channelSetting ManagedChannelSettings) bool {
 	if channelSetting.Status == AbandonedClosed {
 		return false
 	}
-	if channelSetting.FundingTransactionHash != "" {
-		if channelSetting.FundingBlockHeight == nil || *channelSetting.FundingBlockHeight == 0 {
+	if channelSetting.ClosingTransactionHash != nil && *channelSetting.ClosingTransactionHash != "" {
+		if channelSetting.ClosingBlockHeight == nil || *channelSetting.ClosingBlockHeight == 0 {
 			return true
 		}
-		if channelSetting.FundedOn == nil {
+		if channelSetting.ClosedOn == nil {
 			return true
 		}
 	}
