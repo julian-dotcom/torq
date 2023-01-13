@@ -22,32 +22,34 @@ func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB, nodeId int, light
 		case <-ctx.Done():
 			return
 		case <-ticker:
-
 			// TODO get forwards/invoices/payments without firstNodeId/secondNodeId/nodeId and assign correctly
+			processMissingChannelData(db, nodeSettings, lightningCommunicationChannel)
+		}
+	}
+}
 
-			if nodeSettings.Chain != Bitcoin || nodeSettings.Network != MainNet {
-				log.Info().Msgf("Skipping verification of funding and closing details from vector for nodeId: %v", nodeId)
-				continue
+func processMissingChannelData(db *sqlx.DB, nodeSettings ManagedNodeSettings, lightningCommunicationChannel chan interface{}) {
+	if nodeSettings.Chain != Bitcoin || nodeSettings.Network != MainNet {
+		log.Info().Msgf("Skipping verification of funding and closing details from vector for nodeId: %v", nodeSettings.NodeId)
+		return
+	}
+	channelSettings := GetChannelSettingsByNodeId(nodeSettings.NodeId)
+	for _, channelSetting := range channelSettings {
+		if hasMissingClosingDetails(channelSetting) {
+			transactionDetails := GetTransactionDetailsFromVector(*channelSetting.ClosingTransactionHash, nodeSettings.NodeId, lightningCommunicationChannel)
+			err := updateClosingDetails(db, channelSetting, transactionDetails)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to update closing details from vector for channelId: %v", channelSetting.ChannelId)
 			}
-			channelSettings := GetChannelSettingsByNodeId(nodeId)
-			for _, channelSetting := range channelSettings {
-				if hasMissingClosingDetails(channelSetting) {
-					transactionDetails := GetTransactionDetailsFromVector(*channelSetting.ClosingTransactionHash, nodeId, lightningCommunicationChannel)
-					err := updateClosingDetails(db, channelSetting, transactionDetails)
-					if err != nil {
-						log.Error().Err(err).Msgf("Failed to update closing details from vector for channelId: %v", channelSetting.ChannelId)
-					}
-					time.Sleep(MAINTENANCE_VECTOR_DELAY_MILLISECONDS * time.Millisecond)
-				}
-				if hasMissingFundingDetails(channelSetting) {
-					transactionDetails := GetTransactionDetailsFromVector(channelSetting.FundingTransactionHash, nodeId, lightningCommunicationChannel)
-					err := updateFundingDetails(db, channelSetting, transactionDetails)
-					if err != nil {
-						log.Error().Err(err).Msgf("Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)
-					}
-					time.Sleep(MAINTENANCE_VECTOR_DELAY_MILLISECONDS * time.Millisecond)
-				}
+			time.Sleep(MAINTENANCE_VECTOR_DELAY_MILLISECONDS * time.Millisecond)
+		}
+		if hasMissingFundingDetails(channelSetting) {
+			transactionDetails := GetTransactionDetailsFromVector(channelSetting.FundingTransactionHash, nodeSettings.NodeId, lightningCommunicationChannel)
+			err := updateFundingDetails(db, channelSetting, transactionDetails)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)
 			}
+			time.Sleep(MAINTENANCE_VECTOR_DELAY_MILLISECONDS * time.Millisecond)
 		}
 	}
 }
@@ -88,7 +90,7 @@ func updateClosingDetails(db *sqlx.DB, channel ManagedChannelSettings, transacti
 		UPDATE channel
 		SET closing_block_height=$2, closing_transaction_on=$3, closed_on=$4, updated_on=$5
 		WHERE channel_id=$1;`,
-			channel.ClosingBlockHeight, channel.ClosingTransactionOn, channel.ClosedOn, time.Now().UTC())
+			channel.ChannelId, channel.ClosingBlockHeight, channel.ClosingTransactionOn, channel.ClosedOn, time.Now().UTC())
 		if err != nil {
 			return errors.Wrap(err, database.SqlExecutionError)
 		}
@@ -135,7 +137,7 @@ func updateFundingDetails(db *sqlx.DB, channel ManagedChannelSettings, transacti
 		UPDATE channel
 		SET funding_block_height=$2, funding_transaction_on=$3, funded_on=$4, updated_on=$5
 		WHERE channel_id=$1;`,
-			channel.FundingBlockHeight, channel.FundingTransactionOn, channel.FundedOn, time.Now().UTC())
+			channel.ChannelId, channel.FundingBlockHeight, channel.FundingTransactionOn, channel.FundedOn, time.Now().UTC())
 		if err != nil {
 			return errors.Wrap(err, database.SqlExecutionError)
 		}
