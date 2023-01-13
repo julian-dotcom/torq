@@ -1,6 +1,8 @@
 import ReactSelect, { Props, components } from "react-select";
 import {
   ChevronDown16Regular as ChevronDownIcon,
+  Dismiss12Regular as MultiValueRemoveIcon,
+  Dismiss16Regular as ClearIcon,
   WarningRegular as WarningIcon,
   ErrorCircleRegular as ErrorIcon,
 } from "@fluentui/react-icons";
@@ -27,7 +29,6 @@ const customStyles = {
       boxShadow: "none",
     },
     fontSize: "var(--input-font-size)",
-    height: "var(--input-height)",
     minHeight: "var(--input-height)",
   }),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,6 +45,7 @@ const customStyles = {
     color: "var(--input-color)",
     fontSize: "var(--input-font-size)",
     padding: "var(--indicator-padding)",
+    alignItems: "flex-start",
   }),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   singleValue: (provided: any) => ({
@@ -116,6 +118,20 @@ export default function Select({
       </components.DropdownIndicator>
     );
   };
+  const MultiValueRemove = (props: any) => {
+    return (
+      <components.MultiValueRemove {...props}>
+        <MultiValueRemoveIcon />
+      </components.MultiValueRemove>
+    );
+  };
+  const ClearIndicator = (props: any) => {
+    return (
+      <components.ClearIndicator {...props}>
+        <ClearIcon />
+      </components.ClearIndicator>
+    );
+  };
   const inputId = useId();
   let inputColorClass = GetColorClass(colorVariant);
   if (warningText != undefined) {
@@ -139,7 +155,7 @@ export default function Select({
       )}
       <ReactSelect
         id={selectProps.id || inputId}
-        components={{ DropdownIndicator }}
+        components={{ DropdownIndicator, MultiValueRemove, ClearIndicator }}
         className={selectProps.className}
         styles={customStyles}
         {...selectProps}
