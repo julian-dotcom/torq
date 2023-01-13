@@ -370,6 +370,25 @@ func removeWorkflowVersion(db *sqlx.DB, workflowVersionId int) (int64, error) {
 	return rowsAffected, nil
 }
 
+// func GetActiveGroupParentNodeId(db *sqlx.DB, groupChildTriggerId int) (int, error) {
+// 	var workflowGroupParentId int
+// 	err := db.Get(&workflowGroupParentId, `
+// 		SELECT workflow_version_id
+// 		FROM workflow_version_node
+// 		WHERE type = 10
+// 		AND status = $1
+// 		AND stage = (
+//         	SELECT stage FROM workflow_version_node where workflow_version_node_id = $2
+//     	)`, commons.Active, groupChildTriggerId)
+// 	if err != nil {
+// 		if errors.Is(err, sql.ErrNoRows) {
+// 			return 0, nil
+// 		}
+// 		return 0, errors.Wrap(err, database.SqlExecutionError)
+// 	}
+// 	return workflowGroupParentId, nil
+// }
+
 func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType commons.WorkflowNodeType) ([]WorkflowNode, error) {
 	var workflowVersionRootNodeIds []int
 	err := db.Select(&workflowVersionRootNodeIds, `
@@ -653,6 +672,32 @@ func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNod
 		FROM workflow_version_node_link l
 		JOIN workflow_version_node n ON n.workflow_version_node_id=l.parent_workflow_version_node_id
 		WHERE l.parent_workflow_version_node_id=$1
+		ORDER BY l.parent_output_index;`, workflowVersionNodeId)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return nil, nil, errors.Wrap(err, database.SqlExecutionError)
+		}
+	}
+	childNodes := make(map[int]*WorkflowNode)
+	childNodeLinkDetails := make(map[int]WorkflowVersionNodeLink)
+	err = parseNodesResultSet(rows, childNodes, childNodeLinkDetails)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "Parsing the resulset for childNodes with workflowVersionNodeId: %v", workflowVersionNodeId)
+	}
+	return childNodes, childNodeLinkDetails, nil
+}
+
+func GetTriggerGoupChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNode, map[int]WorkflowVersionNodeLink, error) {
+	rows, err := db.Queryx(`
+		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
+			n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
+			l.parent_workflow_version_node_id, l.parent_output_index,
+			l.name linkName, l.visibility_settings,
+			l.child_workflow_version_node_id, l.child_input_index, l.updated_on
+		FROM workflow_version_node_link l
+		JOIN workflow_version_node n ON n.workflow_version_node_id !=l.parent_workflow_version_node_id
+        AND stage = ( SELECT stage FROM workflow_version_node where workflow_version_node_id = 2)
+		WHERE n.workflow_version_node_id != $1
 		ORDER BY l.parent_output_index;`, workflowVersionNodeId)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {

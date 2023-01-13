@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/channel_groups"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -82,6 +83,43 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//}
 		case commons.WorkflowNodeChannelFilter:
 
+		case commons.WorkflowTag:
+			var params TagParameters
+			err := json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, err
+			}
+			var tagsToAdd []int
+			for _, tagtoAdd := range params.AddedTags {
+				tagsToAdd = append(tagsToAdd, tagtoAdd.Value)
+			}
+			err = channel_groups.AddChannelGroupByTags(db, tagsToAdd)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to add the tags for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, err
+			}
+
+			var tagsToDelete []int
+			for _, tagToDelete := range params.RemovedTags {
+				tagsToDelete = append(tagsToDelete, tagToDelete.Value)
+			}
+
+			_, err = channel_groups.RemoveChannelGroupByTags(db, tagsToDelete)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed remove the tags for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, err
+			}
+
+		case commons.WorkflowNodeTimeTrigger:
+			childNodes, childNodeLinkDetails, err := GetTriggerGoupChildNodes(db, workflowNode.WorkflowVersionNodeId)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to obtain the group nodes links")
+				return nil, commons.Inactive, err
+			}
+			workflowNode.ChildNodes = childNodes
+			workflowNode.LinkDetails = childNodeLinkDetails
+
 		case commons.WorkflowNodeStageTrigger:
 			if iteration > 0 {
 				// There shouldn't be any stage nodes except when it's the first node
@@ -131,7 +169,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			var parameterWithLabel commons.WorkflowParameterWithLabel
 			// Initialize parameterWithLabel to the appropriate input parameter for the child node (either required or optional)
 			if workflowNode.LinkDetails[childLinkId].ChildInputIndex >= len(childParameters.RequiredInputs) {
-				parameterWithLabel = childParameters.OptionalInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex-len(childParameters.RequiredInputs)]
+				parameterWithLabel = childParameters.OptionalInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex-len(childParameters.OptionalInputs)]
 			} else {
 				parameterWithLabel = childParameters.RequiredInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex]
 			}

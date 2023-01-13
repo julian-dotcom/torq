@@ -2,6 +2,12 @@ package channel_groups
 
 import (
 	"time"
+
+	"github.com/cockroachdb/errors"
+	"github.com/jmoiron/sqlx"
+	"github.com/lncapital/torq/internal/corridors"
+	"github.com/lncapital/torq/internal/nodes"
+	"github.com/rs/zerolog/log"
 )
 
 type channelGroup struct {
@@ -21,3 +27,59 @@ const (
 	categoryCorridor = groupOrigin(iota)
 	tagCorridor
 )
+
+func RemoveChannelGroupByTags(db *sqlx.DB, tags []int) (int64, error) {
+	origin := tagCorridor
+	var total int64
+
+	finished := make(chan bool)
+	for _, tag := range tags {
+		count, err := corridors.RemoveCorridorByTag(db, tag)
+		if err != nil {
+			return 0, errors.Wrapf(err, "deleting corridors for the tags: (%v %v)", tags, db)
+		}
+		total += count
+	}
+
+	go func() {
+		err := GenerateChannelGroupsByOrigin(db, origin, true)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to generate channel groups.")
+		}
+		finished <- true
+	}()
+	<-finished
+	return total, nil
+}
+
+func AddChannelGroupByTags(db *sqlx.DB, tags []int) error {
+	//TODO to remove once we get the real targets
+	nodes, err := nodes.GetPeerNodes(db)
+	if err != nil {
+		return errors.Wrapf(err, "gettings the peer nodes (%v %v)", tags, db)
+	}
+
+	for _, node := range nodes {
+		for i := range tags {
+			corridor := corridors.Corridor{CorridorTypeId: corridors.Tag().CorridorTypeId, Flag: 1}
+			corridor.ReferenceId = &tags[i]
+			corridor.FromNodeId = &node.NodeId
+			_, err = corridors.AddCorridor(db, corridor)
+			if err != nil {
+				return errors.Wrapf(err, "saving the corridor (tag:%v node:%v)", &tags[i], node)
+			}
+		}
+	}
+
+	origin := tagCorridor
+	finished := make(chan bool)
+	go func() {
+		err := GenerateChannelGroupsByOrigin(db, origin, true)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to generate channel groups.")
+		}
+		finished <- true
+	}()
+
+	return nil
+}
