@@ -11,6 +11,7 @@ const (
 	AutomationService
 	LightningCommunicationService
 	RebalanceService
+	MaintenanceService
 )
 
 const TorqDummyNodeId = -1337
@@ -38,8 +39,9 @@ type ServiceChannelMessage = struct {
 }
 
 const VECTOR_URL = "https://vector.ln.capital/"
-const VECTOR_SHORTCHANNELID_URL = VECTOR_URL + "api/bitcoin/shortChannelId"
 const VECTOR_PING_URL = VECTOR_URL + "api/publicNodeEvents/ping"
+const VECTOR_SHORTCHANNELID_URL = VECTOR_URL + "api/bitcoin/shortChannelId"
+const VECTOR_TRANSACTIONDETAILS_URL = VECTOR_URL + "api/bitcoin/transactionDetails"
 const BOOTSTRAPPING_TIME_MINUTES = 8 * 60
 const TOLERATED_SUBSCRIPTION_DOWNTIME_SECONDS = 15
 const STREAM_LND_INVOICES_INTERVAL_SLEEP = 10
@@ -82,6 +84,9 @@ const REBALANCE_ROUTES_TIMEOUT_SECONDS = 1 * 60
 const REBALANCE_ROUTE_TIMEOUT_SECONDS = 10 * 60
 const REBALANCE_RESULTS_TIMEOUT_SECONDS = 5 * 60
 const REBALANCE_MINIMUM_DELTA_SECONDS = 10 * 60
+
+const MAINTENANCE_QUEUE_TICKER_SECONDS = 60 * 60
+const MAINTENANCE_VECTOR_DELAY_MILLISECONDS = 500
 
 type Status int
 

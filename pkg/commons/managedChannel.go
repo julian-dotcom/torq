@@ -3,6 +3,7 @@ package commons
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -41,6 +42,9 @@ type ManagedChannel struct {
 	LndShortChannelId      uint64
 	FundingTransactionHash string
 	FundingOutputIndex     int
+	FundingBlockHeight     *int64
+	FundingTransactionOn   *time.Time
+	FundedOn               *time.Time
 	Capacity               int64
 	NodeId                 int
 	FirstNodeId            int
@@ -49,6 +53,11 @@ type ManagedChannel struct {
 	AcceptingNodeId        *int
 	Private                bool
 	Status                 ChannelStatus
+	ClosingTransactionHash *string
+	ClosingNodeId          *int
+	ClosingBlockHeight     *int64
+	ClosingTransactionOn   *time.Time
+	ClosedOn               *time.Time
 	Out                    chan ManagedChannel
 	ChannelSettingOut      chan ManagedChannelSettings
 	ChannelSettingsOut     chan []ManagedChannelSettings
@@ -61,6 +70,9 @@ type ManagedChannelSettings struct {
 	LndShortChannelId      uint64
 	FundingTransactionHash string
 	FundingOutputIndex     int
+	FundingBlockHeight     *int64
+	FundingTransactionOn   *time.Time
+	FundedOn               *time.Time
 	Capacity               int64
 	FirstNodeId            int
 	SecondNodeId           int
@@ -68,6 +80,11 @@ type ManagedChannelSettings struct {
 	AcceptingNodeId        *int
 	Private                bool
 	Status                 ChannelStatus
+	ClosingTransactionHash *string
+	ClosingNodeId          *int
+	ClosingBlockHeight     *int64
+	ClosingTransactionOn   *time.Time
+	ClosedOn               *time.Time
 }
 
 func ManagedChannelCache(ch chan ManagedChannel, ctx context.Context) {
@@ -157,12 +174,19 @@ func processManagedChannel(managedChannel ManagedChannel,
 				Status:                 managedChannel.Status,
 				FundingTransactionHash: managedChannel.FundingTransactionHash,
 				FundingOutputIndex:     managedChannel.FundingOutputIndex,
+				FundingBlockHeight:     managedChannel.FundingBlockHeight,
+				FundingTransactionOn:   managedChannel.FundingTransactionOn,
 				Capacity:               managedChannel.Capacity,
 				FirstNodeId:            managedChannel.FirstNodeId,
 				SecondNodeId:           managedChannel.SecondNodeId,
 				InitiatingNodeId:       managedChannel.InitiatingNodeId,
 				AcceptingNodeId:        managedChannel.AcceptingNodeId,
 				Private:                managedChannel.Private,
+				ClosingTransactionHash: managedChannel.ClosingTransactionHash,
+				ClosingNodeId:          managedChannel.ClosingNodeId,
+				ClosingBlockHeight:     managedChannel.ClosingBlockHeight,
+				ClosingTransactionOn:   managedChannel.ClosingTransactionOn,
+				ClosedOn:               managedChannel.ClosedOn,
 			}
 		}
 	case WRITE_CHANNELSTATUSID:
@@ -349,12 +373,19 @@ func GetChannelSettingByChannelId(channelId int) ManagedChannelSettings {
 }
 
 func SetChannel(channelId int, shortChannelId *string, lndShortChannelId *uint64, status ChannelStatus,
-	fundingTransactionHash string, fundingOutputIndex int, capacity int64, private bool, firstNodeId, secondNodeId int,
-	initiatingNodeId, acceptingNodeId *int) {
+	fundingTransactionHash string, fundingOutputIndex int,
+	fundingBlockHeight *int64, fundingTransactionOn *time.Time, fundedOn *time.Time,
+	capacity int64, private bool, firstNodeId int, secondNodeId int,
+	initiatingNodeId *int, acceptingNodeId *int,
+	closingTransactionHash *string, closingNodeId *int, closingBlockHeight *int64, closingTransactionOn *time.Time, closedOn *time.Time) {
+
 	managedChannel := ManagedChannel{
 		ChannelId:              channelId,
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
+		FundingBlockHeight:     fundingBlockHeight,
+		FundingTransactionOn:   fundingTransactionOn,
+		FundedOn:               fundedOn,
 		Capacity:               capacity,
 		FirstNodeId:            firstNodeId,
 		SecondNodeId:           secondNodeId,
@@ -362,6 +393,11 @@ func SetChannel(channelId int, shortChannelId *string, lndShortChannelId *uint64
 		AcceptingNodeId:        acceptingNodeId,
 		Private:                private,
 		Status:                 status,
+		ClosingTransactionHash: closingTransactionHash,
+		ClosingNodeId:          closingNodeId,
+		ClosingBlockHeight:     closingBlockHeight,
+		ClosingTransactionOn:   closingTransactionOn,
+		ClosedOn:               closedOn,
 		Type:                   WRITE_CHANNEL,
 	}
 	if shortChannelId != nil && *shortChannelId != "" {
