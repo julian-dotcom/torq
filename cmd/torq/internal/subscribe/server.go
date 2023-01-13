@@ -25,12 +25,13 @@ import (
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
 func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, broadcaster broadcast.BroadcastServer,
-	eventChannel chan interface{}, serviceChannel chan commons.ServiceChannelMessage, lightningRequestChannel chan interface{}) error {
+	eventChannel chan interface{}, lightningRequestChannel chan interface{}) error {
 
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
 	chain := chainrpc.NewChainNotifierClient(conn)
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	active := commons.Active
 
 	var wg sync.WaitGroup
 
@@ -143,7 +144,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in ChannelEventStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
@@ -158,7 +159,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in GraphEventStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
@@ -173,7 +174,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in HtlcEventStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel)
@@ -188,7 +189,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in PeerEventStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel)
@@ -203,7 +204,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in ChannelBalanceCacheStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel)
@@ -217,7 +218,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TransactionStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel)
@@ -232,7 +233,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in ForwardStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, nil)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, nil)
@@ -247,7 +248,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in PaymentStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, nil)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, nil)
@@ -262,7 +263,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in InvoiceStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel)
@@ -277,7 +278,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in InFlightPaymentStream (nodeId: %v) %v", nodeId, panicError)
-				lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, nil)
+				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, nil)

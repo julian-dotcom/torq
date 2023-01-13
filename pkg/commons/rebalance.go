@@ -93,7 +93,7 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 				request.RequestTime = &now
 			}
 			// Previous rebalance cleanup delay
-			time.Sleep(time.Millisecond * REBALANCE_REBALANCE_DELAY_MILLISECONDS)
+			time.Sleep(REBALANCE_REBALANCE_DELAY_MILLISECONDS * time.Millisecond)
 			processRebalanceRequest(ctx, db, request, nodeId)
 		}
 	}
@@ -155,7 +155,7 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request Rebalance
 			// get rebalance attempts for the other direction
 			latestResult := getLatestResult(channelId, request.IncomingChannelId, nil)
 			if latestResult.RebalanceId == 0 || latestResult.UpdateOn.Before(time.Now().Add(-5*time.Minute)) {
-				filteredChannelIds = rebalancePendingForOpositDirection(pendingRebalancers, channelId, request.IncomingChannelId, channelId, filteredChannelIds)
+				filteredChannelIds = rebalancePendingForOppositeDirection(pendingRebalancers, channelId, request.IncomingChannelId, channelId, filteredChannelIds)
 			} else {
 				log.Info().Msgf(
 					"ChannelId %d was removed because an opposite result already exists (IncomingChannelId: %d) "+
@@ -169,7 +169,7 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request Rebalance
 			// get rebalance attempts for the other direction
 			latestResult := getLatestResult(request.OutgoingChannelId, channelId, nil)
 			if latestResult.RebalanceId == 0 || latestResult.UpdateOn.Before(time.Now().Add(-5*time.Minute)) {
-				filteredChannelIds = rebalancePendingForOpositDirection(pendingRebalancers, channelId, channelId, request.OutgoingChannelId, filteredChannelIds)
+				filteredChannelIds = rebalancePendingForOppositeDirection(pendingRebalancers, channelId, channelId, request.OutgoingChannelId, filteredChannelIds)
 			} else {
 				log.Info().Msgf(
 					"ChannelId %d was removed because an opposite result already exists (OutgoingChannelId: %d) "+
@@ -234,7 +234,7 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request Rebalance
 	})
 }
 
-func rebalancePendingForOpositDirection(pendingRebalancers []*Rebalancer, channelId int, incomingChannelId int, outgoingChannelId int, filteredChannelIds []int) []int {
+func rebalancePendingForOppositeDirection(pendingRebalancers []*Rebalancer, channelId int, incomingChannelId int, outgoingChannelId int, filteredChannelIds []int) []int {
 	if len(pendingRebalancers) == 0 {
 		return append(filteredChannelIds, channelId)
 	}

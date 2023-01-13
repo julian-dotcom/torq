@@ -113,7 +113,9 @@ func GetServiceTypes() []ServiceType {
 		TorqService,
 		AutomationService,
 		LightningCommunicationService,
-		RebalanceService}
+		RebalanceService,
+		MaintenanceService,
+	}
 }
 
 func getDeltaPerMille(base uint64, amt uint64) int {

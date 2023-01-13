@@ -19,6 +19,8 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 
 	var wg sync.WaitGroup
 
+	active := commons.Active
+
 	// Time Trigger Monitor
 	wg.Add(1)
 	go (func() {
@@ -26,7 +28,7 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				automation.TimeTriggerMonitor(ctx, db, nodeSettings)
+				commons.RunningServices[commons.AutomationService].Cancel(nodeId, &active, true)
 			}
 		}()
 		automation.TimeTriggerMonitor(ctx, db, nodeSettings)
@@ -39,7 +41,7 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in EventTriggerMonitor %v", panicError)
-				automation.EventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+				commons.RunningServices[commons.AutomationService].Cancel(nodeId, &active, true)
 			}
 		}()
 		automation.EventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
@@ -55,14 +57,15 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 
 	var wg sync.WaitGroup
 
-	// Fee Service
+	active := commons.Active
+
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in LightningCommunicationService %v", panicError)
-				lnd.LightningCommunicationService(ctx, conn, db, nodeId, lightningCommunicationChannel)
+				commons.RunningServices[commons.LightningCommunicationService].Cancel(nodeId, &active, true)
 			}
 		}()
 		lnd.LightningCommunicationService(ctx, conn, db, nodeId, lightningCommunicationChannel)
@@ -78,17 +81,40 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 	var wg sync.WaitGroup
 
-	// Rebalance Service
+	active := commons.Active
+
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in RebalanceServiceStart %v", panicError)
-				commons.RebalanceServiceStart(ctx, conn, db, nodeId, rebalanceRequestChannel)
+				commons.RunningServices[commons.RebalanceService].Cancel(nodeId, &active, true)
 			}
 		}()
 		commons.RebalanceServiceStart(ctx, conn, db, nodeId, rebalanceRequestChannel)
+	})()
+
+	wg.Wait()
+
+	return nil
+}
+
+func StartMaintenanceService(ctx context.Context, db *sqlx.DB, nodeId int, lightningCommunicationChannel chan interface{}) error {
+	var wg sync.WaitGroup
+
+	active := commons.Active
+
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in MaintenanceService %v", panicError)
+				commons.RunningServices[commons.MaintenanceService].Cancel(nodeId, &active, true)
+			}
+		}()
+		commons.MaintenanceServiceStart(ctx, db, nodeId, lightningCommunicationChannel)
 	})()
 
 	wg.Wait()

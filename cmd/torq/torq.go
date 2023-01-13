@@ -388,6 +388,8 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 			name = "LightningCommunication"
 		case commons.RebalanceService:
 			name = "RebalanceService"
+		case commons.MaintenanceService:
+			name = "MaintenanceService"
 		}
 		if serviceCmd.ServiceCommand == commons.Kill {
 			previousStatus, cancelStatus := services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay)
@@ -534,6 +536,10 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 						if commons.RunningServices[commons.RebalanceService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
 							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.RebalanceService, NodeId: serviceEvent.NodeId}
 						}
+						log.Debug().Msgf("Starting Maintenance Service for nodeId: %v", serviceEvent.NodeId)
+						if commons.RunningServices[commons.MaintenanceService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
+							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.MaintenanceService, NodeId: serviceEvent.NodeId}
+						}
 						log.Debug().Msgf("Checking for Vector activation for nodeId: %v", serviceEvent.NodeId)
 						if commons.RunningServices[commons.VectorService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
 							serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.VectorService, NodeId: serviceEvent.NodeId}
@@ -585,7 +591,7 @@ func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync
 	commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Active, serviceCmd.ServiceType, nil)
 	commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 	log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
-	err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster, eventChannel, serviceChannel, lightningRequestChannel)
+	err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster, eventChannel, lightningRequestChannel)
 	if err != nil {
 		log.Error().Err(err).Send()
 		// only log the error, don't return
@@ -657,6 +663,8 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 		err = automation.StartLightningCommunicationService(ctx, conn, db, node.NodeId, lightningCommunicationChannel)
 	case commons.RebalanceService:
 		err = automation.StartRebalanceService(ctx, conn, db, node.NodeId, rebalanceRequestChannel)
+	case commons.MaintenanceService:
+		err = automation.StartMaintenanceService(ctx, db, node.NodeId, lightningCommunicationChannel)
 	}
 	if err != nil {
 		log.Error().Err(err).Msgf("%v Service ended for node id: %v", name, node.NodeId)
