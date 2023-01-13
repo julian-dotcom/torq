@@ -1,6 +1,16 @@
-import ReactSelect, { Props, components } from "react-select";
+import ReactSelect, {
+  Props,
+  components,
+  MultiValueRemoveProps,
+  GroupBase,
+  ClearIndicatorProps,
+  DropdownIndicatorProps,
+  StylesConfig,
+} from "react-select";
 import {
   ChevronDown16Regular as ChevronDownIcon,
+  Dismiss12Regular as MultiValueRemoveIcon,
+  Dismiss16Regular as ClearIcon,
   WarningRegular as WarningIcon,
   ErrorCircleRegular as ErrorIcon,
 } from "@fluentui/react-icons";
@@ -11,12 +21,11 @@ import { useId } from "react";
 
 export type SelectOptionType = { value: string; label: string };
 
-const customStyles = {
+const customStyles: StylesConfig<unknown, boolean, GroupBase<unknown>> = {
   indicatorSeparator: () => {
     return {};
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  control: (provided: any, state: any) => ({
+  control: (provided, state) => ({
     ...provided,
     borderRadius: 4,
     backgroundColor: state.isFocused ? "var(--input-focus-background)" : "var(--input-default-background)",
@@ -27,38 +36,33 @@ const customStyles = {
       boxShadow: "none",
     },
     fontSize: "var(--input-font-size)",
-    height: "var(--input-height)",
     minHeight: "var(--input-height)",
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  placeholder: (provided: any) => {
+  placeholder: (provided) => {
     return {
       ...provided,
       color: "var(--input-placeholder-color)",
       fontSize: "var(--input-font-size)",
     };
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  dropdownIndicator: (provided: any, _: any) => ({
+  dropdownIndicator: (provided) => ({
     ...provided,
     color: "var(--input-color)",
     fontSize: "var(--input-font-size)",
     padding: "var(--indicator-padding)",
+    alignItems: "flex-start",
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  singleValue: (provided: any) => ({
+  singleValue: (provided) => ({
     ...provided,
     color: "var(--input-color)",
     fontSize: "var(--input-font-size)",
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  input: (provided: any) => ({
+  input: (provided) => ({
     ...provided,
     margin: "0",
     padding: "0",
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  option: (provided: any, state: any) => ({
+  option: (provided, state) => ({
     ...provided,
     color: "var(--input-color)",
     fontSize: "var(--input-font-size)",
@@ -69,8 +73,7 @@ const customStyles = {
     },
     borderRadius: "4px",
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  menuList: (provided: any, _: any) => ({
+  menuList: (provided) => ({
     ...provided,
     borderColor: "transparent",
     boxShadow: "none",
@@ -79,8 +82,7 @@ const customStyles = {
     flexDirection: "column",
     gap: "4px",
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  menu: (provided: any, _: any) => ({
+  menu: (provided) => ({
     ...provided,
     margin: "8px 4px",
     clip: "initial",
@@ -108,12 +110,25 @@ export default function Select({
   errorText,
   ...selectProps
 }: SelectProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const DropdownIndicator = (props: any) => {
+  const DropdownIndicator = (props: DropdownIndicatorProps) => {
     return (
       <components.DropdownIndicator {...props}>
         <ChevronDownIcon />
       </components.DropdownIndicator>
+    );
+  };
+  const MultiValueRemove = (props: MultiValueRemoveProps<unknown, boolean, GroupBase<unknown>>) => {
+    return (
+      <components.MultiValueRemove {...props}>
+        <MultiValueRemoveIcon />
+      </components.MultiValueRemove>
+    );
+  };
+  const ClearIndicator = (props: ClearIndicatorProps<unknown, boolean, GroupBase<unknown>>) => {
+    return (
+      <components.ClearIndicator {...props}>
+        <ClearIcon />
+      </components.ClearIndicator>
     );
   };
   const inputId = useId();
@@ -139,7 +154,7 @@ export default function Select({
       )}
       <ReactSelect
         id={selectProps.id || inputId}
-        components={{ DropdownIndicator }}
+        components={{ DropdownIndicator, MultiValueRemove, ClearIndicator }}
         className={selectProps.className}
         styles={customStyles}
         {...selectProps}

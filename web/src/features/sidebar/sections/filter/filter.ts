@@ -1,6 +1,7 @@
 import clone from "clone";
 import { SelectOption } from "features/forms/Select";
-export type FilterCategoryType = "number" | "string" | "date" | "boolean" | "array" | "duration" | "enum";
+import { TagResponse } from "pages/tags/tagsTypes";
+export type FilterCategoryType = "number" | "string" | "date" | "boolean" | "array" | "duration" | "enum" | "tag";
 export type FilterParameterType = number | string | Date | boolean | Array<unknown>;
 export type FilterFunc = <T extends Record<K, unknown>, K extends keyof T>(
   input: T,
@@ -19,6 +20,31 @@ export const FilterFunctions = new Map<string, Map<string, FilterFunc>>([
       ["gte", (input, key, parameter) => input[key] >= parameter],
       ["lt", (input, key, parameter) => input[key] < parameter],
       ["lte", (input, key, parameter) => input[key] <= parameter],
+    ]),
+  ],
+  [
+    "tag",
+    new Map<string, FilterFunc>([
+      [
+        "any",
+        (input, key, parameter) => {
+          return (
+            ((input[key] as Array<TagResponse>) || []).filter((v) =>
+              ((parameter as Array<number>) || []).includes(v.tagId || 0)
+            )?.length >= 1
+          );
+        },
+      ],
+      [
+        "notAny",
+        (input, key, parameter) => {
+          return (
+            ((input[key] as Array<TagResponse>) || []).filter((v) =>
+              ((parameter as Array<number>) || []).includes(v.tagId || 0)
+            )?.length === 0
+          );
+        },
+      ],
     ]),
   ],
   [
@@ -151,12 +177,12 @@ const parseClause = <T extends Record<string, unknown>>(clause: ClauseWithResult
   typeSwitch: switch (clause.prefix) {
     case "$filter": {
       const filterClause = clause as FilterClause;
-      const filterFunc = FilterFunctions.get(filterClause.filter.category)?.get(filterClause.filter.funcName);
+      const filterFunc = FilterFunctions.get(filterClause?.filter?.category)?.get(filterClause?.filter?.funcName);
       if (!filterFunc) {
         throw new Error("Filter function is not yet defined");
       }
-      if (data[filterClause.filter.key] !== undefined) {
-        clause.result = filterFunc(data, filterClause.filter.key ?? "", filterClause.filter.parameter);
+      if (data[filterClause?.filter?.key] !== undefined) {
+        clause.result = filterFunc(data, filterClause?.filter?.key ?? "", filterClause?.filter?.parameter);
       } else {
         // DISABLED BECAUSE IT CAUSED RENDERING ISSUES
         // Let the user know that the filter key is not valid (most likely because the view filter data is out of date)

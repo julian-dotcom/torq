@@ -21,8 +21,7 @@ const ButtonPositionClass = new Map([
 ]);
 
 export type ButtonProps = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  icon?: any;
+  icon?: ReactNode;
   buttonColor?: ColorVariant;
   buttonPosition?: ButtonPosition;
   buttonSize?: SizeVariant;
