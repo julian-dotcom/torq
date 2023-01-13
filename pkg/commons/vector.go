@@ -12,7 +12,7 @@ import (
 	"github.com/lncapital/torq/build"
 )
 
-func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputIndex int, nodeId int,
+func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputIndex int, nodeSettings ManagedNodeSettings,
 	lightningRequestChannel chan interface{}) string {
 
 	unixTime := time.Now()
@@ -23,7 +23,7 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 		CommunicationRequest: CommunicationRequest{
 			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
 			RequestTime: &unixTime,
-			NodeId:      nodeId,
+			NodeId:      nodeSettings.NodeId,
 		},
 		ResponseChannel: responseChannel,
 		Message:         message,
@@ -35,6 +35,7 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 		OutputIndex:     fundingOutputIndex,
 		UnixTime:        unixTime.Unix(),
 		Signature:       response.Signature,
+		PublicKey:       nodeSettings.PublicKey,
 	}
 	requestObjectBytes, err := json.Marshal(requestObject)
 	if err != nil {
@@ -72,7 +73,7 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 	return vectorResponse.ShortChannelId
 }
 
-func GetTransactionDetailsFromVector(transactionHash string, nodeId int,
+func GetTransactionDetailsFromVector(transactionHash string, nodeSettings ManagedNodeSettings,
 	lightningRequestChannel chan interface{}) TransactionDetailsHttpResponse {
 
 	unixTime := time.Now()
@@ -83,7 +84,7 @@ func GetTransactionDetailsFromVector(transactionHash string, nodeId int,
 		CommunicationRequest: CommunicationRequest{
 			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
 			RequestTime: &unixTime,
-			NodeId:      nodeId,
+			NodeId:      nodeSettings.NodeId,
 		},
 		ResponseChannel: responseChannel,
 		Message:         message,
@@ -94,6 +95,7 @@ func GetTransactionDetailsFromVector(transactionHash string, nodeId int,
 		TransactionHash: transactionHash,
 		UnixTime:        unixTime.Unix(),
 		Signature:       response.Signature,
+		PublicKey:       nodeSettings.PublicKey,
 	}
 	requestObjectBytes, err := json.Marshal(requestObject)
 	if err != nil {
