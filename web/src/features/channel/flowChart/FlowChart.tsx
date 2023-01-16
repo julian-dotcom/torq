@@ -2,6 +2,7 @@
 import { useD3 } from "features/charts/useD3";
 import { useEffect } from "react";
 import { Selection } from "d3";
+import mixpanel from "mixpanel-browser";
 import FlowChartCanvas from "features/charts/flowChartCanvas";
 import { FlowData } from "features/channel/channelTypes";
 import { useAppSelector } from "store/hooks";
@@ -22,6 +23,7 @@ function FlowChart({ data }: FlowChart) {
 
   function handleNodeClick(channelId: number) {
     const state = location?.state?.background || {};
+    mixpanel.track("FlowChart Navigation", { channel_id: channelId, background: state?.pathname });
     navigate(`/analyse/inspect/${channelId}`, { state: { background: state } });
   }
 

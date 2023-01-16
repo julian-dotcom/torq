@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Options20Regular as OptionsIcon, ArrowRouting20Regular as ChannelsIcon } from "@fluentui/react-icons";
+import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -117,6 +118,9 @@ function ChannelsPage() {
             hideMobileText={true}
             icon={<ChannelsIcon />}
             onClick={() => {
+              mixpanel.track("Navigate to Open Channel", {
+                background: location.pathname,
+              });
               navigate(OPEN_CHANNEL, { state: { background: location } });
             }}
           >

@@ -1,5 +1,6 @@
-import { useAppDispatch } from "store/hooks";
-import { toggleNav } from "./navSlice";
+import { useAppDispatch, useAppSelector } from "store/hooks";
+import mixpanel from "mixpanel-browser";
+import { selectHidden, toggleNav } from "./navSlice";
 import classNames from "classnames";
 import MenuItem from "./MenuItem";
 import NavCategory from "./NavCategory";
@@ -14,7 +15,6 @@ import {
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
-  // Flash20Regular as WorkflowsIcon,
   Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
@@ -25,6 +25,13 @@ import NetworkSelector from "./NetworkSelector";
 function Navigation() {
   const dispatch = useAppDispatch();
   const { t } = useTranslations();
+  const hidden = useAppSelector(selectHidden);
+
+  function toggleNavHandler() {
+    mixpanel.track("Toggle Navigation");
+    mixpanel.register({ navigation_expanded: !hidden });
+    dispatch(toggleNav());
+  }
 
   return (
     <div className={classNames(styles.navigation)}>
@@ -35,7 +42,7 @@ function Navigation() {
 
         <NetworkSelector />
 
-        <div className={styles.collapseButton} id={"collapse-navigation"} onClick={() => dispatch(toggleNav())}>
+        <div className={styles.collapseButton} id={"collapse-navigation"} onClick={toggleNavHandler}>
           <CollapseIcon />
         </div>
       </div>

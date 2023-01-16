@@ -1,0 +1,1 @@
+alter table settings add column torq_uuid uuid not null default gen_random_uuid ();

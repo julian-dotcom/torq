@@ -9,6 +9,7 @@ import { ButtonPosition, ColorVariant, LinkButton, SizeVariant } from "component
 import useTranslations from "services/i18n/useTranslations";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
 import { useLocation } from "react-router-dom";
+import mixpanel from "mixpanel-browser";
 
 interface AliasCell {
   current: string;
@@ -36,6 +37,12 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.accent1}
             buttonPosition={ButtonPosition.center}
+            onClick={() => {
+              mixpanel.track("Navigate to Inspect Channel", {
+                background: location.pathname,
+                channelId: channelId,
+              });
+            }}
           >
             {t.inspect}
           </LinkButton>
@@ -50,8 +57,14 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
                   buttonColor={ColorVariant.success}
                   hideMobileText={true}
                   icon={<EditIcon />}
+                  onClick={() => {
+                    mixpanel.track("Navigate to Update Channel", {
+                      background: location.pathname,
+                      channelId: channelId,
+                    });
+                  }}
                 >
-                  Update
+                  {t.update}
                 </LinkButton>
 
                 <LinkButton
@@ -62,8 +75,14 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
                   buttonColor={ColorVariant.error}
                   hideMobileText={true}
                   icon={<CloseIcon />}
+                  onClick={() => {
+                    mixpanel.track("Navigate to Close Channel", {
+                      background: location.pathname,
+                      channelId: channelId,
+                    });
+                  }}
                 >
-                  Close
+                  {t.close}
                 </LinkButton>
               </div>
             );

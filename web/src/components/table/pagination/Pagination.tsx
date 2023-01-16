@@ -1,8 +1,10 @@
-import styles from "./pagination.module.scss";
-import classNames from "classnames";
 import React, { useMemo } from "react";
+import classNames from "classnames";
 import { ChevronLeft20Filled as LeftIcon, ChevronRight20Filled as RightIcon } from "@fluentui/react-icons";
+import mixpanel from "mixpanel-browser";
+import styles from "./pagination.module.scss";
 import PaginationSelect from "./PaginationSelect";
+import { IsNumericOption } from "utils/typeChecking";
 
 export type PaginationProps = {
   limit: number;
@@ -38,6 +40,7 @@ function renderPages(
         onClick={() => {
           if (offset >= limit) {
             offsetHandler(offset - limit);
+            mixpanel.track("pagination-previous", { offset: offset - limit });
           }
         }}
       >
@@ -52,6 +55,7 @@ function renderPages(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (item: any) => {
             offsetHandler(item.value * limit);
+            mixpanel.track("pagination-page-select", { offset: item.value * limit });
           }
         }
       />
@@ -61,6 +65,7 @@ function renderPages(
         onClick={() => {
           if (pages > currentPage + 1) {
             offsetHandler(offset + limit);
+            mixpanel.track("pagination-next-page", { page: currentPage + 1 });
           }
         }}
       >
@@ -91,13 +96,13 @@ function Pagination(props: PaginationProps) {
           menuPlacement={"top"}
           className={styles.limitSelector}
           value={limitOptions.find(({ value }) => value === props.limit)}
-          onChange={
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (item: any) => {
+          onChange={(item: unknown) => {
+            if (IsNumericOption(item)) {
               props.perPageHandler(item.value);
               props.offsetHandler(0);
+              mixpanel.track("Table: Change rows per page", { limit: item.value });
             }
-          }
+          }}
         />
       </div>
       <div className={styles.paginationButtons}>

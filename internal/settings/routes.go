@@ -26,6 +26,7 @@ type settings struct {
 	DefaultLanguage   string `json:"defaultLanguage" db:"default_language"`
 	PreferredTimezone string `json:"preferredTimezone" db:"preferred_timezone"`
 	WeekStartsOn      string `json:"weekStartsOn" db:"week_starts_on"`
+	TorqUuid          string `json:"torqUuid" db:"torq_uuid"`
 }
 
 type timeZone struct {

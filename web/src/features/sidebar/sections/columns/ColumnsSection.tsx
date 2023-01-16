@@ -128,6 +128,10 @@ function ColumnRow<T>(props: ColumnRow<T>) {
     }
   })[0];
 
+  function handleRemoveColumn() {
+    dispatch(deleteColumn({ page: props.page, viewIndex: props.viewIndex, columnIndex: props.index }));
+  }
+
   const [expanded, setExpanded] = useState(false);
   return (
     <Draggable draggableId={`draggable-column-id-${props.column.key.toString()}`} index={props.index}>
@@ -153,12 +157,7 @@ function ColumnRow<T>(props: ColumnRow<T>) {
               {expanded ? <OptionsExpandedIcon /> : <OptionsIcon />}
             </div>
 
-            <div
-              className={styles.removeColumn}
-              onClick={() => {
-                dispatch(deleteColumn({ page: props.page, viewIndex: props.viewIndex, columnIndex: props.index }));
-              }}
-            >
+            <div className={styles.removeColumn} onClick={handleRemoveColumn}>
               <RemoveIcon />
             </div>
           </div>
@@ -250,6 +249,16 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
   // https://github.com/atlassian/react-beautiful-dnd/issues/2396#issuecomment-1248018320
   const [strictDropEnabled] = useStrictDroppable(!props.activeColumns);
 
+  function handleAddColumn(column: ColumnMetaData<T>) {
+    dispatch(
+      addColumn({
+        page: props.page,
+        viewIndex: props.viewIndex,
+        newColumn: column as ColumnMetaData<TableResponses>,
+      })
+    );
+  }
+
   return (
     <div>
       <DragDropContext onDragEnd={onDragEnd}>
@@ -305,13 +314,7 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
                       name={column.heading}
                       key={"unselected-" + index + "-" + column.key.toString()}
                       onAddColumn={() => {
-                        dispatch(
-                          addColumn({
-                            page: props.page,
-                            viewIndex: props.viewIndex,
-                            newColumn: column as ColumnMetaData<TableResponses>,
-                          })
-                        );
+                        handleAddColumn(column);
                       }}
                     />
                   );

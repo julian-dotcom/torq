@@ -10,6 +10,7 @@ import {
   Checkmark20Regular as CheckmarkIcon,
   Dismiss20Regular as DismissIcon,
 } from "@fluentui/react-icons";
+import mixpanel from "mixpanel-browser";
 import type { GetChannelHistoryData, GetFlowQueryParams } from "types/api";
 import classNames from "classnames";
 import * as d3 from "d3";
@@ -17,7 +18,7 @@ import { useState } from "react";
 import { addDays, format } from "date-fns";
 import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
 import { useParams } from "react-router";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import Select from "components/forms/select/Select";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
@@ -36,14 +37,23 @@ const ft = d3.format(",.0f");
 function ChannelPage() {
   const { data: nodeConfigurations, isSuccess: nodeConfigurationsQueryHasRun } = useGetNodeConfigurationsQuery();
   const navigate = useNavigate();
+  const location = useLocation();
   const activeNetwork = useAppSelector(selectActiveNetwork);
 
   const handleConfirmationModalClose = () => {
+    mixpanel.track("No Local Node", {
+      source: location?.pathname,
+      "Go to settings": false,
+    });
     setShowModalState(false);
   };
 
   const handleModalSettingsClick = () => {
     setShowModalState(false);
+    mixpanel.track("No Local Node", {
+      source: location?.pathname,
+      "Go to settings": true,
+    });
     navigate("/settings", { replace: true });
   };
 

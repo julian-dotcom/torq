@@ -4,8 +4,8 @@ import {
   ColumnTriple20Regular as ColumnsIcon,
   Filter20Regular as FilterIcon,
   TableMultipleRegular as ViewsIcon,
-  // Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
+import mixpanel from "mixpanel-browser";
 import Sidebar from "features/sidebar/Sidebar";
 import ViewsPopover from "./ViewSection";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
@@ -48,6 +48,10 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
 
   const sidebarSectionHandler = (section: keyof typeof initialSectionState) => {
     return () => {
+      mixpanel.track(`Toggle Sidebar Section`, {
+        section: section,
+        expanded: !activeSidebarSections[section],
+      });
       setActiveSidebarSections({
         ...activeSidebarSections,
         [section]: !activeSidebarSections[section],

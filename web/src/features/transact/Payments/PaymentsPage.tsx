@@ -1,4 +1,5 @@
 import { MoneyHand20Regular as TransactionIcon, Options20Regular as OptionsIcon } from "@fluentui/react-icons";
+import mixpanel from "mixpanel-browser";
 import { useGetPaymentsQuery } from "./paymentsApi";
 import { NEW_PAYMENT } from "constants/routes";
 import Button, { ColorVariant } from "components/buttons/Button";
@@ -108,6 +109,7 @@ function PaymentsPage() {
             hideMobileText={true}
             icon={<TransactionIcon />}
             onClick={() => {
+              mixpanel.track("Navigate to New Payment");
               navigate(NEW_PAYMENT, { state: { background: location } });
             }}
           >

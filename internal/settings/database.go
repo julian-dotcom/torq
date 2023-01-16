@@ -16,7 +16,7 @@ import (
 func getSettings(db *sqlx.DB) (settings, error) {
 	var settingsData settings
 	err := db.Get(&settingsData, `
-		SELECT default_date_range, default_language, preferred_timezone, week_starts_on
+		SELECT default_date_range, default_language, preferred_timezone, week_starts_on, torq_uuid
 		FROM settings
 		LIMIT 1;`)
 	if err != nil {

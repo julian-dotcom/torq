@@ -3,6 +3,7 @@ export interface settings {
   defaultLanguage: "en" | "nl";
   preferredTimezone: string;
   weekStartsOn: "saturday" | "sunday" | "monday";
+  torqUuid: string;
 }
 
 export interface timeZone {
