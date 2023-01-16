@@ -44,7 +44,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "torq"
 	app.EnableBashCompletion = true
-	app.Version = build.Version()
+	app.Version = build.ExtendedVersion()
 
 	homedir, err := os.UserHomeDir()
 	if err != nil {
@@ -150,7 +150,7 @@ func main() {
 			}
 
 			// Print startup message
-			fmt.Printf("Starting Torq %s\n", build.Version())
+			fmt.Printf("Starting Torq %s\n", build.ExtendedVersion())
 
 			fmt.Println("Connecting to the Torq database")
 			db, err := database.PgConnect(c.String("db.name"), c.String("db.user"),

@@ -108,7 +108,7 @@ func GetTransactionDetailsFromVector(transactionHash string, nodeSettings Manage
 		return TransactionDetailsHttpResponse{}
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Torq-Version", build.Version())
+	req.Header.Set("Torq-Version", build.ExtendedVersion())
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {

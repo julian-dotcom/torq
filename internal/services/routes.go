@@ -24,7 +24,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 			Status:   torqService.GetStatus(commons.TorqDummyNodeId),
 			BootTime: torqService.GetBootTime(commons.TorqDummyNodeId),
 		},
-		Version: build.Version(),
+		Version: build.ExtendedVersion(),
 	}
 	lndService := commons.RunningServices[commons.LndService]
 	for _, torqNodeId := range commons.GetAllActiveTorqNodeIds(nil, nil) {

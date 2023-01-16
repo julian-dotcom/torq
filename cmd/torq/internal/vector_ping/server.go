@@ -69,7 +69,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn) error {
 
 		pingInfo := VectorPing{
 			PingTime:                time.Now().UTC(),
-			TorqVersion:             build.Version(),
+			TorqVersion:             build.ExtendedVersion(),
 			Implementation:          "LND",
 			Version:                 info.Version,
 			PublicKey:               info.IdentityPubkey,

@@ -86,3 +86,7 @@ func normalizeVerString(str string) string {
 var Repository string
 var Branch string
 var Commit string
+
+func ExtendedVersion() string {
+	return fmt.Sprintf("%v > %v > %v (%v)", Repository, Branch, Commit, Version())
+}
