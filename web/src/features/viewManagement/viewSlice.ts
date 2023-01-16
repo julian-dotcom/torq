@@ -1,8 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import mixpanel from "mixpanel-browser";
+import { RootState } from "store/store";
 import { TableResponses, ViewResponse } from "./types";
 import { viewApi } from "./viewsApiSlice";
 import { DefaultForwardsView } from "features/forwards/forwardsDefaults";
-import { RootState } from "store/store";
 import { DefaultOnChainView } from "features/transact/OnChain/onChainDefaults";
 import { DefaultPaymentView } from "features/transact/Payments/paymentDefaults";
 import { DefaultInvoiceView } from "features/transact/Invoices/invoiceDefaults";
@@ -60,6 +61,9 @@ export const viewsSlice = createSlice({
       const { view } = action.payload;
       const views = state.pages[view.page].views;
       state.pages[view.page].views = <Array<ViewResponse<TableResponses>>>[...views, view];
+      mixpanel.track(`View Created`, {
+        page: view.page,
+      });
     },
     updateViewTitle: (
       state: ViewSliceState,
@@ -67,6 +71,12 @@ export const viewsSlice = createSlice({
     ) => {
       const { page, viewIndex, title } = action.payload;
       if (state.pages[page].views[viewIndex].view.title !== title) {
+        mixpanel.track(`View Title Updated`, {
+          page: page,
+          viewIndex: viewIndex,
+          new_title: title,
+          old_title: state.pages[page].views[viewIndex].view.title,
+        });
         state.pages[page].views[viewIndex].dirty = true;
         state.pages[page].views[viewIndex].view.title = title;
       }
@@ -80,6 +90,11 @@ export const viewsSlice = createSlice({
     ) => {
       const { page, viewIndex } = actions.payload;
       state.pages[page].selected = viewIndex;
+      mixpanel.track(`View Selected`, {
+        page: page,
+        selected_view: viewIndex,
+        view_title: state.pages[page].views[viewIndex].view.title,
+      });
     },
     updateViewsOrder: (
       state,
@@ -107,6 +122,17 @@ export const viewsSlice = createSlice({
         if (state.pages[page].selected === viewIndex) {
           state.pages[page].selected = 0;
         }
+        mixpanel.track(`View Deleted`, {
+          page,
+          view_count: state.pages[page].views.length,
+          view_index: viewIndex,
+          view_name: state.pages[page].views[viewIndex].view.title,
+          columns: (state.pages[page].views[viewIndex].view.columns || []).map((c) => c.heading),
+          sorted_by: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
+            return { key: s.key, direction: s.direction };
+          }),
+          filter_count: deserialiseQuery(state.pages[page].views[viewIndex].view.filters).length,
+        });
       }
     },
     // --------------------- Columns ---------------------
@@ -125,6 +151,11 @@ export const viewsSlice = createSlice({
       } else {
         state.pages[page].views[viewIndex].view.columns = [...(columns as Array<typeof newColumn>), newColumn];
       }
+      mixpanel.track(`View Column Added`, {
+        old_column_count: columns?.length || 0,
+        old_column_list: (columns || []).map((column) => column.heading),
+        column_name: newColumn.heading,
+      });
       state.pages[page].views[viewIndex].dirty = true;
     },
     updateColumn: (
@@ -156,6 +187,17 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, fromIndex, toIndex } = actions.payload;
       const columns = state.pages[page].views[viewIndex].view.columns.slice();
       const column = columns[fromIndex];
+      const columnNames = columns.map((column) => column.heading);
+      mixpanel.track(`View Columns Re-arranged`, {
+        page: page,
+        view_index: viewIndex,
+        view_title: state.pages[page].views[viewIndex].view.title,
+        column_count: columns.length || 0,
+        column_list: columnNames,
+        column_name: columnNames[fromIndex],
+        position_old: fromIndex,
+        position_new: toIndex,
+      });
       columns.splice(fromIndex, 1);
       columns.splice(toIndex, 0, column as ColumnMetaData<TableResponses>);
       state.pages[page].views[viewIndex].view.columns = columns;
@@ -172,6 +214,11 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, columnIndex } = actions.payload;
       const columns = state.pages[page].views[viewIndex].view.columns;
       if (columns) {
+        mixpanel.track(`View Column Removed`, {
+          column_count: columns.length,
+          column_list: columns.map((column) => column.heading),
+          column_name: columns[columnIndex].heading,
+        });
         columns.splice(columnIndex, 1);
         state.pages[page].views[viewIndex].view.columns = columns;
       }
@@ -204,6 +251,17 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.sortBy = <Array<OrderBy>>[sortBy];
       }
       state.pages[page].views[viewIndex].dirty = true;
+      mixpanel.track(`View Add Sort By`, {
+        page: page,
+        view_index: viewIndex,
+        view_title: state.pages[page].views[viewIndex].view.title,
+        sort_count: state.pages[page].views[viewIndex].view.sortBy?.length || 0,
+        sorted_by: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        new_sort_key: sortBy.key,
+        new_sort_direction: sortBy.direction,
+      });
     },
     updateSortBy: (
       state: ViewSliceState,
@@ -223,7 +281,17 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
       }
       state.pages[page].views[viewIndex].dirty = true;
-      // TOOD: Add message
+      mixpanel.track(`View Update Sort By`, {
+        page: page,
+        view_index: viewIndex,
+        view_title: state.pages[page].views[viewIndex].view.title,
+        sort_count: state.pages[page].views[viewIndex].view.sortBy?.length || 0,
+        sorted_by: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        updated_sort_key: sortByUpdate.key,
+        updated_sort_direction: sortByUpdate.direction,
+      });
     },
     deleteSortBy: (
       state: ViewSliceState,
@@ -238,10 +306,22 @@ export const viewsSlice = createSlice({
       const currentSortBy = state.pages[page].views[viewIndex].view.sortBy;
       // Delete the sort by if it exists
       if (currentSortBy) {
+        const deletedSortBy = currentSortBy.splice(sortByIndex, 1);
         currentSortBy.splice(sortByIndex, 1);
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
+        state.pages[page].views[viewIndex].dirty = true;
+        mixpanel.track(`View Delete Sort By`, {
+          page: page,
+          view_index: viewIndex,
+          view_title: state.pages[page].views[viewIndex].view.title,
+          sort_count: currentSortBy.length || 0,
+          sorted_by: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
+            return { key: s.key, direction: s.direction };
+          }),
+          deleted_sort_key: deletedSortBy[0].key,
+          deleted_sort_direction: deletedSortBy[0].direction,
+        });
       }
-      state.pages[page].views[viewIndex].dirty = true;
     },
     updateSortByOrder: (
       state,
@@ -251,11 +331,24 @@ export const viewsSlice = createSlice({
       const currentSortBy = state.pages[page].views[viewIndex].view.sortBy;
       if (currentSortBy) {
         const sortBy = currentSortBy[fromIndex];
+        mixpanel.track(`View Update Sort By Order`, {
+          page: page,
+          view_index: viewIndex,
+          view_title: state.pages[page].views[viewIndex].view.title,
+          sort_count: currentSortBy.length || 0,
+          sorted_by: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
+            return { key: s.key, direction: s.direction };
+          }),
+          from_index: fromIndex,
+          to_index: toIndex,
+          sort_key: sortBy.key,
+          sort_direction: sortBy.direction,
+        });
         currentSortBy.splice(fromIndex, 1);
         currentSortBy.splice(toIndex, 0, sortBy);
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
+        state.pages[page].views[viewIndex].dirty = true;
       }
-      state.pages[page].views[viewIndex].dirty = true;
     },
     // --------------------- Group by ---------------------
     updateGroupBy: (
@@ -269,6 +362,12 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, groupByUpdate } = actions.payload;
       state.pages[page].views[viewIndex].view.groupBy = groupByUpdate;
       state.pages[page].views[viewIndex].dirty = true;
+      mixpanel.track(`View Update Group By`, {
+        page: page,
+        view_index: viewIndex,
+        view_title: state.pages[page].views[viewIndex].view.title,
+        group_by: groupByUpdate,
+      });
     },
   },
   // // The `extraReducers` field lets the slice handle actions defined elsewhere,
@@ -310,6 +409,18 @@ export const viewsSlice = createSlice({
     builder.addMatcher(viewApi.endpoints.deleteTableView.matchPending, (state, { meta }) => {
       const views = state.pages[meta.arg.originalArgs.page].views;
       const index = views.findIndex((view) => view.id === meta.arg.originalArgs.id);
+      const view = views[index];
+      mixpanel.track(`View Deleted`, {
+        page: meta.arg.originalArgs.page,
+        view_count: state.pages[meta.arg.originalArgs.page].views.length,
+        view_id: view.id,
+        view_name: view.view.title,
+        columns: (view.view.columns || []).map((c: { heading: string }) => c.heading) as string[],
+        sorted_by: (view.view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        filter_count: deserialiseQuery(view.view.filters).length,
+      });
       views.splice(index, 1);
       state.pages[meta.arg.originalArgs.page].views = views;
       state.pages[meta.arg.originalArgs.page].selected = 0;
@@ -318,6 +429,18 @@ export const viewsSlice = createSlice({
     builder.addMatcher(viewApi.endpoints.updateTableView.matchFulfilled, (state, { payload }) => {
       const views = state.pages[payload.page].views;
       const index = views.findIndex((view) => view.id === payload.id);
+      const view = views[index];
+      mixpanel.track(`View Updated`, {
+        page: view.page,
+        view_count: views.length,
+        view_id: view.id,
+        view_name: view.view.title,
+        columns: (view.view.columns || []).map((c: { heading: string }) => c.heading) as string[],
+        sorted_by: (view.view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        filter_count: deserialiseQuery(view.view.filters).length,
+      });
       views[index] = payload;
       views[index].dirty = false;
       state.pages[payload.page].views = views;
@@ -325,6 +448,17 @@ export const viewsSlice = createSlice({
 
     builder.addMatcher(viewApi.endpoints.createTableView.matchFulfilled, (state, { meta, payload }) => {
       const view = payload;
+      mixpanel.track(`View Deleted`, {
+        page: meta.arg.originalArgs.page,
+        view_count: state.pages[meta.arg.originalArgs.page].views.length,
+        view_id: view.id,
+        view_name: view.view.title,
+        columns: (view.view.columns || []).map((c: { heading: string }) => c.heading) as string[],
+        sorted_by: (view.view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        filter_count: deserialiseQuery(view.view.filters).length,
+      });
       view.dirty = false;
       state.pages[payload.page].views[meta.arg.originalArgs.index] = view;
     });

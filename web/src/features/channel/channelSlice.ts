@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "store/store";
+import mixpanel from "mixpanel-browser";
 
 type keyOption = { value: "revenue" | "amount" | "count"; label: string };
 
@@ -21,22 +22,23 @@ export const channelSlice = createSlice({
   name: "channel",
   initialState,
 
-  // The `reducers` field lets us define reducers and generate associated actions
   reducers: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    updateFlowKey: (state: any, action: any) => {
+    updateFlowKey: (state, action) => {
+      mixpanel.track("Update FlowChart Key", { key: action.payload.flowKey });
       state.flowKey = action.payload.flowKey;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    updateProfitChartKey: (state: any, action: any) => {
+    updateProfitChartKey: (state, action) => {
+      mixpanel.track("Update ProfitChart Key", { key: action.payload.key });
       state.profitChartKey = action.payload.key;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    updateEventChartKey: (state: any, action: any) => {
+    updateEventChartKey: (state, action) => {
+      mixpanel.track("Update EventChart Key", { key: action.payload.key });
       state.eventChartKey = action.payload.key;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    updateBalanceChanID: (state: any, action: any) => {
+    updateBalanceChanID: (state, action) => {
+      mixpanel.track("Update Balance Channel ID", {
+        channel_id: action.payload.balanceChanID,
+      });
       state.balanceChanID = action.payload.key;
     },
   },

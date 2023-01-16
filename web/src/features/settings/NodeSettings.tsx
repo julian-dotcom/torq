@@ -1,5 +1,3 @@
-import styles from "./NodeSettings.module.scss";
-import Select, { SelectOption } from "features/forms/Select";
 import React, { useState } from "react";
 import {
   ChevronDown20Regular as CollapsedIcon,
@@ -13,6 +11,9 @@ import {
   Play20Regular as PlayIcon,
   Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
+import mixpanel from "mixpanel-browser";
+import styles from "./NodeSettings.module.scss";
+import Select, { SelectOption } from "features/forms/Select";
 import Spinny from "features/spinny/Spinny";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
@@ -225,6 +226,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setShowModalState(false);
     setDeleteConfirmationTextInputState("");
     setDeleteEnabled(false);
+    mixpanel.track("Delete Local Node", { nodeId: nodeConfigurationState.nodeId });
     setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: 3 });
   };
 
@@ -238,6 +240,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     let statusId = 0;
     if (nodeConfigurationState.status == 0) {
       statusId = 1;
+      mixpanel.track("Enable Local Node", { nodeId: nodeConfigurationState.nodeId, statusId: statusId });
+    } else {
+      mixpanel.track("Disable Local Node", { nodeId: nodeConfigurationState.nodeId, statusId: statusId });
     }
     setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: statusId })
       .unwrap()
@@ -461,7 +466,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               onClick={handleModalDeleteClick}
               disabled={!deleteEnabled}
             >
-              {"Delete node"}
+              {t.delete}
             </Button>
           </div>
         </div>

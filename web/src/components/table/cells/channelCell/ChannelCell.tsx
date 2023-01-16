@@ -1,10 +1,11 @@
-import cellStyles from "components/table/cells/cell.module.scss";
+import mixpanel from "mixpanel-browser";
 import {
   EditRegular as UpdateIcon,
   Delete12Regular as CloseIcon,
   Eye12Regular as InspectIcon,
 } from "@fluentui/react-icons";
 import styles from "./channel_cell.module.scss";
+import cellStyles from "components/table/cells/cell.module.scss";
 import { useLocation } from "react-router-dom";
 import classNames from "classnames";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
@@ -35,6 +36,12 @@ function ChannelCell(props: ChannelCell) {
           hideMobileText={true}
           buttonSize={SizeVariant.tiny}
           buttonColor={ColorVariant.accent1}
+          onClick={() => {
+            mixpanel.track("Navigate to Inspect Channel", {
+              background: location.pathname,
+              channelId: props.channelId,
+            });
+          }}
         >
           {t.inspect}
         </LinkButton>
@@ -44,21 +51,33 @@ function ChannelCell(props: ChannelCell) {
           state={{ background: location }}
           hideMobileText={true}
           icon={<UpdateIcon />}
-          className={classNames(cellStyles.action, styles.updateLink)}
+          buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.tiny}
+          onClick={() => {
+            mixpanel.track("Navigate to Update Channel", {
+              background: location.pathname,
+              channelId: props.channelId,
+            });
+          }}
         >
-          Update
+          {t.update}
         </LinkButton>
 
         <LinkButton
           to={`${CLOSE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
           state={{ background: location }}
           hideMobileText={true}
-          className={classNames(cellStyles.action, styles.closeChannelLink)}
           icon={<CloseIcon />}
           buttonSize={SizeVariant.tiny}
+          buttonColor={ColorVariant.error}
+          onClick={() => {
+            mixpanel.track("Navigate to Close Channel", {
+              background: location.pathname,
+              channelId: props.channelId,
+            });
+          }}
         >
-          Close
+          {t.close}
         </LinkButton>
       </div>
     </>

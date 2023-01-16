@@ -14,9 +14,9 @@
   min-width: var(--button-height);
 
   font-size: var(--button-font-size);
-  color: var(--button-color);
   white-space: nowrap;
   text-align: center;
+  color: var(--button-color);
 
   svg {
     font-size: var(--default-icon-size);
@@ -50,6 +50,14 @@
     align-items: center;
     justify-content: center;
   }
+}
+a.button,
+a.button:link,
+a.button:hover,
+a.button:active,
+a.button:visited {
+  color: var(--button-color) !important;
+  font-weight: normal;
 }
 
 .positionCenter {

@@ -1,4 +1,5 @@
 import React from "react";
+import mixpanel from "mixpanel-browser";
 import { ReactComponent as TorqLogo } from "icons/torq-logo.svg";
 import { LockOpen20Regular as UnlockIcon } from "@fluentui/react-icons";
 import "./login_page.scss";
@@ -9,8 +10,10 @@ import { toastCategory } from "features/toast/Toasts";
 import type { LoginResponse } from "types/api";
 import Input from "components/forms/input/Input";
 import Button, { ColorVariant } from "components/buttons/Button";
+import useTranslations from "services/i18n/useTranslations";
 
 function LoginPage() {
+  const { t } = useTranslations();
   const [login] = useLoginMutation();
 
   const navigate = useNavigate();
@@ -47,6 +50,7 @@ function LoginPage() {
     } else {
       navigate(from, { replace: true });
     }
+    mixpanel.track("Login");
   };
 
   // TODO: unify the styling here once standardised button styles are done.
@@ -57,9 +61,9 @@ function LoginPage() {
           <TorqLogo />
         </div>
         <form className="login-form" onSubmit={submit}>
-          <Input type="password" name={"password"} placeholder={"Password..."} id={"password-field"} />
+          <Input type="password" name={"password"} placeholder={"Password..."} id={"password-field"} autoFocus={true} />
           <Button type="submit" icon={<UnlockIcon />} buttonColor={ColorVariant.success} id={"submit-button"}>
-            {"Login"}
+            {t.login}
           </Button>
         </form>
       </div>

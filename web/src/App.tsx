@@ -1,17 +1,47 @@
 import React, { useEffect } from "react";
-import styles from "./app.module.scss";
+import Router from "./Router";
+import mixpanel from "mixpanel-browser";
+import useTranslations from "./services/i18n/useTranslations";
 import ToastContext from "./features/toast/context";
 import Toasts, { addToastHandle } from "./features/toast/Toasts";
-import Router from "./Router";
-import useTranslations from "./services/i18n/useTranslations";
+import styles from "./app.module.scss";
+import { useGetSettingsQuery } from "./apiSlice";
+import { Network, selectActiveNetwork } from "features/network/networkSlice";
+import { useAppSelector } from "./store/hooks";
 
 function App() {
   const { init, status: i18nStatus } = useTranslations();
   const toastRef = React.useRef<addToastHandle>();
+  const { data: settingsData } = useGetSettingsQuery();
+
+  const activeNetwork = useAppSelector(selectActiveNetwork);
 
   useEffect(() => {
     init();
+    if (process.env.NODE_ENV === "production") {
+      mixpanel.init("f08b3b1c4a2fc9e2c7cc014333cc9233", { ip: false });
+    } else {
+      mixpanel.init("729ace78d0aeb71ba633741d8c92a9ca", { ip: false });
+    }
   }, []);
+
+  useEffect(() => {
+    if (settingsData) {
+      mixpanel.identify(settingsData.torqUuid);
+      mixpanel.people.set_once({
+        $created: new Date().toISOString(),
+      });
+      mixpanel.register(settingsData);
+    }
+  }, [settingsData]);
+
+  useEffect(() => {
+    if (settingsData) {
+      mixpanel.register({
+        network: Network[activeNetwork],
+      });
+    }
+  }, [activeNetwork]);
 
   return i18nStatus === "loading" ? (
     <p>Loading...</p>

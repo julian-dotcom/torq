@@ -1,8 +1,9 @@
-import "./interval_select.scss";
 import { useEffect, useState } from "react";
-import { addDays, differenceInDays, format, startOfDay, subDays } from "date-fns";
-import { DateRangePicker } from "react-date-range";
 import { ChevronLeft24Regular as LeftIcon, ChevronRight24Regular as RightIcon } from "@fluentui/react-icons";
+import mixpanel from "mixpanel-browser";
+import "./interval_select.scss";
+import { addDays, differenceInDays, format, startOfDay, subDays } from "date-fns";
+import { DateRangePicker, RangeKeyDict } from "react-date-range";
 
 import { defaultStaticRangesFn } from "./customRanges";
 
@@ -37,13 +38,20 @@ function TimeIntervalSelect(props: { className?: string }) {
 
   const dispatch = useAppDispatch();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleChange = (item: any) => {
-    const interval = {
-      from: item.selection1.startDate.toString(),
-      to: item.selection1.endDate.toString(),
-    };
-    dispatch(updateInterval(interval));
+  const handleChange = (item: RangeKeyDict) => {
+    if (item?.selection1?.startDate !== undefined && item?.selection1?.endDate !== undefined) {
+      const interval = {
+        from: item.selection1.startDate.toString(),
+        to: item.selection1.endDate.toString(),
+      };
+      mixpanel.track("TimeSelect: Calendar Select", {
+        current_from: currentPeriod.from,
+        current_to: currentPeriod.to,
+        new_from: interval.from,
+        new_to: interval.to,
+      });
+      dispatch(updateInterval(interval));
+    }
   };
 
   const renderCustomRangeLabel = () => (
@@ -72,6 +80,12 @@ function TimeIntervalSelect(props: { className?: string }) {
       from: startOfDay(subDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
       to: startOfDay(subDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
     };
+    mixpanel.track("TimeSelect: Move Backwards", {
+      current_from: currentPeriod.from,
+      current_to: currentPeriod.to,
+      new_from: interval.from,
+      new_to: interval.to,
+    });
     dispatch(updateInterval(interval));
   };
 
@@ -81,6 +95,12 @@ function TimeIntervalSelect(props: { className?: string }) {
       from: startOfDay(addDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
       to: startOfDay(addDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
     };
+    mixpanel.track("TimeSelect: Move Forward", {
+      current_from: currentPeriod.from,
+      current_to: currentPeriod.to,
+      new_from: interval.from,
+      new_to: interval.to,
+    });
     dispatch(updateInterval(interval));
   };
 
