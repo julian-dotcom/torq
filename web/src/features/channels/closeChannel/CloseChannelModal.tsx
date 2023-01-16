@@ -44,7 +44,6 @@ function closeChannelModal() {
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
   const [detailState, setDetailState] = useState(ProgressStepState.active);
-  // const [closeAddress, setCloseAddress] = useState<string | undefined>();
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
   const [stepIndex, setStepIndex] = useState(0);
   const [force, setForce] = useState<boolean>(false);

@@ -8,6 +8,7 @@ import styles from "./app.module.scss";
 import { useGetSettingsQuery } from "./apiSlice";
 import { Network, selectActiveNetwork } from "features/network/networkSlice";
 import { useAppSelector } from "./store/hooks";
+import LoadingApp from "./components/loading/LoadingApp";
 
 function App() {
   const { init, status: i18nStatus } = useTranslations();
@@ -28,6 +29,9 @@ function App() {
   useEffect(() => {
     if (settingsData) {
       mixpanel.identify(settingsData.torqUuid);
+      mixpanel.people.set({
+        $opt_out: settingsData.mixpanelOptOut,
+      });
       mixpanel.people.set_once({
         $created: new Date().toISOString(),
       });
@@ -44,7 +48,7 @@ function App() {
   }, [activeNetwork]);
 
   return i18nStatus === "loading" ? (
-    <p>Loading...</p>
+    <LoadingApp />
   ) : (
     <ToastContext.Provider value={toastRef}>
       <div className={styles.app}>

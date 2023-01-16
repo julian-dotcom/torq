@@ -89,12 +89,14 @@ export const viewsSlice = createSlice({
       }>
     ) => {
       const { page, viewIndex } = actions.payload;
-      state.pages[page].selected = viewIndex;
       mixpanel.track(`View Selected`, {
         page: page,
-        selected_view: viewIndex,
-        view_title: state.pages[page].views[viewIndex].view.title,
+        new_selected_view: viewIndex,
+        new_selected_view_title: state.pages[page].views[viewIndex].view.title,
+        previous_view: state.pages[page].selected,
+        previous_view_title: state.pages[page].views[state.pages[page].selected].view.title,
       });
+      state.pages[page].selected = viewIndex;
     },
     updateViewsOrder: (
       state,

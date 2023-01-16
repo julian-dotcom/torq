@@ -16,7 +16,7 @@ import (
 func getSettings(db *sqlx.DB) (settings, error) {
 	var settingsData settings
 	err := db.Get(&settingsData, `
-		SELECT default_date_range, default_language, preferred_timezone, week_starts_on, torq_uuid
+		SELECT default_date_range, default_language, preferred_timezone, week_starts_on, torq_uuid, mixpanel_opt_out
 		FROM settings
 		LIMIT 1;`)
 	if err != nil {
@@ -58,8 +58,10 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 		  default_language = $2,
 		  preferred_timezone = $3,
 		  week_starts_on = $4,
-		  updated_on = $5;`,
+		  mixpanel_opt_out = $5,
+		  updated_on = $6;`,
 		settings.DefaultDateRange, settings.DefaultLanguage, settings.PreferredTimezone, settings.WeekStartsOn,
+		settings.MixpanelOptOut,
 		time.Now().UTC())
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)

@@ -27,6 +27,7 @@ type settings struct {
 	PreferredTimezone string `json:"preferredTimezone" db:"preferred_timezone"`
 	WeekStartsOn      string `json:"weekStartsOn" db:"week_starts_on"`
 	TorqUuid          string `json:"torqUuid" db:"torq_uuid"`
+	MixpanelOptOut    bool   `json:"mixpanelOptOut" db:"mixpanel_opt_out"`
 }
 
 type timeZone struct {

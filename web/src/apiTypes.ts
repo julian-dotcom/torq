@@ -4,6 +4,14 @@ export interface settings {
   preferredTimezone: string;
   weekStartsOn: "saturday" | "sunday" | "monday";
   torqUuid: string;
+  mixpanelOptOut: boolean;
+}
+export interface updateSettingsRequest {
+  defaultDateRange: string;
+  defaultLanguage: "en" | "nl";
+  preferredTimezone: string;
+  weekStartsOn: "saturday" | "sunday" | "monday";
+  mixpanelOptOut: boolean;
 }
 
 export interface timeZone {

@@ -29,7 +29,7 @@ function Navigation() {
 
   function toggleNavHandler() {
     mixpanel.track("Toggle Navigation");
-    mixpanel.register({ navigation_expanded: !hidden });
+    mixpanel.register({ navigation_collapsed: !hidden });
     dispatch(toggleNav());
   }
 

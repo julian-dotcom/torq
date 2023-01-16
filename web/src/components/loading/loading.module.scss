@@ -1,0 +1,22 @@
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.loadingIcon {
+  animation: rotate 2s infinite linear 0s;
+  font-size: 120px;
+  color: var(--color-primary-layer-4);
+}
+.loadingApp {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  background-color: var(--color-primary-layer-1);
+}

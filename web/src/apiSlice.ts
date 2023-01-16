@@ -20,7 +20,7 @@ import type {
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import { Forward } from "features/forwards/forwardsTypes";
-import type { nodeConfiguration, settings, timeZone, services } from "apiTypes";
+import type { nodeConfiguration, settings, timeZone, services, updateSettingsRequest } from "apiTypes";
 import { createSelector } from "@reduxjs/toolkit";
 import { Network } from "features/network/networkSlice";
 
@@ -135,7 +135,7 @@ export const torqApi = createApi({
       providesTags: ["settings"],
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    updateSettings: builder.mutation<any, settings>({
+    updateSettings: builder.mutation<any, updateSettingsRequest>({
       query: (settings) => ({
         url: "settings",
         method: "PUT",
