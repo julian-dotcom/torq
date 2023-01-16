@@ -1,4 +1,5 @@
 import classNames from "classnames";
+import mixpanel from "mixpanel-browser";
 import cellStyles from "components/table/cells/cell.module.scss";
 import styles from "./tag_cell.module.scss";
 import Tag, { TagProps } from "components/tags/Tag";
@@ -21,6 +22,9 @@ const TagCell = ({ cellWrapperClassName, totalCell, editLink, ...tagProps }: Tag
           to={`/update-tag/${tagProps.tagId}`}
           state={{ background: location }}
           className={classNames(cellStyles.action, styles.updateLink)}
+          onClick={() => {
+            mixpanel.track("Navigate to Update Tag");
+          }}
         >
           <Tag {...tagProps} />
         </Link>

@@ -123,7 +123,7 @@ export default function TagsModal() {
           />
         </Form>
 
-        {tag.tagId && <TargetsSection tagId={tag.tagId} channels={tag.channels} nodes={tag.nodes} />}
+        {tag.tagId && <TargetsSection tagId={tag.tagId} tagName={tag.name} channels={tag.channels} nodes={tag.nodes} />}
       </div>
     </PopoutPageTemplate>
   );

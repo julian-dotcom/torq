@@ -12,6 +12,7 @@ import useTranslations from "services/i18n/useTranslations";
 import { useGetTagsQuery } from "../tagsApi";
 import { DefaultTagsView } from "./tagsDefaults";
 import tagsCellRenderer from "./tagsCellRenderer";
+import mixpanel from "mixpanel-browser";
 
 function TagsPage() {
   const { t } = useTranslations();
@@ -29,6 +30,7 @@ function TagsPage() {
             icon={<NewTagIcon />}
             hideMobileText={true}
             onClick={() => {
+              mixpanel.track("Navigate to Create Tag");
               navigate("/create-tag", { state: { background: location } });
             }}
           >
