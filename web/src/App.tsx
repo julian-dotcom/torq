@@ -35,7 +35,11 @@ function App() {
       mixpanel.people.set_once({
         $created: new Date().toISOString(),
       });
-      mixpanel.register(settingsData);
+      mixpanel.register({
+        default_date_range: settingsData.defaultDateRange,
+        defaultLanguage: settingsData.defaultLanguage,
+        weekStartsOn: settingsData.weekStartsOn,
+      });
     }
   }, [settingsData]);
 
