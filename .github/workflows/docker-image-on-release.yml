@@ -5,9 +5,6 @@ on:
     types: [published]
 
 jobs:
-  setup:
-    uses: ./.github/workflows/run-all-setup.yml
-
   amd64:
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Push AMD64 Docker image to Docker Hub
@@ -40,9 +37,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_VER=${{ steps.meta.outputs.version }}
-            BUILD_REPOSITORY=${{ steps.vars.outputs.repo }}
-            BUILD_BRANCH=${{ steps.vars.outputs.branch }}
-            BUILD_COMMIT=${{ steps.vars.outputs.commit }}
+            BUILD_REPOSITORY=$GITHUB_REPOSITORY
+            BUILD_BRANCH=$GITHUB_REF_NAME
+            BUILD_COMMIT=$GITHUB_SHA
   arm:
     runs-on: buildjet-4vcpu-ubuntu-2204-arm
     name: Push ARM Docker image to Docker Hub
@@ -76,9 +73,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_VER=${{ steps.meta.outputs.version }}
-            BUILD_REPOSITORY=${{ steps.vars.outputs.repo }}
-            BUILD_BRANCH=${{ steps.vars.outputs.branch }}
-            BUILD_COMMIT=${{ steps.vars.outputs.commit }}
+            BUILD_REPOSITORY=$GITHUB_REPOSITORY
+            BUILD_BRANCH=$GITHUB_REF_NAME
+            BUILD_COMMIT=$GITHUB_SHA
   combine-manifests:
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Combine architectures into one manifest
