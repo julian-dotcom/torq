@@ -82,3 +82,5 @@ func normalizeVerString(str string) string {
 	}
 	return result.String()
 }
+
+var Commit string
