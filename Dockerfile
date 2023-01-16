@@ -1,13 +1,16 @@
 # build stage
 FROM golang:buster as backend-builder
 ARG BUILD_VER=v0.1.1-dev
+ARG BUILD_REPOSITORY="github.com/lncapital/torq"
+ARG BUILD_BRANCH=dev
+ARG BUILD_COMMIT=0
 ENV GO111MODULE=on
 WORKDIR /app
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-X github.com/lncapital/torq/build.overrideBuildVer=$BUILD_VER" cmd/torq/torq.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-X github.com/lncapital/torq/build.overrideBuildVer=$BUILD_VER -X github.com/lncapital/torq/build.Repository=$BUILD_REPOSITORY -X github.com/lncapital/torq/build.Branch=$BUILD_BRANCH -X github.com/lncapital/torq/build.Commit=$BUILD_COMMIT" cmd/torq/torq.go
 
 # frontend build stage
 FROM node:buster-slim as frontend-builder

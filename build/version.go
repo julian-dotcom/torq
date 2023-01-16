@@ -82,3 +82,11 @@ func normalizeVerString(str string) string {
 	}
 	return result.String()
 }
+
+var Repository string //nolint:gochecknoglobals
+var Branch string     //nolint:gochecknoglobals
+var Commit string     //nolint:gochecknoglobals
+
+func ExtendedVersion() string {
+	return fmt.Sprintf("%v > %v > %v (%v)", Repository, Branch, Commit, Version())
+}
