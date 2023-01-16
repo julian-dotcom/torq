@@ -40,46 +40,57 @@ func RemoveChannelGroupByTags(db *sqlx.DB, tags []int) (int64, error) {
 		}
 		total += count
 	}
-
-	go func() {
-		err := GenerateChannelGroupsByOrigin(db, origin, true)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to generate channel groups.")
-		}
-		finished <- true
-	}()
-	<-finished
+	if total > 0 {
+		go func() {
+			err := GenerateChannelGroupsByOrigin(db, origin, true)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to generate channel groups:RemoveChannelGroupByTags.")
+			}
+			finished <- true
+		}()
+		<-finished
+	}
 	return total, nil
 }
 
 func AddChannelGroupByTags(db *sqlx.DB, tags []int) error {
 	//TODO to remove once we get the real targets
 	nodes, err := nodes.GetPeerNodes(db)
+	var duplicateCorridors int
+	var CorridorsToInsert int
 	if err != nil {
 		return errors.Wrapf(err, "gettings the peer nodes (%v %v)", tags, db)
 	}
 
 	for _, node := range nodes {
 		for i := range tags {
+			CorridorsToInsert++
 			corridor := corridors.Corridor{CorridorTypeId: corridors.Tag().CorridorTypeId, Flag: 1}
+
 			corridor.ReferenceId = &tags[i]
 			corridor.FromNodeId = &node.NodeId
+
 			_, err = corridors.AddCorridor(db, corridor)
 			if err != nil {
-				return errors.Wrapf(err, "saving the corridor (tag:%v node:%v)", &tags[i], node)
+				if err.Error() != "Corridor already exists." {
+					return errors.Wrapf(err, "saving the corridor (tag:%v node:%v)", &tags[i], node)
+				} else {
+					duplicateCorridors++
+				}
 			}
 		}
 	}
-
-	origin := tagCorridor
-	finished := make(chan bool)
-	go func() {
-		err := GenerateChannelGroupsByOrigin(db, origin, true)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to generate channel groups.")
-		}
-		finished <- true
-	}()
+	if CorridorsToInsert != duplicateCorridors {
+		origin := tagCorridor
+		finished := make(chan bool)
+		go func() {
+			err := GenerateChannelGroupsByOrigin(db, origin, true)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to generate channel groups:AddChannelGroupByTags.")
+			}
+			finished <- true
+		}()
+	}
 
 	return nil
 }
