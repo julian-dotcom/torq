@@ -5,14 +5,15 @@ on:
     types: [published]
 
 jobs:
+  setup:
+    uses: ./.github/workflows/run-all-setup.yml
+
   amd64:
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Push AMD64 Docker image to Docker Hub
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
-      - name: Set env
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - uses: actions/setup-go@v3
         with:
           go-version-file: "go.mod"
@@ -39,15 +40,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_VER=${{ steps.meta.outputs.version }}
-            RELEASE_VERSION=${GITHUB_REF#refs/*/}
+            BUILD_REPOSITORY=${{ steps.vars.outputs.repo }}
+            BUILD_BRANCH=${{ steps.vars.outputs.branch }}
+            BUILD_COMMIT=${{ steps.vars.outputs.commit }}
   arm:
     runs-on: buildjet-4vcpu-ubuntu-2204-arm
     name: Push ARM Docker image to Docker Hub
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
-      - name: Set env
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - uses: actions/setup-go@v3
         with:
           go-version-file: "go.mod"
@@ -75,7 +76,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_VER=${{ steps.meta.outputs.version }}
-            RELEASE_VERSION=${GITHUB_REF#refs/*/}
+            BUILD_REPOSITORY=${{ steps.vars.outputs.repo }}
+            BUILD_BRANCH=${{ steps.vars.outputs.branch }}
+            BUILD_COMMIT=${{ steps.vars.outputs.commit }}
   combine-manifests:
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Combine architectures into one manifest

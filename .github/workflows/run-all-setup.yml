@@ -1,0 +1,18 @@
+on:
+  workflow_call:
+jobs:
+  all-setup:
+    name: All Setup
+    runs-on: ubuntu-latest
+    outputs:
+      repo: ${{ steps.vars.outputs.repo }}
+      branch: ${{ steps.vars.outputs.branch }}
+      commit: ${{ steps.vars.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build variables
+        id: vars
+        run: |
+          echo "::set-output name=repo::$GITHUB_REPOSITORY"
+          echo "::set-output name=branch::$GITHUB_REF_NAME"
+          echo "::set-output name=commit::$GITHUB_SHA"

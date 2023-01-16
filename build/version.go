@@ -83,4 +83,6 @@ func normalizeVerString(str string) string {
 	return result.String()
 }
 
+var Repository string
+var Branch string
 var Commit string

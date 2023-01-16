@@ -4,6 +4,8 @@ on:
     branches:
       - main
 jobs:
+  setup:
+    uses: ./.github/workflows/run-all-setup.yml
   run:
     uses: ./.github/workflows/run-all-tests.yml
     secrets: inherit
