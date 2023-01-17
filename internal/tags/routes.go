@@ -122,7 +122,7 @@ func tagEntityHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	err := tagEntity(db, t)
+	err := TagEntity(db, t)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting tag for tagId: %v", t.TagId))
 		return
@@ -137,7 +137,7 @@ func untagEntityHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	err := untagEntity(db, t)
+	err := UntagEntity(db, t)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting tag for tagId: %v", t.TagId))
 		return

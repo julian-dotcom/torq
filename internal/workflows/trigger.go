@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/channel_groups"
+	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -89,23 +89,29 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			if err != nil {
 				return nil, commons.Inactive, errors.Wrapf(err, "Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
-			var tagsToAdd []int
+
 			for _, tagtoAdd := range params.AddedTags {
-				tagsToAdd = append(tagsToAdd, tagtoAdd.Value)
-			}
-			err = channel_groups.AddChannelGroupByTags(db, tagsToAdd)
-			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Failed to add the tags for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				tag := tags.TagEntityRequest{
+					// TODO the nodeId and channelId will come from the input target when ready
+					NodeId: &nodeSettings.NodeId,
+					TagId:  tagtoAdd.Value,
+				}
+				err := tags.TagEntity(db, tag)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Failed to add the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagtoAdd.Value)
+				}
 			}
 
-			var tagsToDelete []int
 			for _, tagToDelete := range params.RemovedTags {
-				tagsToDelete = append(tagsToDelete, tagToDelete.Value)
-			}
-
-			_, err = channel_groups.RemoveChannelGroupByTags(db, tagsToDelete)
-			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Failed remove the tags for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				tag := tags.TagEntityRequest{
+					// TODO the nodeId and channelId will come from the input target when ready
+					NodeId: &nodeSettings.NodeId,
+					TagId:  tagToDelete.Value,
+				}
+				err := tags.UntagEntity(db, tag)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Failed to remove the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagToDelete.Value)
+				}
 			}
 
 		case commons.WorkflowNodeTimeTrigger:
