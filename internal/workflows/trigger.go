@@ -85,10 +85,9 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 
 		case commons.WorkflowTag:
 			var params TagParameters
-			err := json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
+			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				return nil, commons.Inactive, err
+				return nil, commons.Inactive, errors.Wrapf(err, "Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 			var tagsToAdd []int
 			for _, tagtoAdd := range params.AddedTags {
@@ -96,8 +95,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			}
 			err = channel_groups.AddChannelGroupByTags(db, tagsToAdd)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed to add the tags for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				return nil, commons.Inactive, err
+				return nil, commons.Inactive, errors.Wrapf(err, "Failed to add the tags for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
 			var tagsToDelete []int
@@ -107,8 +105,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 
 			_, err = channel_groups.RemoveChannelGroupByTags(db, tagsToDelete)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed remove the tags for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				return nil, commons.Inactive, err
+				return nil, commons.Inactive, errors.Wrapf(err, "Failed remove the tags for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
 		case commons.WorkflowNodeTimeTrigger:

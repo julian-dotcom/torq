@@ -15,7 +15,7 @@ import {
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
-  Flash20Regular as WorkflowsIcon,
+  // Flash20Regular as WorkflowsIcon,
   Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
