@@ -189,15 +189,17 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	serviceChannel chan commons.ServiceChannelMessage) {
 
 	var ncd NodeConnectionDetails
+	var err error
 	existingNcd := NodeConnectionDetails{}
 
-	if err := c.Bind(&ncd); err != nil {
+	if err = c.Bind(&ncd); err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	success := fixBindFailures(c, ncd)
-	if !success {
+	ncd, err = fixBindFailures(c, ncd)
+	if err != nil {
+		server_errors.SendBadRequest(c, err.Error())
 		return
 	}
 
@@ -205,37 +207,28 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.SendBadRequest(c, "All node details are required to add new node connection details")
 		return
 	}
-	tlsDataFile, err := ncd.TLSFile.Open()
+
+	ncd, err = processTLS(ncd)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	tlsCert, err := io.ReadAll(tlsDataFile)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-	if len(tlsCert) == 0 {
+	if len(ncd.TLSDataBytes) == 0 {
 		server_errors.SendBadRequest(c, "Can't check new gRPC details without TLS Cert")
 		return
 	}
 
-	macaroonDataFile, err := ncd.MacaroonFile.Open()
+	ncd, err = processMacaroon(ncd)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	macaroonFile, err := io.ReadAll(macaroonDataFile)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-	if len(macaroonFile) == 0 {
+	if len(ncd.MacaroonDataBytes) == 0 {
 		server_errors.SendBadRequest(c, "Can't check new gRPC details without Macaroon File")
 		return
 	}
 
-	publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
+	publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, ncd.TLSDataBytes, ncd.MacaroonDataBytes)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
 		return
@@ -274,17 +267,6 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 			}
 		}
 		ncd.NodeId = nodeId
-	}
-
-	ncd, err = processTLS(ncd)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-	ncd, err = processMacaroon(ncd)
-	if err != nil {
-		server_errors.LogAndSendServerError(c, err)
-		return
 	}
 
 	ncd.Status = commons.Active
@@ -335,13 +317,15 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	serviceChannel chan commons.ServiceChannelMessage) {
 
 	var ncd NodeConnectionDetails
-	if err := c.Bind(&ncd); err != nil {
+	var err error
+	if err = c.Bind(&ncd); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	success := fixBindFailures(c, ncd)
-	if !success {
+	ncd, err = fixBindFailures(c, ncd)
+	if err != nil {
+		server_errors.SendBadRequest(c, err.Error())
 		return
 	}
 
@@ -349,84 +333,12 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
 		return
 	}
+	if ncd.GRPCAddress == nil || *ncd.GRPCAddress == "" {
+		server_errors.SendBadRequest(c, "Failed to find/parse GRPCAddress in the request.")
+		return
+	}
 	if strings.TrimSpace(ncd.Name) == "" {
 		ncd.Name = fmt.Sprintf("Node_%v", ncd.NodeId)
-	}
-
-	existingNcd, err := getNodeConnectionDetails(db, ncd.NodeId)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Obtaining existing node connection details")
-		return
-	}
-	existingNode, err := nodes.GetNodeById(db, ncd.NodeId)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Obtaining existing node")
-		return
-	}
-
-	if existingNcd.NodeId != 0 {
-		ncd.MacaroonDataBytes = existingNcd.MacaroonDataBytes
-		ncd.MacaroonFileName = existingNcd.MacaroonFileName
-		ncd.TLSDataBytes = existingNcd.TLSDataBytes
-		ncd.TLSFileName = existingNcd.TLSFileName
-	}
-
-	// if gRPC details have changed we need to check that the public keys (if existing) matches
-	if existingNcd.GRPCAddress != ncd.GRPCAddress {
-		var tlsCert []byte
-		if ncd.TLSFile != nil {
-			tlsDataFile, err := ncd.TLSFile.Open()
-			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Opening TLS file")
-				return
-			}
-			tlsData, err := io.ReadAll(tlsDataFile)
-			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Reading TLS file")
-				return
-			}
-			tlsCert = tlsData
-		}
-		if len(tlsCert) == 0 && len(existingNcd.TLSDataBytes) != 0 {
-			tlsCert = existingNcd.TLSDataBytes
-		}
-		if len(tlsCert) == 0 {
-			server_errors.LogAndSendServerError(c, errors.New("Can't check new gRPC details without TLS Cert"))
-			return
-		}
-
-		var macaroonFile []byte
-		if ncd.MacaroonFile != nil {
-			macaroonDataFile, err := ncd.MacaroonFile.Open()
-			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Opening Macaroon file")
-				return
-			}
-			macaroonData, err := io.ReadAll(macaroonDataFile)
-			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Reading Macaroon file")
-				return
-			}
-			macaroonFile = macaroonData
-		}
-		if len(macaroonFile) == 0 && len(existingNcd.MacaroonDataBytes) != 0 {
-			macaroonFile = existingNcd.MacaroonDataBytes
-		}
-		if len(macaroonFile) == 0 {
-			server_errors.LogAndSendServerError(c, errors.New("Can't check new gRPC details without Macaroon File"))
-			return
-		}
-
-		publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, tlsCert, macaroonFile)
-		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
-			return
-		}
-
-		if existingNode.PublicKey != publicKey || existingNode.Chain != chain || existingNode.Network != network {
-			server_errors.SendUnprocessableEntity(c, "PublicKey/chain/network does not match, create a new node instead of updating this one")
-			return
-		}
 	}
 
 	ncd, err = processTLS(ncd)
@@ -438,6 +350,60 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Processing Macaroon file")
 		return
+	}
+
+	existingNcd, err := getNodeConnectionDetails(db, ncd.NodeId)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Obtaining existing node connection details")
+		return
+	}
+
+	// if gRPC details have changed we need to check that the public keys (if existing) matches
+	if *existingNcd.GRPCAddress != *ncd.GRPCAddress {
+		if len(ncd.TLSDataBytes) == 0 && len(existingNcd.TLSDataBytes) != 0 {
+			ncd.TLSDataBytes = existingNcd.TLSDataBytes
+			ncd.TLSFileName = existingNcd.TLSFileName
+		}
+		if len(ncd.TLSDataBytes) == 0 {
+			server_errors.LogAndSendServerError(c, errors.New("Can't check new gRPC details without TLS Cert"))
+			return
+		}
+
+		if len(ncd.MacaroonDataBytes) == 0 && len(existingNcd.MacaroonDataBytes) != 0 {
+			ncd.MacaroonDataBytes = existingNcd.MacaroonDataBytes
+			ncd.MacaroonFileName = existingNcd.MacaroonFileName
+		}
+		if len(ncd.MacaroonDataBytes) == 0 {
+			server_errors.LogAndSendServerError(c, errors.New("Can't check new gRPC details without Macaroon File"))
+			return
+		}
+
+		publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, ncd.TLSDataBytes, ncd.MacaroonDataBytes)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
+			return
+		}
+
+		existingNode, err := nodes.GetNodeById(db, ncd.NodeId)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Obtaining existing node")
+			return
+		}
+		if existingNode.PublicKey != publicKey || existingNode.Chain != chain || existingNode.Network != network {
+			server_errors.SendUnprocessableEntity(c, "PublicKey/chain/network does not match, create a new node instead of updating this one")
+			return
+		}
+	}
+
+	if existingNcd.NodeId != 0 {
+		if len(ncd.TLSDataBytes) == 0 {
+			ncd.TLSDataBytes = existingNcd.TLSDataBytes
+			ncd.TLSFileName = existingNcd.TLSFileName
+		}
+		if len(ncd.MacaroonDataBytes) == 0 {
+			ncd.MacaroonDataBytes = existingNcd.MacaroonDataBytes
+			ncd.MacaroonFileName = existingNcd.MacaroonFileName
+		}
 	}
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
@@ -454,9 +420,9 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	commons.RunningServices[commons.LndService].SetIncludeIncomplete(ncd.NodeId, ncd.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 
 	lndDone := startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, ncd.NodeId, ncd.Status == commons.Active)
-	ambossDone := startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
-	vectorDone := startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
-	if lndDone && ambossDone && vectorDone {
+	startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, ncd.NodeId, ncd.HasNotificationType(commons.Amboss))
+	startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, ncd.NodeId, ncd.HasNotificationType(commons.Vector))
+	if lndDone {
 		ncd, err = SetNodeConnectionDetails(db, ncd)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Updating connection details")
@@ -470,43 +436,37 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	c.JSON(http.StatusOK, ncd)
 }
 
-func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) bool {
+func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 	// TODO c.Bind cannot process status?
 	statusId, err := strconv.Atoi(c.Request.Form.Get("status"))
 	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse status in the request.")
-		return false
+		return NodeConnectionDetails{}, errors.New("Failed to find/parse status in the request.")
 	}
 	if statusId > int(commons.Archived) {
-		server_errors.SendBadRequest(c, "Failed to parse status in the request.")
-		return false
+		return NodeConnectionDetails{}, errors.New("Failed to parse status in the request.")
 	}
 	ncd.Status = commons.Status(statusId)
 
 	// TODO c.Bind cannot process pingSystem?
 	pingSystem, err := strconv.Atoi(c.Request.Form.Get("pingSystem"))
 	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse pingSystem in the request.")
-		return false
+		return NodeConnectionDetails{}, errors.New("Failed to find/parse pingSystem in the request.")
 	}
 	if pingSystem > commons.PingSystemMax {
-		server_errors.SendBadRequest(c, "Failed to parse pingSystem in the request.")
-		return false
+		return NodeConnectionDetails{}, errors.New("Failed to parse pingSystem in the request.")
 	}
 	ncd.PingSystem = commons.PingSystem(pingSystem)
 
 	// TODO c.Bind cannot process customSettings?
 	customSettings, err := strconv.Atoi(c.Request.Form.Get("customSettings"))
 	if err != nil {
-		server_errors.SendBadRequest(c, "Failed to find/parse customSettings in the request.")
-		return false
+		return NodeConnectionDetails{}, errors.New("Failed to find/parse customSettings in the request.")
 	}
 	if customSettings > commons.NodeConnectionDetailCustomSettingsMax {
-		server_errors.SendBadRequest(c, "Failed to parse customSettings in the request.")
-		return false
+		return NodeConnectionDetails{}, errors.New("Failed to parse customSettings in the request.")
 	}
 	ncd.CustomSettings = commons.NodeConnectionDetailCustomSettings(customSettings)
-	return true
+	return ncd, nil
 }
 
 func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
@@ -715,7 +675,7 @@ func processTLS(ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 		}
 		tlsData, err := io.ReadAll(tlsDataFile)
 		if err != nil {
-			return NodeConnectionDetails{}, errors.Wrap(err, "Reasing TLS file")
+			return NodeConnectionDetails{}, errors.Wrap(err, "Reading TLS file")
 		}
 		ncd.TLSDataBytes = tlsData
 	}
