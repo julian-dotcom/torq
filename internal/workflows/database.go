@@ -370,25 +370,6 @@ func removeWorkflowVersion(db *sqlx.DB, workflowVersionId int) (int64, error) {
 	return rowsAffected, nil
 }
 
-// func GetActiveGroupParentNodeId(db *sqlx.DB, groupChildTriggerId int) (int, error) {
-// 	var workflowGroupParentId int
-// 	err := db.Get(&workflowGroupParentId, `
-// 		SELECT workflow_version_id
-// 		FROM workflow_version_node
-// 		WHERE type = 10
-// 		AND status = $1
-// 		AND stage = (
-//         	SELECT stage FROM workflow_version_node where workflow_version_node_id = $2
-//     	)`, commons.Active, groupChildTriggerId)
-// 	if err != nil {
-// 		if errors.Is(err, sql.ErrNoRows) {
-// 			return 0, nil
-// 		}
-// 		return 0, errors.Wrap(err, database.SqlExecutionError)
-// 	}
-// 	return workflowGroupParentId, nil
-// }
-
 func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType commons.WorkflowNodeType) ([]WorkflowNode, error) {
 	var workflowVersionRootNodeIds []int
 	err := db.Select(&workflowVersionRootNodeIds, `

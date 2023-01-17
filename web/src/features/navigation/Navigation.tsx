@@ -59,7 +59,7 @@ function Navigation() {
 
         <NavCategory text={t.manage} collapsed={false}>
           <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/manage/channels"} />
-          <MenuItem text={t.automation} icon={<WorkflowsIcon />} routeTo={"/manage/workflows"} />
+          {/*<MenuItem text={t.automation} icon={<WorkflowsIcon />} routeTo={"/manage/workflows"} />*/}
           <MenuItem text={t.tags} icon={<TagsIcon />} routeTo={"/manage/tags"} />
         </NavCategory>
 
