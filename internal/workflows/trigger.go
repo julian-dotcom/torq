@@ -119,6 +119,8 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			}
 			workflowNode.ChildNodes = childNodes
 			workflowNode.LinkDetails = childNodeLinkDetails
+			_, triggerCancel := context.WithCancel(context.Background())
+			commons.SetTrigger(nodeSettings.NodeId, reference, workflowNode.WorkflowVersionId, triggeringWorkflowVersionNodeId, commons.Inactive, triggerCancel)
 
 		case commons.WorkflowNodeStageTrigger:
 			if iteration > 0 {
