@@ -25,6 +25,7 @@ import (
 	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/forwards"
+	"github.com/lncapital/torq/internal/htlcs"
 	"github.com/lncapital/torq/internal/invoices"
 	"github.com/lncapital/torq/internal/messages"
 	"github.com/lncapital/torq/internal/nodes"
@@ -213,6 +214,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		forwardRoutes := api.Group("/forwards")
 		{
 			forwards.RegisterForwardsRoutes(forwardRoutes, db)
+		}
+
+		htlcRoutes := api.Group("/htlcs")
+		{
+			htlcs.RegisterHtlcRoutes(htlcRoutes, db)
 		}
 
 		flowRoutes := api.Group("/flow")

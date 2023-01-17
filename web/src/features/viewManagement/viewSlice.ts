@@ -4,6 +4,7 @@ import { RootState } from "store/store";
 import { TableResponses, ViewResponse } from "./types";
 import { viewApi } from "./viewsApiSlice";
 import { DefaultForwardsView } from "features/forwards/forwardsDefaults";
+import { DefaultHtlcsView } from "features/htlcs/htlcsDefaults";
 import { DefaultOnChainView } from "features/transact/OnChain/onChainDefaults";
 import { DefaultPaymentView } from "features/transact/Payments/paymentDefaults";
 import { DefaultInvoiceView } from "features/transact/Invoices/invoiceDefaults";
@@ -20,6 +21,11 @@ const initialState = {
       selected: 0,
       views: [DefaultForwardsView],
       // persistedViews: <Array<ViewResponse<Forward>>>[],
+    },
+    htlcs: {
+      selected: 0,
+      views: [DefaultHtlcsView],
+      // persistedViews: <Array<ViewResponse<Htlc>>[],
     },
     onChain: {
       selected: 0,
@@ -384,6 +390,10 @@ export const viewsSlice = createSlice({
           state.pages["forwards"].views = payload.forwards;
         }
 
+        if (payload.htlcs) {
+          state.pages["htlcs"].views = payload.htlcs;
+        }
+
         if (payload.onChain) {
           state.pages["onChain"].views = payload.onChain;
         }
@@ -487,6 +497,12 @@ export const {
 
 export const selectForwardsView = (state: RootState) => {
   const page = "forwards";
+  const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
+  return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
+};
+
+export const selectHtlcsView = (state: RootState) => {
+  const page = "htlcs";
   const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
   return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
 };

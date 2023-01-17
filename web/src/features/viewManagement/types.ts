@@ -6,6 +6,7 @@ import { OnChainTx } from "features/transact/OnChain/types";
 import { Payment } from "features/transact/Payments/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { Forward } from "features/forwards/forwardsTypes";
+import { Htlc } from "features/htlcs/htlcsTypes";
 import { workflowListItem } from "pages/WorkflowPage/workflowTypes";
 import { SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";
 
@@ -20,6 +21,7 @@ export type TableResponses = Forward | OnChainTx | Payment | Invoice | ExpandedT
 
 export type AllViewsResponse = {
   forwards: Array<ViewResponse<Forward>>;
+  htlcs: Array<ViewResponse<Htlc>>;
   onChain: Array<ViewResponse<OnChainTx>>;
   payments: Array<ViewResponse<Payment>>;
   invoices: Array<ViewResponse<Invoice>>;

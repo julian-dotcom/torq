@@ -230,7 +230,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		if result[0].TimeLockDelta != expected.TimeLockDelta {
-			testutil.Errorf(t, "Incorrect timelock delta. Expected: %v, got %v", expected.TimeLockDelta,
+			testutil.Errorf(t, "Incorrect timeLock delta. Expected: %v, got %v", expected.TimeLockDelta,
 				result[0].TimeLockDelta)
 		}
 

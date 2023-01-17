@@ -41,7 +41,7 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagChannel,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards"],
+      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards", "htlcs"],
     }),
     tagNode: builder.mutation<void, TagNodeRequest>({
       query: (tagNode) => ({
@@ -49,7 +49,7 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagNode,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards"],
+      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards", "htlcs"],
     }),
     untagNode: builder.mutation<void, TagNodeRequest>({
       query: (tagNode) => ({
@@ -57,7 +57,7 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagNode,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards"],
+      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards", "htlcs"],
     }),
     untagChannel: builder.mutation<void, TagChannelRequest>({
       query: (tagChannel) => ({
@@ -65,7 +65,7 @@ export const onChainApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagChannel,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards"],
+      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards", "htlcs"],
     }),
     // getChannelsForTag: builder.query<ChannelNode, number>({
     //   query: (tagId) => `tags/${tagId}/channels`,

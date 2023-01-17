@@ -13,6 +13,7 @@ import {
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type {
   GetForwardsQueryParams,
+  GetHtlcsQueryParams,
   GetFlowQueryParams,
   GetChannelHistoryData,
   LoginResponse,
@@ -20,6 +21,7 @@ import type {
 } from "types/api";
 import { queryParamsBuilder } from "utils/queryParamsBuilder";
 import { Forward } from "features/forwards/forwardsTypes";
+import { Htlc } from "features/htlcs/htlcsTypes";
 import type { nodeConfiguration, settings, timeZone, services, updateSettingsRequest } from "apiTypes";
 import { createSelector } from "@reduxjs/toolkit";
 import { Network } from "features/network/networkSlice";
@@ -57,6 +59,7 @@ export const torqApi = createApi({
     "tableView",
     "nodeConfigurations",
     "forwards",
+    "htlcs",
     "channels",
     "channelHistory",
     "services",
@@ -92,6 +95,10 @@ export const torqApi = createApi({
     getForwards: builder.query<Array<Forward>, GetForwardsQueryParams>({
       query: (params) => "forwards" + queryParamsBuilder(params, false),
       providesTags: ["forwards"],
+    }),
+    getHtlcs: builder.query<Array<Htlc>, GetHtlcsQueryParams>({
+      query: (params) => "htlcs" + queryParamsBuilder(params, false),
+      providesTags: ["htlcs"],
     }),
     getChannels: builder.query<channel[], ActiveNetwork>({
       query: (params) => ({
@@ -205,6 +212,7 @@ export const {
   useGetChannelRebalancingQuery,
   useGetChannelOnChainCostQuery,
   useGetForwardsQuery,
+  useGetHtlcsQuery,
   useGetChannelsQuery,
   useLoginMutation,
   useCookieLoginMutation,

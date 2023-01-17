@@ -24,8 +24,8 @@ type HtlcEvent struct {
 	TimestampNs       *uint64   `json:"timestampNs" db:"timestamp_ns"`
 	IncomingAmtMsat   *uint64   `json:"incomingAmtMsat" db:"incoming_amt_msat"`
 	OutgoingAmtMsat   *uint64   `json:"outgoingAmtMsat" db:"outgoing_amt_msat"`
-	IncomingTimelock  *uint32   `json:"incomingTimelock" db:"incoming_timelock"`
-	OutgoingTimelock  *uint32   `json:"outgoingTimelock" db:"outgoing_timelock"`
+	IncomingTimeLock  *uint32   `json:"incomingTimeLock" db:"incoming_timelock"`
+	OutgoingTimeLock  *uint32   `json:"outgoingTimeLock" db:"outgoing_timelock"`
 	BoltFailureCode   *string   `json:"boltFailureCode" db:"bolt_failure_code"`
 	BoltFailureString *string   `json:"boltFailureString" db:"bolt_failure_string"`
 	LndFailureDetail  *string   `json:"lndFailureDetail" db:"lnd_failure_detail"`
@@ -74,8 +74,8 @@ func storeFullEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int, eventType s
 	if "LinkFailEvent" == eventType {
 		htlcEvent.IncomingAmtMsat = &h.GetLinkFailEvent().Info.IncomingAmtMsat
 		htlcEvent.OutgoingAmtMsat = &h.GetLinkFailEvent().Info.OutgoingAmtMsat
-		htlcEvent.IncomingTimelock = &h.GetLinkFailEvent().Info.IncomingTimelock
-		htlcEvent.OutgoingTimelock = &h.GetLinkFailEvent().Info.OutgoingTimelock
+		htlcEvent.IncomingTimeLock = &h.GetLinkFailEvent().Info.IncomingTimelock
+		htlcEvent.OutgoingTimeLock = &h.GetLinkFailEvent().Info.OutgoingTimelock
 		boltFailureCode := h.GetLinkFailEvent().WireFailure.String()
 		lndFailureDetail := h.GetLinkFailEvent().FailureDetail.String()
 		htlcEvent.BoltFailureCode = &boltFailureCode
@@ -85,8 +85,8 @@ func storeFullEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int, eventType s
 	if "ForwardEvent" == eventType {
 		htlcEvent.IncomingAmtMsat = &h.GetForwardEvent().Info.IncomingAmtMsat
 		htlcEvent.OutgoingAmtMsat = &h.GetForwardEvent().Info.OutgoingAmtMsat
-		htlcEvent.IncomingTimelock = &h.GetForwardEvent().Info.IncomingTimelock
-		htlcEvent.OutgoingTimelock = &h.GetForwardEvent().Info.OutgoingTimelock
+		htlcEvent.IncomingTimeLock = &h.GetForwardEvent().Info.IncomingTimelock
+		htlcEvent.OutgoingTimeLock = &h.GetForwardEvent().Info.OutgoingTimelock
 	}
 	err = addHtlcEvent(db, htlcEvent)
 	if err != nil {
@@ -133,8 +133,8 @@ func addHtlcEvent(db *sqlx.DB, htlcEvent HtlcEvent) error {
 		htlcEvent.EventType,
 		htlcEvent.IncomingAmtMsat,
 		htlcEvent.OutgoingAmtMsat,
-		htlcEvent.IncomingTimelock,
-		htlcEvent.OutgoingTimelock,
+		htlcEvent.IncomingTimeLock,
+		htlcEvent.OutgoingTimeLock,
 		htlcEvent.OutgoingHtlcId,
 		htlcEvent.IncomingHtlcId,
 		htlcEvent.BoltFailureCode,
@@ -236,8 +236,8 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				TimestampNs:       storedHtlcEvent.TimestampNs,
 				IncomingAmtMsat:   storedHtlcEvent.IncomingAmtMsat,
 				OutgoingAmtMsat:   storedHtlcEvent.OutgoingAmtMsat,
-				IncomingTimelock:  storedHtlcEvent.IncomingTimelock,
-				OutgoingTimelock:  storedHtlcEvent.OutgoingTimelock,
+				IncomingTimeLock:  storedHtlcEvent.IncomingTimeLock,
+				OutgoingTimeLock:  storedHtlcEvent.OutgoingTimeLock,
 				BoltFailureCode:   storedHtlcEvent.BoltFailureCode,
 				BoltFailureString: storedHtlcEvent.BoltFailureString,
 				LndFailureDetail:  storedHtlcEvent.LndFailureDetail,

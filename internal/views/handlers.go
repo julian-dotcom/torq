@@ -2,13 +2,14 @@ package views
 
 import (
 	"encoding/json"
+	"net/http"
+	"strconv"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/iancoleman/strcase"
 	"github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx/types"
-	"net/http"
-	"strconv"
 
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -23,6 +24,7 @@ type TableView struct {
 
 type TableViewResponse struct {
 	Forwards []TableView `json:"forwards"`
+	Htlcs    []TableView `json:"htlcs"`
 	Channel  []TableView `json:"channel"`
 	Payments []TableView `json:"payments"`
 	Invoices []TableView `json:"invoices"`
@@ -148,6 +150,8 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 		switch view.Page {
 		case "forwards":
 			response.Forwards = append(response.Forwards, *view)
+		case "htlcs":
+			response.Htlcs = append(response.Htlcs, *view)
 		case "channel":
 			response.Channel = append(response.Channel, *view)
 		case "payments":

@@ -14,6 +14,7 @@ import ChannelPage from "features/channel/ChannelPage";
 import ChannelsPage from "features/channels/ChannelsPage";
 import DashboardPage from "features/channel/DashboardPage";
 import ForwardsPage from "features/forwards/ForwardsPage";
+import HtlcsPage from "features/htlcs/HtlcsPage";
 import NoMatch from "features/no_match/NoMatch";
 import SettingsPage from "features/settings/SettingsPage";
 import AllTxPage from "features/transact/AllTxPage";
@@ -101,6 +102,7 @@ const authenticatedRoutes: RouteObject = {
               children: [
                 { path: routes.FORWARDS, element: <ForwardsPage /> },
                 { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
+                { path: routes.HTLCS, element: <HtlcsPage /> },
               ],
             },
             {

@@ -8,6 +8,7 @@ import { ReactComponent as TorqLogo } from "icons/torq-logo.svg";
 import {
   Navigation20Regular as CollapseIcon,
   ArrowForward20Regular as ForwardsIcon,
+  ArrowTrendingWrench20Regular as HtlcsIcon,
   Autosum20Regular as SummaryIcon,
   MoneyHand20Regular as PaymentsIcon,
   KeyMultiple20Regular as OnChainTransactionIcon,
@@ -55,6 +56,7 @@ function Navigation() {
           <MenuItem text={t.summary} icon={<SummaryIcon />} routeTo={"/"} />
           <MenuItem text={t.forwards} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
           {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
+          <MenuItem text={t.htlcs} icon={<HtlcsIcon />} routeTo={"/analyse/htlcs"} />
         </NavCategory>
 
         <NavCategory text={t.manage} collapsed={false}>

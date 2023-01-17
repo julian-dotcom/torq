@@ -37,6 +37,8 @@ export type GetChannelHistoryData = {
 
 export type GetForwardsQueryParams = FromAndTo & ActiveNetwork;
 
+export type GetHtlcsQueryParams = FromAndTo & ActiveNetwork;
+
 export type GetDecodedInvoiceQueryParams = {
   invoice: string;
   nodeId: number;

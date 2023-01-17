@@ -117,6 +117,7 @@
   "macaroon": "Macaroon",
   "summary": "Summary",
   "forwards": "Forwards",
+  "htlcs": "Htlcs",
   "transact": "Transact",
   "settings": "Settings",
   "giveFeedback": "Sure! I'd love to help!",

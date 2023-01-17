@@ -138,8 +138,8 @@ type HtlcEvent struct {
 	TimestampNs       *uint64   `json:"timestampNs"`
 	IncomingAmtMsat   *uint64   `json:"incomingAmtMsat"`
 	OutgoingAmtMsat   *uint64   `json:"outgoingAmtMsat"`
-	IncomingTimelock  *uint32   `json:"incomingTimelock"`
-	OutgoingTimelock  *uint32   `json:"outgoingTimelock"`
+	IncomingTimeLock  *uint32   `json:"incomingTimeLock"`
+	OutgoingTimeLock  *uint32   `json:"outgoingTimeLock"`
 	BoltFailureCode   *string   `json:"boltFailureCode"`
 	BoltFailureString *string   `json:"boltFailureString"`
 	LndFailureDetail  *string   `json:"lndFailureDetail"`
