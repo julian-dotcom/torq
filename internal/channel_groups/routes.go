@@ -111,7 +111,7 @@ func addChannelGroupHandler(c *gin.Context, db *sqlx.DB) {
 func generateChannelGroupsByOriginRoutine(db *sqlx.DB, origin groupOrigin) {
 	err := GenerateChannelGroupsByOrigin(db, origin, true)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to generate channel groups.")
+		log.Error().Err(err).Msg("Failed to generate channel groups:generateChannelGroupsByOriginRoutine.")
 	}
 }
 
@@ -188,7 +188,7 @@ func removeChannelGroupByCorridorIdHandler(c *gin.Context, db *sqlx.DB) {
 	go func() {
 		err := GenerateChannelGroupsByOrigin(db, origin, true)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to generate channel groups.")
+			log.Error().Err(err).Msg("Failed to generate channel groups:GenerateChannelGroupsByOrigin.")
 		}
 	}()
 	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully deleted channel group(s)."})
@@ -231,7 +231,7 @@ func removeTagHandler(c *gin.Context, db *sqlx.DB) {
 	go func() {
 		err := GenerateChannelGroupsByOrigin(db, tagCorridor, false)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to generate channel groups.")
+			log.Error().Err(err).Msg("Failed to generate channel groups:removeTagHandler.")
 		}
 		finished <- true
 	}()

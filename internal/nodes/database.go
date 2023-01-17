@@ -74,6 +74,21 @@ func getNodes(db *sqlx.DB) ([]Node, error) {
 	return nds, nil
 }
 
+func GetPeerNodes(db *sqlx.DB) ([]Node, error) {
+	var nodes []Node
+	err := db.Select(&nodes, `
+	SELECT n.node_id, public_key, chain, network, n.created_on
+	FROM node n
+	JOIN node_connection_details ncd ON n.node_id = ncd.node_id;`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []Node{}, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nodes, nil
+}
+
 func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 	var nodeEvent NodeEvent
 	err := db.Select(&nodeEvent, `

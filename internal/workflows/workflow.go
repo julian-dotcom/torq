@@ -86,6 +86,16 @@ type ReBalanceParameters struct {
 	MaximumConcurrency *int   `json:"maximumConcurrency"`
 }
 
+type TagParameters struct {
+	AddedTags   []TagInfo `json:"addedTags"`
+	RemovedTags []TagInfo `json:"removedTags"`
+}
+
+type TagInfo struct {
+	Label string `json:"label"`
+	Value int    `json:"value"`
+}
+
 type WorkflowVersionNode struct {
 	WorkflowId            int                            `json:"workflowId" db:"workflow_id"`
 	Version               int                            `json:"version" db:"version"`

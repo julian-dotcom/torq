@@ -221,3 +221,15 @@ func RemoveCorridorByReference(db *sqlx.DB, ReferenceId int) (int64, error) {
 	}
 	return rowsAffected, nil
 }
+
+func RemoveCorridorByTag(db *sqlx.DB, tagId int) (int64, error) {
+	res, err := db.Exec(`DELETE FROM corridor WHERE reference_id = $1;`, tagId)
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+	}
+	return rowsAffected, nil
+}

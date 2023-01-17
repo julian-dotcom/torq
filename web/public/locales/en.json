@@ -160,7 +160,12 @@
     "channelPolicyConfiguration": "Channel Policy Configuration",
     "timeTrigger": "Time Trigger",
     "channelFilter": "Channel Filter",
-    "Rebalance": "Rebalance"
+    "Rebalance": "Rebalance",
+    "tag": "Tag",
+    "addTag": "Add Tags",
+    "removeTag": "Remove Tags",
+    "targetChannel": "Target Channels",
+    "targetNode": "Target Nodes"
   },
   "workflowDetails": {
     "cantAddTriggerNodeToStages":"Trigger nodes can only be added to the first stage."

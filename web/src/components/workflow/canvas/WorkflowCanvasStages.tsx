@@ -9,6 +9,7 @@ import {
   StageTriggerNode,
   ChannelFilterNode,
   ReBalanceChannelNode,
+  TagNode,
 } from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
@@ -98,6 +99,8 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RebalanceParameters:
       return <ReBalanceChannelNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+      case WorkflowNodeType.Tag:
+        return <TagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     default:
       return null;
   }

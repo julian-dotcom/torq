@@ -225,6 +225,7 @@ const (
 	WorkflowNodeSetVariable
 	WorkflowNodeFilterOnVariable
 	WorkflowTrigger
+	WorkflowTag
 )
 
 type WorkflowTriggerType int
@@ -243,6 +244,7 @@ const (
 	WorkflowParameterRoutingPolicySettings = WorkflowParameter("routingPolicySettings")
 	WorkflowParameterRebalanceSettings     = WorkflowParameter("rebalanceSettings")
 	WorkflowParameterStatus                = WorkflowParameter("status")
+	WorkflowParameterTag                   = WorkflowParameter("tag")
 )
 
 type WorkflowNodeTypeParameters struct {

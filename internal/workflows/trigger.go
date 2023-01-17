@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -82,6 +83,48 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//}
 		case commons.WorkflowNodeChannelFilter:
 
+		case commons.WorkflowTag:
+			var params TagParameters
+			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			for _, tagtoAdd := range params.AddedTags {
+				tag := tags.TagEntityRequest{
+					// TODO the nodeId and channelId will come from the input target when ready
+					NodeId: &nodeSettings.NodeId,
+					TagId:  tagtoAdd.Value,
+				}
+				err := tags.TagEntity(db, tag)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Failed to add the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagtoAdd.Value)
+				}
+			}
+
+			for _, tagToDelete := range params.RemovedTags {
+				tag := tags.TagEntityRequest{
+					// TODO the nodeId and channelId will come from the input target when ready
+					NodeId: &nodeSettings.NodeId,
+					TagId:  tagToDelete.Value,
+				}
+				err := tags.UntagEntity(db, tag)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Failed to remove the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagToDelete.Value)
+				}
+			}
+
+		case commons.WorkflowNodeTimeTrigger:
+			childNodes, childNodeLinkDetails, err := GetTriggerGoupChildNodes(db, workflowNode.WorkflowVersionNodeId)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to obtain the group nodes links")
+				return nil, commons.Inactive, err
+			}
+			workflowNode.ChildNodes = childNodes
+			workflowNode.LinkDetails = childNodeLinkDetails
+			_, triggerCancel := context.WithCancel(context.Background())
+			commons.SetTrigger(nodeSettings.NodeId, reference, workflowNode.WorkflowVersionId, triggeringWorkflowVersionNodeId, commons.Inactive, triggerCancel)
+
 		case commons.WorkflowNodeStageTrigger:
 			if iteration > 0 {
 				// There shouldn't be any stage nodes except when it's the first node
@@ -131,7 +174,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			var parameterWithLabel commons.WorkflowParameterWithLabel
 			// Initialize parameterWithLabel to the appropriate input parameter for the child node (either required or optional)
 			if workflowNode.LinkDetails[childLinkId].ChildInputIndex >= len(childParameters.RequiredInputs) {
-				parameterWithLabel = childParameters.OptionalInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex-len(childParameters.RequiredInputs)]
+				parameterWithLabel = childParameters.OptionalInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex-len(childParameters.OptionalInputs)]
 			} else {
 				parameterWithLabel = childParameters.RequiredInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex]
 			}

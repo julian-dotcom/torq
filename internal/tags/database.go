@@ -164,7 +164,7 @@ type TagEntityRequest struct {
 }
 
 // tagEntity adds a tag to a node or channel
-func tagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
+func TagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 	// Chack that either the channel or the node exists
 	if req.ChannelId == nil && req.NodeId == nil {
 		return errors.New("channel_id and node_id cannot both be nil")
@@ -175,11 +175,11 @@ func tagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 	}
 
 	if req.ChannelId != nil {
-		_, err = db.Exec(`INSERT INTO tagged_entity (tag_id, channel_id) VALUES ($1, $2);`, req.TagId, *req.ChannelId)
+		_, err = db.Exec(`INSERT INTO tagged_entity (tag_id, channel_id) VALUES ($1, $2)  ON CONFLICT ON CONSTRAINT unique_tagged_channel DO NOTHING;`, req.TagId, *req.ChannelId)
 	}
 
 	if req.NodeId != nil {
-		_, err = db.Exec(`INSERT INTO tagged_entity (tag_id, node_id) VALUES ($1, $2);`, req.TagId, *req.NodeId)
+		_, err = db.Exec(`INSERT INTO tagged_entity (tag_id, node_id) VALUES ($1, $2) ON CONFLICT ON CONSTRAINT unique_tagged_node DO NOTHING;`, req.TagId, *req.NodeId)
 	}
 
 	if err != nil {
@@ -193,7 +193,7 @@ func tagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 	return nil
 }
 
-func untagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
+func UntagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 	// Chack that either the channel or the node exists
 	if req.ChannelId == nil && req.NodeId == nil {
 		return errors.New("channel_id and node_id cannot both be nil")
