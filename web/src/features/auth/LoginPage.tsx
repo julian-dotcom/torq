@@ -50,7 +50,9 @@ function LoginPage() {
     } else {
       navigate(from, { replace: true });
     }
-    mixpanel.track("Login");
+    if (process.env.REACT_APP_E2E_TEST !== "true") {
+      mixpanel.track("Login");
+    }
   };
 
   // TODO: unify the styling here once standardised button styles are done.
