@@ -120,6 +120,8 @@ type FwhOptions struct {
 func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwardingHistory, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *FwhOptions) {
 
+	defer log.Info().Msgf("SubscribeForwardingEvents terminated for nodeId: %v", nodeSettings.NodeId)
+
 	maxEvents := commons.STREAM_LND_MAX_FORWARDS
 	serviceStatus := commons.Inactive
 	bootStrapping := true

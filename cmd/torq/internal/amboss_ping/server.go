@@ -19,7 +19,10 @@ import (
 )
 
 // Start runs the background server. It sends out a ping to Amboss every 25 seconds.
-func Start(ctx context.Context, conn *grpc.ClientConn) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
+
+	defer log.Info().Msgf("Amboss Ping Service terminated for nodeId: %v", nodeId)
+
 	_, monitorCancel := context.WithCancel(context.Background())
 
 	const ambossUrl = "https://api.amboss.space/graphql"

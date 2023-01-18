@@ -287,10 +287,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", eventChannel)
 
 	log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)
-	time.Sleep(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
-	if commons.RunningServices[commons.LndService].GetStatus(nodeId) != commons.Active {
-		log.Error().Msgf("Somehow a stream got out-of-sync for nodeId: %v", nodeId)
-	}
 
 	wg.Wait()
 

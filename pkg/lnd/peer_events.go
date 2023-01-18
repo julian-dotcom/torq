@@ -20,6 +20,8 @@ type peerEventsClient interface {
 func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
 
+	defer log.Info().Msgf("SubscribePeerEvents terminated for nodeId: %v", nodeSettings.NodeId)
+
 	var stream lnrpc.Lightning_SubscribePeerEventsClient
 	var err error
 	var peerEvent *lnrpc.PeerEvent

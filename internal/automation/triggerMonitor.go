@@ -17,6 +17,9 @@ import (
 )
 
 func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) {
+
+	defer log.Info().Msgf("TimeTriggerMonitor terminated for nodeId: %v", nodeSettings.NodeId)
+
 	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
 	bootstrapping := true
 	for {
@@ -157,6 +160,8 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 
 func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
 	broadcaster broadcast.BroadcastServer) {
+
+	defer log.Info().Msgf("EventTriggerMonitor terminated for nodeId: %v", nodeSettings.NodeId)
 
 	listener := broadcaster.Subscribe()
 	for event := range listener {

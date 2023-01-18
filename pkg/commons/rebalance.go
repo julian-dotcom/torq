@@ -75,6 +75,8 @@ type RebalanceResult struct {
 func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 	rebalanceRequestChannel chan RebalanceRequest) {
 
+	defer log.Info().Msgf("RebalanceService terminated for nodeId: %v", nodeId)
+
 	client := lnrpc.NewLightningClient(conn)
 	router := routerrpc.NewRouterClient(conn)
 

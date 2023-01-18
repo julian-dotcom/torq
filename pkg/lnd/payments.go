@@ -32,6 +32,8 @@ type PayOptions struct {
 func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) {
 
+	defer log.Info().Msgf("SubscribeAndStorePayments terminated for nodeId: %v", nodeSettings.NodeId)
+
 	var lastPaymentIndex uint64
 	var payments *lnrpc.ListPaymentsResponse
 	var err error
@@ -248,6 +250,8 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 
 func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}, opt *PayOptions) {
+
+	defer log.Info().Msgf("UpdateInFlightPayments terminated for nodeId: %v", nodeSettings.NodeId)
 
 	var listPaymentsResponse *lnrpc.ListPaymentsResponse
 	serviceStatus := commons.Inactive

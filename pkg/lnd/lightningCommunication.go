@@ -16,6 +16,8 @@ import (
 func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 	lightningRequestChannel chan interface{}) {
 
+	defer log.Info().Msgf("LightningCommunicationService terminated for nodeId: %v", nodeId)
+
 	client := lnrpc.NewLightningClient(conn)
 	router := routerrpc.NewRouterClient(conn)
 

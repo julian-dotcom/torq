@@ -338,6 +338,8 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{},
 	importRequestChannel chan commons.ImportRequest) {
 
+	defer log.Info().Msgf("SubscribeAndStoreChannelEvents terminated for nodeId: %v", nodeSettings.NodeId)
+
 	var stream lnrpc.Lightning_SubscribeChannelEventsClient
 	var err error
 	var chanEvent *lnrpc.ChannelEventUpdate

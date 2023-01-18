@@ -33,6 +33,8 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{},
 	importRequestChannel chan commons.ImportRequest) {
 
+	defer log.Info().Msgf("SubscribeAndStoreChannelGraph terminated for nodeId: %v", nodeSettings.NodeId)
+
 	var stream lnrpc.Lightning_SubscribeChannelGraphClient
 	var err error
 	var gpu *lnrpc.GraphTopologyUpdate
