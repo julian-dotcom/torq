@@ -6,7 +6,7 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go generate
+RUN CGO_ENABLED=0 GOOS=linux go generate build/version.go
 RUN CGO_ENABLED=0 GOOS=linux go build cmd/torq/torq.go
 
 # frontend build stage
