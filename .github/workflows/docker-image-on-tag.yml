@@ -43,11 +43,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILD_VER=${{ steps.meta.outputs.version }}
-            BUILD_REPOSITORY=${{ env.GITHUB_REPOSITORY }}
-            BUILD_BRANCH=${{ env.GITHUB_REF_NAME }}
-            BUILD_COMMIT=${{ env.GITHUB_SHA }}
   arm:
     runs-on: buildjet-4vcpu-ubuntu-2204-arm
     name: Push ARM Docker image to Docker Hub
@@ -81,11 +76,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILD_VER=${{ steps.meta.outputs.version }}
-            BUILD_REPOSITORY=${{ env.GITHUB_REPOSITORY }}
-            BUILD_BRANCH=${{ env.GITHUB_REF_NAME }}
-            BUILD_COMMIT=${{ env.GITHUB_SHA }}
   combine-manifests:
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Combine architectures into one manifest
