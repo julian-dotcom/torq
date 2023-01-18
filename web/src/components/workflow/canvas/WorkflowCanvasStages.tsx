@@ -69,7 +69,7 @@ export function WorkflowCanvases(props: WorkflowCanvasStagesProps) {
         workflowVersionId={props.workflowVersionId}
         workflowId={props.workflowId}
         version={props.version}
-        active={props.selectedStage === stage.stage}
+        selected={props.selectedStage === stage.stage}
       >
         <FirstStageTrigger
           workflowVersionId={props.workflowVersionId}
@@ -99,8 +99,8 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RebalanceParameters:
       return <ReBalanceChannelNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
-      case WorkflowNodeType.Tag:
-        return <TagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.Tag:
+      return <TagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     default:
       return null;
   }

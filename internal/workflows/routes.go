@@ -71,7 +71,7 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	wv, err := createWorkflowVersion(db, storedWorkflow.WorkflowId)
+	wv, err := createWorkflowVersion(db, storedWorkflow.WorkflowId, commons.Active)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Adding workflow version to new workflow.")
 		return

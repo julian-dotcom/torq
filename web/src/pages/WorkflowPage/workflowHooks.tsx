@@ -1,13 +1,4 @@
-import {
-  PuzzlePiece20Regular as NodesIcon,
-  Play20Regular as DeployIcon,
-  Add16Regular as NewWorkflowIcon,
-} from "@fluentui/react-icons";
-import {
-  TableControlsButtonGroup,
-  TableControlSection,
-  TableControlsTabsGroup,
-} from "features/templates/tablePageTemplate/TablePageTemplate";
+import { Add16Regular as NewWorkflowIcon } from "@fluentui/react-icons";
 import Button, { ColorVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
 import { useNavigate } from "react-router";
@@ -68,37 +59,4 @@ export function useWorkflowData(workflowId?: string, version?: string) {
   ).sort((a, b) => a - b);
 
   return { workflow, workflowVersion, stageNumbers };
-}
-
-export function useWorkflowControls(sidebarExpanded: boolean, setSidebarExpanded: (expanded: boolean) => void) {
-  const { t } = useTranslations();
-  return (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            buttonColor={ColorVariant.success}
-            hideMobileText={true}
-            icon={<DeployIcon />}
-            onClick={() => {
-              console.log("Not implemented yet");
-            }}
-          >
-            {t.deploy}
-          </Button>
-        </TableControlsTabsGroup>
-        <Button
-          buttonColor={ColorVariant.primary}
-          hideMobileText={true}
-          id={"tableControlsButton"}
-          icon={<NodesIcon />}
-          onClick={() => {
-            setSidebarExpanded(!sidebarExpanded);
-          }}
-        >
-          {t.actions}
-        </Button>
-      </TableControlsButtonGroup>
-    </TableControlSection>
-  );
 }

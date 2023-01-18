@@ -13,7 +13,7 @@ type WorkflowCanvasProps = {
   workflowId: number;
   version: number;
   stageNumber: number;
-  active: boolean;
+  selected: boolean;
   children: ReactNode;
 };
 
@@ -129,7 +129,12 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
         blankImgRef: blankImgRef,
       }}
     >
-      <div className={classNames(styles.workflowWrapper, { [styles.selectedStage]: props.active })} ref={wrapperRef}>
+      <div
+        className={classNames(styles.workflowWrapper, {
+          [styles.selectedStage]: props.selected,
+        })}
+        ref={wrapperRef}
+      >
         <div
           className={classNames(styles.workspaceCanvas, { [styles.dragging]: isDragging })}
           onDragOver={(e) => e.preventDefault()}
@@ -157,7 +162,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
           <WorkflowLinks
             style={{ transform: "translate(" + position.x + "px, " + position.y + "px)" }}
             stage={props.stageNumber}
-            active={props.active}
+            selectedStage={props.selected}
             workflowId={props.workflowId}
             version={props.version}
             workflowVersionId={props.workflowVersionId}
