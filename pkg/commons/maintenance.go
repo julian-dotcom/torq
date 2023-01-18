@@ -13,6 +13,9 @@ import (
 )
 
 func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB, nodeId int, lightningCommunicationChannel chan interface{}) {
+
+	defer log.Info().Msgf("MaintenanceService terminated for nodeId: %v", nodeId)
+
 	ticker := clock.New().Tick(MAINTENANCE_QUEUE_TICKER_SECONDS * time.Second)
 
 	nodeSettings := GetNodeSettingsByNodeId(nodeId)

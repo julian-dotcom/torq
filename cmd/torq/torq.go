@@ -655,9 +655,9 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 	log.Info().Msgf("%v Service booted for node id: %v", name, node.NodeId)
 	switch serviceCmd.ServiceType {
 	case commons.VectorService:
-		err = vector_ping.Start(ctx, conn)
+		err = vector_ping.Start(ctx, conn, node.NodeId)
 	case commons.AmbossService:
-		err = amboss_ping.Start(ctx, conn)
+		err = amboss_ping.Start(ctx, conn, node.NodeId)
 	case commons.AutomationService:
 		err = automation.Start(ctx, db, node.NodeId, broadcaster)
 	case commons.LightningCommunicationService:

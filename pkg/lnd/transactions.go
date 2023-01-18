@@ -46,6 +46,9 @@ func fetchLastTxHeight(db *sqlx.DB, nodeId int) (txHeight int32, err error) {
 // database as a time series. It will also import unregistered transactions on startup.
 func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, chain chainrpc.ChainNotifierClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+
+	defer log.Info().Msgf("SubscribeAndStoreTransactions terminated for nodeId: %v", nodeSettings.NodeId)
+
 	var transactionHeight int32
 	var err error
 	var transactionDetails *lnrpc.TransactionDetails

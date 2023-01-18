@@ -159,6 +159,8 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 	serviceStatus := commons.Inactive
 	subscriptionStream := commons.HtlcEventStream
 
+	defer log.Info().Msgf("SubscribeAndStoreHtlcEvents terminated for nodeId: %v", nodeSettings.NodeId)
+
 	for {
 		select {
 		case <-ctx.Done():

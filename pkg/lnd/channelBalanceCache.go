@@ -20,6 +20,8 @@ import (
 func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.LightningClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
 
+	defer log.Info().Msgf("ChannelBalanceCacheMaintenance terminated for nodeId: %v", nodeSettings.NodeId)
+
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.ChannelBalanceCacheStream
