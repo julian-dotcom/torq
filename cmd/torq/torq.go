@@ -391,39 +391,40 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 		case commons.MaintenanceService:
 			name = "MaintenanceService"
 		}
-		if serviceCmd.ServiceCommand == commons.Kill {
-			previousStatus, cancelStatus := services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay)
-			if cancelStatus == commons.Active {
-				commons.SendServiceEvent(serviceCmd.NodeId, eventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
+		if name != "" {
+			if serviceCmd.ServiceCommand == commons.Kill {
+				previousStatus, cancelStatus := services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay)
+				if cancelStatus == commons.Active {
+					log.Info().Msgf("%v Service: Killed.", name)
+					commons.SendServiceEvent(serviceCmd.NodeId, eventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
+				}
+				serviceCmd.Out <- cancelStatus
 			}
-			serviceCmd.Out <- cancelStatus
-		}
-		if serviceCmd.ServiceCommand == commons.Boot {
-			if serviceCmd.NodeId != 0 {
-				enforcedServiceStatus = services.GetEnforcedServiceStatusCheck(serviceCmd.NodeId)
-			}
-			if serviceCmd.EnforcedServiceStatus != nil {
-				enforcedServiceStatus = serviceCmd.EnforcedServiceStatus
-			}
-			if serviceCmd.NodeId != 0 {
-				if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Inactive {
-					nodes = []settings.ConnectionDetails{}
-				} else {
-					serviceNode, err = settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
-					if err != nil {
-						log.Error().Err(errors.Wrapf(err, "%v Service Boot: Getting connection details", name)).Send()
-						return
-					}
-					if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
-						nodes = []settings.ConnectionDetails{serviceNode}
+			if serviceCmd.ServiceCommand == commons.Boot {
+				if serviceCmd.NodeId != 0 {
+					enforcedServiceStatus = services.GetEnforcedServiceStatusCheck(serviceCmd.NodeId)
+				}
+				if serviceCmd.EnforcedServiceStatus != nil {
+					enforcedServiceStatus = serviceCmd.EnforcedServiceStatus
+				}
+				if serviceCmd.NodeId != 0 {
+					if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Inactive {
+						nodes = []settings.ConnectionDetails{}
 					} else {
-						if serviceNode.Status != commons.Active {
-							nodes = []settings.ConnectionDetails{}
+						serviceNode, err = settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
+						if err != nil {
+							log.Error().Err(errors.Wrapf(err, "%v Service Boot: Getting connection details", name)).Send()
+							return
+						}
+						if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
+							nodes = []settings.ConnectionDetails{serviceNode}
+						} else {
+							if serviceNode.Status != commons.Active {
+								nodes = []settings.ConnectionDetails{}
+							}
 						}
 					}
 				}
-			}
-			if name != "" {
 				log.Info().Msgf("%v Service: Verifying requirement.", name)
 				if nodes == nil {
 					if serviceCmd.NodeId == 0 {
