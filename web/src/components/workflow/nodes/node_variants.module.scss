@@ -16,6 +16,15 @@
   --box-shadow-border-color: var(--color-primary-faint);
   --box-shadow-border-color-negator: var(--color-primary-layer-4);
 }
+.accent3 {
+  --header-background-color: var(--color-accent-3-faint);
+  --header-text-color: var(--color-accent-3-layer-1);
+  --header-hover-background-color: var(--color-accent-3-faded);
+  --header-active-background-color: var(--color-accent-3-faded);
+  --header-active-text-color: var(--color-accent-3-layer-1);
+  --box-shadow-border-color: var(--color-primary-faint);
+  --box-shadow-border-color-negator: var(--color-primary-layer-4);
+}
 .accent1 {
   --header-background-color: var(--color-accent-1-faint);
   --header-text-color: var(--color-accent-1-layer-1);

@@ -9,7 +9,7 @@ export function TagNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
-      colorVariant={NodeColorVariant.accent1}
+      colorVariant={NodeColorVariant.accent3}
       nodeType={WorkflowNodeType.Tag}
       icon={<TagHeaderIcon />}
       title={t.workflowNodes.tag}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoneySettings20Regular as ChannelPolicyIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import { Filter20Regular as FilterIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Form from "components/forms/form/Form";
@@ -61,7 +61,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
     <WorkflowNodeWrapper
       {...wrapperProps}
       heading={t.channelPolicyConfiguration}
-      headerIcon={<ChannelPolicyIcon />}
+      headerIcon={<FilterIcon />}
       colorVariant={NodeColorVariant.accent1}
     >
       <Form onSubmit={handleSubmit}>

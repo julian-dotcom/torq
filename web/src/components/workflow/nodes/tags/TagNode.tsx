@@ -19,7 +19,6 @@ type SelectOptions = {
 
 type TagProps = Omit<WorkflowNodeProps, "colorVariant">;
 
-
 export function TagNode({ ...wrapperProps }: TagProps) {
   const { t } = useTranslations();
 
@@ -38,29 +37,33 @@ export function TagNode({ ...wrapperProps }: TagProps) {
     tagsOptions = tagsResponse.map((tag) => {
       return {
         value: tag?.tagId ? tag?.tagId : 0,
-        label: tag.name
+        label: tag.name,
       };
     });
   }
 
   type SelectedTag = {
-  value: number,
-  label: string
-  }
+    value: number;
+    label: string;
+  };
 
   type TagParameters = {
-    addedTags: SelectedTag[],
-    removedTags: SelectedTag[],
-  }
+    addedTags: SelectedTag[];
+    removedTags: SelectedTag[];
+  };
 
-  const [selectedAddedTags, setSelectedAddedtags] = useState<SelectedTag[]>((wrapperProps.parameters as TagParameters).addedTags);
-  const [selectedRemovedTags, setSelectedRemovedtags] = useState<SelectedTag[]>((wrapperProps.parameters as TagParameters).removedTags);
+  const [selectedAddedTags, setSelectedAddedtags] = useState<SelectedTag[]>(
+    (wrapperProps.parameters as TagParameters).addedTags
+  );
+  const [selectedRemovedTags, setSelectedRemovedtags] = useState<SelectedTag[]>(
+    (wrapperProps.parameters as TagParameters).removedTags
+  );
 
   function handleAddedTagChange(newValue: unknown) {
-    setSelectedAddedtags(newValue as SelectedTag[])
+    setSelectedAddedtags(newValue as SelectedTag[]);
   }
   function handleRemovedTagChange(newValue: unknown) {
-    setSelectedRemovedtags(newValue as SelectedTag[])
+    setSelectedRemovedtags(newValue as SelectedTag[]);
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -68,8 +71,8 @@ export function TagNode({ ...wrapperProps }: TagProps) {
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: {
-        addedTags :selectedAddedTags,
-        removedTags :selectedRemovedTags
+        addedTags: selectedAddedTags,
+        removedTags: selectedRemovedTags,
       },
     });
   }
@@ -97,7 +100,7 @@ export function TagNode({ ...wrapperProps }: TagProps) {
       {...wrapperProps}
       heading={t.workflowNodes.tag}
       headerIcon={<TagIcon />}
-      colorVariant={NodeColorVariant.accent1}
+      colorVariant={NodeColorVariant.accent3}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
