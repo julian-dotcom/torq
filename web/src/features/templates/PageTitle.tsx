@@ -21,7 +21,7 @@ function PageNameInput({ title, className, onSubmitHandler, onHideInput, ...inpu
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     onHideInput();
-    onSubmitHandler && onSubmitHandler(title);
+    onSubmitHandler && onSubmitHandler(localTitle);
   }
 
   return (
