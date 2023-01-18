@@ -15,22 +15,22 @@ export type PageNameInputProps = React.DetailedHTMLProps<
   onHideInput: () => void;
 };
 
-function PageNameInput(props: PageNameInputProps) {
-  const [title, setName] = useState(props.title);
+function PageNameInput({ title, className, onSubmitHandler, onHideInput, ...inputProps }: PageNameInputProps) {
+  const [localTitle, setLocalTitle] = useState(title);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    props.onHideInput();
-    props.onSubmitHandler && props.onSubmitHandler(title);
+    onHideInput();
+    onSubmitHandler && onSubmitHandler(title);
   }
 
   return (
     <form className={styles.pageNameInputWrapper} onSubmit={handleSubmit}>
       <input
-        {...props}
-        value={title}
-        className={classNames(props.className, styles.title, styles.pageNameInput)}
-        onChange={(e) => setName(e.target.value)}
+        {...inputProps}
+        value={localTitle}
+        className={classNames(className, styles.title, styles.pageNameInput)}
+        onChange={(e) => setLocalTitle(e.target.value)}
       />
       <Button type={"submit"} buttonColor={ColorVariant.primary} buttonSize={SizeVariant.large}>
         <SaveTitleIcon />

@@ -1,4 +1,6 @@
 {
+  "active": "active",
+  "inactive": "inactive",
   "submit": "Submit",
   "inspect": "Inspect",
   "inspectChannel": "Inspect Channel",
@@ -168,7 +170,9 @@
     "targetNode": "Target Nodes"
   },
   "workflowDetails": {
-    "cantAddTriggerNodeToStages":"Trigger nodes can only be added to the first stage."
+    "cantAddTriggerNodeToStages":"Trigger nodes can only be added to the first stage.",
+    "confirmWorkflowActivate": "Are you sure you want to activate this workflow?",
+    "confirmWorkflowDeactivate": "Are you sure you want to deactivate this workflow?"
   },
   "updateChannelPolicy": {
     "title": "Update Channel Policy",

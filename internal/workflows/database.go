@@ -192,11 +192,11 @@ func GetWorkflowVersions(db *sqlx.DB, workflowId int) ([]WorkflowVersion, error)
 	return wfvs, nil
 }
 
-func createWorkflowVersion(db *sqlx.DB, workflowId int) (WorkflowVersion, error) {
+func createWorkflowVersion(db *sqlx.DB, workflowId int, status commons.Status) (WorkflowVersion, error) {
 	wfv := WorkflowVersion{}
 	wfv.WorkflowId = workflowId
 	wfv.Name = "Initial Version"
-	wfv.Status = commons.Inactive
+	wfv.Status = status
 	wfv.Version = 1
 	wfv.CreatedOn = time.Now().UTC()
 	wfv.UpdateOn = wfv.CreatedOn

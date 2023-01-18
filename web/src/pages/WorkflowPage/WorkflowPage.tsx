@@ -4,11 +4,13 @@ import styles from "./workflow_page.module.scss";
 import PageTitle from "features/templates/PageTitle";
 import { Link, useParams } from "react-router-dom";
 import { WORKFLOWS, MANAGE } from "constants/routes";
-import { useWorkflowControls, useWorkflowData } from "./workflowHooks";
+import { useWorkflowData } from "./workflowHooks";
 import { useUpdateWorkflowMutation } from "./workflowApi";
 import WorkflowSidebar from "components/workflow/sidebar/WorkflowSidebar";
 import { WorkflowCanvases } from "components/workflow/canvas/WorkflowCanvasStages";
 import { StageSelector } from "components/workflow/stages/WorkflowStageSelector";
+import WorkflowControls from "./WorkflowControls";
+import { Status } from "constants/backend";
 
 function WorkflowPage() {
   const { t } = useTranslations();
@@ -18,10 +20,7 @@ function WorkflowPage() {
   const { workflow, workflowVersion, stageNumbers } = useWorkflowData(workflowId, version);
 
   const [selectedStage, setSelectedStage] = useState<number>(1);
-
-  // construct the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
-  const workflowControls = useWorkflowControls(sidebarExpanded, setSidebarExpanded);
 
   const [updateWorkflow] = useUpdateWorkflowMutation();
 
@@ -40,7 +39,12 @@ function WorkflowPage() {
   return (
     <div className={styles.contentWrapper}>
       <PageTitle breadcrumbs={breadcrumbs} title={workflow?.name || ""} onNameChange={handleWorkflowNameChange} />
-      {workflowControls}
+      <WorkflowControls
+        sidebarExpanded={sidebarExpanded}
+        setSidebarExpanded={setSidebarExpanded}
+        workflowId={workflow?.workflowId || 0}
+        status={workflow?.status || Status.Inactive}
+      />
       <div className={styles.tableWrapper}>
         <div className={styles.tableContainer}>
           <div className={styles.tableExpander}>

@@ -117,7 +117,7 @@ type WorkflowLinkProps = {
   version: number;
   workflowVersionId: number;
   stage: number;
-  active: boolean;
+  selectedStage: boolean;
   style?: React.CSSProperties;
 };
 
@@ -140,7 +140,7 @@ function WorkflowLinks(props: WorkflowLinkProps) {
       }}
     >
       <svg
-        className={classNames(styles.workflowLinks, { [styles.active]: props.active })}
+        className={classNames(styles.workflowLinks, { [styles.active]: props.selectedStage })}
         overflow={"visible"}
         style={props.style}
       >
