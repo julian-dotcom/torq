@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoneySettings20Regular as ChannelPolicyIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import { ArrowRotateClockwise20Regular as ReBalanceIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { NodeColorVariant } from "../nodeVariants";
@@ -91,7 +91,7 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
     <WorkflowNodeWrapper
       {...wrapperProps}
       heading={t.channelPolicyConfiguration}
-      headerIcon={<ChannelPolicyIcon />}
+      headerIcon={<ReBalanceIcon />}
       colorVariant={NodeColorVariant.accent1}
     >
       <Form onSubmit={handleSubmit}>
