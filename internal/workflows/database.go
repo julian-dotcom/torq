@@ -803,6 +803,13 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 		return WorkflowVersionNode{}, errors.Wrap(err, "Unmarshalling visibilitySettingsJson")
 	}
 
+	if req.Parameters != nil {
+		wfvn.Parameters, err = json.Marshal(*req.Parameters)
+		if err != nil {
+			return WorkflowVersionNode{}, errors.Wrap(err, "JSON Marshaling Parameters")
+		}
+	}
+
 	err = db.QueryRowx(`INSERT
 			INTO workflow_version_node
 				(name, stage, status, type, parameters, visibility_settings, workflow_version_id, created_on, updated_on)
@@ -823,7 +830,7 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 		wfvn.Stage,
 		wfvn.Status,
 		wfvn.Type,
-		[]byte("{}"),
+		wfvn.Parameters,
 		visibilitySettingsJson,
 		wfvn.WorkflowVersionId,
 		wfvn.CreatedOn,

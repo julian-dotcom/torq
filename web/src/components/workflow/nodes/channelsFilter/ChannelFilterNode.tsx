@@ -10,7 +10,7 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import FilterComponent from "features/sidebar/sections/filter/FilterComponent";
 import { AndClause, deserialiseQuery, OrClause } from "features/sidebar/sections/filter/filter";
-import { AllChannelsColumns, ChannelsFilterTemplate } from "features/channels/channelsDefaults"
+import { AllChannelsColumns, ChannelsFilterTemplate } from "features/channels/channelsDefaults";
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -18,9 +18,10 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
-  wrapperProps.parameters = {"$and":[]}
 
-  const [filterState, setFilterState] = useState(deserialiseQuery(wrapperProps.parameters) as AndClause | OrClause);
+  const [filterState, setFilterState] = useState(
+    deserialiseQuery(wrapperProps.parameters || { $and: [] }) as AndClause | OrClause
+  );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

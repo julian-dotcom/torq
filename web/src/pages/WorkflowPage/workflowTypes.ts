@@ -60,6 +60,7 @@ export type NewWorkflowNodeRequest = {
   visibilitySettings: VisibilitySettings;
   workflowVersionId: number;
   stage: number;
+  parameters?: AnyObject;
 };
 
 export type UpdateWorkflowNodeRequest = Partial<{
