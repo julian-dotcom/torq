@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/query_parser"
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -69,6 +70,12 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//	activeOutputIndex = 1
 			//}
 		case commons.WorkflowNodeChannelFilter:
+			var params query_parser.FilterClauses
+			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			fmt.Printf("params %#v", params)
 			log.Debug().Msg("I am a running Channel Filter")
 
 		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
@@ -209,6 +216,6 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB,
 	}
 	_, err := addWorkflowVersionNodeLog(db, workflowVersionNodeLog)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v", workflowVersionNodeId)
+		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v  NODE %#v", workflowVersionNodeId, nodeId)
 	}
 }

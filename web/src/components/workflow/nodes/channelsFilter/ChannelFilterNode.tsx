@@ -9,44 +9,16 @@ import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } f
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import FilterComponent from "features/sidebar/sections/filter/FilterComponent";
-import { AndClause, deserialiseQuery, FilterInterface, OrClause } from "features/sidebar/sections/filter/filter";
-import { ColumnMetaData } from "features/table/types";
+import { AndClause, deserialiseQuery, OrClause } from "features/sidebar/sections/filter/filter";
+import { AllChannelsColumns, ChannelsFilterTemplate } from "features/channels/channelsDefaults"
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
-
-type dummyData = {
-  name: string;
-  age: number;
-};
-
-const dummyColumns: ColumnMetaData<dummyData>[] = [
-  {
-    heading: "Name",
-    type: "",
-    key: "name",
-    locked: false,
-    valueType: "string",
-  },
-  {
-    heading: "Age",
-    type: "",
-    key: "age",
-    locked: false,
-    valueType: "number",
-  },
-];
-
-export const dummyFilterTemplate: FilterInterface = {
-  funcName: "gte",
-  category: "number",
-  parameter: 0,
-  key: "age",
-};
 
 export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
+  wrapperProps.parameters = {"$and":[]}
 
   const [filterState, setFilterState] = useState(deserialiseQuery(wrapperProps.parameters) as AndClause | OrClause);
 
@@ -98,8 +70,8 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
         />
         <FilterComponent
           filters={filterState}
-          columns={dummyColumns}
-          defaultFilter={dummyFilterTemplate}
+          columns={AllChannelsColumns}
+          defaultFilter={ChannelsFilterTemplate}
           child={false}
           onFilterUpdate={handleFilterUpdate}
         />
