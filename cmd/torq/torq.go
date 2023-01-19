@@ -72,6 +72,11 @@ func main() {
 			Value: "localhost:6060",
 			Usage: "Set pprof path",
 		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "torq.vector.url",
+			Value: commons.VECTOR_URL,
+			Usage: "Enable test mode",
+		}),
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:  "torq.debug",
 			Value: false,
@@ -200,7 +205,7 @@ func main() {
 
 			// go routine that responds to commands to boot and kill services
 			if !c.Bool("torq.no-sub") {
-				go serviceChannelRoutine(db,
+				go serviceChannelRoutine(db, c,
 					serviceChannelGlobal,
 					lightningRequestChannelGlobal,
 					rebalanceRequestChannelGlobal,
@@ -362,7 +367,7 @@ func serviceChannelDummyRoutine(serviceChannel chan commons.ServiceChannelMessag
 	}
 }
 
-func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage,
+func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel chan commons.ServiceChannelMessage,
 	lightningRequestChannel chan interface{},
 	rebalanceRequestChannel chan commons.RebalanceRequest,
 	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer) {
@@ -472,10 +477,10 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel chan commons.ServiceChann
 					if successful {
 						switch serviceCmd.ServiceType {
 						case commons.LndService:
-							go processLndBoot(db, node, bootLock, services, serviceCmd, serviceChannel,
+							go processLndBoot(db, c, node, bootLock, services, serviceCmd, serviceChannel,
 								lightningRequestChannel, broadcaster, eventChannel)
 						default:
-							go processServiceBoot(name, db, node, bootLock, services, serviceCmd, serviceChannel,
+							go processServiceBoot(name, db, c, node, bootLock, services, serviceCmd, serviceChannel,
 								lightningRequestChannel, rebalanceRequestChannel, broadcaster, eventChannel)
 						}
 					} else {
@@ -556,7 +561,7 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 	}
 }
 
-func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync.Mutex,
+func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails, bootLock *sync.Mutex,
 	services *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
 	lightningRequestChannel chan interface{},
 	broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
@@ -592,7 +597,7 @@ func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync
 	commons.SendServiceEvent(node.NodeId, eventChannel, previousStatus, commons.Active, serviceCmd.ServiceType, nil)
 	commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 	log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
-	err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster, eventChannel, lightningRequestChannel)
+	err = subscribe.Start(ctx, conn, db, c.String("torq.vector.url"), node.NodeId, broadcaster, eventChannel, lightningRequestChannel)
 	if err != nil {
 		log.Error().Err(err).Send()
 		// only log the error, don't return
@@ -609,7 +614,7 @@ func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync
 	serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
 }
 
-func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync.Mutex,
+func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails, bootLock *sync.Mutex,
 	services *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
 	lightningCommunicationChannel chan interface{},
 	rebalanceRequestChannel chan commons.RebalanceRequest,
@@ -655,7 +660,7 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 	log.Info().Msgf("%v Service booted for node id: %v", name, node.NodeId)
 	switch serviceCmd.ServiceType {
 	case commons.VectorService:
-		err = vector_ping.Start(ctx, conn, node.NodeId)
+		err = vector_ping.Start(ctx, conn, c.String("torq.vector.url"), node.NodeId)
 	case commons.AmbossService:
 		err = amboss_ping.Start(ctx, conn, node.NodeId)
 	case commons.AutomationService:
@@ -665,7 +670,7 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 	case commons.RebalanceService:
 		err = automation.StartRebalanceService(ctx, conn, db, node.NodeId, rebalanceRequestChannel)
 	case commons.MaintenanceService:
-		err = automation.StartMaintenanceService(ctx, db, node.NodeId, lightningCommunicationChannel)
+		err = automation.StartMaintenanceService(ctx, db, c.String("torq.vector.url"), node.NodeId, lightningCommunicationChannel)
 	}
 	if err != nil {
 		log.Error().Err(err).Msgf("%v Service ended for node id: %v", name, node.NodeId)

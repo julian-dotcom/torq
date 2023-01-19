@@ -133,6 +133,10 @@ type WorkflowParameterWithLabel struct {
 	WorkflowParameter
 }
 
+func GetVectorUrl(vectorUrl string, suffix string) string {
+	return vectorUrl + suffix
+}
+
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 	return map[WorkflowNodeType]WorkflowNodeTypeParameters{
 		WorkflowNodeTimeTrigger: {

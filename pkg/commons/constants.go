@@ -39,9 +39,9 @@ type ServiceChannelMessage = struct {
 }
 
 const VECTOR_URL = "https://vector.ln.capital/"
-const VECTOR_PING_URL = VECTOR_URL + "api/publicNodeEvents/ping"
-const VECTOR_SHORTCHANNELID_URL = VECTOR_URL + "api/bitcoin/shortChannelId"
-const VECTOR_TRANSACTIONDETAILS_URL = VECTOR_URL + "api/bitcoin/transactionDetails"
+const VECTOR_PING_URL_SUFFIX = "api/publicNodeEvents/ping"
+const VECTOR_SHORTCHANNELID_URL_SUFFIX = "api/bitcoin/shortChannelId"
+const VECTOR_TRANSACTIONDETAILS_URL_SUFFIX = "api/bitcoin/transactionDetails"
 const BOOTSTRAPPING_TIME_MINUTES = 8 * 60
 const TOLERATED_SUBSCRIPTION_DOWNTIME_SECONDS = 15
 const STREAM_LND_INVOICES_INTERVAL_SLEEP = 10
