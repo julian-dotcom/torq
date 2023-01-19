@@ -14,13 +14,13 @@ type SignMessageRequest struct {
 	SingleHash *bool  `json:"singleHash"`
 }
 
-type VerifyMessageRequest struct {
-	NodeId    int    `json:"nodeId"`
-	Message   string `json:"message"`
+type SignMessageResponse struct {
 	Signature string `json:"signature"`
 }
 
-type SignMessageResponse struct {
+type VerifyMessageRequest struct {
+	NodeId    int    `json:"nodeId"`
+	Message   string `json:"message"`
 	Signature string `json:"signature"`
 }
 
@@ -64,6 +64,6 @@ func verifyMessageHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func RegisterMessagesRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("sign", func(c *gin.Context) { signMessageHandler(c, db) })
-	r.GET("verify", func(c *gin.Context) { verifyMessageHandler(c, db) })
+	r.POST("sign", func(c *gin.Context) { signMessageHandler(c, db) })
+	r.POST("verify", func(c *gin.Context) { verifyMessageHandler(c, db) })
 }

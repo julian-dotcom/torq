@@ -7,7 +7,7 @@ import {
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -45,8 +45,7 @@ function OpenChannelModal() {
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
-
-  let nodeConfigurationOptions: SelectOptions[] = [{ value: 0, label: "Select a local node" }];
+  let nodeConfigurationOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
   if (nodeConfigurations !== undefined) {
     nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
       return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
@@ -56,6 +55,12 @@ function OpenChannelModal() {
   const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
+
+  useEffect(() => {
+    if (nodeConfigurationOptions !== undefined) {
+      setSelectedNodeId(nodeConfigurationOptions[0].value);
+    }
+  }, [nodeConfigurationOptions]);
 
   function handleNodeSelection(value: number) {
     setSelectedNodeId(value);

@@ -1,0 +1,42 @@
+@import "../input-colors.module.scss";
+.radioChipsWrapper {
+}
+.radioChipsLabel {
+  color: var(--input-label-color);
+  font-size: var(--label-font-size);
+}
+.radioChipsContainer {
+  display: flex;
+  height: var(--input-height);
+  background-color: var(--input-default-background);
+  border-radius: var(--radius-default);
+}
+.optionWrapper {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding: 0 var(--indicator-padding);
+  cursor: pointer;
+  input {
+    display: none;
+  }
+  label {
+    height: calc(100% - 8px);
+    border-radius: var(--input-height);
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--indicator-padding);
+    transition: background-color 150ms ease-in-out;
+    user-select: none;
+    font-size: var(--input-font-size);
+    &:hover {
+      border: 1px solid var(--input-hover-background);
+    }
+  }
+  input:checked + label {
+    background-color: var(--input-checked-background);
+  }
+}

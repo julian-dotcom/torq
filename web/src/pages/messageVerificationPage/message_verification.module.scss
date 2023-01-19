@@ -1,0 +1,30 @@
+.verifyMessageWrapper {
+  display: flex;
+  flex-direction: column;
+  row-gap: 16px;
+}
+.hidden {
+  display: none;
+}
+.resultWrapper {
+  min-height: 40px;
+  background-color: var(--color-gray-layer-1);
+  color: var(--color-gray-layer-faint);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 16px 16px;
+  text-align: center;
+  justify-content: center;
+  border-radius: var(--radius-default);
+  word-break: break-all;
+  row-gap: 8px;
+  &.verified {
+    background-color: var(--color-success-layer-2);
+    color: var(--color-text-success-faded);
+  }
+  &.invalid {
+    background-color: var(--color-error-layer-2);
+    color: var(--color-text-error-faded);
+  }
+}

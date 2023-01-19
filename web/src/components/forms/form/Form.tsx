@@ -7,12 +7,16 @@ export type formProps = {
   ref?: React.RefObject<HTMLFormElement>;
 } & React.FormHTMLAttributes<HTMLFormElement>;
 
-function Form({ children, ...formProps }: formProps) {
-  return (
-    <form {...formProps} className={classNames(styles.formContainer, formProps.className)}>
-      {children}
-    </form>
-  );
-}
+const Form = React.forwardRef(
+  ({ children, ...formProps }: formProps, ref: React.LegacyRef<HTMLFormElement> | undefined) => {
+    return (
+      <form {...formProps} className={classNames(styles.formContainer, formProps.className)} ref={ref}>
+        {children}
+      </form>
+    );
+  }
+);
+
+Form.displayName = "Form";
 
 export default Form;
