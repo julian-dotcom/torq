@@ -1,7 +1,7 @@
 import classNames from "classnames";
 import styles from "./button.module.scss";
 import { SizeVariant, ColorVariant, GetSizeClass, GetColorClass } from "./buttonVariants";
-import { ReactNode } from "react";
+import { forwardRef, LegacyRef, ReactNode } from "react";
 import { Link, LinkProps } from "react-router-dom";
 // Exporting them here again so that we don't have to import from two different places
 export { SizeVariant, ColorVariant } from "./buttonVariants";
@@ -29,34 +29,44 @@ export type ButtonProps = {
   hideMobileText?: boolean;
 };
 
-export default function Button({
-  icon,
-  buttonColor,
-  buttonPosition,
-  buttonSize,
-  children,
-  hideMobileText,
-  ...buttonProps
-}: React.DetailedHTMLProps<React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & ButtonProps) {
-  const color = buttonProps.disabled ? ColorVariant.disabled : buttonColor;
+const Button = forwardRef(
+  (
+    {
+      icon,
+      buttonColor,
+      buttonPosition,
+      buttonSize,
+      children,
+      hideMobileText,
+      ...buttonProps
+    }: React.DetailedHTMLProps<React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & ButtonProps,
+    ref: LegacyRef<HTMLButtonElement> | undefined
+  ) => {
+    const color = buttonProps.disabled ? ColorVariant.disabled : buttonColor;
 
-  return (
-    <button
-      {...buttonProps}
-      className={classNames(
-        styles.button,
-        GetColorClass(color),
-        ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
-        GetSizeClass(buttonSize),
-        { [styles.collapseTablet]: hideMobileText || false },
-        buttonProps.className
-      )}
-    >
-      {icon && <span>{icon}</span>}
-      {children && <span className={styles.text}>{children}</span>}
-    </button>
-  );
-}
+    return (
+      <button
+        ref={ref}
+        {...buttonProps}
+        className={classNames(
+          styles.button,
+          GetColorClass(color),
+          ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
+          GetSizeClass(buttonSize),
+          { [styles.collapseTablet]: hideMobileText || false },
+          buttonProps.className
+        )}
+      >
+        {icon && <span>{icon}</span>}
+        {children && <span className={styles.text}>{children}</span>}
+      </button>
+    );
+  }
+);
+
+Button.displayName = "Button";
+
+export default Button;
 
 export function LinkButton({
   icon,

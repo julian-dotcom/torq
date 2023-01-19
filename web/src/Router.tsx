@@ -32,6 +32,7 @@ import WorkflowsTablePage from "pages/WorkflowPage/WorkflowsTablePage";
 import TagsPage from "pages/tags/tagsPage/TagsPage";
 import TagsModal from "pages/tags/tagPage/TagsModal";
 import AddTag from "pages/tags/addTagPage/AddTag";
+import MessageVerificationModal from "./pages/messageVerificationPage/MessageVerificationModal";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -70,6 +71,7 @@ const modalRoutes: RouteObject = {
     { path: routes.TAG_NODE, element: <AddTag /> },
     { path: routes.TAG_CHANNEL, element: <AddTag /> },
     { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
+    { path: routes.MESSAGE_VERIFICATION, element: <MessageVerificationModal /> },
   ],
 };
 

@@ -14,13 +14,13 @@ type SignMessageRequest struct {
 	SingleHash *bool  `json:"singleHash"`
 }
 
-type VerifyMessageRequest struct {
-	NodeId    int    `json:"nodeId"`
-	Message   string `json:"message"`
+type SignMessageResponse struct {
 	Signature string `json:"signature"`
 }
 
-type SignMessageResponse struct {
+type VerifyMessageRequest struct {
+	NodeId    int    `json:"nodeId"`
+	Message   string `json:"message"`
 	Signature string `json:"signature"`
 }
 

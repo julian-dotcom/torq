@@ -2,7 +2,7 @@ import { torqApi } from "apiSlice";
 import { ChannelNode, TagChannelRequest, TagNodeRequest, TagResponse } from "./tagsTypes";
 
 // Define a service using a base URL and expected endpoints
-export const onChainApi = torqApi.injectEndpoints({
+export const tagsApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     getTags: builder.query<Array<TagResponse>, void>({
       query: () => `tags`,
@@ -96,4 +96,4 @@ export const {
   useDeleteTagMutation,
   useSetTagMutation,
   useGetNodesChannelsQuery,
-} = onChainApi;
+} = tagsApi;

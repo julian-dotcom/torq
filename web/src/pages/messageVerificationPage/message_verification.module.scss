@@ -1,0 +1,18 @@
+.verifyMessageWrapper {
+  display: flex;
+  flex-direction: column;
+  row-gap: 16px;
+}
+.hidden {
+  display: none;
+}
+.resultWrapper {
+  height: 40px;
+  background-color: var(--color-gray-layer-1);
+  color: var(--color-gray-layer-faint);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  justify-content: center;
+  border-radius: var(--radius-default);
+}
