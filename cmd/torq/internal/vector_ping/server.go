@@ -54,7 +54,7 @@ type VectorPingChain struct {
 }
 
 // Start runs the background server. It sends out a ping to Vector every 20 seconds.
-func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, vectorUrl string, nodeId int) error {
 
 	defer log.Info().Msgf("Vector Ping Service terminated for nodeId: %v", nodeId)
 
@@ -118,7 +118,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
 			return errors.Wrapf(err, "Marshalling message: %v", string(pingInfoJsonByteArray))
 		}
 
-		resp, err := http.Post(commons.VECTOR_PING_URL, "application/json", bytes.NewBuffer(b))
+		resp, err := http.Post(commons.GetVectorUrl(vectorUrl, commons.VECTOR_PING_URL_SUFFIX), "application/json", bytes.NewBuffer(b))
 		if err != nil {
 			monitorCancel()
 			return errors.Wrapf(err, "Posting message: %v", string(pingInfoJsonByteArray))

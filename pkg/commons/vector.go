@@ -12,7 +12,8 @@ import (
 	"github.com/lncapital/torq/build"
 )
 
-func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputIndex int, nodeSettings ManagedNodeSettings,
+func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string, fundingOutputIndex int,
+	nodeSettings ManagedNodeSettings,
 	lightningRequestChannel chan interface{}) string {
 
 	unixTime := time.Now()
@@ -43,7 +44,7 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 			fundingTransactionHash, fundingOutputIndex)
 		return ""
 	}
-	req, err := http.NewRequest("GET", VECTOR_SHORTCHANNELID_URL, bytes.NewBuffer(requestObjectBytes))
+	req, err := http.NewRequest("GET", GetVectorUrl(vectorUrl, VECTOR_SHORTCHANNELID_URL_SUFFIX), bytes.NewBuffer(requestObjectBytes))
 	if err != nil {
 		log.Error().Msgf("Failed (http.NewRequest) to obtain shortChannelId for closed channel with channel point %v:%v",
 			fundingTransactionHash, fundingOutputIndex)
@@ -73,7 +74,7 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 	return vectorResponse.ShortChannelId
 }
 
-func GetTransactionDetailsFromVector(transactionHash string, nodeSettings ManagedNodeSettings,
+func GetTransactionDetailsFromVector(vectorUrl string, transactionHash string, nodeSettings ManagedNodeSettings,
 	lightningRequestChannel chan interface{}) TransactionDetailsHttpResponse {
 
 	unixTime := time.Now()
@@ -102,7 +103,7 @@ func GetTransactionDetailsFromVector(transactionHash string, nodeSettings Manage
 		log.Error().Msgf("Failed (Marshal) to obtain transaction details for transaction hash %v", transactionHash)
 		return TransactionDetailsHttpResponse{}
 	}
-	req, err := http.NewRequest("GET", VECTOR_TRANSACTIONDETAILS_URL, bytes.NewBuffer(requestObjectBytes))
+	req, err := http.NewRequest("GET", GetVectorUrl(vectorUrl, VECTOR_TRANSACTIONDETAILS_URL_SUFFIX), bytes.NewBuffer(requestObjectBytes))
 	if err != nil {
 		log.Error().Msgf("Failed (http.NewRequest) to obtain transaction details for transaction hash %v", transactionHash)
 		return TransactionDetailsHttpResponse{}
