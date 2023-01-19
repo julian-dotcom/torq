@@ -189,6 +189,16 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
 			},
 		},
+		WorkflowChannelFilter: {
+			WorkflowNodeType: WorkflowChannelFilter,
+			RequiredInputs:   []WorkflowParameterWithLabel{},
+			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+			RequiredOutputs:  []WorkflowParameterWithLabel{},
+			OptionalOutputs: []WorkflowParameterWithLabel{
+				{Label: "channelFilterSettings", WorkflowParameter: WorkflowParameterChannelFilter},
+				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
+			},
+		},
 		WorkflowNodeStageTrigger: {
 			WorkflowNodeType: WorkflowNodeStageTrigger,
 			RequiredInputs:   []WorkflowParameterWithLabel{},
