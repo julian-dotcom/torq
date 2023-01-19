@@ -5,24 +5,45 @@ import {
 } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
-import { Form, RadioChips, TextArea } from "components/forms/forms";
+import { Form, RadioChips, Select, TextArea } from "components/forms/forms";
 import styles from "./message_verification.module.scss";
 import Button, { ButtonPosition, ColorVariant } from "components/buttons/Button";
 import { useNavigate } from "react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { useSignMessageMutation, useVerifyMessageMutation } from "./messageVerificationApi";
+import { ActionMeta } from "react-select";
+import { useGetNodeConfigurationsQuery } from "apiSlice";
+import { IsNumericOption } from "utils/typeChecking";
 
 export default function MessageVerificationModal() {
   const { t } = useTranslations();
   const navigate = useNavigate();
+
+  const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
+
+  let nodeConfigurationOptions: Array<{ value: number; label: string | undefined }> = [{ value: 0, label: undefined }];
+  if (nodeConfigurations !== undefined) {
+    nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration) => {
+      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
+    });
+  }
+  const [selectedNodeId, setSelectedNodeId] = useState<number>(0);
   const [currentAction, setCurrentAction] = useState<"sign" | "verify">("sign");
-  const [verifyMessage] = useVerifyMessageMutation();
-  const [signMessage] = useSignMessageMutation();
+  const [verifyMessage, verifyMessageResponse] = useVerifyMessageMutation();
+  const [signMessage, signMessageResponse] = useSignMessageMutation();
   const [emptySignatureField, setEmptySignatureField] = useState(false);
   const [emptyMessageField, setEmptyMessageField] = useState(false);
+  const [emptyMessageSignField, setEmptyMessageSignField] = useState(false);
+
   const formRef = useRef<HTMLFormElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (nodeConfigurationOptions !== undefined) {
+      setSelectedNodeId(nodeConfigurationOptions[0].value);
+    }
+  }, [nodeConfigurationOptions]);
 
   const closeAndReset = () => {
     navigate(-1);
@@ -31,12 +52,15 @@ export default function MessageVerificationModal() {
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (currentAction === "sign") {
-      signMessage({ nodeId: 1, message: "test" });
+      setEmptyMessageSignField(false);
+      signMessage({ nodeId: selectedNodeId, message: formRef.current?.signMessage?.value });
     } else {
+      setEmptySignatureField(false);
+      setEmptyMessageField(false);
       verifyMessage({
-        nodeId: 1,
-        message: "test",
-        signature: "test",
+        nodeId: selectedNodeId,
+        message: formRef.current?.message?.value,
+        signature: formRef.current?.signature?.value && formRef.current.signature.value.trim(),
       });
     }
   }
@@ -54,6 +78,9 @@ export default function MessageVerificationModal() {
     }
     if (e.currentTarget.id === "signature" && e.currentTarget.value !== "") {
       setEmptySignatureField(false);
+    }
+    if (e.currentTarget.id === "signMessage" && e.currentTarget.value !== "") {
+      setEmptyMessageSignField(false);
     }
 
     // Press cmd+enter or ctrl+enter to submit the form. This is a workaround for the fact that
@@ -80,8 +107,35 @@ export default function MessageVerificationModal() {
             ]}
           />
 
+          <Select
+            label={t.node}
+            autoFocus={true}
+            defaultValue={nodeConfigurationOptions[0]}
+            onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
+              if (IsNumericOption(newValue)) {
+                setSelectedNodeId(newValue.value);
+              }
+            }}
+            options={nodeConfigurationOptions}
+            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
+          />
           <div className={classNames(styles.signMessageWrapper, { [styles.hidden]: currentAction !== "sign" })}>
-            <TextArea rows={6} label={t.message} onKeyDown={textAreaKeyboardSubmit} autoFocus={true} />
+            <TextArea
+              rows={6}
+              label={t.message}
+              onKeyDown={textAreaKeyboardSubmit}
+              name={"signMessage"}
+              required={currentAction === "sign"}
+              onInvalid={() => setEmptyMessageSignField(true)}
+              errorText={emptyMessageSignField ? t.missingSignMessage : undefined}
+            />
+            <TextArea
+              rows={3}
+              label={t.signature}
+              disabled={signMessageResponse?.data?.signature === undefined}
+              placeholder={"Unsigned"}
+              value={signMessageResponse?.data?.signature}
+            />
           </div>
 
           <div className={classNames(styles.verifyMessageWrapper, { [styles.hidden]: currentAction !== "verify" })}>
@@ -104,7 +158,18 @@ export default function MessageVerificationModal() {
               onInvalid={() => setEmptySignatureField(true)}
               onKeyDown={textAreaKeyboardSubmit}
             />
-            <div className={styles.resultWrapper}>{t.validSignature}</div>
+            {verifyMessageResponse?.data && (
+              <div
+                className={classNames(styles.resultWrapper, {
+                  [styles.verified]: verifyMessageResponse?.data?.valid,
+                  [styles.invalid]: !verifyMessageResponse?.data?.valid,
+                })}
+              >
+                <div>{verifyMessageResponse?.data?.valid ? t.validSignature : t.invalidSignature}</div>
+                {/*<div>{verifyMessageResponse?.data?.valid ? <CheckIcon /> : <CloseIcon />}</div>*/}
+                <div>{verifyMessageResponse?.data?.pubKey}</div>
+              </div>
+            )}
           </div>
 
           <Button

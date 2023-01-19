@@ -64,6 +64,6 @@ func verifyMessageHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func RegisterMessagesRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.GET("sign", func(c *gin.Context) { signMessageHandler(c, db) })
-	r.GET("verify", func(c *gin.Context) { verifyMessageHandler(c, db) })
+	r.POST("sign", func(c *gin.Context) { signMessageHandler(c, db) })
+	r.POST("verify", func(c *gin.Context) { verifyMessageHandler(c, db) })
 }

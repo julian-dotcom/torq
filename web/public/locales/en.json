@@ -3,8 +3,9 @@
   "verify": "Verify",
   "message": "Message",
   "signature": "Signature",
-  "validSignature": "Valid Signature",
+  "validSignature": "Valid Signature for public key:",
   "invalidSignature": "Invalid Signature",
+  "missingSignMessage": "You have to provide a message to sign",
   "missingMessage": "You can't verify a signature without providing the message it signed",
   "missingSignature": "You can't verify a signature without providing it.",
   "active": "active",
@@ -159,7 +160,7 @@
   "amountSat": "Amount (sat)",
   "close": "Close",
   "update": "Update",
-  "MessageVerification": "Message Verification",
+  "MessageVerification": "Sign & Verify",
   "stageTriggerDetails": {
     "stageTriggerDescription": "This stage will be triggered when the previous stage has completed.",
     "stageTriggerDescription2": "All the information from the previous stage will be passed on to this stage trigger. For example Channel Policy Configurations."
