@@ -83,7 +83,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//}
 		case commons.WorkflowNodeChannelFilter:
 
-		case commons.WorkflowTag:
+		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
 			var params TagParameters
 			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
 			if err != nil {

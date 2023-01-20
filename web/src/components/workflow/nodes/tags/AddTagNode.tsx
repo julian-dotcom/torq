@@ -19,7 +19,7 @@ type SelectOptions = {
 
 type TagProps = Omit<WorkflowNodeProps, "colorVariant">;
 
-export function TagNode({ ...wrapperProps }: TagProps) {
+export function AddTagNode({ ...wrapperProps }: TagProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
@@ -49,7 +49,6 @@ export function TagNode({ ...wrapperProps }: TagProps) {
 
   type TagParameters = {
     addedTags: SelectedTag[];
-    removedTags: SelectedTag[];
   };
   const applyToChannelId = "channels-" + wrapperProps.workflowVersionNodeId;
   const applyToNodesId = "nodes-" + wrapperProps.workflowVersionNodeId;
@@ -58,15 +57,9 @@ export function TagNode({ ...wrapperProps }: TagProps) {
   const [selectedAddedTags, setSelectedAddedtags] = useState<SelectedTag[]>(
     (wrapperProps.parameters as TagParameters).addedTags
   );
-  const [selectedRemovedTags, setSelectedRemovedtags] = useState<SelectedTag[]>(
-    (wrapperProps.parameters as TagParameters).removedTags
-  );
 
   function handleAddedTagChange(newValue: unknown) {
     setSelectedAddedtags(newValue as SelectedTag[]);
-  }
-  function handleRemovedTagChange(newValue: unknown) {
-    setSelectedRemovedtags(newValue as SelectedTag[]);
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -77,7 +70,6 @@ export function TagNode({ ...wrapperProps }: TagProps) {
       parameters: {
         applyTo: appliesTo,
         addedTags: selectedAddedTags,
-        removedTags: selectedRemovedTags,
       },
     });
   }
@@ -142,14 +134,6 @@ export function TagNode({ ...wrapperProps }: TagProps) {
           label={t.workflowNodes.addTag}
           sizeVariant={InputSizeVariant.small}
           value={selectedAddedTags}
-        />
-        <Select
-          isMulti={true}
-          options={tagsOptions}
-          onChange={handleRemovedTagChange}
-          label={t.workflowNodes.removeTag}
-          sizeVariant={InputSizeVariant.small}
-          value={selectedRemovedTags}
         />
         <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
           {t.save.toString()}

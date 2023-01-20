@@ -7,5 +7,5 @@ export { ChannelFilterNode } from "./channelsFilter/ChannelFilterNode";
 export { ChannelFilterNodeButton } from "./channelsFilter/ChannelFilterNodeButton";
 export { ReBalanceChannelNode } from "./reBalanceChannel/ReBalanceChannelNode";
 export { ReBalanceChannelNodeButton } from "./reBalanceChannel/ReBalanceChannelNodeButton";
-export { TagNodeButton } from "./tags/TagNodeButton";
-export { TagNode } from "./tags/TagNode";
+export { AddTagNodeButton } from "./tags/AddTagNodeButton";
+export { AddTagNode } from "./tags/AddTagNode";

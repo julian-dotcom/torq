@@ -17,3 +17,8 @@
     background-color: var(--header-active-background-color);
   }
 }
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

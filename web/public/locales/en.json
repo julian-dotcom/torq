@@ -35,6 +35,7 @@
   "save": "Save",
   "addNode": "Add Node",
   "addTag": "Add Tag",
+  "removeTag": "Remove Tag",
   "tag": "Tag",
   "channel": "Channel",
   "node": "Node",
