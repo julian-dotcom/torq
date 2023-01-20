@@ -12,7 +12,8 @@ export enum WorkflowNodeType {
   // Trigger is the main trigger that is used to start the workflow prevent us
   // from having to add and remove links to every trigger.
   Trigger,
-  Tag,
+  AddTag,
+  RemoveTag,
 }
 
 export const TriggerNodeTypes = [

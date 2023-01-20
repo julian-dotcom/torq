@@ -75,6 +75,7 @@ export function ChannelPolicyNode({ ...wrapperProps }: ChannelPolicyNodeProps) {
       heading={t.channelPolicyConfiguration}
       headerIcon={<ChannelPolicyIcon />}
       colorVariant={NodeColorVariant.accent1}
+      noConnector={true}
     >
       <Form onSubmit={handleSubmit}>
         <Socket

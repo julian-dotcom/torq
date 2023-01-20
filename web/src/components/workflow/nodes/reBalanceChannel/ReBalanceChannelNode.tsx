@@ -93,6 +93,7 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
       heading={t.channelPolicyConfiguration}
       headerIcon={<ReBalanceIcon />}
       colorVariant={NodeColorVariant.accent1}
+      noConnector={true}
     >
       <Form onSubmit={handleSubmit}>
         <Socket

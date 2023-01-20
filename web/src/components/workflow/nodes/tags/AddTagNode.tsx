@@ -10,7 +10,7 @@ import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } f
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import { Tag } from "pages/tags/tagsTypes";
-import { Select } from "components/forms/forms";
+import { InputSizeVariant, RadioChips, Select } from "components/forms/forms";
 
 type SelectOptions = {
   label?: string;
@@ -19,7 +19,7 @@ type SelectOptions = {
 
 type TagProps = Omit<WorkflowNodeProps, "colorVariant">;
 
-export function TagNode({ ...wrapperProps }: TagProps) {
+export function AddTagNode({ ...wrapperProps }: TagProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
@@ -49,30 +49,27 @@ export function TagNode({ ...wrapperProps }: TagProps) {
 
   type TagParameters = {
     addedTags: SelectedTag[];
-    removedTags: SelectedTag[];
   };
+  const applyToChannelId = "channels-" + wrapperProps.workflowVersionNodeId;
+  const applyToNodesId = "nodes-" + wrapperProps.workflowVersionNodeId;
 
+  const [applyTo, setApplyTo] = useState(applyToChannelId);
   const [selectedAddedTags, setSelectedAddedtags] = useState<SelectedTag[]>(
     (wrapperProps.parameters as TagParameters).addedTags
-  );
-  const [selectedRemovedTags, setSelectedRemovedtags] = useState<SelectedTag[]>(
-    (wrapperProps.parameters as TagParameters).removedTags
   );
 
   function handleAddedTagChange(newValue: unknown) {
     setSelectedAddedtags(newValue as SelectedTag[]);
   }
-  function handleRemovedTagChange(newValue: unknown) {
-    setSelectedRemovedtags(newValue as SelectedTag[]);
-  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const appliesTo = applyTo === applyToNodesId ? "nodes" : "channel";
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: {
+        applyTo: appliesTo,
         addedTags: selectedAddedTags,
-        removedTags: selectedRemovedTags,
       },
     });
   }
@@ -101,37 +98,43 @@ export function TagNode({ ...wrapperProps }: TagProps) {
       heading={t.workflowNodes.tag}
       headerIcon={<TagIcon />}
       colorVariant={NodeColorVariant.accent3}
+      noConnector={true}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.workflowNodes.targetChannel}
+          label={t.Targets}
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputIndex={1}
         />
-        <Socket
-          collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.workflowNodes.targetNode}
-          selectedNodes={parentNodes || []}
-          workflowVersionId={wrapperProps.workflowVersionId}
-          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputIndex={2}
+        <RadioChips
+          label={t.ApplyTo}
+          sizeVariant={InputSizeVariant.small}
+          groupName={"node-channels-switch-" + wrapperProps.workflowVersionNodeId}
+          options={[
+            {
+              label: t.channels,
+              id: applyToChannelId,
+              checked: applyTo === applyToChannelId,
+              onChange: () => setApplyTo(applyToChannelId),
+            },
+            {
+              label: t.nodes,
+              id: applyToNodesId,
+              checked: applyTo === applyToNodesId,
+              onChange: () => setApplyTo(applyToNodesId),
+            },
+          ]}
         />
         <Select
           isMulti={true}
           options={tagsOptions}
           onChange={handleAddedTagChange}
           label={t.workflowNodes.addTag}
+          sizeVariant={InputSizeVariant.small}
           value={selectedAddedTags}
-        />
-        <Select
-          isMulti={true}
-          options={tagsOptions}
-          onChange={handleRemovedTagChange}
-          label={t.workflowNodes.removeTag}
-          value={selectedRemovedTags}
         />
         <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
           {t.save.toString()}

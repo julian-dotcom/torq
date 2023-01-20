@@ -9,12 +9,13 @@ import {
   StageTriggerNode,
   ChannelFilterNode,
   ReBalanceChannelNode,
-  TagNode,
+  AddTagNode,
 } from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
 import useTranslations from "services/i18n/useTranslations";
 import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
+import { RemoveTagNode } from "../nodes/tags/RemoveTagNode";
 
 type WorkflowCanvasStagesProps = {
   workflowId: number;
@@ -99,8 +100,10 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RebalanceParameters:
       return <ReBalanceChannelNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
-    case WorkflowNodeType.Tag:
-      return <TagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.AddTag:
+      return <AddTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.RemoveTag:
+      return <RemoveTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     default:
       return null;
   }

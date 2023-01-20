@@ -14,8 +14,9 @@ import {
   TimeTriggerNodeButton,
   ChannelFilterNodeButton,
   ReBalanceChannelNodeButton,
-  TagNodeButton,
+  AddTagNodeButton,
 } from "components/workflow/nodes/nodes";
+import { RemoveTagNodeButton } from "../nodes/tags/RemoveTagNodeButton";
 
 export type WorkflowSidebarProps = {
   expanded: boolean;
@@ -69,7 +70,8 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
             expanded={sectionState.actions}
             handleToggle={() => toggleSection("actions")}
           >
-            <TagNodeButton />
+            <AddTagNodeButton />
+            <RemoveTagNodeButton />
           </SectionContainer>
         </SectionContainer>
       </Sidebar>

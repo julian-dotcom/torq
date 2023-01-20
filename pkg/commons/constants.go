@@ -225,7 +225,8 @@ const (
 	WorkflowNodeSetVariable
 	WorkflowNodeFilterOnVariable
 	WorkflowTrigger
-	WorkflowTag
+	WorkflowNodeAddTag
+	WorkflowNodeRemoveTag
 )
 
 type WorkflowTriggerType int
