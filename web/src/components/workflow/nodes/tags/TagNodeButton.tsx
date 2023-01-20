@@ -13,6 +13,8 @@ export function TagNodeButton() {
       nodeType={WorkflowNodeType.Tag}
       icon={<TagHeaderIcon />}
       title={t.workflowNodes.tag}
+      // TODO: After merging with master, add the bellow default parameters on drop
+      // parameters={{ applyTo: "channels", addedTags: [], removedTags: [] }}
     />
   );
 }

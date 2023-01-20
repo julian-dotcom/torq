@@ -8,6 +8,9 @@ import { useAddNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
 import { NodeContext } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
+import useTranslations from "services/i18n/useTranslations";
 
 export type SocketProps = BasicInputType & {
   workflowVersionId: number;
@@ -16,10 +19,13 @@ export type SocketProps = BasicInputType & {
   inputIndex: number;
   collapsed: boolean;
   placeholder?: string;
+  acceptMultiple?: boolean;
 };
 
 function Socket(props: SocketProps) {
+  const { t } = useTranslations();
   const [addLink] = useAddNodeLinkMutation();
+  const toastRef = useContext(ToastContext);
 
   let inputColorClass = GetColorClass(props.colorVariant);
   if (props.warningText != undefined) {
@@ -64,11 +70,11 @@ function Socket(props: SocketProps) {
     // Get the id of the nodes connector that was dropped
     const parentWorkflowVersionNodeId = parseInt(e.dataTransfer.getData("node/parentWorkflowVersionNodeId"));
     const parentOutputIndex = parseInt(e.dataTransfer.getData("node/parentOutputIndex"));
-    // const nodeName = e.dataTransfer.getData("node/name");
-
-    return addLinkFromDrop(parentOutputIndex, parentWorkflowVersionNodeId);
-
-    // If the node is a trigger add a link to each trigger
+    if (props.selectedNodes?.length > 0 && !props.acceptMultiple) {
+      toastRef?.current?.addToast(props.label + " " + t.socketCantAcceptMultipleInputs, toastCategory.error);
+      return;
+    }
+    addLinkFromDrop(parentOutputIndex, parentWorkflowVersionNodeId);
   }
 
   function updater() {

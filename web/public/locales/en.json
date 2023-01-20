@@ -1,4 +1,7 @@
 {
+  "ApplyTo": "Apply to",
+  "Targets": "Targets",
+  "socketCantAcceptMultipleInputs": "does not accept multiple links.",
   "sign": "Sign",
   "verify": "Verify",
   "message": "Message",
