@@ -1,5 +1,8 @@
 @import "../input-colors.module.scss";
 .radioChipsWrapper {
+  label {
+    line-height: 24px;
+  }
 }
 .radioChipsLabel {
   color: var(--input-label-color);
@@ -22,6 +25,7 @@
     display: none;
   }
   label {
+    cursor: pointer;
     height: calc(100% - 8px);
     border-radius: var(--input-height);
     display: flex;
