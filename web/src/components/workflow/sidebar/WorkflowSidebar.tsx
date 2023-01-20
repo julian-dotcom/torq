@@ -20,6 +20,7 @@ import {
   ChannelCloseTriggerNodeButton,
   ChannelOpenTriggerNodeButton,
 } from "components/workflow/nodes/nodes";
+import { RemoveTagNodeButton } from "../nodes/tags/RemoveTagNodeButton";
 
 export type WorkflowSidebarProps = {
   expanded: boolean;
