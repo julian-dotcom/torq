@@ -168,11 +168,19 @@
     background-color: var(--color-primary-layer-4);
   }
 
-  a.selected,
-  .menuItemButton.selected {
+  .menuItemButton:hover {
+    background-color: var(--color-primary-layer-4);
+  }
+
+  a.selected {
     color: var(--color-text-primary-strong);
     background-color: var(--color-primary-layer-2);
   }
+}
+
+.intercomOpen .menuItemButton {
+  color: var(--color-text-primary-strong);
+  background-color: var(--color-primary-layer-2);
 }
 
 .icon {
