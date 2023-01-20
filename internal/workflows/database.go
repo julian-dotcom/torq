@@ -376,7 +376,7 @@ func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType commons.WorkflowNodeType) 
 		SELECT wfvn.workflow_version_node_id
 		FROM workflow_version_node wfvn
 		JOIN workflow_version wfv ON wfv.workflow_version_id = wfvn.workflow_version_id AND wfv.status=$1
-		JOIN workflow wf ON wf.workflow_id = wfv.workflow_id AND wfv.status=$1
+		JOIN workflow wf ON wf.workflow_id = wfv.workflow_id AND wf.status=$1
 		LEFT JOIN workflow_version_node_link parentLink ON parentLink.child_workflow_version_node_id = wfvn.workflow_version_node_id
 		WHERE wfvn.status=$1 AND wfvn.type=$2 AND parentLink.child_workflow_version_node_id IS NULL AND wfv.workflow_version_id IN (
 			SELECT ranked.workflow_version_id
