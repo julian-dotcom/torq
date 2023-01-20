@@ -98,6 +98,7 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
       heading={t.workflowNodes.tag}
       headerIcon={<TagIcon />}
       colorVariant={NodeColorVariant.accent3}
+      noConnector={true}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
