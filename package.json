@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "@types/mixpanel-browser": "^2.38.0",
-    "mixpanel-browser": "^2.45.0",
-    "redux-undo": "^1.0.1",
-    "uuidv4": "^6.2.13"
-  }
-}

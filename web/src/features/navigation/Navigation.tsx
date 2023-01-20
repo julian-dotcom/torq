@@ -1,11 +1,13 @@
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import mixpanel from "mixpanel-browser";
+import { useIntercom } from "react-use-intercom";
 import { selectHidden, toggleNav } from "./navSlice";
 import classNames from "classnames";
 import MenuItem from "./MenuItem";
 import NavCategory from "./NavCategory";
 import { ReactComponent as TorqLogo } from "icons/torq-logo.svg";
 import {
+  ChatHelp20Regular as HelpIcon,
   Navigation20Regular as CollapseIcon,
   ArrowForward20Regular as ForwardsIcon,
   Autosum20Regular as SummaryIcon,
@@ -23,10 +25,24 @@ import styles from "./nav.module.scss";
 import * as routes from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import NetworkSelector from "./NetworkSelector";
+import { useEffect, useState } from "react";
+import { useGetSettingsQuery } from "apiSlice";
+import MenuButtonItem from "./MenuButtonItem";
 
 function Navigation() {
   const dispatch = useAppDispatch();
+  const { data: settingsData } = useGetSettingsQuery();
   const { t } = useTranslations();
+  const { boot } = useIntercom();
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  useEffect(() => {
+    boot({
+      userId: settingsData?.torqUuid,
+      customLauncherSelector: "#intercom-launcher",
+    });
+  }, [settingsData?.torqUuid]);
+
   const hidden = useAppSelector(selectHidden);
 
   function toggleNavHandler() {
@@ -82,6 +98,19 @@ function Navigation() {
       </div>
 
       <div className={classNames(styles.bottomWrapper)}>
+        <MenuButtonItem
+          text={t.helpAndBugsMenuItem}
+          icon={<HelpIcon />}
+          selected={helpOpen}
+          id={"intercom-launcher"}
+          onClick={() => {
+            if (helpOpen) {
+              setHelpOpen(false);
+            } else {
+              setHelpOpen(true);
+            }
+          }}
+        />
         <MenuItem text={t.settings} icon={<SettingsIcon />} routeTo={"/settings"} />
         <MenuItem text={t.logout} icon={<LogoutIcon />} routeTo={"/logout"} />
       </div>
