@@ -39,6 +39,7 @@ function Navigation() {
     boot({
       userId: settingsData?.torqUuid,
       customLauncherSelector: "#intercom-launcher",
+      hideDefaultLauncher: true,
     });
   }, [settingsData?.torqUuid]);
 
