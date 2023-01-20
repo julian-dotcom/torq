@@ -9,8 +9,10 @@ import { useGetSettingsQuery } from "./apiSlice";
 import { Network, selectActiveNetwork } from "features/network/networkSlice";
 import { useAppSelector } from "./store/hooks";
 import LoadingApp from "./components/loading/LoadingApp";
+import { IntercomProvider } from "react-use-intercom";
 
 function App() {
+  const INTERCOM_APP_ID = "y7n3ouse";
   const { init, status: i18nStatus } = useTranslations();
   const toastRef = React.useRef<addToastHandle>();
   const { data: settingsData } = useGetSettingsQuery();
@@ -54,12 +56,14 @@ function App() {
   return i18nStatus === "loading" ? (
     <LoadingApp />
   ) : (
-    <ToastContext.Provider value={toastRef}>
-      <div className={styles.app}>
-        <Toasts ref={toastRef} />
-        <Router />
-      </div>
-    </ToastContext.Provider>
+    <IntercomProvider appId={INTERCOM_APP_ID}>
+      <ToastContext.Provider value={toastRef}>
+        <div className={styles.app}>
+          <Toasts ref={toastRef} />
+          <Router />
+        </div>
+      </ToastContext.Provider>
+    </IntercomProvider>
   );
 }
 

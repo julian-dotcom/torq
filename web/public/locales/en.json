@@ -1,4 +1,5 @@
 {
+  "helpAndBugsMenuItem": "Help",
   "ApplyTo": "Apply to",
   "Targets": "Targets",
   "socketCantAcceptMultipleInputs": "does not accept multiple links.",

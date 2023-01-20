@@ -1,11 +1,16 @@
 import React from "react";
 import classNames from "classnames";
-import { NavLink, useMatch, useResolvedPath } from "react-router-dom";
+import { Link, useMatch, useResolvedPath } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import styles from "./nav.module.scss";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function MenuItem(props: { text: string; icon?: any; routeTo: string; withBackground?: boolean }) {
+function MenuItem(props: {
+  text: string;
+  icon?: JSX.Element;
+  routeTo: string;
+  withBackground?: boolean;
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => void;
+}) {
   const resolvedPath = useResolvedPath(props.routeTo);
   const hasMatch = useMatch({ path: resolvedPath.pathname, end: true });
 
@@ -16,14 +21,15 @@ function MenuItem(props: { text: string; icon?: any; routeTo: string; withBackgr
   return (
     <div className={classNames(styles.item)}>
       <div className={classNames(styles.contentWrapper)}>
-        <NavLink
+        <Link
+          onClick={props.onClick}
           to={props.routeTo}
           className={resolvedClassNames}
           state={props.withBackground ? { background: { pathname: location.pathname } } : undefined}
         >
           <div className={styles.icon}>{props.icon}</div>
           <div className={classNames(styles.text)}>{props.text}</div>
-        </NavLink>
+        </Link>
       </div>
     </div>
   );
