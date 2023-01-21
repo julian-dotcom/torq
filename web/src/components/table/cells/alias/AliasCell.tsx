@@ -26,27 +26,28 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
   const content = (
     <div className={styles.alias}>
       <div className={classNames(styles.current, styles.text)}>{current}</div>
-      {open !== undefined && (
-        <div className={classNames(styles.buttonWrapper, { [styles.totalCell]: isTotalsRow })}>
-          <LinkButton
-            key={"buttons-node-inspect"}
-            state={{ background: location }}
-            to={"/analyse/inspect/" + channelId}
-            icon={<InspectIcon />}
-            hideMobileText={true}
-            buttonSize={SizeVariant.tiny}
-            buttonColor={ColorVariant.accent1}
-            buttonPosition={ButtonPosition.center}
-            onClick={() => {
-              mixpanel.track("Navigate to Inspect Channel", {
-                background: location.pathname,
-                channelId: channelId,
-              });
-            }}
-          >
-            {t.inspect}
-          </LinkButton>
-          {(nodeIds || []).map((nodeId) => {
+
+      <div className={classNames(styles.buttonWrapper, { [styles.totalCell]: isTotalsRow })}>
+        <LinkButton
+          key={"buttons-node-inspect"}
+          state={{ background: location }}
+          to={"/analyse/inspect/" + channelId}
+          icon={<InspectIcon />}
+          hideMobileText={true}
+          buttonSize={SizeVariant.tiny}
+          buttonColor={ColorVariant.accent1}
+          buttonPosition={ButtonPosition.center}
+          onClick={() => {
+            mixpanel.track("Navigate to Inspect Channel", {
+              background: location.pathname,
+              channelId: channelId,
+            });
+          }}
+        >
+          {t.inspect}
+        </LinkButton>
+        {open &&
+          (nodeIds || []).map((nodeId) => {
             return (
               <div className={styles.editChannelButton} key={"buttons-node-" + nodeId}>
                 <LinkButton
@@ -87,8 +88,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
               </div>
             );
           })}
-        </div>
-      )}
+      </div>
     </div>
   );
 

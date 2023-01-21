@@ -18,7 +18,7 @@ export default function channelsCellRenderer(
       <AliasCell
         current={row["alias"] as string}
         channelId={row.channelId}
-        nodeIds={row.localNodeIds}
+        nodeIds={row.localNodeIds.filter((id) => [row.firstNodeId, row.secondNodeId].includes(id))}
         open={row["open"]}
         key={"alias" + rowIndex + columnIndex}
         className={column.locked ? styles.locked : ""}
