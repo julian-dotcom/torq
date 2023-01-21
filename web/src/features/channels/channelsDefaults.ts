@@ -141,6 +141,12 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     valueType: "string",
   },
   {
+    heading: "Channel Point",
+    type: "LongTextCell",
+    key: "channelPoint",
+    valueType: "string",
+  },
+  {
     heading: "Funding Transaction",
     type: "LongTextCell",
     key: "fundingTransactionHash",
