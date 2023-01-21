@@ -38,7 +38,14 @@ function formatEventText(type: string, value: number, prev: number, outbound: bo
 type eventCardType = {
   events: ChannelEventResponse;
   channels: ChannelHistoryResponse;
-  selectedEvents: Map<string, boolean>;
+  selectedEvents: {
+    feeRate: boolean;
+    baseFee: boolean;
+    minHtlc: boolean;
+    maxHtlc: boolean;
+    enabled: boolean;
+    disabled: boolean;
+  };
 };
 
 function EventsCard({ events, selectedEvents, channels }: eventCardType) {
@@ -52,7 +59,7 @@ function EventsCard({ events, selectedEvents, channels }: eventCardType) {
         {events?.events &&
           events.events
             .filter((d: Event) => {
-              return selectedEvents.get(d.type); // selectedEventTypes
+              return selectedEvents[d.type as keyof typeof selectedEvents]; // selectedEventTypes
             })
             .map((event: Event, index: number) => {
               const icon = eventIcons.get(event.type);

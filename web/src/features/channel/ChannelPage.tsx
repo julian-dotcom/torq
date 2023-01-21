@@ -1,7 +1,7 @@
 import {
+  ArrowRoutingRegular as ChannelsIcon,
   Flag16Regular as EventFlagIcon,
   MoleculeRegular as NodeIcon,
-  ArrowRoutingRegular as ChannelsIcon,
 } from "@fluentui/react-icons";
 import {
   useGetChannelBalanceQuery,
@@ -22,8 +22,7 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import EventsCard from "features/eventsCard/EventsCard";
-import Select from "components/forms/select/Select";
-import Switch from "components/forms/switch/Switch";
+import { InputColorVaraint, InputSizeVariant, Select, Switch } from "components/forms/forms";
 import Popover from "features/popover/Popover";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
@@ -51,10 +50,10 @@ import Tag, { TagColor } from "components/tags/Tag";
 const ft = d3.format(",.0f");
 
 const eventNames = new Map([
-  ["fee_rate", "Fee rate"],
-  ["base_fee", "Base fee"],
-  ["min_htlc", "Min htlc"],
-  ["max_htlc", "Max htlc"],
+  ["feeRate", "Fee rate"],
+  ["baseFee", "Base fee"],
+  ["minHtlc", "Min htlc"],
+  ["maxHtlc", "Max htlc"],
   ["enabled", "Enabled"],
   ["disabled", "Disabled"],
 ]);
@@ -73,22 +72,14 @@ function ChannelPage(_: ChannelPageProps) {
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
   const activeNetwork = useAppSelector(selectActiveNetwork);
   const [allToggle, setAllToggle] = React.useState(true);
-  const [selectedEvents, setSelectedEvents] = React.useState(
-    new Map<string, boolean>([
-      ["fee_rate", true],
-      ["base_fee", true],
-      ["min_htlc", true],
-      ["max_htlc", true],
-      ["enabled", true],
-      ["disabled", true],
-    ])
-  );
-
-  const handleSelectEventUpdate = (type: string) => {
-    return (checked: boolean) => {
-      setSelectedEvents(new Map(selectedEvents.set(type, checked)));
-    };
-  };
+  const [selectedEvents, setSelectedEvents] = React.useState({
+    feeRate: true,
+    baseFee: true,
+    minHtlc: true,
+    maxHtlc: true,
+    enabled: true,
+    disabled: true,
+  });
 
   const { chanId } = useParams();
 
@@ -148,7 +139,7 @@ function ChannelPage(_: ChannelPageProps) {
       ? onChainCost?.onChainCost + rebalancing?.rebalancingCost / 1000
       : 0;
 
-  const selectedEventsCount = Array.from(selectedEvents).filter((d) => d[1]).length;
+  const selectedEventsCount = Array.from(Object.values(selectedEvents)).filter((d) => d).length;
   const historyAmountIn = history?.amountIn || 0;
   const historyAmountOut = history?.amountOut || 0;
   const historyAmountTotal = history?.amountTotal || 0;
@@ -327,7 +318,7 @@ function ChannelPage(_: ChannelPageProps) {
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Select
-                  className={"small"}
+                  sizeVariant={InputSizeVariant.small}
                   value={profitKey}
                   onChange={(newValue) => {
                     if (newValue) {
@@ -450,6 +441,7 @@ function ChannelPage(_: ChannelPageProps) {
               <div className={styles.profitChartLeftControls}>
                 <Select
                   value={eventKey}
+                  sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {
                     if (newValue) {
                       dispatch(
@@ -489,31 +481,33 @@ function ChannelPage(_: ChannelPageProps) {
                         <Switch
                           label="Toggle all"
                           checked={allToggle}
+                          colorVariant={InputColorVaraint.accent1}
                           onChange={() => {
                             setAllToggle(!allToggle);
-                            setSelectedEvents(
-                              new Map([
-                                ["fee_rate", !allToggle],
-                                ["base_fee", !allToggle],
-                                ["min_htlc", !allToggle],
-                                ["max_htlc", !allToggle],
-                                ["enabled", !allToggle],
-                                ["disabled", !allToggle],
-                              ])
-                            );
+                            setSelectedEvents({
+                              feeRate: !allToggle,
+                              baseFee: !allToggle,
+                              minHtlc: !allToggle,
+                              maxHtlc: !allToggle,
+                              enabled: !allToggle,
+                              disabled: !allToggle,
+                            });
                           }}
                         />
                       </div>
                     </div>
 
-                    {Array.from(selectedEvents).map((item) => {
+                    {Object.keys(selectedEvents).map((key) => {
+                      const k = key as keyof typeof selectedEvents;
                       return (
-                        <div className={styles.cardRow} key={item[0]}>
+                        <div className={styles.cardRow} key={key}>
                           <div className={styles.rowLabel}>
                             <Switch
-                              label={eventNames.get(item[0]) || ""}
-                              checked={selectedEvents.get(item[0])}
-                              onChange={() => handleSelectEventUpdate(item[0])}
+                              label={eventNames.get(k) || ""}
+                              checked={selectedEvents[k] || false}
+                              onChange={() => {
+                                setSelectedEvents({ ...selectedEvents, [key]: !selectedEvents[k] });
+                              }}
                             />
                           </div>
                         </div>
@@ -580,6 +574,7 @@ function ChannelPage(_: ChannelPageProps) {
               <div className={styles.profitChartLeftControls}>
                 <Select
                   value={flowKey}
+                  sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {
                     if (newValue) {
                       dispatch(

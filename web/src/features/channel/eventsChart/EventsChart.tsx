@@ -13,7 +13,14 @@ type EventsChart = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[];
   events: ChannelEventResponse;
-  selectedEventTypes: Map<string, boolean>;
+  selectedEventTypes: {
+    feeRate: boolean;
+    baseFee: boolean;
+    minHtlc: boolean;
+    maxHtlc: boolean;
+    enabled: boolean;
+    disabled: boolean;
+  };
   from: string;
   to: string;
 };
@@ -72,7 +79,7 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
       });
       const filteredEvents =
         events?.events?.filter((d) => {
-          return selectedEventTypes.get(d.type); // selectedEventTypes
+          return selectedEventTypes[d.type as keyof typeof selectedEventTypes]; // selectedEventTypes
         }) || [];
       chart.plot(EventsPlot, { id: "events", key: "events", events: filteredEvents });
       chart.draw();

@@ -1,3 +1,4 @@
+@import "../input-colors.module.scss";
 .switchWrapper {
   display: grid;
   grid-auto-flow: column;
@@ -48,20 +49,20 @@
   }
 
   input:checked + .slider {
-    background-color: var(--color-primary-layer-2);
-    border-color: var(--color-border-primary-faded);
+    background-color: var(--input-default-background);
+    border-color: var(--input-focus-border-color);
   }
 
   input:focus + .slider {
-    box-shadow: 0 0 1px var(--color-primary-layer-2);
+    box-shadow: 0 0 1px var(--input-default-background);
   }
 
   input:checked + .slider:before {
     -webkit-transform: translateX(20px);
     -ms-transform: translateX(20px);
     transform: translateX(20px);
-    background-color: var(--color-primary-layer-4);
-    border-color: var(--color-border-primary-faded);
+    background-color: var(--input-hover-background);
+    border-color: var(--input-focus-border-color);
   }
   /* Rounded sliders */
   .slider.round {

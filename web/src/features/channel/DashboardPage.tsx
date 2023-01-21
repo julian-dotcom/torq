@@ -31,6 +31,7 @@ import Modal from "features/modal/Modal";
 import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { selectActiveNetwork } from "features/network/networkSlice";
+import { InputSizeVariant } from "../../components/forms/forms";
 
 const ft = d3.format(",.0f");
 
@@ -190,7 +191,7 @@ function ChannelPage() {
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Select
-                  className={"small"}
+                  sizeVariant={InputSizeVariant.small}
                   value={profitKey}
                   onChange={(newValue) => {
                     if (newValue) {
@@ -228,6 +229,7 @@ function ChannelPage() {
               <div className={styles.profitChartLeftControls}>
                 <Select
                   value={flowKey}
+                  sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {
                     if (newValue) {
                       dispatch(

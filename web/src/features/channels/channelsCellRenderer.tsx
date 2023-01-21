@@ -50,7 +50,6 @@ export default function channelsCellRenderer(
   }
 
   if (["mempoolSpace", "ambossSpace", "oneMl"].includes(column.key)) {
-    console.log(row[column.key]);
     return (
       <LinkCell
         text={links.get(column.key) || "hello"}
