@@ -1,7 +1,7 @@
 import classNames from "classnames";
 import styles from "./button.module.scss";
 import { SizeVariant, ColorVariant, GetSizeClass, GetColorClass } from "./buttonVariants";
-import { forwardRef, LegacyRef, ReactNode } from "react";
+import { AnchorHTMLAttributes, DetailedHTMLProps, forwardRef, LegacyRef, ReactNode } from "react";
 import { Link, LinkProps } from "react-router-dom";
 // Exporting them here again so that we don't have to import from two different places
 export { SizeVariant, ColorVariant } from "./buttonVariants";
@@ -92,6 +92,33 @@ export function LinkButton({
       {icon && <span>{icon}</span>}
       {children && <span className={styles.text}>{children}</span>}
     </Link>
+  );
+}
+
+export function ExternalLinkButton({
+  icon,
+  buttonColor,
+  buttonPosition,
+  buttonSize,
+  children,
+  hideMobileText,
+  ...buttonProps
+}: ButtonProps & DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>) {
+  return (
+    <a
+      {...buttonProps}
+      className={classNames(
+        styles.button,
+        GetColorClass(buttonColor),
+        ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
+        GetSizeClass(buttonSize),
+        { [styles.collapseTablet]: hideMobileText || false },
+        buttonProps.className
+      )}
+    >
+      {icon && <span>{icon}</span>}
+      {children && <span className={styles.text}>{children}</span>}
+    </a>
   );
 }
 
