@@ -300,21 +300,21 @@ func processPaymentEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 	}
 }
 
-func processHtlcEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
-	listener := broadcaster.SubscribeHtlcEvent()
-	for htlcEvent := range listener {
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionHtlcEvent(listener)
-			return
-		default:
-		}
-		if htlcEvent.NodeId == 0 {
-			return
-		}
-		commons.SetChannelStateBalanceHtlcEvent(htlcEvent)
-	}
-}
+//func processHtlcEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+//	listener := broadcaster.SubscribeHtlcEvent()
+//	for htlcEvent := range listener {
+//		select {
+//		case <-ctx.Done():
+//			broadcaster.CancelSubscriptionHtlcEvent(listener)
+//			return
+//		default:
+//		}
+//		if htlcEvent.NodeId == 0 {
+//			return
+//		}
+//		commons.SetChannelStateBalanceHtlcEvent(htlcEvent)
+//	}
+//}
 
 func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribePeerEvent()
