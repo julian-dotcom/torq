@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/query_parser"
+	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -70,13 +70,14 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//	activeOutputIndex = 1
 			//}
 		case commons.WorkflowNodeChannelFilter:
-			var params query_parser.FilterClauses
-			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
+			fmt.Println("I am running channel filters")
+
+			channels, err := channels.GetChannelsByNetwork(db, 0)
 			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, errors.Wrapf(err, "Failed to get the channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
-			fmt.Printf("params %#v", params)
-			log.Debug().Msg("I am a running Channel Filter")
+
+			fmt.Println("channelsx", channels)
 
 		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
 			var params TagParameters
@@ -160,6 +161,11 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			childInput := workflowNode.LinkDetails[childLinkId].ChildInput
 			parentOutput := workflowNode.LinkDetails[childLinkId].ParentOutput
 			workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
+				if len(childParameters.OptionalInputs) > workflowNode.LinkDetails[childLinkId].ChildInputIndex {
+					parameterWithLabel = childParameters.OptionalInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex]
+				} else {
+					parameterWithLabel = childParameters.OptionalInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex-len(childParameters.OptionalInputs)]
+				}
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId,
 				workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)

@@ -147,15 +147,8 @@ func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
+func GetChannelsByNetwork(db *sqlx.DB, network int) ([]channelBody, error) {
 	var channelsBody []channelBody
-
-	network, err := strconv.Atoi(c.Query("network"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Can't process network")
-		return
-	}
-
 	chain := commons.Bitcoin
 
 	nodeIds := commons.GetAllTorqNodeIds(chain, commons.Network(network))
@@ -178,8 +171,7 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 					NodeId:    &channel.RemoteNodeId,
 				})
 				if err != nil {
-					server_errors.WrapLogAndSendServerError(c, err, "Get channel tags for channel")
-					return
+					return channelsBody, errors.Wrap(err, server_errors.JsonParseError)
 				}
 
 				remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
@@ -246,6 +238,21 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 				channelsBody = append(channelsBody, chanBody)
 			}
 		}
+	}
+	return channelsBody, nil
+}
+
+func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+
+	channelsBody, err := GetChannelsByNetwork(db, network)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Get channel tags for channel")
+		return
 	}
 	c.JSON(http.StatusOK, channelsBody)
 }
