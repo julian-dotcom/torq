@@ -14,6 +14,7 @@
   grid-column-gap: 32px;
   grid-row-gap: 0;
   @media only screen and (max-width: 900px) {
+    padding-right: 12px;
     grid-template-columns: auto;
     grid-template-rows: min-content min-content auto min-content;
     grid-template-areas:
@@ -22,6 +23,9 @@
       "Table"
       "Pagination";
   }
+  //& > div:empty {
+  //  display: none !important;
+  //}
 }
 @media only screen and (max-width: 900px) {
   .contentWrapper {
@@ -31,13 +35,7 @@
 .leftWrapper {
 }
 .tableWrapper {
-  padding-bottom: 12px;
-  margin-right: -15px;
-  margin-top: 8px;
-  @media only screen and (max-width: 900px) {
-    margin-bottom: 12px;
-    margin-right: 12px;
-  }
+  padding-top: 12px;
 }
 .tableContainer {
   height: 100%;
@@ -67,7 +65,7 @@
   }
   @media only screen and (max-width: 900px) {
     position: absolute;
-    right: 0px;
+    right: 0;
     top: 0;
     bottom: 0;
     z-index: 20;
@@ -84,19 +82,20 @@
   grid-template-columns: auto;
   grid-column-gap: 16px;
   grid-area: TableControls;
-  @media only screen and (max-width: 900px) {
-    padding-right: 12px;
-  }
 }
 .tableExpander {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   position: absolute;
-  right: 0;
+  right: -1em;
   left: 0;
-  bottom: 0;
+  bottom: 8px;
   top: 0;
+  @media only screen and (max-width: 900px) {
+    right: 0;
+    bottom: 1em;
+  }
 }
 
 .tableControlsButtonGroup {

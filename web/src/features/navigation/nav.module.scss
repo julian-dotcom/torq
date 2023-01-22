@@ -32,6 +32,41 @@
   grid-auto-rows: min-content;
   overflow-y: auto;
 }
+@media only screen and (min-width: 900px) {
+  .mainNavWrapper:global(::-webkit-scrollbar) {
+    background-color: transparent;
+  }
+  .mainNavWrapper:global(::-webkit-scrollbar-track) {
+    border: none;
+    overflow: visible;
+    z-index: 100;
+    position: absolute;
+    background: transparent;
+    box-shadow: none;
+    -webkit-box-shadow: none;
+  }
+  .mainNavWrapper:global(::-webkit-scrollbar-thumb) {
+    height: 6px;
+    border: 4px solid rgba(0, 0, 0, 0);
+    background-clip: padding-box;
+    background-color: rgba(0, 0, 0, 0.2);
+    -webkit-border-radius: 7px;
+    -webkit-box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05), inset 1px 1px 0px rgba(0, 0, 0, 0.05);
+  }
+
+  .mainNavWrapper:global(::-webkit-scrollbar-button) {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .mainNavWrapper:global(::-webkit-scrollbar-corner) {
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+}
+
 .bottomWrapper {
   display: flex;
   flex-direction: column;

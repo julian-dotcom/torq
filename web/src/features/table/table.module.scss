@@ -2,8 +2,8 @@
   position: relative;
   display: grid;
   grid-auto-flow: row;
-  grid-column-gap: 0px;
-  overflow: auto;
+  grid-column-gap: 0;
+  overflow: scroll;
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
   width: 100%;
@@ -14,7 +14,6 @@
   display: flex;
   height: 100%;
   flex-direction: row;
-  scrollbar-gutter: stable;
   border-radius: var(--radius-large);
   overflow: hidden;
 }

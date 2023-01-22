@@ -19,11 +19,13 @@
   display: flex;
   flex-grow: 1;
   width: 100%;
-  max-width: 400px;
   align-items: center;
   justify-content: end;
   column-gap: 8px;
   z-index: 20;
+  @media only screen and (min-width: 700px) {
+    max-width: 400px;
+  }
 
   .time-travel-arrow {
     display: flex;
