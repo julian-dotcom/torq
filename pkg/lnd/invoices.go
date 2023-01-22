@@ -196,7 +196,9 @@ func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIn
 }
 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+	nodeSettings commons.ManagedNodeSettings,
+	invoiceEventChannel chan commons.InvoiceEvent,
+	serviceEventChannel chan commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreInvoices terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -215,7 +217,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, _, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
-			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
 			continue
 		}
 
@@ -227,19 +229,19 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
 			continue
 		}
 
 		if bootStrapping {
 			importCounter = importCounter + len(listInvoiceResponse.Invoices)
 			log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 		} else {
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 		for _, invoice := range listInvoiceResponse.Invoices {
-			processInvoice(invoice, nodeSettings, db, eventChannel, bootStrapping)
+			processInvoice(invoice, nodeSettings, db, invoiceEventChannel, bootStrapping)
 		}
 		if bootStrapping && len(listInvoiceResponse.Invoices) < commons.STREAM_LND_MAX_INVOICES {
 			bootStrapping = false
@@ -258,7 +260,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, settleIndex, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
-			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
 			continue
 		}
 
@@ -272,26 +274,26 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
 			continue
 		}
 
-		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		invoice, err := stream.Recv()
 		if err != nil {
 			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = processError(serviceStatus, eventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
 			continue
 		}
-		processInvoice(invoice, nodeSettings, db, eventChannel, bootStrapping)
+		processInvoice(invoice, nodeSettings, db, invoiceEventChannel, bootStrapping)
 		cancel()
 	}
 }
 
-func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB, eventChannel chan interface{}, bootStrapping bool) {
+func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB, invoiceEventChannel chan commons.InvoiceEvent, bootStrapping bool) {
 	invoiceEvent := commons.InvoiceEvent{
 		EventData: commons.EventData{
 			EventTime: time.Now().UTC(),
@@ -317,16 +319,16 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 		}
 	}
 
-	err := insertInvoice(db, invoice, destinationPublicKey, destinationNodeId, nodeSettings.NodeId, invoiceEvent, eventChannel, bootStrapping)
+	err := insertInvoice(db, invoice, destinationPublicKey, destinationNodeId, nodeSettings.NodeId, invoiceEvent, invoiceEventChannel, bootStrapping)
 	if err != nil {
 		log.Error().Err(err).Msg("Storing invoice failed")
 	}
 }
 
-func processError(serviceStatus commons.Status, eventChannel chan interface{}, nodeSettings commons.ManagedNodeSettings,
+func processError(serviceStatus commons.Status, serviceEventChannel chan commons.ServiceEvent, nodeSettings commons.ManagedNodeSettings,
 	subscriptionStream commons.SubscriptionStream, err error) commons.Status {
 
-	serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+	serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 	log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 	time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 	return serviceStatus
@@ -372,7 +374,7 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 }
 
 func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, destinationNodeId *int, nodeId int,
-	invoiceEvent commons.InvoiceEvent, eventChannel chan interface{}, bootStrapping bool) error {
+	invoiceEvent commons.InvoiceEvent, invoiceEventChannel chan commons.InvoiceEvent, bootStrapping bool) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {
@@ -511,7 +513,7 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, dest
 		return errors.Wrapf(err, "insert invoice")
 	}
 
-	if eventChannel != nil && !bootStrapping {
+	if invoiceEventChannel != nil && !bootStrapping {
 		invoiceEvent.AddIndex = invoice.AddIndex
 		invoiceEvent.ValueMSat = uint64(invoice.ValueMsat)
 		invoiceEvent.State = invoice.GetState()
@@ -527,7 +529,7 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, dest
 		if channelId != nil {
 			invoiceEvent.ChannelId = *channelId
 		}
-		eventChannel <- invoiceEvent
+		invoiceEventChannel <- invoiceEvent
 	}
 	return nil
 }

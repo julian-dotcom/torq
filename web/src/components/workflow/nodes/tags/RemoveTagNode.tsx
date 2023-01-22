@@ -107,7 +107,7 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputIndex={1}
+          input={"channels"}
         />
         <RadioChips
           label={t.ApplyTo}

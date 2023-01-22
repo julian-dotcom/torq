@@ -13,11 +13,11 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-// ProcessWorkflowNode workflowNodeStagingParametersCache[WorkflowVersionNodeId][inputLabel] (i.e. inputLabel = sourceChannelIds)
+// ProcessWorkflowNode workflowNodeStagingParametersCache[WorkflowVersionNodeId][parameterLabel] (i.e. parameterLabel = sourceChannels)
 func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, workflowNode WorkflowNode, triggeringWorkflowVersionNodeId int,
-	workflowNodeCache map[int]WorkflowNode, workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[string]string,
-	reference string, inputs map[string]string, iteration int) (map[string]string, commons.Status, error) {
+	workflowNodeCache map[int]WorkflowNode, workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[commons.WorkflowParameterLabel]string,
+	reference string, inputs map[commons.WorkflowParameterLabel]string, iteration int) (map[commons.WorkflowParameterLabel]string, commons.Status, error) {
 
 	iteration++
 	if iteration > 100 {
@@ -57,7 +57,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			return nil, commons.Pending, nil
 		}
 		//parameters := workflowNode.Parameters
-		activeOutputIndex := -1
+		var activeOutput commons.WorkflowParameterLabel
 		switch workflowNode.Type {
 		case commons.WorkflowNodeSetVariable:
 			//variableName := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableName).ValueString
@@ -162,30 +162,16 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
 		for childLinkId, childNode := range workflowNode.ChildNodes {
 			// If activeOutputIndex is not -1 and the parent output index of the child link is not equal to activeOutputIndex, skip the rest of the loop body
-			if activeOutputIndex != -1 && workflowNode.LinkDetails[childLinkId].ParentOutputIndex != activeOutputIndex {
+			if activeOutput != "" && workflowNode.LinkDetails[childLinkId].ParentOutput != activeOutput {
 				continue
 			}
 			// If there is no entry in the workflowNodeStagingParametersCache map for the child node's workflow version node ID, initialize an empty map
 			if workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId] == nil {
-				workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId] = make(map[string]string)
+				workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId] = make(map[commons.WorkflowParameterLabel]string)
 			}
-			// Retrieve the child node's parameters from the commons.GetWorkflowNodes() map
-			childParameters := commons.GetWorkflowNodes()[childNode.Type]
-			var parameterWithLabel commons.WorkflowParameterWithLabel
-			// Initialize parameterWithLabel to the appropriate input parameter for the child node (either required or optional)
-			if workflowNode.LinkDetails[childLinkId].ChildInputIndex >= len(childParameters.RequiredInputs) {
-				parameterWithLabel = childParameters.OptionalInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex-len(childParameters.OptionalInputs)]
-			} else {
-				parameterWithLabel = childParameters.RequiredInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex]
-			}
-			// Iterate over the outputs map and, for each key-value pair, add an entry to the workflowNodeStagingParametersCache map for
-			// the child node if the key is equal to the string representation of parameterWithLabel.WorkflowParameter or
-			// if parameterWithLabel.WorkflowParameter is equal to commons.WorkflowParameterAny
-			for key, value := range outputs {
-				if key == string(parameterWithLabel.WorkflowParameter) || parameterWithLabel.WorkflowParameter == commons.WorkflowParameterAny {
-					workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][parameterWithLabel.Label] = value
-				}
-			}
+			childInput := workflowNode.LinkDetails[childLinkId].ChildInput
+			parentOutput := workflowNode.LinkDetails[childLinkId].ParentOutput
+			workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId,
 				workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)
@@ -204,8 +190,15 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	return outputs, commons.Active, nil
 }
 
-func AddWorkflowVersionNodeLog(db *sqlx.DB, nodeId int, reference string, workflowVersionNodeId int,
-	triggeringWorkflowVersionNodeId int, inputs map[string]string, outputs map[string]string, workflowError error) {
+func AddWorkflowVersionNodeLog(db *sqlx.DB,
+	nodeId int,
+	reference string,
+	workflowVersionNodeId int,
+	triggeringWorkflowVersionNodeId int,
+	inputs map[commons.WorkflowParameterLabel]string,
+	outputs map[commons.WorkflowParameterLabel]string,
+	workflowError error) {
+
 	workflowVersionNodeLog := WorkflowVersionNodeLog{
 		NodeId:                nodeId,
 		WorkflowVersionNodeId: workflowVersionNodeId,

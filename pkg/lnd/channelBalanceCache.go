@@ -18,7 +18,9 @@ import (
 )
 
 func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.LightningClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, broadcaster broadcast.BroadcastServer, eventChannel chan interface{}) {
+	nodeSettings commons.ManagedNodeSettings,
+	broadcaster broadcast.BroadcastServer,
+	serviceEventChannel chan commons.ServiceEvent) {
 
 	defer log.Info().Msgf("ChannelBalanceCacheMaintenance terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -29,9 +31,17 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	mutex := &sync.RWMutex{}
 
 	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
-		serviceStatus, eventChannel, subscriptionStream, lndClient, db, mutex)
+		serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db, mutex)
 
-	go processBroadcastedEventRoutine(ctx, broadcaster)
+	go processServiceEvent(ctx, broadcaster)
+	go processChannelEvent(ctx, broadcaster)
+	go processChannelGraphEvent(ctx, broadcaster)
+	go processForwardEvent(ctx, broadcaster)
+	go processInvoiceEvent(ctx, broadcaster)
+	go processPaymentEvent(ctx, broadcaster)
+	//go processHtlcEvent(ctx, broadcaster)
+	go processPeerEvent(ctx, broadcaster)
+	go processWebSocketResponse(ctx, broadcaster)
 
 	for {
 		select {
@@ -39,26 +49,13 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 			return
 		case <-lndSyncTicker:
 			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
-				serviceStatus, eventChannel, subscriptionStream, lndClient, db, mutex)
+				serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db, mutex)
 		}
-	}
-}
-
-func processBroadcastedEventRoutine(ctx context.Context, broadcaster broadcast.BroadcastServer) {
-	listener := broadcaster.Subscribe()
-	for event := range listener {
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscription(listener)
-			return
-		default:
-		}
-		processBroadcastedEvent(event)
 	}
 }
 
 func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapping bool, serviceStatus commons.Status,
-	eventChannel chan interface{}, subscriptionStream commons.SubscriptionStream,
+	serviceEventChannel chan commons.ServiceEvent, subscriptionStream commons.SubscriptionStream,
 	lndClient lnrpc.LightningClient, db *sqlx.DB, mutex *sync.RWMutex) (bool, commons.Status) {
 
 	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
@@ -68,19 +65,19 @@ func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapp
 		}
 	}
 	if bootStrapping {
-		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 	} else {
-		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 	}
 	err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db, mutex)
 	if err != nil {
-		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 		log.Error().Err(err).Msgf("Failed to initialize channel balance cache. This is a critical issue! (nodeId: %v)", nodeSettings.NodeId)
 		return bootStrapping, serviceStatus
 	}
 	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) == commons.Active {
 		bootStrapping = false
-		serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 	}
 	return bootStrapping, serviceStatus
 }
@@ -181,8 +178,15 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 	return nil
 }
 
-func processBroadcastedEvent(event interface{}) {
-	if serviceEvent, ok := event.(commons.ServiceEvent); ok {
+func processServiceEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.SubscribeServiceEvent()
+	for serviceEvent := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionServiceEvent(listener)
+			return
+		default:
+		}
 		if serviceEvent.NodeId == 0 || serviceEvent.Type != commons.LndService {
 			return
 		}
@@ -193,7 +197,18 @@ func processBroadcastedEvent(event interface{}) {
 			return
 		}
 		commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(serviceEvent.NodeId))
-	} else if channelEvent, ok := event.(commons.ChannelEvent); ok {
+	}
+}
+
+func processChannelEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.SubscribeChannelEvent()
+	for channelEvent := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionChannelEvent(listener)
+			return
+		default:
+		}
 		if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 			return
 		}
@@ -208,7 +223,18 @@ func processBroadcastedEvent(event interface{}) {
 			status = commons.Deleted
 		}
 		commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, status)
-	} else if channelGraphEvent, ok := event.(commons.ChannelGraphEvent); ok {
+	}
+}
+
+func processChannelGraphEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.SubscribeChannelGraphEvent()
+	for channelGraphEvent := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionChannelGraphEvent(listener)
+			return
+		default:
+		}
 		if channelGraphEvent.NodeId == 0 || channelGraphEvent.ChannelId == nil || *channelGraphEvent.ChannelId == 0 ||
 			channelGraphEvent.AnnouncingNodeId == nil || *channelGraphEvent.AnnouncingNodeId == 0 ||
 			channelGraphEvent.ConnectingNodeId == nil || *channelGraphEvent.ConnectingNodeId == 0 {
@@ -218,7 +244,18 @@ func processBroadcastedEvent(event interface{}) {
 		commons.SetChannelStateRoutingPolicy(channelGraphEvent.NodeId, *channelGraphEvent.ChannelId, local,
 			channelGraphEvent.Disabled, channelGraphEvent.TimeLockDelta, channelGraphEvent.MinHtlcMsat,
 			channelGraphEvent.MaxHtlcMsat, channelGraphEvent.FeeBaseMsat, channelGraphEvent.FeeRateMilliMsat)
-	} else if forwardEvent, ok := event.(commons.ForwardEvent); ok {
+	}
+}
+
+func processForwardEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.SubscribeForwardEvent()
+	for forwardEvent := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionForwardEvent(listener)
+			return
+		default:
+		}
 		if forwardEvent.NodeId == 0 {
 			return
 		}
@@ -228,23 +265,66 @@ func processBroadcastedEvent(event interface{}) {
 		if forwardEvent.OutgoingChannelId != nil {
 			commons.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.OutgoingChannelId, false, forwardEvent.AmountOutMsat)
 		}
-	} else if invoiceEvent, ok := event.(commons.InvoiceEvent); ok {
+	}
+}
+
+func processInvoiceEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.SubscribeInvoiceEvent()
+	for invoiceEvent := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionInvoiceEvent(listener)
+			return
+		default:
+		}
 		if invoiceEvent.NodeId == 0 || invoiceEvent.State != lnrpc.Invoice_SETTLED {
 			return
 		}
 		commons.SetChannelStateBalanceUpdateMsat(invoiceEvent.NodeId, invoiceEvent.ChannelId, true, invoiceEvent.AmountPaidMsat)
-	} else if paymentEvent, ok := event.(commons.PaymentEvent); ok {
+	}
+}
+
+func processPaymentEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.SubscribePaymentEvent()
+	for paymentEvent := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionPaymentEvent(listener)
+			return
+		default:
+		}
 		if paymentEvent.NodeId == 0 || paymentEvent.OutgoingChannelId == nil || *paymentEvent.OutgoingChannelId == 0 || paymentEvent.PaymentStatus != lnrpc.Payment_SUCCEEDED {
 			return
 		}
 		commons.SetChannelStateBalanceUpdate(paymentEvent.NodeId, *paymentEvent.OutgoingChannelId, false, paymentEvent.AmountPaid)
-	} else if htlcEvent, ok := event.(commons.HtlcEvent); ok {
+	}
+}
+
+func processHtlcEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.SubscribeHtlcEvent()
+	for htlcEvent := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionHtlcEvent(listener)
+			return
+		default:
+		}
 		if htlcEvent.NodeId == 0 {
 			return
 		}
-		// TODO FIXME Causes some kind of locking. This is temporary disabled since Pending HTLC's aren't currently used in automations.
-		//commons.SetChannelStateBalanceHtlcEvent(htlcEvent)
-	} else if peerEvent, ok := event.(commons.PeerEvent); ok {
+		commons.SetChannelStateBalanceHtlcEvent(htlcEvent)
+	}
+}
+
+func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.SubscribePeerEvent()
+	for peerEvent := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionPeerEvent(listener)
+			return
+		default:
+		}
 		if peerEvent.NodeId == 0 || peerEvent.EventNodeId == 0 {
 			return
 		}
@@ -265,38 +345,51 @@ func processBroadcastedEvent(event interface{}) {
 		//		return
 		//	}
 		//	commons.SetChannelStateChannelStatus(openChannelEvent.Request.NodeId, openChannelEvent.ChannelId, commons.Inactive)
-	} else if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
-		if closeChannelEvent.Request.NodeId == 0 {
+	}
+}
+
+func processWebSocketResponse(ctx context.Context, broadcaster broadcast.BroadcastServer) {
+	listener := broadcaster.SubscribeWebSocketResponse()
+	for event := range listener {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionWebSocketResponse(listener)
 			return
+		default:
 		}
-		commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, commons.Deleted)
-	} else if updateChannelEvent, ok := event.(commons.RoutingPolicyUpdateResponse); ok {
-		if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == 0 {
-			return
+		if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
+			if closeChannelEvent.Request.NodeId == 0 {
+				return
+			}
+			commons.SetChannelStateChannelStatus(closeChannelEvent.Request.NodeId, closeChannelEvent.Request.ChannelId, commons.Deleted)
+		} else if updateChannelEvent, ok := event.(commons.RoutingPolicyUpdateResponse); ok {
+			if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == 0 {
+				return
+			}
+			// Force Response because we don't care about balance accuracy
+			currentStates := commons.GetChannelState(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true)
+			timeLockDelta := currentStates.LocalTimeLockDelta
+			if updateChannelEvent.Request.TimeLockDelta != nil {
+				timeLockDelta = *updateChannelEvent.Request.TimeLockDelta
+			}
+			minHtlcMsat := currentStates.LocalMinHtlcMsat
+			if updateChannelEvent.Request.MinHtlcMsat != nil {
+				minHtlcMsat = *updateChannelEvent.Request.MinHtlcMsat
+			}
+			maxHtlcMsat := currentStates.LocalMaxHtlcMsat
+			if updateChannelEvent.Request.MaxHtlcMsat != nil {
+				maxHtlcMsat = *updateChannelEvent.Request.MaxHtlcMsat
+			}
+			feeBaseMsat := currentStates.LocalFeeBaseMsat
+			if updateChannelEvent.Request.FeeBaseMsat != nil {
+				feeBaseMsat = *updateChannelEvent.Request.FeeBaseMsat
+			}
+			feeRateMilliMsat := currentStates.LocalFeeRateMilliMsat
+			if updateChannelEvent.Request.FeeRateMilliMsat != nil {
+				feeRateMilliMsat = *updateChannelEvent.Request.FeeRateMilliMsat
+			}
+			commons.SetChannelStateRoutingPolicy(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true,
+				currentStates.LocalDisabled, timeLockDelta, minHtlcMsat, maxHtlcMsat, feeBaseMsat, feeRateMilliMsat)
 		}
-		// Force Response because we don't care about balance accuracy
-		currentStates := commons.GetChannelState(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true)
-		timeLockDelta := currentStates.LocalTimeLockDelta
-		if updateChannelEvent.Request.TimeLockDelta != nil {
-			timeLockDelta = *updateChannelEvent.Request.TimeLockDelta
-		}
-		minHtlcMsat := currentStates.LocalMinHtlcMsat
-		if updateChannelEvent.Request.MinHtlcMsat != nil {
-			minHtlcMsat = *updateChannelEvent.Request.MinHtlcMsat
-		}
-		maxHtlcMsat := currentStates.LocalMaxHtlcMsat
-		if updateChannelEvent.Request.MaxHtlcMsat != nil {
-			maxHtlcMsat = *updateChannelEvent.Request.MaxHtlcMsat
-		}
-		feeBaseMsat := currentStates.LocalFeeBaseMsat
-		if updateChannelEvent.Request.FeeBaseMsat != nil {
-			feeBaseMsat = *updateChannelEvent.Request.FeeBaseMsat
-		}
-		feeRateMilliMsat := currentStates.LocalFeeRateMilliMsat
-		if updateChannelEvent.Request.FeeRateMilliMsat != nil {
-			feeRateMilliMsat = *updateChannelEvent.Request.FeeRateMilliMsat
-		}
-		commons.SetChannelStateRoutingPolicy(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true,
-			currentStates.LocalDisabled, timeLockDelta, minHtlcMsat, maxHtlcMsat, feeBaseMsat, feeRateMilliMsat)
 	}
 }

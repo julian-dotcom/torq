@@ -97,8 +97,8 @@ func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) s
 	return fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)
 }
 
-func CopyParameters(parameters map[string]string) map[string]string {
-	parametersCopy := make(map[string]string)
+func CopyParameters(parameters map[WorkflowParameterLabel]string) map[WorkflowParameterLabel]string {
+	parametersCopy := make(map[WorkflowParameterLabel]string)
 	for k, v := range parameters {
 		parametersCopy[k] = v
 	}
@@ -128,70 +128,145 @@ func getDeltaPerMille(base uint64, amt uint64) int {
 	}
 }
 
-type WorkflowParameterWithLabel struct {
-	Label string
-	WorkflowParameter
-}
-
 func GetVectorUrl(vectorUrl string, suffix string) string {
 	return vectorUrl + suffix
 }
 
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
+	allTriggeredOnly := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	allTriggeredOnly[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	allTriggeredOnly[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+
+	all := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	all[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	all[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+	all[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
+	all[WorkflowParameterLabelRoutingPolicySettings] = WorkflowParameterTypeRoutingPolicySettings
+	all[WorkflowParameterLabelRebalanceSettings] = WorkflowParameterTypeRebalanceSettings
+	all[WorkflowParameterLabelTagSettings] = WorkflowParameterTypeTagSettings
+	all[WorkflowParameterLabelSourceChannels] = WorkflowParameterTypeChannelIds
+	all[WorkflowParameterLabelDestinationChannels] = WorkflowParameterTypeChannelIds
+	all[WorkflowParameterLabelStatus] = WorkflowParameterTypeStatus
+
+	channelsOnly := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	channelsOnly[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
+
+	//WorkflowNodeTimeTrigger
+	timeTriggerRequiredOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	timeTriggerRequiredOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+
+	//WorkflowNodeChannelBalanceEventTrigger
+	channelBalanceEventTriggerRequiredOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	channelBalanceEventTriggerRequiredOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+
+	//WorkflowNodeChannelFilter
+	channelFilterOptionalInputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	channelFilterOptionalInputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
+	channelFilterOptionalInputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	channelFilterOptionalInputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+	channelFilterRequiredOutputs := channelsOnly
+	channelFilterOptionalOutputs := allTriggeredOnly
+
+	//WorkflowNodeChannelPolicyConfigurator
+	channelPolicyConfiguratorOptionalInputs := all
+	channelPolicyConfiguratorOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	channelPolicyConfiguratorOptionalOutputs[WorkflowParameterLabelRoutingPolicySettings] = WorkflowParameterTypeRoutingPolicySettings
+	channelPolicyConfiguratorOptionalOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	channelPolicyConfiguratorOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+
+	//WorkflowNodeRebalanceParameters
+	rebalanceParametersOptionalInputs := all
+	rebalanceParametersOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	rebalanceParametersOptionalOutputs[WorkflowParameterLabelRebalanceSettings] = WorkflowParameterTypeRebalanceSettings
+	rebalanceParametersOptionalOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	rebalanceParametersOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+
+	//WorkflowTag
+	addTagOptionalInputs := channelsOnly
+	addTagOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	addTagOptionalOutputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
+	addTagOptionalOutputs[WorkflowParameterLabelTagSettings] = WorkflowParameterTypeTagSettings
+	addTagOptionalOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	addTagOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+
+	//WorkflowNodeStageTrigger
+	stageTriggerOptionalOutputs := all
+
+	//WorkflowNodeRebalanceRun
+	rebalanceRunRequiredInputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	rebalanceRunRequiredInputs[WorkflowParameterLabelSourceChannels] = WorkflowParameterTypeChannelIds
+	rebalanceRunRequiredInputs[WorkflowParameterLabelDestinationChannels] = WorkflowParameterTypeChannelIds
+	rebalanceRunOptionalInputs := allTriggeredOnly
+	rebalanceRunOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	rebalanceRunOptionalOutputs[WorkflowParameterLabelRebalanceSettings] = WorkflowParameterTypeRebalanceSettings
+	rebalanceRunOptionalOutputs[WorkflowParameterLabelSourceChannels] = WorkflowParameterTypeChannelIds
+	rebalanceRunOptionalOutputs[WorkflowParameterLabelDestinationChannels] = WorkflowParameterTypeChannelIds
+	rebalanceRunOptionalOutputs[WorkflowParameterLabelStatus] = WorkflowParameterTypeStatus
+	rebalanceRunOptionalOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	rebalanceRunOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+
+	//WorkflowNodeChannelPolicyRun
+	channelPolicyRunRequiredInputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	channelPolicyRunRequiredInputs[WorkflowParameterLabelRoutingPolicySettings] = WorkflowParameterTypeRoutingPolicySettings
+	channelPolicyRunRequiredInputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
+	channelPolicyRunOptionalInputs := allTriggeredOnly
+	channelPolicyRunOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	channelPolicyRunOptionalOutputs[WorkflowParameterLabelRoutingPolicySettings] = WorkflowParameterTypeRoutingPolicySettings
+	channelPolicyRunOptionalOutputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
+	channelPolicyRunOptionalOutputs[WorkflowParameterLabelStatus] = WorkflowParameterTypeStatus
+	channelPolicyRunOptionalOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	channelPolicyRunOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+
+	//WorkflowNodeSetVariable
+	setVariableOptionalInputs := all
+	setVariableOptionalOutputs := all
+
+	//WorkflowNodeFilterOnVariable
+	filterOnVariableOptionalInputs := all
+	filterOnVariableOptionalOutputs := all
+
 	return map[WorkflowNodeType]WorkflowNodeTypeParameters{
 		WorkflowNodeTimeTrigger: {
 			WorkflowNodeType: WorkflowNodeTimeTrigger,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs:   []WorkflowParameterWithLabel{},
-			RequiredOutputs:  []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
-			OptionalOutputs:  []WorkflowParameterWithLabel{},
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			RequiredOutputs:  timeTriggerRequiredOutputs,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeChannelBalanceEventTrigger: {
 			WorkflowNodeType: WorkflowNodeChannelBalanceEventTrigger,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs:   []WorkflowParameterWithLabel{},
-			RequiredOutputs:  []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
-			OptionalOutputs:  []WorkflowParameterWithLabel{},
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			RequiredOutputs:  channelBalanceEventTriggerRequiredOutputs,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeChannelFilter: {
 			WorkflowNodeType: WorkflowNodeChannelFilter,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs: []WorkflowParameterWithLabel{
-				{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds},
-				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
-			},
-			RequiredOutputs: []WorkflowParameterWithLabel{{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds}},
-			OptionalOutputs: []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   channelFilterOptionalInputs,
+			RequiredOutputs:  channelFilterRequiredOutputs,
+			OptionalOutputs:  channelFilterOptionalOutputs,
 		},
 		WorkflowNodeChannelPolicyConfigurator: {
 			WorkflowNodeType: WorkflowNodeChannelPolicyConfigurator,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
-			RequiredOutputs:  []WorkflowParameterWithLabel{},
-			OptionalOutputs: []WorkflowParameterWithLabel{
-				{Label: "routingPolicySettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
-				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
-			},
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   channelPolicyConfiguratorOptionalInputs,
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  channelPolicyConfiguratorOptionalOutputs,
 		},
 		WorkflowNodeRebalanceParameters: {
 			WorkflowNodeType: WorkflowNodeRebalanceParameters,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
-			RequiredOutputs:  []WorkflowParameterWithLabel{},
-			OptionalOutputs: []WorkflowParameterWithLabel{
-				{Label: "rebalanceSettings", WorkflowParameter: WorkflowParameterRebalanceSettings},
-				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
-			},
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   rebalanceParametersOptionalInputs,
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  rebalanceParametersOptionalOutputs,
 		},
-		WorkflowNodeAddTag: {
-			WorkflowNodeType: WorkflowNodeAddTag,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
-			RequiredOutputs:  []WorkflowParameterWithLabel{},
-			OptionalOutputs: []WorkflowParameterWithLabel{
-				{Label: "tagSettings", WorkflowParameter: WorkflowParameterTag},
-				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
-			},
+		WorkflowAddTag: {
+			WorkflowNodeType: WorkflowAddTag,
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   addTagOptionalInputs,
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  addTagOptionalOutputs,
 		},
 		WorkflowNodeRemoveTag: {
 			WorkflowNodeType: WorkflowNodeRemoveTag,
@@ -205,56 +280,38 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 		},
 		WorkflowNodeStageTrigger: {
 			WorkflowNodeType: WorkflowNodeStageTrigger,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs:   []WorkflowParameterWithLabel{},
-			RequiredOutputs:  []WorkflowParameterWithLabel{},
-			OptionalOutputs:  []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  stageTriggerOptionalOutputs,
 		},
 		WorkflowNodeRebalanceRun: {
 			WorkflowNodeType: WorkflowNodeRebalanceRun,
-			RequiredInputs: []WorkflowParameterWithLabel{
-				{Label: "rebalanceSettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
-				{Label: "sourceChannels", WorkflowParameter: WorkflowParameterChannelIds},
-				{Label: "destinationChannels", WorkflowParameter: WorkflowParameterChannelIds},
-			},
-			OptionalInputs:  []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
-			RequiredOutputs: []WorkflowParameterWithLabel{},
-			OptionalOutputs: []WorkflowParameterWithLabel{
-				{Label: "rebalanceSettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
-				{Label: "sourceChannels", WorkflowParameter: WorkflowParameterChannelIds},
-				{Label: "destinationChannels", WorkflowParameter: WorkflowParameterChannelIds},
-				{Label: "status", WorkflowParameter: WorkflowParameterStatus},
-				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
-			},
+			RequiredInputs:   rebalanceRunRequiredInputs,
+			OptionalInputs:   rebalanceRunOptionalInputs,
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  rebalanceRunOptionalOutputs,
 		},
 		WorkflowNodeChannelPolicyRun: {
 			WorkflowNodeType: WorkflowNodeChannelPolicyRun,
-			RequiredInputs: []WorkflowParameterWithLabel{
-				{Label: "routingPolicySettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
-				{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds},
-			},
-			OptionalInputs:  []WorkflowParameterWithLabel{{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered}},
-			RequiredOutputs: []WorkflowParameterWithLabel{},
-			OptionalOutputs: []WorkflowParameterWithLabel{
-				{Label: "routingPolicySettings", WorkflowParameter: WorkflowParameterRoutingPolicySettings},
-				{Label: "channels", WorkflowParameter: WorkflowParameterChannelIds},
-				{Label: "status", WorkflowParameter: WorkflowParameterStatus},
-				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
-			},
+			RequiredInputs:   channelPolicyRunRequiredInputs,
+			OptionalInputs:   channelPolicyRunOptionalInputs,
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  channelPolicyRunOptionalOutputs,
 		},
 		WorkflowNodeSetVariable: {
 			WorkflowNodeType: WorkflowNodeSetVariable,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
-			RequiredOutputs:  []WorkflowParameterWithLabel{},
-			OptionalOutputs:  []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   setVariableOptionalInputs,
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  setVariableOptionalOutputs,
 		},
 		WorkflowNodeFilterOnVariable: {
 			WorkflowNodeType: WorkflowNodeFilterOnVariable,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
-			RequiredOutputs:  []WorkflowParameterWithLabel{},
-			OptionalOutputs:  []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   filterOnVariableOptionalInputs,
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  filterOnVariableOptionalOutputs,
 		},
 	}
 }

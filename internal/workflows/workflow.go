@@ -166,9 +166,9 @@ type WorkflowVersionNodeLink struct {
 	WorkflowVersionNodeLinkId   int                                       `json:"workflowVersionNodeLinkId" db:"workflow_version_node_link_id"`
 	Name                        string                                    `json:"name" db:"name"`
 	VisibilitySettings          WorkflowVersionNodeLinkVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
-	ParentOutputIndex           int                                       `json:"parentOutputIndex" db:"parent_output_index"`
+	ParentOutput                commons.WorkflowParameterLabel            `json:"parentOutput" db:"parent_output"`
 	ParentWorkflowVersionNodeId int                                       `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
-	ChildInputIndex             int                                       `json:"childInputIndex" db:"child_input_index"`
+	ChildInput                  commons.WorkflowParameterLabel            `json:"childInput" db:"child_input"`
 	ChildWorkflowVersionNodeId  int                                       `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
 	WorkflowVersionId           int                                       `json:"workflowVersionId" db:"workflow_version_id"`
 	CreatedOn                   time.Time                                 `json:"createdOn" db:"created_on"`
@@ -177,11 +177,11 @@ type WorkflowVersionNodeLink struct {
 }
 
 type CreateWorkflowVersionNodeLinkRequest struct {
-	WorkflowVersionId           int `json:"workflowVersionId" db:"workflow_version_id"`
-	ParentOutputIndex           int `json:"parentOutputIndex" db:"parent_output_index"`
-	ParentWorkflowVersionNodeId int `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
-	ChildInputIndex             int `json:"childInputIndex" db:"child_input_index"`
-	ChildWorkflowVersionNodeId  int `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
+	WorkflowVersionId           int                            `json:"workflowVersionId" db:"workflow_version_id"`
+	ParentOutput                commons.WorkflowParameterLabel `json:"parentOutput" db:"parent_output"`
+	ParentWorkflowVersionNodeId int                            `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
+	ChildInput                  commons.WorkflowParameterLabel `json:"childInput" db:"child_input"`
+	ChildWorkflowVersionNodeId  int                            `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
 }
 
 type WorkflowVersionNodeLog struct {
@@ -270,25 +270,25 @@ func (nvs *WorkflowNodeVisibilitySettings) Scan(val interface{}) (err error) {
 	return nil
 }
 
-func getWorkflowNodeInputsStatus(workflowNode WorkflowNode, inputs map[string]string,
-	stagingParameters map[string]string) (commons.Status, map[string]string) {
+func getWorkflowNodeInputsStatus(workflowNode WorkflowNode, inputs map[commons.WorkflowParameterLabel]string,
+	stagingParameters map[commons.WorkflowParameterLabel]string) (commons.Status, map[commons.WorkflowParameterLabel]string) {
 
 	// Get the required inputs for the workflow node's type
 	requiredInputs := commons.GetWorkflowNodes()[workflowNode.Type].RequiredInputs
 	// Iterate over the required inputs
-	for _, label := range requiredInputs {
-		// If the label is already a key in the inputs map, skip the rest of the loop body
-		if _, exists := inputs[label.Label]; exists {
+	for label := range requiredInputs {
+		// If the parameter is already a key in the inputs map, skip the rest of the loop body
+		if _, exists := inputs[label]; exists {
 			continue
 		}
-		// If the label is not a key in the inputs map, check if it is a key in the stagingParameters map
-		if inputData, exists := stagingParameters[label.Label]; exists {
-			// If it is, add an entry to the inputs map with the matching label and value from the stagingParameters map
-			inputs[label.Label] = inputData
-		} else {
+		// If the parameter is not a key in the inputs map, check if it is a key in the stagingParameters map
+		inputData, exists := stagingParameters[label]
+		if !exists {
 			// If it is not, return commons.Pending and the inputs map
 			return commons.Pending, inputs
 		}
+		// If it is, add an entry to the inputs map with the matching label and value from the stagingParameters map
+		inputs[label] = inputData
 	}
 	// If all required inputs have been processed, return commons.Active and the inputs map
 	return commons.Active, inputs

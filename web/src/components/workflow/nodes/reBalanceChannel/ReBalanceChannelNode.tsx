@@ -102,7 +102,7 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputIndex={1}
+          input={"destinationChannels"}
         />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
@@ -110,7 +110,7 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputIndex={2}
+          input={"sourceChannels"}
         />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
@@ -118,7 +118,7 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputIndex={3}
+          input={"ignoredChannels"}
         />
         <Input
           formatted={true}

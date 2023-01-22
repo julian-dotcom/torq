@@ -236,35 +236,39 @@ const (
 	WorkflowTriggerEventService
 )
 
-type WorkflowParameter string
+type WorkflowParameterType string
 
 const (
-	WorkflowParameterAny                   = WorkflowParameter("any")
-	WorkflowParameterTriggered             = WorkflowParameter("triggered")
-	WorkflowParameterChannelIds            = WorkflowParameter("channelIds")
-	WorkflowParameterRoutingPolicySettings = WorkflowParameter("routingPolicySettings")
-	WorkflowParameterRebalanceSettings     = WorkflowParameter("rebalanceSettings")
-	WorkflowParameterStatus                = WorkflowParameter("status")
-	WorkflowParameterTag                   = WorkflowParameter("tag")
+	WorkflowParameterTypeTimeTriggered         = WorkflowParameterType("timeTriggered")
+	WorkflowParameterTypeChannelEventTriggered = WorkflowParameterType("channelEventTriggered")
+	WorkflowParameterTypeChannelIds            = WorkflowParameterType("channelIds")
+	WorkflowParameterTypeRoutingPolicySettings = WorkflowParameterType("routingPolicySettings")
+	WorkflowParameterTypeRebalanceSettings     = WorkflowParameterType("rebalanceSettings")
+	WorkflowParameterTypeTagSettings           = WorkflowParameterType("tagSettings")
+	WorkflowParameterTypeStatus                = WorkflowParameterType("status")
+)
+
+type WorkflowParameterLabel string
+
+const (
+	WorkflowParameterLabelTimeTriggered         = WorkflowParameterLabel("timeTriggered")
+	WorkflowParameterLabelChannelEventTriggered = WorkflowParameterLabel("channelEventTriggered")
+	WorkflowParameterLabelChannels              = WorkflowParameterLabel("channels")
+	WorkflowParameterLabelRoutingPolicySettings = WorkflowParameterLabel("routingPolicySettings")
+	WorkflowParameterLabelRebalanceSettings     = WorkflowParameterLabel("rebalanceSettings")
+	WorkflowParameterLabelTagSettings           = WorkflowParameterLabel("tagSettings")
+	WorkflowParameterLabelSourceChannels        = WorkflowParameterLabel("sourceChannels")
+	WorkflowParameterLabelDestinationChannels   = WorkflowParameterLabel("destinationChannels")
+	WorkflowParameterLabelStatus                = WorkflowParameterLabel("status")
 )
 
 type WorkflowNodeTypeParameters struct {
 	WorkflowNodeType WorkflowNodeType
-	RequiredInputs   []WorkflowParameterWithLabel
-	OptionalInputs   []WorkflowParameterWithLabel
-	RequiredOutputs  []WorkflowParameterWithLabel
-	OptionalOutputs  []WorkflowParameterWithLabel
+	RequiredInputs   map[WorkflowParameterLabel]WorkflowParameterType
+	OptionalInputs   map[WorkflowParameterLabel]WorkflowParameterType
+	RequiredOutputs  map[WorkflowParameterLabel]WorkflowParameterType
+	OptionalOutputs  map[WorkflowParameterLabel]WorkflowParameterType
 }
-
-type WorkflowParameterType int
-
-const (
-	WorkflowParameterTimeInSeconds = WorkflowParameterType(iota)
-	WorkflowParameterBalanceShifted
-	WorkflowParameterVariableName
-	WorkflowParameterVariableValueString
-	WorkflowParameterVariableValueNumber
-)
 
 type RebalanceRequestOrigin int
 

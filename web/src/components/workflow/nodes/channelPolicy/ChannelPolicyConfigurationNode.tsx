@@ -84,7 +84,7 @@ export function ChannelPolicyNode({ ...wrapperProps }: ChannelPolicyNodeProps) {
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputIndex={1}
+          input={"channels"}
         />
         <Input
           formatted={true}

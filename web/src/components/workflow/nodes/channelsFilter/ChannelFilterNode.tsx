@@ -71,7 +71,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputIndex={1}
+          input={"channels"}
         />
         <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
           {t.save.toString()}

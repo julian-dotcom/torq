@@ -89,13 +89,13 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 					commons.Active, triggerCancel)
 				switch workflowTriggerNode.Type {
 				case commons.WorkflowNodeTimeTrigger:
-					inputs := make(map[string]string)
+					inputs := make(map[commons.WorkflowParameterLabel]string)
 					marshalledTimerEvent, err := json.Marshal(workflowTriggerNode)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to marshal WorkflowNodeTimeTrigger for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 						continue
 					}
-					inputs["commons.WorkflowNodeTimeTrigger"] = string(marshalledTimerEvent)
+					inputs[commons.WorkflowParameterLabelTimeTriggered] = string(marshalledTimerEvent)
 					processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
 				case commons.WorkflowNodeChannelBalanceEventTrigger:
 					eventTime := time.Now()
@@ -141,13 +141,13 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
 							dummyChannelBalanceEvent.AggregatedLocalBalance = aggregateLocalBalance[remoteNodeId]
 							dummyChannelBalanceEvent.AggregatedLocalBalancePerMilleRatio = aggregateLocalBalancePerMilleRatio[remoteNodeId]
-							inputs := make(map[string]string)
+							inputs := make(map[commons.WorkflowParameterLabel]string)
 							marshalledChannelBalanceEvent, err := json.Marshal(dummyChannelBalanceEvent)
 							if err != nil {
 								log.Error().Err(err).Msgf("Failed to marshal ChannelBalanceEvent for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 								continue
 							}
-							inputs["commons.ChannelBalanceEvent"] = string(marshalledChannelBalanceEvent)
+							inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledChannelBalanceEvent)
 							processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
 						}
 					}
@@ -163,69 +163,67 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 
 	defer log.Info().Msgf("EventTriggerMonitor terminated for nodeId: %v", nodeSettings.NodeId)
 
-	listener := broadcaster.Subscribe()
-	for event := range listener {
+	listener := broadcaster.SubscribeChannelBalanceEvent()
+	for channelEvent := range listener {
 		select {
 		case <-ctx.Done():
-			broadcaster.CancelSubscription(listener)
+			broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
 			return
 		default:
 		}
 
-		if channelEvent, ok := event.(commons.ChannelBalanceEvent); ok {
-			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
+		if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
+			continue
+		}
+
+		//if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
+		// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
+		//}
+
+		var bootedWorkflowVersionIds []int
+		workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeChannelBalanceEventTrigger)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to obtain root nodes (trigger nodes)")
+			continue
+		}
+		for _, workflowTriggerNode := range workflowTriggerNodes {
+			if slices.Contains(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId) {
 				continue
 			}
-
-			//if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
-			// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
+			triggerSettings := commons.GetTriggerSettingsByWorkflowVersionId(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId)
+			if triggerSettings.Status == commons.Active {
+				log.Info().Msgf("Trigger is already active with reference: %v.", triggerSettings.Reference)
+				continue
+			}
+			commons.SetTriggerVerificationTime(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId, time.Now())
+			//workflow, err := workflows.GetWorkflowByWorkflowVersionId(db, workflowTriggerNode.WorkflowVersionId)
+			//if err != nil {
+			//	log.Error().Err(err).Msgf("Failed to obtain workflow for workflowVersionId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+			//	continue
 			//}
-
-			var bootedWorkflowVersionIds []int
-			workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeChannelBalanceEventTrigger)
+			bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
+			inputs := make(map[commons.WorkflowParameterLabel]string)
+			marshalledChannelBalanceEvent, err := json.Marshal(channelEvent)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain root nodes (trigger nodes)")
+				log.Error().Err(err).Msgf("Failed to marshal channelEvent for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 				continue
 			}
-			for _, workflowTriggerNode := range workflowTriggerNodes {
-				if slices.Contains(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId) {
-					continue
-				}
-				triggerSettings := commons.GetTriggerSettingsByWorkflowVersionId(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId)
-				if triggerSettings.Status == commons.Active {
-					log.Info().Msgf("Trigger is already active with reference: %v.", triggerSettings.Reference)
-					continue
-				}
-				commons.SetTriggerVerificationTime(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId, time.Now())
-				//workflow, err := workflows.GetWorkflowByWorkflowVersionId(db, workflowTriggerNode.WorkflowVersionId)
-				//if err != nil {
-				//	log.Error().Err(err).Msgf("Failed to obtain workflow for workflowVersionId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-				//	continue
-				//}
-				bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
-				inputs := make(map[string]string)
-				marshalledChannelBalanceEvent, err := json.Marshal(channelEvent)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to marshal channelEvent for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-					continue
-				}
-				inputs["commons.ChannelBalanceEvent"] = string(marshalledChannelBalanceEvent)
-				triggerCtx, triggerCancel := context.WithCancel(context.Background())
-				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-				commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
-					workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
-				processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
-			}
+			inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledChannelBalanceEvent)
+			triggerCtx, triggerCancel := context.WithCancel(context.Background())
+			reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+			commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
+				workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
+			processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
 		}
 	}
 }
 
 func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
-	workflowTriggerNode workflows.WorkflowNode, reference string, inputs map[string]string) {
+	workflowTriggerNode workflows.WorkflowNode, reference string, inputs map[commons.WorkflowParameterLabel]string) {
 
 	workflowNodeCache := make(map[int]workflows.WorkflowNode)
 	workflowNodeStatus := make(map[int]commons.Status)
-	workflowNodeStagingParametersCache := make(map[int]map[string]string)
+	workflowNodeStagingParametersCache := make(map[int]map[commons.WorkflowParameterLabel]string)
 
 	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowTriggerNode,
 		0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)

@@ -33,7 +33,7 @@ func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 // Then it's stored in the database in the channel_event table.
 func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscribeChannelEvent,
 	ce *lnrpc.ChannelEventUpdate, nodeSettings commons.ManagedNodeSettings,
-	eventChannel chan interface{}) error {
+	channelEventChannel chan commons.ChannelEvent) error {
 
 	timestampMs := time.Now().UTC()
 
@@ -81,7 +81,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
 
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channel.ChannelID, false, jsonByteArray,
-			channelEvent, eventChannel)
+			channelEvent, channelEventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Insert Open Channel Event")
 		}
@@ -117,7 +117,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channel.ChannelID, false, jsonByteArray,
-			channelEvent, eventChannel)
+			channelEvent, channelEventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Insert Closed Channel Event")
 		}
@@ -146,7 +146,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			return errors.Wrap(err, "ACTIVE_CHANNEL: JSON Marshall")
 		}
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channelId, false, jsonByteArray,
-			channelEvent, eventChannel)
+			channelEvent, channelEventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Insert Active Channel Event")
 		}
@@ -163,7 +163,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			return errors.Wrap(err, "INACTIVE_CHANNEL: JSON Marshall")
 		}
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channelId, false, jsonByteArray,
-			channelEvent, eventChannel)
+			channelEvent, channelEventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Insert Inactive Channel Event")
 		}
@@ -179,7 +179,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			return errors.Wrap(err, "FULLY_RESOLVED_CHANNEL: JSON Marshall")
 		}
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channelId, false, jsonByteArray,
-			channelEvent, eventChannel)
+			channelEvent, channelEventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Insert Fully Resolved Channel Event")
 		}
@@ -195,7 +195,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			return errors.Wrap(err, "PENDING_OPEN_CHANNEL: JSON Marshall")
 		}
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channelId, false, jsonByteArray,
-			channelEvent, eventChannel)
+			channelEvent, channelEventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Insert Pending Open Channel Event")
 		}
@@ -335,8 +335,9 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{},
-	importRequestChannel chan commons.ImportRequest) {
+	nodeSettings commons.ManagedNodeSettings, channelEventChannel chan commons.ChannelEvent,
+	importRequestChannel chan commons.ImportRequest,
+	serviceEventChannel chan commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -354,7 +355,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			stream, err = client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -380,7 +381,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 					continue
 				}
 			}
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 
 		chanEvent, err = stream.Recv()
@@ -388,14 +389,14 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msgf("Receiving channel events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 			stream = nil
 			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 
-		err = storeChannelEvent(ctx, db, client, chanEvent, nodeSettings, eventChannel)
+		err = storeChannelEvent(ctx, db, client, chanEvent, nodeSettings, channelEventChannel)
 		if err != nil {
 			// TODO FIXME STORE THIS SOMEWHERE??? CHANNELEVENT IS NOW IGNORED???
 			log.Error().Err(err).Msg("Storing channel event failed")
@@ -851,7 +852,7 @@ func processEmptyChanId(vectorUrl string, channelPoint string, nodeSettings comm
 
 func insertChannelEvent(db *sqlx.DB, eventTime time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,
 	nodeId, channelId int, imported bool, jsonByteArray []byte,
-	channelEvent commons.ChannelEvent, eventChannel chan interface{}) error {
+	channelEvent commons.ChannelEvent, channelEventChannel chan commons.ChannelEvent) error {
 
 	var sqlStm = `INSERT INTO channel_event (time, event_type, channel_id, imported, event, node_id)
 		VALUES($1, $2, $3, $4, $5, $6);`
@@ -861,9 +862,9 @@ func insertChannelEvent(db *sqlx.DB, eventTime time.Time, eventType lnrpc.Channe
 		return errors.Wrap(err, "DB Exec")
 	}
 
-	if eventChannel != nil {
+	if channelEventChannel != nil {
 		channelEvent.ChannelId = channelId
-		eventChannel <- channelEvent
+		channelEventChannel <- channelEvent
 	}
 
 	return nil

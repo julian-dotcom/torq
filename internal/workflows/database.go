@@ -325,14 +325,14 @@ func cloneWorkflowVersion(db *sqlx.DB, workflowId int, cloneVersionId *int) (Wor
 
 		err = db.QueryRowx(`
 				INSERT INTO workflow_version_node_link
-					(name, visibility_settings, parent_output_index, parent_workflow_version_node_id,
-					 child_input_index, child_workflow_version_node_id, workflow_version_id, created_on, updated_on)
+					(name, visibility_settings, parent_output, parent_workflow_version_node_id,
+					 child_input, child_workflow_version_node_id, workflow_version_id, created_on, updated_on)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING workflow_version_node_link_id;`,
 			wvnl.Name,
 			wvnl.VisibilitySettings,
-			wvnl.ParentOutputIndex,
+			wvnl.ParentOutput,
 			wvnl.ParentWorkflowVersionNodeId,
-			wvnl.ChildInputIndex,
+			wvnl.ChildInput,
 			wvnl.ChildWorkflowVersionNodeId,
 			wvnl.WorkflowVersionId,
 			wvnl.CreatedOn,
@@ -622,13 +622,12 @@ func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNo
 	rows, err := db.Queryx(`
 		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
 		       n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
-		       l.parent_workflow_version_node_id, l.parent_output_index,
+		       l.parent_workflow_version_node_id, l.parent_output,
 		       l.name linkName, l.visibility_settings,
-		       l.child_workflow_version_node_id, l.child_input_index, l.updated_on
+		       l.child_workflow_version_node_id, l.child_input, l.updated_on
 		FROM workflow_version_node_link l
 		JOIN workflow_version_node n ON n.workflow_version_node_id=l.child_workflow_version_node_id
-		WHERE l.child_workflow_version_node_id=$1
-		ORDER BY l.child_input_index;`, workflowVersionNodeId)
+		WHERE l.child_workflow_version_node_id=$1;`, workflowVersionNodeId)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, nil, errors.Wrap(err, database.SqlExecutionError)
@@ -647,13 +646,12 @@ func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNod
 	rows, err := db.Queryx(`
 		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
 		       n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
-		       l.parent_workflow_version_node_id, l.parent_output_index,
+		       l.parent_workflow_version_node_id, l.parent_output,
 		       l.name linkName, l.visibility_settings,
-		       l.child_workflow_version_node_id, l.child_input_index, l.updated_on
+		       l.child_workflow_version_node_id, l.child_input, l.updated_on
 		FROM workflow_version_node_link l
 		JOIN workflow_version_node n ON n.workflow_version_node_id=l.parent_workflow_version_node_id
-		WHERE l.parent_workflow_version_node_id=$1
-		ORDER BY l.parent_output_index;`, workflowVersionNodeId)
+		WHERE l.parent_workflow_version_node_id=$1;`, workflowVersionNodeId)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, nil, errors.Wrap(err, database.SqlExecutionError)
@@ -672,14 +670,13 @@ func GetTriggerGoupChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*
 	rows, err := db.Queryx(`
 		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
 			n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
-			l.parent_workflow_version_node_id, l.parent_output_index,
+			l.parent_workflow_version_node_id, l.parent_output,
 			l.name linkName, l.visibility_settings,
-			l.child_workflow_version_node_id, l.child_input_index, l.updated_on
+			l.child_workflow_version_node_id, l.child_input, l.updated_on
 		FROM workflow_version_node_link l
 		JOIN workflow_version_node n ON n.workflow_version_node_id !=l.parent_workflow_version_node_id
         AND stage = ( SELECT stage FROM workflow_version_node where workflow_version_node_id = 2)
-		WHERE n.workflow_version_node_id != $1
-		ORDER BY l.parent_output_index;`, workflowVersionNodeId)
+		WHERE n.workflow_version_node_id != $1;`, workflowVersionNodeId)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, nil, errors.Wrap(err, database.SqlExecutionError)
@@ -697,8 +694,8 @@ func GetTriggerGoupChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*
 func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkDetails map[int]WorkflowVersionNodeLink) error {
 	for rows.Next() {
 		var versionNodeId int
-		var parentsVersionNodeId int
-		var childsVersionNodeId int
+		var parentVersionNodeId int
+		var childVersionNodeId int
 		var name string
 		var status commons.Status
 		var nodeType commons.WorkflowNodeType
@@ -708,22 +705,22 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 		var updatedOn time.Time
 		var linkUpdatedOn time.Time
 		var versionNodeLinkId int
-		var parentsOutputIndex int
+		var parentOutput commons.WorkflowParameterLabel
 		var linkName string
 		var linkVisibilitySettings WorkflowVersionNodeLinkVisibilitySettings
-		var childsInputIndex int
+		var childInput commons.WorkflowParameterLabel
 		err := rows.Scan(&versionNodeId, &name, &status, &nodeType, &parameters, &visibilitySettings, &workflowVersionId, &updatedOn,
-			&versionNodeLinkId, &parentsVersionNodeId, &parentsOutputIndex, &linkName, &linkVisibilitySettings,
-			&childsVersionNodeId, &childsInputIndex, &linkUpdatedOn)
+			&versionNodeLinkId, &parentVersionNodeId, &parentOutput, &linkName, &linkVisibilitySettings,
+			&childVersionNodeId, &childInput, &linkUpdatedOn)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining nodeId and publicKey from the resultSet")
 		}
 		nodeLinkDetails[versionNodeLinkId] = WorkflowVersionNodeLink{
 			WorkflowVersionNodeLinkId:   versionNodeLinkId,
-			ParentWorkflowVersionNodeId: parentsVersionNodeId,
-			ParentOutputIndex:           parentsOutputIndex,
-			ChildWorkflowVersionNodeId:  childsVersionNodeId,
-			ChildInputIndex:             childsInputIndex,
+			ParentWorkflowVersionNodeId: parentVersionNodeId,
+			ParentOutput:                parentOutput,
+			ChildWorkflowVersionNodeId:  childVersionNodeId,
+			ChildInput:                  childInput,
 			WorkflowVersionId:           workflowVersionId,
 			UpdateOn:                    linkUpdatedOn,
 			Name:                        linkName,
@@ -945,8 +942,8 @@ func GetWorkflowVersionNodeLinks(db *sqlx.DB, workflowVersionId int) ([]Workflow
 				l.workflow_version_node_link_id,
 				l.parent_workflow_version_node_id,
 				l.child_workflow_version_node_id,
-				l.parent_output_index,
-				l.child_input_index,
+				l.parent_output,
+				l.child_input,
 				l.name,
 				l.visibility_settings,
 				l.created_on,
@@ -982,15 +979,15 @@ func addWorkflowVersionNodeLink(db *sqlx.DB, req CreateWorkflowVersionNodeLinkRe
 	wvnl.WorkflowVersionId = req.WorkflowVersionId
 	wvnl.ParentWorkflowVersionNodeId = req.ParentWorkflowVersionNodeId
 	wvnl.ChildWorkflowVersionNodeId = req.ChildWorkflowVersionNodeId
-	wvnl.ParentOutputIndex = req.ParentOutputIndex
-	wvnl.ChildInputIndex = req.ChildInputIndex
+	wvnl.ParentOutput = req.ParentOutput
+	wvnl.ChildInput = req.ChildInput
 
 	err = db.QueryRowx(`INSERT INTO workflow_version_node_link
     	(name,
     	 visibility_settings,
-    	 parent_output_index,
+    	 parent_output,
     	 parent_workflow_version_node_id,
-    	 child_input_index,
+    	 child_input,
     	 child_workflow_version_node_id,
     	 workflow_version_id,
     	 created_on,
@@ -998,9 +995,9 @@ func addWorkflowVersionNodeLink(db *sqlx.DB, req CreateWorkflowVersionNodeLinkRe
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING workflow_version_node_link_id;`,
 		wvnl.Name,
 		visibilitySettingsBytes,
-		wvnl.ParentOutputIndex,
+		wvnl.ParentOutput,
 		wvnl.ParentWorkflowVersionNodeId,
-		wvnl.ChildInputIndex,
+		wvnl.ChildInput,
 		wvnl.ChildWorkflowVersionNodeId,
 		wvnl.WorkflowVersionId,
 		wvnl.CreatedOn,
@@ -1019,13 +1016,13 @@ func addWorkflowVersionNodeLink(db *sqlx.DB, req CreateWorkflowVersionNodeLinkRe
 func updateWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVersionNodeLink) (WorkflowVersionNodeLink, error) {
 	workflowVersionNodeLink.UpdateOn = time.Now().UTC()
 	_, err := db.Exec(`UPDATE workflow_version_node_link
-		SET name=$1, visibility_settings=$2, parent_output_index=$3,
-		    parent_workflow_version_node_id=$4, child_input_index=$5, child_workflow_version_node_id=$6,
+		SET name=$1, visibility_settings=$2, parent_output=$3,
+		    parent_workflow_version_node_id=$4, child_input=$5, child_workflow_version_node_id=$6,
 		    workflow_version_id=$7, updated_on=$8
 		WHERE workflow_version_node_link_id=$9;`,
 		workflowVersionNodeLink.Name, workflowVersionNodeLink.VisibilitySettings,
-		workflowVersionNodeLink.ParentOutputIndex, workflowVersionNodeLink.ParentWorkflowVersionNodeId,
-		workflowVersionNodeLink.ChildInputIndex, workflowVersionNodeLink.ChildWorkflowVersionNodeId,
+		workflowVersionNodeLink.ParentOutput, workflowVersionNodeLink.ParentWorkflowVersionNodeId,
+		workflowVersionNodeLink.ChildInput, workflowVersionNodeLink.ChildWorkflowVersionNodeId,
 		workflowVersionNodeLink.WorkflowVersionId,
 		workflowVersionNodeLink.UpdateOn, workflowVersionNodeLink.WorkflowVersionNodeLinkId)
 	if err != nil {

@@ -25,7 +25,10 @@ import (
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
 func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl string, nodeId int, broadcaster broadcast.BroadcastServer,
-	eventChannel chan interface{}, lightningRequestChannel chan interface{}) error {
+	serviceEventChannel chan commons.ServiceEvent, htlcEventChannel chan commons.HtlcEvent, forwardEventChannel chan commons.ForwardEvent,
+	channelEventChannel chan commons.ChannelEvent, nodeGraphEventChannel chan commons.NodeGraphEvent, channelGraphEventChannel chan commons.ChannelGraphEvent,
+	invoiceEventChannel chan commons.InvoiceEvent, paymentEventChannel chan commons.PaymentEvent, transactionEventChannel chan commons.TransactionEvent,
+	peerEventChannel chan commons.PeerEvent, blockEventChannel chan commons.BlockEvent, lightningRequestChannel chan interface{}) error {
 
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
@@ -147,10 +150,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
+		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, channelEventChannel, importRequestChannel, serviceEventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.ChannelEventStream, "ChannelEventStream", eventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.ChannelEventStream, "ChannelEventStream", serviceEventChannel)
 
 	// Graph (Node updates, fee updates etc.)
 	wg.Add(1)
@@ -162,10 +165,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, eventChannel, importRequestChannel)
+		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, nodeGraphEventChannel, channelGraphEventChannel, importRequestChannel, serviceEventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.GraphEventStream, "GraphEventStream", eventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.GraphEventStream, "GraphEventStream", serviceEventChannel)
 
 	// HTLC events
 	wg.Add(1)
@@ -177,10 +180,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, eventChannel)
+		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings, htlcEventChannel, serviceEventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.HtlcEventStream, "HtlcEventStream", eventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.HtlcEventStream, "HtlcEventStream", serviceEventChannel)
 
 	// Peer Events
 	wg.Add(1)
@@ -192,10 +195,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribePeerEvents(ctx, client, nodeSettings, eventChannel)
+		lnd.SubscribePeerEvents(ctx, client, nodeSettings, peerEventChannel, serviceEventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.PeerEventStream, "PeerEventStream", eventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.PeerEventStream, "PeerEventStream", serviceEventChannel)
 
 	// Channel Balance Cache Maintenance
 	wg.Add(1)
@@ -207,7 +210,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, eventChannel)
+		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings, broadcaster, serviceEventChannel)
 	})()
 	// No need to waitForReadyState for ChannelBalanceCacheMaintenance
 
@@ -221,10 +224,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, eventChannel)
+		lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings, transactionEventChannel, blockEventChannel, serviceEventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.TransactionStream, "TransactionStream", eventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.TransactionStream, "TransactionStream", serviceEventChannel)
 
 	// Forwarding history
 	wg.Add(1)
@@ -236,10 +239,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, eventChannel, nil)
+		lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, forwardEventChannel, serviceEventChannel, nil)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.ForwardStream, "ForwardStream", eventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.ForwardStream, "ForwardStream", serviceEventChannel)
 
 	// Payments
 	wg.Add(1)
@@ -251,10 +254,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, eventChannel, nil)
+		lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, paymentEventChannel, serviceEventChannel, nil)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.PaymentStream, "PaymentStream", eventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.PaymentStream, "PaymentStream", serviceEventChannel)
 
 	// Invoices
 	wg.Add(1)
@@ -266,10 +269,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, eventChannel)
+		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings, invoiceEventChannel, serviceEventChannel)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.InvoiceStream, "InvoiceStream", eventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.InvoiceStream, "InvoiceStream", serviceEventChannel)
 
 	// Update in flight payments
 	wg.Add(1)
@@ -281,10 +284,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, eventChannel, nil)
+		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, serviceEventChannel, nil)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", eventChannel)
+	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", serviceEventChannel)
 
 	log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)
 
@@ -293,7 +296,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 	return nil
 }
 
-func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream, name string, eventChannel chan interface{}) {
+func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream, name string, serviceEventChannel chan commons.ServiceEvent) {
 	log.Info().Msgf("LND %v initialization started for nodeId: %v", name, nodeId)
 	streamStartTime := time.Now()
 	time.Sleep(1 * time.Second)
@@ -319,7 +322,7 @@ func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream
 			}
 			if time.Since(*lastInitializationPing).Seconds() > float64(pingTimeOutInSeconds) {
 				log.Info().Msgf("LND %v idle for over %v seconds for nodeId: %v", name, pingTimeOutInSeconds, nodeId)
-				lnd.SendStreamEvent(eventChannel, nodeId, subscriptionStream, commons.Active, commons.Initializing)
+				lnd.SendStreamEvent(serviceEventChannel, nodeId, subscriptionStream, commons.Active, commons.Initializing)
 				return
 			}
 		}
