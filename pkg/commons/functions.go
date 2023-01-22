@@ -181,13 +181,21 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 	rebalanceParametersOptionalOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
 	rebalanceParametersOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
 
-	//WorkflowTag
+	//WorkflowNodeAddTag
 	addTagOptionalInputs := channelsOnly
 	addTagOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
 	addTagOptionalOutputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
 	addTagOptionalOutputs[WorkflowParameterLabelTagSettings] = WorkflowParameterTypeTagSettings
 	addTagOptionalOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
 	addTagOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+
+	//WorkflowNodeRemoveTag
+	removeTagOptionalInputs := channelsOnly
+	removeTagOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	removeTagOptionalOutputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
+	removeTagOptionalOutputs[WorkflowParameterLabelTagSettings] = WorkflowParameterTypeTagSettings
+	removeTagOptionalOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	removeTagOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
 
 	//WorkflowNodeStageTrigger
 	stageTriggerOptionalOutputs := all
@@ -261,8 +269,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalOutputs:  rebalanceParametersOptionalOutputs,
 		},
-		WorkflowAddTag: {
-			WorkflowNodeType: WorkflowAddTag,
+		WorkflowNodeAddTag: {
+			WorkflowNodeType: WorkflowNodeAddTag,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   addTagOptionalInputs,
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
@@ -270,13 +278,10 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 		},
 		WorkflowNodeRemoveTag: {
 			WorkflowNodeType: WorkflowNodeRemoveTag,
-			RequiredInputs:   []WorkflowParameterWithLabel{},
-			OptionalInputs:   []WorkflowParameterWithLabel{{Label: "any", WorkflowParameter: WorkflowParameterAny}},
-			RequiredOutputs:  []WorkflowParameterWithLabel{},
-			OptionalOutputs: []WorkflowParameterWithLabel{
-				{Label: "tagSettings", WorkflowParameter: WorkflowParameterTag},
-				{Label: "triggered", WorkflowParameter: WorkflowParameterTriggered},
-			},
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   removeTagOptionalInputs,
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  removeTagOptionalOutputs,
 		},
 		WorkflowNodeStageTrigger: {
 			WorkflowNodeType: WorkflowNodeStageTrigger,
