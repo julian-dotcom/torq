@@ -56,7 +56,7 @@ func TestSubscribePayments(t *testing.T) {
 		panic(err)
 	}
 
-	db, dbCancel, _, _, err := srv.NewTestDatabase(true)
+	db, dbCancel, _, err := srv.NewTestDatabase(true)
 	defer dbCancel()
 	if err != nil {
 		t.Fatal(err)
@@ -236,7 +236,7 @@ func TestSubscribePayments(t *testing.T) {
 		defer wg.Done()
 		SubscribeAndStorePayments(ctx, &mclient, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil, &opt)
 	}()
 	// Simulate passing intervals
 	numbTicks := 4

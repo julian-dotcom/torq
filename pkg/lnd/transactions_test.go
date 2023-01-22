@@ -32,7 +32,7 @@ func TestStoreTransaction(t *testing.T) {
 		panic(err)
 	}
 
-	db, cancel, _, _, err := srv.NewTestDatabase(true)
+	db, cancel, _, err := srv.NewTestDatabase(true)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
