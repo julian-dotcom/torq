@@ -1,0 +1,22 @@
+DROP TABLE workflow_version_node_link;
+
+CREATE TABLE workflow_version_node_link (
+    workflow_version_node_link_id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    visibility_settings JSONB NOT NULL,
+    parent_output TEXT NOT NULL,
+    parent_workflow_version_node_id INTEGER NOT NULL REFERENCES workflow_version_node(workflow_version_node_id),
+    child_input TEXT NOT NULL,
+    child_workflow_version_node_id INTEGER NOT NULL REFERENCES workflow_version_node(workflow_version_node_id),
+    workflow_version_id INTEGER NOT NULL REFERENCES workflow_version(workflow_version_id),
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL,
+    UNIQUE (parent_workflow_version_node_id, parent_output, child_workflow_version_node_id, child_input),
+    UNIQUE (workflow_version_id, name)
+);
+
+delete from workflow_version_node_log;
+delete from workflow_version_node_link;
+delete from workflow_version_node;
+delete from workflow_version;
+delete from workflow;

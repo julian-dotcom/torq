@@ -24,10 +24,10 @@ type ManagedTrigger struct {
 	TriggeringWorkflowVersionNodeId int
 	Reference                       string
 	CancelFunction                  context.CancelFunc
-	PreviousState                   string
 	BootTime                        *time.Time
 	VerificationTime                *time.Time
 	Status                          Status
+	PreviousState                   Status
 	TriggerSettingsOut              chan ManagedTriggerSettings
 }
 
@@ -37,10 +37,10 @@ type ManagedTriggerSettings struct {
 	TriggeringWorkflowVersionNodeId int
 	Reference                       string
 	CancelFunction                  context.CancelFunc
-	PreviousState                   string
 	BootTime                        *time.Time
 	VerificationTime                *time.Time
 	Status                          Status
+	PreviousState                   Status
 }
 
 func ManagedTriggerCache(ch chan ManagedTrigger, ctx context.Context) {
@@ -76,15 +76,29 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 			return
 		}
 		initializeTriggerCache(triggerCache, managedTrigger.NodeId)
-		triggerCache[managedTrigger.NodeId][managedTrigger.WorkflowVersionId] = ManagedTriggerSettings{
-			WorkflowVersionId:               managedTrigger.WorkflowVersionId,
-			TriggeringWorkflowVersionNodeId: managedTrigger.TriggeringWorkflowVersionNodeId,
-			Reference:                       managedTrigger.Reference,
-			Status:                          managedTrigger.Status,
-			CancelFunction:                  managedTrigger.CancelFunction,
-			BootTime:                        managedTrigger.BootTime,
-			PreviousState:                   managedTrigger.PreviousState,
+		triggerSettings, exists := triggerCache[managedTrigger.NodeId][managedTrigger.WorkflowVersionId]
+		if !exists {
+			triggerCache[managedTrigger.NodeId][managedTrigger.WorkflowVersionId] = ManagedTriggerSettings{
+				WorkflowVersionId:               managedTrigger.WorkflowVersionId,
+				TriggeringWorkflowVersionNodeId: managedTrigger.TriggeringWorkflowVersionNodeId,
+				Reference:                       managedTrigger.Reference,
+				Status:                          managedTrigger.Status,
+				CancelFunction:                  managedTrigger.CancelFunction,
+				BootTime:                        managedTrigger.BootTime,
+			}
+			return
 		}
+		if triggerSettings.Status != managedTrigger.Status {
+			triggerSettings.PreviousState = triggerSettings.Status
+		}
+		if managedTrigger.BootTime != nil {
+			triggerSettings.BootTime = managedTrigger.BootTime
+		}
+		triggerSettings.TriggeringWorkflowVersionNodeId = managedTrigger.TriggeringWorkflowVersionNodeId
+		triggerSettings.Reference = managedTrigger.Reference
+		triggerSettings.Status = managedTrigger.Status
+		triggerSettings.CancelFunction = managedTrigger.CancelFunction
+		triggerCache[managedTrigger.NodeId][managedTrigger.WorkflowVersionId] = triggerSettings
 	case WRITE_TRIGGER_VERIFICATIONTIME:
 		if managedTrigger.NodeId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) or WorkflowVersionId (%v) allowed",

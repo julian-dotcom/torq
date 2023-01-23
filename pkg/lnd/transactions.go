@@ -45,7 +45,9 @@ func fetchLastTxHeight(db *sqlx.DB, nodeId int) (txHeight int32, err error) {
 // SubscribeAndStoreTransactions Subscribes to on-chain transaction events from LND and stores them in the
 // database as a time series. It will also import unregistered transactions on startup.
 func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, chain chainrpc.ChainNotifierClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+	nodeSettings commons.ManagedNodeSettings,
+	transactionEventChannel chan commons.TransactionEvent, blockEventChannel chan commons.BlockEvent,
+	serviceEventChannel chan commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreTransactions terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -67,7 +69,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			transactionHeight, err = fetchLastTxHeight(db, nodeSettings.NodeId)
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -104,14 +106,14 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Receiving block epoch from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 				stream = nil
 				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
-			if eventChannel != nil {
-				eventChannel <- commons.BlockEvent{
+			if blockEventChannel != nil {
+				blockEventChannel <- commons.BlockEvent{
 					EventData: commons.EventData{
 						EventTime: time.Now().UTC(),
 						NodeId:    nodeSettings.NodeId,
@@ -128,7 +130,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 				stream = nil
 				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
@@ -137,9 +139,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		}
 
 		if bootStrapping {
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 		} else {
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 		for _, transaction := range transactionDetails.Transactions {
 			storedTx, err = storeTransaction(db, transaction, nodeSettings.NodeId)
@@ -147,8 +149,8 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				// TODO FIXME This transaction is now missing
 				log.Error().Err(err).Msg("Failed to store the transaction (transaction is now missing and can only be recovered by emptying the transactions table)")
 			}
-			if eventChannel != nil && !bootStrapping {
-				eventChannel <- commons.TransactionEvent{
+			if transactionEventChannel != nil && !bootStrapping {
+				transactionEventChannel <- commons.TransactionEvent{
 					EventData: commons.EventData{
 						EventTime: time.Now().UTC(),
 						NodeId:    nodeSettings.NodeId,

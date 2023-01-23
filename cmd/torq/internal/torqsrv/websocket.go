@@ -159,15 +159,14 @@ func processWebsocketRequests(c *gin.Context, conn *websocket.Conn, done chan st
 func processBroadcasterEvents(done chan struct{}, broadcaster broadcast.BroadcastServer,
 	webSocketChannel chan interface{}) {
 
-	listener := broadcaster.Subscribe()
+	listener := broadcaster.SubscribeWebSocketResponse()
 	for event := range listener {
 		select {
 		case <-done:
-			broadcaster.CancelSubscription(listener)
+			broadcaster.CancelSubscriptionWebSocketResponse(listener)
 			return
 		default:
 		}
-		// TODO FIXME FILTER OUT ONLY THE EVENTS THE USER ACTUALLY WANTS!!!
 		if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
 			webSocketChannel <- openChannelEvent
 		} else if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {

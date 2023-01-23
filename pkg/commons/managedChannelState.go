@@ -163,7 +163,7 @@ type ManagedChannelBalanceStateSettings struct {
 }
 
 // ManagedChannelStateCache parameter Context is for test cases...
-func ManagedChannelStateCache(ch chan ManagedChannelState, ctx context.Context, channelEvent chan interface{}) {
+func ManagedChannelStateCache(ch chan ManagedChannelState, ctx context.Context, channelBalanceEventChannel chan ChannelBalanceEvent) {
 	channelStateSettingsByChannelIdCache := make(map[int]map[int]ManagedChannelStateSettings, 0)
 	channelStateSettingsStatusCache := make(map[int]Status, 0)
 	channelStateSettingsDeactivationTimeCache := make(map[int]time.Time, 0)
@@ -174,7 +174,7 @@ func ManagedChannelStateCache(ch chan ManagedChannelState, ctx context.Context, 
 		case managedChannelState := <-ch:
 			processManagedChannelStateSettings(managedChannelState,
 				channelStateSettingsStatusCache, channelStateSettingsByChannelIdCache,
-				channelStateSettingsDeactivationTimeCache, channelEvent)
+				channelStateSettingsDeactivationTimeCache, channelBalanceEventChannel)
 		}
 	}
 }
@@ -183,7 +183,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 	channelStateSettingsStatusCache map[int]Status,
 	channelStateSettingsByChannelIdCache map[int]map[int]ManagedChannelStateSettings,
 	channelStateSettingsDeactivationTimeCache map[int]time.Time,
-	channelEvent chan interface{}) {
+	channelBalanceEventChannel chan ChannelBalanceEvent) {
 	switch managedChannelState.Type {
 	case READ_CHANNELSTATE:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
@@ -363,7 +363,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					channelBalanceEvent.PreviousEventData.LocalBalancePerMilleRatio != channelBalanceEvent.LocalBalancePerMilleRatio ||
 					channelBalanceEvent.PreviousEventData.AggregatedLocalBalance != channelBalanceEvent.AggregatedLocalBalance ||
 					channelBalanceEvent.PreviousEventData.AggregatedLocalBalancePerMilleRatio != channelBalanceEvent.AggregatedLocalBalancePerMilleRatio) {
-				channelEvent <- channelBalanceEvent
+				channelBalanceEventChannel <- channelBalanceEvent
 			}
 		}
 		channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = settingsByChannel

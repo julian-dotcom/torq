@@ -75,9 +75,9 @@ export type WorkflowVersionNodeLink = {
   workflowVersionNodeLinkId: number;
   name: string;
   visibilitySettings?: LinkVisibilitySettings;
-  parentOutputIndex: number;
+  parentOutput: string;
   parentWorkflowVersionNodeId: number;
-  childInputIndex: number;
+  childInput: string;
   childWorkflowVersionNodeId: number;
   createdOn: Date;
   updatedOn: Date;
@@ -85,17 +85,17 @@ export type WorkflowVersionNodeLink = {
 
 export type CreateWorkflowVersionNodeLink = {
   workflowVersionId: number;
-  parentOutputIndex: number;
+  parentOutput: string;
   parentWorkflowVersionNodeId: number;
-  childInputIndex: number;
+  childInput: string;
   childWorkflowVersionNodeId: number;
 };
 
 export type UpdateWorkflowVersionNodeLink = {
   workflowVersionNodeLinkId: number;
-  parentOutputIndex: number;
+  parentOutput: string;
   parentWorkflowVersionNodeId: number;
-  childInputIndex: number;
+  childInput: string;
   childWorkflowVersionNodeId: number;
   visibilitySettings: LinkVisibilitySettings;
 };

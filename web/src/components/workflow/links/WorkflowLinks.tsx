@@ -18,8 +18,8 @@ function WorkflowLink(props: WorkflowLinkProp) {
   const linkRef = useRef<SVGLineElement>(null);
   const circleRef = useRef<SVGCircleElement>(null);
   const iconRef = useRef<SVGGElement>(null);
-  const parentEventName = `parentLinkMove-${props.link.parentWorkflowVersionNodeId.toString()}-${props.link.parentOutputIndex.toString()}`;
-  const childEventName = `childLinkMove-${props.link.childWorkflowVersionNodeId.toString()}-${props.link.childInputIndex.toString()}`;
+  const parentEventName = `parentLinkMove-${props.link.parentWorkflowVersionNodeId.toString()}-${props.link.parentOutput}`;
+  const childEventName = `childLinkMove-${props.link.childWorkflowVersionNodeId.toString()}-${props.link.childInput}`;
   const initialPath = "M 0 0 C 1 1 1 1 2 2";
   const [deleteLink] = useDeleteNodeLinkMutation();
 
@@ -153,9 +153,9 @@ function WorkflowLinks(props: WorkflowLinkProps) {
         {/*    name: "virtual",*/}
         {/*    workflowVersionNodeLinkId: -1,*/}
         {/*    parentWorkflowVersionNodeId: -1,*/}
-        {/*    parentOutputIndex: -1,*/}
+        {/*    parentOutput: '',*/}
         {/*    childWorkflowVersionNodeId: -1,*/}
-        {/*    childInputIndex: -1,*/}
+        {/*    childInput: '',*/}
         {/*    createdOn: new Date(),*/}
         {/*    updatedOn: new Date(),*/}
         {/*    stage: props.stage,*/}

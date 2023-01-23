@@ -18,7 +18,8 @@ type peerEventsClient interface {
 }
 
 func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
-	nodeSettings commons.ManagedNodeSettings, eventChannel chan interface{}) {
+	nodeSettings commons.ManagedNodeSettings, peerEventChannel chan commons.PeerEvent,
+	serviceEventChannel chan commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribePeerEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -36,7 +37,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			stream, err = client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -47,7 +48,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
 		}
 
 		peerEvent, err = stream.Recv()
@@ -55,17 +56,17 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(eventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 			log.Error().Err(err).Msgf("Receiving peer events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
 			stream = nil
 			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 			continue
 		}
 
-		if eventChannel != nil {
+		if peerEventChannel != nil {
 			eventNodeId := commons.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
 			if eventNodeId != 0 {
-				eventChannel <- commons.PeerEvent{
+				peerEventChannel <- commons.PeerEvent{
 					EventData: commons.EventData{
 						EventTime: time.Now().UTC(),
 						NodeId:    nodeSettings.NodeId,

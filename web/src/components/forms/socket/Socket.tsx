@@ -16,7 +16,7 @@ export type SocketProps = BasicInputType & {
   workflowVersionId: number;
   workflowVersionNodeId: number;
   selectedNodes: Array<WorkflowVersionNode>;
-  inputIndex: number;
+  input: string;
   collapsed: boolean;
   placeholder?: string;
   acceptMultiple?: boolean;
@@ -53,12 +53,12 @@ function Socket(props: SocketProps) {
     setIsDragover(false);
   }
 
-  function addLinkFromDrop(parentOutputIndex: number, parentWorkflowVersionNodeId: number) {
+  function addLinkFromDrop(parentOutput: string, parentWorkflowVersionNodeId: number) {
     addLink({
       workflowVersionId: props.workflowVersionId,
-      childInputIndex: props.inputIndex,
+      childInput: props.input,
       childWorkflowVersionNodeId: props.workflowVersionNodeId,
-      parentOutputIndex: parentOutputIndex,
+      parentOutput: parentOutput,
       parentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
     });
   }
@@ -69,12 +69,12 @@ function Socket(props: SocketProps) {
     setIsDragover(false);
     // Get the id of the nodes connector that was dropped
     const parentWorkflowVersionNodeId = parseInt(e.dataTransfer.getData("node/parentWorkflowVersionNodeId"));
-    const parentOutputIndex = parseInt(e.dataTransfer.getData("node/parentOutputIndex"));
+    const parentOutput = e.dataTransfer.getData("node/parentOutput");
     if (props.selectedNodes?.length > 0 && !props.acceptMultiple) {
       toastRef?.current?.addToast(props.label + " " + t.socketCantAcceptMultipleInputs, toastCategory.error);
       return;
     }
-    addLinkFromDrop(parentOutputIndex, parentWorkflowVersionNodeId);
+    addLinkFromDrop(parentOutput, parentWorkflowVersionNodeId);
   }
 
   function updater() {
@@ -83,7 +83,7 @@ function Socket(props: SocketProps) {
       const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const x = connBB.x - canvasBB.x + connBB.width / 2 - 8; // -14 because of the 16 padding right on the connector and 4px line width
       const y = connBB.y - canvasBB.y + connBB.height / 2 - 12.5;
-      const eventName = `childLinkMove-${props.workflowVersionNodeId}-${props.inputIndex}`;
+      const eventName = `childLinkMove-${props.workflowVersionNodeId}-${props.input}`;
       const event = new CustomEvent(eventName, {
         detail: {
           x: x,

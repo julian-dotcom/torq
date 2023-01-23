@@ -401,11 +401,11 @@ func initServiceMaps(rs *Services, nodeId int) {
 	}
 }
 
-func SendServiceEvent(nodeId int, eventChannel chan interface{}, previousStatus Status, status Status,
+func SendServiceEvent(nodeId int, serviceEventChannel chan ServiceEvent, previousStatus Status, status Status,
 	serviceType ServiceType, subscriptionStream *SubscriptionStream) {
 	if previousStatus != status {
-		if eventChannel != nil {
-			eventChannel <- ServiceEvent{
+		if serviceEventChannel != nil {
+			serviceEventChannel <- ServiceEvent{
 				EventData: EventData{
 					EventTime: time.Now().UTC(),
 					NodeId:    nodeId,

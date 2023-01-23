@@ -66,7 +66,7 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 		panic(err)
 	}
 
-	db, cancel, _, _, err := srv.NewTestDatabase(true)
+	db, cancel, _, err := srv.NewTestDatabase(true)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
@@ -154,7 +154,7 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 		defer wg.Done()
 		SubscribeForwardingEvents(ctx, &mclient, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil, &opt)
 	}()
 	// Simulate passing intervals, one more than required to process
 	numbTicks := 2

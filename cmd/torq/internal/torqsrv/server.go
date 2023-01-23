@@ -41,8 +41,9 @@ import (
 )
 
 func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
-	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer,
+	webSocketResponseChannel chan interface{}, broadcaster broadcast.BroadcastServer,
 	lightningRequestChannel chan interface{},
+	rebalanceRequestChannel chan commons.RebalanceRequest,
 	serviceChannel chan commons.ServiceChannelMessage) error {
 
 	r := gin.Default()
@@ -56,7 +57,7 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 		return errors.Wrap(err, "Creating Gin Session")
 	}
 
-	registerRoutes(r, db, apiPswd, cookiePath, eventChannel, broadcaster, lightningRequestChannel, serviceChannel)
+	registerRoutes(r, db, apiPswd, cookiePath, webSocketResponseChannel, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -116,8 +117,9 @@ func equalASCIIFold(s, t string) bool {
 }
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string,
-	eventChannel chan interface{}, broadcaster broadcast.BroadcastServer,
+	webSocketResponseChannel chan interface{}, broadcaster broadcast.BroadcastServer,
 	lightningRequestChannel chan interface{},
+	rebalanceRequestChannel chan commons.RebalanceRequest,
 	serviceChannel chan commons.ServiceChannelMessage) {
 
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
@@ -126,7 +128,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 	ws := r.Group("/ws")
 	ws.Use(auth.AuthRequired)
 	ws.GET("", func(c *gin.Context) {
-		err := WebsocketHandler(c, db, eventChannel, broadcaster)
+		err := WebsocketHandler(c, db, webSocketResponseChannel, broadcaster)
 		log.Debug().Msgf("WebsocketHandler: %v", err)
 	})
 
@@ -227,7 +229,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 
 		automationRoutes := api.Group("/automation")
 		{
-			automation.RegisterAutomationRoutes(automationRoutes, db, eventChannel)
+			automation.RegisterAutomationRoutes(automationRoutes, db, rebalanceRequestChannel)
 		}
 
 		messageRoutes := api.Group("messages")

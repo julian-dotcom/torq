@@ -70,7 +70,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		panic(err)
 	}
 
-	db, cancel, _, _, err := srv.NewTestDatabase(true)
+	db, cancel, _, err := srv.NewTestDatabase(true)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
@@ -342,7 +342,7 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 		defer wg.Done()
 		SubscribeAndStoreChannelGraph(ctx, client, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil, nil, nil)
 	}()
 	wg.Wait()
 

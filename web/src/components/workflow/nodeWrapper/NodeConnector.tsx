@@ -32,7 +32,7 @@ function NodeConnector(props: NodeConnectorProps) {
     // Set the information about which node and connector is being dragged.
     e.dataTransfer.setData("node/workflowVersionId", props.workflowVersionId.toString());
     e.dataTransfer.setData("node/parentWorkflowVersionNodeId", props.workflowVersionNodeId.toString());
-    e.dataTransfer.setData("node/parentOutputIndex", "1");
+    e.dataTransfer.setData("node/parentOutput", "");
     nodeRef?.current?.classList.add(styles.connecting);
     e.dataTransfer.setData("node/name", props.name);
 
