@@ -293,7 +293,6 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			log.Error().Msgf("No empty NodeId (%v) allowed", managedChannelState.NodeId)
 			break
 		}
-		existingChannelStateSetting, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 		settingsByChannel := make(map[int]ManagedChannelStateSettings)
 		eventTime := time.Now()
 		aggregateLocalBalance := make(map[int]int64)
@@ -332,6 +331,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 				},
 				ChannelId: channelStateSetting.ChannelId,
 			}
+			existingChannelStateSetting, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 			if exists && existingChannelStateSetting[channelStateSetting.ChannelId].ChannelId != 0 {
 				_, previousAggregateExists := previousAggregateLocalBalance[channelStateSetting.RemoteNodeId]
 				if !previousAggregateExists {

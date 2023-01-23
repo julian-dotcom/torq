@@ -588,8 +588,7 @@ func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails
 		}
 	}()
 
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	log.Info().Msgf("Subscribing to LND for node id: %v", node.NodeId)
 	previousStatus := services.AddSubscription(node.NodeId, cancel)
@@ -646,8 +645,7 @@ func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.
 		}
 	}()
 
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	log.Info().Msgf("Generating %v Service for node id: %v", name, node.NodeId)
 	previousStatus := services.AddSubscription(node.NodeId, cancel)

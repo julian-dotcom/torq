@@ -431,15 +431,6 @@ func GetActiveSortedStageTriggerNodeForWorkflowVersionId(db *sqlx.DB, workflowVe
 	return response, nil
 }
 
-//func getWorkflowNodeParameter(parameters WorkflowNodeParameters, parameterType commons.WorkflowParameterType) WorkflowNodeParameter {
-//	for _, parameter := range parameters.Parameters {
-//		if parameter.Type == parameterType {
-//			return parameter
-//		}
-//	}
-//	return WorkflowNodeParameter{}
-//}
-
 // GetWorkflowNode is not recursive and only returns direct parent/child relations without further nesting.
 func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, error) {
 	var wfvn WorkflowVersionNode
@@ -690,7 +681,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 		var name string
 		var status commons.Status
 		var nodeType commons.WorkflowNodeType
-		var parameters WorkflowNodeParameters
+		var parameters []byte
 		var visibilitySettings WorkflowNodeVisibilitySettings
 		var workflowVersionId int
 		var updatedOn time.Time

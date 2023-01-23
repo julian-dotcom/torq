@@ -1,6 +1,7 @@
 package commons
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -10,7 +11,7 @@ type Services struct {
 	// serviceStatus: Active=Service is running normal, Inactive=Service has been cancelled, Pending=Service is booting
 	serviceStatus map[int]Status
 	mu            sync.RWMutex
-	runningList   map[int]func()
+	runningList   map[int]context.CancelFunc
 	// bootLock entry guards against running restart code whilst it's already running
 	bootLock   map[int]*sync.Mutex
 	bootTime   map[int]time.Time
@@ -29,7 +30,7 @@ type Services struct {
 
 var RunningServices map[ServiceType]*Services //nolint:gochecknoglobals
 
-func (rs *Services) AddSubscription(nodeId int, cancelFunc func()) Status {
+func (rs *Services) AddSubscription(nodeId int, cancelFunc context.CancelFunc) Status {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -375,7 +376,7 @@ func (rs *Services) SetStreamStatus(nodeId int, stream SubscriptionStream, statu
 
 func initServiceMaps(rs *Services, nodeId int) {
 	if rs.runningList == nil {
-		rs.runningList = make(map[int]func())
+		rs.runningList = make(map[int]context.CancelFunc)
 		rs.serviceStatus = make(map[int]Status)
 		rs.bootLock = make(map[int]*sync.Mutex)
 		rs.bootTime = make(map[int]time.Time)
