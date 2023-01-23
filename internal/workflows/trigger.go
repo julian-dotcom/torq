@@ -16,7 +16,7 @@ import (
 // ProcessWorkflowNode workflowNodeStagingParametersCache[WorkflowVersionNodeId][parameterLabel] (i.e. parameterLabel = sourceChannels)
 func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, workflowNode WorkflowNode, triggeringWorkflowVersionNodeId int,
-	workflowNodeCache map[int]WorkflowNode, workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[commons.WorkflowParameterLabel]string,
+	workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[commons.WorkflowParameterLabel]string,
 	reference string, inputs map[commons.WorkflowParameterLabel]string, iteration int) (map[commons.WorkflowParameterLabel]string, commons.Status, error) {
 
 	iteration++
@@ -30,19 +30,6 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	}
 	outputs := commons.CopyParameters(inputs)
 	var err error
-
-	workflowNodeCached, cached := workflowNodeCache[workflowNode.WorkflowVersionNodeId]
-	if cached {
-		workflowNode = workflowNodeCached
-	} else {
-		// Obtain workflowNode because parent and child aren't completely populated
-		workflowNode, err = GetWorkflowNode(db, workflowNode.WorkflowVersionNodeId)
-		if err != nil {
-			// Probably doesn't make sense to wrap in recursive loop
-			return nil, commons.Inactive, err
-		}
-		workflowNodeCache[workflowNode.WorkflowVersionNodeId] = workflowNode
-	}
 
 	if workflowNode.Status == commons.Active {
 		status, exists := workflowNodeStatus[workflowNode.WorkflowVersionNodeId]
@@ -114,17 +101,6 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				}
 			}
 
-		case commons.WorkflowNodeTimeTrigger:
-			childNodes, childNodeLinkDetails, err := GetTriggerGoupChildNodes(db, workflowNode.WorkflowVersionNodeId)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain the group nodes links")
-				return nil, commons.Inactive, err
-			}
-			workflowNode.ChildNodes = childNodes
-			workflowNode.LinkDetails = childNodeLinkDetails
-			_, triggerCancel := context.WithCancel(context.Background())
-			commons.SetTrigger(nodeSettings.NodeId, reference, workflowNode.WorkflowVersionId, triggeringWorkflowVersionNodeId, commons.Inactive, triggerCancel)
-
 		case commons.WorkflowNodeStageTrigger:
 			if iteration > 0 {
 				// There shouldn't be any stage nodes except when it's the first node
@@ -174,7 +150,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId,
-				workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)
+				workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)
 			// If childProcessingStatus is not equal to commons.Pending, call AddWorkflowVersionNodeLog with several arguments, including nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, triggeringWorkflowVersionNodeId, inputs, and childOutputs
 			if childProcessingStatus != commons.Pending {
 				AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference,

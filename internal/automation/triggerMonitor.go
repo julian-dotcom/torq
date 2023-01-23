@@ -22,6 +22,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 
 	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
 	bootstrapping := true
+	activeTriggers := make(map[int]context.CancelFunc)
 	for {
 		select {
 		case <-ctx.Done():
@@ -53,40 +54,37 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 					continue
 				}
 				if workflowTriggerNode.Type == commons.WorkflowNodeTimeTrigger {
-
 					var param workflows.TimeTriggerParameters
 					err := json.Unmarshal([]byte(workflowTriggerNode.Parameters.([]uint8)), &param)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to parse parameters for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 						continue
 					}
-
-					// TODO: Check if this is correct
 					if triggerSettings.BootTime != nil && int32(time.Since(*triggerSettings.BootTime).Seconds()) < param.Seconds {
 						continue
 					}
-
-					//foundIt := false
-					//for _, triggerParameter := range workflowTriggerNode.Parameters.Parameters {
-					//	if triggerParameter.Type == commons.WorkflowParameterTimeInSeconds && triggerParameter.ValueNumber != 0 {
-					//		if triggerSettings.BootTime != nil && int(time.Since(*triggerSettings.BootTime).Seconds()) < triggerParameter.ValueNumber {
-					//			continue
-					//		}
-					//		foundIt = true
-					//	}
-					//}
-					//if !foundIt {
-					//	log.Error().Err(err).Msgf("Trigger parameter could not be found for WorkflowVersionNodeId: %v.", workflowTriggerNode.WorkflowVersionNodeId)
-					//	continue
-					//}
 				}
 
 				bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
-				triggerCtx, triggerCancel := context.WithCancel(context.Background())
+				triggerCtx, triggerCancel := context.WithCancel(ctx)
+				activeTriggers[workflowTriggerNode.WorkflowVersionId] = triggerCancel
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+
+				triggerGroupWorkflowVersionNodeId, err := workflows.GetTriggerGroupWorkflowVersionNodeId(db, workflowTriggerNode.WorkflowVersionNodeId)
+				if err != nil || triggerGroupWorkflowVersionNodeId == 0 {
+					log.Error().Err(err).Msgf("Failed to obtain the group node id for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+					continue
+				}
+				groupWorkflowVersionNode, err := workflows.GetWorkflowNode(db, triggerGroupWorkflowVersionNodeId)
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to obtain the group nodes links for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+					continue
+				}
+				workflowTriggerNode.ChildNodes = groupWorkflowVersionNode.ChildNodes
+				workflowTriggerNode.LinkDetails = groupWorkflowVersionNode.LinkDetails
 				commons.SetTrigger(nodeSettings.NodeId, reference,
-					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
-					commons.Active, triggerCancel)
+					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
+
 				switch workflowTriggerNode.Type {
 				case commons.WorkflowNodeTimeTrigger:
 					inputs := make(map[commons.WorkflowParameterLabel]string)
@@ -152,6 +150,10 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 						}
 					}
 				}
+				commons.SetTrigger(nodeSettings.NodeId, reference,
+					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId, commons.Inactive, triggerCancel)
+				triggerCancel()
+				delete(activeTriggers, workflowTriggerNode.WorkflowVersionId)
 			}
 			bootstrapping = false
 		}
@@ -221,12 +223,11 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
 	workflowTriggerNode workflows.WorkflowNode, reference string, inputs map[commons.WorkflowParameterLabel]string) {
 
-	workflowNodeCache := make(map[int]workflows.WorkflowNode)
 	workflowNodeStatus := make(map[int]commons.Status)
 	workflowNodeStagingParametersCache := make(map[int]map[commons.WorkflowParameterLabel]string)
 
 	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowTriggerNode,
-		0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
+		0, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
 	workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionNodeId,
 		0, inputs, outputs, err)
 	if err != nil {
@@ -244,7 +245,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 	for _, workflowDeferredLinkNode := range workflowChannelBalanceTriggerNodes {
 		inputs = commons.CopyParameters(outputs)
 		outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowDeferredLinkNode,
-			0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
+			0, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
 		workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
 			0, inputs, outputs, err)
 		if err != nil {
