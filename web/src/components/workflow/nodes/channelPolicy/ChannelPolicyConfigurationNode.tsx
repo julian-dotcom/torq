@@ -75,7 +75,7 @@ export function ChannelPolicyNode({ ...wrapperProps }: ChannelPolicyNodeProps) {
       heading={t.channelPolicyConfiguration}
       headerIcon={<ChannelPolicyIcon />}
       colorVariant={NodeColorVariant.accent1}
-      noConnector={true}
+      outputName={"channels"}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
@@ -84,7 +84,7 @@ export function ChannelPolicyNode({ ...wrapperProps }: ChannelPolicyNodeProps) {
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          input={"channels"}
+          inputName={"channels"}
         />
         <Input
           formatted={true}

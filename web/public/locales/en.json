@@ -2,6 +2,9 @@
   "helpAndBugsMenuItem": "Help",
   "ApplyTo": "Apply to",
   "Targets": "Targets",
+  "Destinations": "Destinations",
+  "Sources": "Sources",
+  "Avoid": "Avoid",
   "socketCantAcceptMultipleInputs": "does not accept multiple links.",
   "sign": "Sign",
   "verify": "Verify",
@@ -174,7 +177,9 @@
     "tableOptions": "Table options"
   },
   "workflowNodes": {
+    "channelBalanceTrigger": "Channel Balance Trigger",
     "channelPolicyConfiguration": "Channel Policy Configuration",
+    "balanceTriggerNodeDescription": "Triggers the workflow when the balance of a channel changes.",
     "timeTrigger": "Time Trigger",
     "channelFilter": "Channel Filter",
     "Rebalance": "Rebalance",

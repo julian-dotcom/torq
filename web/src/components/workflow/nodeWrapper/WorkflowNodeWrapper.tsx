@@ -36,7 +36,7 @@ export type WorkflowNodeProps = WorkflowVersionNode & {
   noDeletion?: boolean;
   noDeactivation?: boolean;
   noOptions?: boolean;
-  noConnector?: boolean;
+  outputName?: string;
   children?: React.ReactNode;
 };
 
@@ -222,10 +222,11 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
               </div>
             </PopoverButton>
           )}
-          {!props.noConnector && (
+          {props.outputName && (
             <NodeConnector
               id={connectorId}
               name={props.name}
+              outputName={props.outputName || ""}
               workflowVersionNodeId={props.workflowVersionNodeId}
               workflowVersionId={props.workflowVersionId}
             />

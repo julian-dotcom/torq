@@ -31,7 +31,7 @@ import Modal from "features/modal/Modal";
 import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import { InputSizeVariant } from "../../components/forms/forms";
+import { InputSizeVariant } from "components/forms/forms";
 
 const ft = d3.format(",.0f");
 

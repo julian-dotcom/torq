@@ -78,12 +78,48 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
     })
   );
 
-  const parentNodeIds = childLinks?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
-  const parentNodes = useSelector(
+  const destinationChannelsIds =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "destinationChannels";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const destinationChannels = useSelector(
     SelectWorkflowNodes({
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
-      nodeIds: parentNodeIds,
+      nodeIds: destinationChannelsIds,
+    })
+  );
+
+  const sourceChannelIds =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "sourceChannels";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const sourceChannels = useSelector(
+    SelectWorkflowNodes({
+      version: wrapperProps.version,
+      workflowId: wrapperProps.workflowId,
+      nodeIds: sourceChannelIds,
+    })
+  );
+
+  const avoidChannelsIds =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "avoidChannels";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const avoidChannels = useSelector(
+    SelectWorkflowNodes({
+      version: wrapperProps.version,
+      workflowId: wrapperProps.workflowId,
+      nodeIds: avoidChannelsIds,
     })
   );
 
@@ -93,32 +129,31 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
       heading={t.channelPolicyConfiguration}
       headerIcon={<ReBalanceIcon />}
       colorVariant={NodeColorVariant.accent1}
-      noConnector={true}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.target}
-          selectedNodes={parentNodes || []}
+          label={t.Destinations}
+          selectedNodes={destinationChannels || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          input={"destinationChannels"}
+          inputName={"destinationChannels"}
         />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.sources}
-          selectedNodes={parentNodes || []}
+          label={t.Sources}
+          selectedNodes={sourceChannels || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          input={"sourceChannels"}
+          inputName={"sourceChannels"}
         />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.avoid}
-          selectedNodes={parentNodes || []}
+          label={t.Avoid}
+          selectedNodes={avoidChannels || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          input={"ignoredChannels"}
+          inputName={"avoidChannels"}
         />
         <Input
           formatted={true}

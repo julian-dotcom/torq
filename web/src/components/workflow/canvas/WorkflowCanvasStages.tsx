@@ -10,6 +10,7 @@ import {
   ChannelFilterNode,
   ReBalanceChannelNode,
   AddTagNode,
+  BalanceTriggerNode,
 } from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
@@ -45,6 +46,7 @@ function FirstStageTrigger(props: {
           <NodeConnector
             id={"ss"}
             name={t.triggers}
+            outputName={"all"}
             workflowVersionNodeId={triggerNode?.workflowVersionNodeId || 0}
             workflowVersionId={props.workflowVersionId}
           />
@@ -92,18 +94,20 @@ function getNodeComponent(node: WorkflowVersionNode) {
   switch (node.type) {
     case WorkflowNodeType.TimeTrigger:
       return <TimeTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.ChannelBalanceEventTrigger:
+      return <BalanceTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.StageTrigger:
       return <StageTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelPolicyConfigurator:
-      return <ChannelPolicyNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+      return <ChannelPolicyNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
     case WorkflowNodeType.ChannelFilter:
-      return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+      return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
     case WorkflowNodeType.RebalanceParameters:
       return <ReBalanceChannelNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.AddTag:
-      return <AddTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+      return <AddTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
     case WorkflowNodeType.RemoveTag:
-      return <RemoveTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+      return <RemoveTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
     default:
       return null;
   }

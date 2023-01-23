@@ -18,7 +18,9 @@ function WorkflowLink(props: WorkflowLinkProp) {
   const linkRef = useRef<SVGLineElement>(null);
   const circleRef = useRef<SVGCircleElement>(null);
   const iconRef = useRef<SVGGElement>(null);
-  const parentEventName = `parentLinkMove-${props.link.parentWorkflowVersionNodeId.toString()}-${props.link.parentOutput}`;
+  const parentEventName = `parentLinkMove-${props.link.parentWorkflowVersionNodeId.toString()}-${
+    props.link.parentOutput
+  }`;
   const childEventName = `childLinkMove-${props.link.childWorkflowVersionNodeId.toString()}-${props.link.childInput}`;
   const initialPath = "M 0 0 C 1 1 1 1 2 2";
   const [deleteLink] = useDeleteNodeLinkMutation();
