@@ -98,7 +98,7 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
       heading={t.workflowNodes.tag}
       headerIcon={<TagIcon />}
       colorVariant={NodeColorVariant.accent3}
-      noConnector={true}
+      outputName={"channels"}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
@@ -107,7 +107,7 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          input={"channels"}
+          inputName={"channels"}
         />
         <RadioChips
           label={t.ApplyTo}

@@ -67,11 +67,11 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.inputs}
+          label={t.channels}
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          input={"channels"}
+          inputName={"channels"}
         />
         <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
           {t.save.toString()}

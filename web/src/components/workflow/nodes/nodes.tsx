@@ -9,3 +9,7 @@ export { ReBalanceChannelNode } from "./reBalanceChannel/ReBalanceChannelNode";
 export { ReBalanceChannelNodeButton } from "./reBalanceChannel/ReBalanceChannelNodeButton";
 export { AddTagNodeButton } from "./tags/AddTagNodeButton";
 export { AddTagNode } from "./tags/AddTagNode";
+export { RemoveTagNodeButton } from "./tags/RemoveTagNodeButton";
+export { RemoveTagNode } from "./tags/RemoveTagNode";
+export { BalanceTriggerNodeButton } from "./balanceTrigger/BalanceTriggerNodeButton";
+export { BalanceTriggerNode } from "./balanceTrigger/BalanceTriggerNode";

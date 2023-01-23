@@ -16,7 +16,7 @@ export type SocketProps = BasicInputType & {
   workflowVersionId: number;
   workflowVersionNodeId: number;
   selectedNodes: Array<WorkflowVersionNode>;
-  input: string;
+  inputName: string;
   collapsed: boolean;
   placeholder?: string;
   acceptMultiple?: boolean;
@@ -56,7 +56,7 @@ function Socket(props: SocketProps) {
   function addLinkFromDrop(parentOutput: string, parentWorkflowVersionNodeId: number) {
     addLink({
       workflowVersionId: props.workflowVersionId,
-      childInput: props.input,
+      childInput: props.inputName,
       childWorkflowVersionNodeId: props.workflowVersionNodeId,
       parentOutput: parentOutput,
       parentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
@@ -83,7 +83,7 @@ function Socket(props: SocketProps) {
       const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const x = connBB.x - canvasBB.x + connBB.width / 2 - 8; // -14 because of the 16 padding right on the connector and 4px line width
       const y = connBB.y - canvasBB.y + connBB.height / 2 - 12.5;
-      const eventName = `childLinkMove-${props.workflowVersionNodeId}-${props.input}`;
+      const eventName = `childLinkMove-${props.workflowVersionNodeId}-${props.inputName}`;
       const event = new CustomEvent(eventName, {
         detail: {
           x: x,
@@ -144,13 +144,15 @@ function Socket(props: SocketProps) {
           <div className={styles.socketDot} />
         </div>
         <div className={styles.connectedNodeNames}>
-          {props.selectedNodes.map((n, index) => {
-            return (
-              <span className={styles.connectionTag} key={n.workflowVersionNodeId + "-" + index}>
-                {n.name}
-              </span>
-            );
-          }) || "Drag connection here"}
+          {props.selectedNodes.length > 0 &&
+            props.selectedNodes.map((n, index) => {
+              return (
+                <span className={styles.connectionTag} key={n.workflowVersionNodeId + "-" + index}>
+                  {n.name}
+                </span>
+              );
+            })}
+          {props.selectedNodes.length === 0 && "Drop connection here"}
         </div>
       </div>
       {props.errorText && (

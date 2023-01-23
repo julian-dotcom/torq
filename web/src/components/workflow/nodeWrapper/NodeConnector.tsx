@@ -7,6 +7,7 @@ import { NodeContext } from "./WorkflowNodeWrapper";
 export type NodeConnectorProps = {
   id: string;
   name: string;
+  outputName: string;
   workflowVersionId: number;
   workflowVersionNodeId: number;
 };
@@ -32,7 +33,7 @@ function NodeConnector(props: NodeConnectorProps) {
     // Set the information about which node and connector is being dragged.
     e.dataTransfer.setData("node/workflowVersionId", props.workflowVersionId.toString());
     e.dataTransfer.setData("node/parentWorkflowVersionNodeId", props.workflowVersionNodeId.toString());
-    e.dataTransfer.setData("node/parentOutput", "");
+    e.dataTransfer.setData("node/parentOutput", props.outputName);
     nodeRef?.current?.classList.add(styles.connecting);
     e.dataTransfer.setData("node/name", props.name);
 
@@ -73,7 +74,7 @@ function NodeConnector(props: NodeConnectorProps) {
       const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const x = connBB.x - canvasBB.x + connBB.width / 2 + -2; // -14 because of the 16 padding right on the connector and 4px line width
       const y = connBB.y - canvasBB.y + connBB.height / 2 - 15;
-      const eventName = `parentLinkMove-${props.workflowVersionNodeId}-${1}`;
+      const eventName = `parentLinkMove-${props.workflowVersionNodeId}-${props.outputName}`;
       const event = new CustomEvent(eventName, {
         detail: {
           x: x,
