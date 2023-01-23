@@ -188,13 +188,13 @@ func processServiceEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 		default:
 		}
 		if serviceEvent.NodeId == 0 || serviceEvent.Type != commons.LndService {
-			return
+			continue
 		}
 		if serviceEvent.SubscriptionStream == nil {
-			return
+			continue
 		}
 		if !serviceEvent.SubscriptionStream.IsChannelBalanceCache() {
-			return
+			continue
 		}
 		commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(serviceEvent.NodeId))
 	}
@@ -210,7 +210,7 @@ func processChannelEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 		default:
 		}
 		if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
-			return
+			continue
 		}
 
 		var status commons.Status
@@ -238,7 +238,7 @@ func processChannelGraphEvent(ctx context.Context, broadcaster broadcast.Broadca
 		if channelGraphEvent.NodeId == 0 || channelGraphEvent.ChannelId == nil || *channelGraphEvent.ChannelId == 0 ||
 			channelGraphEvent.AnnouncingNodeId == nil || *channelGraphEvent.AnnouncingNodeId == 0 ||
 			channelGraphEvent.ConnectingNodeId == nil || *channelGraphEvent.ConnectingNodeId == 0 {
-			return
+			continue
 		}
 		local := *channelGraphEvent.AnnouncingNodeId == channelGraphEvent.NodeId
 		commons.SetChannelStateRoutingPolicy(channelGraphEvent.NodeId, *channelGraphEvent.ChannelId, local,
@@ -257,7 +257,7 @@ func processForwardEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 		default:
 		}
 		if forwardEvent.NodeId == 0 {
-			return
+			continue
 		}
 		if forwardEvent.IncomingChannelId != nil {
 			commons.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.IncomingChannelId, true, forwardEvent.AmountInMsat)
@@ -278,7 +278,7 @@ func processInvoiceEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 		default:
 		}
 		if invoiceEvent.NodeId == 0 || invoiceEvent.State != lnrpc.Invoice_SETTLED {
-			return
+			continue
 		}
 		commons.SetChannelStateBalanceUpdateMsat(invoiceEvent.NodeId, invoiceEvent.ChannelId, true, invoiceEvent.AmountPaidMsat)
 	}
@@ -294,7 +294,7 @@ func processPaymentEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 		default:
 		}
 		if paymentEvent.NodeId == 0 || paymentEvent.OutgoingChannelId == nil || *paymentEvent.OutgoingChannelId == 0 || paymentEvent.PaymentStatus != lnrpc.Payment_SUCCEEDED {
-			return
+			continue
 		}
 		commons.SetChannelStateBalanceUpdate(paymentEvent.NodeId, *paymentEvent.OutgoingChannelId, false, paymentEvent.AmountPaid)
 	}
@@ -310,7 +310,7 @@ func processPaymentEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 //		default:
 //		}
 //		if htlcEvent.NodeId == 0 {
-//			return
+//			continue
 //		}
 //		commons.SetChannelStateBalanceHtlcEvent(htlcEvent)
 //	}
@@ -326,7 +326,7 @@ func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer
 		default:
 		}
 		if peerEvent.NodeId == 0 || peerEvent.EventNodeId == 0 {
-			return
+			continue
 		}
 		var status commons.Status
 		switch peerEvent.Type {
@@ -342,7 +342,7 @@ func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer
 		// Channel open requires confirmations
 		//} else if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
 		//	if openChannelEvent.Request.NodeId == 0 || openChannelEvent.Status != commons.Open {
-		//		return
+		//		continue
 		//	}
 		//	commons.SetChannelStateChannelStatus(openChannelEvent.Request.NodeId, openChannelEvent.ChannelId, commons.Inactive)
 	}
@@ -359,12 +359,12 @@ func processWebSocketResponse(ctx context.Context, broadcaster broadcast.Broadca
 		}
 		if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
 			if closeChannelEvent.Request.NodeId == 0 {
-				return
+				continue
 			}
 			commons.SetChannelStateChannelStatus(closeChannelEvent.Request.NodeId, closeChannelEvent.Request.ChannelId, commons.Deleted)
 		} else if updateChannelEvent, ok := event.(commons.RoutingPolicyUpdateResponse); ok {
 			if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == 0 {
-				return
+				continue
 			}
 			// Force Response because we don't care about balance accuracy
 			currentStates := commons.GetChannelState(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true)
