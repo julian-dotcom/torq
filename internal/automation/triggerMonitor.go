@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/andres-erbsen/clock"
 	"github.com/jmoiron/sqlx"
+	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 
@@ -167,61 +169,103 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 
 	defer log.Info().Msgf("EventTriggerMonitor terminated for nodeId: %v", nodeSettings.NodeId)
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go channelBalanceEventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+
+	wg.Add(1)
+	go channelEventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+
+	wg.Wait()
+}
+
+func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
+	broadcaster broadcast.BroadcastServer) {
+
+	defer log.Info().Msgf("EventTriggerMonitor terminated for nodeId: %v", nodeSettings.NodeId)
+
 	listener := broadcaster.SubscribeChannelBalanceEvent()
-	for channelEvent := range listener {
+	for {
 		select {
 		case <-ctx.Done():
 			broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
 			return
-		default:
-		}
+		case channelBalanceEvent := <-listener:
 
-		if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
+			if channelBalanceEvent.NodeId == 0 || channelBalanceEvent.ChannelId == 0 {
+				continue
+			}
+
+			processEventTrigger(ctx, db, nodeSettings, channelBalanceEvent, commons.WorkflowNodeChannelBalanceEventTrigger)
+		}
+	}
+}
+
+func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
+	broadcaster broadcast.BroadcastServer) {
+
+	channelEventListener := broadcaster.SubscribeChannelEvent()
+	for {
+		select {
+		case <-ctx.Done():
+			broadcaster.CancelSubscriptionChannelEvent(channelEventListener)
+			return
+		case channelEvent := <-channelEventListener:
+			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
+				continue
+			}
+
+			if channelEvent.Type == lnrpc.ChannelEventUpdate_OPEN_CHANNEL {
+				processEventTrigger(ctx, db, nodeSettings, channelEvent, commons.WorkflowNodeChannelOpenEventTrigger)
+
+			}
+			if channelEvent.Type == lnrpc.ChannelEventUpdate_CLOSED_CHANNEL {
+				processEventTrigger(ctx, db, nodeSettings, channelEvent, commons.WorkflowNodeChannelCloseEventTrigger)
+			}
+		}
+	}
+}
+
+func processEventTrigger(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
+	triggeringEvent any, workflowNodeType commons.WorkflowNodeType) {
+
+	//if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
+	// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
+	//}
+
+	var bootedWorkflowVersionIds []int
+	workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, workflowNodeType)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to obtain root nodes (trigger nodes)")
+		return
+	}
+	for _, workflowTriggerNode := range workflowTriggerNodes {
+		if slices.Contains(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId) {
 			continue
 		}
-
-		//if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
-		// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
-		//}
-
-		var bootedWorkflowVersionIds []int
-		workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeChannelBalanceEventTrigger)
+		triggerSettings := commons.GetTriggerSettingsByWorkflowVersionId(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId)
+		if triggerSettings.Status == commons.Active {
+			log.Info().Msgf("Trigger is already active with reference: %v.", triggerSettings.Reference)
+			continue
+		}
+		commons.SetTriggerVerificationTime(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId, time.Now())
+		bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
+		inputs := make(map[commons.WorkflowParameterLabel]string)
+		marshalledEvent, err := json.Marshal(triggeringEvent)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to obtain root nodes (trigger nodes)")
+			log.Error().Err(err).Msgf("Failed to marshal event for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 			continue
 		}
-		for _, workflowTriggerNode := range workflowTriggerNodes {
-			if slices.Contains(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId) {
-				continue
-			}
-			triggerSettings := commons.GetTriggerSettingsByWorkflowVersionId(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId)
-			if triggerSettings.Status == commons.Active {
-				log.Info().Msgf("Trigger is already active with reference: %v.", triggerSettings.Reference)
-				continue
-			}
-			commons.SetTriggerVerificationTime(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId, time.Now())
-			//workflow, err := workflows.GetWorkflowByWorkflowVersionId(db, workflowTriggerNode.WorkflowVersionId)
-			//if err != nil {
-			//	log.Error().Err(err).Msgf("Failed to obtain workflow for workflowVersionId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-			//	continue
-			//}
-			bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
-			inputs := make(map[commons.WorkflowParameterLabel]string)
-			marshalledChannelBalanceEvent, err := json.Marshal(channelEvent)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to marshal channelEvent for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-				continue
-			}
-			inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledChannelBalanceEvent)
-			reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-			triggerCtx, triggerCancel := context.WithCancel(ctx)
-			commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
-				workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
-			processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
-			commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
-				workflowTriggerNode.WorkflowVersionNodeId, commons.Inactive, triggerCancel)
-			triggerCancel()
-		}
+		inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledEvent)
+		reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+		triggerCtx, triggerCancel := context.WithCancel(ctx)
+		commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
+			workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
+		processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
+		commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
+			workflowTriggerNode.WorkflowVersionNodeId, commons.Inactive, triggerCancel)
+		triggerCancel()
 	}
 }
 
