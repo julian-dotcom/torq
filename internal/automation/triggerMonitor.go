@@ -22,7 +22,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 
 	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
 	bootstrapping := true
-	activeTriggers := make(map[int]context.CancelFunc)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -67,17 +67,18 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 
 				bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
 				triggerCtx, triggerCancel := context.WithCancel(ctx)
-				activeTriggers[workflowTriggerNode.WorkflowVersionId] = triggerCancel
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
 
 				triggerGroupWorkflowVersionNodeId, err := workflows.GetTriggerGroupWorkflowVersionNodeId(db, workflowTriggerNode.WorkflowVersionNodeId)
 				if err != nil || triggerGroupWorkflowVersionNodeId == 0 {
 					log.Error().Err(err).Msgf("Failed to obtain the group node id for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+					triggerCancel()
 					continue
 				}
 				groupWorkflowVersionNode, err := workflows.GetWorkflowNode(db, triggerGroupWorkflowVersionNodeId)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to obtain the group nodes links for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+					triggerCancel()
 					continue
 				}
 				workflowTriggerNode.ChildNodes = groupWorkflowVersionNode.ChildNodes
@@ -91,6 +92,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 					marshalledTimerEvent, err := json.Marshal(workflowTriggerNode)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to marshal WorkflowNodeTimeTrigger for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+						triggerCancel()
 						continue
 					}
 					inputs[commons.WorkflowParameterLabelTimeTriggered] = string(marshalledTimerEvent)
@@ -143,6 +145,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 							marshalledChannelBalanceEvent, err := json.Marshal(dummyChannelBalanceEvent)
 							if err != nil {
 								log.Error().Err(err).Msgf("Failed to marshal ChannelBalanceEvent for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+								triggerCancel()
 								continue
 							}
 							inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledChannelBalanceEvent)
@@ -153,7 +156,6 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 				commons.SetTrigger(nodeSettings.NodeId, reference,
 					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId, commons.Inactive, triggerCancel)
 				triggerCancel()
-				delete(activeTriggers, workflowTriggerNode.WorkflowVersionId)
 			}
 			bootstrapping = false
 		}
@@ -211,11 +213,14 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 				continue
 			}
 			inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledChannelBalanceEvent)
-			triggerCtx, triggerCancel := context.WithCancel(context.Background())
 			reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+			triggerCtx, triggerCancel := context.WithCancel(ctx)
 			commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
 				workflowTriggerNode.WorkflowVersionNodeId, commons.Active, triggerCancel)
 			processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, reference, inputs)
+			commons.SetTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
+				workflowTriggerNode.WorkflowVersionNodeId, commons.Inactive, triggerCancel)
+			triggerCancel()
 		}
 	}
 }

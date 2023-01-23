@@ -238,21 +238,6 @@ func (wp *WorkflowNodeParameter) Scan(val interface{}) (err error) {
 	return nil
 }
 
-type WorkflowNodeParameters struct {
-	Parameters []WorkflowNodeParameter `json:"parameters"`
-}
-
-func (nvp *WorkflowNodeParameters) Scan(val interface{}) (err error) {
-	switch v := val.(type) {
-	case []byte:
-		err = json.Unmarshal(v, &nvp)
-	}
-	if err != nil {
-		return errors.Wrapf(err, "Incompatible type for WorkflowNodeParameters")
-	}
-	return nil
-}
-
 type WorkflowNodeVisibilitySettings struct {
 	YPosition *int  `json:"yPosition" db:"yPosition"`
 	XPosition *int  `json:"xPosition" db:"xPosition"`
