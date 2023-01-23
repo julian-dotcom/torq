@@ -36,6 +36,52 @@ You do not need sudo and you can check the contents of the installation script h
 - Automatic Backups
 - Automatic channel tagging
 
+### Permissions
+
+Since Torq is built to manage your node, it needs most/all permissions to be fully functional.
+This includes the ability to read and write to your node's configuration file.
+
+If you want to be careful you can disable some permissions that are not strictly needed.
+
+**NB: you sometimes need to restart Torq after updating the macaroon.
+Wait until the save button in the UI is green before restarting Torq.**
+
+Torq does not for now need the ability to create new macaroon, stop the LND daemon,
+
+    lncli bakemacaroon \
+        invoices:read \
+        invoices:write \
+        onchain:read \
+        onchain:write \
+        offchain:read \
+        offchain:write \
+        address:read \
+        address:write \
+        message:read \
+        message:write \
+        peers:read \
+        peers:write \
+        info:read \
+        uri:/lnrpc.Lightning/UpdateChannelPolicy \
+        --save_to=jack.macaroon
+
+Here is an example of a macaroon that can be used if you want to limit actions that can send funds from your node:
+
+    lncli bakemacaroon \
+        invoices:read \
+        invoices:write \
+        onchain:read \
+        offchain:read \
+        address:read \
+        address:write \
+        message:read \
+        message:write \
+        peers:read \
+        peers:write \
+        info:read \
+        uri:/lnrpc.Lightning/UpdateChannelPolicy \
+        --save_to=jack.macaroon
+
 ## Join us!
 
 Join our [Telegram group](https://t.me/joinchat/V-Dks6zjBK4xZWY0) for updates on releases
