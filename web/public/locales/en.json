@@ -2,6 +2,7 @@
   "helpAndBugsMenuItem": "Help",
   "ApplyTo": "Apply to",
   "Targets": "Targets",
+  "Destinations": "Destinations",
   "Sources": "Sources",
   "Avoid": "Avoid",
   "socketCantAcceptMultipleInputs": "does not accept multiple links.",

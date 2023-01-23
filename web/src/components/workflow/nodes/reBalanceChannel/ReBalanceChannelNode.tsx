@@ -133,7 +133,7 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.Targets}
+          label={t.Destinations}
           selectedNodes={destinationChannels || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
