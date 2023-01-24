@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -76,8 +78,18 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			if err != nil {
 				return nil, commons.Inactive, errors.Wrapf(err, "Failed to get the channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
+			channelsToMap := StructToMap(channels)
 
-			fmt.Println("channelsx", channels)
+			var params FilterClauses
+			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			ApplyFilters(params, channelsToMap)
+
+			fmt.Printf("\n ------- workflowNode.ParentNodes %#v \n\n", workflowNode.ParentNodes)
+			// fmt.Printf("\n ------- newChannels %#v \n\n", newChannels)
 
 		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
 			var params TagParameters
@@ -224,4 +236,21 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB,
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v  NODE %#v", workflowVersionNodeId, nodeId)
 	}
+}
+
+func StructToMap(structs []channels.ChannelBody) []map[string]interface{} {
+	var maps []map[string]interface{}
+	for _, s := range structs {
+		structValue := reflect.ValueOf(s)
+		structType := reflect.TypeOf(s)
+		mapValue := make(map[string]interface{})
+
+		for i := 0; i < structValue.NumField(); i++ {
+			field := structType.Field(i)
+			mapValue[strings.ToLower(field.Name)] = structValue.Field(i).Interface()
+		}
+		maps = append(maps, mapValue)
+	}
+
+	return maps
 }
