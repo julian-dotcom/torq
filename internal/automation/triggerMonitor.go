@@ -172,10 +172,16 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go channelBalanceEventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+	go (func() {
+		defer wg.Done()
+		channelBalanceEventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+	})()
 
 	wg.Add(1)
-	go channelEventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+	go (func() {
+		defer wg.Done()
+		channelEventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+	})()
 
 	wg.Wait()
 }
@@ -192,11 +198,9 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSet
 			broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
 			return
 		case channelBalanceEvent := <-listener:
-
 			if channelBalanceEvent.NodeId == 0 || channelBalanceEvent.ChannelId == 0 {
 				continue
 			}
-
 			processEventTrigger(ctx, db, nodeSettings, channelBalanceEvent, commons.WorkflowNodeChannelBalanceEventTrigger)
 		}
 	}
@@ -215,10 +219,8 @@ func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings c
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 				continue
 			}
-
 			if channelEvent.Type == lnrpc.ChannelEventUpdate_OPEN_CHANNEL {
 				processEventTrigger(ctx, db, nodeSettings, channelEvent, commons.WorkflowNodeChannelOpenEventTrigger)
-
 			}
 			if channelEvent.Type == lnrpc.ChannelEventUpdate_CLOSED_CHANNEL {
 				processEventTrigger(ctx, db, nodeSettings, channelEvent, commons.WorkflowNodeChannelCloseEventTrigger)

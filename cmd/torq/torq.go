@@ -511,66 +511,64 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel chan comm
 }
 
 func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, broadcaster broadcast.BroadcastServer) {
-	for {
-		listener := broadcaster.SubscribeServiceEvent()
-		for serviceEvent := range listener {
-			if serviceEvent.Type == commons.TorqService {
-				switch serviceEvent.Status {
-				case commons.Inactive:
-					log.Info().Msg("Torq is dead.")
-					panic("TorqService cannot be bootstrapped")
-				case commons.Pending:
-					log.Info().Msg("Torq is booting.")
-				case commons.Initializing:
-					log.Info().Msg("Torq is initialising.")
-					err := settings.InitializeManagedSettingsCache(db)
-					if err != nil {
-						log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
-					}
-
-					err = settings.InitializeManagedNodeCache(db)
-					if err != nil {
-						log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNode cache.")
-					}
-
-					err = channels.InitializeManagedChannelCache(db)
-					if err != nil {
-						log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")
-					}
-
-					log.Info().Msg("Loading caches in memory.")
-					err = corridors.RefreshCorridorCache(db)
-					if err != nil {
-						log.Error().Err(err).Msg("Torq cannot be initialized (Loading caches in memory).")
-					}
-					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndService}
-				case commons.Active:
-					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AutomationService}
+	listener := broadcaster.SubscribeServiceEvent()
+	for serviceEvent := range listener {
+		if serviceEvent.Type == commons.TorqService {
+			switch serviceEvent.Status {
+			case commons.Inactive:
+				log.Info().Msg("Torq is dead.")
+				panic("TorqService cannot be bootstrapped")
+			case commons.Pending:
+				log.Info().Msg("Torq is booting.")
+			case commons.Initializing:
+				log.Info().Msg("Torq is initialising.")
+				err := settings.InitializeManagedSettingsCache(db)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
 				}
+
+				err = settings.InitializeManagedNodeCache(db)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNode cache.")
+				}
+
+				err = channels.InitializeManagedChannelCache(db)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")
+				}
+
+				log.Info().Msg("Loading caches in memory.")
+				err = corridors.RefreshCorridorCache(db)
+				if err != nil {
+					log.Error().Err(err).Msg("Torq cannot be initialized (Loading caches in memory).")
+				}
+				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndService}
+			case commons.Active:
+				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AutomationService}
 			}
-			if serviceEvent.Type == commons.LndService {
-				if serviceEvent.Status == commons.Active && serviceEvent.SubscriptionStream == nil {
-					log.Debug().Msgf("LndService booted for nodeId: %v", serviceEvent.NodeId)
-					log.Debug().Msgf("Starting LightningCommunication Service for nodeId: %v", serviceEvent.NodeId)
-					if commons.RunningServices[commons.LightningCommunicationService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
-						serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LightningCommunicationService, NodeId: serviceEvent.NodeId}
-					}
-					log.Debug().Msgf("Starting Rebalance Service for nodeId: %v", serviceEvent.NodeId)
-					if commons.RunningServices[commons.RebalanceService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
-						serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.RebalanceService, NodeId: serviceEvent.NodeId}
-					}
-					log.Debug().Msgf("Starting Maintenance Service for nodeId: %v", serviceEvent.NodeId)
-					if commons.RunningServices[commons.MaintenanceService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
-						serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.MaintenanceService, NodeId: serviceEvent.NodeId}
-					}
-					log.Debug().Msgf("Checking for Vector activation for nodeId: %v", serviceEvent.NodeId)
-					if commons.RunningServices[commons.VectorService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
-						serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.VectorService, NodeId: serviceEvent.NodeId}
-					}
-					log.Debug().Msgf("Checking for Amboss activation for nodeId: %v", serviceEvent.NodeId)
-					if commons.RunningServices[commons.AmbossService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
-						serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AmbossService, NodeId: serviceEvent.NodeId}
-					}
+		}
+		if serviceEvent.Type == commons.LndService {
+			if serviceEvent.Status == commons.Active && serviceEvent.SubscriptionStream == nil {
+				log.Debug().Msgf("LndService booted for nodeId: %v", serviceEvent.NodeId)
+				log.Debug().Msgf("Starting LightningCommunication Service for nodeId: %v", serviceEvent.NodeId)
+				if commons.RunningServices[commons.LightningCommunicationService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
+					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LightningCommunicationService, NodeId: serviceEvent.NodeId}
+				}
+				log.Debug().Msgf("Starting Rebalance Service for nodeId: %v", serviceEvent.NodeId)
+				if commons.RunningServices[commons.RebalanceService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
+					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.RebalanceService, NodeId: serviceEvent.NodeId}
+				}
+				log.Debug().Msgf("Starting Maintenance Service for nodeId: %v", serviceEvent.NodeId)
+				if commons.RunningServices[commons.MaintenanceService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
+					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.MaintenanceService, NodeId: serviceEvent.NodeId}
+				}
+				log.Debug().Msgf("Checking for Vector activation for nodeId: %v", serviceEvent.NodeId)
+				if commons.RunningServices[commons.VectorService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
+					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.VectorService, NodeId: serviceEvent.NodeId}
+				}
+				log.Debug().Msgf("Checking for Amboss activation for nodeId: %v", serviceEvent.NodeId)
+				if commons.RunningServices[commons.AmbossService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
+					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AmbossService, NodeId: serviceEvent.NodeId}
 				}
 			}
 		}
