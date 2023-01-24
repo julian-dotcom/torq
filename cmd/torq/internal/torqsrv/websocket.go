@@ -160,21 +160,21 @@ func processBroadcasterEvents(done chan struct{}, broadcaster broadcast.Broadcas
 	webSocketChannel chan interface{}) {
 
 	listener := broadcaster.SubscribeWebSocketResponse()
-	for event := range listener {
+	for {
 		select {
 		case <-done:
 			broadcaster.CancelSubscriptionWebSocketResponse(listener)
 			return
-		default:
-		}
-		if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
-			webSocketChannel <- openChannelEvent
-		} else if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
-			webSocketChannel <- closeChannelEvent
-		} else if newAddressEvent, ok := event.(commons.NewAddressResponse); ok {
-			webSocketChannel <- newAddressEvent
-		} else if newPaymentEvent, ok := event.(commons.NewPaymentResponse); ok {
-			webSocketChannel <- newPaymentEvent
+		case event := <-listener:
+			if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
+				webSocketChannel <- openChannelEvent
+			} else if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
+				webSocketChannel <- closeChannelEvent
+			} else if newAddressEvent, ok := event.(commons.NewAddressResponse); ok {
+				webSocketChannel <- newAddressEvent
+			} else if newPaymentEvent, ok := event.(commons.NewPaymentResponse); ok {
+				webSocketChannel <- newPaymentEvent
+			}
 		}
 	}
 }
