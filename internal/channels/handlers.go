@@ -18,7 +18,7 @@ import (
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
-type channelBody struct {
+type ChannelBody struct {
 	NodeId                       int                  `json:"nodeId"`
 	PeerNodeId                   int                  `json:"peerNodeId"`
 	ChannelId                    int                  `json:"channelId"`
@@ -147,8 +147,8 @@ func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-func GetChannelsByNetwork(db *sqlx.DB, network int) ([]channelBody, error) {
-	var channelsBody []channelBody
+func GetChannelsByNetwork(db *sqlx.DB, network int) ([]ChannelBody, error) {
+	var channelsBody []ChannelBody
 	chain := commons.Bitcoin
 
 	nodeIds := commons.GetAllTorqNodeIds(chain, commons.Network(network))
@@ -175,7 +175,7 @@ func GetChannelsByNetwork(db *sqlx.DB, network int) ([]channelBody, error) {
 				}
 
 				remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
-				chanBody := channelBody{
+				chanBody := ChannelBody{
 					NodeId:                       nodeId,
 					PeerNodeId:                   channel.RemoteNodeId,
 					Tags:                         channelTags,
