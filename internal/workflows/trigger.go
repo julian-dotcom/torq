@@ -134,6 +134,10 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//		TimeLockDelta: ,
 			//	}
 			//}
+		case commons.WorkflowNodeChannelOpenEventTrigger:
+			log.Debug().Msg("Channel Open Event Trigger Fired")
+		case commons.WorkflowNodeChannelCloseEventTrigger:
+			log.Debug().Msg("Channel Close Event Trigger Fired")
 		}
 		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
 		for childLinkId, childNode := range workflowNode.ChildNodes {
