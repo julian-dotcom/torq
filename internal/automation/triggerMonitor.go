@@ -145,6 +145,10 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 				continue
 			}
 			groupWorkflowVersionNode, err := workflows.GetWorkflowNode(db, triggerGroupWorkflowVersionNodeId)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to obtain the group WorkflowNode for triggerGroupWorkflowVersionNodeId: %v", triggerGroupWorkflowVersionNodeId)
+				continue
+			}
 			workflowTriggerNode.ChildNodes = groupWorkflowVersionNode.ChildNodes
 			workflowTriggerNode.ParentNodes = make(map[int]*workflows.WorkflowNode)
 			workflowTriggerNode.LinkDetails = groupWorkflowVersionNode.LinkDetails
@@ -163,11 +167,11 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 						if remoteNodeId == nodeSettings.NodeId {
 							remoteNodeId = channelSettings.SecondNodeId
 						}
-						if dummyChannelBalanceEvents[remoteNodeId] == nil {
-							dummyChannelBalanceEvents[remoteNodeId] = make(map[int]*commons.ChannelBalanceEvent)
-						}
 						channelState := commons.GetChannelState(nodeSettings.NodeId, channelId, true)
 						if channelState != nil {
+							if dummyChannelBalanceEvents[remoteNodeId] == nil {
+								dummyChannelBalanceEvents[remoteNodeId] = make(map[int]*commons.ChannelBalanceEvent)
+							}
 							dummyChannelBalanceEvents[remoteNodeId][channelId] = &commons.ChannelBalanceEvent{
 								EventData: commons.EventData{
 									EventTime: eventTime,
@@ -192,6 +196,9 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
 							localBalanceAggregate += dummyChannelBalanceEvent.LocalBalance
 							capacityAggregate += dummyChannelBalanceEvent.Capacity
+						}
+						if capacityAggregate == 0 {
+							continue
 						}
 						aggregateLocalBalance[remoteNodeId] = localBalanceAggregate
 						aggregateLocalBalancePerMilleRatio[remoteNodeId] = int(localBalanceAggregate / capacityAggregate * 1000)

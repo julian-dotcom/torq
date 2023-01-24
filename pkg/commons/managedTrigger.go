@@ -75,7 +75,7 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 	case READ_TIME_TRIGGER_SETTINGS:
 		if managedTrigger.NodeId == 0 || managedTrigger.WorkflowVersionId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) or WorkflowVersionId (%v) allowed",
-				managedTrigger.NodeId, managedTrigger.WorkflowVersionId, managedTrigger.TriggeringWorkflowVersionNodeId)
+				managedTrigger.NodeId, managedTrigger.WorkflowVersionId)
 			SendToManagedTriggerSettingsChannel(managedTrigger.TriggerSettingsOut, ManagedTriggerSettings{})
 			return
 		}
@@ -123,7 +123,7 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 	case READ_EVENT_TRIGGER_SETTINGS:
 		if managedTrigger.NodeId == 0 || managedTrigger.WorkflowVersionId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) or WorkflowVersionId (%v) allowed",
-				managedTrigger.NodeId, managedTrigger.WorkflowVersionId, managedTrigger.TriggeringWorkflowVersionNodeId)
+				managedTrigger.NodeId, managedTrigger.WorkflowVersionId)
 			SendToManagedTriggerSettingsChannel(managedTrigger.TriggerSettingsOut, ManagedTriggerSettings{})
 			return
 		}
@@ -176,8 +176,7 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 
 	case POP_SCHEDULED_TRIGGER:
 		if managedTrigger.NodeId == 0 {
-			log.Error().Msgf("No empty NodeId (%v) allowed",
-				managedTrigger.NodeId, managedTrigger.WorkflowVersionId, managedTrigger.TriggeringWorkflowVersionNodeId)
+			log.Error().Msgf("No empty NodeId (%v) allowed", managedTrigger.NodeId)
 			SendToManagedTriggerSettingsChannel(managedTrigger.TriggerSettingsOut, ManagedTriggerSettings{})
 			return
 		}
@@ -232,11 +231,11 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 
 func getTriggerReferenceId(triggeringEvent any) int {
 	var triggerReferenceId int
-	switch triggeringEvent.(type) {
+	switch event := triggeringEvent.(type) {
 	case ChannelBalanceEvent:
-		triggerReferenceId = triggeringEvent.(ChannelBalanceEvent).ChannelId
+		triggerReferenceId = event.ChannelId
 	case ChannelEvent:
-		triggerReferenceId = triggeringEvent.(ChannelEvent).ChannelId
+		triggerReferenceId = event.ChannelId
 	default:
 		triggerReferenceId = 0
 	}
