@@ -110,6 +110,7 @@ func GetTransactionDetailsFromVector(vectorUrl string, transactionHash string, n
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Torq-Version", build.ExtendedVersion())
+	req.Header.Set("Torq-UUID", GetSettings().TorqUuid)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
