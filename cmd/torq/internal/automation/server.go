@@ -47,6 +47,19 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 		automation.EventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
 	})()
 
+	// Scheduled Trigger Monitor
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in ScheduledTriggerMonitor %v", panicError)
+				commons.RunningServices[commons.AutomationService].Cancel(nodeId, &active, true)
+			}
+		}()
+		automation.ScheduledTriggerMonitor(ctx, db, nodeSettings)
+	})()
+
 	wg.Wait()
 
 	return nil
