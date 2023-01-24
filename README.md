@@ -41,7 +41,7 @@ Torq does not for now need the ability to create new macaroon or stop the LND da
         peers:write \
         info:read \
         uri:/lnrpc.Lightning/UpdateChannelPolicy \
-        --save_to=jack.macaroon
+        --save_to=torq.macaroon
 
 Here is an example of a macaroon that can be used if you want to prevent all actions that sends funds from your node:
 
@@ -58,7 +58,7 @@ Here is an example of a macaroon that can be used if you want to prevent all act
         peers:write \
         info:read \
         uri:/lnrpc.Lightning/UpdateChannelPolicy \
-        --save_to=jack.macaroon
+        --save_to=torq.macaroon
 
 ## Help and feedback
 
