@@ -3,6 +3,7 @@ package channels
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/lncapital/torq/internal/tags"
 
@@ -25,10 +26,15 @@ type channelBody struct {
 	NodeName                     string               `json:"nodeName"`
 	Tags                         []tags.Tag           `json:"tags"`
 	Active                       bool                 `json:"active"`
+	RemoteActive                 bool                 `json:"remoteActive"`
 	Gauge                        float64              `json:"gauge"`
 	RemotePubkey                 string               `json:"remotePubkey"`
 	FundingTransactionHash       string               `json:"fundingTransactionHash"`
 	FundingOutputIndex           int                  `json:"fundingOutputIndex"`
+	FundingBlockHeight           *int64               `json:"fundingBlockHeight"`
+	FundedOn                     *time.Time           `json:"fundedOn"`
+	ClosingBlockHeight           *int64               `json:"closingBlockHeight"`
+	ClosedOn                     *time.Time           `json:"closedOn"`
 	LNDShortChannelId            string               `json:"lndShortChannelId"`
 	ShortChannelId               string               `json:"shortChannelId"`
 	Capacity                     int64                `json:"capacity"`
@@ -184,11 +190,16 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 					ChannelId:                    channelSettings.ChannelId,
 					NodeName:                     *nodeSettings.Name,
 					Active:                       !channel.LocalDisabled,
+					RemoteActive:                 !channel.RemoteDisabled,
 					ChannelPoint:                 commons.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
 					Gauge:                        gauge,
 					RemotePubkey:                 remoteNode.PublicKey,
 					FundingTransactionHash:       channelSettings.FundingTransactionHash,
 					FundingOutputIndex:           channelSettings.FundingOutputIndex,
+					FundingBlockHeight:           channelSettings.FundingBlockHeight,
+					FundedOn:                     channelSettings.FundedOn,
+					ClosingBlockHeight:           channelSettings.ClosingBlockHeight,
+					ClosedOn:                     channelSettings.ClosedOn,
 					LNDShortChannelId:            lndShortChannelIdString,
 					ShortChannelId:               channelSettings.ShortChannelId,
 					Capacity:                     channelSettings.Capacity,
