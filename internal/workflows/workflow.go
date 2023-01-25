@@ -9,10 +9,26 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+type WorkflowStatus int
+
+const (
+	Inactive = WorkflowStatus(commons.Inactive)
+	Active   = WorkflowStatus(commons.Active)
+	Deleted  = WorkflowStatus(commons.Deleted)
+)
+
+type TagAction int
+
+const (
+	TagActionAdd = TagAction(iota)
+	TagActionRemove
+	TagActionToggle
+)
+
 type Workflow struct {
 	WorkflowId int            `json:"workflowId" db:"workflow_id"`
 	Name       string         `json:"name" db:"name"`
-	Status     commons.Status `json:"status" db:"status"`
+	Status     WorkflowStatus `json:"status" db:"status"`
 	CreatedOn  time.Time      `json:"createdOn" db:"created_on"`
 	UpdateOn   time.Time      `json:"updatedOn" db:"updated_on"`
 }
@@ -20,7 +36,7 @@ type Workflow struct {
 type UpdateWorkflow struct {
 	WorkflowId int             `json:"workflowId" db:"workflow_id"`
 	Name       *string         `json:"name" db:"name"`
-	Status     *commons.Status `json:"status" db:"status"`
+	Status     *WorkflowStatus `json:"status" db:"status"`
 }
 
 type DeleteStageRequest struct {
@@ -46,7 +62,7 @@ type WorkflowVersion struct {
 	WorkflowVersionId int            `json:"workflowVersionId" db:"workflow_version_id"`
 	Name              string         `json:"name" db:"name"`
 	Version           int            `json:"version" db:"version"`
-	Status            commons.Status `json:"status" db:"status"`
+	Status            WorkflowStatus `json:"status" db:"status"`
 	WorkflowId        int            `json:"workflowId" db:"workflow_id"`
 	CreatedOn         time.Time      `json:"createdOn" db:"created_on"`
 	UpdateOn          time.Time      `json:"updatedOn" db:"updated_on"`
@@ -63,14 +79,6 @@ type ChannelPolicyConfigurationParameters struct {
 	MaxHtlcAmount int64 `json:"maxHtlcAmount"`
 	MinHtlcAmount int64 `json:"minHtlcAmount"`
 }
-
-type TagAction int
-
-const (
-	TagActionAdd = TagAction(iota)
-	TagActionRemove
-	TagActionToggle
-)
 
 type ModifyTagsParameters struct {
 	TagNames  []string  `json:"tagNames"`
@@ -103,7 +111,7 @@ type WorkflowVersionNode struct {
 	WorkflowVersionNodeId int                            `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
 	Name                  string                         `json:"name" db:"name"`
 	Stage                 int                            `json:"stage" db:"stage"`
-	Status                commons.Status                 `json:"status" db:"status"`
+	Status                WorkflowStatus                 `json:"status" db:"status"`
 	Type                  commons.WorkflowNodeType       `json:"type" db:"type"`
 	Parameters            interface{}                    `json:"parameters" db:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
@@ -117,13 +125,13 @@ type CreateNodeRequest struct {
 	Type               commons.WorkflowNodeType       `json:"type" db:"type"`
 	Stage              int                            `json:"stage" db:"stage"`
 	VisibilitySettings WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
-	Parameters         interface{}                    `json:"parameters" db:"parameters"`
+	Parameters         *interface{}                   `json:"parameters" db:"parameters"`
 }
 
 type UpdateNodeRequest struct {
 	WorkflowVersionNodeId int                             `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
 	Name                  *string                         `json:"name" db:"name"`
-	Status                *commons.Status                 `json:"status" db:"status"`
+	Status                *WorkflowStatus                 `json:"status" db:"status"`
 	Parameters            *interface{}                    `json:"parameters" db:"parameters"`
 	VisibilitySettings    *WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
 }
@@ -199,7 +207,7 @@ type WorkflowVersionNodeLog struct {
 type WorkflowNode struct {
 	WorkflowVersionNodeId int                             `json:"workflowVersionNodeId"`
 	Name                  string                          `json:"name"`
-	Status                commons.Status                  `json:"status"`
+	Status                WorkflowStatus                  `json:"status"`
 	Type                  commons.WorkflowNodeType        `json:"type"`
 	Parameters            interface{}                     `json:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings  `json:"visibilitySettings"`
@@ -255,8 +263,8 @@ func (nvs *WorkflowNodeVisibilitySettings) Scan(val interface{}) (err error) {
 	return nil
 }
 
-func getWorkflowNodeInputsStatus(workflowNode WorkflowNode, inputs map[commons.WorkflowParameterLabel]string,
-	stagingParameters map[commons.WorkflowParameterLabel]string) (commons.Status, map[commons.WorkflowParameterLabel]string) {
+func getWorkflowNodeInputsComplete(workflowNode WorkflowNode, inputs map[commons.WorkflowParameterLabel]string,
+	stagingParameters map[commons.WorkflowParameterLabel]string) (bool, map[commons.WorkflowParameterLabel]string) {
 
 	// Get the required inputs for the workflow node's type
 	requiredInputs := commons.GetWorkflowNodes()[workflowNode.Type].RequiredInputs
@@ -270,11 +278,25 @@ func getWorkflowNodeInputsStatus(workflowNode WorkflowNode, inputs map[commons.W
 		inputData, exists := stagingParameters[label]
 		if !exists {
 			// If it is not, return commons.Pending and the inputs map
-			return commons.Pending, inputs
+			return false, inputs
 		}
 		// If it is, add an entry to the inputs map with the matching label and value from the stagingParameters map
 		inputs[label] = inputData
 	}
+
+	optionalInputs := commons.GetWorkflowNodes()[workflowNode.Type].OptionalInputs
+	for label := range optionalInputs {
+		_, exists := inputs[label]
+		if exists {
+			continue
+		}
+		inputData, exists := stagingParameters[label]
+		if !exists {
+			continue
+		}
+		inputs[label] = inputData
+	}
+
 	// If all required inputs have been processed, return commons.Active and the inputs map
-	return commons.Active, inputs
+	return true, inputs
 }

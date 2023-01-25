@@ -3,8 +3,9 @@ package query_parser
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/iancoleman/strcase"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cockroachdb/errors"

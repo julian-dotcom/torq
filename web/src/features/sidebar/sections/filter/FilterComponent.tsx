@@ -1,15 +1,16 @@
 import classNames from "classnames";
 import { AddSquare20Regular as AddFilterIcon, AddSquareMultiple20Regular as AddGroupIcon } from "@fluentui/react-icons";
 import FilterRow from "./FilterRow";
-import { AndClause, OrClause, FilterClause, FilterInterface } from "./filter";
+import { AndClause, OrClause, FilterClause, FilterInterface, Clause } from "./filter";
 import { ColumnMetaData } from "features/table/types";
 import styles from "./filter-section.module.scss";
+import clone from "clone";
 
 export interface FilterComponentProps<T> {
   columns: Array<ColumnMetaData<T>>;
-  filters: AndClause | OrClause | FilterClause;
+  filters: AndClause | OrClause; //Base clause for this component needs to be And or Or clause
   defaultFilter: FilterInterface;
-  onFilterUpdate: () => void;
+  onFilterUpdate: (filter: AndClause | OrClause) => void;
   onNoChildrenLeft?: () => void;
   child: boolean;
 }
@@ -20,56 +21,55 @@ const combinerOptions = new Map<string, string>([
 ]);
 
 function FilterComponent<T>(props: FilterComponentProps<T>) {
-  const updateFilter = () => {
-    props.onFilterUpdate();
+  const generateUpdateFilterFunc = (index: number) => {
+    const handleUpdateFilter = (updatedFilters: Clause) => {
+      const filters = clone(props.filters);
+      filters.childClauses[index] = updatedFilters;
+      props.onFilterUpdate(filters);
+    };
+    return handleUpdateFilter;
   };
 
   const removeFilter = (index: number) => {
-    const filters = props.filters as AndClause | OrClause;
+    // if it's the last child then let my parent remove me
+    if (props.filters.childClauses.length === 1 && props.onNoChildrenLeft) {
+      props.onNoChildrenLeft();
+      return;
+    }
+
+    const filters = clone(props.filters);
     filters.childClauses.splice(index, 1);
     if (filters.childClauses.length === 1) {
       filters.prefix = "$and";
     }
-    if (filters.childClauses.length === 0) {
-      if (props.onNoChildrenLeft) {
-        props.onNoChildrenLeft();
-      }
-    }
-    props.onFilterUpdate();
+
+    props.onFilterUpdate(filters);
   };
 
   const handleNoChildrenLeft = (index: number) => {
     return () => {
+      console.log("changed it");
       removeFilter(index);
     };
   };
 
   const addFilter = () => {
-    if (props.filters && !Object.hasOwn(props.filters, "childClauses")) {
-      props.filters = new AndClause();
-    }
-    if (props.filters && Object.hasOwn(props.filters, "childClauses")) {
-      ((props.filters as AndClause) || OrClause).addChildClause(new FilterClause(props.defaultFilter));
-      props.onFilterUpdate();
-    }
+    const filters = clone(props.filters);
+    filters.addChildClause(new FilterClause(props.defaultFilter));
+    props.onFilterUpdate(filters);
   };
 
   const addGroup = () => {
-    if (!props.filters) {
-      props.filters = new AndClause();
-    }
-    if (props.filters instanceof AndClause || OrClause) {
-      ((props.filters as AndClause) || OrClause).addChildClause(new AndClause([new FilterClause(props.defaultFilter)]));
-      props.onFilterUpdate();
-    }
+    const filters = clone(props.filters);
+    filters.addChildClause(new AndClause([new FilterClause(props.defaultFilter)]));
+    props.onFilterUpdate(filters);
   };
 
   const handleCombinerChange = () => {
-    if (props.filters?.prefix) {
-      // this effectively changes the type of the object from AndClause to OrClause or vice versa
-      props.filters.prefix = props.filters.prefix === "$and" ? "$or" : "$and";
-      props.onFilterUpdate();
-    }
+    // this effectively changes the type of the object from AndClause to OrClause or vice versa
+    const filters = clone(props.filters);
+    filters.prefix = filters.prefix === "$and" ? "$or" : "$and";
+    props.onFilterUpdate(filters);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -119,7 +119,7 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
                   filterClause={filter as FilterClause}
                   index={index}
                   filterOptions={filterOptions}
-                  onUpdateFilter={updateFilter}
+                  onUpdateFilter={generateUpdateFilterFunc(index)}
                   onRemoveFilter={removeFilter}
                   combiner={combinerOptions.get(props.filters.prefix)}
                   handleCombinerChange={handleCombinerChange}
@@ -139,9 +139,9 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
                   child={true}
                   defaultFilter={props.defaultFilter}
                   columns={props.columns}
-                  filters={filter}
+                  filters={filter as OrClause | AndClause}
                   onNoChildrenLeft={handleNoChildrenLeft(index)}
-                  onFilterUpdate={props.onFilterUpdate}
+                  onFilterUpdate={generateUpdateFilterFunc(index)}
                 />
               </div>
             );

@@ -13,6 +13,7 @@ export function ChannelFilterNodeButton() {
       nodeType={WorkflowNodeType.ChannelFilter}
       icon={<ChannelFilterIcon />}
       title={t.workflowNodes.channelFilter}
+      parameters={`{"$and": []}`}
     />
   );
 }

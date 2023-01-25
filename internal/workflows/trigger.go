@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -16,7 +19,7 @@ import (
 // ProcessWorkflowNode workflowNodeStagingParametersCache[WorkflowVersionNodeId][parameterLabel] (i.e. parameterLabel = sourceChannels)
 func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, workflowNode WorkflowNode, triggeringWorkflowVersionNodeId int,
-	workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[commons.WorkflowParameterLabel]string,
+	workflowNodeCache map[int]WorkflowNode, workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[commons.WorkflowParameterLabel]string,
 	reference string, inputs map[commons.WorkflowParameterLabel]string, iteration int) (map[commons.WorkflowParameterLabel]string, commons.Status, error) {
 
 	iteration++
@@ -31,19 +34,49 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	outputs := commons.CopyParameters(inputs)
 	var err error
 
-	if workflowNode.Status == commons.Active {
+	if workflowNode.Status == Active {
 		status, exists := workflowNodeStatus[workflowNode.WorkflowVersionNodeId]
 		if exists && status == commons.Active {
 			// When the node is in the cache and active then it's already been processed successfully
 			return nil, commons.Deleted, nil
 		}
-		var processingStatus commons.Status
-		processingStatus, inputs = getWorkflowNodeInputsStatus(workflowNode, inputs, workflowNodeStagingParametersCache[workflowNode.WorkflowVersionNodeId])
-		if processingStatus == commons.Pending {
+		var complete bool
+		complete, inputs = getWorkflowNodeInputsComplete(workflowNode, inputs, workflowNodeStagingParametersCache[workflowNode.WorkflowVersionNodeId])
+		if !complete {
 			// When the node is pending then not all inputs are available yet
 			return nil, commons.Pending, nil
 		}
-		//parameters := workflowNode.Parameters
+
+		cachedWorkflowNode, exists := workflowNodeCache[workflowNode.WorkflowVersionNodeId]
+		if !exists {
+			cachedWorkflowNode, err = GetWorkflowNode(db, workflowNode.WorkflowVersionNodeId)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "GetWorkflowNode for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			workflowNodeCache[workflowNode.WorkflowVersionNodeId] = cachedWorkflowNode
+		}
+		// Do not override when it's a grouped node because the data was manipulated.
+		if !commons.IsWorkflowNodeTypeGrouped(workflowNode.Type) {
+			workflowNode = cachedWorkflowNode
+		}
+
+		parentLinkedInputs := make(map[commons.WorkflowParameterLabel][]WorkflowNode)
+		for parentWorkflowNodeLinkId, parentWorkflowNode := range workflowNode.ParentNodes {
+			parentLink := workflowNode.LinkDetails[parentWorkflowNodeLinkId]
+			parentLinkedInputs[parentLink.ChildInput] = append(parentLinkedInputs[parentLink.ChildInput], *parentWorkflowNode)
+		}
+	linkedInputLoop:
+		for _, parentWorkflowNodesByInput := range parentLinkedInputs {
+			for _, parentWorkflowNode := range parentWorkflowNodesByInput {
+				status, exists = workflowNodeStatus[parentWorkflowNode.WorkflowVersionNodeId]
+				if exists && status == commons.Active {
+					continue linkedInputLoop
+				}
+			}
+			// Not all inputs are available yet
+			return nil, commons.Pending, nil
+		}
+
 		var activeOutput commons.WorkflowParameterLabel
 		switch workflowNode.Type {
 		case commons.WorkflowNodeSetVariable:
@@ -69,38 +102,93 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//	activeOutputIndex = 1
 			//}
 		case commons.WorkflowNodeChannelFilter:
-
-		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
-			var params TagParameters
+			var params FilterClauses
 			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
 			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, errors.Wrapf(err, "Parsing parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
+			filtered := params.Filter.FuncName != "" || len(params.Or) != 0 || len(params.And) != 0
 
-			for _, tagtoAdd := range params.AddedTags {
-				tag := tags.TagEntityRequest{
-					// TODO the nodeId and channelId will come from the input target when ready
-					NodeId: &nodeSettings.NodeId,
-					TagId:  tagtoAdd.Value,
-				}
-				err := tags.TagEntity(db, tag)
+			var filteredChannelIds []int
+			linkedChannelIdsString, exists := inputs[commons.WorkflowParameterLabelChannels]
+			if exists {
+				var linkedChannelIds []int
+				err = json.Unmarshal([]byte(linkedChannelIdsString), &linkedChannelIds)
 				if err != nil {
-					return nil, commons.Inactive, errors.Wrapf(err, "Failed to add the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagtoAdd.Value)
+					return nil, commons.Inactive, errors.Wrapf(err, "Unmarshal the parent channelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIdsString, workflowNode.WorkflowVersionNodeId)
+				}
+				if filtered {
+					linkedChannels, err := channels.GetChannelsByIds(db, nodeSettings.NodeId, linkedChannelIds)
+					if err != nil {
+						return nil, commons.Inactive, errors.Wrapf(err, "Getting the linked channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+					}
+					filteredChannelIds = filterChannelIds(params, linkedChannels)
+				} else {
+					filteredChannelIds = linkedChannelIds
+				}
+			} else {
+				// Force Response because we don't care about balance accuracy
+				channelIds := commons.GetChannelStateChannelIds(nodeSettings.NodeId, true)
+				if filtered {
+					channelsBodyByNode, err := channels.GetChannelsByIds(db, nodeSettings.NodeId, channelIds)
+					if err != nil {
+						return nil, commons.Inactive, errors.Wrapf(err, "Getting the linked channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+					}
+					filteredChannelIds = filterChannelIds(params, channelsBodyByNode)
+				} else {
+					filteredChannelIds = channelIds
 				}
 			}
+			ba, err := json.Marshal(filteredChannelIds)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Marshal the filteredChannelIds: %v for WorkflowVersionNodeId: %v", filteredChannelIds, workflowNode.WorkflowVersionNodeId)
+			}
+			outputs[commons.WorkflowParameterLabelChannels] = string(ba)
 
-			for _, tagToDelete := range params.RemovedTags {
-				tag := tags.TagEntityRequest{
-					// TODO the nodeId and channelId will come from the input target when ready
-					NodeId: &nodeSettings.NodeId,
-					TagId:  tagToDelete.Value,
-				}
-				err := tags.UntagEntity(db, tag)
+		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
+			var linkedChannelIds []int
+			linkedChannelIdsString, exists := inputs[commons.WorkflowParameterLabelChannels]
+			if !exists {
+				return nil, commons.Inactive, errors.Wrapf(err, "Finding channel parameter for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			err = json.Unmarshal([]byte(linkedChannelIdsString), &linkedChannelIds)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Unmarshal the parent channelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIdsString, workflowNode.WorkflowVersionNodeId)
+			}
+
+			if len(linkedChannelIds) != 0 {
+				var params TagParameters
+				err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
 				if err != nil {
-					return nil, commons.Inactive, errors.Wrapf(err, "Failed to remove the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagToDelete.Value)
+					return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+
+				for _, tagToDelete := range params.RemovedTags {
+					for index := range linkedChannelIds {
+						tag := tags.TagEntityRequest{
+							ChannelId: &linkedChannelIds[index],
+							TagId:     tagToDelete.Value,
+						}
+						err := tags.UntagEntity(db, tag)
+						if err != nil {
+							return nil, commons.Inactive, errors.Wrapf(err, "Failed to remove the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagToDelete.Value)
+						}
+					}
+				}
+
+				for _, tagtoAdd := range params.AddedTags {
+					for index := range linkedChannelIds {
+						tag := tags.TagEntityRequest{
+							ChannelId: &linkedChannelIds[index],
+							TagId:     tagtoAdd.Value,
+						}
+						err := tags.TagEntity(db, tag)
+						if err != nil {
+							return nil, commons.Inactive, errors.Wrapf(err, "Failed to add the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagtoAdd.Value)
+						}
+					}
 				}
 			}
-
 		case commons.WorkflowNodeStageTrigger:
 			if iteration > 0 {
 				// There shouldn't be any stage nodes except when it's the first node
@@ -149,12 +237,14 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			if workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId] == nil {
 				workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId] = make(map[commons.WorkflowParameterLabel]string)
 			}
-			childInput := workflowNode.LinkDetails[childLinkId].ChildInput
-			parentOutput := workflowNode.LinkDetails[childLinkId].ParentOutput
-			workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
+			childInput := commons.WorkflowParameterLabel(workflowNode.LinkDetails[childLinkId].ChildInput)
+			parentOutput := commons.WorkflowParameterLabel(workflowNode.LinkDetails[childLinkId].ParentOutput)
+			if childInput != "" && parentOutput != "" && outputs[parentOutput] != "" {
+				workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
+			}
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId,
-				workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)
+				workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)
 			// If childProcessingStatus is not equal to commons.Pending, call AddWorkflowVersionNodeLog with several arguments, including nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, triggeringWorkflowVersionNodeId, inputs, and childOutputs
 			if childProcessingStatus != commons.Pending {
 				AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference,
@@ -168,6 +258,18 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		}
 	}
 	return outputs, commons.Active, nil
+}
+
+func filterChannelIds(params FilterClauses, linkedChannels []channels.ChannelBody) []int {
+	var filteredChannelIds []int
+	filteredChannels := ApplyFilters(params, StructToMap(linkedChannels))
+	for _, filteredChannel := range filteredChannels {
+		channel, ok := filteredChannel.(map[string]interface{})
+		if ok {
+			filteredChannelIds = append(filteredChannelIds, channel["channelid"].(int))
+		}
+	}
+	return filteredChannelIds
 }
 
 func AddWorkflowVersionNodeLog(db *sqlx.DB,
@@ -208,6 +310,23 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB,
 	}
 	_, err := addWorkflowVersionNodeLog(db, workflowVersionNodeLog)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v", workflowVersionNodeId)
+		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v, nodeId: %#v", workflowVersionNodeId, nodeId)
 	}
+}
+
+func StructToMap(structs []channels.ChannelBody) []map[string]interface{} {
+	var maps []map[string]interface{}
+	for _, s := range structs {
+		structValue := reflect.ValueOf(s)
+		structType := reflect.TypeOf(s)
+		mapValue := make(map[string]interface{})
+
+		for i := 0; i < structValue.NumField(); i++ {
+			field := structType.Field(i)
+			mapValue[strings.ToLower(field.Name)] = structValue.Field(i).Interface()
+		}
+		maps = append(maps, mapValue)
+	}
+
+	return maps
 }

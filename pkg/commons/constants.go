@@ -227,6 +227,7 @@ const (
 	WorkflowTrigger
 	WorkflowNodeAddTag
 	WorkflowNodeRemoveTag
+	WorkflowChannelFilter
 	WorkflowNodeChannelOpenEventTrigger
 	WorkflowNodeChannelCloseEventTrigger
 )
@@ -248,6 +249,7 @@ const (
 	WorkflowParameterTypeRebalanceSettings     = WorkflowParameterType("rebalanceSettings")
 	WorkflowParameterTypeTagSettings           = WorkflowParameterType("tagSettings")
 	WorkflowParameterTypeStatus                = WorkflowParameterType("status")
+	WorkflowParameterChannelFilter             = WorkflowParameterType("channelFilter")
 )
 
 type WorkflowParameterLabel string

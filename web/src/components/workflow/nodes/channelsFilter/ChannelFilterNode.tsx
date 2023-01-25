@@ -8,34 +8,27 @@ import { NodeColorVariant } from "../nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
+import FilterComponent from "features/sidebar/sections/filter/FilterComponent";
+import { AndClause, deserialiseQuery, OrClause } from "features/sidebar/sections/filter/filter";
+import { AllChannelsColumns, ChannelsFilterTemplate } from "features/channels/channelsDefaults"
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
-
-type channelPolicyConfigurationNode = {
-  feeRate: number | undefined;
-  baseFee: number | undefined;
-  minHTLCAmount: number | undefined;
-  maxHTLCAmount: number | undefined;
-};
 
 export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
+  wrapperProps.parameters = {"$and":[]}
 
-  const [channelPolicy, _] = useState<channelPolicyConfigurationNode>({
-    feeRate: undefined,
-    baseFee: undefined,
-    minHTLCAmount: undefined,
-    maxHTLCAmount: undefined,
-    ...wrapperProps.parameters,
-  });
+  const [filterState, setFilterState] = useState(
+    deserialiseQuery(wrapperProps.parameters || { $and: [] }) as AndClause | OrClause
+  );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
-      parameters: channelPolicy,
+      parameters: filterState as unknown as Record<string, unknown>,
     });
   }
 
@@ -57,6 +50,10 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
     })
   );
 
+  const handleFilterUpdate = (filter: AndClause | OrClause) => {
+    setFilterState(filter);
+  };
+
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
@@ -72,6 +69,13 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"channels"}
+        />
+        <FilterComponent
+          filters={filterState}
+          columns={AllChannelsColumns}
+          defaultFilter={ChannelsFilterTemplate}
+          child={false}
+          onFilterUpdate={handleFilterUpdate}
         />
         <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
           {t.save.toString()}

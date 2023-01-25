@@ -98,6 +98,11 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
 
       const nodeType = parseInt(e.dataTransfer.getData("node/type"));
       const nodeName = e.dataTransfer.getData("node/name");
+      const nodeParameters = e.dataTransfer.getData("node/parameters");
+      let jsonParam = {};
+      if (nodeParameters) {
+        jsonParam = JSON.parse(nodeParameters);
+      }
 
       if (TriggerNodeTypes.includes(nodeType) && props.stageNumber !== 1) {
         e.dataTransfer.effectAllowed = "none";
@@ -117,6 +122,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
         },
         workflowVersionId: props.workflowVersionId,
         stage: props.stageNumber,
+        parameters: jsonParam,
       });
     }
   }

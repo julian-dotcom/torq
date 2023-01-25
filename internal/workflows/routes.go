@@ -2,10 +2,11 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/lib/pq"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -77,7 +78,7 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	wv, err := createWorkflowVersion(db, storedWorkflow.WorkflowId, commons.Active)
+	wv, err := createWorkflowVersion(db, storedWorkflow.WorkflowId, Active)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Adding workflow version to new workflow.")
 		return
@@ -358,7 +359,7 @@ func addNodeHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Get workflow")
 		return
 	}
-	if !(workflowVersion.Status == commons.Inactive || workflow.Status == commons.Inactive) {
+	if !(workflowVersion.Status == Inactive || workflow.Status == Inactive) {
 		server_errors.SendUnprocessableEntity(c, "Can't make changes to a workflow unless it's inactive")
 		return
 	}
@@ -401,7 +402,7 @@ func updateNodeHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Get workflow")
 		return
 	}
-	if !(workflowVersion.Status == commons.Inactive || workflow.Status == commons.Inactive) {
+	if !(workflowVersion.Status == Inactive || workflow.Status == Inactive) {
 		server_errors.SendUnprocessableEntity(c, "Can't make changes to a workflow unless it's inactive")
 		return
 	}
@@ -450,7 +451,7 @@ func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Get workflow")
 		return
 	}
-	if !(workflowVersion.Status == commons.Inactive || workflow.Status == commons.Inactive) {
+	if !(workflowVersion.Status == Inactive || workflow.Status == Inactive) {
 		server_errors.SendUnprocessableEntity(c, "Can't make changes to a workflow unless it's inactive")
 		return
 	}
@@ -479,7 +480,7 @@ func addNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Get workflow")
 		return
 	}
-	if !(workflowVersion.Status == commons.Inactive || workflow.Status == commons.Inactive) {
+	if !(workflowVersion.Status == Inactive || workflow.Status == Inactive) {
 		server_errors.SendUnprocessableEntity(c, "Can't make changes to a workflow unless it's inactive")
 		return
 	}
@@ -507,7 +508,7 @@ func updateNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Get workflow")
 		return
 	}
-	if !(workflowVersion.Status == commons.Inactive || workflow.Status == commons.Inactive) {
+	if !(workflowVersion.Status == Inactive || workflow.Status == Inactive) {
 		server_errors.SendUnprocessableEntity(c, "Can't make changes to a workflow unless it's inactive")
 		return
 	}
@@ -541,7 +542,7 @@ func removeNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Get workflow")
 		return
 	}
-	if !(workflowVersion.Status == commons.Inactive || workflow.Status == commons.Inactive) {
+	if !(workflowVersion.Status == Inactive || workflow.Status == Inactive) {
 		server_errors.SendUnprocessableEntity(c, "Can't make changes to a workflow unless it's inactive")
 		return
 	}

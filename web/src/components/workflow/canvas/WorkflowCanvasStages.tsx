@@ -111,9 +111,9 @@ function getNodeComponent(node: WorkflowVersionNode) {
     case WorkflowNodeType.RebalanceParameters:
       return <ReBalanceChannelNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.AddTag:
-      return <AddTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
+      return <AddTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RemoveTag:
-      return <RemoveTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
+      return <RemoveTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     default:
       return null;
   }

@@ -8,6 +8,7 @@ export type WorkflowNodeButtonProps = {
   icon?: React.ReactNode;
   nodeType: number;
   colorVariant: NodeColorVariant;
+  parameters?: string;
 };
 
 function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
@@ -25,6 +26,7 @@ function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
     e.dataTransfer.setData("node/type", props.nodeType.toString());
     e.dataTransfer.setData("node/event", "add");
     e.dataTransfer.setData("node/name", props.title);
+    e.dataTransfer.setData("node/parameters", props.parameters || "{}");
   }
 
   function handleDragEnd() {

@@ -17,6 +17,8 @@ const (
 	READ_CHANNELSTATE ManagedChannelStateCacheOperationType = iota
 	// READ_ALL_CHANNELSTATES please provide NodeId and StatesOut
 	READ_ALL_CHANNELSTATES
+	// READ_ALL_CHANNELSTATE_CHANNELIDS please provide NodeId and ChannelIdsOut
+	READ_ALL_CHANNELSTATE_CHANNELIDS
 	// READ_CHANNELBALANCESTATE please provide NodeId, ChannelId, HtlcInclude and BalanceStateOut
 	READ_CHANNELBALANCESTATE
 	// READ_ALL_CHANNELBALANCESTATES please provide NodeId, StateInclude, HtlcInclude and BalanceStatesOut
@@ -101,6 +103,7 @@ type ManagedChannelState struct {
 	HtlcEvent            HtlcEvent
 	ChannelStateSettings []ManagedChannelStateSettings
 	HtlcInclude          ChannelBalanceStateHtlcInclude
+	ChannelIdsOut        chan []int
 	StateInclude         ChannelStateInclude
 	StateOut             chan *ManagedChannelStateSettings
 	StatesOut            chan []ManagedChannelStateSettings
@@ -228,6 +231,27 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			break
 		}
 		SendToManagedChannelStatesSettingsChannel(managedChannelState.StatesOut, nil)
+	case READ_ALL_CHANNELSTATE_CHANNELIDS:
+		if managedChannelState.NodeId == 0 {
+			log.Error().Msgf("No empty NodeId (%v) allowed", managedChannelState.NodeId)
+			SendToManagedChannelIdsChannel(managedChannelState.ChannelIdsOut, nil)
+			break
+		}
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
+			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
+			if !exists {
+				SendToManagedChannelIdsChannel(managedChannelState.ChannelIdsOut, nil)
+				break
+			}
+			var channelIds []int
+			for _, channelState := range settingsByChannel {
+				channelIds = append(channelIds, channelState.ChannelId)
+			}
+			SendToManagedChannelIdsChannel(managedChannelState.ChannelIdsOut, channelIds)
+			break
+		}
+		SendToManagedChannelIdsChannel(managedChannelState.ChannelIdsOut, nil)
 	case READ_CHANNELBALANCESTATE:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
@@ -565,6 +589,18 @@ func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSetti
 	}
 	ManagedChannelStateChannel <- managedChannelState
 	return <-channelStatesResponseChannel
+}
+
+func GetChannelStateChannelIds(nodeId int, forceResponse bool) []int {
+	channelIdsResponseChannel := make(chan []int)
+	managedChannelState := ManagedChannelState{
+		NodeId:        nodeId,
+		ForceResponse: forceResponse,
+		Type:          READ_ALL_CHANNELSTATE_CHANNELIDS,
+		ChannelIdsOut: channelIdsResponseChannel,
+	}
+	ManagedChannelStateChannel <- managedChannelState
+	return <-channelIdsResponseChannel
 }
 
 func GetChannelState(nodeId, channelId int, forceResponse bool) *ManagedChannelStateSettings {
