@@ -132,7 +132,7 @@ func (c *Clause) parseClause(data map[string]interface{}) {
 				Prefix: childClause.Prefix,
 				Filter: childClause.Filter,
 			}
-			filterFunc, ok := FilterFunctions[filterClause.Filter.Category][filterClause.Filter.FuncName]
+			filterFunc, ok := GetFilterFunctions()[filterClause.Filter.Category][filterClause.Filter.FuncName]
 			if !ok {
 				panic("Filter function is not yet defined")
 			}
@@ -145,122 +145,123 @@ func (c *Clause) parseClause(data map[string]interface{}) {
 	}
 }
 
-var FilterFunctions = map[FilterCategoryType]map[string]FilterFunc{
-	FilterCategoryTypeNumber: {
-		"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key] == parameter
+func GetFilterFunctions() map[FilterCategoryType]map[string]FilterFunc {
+	return map[FilterCategoryType]map[string]FilterFunc{
+		FilterCategoryTypeNumber: {
+			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key] == parameter
+			},
+			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key] != parameter
+			},
+			"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				fmt.Println("input[key]", input[key].(int64))
+				fmt.Println("parameter", int64(parameter.(float64)))
+				fmt.Println("SOO", input[key].(int64) > int64(parameter.(float64)))
+				return input[key].(int64) > int64(parameter.(float64))
+			},
+			"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) >= int64(parameter.(float64))
+			},
+			"lt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) < int64(parameter.(float64))
+			},
+			"lte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) <= int64(parameter.(float64))
+			},
 		},
-		"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key] != parameter
+		FilterCategoryTypeDuration: {
+			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key] == parameter
+			},
+			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key] != parameter
+			},
+			"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) > int64(parameter.(float64))
+			},
+			"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) >= int64(parameter.(float64))
+			},
+			"lt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) < int64(parameter.(float64))
+			},
+			"lte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) <= int64(parameter.(float64))
+			},
 		},
-		"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			fmt.Println("input[key]", input[key].(int64))
-			fmt.Println("parameter", int64(parameter.(float64)))
-			fmt.Println("SOO", input[key].(int64) > int64(parameter.(float64)))
-			return input[key].(int64) > int64(parameter.(float64))
+		FilterCategoryTypeString: {
+			"like": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
+			},
+			"notLike": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return !strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
+			},
 		},
-		"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) >= int64(parameter.(float64))
+		FilterCategoryTypeEnum: {
+			"like": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
+			},
+			"notLike": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return !strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
+			},
 		},
-		"lt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) < int64(parameter.(float64))
+		FilterCategoryTypeDate: {
+			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key] == parameter
+			},
+			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key] != parameter
+			},
+			"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) > int64(parameter.(float64))
+			},
+			"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) >= int64(parameter.(float64))
+			},
+			"lt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) < int64(parameter.(float64))
+			},
+			"lte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(int64) <= int64(parameter.(float64))
+			},
 		},
-		"lte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) <= int64(parameter.(float64))
+		FilterCategoryTypeBoolean: {
+			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(bool) == parameter
+			},
+			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				return input[key].(bool) != parameter
+			},
 		},
-	},
-	FilterCategoryTypeDuration: {
-		"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key] == parameter
-		},
-		"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key] != parameter
-		},
-		"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) > int64(parameter.(float64))
-		},
-		"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) >= int64(parameter.(float64))
-		},
-		"lt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) < int64(parameter.(float64))
-		},
-		"lte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) <= int64(parameter.(float64))
-		},
-	},
-	FilterCategoryTypeString: {
-		"like": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
-		},
-		"notLike": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return !strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
-		},
-	},
-	FilterCategoryTypeEnum: {
-		"like": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
-		},
-		"notLike": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return !strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
-		},
-	},
-	FilterCategoryTypeDate: {
-		"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key] == parameter
-		},
-		"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key] != parameter
-		},
-		"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) > int64(parameter.(float64))
-		},
-		"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) >= int64(parameter.(float64))
-		},
-		"lt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) < int64(parameter.(float64))
-		},
-		"lte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(int64) <= int64(parameter.(float64))
-		},
-	},
-	FilterCategoryTypeBoolean: {
-		"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(bool) == parameter
-		},
-		"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			return input[key].(bool) != parameter
-		},
-	},
-	FilterCategoryTypeArray: {
-		"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			paramArray := parameter.([]interface{})
-			for _, value := range input[key].([]interface{}) {
-				for _, paramValue := range paramArray {
-					if value == paramValue {
-						return true
+		FilterCategoryTypeArray: {
+			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				paramArray := parameter.([]interface{})
+				for _, value := range input[key].([]interface{}) {
+					for _, paramValue := range paramArray {
+						if value == paramValue {
+							return true
+						}
 					}
 				}
-			}
-			return false
-		},
-		"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-			paramArray := parameter.([]interface{})
-			for _, value := range input[key].([]interface{}) {
-				for _, paramValue := range paramArray {
-					if value == paramValue {
-						return false
+				return false
+			},
+			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				paramArray := parameter.([]interface{})
+				for _, value := range input[key].([]interface{}) {
+					for _, paramValue := range paramArray {
+						if value == paramValue {
+							return false
+						}
 					}
 				}
-			}
-			return true
+				return true
+			},
 		},
-	},
+	}
 }
 
 func ApplyFilters(filters interface{}, data []map[string]interface{}) []interface{} {
-
 	var result []interface{}
 	for _, item := range data {
 		if ProcessQuery(DeserialiseQuery(filters), item) {

@@ -2,10 +2,11 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/lib/pq"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -77,7 +78,7 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	wv, err := createWorkflowVersion(db, storedWorkflow.WorkflowId, commons.Active)
+	wv, err := createWorkflowVersion(db, storedWorkflow.WorkflowId, Active)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Adding workflow version to new workflow.")
 		return

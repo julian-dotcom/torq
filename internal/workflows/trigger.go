@@ -34,16 +34,15 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	outputs := commons.CopyParameters(inputs)
 	var err error
 
-	if workflowNode.Status == commons.Active {
+	if workflowNode.Status == Active {
 		status, exists := workflowNodeStatus[workflowNode.WorkflowVersionNodeId]
 		if exists && status == commons.Active {
 			// When the node is in the cache and active then it's already been processed successfully
 			return nil, commons.Deleted, nil
 		}
-
-		var processingStatus commons.Status
-		processingStatus, inputs = getWorkflowNodeInputsStatus(workflowNode, inputs, workflowNodeStagingParametersCache[workflowNode.WorkflowVersionNodeId])
-		if processingStatus == commons.Pending {
+		var complete bool
+		complete, inputs = getWorkflowNodeInputsComplete(workflowNode, inputs, workflowNodeStagingParametersCache[workflowNode.WorkflowVersionNodeId])
+		if !complete {
 			// When the node is pending then not all inputs are available yet
 			return nil, commons.Pending, nil
 		}
@@ -167,9 +166,9 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				}
 
 				for _, tagToDelete := range params.RemovedTags {
-					for _, channelId := range linkedChannelIds {
+					for index := range linkedChannelIds {
 						tag := tags.TagEntityRequest{
-							ChannelId: &channelId,
+							ChannelId: &linkedChannelIds[index],
 							TagId:     tagToDelete.Value,
 						}
 						err := tags.UntagEntity(db, tag)
@@ -180,9 +179,9 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				}
 
 				for _, tagtoAdd := range params.AddedTags {
-					for _, channelId := range linkedChannelIds {
+					for index := range linkedChannelIds {
 						tag := tags.TagEntityRequest{
-							ChannelId: &channelId,
+							ChannelId: &linkedChannelIds[index],
 							TagId:     tagtoAdd.Value,
 						}
 						err := tags.TagEntity(db, tag)

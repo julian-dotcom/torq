@@ -204,7 +204,7 @@ func GetWorkflowVersions(db *sqlx.DB, workflowId int) ([]WorkflowVersion, error)
 	return wfvs, nil
 }
 
-func createWorkflowVersion(db *sqlx.DB, workflowId int, status commons.Status) (WorkflowVersion, error) {
+func createWorkflowVersion(db *sqlx.DB, workflowId int, status WorkflowStatus) (WorkflowVersion, error) {
 	wfv := WorkflowVersion{}
 	wfv.WorkflowId = workflowId
 	wfv.Name = "Initial Version"
@@ -709,7 +709,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 		var parentVersionNodeId int
 		var childVersionNodeId int
 		var name string
-		var status commons.Status
+		var status WorkflowStatus
 		var nodeType commons.WorkflowNodeType
 		var parameters []byte
 		var visibilitySettings WorkflowNodeVisibilitySettings
@@ -794,7 +794,7 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	wfvn.Name = req.Name
 	// TODO: We need to add default parameters for the specific node type
 
-	wfvn.Status = commons.Active
+	wfvn.Status = Active
 	wfvn.CreatedOn = time.Now().UTC()
 	wfvn.UpdateOn = wfvn.CreatedOn
 
