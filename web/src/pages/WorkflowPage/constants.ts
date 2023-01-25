@@ -14,10 +14,14 @@ export enum WorkflowNodeType {
   Trigger,
   AddTag,
   RemoveTag,
+  ChannelOpenEventTrigger,
+  ChannelCloseEventTrigger,
 }
 
 export const TriggerNodeTypes = [
   WorkflowNodeType.TimeTrigger,
   WorkflowNodeType.ChannelBalanceEventTrigger,
   WorkflowNodeType.StageTrigger,
+  WorkflowNodeType.ChannelOpenEventTrigger,
+  WorkflowNodeType.ChannelCloseEventTrigger,
 ];

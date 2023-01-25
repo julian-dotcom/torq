@@ -11,6 +11,8 @@ import {
   ReBalanceChannelNode,
   AddTagNode,
   BalanceTriggerNode,
+  ChannelOpenTriggerNode,
+  ChannelCloseTriggerNode,
 } from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
@@ -96,6 +98,10 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <TimeTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelBalanceEventTrigger:
       return <BalanceTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.ChannelOpenEventTrigger:
+      return <ChannelOpenTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.ChannelCloseEventTrigger:
+      return <ChannelCloseTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.StageTrigger:
       return <StageTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelPolicyConfigurator:
