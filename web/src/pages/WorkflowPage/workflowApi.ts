@@ -206,7 +206,7 @@ export const SelectWorkflowStages = (props: { version: number; workflowId: numbe
   return createSelector(
     [workflowApi.endpoints.getWorkflow.select({ version: props.version, workflowId: props.workflowId })],
     (workflow) => {
-      const stages = workflow?.data?.nodes.reduce((acc: Array<number>, node) => {
+      const stages = workflow?.data?.nodes?.reduce((acc: Array<number>, node) => {
         if (!acc.includes(node.stage)) {
           acc.push(node.stage);
         }
