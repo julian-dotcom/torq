@@ -63,13 +63,12 @@ export type NewWorkflowNodeRequest = {
   parameters?: AnyObject;
 };
 
-export type UpdateWorkflowNodeRequest = Partial<{
+export type UpdateWorkflowNodeRequest = {
   workflowVersionNodeId: number;
-  name: string;
-  status: number;
-  visibilitySettings?: VisibilitySettings;
+  name?: string;
+  status?: number;
   parameters?: AnyObject;
-}>;
+};
 
 export type UpdateWorkflowNodeVisibilitySettingsRequest = {
   workflowVersionNodeId: number;

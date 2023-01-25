@@ -861,14 +861,6 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 		qb = qb.Set("status", req.Status)
 	}
 
-	if req.VisibilitySettings != nil {
-		vs, err := json.Marshal(req.VisibilitySettings)
-		if err != nil {
-			return 0, errors.Wrap(err, "JSON Marshaling VisibilitySettings")
-		}
-		qb = qb.Set("visibility_settings", vs)
-	}
-
 	if req.Parameters != nil {
 		p, err := json.Marshal(*req.Parameters)
 		if err != nil {
