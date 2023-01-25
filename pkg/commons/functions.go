@@ -132,6 +132,20 @@ func GetVectorUrl(vectorUrl string, suffix string) string {
 	return vectorUrl + suffix
 }
 
+func IsWorkflowNodeTypeGrouped(workflowNodeType WorkflowNodeType) bool {
+	switch workflowNodeType {
+	case WorkflowNodeTimeTrigger:
+		return true
+	case WorkflowNodeChannelBalanceEventTrigger:
+		return true
+	case WorkflowNodeChannelOpenEventTrigger:
+		return true
+	case WorkflowNodeChannelCloseEventTrigger:
+		return true
+	}
+	return false
+}
+
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 	allTriggeredOnly := make(map[WorkflowParameterLabel]WorkflowParameterType)
 	allTriggeredOnly[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered

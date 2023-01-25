@@ -14,8 +14,6 @@ import { AllChannelsColumns, ChannelsFilterTemplate } from "features/channels/ch
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
-import { ColumnMetaData } from "features/table/types";
-
 export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) {
   const { t } = useTranslations();
 

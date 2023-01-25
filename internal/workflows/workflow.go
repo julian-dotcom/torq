@@ -275,6 +275,20 @@ func getWorkflowNodeInputsStatus(workflowNode WorkflowNode, inputs map[commons.W
 		// If it is, add an entry to the inputs map with the matching label and value from the stagingParameters map
 		inputs[label] = inputData
 	}
+
+	optionalInputs := commons.GetWorkflowNodes()[workflowNode.Type].OptionalInputs
+	for label := range optionalInputs {
+		_, exists := inputs[label]
+		if exists {
+			continue
+		}
+		inputData, exists := stagingParameters[label]
+		if !exists {
+			continue
+		}
+		inputs[label] = inputData
+	}
+
 	// If all required inputs have been processed, return commons.Active and the inputs map
 	return commons.Active, inputs
 }

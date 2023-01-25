@@ -221,7 +221,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 								workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
 								scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
 
-							processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, scheduledTrigger.Reference, inputs)
+							processWorkflowNode(triggerCtx, db, nodeSettings, triggerGroupWorkflowVersionNodeId,
+								workflowTriggerNode, scheduledTrigger.Reference, inputs)
 
 							triggerCancel()
 
@@ -260,7 +261,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 					scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
 			}
 
-			processWorkflowNode(triggerCtx, db, nodeSettings, workflowTriggerNode, scheduledTrigger.Reference, inputs)
+			processWorkflowNode(triggerCtx, db, nodeSettings, triggerGroupWorkflowVersionNodeId,
+				workflowTriggerNode, scheduledTrigger.Reference, inputs)
 
 			triggerCancel()
 
@@ -339,13 +341,18 @@ func processEventTrigger(db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
 }
 
 func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
-	workflowTriggerNode workflows.WorkflowNode, reference string, inputs map[commons.WorkflowParameterLabel]string) {
+	triggerGroupWorkflowVersionNodeId int, workflowTriggerNode workflows.WorkflowNode, reference string,
+	inputs map[commons.WorkflowParameterLabel]string) {
 
 	workflowNodeStatus := make(map[int]commons.Status)
 	workflowNodeStagingParametersCache := make(map[int]map[commons.WorkflowParameterLabel]string)
+	workflowNodeCache := make(map[int]workflows.WorkflowNode)
+
+	// Flag the trigger group node as processed
+	workflowNodeStatus[triggerGroupWorkflowVersionNodeId] = commons.Active
 
 	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowTriggerNode,
-		0, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
+		0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
 	workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionNodeId,
 		0, inputs, outputs, err)
 	if err != nil {
@@ -363,7 +370,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 	for _, workflowDeferredLinkNode := range workflowChannelBalanceTriggerNodes {
 		inputs = commons.CopyParameters(outputs)
 		outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowDeferredLinkNode,
-			0, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
+			0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
 		workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
 			0, inputs, outputs, err)
 		if err != nil {

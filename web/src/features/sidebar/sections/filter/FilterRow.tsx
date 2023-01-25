@@ -8,7 +8,6 @@ import { useState } from "react";
 import { format } from "d3";
 import { FilterCategoryType } from "./filter";
 import { Input } from "components/forms/forms";
-import { useGetTagsQuery } from "pages/tags/tagsApi";
 import clone from "clone";
 
 const formatter = format(",.0f");
