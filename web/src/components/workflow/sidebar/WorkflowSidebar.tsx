@@ -17,6 +17,8 @@ import {
   RemoveTagNodeButton,
   BalanceTriggerNodeButton,
   AddTagNodeButton,
+  ChannelCloseTriggerNodeButton,
+  ChannelOpenTriggerNodeButton,
 } from "components/workflow/nodes/nodes";
 
 export type WorkflowSidebarProps = {
@@ -56,6 +58,8 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
         >
           <TimeTriggerNodeButton />
           <BalanceTriggerNodeButton />
+          <ChannelOpenTriggerNodeButton />
+          <ChannelCloseTriggerNodeButton />
         </SectionContainer>
         <SectionContainer
           title={t.channels}

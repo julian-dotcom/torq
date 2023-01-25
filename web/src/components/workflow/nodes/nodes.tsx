@@ -13,3 +13,7 @@ export { RemoveTagNodeButton } from "./tags/RemoveTagNodeButton";
 export { RemoveTagNode } from "./tags/RemoveTagNode";
 export { BalanceTriggerNodeButton } from "./balanceTrigger/BalanceTriggerNodeButton";
 export { BalanceTriggerNode } from "./balanceTrigger/BalanceTriggerNode";
+export { ChannelCloseTriggerNodeButton } from "./channelCloseTrigger/ChannelCloseTriggerNodeButton";
+export { ChannelCloseTriggerNode } from "./channelCloseTrigger/ChannelCloseTriggerNode";
+export { ChannelOpenTriggerNodeButton } from "./channelOpenTrigger/ChannelOpenTriggerNodeButton";
+export { ChannelOpenTriggerNode } from "./channelOpenTrigger/ChannelOpenTriggerNode";
