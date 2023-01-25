@@ -170,8 +170,9 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 	timeTriggerRequiredOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
 
 	//WorkflowNodeChannelBalanceEventTrigger
-	channelBalanceEventTriggerRequiredOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
-	channelBalanceEventTriggerRequiredOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+	channelBalanceEventTriggerOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	channelBalanceEventTriggerOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
+	channelBalanceEventTriggerOptionalOutputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
 
 	//WorkflowNodeChannelFilter
 	channelFilterOptionalInputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
@@ -259,8 +260,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			WorkflowNodeType: WorkflowNodeChannelBalanceEventTrigger,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
-			RequiredOutputs:  channelBalanceEventTriggerRequiredOutputs,
-			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalOutputs:  channelBalanceEventTriggerOptionalOutputs,
 		},
 		WorkflowNodeChannelFilter: {
 			WorkflowNodeType: WorkflowNodeChannelFilter,
