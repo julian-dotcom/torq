@@ -56,11 +56,8 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			}
 			workflowNodeCache[workflowNode.WorkflowVersionNodeId] = cachedWorkflowNode
 		}
-		if commons.IsWorkflowNodeTypeGrouped(workflowNode.Type) {
-			// Only copy the missing bits
-			workflowNode.ParentNodes = cachedWorkflowNode.ParentNodes
-			workflowNode.LinkDetails = cachedWorkflowNode.LinkDetails
-		} else {
+		// Do not override when it's a grouped node because the data was manipulated.
+		if !commons.IsWorkflowNodeTypeGrouped(workflowNode.Type) {
 			workflowNode = cachedWorkflowNode
 		}
 
@@ -245,7 +242,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			}
 			childInput := commons.WorkflowParameterLabel(workflowNode.LinkDetails[childLinkId].ChildInput)
 			parentOutput := commons.WorkflowParameterLabel(workflowNode.LinkDetails[childLinkId].ParentOutput)
-			if childInput != "" && parentOutput != "" {
+			if childInput != "" && parentOutput != "" && outputs[parentOutput] != "" {
 				workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
 			}
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
@@ -304,7 +301,7 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB,
 	}
 	_, err := addWorkflowVersionNodeLog(db, workflowVersionNodeLog)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v  NODE %#v", workflowVersionNodeId, nodeId)
+		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v, nodeId: %#v", workflowVersionNodeId, nodeId)
 	}
 }
 
