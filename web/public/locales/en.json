@@ -30,6 +30,7 @@
   "monday": "Monday",
   "Every": "Every",
   "TriggerEvery": "Trigger Every",
+  "cron": "Cron",
   "intervals": "Intervals",
   "frequency": "Frequency",
   "language": "Language",
