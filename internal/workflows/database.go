@@ -180,6 +180,18 @@ func GetWorkflowVersion(db *sqlx.DB, workflowId int, versionId int) (WorkflowVer
 	return wfv, nil
 }
 
+func GetWorkflowVersionById(db *sqlx.DB, workflowVersionId int) (WorkflowVersion, error) {
+	var wfv WorkflowVersion
+	err := db.Get(&wfv, `SELECT * FROM workflow_version WHERE workflow_version_id = $1 limit 1;`, workflowVersionId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return WorkflowVersion{}, nil
+		}
+		return WorkflowVersion{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return wfv, nil
+}
+
 func GetWorkflowVersions(db *sqlx.DB, workflowId int) ([]WorkflowVersion, error) {
 	var wfvs []WorkflowVersion
 	err := db.Select(&wfvs, `SELECT * FROM workflow_version WHERE workflow_id=$1;`, workflowId)
@@ -932,6 +944,19 @@ func deleteStage(db *sqlx.DB, workflowVersionId int, stage int) error {
 	}
 
 	return nil
+}
+
+func getWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLinkId int) (WorkflowVersionNodeLink, error) {
+	var wfvnl WorkflowVersionNodeLink
+	err := db.Get(&wfvnl, `SELECT * FROM workflow_version_node_link WHERE workflow_version_node_link_id = $1 limit 1;`,
+		workflowVersionNodeLinkId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return WorkflowVersionNodeLink{}, nil
+		}
+		return WorkflowVersionNodeLink{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return wfvnl, nil
 }
 
 func GetWorkflowVersionNodeLinks(db *sqlx.DB, workflowVersionId int) ([]WorkflowVersionNodeLink, error) {
