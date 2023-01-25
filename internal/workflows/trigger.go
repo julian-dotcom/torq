@@ -74,6 +74,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		case commons.WorkflowNodeChannelFilter:
 			fmt.Println("I am running channel filters")
 
+			// TODO if channels come as input dont do GetChannelsByNetwork and StructToMap
 			channels, err := channels.GetChannelsByNetwork(db, 0)
 			if err != nil {
 				return nil, commons.Inactive, errors.Wrapf(err, "Failed to get the channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
@@ -86,10 +87,9 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				return nil, commons.Inactive, errors.Wrapf(err, "Failed to parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
-			ApplyFilters(params, channelsToMap)
-
-			fmt.Printf("\n ------- workflowNode.ParentNodes %#v \n\n", workflowNode.ParentNodes)
-			// fmt.Printf("\n ------- newChannels %#v \n\n", newChannels)
+			filteredChannels := ApplyFilters(params, channelsToMap)
+			// Todo Add filteredChannels to outputs
+			fmt.Printf("\n ------- filteredChannels %#v \n\n", filteredChannels)
 
 		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
 			var params TagParameters
@@ -173,11 +173,6 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			childInput := workflowNode.LinkDetails[childLinkId].ChildInput
 			parentOutput := workflowNode.LinkDetails[childLinkId].ParentOutput
 			workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
-				if len(childParameters.OptionalInputs) > workflowNode.LinkDetails[childLinkId].ChildInputIndex {
-					parameterWithLabel = childParameters.OptionalInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex]
-				} else {
-					parameterWithLabel = childParameters.OptionalInputs[workflowNode.LinkDetails[childLinkId].ChildInputIndex-len(childParameters.OptionalInputs)]
-				}
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId,
 				workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)

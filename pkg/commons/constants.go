@@ -249,7 +249,7 @@ const (
 	WorkflowParameterTypeRebalanceSettings     = WorkflowParameterType("rebalanceSettings")
 	WorkflowParameterTypeTagSettings           = WorkflowParameterType("tagSettings")
 	WorkflowParameterTypeStatus                = WorkflowParameterType("status")
-	WorkflowParameterChannelFilter         = WorkflowParameter("channelFilter")
+	WorkflowParameterChannelFilter             = WorkflowParameterType("channelFilter")
 )
 
 type WorkflowParameterLabel string

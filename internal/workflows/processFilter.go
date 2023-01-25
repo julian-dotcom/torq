@@ -90,55 +90,6 @@ type ClauseWithResult struct {
 	Result       bool
 }
 
-// func (a *AndClause) parseClause(data map[string]interface{}) {
-// 	for _, childClause := range a.ChildClauses {
-// 		switch childClause.(AndClause).Prefix {
-// 		case "$and":
-// 			newChildClaud := AndClause{
-// 				Prefix:       childClause.(AndClause).Prefix,
-// 				ChildClauses: childClause.(AndClause).ChildClauses,
-// 			}
-// 			newChildClaud.parseClause(data)
-// 			if !newChildClaud.Result {
-// 				a.Result = false
-// 				break
-// 			}
-// 			if allTrue := true; allTrue {
-// 				for _, childClause := range a.ChildClauses {
-// 					if !childClause.((AndClause)).Result {
-// 						allTrue = false
-// 						break
-// 					}
-// 				}
-// 				if allTrue {
-// 					a.Result = true
-// 				}
-// 			}
-// 		case "$or":
-// 			newChildClause := OrClause{
-// 				Prefix:       childClause.(OrClause).Prefix,
-// 				ChildClauses: childClause.(OrClause).ChildClauses,
-// 			}
-// 			newChildClause.parseClause(data)
-// 			if !newChildClause.Result {
-// 				a.Result = false
-// 				break
-// 			}
-// 			a.Result = false
-// 		case "$filter":
-// 			newChildClause := FilterClause{
-// 				Prefix: childClause.(FilterClause).Prefix,
-// 				Filter: childClause.(FilterClause).Filter,
-// 			}
-// 			newChildClause.parseClause(data)
-// 			if !newChildClause.Result {
-// 				a.Result = false
-// 				break
-// 			}
-// 		}
-// 	}
-// }
-
 func (c *Clause) parseClause(data map[string]interface{}) {
 	for i, childClause := range c.ChildClauses {
 
@@ -150,10 +101,8 @@ func (c *Clause) parseClause(data map[string]interface{}) {
 			}
 			newChildClaud.parseClause(data)
 
-			// fmt.Printf("---newChildClaud %#v\n", newChildClaud)
 			if newChildClaud.Result {
 				c.ChildClauses[i].Result = true
-				// break
 			}
 
 			if allTrue := true; allTrue {
@@ -168,7 +117,6 @@ func (c *Clause) parseClause(data map[string]interface{}) {
 				}
 			}
 		case "$or":
-			fmt.Println("SECOND--OR")
 			newChildClaud := Clause{
 				Prefix:       childClause.Prefix,
 				ChildClauses: childClause.ChildClauses,
@@ -180,7 +128,6 @@ func (c *Clause) parseClause(data map[string]interface{}) {
 				}
 			}
 		case "$filter":
-			fmt.Println("SECOND--FILTER")
 			filterClause := FilterClause{
 				Prefix: childClause.Prefix,
 				Filter: childClause.Filter,
@@ -197,131 +144,6 @@ func (c *Clause) parseClause(data map[string]interface{}) {
 		}
 	}
 }
-
-// func (o *OrClause) parseClause(data map[string]interface{}) {
-// 	for _, childClause := range o.ChildClauses {
-// 		switch childClause.(OrClause).Prefix {
-// 		case "$and":
-// 			newChildClaud := AndClause{
-// 				Prefix:       childClause.(AndClause).Prefix,
-// 				ChildClauses: childClause.(AndClause).ChildClauses,
-// 			}
-// 			newChildClaud.parseClause(data)
-// 			if !newChildClaud.Result {
-// 				o.Result = false
-// 				break
-// 			}
-// 		case "$or":
-// 			newChildClaud := OrClause{
-// 				Prefix:       childClause.(OrClause).Prefix,
-// 				ChildClauses: childClause.(OrClause).ChildClauses,
-// 			}
-// 			newChildClaud.parseClause(data)
-// 			if !newChildClaud.Result {
-// 				o.Result = false
-// 				break
-// 			}
-// 			o.Result = false
-// 		case "$filter":
-// 			newChildClause := FilterClause{
-// 				Prefix: childClause.(FilterClause).Prefix,
-// 				Filter: childClause.(FilterClause).Filter,
-// 			}
-// 			newChildClause.parseClause(data)
-// 			if !newChildClause.Result {
-// 				o.Result = false
-// 				break
-// 			}
-// 		}
-// 	}
-// }
-
-// func (f *FilterClause) parseClause(data map[string]interface{}) {
-// 	filterClause := FilterClause{
-// 		Prefix: f.Prefix,
-// 		Filter: f.Filter,
-// 	}
-// 	filterFunc, ok := _filterFunctions[f.Filter.Category][f.Filter.FuncName]
-// 	if !ok {
-// 		panic("Filter function is not yet defined")
-// 	}
-// 	if _, ok := data[filterClause.Filter.Key]; ok {
-// 		f.Result = filterFunc(data, f.Filter.Key, f.Filter.Parameter)
-// 	} else {
-// 		f.Result = true
-// 	}
-// }
-
-// func parseClause(clause interface{}, data map[string]interface{}) {
-// 	switch clause.(ClauseWithResult).Prefix {
-// 	case "$filter":
-// 		filterClause := clause.(FilterClause)
-// 		filterFunc, ok := FilterFunctions[filterClause.Filter.Category][filterClause.Filter.FuncName]
-// 		if !ok {
-// 			panic("Filter function is not yet defined")
-// 		}
-// 		if _, ok := data[filterClause.filter.key]; ok {
-// 			clause.(ClauseWithResult).Result = filterFunc(data, filterClause.Filter.Key, filterClause.Filter.Parameter)
-// 		} else {
-// 			clause.(ClauseWithResult).Result = true
-// 		}
-// 	case "$and":
-// 		andClause := clause.(AndClause)
-// 		for _, childClause := range andClause.ChildClauses {
-// 			parseClause(childClause, data)
-// 			if childClause.Result == false {
-// 				clause.(ClauseWithResult).Result = false
-// 				break
-// 			}
-// 		}
-// 		if allTrue := true; allTrue {
-// 			for _, childClause := range andClause.ChildClauses {
-// 				if childClause.Result != true {
-// 					allTrue = false
-// 					break
-// 				}
-// 			}
-// 			if allTrue {
-// 				clause.(ClauseWithResult).Result = true
-// 			}
-// 		}
-// 	case "$or":
-// 		orClause := clause.OrClause
-// 		for _, childClause := range orClause.ChildClauses {
-// 			parseClause(childClause, data)
-// 			if childClause.result == true {
-// 				clause.(ClauseWithResult).Result = true
-// 				break
-// 			}
-// 		}
-// 		clause.(ClauseWithResult).Result = false
-// 	}
-// }
-
-// func structFieldExists(obj interface{}, field string) bool {
-// 	val := reflect.ValueOf(obj)
-// 	if val.Kind() == reflect.Ptr {
-// 		val = val.Elem()
-// 	}
-// 	if val.Kind() != reflect.Struct {
-// 		return false
-// 	}
-// 	_, exists := val.Type().FieldByName(field)
-// 	return exists
-// }
-
-// type MyStruct struct {
-//     Field1 string
-//     Field2 int
-// }
-
-// s := MyStruct{Field1: "hello", Field2: 42}
-
-// exists := structFieldExists(s, "Field1")
-// fmt.Println(exists)  // true
-
-// exists = structFieldExists(s, "Field3")
-// fmt.Println(exists)  // false
 
 var FilterFunctions = map[FilterCategoryType]map[string]FilterFunc{
 	FilterCategoryTypeNumber: {
@@ -445,12 +267,10 @@ func ApplyFilters(filters interface{}, data []map[string]interface{}) []interfac
 			result = append(result, item)
 		}
 	}
-	// fmt.Printf("\n-------- RESULT %#v\n\n", result)
 	return result
 }
 
 func ProcessQuery(filters interface{}, item map[string]interface{}) bool {
-	fmt.Printf("\n-------- item %#v\n\n", item)
 	var result bool
 
 	switch filters.(Clause).Prefix {
@@ -461,10 +281,8 @@ func ProcessQuery(filters interface{}, item map[string]interface{}) bool {
 		}
 		andFilter.parseClause(item)
 		result = andFilter.Result
-		// fmt.Printf("andFilter.Result %#v\n", andFilter.Result)
 		if allTrue := true; allTrue {
 			for _, childClause := range filters.(Clause).ChildClauses {
-				// fmt.Printf("---childClause %#v\n", childClause)
 				if !childClause.Result {
 					allTrue = false
 					break
@@ -482,7 +300,6 @@ func ProcessQuery(filters interface{}, item map[string]interface{}) bool {
 		orFilter.parseClause(item)
 		result = orFilter.Result
 		for _, childClause := range filters.(Clause).ChildClauses {
-			fmt.Printf("\n-------- OR %#v\n", childClause)
 			if childClause.Result {
 				result = childClause.Result
 				break
@@ -517,11 +334,9 @@ func DeserialiseQuery(query interface{}) interface{} {
 		}
 	}
 	if query.(FilterClauses).And != nil {
-		// var subclauses []interface{}
 		var subClauses []Clause
 		for _, subclause := range query.(FilterClauses).And {
 			theClause := DeserialiseQuery(subclause)
-			// subclauses = append(subclauses, DeserialiseQuery(subclause))
 			subClauses = append(subClauses, theClause.(Clause))
 		}
 		return Clause{
@@ -530,11 +345,9 @@ func DeserialiseQuery(query interface{}) interface{} {
 		}
 	}
 	if query.(FilterClauses).Or != nil {
-		// var subclauses []interface{}
 		var subClauses []Clause
 		for _, subclause := range query.(FilterClauses).Or {
 			theClause := DeserialiseQuery(subclause)
-			// subclauses = append(subclauses, DeserialiseQuery(subclause))
 			subClauses = append(subClauses, theClause.(Clause))
 		}
 		return Clause{
