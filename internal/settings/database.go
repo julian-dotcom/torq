@@ -33,7 +33,7 @@ func InitializeManagedSettingsCache(db *sqlx.DB) error {
 	if err == nil {
 		log.Debug().Msg("Pushing settings to ManagedSettings cache.")
 		commons.SetSettings(settingsData.DefaultDateRange, settingsData.DefaultLanguage, settingsData.WeekStartsOn,
-			settingsData.PreferredTimezone)
+			settingsData.PreferredTimezone, settingsData.TorqUuid, settingsData.MixpanelOptOut)
 	} else {
 		log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
 	}
@@ -66,7 +66,8 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
-	commons.SetSettings(settings.DefaultDateRange, settings.DefaultLanguage, settings.WeekStartsOn, settings.PreferredTimezone)
+	commons.SetSettings(settings.DefaultDateRange, settings.DefaultLanguage, settings.WeekStartsOn,
+		settings.PreferredTimezone, settings.TorqUuid, settings.MixpanelOptOut)
 	return nil
 }
 

@@ -21,6 +21,8 @@ type ManagedSettings struct {
 	PreferredTimeZone string
 	DefaultDateRange  string
 	WeekStartsOn      string
+	TorqUuid          string
+	MixpanelOptOut    bool
 	Out               chan ManagedSettings
 }
 
@@ -29,20 +31,23 @@ func ManagedSettingsCache(ch chan ManagedSettings, ctx context.Context) {
 	var preferredTimeZone string
 	var defaultDateRange string
 	var weekStartsOn string
+	var torqUuid string
+	var mixpanelOptOut bool
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case managedSettings := <-ch:
-			defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn =
-				processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn)
+			defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn, torqUuid, mixpanelOptOut =
+				processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange,
+					weekStartsOn, torqUuid, mixpanelOptOut)
 		}
 	}
 }
 
 func processManagedSettings(managedSettings ManagedSettings,
 	defaultLanguage string, preferredTimeZone string, defaultDateRange string,
-	weekStartsOn string) (string, string, string, string) {
+	weekStartsOn string, torqUuid string, mixpanelOptOut bool) (string, string, string, string, string, bool) {
 
 	switch managedSettings.Type {
 	case READ_SETTINGS:
@@ -62,14 +67,18 @@ func processManagedSettings(managedSettings ManagedSettings,
 		if weekStartsOn == "" {
 			managedSettings.WeekStartsOn = "monday"
 		}
+		managedSettings.TorqUuid = torqUuid
+		managedSettings.MixpanelOptOut = mixpanelOptOut
 		SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
 	case WRITE_SETTINGS:
 		defaultLanguage = managedSettings.DefaultLanguage
 		preferredTimeZone = managedSettings.PreferredTimeZone
 		defaultDateRange = managedSettings.DefaultDateRange
 		weekStartsOn = managedSettings.WeekStartsOn
+		torqUuid = managedSettings.TorqUuid
+		mixpanelOptOut = managedSettings.MixpanelOptOut
 	}
-	return defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn
+	return defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn, torqUuid, mixpanelOptOut
 }
 
 func SendToManagedSettingsChannel(ch chan ManagedSettings, managedSettings ManagedSettings) {
@@ -86,12 +95,15 @@ func GetSettings() ManagedSettings {
 	return <-settingsResponseChannel
 }
 
-func SetSettings(defaultDateRange, defaultLanguage, weekStartsOn, preferredTimeZone string) {
+func SetSettings(defaultDateRange string, defaultLanguage string, weekStartsOn string, preferredTimeZone string,
+	torqUuid string, mixpanelOptOut bool) {
 	managedSettings := ManagedSettings{
 		DefaultDateRange:  defaultDateRange,
 		DefaultLanguage:   defaultLanguage,
 		WeekStartsOn:      weekStartsOn,
 		PreferredTimeZone: preferredTimeZone,
+		TorqUuid:          torqUuid,
+		MixpanelOptOut:    mixpanelOptOut,
 		Type:              WRITE_SETTINGS,
 	}
 	ManagedSettingsChannel <- managedSettings
