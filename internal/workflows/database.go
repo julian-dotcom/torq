@@ -861,14 +861,6 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 		qb = qb.Set("status", req.Status)
 	}
 
-	if req.VisibilitySettings != nil {
-		vs, err := json.Marshal(req.VisibilitySettings)
-		if err != nil {
-			return 0, errors.Wrap(err, "JSON Marshaling VisibilitySettings")
-		}
-		qb = qb.Set("visibility_settings", vs)
-	}
-
 	if req.Parameters != nil {
 		p, err := json.Marshal(*req.Parameters)
 		if err != nil {
@@ -884,6 +876,23 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 	}
 
 	return req.WorkflowVersionNodeId, nil
+}
+
+func updateNodeVisibilitySettings(db *sqlx.DB, workflowVersionNodeId int, visibilitySettings WorkflowNodeVisibilitySettings) error {
+	vs, err := json.Marshal(visibilitySettings)
+	if err != nil {
+		return errors.Wrap(err, "JSON Marshaling Visibility Settings")
+	}
+
+	_, err = db.Exec(`UPDATE workflow_version_node
+		SET visibility_settings=$1, updated_on=$2
+		WHERE workflow_version_node_id=$3;`,
+		vs, time.Now(), workflowVersionNodeId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	return nil
 }
 
 func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {

@@ -45,6 +45,7 @@ func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	{
 		nodes.POST("", func(c *gin.Context) { addNodeHandler(c, db) })
 		nodes.PUT("", func(c *gin.Context) { updateNodeHandler(c, db) })
+		nodes.PUT("/:nodeId/visibility-settings", func(c *gin.Context) { updateNodeLVisibilitySettingsHandler(c, db) })
 		nodes.DELETE("/:nodeId", func(c *gin.Context) { removeNodeHandler(c, db) })
 
 		// Workflow Node Logs
@@ -427,6 +428,27 @@ func updateNodeHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+func updateNodeLVisibilitySettingsHandler(c *gin.Context, db *sqlx.DB) {
+	workflowVersionNodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionNodeId in the request.")
+		return
+	}
+
+	var req WorkflowNodeVisibilitySettings
+	if err := c.BindJSON(&req); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+
+	err = updateNodeVisibilitySettings(db, workflowVersionNodeId, req)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Update node visibility settings in the db")
+	}
+
+	c.JSON(http.StatusOK, workflowVersionNodeId)
 }
 
 func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
