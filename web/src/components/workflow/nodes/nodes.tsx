@@ -2,6 +2,8 @@ export { ChannelPolicyConfigurationNodeButton } from "./channelPolicy/ChannelPol
 export { ChannelPolicyNode } from "./channelPolicy/ChannelPolicyConfigurationNode";
 export { TimeTriggerNodeButton } from "./timeTrigger/TimeTriggerNodeButton";
 export { TimeTriggerNode } from "./timeTrigger/TimeTriggerNode";
+export { CronTriggerNodeButton } from "./cronTrigger/CronTriggerNodeButton";
+export { CronTriggerNode } from "./cronTrigger/CronTriggerNode";
 export { StageTriggerNode } from "./stageTrigger/StageTriggerNode";
 export { ChannelFilterNode } from "./channelsFilter/ChannelFilterNode";
 export { ChannelFilterNodeButton } from "./channelsFilter/ChannelFilterNodeButton";

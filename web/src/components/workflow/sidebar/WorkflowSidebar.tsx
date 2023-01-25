@@ -12,6 +12,7 @@ import { useState } from "react";
 import {
   ChannelPolicyConfigurationNodeButton,
   TimeTriggerNodeButton,
+  CronTriggerNodeButton,
   ChannelFilterNodeButton,
   ReBalanceChannelNodeButton,
   RemoveTagNodeButton,
@@ -57,6 +58,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           handleToggle={() => toggleSection("triggers")}
         >
           <TimeTriggerNodeButton />
+          <CronTriggerNodeButton />
           <BalanceTriggerNodeButton />
           <ChannelOpenTriggerNodeButton />
           <ChannelCloseTriggerNodeButton />
