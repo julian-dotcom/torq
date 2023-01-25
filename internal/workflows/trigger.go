@@ -107,8 +107,9 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			if err != nil {
 				return nil, commons.Inactive, errors.Wrapf(err, "Parsing parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
-			noFiltering := params.Filter.FuncName == ""
+			filtered := params.Filter.FuncName != "" || len(params.Or) != 0 || len(params.And) != 0
 
+			var filteredChannelIds []int
 			linkedChannelIdsString, exists := inputs[commons.WorkflowParameterLabelChannels]
 			if exists {
 				var linkedChannelIds []int
@@ -116,36 +117,33 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				if err != nil {
 					return nil, commons.Inactive, errors.Wrapf(err, "Unmarshal the parent channelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIdsString, workflowNode.WorkflowVersionNodeId)
 				}
-				if noFiltering {
-					outputs[commons.WorkflowParameterLabelChannels] = linkedChannelIdsString
-				} else {
+				if filtered {
 					linkedChannels, err := channels.GetChannelsByIds(db, nodeSettings.NodeId, linkedChannelIds)
 					if err != nil {
 						return nil, commons.Inactive, errors.Wrapf(err, "Getting the linked channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 					}
-					filteredChannels := ApplyFilters(params, StructToMap(linkedChannels))
-					// Todo Add filteredChannels to outputs
-					fmt.Printf("\n ------- filteredChannels %#v \n\n", filteredChannels)
+					filteredChannelIds = filterChannelIds(params, linkedChannels)
+				} else {
+					filteredChannelIds = linkedChannelIds
 				}
 			} else {
 				// Force Response because we don't care about balance accuracy
 				channelIds := commons.GetChannelStateChannelIds(nodeSettings.NodeId, true)
-				if noFiltering {
-					ba, err := json.Marshal(channelIds)
-					if err != nil {
-						return nil, commons.Inactive, errors.Wrapf(err, "Marshal the channelIds: %v for WorkflowVersionNodeId: %v", channelIds, workflowNode.WorkflowVersionNodeId)
-					}
-					outputs[commons.WorkflowParameterLabelChannels] = string(ba)
-				} else {
+				if filtered {
 					channelsBodyByNode, err := channels.GetChannelsByIds(db, nodeSettings.NodeId, channelIds)
 					if err != nil {
 						return nil, commons.Inactive, errors.Wrapf(err, "Getting the linked channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 					}
-					filteredChannels := ApplyFilters(params, StructToMap(channelsBodyByNode))
-					// Todo Add filteredChannels to outputs
-					fmt.Printf("\n ------- filteredChannels %#v \n\n", filteredChannels)
+					filteredChannelIds = filterChannelIds(params, channelsBodyByNode)
+				} else {
+					filteredChannelIds = channelIds
 				}
 			}
+			ba, err := json.Marshal(filteredChannelIds)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Marshal the filteredChannelIds: %v for WorkflowVersionNodeId: %v", filteredChannelIds, workflowNode.WorkflowVersionNodeId)
+			}
+			outputs[commons.WorkflowParameterLabelChannels] = string(ba)
 
 		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
 			var linkedChannelIds []int
@@ -260,6 +258,18 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		}
 	}
 	return outputs, commons.Active, nil
+}
+
+func filterChannelIds(params FilterClauses, linkedChannels []channels.ChannelBody) []int {
+	var filteredChannelIds []int
+	filteredChannels := ApplyFilters(params, StructToMap(linkedChannels))
+	for _, filteredChannel := range filteredChannels {
+		channel, ok := filteredChannel.(map[string]interface{})
+		if ok {
+			filteredChannelIds = append(filteredChannelIds, channel["channelid"].(int))
+		}
+	}
+	return filteredChannelIds
 }
 
 func AddWorkflowVersionNodeLog(db *sqlx.DB,
