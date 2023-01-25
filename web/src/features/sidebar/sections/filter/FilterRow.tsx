@@ -1,13 +1,19 @@
 import classNames from "classnames";
 import { Delete16Regular as RemoveIcon } from "@fluentui/react-icons";
-import Select from "./FilterDropDown";
-import { Clause, FilterClause, FilterInterface, FilterParameterType } from "./filter";
+import {
+  Clause,
+  FilterCategoryType,
+  FilterClause,
+  FilterFunctions,
+  FilterInterface,
+  FilterParameterType,
+} from "./filter";
 import styles from "./filter-section.module.scss";
-import { FilterFunctions } from "./filter";
 import { useState } from "react";
 import { format } from "d3";
-import { FilterCategoryType } from "./filter";
-import { Input } from "components/forms/forms";
+import { Input, InputColorVaraint, InputSizeVariant, Select } from "components/forms/forms";
+import { TagResponse } from "pages/tags/tagsTypes";
+import { useGetTagsQuery } from "pages/tags/tagsApi";
 import clone from "clone";
 
 const formatter = format(",.0f");
@@ -23,10 +29,10 @@ const ffLabels = new Map<string, string>([
   ["gte", "is greater than or equal to"],
   ["lt", "is less than"],
   ["lte", "is less than or equal to"],
-  ["like", "contains"],
-  ["notLike", "does not contain"],
-  ["any", "does not contain"],
-  ["notAny", "does not contain"],
+  ["like", "contain"],
+  ["notLike", "don't contain"],
+  ["any", "contain"],
+  ["notAny", "don't contain"],
 ]);
 
 function getFilterFunctions(filterCategory: FilterCategoryType) {
@@ -61,6 +67,9 @@ function FilterRow({
 }: filterRowInterface) {
   const rowValues = filterClause.filter;
   const [rowExpanded, setRowExpanded] = useState(false);
+  const { data: getTags } = useGetTagsQuery();
+
+  const tags = (getTags || []).map((tag: TagResponse) => ({ label: tag.name, value: tag.tagId })) || [];
 
   const functionOptions = getFilterFunctions(rowValues.category);
 
@@ -98,6 +107,10 @@ function FilterRow({
         newRow.parameter = "";
         newRow.funcName = "eq";
         break;
+      case "tag":
+        newRow.parameter = [];
+        newRow.funcName = "any";
+        break;
       default:
         newRow.parameter = "";
         newRow.funcName = "like";
@@ -124,6 +137,9 @@ function FilterRow({
         break;
       case "boolean":
         newRow.parameter = e.value;
+        break;
+      case "tag":
+        newRow.parameter = (e as Array<{ value: number }>).map((item) => item.value);
         break;
       case "array":
         newRow.parameter = String(e.value);
@@ -156,6 +172,12 @@ function FilterRow({
         return options?.find((item) => {
           return item.value === rowValues.parameter ? item : "";
         })?.label;
+      case "tag":
+        if (rowValues?.parameter !== undefined) {
+          const parameter = rowValues.parameter as Array<number>;
+          return (parameter || []).map((tagId) => (tags || []).find((t) => t.value === tagId)?.label).join(", ");
+        }
+        return "";
       default:
         return rowValues.parameter;
     }
@@ -186,14 +208,20 @@ function FilterRow({
 
       <div className={classNames(styles.filterOptions, { [styles.expanded]: rowExpanded })}>
         <Select
-          selectProps={{ options: filterOptions, value: selectData.key, onChange: handleKeyChange }}
-          child={child}
+          options={filterOptions}
+          value={selectData.key}
+          onChange={handleKeyChange}
+          sizeVariant={InputSizeVariant.small}
+          colorVariant={child ? InputColorVaraint.primary : InputColorVaraint.accent1}
         />
 
         <div className="filter-function-container">
           <Select
-            selectProps={{ options: functionOptions, value: selectData.func, onChange: handleFunctionChange }}
-            child={child}
+            options={functionOptions}
+            value={selectData.func}
+            onChange={handleFunctionChange}
+            sizeVariant={InputSizeVariant.small}
+            colorVariant={child ? InputColorVaraint.primary : InputColorVaraint.accent1}
           />
         </div>
 
@@ -213,13 +241,16 @@ function FilterInputField(props: {
   child: boolean;
   options: Array<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }) {
+  const { data: getTags } = useGetTagsQuery();
+  const tags = (getTags || []).map((tag: TagResponse) => ({ label: tag.name, value: tag.tagId })) || [];
   switch (props.rowValues.category) {
     case "number":
       return (
         <Input
           formatted={true}
-          className={classNames(styles.filterInputField, styles.small)}
           thousandSeparator=","
+          sizeVariant={InputSizeVariant.small}
+          colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
           defaultValue={props.rowValues.parameter as keyof FilterParameterType}
           onValueChange={(e) => {
             props.onChange(e);
@@ -229,15 +260,14 @@ function FilterInputField(props: {
     case "boolean":
       return (
         <Select
-          selectProps={{
-            options: [
-              { label: "True", value: true },
-              { label: "False", value: false },
-            ],
-            value: { label: !props.rowValues.parameter ? "False" : "True", value: props.rowValues.parameter },
-            onChange: props.onChange,
-          }}
-          child={props.child}
+          options={[
+            { label: "True", value: true },
+            { label: "False", value: false },
+          ]}
+          value={props.rowValues.parameter}
+          onChange={props.onChange}
+          colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
+          sizeVariant={InputSizeVariant.small}
         />
       );
     case "array": {
@@ -246,44 +276,55 @@ function FilterInputField(props: {
       })?.label;
       return (
         <Select
-          selectProps={{
-            options: props.options,
-            value: { value: props.rowValues.parameter, label: label },
-            onChange: props.onChange,
-          }}
-          child={props.child}
+          options={props.options}
+          value={{ value: props.rowValues.parameter, label: label }}
+          onChange={props.onChange}
+          colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
+          sizeVariant={InputSizeVariant.small}
+        />
+      );
+    }
+    case "tag": {
+      return (
+        <Select
+          isMulti={true}
+          options={tags}
+          value={((props.rowValues.parameter as Array<number>) || []).map((tagId) => {
+            return { label: tags.find((o) => o.value === tagId)?.label, value: tagId };
+          })}
+          onChange={props.onChange}
+          colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
+          sizeVariant={InputSizeVariant.small}
         />
       );
     }
     case "enum": {
-      const label = props.options?.find((item) => {
-        return item.value === props.rowValues.parameter ? item : "";
-      })?.label;
       return (
         <Select
-          selectProps={{
-            options: props.options,
-            value: { value: props.rowValues.parameter, label: label },
-            onChange: props.onChange,
-          }}
-          child={props.child}
+          options={props.options}
+          value={props.rowValues.parameter}
+          onChange={props.onChange}
+          colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
+          sizeVariant={InputSizeVariant.small}
         />
       );
     }
     case "date":
       return (
-        <input
+        <Input
           type="datetime-local"
-          className={"torq-input-field"}
+          sizeVariant={InputSizeVariant.small}
+          colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
           value={props.rowValues.parameter as string}
           onChange={props.onChange}
         />
       );
     default:
       return (
-        <input
+        <Input
           type="text"
-          className={"torq-input-field"}
+          sizeVariant={InputSizeVariant.small}
+          colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
           value={props.rowValues.parameter as keyof FilterParameterType}
           onChange={props.onChange}
         />
