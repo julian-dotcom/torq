@@ -6,6 +6,7 @@ import {
   UpdateWorkflow,
   UpdateWorkflowNodeRequest,
   workflowListItem,
+  UpdateWorkflowNodeVisibilitySettingsRequest,
 } from "./workflowTypes";
 import { createSelector } from "@reduxjs/toolkit";
 import { TriggerNodeTypes, WorkflowNodeType } from "./constants";
@@ -60,6 +61,13 @@ export const workflowApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["workflow"],
     }),
+    updateNodeVisibilitySettings: builder.mutation<void, UpdateWorkflowNodeVisibilitySettingsRequest>({
+      query: (body: UpdateWorkflowNodeVisibilitySettingsRequest) => ({
+        url: `workflows/nodes/${body.workflowVersionNodeId}/visibility-settings`,
+        method: "PUT",
+        body: body.visibilitySettings,
+      }),
+    }),
     deleteNode: builder.mutation<void, { nodeId: number }>({
       query: (body: { nodeId: number }) => ({
         url: `workflows/nodes/${body.nodeId}`,
@@ -109,6 +117,7 @@ export const {
   useUpdateWorkflowMutation,
   useAddNodeMutation,
   useUpdateNodeMutation,
+  useUpdateNodeVisibilitySettingsMutation,
   useDeleteNodeMutation,
   useDeleteStageMutation,
   useAddNodeLinkMutation,

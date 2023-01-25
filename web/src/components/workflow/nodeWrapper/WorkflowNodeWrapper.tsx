@@ -14,7 +14,11 @@ import {
 import Collapse from "features/collapse/Collapse";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import NodeName from "./NodeNameInput";
-import { useDeleteNodeMutation, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
+import {
+  useDeleteNodeMutation,
+  useUpdateNodeMutation,
+  useUpdateNodeVisibilitySettingsMutation,
+} from "pages/WorkflowPage/workflowApi";
 import PopoverButton from "features/popover/Popover";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
@@ -61,6 +65,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [nameInputVisible, setNameInputVisible] = useState(false);
   const [updateNode] = useUpdateNodeMutation();
+  const [updateNodeVisibilitySettings] = useUpdateNodeVisibilitySettingsMutation();
   const [deleteNode] = useDeleteNodeMutation();
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
@@ -119,7 +124,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
     }
     setIsDragging(false);
 
-    updateNode({
+    updateNodeVisibilitySettings({
       workflowVersionNodeId: props.workflowVersionNodeId,
       visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: collapsed },
     });
@@ -129,7 +134,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
 
   function handleCollapse() {
     // Toggle the collapsed state
-    updateNode({
+    updateNodeVisibilitySettings({
       workflowVersionNodeId: props.workflowVersionNodeId,
       visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: !collapsed },
     });

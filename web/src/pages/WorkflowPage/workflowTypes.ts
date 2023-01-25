@@ -71,6 +71,11 @@ export type UpdateWorkflowNodeRequest = Partial<{
   parameters?: AnyObject;
 }>;
 
+export type UpdateWorkflowNodeVisibilitySettingsRequest = {
+  workflowVersionNodeId: number;
+  visibilitySettings: VisibilitySettings;
+};
+
 export type WorkflowVersionNodeLink = {
   stage: number;
   workflowVersionId: number;
