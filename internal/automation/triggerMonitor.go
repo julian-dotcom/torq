@@ -115,11 +115,11 @@ func CronTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 	}
 
 	c.Start()
+	defer c.Stop()
 
 	log.Info().Msgf("Cron trigger monitor started for nodeId: %v", nodeSettings.NodeId)
 
 	<-ctx.Done()
-	c.Stop()
 }
 
 func EventTriggerMonitor(ctx context.Context, db *sqlx.DB,
