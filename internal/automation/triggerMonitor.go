@@ -208,7 +208,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			workflowTriggerNode.ParentNodes = make(map[int]*workflows.WorkflowNode)
 			workflowTriggerNode.LinkDetails = groupWorkflowVersionNode.LinkDetails
 
-			if scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeTimeTrigger {
+			if scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeTimeTrigger &&
+				scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeCronTrigger {
 				// If the event is a WorkflowNode then this is the bootstrapping event that simulates a channel update
 				// since we don't know what happened while Torq was offline.
 				switch firstEvent.(type) {
