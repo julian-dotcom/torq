@@ -349,7 +349,6 @@ func addNodeHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-
 	workflowVersion, err := GetWorkflowVersionById(db, req.WorkflowVersionId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Get workflow version")

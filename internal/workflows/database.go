@@ -786,7 +786,6 @@ func GetWorkflowVersionNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowVer
 }
 
 func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, err error) {
-
 	wfvn.WorkflowVersionId = req.WorkflowVersionId
 	wfvn.VisibilitySettings = req.VisibilitySettings
 	wfvn.Type = req.Type
@@ -808,6 +807,8 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 		if err != nil {
 			return WorkflowVersionNode{}, errors.Wrap(err, "JSON Marshaling Parameters")
 		}
+	} else {
+		wfvn.Parameters = []byte("{}")
 	}
 
 	err = db.QueryRowx(`INSERT

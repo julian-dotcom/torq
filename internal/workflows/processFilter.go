@@ -1,8 +1,9 @@
 package workflows
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/lncapital/torq/internal/tags"
 )
 
 type FilterCategoryType string
@@ -155,9 +156,6 @@ func GetFilterFunctions() map[FilterCategoryType]map[string]FilterFunc {
 				return input[key] != parameter
 			},
 			"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				fmt.Println("input[key]", input[key].(int64))
-				fmt.Println("parameter", int64(parameter.(float64)))
-				fmt.Println("SOO", input[key].(int64) > int64(parameter.(float64)))
 				return input[key].(int64) > int64(parameter.(float64))
 			},
 			"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
@@ -251,6 +249,32 @@ func GetFilterFunctions() map[FilterCategoryType]map[string]FilterFunc {
 				for _, value := range input[key].([]interface{}) {
 					for _, paramValue := range paramArray {
 						if value == paramValue {
+							return false
+						}
+					}
+				}
+				return true
+			},
+		},
+		FilterCategoryTypeTag: {
+			"any": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				tags := input[key].([]tags.TagResponse)
+				tagIds := parameter.([]int)
+				for _, tag := range tags {
+					for _, tagId := range tagIds {
+						if tag.TagId == tagId {
+							return true
+						}
+					}
+				}
+				return false
+			},
+			"notAny": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
+				tags := input[key].([]tags.TagResponse)
+				tagIds := parameter.([]int)
+				for _, tag := range tags {
+					for _, tagId := range tagIds {
+						if tag.TagId == tagId {
 							return false
 						}
 					}
