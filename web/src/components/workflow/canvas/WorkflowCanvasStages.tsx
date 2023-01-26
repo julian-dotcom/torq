@@ -6,6 +6,7 @@ import { WorkflowNodeType } from "pages/WorkflowPage/constants";
 import {
   ChannelPolicyNode,
   TimeTriggerNode,
+  CronTriggerNode,
   StageTriggerNode,
   ChannelFilterNode,
   ReBalanceChannelNode,
@@ -96,6 +97,8 @@ function getNodeComponent(node: WorkflowVersionNode) {
   switch (node.type) {
     case WorkflowNodeType.TimeTrigger:
       return <TimeTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.CronTrigger:
+      return <CronTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelBalanceEventTrigger:
       return <BalanceTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelOpenEventTrigger:
