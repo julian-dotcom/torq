@@ -102,12 +102,16 @@ func CronTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 			continue
 		}
 		log.Debug().Msgf("Scheduling cron (%v) for workflow version node id: %v", params.CronValue, trigger.WorkflowVersionNodeId)
-		c.AddFunc(params.CronValue, func() {
+		_, err = c.AddFunc(params.CronValue, func() {
 			log.Debug().Msgf("Scheduling for immediate execution cron trigger for workflow version node id %v", trigger.WorkflowVersionNodeId)
 			reference := fmt.Sprintf("%v_%v", trigger.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
 			commons.ScheduleTrigger(nodeSettings.NodeId, reference, trigger.WorkflowVersionId,
 				commons.WorkflowNodeCronTrigger, trigger)
 		})
+		if err != nil {
+			log.Error().Msgf("Unable to add cron func for workflow version node id: %v", trigger.WorkflowVersionNodeId)
+			continue
+		}
 	}
 
 	c.Start()
