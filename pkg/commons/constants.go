@@ -227,9 +227,9 @@ const (
 	WorkflowTrigger
 	WorkflowNodeAddTag
 	WorkflowNodeRemoveTag
-	WorkflowChannelFilter
 	WorkflowNodeChannelOpenEventTrigger
 	WorkflowNodeChannelCloseEventTrigger
+	WorkflowNodeCronTrigger
 )
 
 type WorkflowTriggerType int

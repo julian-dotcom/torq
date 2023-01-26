@@ -6,7 +6,7 @@ export enum WorkflowNodeType {
   RebalanceParameters,
   StageTrigger,
   RebalanceRun,
-  RoutingPolicyRun,
+  ChannelPolicyRun,
   SetVariable,
   FilterOnVariable,
   // Trigger is the main trigger that is used to start the workflow prevent us
