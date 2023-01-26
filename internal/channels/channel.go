@@ -51,9 +51,9 @@ type Channel struct {
 	Status                 commons.ChannelStatus `json:"status" db:"status_id"`
 	CreatedOn              time.Time             `json:"createdOn" db:"created_on"`
 	UpdateOn               *time.Time            `json:"updatedOn" db:"updated_on"`
-	FundingBlockHeight     *int64                `json:"fundingBlockHeight" db:"funding_block_height"`
+	FundingBlockHeight     *uint32               `json:"fundingBlockHeight" db:"funding_block_height"`
 	FundedOn               *time.Time            `json:"fundedOn" db:"funded_on"`
-	ClosingBlockHeight     *int64                `json:"closingBlockHeight" db:"closing_block_height"`
+	ClosingBlockHeight     *uint32               `json:"closingBlockHeight" db:"closing_block_height"`
 	ClosedOn               *time.Time            `json:"closedOn" db:"closed_on"`
 }
 

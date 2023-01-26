@@ -207,7 +207,7 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		var lndShortChannelId *uint64
 		var fundingTransactionHash string
 		var fundingOutputIndex int
-		var fundingBlockHeight *int64
+		var fundingBlockHeight *uint32
 		var fundedOn *time.Time
 		var capacity int64
 		var private bool
@@ -218,7 +218,7 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		var status commons.ChannelStatus
 		var closingTransactionHash *string
 		var closingNodeId *int
-		var closingBlockHeight *int64
+		var closingBlockHeight *uint32
 		var closedOn *time.Time
 		err = rows.Scan(&channelId, &shortChannelId, &lndShortChannelId,
 			&fundingTransactionHash, &fundingOutputIndex,

@@ -27,14 +27,19 @@ type ChannelBody struct {
 	Tags                         []tags.Tag           `json:"tags"`
 	Active                       bool                 `json:"active"`
 	RemoteActive                 bool                 `json:"remoteActive"`
+	CurrentBlockHeight           uint32               `json:"currentBlockHeight"`
 	Gauge                        float64              `json:"gauge"`
 	RemotePubkey                 string               `json:"remotePubkey"`
 	FundingTransactionHash       string               `json:"fundingTransactionHash"`
 	FundingOutputIndex           int                  `json:"fundingOutputIndex"`
-	FundingBlockHeight           *int64               `json:"fundingBlockHeight"`
+	FundingBlockHeight           *uint32              `json:"fundingBlockHeight"`
+	FundingBlockHeightDelta      *uint32              `json:"fundingBlockHeightDelta"`
 	FundedOn                     *time.Time           `json:"fundedOn"`
-	ClosingBlockHeight           *int64               `json:"closingBlockHeight"`
+	FundedOnSecondsDelta         *uint64              `json:"fundedOnSecondsDelta"`
+	ClosingBlockHeight           *uint32              `json:"closingBlockHeight"`
+	ClosingBlockHeightDelta      *uint32              `json:"closingBlockHeightDelta"`
 	ClosedOn                     *time.Time           `json:"closedOn"`
+	ClosedOnSecondsDelta         *uint64              `json:"closedOnSecondsDelta"`
 	LNDShortChannelId            string               `json:"lndShortChannelId"`
 	ShortChannelId               string               `json:"shortChannelId"`
 	Capacity                     int64                `json:"capacity"`
@@ -198,6 +203,7 @@ func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody,
 			RemotePubkey:                 remoteNode.PublicKey,
 			FundingTransactionHash:       channelSettings.FundingTransactionHash,
 			FundingOutputIndex:           channelSettings.FundingOutputIndex,
+			CurrentBlockHeight:           commons.GetBlockHeight(),
 			FundingBlockHeight:           channelSettings.FundingBlockHeight,
 			FundedOn:                     channelSettings.FundedOn,
 			ClosingBlockHeight:           channelSettings.ClosingBlockHeight,
@@ -237,6 +243,23 @@ func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody,
 			MempoolSpace:                 commons.MEMPOOL + lndShortChannelIdString,
 			AmbossSpace:                  commons.AMBOSS + channelSettings.ShortChannelId,
 			OneMl:                        commons.ONEML + lndShortChannelIdString,
+		}
+
+		if channelSettings.FundingBlockHeight != nil {
+			delta := commons.GetBlockHeight() - *channelSettings.FundingBlockHeight
+			chanBody.FundingBlockHeightDelta = &delta
+		}
+		if channelSettings.FundedOn != nil {
+			deltaSeconds := uint64(time.Since(*channelSettings.FundedOn).Seconds())
+			chanBody.FundedOnSecondsDelta = &deltaSeconds
+		}
+		if channelSettings.ClosingBlockHeight != nil {
+			delta := commons.GetBlockHeight() - *channelSettings.ClosingBlockHeight
+			chanBody.ClosingBlockHeightDelta = &delta
+		}
+		if channelSettings.ClosedOn != nil {
+			deltaSeconds := uint64(time.Since(*channelSettings.ClosedOn).Seconds())
+			chanBody.ClosedOnSecondsDelta = &deltaSeconds
 		}
 
 		peerInfo, err := GetNodePeerAlias(nodeId, channel.RemoteNodeId, db)

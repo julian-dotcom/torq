@@ -235,7 +235,9 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 
 		if bootStrapping {
 			importCounter = importCounter + len(listInvoiceResponse.Invoices)
-			log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
+			if len(listInvoiceResponse.Invoices) >= commons.STREAM_LND_MAX_INVOICES {
+				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
+			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
 		} else {
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)

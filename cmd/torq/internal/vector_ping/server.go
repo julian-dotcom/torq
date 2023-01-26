@@ -33,7 +33,7 @@ type VectorPing struct {
 	ActiveChannelCount      int                       `json:"activeChannelCount"`
 	InactiveChannelCount    int                       `json:"inactiveChannelCount"`
 	PeerCount               int                       `json:"peerCount"`
-	BlockHeight             int                       `json:"blockHeight"`
+	BlockHeight             uint32                    `json:"blockHeight"`
 	BlockHash               string                    `json:"blockHash"`
 	BestHeaderTimestamp     time.Time                 `json:"bestHeaderTimestamp"`
 	ChainSynced             bool                      `json:"chainSynced"`
@@ -82,7 +82,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, vectorUrl string, nodeId 
 			ActiveChannelCount:      int(info.NumActiveChannels),
 			InactiveChannelCount:    int(info.NumInactiveChannels),
 			PeerCount:               int(info.NumPeers),
-			BlockHeight:             int(info.BlockHeight),
+			BlockHeight:             info.BlockHeight,
 			BlockHash:               info.BlockHash,
 			BestHeaderTimestamp:     time.Unix(info.BestHeaderTimestamp, 0),
 			ChainSynced:             info.SyncedToChain,

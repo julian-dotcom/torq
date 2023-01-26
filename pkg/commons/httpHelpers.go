@@ -28,5 +28,5 @@ type TransactionDetailsHttpResponse struct {
 	TransactionIndex int                           `json:"transactionIndex"`
 	BlockHash        string                        `json:"blockHash"`
 	BlockTimestamp   time.Time                     `json:"blockTimestamp"`
-	BlockHeight      int64                         `json:"blockHeight"`
+	BlockHeight      uint32                        `json:"blockHeight"`
 }
