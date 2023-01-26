@@ -450,7 +450,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		}
 		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
 		for childLinkId, childNode := range workflowNode.ChildNodes {
-			if !slices.Contains(activeOutputs, workflowNode.LinkDetails[childLinkId].ParentOutput) {
+			if activeOutputs != nil && !slices.Contains(activeOutputs, workflowNode.LinkDetails[childLinkId].ParentOutput) {
 				continue
 			}
 			// If there is no entry in the workflowNodeStagingParametersCache map for the child node's workflow version node ID, initialize an empty map
