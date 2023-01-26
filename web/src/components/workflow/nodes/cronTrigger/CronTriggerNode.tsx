@@ -16,7 +16,7 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
 
   const [updateNode] = useUpdateNodeMutation();
   const [cronValueState, setCronValueState] = React.useState(
-    (wrapperProps.parameters as { cronValue: string }).cronValue
+    (wrapperProps.parameters as { cronValue: string }).cronValue ?? "0 23 ? * MON-FRI"
   );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
