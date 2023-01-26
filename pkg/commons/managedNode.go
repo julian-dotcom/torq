@@ -14,6 +14,7 @@ const (
 	READ_ALL_TORQ_NODE ManagedNodeCacheOperationType = iota
 	WRITE_INACTIVE_TORQ_NODE
 	READ_ALL_TORQ_NODEIDS
+	READ_ALL_TORQ_NODEIDS_ALL_NETWORKS
 	READ_ALL_TORQ_PUBLICKEYS
 	READ_ACTIVE_TORQ_NODE
 	WRITE_ACTIVE_TORQ_NODE
@@ -126,6 +127,16 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			initializeNodeIdCache(allTorqNodeIdCache, *managedNode.Chain, *managedNode.Network)
 			for _, value := range allTorqNodeIdCache[*managedNode.Chain][*managedNode.Network] {
 				allNodeIds = append(allNodeIds, value)
+			}
+		}
+		SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allNodeIds)
+	case READ_ALL_TORQ_NODEIDS_ALL_NETWORKS:
+		var allNodeIds []int
+		for chainIndex := range allTorqNodeIdCache {
+			for networkIndex := range allTorqNodeIdCache[chainIndex] {
+				for nodeIndex := range allTorqNodeIdCache[chainIndex][networkIndex] {
+					allNodeIds = append(allNodeIds, allTorqNodeIdCache[chainIndex][networkIndex][nodeIndex])
+				}
 			}
 		}
 		SendToManagedNodeIdsChannel(managedNode.NodeIdsOut, allNodeIds)
@@ -364,12 +375,22 @@ func GetAllTorqPublicKeys(chain Chain, network Network) []string {
 	return <-publicKeysResponseChannel
 }
 
-func GetAllTorqNodeIds(chain Chain, network Network) []int {
+func GetAllTorqNodeIdsByNetwork(chain Chain, network Network) []int {
 	nodeIdsResponseChannel := make(chan []int)
 	managedNode := ManagedNode{
 		Chain:      &chain,
 		Network:    &network,
 		Type:       READ_ALL_TORQ_NODEIDS,
+		NodeIdsOut: nodeIdsResponseChannel,
+	}
+	ManagedNodeChannel <- managedNode
+	return <-nodeIdsResponseChannel
+}
+
+func GetAllTorqNodeIds() []int {
+	nodeIdsResponseChannel := make(chan []int)
+	managedNode := ManagedNode{
+		Type:       READ_ALL_TORQ_NODEIDS_ALL_NETWORKS,
 		NodeIdsOut: nodeIdsResponseChannel,
 	}
 	ManagedNodeChannel <- managedNode

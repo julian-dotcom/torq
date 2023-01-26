@@ -641,7 +641,7 @@ func processNodeRecursion(processedNodes map[int]*WorkflowNode, db *sqlx.DB, wor
 
 func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNode, map[int]WorkflowVersionNodeLink, error) {
 	rows, err := db.Queryx(`
-		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
+		SELECT n.workflow_version_node_id, n.name, n.status, n.stage, n.type, n.parameters, n.visibility_settings,
 		       n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
 		       l.parent_workflow_version_node_id, l.parent_output,
 		       l.name linkName, l.visibility_settings,
@@ -665,7 +665,7 @@ func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNo
 
 func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNode, map[int]WorkflowVersionNodeLink, error) {
 	rows, err := db.Queryx(`
-		SELECT n.workflow_version_node_id, n.name, n.status, n.type, n.parameters, n.visibility_settings,
+		SELECT n.workflow_version_node_id, n.name, n.status, n.stage, n.type, n.parameters, n.visibility_settings,
 		       n.workflow_version_id, n.updated_on, l.workflow_version_node_link_id,
 		       l.parent_workflow_version_node_id, l.parent_output,
 		       l.name linkName, l.visibility_settings,
@@ -710,6 +710,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 		var childVersionNodeId int
 		var name string
 		var status WorkflowStatus
+		var stage int
 		var nodeType commons.WorkflowNodeType
 		var parameters []byte
 		var visibilitySettings WorkflowNodeVisibilitySettings
@@ -721,7 +722,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 		var linkName string
 		var linkVisibilitySettings WorkflowVersionNodeLinkVisibilitySettings
 		var childInput commons.WorkflowParameterLabel
-		err := rows.Scan(&versionNodeId, &name, &status, &nodeType, &parameters, &visibilitySettings, &workflowVersionId, &updatedOn,
+		err := rows.Scan(&versionNodeId, &name, &status, &stage, &nodeType, &parameters, &visibilitySettings, &workflowVersionId, &updatedOn,
 			&versionNodeLinkId, &parentVersionNodeId, &parentOutput, &linkName, &linkVisibilitySettings,
 			&childVersionNodeId, &childInput, &linkUpdatedOn)
 		if err != nil {
@@ -743,6 +744,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 			WorkflowVersionId:     workflowVersionId,
 			Type:                  nodeType,
 			Status:                status,
+			Stage:                 stage,
 			Parameters:            parameters,
 			VisibilitySettings:    visibilitySettings,
 			UpdateOn:              updatedOn,
@@ -1093,9 +1095,9 @@ func removeNodeLink(db *sqlx.DB, workflowVersionNodeLinkId int) (int64, error) {
 func addWorkflowVersionNodeLog(db *sqlx.DB, workflowVersionNodeLog WorkflowVersionNodeLog) (WorkflowVersionNodeLog, error) {
 	workflowVersionNodeLog.CreatedOn = time.Now().UTC()
 	_, err := db.Exec(`INSERT INTO workflow_version_node_log
-    	(node_id, trigger_reference, input_data, output_data, debug_data, error_data, workflow_version_node_id, triggering_workflow_version_node_id, created_on)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
-		workflowVersionNodeLog.NodeId, workflowVersionNodeLog.TriggerReference,
+    	(trigger_reference, input_data, output_data, debug_data, error_data, workflow_version_node_id, triggering_workflow_version_node_id, created_on)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
+		workflowVersionNodeLog.TriggerReference,
 		workflowVersionNodeLog.InputData, workflowVersionNodeLog.OutputData, workflowVersionNodeLog.DebugData,
 		workflowVersionNodeLog.ErrorData, workflowVersionNodeLog.WorkflowVersionNodeId,
 		workflowVersionNodeLog.TriggeringWorkflowVersionNodeId, workflowVersionNodeLog.CreatedOn)

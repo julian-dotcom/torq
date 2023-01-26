@@ -49,16 +49,16 @@ type ChannelBody struct {
 	CommitFee                    int64                `json:"commitFee"`
 	CommitWeight                 int64                `json:"commitWeight"`
 	FeePerKw                     int64                `json:"feePerKw"`
-	FeeBaseMsat                  uint64               `json:"feeBaseMsat"`
+	FeeBaseMsat                  int64                `json:"feeBaseMsat"`
 	MinHtlcMsat                  uint64               `json:"minHtlcMsat"`
 	MaxHtlcMsat                  uint64               `json:"maxHtlcMsat"`
 	TimeLockDelta                uint32               `json:"timeLockDelta"`
-	FeeRateMilliMsat             uint64               `json:"feeRateMilliMsat"`
-	RemoteFeeBaseMsat            uint64               `json:"remoteFeeBaseMsat"`
+	FeeRateMilliMsat             int64                `json:"feeRateMilliMsat"`
+	RemoteFeeBaseMsat            int64                `json:"remoteFeeBaseMsat"`
 	RemoteMinHtlcMsat            uint64               `json:"remoteMinHtlcMsat"`
 	RemoteMaxHtlcMsat            uint64               `json:"remoteMaxHtlcMsat"`
 	RemoteTimeLockDelta          uint32               `json:"remoteTimeLockDelta"`
-	RemoteFeeRateMilliMsat       uint64               `json:"remoteFeeRateMilliMsat"`
+	RemoteFeeRateMilliMsat       int64                `json:"remoteFeeRateMilliMsat"`
 	PendingForwardingHTLCsCount  int                  `json:"pendingForwardingHTLCsCount"`
 	PendingForwardingHTLCsAmount int64                `json:"pendingForwardingHTLCsAmount"`
 	PendingLocalHTLCsCount       int                  `json:"pendingLocalHTLCsCount"`
@@ -94,9 +94,9 @@ type ChannelPolicy struct {
 	TimeLockDelta   uint32 `json:"timeLockDelta" db:"time_lock_delta"`
 	MinHtlcMsat     uint64 `json:"minHtlcMsat" db:"min_htlc"`
 	MaxHtlcMsat     uint64 `json:"maxHtlcMsat" db:"max_htlc_msat"`
-	FeeRateMillMsat uint64 `json:"feeRateMillMsat" db:"fee_rate_mill_msat"`
+	FeeRateMillMsat int64  `json:"feeRateMillMsat" db:"fee_rate_mill_msat"`
 	ShortChannelId  string `json:"shortChannelId" db:"short_channel_id"`
-	FeeBaseMsat     uint64 `json:"feeBaseMsat" db:"fee_base_msat"`
+	FeeBaseMsat     int64  `json:"feeBaseMsat" db:"fee_base_msat"`
 	NodeId          int    `json:"nodeId" db:"node_id"`
 	RemoteNodeId    int    `json:"RemoteodeId" db:"remote_node_id"`
 }
@@ -155,7 +155,7 @@ func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 func GetChannelsByNetwork(db *sqlx.DB, network commons.Network) ([]ChannelBody, error) {
 	var channelsBody []ChannelBody
 	chain := commons.Bitcoin
-	nodeIds := commons.GetAllTorqNodeIds(chain, network)
+	nodeIds := commons.GetAllTorqNodeIdsByNetwork(chain, network)
 	for _, nodeId := range nodeIds {
 		// Force Response because we don't care about balance accuracy
 		channelIds := commons.GetChannelStateChannelIds(nodeId, true)

@@ -21,10 +21,11 @@ import (
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/cmd/torq/internal/amboss_ping"
-	"github.com/lncapital/torq/cmd/torq/internal/automation"
+	"github.com/lncapital/torq/cmd/torq/internal/services"
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
 	"github.com/lncapital/torq/cmd/torq/internal/vector_ping"
+	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/database"
@@ -197,7 +198,7 @@ func main() {
 				serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,
 				channelBalanceEventChannelGlobal, channelEventChannelGlobal, nodeGraphEventChannelGlobal, channelGraphEventChannelGlobal,
 				invoiceEventChannelGlobal, paymentEventChannelGlobal, transactionEventChannelGlobal, peerEventChannelGlobal, blockEventChannelGlobal,
-				webSocketResponseChannelGlobal)
+				webSocketResponseChannelGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal)
 
 			go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctxGlobal)
 			go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctxGlobal, channelBalanceEventChannelGlobal)
@@ -205,7 +206,7 @@ func main() {
 			go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctxGlobal)
 			go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctxGlobal)
 			go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctxGlobal)
-			go commons.ManagedRebalanceCache(commons.ManagedRebalanceChannel, ctxGlobal)
+			go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctxGlobal)
 
 			// This listens to events:
 			// When Torq has status initializing it loads the caches and starts the LndServices
@@ -392,7 +393,7 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel chan comm
 
 	for {
 		serviceCmd := <-serviceChannel
-		services := commons.RunningServices[serviceCmd.ServiceType]
+		runningServices := commons.RunningServices[serviceCmd.ServiceType]
 		var nodes []settings.ConnectionDetails
 		var serviceNode settings.ConnectionDetails
 		var err error
@@ -416,7 +417,7 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel chan comm
 		}
 		if name != "" {
 			if serviceCmd.ServiceCommand == commons.Kill {
-				previousStatus, cancelStatus := services.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay)
+				previousStatus, cancelStatus := runningServices.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay)
 				if cancelStatus == commons.Active {
 					log.Info().Msgf("%v Service: Killed.", name)
 					commons.SendServiceEvent(serviceCmd.NodeId, serviceEventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
@@ -425,25 +426,32 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel chan comm
 			}
 			if serviceCmd.ServiceCommand == commons.Boot {
 				if serviceCmd.NodeId != 0 {
-					enforcedServiceStatus = services.GetEnforcedServiceStatusCheck(serviceCmd.NodeId)
+					enforcedServiceStatus = runningServices.GetEnforcedServiceStatusCheck(serviceCmd.NodeId)
 				}
 				if serviceCmd.EnforcedServiceStatus != nil {
 					enforcedServiceStatus = serviceCmd.EnforcedServiceStatus
 				}
 				if serviceCmd.NodeId != 0 {
-					if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Inactive {
-						nodes = []settings.ConnectionDetails{}
+					if serviceCmd.NodeId == commons.TorqDummyNodeId {
+						nodes = []settings.ConnectionDetails{{
+							NodeId: commons.TorqDummyNodeId,
+							Status: commons.Active,
+						}}
 					} else {
-						serviceNode, err = settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
-						if err != nil {
-							log.Error().Err(errors.Wrapf(err, "%v Service Boot: Getting connection details", name)).Send()
-							return
-						}
-						if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
-							nodes = []settings.ConnectionDetails{serviceNode}
+						if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Inactive {
+							nodes = []settings.ConnectionDetails{}
 						} else {
-							if serviceNode.Status != commons.Active {
-								nodes = []settings.ConnectionDetails{}
+							serviceNode, err = settings.GetConnectionDetailsById(db, serviceCmd.NodeId)
+							if err != nil {
+								log.Error().Err(errors.Wrapf(err, "%v Service Boot: Getting connection details", name)).Send()
+								return
+							}
+							if enforcedServiceStatus != nil && *enforcedServiceStatus == commons.Active {
+								nodes = []settings.ConnectionDetails{serviceNode}
+							} else {
+								if serviceNode.Status != commons.Active {
+									nodes = []settings.ConnectionDetails{}
+								}
 							}
 						}
 					}
@@ -490,15 +498,15 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel chan comm
 					}
 				}
 				for _, node := range nodes {
-					bootLock := services.GetBootLock(node.NodeId)
+					bootLock := runningServices.GetBootLock(node.NodeId)
 					successful := bootLock.TryLock()
 					if successful {
 						switch serviceCmd.ServiceType {
 						case commons.LndService:
-							go processLndBoot(db, c, node, bootLock, services, serviceCmd, serviceChannel,
+							go processLndBoot(db, c, node, bootLock, runningServices, serviceCmd, serviceChannel,
 								lightningRequestChannel, broadcaster, serviceEventChannel)
 						default:
-							go processServiceBoot(name, db, c, node, bootLock, services, serviceCmd, serviceChannel,
+							go processServiceBoot(name, db, c, node, bootLock, runningServices, serviceCmd, serviceChannel,
 								lightningRequestChannel, rebalanceRequestChannel, broadcaster, serviceEventChannel)
 						}
 					} else {
@@ -544,7 +552,7 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 				}
 				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndService}
 			case commons.Active:
-				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AutomationService}
+				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AutomationService, NodeId: commons.TorqDummyNodeId}
 			}
 		}
 		if serviceEvent.Type == commons.LndService {
@@ -576,7 +584,7 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 }
 
 func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails, bootLock *sync.Mutex,
-	services *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
+	runningServices *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
 	lightningRequestChannel chan interface{},
 	broadcaster broadcast.BroadcastServer, serviceEventChannel chan commons.ServiceEvent) {
 
@@ -589,7 +597,7 @@ func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails
 	ctx, cancel := context.WithCancel(context.Background())
 
 	log.Info().Msgf("Subscribing to LND for node id: %v", node.NodeId)
-	previousStatus := services.AddSubscription(node.NodeId, cancel)
+	previousStatus := runningServices.AddSubscription(node.NodeId, cancel)
 	commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.Pending, serviceCmd.ServiceType, nil)
 	conn, err := lnd_connect.Connect(
 		node.GRPCAddress,
@@ -598,7 +606,7 @@ func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to connect to lnd for node id: %v", node.NodeId)
-		previousStatus = services.RemoveSubscription(node.NodeId)
+		previousStatus = runningServices.RemoveSubscription(node.NodeId)
 		commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
 		log.Info().Msgf("LND Subscription will be restarted (when active) in 10 seconds for node id: %v", node.NodeId)
 		time.Sleep(10 * time.Second)
@@ -606,7 +614,7 @@ func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails
 		return
 	}
 
-	previousStatus = services.Booted(node.NodeId, bootLock)
+	previousStatus = runningServices.Booted(node.NodeId, bootLock)
 	commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.Active, serviceCmd.ServiceType, nil)
 	commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
 	log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
@@ -620,9 +628,9 @@ func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails
 		// only log the error, don't return
 	}
 	log.Info().Msgf("LND Subscription stopped for node id: %v", node.NodeId)
-	previousStatus = services.RemoveSubscription(node.NodeId)
+	previousStatus = runningServices.RemoveSubscription(node.NodeId)
 	commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
-	if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
+	if runningServices.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
 		log.Info().Msgf("LND Subscription will be restarted (when active) for node id: %v", node.NodeId)
 	} else {
 		log.Info().Msgf("LND Subscription will be restarted (when active) in 10 seconds for node id: %v", node.NodeId)
@@ -632,8 +640,8 @@ func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails
 }
 
 func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails, bootLock *sync.Mutex,
-	services *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
-	lightningCommunicationChannel chan interface{},
+	runningServices *commons.Services, serviceCmd commons.ServiceChannelMessage, serviceChannel chan commons.ServiceChannelMessage,
+	lightningRequestChannel chan interface{},
 	rebalanceRequestChannel chan commons.RebalanceRequest,
 	broadcaster broadcast.BroadcastServer, serviceEventChannel chan commons.ServiceEvent) {
 
@@ -646,7 +654,7 @@ func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.
 	ctx, cancel := context.WithCancel(context.Background())
 
 	log.Info().Msgf("Generating %v Service for node id: %v", name, node.NodeId)
-	previousStatus := services.AddSubscription(node.NodeId, cancel)
+	previousStatus := runningServices.AddSubscription(node.NodeId, cancel)
 	commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.Pending, serviceCmd.ServiceType, nil)
 
 	var conn *grpc.ClientConn
@@ -665,13 +673,13 @@ func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.
 			node.MacaroonFileBytes)
 		if err != nil {
 			log.Error().Err(err).Msgf("%v Service Failed to connect to lnd for node id: %v", name, node.NodeId)
-			previousStatus = services.RemoveSubscription(node.NodeId)
+			previousStatus = runningServices.RemoveSubscription(node.NodeId)
 			commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
 			return
 		}
 	}
 
-	previousStatus = services.Booted(node.NodeId, bootLock)
+	previousStatus = runningServices.Booted(node.NodeId, bootLock)
 	commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.Active, serviceCmd.ServiceType, nil)
 	log.Info().Msgf("%v Service booted for node id: %v", name, node.NodeId)
 	switch serviceCmd.ServiceType {
@@ -680,21 +688,21 @@ func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.
 	case commons.AmbossService:
 		err = amboss_ping.Start(ctx, conn, node.NodeId)
 	case commons.AutomationService:
-		err = automation.Start(ctx, db, node.NodeId, broadcaster)
+		err = services.Start(ctx, db, lightningRequestChannel, rebalanceRequestChannel, broadcaster)
 	case commons.LightningCommunicationService:
-		err = automation.StartLightningCommunicationService(ctx, conn, db, node.NodeId, lightningCommunicationChannel)
+		err = services.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster)
 	case commons.RebalanceService:
-		err = automation.StartRebalanceService(ctx, conn, db, node.NodeId, rebalanceRequestChannel)
+		err = services.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster)
 	case commons.MaintenanceService:
-		err = automation.StartMaintenanceService(ctx, db, c.String("torq.vector.url"), node.NodeId, lightningCommunicationChannel)
+		err = services.StartMaintenanceService(ctx, db, c.String("torq.vector.url"), node.NodeId, lightningRequestChannel)
 	}
 	if err != nil {
 		log.Error().Err(err).Msgf("%v Service ended for node id: %v", name, node.NodeId)
 	}
 	log.Info().Msgf("%v Service stopped for node id: %v", name, node.NodeId)
-	previousStatus = services.RemoveSubscription(node.NodeId)
+	previousStatus = runningServices.RemoveSubscription(node.NodeId)
 	commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.Inactive, serviceCmd.ServiceType, nil)
-	if services.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
+	if runningServices.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
 		log.Info().Msgf("%v Service will be restarted (when active) for node id: %v", name, node.NodeId)
 	} else {
 		log.Info().Msgf("%v Service will be restarted (when active) in %v seconds for node id: %v", name, commons.SERVICES_ERROR_SLEEP_SECONDS, node.NodeId)

@@ -57,7 +57,6 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
-      heading={t.channelPolicyConfiguration}
       headerIcon={<FilterIcon />}
       colorVariant={NodeColorVariant.accent1}
     >

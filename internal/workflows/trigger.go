@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/slices"
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/tags"
@@ -18,9 +20,17 @@ import (
 
 // ProcessWorkflowNode workflowNodeStagingParametersCache[WorkflowVersionNodeId][parameterLabel] (i.e. parameterLabel = sourceChannels)
 func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, workflowNode WorkflowNode, triggeringWorkflowVersionNodeId int,
-	workflowNodeCache map[int]WorkflowNode, workflowNodeStatus map[int]commons.Status, workflowNodeStagingParametersCache map[int]map[commons.WorkflowParameterLabel]string,
-	reference string, inputs map[commons.WorkflowParameterLabel]string, iteration int) (map[commons.WorkflowParameterLabel]string, commons.Status, error) {
+	workflowNode WorkflowNode,
+	triggeringWorkflowVersionNodeId int,
+	workflowNodeCache map[int]WorkflowNode,
+	workflowNodeStatus map[int]commons.Status,
+	workflowNodeStagingParametersCache map[int]map[commons.WorkflowParameterLabel]string,
+	reference string,
+	inputs map[commons.WorkflowParameterLabel]string,
+	iteration int,
+	workflowStageExitConfigurationCache map[int]map[commons.WorkflowParameterLabel]string,
+	lightningRequestChannel chan interface{},
+	rebalanceRequestChannel chan commons.RebalanceRequest) (map[commons.WorkflowParameterLabel]string, commons.Status, error) {
 
 	iteration++
 	if iteration > 100 {
@@ -77,7 +87,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			return nil, commons.Pending, nil
 		}
 
-		var activeOutput commons.WorkflowParameterLabel
+		var activeOutputs []commons.WorkflowParameterLabel
 		switch workflowNode.Type {
 		case commons.WorkflowNodeSetVariable:
 			//variableName := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableName).ValueString
@@ -118,45 +128,57 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 					return nil, commons.Inactive, errors.Wrapf(err, "Unmarshal the parent channelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIdsString, workflowNode.WorkflowVersionNodeId)
 				}
 				if filtered {
-					linkedChannels, err := channels.GetChannelsByIds(db, nodeSettings.NodeId, linkedChannelIds)
-					if err != nil {
-						return nil, commons.Inactive, errors.Wrapf(err, "Getting the linked channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+					var linkedChannels []channels.ChannelBody
+					torqNodeIds := commons.GetAllTorqNodeIds()
+					for _, torqNodeId := range torqNodeIds {
+						linkedChannelsByNode, err := channels.GetChannelsByIds(db, torqNodeId, linkedChannelIds)
+						if err != nil {
+							return nil, commons.Inactive, errors.Wrapf(err, "Getting the linked channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+						}
+						linkedChannels = append(linkedChannels, linkedChannelsByNode...)
 					}
 					filteredChannelIds = filterChannelIds(params, linkedChannels)
 				} else {
 					filteredChannelIds = linkedChannelIds
 				}
 			} else {
-				// Force Response because we don't care about balance accuracy
-				channelIds := commons.GetChannelStateChannelIds(nodeSettings.NodeId, true)
-				if filtered {
-					channelsBodyByNode, err := channels.GetChannelsByIds(db, nodeSettings.NodeId, channelIds)
-					if err != nil {
-						return nil, commons.Inactive, errors.Wrapf(err, "Getting the linked channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				torqNodeIds := commons.GetAllTorqNodeIds()
+				for _, torqNodeId := range torqNodeIds {
+					// Force Response because we don't care about balance accuracy
+					channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
+					if filtered {
+						channelsBodyByNode, err := channels.GetChannelsByIds(db, torqNodeId, channelIdsByNode)
+						if err != nil {
+							return nil, commons.Inactive, errors.Wrapf(err, "Getting the linked channels to filters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+						}
+						filteredChannelIds = append(filteredChannelIds, filterChannelIds(params, channelsBodyByNode)...)
+					} else {
+						filteredChannelIds = append(filteredChannelIds, channelIdsByNode...)
 					}
-					filteredChannelIds = filterChannelIds(params, channelsBodyByNode)
-				} else {
-					filteredChannelIds = channelIds
 				}
 			}
-			ba, err := json.Marshal(filteredChannelIds)
-			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Marshal the filteredChannelIds: %v for WorkflowVersionNodeId: %v", filteredChannelIds, workflowNode.WorkflowVersionNodeId)
+			if len(filteredChannelIds) == 0 {
+				activeOutputs = append(activeOutputs,
+					commons.WorkflowParameterLabelTimeTriggered,
+					commons.WorkflowParameterLabelChannelEventTriggered)
+			} else {
+				ba, err := json.Marshal(filteredChannelIds)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Marshal the filteredChannelIds: %v for WorkflowVersionNodeId: %v", filteredChannelIds, workflowNode.WorkflowVersionNodeId)
+				}
+				outputs[commons.WorkflowParameterLabelChannels] = string(ba)
 			}
-			outputs[commons.WorkflowParameterLabelChannels] = string(ba)
-
 		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
-			var linkedChannelIds []int
-			linkedChannelIdsString, exists := inputs[commons.WorkflowParameterLabelChannels]
-			if !exists {
-				return nil, commons.Inactive, errors.Wrapf(err, "Finding channel parameter for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			}
-			err = json.Unmarshal([]byte(linkedChannelIdsString), &linkedChannelIds)
+			linkedChannelIds, err := getLinkedChannelIds(inputs, workflowNode)
 			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Unmarshal the parent channelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIdsString, workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, errors.Wrapf(err, "Getting the Linked ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
 
-			if len(linkedChannelIds) != 0 {
+			if len(linkedChannelIds) == 0 {
+				activeOutputs = append(activeOutputs,
+					commons.WorkflowParameterLabelTimeTriggered,
+					commons.WorkflowParameterLabelChannelEventTriggered)
+			} else {
 				var params TagParameters
 				err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
 				if err != nil {
@@ -189,65 +211,264 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 					}
 				}
 			}
+		case commons.WorkflowNodeChannelPolicyConfigurator:
+			linkedChannelIds, err := getLinkedChannelIds(inputs, workflowNode)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Getting the Linked ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+			}
+
+			if len(linkedChannelIds) == 0 {
+				activeOutputs = append(activeOutputs,
+					commons.WorkflowParameterLabelTimeTriggered,
+					commons.WorkflowParameterLabelChannelEventTriggered)
+			} else {
+				var channelPolicyInputConfiguration ChannelPolicyConfiguration
+				channelPolicyInputConfigurationString, exists := inputs[commons.WorkflowParameterLabelRoutingPolicySettings]
+				if exists && channelPolicyInputConfigurationString != "" && channelPolicyInputConfigurationString != "null" {
+					err = json.Unmarshal([]byte(channelPolicyInputConfigurationString), &channelPolicyInputConfiguration)
+					if err != nil {
+						return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+					}
+				}
+
+				var channelPolicyConfiguration ChannelPolicyConfiguration
+				err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &channelPolicyConfiguration)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+				if channelPolicyConfiguration.FeeBaseMsat != nil {
+					channelPolicyInputConfiguration.FeeBaseMsat = channelPolicyConfiguration.FeeBaseMsat
+				}
+				if channelPolicyConfiguration.FeeRateMilliMsat != nil {
+					channelPolicyInputConfiguration.FeeRateMilliMsat = channelPolicyConfiguration.FeeRateMilliMsat
+				}
+				if channelPolicyConfiguration.MaxHtlcMsat != nil {
+					channelPolicyInputConfiguration.MaxHtlcMsat = channelPolicyConfiguration.MaxHtlcMsat
+				}
+				if channelPolicyConfiguration.MinHtlcMsat != nil {
+					channelPolicyInputConfiguration.MinHtlcMsat = channelPolicyConfiguration.MinHtlcMsat
+				}
+				channelPolicyInputConfiguration.ChannelIds = linkedChannelIds
+
+				marshalledChannelPolicyConfiguration, err := json.Marshal(channelPolicyInputConfiguration)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+				if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
+					workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
+				}
+				workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
+				outputs[commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
+			}
+		case commons.WorkflowNodeChannelPolicyRun:
+			routingPolicySettingsString := inputs[commons.WorkflowParameterLabelRoutingPolicySettings]
+			var routingPolicySettings ChannelPolicyConfiguration
+			err = json.Unmarshal([]byte(routingPolicySettingsString), &routingPolicySettings)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			if len(routingPolicySettings.ChannelIds) == 0 {
+				activeOutputs = append(activeOutputs,
+					commons.WorkflowParameterLabelTimeTriggered,
+					commons.WorkflowParameterLabelChannelEventTriggered)
+			} else {
+				activeOutputs = append(activeOutputs,
+					commons.WorkflowParameterLabelChannels,
+					commons.WorkflowParameterLabelStatus)
+				inputs[commons.WorkflowParameterLabelStatus] = ""
+				if (routingPolicySettings.FeeBaseMsat != nil ||
+					routingPolicySettings.FeeRateMilliMsat != nil ||
+					routingPolicySettings.MaxHtlcMsat != nil ||
+					routingPolicySettings.MinHtlcMsat != nil) &&
+					lightningRequestChannel != nil {
+
+					now := time.Now()
+					torqNodeIds := commons.GetAllTorqNodeIds()
+					for index := range routingPolicySettings.ChannelIds {
+						channelSettings := commons.GetChannelSettingByChannelId(routingPolicySettings.ChannelIds[index])
+						nodeId := channelSettings.FirstNodeId
+						if !slices.Contains(torqNodeIds, nodeId) {
+							nodeId = channelSettings.SecondNodeId
+						}
+						if !slices.Contains(torqNodeIds, nodeId) {
+							return nil, commons.Inactive, errors.Wrapf(err, "Routing policy update on unmanaged channel for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+						}
+						if commons.RunningServices[commons.LightningCommunicationService].GetStatus(nodeId) == commons.Active {
+							if hasRoutingPolicyChanges(nodeId, routingPolicySettings.ChannelIds[index], routingPolicySettings) {
+								responseChannel := make(chan commons.RoutingPolicyUpdateResponse)
+								request := commons.RoutingPolicyUpdateRequest{
+									CommunicationRequest: commons.CommunicationRequest{
+										RequestId:   reference,
+										RequestTime: &now,
+										NodeId:      nodeId,
+									},
+									ResponseChannel:  responseChannel,
+									ChannelId:        routingPolicySettings.ChannelIds[index],
+									FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
+									FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
+									MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
+									MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
+									TimeLockDelta:    nil,
+								}
+								lightningRequestChannel <- request
+								response := <-responseChannel
+								if response.Error != "" {
+									log.Error().Err(errors.New(response.Error)).Msgf("Channel Time Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+								}
+								marshalledResponse, err := json.Marshal(response)
+								if err != nil {
+									return nil, commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+								}
+								inputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponse)
+							}
+						}
+					}
+				}
+			}
+		case commons.WorkflowNodeRebalanceConfigurator:
+			var incomingChannelIds []int
+			incomingChannelIdsString, exists := inputs[commons.WorkflowParameterLabelIncomingChannels]
+			if !exists {
+				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			err = json.Unmarshal([]byte(incomingChannelIdsString), &incomingChannelIds)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			var outgoingChannelIds []int
+			outgoingChannelIdsString, exists := inputs[commons.WorkflowParameterLabelOutgoingChannels]
+			if !exists {
+				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			err = json.Unmarshal([]byte(outgoingChannelIdsString), &outgoingChannelIds)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			//if len(incomingChannelIds) == 0 && len(outgoingChannelIds) == 0 {
+			//
+			//}
+
+			var rebalanceInputConfiguration RebalanceConfiguration
+			rebalanceInputConfigurationString, exists := inputs[commons.WorkflowParameterLabelRebalanceSettings]
+			if exists && rebalanceInputConfigurationString != "" && rebalanceInputConfigurationString != "null" {
+				err = json.Unmarshal([]byte(rebalanceInputConfigurationString), &rebalanceInputConfiguration)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+			}
+
+			var rebalanceConfiguration RebalanceConfiguration
+			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &rebalanceConfiguration)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			marshalledRebalanceConfiguration, err := json.Marshal(rebalanceInputConfiguration)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			outputs[commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
+		case commons.WorkflowNodeRebalanceRun:
+			rebalanceSettingsString := inputs[commons.WorkflowParameterLabelRebalanceSettings]
+			var rebalanceSettings RebalanceConfiguration
+			err = json.Unmarshal([]byte(rebalanceSettingsString), &rebalanceSettings)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			//if len(sourceChannelIds) != 0 &&
+			//	len(destinationChannelIds) != 0 &&
+			//	rebalanceRequestChannel != nil &&
+			//	commons.RunningServices[commons.RebalanceService].GetStatus(nodeSettings.NodeId) == commons.Active {
+			//
+			//	now := time.Now()
+			//	responseChannel := make(chan commons.RebalanceResponse)
+			//	request := commons.RebalanceRequest{
+			//		CommunicationRequest: commons.CommunicationRequest{
+			//			RequestId:   reference,
+			//			RequestTime: &now,
+			//			NodeId:      nodeSettings.NodeId,
+			//		},
+			//		ResponseChannel:    responseChannel,
+			//		Origin:             commons.RebalanceRequestWorkflowNode,
+			//		OriginId:           workflowNode.WorkflowVersionNodeId,
+			//		OriginReference:    reference,
+			//		ChannelIds:         rebalanceSettings.ChannelIds,
+			//		AmountMsat:         *rebalanceSettings.AmountMsat,
+			//		MaximumCostMsat:    *rebalanceSettings.MaximumCostMsat,
+			//		MaximumConcurrency: 1,
+			//	}
+			//	if rebalanceSettings.IncomingChannelIds != nil {
+			//		request.IncomingChannelId = rebalanceSettings.IncomingChannelIds
+			//	}
+			//	if rebalanceSettings.OutgoingChannelIds != nil {
+			//		request.OutgoingChannelId = *rebalanceSettings.OutgoingChannelIds
+			//	}
+			//	lightningRequestChannel <- request
+			//	response := <-responseChannel
+			//	if response.Error != "" {
+			//		log.Error().Err(errors.New(response.Error)).Msg("Channel Time Trigger Fired")
+			//	}
+			//}
+		case commons.WorkflowNodeTimeTrigger:
+			log.Debug().Msgf("Channel Time Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
+				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
+			}
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelTimeTriggered] = inputs[commons.WorkflowParameterLabelTimeTriggered]
+		case commons.WorkflowNodeChannelBalanceEventTrigger:
+			log.Debug().Msgf("Channel Balance Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
+				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
+			}
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
+		case commons.WorkflowNodeChannelOpenEventTrigger:
+			log.Debug().Msgf("Channel Open Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
+				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
+			}
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
+		case commons.WorkflowNodeChannelCloseEventTrigger:
+			log.Debug().Msgf("Channel Close Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
+				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
+			}
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
 		case commons.WorkflowNodeStageTrigger:
 			if iteration > 0 {
 				// There shouldn't be any stage nodes except when it's the first node
 				return outputs, commons.Deleted, nil
 			}
-		case commons.WorkflowNodeChannelPolicyConfigurator:
-		case commons.WorkflowNodeRebalanceParameters:
-		case commons.WorkflowNodeRebalanceRun:
-			//if eventChannel != nil {
-			//	eventChannel <- commons.RebalanceRequest{
-			//		NodeId: nodeSettings.NodeId,
-			//		SourceChannelIds: strconv.Atoi(inputs["channelId"]),
-			//		DestinationChannelIds: strconv.Atoi(inputs["channelId"]),
-			//		MaxCost: ,
-			//	}
-			//}
-		case commons.WorkflowNodeChannelPolicyRun:
-			//if eventChannel != nil {
-			//	eventChannel <- commons.ChannelStatusUpdateRequest{
-			//		NodeId: nodeSettings.NodeId,
-			//		ChannelId: strconv.Atoi(inputs["channelId"]),
-			//		ChannelStatus: ,
-			//	}
-			//	eventChannel <- commons.RoutingPolicyUpdateRequest{
-			//		NodeId: nodeSettings.NodeId,
-			//		ChannelId: strconv.Atoi(inputs["channelId"]),
-			//		FeeRateMilliMsat: ,
-			//		FeeBaseMsat: ,
-			//		MinHtlcMsat: ,
-			//		MaxHtlcMsat: ,
-			//		TimeLockDelta: ,
-			//	}
-			//}
-		case commons.WorkflowNodeChannelOpenEventTrigger:
-			log.Debug().Msg("Channel Open Event Trigger Fired")
-		case commons.WorkflowNodeChannelCloseEventTrigger:
-			log.Debug().Msg("Channel Close Event Trigger Fired")
+			if workflowNode.Stage > 1 {
+				for label, value := range workflowStageExitConfigurationCache[workflowNode.Stage-1] {
+					inputs[label] = value
+				}
+			}
 		}
 		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
 		for childLinkId, childNode := range workflowNode.ChildNodes {
-			// If activeOutputIndex is not -1 and the parent output index of the child link is not equal to activeOutputIndex, skip the rest of the loop body
-			if activeOutput != "" && workflowNode.LinkDetails[childLinkId].ParentOutput != activeOutput {
+			if !slices.Contains(activeOutputs, workflowNode.LinkDetails[childLinkId].ParentOutput) {
 				continue
 			}
 			// If there is no entry in the workflowNodeStagingParametersCache map for the child node's workflow version node ID, initialize an empty map
 			if workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId] == nil {
 				workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId] = make(map[commons.WorkflowParameterLabel]string)
 			}
-			childInput := commons.WorkflowParameterLabel(workflowNode.LinkDetails[childLinkId].ChildInput)
-			parentOutput := commons.WorkflowParameterLabel(workflowNode.LinkDetails[childLinkId].ParentOutput)
+			childInput := workflowNode.LinkDetails[childLinkId].ChildInput
+			parentOutput := workflowNode.LinkDetails[childLinkId].ParentOutput
 			if childInput != "" && parentOutput != "" && outputs[parentOutput] != "" {
 				workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
 			}
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
-			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, nodeSettings, *childNode, workflowNode.WorkflowVersionNodeId,
-				workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration)
+			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, *childNode, workflowNode.WorkflowVersionNodeId,
+				workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration,
+				workflowStageExitConfigurationCache, lightningRequestChannel, rebalanceRequestChannel)
 			// If childProcessingStatus is not equal to commons.Pending, call AddWorkflowVersionNodeLog with several arguments, including nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, triggeringWorkflowVersionNodeId, inputs, and childOutputs
 			if childProcessingStatus != commons.Pending {
-				AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference,
+				AddWorkflowVersionNodeLog(db, reference,
 					workflowNode.WorkflowVersionNodeId, triggeringWorkflowVersionNodeId, inputs, childOutputs, err)
 			}
 			// If err is not nil, return nil, commons.Inactive, and err
@@ -258,6 +479,40 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		}
 	}
 	return outputs, commons.Active, nil
+}
+
+func hasRoutingPolicyChanges(nodeId int, channelId int, routingPolicySettings ChannelPolicyConfiguration) bool {
+	channelStateSettings := commons.GetChannelState(nodeId, channelId, true)
+	if routingPolicySettings.FeeBaseMsat != nil &&
+		*routingPolicySettings.FeeBaseMsat != int64(channelStateSettings.LocalFeeBaseMsat) {
+		return true
+	}
+	if routingPolicySettings.FeeRateMilliMsat != nil &&
+		*routingPolicySettings.FeeRateMilliMsat != int64(channelStateSettings.LocalFeeRateMilliMsat) {
+		return true
+	}
+	if routingPolicySettings.MinHtlcMsat != nil &&
+		*routingPolicySettings.MinHtlcMsat != channelStateSettings.LocalMinHtlcMsat {
+		return true
+	}
+	if routingPolicySettings.MaxHtlcMsat != nil &&
+		*routingPolicySettings.MaxHtlcMsat != channelStateSettings.LocalMaxHtlcMsat {
+		return true
+	}
+	return false
+}
+
+func getLinkedChannelIds(inputs map[commons.WorkflowParameterLabel]string, workflowNode WorkflowNode) ([]int, error) {
+	var linkedChannelIds []int
+	linkedChannelIdsString, exists := inputs[commons.WorkflowParameterLabelChannels]
+	if !exists {
+		return nil, errors.New(fmt.Sprintf("Finding channel parameter for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId))
+	}
+	err := json.Unmarshal([]byte(linkedChannelIdsString), &linkedChannelIds)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unmarshal the parent channelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIdsString, workflowNode.WorkflowVersionNodeId)
+	}
+	return linkedChannelIds, nil
 }
 
 func filterChannelIds(params FilterClauses, linkedChannels []channels.ChannelBody) []int {
@@ -273,7 +528,6 @@ func filterChannelIds(params FilterClauses, linkedChannels []channels.ChannelBod
 }
 
 func AddWorkflowVersionNodeLog(db *sqlx.DB,
-	nodeId int,
 	reference string,
 	workflowVersionNodeId int,
 	triggeringWorkflowVersionNodeId int,
@@ -282,7 +536,6 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB,
 	workflowError error) {
 
 	workflowVersionNodeLog := WorkflowVersionNodeLog{
-		NodeId:                nodeId,
 		WorkflowVersionNodeId: workflowVersionNodeId,
 		TriggerReference:      reference,
 	}
@@ -310,7 +563,7 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB,
 	}
 	_, err := addWorkflowVersionNodeLog(db, workflowVersionNodeLog)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v, nodeId: %#v", workflowVersionNodeId, nodeId)
+		log.Error().Err(err).Msgf("Failed to log root node execution for workflowVersionNodeId: %v", workflowVersionNodeId)
 	}
 }
 

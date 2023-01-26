@@ -1,0 +1,2 @@
+
+ALTER TABLE workflow_version_node_log DROP COLUMN node_id;

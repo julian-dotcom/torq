@@ -96,7 +96,7 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 
 	chain := commons.Bitcoin
 
-	r, total, err := getOnChainTxs(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), filter, sort, limit, offset)
+	r, total, err := getOnChainTxs(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

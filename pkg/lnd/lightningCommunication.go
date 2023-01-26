@@ -10,11 +10,12 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/graph_events"
+	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
 func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	lightningRequestChannel chan interface{}) {
+	broadcaster broadcast.BroadcastServer) {
 
 	defer log.Info().Msgf("LightningCommunicationService terminated for nodeId: %v", nodeId)
 
@@ -23,11 +24,12 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 
+	listener := broadcaster.SubscribeLightningRequest()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case lightningRequest := <-lightningRequestChannel:
+		case lightningRequest := <-listener:
 			if request, ok := lightningRequest.(commons.ChannelStatusUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
 					continue

@@ -9,7 +9,7 @@ import {
   CronTriggerNode,
   StageTriggerNode,
   ChannelFilterNode,
-  ReBalanceChannelNode,
+  RebalanceConfiguratorNode,
   AddTagNode,
   BalanceTriggerNode,
   ChannelOpenTriggerNode,
@@ -137,8 +137,8 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <ChannelPolicyNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
     case WorkflowNodeType.ChannelFilter:
       return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
-    case WorkflowNodeType.RebalanceParameters:
-      return <ReBalanceChannelNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.RebalanceConfigurator:
+      return <RebalanceConfiguratorNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.AddTag:
       return <AddTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RemoveTag:

@@ -3,7 +3,7 @@ export enum WorkflowNodeType {
   ChannelBalanceEventTrigger,
   ChannelFilter,
   ChannelPolicyConfigurator,
-  RebalanceParameters,
+  RebalanceConfigurator,
   StageTrigger,
   RebalanceRun,
   ChannelPolicyRun,

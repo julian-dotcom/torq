@@ -12,6 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
@@ -235,12 +236,14 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	var peerEventChannelGlobal = make(chan commons.PeerEvent)
 	var blockEventChannelGlobal = make(chan commons.BlockEvent)
 	var webSocketResponseChannelGlobal = make(chan interface{})
+	var lightningRequestChannelGlobal = make(chan interface{})
+	var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequest)
 
 	broadcaster := broadcast.NewBroadcastServer(ctx,
 		serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,
 		channelBalanceEventChannelGlobal, channelEventChannelGlobal, nodeGraphEventChannelGlobal, channelGraphEventChannelGlobal,
 		invoiceEventChannelGlobal, paymentEventChannelGlobal, transactionEventChannelGlobal, peerEventChannelGlobal, blockEventChannelGlobal,
-		webSocketResponseChannelGlobal)
+		webSocketResponseChannelGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal)
 
 	go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctx)
 	go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctx, channelBalanceEventChannelGlobal)
@@ -248,7 +251,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
 	go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)
 	go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctx)
-	go commons.ManagedRebalanceCache(commons.ManagedRebalanceChannel, ctx)
+	go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctx)
 
 	// initialise package level var for keeping state of subsciptions
 	commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)

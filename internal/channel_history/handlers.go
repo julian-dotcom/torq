@@ -111,7 +111,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	chain := commons.Bitcoin
-	networkNodeIds := commons.GetAllTorqNodeIds(chain, commons.Network(network))
+	networkNodeIds := commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network))
 
 	// Get the total values for the whole requested time range (from - to)
 	r, err := getChannelTotal(db, networkNodeIds, all, channelIds, from, to)
@@ -182,7 +182,7 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	network := c.Query("network")
 	chain := c.Query("chain")
 
-	r.Events, err = getChannelEventHistory(db, commons.GetAllTorqNodeIds(commons.GetChain(chain), commons.GetNetwork(network)), channelIds, from, to)
+	r.Events, err = getChannelEventHistory(db, commons.GetAllTorqNodeIdsByNetwork(commons.GetChain(chain), commons.GetNetwork(network)), channelIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -260,7 +260,7 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	chain := commons.Bitcoin
-	networkNodeIds := commons.GetAllTorqNodeIds(chain, commons.Network(network))
+	networkNodeIds := commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network))
 
 	var all = false
 	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
@@ -318,7 +318,7 @@ func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	chain := commons.Bitcoin
-	networkNodeIds := commons.GetAllTorqNodeIds(chain, commons.Network(network))
+	networkNodeIds := commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network))
 
 	if all {
 		r.OnChainCost, err = getTotalOnChainCost(db, networkNodeIds, from, to)

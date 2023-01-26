@@ -17,9 +17,9 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) {
+func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
-	defer log.Info().Msgf("TimeTriggerMonitor terminated for nodeId: %v", nodeSettings.NodeId)
+	defer log.Info().Msgf("TimeTriggerMonitor terminated")
 
 	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
 	bootstrapping := true
@@ -37,8 +37,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 			}
 			for _, workflowTriggerNode := range workflowTriggerNodes {
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-				triggerSettings := commons.GetTimeTriggerSettingsByWorkflowVersionId(nodeSettings.NodeId,
-					workflowTriggerNode.WorkflowVersionId)
+				triggerSettings := commons.GetTimeTriggerSettingsByWorkflowVersionId(workflowTriggerNode.WorkflowVersionId)
 				var param workflows.TimeTriggerParameters
 				err := json.Unmarshal([]byte(workflowTriggerNode.Parameters.([]uint8)), &param)
 				if err != nil {
@@ -51,7 +50,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 				if bootstrapping {
 					bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
 				}
-				commons.ScheduleTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
+				commons.ScheduleTrigger(reference, workflowTriggerNode.WorkflowVersionId,
 					workflowTriggerNode.Type, workflowTriggerNode)
 			}
 			// When bootstrapping the automations run ALL workflows because we might have missed some events.
@@ -69,7 +68,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 						}
 					}
 					reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-					commons.ScheduleTrigger(nodeSettings.NodeId, reference,
+					commons.ScheduleTrigger(reference,
 						workflowTriggerNode.WorkflowVersionId,
 						workflowTriggerNode.Type, workflowTriggerNode)
 				}
@@ -79,31 +78,33 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 	}
 }
 
-func EventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
+func EventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 	broadcaster broadcast.BroadcastServer) {
 
-	defer log.Info().Msgf("EventTriggerMonitor terminated for nodeId: %v", nodeSettings.NodeId)
+	defer log.Info().Msgf("EventTriggerMonitor terminated")
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		channelBalanceEventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+		channelBalanceEventTriggerMonitor(ctx, db, broadcaster)
 	})()
 
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		channelEventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+		channelEventTriggerMonitor(ctx, db, broadcaster)
 	})()
 
 	wg.Wait()
 }
 
-func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) {
+func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
+	lightningRequestChannel chan interface{},
+	rebalanceRequestChannel chan commons.RebalanceRequest) {
 
-	defer log.Info().Msgf("ScheduledTriggerMonitor terminated for nodeId: %v", nodeSettings.NodeId)
+	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
 	for {
 		select {
@@ -112,8 +113,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 		default:
 		}
 
-		scheduledTrigger := commons.GetScheduledTrigger(nodeSettings.NodeId)
-		if scheduledTrigger.NodeId == 0 {
+		scheduledTrigger := commons.GetScheduledTrigger()
+		if scheduledTrigger.SchedulingTime == nil {
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -174,30 +175,33 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 				case workflows.WorkflowNode:
 					eventTime := time.Now()
 					dummyChannelBalanceEvents := make(map[int]map[int]*commons.ChannelBalanceEvent)
-					for _, channelId := range commons.GetChannelIdsByNodeId(nodeSettings.NodeId) {
-						channelSettings := commons.GetChannelSettingByChannelId(channelId)
-						capacity := channelSettings.Capacity
-						remoteNodeId := channelSettings.FirstNodeId
-						if remoteNodeId == nodeSettings.NodeId {
-							remoteNodeId = channelSettings.SecondNodeId
-						}
-						channelState := commons.GetChannelState(nodeSettings.NodeId, channelId, true)
-						if channelState != nil {
-							if dummyChannelBalanceEvents[remoteNodeId] == nil {
-								dummyChannelBalanceEvents[remoteNodeId] = make(map[int]*commons.ChannelBalanceEvent)
+					torqNodeIds := commons.GetAllTorqNodeIds()
+					for _, torqNodeId := range torqNodeIds {
+						for _, channelId := range commons.GetChannelIdsByNodeId(torqNodeId) {
+							channelSettings := commons.GetChannelSettingByChannelId(channelId)
+							capacity := channelSettings.Capacity
+							remoteNodeId := channelSettings.FirstNodeId
+							if remoteNodeId == torqNodeId {
+								remoteNodeId = channelSettings.SecondNodeId
 							}
-							dummyChannelBalanceEvents[remoteNodeId][channelId] = &commons.ChannelBalanceEvent{
-								EventData: commons.EventData{
-									EventTime: eventTime,
-									NodeId:    nodeSettings.NodeId,
-								},
-								ChannelId: channelId,
-								ChannelBalanceEventData: commons.ChannelBalanceEventData{
-									Capacity:                  capacity,
-									LocalBalance:              channelState.LocalBalance,
-									RemoteBalance:             channelState.RemoteBalance,
-									LocalBalancePerMilleRatio: int(channelState.LocalBalance / capacity * 1000),
-								},
+							channelState := commons.GetChannelState(torqNodeId, channelId, true)
+							if channelState != nil {
+								if dummyChannelBalanceEvents[remoteNodeId] == nil {
+									dummyChannelBalanceEvents[remoteNodeId] = make(map[int]*commons.ChannelBalanceEvent)
+								}
+								dummyChannelBalanceEvents[remoteNodeId][channelId] = &commons.ChannelBalanceEvent{
+									EventData: commons.EventData{
+										EventTime: eventTime,
+										NodeId:    torqNodeId,
+									},
+									ChannelId: channelId,
+									ChannelBalanceEventData: commons.ChannelBalanceEventData{
+										Capacity:                  capacity,
+										LocalBalance:              channelState.LocalBalance,
+										RemoteBalance:             channelState.RemoteBalance,
+										LocalBalancePerMilleRatio: int(channelState.LocalBalance / capacity * 1000),
+									},
+								}
 							}
 						}
 					}
@@ -237,18 +241,18 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 
 							triggerCtx, triggerCancel := context.WithCancel(ctx)
 
-							commons.ActivateEventTrigger(nodeSettings.NodeId, scheduledTrigger.Reference,
+							commons.ActivateEventTrigger(scheduledTrigger.Reference,
 								workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
 								scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
 
-							processWorkflowNode(triggerCtx, db, nodeSettings, triggerGroupWorkflowVersionNodeId,
-								workflowTriggerNode, scheduledTrigger.Reference, inputs)
+							processWorkflowNode(triggerCtx, db, triggerGroupWorkflowVersionNodeId,
+								workflowTriggerNode, scheduledTrigger.Reference, inputs, lightningRequestChannel,
+								rebalanceRequestChannel)
 
 							triggerCancel()
 
-							commons.DeactivateEventTrigger(nodeSettings.NodeId,
-								workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
-								scheduledTrigger.TriggeringNodeType, lastEvent)
+							commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
+								workflowTriggerNode.WorkflowVersionNodeId, scheduledTrigger.TriggeringNodeType, lastEvent)
 
 						}
 					}
@@ -279,35 +283,35 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 
 			switch workflowTriggerNode.Type {
 			case commons.WorkflowNodeTimeTrigger:
-				commons.ActivateTimeTrigger(nodeSettings.NodeId, scheduledTrigger.Reference,
+				commons.ActivateTimeTrigger(scheduledTrigger.Reference,
 					workflowTriggerNode.WorkflowVersionId, triggerCancel)
 			default:
-				commons.ActivateEventTrigger(nodeSettings.NodeId, scheduledTrigger.Reference,
+				commons.ActivateEventTrigger(scheduledTrigger.Reference,
 					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
 					scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
 			}
 
-			processWorkflowNode(triggerCtx, db, nodeSettings, triggerGroupWorkflowVersionNodeId,
-				workflowTriggerNode, scheduledTrigger.Reference, inputs)
+			processWorkflowNode(triggerCtx, db, triggerGroupWorkflowVersionNodeId,
+				workflowTriggerNode, scheduledTrigger.Reference, inputs, lightningRequestChannel,
+				rebalanceRequestChannel)
 
 			triggerCancel()
 
 			switch workflowTriggerNode.Type {
 			case commons.WorkflowNodeTimeTrigger:
-				commons.DeactivateTimeTrigger(nodeSettings.NodeId, workflowTriggerNode.WorkflowVersionId)
+				commons.DeactivateTimeTrigger(workflowTriggerNode.WorkflowVersionId)
 			default:
-				commons.DeactivateEventTrigger(nodeSettings.NodeId,
-					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
-					scheduledTrigger.TriggeringNodeType, firstEvent)
+				commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
+					workflowTriggerNode.WorkflowVersionNodeId, scheduledTrigger.TriggeringNodeType, firstEvent)
 			}
 		}
 	}
 }
 
-func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
+func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 	broadcaster broadcast.BroadcastServer) {
 
-	defer log.Info().Msgf("EventTriggerMonitor terminated for nodeId: %v", nodeSettings.NodeId)
+	defer log.Info().Msgf("EventTriggerMonitor terminated")
 
 	listener := broadcaster.SubscribeChannelBalanceEvent()
 	for {
@@ -319,14 +323,12 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSet
 			if channelBalanceEvent.NodeId == 0 || channelBalanceEvent.ChannelId == 0 {
 				continue
 			}
-			processEventTrigger(db, nodeSettings, channelBalanceEvent, commons.WorkflowNodeChannelBalanceEventTrigger)
+			processEventTrigger(db, channelBalanceEvent, commons.WorkflowNodeChannelBalanceEventTrigger)
 		}
 	}
 }
 
-func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
-	broadcaster broadcast.BroadcastServer) {
-
+func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster broadcast.BroadcastServer) {
 	channelEventListener := broadcaster.SubscribeChannelEvent()
 	for {
 		select {
@@ -339,16 +341,15 @@ func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings c
 			}
 			switch channelEvent.Type {
 			case lnrpc.ChannelEventUpdate_OPEN_CHANNEL:
-				processEventTrigger(db, nodeSettings, channelEvent, commons.WorkflowNodeChannelOpenEventTrigger)
+				processEventTrigger(db, channelEvent, commons.WorkflowNodeChannelOpenEventTrigger)
 			case lnrpc.ChannelEventUpdate_CLOSED_CHANNEL:
-				processEventTrigger(db, nodeSettings, channelEvent, commons.WorkflowNodeChannelCloseEventTrigger)
+				processEventTrigger(db, channelEvent, commons.WorkflowNodeChannelCloseEventTrigger)
 			}
 		}
 	}
 }
 
-func processEventTrigger(db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
-	triggeringEvent any, workflowNodeType commons.WorkflowNodeType) {
+func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType commons.WorkflowNodeType) {
 
 	//if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
 	// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
@@ -361,25 +362,29 @@ func processEventTrigger(db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
 	}
 	for _, workflowTriggerNode := range workflowTriggerNodes {
 		reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-		commons.ScheduleTrigger(nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionId,
-			workflowNodeType, triggeringEvent)
+		commons.ScheduleTrigger(reference, workflowTriggerNode.WorkflowVersionId, workflowNodeType, triggeringEvent)
 	}
 }
 
-func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
+func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	triggerGroupWorkflowVersionNodeId int, workflowTriggerNode workflows.WorkflowNode, reference string,
-	inputs map[commons.WorkflowParameterLabel]string) {
+	inputs map[commons.WorkflowParameterLabel]string,
+	lightningRequestChannel chan interface{},
+	rebalanceRequestChannel chan commons.RebalanceRequest) {
 
 	workflowNodeStatus := make(map[int]commons.Status)
 	workflowNodeStagingParametersCache := make(map[int]map[commons.WorkflowParameterLabel]string)
+	workflowStageExitConfigurationCache := make(map[int]map[commons.WorkflowParameterLabel]string)
 	workflowNodeCache := make(map[int]workflows.WorkflowNode)
 
 	// Flag the trigger group node as processed
 	workflowNodeStatus[triggerGroupWorkflowVersionNodeId] = commons.Active
 
-	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowTriggerNode,
-		0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
-	workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowTriggerNode.WorkflowVersionNodeId,
+	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
+		0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache,
+		reference, inputs, 0, workflowStageExitConfigurationCache,
+		lightningRequestChannel, rebalanceRequestChannel)
+	workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
 		0, inputs, outputs, err)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
@@ -395,9 +400,11 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 
 	for _, workflowDeferredLinkNode := range workflowChannelBalanceTriggerNodes {
 		inputs = commons.CopyParameters(outputs)
-		outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, nodeSettings, workflowDeferredLinkNode,
-			0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, inputs, 0)
-		workflows.AddWorkflowVersionNodeLog(db, nodeSettings.NodeId, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
+		outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, workflowDeferredLinkNode,
+			0, workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache,
+			reference, inputs, 0, workflowStageExitConfigurationCache,
+			lightningRequestChannel, rebalanceRequestChannel)
+		workflows.AddWorkflowVersionNodeLog(db, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
 			0, inputs, outputs, err)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to trigger deferred link node for WorkflowVersionNodeId: %v", workflowDeferredLinkNode.WorkflowVersionNodeId)

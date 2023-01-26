@@ -33,6 +33,10 @@ type BroadcastServer interface {
 	CancelSubscriptionBlockEvent(<-chan commons.BlockEvent)
 	SubscribeWebSocketResponse() <-chan interface{}
 	CancelSubscriptionWebSocketResponse(<-chan interface{})
+	SubscribeLightningRequest() <-chan interface{}
+	CancelSubscriptionLightningRequest(<-chan interface{})
+	SubscribeRebalanceRequest() <-chan commons.RebalanceRequest
+	CancelSubscriptionRebalanceRequest(<-chan commons.RebalanceRequest)
 }
 
 type broadcastServer struct {
@@ -100,6 +104,16 @@ type broadcastServer struct {
 	webSocketResponseListeners      []chan interface{}
 	addWebSocketResponseListener    chan chan interface{}
 	removeWebSocketResponseListener chan (<-chan interface{})
+
+	lightningRequestSource         <-chan interface{}
+	lightningRequestListeners      []chan interface{}
+	addLightningRequestListener    chan chan interface{}
+	removeLightningRequestListener chan (<-chan interface{})
+
+	rebalanceRequestSource         <-chan commons.RebalanceRequest
+	rebalanceRequestListeners      []chan commons.RebalanceRequest
+	addRebalanceRequestListener    chan chan commons.RebalanceRequest
+	removeRebalanceRequestListener chan (<-chan commons.RebalanceRequest)
 }
 
 func (s *broadcastServer) SubscribeServiceEvent() <-chan commons.ServiceEvent {
@@ -219,6 +233,24 @@ func (s *broadcastServer) CancelSubscriptionWebSocketResponse(channel <-chan int
 	s.removeWebSocketResponseListener <- channel
 }
 
+func (s *broadcastServer) SubscribeLightningRequest() <-chan interface{} {
+	newListener := make(chan interface{})
+	s.addLightningRequestListener <- newListener
+	return newListener
+}
+func (s *broadcastServer) CancelSubscriptionLightningRequest(channel <-chan interface{}) {
+	s.removeLightningRequestListener <- channel
+}
+
+func (s *broadcastServer) SubscribeRebalanceRequest() <-chan commons.RebalanceRequest {
+	newListener := make(chan commons.RebalanceRequest)
+	s.addRebalanceRequestListener <- newListener
+	return newListener
+}
+func (s *broadcastServer) CancelSubscriptionRebalanceRequest(channel <-chan commons.RebalanceRequest) {
+	s.removeRebalanceRequestListener <- channel
+}
+
 func NewBroadcastServer(ctx context.Context,
 	serviceEventSource <-chan commons.ServiceEvent,
 	htlcEventSource <-chan commons.HtlcEvent,
@@ -232,7 +264,9 @@ func NewBroadcastServer(ctx context.Context,
 	transactionEventSource <-chan commons.TransactionEvent,
 	peerEventSource <-chan commons.PeerEvent,
 	blockEventSource <-chan commons.BlockEvent,
-	webSocketResponseSource <-chan interface{}) BroadcastServer {
+	webSocketResponseSource <-chan interface{},
+	lightningRequestSource <-chan interface{},
+	rebalanceRequestSource <-chan commons.RebalanceRequest) BroadcastServer {
 	service := &broadcastServer{
 		serviceEventSource:         serviceEventSource,
 		serviceEventListeners:      make([]chan commons.ServiceEvent, 0),
@@ -298,6 +332,16 @@ func NewBroadcastServer(ctx context.Context,
 		webSocketResponseListeners:      make([]chan interface{}, 0),
 		addWebSocketResponseListener:    make(chan chan interface{}),
 		removeWebSocketResponseListener: make(chan (<-chan interface{})),
+
+		lightningRequestSource:         lightningRequestSource,
+		lightningRequestListeners:      make([]chan interface{}, 0),
+		addLightningRequestListener:    make(chan chan interface{}),
+		removeLightningRequestListener: make(chan (<-chan interface{})),
+
+		rebalanceRequestSource:         rebalanceRequestSource,
+		rebalanceRequestListeners:      make([]chan commons.RebalanceRequest, 0),
+		addRebalanceRequestListener:    make(chan chan commons.RebalanceRequest),
+		removeRebalanceRequestListener: make(chan (<-chan commons.RebalanceRequest)),
 	}
 	go service.serveServiceEvent(ctx)
 	go service.serveHtlcEvent(ctx)
@@ -312,6 +356,8 @@ func NewBroadcastServer(ctx context.Context,
 	go service.servePeerEvent(ctx)
 	go service.serveBlockEvent(ctx)
 	go service.serveWebSocketResponse(ctx)
+	go service.serveLightningRequest(ctx)
+	go service.serveRebalanceRequest(ctx)
 	return service
 }
 
@@ -836,6 +882,88 @@ func (s *broadcastServer) serveWebSocketResponse(ctx context.Context) {
 				return
 			}
 			for _, listener := range s.webSocketResponseListeners {
+				if listener != nil {
+					select {
+					case listener <- val:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}
+		}
+	}
+}
+
+func (s *broadcastServer) serveLightningRequest(ctx context.Context) {
+	defer func() {
+		for _, listener := range s.lightningRequestListeners {
+			if listener != nil {
+				close(listener)
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case newListener := <-s.addLightningRequestListener:
+			s.lightningRequestListeners = append(s.lightningRequestListeners, newListener)
+		case listenerToRemove := <-s.removeLightningRequestListener:
+			for i, ch := range s.lightningRequestListeners {
+				if ch == listenerToRemove {
+					s.lightningRequestListeners[i] = s.lightningRequestListeners[len(s.lightningRequestListeners)-1]
+					s.lightningRequestListeners = s.lightningRequestListeners[:len(s.lightningRequestListeners)-1]
+					close(ch)
+					break
+				}
+			}
+		case val, ok := <-s.lightningRequestSource:
+			if !ok {
+				return
+			}
+			for _, listener := range s.lightningRequestListeners {
+				if listener != nil {
+					select {
+					case listener <- val:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}
+		}
+	}
+}
+
+func (s *broadcastServer) serveRebalanceRequest(ctx context.Context) {
+	defer func() {
+		for _, listener := range s.rebalanceRequestListeners {
+			if listener != nil {
+				close(listener)
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case newListener := <-s.addRebalanceRequestListener:
+			s.rebalanceRequestListeners = append(s.rebalanceRequestListeners, newListener)
+		case listenerToRemove := <-s.removeRebalanceRequestListener:
+			for i, ch := range s.rebalanceRequestListeners {
+				if ch == listenerToRemove {
+					s.rebalanceRequestListeners[i] = s.rebalanceRequestListeners[len(s.rebalanceRequestListeners)-1]
+					s.rebalanceRequestListeners = s.rebalanceRequestListeners[:len(s.rebalanceRequestListeners)-1]
+					close(ch)
+					break
+				}
+			}
+		case val, ok := <-s.rebalanceRequestSource:
+			if !ok {
+				return
+			}
+			for _, listener := range s.rebalanceRequestListeners {
 				if listener != nil {
 					select {
 					case listener <- val:

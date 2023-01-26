@@ -1,37 +1,28 @@
 import { useState } from "react";
-import { ArrowRotateClockwise20Regular as ReBalanceIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import { ArrowRotateClockwise20Regular as RebalanceConfiguratorIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
-import { NodeColorVariant } from "../nodeVariants";
+import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
 import { Input, InputSizeVariant, Socket, Form } from "components/forms/forms";
 
-type ReBalanceChannelNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
+type RebalanceConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
-export type RebalanceParameters = {
-  // There will only be one of either outgoing or incoming channel ID
-  outgoingChannelId?: number;
-  incomingChannelId?: number;
-  // The channels that are at the other side of the re-balance request
-  channelIds: Array<number>;
-
+export type RebalanceConfiguration = {
   amountMsat: number;
   maximumCostMsat: number;
   maximumConcurrency?: number;
 };
 
-export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodeProps) {
+export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfiguratorNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
 
-  const [parameters, setParameters] = useState<RebalanceParameters>({
-    outgoingChannelId: undefined,
-    incomingChannelId: undefined,
-    channelIds: [],
+  const [configuration, setConfiguration] = useState<RebalanceConfiguration>({
     amountMsat: 0,
     maximumCostMsat: 0,
     maximumConcurrency: undefined,
@@ -39,15 +30,15 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
   });
 
   const [amountSat, setAmountSat] = useState<number | undefined>(
-    ((wrapperProps.parameters as RebalanceParameters).amountMsat || 0) / 1000
+    ((wrapperProps.parameters as RebalanceConfiguration).amountMsat || 0) / 1000
   );
   const [maximumCostSat, setMaximumCostSat] = useState<number | undefined>(
-    ((wrapperProps.parameters as RebalanceParameters).maximumCostMsat || 0) / 1000
+    ((wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat || 0) / 1000
   );
 
   function handleAmountSatChange(e: NumberFormatValues) {
     setAmountSat(e.floatValue);
-    setParameters((prev) => ({
+    setConfiguration((prev) => ({
       ...prev,
       amountMsat: (e.floatValue || 0) * 1000,
     }));
@@ -55,7 +46,7 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
 
   function handleMaximumCostSatChange(e: NumberFormatValues) {
     setMaximumCostSat(e.floatValue);
-    setParameters((prev) => ({
+    setConfiguration((prev) => ({
       ...prev,
       maximumCostMsat: (e.floatValue || 0) * 1000,
     }));
@@ -65,7 +56,7 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
     e.preventDefault();
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
-      parameters: parameters,
+      parameters: configuration,
     });
   }
 
@@ -126,8 +117,7 @@ export function ReBalanceChannelNode({ ...wrapperProps }: ReBalanceChannelNodePr
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
-      heading={t.channelPolicyConfiguration}
-      headerIcon={<ReBalanceIcon />}
+      headerIcon={<RebalanceConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
     >
       <Form onSubmit={handleSubmit}>

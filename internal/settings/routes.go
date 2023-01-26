@@ -69,7 +69,8 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 func startAllLndServicesOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage, nodeId int, lndActive bool) bool {
 	startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, nodeId, false)
-	startServiceOrRestartWhenRunning(serviceChannel, commons.AutomationService, nodeId, false)
+	// AutomationService is not tight to a torq node so don't restart it
+	//startServiceOrRestartWhenRunning(serviceChannel, commons.AutomationService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.LightningCommunicationService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.RebalanceService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.MaintenanceService, nodeId, false)

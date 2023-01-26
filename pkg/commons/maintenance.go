@@ -13,7 +13,7 @@ import (
 )
 
 func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB, vectorUrl string, nodeId int,
-	lightningCommunicationChannel chan interface{}) {
+	lightningRequestChannel chan interface{}) {
 
 	defer log.Info().Msgf("MaintenanceService terminated for nodeId: %v", nodeId)
 
@@ -27,12 +27,12 @@ func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB, vectorUrl string,
 			return
 		case <-ticker:
 			// TODO get forwards/invoices/payments without firstNodeId/secondNodeId/nodeId and assign correctly
-			processMissingChannelData(db, vectorUrl, nodeSettings, lightningCommunicationChannel)
+			processMissingChannelData(db, vectorUrl, nodeSettings, lightningRequestChannel)
 		}
 	}
 }
 
-func processMissingChannelData(db *sqlx.DB, vectorUrl string, nodeSettings ManagedNodeSettings, lightningCommunicationChannel chan interface{}) {
+func processMissingChannelData(db *sqlx.DB, vectorUrl string, nodeSettings ManagedNodeSettings, lightningRequestChannel chan interface{}) {
 	if vectorUrl == VECTOR_URL && (nodeSettings.Chain != Bitcoin || nodeSettings.Network != MainNet) {
 		log.Info().Msgf("Skipping verification of funding and closing details from vector for nodeId: %v", nodeSettings.NodeId)
 		return
@@ -40,7 +40,7 @@ func processMissingChannelData(db *sqlx.DB, vectorUrl string, nodeSettings Manag
 	channelSettings := GetChannelSettingsByNodeId(nodeSettings.NodeId)
 	for _, channelSetting := range channelSettings {
 		if hasMissingClosingDetails(channelSetting) {
-			transactionDetails := GetTransactionDetailsFromVector(vectorUrl, *channelSetting.ClosingTransactionHash, nodeSettings, lightningCommunicationChannel)
+			transactionDetails := GetTransactionDetailsFromVector(vectorUrl, *channelSetting.ClosingTransactionHash, nodeSettings, lightningRequestChannel)
 			err := updateClosingDetails(db, channelSetting, transactionDetails)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to update closing details from vector for channelId: %v", channelSetting.ChannelId)
@@ -48,7 +48,7 @@ func processMissingChannelData(db *sqlx.DB, vectorUrl string, nodeSettings Manag
 			time.Sleep(MAINTENANCE_VECTOR_DELAY_MILLISECONDS * time.Millisecond)
 		}
 		if hasMissingFundingDetails(channelSetting) {
-			transactionDetails := GetTransactionDetailsFromVector(vectorUrl, channelSetting.FundingTransactionHash, nodeSettings, lightningCommunicationChannel)
+			transactionDetails := GetTransactionDetailsFromVector(vectorUrl, channelSetting.FundingTransactionHash, nodeSettings, lightningRequestChannel)
 			err := updateFundingDetails(db, channelSetting, transactionDetails)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)

@@ -12,7 +12,6 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -120,27 +119,27 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 			TotalSatoshisSent:     lndChannel.TotalSatoshisSent,
 			TotalSatoshisReceived: lndChannel.TotalSatoshisReceived,
 		}
-		localRoutingPolicy, err := channels.GetLocalRoutingPolicy(channelId, nodeId, db)
-		if err != nil {
-			return errors.Wrapf(err, "Obtaining LocalRoutingPolicy from the database for channelId: %v", channelId)
-		}
-		channelStateSettings.LocalDisabled = localRoutingPolicy.Disabled
-		channelStateSettings.LocalFeeBaseMsat = localRoutingPolicy.FeeBaseMsat
-		channelStateSettings.LocalFeeRateMilliMsat = localRoutingPolicy.FeeRateMillMsat
-		channelStateSettings.LocalMinHtlcMsat = localRoutingPolicy.MinHtlcMsat
-		channelStateSettings.LocalMaxHtlcMsat = localRoutingPolicy.MaxHtlcMsat
-		channelStateSettings.LocalTimeLockDelta = localRoutingPolicy.TimeLockDelta
-
-		remoteRoutingPolicy, err := channels.GetRemoteRoutingPolicy(channelId, nodeId, db)
-		if err != nil {
-			return errors.Wrapf(err, "Obtaining RemoteRoutingPolicy from the database for channelId: %v", channelId)
-		}
-		channelStateSettings.RemoteDisabled = remoteRoutingPolicy.Disabled
-		channelStateSettings.RemoteFeeBaseMsat = remoteRoutingPolicy.FeeBaseMsat
-		channelStateSettings.RemoteFeeRateMilliMsat = remoteRoutingPolicy.FeeRateMillMsat
-		channelStateSettings.RemoteMinHtlcMsat = remoteRoutingPolicy.MinHtlcMsat
-		channelStateSettings.RemoteMaxHtlcMsat = remoteRoutingPolicy.MaxHtlcMsat
-		channelStateSettings.RemoteTimeLockDelta = remoteRoutingPolicy.TimeLockDelta
+		//localRoutingPolicy, err := channels.GetLocalRoutingPolicy(channelId, nodeId, db)
+		//if err != nil {
+		//	return errors.Wrapf(err, "Obtaining LocalRoutingPolicy from the database for channelId: %v", channelId)
+		//}
+		//channelStateSettings.LocalDisabled = localRoutingPolicy.Disabled
+		//channelStateSettings.LocalFeeBaseMsat = localRoutingPolicy.FeeBaseMsat
+		//channelStateSettings.LocalFeeRateMilliMsat = localRoutingPolicy.FeeRateMillMsat
+		//channelStateSettings.LocalMinHtlcMsat = localRoutingPolicy.MinHtlcMsat
+		//channelStateSettings.LocalMaxHtlcMsat = localRoutingPolicy.MaxHtlcMsat
+		//channelStateSettings.LocalTimeLockDelta = localRoutingPolicy.TimeLockDelta
+		//
+		//remoteRoutingPolicy, err := channels.GetRemoteRoutingPolicy(channelId, nodeId, db)
+		//if err != nil {
+		//	return errors.Wrapf(err, "Obtaining RemoteRoutingPolicy from the database for channelId: %v", channelId)
+		//}
+		//channelStateSettings.RemoteDisabled = remoteRoutingPolicy.Disabled
+		//channelStateSettings.RemoteFeeBaseMsat = remoteRoutingPolicy.FeeBaseMsat
+		//channelStateSettings.RemoteFeeRateMilliMsat = remoteRoutingPolicy.FeeRateMillMsat
+		//channelStateSettings.RemoteMinHtlcMsat = remoteRoutingPolicy.MinHtlcMsat
+		//channelStateSettings.RemoteMaxHtlcMsat = remoteRoutingPolicy.MaxHtlcMsat
+		//channelStateSettings.RemoteTimeLockDelta = remoteRoutingPolicy.TimeLockDelta
 
 		pendingIncomingHtlcCount := 0
 		pendingIncomingHtlcAmount := int64(0)

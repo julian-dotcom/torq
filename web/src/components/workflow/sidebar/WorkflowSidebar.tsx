@@ -14,7 +14,7 @@ import {
   TimeTriggerNodeButton,
   CronTriggerNodeButton,
   ChannelFilterNodeButton,
-  ReBalanceChannelNodeButton,
+  RebalanceConfiguratorNodeButton,
   RemoveTagNodeButton,
   BalanceTriggerNodeButton,
   AddTagNodeButton,
@@ -71,7 +71,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
         >
           <ChannelPolicyConfigurationNodeButton />
           <ChannelFilterNodeButton />
-          <ReBalanceChannelNodeButton />
+          <RebalanceConfiguratorNodeButton />
           <SectionContainer
             title={t.tags}
             icon={TagsIcon}

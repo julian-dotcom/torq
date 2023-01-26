@@ -36,8 +36,8 @@ type ChannelGraphEventData struct {
 	TimeLockDelta    uint32 `json:"timeLockDelta"`
 	MinHtlcMsat      uint64 `json:"minHtlcMsat"`
 	MaxHtlcMsat      uint64 `json:"maxHtlcMsat"`
-	FeeBaseMsat      uint64 `json:"feeBaseMsat"`
-	FeeRateMilliMsat uint64 `json:"feeRateMilliMsat"`
+	FeeBaseMsat      int64  `json:"feeBaseMsat"`
+	FeeRateMilliMsat int64  `json:"feeRateMilliMsat"`
 }
 
 type ChannelBalanceEventData struct {
@@ -381,8 +381,8 @@ type RoutingPolicyUpdateRequest struct {
 	CommunicationRequest
 	ResponseChannel  chan RoutingPolicyUpdateResponse `json:"-"`
 	ChannelId        int                              `json:"channelId"`
-	FeeRateMilliMsat *uint64                          `json:"feeRateMilliMsat"`
-	FeeBaseMsat      *uint64                          `json:"feeBaseMsat"`
+	FeeRateMilliMsat *int64                           `json:"feeRateMilliMsat"`
+	FeeBaseMsat      *int64                           `json:"feeBaseMsat"`
 	MaxHtlcMsat      *uint64                          `json:"maxHtlcMsat"`
 	MinHtlcMsat      *uint64                          `json:"minHtlcMsat"`
 	TimeLockDelta    *uint32                          `json:"timeLockDelta"`

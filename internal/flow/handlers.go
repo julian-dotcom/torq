@@ -69,7 +69,7 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 
 	chain := commons.Bitcoin
 
-	r, err := getFlow(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), chanIds, from, to)
+	r, err := getFlow(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), chanIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

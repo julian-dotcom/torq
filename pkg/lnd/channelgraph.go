@@ -297,8 +297,8 @@ func insertRoutingPolicy(
 				},
 				ChannelGraphEventData: commons.ChannelGraphEventData{
 					TimeLockDelta:    cu.RoutingPolicy.TimeLockDelta,
-					FeeRateMilliMsat: uint64(cu.RoutingPolicy.FeeRateMilliMsat),
-					FeeBaseMsat:      uint64(cu.RoutingPolicy.FeeBaseMsat),
+					FeeRateMilliMsat: int64(cu.RoutingPolicy.FeeRateMilliMsat),
+					FeeBaseMsat:      int64(cu.RoutingPolicy.FeeBaseMsat),
 					MaxHtlcMsat:      cu.RoutingPolicy.MaxHtlcMsat,
 					Disabled:         cu.RoutingPolicy.Disabled,
 					MinHtlcMsat:      uint64(cu.RoutingPolicy.MinHtlc),
@@ -308,8 +308,8 @@ func insertRoutingPolicy(
 				channelGraphEvent.PreviousEventTime = &channelEvent.EventTime
 				channelGraphEvent.PreviousEventData = &commons.ChannelGraphEventData{
 					TimeLockDelta:    channelEvent.TimeLockDelta,
-					FeeRateMilliMsat: uint64(channelEvent.FeeRateMilliMsat),
-					FeeBaseMsat:      uint64(channelEvent.FeeBaseMsat),
+					FeeRateMilliMsat: int64(channelEvent.FeeRateMilliMsat),
+					FeeBaseMsat:      int64(channelEvent.FeeBaseMsat),
 					MaxHtlcMsat:      channelEvent.MaxHtlcMsat,
 					Disabled:         channelEvent.Disabled,
 					MinHtlcMsat:      channelEvent.MinHtlcMsat,

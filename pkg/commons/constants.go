@@ -218,7 +218,7 @@ const (
 	WorkflowNodeChannelBalanceEventTrigger
 	WorkflowNodeChannelFilter
 	WorkflowNodeChannelPolicyConfigurator
-	WorkflowNodeRebalanceParameters
+	WorkflowNodeRebalanceConfigurator
 	WorkflowNodeStageTrigger
 	WorkflowNodeRebalanceRun
 	WorkflowNodeChannelPolicyRun
@@ -262,8 +262,8 @@ const (
 	WorkflowParameterLabelRoutingPolicySettings = WorkflowParameterLabel("routingPolicySettings")
 	WorkflowParameterLabelRebalanceSettings     = WorkflowParameterLabel("rebalanceSettings")
 	WorkflowParameterLabelTagSettings           = WorkflowParameterLabel("tagSettings")
-	WorkflowParameterLabelSourceChannels        = WorkflowParameterLabel("sourceChannels")
-	WorkflowParameterLabelDestinationChannels   = WorkflowParameterLabel("destinationChannels")
+	WorkflowParameterLabelIncomingChannels      = WorkflowParameterLabel("incomingChannels")
+	WorkflowParameterLabelOutgoingChannels      = WorkflowParameterLabel("outgoingChannels")
 	WorkflowParameterLabelStatus                = WorkflowParameterLabel("status")
 )
 
