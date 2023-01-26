@@ -80,7 +80,7 @@ type TransactionEvent struct {
 	Amount                *int64    `json:"amount"`
 	NumberOfConfirmations *int32    `json:"numberOfConfirmations"`
 	BlockHash             *string   `json:"blockHash"`
-	BlockHeight           *int32    `json:"blockHeight"`
+	BlockHeight           *uint32   `json:"blockHeight"`
 	TotalFees             *int64    `json:"totalFees"`
 	DestinationAddresses  *[]string `json:"destinationAddresses"`
 	RawTransactionHex     *string   `json:"rawTransactionHex"`

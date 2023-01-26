@@ -111,7 +111,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 
 			var filteredChannelIds []int
 			linkedChannelIdsString, exists := inputs[commons.WorkflowParameterLabelChannels]
-			if exists {
+			if exists && linkedChannelIdsString != "" && linkedChannelIdsString != "null" {
 				var linkedChannelIds []int
 				err = json.Unmarshal([]byte(linkedChannelIdsString), &linkedChannelIds)
 				if err != nil {

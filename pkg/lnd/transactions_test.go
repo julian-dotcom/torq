@@ -19,7 +19,7 @@ type Transaction struct {
 	Amount           int64          `db:"amount"`
 	NumConfirmations int32          `db:"num_confirmations"`
 	BlockHash        string         `db:"block_hash"`
-	BlockHeight      int32          `db:"block_height"`
+	BlockHeight      uint32         `db:"block_height"`
 	TotalFees        int64          `db:"total_fees"`
 	DestAddresses    pq.StringArray `db:"dest_addresses"`
 	Label            string         `db:"label"`
@@ -74,7 +74,7 @@ func TestStoreTransaction(t *testing.T) {
 		Amount:           expected.Amount,
 		NumConfirmations: expected.NumConfirmations,
 		BlockHash:        expected.BlockHash,
-		BlockHeight:      expected.BlockHeight,
+		BlockHeight:      int32(expected.BlockHeight),
 		TimeStamp:        time.Now().Unix(),
 		TotalFees:        expected.TotalFees,
 		OutputDetails: []*lnrpc.OutputDetail{

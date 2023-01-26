@@ -42,7 +42,7 @@ type ManagedChannel struct {
 	LndShortChannelId      uint64
 	FundingTransactionHash string
 	FundingOutputIndex     int
-	FundingBlockHeight     *int64
+	FundingBlockHeight     *uint32
 	FundedOn               *time.Time
 	Capacity               int64
 	NodeId                 int
@@ -54,7 +54,7 @@ type ManagedChannel struct {
 	Status                 ChannelStatus
 	ClosingTransactionHash *string
 	ClosingNodeId          *int
-	ClosingBlockHeight     *int64
+	ClosingBlockHeight     *uint32
 	ClosedOn               *time.Time
 	Out                    chan ManagedChannel
 	ChannelSettingOut      chan ManagedChannelSettings
@@ -68,7 +68,7 @@ type ManagedChannelSettings struct {
 	LndShortChannelId      uint64
 	FundingTransactionHash string
 	FundingOutputIndex     int
-	FundingBlockHeight     *int64
+	FundingBlockHeight     *uint32
 	FundedOn               *time.Time
 	Capacity               int64
 	FirstNodeId            int
@@ -79,7 +79,7 @@ type ManagedChannelSettings struct {
 	Status                 ChannelStatus
 	ClosingTransactionHash *string
 	ClosingNodeId          *int
-	ClosingBlockHeight     *int64
+	ClosingBlockHeight     *uint32
 	ClosedOn               *time.Time
 }
 
@@ -369,10 +369,10 @@ func GetChannelSettingByChannelId(channelId int) ManagedChannelSettings {
 
 func SetChannel(channelId int, shortChannelId *string, lndShortChannelId *uint64, status ChannelStatus,
 	fundingTransactionHash string, fundingOutputIndex int,
-	fundingBlockHeight *int64, fundedOn *time.Time,
+	fundingBlockHeight *uint32, fundedOn *time.Time,
 	capacity int64, private bool, firstNodeId int, secondNodeId int,
 	initiatingNodeId *int, acceptingNodeId *int,
-	closingTransactionHash *string, closingNodeId *int, closingBlockHeight *int64, closedOn *time.Time) {
+	closingTransactionHash *string, closingNodeId *int, closingBlockHeight *uint32, closedOn *time.Time) {
 
 	managedChannel := ManagedChannel{
 		ChannelId:              channelId,

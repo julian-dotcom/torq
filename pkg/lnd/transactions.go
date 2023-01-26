@@ -20,7 +20,7 @@ type Tx struct {
 	Amount                *int64    `json:"amount" db:"amount"`
 	NumberOfConfirmations *int32    `json:"numberOfConfirmations" db:"num_confirmations"`
 	BlockHash             *string   `json:"blockHash" db:"block_hash"`
-	BlockHeight           *int32    `json:"blockHeight" db:"block_height"`
+	BlockHeight           *uint32   `json:"blockHeight" db:"block_height"`
 	TotalFees             *int64    `json:"totalFees" db:"total_fees"`
 	DestinationAddresses  *[]string `json:"destinationAddresses" db:"dest_addresses"`
 	RawTransactionHex     *string   `json:"rawTransactionHex" db:"raw_tx_hex"`
@@ -28,7 +28,7 @@ type Tx struct {
 	NodeId                int       `json:"nodeId" db:"node_id"`
 }
 
-func fetchLastTxHeight(db *sqlx.DB, nodeId int) (txHeight int32, err error) {
+func fetchLastTxHeight(db *sqlx.DB, nodeId int) (txHeight uint32, err error) {
 
 	sqlLatest := `select coalesce(max(block_height),1) from tx where node_id = $1;`
 
@@ -51,7 +51,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 
 	defer log.Info().Msgf("SubscribeAndStoreTransactions terminated for nodeId: %v", nodeSettings.NodeId)
 
-	var transactionHeight int32
+	var transactionHeight uint32
 	var err error
 	var transactionDetails *lnrpc.TransactionDetails
 	var storedTx Tx
@@ -83,7 +83,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 			commons.SetBlockHeight(uint32(transactionHeight))
 			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
 			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
-				StartHeight: transactionHeight + 1,
+				StartHeight: int32(transactionHeight + 1),
 			})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -126,7 +126,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 			}
 			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
 			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
-				StartHeight: transactionHeight + 1,
+				StartHeight: int32(transactionHeight + 1),
 			})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -169,7 +169,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 					Label:                 storedTx.Label,
 				}
 			}
-			if *storedTx.BlockHeight > transactionHeight {
+			if uint32(*storedTx.BlockHeight) > transactionHeight {
 				transactionHeight = *storedTx.BlockHeight
 			}
 		}
@@ -187,14 +187,14 @@ func storeTransaction(db *sqlx.DB, tx *lnrpc.Transaction, nodeId int) (Tx, error
 	for _, output := range tx.OutputDetails {
 		destinationAddresses = append(destinationAddresses, output.Address)
 	}
-
+	blockHeight := uint32(tx.BlockHeight)
 	storedTx := Tx{
 		Timestamp:             time.Unix(tx.TimeStamp, 0).UTC(),
 		TransactionHash:       &tx.TxHash,
 		Amount:                &tx.Amount,
 		NumberOfConfirmations: &tx.NumConfirmations,
 		BlockHash:             &tx.BlockHash,
-		BlockHeight:           &tx.BlockHeight,
+		BlockHeight:           &blockHeight,
 		TotalFees:             &tx.TotalFees,
 		DestinationAddresses:  &destinationAddresses,
 		RawTransactionHex:     &tx.RawTxHex,

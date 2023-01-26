@@ -23,8 +23,18 @@ export type channel = {
   commitWeight: number;
   feePerKw: number;
   feeRateMilliMsat: number;
+  currentBlockHeight: number;
   fundingOutputIndex: number;
   fundingTransactionHash: string;
+  fundingBlockHeight: number;
+  fundingBlockHeightDelta: number;
+  fundedOn: Date;
+  fundedOnSecondsDelta: number;
+  closingTransactionHash: string;
+  closingBlockHeight: number;
+  closingBlockHeightDelta: number;
+  closedOn: Date;
+  closedOnSecondsDelta: number;
   gauge: number;
   initiator: boolean;
   lifetime: number;
