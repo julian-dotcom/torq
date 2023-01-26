@@ -24,6 +24,16 @@ body,
   height: 100%;
 }
 
+.info-box {
+  background-color: var(--color-warning-layer-2);
+  color: var(--color-text-warning-faded);
+  padding: 12px;
+  svg {
+    position: relative;
+    top: 4px;
+  }
+}
+
 // TODO: Consider cleaning this up as a component
 .torq-input-field {
   border-radius: 2px;

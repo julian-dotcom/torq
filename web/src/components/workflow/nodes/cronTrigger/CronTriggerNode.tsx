@@ -33,7 +33,8 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
 
   let cronExplained = "";
   try {
-    cronExplained = cronstrue.toString(cronValueState);
+    const cronDesc = cronstrue.toString(cronValueState);
+    cronExplained = "Triggers " + cronDesc[0].toLowerCase() + cronDesc.substring(1);
   } catch (err) {
     cronExplained = "Invalid cron value";
   }
@@ -58,7 +59,9 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
             />
           </div>
         </InputRow>
-        <span>{cronExplained}</span>
+        <span className="info-box">
+          <CronTriggerIcon /> {cronExplained}
+        </span>
         <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
           {t.save.toString()}
         </Button>
