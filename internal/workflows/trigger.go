@@ -454,6 +454,8 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 					inputs[label] = value
 				}
 			}
+		case commons.WorkflowNodeCronTrigger:
+			log.Debug().Msg("Cron Trigger actually fired")
 		}
 		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
 		for childLinkId, childNode := range workflowNode.ChildNodes {
