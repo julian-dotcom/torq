@@ -15,6 +15,7 @@ import (
 	"github.com/lncapital/torq/internal/workflows"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
+	"github.com/robfig/cron/v3"
 )
 
 func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB) {
@@ -76,6 +77,40 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			}
 		}
 	}
+}
+
+type CronTriggerParams struct {
+	CronValue string `json:"cronValue"`
+}
+
+func CronTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) {
+	defer log.Info().Msgf("Cron trigger monitor terminated for nodeId: %v", nodeSettings.NodeId)
+	workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeCronTrigger)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to obtain root nodes (cron trigger nodes)")
+		log.Error().Msg("Cron trigger monitor failed to start")
+		return
+	}
+
+	c := cron.New()
+	for _, trigger := range workflowTriggerNodes {
+		var params CronTriggerParams
+		if err = json.Unmarshal(trigger.Parameters.([]byte), &params); err != nil {
+			log.Error().Msgf("Can't unmarshal parameters for workflow version node id: %v", trigger.WorkflowVersionNodeId)
+			continue
+		}
+		log.Debug().Msgf("Scheduling cron (%v) for workflow version node id: %v", params.CronValue, trigger.WorkflowVersionNodeId)
+		c.AddFunc(params.CronValue, func() {
+			log.Debug().Msgf("Scheduling for immediate execution cron trigger for workflow version node id %v", trigger.WorkflowVersionNodeId)
+			reference := fmt.Sprintf("%v_%v", trigger.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+			commons.ScheduleTrigger(nodeSettings.NodeId, reference, trigger.WorkflowVersionId,
+				commons.WorkflowNodeCronTrigger, params)
+		})
+	}
+	c.Start()
+	log.Info().Msgf("Cron trigger monitor started for nodeId: %v", nodeSettings.NodeId)
+	<-ctx.Done()
+	c.Stop()
 }
 
 func EventTriggerMonitor(ctx context.Context, db *sqlx.DB,

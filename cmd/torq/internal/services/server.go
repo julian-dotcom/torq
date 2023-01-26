@@ -36,6 +36,19 @@ func Start(ctx context.Context, db *sqlx.DB,
 		automation.TimeTriggerMonitor(ctx, db)
 	})()
 
+	// Cron Trigger Monitor
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in CronTriggerMonitor %v", panicError)
+				commons.RunningServices[commons.AutomationService].Cancel(nodeId, &active, true)
+			}
+		}()
+		automation.CronTriggerMonitor(ctx, db, nodeSettings)
+	})()
+
 	// Event Trigger Monitor
 	wg.Add(1)
 	go (func() {
