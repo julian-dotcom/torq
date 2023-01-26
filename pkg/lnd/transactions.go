@@ -80,6 +80,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				continue
 			}
 
+			commons.SetBlockHeight(uint32(transactionHeight))
 			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
 			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
 				StartHeight: transactionHeight + 1,
@@ -112,6 +113,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
 				continue
 			}
+			commons.SetBlockHeight(blockEpoch.Height)
 			if blockEventChannel != nil {
 				blockEventChannel <- commons.BlockEvent{
 					EventData: commons.EventData{
