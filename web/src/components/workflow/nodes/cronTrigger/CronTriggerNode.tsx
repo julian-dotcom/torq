@@ -6,7 +6,8 @@ import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { Form, Input, InputRow, InputSizeVariant } from "components/forms/forms";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
-import { NumberFormatValues } from "react-number-format";
+import cronstrue from "cronstrue";
+import React from "react";
 
 type CronTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -14,19 +15,27 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
+  const [cronValueState, setCronValueState] = React.useState("0 23 ? * MON-FRI");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: {
-        cronValue: "5 4 * * *",
+        cronValue: cronValueState,
       },
     });
   }
 
-  function handleCronChange(value: NumberFormatValues) {
-    console.log(value);
+  function handleCronChange({ currentTarget: { value } }: React.FormEvent<HTMLInputElement>) {
+    setCronValueState(value);
+  }
+
+  let cronExplained = "";
+  try {
+    cronExplained = cronstrue.toString(cronValueState);
+  } catch (err) {
+    cronExplained = "Invalid cron value";
   }
 
   return (
@@ -40,15 +49,16 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
         <InputRow>
           <div style={{ flexGrow: 1 }}>
             <Input
-              value={"5 4 * * *"}
+              value={cronValueState}
               thousandSeparator={true}
-              onValueChange={handleCronChange}
+              onChange={handleCronChange}
               label={t.cron}
               helpText={"Interval specified in Cron format"}
               sizeVariant={InputSizeVariant.small}
             />
           </div>
         </InputRow>
+        <span>{cronExplained}</span>
         <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
           {t.save.toString()}
         </Button>
