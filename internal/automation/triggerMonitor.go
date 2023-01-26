@@ -122,6 +122,18 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 			firstEvent := events[0]
 			lastEvent := events[len(events)-1]
 
+			var eventChannelIds []int
+			for _, event := range events {
+				channelBalanceEvent, ok := event.(commons.ChannelBalanceEvent)
+				if ok {
+					eventChannelIds = append(eventChannelIds, channelBalanceEvent.ChannelId)
+				}
+				channelEvent, ok := event.(commons.ChannelEvent)
+				if ok {
+					eventChannelIds = append(eventChannelIds, channelEvent.ChannelId)
+				}
+			}
+
 			var workflowVersionNodeId int
 			switch scheduledTrigger.TriggeringNodeType {
 			case commons.WorkflowNodeTimeTrigger:
@@ -214,6 +226,12 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 								continue
 							}
 							inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledChannelBalanceEvent)
+							marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
+							if err != nil {
+								log.Error().Err(err).Msgf("Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+								continue
+							}
+							inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
 
 							triggerCtx, triggerCancel := context.WithCancel(ctx)
 
@@ -248,6 +266,12 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 			} else {
 				inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledEvents)
 			}
+			marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+				continue
+			}
+			inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
 
 			triggerCtx, triggerCancel := context.WithCancel(ctx)
 
