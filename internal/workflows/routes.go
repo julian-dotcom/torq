@@ -12,7 +12,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -109,24 +108,15 @@ func workFlowTriggerHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	nodes, err := settings.GetActiveNodesConnectionDetails(db)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "getting active nodes")
-		return
+	manualTriggerEvent := commons.ManualTriggerEvent{
+		EventData: commons.EventData{
+			EventTime: time.Now(),
+			NodeId:    commons.TorqDummyNodeId,
+		},
+		WorkflowVersionNodeId: workflow.WorkflowVersionNodeId,
 	}
-
-	for _, node := range nodes {
-		ManualTriggerEvent := commons.ManualTriggerEvent{
-			EventData: commons.EventData{
-				EventTime: time.Now(),
-				NodeId:    node.NodeId,
-			},
-			WorkflowVersionNodeId: workflow.WorkflowVersionNodeId,
-		}
-		reference := fmt.Sprintf("%v_%v", workflow.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-		commons.ScheduleTrigger(node.NodeId, reference, workflow.WorkflowVersionId,
-			commons.WorkflowNodeManualTrigger, ManualTriggerEvent)
-	}
+	reference := fmt.Sprintf("%v_%v", workflow.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+	commons.ScheduleTrigger(reference, workflow.WorkflowVersionId, commons.WorkflowNodeManualTrigger, manualTriggerEvent)
 
 	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully triggered Workflow."})
 }
