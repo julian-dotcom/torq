@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
@@ -144,6 +145,64 @@ func IsWorkflowNodeTypeGrouped(workflowNodeType WorkflowNodeType) bool {
 		return true
 	}
 	return false
+}
+
+func SignMessageWithTimeout(unixTime time.Time, nodeId int, message string, singleHash *bool,
+	lightningRequestChannel chan interface{}) SignMessageResponse {
+
+	responseChannel := make(chan SignMessageResponse, 1)
+	request := SignMessageRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		ResponseChannel: responseChannel,
+		Message:         message,
+		SingleHash:      singleHash,
+	}
+	lightningRequestChannel <- request
+	time.AfterFunc(2*time.Second, func() {
+		responseChannel <- SignMessageResponse{
+			Request: request,
+			CommunicationResponse: CommunicationResponse{
+				Status:  TimedOut,
+				Message: "Sign Message timed out after 2 seconds.",
+				Error:   "Sign Message timed out after 2 seconds.",
+			},
+		}
+	})
+	response := <-responseChannel
+	return response
+}
+
+func SignatureVerificationRequestWithTimeout(unixTime time.Time, nodeId int, message string, signature string,
+	lightningRequestChannel chan interface{}) SignatureVerificationResponse {
+
+	responseChannel := make(chan SignatureVerificationResponse, 1)
+	request := SignatureVerificationRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		ResponseChannel: responseChannel,
+		Message:         message,
+		Signature:       signature,
+	}
+	lightningRequestChannel <- request
+	time.AfterFunc(2*time.Second, func() {
+		responseChannel <- SignatureVerificationResponse{
+			Request: request,
+			CommunicationResponse: CommunicationResponse{
+				Status:  TimedOut,
+				Message: "Sign Message timed out after 2 seconds.",
+				Error:   "Sign Message timed out after 2 seconds.",
+			},
+		}
+	})
+	response := <-responseChannel
+	return response
 }
 
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {

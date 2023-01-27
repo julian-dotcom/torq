@@ -318,7 +318,7 @@ func SendToManagedRebalanceResultChannel(ch chan RebalanceResult, rebalanceResul
 }
 
 func getRebalancer(origin commons.RebalanceRequestOrigin, originId int) *Rebalancer {
-	responseChannel := make(chan ManagedRebalance)
+	responseChannel := make(chan ManagedRebalance, 1)
 	managedRebalance := ManagedRebalance{
 		Origin:   origin,
 		OriginId: originId,
@@ -331,7 +331,7 @@ func getRebalancer(origin commons.RebalanceRequestOrigin, originId int) *Rebalan
 }
 
 func getRebalancers(status *commons.Status) []*Rebalancer {
-	responseChannel := make(chan []*Rebalancer)
+	responseChannel := make(chan []*Rebalancer, 1)
 	managedRebalance := ManagedRebalance{
 		Status:         status,
 		Type:           READ_REBALANCERS,
@@ -342,7 +342,7 @@ func getRebalancers(status *commons.Status) []*Rebalancer {
 }
 
 func getLatestResult(incomingChannelId int, outgoingChannelId int, status *commons.Status) RebalanceResult {
-	responseChannel := make(chan RebalanceResult)
+	responseChannel := make(chan RebalanceResult, 1)
 	managedRebalance := ManagedRebalance{
 		IncomingChannelId:  incomingChannelId,
 		OutgoingChannelId:  outgoingChannelId,
@@ -356,7 +356,7 @@ func getLatestResult(incomingChannelId int, outgoingChannelId int, status *commo
 
 func getLatestResultByOrigin(origin commons.RebalanceRequestOrigin, originId int,
 	incomingChannelId int, outgoingChannelId int, status *commons.Status) RebalanceResult {
-	responseChannel := make(chan RebalanceResult)
+	responseChannel := make(chan RebalanceResult, 1)
 	managedRebalance := ManagedRebalance{
 		Origin:             origin,
 		OriginId:           originId,
@@ -371,7 +371,7 @@ func getLatestResultByOrigin(origin commons.RebalanceRequestOrigin, originId int
 }
 
 func addRebalancer(rebalancer *Rebalancer) bool {
-	responseChannel := make(chan bool)
+	responseChannel := make(chan bool, 1)
 	managedRebalance := ManagedRebalance{
 		Rebalancer: rebalancer,
 		Type:       WRITE_REBALANCER,

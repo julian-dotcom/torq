@@ -405,12 +405,14 @@ type SignatureVerificationResponse struct {
 	Request SignatureVerificationRequest `json:"request"`
 	CommunicationResponse
 	PublicKey string `json:"publicKey"`
+	Valid     bool   `json:"valid"`
 }
 
 type SignMessageRequest struct {
 	CommunicationRequest
 	ResponseChannel chan SignMessageResponse `json:"-"`
 	Message         string                   `json:"message"`
+	SingleHash      *bool                    `json:"singleHash"`
 }
 
 type SignMessageResponse struct {

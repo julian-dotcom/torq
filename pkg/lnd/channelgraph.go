@@ -65,7 +65,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			}
 			// HACK to know if the context is a testcase.
 			if importRequestChannel != nil {
-				responseChannel := make(chan error)
+				responseChannel := make(chan error, 1)
 				importRequestChannel <- commons.ImportRequest{
 					ImportType: commons.ImportChannelAndRoutingPolicies,
 					Out:        responseChannel,
@@ -78,7 +78,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 					continue
 				}
 
-				responseChannel = make(chan error)
+				responseChannel = make(chan error, 1)
 				importRequestChannel <- commons.ImportRequest{
 					ImportType: commons.ImportNodeInformation,
 					Out:        responseChannel,

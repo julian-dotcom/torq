@@ -1,51 +1,24 @@
 package messages
 
 import (
-	"context"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc"
 
-	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/lnd_connect"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
-func verifyMessage(db *sqlx.DB, req VerifyMessageRequest) (r VerifyMessageResponse, err error) {
+func verifyMessage(db *sqlx.DB, req VerifyMessageRequest, lightningRequestChannel chan interface{}) (VerifyMessageResponse, error) {
 	if req.NodeId == 0 {
-		return VerifyMessageResponse{}, errors.Wrap(err, "Node Id missing")
+		return VerifyMessageResponse{}, errors.New("Node Id missing")
 	}
-
-	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
-	if err != nil {
-		return VerifyMessageResponse{}, errors.Wrap(err, "Getting node connection details from the db")
+	response := commons.SignatureVerificationRequestWithTimeout(time.Now(), req.NodeId, req.Message, req.Signature, lightningRequestChannel)
+	if response.Status != commons.Active {
+		return VerifyMessageResponse{}, errors.New(response.Error)
 	}
-
-	conn, err := lnd_connect.Connect(
-		connectionDetails.GRPCAddress,
-		connectionDetails.TLSFileBytes,
-		connectionDetails.MacaroonFileBytes)
-	if err != nil {
-		return VerifyMessageResponse{}, errors.Wrap(err, "Connecting to LND")
-	}
-	defer conn.Close()
-
-	client := lnrpc.NewLightningClient(conn)
-
-	verifyMsgReq := lnrpc.VerifyMessageRequest{
-		Msg:       []byte(req.Message),
-		Signature: req.Signature,
-	}
-
-	ctx := context.Background()
-
-	verifyMsgResp, err := client.VerifyMessage(ctx, &verifyMsgReq)
-	if err != nil {
-		return VerifyMessageResponse{}, errors.Wrap(err, "Verifying message")
-	}
-
-	r.Valid = verifyMsgResp.GetValid()
-	r.PubKey = verifyMsgResp.GetPubkey()
-
-	return r, nil
+	return VerifyMessageResponse{
+		Valid:  response.Valid,
+		PubKey: response.PublicKey,
+	}, nil
 }

@@ -83,6 +83,10 @@ func processSignMessageRequest(ctx context.Context, request commons.SignMessageR
 	signMsgReq := lnrpc.SignMessageRequest{
 		Msg: []byte(request.Message),
 	}
+	if request.SingleHash != nil {
+		signMsgReq.SingleHash = *request.SingleHash
+	}
+
 	signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
 	if err != nil {
 		response.Error = err.Error()
@@ -120,6 +124,7 @@ func processSignatureVerificationRequest(ctx context.Context, request commons.Si
 
 	response.Status = commons.Active
 	response.PublicKey = verifyMsgResp.Pubkey
+	response.Valid = verifyMsgResp.GetValid()
 	return response
 }
 

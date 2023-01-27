@@ -127,9 +127,9 @@ func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interfac
 		return
 	}
 
-	response, err := routingPolicyUpdate(requestBody, lightningRequestChannel)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Update channel/s policy")
+	response := SetRoutingPolicyWithTimeout(requestBody, lightningRequestChannel)
+	if response.Status != commons.Active {
+		server_errors.WrapLogAndSendServerError(c, errors.New(response.Error), "Update channel/s policy")
 		return
 	}
 

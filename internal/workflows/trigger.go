@@ -280,7 +280,8 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				if (routingPolicySettings.FeeBaseMsat != nil ||
 					routingPolicySettings.FeeRateMilliMsat != nil ||
 					routingPolicySettings.MaxHtlcMsat != nil ||
-					routingPolicySettings.MinHtlcMsat != nil) &&
+					routingPolicySettings.MinHtlcMsat != nil ||
+					routingPolicySettings.TimeLockDelta != nil) &&
 					lightningRequestChannel != nil {
 
 					now := time.Now()
@@ -296,23 +297,19 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 						}
 						if commons.RunningServices[commons.LightningCommunicationService].GetStatus(nodeId) == commons.Active {
 							if hasRoutingPolicyChanges(nodeId, routingPolicySettings.ChannelIds[index], routingPolicySettings) {
-								responseChannel := make(chan commons.RoutingPolicyUpdateResponse)
-								request := commons.RoutingPolicyUpdateRequest{
+								response := channels.SetRoutingPolicyWithTimeout(commons.RoutingPolicyUpdateRequest{
 									CommunicationRequest: commons.CommunicationRequest{
 										RequestId:   reference,
 										RequestTime: &now,
 										NodeId:      nodeId,
 									},
-									ResponseChannel:  responseChannel,
 									ChannelId:        routingPolicySettings.ChannelIds[index],
 									FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
 									FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
 									MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
 									MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
-									TimeLockDelta:    nil,
-								}
-								lightningRequestChannel <- request
-								response := <-responseChannel
+									TimeLockDelta:    routingPolicySettings.TimeLockDelta,
+								}, lightningRequestChannel)
 								if response.Error != "" {
 									log.Error().Err(errors.New(response.Error)).Msgf("Channel Time Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 								}
@@ -385,7 +382,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//	commons.RunningServices[commons.RebalanceService].GetStatus(nodeSettings.NodeId) == commons.Active {
 			//
 			//	now := time.Now()
-			//	responseChannel := make(chan commons.RebalanceResponse)
+			//	responseChannel := make(chan commons.RebalanceResponse, 1)
 			//	request := commons.RebalanceRequest{
 			//		CommunicationRequest: commons.CommunicationRequest{
 			//			RequestId:   reference,
@@ -408,6 +405,16 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//		request.OutgoingChannelId = *rebalanceSettings.OutgoingChannelIds
 			//	}
 			//	lightningRequestChannel <- request
+			//time.AfterFunc(2*time.Second, func() {
+			//	responseChannel <- commons.RoutingPolicyUpdateResponse{
+			//		Request: request,
+			//		CommunicationResponse: commons.CommunicationResponse{
+			//			Status:  commons.TimedOut,
+			//			Message: "Routing policy update timed out after 2 seconds.",
+			//			Error:   "Routing policy update timed out after 2 seconds.",
+			//		},
+			//	}
+			//})
 			//	response := <-responseChannel
 			//	if response.Error != "" {
 			//		log.Error().Err(errors.New(response.Error)).Msg("Channel Time Trigger Fired")
@@ -484,11 +491,11 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 func hasRoutingPolicyChanges(nodeId int, channelId int, routingPolicySettings ChannelPolicyConfiguration) bool {
 	channelStateSettings := commons.GetChannelState(nodeId, channelId, true)
 	if routingPolicySettings.FeeBaseMsat != nil &&
-		*routingPolicySettings.FeeBaseMsat != int64(channelStateSettings.LocalFeeBaseMsat) {
+		*routingPolicySettings.FeeBaseMsat != channelStateSettings.LocalFeeBaseMsat {
 		return true
 	}
 	if routingPolicySettings.FeeRateMilliMsat != nil &&
-		*routingPolicySettings.FeeRateMilliMsat != int64(channelStateSettings.LocalFeeRateMilliMsat) {
+		*routingPolicySettings.FeeRateMilliMsat != channelStateSettings.LocalFeeRateMilliMsat {
 		return true
 	}
 	if routingPolicySettings.MinHtlcMsat != nil &&
@@ -497,6 +504,10 @@ func hasRoutingPolicyChanges(nodeId int, channelId int, routingPolicySettings Ch
 	}
 	if routingPolicySettings.MaxHtlcMsat != nil &&
 		*routingPolicySettings.MaxHtlcMsat != channelStateSettings.LocalMaxHtlcMsat {
+		return true
+	}
+	if routingPolicySettings.TimeLockDelta != nil &&
+		*routingPolicySettings.TimeLockDelta != channelStateSettings.LocalTimeLockDelta {
 		return true
 	}
 	return false

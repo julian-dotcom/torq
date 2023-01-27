@@ -82,7 +82,7 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 	serviceType commons.ServiceType, nodeId int, active bool) bool {
 	if active {
 		enforcedServiceStatus := commons.Active
-		resultChannel := make(chan commons.Status)
+		resultChannel := make(chan commons.Status, 1)
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,
@@ -108,7 +108,7 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 		}
 	} else {
 		enforcedServiceStatus := commons.Inactive
-		resultChannel := make(chan commons.Status)
+		resultChannel := make(chan commons.Status, 1)
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,

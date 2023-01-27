@@ -236,7 +236,7 @@ func initializeEventTriggerCache(
 
 func GetTimeTriggerSettingsByWorkflowVersionId(workflowVersionId int) ManagedTriggerSettings {
 
-	triggerSettingsChannel := make(chan ManagedTriggerSettings)
+	triggerSettingsChannel := make(chan ManagedTriggerSettings, 1)
 	managedTrigger := ManagedTrigger{
 		WorkflowVersionId:  workflowVersionId,
 		Type:               READ_TIME_TRIGGER_SETTINGS,
@@ -252,7 +252,7 @@ func GetEventTriggerSettingsByWorkflowVersionId(
 	triggeringNodeType WorkflowNodeType,
 	triggeringEvent any) ManagedTriggerSettings {
 
-	triggerSettingsChannel := make(chan ManagedTriggerSettings)
+	triggerSettingsChannel := make(chan ManagedTriggerSettings, 1)
 	managedTrigger := ManagedTrigger{
 		WorkflowVersionId:               workflowVersionId,
 		TriggeringWorkflowVersionNodeId: triggeringWorkflowVersionNodeId,
@@ -345,7 +345,7 @@ func ScheduleTrigger(
 }
 
 func GetScheduledTrigger() ManagedTriggerSettings {
-	triggerSettingsChannel := make(chan ManagedTriggerSettings)
+	triggerSettingsChannel := make(chan ManagedTriggerSettings, 1)
 	ManagedTriggerChannel <- ManagedTrigger{
 		Type:               POP_SCHEDULED_TRIGGER,
 		TriggerSettingsOut: triggerSettingsChannel,

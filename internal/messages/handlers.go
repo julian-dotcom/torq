@@ -1,11 +1,13 @@
 package messages
 
 import (
+	"net/http"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+
 	"github.com/lncapital/torq/pkg/server_errors"
-	"net/http"
 )
 
 type SignMessageRequest struct {
@@ -29,7 +31,7 @@ type VerifyMessageResponse struct {
 	PubKey string `json:"pubKey"`
 }
 
-func signMessageHandler(c *gin.Context, db *sqlx.DB) {
+func signMessageHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan interface{}) {
 	var signMsgReq SignMessageRequest
 
 	if err := c.BindJSON(&signMsgReq); err != nil {
@@ -37,7 +39,7 @@ func signMessageHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	response, err := signMessage(db, signMsgReq)
+	response, err := signMessage(signMsgReq, lightningRequestChannel)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Sign message")
 		return
@@ -46,7 +48,7 @@ func signMessageHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-func verifyMessageHandler(c *gin.Context, db *sqlx.DB) {
+func verifyMessageHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan interface{}) {
 	var verifyMsgReq VerifyMessageRequest
 
 	if err := c.BindJSON(&verifyMsgReq); err != nil {
@@ -54,7 +56,7 @@ func verifyMessageHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	response, err := verifyMessage(db, verifyMsgReq)
+	response, err := verifyMessage(db, verifyMsgReq, lightningRequestChannel)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Verify message")
 		return
@@ -63,7 +65,7 @@ func verifyMessageHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-func RegisterMessagesRoutes(r *gin.RouterGroup, db *sqlx.DB) {
-	r.POST("sign", func(c *gin.Context) { signMessageHandler(c, db) })
-	r.POST("verify", func(c *gin.Context) { verifyMessageHandler(c, db) })
+func RegisterMessagesRoutes(r *gin.RouterGroup, db *sqlx.DB, lightningRequestChannel chan interface{}) {
+	r.POST("sign", func(c *gin.Context) { signMessageHandler(c, db, lightningRequestChannel) })
+	r.POST("verify", func(c *gin.Context) { verifyMessageHandler(c, db, lightningRequestChannel) })
 }

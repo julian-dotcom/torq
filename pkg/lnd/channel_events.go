@@ -368,7 +368,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			}
 			// HACK to know if the context is a testcase.
 			if importRequestChannel != nil {
-				responseChannel := make(chan error)
+				responseChannel := make(chan error, 1)
 				importRequestChannel <- commons.ImportRequest{
 					ImportType: commons.ImportChannelAndRoutingPolicies,
 					Out:        responseChannel,

@@ -97,6 +97,7 @@ const (
 	Deleted
 	Initializing
 	Archived
+	TimedOut
 )
 
 type Implementation int

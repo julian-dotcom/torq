@@ -236,7 +236,7 @@ func createChannelPoint(managedChannel ManagedChannel) string {
 }
 
 func GetActiveChannelIdByFundingTransaction(fundingTransactionHash string, fundingOutputIndex int) int {
-	channelResponseChannel := make(chan ManagedChannel)
+	channelResponseChannel := make(chan ManagedChannel, 1)
 	managedChannel := ManagedChannel{
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
@@ -250,7 +250,7 @@ func GetActiveChannelIdByFundingTransaction(fundingTransactionHash string, fundi
 
 func GetChannelIdByChannelPoint(channelPoint string) int {
 	fundingTransactionHash, fundingOutputIndex := ParseChannelPoint(channelPoint)
-	channelResponseChannel := make(chan ManagedChannel)
+	channelResponseChannel := make(chan ManagedChannel, 1)
 	managedChannel := ManagedChannel{
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
@@ -263,7 +263,7 @@ func GetChannelIdByChannelPoint(channelPoint string) int {
 }
 
 func GetChannelIdByFundingTransaction(fundingTransactionHash string, fundingOutputIndex int) int {
-	channelResponseChannel := make(chan ManagedChannel)
+	channelResponseChannel := make(chan ManagedChannel, 1)
 	managedChannel := ManagedChannel{
 		FundingTransactionHash: fundingTransactionHash,
 		FundingOutputIndex:     fundingOutputIndex,
@@ -279,7 +279,7 @@ func GetActiveChannelIdByShortChannelId(shortChannelId string) int {
 	if shortChannelId == "" || shortChannelId == "0x0x0" {
 		return 0
 	}
-	channelResponseChannel := make(chan ManagedChannel)
+	channelResponseChannel := make(chan ManagedChannel, 1)
 	managedChannel := ManagedChannel{
 		ShortChannelId: shortChannelId,
 		Type:           READ_ACTIVE_CHANNELID_BY_SHORTCHANNELID,
@@ -294,7 +294,7 @@ func GetChannelIdByShortChannelId(shortChannelId string) int {
 	if shortChannelId == "" || shortChannelId == "0x0x0" {
 		return 0
 	}
-	channelResponseChannel := make(chan ManagedChannel)
+	channelResponseChannel := make(chan ManagedChannel, 1)
 	managedChannel := ManagedChannel{
 		ShortChannelId: shortChannelId,
 		Type:           READ_CHANNELID_BY_SHORTCHANNELID,
@@ -310,7 +310,7 @@ func GetChannelIdByLndShortChannelId(lndShortChannelId uint64) int {
 		return 0
 	}
 	shortChannelId := ConvertLNDShortChannelID(lndShortChannelId)
-	channelResponseChannel := make(chan ManagedChannel)
+	channelResponseChannel := make(chan ManagedChannel, 1)
 	managedChannel := ManagedChannel{
 		ShortChannelId: shortChannelId,
 		Type:           READ_CHANNELID_BY_SHORTCHANNELID,
@@ -322,7 +322,7 @@ func GetChannelIdByLndShortChannelId(lndShortChannelId uint64) int {
 }
 
 func GetChannelIdsByNodeId(peerNodeId int) []int {
-	channelIdsResponseChannel := make(chan []int)
+	channelIdsResponseChannel := make(chan []int, 1)
 	managedChannel := ManagedChannel{
 		NodeId:        peerNodeId,
 		Type:          READ_CHANNELIDS_BY_NODE_ID,
@@ -334,7 +334,7 @@ func GetChannelIdsByNodeId(peerNodeId int) []int {
 }
 
 func GetChannelStatusByChannelId(channelId int) ChannelStatus {
-	channelResponseChannel := make(chan ManagedChannel)
+	channelResponseChannel := make(chan ManagedChannel, 1)
 	managedChannel := ManagedChannel{
 		ChannelId: channelId,
 		Type:      READ_STATUSID_BY_CHANNELID,
@@ -346,7 +346,7 @@ func GetChannelStatusByChannelId(channelId int) ChannelStatus {
 }
 
 func GetChannelSettingsByNodeId(nodeId int) []ManagedChannelSettings {
-	channelResponseChannel := make(chan []ManagedChannelSettings)
+	channelResponseChannel := make(chan []ManagedChannelSettings, 1)
 	managedChannel := ManagedChannel{
 		NodeId:             nodeId,
 		Type:               READ_ALL_CHANNEL_SETTINGS,
@@ -357,7 +357,7 @@ func GetChannelSettingsByNodeId(nodeId int) []ManagedChannelSettings {
 }
 
 func GetChannelSettingByChannelId(channelId int) ManagedChannelSettings {
-	channelResponseChannel := make(chan ManagedChannelSettings)
+	channelResponseChannel := make(chan ManagedChannelSettings, 1)
 	managedChannel := ManagedChannel{
 		ChannelId:         channelId,
 		Type:              READ_CHANNEL_SETTINGS,

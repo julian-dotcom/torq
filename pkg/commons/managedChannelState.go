@@ -580,7 +580,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 }
 
 func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSettings {
-	channelStatesResponseChannel := make(chan []ManagedChannelStateSettings)
+	channelStatesResponseChannel := make(chan []ManagedChannelStateSettings, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:        nodeId,
 		ForceResponse: forceResponse,
@@ -592,7 +592,7 @@ func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSetti
 }
 
 func GetChannelStateChannelIds(nodeId int, forceResponse bool) []int {
-	channelIdsResponseChannel := make(chan []int)
+	channelIdsResponseChannel := make(chan []int, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:        nodeId,
 		ForceResponse: forceResponse,
@@ -604,7 +604,7 @@ func GetChannelStateChannelIds(nodeId int, forceResponse bool) []int {
 }
 
 func GetChannelState(nodeId, channelId int, forceResponse bool) *ManagedChannelStateSettings {
-	channelStateResponseChannel := make(chan *ManagedChannelStateSettings)
+	channelStateResponseChannel := make(chan *ManagedChannelStateSettings, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:        nodeId,
 		ChannelId:     channelId,
@@ -617,7 +617,7 @@ func GetChannelState(nodeId, channelId int, forceResponse bool) *ManagedChannelS
 }
 
 func GetChannelBalanceStates(nodeId int, forceResponse bool, channelStateInclude ChannelStateInclude, htlcInclude ChannelBalanceStateHtlcInclude) []ManagedChannelBalanceStateSettings {
-	channelBalanceStateResponseChannel := make(chan []ManagedChannelBalanceStateSettings)
+	channelBalanceStateResponseChannel := make(chan []ManagedChannelBalanceStateSettings, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:           nodeId,
 		ForceResponse:    forceResponse,
@@ -631,7 +631,7 @@ func GetChannelBalanceStates(nodeId int, forceResponse bool, channelStateInclude
 }
 
 func GetChannelBalanceState(nodeId, channelId int, forceResponse bool, htlcInclude ChannelBalanceStateHtlcInclude) *ManagedChannelBalanceStateSettings {
-	channelBalanceStateResponseChannel := make(chan *ManagedChannelBalanceStateSettings)
+	channelBalanceStateResponseChannel := make(chan *ManagedChannelBalanceStateSettings, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:          nodeId,
 		ChannelId:       channelId,
