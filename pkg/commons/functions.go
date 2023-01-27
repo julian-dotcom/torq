@@ -106,6 +106,29 @@ func CopyParameters(parameters map[WorkflowParameterLabel]string) map[WorkflowPa
 	return parametersCopy
 }
 
+func (s *Status) String() string {
+	if s == nil {
+		return "Unknown"
+	}
+	switch *s {
+	case Inactive:
+		return "Inactive"
+	case Active:
+		return "Active"
+	case Pending:
+		return "Pending"
+	case Deleted:
+		return "Deleted"
+	case Initializing:
+		return "Initializing"
+	case Archived:
+		return "Archived"
+	case TimedOut:
+		return "TimedOut"
+	}
+	return "Unknown"
+}
+
 func GetServiceTypes() []ServiceType {
 	return []ServiceType{
 		LndService,
@@ -116,7 +139,77 @@ func GetServiceTypes() []ServiceType {
 		LightningCommunicationService,
 		RebalanceService,
 		MaintenanceService,
+		CronService,
 	}
+}
+
+func (st *ServiceType) String() string {
+	if st == nil {
+		return "Unknown"
+	}
+	switch *st {
+	case LndService:
+		return "LndService"
+	case VectorService:
+		return "VectorService"
+	case AmbossService:
+		return "AmbossService"
+	case TorqService:
+		return "TorqService"
+	case AutomationService:
+		return "AutomationService"
+	case LightningCommunicationService:
+		return "LightningCommunicationService"
+	case RebalanceService:
+		return "RebalanceService"
+	case MaintenanceService:
+		return "MaintenanceService"
+	case CronService:
+		return "CronService"
+	}
+	return "Unknown"
+}
+
+func (ss *SubscriptionStream) IsChannelBalanceCache() bool {
+	if ss != nil && (*ss == ForwardStream ||
+		*ss == InvoiceStream ||
+		*ss == PaymentStream ||
+		*ss == PeerEventStream ||
+		*ss == ChannelEventStream ||
+		*ss == GraphEventStream ||
+		*ss == HtlcEventStream) {
+		return true
+	}
+	return false
+}
+
+func (ss *SubscriptionStream) String() string {
+	if ss == nil {
+		return "Unknown"
+	}
+	switch *ss {
+	case TransactionStream:
+		return "TransactionStream"
+	case HtlcEventStream:
+		return "HtlcEventStream"
+	case ChannelEventStream:
+		return "ChannelEventStream"
+	case GraphEventStream:
+		return "GraphEventStream"
+	case ForwardStream:
+		return "ForwardStream"
+	case InvoiceStream:
+		return "InvoiceStream"
+	case PaymentStream:
+		return "PaymentStream"
+	case InFlightPaymentStream:
+		return "InFlightPaymentStream"
+	case PeerEventStream:
+		return "PeerEventStream"
+	case ChannelBalanceCacheStream:
+		return "ChannelBalanceCacheStream"
+	}
+	return "Unknown"
 }
 
 func GetDeltaPerMille(base uint64, amt uint64) int {
@@ -162,13 +255,14 @@ func SignMessageWithTimeout(unixTime time.Time, nodeId int, message string, sing
 		SingleHash:      singleHash,
 	}
 	lightningRequestChannel <- request
-	time.AfterFunc(2*time.Second, func() {
+	time.AfterFunc(LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
+		timeOutMessage := fmt.Sprintf("Sign Message timed out after %v seconds.", LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
 		responseChannel <- SignMessageResponse{
 			Request: request,
 			CommunicationResponse: CommunicationResponse{
 				Status:  TimedOut,
-				Message: "Sign Message timed out after 2 seconds.",
-				Error:   "Sign Message timed out after 2 seconds.",
+				Message: timeOutMessage,
+				Error:   timeOutMessage,
 			},
 		}
 	})
@@ -191,13 +285,14 @@ func SignatureVerificationRequestWithTimeout(unixTime time.Time, nodeId int, mes
 		Signature:       signature,
 	}
 	lightningRequestChannel <- request
-	time.AfterFunc(2*time.Second, func() {
+	time.AfterFunc(LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
+		timeOutMessage := fmt.Sprintf("Signature Verification timed out after %v seconds.", LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
 		responseChannel <- SignatureVerificationResponse{
 			Request: request,
 			CommunicationResponse: CommunicationResponse{
 				Status:  TimedOut,
-				Message: "Sign Message timed out after 2 seconds.",
-				Error:   "Sign Message timed out after 2 seconds.",
+				Message: timeOutMessage,
+				Error:   timeOutMessage,
 			},
 		}
 	})

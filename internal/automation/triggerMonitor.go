@@ -10,12 +10,12 @@ import (
 	"github.com/andres-erbsen/clock"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/workflows"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
-	"github.com/robfig/cron/v3"
 )
 
 func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB) {
@@ -83,8 +83,8 @@ type CronTriggerParams struct {
 	CronValue string `json:"cronValue"`
 }
 
-func CronTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) {
-	defer log.Info().Msgf("Cron trigger monitor terminated for nodeId: %v", nodeSettings.NodeId)
+func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
+	defer log.Info().Msgf("Cron trigger monitor terminated")
 
 	workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeCronTrigger)
 	if err != nil {
@@ -105,7 +105,7 @@ func CronTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 		_, err = c.AddFunc(params.CronValue, func() {
 			log.Debug().Msgf("Scheduling for immediate execution cron trigger for workflow version node id %v", trigger.WorkflowVersionNodeId)
 			reference := fmt.Sprintf("%v_%v", trigger.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-			commons.ScheduleTrigger(nodeSettings.NodeId, reference, trigger.WorkflowVersionId,
+			commons.ScheduleTrigger(reference, trigger.WorkflowVersionId,
 				commons.WorkflowNodeCronTrigger, trigger)
 		})
 		if err != nil {
@@ -117,7 +117,7 @@ func CronTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings commons.M
 	c.Start()
 	defer c.Stop()
 
-	log.Info().Msgf("Cron trigger monitor started for nodeId: %v", nodeSettings.NodeId)
+	log.Info().Msgf("Cron trigger monitor started")
 
 	<-ctx.Done()
 }

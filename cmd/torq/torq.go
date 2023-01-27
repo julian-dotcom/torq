@@ -414,6 +414,8 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel chan comm
 			name = "RebalanceService"
 		case commons.MaintenanceService:
 			name = "MaintenanceService"
+		case commons.CronService:
+			name = "CronService"
 		}
 		if name != "" {
 			if serviceCmd.ServiceCommand == commons.Kill {
@@ -552,7 +554,9 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 				}
 				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndService}
 			case commons.Active:
+				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.MaintenanceService, NodeId: commons.TorqDummyNodeId}
 				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.AutomationService, NodeId: commons.TorqDummyNodeId}
+				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.CronService, NodeId: commons.TorqDummyNodeId}
 			}
 		}
 		if serviceEvent.Type == commons.LndService {
@@ -565,10 +569,6 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 				log.Debug().Msgf("Starting Rebalance Service for nodeId: %v", serviceEvent.NodeId)
 				if commons.RunningServices[commons.RebalanceService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
 					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.RebalanceService, NodeId: serviceEvent.NodeId}
-				}
-				log.Debug().Msgf("Starting Maintenance Service for nodeId: %v", serviceEvent.NodeId)
-				if commons.RunningServices[commons.MaintenanceService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
-					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.MaintenanceService, NodeId: serviceEvent.NodeId}
 				}
 				log.Debug().Msgf("Checking for Vector activation for nodeId: %v", serviceEvent.NodeId)
 				if commons.RunningServices[commons.VectorService].GetStatus(serviceEvent.NodeId) == commons.Inactive {
@@ -687,14 +687,16 @@ func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.
 		err = vector_ping.Start(ctx, conn, c.String("torq.vector.url"), node.NodeId)
 	case commons.AmbossService:
 		err = amboss_ping.Start(ctx, conn, node.NodeId)
-	case commons.AutomationService:
-		err = services.Start(ctx, db, lightningRequestChannel, rebalanceRequestChannel, broadcaster)
 	case commons.LightningCommunicationService:
 		err = services.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster)
 	case commons.RebalanceService:
 		err = services.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster)
+	case commons.AutomationService:
+		err = services.Start(ctx, db, lightningRequestChannel, rebalanceRequestChannel, broadcaster)
 	case commons.MaintenanceService:
-		err = services.StartMaintenanceService(ctx, db, c.String("torq.vector.url"), node.NodeId, lightningRequestChannel)
+		err = services.StartMaintenanceService(ctx, db, c.String("torq.vector.url"), lightningRequestChannel)
+	case commons.CronService:
+		err = services.StartCronService(ctx, db)
 	}
 	if err != nil {
 		log.Error().Err(err).Msgf("%v Service ended for node id: %v", name, node.NodeId)

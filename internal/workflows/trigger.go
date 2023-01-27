@@ -405,7 +405,8 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//		request.OutgoingChannelId = *rebalanceSettings.OutgoingChannelIds
 			//	}
 			//	lightningRequestChannel <- request
-			//time.AfterFunc(2*time.Second, func() {
+			//time.AfterFunc(commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
+			//	message := fmt.Sprintf("Routing policy update timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
 			//	responseChannel <- commons.RoutingPolicyUpdateResponse{
 			//		Request: request,
 			//		CommunicationResponse: commons.CommunicationResponse{

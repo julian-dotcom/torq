@@ -21,6 +21,7 @@ require (
 	github.com/mixer/clock v0.0.0-20210321161542-3ac312e8c7e8
 	github.com/pkg/errors v0.9.1
 	github.com/playwright-community/playwright-go v0.2000.1
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/rs/zerolog v1.27.0
 	github.com/ulule/limiter/v3 v3.10.0
 	github.com/urfave/cli/v2 v2.8.1
@@ -34,7 +35,6 @@ require (
 require (
 	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
-	github.com/robfig/cron/v3 v3.0.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.3.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.3.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.3.0 // indirect

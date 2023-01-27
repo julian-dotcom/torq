@@ -12,6 +12,7 @@ const (
 	LightningCommunicationService
 	RebalanceService
 	MaintenanceService
+	CronService
 )
 
 const TorqDummyNodeId = -1337
@@ -87,6 +88,8 @@ const REBALANCE_MINIMUM_DELTA_SECONDS = 10 * 60
 
 const MAINTENANCE_QUEUE_TICKER_SECONDS = 60 * 60
 const MAINTENANCE_VECTOR_DELAY_MILLISECONDS = 500
+
+const LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS = 10
 
 type Status int
 
@@ -179,19 +182,6 @@ var SubscriptionStreams = []SubscriptionStream{ //nolint:gochecknoglobals
 	InFlightPaymentStream,
 	PeerEventStream,
 	ChannelBalanceCacheStream,
-}
-
-func (ss *SubscriptionStream) IsChannelBalanceCache() bool {
-	if ss != nil && (*ss == ForwardStream ||
-		*ss == InvoiceStream ||
-		*ss == PaymentStream ||
-		*ss == PeerEventStream ||
-		*ss == ChannelEventStream ||
-		*ss == GraphEventStream ||
-		*ss == HtlcEventStream) {
-		return true
-	}
-	return false
 }
 
 type ImportRequest struct {
