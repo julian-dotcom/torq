@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
@@ -11,6 +12,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -22,6 +24,7 @@ func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.POST("", func(c *gin.Context) { createWorkflowHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateWorkflowHandler(c, db) })
 	r.DELETE("/:workflowId", func(c *gin.Context) { removeWorkflowHandler(c, db) })
+	r.POST("/trigger", func(c *gin.Context) { workFlowTriggerHandler(c, db) })
 
 	// Workflow Logs
 	r.GET("/logs/:workflowId", func(c *gin.Context) { getWorkflowLogsHandler(c, db) })
@@ -98,6 +101,34 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	c.JSON(http.StatusOK, wv)
+}
+
+func workFlowTriggerHandler(c *gin.Context, db *sqlx.DB) {
+	var workflow WorkflowToTrigger
+	if err := c.BindJSON(&workflow); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+	nodes, err := settings.GetActiveNodesConnectionDetails(db)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "getting active nodes")
+		return
+	}
+
+	for _, node := range nodes {
+		ManualTriggerEvent := commons.ManualTriggerEvent{
+			EventData: commons.EventData{
+				EventTime: time.Now(),
+				NodeId:    node.NodeId,
+			},
+			WorkflowVersionNodeId: workflow.WorkflowVersionNodeId,
+		}
+		reference := fmt.Sprintf("%v_%v", workflow.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+		commons.ScheduleTrigger(node.NodeId, reference, workflow.WorkflowVersionId,
+			commons.WorkflowNodeManualTrigger, ManualTriggerEvent)
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully triggered Workflow."})
 }
 
 func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {

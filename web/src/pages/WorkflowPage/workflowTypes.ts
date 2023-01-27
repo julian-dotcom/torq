@@ -124,6 +124,13 @@ export type Workflow = {
   updatedOn: Date;
 };
 
+export type TriggerWorkflowRequest = {
+  type: number;
+  workflowVersionId: number;
+  workflowId: number;
+  workflowVersionNodeId: number;
+};
+
 export type WorkflowStages = {
   [key: number]: Array<WorkflowVersionNode>;
 };
