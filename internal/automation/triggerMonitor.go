@@ -182,6 +182,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			var workflowVersionNodeId int
 			switch scheduledTrigger.TriggeringNodeType {
 			case commons.WorkflowNodeTimeTrigger:
+				fallthrough
+			case commons.WorkflowNodeCronTrigger:
 				workflowVersionNodeId = firstEvent.(workflows.WorkflowNode).WorkflowVersionNodeId
 			case commons.WorkflowNodeManualTrigger:
 				workflowVersionNodeId = firstEvent.(commons.ManualTriggerEvent).WorkflowVersionNodeId
@@ -312,9 +314,16 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 				log.Error().Err(err).Msgf("Failed to marshal events for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 				continue
 			}
-			if workflowTriggerNode.Type == commons.WorkflowNodeTimeTrigger {
+			switch workflowTriggerNode.Type {
+			case commons.WorkflowNodeTimeTrigger:
+				fallthrough
+			case commons.WorkflowNodeCronTrigger:
 				inputs[commons.WorkflowParameterLabelTimeTriggered] = string(marshalledEvents)
-			} else {
+			case commons.WorkflowNodeChannelBalanceEventTrigger:
+				fallthrough
+			case commons.WorkflowNodeChannelCloseEventTrigger:
+				fallthrough
+			case commons.WorkflowNodeChannelOpenEventTrigger:
 				inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledEvents)
 			}
 			marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
@@ -328,6 +337,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 			switch workflowTriggerNode.Type {
 			case commons.WorkflowNodeTimeTrigger:
+				fallthrough
+			case commons.WorkflowNodeCronTrigger:
 				commons.ActivateTimeTrigger(scheduledTrigger.Reference,
 					workflowTriggerNode.WorkflowVersionId, triggerCancel)
 			default:
@@ -344,6 +355,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 			switch workflowTriggerNode.Type {
 			case commons.WorkflowNodeTimeTrigger:
+				fallthrough
+			case commons.WorkflowNodeCronTrigger:
 				commons.DeactivateTimeTrigger(workflowTriggerNode.WorkflowVersionId)
 			default:
 				commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,

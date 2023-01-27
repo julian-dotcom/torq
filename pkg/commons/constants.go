@@ -213,6 +213,8 @@ const (
 	WorkflowNodeStageTrigger
 	WorkflowNodeRebalanceRun
 	WorkflowNodeChannelPolicyRun
+	WorkflowNodeChannelPolicyAutoRun
+	WorkflowNodeRebalanceAutoRun
 	WorkflowNodeSetVariable
 	WorkflowNodeFilterOnVariable
 	WorkflowTrigger
