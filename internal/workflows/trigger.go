@@ -192,6 +192,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			if err != nil {
 				return nil, commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
+			channelPolicyInputConfiguration.ChannelIds = linkedChannelIds
 
 			marshalledChannelPolicyConfiguration, err := json.Marshal(channelPolicyInputConfiguration)
 			if err != nil {
@@ -210,6 +211,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			if err != nil {
 				return nil, commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
+			routingPolicySettings.ChannelIds = linkedChannelIds
 
 			var responses []commons.RoutingPolicyUpdateResponse
 			activeOutputs, responses, err = processRoutingPolicyRun(routingPolicySettings, activeOutputs, lightningRequestChannel, workflowNode, reference)
