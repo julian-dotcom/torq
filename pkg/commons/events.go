@@ -11,6 +11,11 @@ type EventData struct {
 	NodeId    int       `json:"nodeId"`
 }
 
+type ManualTriggerEvent struct {
+	EventData
+	WorkflowVersionNodeId int `json:"workflowVersionNodeId"`
+}
+
 type GraphEventData struct {
 	EventData
 	EventNodeId      *int `json:"eventNodeId"`

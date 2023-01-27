@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux";
-import { SelectWorkflowMainTriggerNode, SelectWorkflowStages } from "pages/WorkflowPage/workflowApi";
+import { SelectWorkflowMainTriggerNode, SelectWorkflowStages, useAddManualWorkflowTriggerMutation } from "pages/WorkflowPage/workflowApi";
 import WorkflowCanvas from "./WorkflowCanvas";
 import styles from "./workflow_canvas.module.scss";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
@@ -20,6 +20,8 @@ import classNames from "classnames";
 import useTranslations from "services/i18n/useTranslations";
 import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
 import { RemoveTagNode } from "../nodes/tags/RemoveTagNode";
+import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
+import { Play12Regular as PlayIcon } from "@fluentui/react-icons";
 
 type WorkflowCanvasStagesProps = {
   workflowId: number;
@@ -42,6 +44,20 @@ function FirstStageTrigger(props: {
 
   const triggerNodes = props.triggers.map(getNodeComponent);
 
+  const [triggerWorkflow] = useAddManualWorkflowTriggerMutation();
+
+  function handleManualTrigger() {
+    triggerWorkflow({
+      type: WorkflowNodeType.StageTrigger,
+      workflowVersionId: props.workflowVersionId,
+      workflowId: props.workflowId,
+      workflowVersionNodeId: triggerNode?.workflowVersionNodeId || 0
+    }).then(() => {
+      // On success, select the new stage
+      // props.setSelectedStage(nextStage);
+    });
+  }
+
   if (props.stage === 1) {
     return (
       <div className={classNames(styles.triggerNodeWrapper)}>
@@ -53,6 +69,16 @@ function FirstStageTrigger(props: {
             workflowVersionNodeId={triggerNode?.workflowVersionNodeId || 0}
             workflowVersionId={props.workflowVersionId}
           />
+
+        <Button
+          icon={<PlayIcon />}
+          buttonSize={SizeVariant.tiny}
+          buttonColor={ColorVariant.success}
+          hideMobileText={true}
+          onClick={handleManualTrigger}
+        >
+          {t.workflowNodes.run}
+        </Button>
           <div className={classNames(styles.triggerContainerHeading)}>{t.triggers}</div>
           <div className={styles.triggerBody}>{triggerNodes}</div>
         </div>

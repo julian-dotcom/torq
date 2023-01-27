@@ -193,7 +193,8 @@
     "addTag": "Add Tags",
     "removeTag": "Remove Tags",
     "targetChannel": "Target Channels",
-    "targetNode": "Target Nodes"
+    "targetNode": "Target Nodes",
+    "run": "Run Workflow"
   },
   "workflowDetails": {
     "cantAddTriggerNodeToStages": "Trigger nodes can only be added to the first stage.",

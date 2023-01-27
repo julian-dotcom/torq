@@ -68,6 +68,13 @@ type WorkflowVersion struct {
 	UpdateOn          time.Time      `json:"updatedOn" db:"updated_on"`
 }
 
+type WorkflowToTrigger struct {
+	WorkflowVersionId     int `json:"workflowVersionId"`
+	Type                  int `json:"type"`
+	WorkflowId            int `json:"workflowId"`
+	WorkflowVersionNodeId int `json:"workflowVersionNodeId"`
+}
+
 type TimeTriggerParameters struct {
 	Seconds  int32 `json:"seconds" db:"seconds"`
 	TimeUnit int   `json:"timeUnit" db:"time_unit"` // Time Unit is just used in the frontend

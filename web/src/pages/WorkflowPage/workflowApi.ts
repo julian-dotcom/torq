@@ -7,6 +7,7 @@ import {
   UpdateWorkflowNodeRequest,
   workflowListItem,
   UpdateWorkflowNodeVisibilitySettingsRequest,
+  TriggerWorkflowRequest,
 } from "./workflowTypes";
 import { createSelector } from "@reduxjs/toolkit";
 import { TriggerNodeTypes, WorkflowNodeType } from "./constants";
@@ -26,6 +27,14 @@ export const workflowApi = torqApi.injectEndpoints({
         url: "workflows",
         method: "POST",
         body: {},
+      }),
+      invalidatesTags: ["workflows"],
+    }),
+    addManualWorkflowTrigger: builder.mutation<void, TriggerWorkflowRequest>({
+      query: (body: TriggerWorkflowRequest) => ({
+        url: "workflows/trigger",
+        method: "POST",
+        body,
       }),
       invalidatesTags: ["workflows"],
     }),
@@ -122,6 +131,7 @@ export const {
   useDeleteStageMutation,
   useAddNodeLinkMutation,
   useDeleteNodeLinkMutation,
+  useAddManualWorkflowTriggerMutation,
 } = workflowApi;
 
 // // Select the FullWorkflow object from the state

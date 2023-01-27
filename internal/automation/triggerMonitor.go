@@ -138,6 +138,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB, nodeSettings comm
 			switch scheduledTrigger.TriggeringNodeType {
 			case commons.WorkflowNodeTimeTrigger:
 				workflowVersionNodeId = firstEvent.(workflows.WorkflowNode).WorkflowVersionNodeId
+			case commons.WorkflowNodeManualTrigger:
+				workflowVersionNodeId = firstEvent.(commons.ManualTriggerEvent).WorkflowVersionNodeId
 			default:
 				workflowVersionNodeId = scheduledTrigger.TriggeringWorkflowVersionNodeId
 				if workflowVersionNodeId == 0 {
@@ -401,5 +403,4 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB, nodeSettings commons.
 			log.Error().Err(err).Msgf("Failed to trigger deferred link node for WorkflowVersionNodeId: %v", workflowDeferredLinkNode.WorkflowVersionNodeId)
 		}
 	}
-
 }
