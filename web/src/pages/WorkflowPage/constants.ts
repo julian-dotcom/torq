@@ -17,6 +17,9 @@ export enum WorkflowNodeType {
   ChannelOpenEventTrigger,
   ChannelCloseEventTrigger,
   CronTrigger,
+  ManualTrigger,
+  ChannelPolicyAutoRun,
+  RebalanceAutoRun,
 }
 
 export const TriggerNodeTypes = [

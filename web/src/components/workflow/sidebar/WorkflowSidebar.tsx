@@ -11,10 +11,14 @@ import {
 import { useState } from "react";
 import {
   ChannelPolicyConfiguratorNodeButton,
+  ChannelPolicyAutoRunNodeButton,
+  ChannelPolicyRunNodeButton,
   TimeTriggerNodeButton,
   CronTriggerNodeButton,
   ChannelFilterNodeButton,
   RebalanceConfiguratorNodeButton,
+  //RebalanceAutoRunNodeButton,
+  //RebalanceRunNodeButton,
   RemoveTagNodeButton,
   BalanceTriggerNodeButton,
   AddTagNodeButton,
@@ -69,8 +73,10 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           expanded={sectionState.actions}
           handleToggle={() => toggleSection("actions")}
         >
-          <ChannelPolicyConfiguratorNodeButton />
           <ChannelFilterNodeButton />
+          <ChannelPolicyAutoRunNodeButton />
+          <ChannelPolicyRunNodeButton />
+          <ChannelPolicyConfiguratorNodeButton />
           <RebalanceConfiguratorNodeButton />
           <SectionContainer
             title={t.tags}

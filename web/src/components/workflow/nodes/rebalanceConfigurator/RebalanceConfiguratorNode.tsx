@@ -13,7 +13,8 @@ type RebalanceConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export type RebalanceConfiguration = {
   amountMsat: number;
-  maximumCostMsat: number;
+  maximumCostMsat?: number;
+  maximumCostMilliMsat?: number;
   maximumConcurrency?: number;
 };
 
@@ -24,7 +25,8 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
 
   const [configuration, setConfiguration] = useState<RebalanceConfiguration>({
     amountMsat: 0,
-    maximumCostMsat: 0,
+    maximumCostMsat: undefined,
+    maximumCostMilliMsat: undefined,
     maximumConcurrency: undefined,
     ...wrapperProps.parameters,
   });
@@ -33,7 +35,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
     ((wrapperProps.parameters as RebalanceConfiguration).amountMsat || 0) / 1000
   );
   const [maximumCostSat, setMaximumCostSat] = useState<number | undefined>(
-    ((wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat || 0) / 1000
+    (wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat?((wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat || 0) / 1000:undefined
   );
 
   function handleAmountSatChange(e: NumberFormatValues) {
@@ -50,6 +52,15 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
       ...prev,
       maximumCostMsat: (e.floatValue || 0) * 1000,
     }));
+  }
+
+  function createChangeHandler(key: keyof RebalanceConfiguration) {
+    return (e: NumberFormatValues) => {
+      setConfiguration((prev) => ({
+        ...prev,
+        [key]: e.floatValue,
+      }));
+    };
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -161,6 +172,15 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           suffix={" sat"}
           onValueChange={handleMaximumCostSatChange}
           label={t.maximumCostSat}
+          sizeVariant={InputSizeVariant.small}
+        />
+        <Input
+          formatted={true}
+          value={configuration.maximumCostMilliMsat}
+          thousandSeparator={","}
+          suffix={" ppm"}
+          onValueChange={createChangeHandler("maximumCostMilliMsat")}
+          label={t.maximumCostMilliMsat}
           sizeVariant={InputSizeVariant.small}
         />
         {/*<Input*/}

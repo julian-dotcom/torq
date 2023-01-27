@@ -95,11 +95,11 @@ type ChannelPolicyConfiguration struct {
 }
 
 type RebalanceConfiguration struct {
-	IncomingChannelIds []int   `json:"incomingChannelIds"`
-	OutgoingChannelIds []int   `json:"outgoingChannelIds"`
-	AmountMsat         *uint64 `json:"amountMsat"`
-	MaximumCostMsat    *uint64 `json:"maximumCostMsat"`
-	MaximumConcurrency *int    `json:"maximumConcurrency"`
+	IncomingChannelIds   []int   `json:"incomingChannelIds"`
+	OutgoingChannelIds   []int   `json:"outgoingChannelIds"`
+	AmountMsat           *uint64 `json:"amountMsat"`
+	MaximumCostMilliMsat *int64  `json:"maximumCostMilliMsat"`
+	MaximumCostMsat      *uint64 `json:"maximumCostMsat"`
 }
 
 type TagParameters struct {
