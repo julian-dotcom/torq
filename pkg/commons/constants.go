@@ -213,8 +213,6 @@ const (
 	WorkflowNodeStageTrigger
 	WorkflowNodeRebalanceRun
 	WorkflowNodeChannelPolicyRun
-	WorkflowNodeChannelPolicyAutoRun
-	WorkflowNodeRebalanceAutoRun
 	WorkflowNodeSetVariable
 	WorkflowNodeFilterOnVariable
 	WorkflowTrigger
@@ -224,6 +222,8 @@ const (
 	WorkflowNodeChannelCloseEventTrigger
 	WorkflowNodeCronTrigger
 	WorkflowNodeManualTrigger
+	WorkflowNodeChannelPolicyAutoRun
+	WorkflowNodeRebalanceAutoRun
 )
 
 type WorkflowTriggerType int
