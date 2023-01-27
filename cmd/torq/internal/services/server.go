@@ -115,7 +115,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	return nil
 }
 
-func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string, nodeId int, lightningRequestChannel chan interface{}) error {
+func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string, lightningRequestChannel chan interface{}) error {
 	var wg sync.WaitGroup
 
 	active := commons.Active
@@ -126,10 +126,33 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string,
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in MaintenanceService %v", panicError)
-				commons.RunningServices[commons.MaintenanceService].Cancel(nodeId, &active, true)
+				commons.RunningServices[commons.MaintenanceService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
-		commons.MaintenanceServiceStart(ctx, db, vectorUrl, nodeId, lightningRequestChannel)
+		commons.MaintenanceServiceStart(ctx, db, vectorUrl, lightningRequestChannel)
+	})()
+
+	wg.Wait()
+
+	return nil
+}
+
+func StartCronService(ctx context.Context, db *sqlx.DB) error {
+	var wg sync.WaitGroup
+
+	active := commons.Active
+
+	// Cron Trigger Monitor
+	wg.Add(1)
+	go (func() {
+		defer wg.Done()
+		defer func() {
+			if panicError := recover(); panicError != nil {
+				log.Error().Msgf("Panic occurred in CronTriggerMonitor %v", panicError)
+				commons.RunningServices[commons.CronService].Cancel(commons.TorqDummyNodeId, &active, true)
+			}
+		}()
+		automation.CronTriggerMonitor(ctx, db)
 	})()
 
 	wg.Wait()

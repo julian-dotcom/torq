@@ -8,6 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
+	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/slices"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -143,6 +145,16 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		}
 
 		return
+	}
+	if req.Status != nil {
+		workflowIds, err := GetWorkflowIdsByNodeType(db, commons.WorkflowNodeCronTrigger)
+		if err != nil {
+			log.Error().Err(err).Msg("Could not obtain workflowIds for WorkflowNodeCronTrigger")
+		}
+		if slices.Contains(workflowIds, req.WorkflowId) {
+			active := commons.Active
+			commons.RunningServices[commons.CronService].Cancel(commons.TorqDummyNodeId, &active, true)
+		}
 	}
 
 	c.JSON(http.StatusOK, storedWorkflow)

@@ -15,13 +15,14 @@ func SetRoutingPolicyWithTimeout(request commons.RoutingPolicyUpdateRequest,
 			responseChannel := make(chan commons.RoutingPolicyUpdateResponse, 1)
 			request.ResponseChannel = responseChannel
 			lightningRequestChannel <- request
-			time.AfterFunc(2*time.Second, func() {
+			time.AfterFunc(commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
+				message := fmt.Sprintf("Routing policy update timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
 				responseChannel <- commons.RoutingPolicyUpdateResponse{
 					Request: request,
 					CommunicationResponse: commons.CommunicationResponse{
 						Status:  commons.TimedOut,
-						Message: "Routing policy update timed out after 2 seconds.",
-						Error:   "Routing policy update timed out after 2 seconds.",
+						Message: message,
+						Error:   message,
 					},
 				}
 			})

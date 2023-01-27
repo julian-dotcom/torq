@@ -382,6 +382,22 @@ func removeWorkflowVersion(db *sqlx.DB, workflowVersionId int) (int64, error) {
 	return rowsAffected, nil
 }
 
+func GetWorkflowIdsByNodeType(db *sqlx.DB, nodeType commons.WorkflowNodeType) ([]int, error) {
+	var workflowIds []int
+	err := db.Select(&workflowIds, `
+		SELECT DISTINCT wfv.workflow_id
+		FROM workflow_version_node wfvn
+		JOIN workflow_version wfv ON wfv.workflow_version_id = wfvn.workflow_version_id
+		WHERE wfvn.type=$1;`, nodeType)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []int{}, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return workflowIds, nil
+}
+
 func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType commons.WorkflowNodeType) ([]WorkflowNode, error) {
 	var workflowVersionRootNodeIds []int
 	err := db.Select(&workflowVersionRootNodeIds, `

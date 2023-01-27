@@ -21,6 +21,7 @@ require (
 	github.com/mixer/clock v0.0.0-20210321161542-3ac312e8c7e8
 	github.com/pkg/errors v0.9.1
 	github.com/playwright-community/playwright-go v0.2000.1
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/rs/zerolog v1.27.0
 	github.com/ulule/limiter/v3 v3.10.0
 	github.com/urfave/cli/v2 v2.8.1

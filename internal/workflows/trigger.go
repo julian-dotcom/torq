@@ -87,6 +87,10 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			return nil, commons.Pending, nil
 		}
 
+		if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
+			workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
+		}
+
 		var activeOutputs []commons.WorkflowParameterLabel
 		switch workflowNode.Type {
 		case commons.WorkflowNodeSetVariable:
@@ -254,9 +258,6 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				if err != nil {
 					return nil, commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 				}
-				if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
-					workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
-				}
 				workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
 				outputs[commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
 			}
@@ -405,7 +406,8 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//		request.OutgoingChannelId = *rebalanceSettings.OutgoingChannelIds
 			//	}
 			//	lightningRequestChannel <- request
-			//time.AfterFunc(2*time.Second, func() {
+			//time.AfterFunc(commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
+			//	message := fmt.Sprintf("Routing policy update timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
 			//	responseChannel <- commons.RoutingPolicyUpdateResponse{
 			//		Request: request,
 			//		CommunicationResponse: commons.CommunicationResponse{
@@ -422,27 +424,18 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//}
 		case commons.WorkflowNodeTimeTrigger:
 			log.Debug().Msgf("Channel Time Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
-				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
-			}
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelTimeTriggered] = inputs[commons.WorkflowParameterLabelTimeTriggered]
+		case commons.WorkflowNodeCronTrigger:
+			log.Debug().Msgf("Cron Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelTimeTriggered] = inputs[commons.WorkflowParameterLabelTimeTriggered]
 		case commons.WorkflowNodeChannelBalanceEventTrigger:
 			log.Debug().Msgf("Channel Balance Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
-				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
-			}
 			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
 		case commons.WorkflowNodeChannelOpenEventTrigger:
 			log.Debug().Msgf("Channel Open Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
-				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
-			}
 			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
 		case commons.WorkflowNodeChannelCloseEventTrigger:
 			log.Debug().Msgf("Channel Close Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
-				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
-			}
 			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
 		case commons.WorkflowNodeStageTrigger:
 			if iteration > 0 {

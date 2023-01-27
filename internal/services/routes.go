@@ -18,52 +18,51 @@ func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
 func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	result := Services{}
-	torqService := commons.RunningServices[commons.TorqService]
 	result.TorqService = TorqService{
-		Service: Service{
-			Status:   torqService.GetStatus(commons.TorqDummyNodeId),
-			BootTime: torqService.GetBootTime(commons.TorqDummyNodeId),
+		CommonService: CommonService{
+			Status:   commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId),
+			BootTime: commons.RunningServices[commons.TorqService].GetBootTime(commons.TorqDummyNodeId),
 		},
 		Version: build.ExtendedVersion(),
 	}
-	lndService := commons.RunningServices[commons.LndService]
-	for _, torqNodeId := range commons.GetAllActiveTorqNodeIds(nil, nil) {
-		result.LndServices = append(result.LndServices, LndService{
-			Service: Service{
+	result.TorqService.StatusString = result.TorqService.Status.String()
+	torqNodeIds := commons.GetAllActiveTorqNodeIds(nil, nil)
+	for _, torqNodeId := range torqNodeIds {
+		lndService := LndService{
+			CommonService: CommonService{
 				Status:   commons.RunningServices[commons.LndService].GetStatus(torqNodeId),
-				BootTime: lndService.GetBootTime(torqNodeId),
+				BootTime: commons.RunningServices[commons.LndService].GetBootTime(torqNodeId),
 			},
-			NodeId:                        torqNodeId,
-			TransactionStreamStatus:       commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.TransactionStream),
-			TransactionStreamBootTime:     commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.TransactionStream),
-			HtlcEventStreamStatus:         commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.HtlcEventStream),
-			HtlcEventStreamBootTime:       commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.HtlcEventStream),
-			ChannelEventStreamStatus:      commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.ChannelEventStream),
-			ChannelEventStreamBootTime:    commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.ChannelEventStream),
-			GraphEventStreamStatus:        commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.GraphEventStream),
-			GraphEventStreamBootTime:      commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.GraphEventStream),
-			ForwardStreamStatus:           commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.ForwardStream),
-			ForwardStreamBootTime:         commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.ForwardStream),
-			InvoiceStreamStatus:           commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.InvoiceStream),
-			InvoiceStreamBootTime:         commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.InvoiceStream),
-			PaymentStreamStatus:           commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.PaymentStream),
-			PaymentStreamBootTime:         commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.PaymentStream),
-			InFlightPaymentStreamStatus:   commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.InFlightPaymentStream),
-			InFlightPaymentStreamBootTime: commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.InFlightPaymentStream),
-			PeerEventStreamStatus:         commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, commons.PeerEventStream),
-			PeerEventStreamBootTime:       commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, commons.PeerEventStream),
-		})
+			NodeId: torqNodeId,
+		}
+		lndService.StatusString = lndService.Status.String()
+		for _, subscriptionStream := range commons.SubscriptionStreams {
+			lndServiceStream := Stream{
+				CommonService: CommonService{
+					Status:   commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, subscriptionStream),
+					BootTime: commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, subscriptionStream),
+				},
+				NodeId:     torqNodeId,
+				Type:       subscriptionStream,
+				TypeString: subscriptionStream.String(),
+			}
+			lndServiceStream.StatusString = lndServiceStream.Status.String()
+			lndService.StreamStatus = append(lndService.StreamStatus, lndServiceStream)
+		}
+		result.LndServices = append(result.LndServices, lndService)
 	}
 	vectorNodeIds, err := settings.GetPingSystemNodeIds(db, commons.Vector)
 	if err == nil {
 		for _, vectorNodeId := range vectorNodeIds {
-			result.VectorServices = append(result.VectorServices, VectorService{
-				Service: Service{
+			vectorService := VectorService{
+				CommonService: CommonService{
 					Status:   commons.RunningServices[commons.VectorService].GetStatus(vectorNodeId),
 					BootTime: commons.RunningServices[commons.VectorService].GetBootTime(vectorNodeId),
 				},
 				NodeId: vectorNodeId,
-			})
+			}
+			vectorService.StatusString = vectorService.Status.String()
+			result.VectorServices = append(result.VectorServices, vectorService)
 		}
 	} else {
 		log.Info().Err(err).Msgf("Failed to obtain Vector ping systems maybe the database is not ready yet?")
@@ -71,16 +70,59 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	ambossNodeIds, err := settings.GetPingSystemNodeIds(db, commons.Amboss)
 	if err == nil {
 		for _, ambossNodeId := range ambossNodeIds {
-			result.AmbossServices = append(result.AmbossServices, AmbossService{
-				Service: Service{
+			ambossService := AmbossService{
+				CommonService: CommonService{
 					Status:   commons.RunningServices[commons.AmbossService].GetStatus(ambossNodeId),
 					BootTime: commons.RunningServices[commons.AmbossService].GetBootTime(ambossNodeId),
 				},
 				NodeId: ambossNodeId,
-			})
+			}
+			ambossService.StatusString = ambossService.Status.String()
+			result.AmbossServices = append(result.AmbossServices, ambossService)
 		}
 	} else {
 		log.Info().Err(err).Msgf("Failed to obtain Amboss ping systems maybe the database is not ready yet?")
+	}
+	for svc := range commons.RunningServices {
+		switch svc {
+		case commons.TorqService:
+			// Already done
+		case commons.LndService:
+			// Already done
+		case commons.VectorService:
+			// Already done
+		case commons.AmbossService:
+			// Already done
+		case commons.AutomationService:
+			fallthrough
+		case commons.MaintenanceService:
+			fallthrough
+		case commons.CronService:
+			service := Service{
+				CommonService: CommonService{
+					Status:   commons.RunningServices[svc].GetStatus(commons.TorqDummyNodeId),
+					BootTime: commons.RunningServices[svc].GetBootTime(commons.TorqDummyNodeId),
+				},
+				Type:       svc,
+				TypeString: svc.String(),
+			}
+			service.StatusString = service.Status.String()
+			result.Services = append(result.Services, service)
+		default:
+			for index, torqNodeId := range torqNodeIds {
+				service := Service{
+					CommonService: CommonService{
+						Status:   commons.RunningServices[svc].GetStatus(torqNodeId),
+						BootTime: commons.RunningServices[svc].GetBootTime(torqNodeId),
+					},
+					Type:       svc,
+					TypeString: svc.String(),
+					NodeId:     &torqNodeIds[index],
+				}
+				service.StatusString = service.Status.String()
+				result.Services = append(result.Services, service)
+			}
+		}
 	}
 	c.JSON(http.StatusOK, result)
 }
