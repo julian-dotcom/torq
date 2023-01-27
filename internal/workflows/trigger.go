@@ -177,43 +177,9 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			if err != nil {
 				return nil, commons.Inactive, errors.Wrapf(err, "Getting the Linked ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
-
-			if len(linkedChannelIds) == 0 {
-				activeOutputs = append(activeOutputs,
-					commons.WorkflowParameterLabelTimeTriggered,
-					commons.WorkflowParameterLabelChannelEventTriggered)
-			} else {
-				var params TagParameters
-				err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
-				if err != nil {
-					return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				}
-
-				for _, tagToDelete := range params.RemovedTags {
-					for index := range linkedChannelIds {
-						tag := tags.TagEntityRequest{
-							ChannelId: &linkedChannelIds[index],
-							TagId:     tagToDelete.Value,
-						}
-						err := tags.UntagEntity(db, tag)
-						if err != nil {
-							return nil, commons.Inactive, errors.Wrapf(err, "Failed to remove the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagToDelete.Value)
-						}
-					}
-				}
-
-				for _, tagtoAdd := range params.AddedTags {
-					for index := range linkedChannelIds {
-						tag := tags.TagEntityRequest{
-							ChannelId: &linkedChannelIds[index],
-							TagId:     tagtoAdd.Value,
-						}
-						err := tags.TagEntity(db, tag)
-						if err != nil {
-							return nil, commons.Inactive, errors.Wrapf(err, "Failed to add the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagtoAdd.Value)
-						}
-					}
-				}
+			activeOutputs, err = addOrRemoveTags(db, linkedChannelIds, activeOutputs, workflowNode)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Adding or removing tags with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
 		case commons.WorkflowNodeChannelPolicyConfigurator:
 			linkedChannelIds, err := getLinkedChannelIds(inputs, workflowNode)
@@ -221,46 +187,49 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				return nil, commons.Inactive, errors.Wrapf(err, "Getting the Linked ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
 
-			if len(linkedChannelIds) == 0 {
-				activeOutputs = append(activeOutputs,
-					commons.WorkflowParameterLabelTimeTriggered,
-					commons.WorkflowParameterLabelChannelEventTriggered)
-			} else {
-				var channelPolicyInputConfiguration ChannelPolicyConfiguration
-				channelPolicyInputConfigurationString, exists := inputs[commons.WorkflowParameterLabelRoutingPolicySettings]
-				if exists && channelPolicyInputConfigurationString != "" && channelPolicyInputConfigurationString != "null" {
-					err = json.Unmarshal([]byte(channelPolicyInputConfigurationString), &channelPolicyInputConfiguration)
-					if err != nil {
-						return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-					}
-				}
-
-				var channelPolicyConfiguration ChannelPolicyConfiguration
-				err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &channelPolicyConfiguration)
-				if err != nil {
-					return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				}
-				if channelPolicyConfiguration.FeeBaseMsat != nil {
-					channelPolicyInputConfiguration.FeeBaseMsat = channelPolicyConfiguration.FeeBaseMsat
-				}
-				if channelPolicyConfiguration.FeeRateMilliMsat != nil {
-					channelPolicyInputConfiguration.FeeRateMilliMsat = channelPolicyConfiguration.FeeRateMilliMsat
-				}
-				if channelPolicyConfiguration.MaxHtlcMsat != nil {
-					channelPolicyInputConfiguration.MaxHtlcMsat = channelPolicyConfiguration.MaxHtlcMsat
-				}
-				if channelPolicyConfiguration.MinHtlcMsat != nil {
-					channelPolicyInputConfiguration.MinHtlcMsat = channelPolicyConfiguration.MinHtlcMsat
-				}
-				channelPolicyInputConfiguration.ChannelIds = linkedChannelIds
-
-				marshalledChannelPolicyConfiguration, err := json.Marshal(channelPolicyInputConfiguration)
-				if err != nil {
-					return nil, commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				}
-				workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
-				outputs[commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
+			var channelPolicyInputConfiguration ChannelPolicyConfiguration
+			activeOutputs, channelPolicyInputConfiguration, err = processRoutingPolicyConfigurator(linkedChannelIds, activeOutputs, inputs, workflowNode)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
+
+			marshalledChannelPolicyConfiguration, err := json.Marshal(channelPolicyInputConfiguration)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Marshalling Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+			}
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
+			outputs[commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
+		case commons.WorkflowNodeChannelPolicyAutoRun:
+			linkedChannelIds, err := getLinkedChannelIds(inputs, workflowNode)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Getting the Linked ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+			}
+
+			var routingPolicySettings ChannelPolicyConfiguration
+			activeOutputs, routingPolicySettings, err = processRoutingPolicyConfigurator(linkedChannelIds, activeOutputs, inputs, workflowNode)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+			}
+
+			var responses []commons.RoutingPolicyUpdateResponse
+			activeOutputs, responses, err = processRoutingPolicyRun(routingPolicySettings, activeOutputs, lightningRequestChannel, workflowNode, reference)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+			}
+
+			marshalledChannelPolicyConfiguration, err := json.Marshal(routingPolicySettings)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Marshalling Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+			}
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
+			outputs[commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
+
+			marshalledResponses, err := json.Marshal(responses)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Marshalling Routing Policy Responses with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+			}
+			// TODO FIXME create a more uniform status object
+			outputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponses)
 		case commons.WorkflowNodeChannelPolicyRun:
 			routingPolicySettingsString := inputs[commons.WorkflowParameterLabelRoutingPolicySettings]
 			var routingPolicySettings ChannelPolicyConfiguration
@@ -269,61 +238,18 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
-			if len(routingPolicySettings.ChannelIds) == 0 {
-				activeOutputs = append(activeOutputs,
-					commons.WorkflowParameterLabelTimeTriggered,
-					commons.WorkflowParameterLabelChannelEventTriggered)
-			} else {
-				activeOutputs = append(activeOutputs,
-					commons.WorkflowParameterLabelChannels,
-					commons.WorkflowParameterLabelStatus)
-				inputs[commons.WorkflowParameterLabelStatus] = ""
-				if (routingPolicySettings.FeeBaseMsat != nil ||
-					routingPolicySettings.FeeRateMilliMsat != nil ||
-					routingPolicySettings.MaxHtlcMsat != nil ||
-					routingPolicySettings.MinHtlcMsat != nil ||
-					routingPolicySettings.TimeLockDelta != nil) &&
-					lightningRequestChannel != nil {
-
-					now := time.Now()
-					torqNodeIds := commons.GetAllTorqNodeIds()
-					for index := range routingPolicySettings.ChannelIds {
-						channelSettings := commons.GetChannelSettingByChannelId(routingPolicySettings.ChannelIds[index])
-						nodeId := channelSettings.FirstNodeId
-						if !slices.Contains(torqNodeIds, nodeId) {
-							nodeId = channelSettings.SecondNodeId
-						}
-						if !slices.Contains(torqNodeIds, nodeId) {
-							return nil, commons.Inactive, errors.Wrapf(err, "Routing policy update on unmanaged channel for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-						}
-						if commons.RunningServices[commons.LightningCommunicationService].GetStatus(nodeId) == commons.Active {
-							if hasRoutingPolicyChanges(nodeId, routingPolicySettings.ChannelIds[index], routingPolicySettings) {
-								response := channels.SetRoutingPolicyWithTimeout(commons.RoutingPolicyUpdateRequest{
-									CommunicationRequest: commons.CommunicationRequest{
-										RequestId:   reference,
-										RequestTime: &now,
-										NodeId:      nodeId,
-									},
-									ChannelId:        routingPolicySettings.ChannelIds[index],
-									FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
-									FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
-									MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
-									MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
-									TimeLockDelta:    routingPolicySettings.TimeLockDelta,
-								}, lightningRequestChannel)
-								if response.Error != "" {
-									log.Error().Err(errors.New(response.Error)).Msgf("Channel Time Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-								}
-								marshalledResponse, err := json.Marshal(response)
-								if err != nil {
-									return nil, commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-								}
-								inputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponse)
-							}
-						}
-					}
-				}
+			var responses []commons.RoutingPolicyUpdateResponse
+			activeOutputs, responses, err = processRoutingPolicyRun(routingPolicySettings, activeOutputs, lightningRequestChannel, workflowNode, reference)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
+
+			marshalledResponses, err := json.Marshal(responses)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Marshalling Routing Policy Responses for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			// TODO FIXME create a more uniform status object
+			outputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponses)
 		case commons.WorkflowNodeRebalanceConfigurator:
 			var incomingChannelIds []int
 			incomingChannelIdsString, exists := inputs[commons.WorkflowParameterLabelIncomingChannels]
@@ -479,6 +405,195 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		}
 	}
 	return outputs, commons.Active, nil
+}
+
+func processRoutingPolicyRun(
+	routingPolicySettings ChannelPolicyConfiguration,
+	activeOutputs []commons.WorkflowParameterLabel,
+	lightningRequestChannel chan interface{},
+	workflowNode WorkflowNode,
+	reference string) ([]commons.WorkflowParameterLabel, []commons.RoutingPolicyUpdateResponse, error) {
+	if len(routingPolicySettings.ChannelIds) == 0 {
+		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelTimeTriggered,
+			commons.WorkflowParameterLabelChannelEventTriggered)
+		return activeOutputs, nil, nil
+	}
+	if lightningRequestChannel == nil {
+		log.Info().Msgf("Routing policy update skipped because lightningRequestChannel is nil for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelTimeTriggered,
+			commons.WorkflowParameterLabelChannelEventTriggered)
+		return activeOutputs, nil, nil
+	}
+	if routingPolicySettings.FeeBaseMsat == nil &&
+		routingPolicySettings.FeeRateMilliMsat == nil &&
+		routingPolicySettings.MaxHtlcMsat == nil &&
+		routingPolicySettings.MinHtlcMsat == nil &&
+		routingPolicySettings.TimeLockDelta == nil {
+		log.Info().Msgf("Routing policy update skipped because no data was found for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelTimeTriggered,
+			commons.WorkflowParameterLabelChannelEventTriggered)
+		return activeOutputs, nil, nil
+	}
+
+	activeOutputs = append(activeOutputs, commons.WorkflowParameterLabelChannels, commons.WorkflowParameterLabelStatus)
+	now := time.Now()
+	torqNodeIds := commons.GetAllTorqNodeIds()
+	var responses []commons.RoutingPolicyUpdateResponse
+	for index := range routingPolicySettings.ChannelIds {
+		channelSettings := commons.GetChannelSettingByChannelId(routingPolicySettings.ChannelIds[index])
+		nodeId := channelSettings.FirstNodeId
+		if !slices.Contains(torqNodeIds, nodeId) {
+			nodeId = channelSettings.SecondNodeId
+		}
+		if !slices.Contains(torqNodeIds, nodeId) {
+			log.Info().Msgf("Routing policy update on unmanaged channel for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			continue
+		}
+		if commons.RunningServices[commons.LightningCommunicationService].GetStatus(nodeId) == commons.Active {
+			if hasRoutingPolicyChanges(nodeId, routingPolicySettings.ChannelIds[index], routingPolicySettings) {
+				response := channels.SetRoutingPolicyWithTimeout(commons.RoutingPolicyUpdateRequest{
+					CommunicationRequest: commons.CommunicationRequest{
+						RequestId:   reference,
+						RequestTime: &now,
+						NodeId:      nodeId,
+					},
+					ChannelId:        routingPolicySettings.ChannelIds[index],
+					FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
+					FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
+					MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
+					MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
+					TimeLockDelta:    routingPolicySettings.TimeLockDelta,
+				}, lightningRequestChannel)
+				if response.Error != "" {
+					log.Error().Err(errors.New(response.Error)).Msgf("Channel Time Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+				responses = append(responses, response)
+			}
+		}
+	}
+	return activeOutputs, responses, nil
+}
+
+func processRoutingPolicyConfigurator(
+	linkedChannelIds []int,
+	activeOutputs []commons.WorkflowParameterLabel,
+	inputs map[commons.WorkflowParameterLabel]string,
+	workflowNode WorkflowNode) ([]commons.WorkflowParameterLabel, ChannelPolicyConfiguration, error) {
+
+	if len(linkedChannelIds) == 0 {
+		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelTimeTriggered,
+			commons.WorkflowParameterLabelChannelEventTriggered)
+		return activeOutputs, ChannelPolicyConfiguration{}, nil
+	}
+	var channelPolicyInputConfiguration ChannelPolicyConfiguration
+	channelPolicyInputConfigurationString, exists := inputs[commons.WorkflowParameterLabelRoutingPolicySettings]
+	if exists && channelPolicyInputConfigurationString != "" && channelPolicyInputConfigurationString != "null" {
+		err := json.Unmarshal([]byte(channelPolicyInputConfigurationString), &channelPolicyInputConfiguration)
+		if err != nil {
+			return activeOutputs, ChannelPolicyConfiguration{}, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+	}
+
+	var channelPolicyConfiguration ChannelPolicyConfiguration
+	err := json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &channelPolicyConfiguration)
+	if err != nil {
+		return activeOutputs, ChannelPolicyConfiguration{}, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+	}
+	if channelPolicyConfiguration.FeeBaseMsat != nil {
+		channelPolicyInputConfiguration.FeeBaseMsat = channelPolicyConfiguration.FeeBaseMsat
+	}
+	if channelPolicyConfiguration.FeeRateMilliMsat != nil {
+		channelPolicyInputConfiguration.FeeRateMilliMsat = channelPolicyConfiguration.FeeRateMilliMsat
+	}
+	if channelPolicyConfiguration.MaxHtlcMsat != nil {
+		channelPolicyInputConfiguration.MaxHtlcMsat = channelPolicyConfiguration.MaxHtlcMsat
+	}
+	if channelPolicyConfiguration.MinHtlcMsat != nil {
+		channelPolicyInputConfiguration.MinHtlcMsat = channelPolicyConfiguration.MinHtlcMsat
+	}
+	channelPolicyInputConfiguration.ChannelIds = linkedChannelIds
+	return activeOutputs, channelPolicyConfiguration, nil
+}
+
+func addOrRemoveTags(db *sqlx.DB,
+	linkedChannelIds []int,
+	activeOutputs []commons.WorkflowParameterLabel,
+	workflowNode WorkflowNode) ([]commons.WorkflowParameterLabel, error) {
+
+	if len(linkedChannelIds) == 0 {
+		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelTimeTriggered,
+			commons.WorkflowParameterLabelChannelEventTriggered)
+		return activeOutputs, nil
+	}
+	var params TagParameters
+	err := json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
+	if err != nil {
+		return activeOutputs, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+	}
+
+	torqNodeIds := commons.GetAllTorqNodeIds()
+	var processedNodeIds []int
+	for _, tagToDelete := range params.RemovedTags {
+		for index := range linkedChannelIds {
+			var tag tags.TagEntityRequest
+			processedNodeIds, tag = getTagEntityRequest(linkedChannelIds[index], tagToDelete.Value, params, torqNodeIds, processedNodeIds)
+			if tag.TagId == 0 {
+				continue
+			}
+			err = tags.UntagEntity(db, tag)
+			if err != nil {
+				return activeOutputs, errors.Wrapf(err, "Failed to remove the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagToDelete.Value)
+			}
+		}
+	}
+
+	processedNodeIds = []int{}
+	for _, tagtoAdd := range params.AddedTags {
+		for index := range linkedChannelIds {
+			var tag tags.TagEntityRequest
+			processedNodeIds, tag = getTagEntityRequest(linkedChannelIds[index], tagtoAdd.Value, params, torqNodeIds, processedNodeIds)
+			if tag.TagId == 0 {
+				continue
+			}
+			err = tags.TagEntity(db, tag)
+			if err != nil {
+				return activeOutputs, errors.Wrapf(err, "Failed to add the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagtoAdd.Value)
+			}
+		}
+	}
+	return activeOutputs, nil
+}
+
+func getTagEntityRequest(channelId int, tagId int, params TagParameters, torqNodeIds []int, processedNodeIds []int) ([]int, tags.TagEntityRequest) {
+	if params.NodeTag {
+		channelSettings := commons.GetChannelSettingByChannelId(channelId)
+		nodeId := channelSettings.FirstNodeId
+		if slices.Contains(torqNodeIds, nodeId) {
+			nodeId = channelSettings.SecondNodeId
+		}
+		if slices.Contains(torqNodeIds, nodeId) {
+			log.Info().Msgf("Both nodes are managed by Torq nodeIds: %v and %v", channelSettings.FirstNodeId, channelSettings.SecondNodeId)
+			return processedNodeIds, tags.TagEntityRequest{}
+		}
+		if slices.Contains(processedNodeIds, nodeId) {
+			return processedNodeIds, tags.TagEntityRequest{}
+		}
+		processedNodeIds = append(processedNodeIds, nodeId)
+		return processedNodeIds, tags.TagEntityRequest{
+			NodeId: &nodeId,
+			TagId:  tagId,
+		}
+	} else {
+		return processedNodeIds, tags.TagEntityRequest{
+			ChannelId: &channelId,
+			TagId:     tagId,
+		}
+	}
 }
 
 func hasRoutingPolicyChanges(nodeId int, channelId int, routingPolicySettings ChannelPolicyConfiguration) bool {

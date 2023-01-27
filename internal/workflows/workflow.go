@@ -103,6 +103,7 @@ type RebalanceConfiguration struct {
 }
 
 type TagParameters struct {
+	NodeTag     bool      `json:"nodeTag"`
 	AddedTags   []TagInfo `json:"addedTags"`
 	RemovedTags []TagInfo `json:"removedTags"`
 }
