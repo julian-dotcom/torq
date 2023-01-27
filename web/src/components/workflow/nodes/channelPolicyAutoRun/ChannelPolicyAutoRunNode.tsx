@@ -12,7 +12,7 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
 
-type ChannelPolicyConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
+type ChannelPolicyAutoRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export type ChannelPolicyConfiguration = {
   feeBaseMsat?: number;
@@ -22,7 +22,7 @@ export type ChannelPolicyConfiguration = {
   timeLockDelta?: number;
 };
 
-export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicyConfiguratorNodeProps) {
+export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoRunNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
