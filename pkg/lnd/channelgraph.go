@@ -65,7 +65,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			}
 			// HACK to know if the context is a testcase.
 			if importRequestChannel != nil {
-				responseChannel := make(chan error)
+				responseChannel := make(chan error, 1)
 				importRequestChannel <- commons.ImportRequest{
 					ImportType: commons.ImportChannelAndRoutingPolicies,
 					Out:        responseChannel,
@@ -78,7 +78,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 					continue
 				}
 
-				responseChannel = make(chan error)
+				responseChannel = make(chan error, 1)
 				importRequestChannel <- commons.ImportRequest{
 					ImportType: commons.ImportNodeInformation,
 					Out:        responseChannel,
@@ -297,8 +297,8 @@ func insertRoutingPolicy(
 				},
 				ChannelGraphEventData: commons.ChannelGraphEventData{
 					TimeLockDelta:    cu.RoutingPolicy.TimeLockDelta,
-					FeeRateMilliMsat: uint64(cu.RoutingPolicy.FeeRateMilliMsat),
-					FeeBaseMsat:      uint64(cu.RoutingPolicy.FeeBaseMsat),
+					FeeRateMilliMsat: int64(cu.RoutingPolicy.FeeRateMilliMsat),
+					FeeBaseMsat:      int64(cu.RoutingPolicy.FeeBaseMsat),
 					MaxHtlcMsat:      cu.RoutingPolicy.MaxHtlcMsat,
 					Disabled:         cu.RoutingPolicy.Disabled,
 					MinHtlcMsat:      uint64(cu.RoutingPolicy.MinHtlc),
@@ -308,8 +308,8 @@ func insertRoutingPolicy(
 				channelGraphEvent.PreviousEventTime = &channelEvent.EventTime
 				channelGraphEvent.PreviousEventData = &commons.ChannelGraphEventData{
 					TimeLockDelta:    channelEvent.TimeLockDelta,
-					FeeRateMilliMsat: uint64(channelEvent.FeeRateMilliMsat),
-					FeeBaseMsat:      uint64(channelEvent.FeeBaseMsat),
+					FeeRateMilliMsat: int64(channelEvent.FeeRateMilliMsat),
+					FeeBaseMsat:      int64(channelEvent.FeeBaseMsat),
 					MaxHtlcMsat:      channelEvent.MaxHtlcMsat,
 					Disabled:         channelEvent.Disabled,
 					MinHtlcMsat:      channelEvent.MinHtlcMsat,

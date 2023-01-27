@@ -93,8 +93,8 @@ type ManagedChannelState struct {
 	Local                bool
 	Balance              int64
 	Disabled             bool
-	FeeBaseMsat          uint64
-	FeeRateMilliMsat     uint64
+	FeeBaseMsat          int64
+	FeeRateMilliMsat     int64
 	MinHtlcMsat          uint64
 	MaxHtlcMsat          uint64
 	TimeLockDelta        uint32
@@ -118,16 +118,16 @@ type ManagedChannelStateSettings struct {
 
 	LocalBalance          int64  `json:"localBalance"`
 	LocalDisabled         bool   `json:"localDisabled"`
-	LocalFeeBaseMsat      uint64 `json:"localFeeBaseMsat"`
-	LocalFeeRateMilliMsat uint64 `json:"localFeeRateMilliMsat"`
+	LocalFeeBaseMsat      int64  `json:"localFeeBaseMsat"`
+	LocalFeeRateMilliMsat int64  `json:"localFeeRateMilliMsat"`
 	LocalMinHtlcMsat      uint64 `json:"localMinHtlcMsat"`
 	LocalMaxHtlcMsat      uint64 `json:"localMaxHtlcMsat"`
 	LocalTimeLockDelta    uint32 `json:"localTimeLockDelta"`
 
 	RemoteBalance          int64  `json:"remoteBalance"`
 	RemoteDisabled         bool   `json:"remoteDisabled"`
-	RemoteFeeBaseMsat      uint64 `json:"remoteFeeBaseMsat"`
-	RemoteFeeRateMilliMsat uint64 `json:"remoteFeeRateMilliMsat"`
+	RemoteFeeBaseMsat      int64  `json:"remoteFeeBaseMsat"`
+	RemoteFeeRateMilliMsat int64  `json:"remoteFeeRateMilliMsat"`
 	RemoteMinHtlcMsat      uint64 `json:"remoteMinHtlcMsat"`
 	RemoteMaxHtlcMsat      uint64 `json:"remoteMaxHtlcMsat"`
 	RemoteTimeLockDelta    uint32 `json:"remoteTimeLockDelta"`
@@ -580,7 +580,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 }
 
 func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSettings {
-	channelStatesResponseChannel := make(chan []ManagedChannelStateSettings)
+	channelStatesResponseChannel := make(chan []ManagedChannelStateSettings, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:        nodeId,
 		ForceResponse: forceResponse,
@@ -592,7 +592,7 @@ func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSetti
 }
 
 func GetChannelStateChannelIds(nodeId int, forceResponse bool) []int {
-	channelIdsResponseChannel := make(chan []int)
+	channelIdsResponseChannel := make(chan []int, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:        nodeId,
 		ForceResponse: forceResponse,
@@ -604,7 +604,7 @@ func GetChannelStateChannelIds(nodeId int, forceResponse bool) []int {
 }
 
 func GetChannelState(nodeId, channelId int, forceResponse bool) *ManagedChannelStateSettings {
-	channelStateResponseChannel := make(chan *ManagedChannelStateSettings)
+	channelStateResponseChannel := make(chan *ManagedChannelStateSettings, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:        nodeId,
 		ChannelId:     channelId,
@@ -617,7 +617,7 @@ func GetChannelState(nodeId, channelId int, forceResponse bool) *ManagedChannelS
 }
 
 func GetChannelBalanceStates(nodeId int, forceResponse bool, channelStateInclude ChannelStateInclude, htlcInclude ChannelBalanceStateHtlcInclude) []ManagedChannelBalanceStateSettings {
-	channelBalanceStateResponseChannel := make(chan []ManagedChannelBalanceStateSettings)
+	channelBalanceStateResponseChannel := make(chan []ManagedChannelBalanceStateSettings, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:           nodeId,
 		ForceResponse:    forceResponse,
@@ -631,7 +631,7 @@ func GetChannelBalanceStates(nodeId int, forceResponse bool, channelStateInclude
 }
 
 func GetChannelBalanceState(nodeId, channelId int, forceResponse bool, htlcInclude ChannelBalanceStateHtlcInclude) *ManagedChannelBalanceStateSettings {
-	channelBalanceStateResponseChannel := make(chan *ManagedChannelBalanceStateSettings)
+	channelBalanceStateResponseChannel := make(chan *ManagedChannelBalanceStateSettings, 1)
 	managedChannelState := ManagedChannelState{
 		NodeId:          nodeId,
 		ChannelId:       channelId,
@@ -673,7 +673,7 @@ func SetChannelStateChannelStatus(nodeId int, channelId int, status Status) {
 }
 
 func SetChannelStateRoutingPolicy(nodeId int, channelId int, local bool,
-	disabled bool, timeLockDelta uint32, minHtlcMsat uint64, maxHtlcMsat uint64, feeBaseMsat uint64, feeRateMilliMsat uint64) {
+	disabled bool, timeLockDelta uint32, minHtlcMsat uint64, maxHtlcMsat uint64, feeBaseMsat int64, feeRateMilliMsat int64) {
 	managedChannelState := ManagedChannelState{
 		NodeId:           nodeId,
 		ChannelId:        channelId,

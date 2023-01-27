@@ -1,10 +1,11 @@
 package forwards
 
 import (
-	"github.com/lncapital/torq/internal/tags"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/lncapital/torq/internal/tags"
 
 	"github.com/lib/pq"
 
@@ -40,7 +41,7 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 
 	chain := commons.Bitcoin
 
-	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), from, to)
+	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

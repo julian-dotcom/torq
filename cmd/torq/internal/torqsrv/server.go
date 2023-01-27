@@ -234,7 +234,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 
 		messageRoutes := api.Group("messages")
 		{
-			messages.RegisterMessagesRoutes(messageRoutes, db)
+			messages.RegisterMessagesRoutes(messageRoutes, db, lightningRequestChannel)
 		}
 
 		settingRoutes := api.Group("settings")

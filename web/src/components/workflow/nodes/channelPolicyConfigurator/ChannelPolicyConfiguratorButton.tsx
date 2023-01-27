@@ -1,18 +1,18 @@
-import { MoneySettings20Regular as ChannelPolicyIcon } from "@fluentui/react-icons";
+import { MoneySettings20Regular as ChannelPolicyConfiguratorIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeButtonWrapper from "components/workflow/nodeButtonWrapper/NodeButtonWrapper";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
-import { NodeColorVariant } from "../nodeVariants";
+import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 
-export function ChannelPolicyConfigurationNodeButton() {
+export function ChannelPolicyConfiguratorNodeButton() {
   const { t } = useTranslations();
 
   return (
     <WorkflowNodeButtonWrapper
       colorVariant={NodeColorVariant.accent1}
       nodeType={WorkflowNodeType.ChannelPolicyConfigurator}
-      icon={<ChannelPolicyIcon />}
-      title={t.workflowNodes.channelPolicyConfiguration}
+      icon={<ChannelPolicyConfiguratorIcon />}
+      title={t.workflowNodes.channelPolicyConfigurator}
     />
   );
 }

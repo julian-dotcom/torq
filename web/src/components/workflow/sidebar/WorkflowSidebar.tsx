@@ -10,11 +10,11 @@ import {
 } from "@fluentui/react-icons";
 import { useState } from "react";
 import {
-  ChannelPolicyConfigurationNodeButton,
+  ChannelPolicyConfiguratorNodeButton,
   TimeTriggerNodeButton,
   CronTriggerNodeButton,
   ChannelFilterNodeButton,
-  ReBalanceChannelNodeButton,
+  RebalanceConfiguratorNodeButton,
   RemoveTagNodeButton,
   BalanceTriggerNodeButton,
   AddTagNodeButton,
@@ -69,9 +69,9 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           expanded={sectionState.actions}
           handleToggle={() => toggleSection("actions")}
         >
-          <ChannelPolicyConfigurationNodeButton />
+          <ChannelPolicyConfiguratorNodeButton />
           <ChannelFilterNodeButton />
-          <ReBalanceChannelNodeButton />
+          <RebalanceConfiguratorNodeButton />
           <SectionContainer
             title={t.tags}
             icon={TagsIcon}

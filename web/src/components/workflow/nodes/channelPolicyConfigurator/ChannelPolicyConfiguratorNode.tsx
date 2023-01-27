@@ -1,32 +1,32 @@
 import { useState } from "react";
-import { MoneySettings20Regular as ChannelPolicyIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import { MoneySettings20Regular as ChannelPolicyConfiguratorIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Input from "components/forms/input/Input";
 import { InputSizeVariant } from "components/forms/input/variants";
 import Form from "components/forms/form/Form";
 import Socket from "components/forms/socket/Socket";
-import { NodeColorVariant } from "../nodeVariants";
+import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
 
-type ChannelPolicyNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
+type ChannelPolicyConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
-type channelPolicyConfigurationNode = {
+type channelPolicyConfiguratorNode = {
   feeRate: number | undefined;
   baseFee: number | undefined;
   minHTLCAmount: number | undefined;
   maxHTLCAmount: number | undefined;
 };
 
-export function ChannelPolicyNode({ ...wrapperProps }: ChannelPolicyNodeProps) {
+export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicyConfiguratorNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
 
-  const [channelPolicy, setChannelPolicy] = useState<channelPolicyConfigurationNode>({
+  const [channelPolicy, setChannelPolicy] = useState<channelPolicyConfiguratorNode>({
     feeRate: undefined,
     baseFee: undefined,
     minHTLCAmount: undefined,
@@ -34,7 +34,7 @@ export function ChannelPolicyNode({ ...wrapperProps }: ChannelPolicyNodeProps) {
     ...wrapperProps.parameters,
   });
 
-  function createChangeHandler(key: keyof channelPolicyConfigurationNode) {
+  function createChangeHandler(key: keyof channelPolicyConfiguratorNode) {
     return (e: NumberFormatValues) => {
       setChannelPolicy((prev) => ({
         ...prev,
@@ -72,8 +72,7 @@ export function ChannelPolicyNode({ ...wrapperProps }: ChannelPolicyNodeProps) {
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
-      heading={t.channelPolicyConfiguration}
-      headerIcon={<ChannelPolicyIcon />}
+      headerIcon={<ChannelPolicyConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
       outputName={"channels"}
     >

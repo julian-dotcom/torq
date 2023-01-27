@@ -18,25 +18,16 @@ func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string
 
 	unixTime := time.Now()
 	message := fmt.Sprintf("%v/%v/%v", fundingTransactionHash, fundingOutputIndex, unixTime.Unix())
-
-	responseChannel := make(chan SignMessageResponse)
-	lightningRequestChannel <- SignMessageRequest{
-		CommunicationRequest: CommunicationRequest{
-			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
-			RequestTime: &unixTime,
-			NodeId:      nodeSettings.NodeId,
-		},
-		ResponseChannel: responseChannel,
-		Message:         message,
-	}
-	response := <-responseChannel
+	response := SignMessageWithTimeout(unixTime, nodeSettings.NodeId, message, nil, lightningRequestChannel)
 
 	requestObject := ShortChannelIdHttpRequest{
 		TransactionHash: fundingTransactionHash,
 		OutputIndex:     fundingOutputIndex,
 		UnixTime:        unixTime.Unix(),
-		Signature:       response.Signature,
 		PublicKey:       nodeSettings.PublicKey,
+	}
+	if response.Status == Active {
+		requestObject.Signature = response.Signature
 	}
 	requestObjectBytes, err := json.Marshal(requestObject)
 	if err != nil {
@@ -79,24 +70,15 @@ func GetTransactionDetailsFromVector(vectorUrl string, transactionHash string, n
 
 	unixTime := time.Now()
 	message := fmt.Sprintf("%v/%v", transactionHash, unixTime.Unix())
-
-	responseChannel := make(chan SignMessageResponse)
-	lightningRequestChannel <- SignMessageRequest{
-		CommunicationRequest: CommunicationRequest{
-			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
-			RequestTime: &unixTime,
-			NodeId:      nodeSettings.NodeId,
-		},
-		ResponseChannel: responseChannel,
-		Message:         message,
-	}
-	response := <-responseChannel
+	response := SignMessageWithTimeout(unixTime, nodeSettings.NodeId, message, nil, lightningRequestChannel)
 
 	requestObject := TransactionDetailsHttpRequest{
 		TransactionHash: transactionHash,
 		UnixTime:        unixTime.Unix(),
-		Signature:       response.Signature,
 		PublicKey:       nodeSettings.PublicKey,
+	}
+	if response.Status == Active {
+		requestObject.Signature = response.Signature
 	}
 	requestObjectBytes, err := json.Marshal(requestObject)
 	if err != nil {

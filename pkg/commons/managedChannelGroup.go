@@ -118,7 +118,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 }
 
 func GetChannelGroupsByChannelId(channelId int, include ChannelGroupInclude) *ManagedChannelGroupSettings {
-	channelGroupResponseChannel := make(chan *ManagedChannelGroupSettings)
+	channelGroupResponseChannel := make(chan *ManagedChannelGroupSettings, 1)
 	managedChannelGroup := ManagedChannelGroup{
 		ChannelId: channelId,
 		Include:   include,

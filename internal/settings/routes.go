@@ -69,7 +69,8 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 func startAllLndServicesOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage, nodeId int, lndActive bool) bool {
 	startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, nodeId, false)
-	startServiceOrRestartWhenRunning(serviceChannel, commons.AutomationService, nodeId, false)
+	// AutomationService is not tight to a torq node so don't restart it
+	//startServiceOrRestartWhenRunning(serviceChannel, commons.AutomationService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.LightningCommunicationService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.RebalanceService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.MaintenanceService, nodeId, false)
@@ -81,7 +82,7 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 	serviceType commons.ServiceType, nodeId int, active bool) bool {
 	if active {
 		enforcedServiceStatus := commons.Active
-		resultChannel := make(chan commons.Status)
+		resultChannel := make(chan commons.Status, 1)
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,
@@ -107,7 +108,7 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 		}
 	} else {
 		enforcedServiceStatus := commons.Inactive
-		resultChannel := make(chan commons.Status)
+		resultChannel := make(chan commons.Status, 1)
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,

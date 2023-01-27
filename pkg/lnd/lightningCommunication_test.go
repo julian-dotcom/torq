@@ -60,8 +60,8 @@ func Test_createPolicyRequest(t *testing.T) {
 	log.Info().Msgf("Created OPEN channel to be closed with channelId: %v", channelId)
 
 	var timeLockDelta uint32 = 18
-	var feeRateMilliMsat uint64 = 11
-	var feeBaseMsat uint64 = 12
+	var feeRateMilliMsat int64 = 11
+	var feeBaseMsat int64 = 12
 	var maxHtlcMsat uint64 = 13
 	var minHtlcMsat uint64 = 14
 

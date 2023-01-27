@@ -1,4 +1,4 @@
-package automation
+package services
 
 import (
 	"context"
@@ -14,8 +14,10 @@ import (
 	"github.com/lncapital/torq/pkg/lnd"
 )
 
-func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.BroadcastServer) error {
-	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+func Start(ctx context.Context, db *sqlx.DB,
+	lightningRequestChannel chan interface{},
+	rebalanceRequestChannel chan commons.RebalanceRequest,
+	broadcaster broadcast.BroadcastServer) error {
 
 	var wg sync.WaitGroup
 
@@ -28,10 +30,10 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
-				commons.RunningServices[commons.AutomationService].Cancel(nodeId, &active, true)
+				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
-		automation.TimeTriggerMonitor(ctx, db, nodeSettings)
+		automation.TimeTriggerMonitor(ctx, db)
 	})()
 
 	// Event Trigger Monitor
@@ -41,10 +43,10 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in EventTriggerMonitor %v", panicError)
-				commons.RunningServices[commons.AutomationService].Cancel(nodeId, &active, true)
+				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
-		automation.EventTriggerMonitor(ctx, db, nodeSettings, broadcaster)
+		automation.EventTriggerMonitor(ctx, db, broadcaster)
 	})()
 
 	// Scheduled Trigger Monitor
@@ -54,10 +56,10 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 		defer func() {
 			if panicError := recover(); panicError != nil {
 				log.Error().Msgf("Panic occurred in ScheduledTriggerMonitor %v", panicError)
-				commons.RunningServices[commons.AutomationService].Cancel(nodeId, &active, true)
+				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
-		automation.ScheduledTriggerMonitor(ctx, db, nodeSettings)
+		automation.ScheduledTriggerMonitor(ctx, db, lightningRequestChannel, rebalanceRequestChannel)
 	})()
 
 	wg.Wait()
@@ -66,7 +68,7 @@ func Start(ctx context.Context, db *sqlx.DB, nodeId int, broadcaster broadcast.B
 }
 
 func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	lightningCommunicationChannel chan interface{}) error {
+	broadcaster broadcast.BroadcastServer) error {
 
 	var wg sync.WaitGroup
 
@@ -81,7 +83,7 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 				commons.RunningServices[commons.LightningCommunicationService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.LightningCommunicationService(ctx, conn, db, nodeId, lightningCommunicationChannel)
+		lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster)
 	})()
 
 	wg.Wait()
@@ -90,7 +92,7 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 }
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	rebalanceRequestChannel chan commons.RebalanceRequest) error {
+	broadcaster broadcast.BroadcastServer) error {
 
 	var wg sync.WaitGroup
 
@@ -105,7 +107,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 				commons.RunningServices[commons.RebalanceService].Cancel(nodeId, &active, true)
 			}
 		}()
-		commons.RebalanceServiceStart(ctx, conn, db, nodeId, rebalanceRequestChannel)
+		automation.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster)
 	})()
 
 	wg.Wait()
@@ -113,7 +115,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	return nil
 }
 
-func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string, nodeId int, lightningCommunicationChannel chan interface{}) error {
+func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string, nodeId int, lightningRequestChannel chan interface{}) error {
 	var wg sync.WaitGroup
 
 	active := commons.Active
@@ -127,7 +129,7 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string,
 				commons.RunningServices[commons.MaintenanceService].Cancel(nodeId, &active, true)
 			}
 		}()
-		commons.MaintenanceServiceStart(ctx, db, vectorUrl, nodeId, lightningCommunicationChannel)
+		commons.MaintenanceServiceStart(ctx, db, vectorUrl, nodeId, lightningRequestChannel)
 	})()
 
 	wg.Wait()

@@ -80,25 +80,26 @@ type TimeTriggerParameters struct {
 	TimeUnit int   `json:"timeUnit" db:"time_unit"` // Time Unit is just used in the frontend
 }
 
-type ChannelPolicyConfigurationParameters struct {
-	FeeRate       int64 `json:"feeRate"`
-	BaseFee       int64 `json:"baseFee"`
-	MaxHtlcAmount int64 `json:"maxHtlcAmount"`
-	MinHtlcAmount int64 `json:"minHtlcAmount"`
-}
-
 type ModifyTagsParameters struct {
 	TagNames  []string  `json:"tagNames"`
 	TagAction TagAction `json:"tagAction"`
 }
 
-type ReBalanceParameters struct {
-	OutgoingChannelId  *int   `json:"outgoingChannelId"`
-	IncomingChannelId  *int   `json:"incomingChannelId"`
-	ChannelIds         []int  `json:"channelIds"`
-	AmountMsat         uint64 `json:"amountMsat"`
-	MaximumCostMsat    uint64 `json:"maximumCostMsat"`
-	MaximumConcurrency *int   `json:"maximumConcurrency"`
+type ChannelPolicyConfiguration struct {
+	ChannelIds       []int   `json:"channelIds"`
+	TimeLockDelta    *uint32 `json:"timeLockDelta"`
+	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
+	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
+	FeeBaseMsat      *int64  `json:"feeBaseMsat"`
+	FeeRateMilliMsat *int64  `json:"feeRateMilliMsat"`
+}
+
+type RebalanceConfiguration struct {
+	IncomingChannelIds []int   `json:"incomingChannelIds"`
+	OutgoingChannelIds []int   `json:"outgoingChannelIds"`
+	AmountMsat         *uint64 `json:"amountMsat"`
+	MaximumCostMsat    *uint64 `json:"maximumCostMsat"`
+	MaximumConcurrency *int    `json:"maximumConcurrency"`
 }
 
 type TagParameters struct {
@@ -147,6 +148,7 @@ func (wfn WorkflowVersionNode) GetWorkflowNodeStructured() WorkflowNode {
 	return WorkflowNode{
 		WorkflowVersionNodeId: wfn.WorkflowVersionNodeId,
 		Name:                  wfn.Name,
+		Stage:                 wfn.Stage,
 		Status:                wfn.Status,
 		Type:                  wfn.Type,
 		Parameters:            wfn.Parameters,
@@ -200,7 +202,6 @@ type CreateWorkflowVersionNodeLinkRequest struct {
 }
 
 type WorkflowVersionNodeLog struct {
-	NodeId                          int       `json:"nodeId" db:"node_id"`
 	TriggerReference                string    `json:"triggerReference" db:"trigger_reference"`
 	InputData                       string    `json:"input_data" db:"input_data"`
 	OutputData                      string    `json:"output_data" db:"output_data"`
@@ -215,6 +216,7 @@ type WorkflowNode struct {
 	WorkflowVersionNodeId int                             `json:"workflowVersionNodeId"`
 	Name                  string                          `json:"name"`
 	Status                WorkflowStatus                  `json:"status"`
+	Stage                 int                             `json:"stage"`
 	Type                  commons.WorkflowNodeType        `json:"type"`
 	Parameters            interface{}                     `json:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings  `json:"visibilitySettings"`

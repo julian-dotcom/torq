@@ -113,7 +113,7 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 	defer conn.Close()
 
 	webSocketChannel := make(chan interface{})
-	done := make(chan struct{})
+	done := make(chan struct{}, 1)
 	go processWebsocketRequests(c, conn, done, db, eventChannel, webSocketChannel)
 	go processBroadcasterEvents(done, broadcaster, webSocketChannel)
 

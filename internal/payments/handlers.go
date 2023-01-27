@@ -106,7 +106,7 @@ func getPaymentsHandler(c *gin.Context, db *sqlx.DB) {
 
 	chain := commons.Bitcoin
 
-	r, total, err := getPayments(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), filter, sort, limit, offset)
+	r, total, err := getPayments(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -129,7 +129,7 @@ func getPaymentHandler(c *gin.Context, db *sqlx.DB) {
 
 	chain := commons.Bitcoin
 
-	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIds(chain, commons.Network(network)), c.Param("identifier"))
+	r, err := getPaymentDetails(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), c.Param("identifier"))
 	switch err.(type) {
 	case nil:
 		break

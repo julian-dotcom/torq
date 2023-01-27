@@ -30,7 +30,7 @@ func rebalanceHandler(c *gin.Context, db *sqlx.DB, rebalanceRequestChannel chan 
 		return
 	}
 
-	responseChannel := make(chan commons.RebalanceResponse)
+	responseChannel := make(chan commons.RebalanceResponse, 1)
 	rr.ResponseChannel = responseChannel
 	rebalanceRequestChannel <- rr
 	response := <-responseChannel

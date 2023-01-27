@@ -5,9 +5,10 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/nodes"
-	"github.com/rs/zerolog/log"
 )
 
 type channelGroup struct {
@@ -32,7 +33,7 @@ func RemoveChannelGroupByTags(db *sqlx.DB, tags []int) (int64, error) {
 	origin := tagCorridor
 	var total int64
 
-	finished := make(chan bool)
+	finished := make(chan bool, 1)
 	for _, tag := range tags {
 		count, err := corridors.RemoveCorridorByTag(db, tag)
 		if err != nil {
@@ -82,7 +83,7 @@ func AddChannelGroupByTags(db *sqlx.DB, tags []int) error {
 	}
 	if CorridorsToInsert != duplicateCorridors {
 		origin := tagCorridor
-		finished := make(chan bool)
+		finished := make(chan bool, 1)
 		go func() {
 			err = GenerateChannelGroupsByOrigin(db, origin, true)
 			if err != nil {

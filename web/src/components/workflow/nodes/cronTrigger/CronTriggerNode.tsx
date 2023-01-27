@@ -42,7 +42,6 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
-      heading={t.channelPolicyConfiguration}
       headerIcon={<CronTriggerIcon />}
       colorVariant={NodeColorVariant.accent2}
     >

@@ -95,7 +95,6 @@ export function TimeTriggerNode({ ...wrapperProps }: TimeTriggerNodeProps) {
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
-      heading={t.channelPolicyConfiguration}
       headerIcon={<TimeTriggerIcon />}
       colorVariant={NodeColorVariant.accent2}
     >
