@@ -109,7 +109,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 			service.StatusString = service.Status.String()
 			result.Services = append(result.Services, service)
 		default:
-			for _, torqNodeId := range torqNodeIds {
+			for index, torqNodeId := range torqNodeIds {
 				service := Service{
 					CommonService: CommonService{
 						Status:   commons.RunningServices[svc].GetStatus(torqNodeId),
@@ -117,7 +117,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 					},
 					Type:       svc,
 					TypeString: svc.String(),
-					NodeId:     &torqNodeId,
+					NodeId:     &torqNodeIds[index],
 				}
 				service.StatusString = service.Status.String()
 				result.Services = append(result.Services, service)
