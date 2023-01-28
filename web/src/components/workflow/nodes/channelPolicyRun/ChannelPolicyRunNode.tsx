@@ -1,7 +1,6 @@
 import { MoneySettings20Regular as ChannelPolicyConfiguratorIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
-import Form from "components/forms/form/Form";
 import Socket from "components/forms/socket/Socket";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes } from "pages/WorkflowPage/workflowApi";
@@ -35,18 +34,17 @@ export function ChannelPolicyRunNode({ ...wrapperProps }: ChannelPolicyRunNodePr
       {...wrapperProps}
       headerIcon={<ChannelPolicyConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
-      outputName={"channels"}
     >
-      <Form>
+      <div style={{ flexGrow: 1 }}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.inputs}
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputName={"channels"}
+          inputName={"routingPolicySettings"}
         />
-      </Form>
+      </div>
     </WorkflowNodeWrapper>
   );
 }

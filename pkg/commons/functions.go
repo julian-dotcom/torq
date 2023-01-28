@@ -343,7 +343,6 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 	channelPolicyConfiguratorOptionalOutputs[WorkflowParameterLabelStatus] = WorkflowParameterTypeStatus
 
 	channelPolicyAutoRunRequiredInputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
-	channelPolicyAutoRunRequiredInputs[WorkflowParameterLabelRoutingPolicySettings] = WorkflowParameterTypeRoutingPolicySettings
 	channelPolicyAutoRunRequiredInputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
 	channelPolicyAutoRunOptionalInputs := allTriggeredOnly
 	channelPolicyAutoRunRequiredOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
@@ -354,7 +353,9 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 	channelPolicyAutoRunOptionalOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
 	channelPolicyAutoRunOptionalOutputs[WorkflowParameterLabelChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
 
-	channelPolicyRunRequiredInputs := channelPolicyAutoRunRequiredInputs
+	channelPolicyRunRequiredInputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
+	channelPolicyRunRequiredInputs[WorkflowParameterLabelRoutingPolicySettings] = WorkflowParameterTypeRoutingPolicySettings
+	channelPolicyRunRequiredInputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
 	channelPolicyRunOptionalInputs := channelPolicyAutoRunOptionalInputs
 	channelPolicyRunRequiredOutputs := channelPolicyAutoRunRequiredOutputs
 	channelPolicyRunOptionalOutputs := channelPolicyAutoRunOptionalOutputs

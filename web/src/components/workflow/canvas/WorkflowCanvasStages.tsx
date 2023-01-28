@@ -4,7 +4,9 @@ import WorkflowCanvas from "./WorkflowCanvas";
 import styles from "./workflow_canvas.module.scss";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
 import {
+  ChannelPolicyAutoRunNode,
   ChannelPolicyConfiguratorNode,
+  ChannelPolicyRunNode,
   TimeTriggerNode,
   CronTriggerNode,
   StageTriggerNode,
@@ -133,8 +135,12 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <ChannelCloseTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.StageTrigger:
       return <StageTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.ChannelPolicyAutoRun:
+      return <ChannelPolicyAutoRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelPolicyConfigurator:
       return <ChannelPolicyConfiguratorNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
+    case WorkflowNodeType.ChannelPolicyRun:
+      return <ChannelPolicyRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelFilter:
       return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
     case WorkflowNodeType.RebalanceConfigurator:
