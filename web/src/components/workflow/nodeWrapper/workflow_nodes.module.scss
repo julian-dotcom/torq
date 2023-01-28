@@ -147,3 +147,8 @@ input.input {
   // Two box-shadows looking like a single border without adding any size to the wrapping box.
   box-shadow: 0 0 0 2px var(--box-shadow-border-color-negator), 0 0 0px 4px var(--box-shadow-border-color);
 }
+.inactive {
+  .workflowNodeHeader {
+    background-color: var(--color-gray-layer-faint);
+  }
+}

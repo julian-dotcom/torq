@@ -26,6 +26,7 @@ import { NodeColorVariant, GetColorClass } from "components/workflow/nodes/nodeV
 import { Status } from "constants/backend";
 import { useClickOutside } from "utils/hooks";
 import useTranslations from "services/i18n/useTranslations";
+import mixpanel from "mixpanel-browser";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -164,6 +165,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
           [styles.dragging]: isDragging,
           [styles.triggerNode]: TriggerNodeTypes.includes(props.type),
           [styles.selected]: nodeIsSelected,
+          [styles.inactive]: props.status === Status.Inactive,
         })}
         style={{ transform: `${transform}` }}
         ref={nodeRef}
@@ -180,7 +182,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
           <div className={styles.icon}>{props.headerIcon}</div>
           <NodeName
             nodeId={props.workflowVersionNodeId}
-            name={props.name}
+            name={props.name + (props.status === Status.Inactive ? " - [ INACTIVE ]" : "")}
             isVisible={nameInputVisible}
             setVisible={setNameInputVisible}
           />
@@ -207,6 +209,11 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
                         // TODO: Switch to enum here
                         status: props.status === 0 ? 1 : 0,
                       });
+                      mixpanel.track("Workflow Node updated", {
+                        nodeType: props.type,
+                        nodeName: props.name,
+                        status: props.status === 0 ? t.active : t.deactivate,
+                      });
                     }}
                   >
                     {props.status === 0 ? t.activate : t.deactivate}
@@ -219,6 +226,10 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
                     buttonSize={SizeVariant.small}
                     onClick={() => {
                       deleteNode({ nodeId: props.workflowVersionNodeId });
+                      mixpanel.track("Workflow Node deleted", {
+                        nodeType: props.type,
+                        nodeName: props.name,
+                      });
                     }}
                   >
                     {t.delete}

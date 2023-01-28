@@ -13,6 +13,7 @@ export function CronTriggerNodeButton() {
       nodeType={WorkflowNodeType.CronTrigger}
       icon={<CronTriggerIcon />}
       title={t.workflowNodes.cronTrigger}
+      // parameters={"{0 23 ? * MON-FRI}"}
     />
   );
 }

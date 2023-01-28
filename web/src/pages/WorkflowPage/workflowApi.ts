@@ -77,6 +77,7 @@ export const workflowApi = torqApi.injectEndpoints({
         method: "PUT",
         body: body.visibilitySettings,
       }),
+      invalidatesTags: ["workflow"],
     }),
     deleteNode: builder.mutation<void, { nodeId: number }>({
       query: (body: { nodeId: number }) => ({

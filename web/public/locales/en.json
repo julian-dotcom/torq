@@ -204,7 +204,8 @@
   "workflowDetails": {
     "cantAddTriggerNodeToStages": "Trigger nodes can only be added to the first stage.",
     "confirmWorkflowActivate": "Are you sure you want to activate this workflow?",
-    "confirmWorkflowDeactivate": "Are you sure you want to deactivate this workflow?"
+    "confirmWorkflowDeactivate": "Are you sure you want to deactivate this workflow?",
+    "cantDropActionOnDriggerContainer": "You can only add triggers to the trigger container."
   },
   "updateChannelPolicy": {
     "title": "Update Channel Policy",

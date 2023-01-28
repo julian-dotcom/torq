@@ -15,8 +15,10 @@ import { Input, InputColorVaraint, InputSizeVariant, Select } from "components/f
 import { TagResponse } from "pages/tags/tagsTypes";
 import { useGetTagsQuery } from "pages/tags/tagsApi";
 import clone from "clone";
+import { formatDuration, intervalToDuration } from "date-fns";
 
 const formatter = format(",.0f");
+const subSecFormat = format("0.2f");
 
 function formatParameter(value: number) {
   return value % 1 != 0 ? value : formatter(value);
@@ -92,6 +94,10 @@ function FilterRow({
         newRow.parameter = 0;
         newRow.funcName = "gte";
         break;
+      case "duration":
+        newRow.parameter = 0;
+        newRow.funcName = "gte";
+        break;
       case "boolean":
         if (newCategory !== newRow.category) {
           newRow.parameter = true;
@@ -135,6 +141,9 @@ function FilterRow({
       case "number":
         newRow.parameter = e.floatValue || 0;
         break;
+      case "duration":
+        newRow.parameter = e.floatValue || 0;
+        break;
       case "boolean":
         newRow.parameter = e.value;
         break;
@@ -165,7 +174,20 @@ function FilterRow({
       case "number":
         return formatParameter(rowValues.parameter as number);
       case "duration":
-        return formatParameter(rowValues.parameter as number);
+        if (rowValues.parameter >= 1) {
+          const d = intervalToDuration({ start: 0, end: (rowValues.parameter as number) * 1000 });
+          return formatDuration({
+            years: d.years,
+            months: d.months,
+            days: d.days,
+            hours: d.hours,
+            minutes: d.minutes,
+            seconds: d.seconds,
+          });
+        } else if (rowValues.parameter < 1 && rowValues.parameter > 0) {
+          return `${subSecFormat(rowValues.parameter as number)} seconds`;
+        }
+        return "0 seconds";
       case "boolean":
         return !rowValues.parameter ? "False" : "True";
       case "array":
@@ -255,6 +277,20 @@ function FilterInputField(props: {
           onValueChange={(e) => {
             props.onChange(e);
           }}
+        />
+      );
+    case "duration":
+      return (
+        <Input
+          formatted={true}
+          thousandSeparator=","
+          sizeVariant={InputSizeVariant.small}
+          colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
+          defaultValue={props.rowValues.parameter as keyof FilterParameterType}
+          onValueChange={(e) => {
+            props.onChange(e);
+          }}
+          suffix={" Seconds"}
         />
       );
     case "boolean":

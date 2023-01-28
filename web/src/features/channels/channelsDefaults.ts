@@ -173,14 +173,14 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
   {
     heading: "Funding Date",
     key: "fundedOn",
+    type: "DateCell",
     valueType: "date",
   },
   {
-    heading: "Funding Date Delta",
-    type: "NumericCell",
+    heading: "Funding Date Delta (Seconds)",
+    type: "DurationCell",
     key: "fundedOnSecondsDelta",
-    valueType: "number",
-    suffix: "sec",
+    valueType: "duration",
   },
   {
     heading: "Closing Transaction",
@@ -204,13 +204,13 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     heading: "Closing Date",
     key: "closedOn",
     valueType: "date",
+    type: "DateCell",
   },
   {
-    heading: "Closing Date Delta",
-    type: "NumericCell",
+    heading: "Closing Date Delta (Seconds)",
+    type: "DurationCell",
     key: "closedOnSecondsDelta",
-    valueType: "number",
-    suffix: "sec",
+    valueType: "duration",
   },
   {
     heading: "Unsettled Balance",

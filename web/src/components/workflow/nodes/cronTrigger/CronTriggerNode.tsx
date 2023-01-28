@@ -42,18 +42,14 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
   }
 
   return (
-    <WorkflowNodeWrapper
-      {...wrapperProps}
-      headerIcon={<CronTriggerIcon />}
-      colorVariant={NodeColorVariant.accent2}
-    >
+    <WorkflowNodeWrapper {...wrapperProps} headerIcon={<CronTriggerIcon />} colorVariant={NodeColorVariant.accent2}>
       <Form onSubmit={handleSubmit}>
         <InputRow>
           <div style={{ flexGrow: 1 }}>
             <Input
               value={cronValueState}
-              thousandSeparator={true}
               onChange={handleCronChange}
+              placeholder={"0 23 ? * MON-FRI"}
               label={t.cron}
               helpText={"Interval specified in Cron format"}
               sizeVariant={InputSizeVariant.small}
