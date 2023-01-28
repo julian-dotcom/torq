@@ -9,6 +9,7 @@ export type WorkflowNodeButtonProps = {
   nodeType: number;
   colorVariant: NodeColorVariant;
   parameters?: string;
+  disabled?: boolean;
 };
 
 function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
@@ -17,6 +18,9 @@ function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    if (props.disabled) {
+      return;
+    }
     setIsDragging(true);
 
     // Set the drag image to the button itself with the position of the mouse relative to the button
@@ -37,7 +41,8 @@ function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
       className={classNames(
         styles.nodeButtonWrapper,
         { [styles.dragging]: isDragging },
-        GetColorClass(props.colorVariant)
+        GetColorClass(props.colorVariant),
+        { [styles.disabled]: props.disabled }
       )}
       draggable={true}
       onDragStart={handleDragStart}
