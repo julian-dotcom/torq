@@ -46,28 +46,29 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
     (wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat || 0) / 1000:undefined
   );
 
-  function handleFeeBaseChange(e: NumberFormatValues) {
-    setFeeBase(e.floatValue);
-    setChannelPolicy((prev) => ({
-      ...prev,
-      feeBaseMsat: (e.floatValue || 0) * 1000,
-    }));
-  }
-
-  function handleMaxHtlcChange(e: NumberFormatValues) {
-    setMaxHtlc(e.floatValue);
-    setChannelPolicy((prev) => ({
-      ...prev,
-      maxHtlcMsat: (e.floatValue || 0) * 1000,
-    }));
-  }
-
-  function handleMinHtlcChange(e: NumberFormatValues) {
-    setMinHtlc(e.floatValue);
-    setChannelPolicy((prev) => ({
-      ...prev,
-      minHtlcMsat: (e.floatValue || 0) * 1000,
-    }));
+  function createChangeMsatHandler(key: keyof ChannelPolicyConfiguration) {
+    return (e: NumberFormatValues) => {
+      if (key == "feeBaseMsat") {
+        setFeeBase(e.floatValue)
+      }
+      if (key == "maxHtlcMsat") {
+        setMaxHtlc(e.floatValue)
+      }
+      if (key == "minHtlcMsat") {
+        setMinHtlc(e.floatValue)
+      }
+      if (e.floatValue === undefined) {
+        setChannelPolicy((prev) => ({
+          ...prev,
+          [key]: undefined
+        }));
+      } else {
+        setChannelPolicy((prev) => ({
+          ...prev,
+          [key]: (e.floatValue || 0) * 1000,
+        }));
+      }
+    };
   }
 
   function createChangeHandler(key: keyof ChannelPolicyConfiguration) {
@@ -135,7 +136,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           value={feeBase}
           thousandSeparator={","}
           suffix={" sat"}
-          onValueChange={handleFeeBaseChange}
+          onValueChange={createChangeMsatHandler("feeBaseMsat")}
           label={t.baseFee}
           sizeVariant={InputSizeVariant.small}
         />
@@ -144,7 +145,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           value={minHtlc}
           thousandSeparator={","}
           suffix={" sat"}
-          onValueChange={handleMinHtlcChange}
+          onValueChange={createChangeMsatHandler("minHtlcMsat")}
           label={t.minHTLCAmount}
           sizeVariant={InputSizeVariant.small}
         />
@@ -153,7 +154,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           value={maxHtlc}
           thousandSeparator={","}
           suffix={" sat"}
-          onValueChange={handleMaxHtlcChange}
+          onValueChange={createChangeMsatHandler("maxHtlcMsat")}
           label={t.maxHTLCAmount}
           sizeVariant={InputSizeVariant.small}
         />
