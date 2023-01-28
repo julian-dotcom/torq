@@ -17,6 +17,7 @@ export const workflowApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     getWorkflows: builder.query<Array<workflowListItem>, void>({
       query: () => "workflows",
+      providesTags: ["workflows"],
     }),
     getWorkflow: builder.query<FullWorkflow, { version: number; workflowId: number }>({
       query: (params) => `workflows/${params.workflowId}/versions/${params.version}`,
@@ -46,13 +47,13 @@ export const workflowApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["workflow", "workflows"],
     }),
-    // deleteWorflow is currently not used
+    // deleteWorkflow is currently not used
     deleteWorkflow: builder.mutation<void, { workflowId: number }>({
       query: (params) => ({
         url: `workflows/${params.workflowId}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["workflows", "workflow"],
+      invalidatesTags: ["workflow", "workflows"],
     }),
     addNode: builder.mutation<void, NewWorkflowNodeRequest>({
       query: (body: NewWorkflowNodeRequest) => ({
