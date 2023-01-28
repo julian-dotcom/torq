@@ -104,7 +104,7 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
     type: "NumericDoubleCell",
     key: "maxHtlcMsat",
     key2: "remoteMaxHtlcMsat",
-    suffix: "sat",
+    suffix: "msat",
     valueType: "number",
   },
   {
