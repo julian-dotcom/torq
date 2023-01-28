@@ -116,7 +116,7 @@ function NodechannelModal() {
                   <Input
                     formatted={true}
                     className={styles.double}
-                    suffix={" milli sat"}
+                    suffix={" msat"}
                     thousandSeparator={","}
                     value={feeBaseMsat}
                     onValueChange={(values: NumberFormatValues) => {
@@ -134,7 +134,7 @@ function NodechannelModal() {
                   <Input
                     formatted={true}
                     className={styles.double}
-                    suffix={" sat"}
+                    suffix={" msat"}
                     thousandSeparator={","}
                     value={minHtlcMsat}
                     onValueChange={(values: NumberFormatValues) => {
@@ -149,7 +149,7 @@ function NodechannelModal() {
                   <Input
                     formatted={true}
                     className={styles.double}
-                    suffix={" sat"}
+                    suffix={" msat"}
                     thousandSeparator={true}
                     value={maxHtlcMsat}
                     onValueChange={(values: NumberFormatValues) => {
