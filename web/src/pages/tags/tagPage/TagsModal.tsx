@@ -30,8 +30,10 @@ export default function TagsModal() {
   const [categoryId, setCategoryId] = useState(tag.categoryId);
   useEffect(() => {
     setIsLocked((tag?.tagId || 0) <= -1);
-    setTagColor(tag.style);
-    setCategoryId(tag.categoryId);
+    if (tag?.tagId) {
+      setTagColor(tag.style);
+      setCategoryId(tag.categoryId);
+    }
   }, [tag]);
 
   const navigate = useNavigate();
@@ -52,7 +54,7 @@ export default function TagsModal() {
     const tagRequest: ExpandedTag = {
       ...tag,
       name: data.get("name") as string,
-      style: data.get(inputNames.style) as TagColor,
+      style: tagColor,
       categoryId: category,
     };
 
