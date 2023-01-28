@@ -37,13 +37,13 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
   });
 
   const [feeBase, setFeeBase] = useState<number | undefined>(
-    ((wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat || 0) / 1000
+    (wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat || 0) / 1000:undefined
   );
   const [maxHtlc, setMaxHtlc] = useState<number | undefined>(
-    ((wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat || 0) / 1000
+    (wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat || 0) / 1000:undefined
   );
   const [minHtlc, setMinHtlc] = useState<number | undefined>(
-    ((wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat || 0) / 1000
+    (wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat || 0) / 1000:undefined
   );
 
   function handleFeeBaseChange(e: NumberFormatValues) {
