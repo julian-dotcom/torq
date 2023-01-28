@@ -18,7 +18,7 @@ import {
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
   Signature20Regular as MessageVerificationIcon,
-  // Flash20Regular as WorkflowsIcon,
+  Flash20Regular as WorkflowsIcon,
   Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
@@ -76,7 +76,7 @@ function Navigation() {
 
         <NavCategory text={t.manage} collapsed={false}>
           <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/manage/channels"} />
-          {/*<MenuItem text={t.automation} icon={<WorkflowsIcon />} routeTo={"/manage/workflows"} />*/}
+          <MenuItem text={t.automation} icon={<WorkflowsIcon />} routeTo={"/manage/workflows"} />
           <MenuItem text={t.tags} icon={<TagsIcon />} routeTo={"/manage/tags"} />
           <MenuItem
             text={t.MessageVerification}
