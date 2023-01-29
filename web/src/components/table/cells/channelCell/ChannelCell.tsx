@@ -38,7 +38,6 @@ function ChannelCell(props: ChannelCell) {
           buttonColor={ColorVariant.accent1}
           onClick={() => {
             mixpanel.track("Navigate to Inspect Channel", {
-              background: location.pathname,
               channelId: props.channelId,
             });
           }}
@@ -55,7 +54,7 @@ function ChannelCell(props: ChannelCell) {
           buttonSize={SizeVariant.tiny}
           onClick={() => {
             mixpanel.track("Navigate to Update Channel", {
-              background: location.pathname,
+              nodeId: props.nodeId,
               channelId: props.channelId,
             });
           }}
@@ -72,7 +71,7 @@ function ChannelCell(props: ChannelCell) {
           buttonColor={ColorVariant.error}
           onClick={() => {
             mixpanel.track("Navigate to Close Channel", {
-              background: location.pathname,
+              nodeId: props.nodeId,
               channelId: props.channelId,
             });
           }}

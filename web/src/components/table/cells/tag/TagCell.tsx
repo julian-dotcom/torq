@@ -23,7 +23,11 @@ const TagCell = ({ cellWrapperClassName, totalCell, editLink, ...tagProps }: Tag
           state={{ background: location }}
           className={classNames(cellStyles.action, styles.updateLink)}
           onClick={() => {
-            mixpanel.track("Navigate to Update Tag");
+            mixpanel.track("Navigate to Update Tag", {
+              tagId: tagProps.tagId,
+              tagName: tagProps.label,
+              tagStyle: tagProps.colorVariant,
+            });
           }}
         >
           <Tag {...tagProps} />

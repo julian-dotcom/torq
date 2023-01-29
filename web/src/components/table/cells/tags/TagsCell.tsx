@@ -15,7 +15,7 @@ export type TagsCellProps = {
   totalCell?: boolean;
 };
 
-function EditLinkWrapper(props: { tag: TagType }) {
+function EditTag(props: { tag: TagType }) {
   const location = useLocation();
 
   return (
@@ -25,7 +25,6 @@ function EditLinkWrapper(props: { tag: TagType }) {
       className={classNames(cellStyles.action, styles.updateLink)}
       onClick={() => {
         mixpanel.track("Navigate to Update Tag", {
-          background: location.pathname,
           tagId: props.tag.tagId,
           tagName: props.tag.name,
           tagStyle: props.tag.style,
@@ -42,7 +41,7 @@ const TagsCell = (props: TagsCellProps) => {
   const location = useLocation();
   return (
     <div className={classNames(cellStyles.cell, styles.tagCell, { [cellStyles.totalCell]: props.totalCell })}>
-      {!props.totalCell && (props.tags || []).map((tag) => <EditLinkWrapper tag={tag} key={"tag-" + tag.tagId} />)}
+      {!props.totalCell && (props.tags || []).map((tag) => <EditTag tag={tag} key={"tag-" + tag.tagId} />)}
 
       {!props.totalCell && (
         <>
@@ -54,7 +53,7 @@ const TagsCell = (props: TagsCellProps) => {
             buttonColor={ColorVariant.disabled}
             onClick={() => {
               mixpanel.track("Navigate to Tag Channel", {
-                background: location.pathname,
+                channelId: props.channelId,
               });
             }}
           />
@@ -66,7 +65,7 @@ const TagsCell = (props: TagsCellProps) => {
             buttonColor={ColorVariant.disabled}
             onClick={() => {
               mixpanel.track("Navigate to Tag Node", {
-                background: location.pathname,
+                nodeId: props.nodeId,
               });
             }}
           />

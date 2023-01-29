@@ -6,6 +6,7 @@ import Button, { ColorVariant, LinkButton, SizeVariant } from "components/button
 import useTranslations from "services/i18n/useTranslations";
 import { useUpdateWorkflowMutation } from "pages/WorkflowPage/workflowApi";
 import { Status } from "constants/backend";
+import mixpanel from "mixpanel-browser";
 
 interface WorkflowCell {
   name: string;
@@ -20,12 +21,13 @@ function WorkflowCell(props: WorkflowCell) {
   const [updateWorkflow] = useUpdateWorkflowMutation();
 
   function archiveWorkflow() {
+    mixpanel.track("Archive Workflow", {
+      workflowId: props.workflowId,
+      workflowVersionId: props.workflowVersionId,
+      workFlowName: props.name,
+    });
     updateWorkflow({ workflowId: props.workflowId, status: Status.Archived });
   }
-
-  // function handleWorkflowNameChange(name: string) {
-  //   updateWorkflow({ workflowId: props.workflowId, name: name });
-  // }
 
   const content = (
     <div className={styles.workflowCellContent}>
@@ -33,6 +35,13 @@ function WorkflowCell(props: WorkflowCell) {
       <div className={styles.actionButtons}>
         <LinkButton
           to={`${props.workflowId}/versions/${props.workflowVersionId}`}
+          onClick={() => {
+            mixpanel.track("Navigate to Workflow", {
+              workflowId: props.workflowId,
+              workflowVersionId: props.workflowVersionId,
+              workFlowName: props.name,
+            });
+          }}
           icon={<EditIcon />}
           buttonSize={SizeVariant.tiny}
           hideMobileText={true}

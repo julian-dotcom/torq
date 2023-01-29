@@ -119,8 +119,8 @@ function ChannelsPage() {
             hideMobileText={true}
             icon={<ChannelsIcon />}
             onClick={() => {
-              navigate(OPEN_CHANNEL, { state: { background: location } });
               mixpanel.track("Navigate to Open Channel");
+              navigate(OPEN_CHANNEL, { state: { background: location } });
             }}
           >
             {t.openChannel}
@@ -130,8 +130,8 @@ function ChannelsPage() {
       <TableControlsButtonGroup>
         <TableControlsButton
           onClickHandler={() => {
-            setSidebarExpanded(!sidebarExpanded);
             mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
+            setSidebarExpanded(!sidebarExpanded);
           }}
           icon={OptionsIcon}
           id={"tableControlsButton"}

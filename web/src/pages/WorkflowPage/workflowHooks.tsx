@@ -14,7 +14,7 @@ export function useNewWorkflowButton(): ReactNode {
 
   function newWorkflowHandler() {
     const response = newWorkflow();
-    mixpanel.track("Create Workflow");
+    mixpanel.track("Workflow Create");
     response
       .then((res) => {
         const data = (res as { data: { workflowId: number; version: number } }).data;

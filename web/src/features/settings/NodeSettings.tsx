@@ -241,9 +241,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     let statusId = 0;
     if (nodeConfigurationState.status == 0) {
       statusId = 1;
-      mixpanel.track("Enable Local Node", { nodeId: nodeConfigurationState.nodeId, statusId: statusId });
+      mixpanel.track("Enable Local Node", { nodeId: nodeConfigurationState.nodeId });
     } else {
-      mixpanel.track("Disable Local Node", { nodeId: nodeConfigurationState.nodeId, statusId: statusId });
+      mixpanel.track("Disable Local Node", { nodeId: nodeConfigurationState.nodeId });
     }
     setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: statusId })
       .unwrap()

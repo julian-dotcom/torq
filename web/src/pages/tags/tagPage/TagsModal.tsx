@@ -61,7 +61,14 @@ export default function TagsModal() {
 
     if (tag.tagId) {
       setTagMutation(tagRequest);
-      mixpanel.track("Update Tag", tagRequest);
+      mixpanel.track("Update Tag", {
+        tagId: tag.tagId,
+        tagName: tag.name,
+        tagStyle: tag.style,
+        categoryId: tag.categoryId,
+        categoryName: tag.categoryName,
+        categoryStyle: tag.categoryStyle,
+      });
     } else {
       addTagMutation(tagRequest).then((result) => {
         if (hasTagsData(result) && result.data?.tagId !== undefined) {

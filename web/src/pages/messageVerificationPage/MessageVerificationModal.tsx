@@ -55,7 +55,7 @@ export default function MessageVerificationModal() {
     if (currentAction === "sign") {
       setEmptyMessageSignField(false);
       signMessage({ nodeId: selectedNodeId, message: formRef.current?.signMessage?.value });
-      mixpanel.track("Signing Message");
+      mixpanel.track("Sign Message", { nodeId: selectedNodeId });
     } else {
       setEmptySignatureField(false);
       setEmptyMessageField(false);
@@ -64,7 +64,7 @@ export default function MessageVerificationModal() {
         message: formRef.current?.message?.value,
         signature: formRef.current?.signature?.value && formRef.current.signature.value.trim(),
       });
-      mixpanel.track("Verifying Message");
+      mixpanel.track("Verify Message", { nodeId: selectedNodeId });
     }
   }
 

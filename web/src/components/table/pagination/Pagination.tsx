@@ -40,7 +40,7 @@ function renderPages(
         onClick={() => {
           if (offset >= limit) {
             offsetHandler(offset - limit);
-            mixpanel.track("Paginate", { offset: offset - limit, direction: "previous" });
+            mixpanel.track("Paginate", { offset: offset - limit, direction: "previous", limit: limit });
           }
         }}
       >
@@ -54,7 +54,7 @@ function renderPages(
         onChange={(item: unknown) => {
           if (IsNumericOption(item)) {
             offsetHandler(item.value * limit);
-            mixpanel.track("Paginate", { offset: item.value * limit, direction: "select" });
+            mixpanel.track("Paginate", { offset: item.value * limit, direction: "select", limit: limit });
           }
         }}
       />
@@ -64,7 +64,7 @@ function renderPages(
         onClick={() => {
           if (pages > currentPage + 1) {
             offsetHandler(offset + limit);
-            mixpanel.track("Paginate", { offset: currentPage + 1, direction: "next" });
+            mixpanel.track("Paginate", { offset: currentPage + 1, direction: "next", limit: limit });
           }
         }}
       >
@@ -99,7 +99,7 @@ function Pagination(props: PaginationProps) {
             if (IsNumericOption(item)) {
               props.perPageHandler(item.value);
               props.offsetHandler(0);
-              mixpanel.track("Change Pagination Limit", { limit: item.value });
+              mixpanel.track("Paginate Change Limit", { limit: item.value });
             }
           }}
         />
