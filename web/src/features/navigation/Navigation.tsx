@@ -69,38 +69,86 @@ function Navigation() {
         {/*<MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/sadfa"} />*/}
 
         <NavCategory text={t.analyse} collapsed={false}>
-          <MenuItem text={t.summary} icon={<SummaryIcon />} routeTo={"/"} />
-          <MenuItem text={t.forwards} icon={<ForwardsIcon />} routeTo={"/analyse/forwards"} />
-          {/*<MenuItem text={"Inspect"} icon={<InspectIcon />} routeTo={"/inspect"} />*/}
+          <MenuItem
+            text={t.summary}
+            icon={<SummaryIcon />}
+            routeTo={"/"}
+            onClick={() => mixpanel.track("Navigate to Summary")}
+          />
+
+          <MenuItem
+            text={t.forwards}
+            icon={<ForwardsIcon />}
+            routeTo={"/analyse/forwards"}
+            onClick={() => mixpanel.track("Navigate to Forwards")}
+          />
         </NavCategory>
 
         <NavCategory text={t.manage} collapsed={false}>
-          <MenuItem text={t.channels} icon={<ChannelsIcon />} routeTo={"/manage/channels"} />
-          <MenuItem text={t.automation} icon={<WorkflowsIcon />} routeTo={"/manage/workflows"} />
-          <MenuItem text={t.tags} icon={<TagsIcon />} routeTo={"/manage/tags"} />
+          <MenuItem
+            text={t.channels}
+            icon={<ChannelsIcon />}
+            routeTo={"/manage/channels"}
+            onClick={() => mixpanel.track("Navigate to Channels")}
+          />
+          <MenuItem
+            text={t.automation}
+            icon={<WorkflowsIcon />}
+            routeTo={"/manage/workflows"}
+            onClick={() => mixpanel.track("Navigate to Workflows")}
+          />
+          <MenuItem
+            text={t.tags}
+            icon={<TagsIcon />}
+            routeTo={"/manage/tags"}
+            onClick={() => mixpanel.track("Navigate to Tags")}
+          />
+
           <MenuItem
             text={t.MessageVerification}
             icon={<MessageVerificationIcon />}
             routeTo={routes.MESSAGE_VERIFICATION}
             withBackground={true}
+            onClick={() => mixpanel.track("Navigate to Message Verification")}
           />
         </NavCategory>
 
         <NavCategory text={t.transactions} collapsed={false}>
-          <MenuItem text={t.payments} icon={<PaymentsIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`} />
-          <MenuItem text={t.invoices} icon={<InvoicesIcon />} routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`} />
+          <MenuItem
+            text={t.payments}
+            icon={<PaymentsIcon />}
+            routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`}
+            onClick={() => mixpanel.track("Navigate to Payments")}
+          />
+          <MenuItem
+            text={t.invoices}
+            icon={<InvoicesIcon />}
+            routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`}
+            onClick={() => mixpanel.track("Navigate to Invoices")}
+          />
           <MenuItem
             text={t.onChain}
             icon={<OnChainTransactionIcon />}
             routeTo={`/${routes.TRANSACTIONS}/${routes.ONCHAIN}`}
+            onClick={() => mixpanel.track("Navigate to OnChain Transactions")}
           />
         </NavCategory>
       </div>
 
       <div className={classNames(styles.bottomWrapper)}>
-        <MenuButtonItem text={t.helpAndBugsMenuItem} icon={<HelpIcon />} id={"intercom-launcher"} />
-        <MenuItem text={t.settings} icon={<SettingsIcon />} routeTo={"/settings"} />
-        <MenuItem text={t.logout} icon={<LogoutIcon />} routeTo={"/logout"} />
+        <MenuButtonItem
+          text={t.helpAndBugsMenuItem}
+          icon={<HelpIcon />}
+          id={"intercom-launcher"}
+          onClick={() => mixpanel.track("Toggle Help")}
+        />
+        <MenuItem
+          text={t.settings}
+          icon={<SettingsIcon />}
+          routeTo={"/settings"}
+          onClick={() => mixpanel.track("Navigate to Settings")}
+        />
+        <MenuItem text={t.logout} icon={<LogoutIcon />} routeTo={"/logout"} onClick={() => mixpanel.track("Logout")} />
       </div>
     </div>
   );

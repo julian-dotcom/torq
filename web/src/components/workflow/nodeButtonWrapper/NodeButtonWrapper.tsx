@@ -2,7 +2,6 @@ import React, { MutableRefObject, useRef, useState } from "react";
 import styles from "./node_button_wrapper.module.scss";
 import classNames from "classnames";
 import { GetColorClass, NodeColorVariant } from "components/workflow/nodes/nodeVariants";
-import mixpanel from "mixpanel-browser";
 
 export type WorkflowNodeButtonProps = {
   title: string;
@@ -36,10 +35,6 @@ function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
 
   function handleDragEnd() {
     setIsDragging(false);
-    mixpanel.track("Workflow Node added", {
-      nodeType: props.nodeType,
-      nodeTitle: props.title,
-    });
   }
   return (
     <div

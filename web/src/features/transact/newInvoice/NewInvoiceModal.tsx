@@ -16,6 +16,7 @@ import { SectionContainer } from "features/section/SectionContainer";
 import Input from "components/forms/input/Input";
 import { formatDuration, intervalToDuration } from "date-fns";
 import { NewInvoiceResponseStep } from "./newInvoiceResponse";
+import mixpanel from "mixpanel-browser";
 
 function NewInvoiceModal() {
   const { t } = useTranslations();
@@ -71,6 +72,9 @@ function NewInvoiceModal() {
       valueMsat: amountSat ? amountSat * 1000 : undefined, // msat = 1000*sat
       expiry: expirySeconds,
       memo: memo,
+    });
+    mixpanel.track("Creating Invoice", {
+      nodeId: selectedNodeId,
     });
   };
 

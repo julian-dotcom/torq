@@ -17,6 +17,7 @@ import {
   DetailsRowLinkAndCopy,
 } from "features/templates/popoutPageTemplate/popoutDetails/PopoutDetails";
 import { StatusIcon } from "features/templates/popoutPageTemplate/popoutDetails/StatusIcon";
+import mixpanel from "mixpanel-browser";
 
 export type NewAddressRequest = {
   nodeId: number;
@@ -139,12 +140,12 @@ function NewAddressModal() {
         <ProgressTabContainer>
           <Select
             label={t.yourNode}
-            onChange={
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (newValue: any) => {
-                setSelectedNodeId(newValue?.value || 0);
+            onChange={(newValue: unknown) => {
+              if (typeof newValue === "number") {
+                setSelectedNodeId(newValue);
+                mixpanel.track("New Address - Select Node", { nodeId: newValue });
               }
-            }
+            }}
             options={nodeConfigurationOptions}
             value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
           />
@@ -159,6 +160,7 @@ function NewAddressModal() {
                     onClick={() => {
                       if (selectedNodeId) {
                         handleClickNext(addType.value);
+                        mixpanel.track("New Address - Select Address Type", { addressType: addType.label });
                       }
                     }}
                   >
@@ -191,6 +193,7 @@ function NewAddressModal() {
                   setDoneState(ProgressStepState.disabled);
                   setStepIndex(0);
                   setResponse(undefined);
+                  mixpanel.track("New Address - Back to Address Type");
                 }}
                 buttonColor={ColorVariant.primary}
               >

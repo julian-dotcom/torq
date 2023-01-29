@@ -32,6 +32,7 @@ import { Play12Regular as PlayIcon } from "@fluentui/react-icons";
 import { useContext } from "react";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
+import mixpanel from "mixpanel-browser";
 
 type WorkflowCanvasStagesProps = {
   workflowId: number;
@@ -59,6 +60,12 @@ function FirstStageTrigger(props: {
   const [triggerWorkflow] = useAddManualWorkflowTriggerMutation();
 
   function handleManualTrigger() {
+    mixpanel.track("Workflow Manually Triggered", {
+      workflowId: props.workflowId,
+      workflowVersionId: props.workflowVersionId,
+      version: props.version,
+      stageNumber: props.stage,
+    });
     triggerWorkflow({
       type: WorkflowNodeType.StageTrigger,
       workflowVersionId: props.workflowVersionId,
@@ -90,6 +97,15 @@ function FirstStageTrigger(props: {
         return;
       }
 
+      mixpanel.track("Workflow Add New Node", {
+        workflowId: props.workflowId,
+        workflowVersionId: props.workflowVersionId,
+        version: props.version,
+        stageNumber: props.stage,
+        nodeType: nodeType,
+        nodeName: nodeName,
+        method: "trigger drop",
+      });
       addNode({
         type: nodeType,
         name: nodeName,

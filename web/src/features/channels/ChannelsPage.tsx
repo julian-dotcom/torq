@@ -107,6 +107,7 @@ function ChannelsPage() {
   // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
+    mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
   };
 
   const tableControls = (
@@ -118,10 +119,8 @@ function ChannelsPage() {
             hideMobileText={true}
             icon={<ChannelsIcon />}
             onClick={() => {
-              mixpanel.track("Navigate to Open Channel", {
-                background: location.pathname,
-              });
               navigate(OPEN_CHANNEL, { state: { background: location } });
+              mixpanel.track("Navigate to Open Channel");
             }}
           >
             {t.openChannel}
@@ -130,7 +129,10 @@ function ChannelsPage() {
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
         <TableControlsButton
-          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+          onClickHandler={() => {
+            setSidebarExpanded(!sidebarExpanded);
+            mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
+          }}
           icon={OptionsIcon}
           id={"tableControlsButton"}
         />

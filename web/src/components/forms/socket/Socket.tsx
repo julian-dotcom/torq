@@ -11,6 +11,7 @@ import { NodeContext } from "components/workflow/nodeWrapper/WorkflowNodeWrapper
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import useTranslations from "services/i18n/useTranslations";
+import mixpanel from "mixpanel-browser";
 
 export type SocketProps = BasicInputType & {
   workflowVersionId: number;
@@ -54,6 +55,13 @@ function Socket(props: SocketProps) {
   }
 
   function addLinkFromDrop(parentOutput: string, parentWorkflowVersionNodeId: number) {
+    mixpanel.track("Workflow Link Node", {
+      workflowVersionId: props.workflowVersionId,
+      childInput: props.inputName,
+      childWorkflowVersionNodeId: props.workflowVersionNodeId,
+      parentOutput: parentOutput,
+      parentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
+    });
     addLink({
       workflowVersionId: props.workflowVersionId,
       childInput: props.inputName,

@@ -40,7 +40,7 @@ function renderPages(
         onClick={() => {
           if (offset >= limit) {
             offsetHandler(offset - limit);
-            mixpanel.track("pagination-previous", { offset: offset - limit });
+            mixpanel.track("Paginate", { offset: offset - limit, direction: "previous" });
           }
         }}
       >
@@ -51,13 +51,12 @@ function renderPages(
         menuPlacement={"top"}
         className={styles.offsetSelector}
         value={{ value: offset / limit, label: `Page ${offset / limit + 1} of ${pages}` }}
-        onChange={
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (item: any) => {
+        onChange={(item: unknown) => {
+          if (IsNumericOption(item)) {
             offsetHandler(item.value * limit);
-            mixpanel.track("pagination-page-select", { offset: item.value * limit });
+            mixpanel.track("Paginate", { offset: item.value * limit, direction: "select" });
           }
-        }
+        }}
       />
 
       <button
@@ -65,7 +64,7 @@ function renderPages(
         onClick={() => {
           if (pages > currentPage + 1) {
             offsetHandler(offset + limit);
-            mixpanel.track("pagination-next-page", { page: currentPage + 1 });
+            mixpanel.track("Paginate", { offset: currentPage + 1, direction: "next" });
           }
         }}
       >
@@ -100,7 +99,7 @@ function Pagination(props: PaginationProps) {
             if (IsNumericOption(item)) {
               props.perPageHandler(item.value);
               props.offsetHandler(0);
-              mixpanel.track("Table: Change rows per page", { limit: item.value });
+              mixpanel.track("Change Pagination Limit", { limit: item.value });
             }
           }}
         />

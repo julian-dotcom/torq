@@ -7,6 +7,7 @@ import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import useTranslations from "services/i18n/useTranslations";
+import mixpanel from "mixpanel-browser";
 
 type WorkflowCanvasProps = {
   workflowVersionId: number;
@@ -68,6 +69,12 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
     // Set the isDragging and canvasPositionBB state variables
     setIsDragging(true);
     setCanvasPositionBB({ left: x, top: y });
+    mixpanel.track("Workflow Drag Canvas", {
+      workflowId: props.workflowId,
+      workflowVersionId: props.workflowVersionId,
+      version: props.version,
+      stageNumber: props.stageNumber,
+    });
   }
 
   function handleDrag(e: React.DragEvent<HTMLDivElement>) {
@@ -111,6 +118,16 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
           toastRef.current.addToast(t.workflowDetails.cantAddTriggerNodeToStages, toastCategory.error);
         return;
       }
+
+      mixpanel.track("Workflow Add New Node", {
+        workflowId: props.workflowId,
+        workflowVersionId: props.workflowVersionId,
+        version: props.version,
+        stageNumber: props.stageNumber,
+        nodeType: nodeType,
+        nodeName: nodeName,
+        method: "canvas drop",
+      });
 
       addNode({
         type: nodeType,

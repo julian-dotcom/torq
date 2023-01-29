@@ -32,6 +32,7 @@ import { useAppSelector } from "store/hooks";
 import { selectInvoicesView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectActiveNetwork } from "features/network/networkSlice";
+import mixpanel from "mixpanel-browser";
 
 function useMaximums(data: Array<Invoice>): Invoice | undefined {
   if (!data.length) {
@@ -101,6 +102,7 @@ function InvoicesPage() {
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
+    mixpanel.track("Toggle Table Sidebar", { page: "Invoices" });
   };
 
   const tableControls = (
@@ -113,13 +115,19 @@ function InvoicesPage() {
             icon={<InvoiceIcon />}
             onClick={() => {
               navigate(NEW_INVOICE, { state: { background: location } });
+              mixpanel.track("Navigate to New Invoice");
             }}
           >
             {t.header.newInvoice}
           </Button>
         </TableControlsTabsGroup>
         <TableControlsButton
-          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+          onClickHandler={() => {
+            setSidebarExpanded(!sidebarExpanded);
+            mixpanel.track("Toggle Table Sidebar", {
+              page: "Invoices",
+            });
+          }}
           icon={OptionsIcon}
           id={"tableControlsButton"}
         />

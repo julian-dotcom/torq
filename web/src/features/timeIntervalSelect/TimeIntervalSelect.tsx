@@ -44,11 +44,13 @@ function TimeIntervalSelect(props: { className?: string }) {
         from: item.selection1.startDate.toString(),
         to: item.selection1.endDate.toString(),
       };
-      mixpanel.track("TimeSelect: Calendar Select", {
-        current_from: currentPeriod.from,
-        current_to: currentPeriod.to,
-        new_from: interval.from,
-        new_to: interval.to,
+      mixpanel.track("Time Interval Change", {
+        currentFrom: currentPeriod.from,
+        currentTo: currentPeriod.to,
+        newFrom: interval.from,
+        newTo: interval.to,
+        direction: "select",
+        days: differenceInDays(new Date(interval.to), new Date(interval.from)),
       });
       dispatch(updateInterval(interval));
     }
@@ -80,11 +82,13 @@ function TimeIntervalSelect(props: { className?: string }) {
       from: startOfDay(subDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
       to: startOfDay(subDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
     };
-    mixpanel.track("TimeSelect: Move Backwards", {
-      current_from: currentPeriod.from,
-      current_to: currentPeriod.to,
-      new_from: interval.from,
-      new_to: interval.to,
+    mixpanel.track("Time Interval Change", {
+      currentFrom: currentPeriod.from,
+      currentTo: currentPeriod.to,
+      newFrom: interval.from,
+      newTo: interval.to,
+      direction: "backwards",
+      days: differenceInDays(new Date(interval.to), new Date(interval.from)),
     });
     dispatch(updateInterval(interval));
   };
@@ -95,11 +99,13 @@ function TimeIntervalSelect(props: { className?: string }) {
       from: startOfDay(addDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
       to: startOfDay(addDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
     };
-    mixpanel.track("TimeSelect: Move Forward", {
-      current_from: currentPeriod.from,
-      current_to: currentPeriod.to,
-      new_from: interval.from,
-      new_to: interval.to,
+    mixpanel.track("Time Interval Change", {
+      currentFrom: currentPeriod.from,
+      currentTo: currentPeriod.to,
+      newFrom: interval.from,
+      newTo: interval.to,
+      direction: "forwards",
+      days: differenceInDays(new Date(interval.to), new Date(interval.from)),
     });
     dispatch(updateInterval(interval));
   };

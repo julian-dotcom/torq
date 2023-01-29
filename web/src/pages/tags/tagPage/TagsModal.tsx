@@ -13,6 +13,7 @@ import Button, { ButtonWrapper, ColorVariant } from "components/buttons/Button";
 import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import TargetsSection from "features/targetsSection/TargetsSection";
+import mixpanel from "mixpanel-browser";
 
 const inputNames = {
   name: "name",
@@ -60,11 +61,13 @@ export default function TagsModal() {
 
     if (tag.tagId) {
       setTagMutation(tagRequest);
+      mixpanel.track("Update Tag", tagRequest);
     } else {
       addTagMutation(tagRequest).then((result) => {
         if (hasTagsData(result) && result.data?.tagId !== undefined) {
           navigate(-1);
         }
+        mixpanel.track("Create Tag", tagRequest);
       });
     }
   }

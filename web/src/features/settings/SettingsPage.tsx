@@ -124,7 +124,7 @@ function Settings() {
         <div>
           <div className={styles.center}>
             <div>
-              <h3>Date & time settings</h3>
+              <h3>{t.settings}</h3>
 
               <form onSubmit={submitPreferences} className={styles.settingsForm}>
                 <Select

@@ -27,6 +27,7 @@ import Table from "features/table/Table";
 import { useFilterData, useSortData } from "features/viewManagement/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import styles from "./forwards_table.module.scss";
+import mixpanel from "mixpanel-browser";
 
 function useForwardsTotals(data: Array<Forward>): Forward | undefined {
   if (!data.length) {
@@ -111,6 +112,7 @@ function ForwardsPage() {
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
+    mixpanel.track("Toggle Table Sidebar", { page: "Forwards" });
   };
 
   const tableControls = (
@@ -151,7 +153,10 @@ function ForwardsPage() {
         <div className={styles.forwardsControls}>
           <TimeIntervalSelect />
           <TableControlsButton
-            onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+            onClickHandler={() => {
+              setSidebarExpanded(!sidebarExpanded);
+              mixpanel.track("Toggle Table Sidebar", { page: "Forwards" });
+            }}
             icon={OptionsIcon}
             id={"tableControlsButton"}
           />

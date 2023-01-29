@@ -5,6 +5,7 @@ import { DismissCircle24Regular as DeleteLinkIcon } from "@fluentui/react-icons"
 import { SelectWorkflowLinks, useDeleteNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowVersionNodeLink } from "pages/WorkflowPage/workflowTypes";
 import styles from "./workflow_link.module.scss";
+import mixpanel from "mixpanel-browser";
 
 type WorkflowLinkProp = {
   link: WorkflowVersionNodeLink;
@@ -26,6 +27,12 @@ function WorkflowLink(props: WorkflowLinkProp) {
   const [deleteLink] = useDeleteNodeLinkMutation();
 
   function handleDeleteLink() {
+    mixpanel.track("Workflow Delete link", {
+      workflowVersionId: link.workflowVersionId,
+      stageNumber: link.stage,
+      parentOutput: link.parentOutput,
+      childInput: link.childInput,
+    });
     deleteLink({ linkId: link.workflowVersionNodeLinkId });
   }
   function setPath(path: { x1: number; y1: number; x2: number; y2: number }) {
@@ -149,22 +156,6 @@ function WorkflowLinks(props: WorkflowLinkProps) {
         {links.map((link) => {
           return <WorkflowLink key={"link-" + link.workflowVersionNodeLinkId} link={link} />;
         })}
-        {/*<WorkflowLink*/}
-        {/*  key={"link-virtual"}*/}
-        {/*  link={{*/}
-        {/*    name: "virtual",*/}
-        {/*    workflowVersionNodeLinkId: -1,*/}
-        {/*    parentWorkflowVersionNodeId: -1,*/}
-        {/*    parentOutput: '',*/}
-        {/*    childWorkflowVersionNodeId: -1,*/}
-        {/*    childInput: '',*/}
-        {/*    createdOn: new Date(),*/}
-        {/*    updatedOn: new Date(),*/}
-        {/*    stage: props.stage,*/}
-        {/*    workflowVersionId: -1,*/}
-        {/*    visibilitySettings: undefined,*/}
-        {/*  }}*/}
-        {/*/>*/}
       </svg>
     </div>
   );

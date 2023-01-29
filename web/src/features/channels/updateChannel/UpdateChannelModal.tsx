@@ -20,6 +20,7 @@ import clone from "clone";
 import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
 import Input from "components/forms/input/Input";
+import mixpanel from "mixpanel-browser";
 
 const updateStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -194,6 +195,10 @@ function NodechannelModal() {
                       channelId: channelId,
                       nodeId: nodeId,
                     });
+                    mixpanel.track("Updating Channel Policy", {
+                      ChannelId: channelId,
+                      NodeId: nodeId,
+                    });
                   }}
                   buttonColor={ColorVariant.success}
                 >
@@ -228,21 +233,6 @@ function NodechannelModal() {
               {errMessage.length ? errMessage : t.updateChannelPolicy.confirmedMessage}
             </div>
           </div>
-          <ButtonWrapper
-            rightChildren={
-              <Button
-                onClick={() => {
-                  setStepIndex(0);
-                  setPolicyState(ProgressStepState.active);
-                  setResultState(ProgressStepState.disabled);
-                  setErrorMessage([]);
-                }}
-                buttonColor={ColorVariant.primary}
-              >
-                {t.updateChannelPolicy.newUpdate}
-              </Button>
-            }
-          />
         </ProgressTabContainer>
       </ProgressTabs>
     </PopoutPageTemplate>

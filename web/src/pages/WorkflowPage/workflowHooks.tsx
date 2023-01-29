@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { useGetWorkflowQuery, useNewWorkflowMutation } from "pages/WorkflowPage/workflowApi";
 import { ReactNode } from "react";
 import { Workflow, WorkflowVersion, WorkflowVersionNode } from "./workflowTypes";
+import mixpanel from "mixpanel-browser";
 
 export function useNewWorkflowButton(): ReactNode {
   const { t } = useTranslations();
@@ -13,9 +14,14 @@ export function useNewWorkflowButton(): ReactNode {
 
   function newWorkflowHandler() {
     const response = newWorkflow();
+    mixpanel.track("Create Workflow");
     response
       .then((res) => {
         const data = (res as { data: { workflowId: number; version: number } }).data;
+        mixpanel.track("Navigate to Workflow", {
+          workflowId: data.workflowId,
+          version: data.version,
+        });
         navigate(`/manage/workflows/${data.workflowId}/versions/${data.version}`);
       })
       .catch((err) => {
