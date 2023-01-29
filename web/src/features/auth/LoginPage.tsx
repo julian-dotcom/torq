@@ -45,7 +45,7 @@ function LoginPage() {
     formData.append("username", "admin");
     const res = (await login(formData)) as LoginResponse;
     if (res?.error) {
-      const errorMessage = res.error?.data?.error ? "Incorrect Password!" : "Api not reacheable!";
+      const errorMessage = res.error?.data?.error ? "Incorrect Password!" : "Api not reachable!";
       toastRef?.current?.addToast(errorMessage, toastCategory.error);
     } else {
       navigate(from, { replace: true });

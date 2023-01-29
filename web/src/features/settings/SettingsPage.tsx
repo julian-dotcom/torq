@@ -114,7 +114,7 @@ function Settings() {
   };
 
   const handleOptOut = (e: React.ChangeEvent<HTMLInputElement>) => {
-    mixpanel.track("Opt status", { optOut: e.target.checked });
+    mixpanel.track("Opt status", { optOut: !e.target.checked });
     setSettingsState({ ...settingsState, mixpanelOptOut: !e.target.checked });
   };
 
