@@ -30,7 +30,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.MainNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.MainNet));
-              mixpanel.track("Select Network MainNet");
+              mixpanel.track("Select Network", { networkSelected: "MainNet" });
             }}
           >
             {t.MainNet}
@@ -39,7 +39,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.TestNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.TestNet));
-              mixpanel.track("Select Network TestNet");
+              mixpanel.track("Select Network", { networkSelected: "TestNet" });
             }}
           >
             {t.TestNet}
@@ -48,7 +48,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.RegTest ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.RegTest));
-              mixpanel.track("Select Network RegTest");
+              mixpanel.track("Select Network", { networkSelected: "RegTest" });
             }}
           >
             {t.RegTest}
@@ -57,7 +57,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.SigNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.SigNet));
-              mixpanel.track("Select Network SigNet");
+              mixpanel.track("Select Network", { networkSelected: "SigNet" });
             }}
           >
             {t.SigNet}
@@ -66,7 +66,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.SimNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.SimNet));
-              mixpanel.track("Select Network SimNet");
+              mixpanel.track("Select Network", { networkSelected: "SimNet" });
             }}
           >
             {t.SimNet}
