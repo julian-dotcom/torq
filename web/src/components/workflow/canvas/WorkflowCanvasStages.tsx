@@ -63,8 +63,8 @@ function FirstStageTrigger(props: {
     mixpanel.track("Workflow Manually Triggered", {
       workflowId: props.workflowId,
       workflowVersionId: props.workflowVersionId,
-      version: props.version,
-      stageNumber: props.stage,
+      workflowVersion: props.version,
+      workflowStageNumber: props.stage,
     });
     triggerWorkflow({
       type: WorkflowNodeType.StageTrigger,

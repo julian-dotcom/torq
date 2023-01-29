@@ -72,8 +72,8 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
     mixpanel.track("Workflow Drag Canvas", {
       workflowId: props.workflowId,
       workflowVersionId: props.workflowVersionId,
-      version: props.version,
-      stageNumber: props.stageNumber,
+      workflowVersion: props.version,
+      workflowStageNumber: props.stageNumber,
     });
   }
 
@@ -122,11 +122,11 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
       mixpanel.track("Workflow Add New Node", {
         workflowId: props.workflowId,
         workflowVersionId: props.workflowVersionId,
-        version: props.version,
-        stageNumber: props.stageNumber,
-        nodeType: nodeType,
-        nodeName: nodeName,
-        method: "canvas drop",
+        workflowVersion: props.version,
+        workflowStageNumber: props.stageNumber,
+        workflowNodeType: nodeType,
+        workflowNodeName: nodeName,
+        workflowNodeMethod: "canvas drop",
       });
 
       addNode({

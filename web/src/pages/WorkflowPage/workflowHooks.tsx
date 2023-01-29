@@ -20,7 +20,7 @@ export function useNewWorkflowButton(): ReactNode {
         const data = (res as { data: { workflowId: number; version: number } }).data;
         mixpanel.track("Navigate to Workflow", {
           workflowId: data.workflowId,
-          version: data.version,
+          workflowVersion: data.version,
         });
         navigate(`/manage/workflows/${data.workflowId}/versions/${data.version}`);
       })

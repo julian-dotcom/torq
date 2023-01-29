@@ -29,9 +29,9 @@ function WorkflowLink(props: WorkflowLinkProp) {
   function handleDeleteLink() {
     mixpanel.track("Workflow Delete link", {
       workflowVersionId: link.workflowVersionId,
-      stageNumber: link.stage,
-      parentOutput: link.parentOutput,
-      childInput: link.childInput,
+      workflowStageNumber: link.stage,
+      workflowParentOutput: link.parentOutput,
+      workflowChildInput: link.childInput,
     });
     deleteLink({ linkId: link.workflowVersionNodeLinkId });
   }

@@ -75,8 +75,8 @@ function SelectStageButton(props: SelectStageButtonProps) {
     }
     mixpanel.track("Workflow Delete Stage", {
       workflowId: workflowId,
-      version: version,
-      stage: stage,
+      workflowVersion: version,
+      workflowStage: stage,
     });
     deleteStage({ workflowId, version, stage }).then(() => {
       // On success, select the preceding stage
@@ -122,8 +122,8 @@ function AddStageButton(props: AddStageButtonProps) {
   function handleAddStage() {
     mixpanel.track("Workflow Add Stage", {
       workflowVersionId: props.workflowVersionId,
-      currentStage: props.selectedStage,
-      nextStage: nextStage,
+      workflowCurrentStage: props.selectedStage,
+      workflowNextStage: nextStage,
     });
     addNode({
       type: WorkflowNodeType.StageTrigger,

@@ -21,10 +21,10 @@ function WorkflowCell(props: WorkflowCell) {
   const [updateWorkflow] = useUpdateWorkflowMutation();
 
   function archiveWorkflow() {
-    mixpanel.track("Archive Workflow", {
+    mixpanel.track("Workflow Archive", {
       workflowId: props.workflowId,
       workflowVersionId: props.workflowVersionId,
-      workFlowName: props.name,
+      workflowName: props.name,
     });
     updateWorkflow({ workflowId: props.workflowId, status: Status.Archived });
   }
@@ -38,8 +38,8 @@ function WorkflowCell(props: WorkflowCell) {
           onClick={() => {
             mixpanel.track("Navigate to Workflow", {
               workflowId: props.workflowId,
-              workflowVersionId: props.workflowVersionId,
-              workFlowName: props.name,
+              workflowVersion: props.workflowVersionId,
+              workflowName: props.name,
             });
           }}
           icon={<EditIcon />}

@@ -65,9 +65,9 @@ export default function TagsModal() {
         tagId: tag.tagId,
         tagName: tag.name,
         tagStyle: tag.style,
-        categoryId: tag.categoryId,
-        categoryName: tag.categoryName,
-        categoryStyle: tag.categoryStyle,
+        tagCategoryId: tag.categoryId,
+        tagCategoryName: tag.categoryName,
+        tagCategoryStyle: tag.categoryStyle,
       });
     } else {
       addTagMutation(tagRequest).then((result) => {

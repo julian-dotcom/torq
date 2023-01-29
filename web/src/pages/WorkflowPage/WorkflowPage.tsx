@@ -26,8 +26,8 @@ function WorkflowPage() {
   function selectStage(stage: number) {
     mixpanel.track("Workflow Select Stage", {
       workflowId: workflowId,
-      version: version,
-      stage: stage,
+      workflowVersion: version,
+      workflowStage: stage,
     });
     setSelectedStage(stage);
   }
@@ -38,7 +38,7 @@ function WorkflowPage() {
     mixpanel.track("Workflow Update Name", {
       workflowId: workflow?.workflowId,
       workflowVersionId: workflowVersion?.workflowVersionId,
-      workFlowName: workflow?.name,
+      workflowName: workflow?.name,
     });
     updateWorkflow({ workflowId: parseInt(workflowId || "0"), name: name });
   }

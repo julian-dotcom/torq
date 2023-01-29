@@ -36,7 +36,7 @@ export default function WorkflowControls(props: WorkflowControlsProps) {
             icon={props.status === Status.Active ? <DeactivateIcon /> : <ActivateIcon />}
             onClick={() => {
               mixpanel.track("Workflow Toggle Status", {
-                status: props.status === Status.Active ? "Inactive" : "Active",
+                workflowStatus: props.status === Status.Active ? "Inactive" : "Active",
                 workflowId: props.workflowId,
               });
               if (props.status === Status.Inactive && !confirm(t.workflowDetails.confirmWorkflowActivate)) {

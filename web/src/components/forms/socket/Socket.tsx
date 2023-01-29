@@ -57,10 +57,10 @@ function Socket(props: SocketProps) {
   function addLinkFromDrop(parentOutput: string, parentWorkflowVersionNodeId: number) {
     mixpanel.track("Workflow Link Node", {
       workflowVersionId: props.workflowVersionId,
-      childInput: props.inputName,
-      childWorkflowVersionNodeId: props.workflowVersionNodeId,
-      parentOutput: parentOutput,
-      parentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
+      workflowChildInput: props.inputName,
+      workflowChildWorkflowVersionNodeId: props.workflowVersionNodeId,
+      workflowParentOutput: parentOutput,
+      workflowParentWorkflowVersionNodeId: parentWorkflowVersionNodeId,
     });
     addLink({
       workflowVersionId: props.workflowVersionId,

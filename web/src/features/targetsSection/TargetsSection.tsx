@@ -105,7 +105,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
               tagId: props.tagId,
               tagName: props.tagName,
               nodeId: selectOptions?.value,
-              type: "node",
+              tagType: "node",
             });
             addTarget(selectOptions?.value as number, selectOptions?.type as string);
           }}
@@ -133,7 +133,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
                         tagId: props.tagId,
                         tagName: props.tagName,
                         nodeId: c.nodeId,
-                        type: "node",
+                        tagType: "node",
                       });
                       untagNode({ tagId: props.tagId, nodeId: c.nodeId });
                     }}
@@ -158,7 +158,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
               tagId: props.tagId,
               tagName: props.tagName,
               channelId: selectOptions?.value,
-              type: "channel",
+              tagType: "channel",
             });
             addTarget(selectOptions?.value as number, selectOptions?.type as string);
           }}
@@ -186,7 +186,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
                         tagId: props.tagId,
                         tagName: props.tagName,
                         channelId: c.channelId,
-                        type: "channel",
+                        tagType: "channel",
                       });
                       untagChannel({ tagId: props.tagId, channelId: c.channelId });
                     }}
