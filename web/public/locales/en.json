@@ -99,6 +99,7 @@
   "noCategory": "No Category",
   "tagNode": "Tag Node",
   "tagChannel": "Tag Channel",
+  "ImportFailedPayments": "Import failed payments",
   "tagsModal": {
     "addConfirmedMessage": "tag and target created",
     "create": "Create",
@@ -241,7 +242,7 @@
     "newInvoice": "New Invoice",
     "newPayment": "New Payment",
     "newAddress": "New Address",
-    "settings": "Date & time settings",
+    "DateTimeSettings": "Date & time settings",
     "nodes": "Nodes",
     "tags": "Tags",
     "peerTag": "Peer tag",

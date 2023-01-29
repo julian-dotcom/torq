@@ -98,6 +98,7 @@ function PaymentsPage() {
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
+    mixpanel.track("Toggle Table Sidebar", { page: "Payments" });
   };
 
   const tableControls = (
@@ -117,7 +118,10 @@ function PaymentsPage() {
           </Button>
         </TableControlsTabsGroup>
         <TableControlsButton
-          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+          onClickHandler={() => {
+            setSidebarExpanded(!sidebarExpanded);
+            mixpanel.track("Toggle Table Sidebar", { page: "Payments" });
+          }}
           icon={OptionsIcon}
           id={"tableControlsButton"}
         />

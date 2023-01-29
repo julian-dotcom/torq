@@ -7,6 +7,7 @@ import { ReactComponent as StageArrowFront } from "pages/WorkflowPage/stageArrow
 import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
 import useTranslations from "services/i18n/useTranslations";
+import mixpanel from "mixpanel-browser";
 
 type StageSelectorProps = {
   stageNumbers: Array<number>;
@@ -72,6 +73,11 @@ function SelectStageButton(props: SelectStageButtonProps) {
     if (!confirm(t.deleteStageConfirm)) {
       return;
     }
+    mixpanel.track("Workflow Delete Stage", {
+      workflowId: workflowId,
+      workflowVersion: version,
+      workflowStage: stage,
+    });
     deleteStage({ workflowId, version, stage }).then(() => {
       // On success, select the preceding stage
       const precedingStage = stageNumbers.slice(0, stageNumbers.indexOf(stage)).pop();
@@ -114,6 +120,11 @@ function AddStageButton(props: AddStageButtonProps) {
   const nextStage = Math.max(...props.stageNumbers) + 1;
 
   function handleAddStage() {
+    mixpanel.track("Workflow Add Stage", {
+      workflowVersionId: props.workflowVersionId,
+      workflowCurrentStage: props.selectedStage,
+      workflowNextStage: nextStage,
+    });
     addNode({
       type: WorkflowNodeType.StageTrigger,
       name: `${t.stage} ${nextStage}`,

@@ -25,6 +25,7 @@ import {
   ChannelCloseTriggerNodeButton,
   ChannelOpenTriggerNodeButton,
 } from "components/workflow/nodes/nodes";
+import mixpanel from "mixpanel-browser";
 
 export type WorkflowSidebarProps = {
   expanded: boolean;
@@ -36,6 +37,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
 
   const { t } = useTranslations();
   const closeSidebarHandler = () => {
+    mixpanel.track("Workflow Toggle Sidebar");
     setExpanded(false);
   };
 

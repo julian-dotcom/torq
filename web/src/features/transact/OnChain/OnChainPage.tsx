@@ -33,6 +33,7 @@ import { useAppSelector } from "store/hooks";
 import { selectOnChainView } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectActiveNetwork } from "features/network/networkSlice";
+import mixpanel from "mixpanel-browser";
 
 function useMaximums(data: Array<OnChainTx>): OnChainTx | undefined {
   if (!data.length) {
@@ -76,6 +77,7 @@ function OnChainPage() {
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
+    mixpanel.track("Toggle Table Sidebar", { page: "OnChain" });
   };
 
   const maxRow = useMaximums(onChainTxResponse.data?.data || []);
@@ -90,13 +92,17 @@ function OnChainPage() {
             hideMobileText={true}
             onClick={() => {
               navigate(NEW_ADDRESS, { state: { background: location } });
+              mixpanel.track("Navigate to New OnChain Address");
             }}
           >
             {t.newAddress}
           </Button>
         </TableControlsTabsGroup>
         <TableControlsButton
-          onClickHandler={() => setSidebarExpanded(!sidebarExpanded)}
+          onClickHandler={() => {
+            setSidebarExpanded(!sidebarExpanded);
+            mixpanel.track("Toggle Table Sidebar", { page: "OnChain" });
+          }}
           icon={OptionsIcon}
           id={"tableControlsButton"}
         />

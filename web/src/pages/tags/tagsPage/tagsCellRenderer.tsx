@@ -12,6 +12,7 @@ import { useDeleteTagMutation } from "../tagsApi";
 import useTranslations from "services/i18n/useTranslations";
 import { useLocation } from "react-router-dom";
 import NumericDoubleCell from "components/table/cells/numeric/NumericDoubleCell";
+import mixpanel from "mixpanel-browser";
 
 const color = new Map<string, TagColor>([
   ["error", TagColor.error],
@@ -62,6 +63,12 @@ export default function tagsCellRenderer(
           disabled={!(row.tagId !== undefined && row.tagId >= 0)}
           buttonSize={SizeVariant.small}
           onClick={() => {
+            mixpanel.track("Delete Tag", {
+              tagId: row.tagId,
+              tagName: row.name,
+              tagStyle: row.style,
+              tagCategory: row.categoryName,
+            });
             deleteTagMutation(row.tagId || 0);
           }}
           buttonColor={ColorVariant.error}
@@ -90,6 +97,14 @@ export default function tagsCellRenderer(
         <LinkButton
           state={{ background: location }}
           to={`/update-tag/${row.tagId}`}
+          onClick={() => {
+            mixpanel.track("Navigate to Update Tag", {
+              tagId: row.tagId,
+              tagName: row.name,
+              tagStyle: row.style,
+              tagCategory: row.categoryName,
+            });
+          }}
           buttonSize={SizeVariant.small}
           buttonColor={ColorVariant.primary}
         >

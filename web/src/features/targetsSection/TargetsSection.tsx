@@ -101,10 +101,11 @@ export default function TargetsSection(props: TargetsSectionProps) {
           label={t.tagNode}
           onChange={(newValue: unknown) => {
             const selectOptions = newValue as SelectOptions;
-            mixpanel.track("Tagging - Tag node", {
-              tag_id: props.tagId,
-              tag_name: props.tagName,
-              node_id: selectOptions?.value,
+            mixpanel.track("Tag", {
+              tagId: props.tagId,
+              tagName: props.tagName,
+              nodeId: selectOptions?.value,
+              tagType: "node",
             });
             addTarget(selectOptions?.value as number, selectOptions?.type as string);
           }}
@@ -128,10 +129,11 @@ export default function TargetsSection(props: TargetsSectionProps) {
                 return (
                   <Target
                     onDeleteTarget={() => {
-                      mixpanel.track("Tagging - Untag node", {
-                        tag_id: props.tagId,
-                        tag_name: props.tagName,
-                        node_id: c.nodeId,
+                      mixpanel.track("Untag", {
+                        tagId: props.tagId,
+                        tagName: props.tagName,
+                        nodeId: c.nodeId,
+                        tagType: "node",
                       });
                       untagNode({ tagId: props.tagId, nodeId: c.nodeId });
                     }}
@@ -152,10 +154,11 @@ export default function TargetsSection(props: TargetsSectionProps) {
           label={t.tagChannel}
           onChange={(newValue: unknown) => {
             const selectOptions = newValue as SelectOptions;
-            mixpanel.track("Tagging - Tag channel", {
-              tag_id: props.tagId,
-              tag_name: props.tagName,
-              channel_id: selectOptions?.value,
+            mixpanel.track("Tag", {
+              tagId: props.tagId,
+              tagName: props.tagName,
+              channelId: selectOptions?.value,
+              tagType: "channel",
             });
             addTarget(selectOptions?.value as number, selectOptions?.type as string);
           }}
@@ -179,10 +182,11 @@ export default function TargetsSection(props: TargetsSectionProps) {
                 return (
                   <Target
                     onDeleteTarget={() => {
-                      mixpanel.track("Tagging - Untag channel", {
-                        tag_id: props.tagId,
-                        tag_name: props.tagName,
-                        channel_id: c.channelId,
+                      mixpanel.track("Untag", {
+                        tagId: props.tagId,
+                        tagName: props.tagName,
+                        channelId: c.channelId,
+                        tagType: "channel",
                       });
                       untagChannel({ tagId: props.tagId, channelId: c.channelId });
                     }}

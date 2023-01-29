@@ -46,6 +46,7 @@ import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPage
 import PageTitle from "features/templates/PageTitle";
 import useTranslations from "services/i18n/useTranslations";
 import Tag, { TagColor } from "components/tags/Tag";
+import mixpanel from "mixpanel-browser";
 
 const ft = d3.format(",.0f");
 
@@ -230,6 +231,11 @@ function ChannelPage(_: ChannelPageProps) {
               <LinkButton
                 to={`/tag-channel/${chanId}`}
                 state={{ background: location }}
+                onClick={() => {
+                  mixpanel.track("Navigate to Tag Channel", {
+                    channelId: chanId,
+                  });
+                }}
                 icon={<ChannelsIcon />}
                 buttonSize={SizeVariant.small}
                 buttonColor={ColorVariant.disabled}
@@ -237,6 +243,11 @@ function ChannelPage(_: ChannelPageProps) {
               <LinkButton
                 to={`/tag-node/${channelDetails.find((c) => c.channelId === parseInt(chanId || "") || 0)?.peerNodeId}`}
                 state={{ background: location }}
+                onClick={() => {
+                  mixpanel.track("Navigate to Tag Node", {
+                    nodeId: channelDetails.find((c) => c.channelId === parseInt(chanId || "") || 0)?.peerNodeId,
+                  });
+                }}
                 icon={<NodeIcon />}
                 buttonSize={SizeVariant.small}
                 buttonColor={ColorVariant.disabled}

@@ -14,7 +14,7 @@ export function IsNumericOption(result: unknown): result is { value: number; lab
     typeof result === "object" &&
     "value" in result &&
     "label" in result &&
-    typeof (result as { value: number; label: string }).value === "number"
+    typeof (result as { value: unknown; label: string }).value === "number"
   );
 }
 

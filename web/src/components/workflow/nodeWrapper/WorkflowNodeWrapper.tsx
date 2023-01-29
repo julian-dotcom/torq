@@ -98,6 +98,15 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
     const x = e.clientX - nodeBB.left;
     const y = e.clientY - nodeBB.top;
     setNodeBB({ left: x, top: y });
+    mixpanel.track("Workflow Drag Node", {
+      workflowNodeType: props.type,
+      workflowId: props.workflowId,
+      workflowVersionId: props.workflowVersionId,
+      workflowStage: props.stage,
+      workflowNodeId: props.workflowVersionNodeId,
+      workflowStatus: props.status,
+      workflowVersion: props.version,
+    });
   }
 
   function handleDrag(e: React.DragEvent<HTMLDivElement>) {
@@ -134,6 +143,15 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   const connectorId = useId();
 
   function handleCollapse() {
+    mixpanel.track("Workflow Collapse Node", {
+      workflowNodeType: props.type,
+      workflowId: props.workflowId,
+      workflowVersionId: props.workflowVersionId,
+      workflowStage: props.stage,
+      workflowNodeId: props.workflowVersionNodeId,
+      workflowStatus: props.status,
+      workflowVersion: props.version,
+    });
     // Toggle the collapsed state
     updateNodeVisibilitySettings({
       workflowVersionNodeId: props.workflowVersionNodeId,
@@ -204,15 +222,19 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
                     buttonColor={ColorVariant.primary}
                     buttonSize={SizeVariant.small}
                     onClick={() => {
+                      mixpanel.track("Workflow Node Status", {
+                        workflowNodeType: props.type,
+                        workflowId: props.workflowId,
+                        workflowVersionId: props.workflowVersionId,
+                        workflowStage: props.stage,
+                        workflowNodeId: props.workflowVersionNodeId,
+                        workflowVersion: props.version,
+                        workflowNodeStatus: props.status === 0 ? t.active : t.deactivate,
+                      });
                       updateNode({
                         workflowVersionNodeId: props.workflowVersionNodeId,
                         // TODO: Switch to enum here
                         status: props.status === 0 ? 1 : 0,
-                      });
-                      mixpanel.track("Workflow Node updated", {
-                        nodeType: props.type,
-                        nodeName: props.name,
-                        status: props.status === 0 ? t.active : t.deactivate,
                       });
                     }}
                   >
@@ -225,11 +247,16 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
                     buttonColor={ColorVariant.error}
                     buttonSize={SizeVariant.small}
                     onClick={() => {
-                      deleteNode({ nodeId: props.workflowVersionNodeId });
-                      mixpanel.track("Workflow Node deleted", {
-                        nodeType: props.type,
-                        nodeName: props.name,
+                      mixpanel.track("Workflow Delete Node", {
+                        workflowNodeType: props.type,
+                        workflowId: props.workflowId,
+                        workflowVersionId: props.workflowVersionId,
+                        workflowStage: props.stage,
+                        workflowNodeId: props.workflowVersionNodeId,
+                        workflowVersion: props.version,
+                        workflowNodeStatus: props.status,
                       });
+                      deleteNode({ nodeId: props.workflowVersionNodeId });
                     }}
                   >
                     {t.delete}

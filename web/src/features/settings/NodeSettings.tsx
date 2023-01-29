@@ -163,7 +163,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
           setSaveEnabledState(true);
           toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
         });
-
+      mixpanel.track("Add Local Node");
       return;
     } else {
       updateNodeConfiguration(form)
@@ -176,6 +176,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
           setSaveEnabledState(true);
           toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
         });
+      mixpanel.track("Update Local Node", { nodeId: nodeConfigurationState.nodeId });
     }
   };
 
@@ -240,9 +241,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     let statusId = 0;
     if (nodeConfigurationState.status == 0) {
       statusId = 1;
-      mixpanel.track("Enable Local Node", { nodeId: nodeConfigurationState.nodeId, statusId: statusId });
+      mixpanel.track("Enable Local Node", { nodeId: nodeConfigurationState.nodeId });
     } else {
-      mixpanel.track("Disable Local Node", { nodeId: nodeConfigurationState.nodeId, statusId: statusId });
+      mixpanel.track("Disable Local Node", { nodeId: nodeConfigurationState.nodeId });
     }
     setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: statusId })
       .unwrap()
@@ -391,12 +392,12 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 />
               </span>
               <div className={styles.importFailedPayments}>
-                <Switch
-                  label={"Import failed payments"}
-                  checked={nodeConfigurationState.customSettings % 2 >= 1}
-                  onChange={handleImportFailedPaymentsClick}
-                />
                 <Note title={"Failed Payments"} noteType={NoteType.warning}>
+                  <Switch
+                    label={t.ImportFailedPayments}
+                    checked={nodeConfigurationState.customSettings % 2 >= 1}
+                    onChange={handleImportFailedPaymentsClick}
+                  />
                   {t.importFailedPayments}
                 </Note>
               </div>
@@ -410,28 +411,30 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               >
                 {addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
               </Button>
-              <div className={styles.pingSystems}>
-                <div className={styles.vectorPingSystem}>
-                  <Switch
-                    label="Vector Ping"
-                    checked={nodeConfigurationState.pingSystem % 4 >= 2}
-                    onChange={handleVectorPingClick}
-                  />
+              {!addMode && (
+                <div className={styles.pingSystems}>
+                  <div className={styles.vectorPingSystem}>
+                    <Switch
+                      label="Vector Ping"
+                      checked={nodeConfigurationState.pingSystem % 4 >= 2}
+                      onChange={handleVectorPingClick}
+                    />
+                  </div>
+                  <div className={styles.ambossPingSystem}>
+                    <Switch
+                      label="Amboss Ping"
+                      checked={nodeConfigurationState.pingSystem % 2 >= 1}
+                      onChange={handleAmbossPingClick}
+                    />
+                  </div>
+                  <Note title={t.header.pingNoteHeader} noteType={NoteType.info}>
+                    <p>{t.pingNote}</p>
+                    <p>{t.header.pingSystem}</p>
+                    <p>{t.header.vectorPingSystem}</p>
+                    <p>{t.header.ambossPingSystem}</p>
+                  </Note>
                 </div>
-                <div className={styles.ambossPingSystem}>
-                  <Switch
-                    label="Amboss Ping"
-                    checked={nodeConfigurationState.pingSystem % 2 >= 1}
-                    onChange={handleAmbossPingClick}
-                  />
-                </div>
-                <Note title={t.header.pingNoteHeader} noteType={NoteType.info}>
-                  <p>{t.pingNote}</p>
-                  <p>{t.header.pingSystem}</p>
-                  <p>{t.header.vectorPingSystem}</p>
-                  <p>{t.header.ambossPingSystem}</p>
-                </Note>
-              </div>
+              )}
             </Form>
           </div>
         </div>

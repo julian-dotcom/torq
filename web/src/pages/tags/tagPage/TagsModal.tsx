@@ -13,6 +13,7 @@ import Button, { ButtonWrapper, ColorVariant } from "components/buttons/Button";
 import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import TargetsSection from "features/targetsSection/TargetsSection";
+import mixpanel from "mixpanel-browser";
 
 const inputNames = {
   name: "name",
@@ -60,11 +61,20 @@ export default function TagsModal() {
 
     if (tag.tagId) {
       setTagMutation(tagRequest);
+      mixpanel.track("Update Tag", {
+        tagId: tag.tagId,
+        tagName: tag.name,
+        tagStyle: tag.style,
+        tagCategoryId: tag.categoryId,
+        tagCategoryName: tag.categoryName,
+        tagCategoryStyle: tag.categoryStyle,
+      });
     } else {
       addTagMutation(tagRequest).then((result) => {
         if (hasTagsData(result) && result.data?.tagId !== undefined) {
           navigate(-1);
         }
+        mixpanel.track("Create Tag", tagRequest);
       });
     }
   }

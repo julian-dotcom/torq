@@ -39,7 +39,6 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
           buttonPosition={ButtonPosition.center}
           onClick={() => {
             mixpanel.track("Navigate to Inspect Channel", {
-              background: location.pathname,
               channelId: channelId,
             });
           }}
@@ -60,7 +59,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
                   icon={<EditIcon />}
                   onClick={() => {
                     mixpanel.track("Navigate to Update Channel", {
-                      background: location.pathname,
+                      nodeId: nodeId,
                       channelId: channelId,
                     });
                   }}
@@ -78,7 +77,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
                   icon={<CloseIcon />}
                   onClick={() => {
                     mixpanel.track("Navigate to Close Channel", {
-                      background: location.pathname,
+                      nodeId: nodeId,
                       channelId: channelId,
                     });
                   }}
