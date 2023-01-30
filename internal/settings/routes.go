@@ -433,7 +433,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
-	commons.RunningServices[commons.LndService].SetIncludeIncomplete(ncd.NodeId, ncd.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
+	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(ncd.NodeId, ncd.CustomSettings)
 
 	ncd, err = SetNodeConnectionDetails(db, ncd)
 	if err != nil {

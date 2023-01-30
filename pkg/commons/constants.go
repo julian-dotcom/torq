@@ -153,8 +153,15 @@ type NodeConnectionDetailCustomSettings byte
 
 const (
 	ImportFailedPayments NodeConnectionDetailCustomSettings = 1 << iota
+	ImportHtlcEvents
+	ImportPeerEvents
+	ImportTransactions
+	ImportPayments
+	ImportInvoices
+	ImportForwards
+	ImportHistoricForwards
 )
-const NodeConnectionDetailCustomSettingsMax = int(ImportFailedPayments)*2 - 1
+const NodeConnectionDetailCustomSettingsMax = int(ImportHistoricForwards)*2 - 1
 
 type SubscriptionStream int
 

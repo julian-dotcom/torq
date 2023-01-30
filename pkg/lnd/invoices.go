@@ -207,6 +207,13 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	subscriptionStream := commons.InvoiceStream
 	importCounter := 0
 
+	importInvoices := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportInvoices)
+	if !importInvoices {
+		log.Info().Msgf("Import of invoices is disabled for nodeId: %v", nodeSettings.NodeId)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		return
+	}
+
 	for {
 		select {
 		case <-ctx.Done():

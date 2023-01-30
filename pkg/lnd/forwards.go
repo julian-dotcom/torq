@@ -142,6 +142,23 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
+	importForwards := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportForwards)
+	if !importForwards {
+		log.Info().Msgf("Import of forwards is disabled for nodeId: %v", nodeSettings.NodeId)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		return
+	}
+
+	var enforcedReferenceDate *time.Time
+	importHistoricForwards := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportHistoricForwards)
+	if !importHistoricForwards {
+		log.Info().Msgf("Import of historic forwards is disabled for nodeId: %v", nodeSettings.NodeId)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		enforcedReferenceDateO := time.Now()
+		enforcedReferenceDate = &enforcedReferenceDateO
+		bootStrapping = false
+	}
+
 	// Request the forwarding history at the requested interval.
 	// NB!: This timer is slowly being shifted because of the time required to
 	//fetch and store the response.
@@ -161,6 +178,9 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_FORWARDS_TICKER_SECONDS)
 					break
+				}
+				if enforcedReferenceDate != nil && lastNs == 0 {
+					lastNs = uint64(enforcedReferenceDate.UnixNano())
 				}
 				lastTimestamp := lastNs / uint64(time.Second)
 

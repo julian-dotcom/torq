@@ -42,11 +42,18 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	bootStrapping := true
 	subscriptionStream := commons.PaymentStream
 	ticker := clock.New().Tick(commons.STREAM_PAYMENTS_TICKER_SECONDS * time.Second)
-	includeIncomplete := commons.RunningServices[commons.LndService].GetIncludeIncomplete(nodeSettings.NodeId)
+	includeIncomplete := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportFailedPayments)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
 		ticker = opt.Tick
+	}
+
+	importPayments := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPayments)
+	if !importPayments {
+		log.Info().Msgf("Import of payments is disabled for nodeId: %v", nodeSettings.NodeId)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		return
 	}
 
 	// Request the Payments at the requested interval.
@@ -263,6 +270,13 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
 		ticker = opt.Tick
+	}
+
+	importPayments := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPayments)
+	if !importPayments {
+		log.Info().Msgf("Import of payments (including in-flight) is disabled for nodeId: %v", nodeSettings.NodeId)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		return
 	}
 
 	// Request the in flight payments at the requested interval.
