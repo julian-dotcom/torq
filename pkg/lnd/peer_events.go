@@ -32,7 +32,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 	importPeerEvents := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPeerEvents)
 	if !importPeerEvents {
 		log.Info().Msgf("Import of peer events is disabled for nodeId: %v", nodeSettings.NodeId)
-		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
 		return
 	}
 
