@@ -99,6 +99,7 @@
   "noCategory": "No Category",
   "tagNode": "Tag Node",
   "tagChannel": "Tag Channel",
+  "import": "Import",
   "ImportFailedPayments": "Import failed payments",
   "tagsModal": {
     "addConfirmedMessage": "tag and target created",
@@ -129,6 +130,7 @@
     }
   },
   "importFailedPayments": "When this is enabled Torq will import failed payments. (Please be cautious with this as this could cause performance problems for LND. This is not advised for nodes with aggressive rebalancing and/or lightweight hardware.)",
+  "advancedSettings": "Advanced import settings",
   "implementation": "Implementation",
   "nodeName": "Node Name",
   "grpcAddress": "GRPC Address (IP or Tor)",

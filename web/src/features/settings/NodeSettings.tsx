@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {useState} from "react";
 import {
   ChevronDown20Regular as CollapsedIcon,
   Delete20Regular as DeleteIcon,
@@ -59,6 +59,50 @@ const nodeConfigurationTemplate = {
   customSettings: 0,
 };
 
+const importFailedPayments = "importFailedPayments";
+const importFailedPaymentsValue = 1;
+const importHtlcEvents = "importHtlcEvents";
+const importHtlcEventsValue = 2;
+const importPeerEvents = "importPeerEvents";
+const importPeerEventsValue = 4;
+const importTransactions = "importTransactions";
+const importTransactionsValue = 8;
+const importPayments = "importPayments";
+const importPaymentsValue = 16;
+const importInvoices = "importInvoices";
+const importInvoicesValue = 32;
+const importForwards = "importForwards";
+const importForwardsValue = 64;
+const importForwardsHistory = "importForwardsHistory";
+const importForwardsHistoryValue = 128;
+
+const customSettingsDefault = {
+  importFailedPayments: true,
+  importHtlcEvents: true,
+  importPeerEvents: true,
+  importTransactions: true,
+  importPayments: true,
+  importInvoices: true,
+  importForwards: true,
+  importForwardsHistory: true,
+}
+
+interface importProps {
+  value: number;
+  label?: string;
+}
+
+const customSettingsSidebarData = new Map<string, importProps>([
+  [importFailedPayments, { value: importFailedPaymentsValue, label: undefined }],
+  [importHtlcEvents, { value: importHtlcEventsValue, label: "Htlc events" }],
+  [importPeerEvents, { value: importPeerEventsValue, label: "Peer events" }],
+  [importTransactions, { value: importTransactionsValue, label: "Transactions" }],
+  [importPayments, { value: importPaymentsValue, label: "Payments" }],
+  [importInvoices, { value: importInvoicesValue, label: "Invoices" }],
+  [importForwards, { value: importForwardsValue, label: "Forwards" }],
+  [importForwardsHistory, { value: importForwardsHistoryValue, label: "Forwards History" }],
+])
+
 const NodeSettings = React.forwardRef(function NodeSettings(
   { nodeId, collapsed, addMode, onAddSuccess }: nodeProps,
   ref
@@ -77,11 +121,13 @@ const NodeSettings = React.forwardRef(function NodeSettings(
 
   const [nodeConfigurationState, setNodeConfigurationState] = useState<nodeConfiguration>(nodeConfigurationTemplate);
   const [collapsedState, setCollapsedState] = useState(collapsed ?? false);
+  const [customSettingsCollapsedState, setCustomSettingsCollapsedState] = useState(true);
   const [showModalState, setShowModalState] = useState(false);
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
   const [deleteEnabled, setDeleteEnabled] = useState(false);
   const [saveEnabledState, setSaveEnabledState] = useState(true);
   const [enableEnableButtonState, setEnableEnableButtonState] = useState(true);
+  const [customSettingsState, setCustomSettingsState] = React.useState(customSettingsDefault);
 
   React.useImperativeHandle(ref, () => ({
     clear() {
@@ -90,6 +136,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   }));
 
   const clear = () => {
+    setCustomSettingsState(customSettingsDefault);
     setNodeConfigurationState({
       grpcAddress: "",
       nodeId: 0,
@@ -182,7 +229,40 @@ const NodeSettings = React.forwardRef(function NodeSettings(
 
   React.useEffect(() => {
     setNodeConfigurationState(nodeConfigurationData || nodeConfigurationTemplate);
+    if (nodeConfigurationData == undefined) {
+      setNodeConfigurationState({ ...nodeConfigurationState, customSettings: 254 });
+    } else {
+      setCustomSettingsState({
+        importFailedPayments: nodeConfigurationData.customSettings % (importFailedPaymentsValue * 2) >= 1,
+        importHtlcEvents: nodeConfigurationData.customSettings % (importHtlcEventsValue * 2) >= 1,
+        importPeerEvents: nodeConfigurationData.customSettings % (importPeerEventsValue * 2) >= 1,
+        importTransactions: nodeConfigurationData.customSettings % (importTransactionsValue * 2) >= 1,
+        importPayments: nodeConfigurationData.customSettings % (importPaymentsValue * 2) >= 1,
+        importInvoices: nodeConfigurationData.customSettings % (importInvoicesValue * 2) >= 1,
+        importForwards: nodeConfigurationData.customSettings % (importForwardsValue * 2) >= 1,
+        importForwardsHistory: nodeConfigurationData.customSettings % (importForwardsHistoryValue * 2) >= 1,
+      });
+    }
   }, [nodeConfigurationData]);
+
+  const getCustomSettingsState = (key: string) => {
+    const data = customSettingsSidebarData.get(key)
+    if (data !== undefined && nodeConfigurationState != undefined) {
+      return nodeConfigurationState.customSettings % (data.value * 2) >= data.value;
+    }
+    return true;
+  };
+
+  const toggleCustomSettingsState = (key: string) => {
+    const data = customSettingsSidebarData.get(key)
+    if (data !== undefined) {
+      if (getCustomSettingsState(key)) {
+        setNodeConfigurationState({ ...nodeConfigurationState, customSettings: (nodeConfigurationState.customSettings - data.value) });
+      } else {
+        setNodeConfigurationState({ ...nodeConfigurationState, customSettings: (nodeConfigurationState.customSettings + data.value) });
+      }
+    }
+  };
 
   const handleTLSFileChange = (file: File | null) => {
     setNodeConfigurationState({ ...nodeConfigurationState, tlsFile: file, tlsFileName: file ? file.name : undefined });
@@ -196,21 +276,6 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     });
   };
 
-  const handleImportFailedPaymentsClick = () => {
-    const importFailedPaymentsActive = nodeConfigurationState.customSettings % 2 >= 1;
-    if (importFailedPaymentsActive) {
-      setNodeConfigurationState({
-        ...nodeConfigurationState,
-        customSettings: nodeConfigurationState.customSettings - 1,
-      });
-    } else {
-      setNodeConfigurationState({
-        ...nodeConfigurationState,
-        customSettings: nodeConfigurationState.customSettings + 1,
-      });
-    }
-  };
-
   const handleAddressChange = (value: string) => {
     setNodeConfigurationState({ ...nodeConfigurationState, grpcAddress: value });
   };
@@ -221,6 +286,10 @@ const NodeSettings = React.forwardRef(function NodeSettings(
 
   const handleCollapseClick = () => {
     setCollapsedState(!collapsedState);
+  };
+
+  const handleCustomSettingsCollapseClick = () => {
+    setCustomSettingsCollapsedState(!customSettingsCollapsedState);
   };
 
   const handleModalDeleteClick = () => {
@@ -343,6 +412,37 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       >
                         {"Delete node"}
                       </Button>
+
+                      <div className={styles.channelChartSettingsPopover}>
+                        <>
+                          <div className={styles.cardRow}>
+                            <div className={styles.rowLabel}>
+                              {t.import}
+                            </div>
+                          </div>
+
+                          {Object.keys(customSettingsState).map((key) => {
+                            const k = key as keyof typeof customSettingsState;
+                            const data = customSettingsSidebarData.get(key)
+                            if (data !== undefined && data.label !== undefined) {
+                              return (
+                                <div className={styles.cardRow} key={key}>
+                                  <div className={styles.rowLabel}>
+                                    <Switch
+                                      label={data.label || ""}
+                                      checked={customSettingsState[k]}
+                                      onChange={() => {
+                                        setCustomSettingsState({ ...customSettingsState, [key]: !customSettingsState[k] });
+                                        toggleCustomSettingsState(key)
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            }
+                          })}
+                        </>
+                      </div>
                     </div>
                   </Popover>
                 </div>
@@ -395,12 +495,45 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 <Note title={"Failed Payments"} noteType={NoteType.warning}>
                   <Switch
                     label={t.ImportFailedPayments}
-                    checked={nodeConfigurationState.customSettings % 2 >= 1}
-                    onChange={handleImportFailedPaymentsClick}
+                    checked={nodeConfigurationState.customSettings % (importFailedPaymentsValue * 2) >= importFailedPaymentsValue}
+                    onChange={() => {toggleCustomSettingsState(importFailedPayments)}}
                   />
                   {t.importFailedPayments}
                 </Note>
               </div>
+
+              {addMode && (
+                <>
+                  <div
+                    className={classNames(styles.header, { [styles.expanded]: !customSettingsCollapsedState })}
+                    onClick={handleCustomSettingsCollapseClick}
+                  >
+                    <div className={styles.title}>{t.advancedSettings}</div>
+                    <div className={classNames(styles.collapseIcon, { [styles.collapsed]: customSettingsCollapsedState })}>
+                      {customSettingsCollapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
+                    </div>
+                  </div>
+                  <Collapse collapsed={customSettingsCollapsedState} animate={true}>
+                    {Object.keys(customSettingsState).map((key) => {
+                      const k = key as keyof typeof customSettingsState;
+                      const data = customSettingsSidebarData.get(key)
+                      if (data !== undefined && data.label !== undefined) {
+                        return (
+                          <div className={styles.import} key={key}>
+                            <Switch
+                              label={data.label}
+                              checked={nodeConfigurationState.customSettings % (data.value * 2) >= data.value}
+                              onChange={() => {
+                                toggleCustomSettingsState(k)
+                              }}
+                            />
+                          </div>
+                        );
+                      }
+                    })}
+                  </Collapse>
+                </>
+              )}
               <Button
                 id={"save-node"}
                 buttonColor={ColorVariant.success}
