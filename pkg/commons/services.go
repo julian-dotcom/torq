@@ -133,7 +133,7 @@ func (rs *Services) GetStatus(nodeId int) Status {
 		var streamStatus *Status
 		for _, status := range rs.streamStatus[nodeId] {
 			existingStatus := status
-			if status != Active {
+			if status != Active && status != Deleted {
 				if streamStatus == nil {
 					streamStatus = &existingStatus
 				}
@@ -178,7 +178,7 @@ node:
 		}
 		if rs.ServiceType == LndService {
 			for _, status := range rs.streamStatus[nodeId] {
-				if status != Active {
+				if status != Active && status != Deleted {
 					continue node
 				}
 			}
@@ -261,7 +261,7 @@ func (rs *Services) GetChannelBalanceCacheStreamStatus(nodeId int) Status {
 	for _, stream := range SubscriptionStreams {
 		if stream.IsChannelBalanceCache() {
 			status := rs.streamStatus[nodeId][stream]
-			if status != Active {
+			if status != Active && status != Deleted {
 				if streamStatus == nil {
 					streamStatus = &status
 				}
