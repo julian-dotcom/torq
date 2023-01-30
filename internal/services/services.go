@@ -32,8 +32,9 @@ type Stream struct {
 
 type LndService struct {
 	CommonService
-	NodeId       int      `json:"nodeId"`
-	StreamStatus []Stream `json:"streamStatus,omitempty"`
+	NodeId         int             `json:"nodeId"`
+	BitcoinNetwork commons.Network `json:"bitcoinNetwork"`
+	StreamStatus   []Stream        `json:"streamStatus,omitempty"`
 }
 
 type VectorService struct {
@@ -47,9 +48,10 @@ type AmbossService struct {
 }
 
 type Services struct {
-	TorqService    TorqService     `json:"torqService"`
-	LndServices    []LndService    `json:"lndServices,omitempty"`
-	Services       []Service       `json:"services,omitempty"`
-	VectorServices []VectorService `json:"vectorServices,omitempty"`
-	AmbossServices []AmbossService `json:"ambossServices,omitempty"`
+	BitcoinNetworks []commons.Network `json:"bitcoinNetworks"`
+	TorqService     TorqService       `json:"torqService"`
+	LndServices     []LndService      `json:"lndServices,omitempty"`
+	Services        []Service         `json:"services,omitempty"`
+	VectorServices  []VectorService   `json:"vectorServices,omitempty"`
+	AmbossServices  []AmbossService   `json:"ambossServices,omitempty"`
 }

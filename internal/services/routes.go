@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/slices"
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/internal/settings"
@@ -18,6 +19,7 @@ func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
 func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	result := Services{}
+	var bitcoinNetworks []commons.Network
 	result.TorqService = TorqService{
 		CommonService: CommonService{
 			Status:   commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId),
@@ -28,12 +30,17 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	result.TorqService.StatusString = result.TorqService.Status.String()
 	torqNodeIds := commons.GetAllActiveTorqNodeIds(nil, nil)
 	for _, torqNodeId := range torqNodeIds {
+		nodeSettings := commons.GetNodeSettingsByNodeId(torqNodeId)
+		if nodeSettings.Chain == commons.Bitcoin && !slices.Contains(bitcoinNetworks, nodeSettings.Network) {
+			bitcoinNetworks = append(bitcoinNetworks, nodeSettings.Network)
+		}
 		lndService := LndService{
 			CommonService: CommonService{
 				Status:   commons.RunningServices[commons.LndService].GetStatus(torqNodeId),
 				BootTime: commons.RunningServices[commons.LndService].GetBootTime(torqNodeId),
 			},
-			NodeId: torqNodeId,
+			NodeId:         torqNodeId,
+			BitcoinNetwork: nodeSettings.Network,
 		}
 		lndService.StatusString = lndService.Status.String()
 		for _, subscriptionStream := range commons.SubscriptionStreams {
@@ -124,5 +131,6 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 			}
 		}
 	}
+	result.BitcoinNetworks = bitcoinNetworks
 	c.JSON(http.StatusOK, result)
 }

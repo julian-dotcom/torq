@@ -21,6 +21,7 @@ import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
 import Input from "components/forms/input/Input";
 import mixpanel from "mixpanel-browser";
+import {PolicyInterface} from "features/channels/channelsTypes";
 
 const updateStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -70,11 +71,12 @@ function NodechannelModal() {
 
   const [policyState, setPolicyState] = useState(ProgressStepState.disabled);
   const [feeRateMilliMsat, setFeeRateMilliMsat] = useState<number | undefined>(undefined);
-  const [feeBaseMsat, setFeeBaseMsat] = useState<number | undefined>(undefined);
-  const [minHtlcMsat, setMinHtlcMsat] = useState<number | undefined>(undefined);
-  const [maxHtlcMsat, setMaxHtlcMsat] = useState<number | undefined>(undefined);
   const [timeLockDelta, setTimeLockDelta] = useState<number | undefined>(undefined);
+  const [feeBase, setFeeBase] = useState<number | undefined>(undefined);
+  const [maxHtlc, setMaxHtlc] = useState<number | undefined>(undefined);
+  const [minHtlc, setMinHtlc] = useState<number | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
+
 
   const closeAndReset = () => {
     setStepIndex(0);
@@ -112,16 +114,16 @@ function NodechannelModal() {
                 </div>
               </div>
               <div className={styles.updateChannelTableDouble}>
-                <span className={styles.label}>{t.updateChannelPolicy.feeBaseMsat}</span>
+                <span className={styles.label}>{t.updateChannelPolicy.feeBase}</span>
                 <div className={styles.input}>
                   <Input
                     formatted={true}
                     className={styles.double}
-                    suffix={" msat"}
+                    suffix={" sat"}
                     thousandSeparator={","}
-                    value={feeBaseMsat}
+                    value={feeBase}
                     onValueChange={(values: NumberFormatValues) => {
-                      setFeeBaseMsat(values.floatValue as number);
+                      setFeeBase(values.floatValue as number);
                     }}
                   />
                 </div>
@@ -130,31 +132,31 @@ function NodechannelModal() {
 
             <FormRow>
               <div className={styles.updateChannelTableDouble}>
-                <span className={styles.label}>{t.updateChannelPolicy.minHtlcMsat}</span>
+                <span className={styles.label}>{t.updateChannelPolicy.minHtlc}</span>
                 <div className={styles.input}>
                   <Input
                     formatted={true}
                     className={styles.double}
-                    suffix={" msat"}
+                    suffix={" sat"}
                     thousandSeparator={","}
-                    value={minHtlcMsat}
+                    value={minHtlc}
                     onValueChange={(values: NumberFormatValues) => {
-                      setMinHtlcMsat(values.floatValue as number);
+                      setMinHtlc(values.floatValue as number);
                     }}
                   />
                 </div>
               </div>
               <div className={styles.updateChannelTableDouble}>
-                <span className={styles.label}>{t.updateChannelPolicy.maxHtlcMsat}</span>
+                <span className={styles.label}>{t.updateChannelPolicy.maxHtlc}</span>
                 <div className={styles.input}>
                   <Input
                     formatted={true}
                     className={styles.double}
-                    suffix={" msat"}
+                    suffix={" sat"}
                     thousandSeparator={true}
-                    value={maxHtlcMsat}
+                    value={maxHtlc}
                     onValueChange={(values: NumberFormatValues) => {
-                      setMaxHtlcMsat(values.floatValue as number);
+                      setMaxHtlc(values.floatValue as number);
                     }}
                   />
                 </div>
@@ -186,15 +188,22 @@ function NodechannelModal() {
                     setStepIndex(1);
                     setPolicyState(ProgressStepState.completed);
                     setResultState(ProgressStepState.processing);
-                    updateChannelMutation({
+                    const pi: PolicyInterface = {
                       feeRateMilliMsat: feeRateMilliMsat,
-                      feeBaseMsat: feeBaseMsat,
                       timeLockDelta: timeLockDelta,
-                      minHtlcMsat: minHtlcMsat,
-                      maxHtlcMsat: maxHtlcMsat,
                       channelId: channelId,
                       nodeId: nodeId,
-                    });
+                    }
+                    if (feeBase !== undefined) {
+                      pi.feeBaseMsat = feeBase * 1000
+                    }
+                    if (maxHtlc !== undefined) {
+                      pi.maxHtlcMsat = maxHtlc * 1000
+                    }
+                    if (minHtlc !== undefined) {
+                      pi.minHtlcMsat = minHtlc * 1000
+                    }
+                    updateChannelMutation(pi);
                     mixpanel.track("Updating Channel Policy", {
                       ChannelId: channelId,
                       NodeId: nodeId,
