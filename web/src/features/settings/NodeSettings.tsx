@@ -205,7 +205,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       addNodeConfiguration(form)
         .unwrap()
         .then((_) => {
-          setSaveEnabledState(true);
+          setSaveEnabledState(false);
+          setEnableEnableButtonState(true)
           toastRef?.current?.addToast("Local node added", toastCategory.success);
           if (onAddSuccess) {
             onAddSuccess();
@@ -221,7 +222,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       updateNodeConfiguration(form)
         .unwrap()
         .then((_) => {
-          setSaveEnabledState(true);
+          setSaveEnabledState(false);
+          setSaveBootstrappingState(true);
           toastRef?.current?.addToast("Local node info saved", toastCategory.success);
         })
         .catch((error) => {
