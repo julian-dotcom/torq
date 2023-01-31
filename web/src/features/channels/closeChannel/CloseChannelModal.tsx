@@ -4,6 +4,7 @@ import {
   DismissRegular as FailedIcon,
   ArrowRouting20Regular as ChannelsIcon,
   Note20Regular as NoteIcon,
+  Link16Regular as LinkIcon,
 } from "@fluentui/react-icons";
 import { WS_URL } from "apiSlice";
 import { useState, ChangeEvent } from "react";
@@ -21,6 +22,7 @@ import useWebSocket from "react-use-websocket";
 import Switch from "components/forms/switch/Switch";
 import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
+import { Buffer } from "buffer";
 
 const closeStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -43,6 +45,7 @@ function closeChannelModal() {
 
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
+  const [closingMempoolLink, setClosingMempoolLink] = useState<string>("");
   const [detailState, setDetailState] = useState(ProgressStepState.active);
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
   const [stepIndex, setStepIndex] = useState(0);
@@ -53,6 +56,7 @@ function closeChannelModal() {
     setDetailState(ProgressStepState.active);
     setResultState(ProgressStepState.disabled);
     setErrorMEssage("");
+    setClosingMempoolLink("");
   };
 
   const navigate = useNavigate();
@@ -70,6 +74,11 @@ function closeChannelModal() {
       setErrorMEssage(response.error);
       setResultState(ProgressStepState.error);
       return;
+    } else {
+      if (!closingMempoolLink) {
+        const decodedTxId = Buffer.from(response.closePendingChannelPoint.txId, 'base64').toString('utf8');
+        setClosingMempoolLink(`https://mempool.space/tx/${decodedTxId}`);
+      }
     }
   }
 
@@ -144,7 +153,6 @@ function closeChannelModal() {
                         nodeId: nodeId,
                         channelId: channelId,
                         satPerVbyte: satPerVbyte,
-                        // deliveryAddress: closeAddress,
                         force: force,
                       },
                     });
@@ -177,6 +185,12 @@ function closeChannelModal() {
             </div>
             <div className={errMessage ? styles.errorMessage : styles.successMessage}>
               {errMessage ? errMessage : t.openCloseChannel.confirmationClosing}
+              {closingMempoolLink && (
+              <a href={closingMempoolLink} className={classNames(styles.action, styles.link, styles.mempoolLink)} target="_blank" rel="noreferrer">
+                <LinkIcon />
+                MemPool
+                </a>
+              )}
             </div>
           </div>
         </ProgressTabContainer>

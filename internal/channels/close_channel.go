@@ -87,7 +87,7 @@ func prepareCloseRequest(ccReq commons.CloseChannelRequest) (r *lnrpc.CloseChann
 	return closeChanReq, nil
 }
 
-func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan interface{},
+func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan interface{},
 	ccReq commons.CloseChannelRequest, requestId string) error {
 
 	ctx := context.Background()
@@ -117,6 +117,19 @@ func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseCha
 		if err != nil {
 			return errors.Wrap(err, "Process close response")
 		}
+
+		pendingChannel, err := client.PendingChannels(ctx, &lnrpc.PendingChannelsRequest{})
+		if err != nil {
+			return errors.Wrap(err, "Closing channel")
+		}
+
+		for _, closing := range pendingChannel.WaitingCloseChannels {
+			stringOutputIndex := strconv.FormatUint(uint64(closeChanReq.ChannelPoint.GetOutputIndex()), 10)
+			if closeChanReq.ChannelPoint.GetFundingTxidStr()+":"+stringOutputIndex == closing.Channel.ChannelPoint {
+				r.ClosePendingChannelPoint.TxId = []byte(closing.ClosingTxid)
+			}
+		}
+
 		if eventChannel != nil {
 			eventChannel <- r
 		}
