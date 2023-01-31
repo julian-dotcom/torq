@@ -5,6 +5,7 @@ import {
   ArrowRouting20Regular as ChannelsIcon,
   CommentLightning20Regular as AdvencedOption,
   Note20Regular as NoteIcon,
+  Link16Regular as LinkIcon,
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -55,6 +56,7 @@ function OpenChannelModal() {
   const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
+  const [openingMempoolLink, setOpeningMempoolLink] = useState<string>("");
 
   useEffect(() => {
     if (nodeConfigurationOptions !== undefined) {
@@ -87,6 +89,7 @@ function OpenChannelModal() {
     setDetailState(ProgressStepState.disabled);
     setResultState(ProgressStepState.disabled);
     setErrorMEssage("");
+    setOpeningMempoolLink("");
   };
 
   const navigate = useNavigate();
@@ -104,6 +107,11 @@ function OpenChannelModal() {
       setErrorMEssage(response.error);
       setResultState(ProgressStepState.error);
       return;
+    } else {
+      if (!openingMempoolLink) {
+        const channelPoint: string  = response.pendingChannelPoint?.substring(0, response.pendingChannelPoint?.indexOf(":"));
+        setOpeningMempoolLink(`https://mempool.space/tx/${channelPoint.trim()}`);
+      }
     }
   }
 
@@ -372,16 +380,19 @@ function OpenChannelModal() {
             </div>
             <div className={errMessage ? styles.errorMessage : styles.successMessage}>
               {errMessage ? errMessage : t.openCloseChannel.confirmationOpenning}
+              {openingMempoolLink && (
+              <a href={openingMempoolLink} className={classNames(styles.action, styles.link, styles.mempoolLink)} target="_blank" rel="noreferrer">
+                <LinkIcon />
+                MemPool
+                </a>
+              )}
             </div>
           </div>
           <ButtonWrapper
             rightChildren={
               <Button
                 onClick={() => {
-                  setStepIndex(0);
-                  setConnectState(ProgressStepState.active);
-                  setDetailState(ProgressStepState.disabled);
-                  setResultState(ProgressStepState.disabled);
+                  closeAndReset();
                 }}
                 buttonColor={ColorVariant.primary}
               >
