@@ -12,15 +12,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
-
-type lndClientCloseChannel interface {
-	CloseChannel(ctx context.Context, in *lnrpc.CloseChannelRequest, opts ...grpc.CallOption) (lnrpc.Lightning_CloseChannelClient, error)
-}
 
 func CloseChannel(eventChannel chan interface{}, db *sqlx.DB, c *gin.Context, ccReq commons.CloseChannelRequest, requestId string) (err error) {
 	connectionDetails, err := settings.GetConnectionDetailsById(db, ccReq.NodeId)
