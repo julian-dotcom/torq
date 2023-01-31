@@ -41,20 +41,20 @@ export interface stringMap<T> {
 export interface services {
   torqService: {
     status: number;
-    statusString: number;
+    statusString: string;
     bootTime: string | null;
     version: string;
   };
   lndServices: {
     status: number;
-    statusString: number;
+    statusString: string;
     bootTime: string | null;
     nodeId: number;
     type: number;
     typeString: string;
     streamStatus: {
       status: number;
-      statusString: number;
+      statusString: string;
       bootTime: string | null;
       nodeId: number;
       type: number;
@@ -63,7 +63,7 @@ export interface services {
   }[];
   services: {
     status: number;
-    statusString: number;
+    statusString: string;
     bootTime: string | null;
     nodeId: number | null;
     type: number;
@@ -71,14 +71,31 @@ export interface services {
   }[];
   vectorServices: {
     status: number;
-    statusString: number;
+    statusString: string;
     bootTime: string | null;
     nodeId: number;
   }[];
   ambossServices: {
     status: number;
-    statusString: number;
+    statusString: string;
     bootTime: string | null;
     nodeId: number;
+  }[];
+}
+
+export interface lndServices {
+  status: number;
+  statusString: string;
+  bootTime: string | null;
+  nodeId: number;
+  type: number;
+  typeString: string;
+  streamStatus: {
+    status: number;
+    statusString: string;
+    bootTime: string | null;
+    nodeId: number;
+    type: number;
+    typeString: string;
   }[];
 }

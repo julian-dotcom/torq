@@ -25,6 +25,7 @@ import {
   useUpdateNodeConfigurationMutation,
   useUpdateNodeConfigurationStatusMutation,
   useUpdateNodePingSystemStatusMutation,
+  useGetLndServicesQuery,
 } from "apiSlice";
 import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
@@ -114,6 +115,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const { data: nodeConfigurationData } = useGetNodeConfigurationQuery(nodeId, {
     skip: !nodeId || nodeId == 0,
   });
+  const { data: lndServicesData } = useGetLndServicesQuery(nodeId, {
+    skip: !nodeId || nodeId == 0,
+  });
   const [updateNodeConfiguration] = useUpdateNodeConfigurationMutation();
   const [addNodeConfiguration] = useAddNodeConfigurationMutation();
   const [setNodeConfigurationStatus] = useUpdateNodeConfigurationStatusMutation();
@@ -126,6 +130,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
   const [deleteEnabled, setDeleteEnabled] = useState(false);
   const [saveEnabledState, setSaveEnabledState] = useState(true);
+  const [saveBootstrappingState, setSaveBootstrappingState] = useState(false);
   const [enableEnableButtonState, setEnableEnableButtonState] = useState(true);
   const [customSettingsState, setCustomSettingsState] = React.useState(customSettingsDefault);
 
@@ -233,17 +238,21 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       setNodeConfigurationState({ ...nodeConfigurationState, customSettings: 254 });
     } else {
       setCustomSettingsState({
-        importFailedPayments: nodeConfigurationData.customSettings % (importFailedPaymentsValue * 2) >= 1,
-        importHtlcEvents: nodeConfigurationData.customSettings % (importHtlcEventsValue * 2) >= 1,
-        importPeerEvents: nodeConfigurationData.customSettings % (importPeerEventsValue * 2) >= 1,
-        importTransactions: nodeConfigurationData.customSettings % (importTransactionsValue * 2) >= 1,
-        importPayments: nodeConfigurationData.customSettings % (importPaymentsValue * 2) >= 1,
-        importInvoices: nodeConfigurationData.customSettings % (importInvoicesValue * 2) >= 1,
-        importForwards: nodeConfigurationData.customSettings % (importForwardsValue * 2) >= 1,
-        importForwardsHistory: nodeConfigurationData.customSettings % (importForwardsHistoryValue * 2) >= 1,
+        importFailedPayments: nodeConfigurationData.customSettings % (importFailedPaymentsValue * 2) >= importFailedPaymentsValue,
+        importHtlcEvents: nodeConfigurationData.customSettings % (importHtlcEventsValue * 2) >= importHtlcEventsValue,
+        importPeerEvents: nodeConfigurationData.customSettings % (importPeerEventsValue * 2) >= importPeerEventsValue,
+        importTransactions: nodeConfigurationData.customSettings % (importTransactionsValue * 2) >= importTransactionsValue,
+        importPayments: nodeConfigurationData.customSettings % (importPaymentsValue * 2) >= importPaymentsValue,
+        importInvoices: nodeConfigurationData.customSettings % (importInvoicesValue * 2) >= importInvoicesValue,
+        importForwards: nodeConfigurationData.customSettings % (importForwardsValue * 2) >= importForwardsValue,
+        importForwardsHistory: nodeConfigurationData.customSettings % (importForwardsHistoryValue * 2) >= importForwardsHistoryValue,
       });
     }
-  }, [nodeConfigurationData]);
+    if (lndServicesData !== undefined && lndServicesData.status !== 1) {
+      setSaveBootstrappingState(true);
+      setSaveEnabledState(false)
+    }
+  }, [nodeConfigurationData, lndServicesData]);
 
   const getCustomSettingsState = (key: string) => {
     const data = customSettingsSidebarData.get(key)
@@ -542,7 +551,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 buttonPosition={ButtonPosition.fullWidth}
                 disabled={!saveEnabledState}
               >
-                {addMode ? "Add Node" : saveEnabledState ? "Save node details" : "Saving..."}
+                {addMode ? "Add Node" : saveBootstrappingState ? "Bootstrapping..." : saveEnabledState ? "Save node details" : "Saving..."}
               </Button>
               {!addMode && (
                 <div className={styles.pingSystems}>
