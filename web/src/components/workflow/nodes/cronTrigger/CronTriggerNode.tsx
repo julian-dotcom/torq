@@ -18,6 +18,7 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
   const [cronValueState, setCronValueState] = React.useState(
     (wrapperProps.parameters as { cronValue: string }).cronValue ?? "0 23 ? * MON-FRI"
   );
+  const [isValidState, setIsValidState] = React.useState(true);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,6 +32,13 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
 
   function handleCronChange({ currentTarget: { value } }: React.FormEvent<HTMLInputElement>) {
     setCronValueState(value);
+    try {
+      cronstrue.toString(value);
+    } catch (err) {
+      setIsValidState(false);
+      return;
+    }
+    setIsValidState(true);
   }
 
   let cronExplained = "";
@@ -59,7 +67,13 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
         <span className="info-box">
           <CronTriggerIcon /> {cronExplained}
         </span>
-        <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
+        <Button
+          type="submit"
+          disabled={!isValidState}
+          buttonColor={ColorVariant.success}
+          buttonSize={SizeVariant.small}
+          icon={<SaveIcon />}
+        >
           {t.save.toString()}
         </Button>
       </Form>
