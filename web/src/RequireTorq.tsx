@@ -4,9 +4,6 @@ import { useGetServicesQuery } from "apiSlice";
 
 const RequireTorq = () => {
   const { data: servicesData } = useGetServicesQuery();
-  // {
-  //   pollingInterval: 30 * 1000, // get status every 30 seconds
-  // }
   const navigate = useNavigate();
   const location = useLocation();
 
