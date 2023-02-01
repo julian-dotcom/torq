@@ -289,7 +289,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 
 	// No need to waitForReadyState for UpdateInFlightPayments
 
-	log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)
+	log.Info().Msgf("All LND specific streams are initializing for nodeId: %v", nodeId)
 
 	wg.Wait()
 

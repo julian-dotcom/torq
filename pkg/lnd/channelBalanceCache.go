@@ -43,6 +43,11 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	go processPeerEvent(ctx, broadcaster)
 	go processWebSocketResponse(ctx, broadcaster)
 
+	// first run after 1 minute to speed up complete boot process
+	time.Sleep(1 * time.Minute)
+	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
+		serviceStatus, serviceEventChannel, subscriptionStream, lndClient, db, mutex)
+
 	for {
 		select {
 		case <-ctx.Done():
