@@ -287,7 +287,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, serviceEventChannel, nil)
 	})()
 
-	waitForReadyState(nodeSettings.NodeId, commons.InFlightPaymentStream, "InFlightPaymentStream", serviceEventChannel)
+	// No need to waitForReadyState for UpdateInFlightPayments
 
 	log.Info().Msgf("LND completely initialized for nodeId: %v", nodeId)
 
