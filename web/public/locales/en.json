@@ -1,6 +1,8 @@
 {
   "helpAndBugsMenuItem": "Help",
   "ApplyTo": "Apply to",
+  "Success": "Success",
+  "ClosingTxId": "Closing transaction ID",
   "Targets": "Targets",
   "Destinations": "Destinations",
   "Sources": "Sources",
@@ -223,12 +225,13 @@
     "minHtlcPlaceholder": "Leave empty for no limit"
   },
   "openCloseChannel": {
+    "GoToMempool": "Inspect on mempool",
     "openNewChannel": "Open another",
     "closeNewChannel": "Close another",
     "confirm": "Confirm",
     "closeChannel": "Close Channel",
-    "error": "Error:",
-    "note": "Note:",
+    "error": "Error",
+    "note": "Note",
     "confirmationOpenning": "The channel open has been published but still need time to be confirmed. on-chain.",
     "confirmationClosing": "The channel close has been successfully published to the network but the funds in the channel still need to be confirmed through an on-chain transaction."
   },

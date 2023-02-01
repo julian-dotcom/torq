@@ -1,14 +1,16 @@
 import {
-  ArrowSyncFilled as ProcessingIcon,
-  CheckmarkRegular as SuccessIcon,
-  DismissRegular as FailedIcon,
   ArrowRouting20Regular as ChannelsIcon,
+  ArrowSyncFilled as ProcessingIcon,
+  Checkmark20Regular as SuccessNoteIcon,
+  CheckmarkRegular as SuccessIcon,
+  ErrorCircleRegular as FailedIcon,
+  ErrorCircle20Regular as FailedNoteIcon,
+  Link20Regular as LinkIcon,
   Note20Regular as NoteIcon,
-  Link16Regular as LinkIcon,
 } from "@fluentui/react-icons";
 import { WS_URL } from "apiSlice";
-import { useState, ChangeEvent } from "react";
-import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
+import { ChangeEvent, useState } from "react";
+import Button, { ButtonWrapper, ColorVariant, ExternalLinkButton } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./closeChannel.module.scss";
@@ -23,6 +25,7 @@ import Switch from "components/forms/switch/Switch";
 import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
 import { Buffer } from "buffer";
+import Note, { NoteType } from "../../note/Note";
 
 const closeStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -44,19 +47,19 @@ function closeChannelModal() {
   const channelId = parseInt(queryParams.get("channelId") || "0");
 
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
-  const [errMessage, setErrorMEssage] = useState<string>("");
-  const [closingMempoolLink, setClosingMempoolLink] = useState<string>("");
+  const [errMessage, setErrorMessage] = useState<string>("");
+  const [closingTx, setClosingTx] = useState<string>("");
   const [detailState, setDetailState] = useState(ProgressStepState.active);
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(1);
   const [force, setForce] = useState<boolean>(false);
 
   const closeAndReset = () => {
     setStepIndex(0);
     setDetailState(ProgressStepState.active);
     setResultState(ProgressStepState.disabled);
-    setErrorMEssage("");
-    setClosingMempoolLink("");
+    setErrorMessage("");
+    setClosingTx("");
   };
 
   const navigate = useNavigate();
@@ -71,13 +74,13 @@ function closeChannelModal() {
   function oncloseChannelMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
     if (response?.type === "Error") {
-      setErrorMEssage(response.error);
+      setErrorMessage(response.error);
       setResultState(ProgressStepState.error);
       return;
     } else {
-      if (!closingMempoolLink) {
-        const decodedTxId = Buffer.from(response.closePendingChannelPoint.txId, 'base64').toString('utf8');
-        setClosingMempoolLink(`https://mempool.space/tx/${decodedTxId}`);
+      if (!closingTx) {
+        const decodedTxId = Buffer.from(response.closePendingChannelPoint.txId, "base64").toString("utf8");
+        setClosingTx(`${decodedTxId}`);
       }
     }
   }
@@ -176,22 +179,32 @@ function closeChannelModal() {
             {" "}
             {closeStatusIcon[errMessage ? "FAILED" : "SUCCEEDED"]}
           </div>
-          <div className={errMessage ? styles.errorBox : styles.successeBox}>
-            <div>
-              <div className={errMessage ? styles.errorIcon : styles.successIcon}>{closeStatusIcon["NOTE"]}</div>
-              <div className={errMessage ? styles.errorNote : styles.successNote}>
-                {errMessage ? t.openCloseChannel.error : t.openCloseChannel.note}
-              </div>
-            </div>
-            <div className={errMessage ? styles.errorMessage : styles.successMessage}>
-              {errMessage ? errMessage : t.openCloseChannel.confirmationClosing}
-              {closingMempoolLink && (
-              <a href={closingMempoolLink} className={classNames(styles.action, styles.link, styles.mempoolLink)} target="_blank" rel="noreferrer">
-                <LinkIcon />
-                MemPool
-                </a>
-              )}
-            </div>
+          <div className={styles.closeChannelResultDetails}>
+            {!errMessage && (
+              <>
+                <Note title={t.ClosingTxId} icon={<SuccessNoteIcon />} noteType={NoteType.success}>
+                  {closingTx}
+                </Note>
+                <ExternalLinkButton
+                  href={"https://mempool.space/tx/" + closingTx}
+                  target="_blank"
+                  rel="noreferrer"
+                  buttonColor={ColorVariant.success}
+                  icon={<LinkIcon />}
+                >
+                  {t.openCloseChannel.GoToMempool}
+                </ExternalLinkButton>
+
+                <Note title={t.note} icon={<NoteIcon />} noteType={NoteType.info}>
+                  {t.openCloseChannel.confirmationClosing}
+                </Note>
+              </>
+            )}
+            {errMessage && (
+              <Note title={t.openCloseChannel.error} icon={<FailedNoteIcon />} noteType={NoteType.error}>
+                {errMessage}
+              </Note>
+            )}
           </div>
         </ProgressTabContainer>
       </ProgressTabs>

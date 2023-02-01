@@ -16,7 +16,7 @@
   padding: 8px;
   width: min-content;
   border-radius: 100%;
-  margin: 12px auto;
+  margin: 12px auto 60px;
   svg {
     font-size: 124px;
   }
@@ -126,7 +126,8 @@
 .switchRow {
   justify-content: left;
 }
-
-.mempoolLink {
-  text-decoration: underline !important;
+.closeChannelResultDetails {
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
 }
