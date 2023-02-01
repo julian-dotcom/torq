@@ -24,7 +24,7 @@ import {
   SortableInvoiceColumns,
   FilterableInvoiceColumns,
 } from "features/transact/Invoices/invoiceDefaults";
-import { AllInvoicesColumns } from "features/transact/Invoices/invoicesColumns";
+import { AllInvoicesColumns } from "features/transact/Invoices/invoicesColumns.generated";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import { usePagination } from "components/table/pagination/usePagination";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";

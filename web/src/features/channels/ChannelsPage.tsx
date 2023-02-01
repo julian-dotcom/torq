@@ -20,7 +20,7 @@ import {
   DefaultChannelsView,
   SortableChannelsColumns,
 } from "features/channels/channelsDefaults";
-import { AllChannelsColumns } from "features/channels/channelsColumns";
+import { AllChannelsColumns } from "features/channels/channelsColumns.generated";
 import { useGetChannelsQuery } from "apiSlice";
 import { useAppSelector } from "store/hooks";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";

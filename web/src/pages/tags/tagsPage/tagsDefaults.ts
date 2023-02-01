@@ -1,6 +1,6 @@
 import { ExpandedTag } from "pages/tags/tagsTypes";
 import { ViewResponse } from "features/viewManagement/types";
-import { AllTagsColumns } from "pages/tags/tagsPage/tagsColumns";
+import { AllTagsColumns } from "pages/tags/tagsPage/tagsColumns.generated";
 
 export const DefaultTagsView: ViewResponse<ExpandedTag> = {
   page: "invoices",

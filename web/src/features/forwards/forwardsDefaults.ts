@@ -2,7 +2,7 @@ import { AndClause, FilterInterface } from "features/sidebar/sections/filter/fil
 import { ViewResponse } from "features/viewManagement/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { Forward } from "features/forwards/forwardsTypes";
-import { AllForwardsColumns } from "features/forwards/forwardsColumns"
+import { AllForwardsColumns } from "features/forwards/forwardsColumns.generated"
 
 export const ForwardsFilterTemplate: FilterInterface = {
   funcName: "gte",

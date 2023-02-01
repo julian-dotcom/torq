@@ -11,7 +11,7 @@ import { useSelector } from "react-redux";
 import FilterComponent from "features/sidebar/sections/filter/FilterComponent";
 import { AndClause, deserialiseQuery, OrClause } from "features/sidebar/sections/filter/filter";
 import { ChannelsFilterTemplate } from "features/channels/channelsDefaults";
-import { AllChannelsColumns } from "features/channels/channelsColumns";
+import { AllChannelsColumns } from "features/channels/channelsColumns.generated";
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 

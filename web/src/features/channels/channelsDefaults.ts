@@ -1,6 +1,6 @@
 import { ViewResponse } from "features/viewManagement/types";
 import { channel } from "features/channels/channelsTypes";
-import { AllChannelsColumns, ChannelsSortableColumns } from "features/channels/channelsColumns";
+import { AllChannelsColumns, ChannelsSortableColumns } from "features/channels/channelsColumns.generated";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
 
 const defaultColumns: Array<keyof channel> = [

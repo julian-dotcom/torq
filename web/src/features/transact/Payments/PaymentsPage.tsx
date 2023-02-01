@@ -24,7 +24,7 @@ import {
   SortablePaymentsColumns,
   StatusTypeLabels,
 } from "features/transact/Payments/paymentDefaults";
-import { AllPaymentsColumns } from "features/transact/Payments/paymentsColumns";
+import { AllPaymentsColumns } from "features/transact/Payments/paymentsColumns.generated";
 import { usePagination } from "components/table/pagination/usePagination";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";

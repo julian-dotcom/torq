@@ -26,7 +26,7 @@ import {
   OnChainSortTemplate,
   SortableOnChainColumns,
 } from "features/transact/OnChain/onChainDefaults";
-import { AllOnChainTransactionsColumns } from "features/transact/OnChain/onChainColumns"
+import { AllOnChainTransactionsColumns } from "features/transact/OnChain/onChainColumns.generated"
 import { usePagination } from "components/table/pagination/usePagination";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";

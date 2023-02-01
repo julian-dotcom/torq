@@ -12,7 +12,7 @@ import {
   ForwardsFilterTemplate,
   ForwardsSortByTemplate,
 } from "features/forwards/forwardsDefaults";
-import { AllForwardsColumns } from "features/forwards/forwardsColumns"
+import { AllForwardsColumns } from "features/forwards/forwardsColumns.generated"
 import useTranslations from "services/i18n/useTranslations";
 import { useAppSelector } from "store/hooks";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";

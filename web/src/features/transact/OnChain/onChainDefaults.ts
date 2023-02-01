@@ -6,7 +6,7 @@ import {
   AllOnChainTransactionsColumns,
   OnChainTransactionsSortableColumns,
   OnChainTransactionsFilterableColumns
-} from "features/transact/OnChain/onChainColumns";
+} from "features/transact/OnChain/onChainColumns.generated";
 
 const defaultColumns: Array<keyof OnChainTx> = [
   "date",
