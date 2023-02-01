@@ -2,7 +2,11 @@ import { ColumnMetaData } from "features/table/types";
 import { OnChainTx } from "features/transact/OnChain/types";
 import { ViewResponse } from "features/viewManagement/types";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
-import { AllOnChainTransactionsColumns, OnChainTransactionsSortableColumns } from "features/transact/OnChain/onChainColumns";
+import {
+  AllOnChainTransactionsColumns,
+  OnChainTransactionsSortableColumns,
+  OnChainTransactionsFilterableColumns
+} from "features/transact/OnChain/onChainColumns";
 
 const defaultColumns: Array<keyof OnChainTx> = [
   "date",
@@ -20,19 +24,8 @@ export const SortableOnChainColumns = AllOnChainTransactionsColumns.filter((colu
   OnChainTransactionsSortableColumns.includes(column.key)
 );
 
-const filterableColumnsKeys: Array<keyof OnChainTx> = [
-  "date",
-  "destAddresses",
-  "destAddressesCount",
-  "amount",
-  "totalFees",
-  "label",
-  "lndTxTypeLabel",
-  "lndShortChanId",
-];
-
 export const FilterableOnChainColumns = AllOnChainTransactionsColumns.filter((column: ColumnMetaData<OnChainTx>) =>
-  filterableColumnsKeys.includes(column.key)
+  OnChainTransactionsFilterableColumns.includes(column.key)
 );
 
 export const OnChainSortTemplate: { key: keyof OnChainTx; direction: "desc" | "asc" } = {

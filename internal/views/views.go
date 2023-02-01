@@ -106,6 +106,7 @@ type tableViewColumnDefinition struct {
 	key           string
 	locked        bool
 	sortable      bool
+	filterable    bool
 	heading       string
 	visualType    string
 	keySecond     string
@@ -186,6 +187,28 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 	}
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		if definition.sortable {
+			result = result + fmt.Sprintf("\n\t\"%v\",", definition.key)
+		}
+	}
+	result = result + "\n];"
+
+	result = result + "\n\n\n" + disclaimer
+	switch page {
+	case PageChannels:
+		result = result + "\nexport const ChannelsFilterableColumns: Array<keyof channel> = ["
+	case PageForwards:
+		result = result + "\nexport const ForwardsFilterableColumns: Array<keyof Forward> = ["
+	case PageInvoices:
+		result = result + "\nexport const InvoicesFilterableColumns: Array<keyof Invoice> = ["
+	case PageOnChainTransactions:
+		result = result + "\nexport const OnChainTransactionsFilterableColumns: Array<keyof OnChainTx> = ["
+	case PagePayments:
+		result = result + "\nexport const PaymentsFilterableColumns: Array<keyof Payment> = ["
+	case PageTags:
+		result = result + "\nexport const TagsFilterableColumns: Array<keyof ExpandedTag> = ["
+	}
+	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
+		if definition.filterable {
 			result = result + fmt.Sprintf("\n\t\"%v\",", definition.key)
 		}
 	}
@@ -705,6 +728,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "date",
 			sortable:   true,
+			filterable: true,
 			heading:    "Date",
 			visualType: "DateCell",
 			valueType:  "date",
@@ -716,6 +740,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "amount",
 			sortable:   true,
+			filterable: true,
 			heading:    "Amount",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -726,6 +751,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "totalFees",
 			sortable:   true,
+			filterable: true,
 			heading:    "Fees",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -745,6 +771,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "lndShortChanId",
 			sortable:   true,
+			filterable: true,
 			heading:    "LND Short Channel ID",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -755,6 +782,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "lndTxTypeLabel",
 			sortable:   true,
+			filterable: true,
 			heading:    "LND Tx type label",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -765,6 +793,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "destAddressesCount",
 			sortable:   true,
+			filterable: true,
 			heading:    "Destination Addresses Count",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -775,6 +804,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "label",
 			sortable:   true,
+			filterable: true,
 			heading:    "Label",
 			visualType: "TextCell",
 			valueType:  "string",
@@ -930,6 +960,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "creationDate",
 			sortable:   true,
+			filterable: true,
 			heading:    "Creation Date",
 			visualType: "DateCell",
 			valueType:  "date",
@@ -940,6 +971,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "settleDate",
 			sortable:   true,
+			filterable: true,
 			heading:    "Settle Date",
 			visualType: "DateCell",
 			valueType:  "date",
@@ -950,6 +982,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "invoiceState",
 			sortable:   true,
+			filterable: true,
 			heading:    "Settle Date",
 			visualType: "TextCell",
 			valueType:  "enum",
@@ -965,6 +998,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "amtPaid",
 			sortable:   true,
+			filterable: true,
 			heading:    "Paid Amount",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -975,6 +1009,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "memo",
 			sortable:   true,
+			filterable: true,
 			heading:    "Memo",
 			visualType: "TextCell",
 			valueType:  "string",
@@ -985,6 +1020,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "value",
 			sortable:   true,
+			filterable: true,
 			heading:    "Value",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -996,6 +1032,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "isRebalance",
 			sortable:   true,
+			filterable: true,
 			heading:    "Rebalance",
 			visualType: "BooleanCell",
 			valueType:  "boolean",
@@ -1007,6 +1044,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "isKeysend",
 			sortable:   true,
+			filterable: true,
 			heading:    "Keysend",
 			visualType: "BooleanCell",
 			valueType:  "boolean",
@@ -1016,6 +1054,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "destinationPubKey",
+			filterable: true,
 			heading:    "Destination",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -1027,6 +1066,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "isAmp",
 			sortable:   true,
+			filterable: true,
 			heading:    "AMP",
 			visualType: "BooleanCell",
 			valueType:  "boolean",
@@ -1036,6 +1076,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "fallbackAddr",
+			filterable: true,
 			heading:    "Fallback Address",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -1045,6 +1086,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "paymentAddr",
+			filterable: true,
 			heading:    "Payment Address",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -1054,6 +1096,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "paymentRequest",
+			filterable: true,
 			heading:    "Payment Request",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -1064,6 +1107,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "private",
 			sortable:   true,
+			filterable: true,
 			heading:    "Private",
 			visualType: "BooleanCell",
 			valueType:  "boolean",
@@ -1073,6 +1117,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "rHash",
+			filterable: true,
 			heading:    "Hash",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -1082,6 +1127,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "rPreimage",
+			filterable: true,
 			heading:    "Preimage",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -1092,6 +1138,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "expiry",
 			sortable:   true,
+			filterable: true,
 			heading:    "Expiry",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -1101,6 +1148,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "cltvExpiry",
+			filterable: true,
 			heading:    "CLTV Expiry",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -1111,6 +1159,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "updatedOn",
 			sortable:   true,
+			filterable: true,
 			heading:    "Updated On",
 			visualType: "DateCell",
 			valueType:  "date",
@@ -1121,6 +1170,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "status",
 			sortable:   true,
+			filterable: true,
 			heading:    "Status",
 			visualType: "TextCell",
 			valueType:  "array",
@@ -1136,6 +1186,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "fee",
 			sortable:   true,
+			filterable: true,
 			heading:    "Fee",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -1146,6 +1197,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "ppm",
 			sortable:   true,
+			filterable: true,
 			heading:    "PPM",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -1156,6 +1208,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "secondsInFlight",
 			sortable:   true,
+			filterable: true,
 			heading:    "Seconds In Flight",
 			visualType: "DurationCell",
 			valueType:  "duration",
@@ -1166,6 +1219,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "failureReason",
 			sortable:   true,
+			filterable: true,
 			heading:    "Failure Reason",
 			visualType: "TextCell",
 			valueType:  "array",
@@ -1186,6 +1240,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "isMpp",
+			filterable: true,
 			heading:    "MPP",
 			visualType: "BooleanCell",
 			valueType:  "boolean",
@@ -1196,6 +1251,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "countFailedAttempts",
 			sortable:   true,
+			filterable: true,
 			heading:    "Failed Attempts",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -1206,6 +1262,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "countSuccessfulAttempts",
 			sortable:   true,
+			filterable: true,
 			heading:    "Successful Attempts",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -1215,6 +1272,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "paymentHash",
+			filterable: true,
 			heading:    "Payment Hash",
 			visualType: "TextCell",
 			valueType:  "string",
@@ -1224,6 +1282,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "paymentPreimage",
+			filterable: true,
 			heading:    "Payment Preimage",
 			visualType: "TextCell",
 			valueType:  "string",

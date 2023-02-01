@@ -2,7 +2,7 @@ import { ColumnMetaData } from "features/table/types";
 import { Payment } from "features/transact/Payments/types";
 import { ViewResponse } from "features/viewManagement/types";
 import { FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
-import { AllPaymentsColumns, PaymentsSortableColumns } from "features/transact/Payments/paymentsColumns";
+import { AllPaymentsColumns, PaymentsSortableColumns, PaymentsFilterableColumns } from "features/transact/Payments/paymentsColumns";
 
 const defaultColumns: Array<keyof Payment> = [
   "date",
@@ -20,25 +20,8 @@ export const SortablePaymentsColumns = AllPaymentsColumns.filter((column: Column
   PaymentsSortableColumns.includes(column.key)
 );
 
-const filterableColumns: Array<keyof Payment> = [
-  "date",
-  "destinationPubKey",
-  "status",
-  "value",
-  "fee",
-  "ppm",
-  "failureReason",
-  "isRebalance",
-  "isMpp",
-  "countSuccessfulAttempts",
-  "countFailedAttempts",
-  "secondsInFlight",
-  "paymentHash",
-  "paymentPreimage",
-];
-
 export const FilterablePaymentsColumns = AllPaymentsColumns.filter((column: ColumnMetaData<Payment>) =>
-  filterableColumns.includes(column.key)
+  PaymentsFilterableColumns.includes(column.key)
 );
 
 export const PaymentsFilterTemplate: FilterInterface = {

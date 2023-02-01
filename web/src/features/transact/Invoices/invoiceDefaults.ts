@@ -1,7 +1,7 @@
 // import { uuid } from "uuidv4";
 import { ViewResponse } from "features/viewManagement/types";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";
-import { AllInvoicesColumns, InvoicesSortableColumns } from "features/transact/Invoices/invoicesColumns";
+import { AllInvoicesColumns, InvoicesSortableColumns, InvoicesFilterableColumns } from "features/transact/Invoices/invoicesColumns";
 import { ColumnMetaData } from "features/table/types";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
 
@@ -23,32 +23,8 @@ export const SortableInvoiceColumns = AllInvoicesColumns.filter((column: ColumnM
   return InvoicesSortableColumns.includes(column.key);
 });
 
-const filterableKeys: Array<keyof Invoice> = [
-  "addIndex",
-  "creationDate",
-  "settleDate",
-  "settleIndex",
-  "paymentRequest",
-  "destinationPubKey",
-  "rHash",
-  "rPreimage",
-  "memo",
-  "value",
-  "amtPaid",
-  "invoiceState",
-  "isRebalance",
-  "isKeysend",
-  "isAmp",
-  "paymentAddr",
-  "fallbackAddr",
-  "updatedOn",
-  "expiry",
-  "cltvExpiry",
-  "private",
-];
-
 export const FilterableInvoiceColumns = AllInvoicesColumns.filter((column: ColumnMetaData<Invoice>) => {
-  return filterableKeys.includes(column.key);
+  return InvoicesFilterableColumns.includes(column.key);
 });
 
 export const InvoiceSortTemplate: { key: keyof Invoice; direction: "desc" | "asc" } = {
