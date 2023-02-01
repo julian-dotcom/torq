@@ -161,61 +161,59 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
-	if migrate {
-		// Migrate the new test database
-		err = database.MigrateUp(db)
-		if err != nil {
-			cancel()
-			return nil, nil, nil, errors.Wrap(err, "Database Migrate Up")
-		}
+	// Migrate the new test database
+	err = database.MigrateUp(db)
+	if err != nil {
+		cancel()
+		return nil, nil, nil, errors.Wrap(err, "Database Migrate Up")
+	}
 
-		testNodeId1, err := addNode(db, TestPublicKey1, cancel)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
-		}
+	testNodeId1, err := addNode(db, TestPublicKey1, cancel)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
+	}
 
-		testNodeId2, err := addNode(db, TestPublicKey2, cancel)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey2)
-		}
+	testNodeId2, err := addNode(db, TestPublicKey2, cancel)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey2)
+	}
 
-		err = addNodeConnectionDetails(db, testNodeId1, cancel)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
-		}
+	err = addNodeConnectionDetails(db, testNodeId1, cancel)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
+	}
 
-		err = addNodeConnectionDetails(db, testNodeId2, cancel)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
-		}
+	err = addNodeConnectionDetails(db, testNodeId2, cancel)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
+	}
 
-		lndShortChannelId := uint64(1111)
-		shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
-		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash1, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
-		}
+	lndShortChannelId := uint64(1111)
+	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
+	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash1, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+	}
 
-		lndShortChannelId = 2222
-		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
-		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash2, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
-		}
+	lndShortChannelId = 2222
+	shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
+	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash2, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+	}
 
-		lndShortChannelId = 3333
-		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
-		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash3, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
-		}
+	lndShortChannelId = 3333
+	shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
+	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash3, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+	}
 
-		lndShortChannelId = 4444
-		shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
-		err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash4, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
-		}
+	lndShortChannelId = 4444
+	shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
+	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash4, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
 
 	//var serviceChannelGlobal = make(chan commons.ServiceChannelMessage)
@@ -258,6 +256,8 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	for _, serviceType := range commons.GetServiceTypes() {
 		commons.RunningServices[serviceType] = &commons.Services{ServiceType: serviceType}
 	}
+	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(testNodeId1, commons.NodeConnectionDetailCustomSettings(commons.NodeConnectionDetailCustomSettingsMax))
+	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(testNodeId2, commons.NodeConnectionDetailCustomSettings(commons.NodeConnectionDetailCustomSettingsMax))
 
 	return db, cancel, broadcaster, nil
 }

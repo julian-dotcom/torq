@@ -2,6 +2,7 @@ package services
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -11,10 +12,12 @@ import (
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("status", func(c *gin.Context) { getServicesHandler(c, db) })
+	r.GET("/:nodeId/lndStatus", func(c *gin.Context) { getLndServicesHandler(c, db) })
 }
 
 func getServicesHandler(c *gin.Context, db *sqlx.DB) {
@@ -133,4 +136,41 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	result.BitcoinNetworks = bitcoinNetworks
 	c.JSON(http.StatusOK, result)
+}
+
+func getLndServicesHandler(c *gin.Context, db *sqlx.DB) {
+	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
+		return
+	}
+
+	var lndService LndService
+	torqNodeIds := commons.GetAllActiveTorqNodeIds(nil, nil)
+	for _, torqNodeId := range torqNodeIds {
+		if torqNodeId == nodeId {
+			lndService = LndService{
+				CommonService: CommonService{
+					Status:   commons.RunningServices[commons.LndService].GetStatus(torqNodeId),
+					BootTime: commons.RunningServices[commons.LndService].GetBootTime(torqNodeId),
+				},
+				NodeId: torqNodeId,
+			}
+			lndService.StatusString = lndService.Status.String()
+			for _, subscriptionStream := range commons.SubscriptionStreams {
+				lndServiceStream := Stream{
+					CommonService: CommonService{
+						Status:   commons.RunningServices[commons.LndService].GetStreamStatus(torqNodeId, subscriptionStream),
+						BootTime: commons.RunningServices[commons.LndService].GetStreamBootTime(torqNodeId, subscriptionStream),
+					},
+					NodeId:     torqNodeId,
+					Type:       subscriptionStream,
+					TypeString: subscriptionStream.String(),
+				}
+				lndServiceStream.StatusString = lndServiceStream.Status.String()
+				lndService.StreamStatus = append(lndService.StreamStatus, lndServiceStream)
+			}
+		}
+	}
+	c.JSON(http.StatusOK, lndService)
 }

@@ -162,6 +162,13 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 
 	defer log.Info().Msgf("SubscribeAndStoreHtlcEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
+	importHtlcEvents := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportHtlcEvents)
+	if !importHtlcEvents {
+		log.Info().Msgf("Import of HTLC events is disabled for nodeId: %v", nodeSettings.NodeId)
+		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		return
+	}
+
 	for {
 		select {
 		case <-ctx.Done():

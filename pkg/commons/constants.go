@@ -141,7 +141,7 @@ const (
 	AbandonedClosed        = 105
 )
 
-type PingSystem byte
+type PingSystem uint32
 
 const (
 	Amboss PingSystem = 1 << iota
@@ -149,12 +149,19 @@ const (
 )
 const PingSystemMax = int(Vector)*2 - 1
 
-type NodeConnectionDetailCustomSettings byte
+type NodeConnectionDetailCustomSettings uint32
 
 const (
 	ImportFailedPayments NodeConnectionDetailCustomSettings = 1 << iota
+	ImportHtlcEvents
+	ImportPeerEvents
+	ImportTransactions
+	ImportPayments
+	ImportInvoices
+	ImportForwards
+	ImportHistoricForwards
 )
-const NodeConnectionDetailCustomSettingsMax = int(ImportFailedPayments)*2 - 1
+const NodeConnectionDetailCustomSettingsMax = int(ImportHistoricForwards)*2 - 1
 
 type SubscriptionStream int
 

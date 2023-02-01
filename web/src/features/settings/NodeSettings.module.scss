@@ -120,6 +120,7 @@
   button:not(:last-child) {
     margin-bottom: 15px;
   }
+  width: 180px;
 }
 .nodeForm {
   display: flex;
@@ -152,4 +153,12 @@
 .addMode {
   padding: 0;
   border: none;
+}
+.customImportSettingsBody {
+  padding: 16px 16px 16px;
+  background-color: var(--color-primary-layer-1);
+  border-radius: var(--radius-default);
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
 }

@@ -305,6 +305,10 @@ func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream
 			log.Info().Msgf("LND %v initial download done (in less then %s) for nodeId: %v", name, time.Since(streamStartTime).Round(1*time.Second), nodeId)
 			return
 		}
+		if commons.RunningServices[commons.LndService].GetStreamStatus(nodeId, subscriptionStream) == commons.Deleted {
+			log.Info().Msgf("LND %v skipped (in less then %s) for nodeId: %v", name, time.Since(streamStartTime).Round(1*time.Second), nodeId)
+			return
+		}
 		if time.Since(streamStartTime).Seconds() > commons.GENERIC_BOOTSTRAPPING_TIME_SECONDS {
 			lastInitializationPing := commons.RunningServices[commons.LndService].GetStreamInitializationPingTime(nodeId, subscriptionStream)
 			if lastInitializationPing == nil {

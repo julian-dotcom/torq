@@ -1,0 +1,4 @@
+
+
+update node_connection_details set custom_settings = custom_settings + 253, updated_on = current_timestamp;
+

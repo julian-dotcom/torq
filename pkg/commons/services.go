@@ -22,10 +22,10 @@ type Services struct {
 	noDelay map[int]bool
 
 	// streamStatus ONLY FOR serviceType=LndSubscription
-	streamStatus                 map[int]map[SubscriptionStream]Status
-	streamBootTime               map[int]map[SubscriptionStream]time.Time
-	streamInitializationPingTime map[int]map[SubscriptionStream]time.Time
-	includeIncomplete            map[int]bool
+	streamStatus                       map[int]map[SubscriptionStream]Status
+	streamBootTime                     map[int]map[SubscriptionStream]time.Time
+	streamInitializationPingTime       map[int]map[SubscriptionStream]time.Time
+	nodeConnectionDetailCustomSettings map[int]NodeConnectionDetailCustomSettings
 }
 
 var RunningServices map[ServiceType]*Services //nolint:gochecknoglobals
@@ -133,7 +133,7 @@ func (rs *Services) GetStatus(nodeId int) Status {
 		var streamStatus *Status
 		for _, status := range rs.streamStatus[nodeId] {
 			existingStatus := status
-			if status != Active {
+			if status != Active && status != Deleted {
 				if streamStatus == nil {
 					streamStatus = &existingStatus
 				}
@@ -178,7 +178,7 @@ node:
 		}
 		if rs.ServiceType == LndService {
 			for _, status := range rs.streamStatus[nodeId] {
-				if status != Active {
+				if status != Active && status != Deleted {
 					continue node
 				}
 			}
@@ -261,7 +261,7 @@ func (rs *Services) GetChannelBalanceCacheStreamStatus(nodeId int) Status {
 	for _, stream := range SubscriptionStreams {
 		if stream.IsChannelBalanceCache() {
 			status := rs.streamStatus[nodeId][stream]
-			if status != Active {
+			if status != Active && status != Deleted {
 				if streamStatus == nil {
 					streamStatus = &status
 				}
@@ -307,24 +307,24 @@ func (rs *Services) GetBootLock(nodeId int) *sync.Mutex {
 	return lock
 }
 
-func (rs *Services) GetIncludeIncomplete(nodeId int) bool {
+func (rs *Services) HasCustomSetting(nodeId int, customSetting NodeConnectionDetailCustomSettings) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
 	initServiceMaps(rs, nodeId)
-	includeIncomplete, exists := rs.includeIncomplete[nodeId]
+	nodeCustomSettings, exists := rs.nodeConnectionDetailCustomSettings[nodeId]
 	if exists {
-		return includeIncomplete
+		return nodeCustomSettings&customSetting != 0
 	}
 	return false
 }
 
-func (rs *Services) SetIncludeIncomplete(nodeId int, includeIncomplete bool) {
+func (rs *Services) SetNodeConnectionDetailCustomSettings(nodeId int, customSetting NodeConnectionDetailCustomSettings) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
 	initServiceMaps(rs, nodeId)
-	rs.includeIncomplete[nodeId] = includeIncomplete
+	rs.nodeConnectionDetailCustomSettings[nodeId] = customSetting
 }
 
 func (rs *Services) Initialising(nodeId int) Status {
@@ -386,7 +386,7 @@ func initServiceMaps(rs *Services, nodeId int) {
 		rs.streamStatus = make(map[int]map[SubscriptionStream]Status)
 		rs.streamBootTime = make(map[int]map[SubscriptionStream]time.Time)
 		rs.streamInitializationPingTime = make(map[int]map[SubscriptionStream]time.Time)
-		rs.includeIncomplete = make(map[int]bool)
+		rs.nodeConnectionDetailCustomSettings = make(map[int]NodeConnectionDetailCustomSettings)
 	}
 	_, exists := rs.streamStatus[nodeId]
 	if !exists {

@@ -616,7 +616,7 @@ func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails
 
 	previousStatus = runningServices.Booted(node.NodeId, bootLock)
 	commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.Active, serviceCmd.ServiceType, nil)
-	commons.RunningServices[commons.LndService].SetIncludeIncomplete(node.NodeId, node.HasNodeConnectionDetailCustomSettings(commons.ImportFailedPayments))
+	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(node.NodeId, node.CustomSettings)
 	log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
 	err = subscribe.Start(ctx, conn, db, c.String("torq.vector.url"), node.NodeId, broadcaster,
 		serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,

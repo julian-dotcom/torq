@@ -41,40 +41,61 @@ export interface stringMap<T> {
 export interface services {
   torqService: {
     status: number;
+    statusString: string;
     bootTime: string | null;
     version: string;
   };
   lndServices: {
     status: number;
+    statusString: string;
     bootTime: string | null;
     nodeId: number;
-    transactionStreamStatus: number;
-    transactionStreamBootTime: string | null;
-    htlcEventStreamStatus: number;
-    htlcEventStreamBootTime: string | null;
-    channelEventStreamStatus: number;
-    channelEventStreamBootTime: string | null;
-    graphEventStreamStatus: number;
-    graphEventStreamBootTime: string | null;
-    forwardStreamStatus: number;
-    forwardStreamBootTime: string | null;
-    invoiceStreamStatus: number;
-    invoiceStreamBootTime: string | null;
-    paymentStreamStatus: number;
-    paymentStreamBootTime: string | null;
-    inFlightPaymentStreamStatus: number;
-    inFlightPaymentStreamBootTime: string | null;
-    peerEventStreamStatus: number;
-    peerEventStreamBootTime: string | null;
+    type: number;
+    typeString: string;
+    streamStatus: {
+      status: number;
+      statusString: string;
+      bootTime: string | null;
+      nodeId: number;
+      type: number;
+      typeString: string;
+    }[];
+  }[];
+  services: {
+    status: number;
+    statusString: string;
+    bootTime: string | null;
+    nodeId: number | null;
+    type: number;
+    typeString: string;
   }[];
   vectorServices: {
     status: number;
+    statusString: string;
     bootTime: string | null;
     nodeId: number;
   }[];
   ambossServices: {
     status: number;
+    statusString: string;
     bootTime: string | null;
     nodeId: number;
+  }[];
+}
+
+export interface lndServices {
+  status: number;
+  statusString: string;
+  bootTime: string | null;
+  nodeId: number;
+  type: number;
+  typeString: string;
+  streamStatus: {
+    status: number;
+    statusString: string;
+    bootTime: string | null;
+    nodeId: number;
+    type: number;
+    typeString: string;
   }[];
 }

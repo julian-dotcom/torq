@@ -61,6 +61,13 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 	bootStrapping := true
 	subscriptionStream := commons.TransactionStream
 
+	importTransactions := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportTransactions)
+	if !importTransactions {
+		log.Info().Msgf("Import of transactions is disabled for nodeId: %v", nodeSettings.NodeId)
+		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		return
+	}
+
 	for {
 		select {
 		case <-ctx.Done():

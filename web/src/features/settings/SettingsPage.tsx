@@ -1,5 +1,4 @@
 import { AddSquare20Regular as AddIcon, Save20Regular as SaveIcon } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import Page from "layout/Page";
 import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
 import styles from "features/settings/settings.module.css";
@@ -20,8 +19,6 @@ import NodeSettings from "features/settings/NodeSettings";
 import Modal from "features/modal/Modal";
 import useTranslations from "services/i18n/useTranslations";
 import { supportedLangs } from "config/i18nConfig";
-import Note from "features/note/Note";
-import { Switch } from "components/forms/forms";
 
 function Settings() {
   const { t, setLang } = useTranslations();
@@ -113,11 +110,6 @@ function Settings() {
     setShowAddNodeState(false);
   };
 
-  const handleOptOut = (e: React.ChangeEvent<HTMLInputElement>) => {
-    mixpanel.track("Opt status", { optOut: !e.target.checked });
-    setSettingsState({ ...settingsState, mixpanelOptOut: !e.target.checked });
-  };
-
   return (
     <Page>
       <React.Fragment>
@@ -153,15 +145,6 @@ function Settings() {
                   options={weekStartsOnOptions}
                   value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
                 />
-                <Note title={t.developerFeedback}>
-                  <p>{t.developerFeedbackDetails}</p>
-                  <Switch
-                    name={"optOut"}
-                    label={!settingsState.mixpanelOptOut ? t.giveFeedback : t.dontGiveFeedback}
-                    checked={!settingsState.mixpanelOptOut}
-                    onChange={handleOptOut}
-                  />
-                </Note>
                 <Button
                   type={"submit"}
                   icon={<SaveIcon />}
