@@ -28,6 +28,7 @@ import { useFilterData, useSortData } from "features/viewManagement/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import styles from "./forwards_table.module.scss";
 import mixpanel from "mixpanel-browser";
+import { useGroupBy } from "../sidebar/sections/group/groupBy";
 
 function useForwardsTotals(data: Array<Forward>): Forward | undefined {
   if (!data.length) {
@@ -104,8 +105,9 @@ function ForwardsPage() {
 
   const filteredData = useFilterData(forwardsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
-  const totalsRowData = useForwardsTotals(sortedData);
-  const maxRowData = useForwardsMaximums(sortedData);
+  const data = useGroupBy<Forward>(sortedData, viewResponse.view.groupBy);
+  const totalsRowData = useForwardsTotals(data);
+  const maxRowData = useForwardsMaximums(data);
 
   // Logic for toggling the sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -167,7 +169,7 @@ function ForwardsPage() {
     >
       <Table
         activeColumns={viewResponse.view.columns || []}
-        data={sortedData}
+        data={data}
         totalRow={totalsRowData ? totalsRowData : undefined}
         maxRow={maxRowData ? maxRowData : undefined}
         cellRenderer={forwardsCellRenderer}
