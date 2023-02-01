@@ -17,6 +17,15 @@
     color: var(--color-text-accent-1-faded);
     background-color: var(--color-accent-1-layer-2);
   }
+  &.success {
+    color: var(--color-text-success-faded);
+    background-color: var(--color-success-layer-2);
+  }
+}
+.noteTitleIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .noteTitleWrapper {
   display: flex;

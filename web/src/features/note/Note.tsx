@@ -7,10 +7,12 @@ export enum NoteType {
   info = "info",
   warning = "warning",
   error = "error",
+  success = "success",
 }
 
 const noteTypeClasses = new Map<NoteType, string>([
   [NoteType.info, styles.info],
+  [NoteType.success, styles.success],
   [NoteType.warning, styles.warning],
   [NoteType.error, styles.error],
 ]);

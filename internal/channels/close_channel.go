@@ -12,15 +12,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
-
-type lndClientCloseChannel interface {
-	CloseChannel(ctx context.Context, in *lnrpc.CloseChannelRequest, opts ...grpc.CallOption) (lnrpc.Lightning_CloseChannelClient, error)
-}
 
 func CloseChannel(eventChannel chan interface{}, db *sqlx.DB, c *gin.Context, ccReq commons.CloseChannelRequest, requestId string) (err error) {
 	connectionDetails, err := settings.GetConnectionDetailsById(db, ccReq.NodeId)
@@ -87,7 +82,7 @@ func prepareCloseRequest(ccReq commons.CloseChannelRequest) (r *lnrpc.CloseChann
 	return closeChanReq, nil
 }
 
-func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan interface{},
+func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan interface{},
 	ccReq commons.CloseChannelRequest, requestId string) error {
 
 	ctx := context.Background()
@@ -117,6 +112,19 @@ func closeChannelResp(client lndClientCloseChannel, closeChanReq *lnrpc.CloseCha
 		if err != nil {
 			return errors.Wrap(err, "Process close response")
 		}
+
+		pendingChannel, err := client.PendingChannels(ctx, &lnrpc.PendingChannelsRequest{})
+		if err != nil {
+			return errors.Wrap(err, "Closing channel")
+		}
+
+		for _, closing := range pendingChannel.WaitingCloseChannels {
+			stringOutputIndex := strconv.FormatUint(uint64(closeChanReq.ChannelPoint.GetOutputIndex()), 10)
+			if closeChanReq.ChannelPoint.GetFundingTxidStr()+":"+stringOutputIndex == closing.Channel.ChannelPoint {
+				r.ClosePendingChannelPoint.TxId = []byte(closing.ClosingTxid)
+			}
+		}
+
 		if eventChannel != nil {
 			eventChannel <- r
 		}

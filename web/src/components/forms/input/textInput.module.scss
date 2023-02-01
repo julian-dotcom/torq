@@ -4,11 +4,12 @@
   flex-direction: column;
   gap: 5px;
   color: var(--input-color);
-  // color both text and all icons in the same color
+
   svg {
     color: var(--input-placeholder-color);
   }
   label {
+    font-size: var(--label-font-size);
     color: var(--input-label-color);
   }
 }
@@ -40,6 +41,7 @@
 textarea.input {
   height: initial;
   min-height: var(--input-height);
+  font-size: var(--input-font-size);
   resize: vertical;
 }
 .inputFieldContainer {
@@ -170,7 +172,7 @@ textarea.input {
   justify-content: space-between;
   gap: 4px;
   .label {
-    font-size: var(--font-size-small);
+    font-size: var(--label-font-size);
   }
 }
 .tooltip {

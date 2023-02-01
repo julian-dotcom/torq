@@ -126,3 +126,8 @@
 .switchRow {
   justify-content: left;
 }
+.closeChannelResultDetails {
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
+}
