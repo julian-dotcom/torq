@@ -49,14 +49,14 @@ type ChannelBody struct {
 	CommitFee                    int64                `json:"commitFee"`
 	CommitWeight                 int64                `json:"commitWeight"`
 	FeePerKw                     int64                `json:"feePerKw"`
-	FeeBaseMsat                  int64                `json:"feeBaseMsat"`
-	MinHtlcMsat                  uint64               `json:"minHtlcMsat"`
-	MaxHtlcMsat                  uint64               `json:"maxHtlcMsat"`
+	FeeBase                      int64                `json:"feeBase"`
+	MinHtlc                      uint64               `json:"minHtlc"`
+	MaxHtlc                      uint64               `json:"maxHtlc"`
 	TimeLockDelta                uint32               `json:"timeLockDelta"`
 	FeeRateMilliMsat             int64                `json:"feeRateMilliMsat"`
-	RemoteFeeBaseMsat            int64                `json:"remoteFeeBaseMsat"`
-	RemoteMinHtlcMsat            uint64               `json:"remoteMinHtlcMsat"`
-	RemoteMaxHtlcMsat            uint64               `json:"remoteMaxHtlcMsat"`
+	RemoteFeeBase                int64                `json:"remoteFeeBase"`
+	RemoteMinHtlc                uint64               `json:"remoteMinHtlc"`
+	RemoteMaxHtlc                uint64               `json:"remoteMaxHtlc"`
 	RemoteTimeLockDelta          uint32               `json:"remoteTimeLockDelta"`
 	RemoteFeeRateMilliMsat       int64                `json:"remoteFeeRateMilliMsat"`
 	PendingForwardingHTLCsCount  int                  `json:"pendingForwardingHTLCsCount"`
@@ -225,14 +225,14 @@ func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody,
 			CommitFee:                    channel.CommitFee,
 			CommitWeight:                 channel.CommitWeight,
 			FeePerKw:                     channel.FeePerKw,
-			FeeBaseMsat:                  channel.LocalFeeBaseMsat,
-			MinHtlcMsat:                  channel.LocalMinHtlcMsat,
-			MaxHtlcMsat:                  channel.LocalMaxHtlcMsat,
+			FeeBase:                      channel.LocalFeeBaseMsat / 1000,
+			MinHtlc:                      channel.LocalMinHtlcMsat / 1000,
+			MaxHtlc:                      channel.LocalMaxHtlcMsat / 1000,
 			TimeLockDelta:                channel.LocalTimeLockDelta,
 			FeeRateMilliMsat:             channel.LocalFeeRateMilliMsat,
-			RemoteFeeBaseMsat:            channel.RemoteFeeBaseMsat,
-			RemoteMinHtlcMsat:            channel.RemoteMinHtlcMsat,
-			RemoteMaxHtlcMsat:            channel.RemoteMaxHtlcMsat,
+			RemoteFeeBase:                channel.RemoteFeeBaseMsat / 1000,
+			RemoteMinHtlc:                channel.RemoteMinHtlcMsat / 1000,
+			RemoteMaxHtlc:                channel.RemoteMaxHtlcMsat / 1000,
 			RemoteTimeLockDelta:          channel.RemoteTimeLockDelta,
 			RemoteFeeRateMilliMsat:       channel.RemoteFeeRateMilliMsat,
 			NumUpdates:                   channel.NumUpdates,

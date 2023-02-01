@@ -59,10 +59,7 @@ func GenerateChannelGroupsByOrigin(db *sqlx.DB, origin groupOrigin, deleteChanne
 	if err != nil {
 		return errors.Wrap(err, "Obtaining channels for channel group generation.")
 	}
-	tx, err := db.Begin()
-	if err != nil {
-		return errors.Wrap(err, database.SqlBeginTransactionError)
-	}
+	tx := db.MustBegin()
 	if deleteChannelGroups {
 		_, err = tx.Exec("DELETE FROM channel_group WHERE tag_origin_id=$1;", origin)
 		if err != nil {

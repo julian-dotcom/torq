@@ -263,8 +263,7 @@ func cloneWorkflowVersion(db *sqlx.DB, workflowId int, cloneVersionId *int) (Wor
 	}
 
 	// Start a new transaction so that we can roll back if something goes wrong
-	var tx *sql.Tx
-	tx, err = db.Begin()
+	tx := db.MustBegin()
 	if err != nil {
 		return WorkflowVersion{}, errors.Wrap(err, "adding workflow_version transaction failed to initialise")
 	}

@@ -10,7 +10,8 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import FilterComponent from "features/sidebar/sections/filter/FilterComponent";
 import { AndClause, deserialiseQuery, OrClause } from "features/sidebar/sections/filter/filter";
-import { AllChannelsColumns, ChannelsFilterTemplate } from "features/channels/channelsDefaults";
+import { ChannelsFilterTemplate } from "features/channels/channelsDefaults";
+import { AllChannelsColumns } from "features/channels/channelsColumns";
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
