@@ -264,7 +264,6 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
   }, [nodeConfigurationData, lndServicesData]);
 
-  console.log(bootingCheck);
   React.useEffect(() => {
     if (bootingCheck !== undefined && bootingCheck.status === 1) {
       setSaveBootstrappingState(false);
