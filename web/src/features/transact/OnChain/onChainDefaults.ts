@@ -1,18 +1,8 @@
 import { ColumnMetaData } from "features/table/types";
-import { OnChainTx } from "./types";
+import { OnChainTx } from "features/transact/OnChain/types";
 import { ViewResponse } from "features/viewManagement/types";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
-
-export const AllOnChainColumns: Array<ColumnMetaData<OnChainTx>> = [
-  { key: "date", heading: "Date", type: "DateCell", valueType: "date" },
-  { key: "amount", heading: "Amount", type: "NumericCell", valueType: "number" },
-  { key: "totalFees", heading: "Fees", type: "NumericCell", valueType: "number" },
-  { key: "txHash", heading: "Tx Hash", type: "LongTextCell", valueType: "string" },
-  { key: "lndShortChanId", heading: "LND Short Channel ID", type: "LongTextCell", valueType: "string" },
-  { key: "lndTxTypeLabel", heading: "LND Tx type label", type: "LongTextCell", valueType: "string" },
-  { key: "destAddressesCount", heading: "Destination Addresses Count", type: "NumericCell", valueType: "number" },
-  { key: "label", heading: "Label", type: "TextCell", valueType: "string" },
-];
+import { AllOnChainTransactionsColumns, OnChainTransactionsSortableColumns } from "features/transact/OnChain/onChainColumns";
 
 const defaultColumns: Array<keyof OnChainTx> = [
   "date",
@@ -24,21 +14,10 @@ const defaultColumns: Array<keyof OnChainTx> = [
   "label",
 ];
 
-export const DefaultOnChainColumns = AllOnChainColumns.filter((c) => defaultColumns.includes(c.key));
+export const DefaultOnChainColumns = AllOnChainTransactionsColumns.filter((c) => defaultColumns.includes(c.key));
 
-const sortableColumnsKeys: Array<keyof OnChainTx> = [
-  "date",
-  "destAddresses",
-  "destAddressesCount",
-  "amount",
-  "totalFees",
-  "label",
-  "lndTxTypeLabel",
-  "lndShortChanId",
-];
-
-export const SortableOnChainColumns = AllOnChainColumns.filter((column: ColumnMetaData<OnChainTx>) =>
-  sortableColumnsKeys.includes(column.key)
+export const SortableOnChainColumns = AllOnChainTransactionsColumns.filter((column: ColumnMetaData<OnChainTx>) =>
+  OnChainTransactionsSortableColumns.includes(column.key)
 );
 
 const filterableColumnsKeys: Array<keyof OnChainTx> = [
@@ -52,7 +31,7 @@ const filterableColumnsKeys: Array<keyof OnChainTx> = [
   "lndShortChanId",
 ];
 
-export const FilterableOnChainColumns = AllOnChainColumns.filter((column: ColumnMetaData<OnChainTx>) =>
+export const FilterableOnChainColumns = AllOnChainTransactionsColumns.filter((column: ColumnMetaData<OnChainTx>) =>
   filterableColumnsKeys.includes(column.key)
 );
 
