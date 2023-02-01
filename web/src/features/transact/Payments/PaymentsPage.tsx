@@ -16,7 +16,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Payment } from "./types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import {
-  AllPaymentsColumns,
   DefaultPaymentView,
   FailureReasonLabels,
   FilterablePaymentsColumns,
@@ -24,7 +23,8 @@ import {
   PaymentsSortTemplate,
   SortablePaymentsColumns,
   StatusTypeLabels,
-} from "./paymentDefaults";
+} from "features/transact/Payments/paymentDefaults";
+import { AllPaymentsColumns } from "features/transact/Payments/paymentsColumns";
 import { usePagination } from "components/table/pagination/usePagination";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";

@@ -8,11 +8,11 @@ import TablePageTemplate, {
 import { useState } from "react";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import {
-  AllForwardsColumns,
   DefaultForwardsView,
   ForwardsFilterTemplate,
   ForwardsSortByTemplate,
-} from "./forwardsDefaults";
+} from "features/forwards/forwardsDefaults";
+import { AllForwardsColumns } from "features/forwards/forwardsColumns"
 import useTranslations from "services/i18n/useTranslations";
 import { useAppSelector } from "store/hooks";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
