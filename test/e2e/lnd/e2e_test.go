@@ -612,8 +612,6 @@ func TestPlaywrightVideo(t *testing.T) {
 
 	click("#submit-button")
 
-	gotoPage("http://localhost:" + torqPort + "/")
-
 	click("#no-settings-confirmation")
 
 	_, err = page.Locator("text=Forwarding fees")
