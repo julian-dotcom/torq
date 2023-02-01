@@ -25,7 +25,7 @@ import Switch from "components/forms/switch/Switch";
 import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
 import { Buffer } from "buffer";
-import Note, { NoteType } from "../../note/Note";
+import Note, { NoteType } from "features/note/Note";
 
 const closeStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -182,7 +182,7 @@ function closeChannelModal() {
           <div className={styles.closeChannelResultDetails}>
             {!errMessage && (
               <>
-                <Note title={t.ClosingTxId} icon={<SuccessNoteIcon />} noteType={NoteType.success}>
+                <Note title={t.TxId} icon={<SuccessNoteIcon />} noteType={NoteType.success}>
                   {closingTx}
                 </Note>
                 <ExternalLinkButton

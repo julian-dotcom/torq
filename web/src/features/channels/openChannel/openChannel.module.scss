@@ -126,7 +126,8 @@
 .switchRow {
   justify-content: left;
 }
-
-.mempoolLink {
-  text-decoration: underline !important;
+.closeChannelResultDetails {
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
 }

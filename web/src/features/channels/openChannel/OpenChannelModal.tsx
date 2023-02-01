@@ -1,15 +1,17 @@
 import {
-  ArrowSyncFilled as ProcessingIcon,
-  CheckmarkRegular as SuccessIcon,
-  DismissRegular as FailedIcon,
   ArrowRouting20Regular as ChannelsIcon,
+  ArrowSyncFilled as ProcessingIcon,
+  Checkmark20Regular as SuccessNoteIcon,
+  CheckmarkRegular as SuccessIcon,
   CommentLightning20Regular as AdvencedOption,
+  ErrorCircle20Regular as FailedNoteIcon,
+  ErrorCircleRegular as FailedIcon,
+  Link20Regular as LinkIcon,
   Note20Regular as NoteIcon,
-  Link16Regular as LinkIcon,
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
 import { ChangeEvent, useEffect, useState } from "react";
-import Button, { ColorVariant, ButtonWrapper } from "components/buttons/Button";
+import Button, { ButtonWrapper, ColorVariant, ExternalLinkButton } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
 import styles from "./openChannel.module.scss";
@@ -17,7 +19,7 @@ import { useNavigate } from "react-router";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import useTranslations from "services/i18n/useTranslations";
 import { nodeConfiguration } from "apiTypes";
-import Select, { SelectOptions } from "features/forms/Select";
+import { SelectOptions } from "features/forms/Select";
 import { ActionMeta } from "react-select";
 import classNames from "classnames";
 import { NumberFormatValues } from "react-number-format";
@@ -27,6 +29,9 @@ import useWebSocket from "react-use-websocket";
 import Switch from "components/forms/switch/Switch";
 
 import FormRow from "features/forms/FormWrappers";
+import Note, { NoteType } from "features/note/Note";
+import { Select, TextArea } from "components/forms/forms";
+import { InputSizeVariant } from "components/forms/input/variants";
 
 const openStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -56,7 +61,7 @@ function OpenChannelModal() {
   const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
-  const [openingMempoolLink, setOpeningMempoolLink] = useState<string>("");
+  const [openingTx, setOpeningTx] = useState<string>("");
 
   useEffect(() => {
     if (nodeConfigurationOptions !== undefined) {
@@ -78,6 +83,7 @@ function OpenChannelModal() {
   const [spendUnconfirmed, setSpendUnconfirmed] = useState<boolean>(false);
   const [privateChan, setPrivate] = useState<boolean>(false);
   const [satPerVbyte, setSatPerVbyte] = useState<number>(0);
+  const [connectionString, setConnectionString] = useState<string>("");
   const [nodePubKey, setNodePubKey] = useState<string>("");
   const [host, setHost] = useState<string>("");
   const [stepIndex, setStepIndex] = useState(0);
@@ -89,7 +95,7 @@ function OpenChannelModal() {
     setDetailState(ProgressStepState.disabled);
     setResultState(ProgressStepState.disabled);
     setErrorMEssage("");
-    setOpeningMempoolLink("");
+    setOpeningTx("");
   };
 
   const navigate = useNavigate();
@@ -108,9 +114,12 @@ function OpenChannelModal() {
       setResultState(ProgressStepState.error);
       return;
     } else {
-      if (!openingMempoolLink) {
-        const channelPoint: string  = response.pendingChannelPoint?.substring(0, response.pendingChannelPoint?.indexOf(":"));
-        setOpeningMempoolLink(`https://mempool.space/tx/${channelPoint.trim()}`);
+      if (!openingTx) {
+        const channelPoint: string = response.pendingChannelPoint?.substring(
+          0,
+          response.pendingChannelPoint?.indexOf(":")
+        );
+        setOpeningTx(`https://mempool.space/tx/${channelPoint.trim()}`);
       }
     }
   }
@@ -142,30 +151,21 @@ function OpenChannelModal() {
             <FormRow>
               <div className={styles.openChannelTableSingle}>
                 <div className={styles.input}>
-                  <Input
-                    label={"Peer public key"}
-                    type={"text"}
-                    value={nodePubKey}
-                    placeholder={"pubkey"}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      setNodePubKey(e.target.value);
-                    }}
-                  />
-                </div>
-              </div>
-            </FormRow>
-          </div>
-          <div className={styles.openChannelTableRow}>
-            <FormRow>
-              <div className={styles.openChannelTableSingle}>
-                <div className={styles.input}>
-                  <Input
-                    label={"Peer IP and port"}
-                    value={host}
-                    type={"text"}
-                    placeholder={"ip:port"}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      setHost(e.target.value);
+                  <TextArea
+                    label={t.AddressAndPubKey}
+                    sizeVariant={InputSizeVariant.normal}
+                    value={connectionString}
+                    rows={4}
+                    placeholder={
+                      "03aab7e9327716ee946b8fbfae039b01235356549e72c5cca113ea67893d0821e5@123.123.123.123:9735"
+                    }
+                    onChange={(e) => {
+                      setConnectionString(e.target.value);
+                      if (e.target.value) {
+                        const split = e.target.value.split("@");
+                        split[0] && setNodePubKey(split[0]);
+                        split[1] && setHost(split[1]);
+                      }
                     }}
                   />
                 </div>
@@ -184,7 +184,7 @@ function OpenChannelModal() {
                 }}
                 buttonColor={ColorVariant.primary}
               >
-                {"Comfirm"}
+                {t.confirm}
               </Button>
             }
           />
@@ -371,35 +371,45 @@ function OpenChannelModal() {
             {" "}
             {openStatusIcon[errMessage ? "FAILED" : "SUCCEEDED"]}
           </div>
-          <div className={errMessage ? styles.errorBox : styles.successeBox}>
-            <div>
-              <div className={errMessage ? styles.errorIcon : styles.successIcon}>{openStatusIcon["NOTE"]}</div>
-              <div className={errMessage ? styles.errorNote : styles.successNote}>
-                {errMessage ? t.openCloseChannel.error : t.openCloseChannel.note}
-              </div>
-            </div>
-            <div className={errMessage ? styles.errorMessage : styles.successMessage}>
-              {errMessage ? errMessage : t.openCloseChannel.confirmationOpenning}
-              {openingMempoolLink && (
-              <a href={openingMempoolLink} className={classNames(styles.action, styles.link, styles.mempoolLink)} target="_blank" rel="noreferrer">
-                <LinkIcon />
-                MemPool
-                </a>
-              )}
-            </div>
+          <div className={styles.closeChannelResultDetails}>
+            {!errMessage && (
+              <>
+                <Note title={t.TxId} icon={<SuccessNoteIcon />} noteType={NoteType.success}>
+                  {openingTx}
+                </Note>
+                <ExternalLinkButton
+                  href={"https://mempool.space/tx/" + openingTx}
+                  target="_blank"
+                  rel="noreferrer"
+                  buttonColor={ColorVariant.success}
+                  icon={<LinkIcon />}
+                >
+                  {t.openCloseChannel.GoToMempool}
+                </ExternalLinkButton>
+
+                <Note title={t.note} icon={<NoteIcon />} noteType={NoteType.info}>
+                  {t.openCloseChannel.confirmationOpenning}
+                </Note>
+              </>
+            )}
+            {errMessage && (
+              <Note title={t.openCloseChannel.error} icon={<FailedNoteIcon />} noteType={NoteType.error}>
+                {errMessage}
+              </Note>
+            )}
+            <ButtonWrapper
+              rightChildren={
+                <Button
+                  onClick={() => {
+                    closeAndReset();
+                  }}
+                  buttonColor={ColorVariant.primary}
+                >
+                  {t.openCloseChannel.openNewChannel}
+                </Button>
+              }
+            />
           </div>
-          <ButtonWrapper
-            rightChildren={
-              <Button
-                onClick={() => {
-                  closeAndReset();
-                }}
-                buttonColor={ColorVariant.primary}
-              >
-                {t.openCloseChannel.openNewChannel}
-              </Button>
-            }
-          />
         </ProgressTabContainer>
       </ProgressTabs>
     </PopoutPageTemplate>
