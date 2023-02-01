@@ -45,14 +45,12 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 			server_errors.LogAndSendServerError(c, errors.Wrap(err, database.SqlBeginTransactionError))
 			return
 		}
-		defer func(tx *sqlx.Tx) {
-			err := tx.Rollback()
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to rollback table view migration.")
-			}
-		}(tx)
 		err = convertLegacyTableViews(tx, legacyTableViews)
 		if err != nil {
+			rollbackErr := tx.Rollback()
+			if rollbackErr != nil {
+				log.Error().Err(rollbackErr).Msgf("Failed to rollback table view migration.")
+			}
 			server_errors.LogAndSendServerError(c, err)
 			return
 		}
@@ -98,14 +96,12 @@ func addTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, errors.Wrap(err, database.SqlBeginTransactionError))
 		return
 	}
-	defer func(tx *sqlx.Tx) {
-		err := tx.Rollback()
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to rollback add table view.")
-		}
-	}(tx)
 	tableView, err := addTableViewLayout(tx, req)
 	if err != nil {
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			log.Error().Err(rollbackErr).Msgf("Failed to rollback add table view.")
+		}
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
@@ -155,14 +151,12 @@ func removeTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, errors.Wrap(err, database.SqlBeginTransactionError))
 		return
 	}
-	defer func(tx *sqlx.Tx) {
-		err := tx.Rollback()
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to rollback removing table view.")
-		}
-	}(tx)
 	err = removeTableView(tx, tableViewId)
 	if err != nil {
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			log.Error().Err(rollbackErr).Msgf("Failed to rollback removing table view.")
+		}
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}

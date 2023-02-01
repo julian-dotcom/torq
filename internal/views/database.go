@@ -52,7 +52,7 @@ func getTableViewsStructured(db *sqlx.DB) ([]TableViewStructured, error) {
 
 func getTableViewById(db *sqlx.DB, tableViewId int) (TableView, error) {
 	var tableView TableView
-	err := db.Get(&tableView, `SELECT * FROM table_view WHERE table_view_id=$1;`)
+	err := db.Get(&tableView, `SELECT * FROM table_view WHERE table_view_id=$1;`, tableViewId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return TableView{}, nil
@@ -235,14 +235,12 @@ func setTableViewLayout(db *sqlx.DB, updateTableView UpdateTableView) (TableView
 	if err != nil {
 		return TableViewLayout{}, errors.Wrap(err, database.SqlBeginTransactionError)
 	}
-	defer func(tx *sqlx.Tx) {
-		err := tx.Rollback()
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to rollback add table view.")
-		}
-	}(tx)
 	err = removeTableView(tx, updateTableView.Id)
 	if err != nil {
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			log.Error().Err(rollbackErr).Msgf("Failed to rollback add table view (remove).")
+		}
 		return TableViewLayout{}, errors.Wrap(err, "Removing tableView (update)")
 	}
 	layout, err := addTableViewLayout(tx, NewTableView{
@@ -250,6 +248,10 @@ func setTableViewLayout(db *sqlx.DB, updateTableView UpdateTableView) (TableView
 		Page: tableView.Page,
 	})
 	if err != nil {
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			log.Error().Err(rollbackErr).Msgf("Failed to rollback add table view (add).")
+		}
 		return TableViewLayout{}, errors.Wrap(err, "Adding tableView (update)")
 	}
 	err = tx.Commit()
