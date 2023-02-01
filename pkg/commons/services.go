@@ -133,7 +133,7 @@ func (rs *Services) GetStatus(nodeId int) Status {
 		var streamStatus *Status
 		for stream, status := range rs.streamStatus[nodeId] {
 			existingStatus := status
-			if isStreamConsideredOperational(stream, status) {
+			if !isStreamOperationalForService(stream, status) {
 				if streamStatus == nil {
 					streamStatus = &existingStatus
 				}
@@ -178,7 +178,7 @@ node:
 		}
 		if rs.ServiceType == LndService {
 			for stream, status := range rs.streamStatus[nodeId] {
-				if isStreamConsideredOperational(stream, status) {
+				if !isStreamOperationalForService(stream, status) {
 					continue node
 				}
 			}
@@ -261,7 +261,7 @@ func (rs *Services) GetChannelBalanceCacheStreamStatus(nodeId int) Status {
 	for _, stream := range SubscriptionStreams {
 		if stream.IsChannelBalanceCache() {
 			status := rs.streamStatus[nodeId][stream]
-			if isStreamConsideredOperational(stream, status) {
+			if !isStreamOperationalForService(stream, status) {
 				if streamStatus == nil {
 					streamStatus = &status
 				}
@@ -374,9 +374,11 @@ func (rs *Services) SetStreamStatus(nodeId int, stream SubscriptionStream, statu
 	return previousStatus
 }
 
-func isStreamConsideredOperational(stream SubscriptionStream, status Status) bool {
-	// We don't care about the status of the InFlightPaymentStream
-	return stream != InFlightPaymentStream && status != Active && status != Deleted
+func isStreamOperationalForService(stream SubscriptionStream, status Status) bool {
+	// stream == InFlightPaymentStream: We don't care about the status of the InFlightPaymentStream
+	// status == Active: The stream is healthy
+	// status == Deleted: The stream is not wanted
+	return stream == InFlightPaymentStream || status == Active || status == Deleted
 }
 
 func initServiceMaps(rs *Services, nodeId int) {
