@@ -277,7 +277,13 @@ func updateLegacyTableView(tx *sqlx.Tx, tableViewId int, tableViewLayout TableVi
 	if err != nil {
 		return TableViewLayout{}, errors.Wrap(err, "Updating tableView Dependencies.")
 	}
-	return tableViewLayout, nil
+	return TableViewLayout{
+		Id:        tableView.TableViewId,
+		View:      tableViewLayout.View,
+		Page:      tableView.Page,
+		ViewOrder: tableView.Order,
+		Version:   "v3",
+	}, nil
 }
 
 func addTableViewDependencies(tx *sqlx.Tx, tableViewDetail TableViewDetailLegacy, tableView TableView) error {
