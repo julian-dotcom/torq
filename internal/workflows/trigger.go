@@ -517,8 +517,11 @@ func processRoutingPolicyConfigurator(
 	if channelPolicyConfiguration.MinHtlcMsat != nil {
 		channelPolicyInputConfiguration.MinHtlcMsat = channelPolicyConfiguration.MinHtlcMsat
 	}
+	if channelPolicyConfiguration.TimeLockDelta != nil {
+		channelPolicyInputConfiguration.TimeLockDelta = channelPolicyConfiguration.TimeLockDelta
+	}
 	channelPolicyInputConfiguration.ChannelIds = linkedChannelIds
-	return activeOutputs, channelPolicyConfiguration, nil
+	return activeOutputs, channelPolicyInputConfiguration, nil
 }
 
 func addOrRemoveTags(db *sqlx.DB,
