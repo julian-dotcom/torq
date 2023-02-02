@@ -86,6 +86,8 @@ function ChannelPage(_: ChannelPageProps) {
 
   const { data: channelDetails } = useGetChannelsQuery({ network: activeNetwork });
 
+  const channelDetail = channelDetails?.find((c) => c.channelId === parseInt(chanId || ""));
+
   const flowQueryParams: GetFlowQueryParams = {
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
@@ -241,11 +243,11 @@ function ChannelPage(_: ChannelPageProps) {
                 buttonColor={ColorVariant.disabled}
               />
               <LinkButton
-                to={`/tag-node/${channelDetails.find((c) => c.channelId === parseInt(chanId || "") || 0)?.peerNodeId}`}
+                to={`/tag-node/${channelDetail?.peerNodeId}`}
                 state={{ background: location }}
                 onClick={() => {
                   mixpanel.track("Navigate to Tag Node", {
-                    nodeId: channelDetails.find((c) => c.channelId === parseInt(chanId || "") || 0)?.peerNodeId,
+                    nodeId: channelDetail?.peerNodeId,
                   });
                 }}
                 icon={<NodeIcon />}
@@ -258,69 +260,110 @@ function ChannelPage(_: ChannelPageProps) {
         <div className={classNames(styles.pageRow, styles.channelSummary)}>
           <div className={styles.shortColumn}>
             <div className={styles.card}>
-              <div className={styles.heading}>Revenue</div>
+              <div className={styles.heading}>{t.channelPage.revenue.header}</div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Forwarding fees</div>
+                <div className={styles.rowLabel}>{t.channelPage.revenue.forwardingFees}</div>
                 <div className={styles.rowValue}>{ft(historyRevenueOut)}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Channel Leases</div>
+                <div className={styles.rowLabel}>{t.channelPage.revenue.channelLeases}</div>
                 <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Total</div>
+                <div className={styles.rowLabel}>{t.channelPage.revenue.total}</div>
                 <div className={styles.rowValue}>{history?.revenueOut}</div>
               </div>
             </div>
             <div className={styles.card}>
-              <div className={styles.heading}>Expenses</div>
+              <div className={styles.heading}>{t.channelPage.expenses.heading}</div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Rebalancing</div>
+                <div className={styles.rowLabel}>{t.channelPage.expenses.rebalancing}</div>
                 <div className={classNames(styles.rowValue)}>{ft(rebalancingCostBy1000)}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Open & Close</div>
+                <div className={styles.rowLabel}>{t.channelPage.expenses.openAndClose}</div>
                 <div className={classNames(styles.rowValue)}>{ft(onchainCost)}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Total</div>
+                <div className={styles.rowLabel}>{t.channelPage.expenses.total}</div>
                 <div className={classNames(styles.rowValue)}>{ft(onchainPlusRebalancingCostBy1000)}</div>
               </div>
             </div>
             <div className={styles.card}>
-              <div className={styles.heading}>Profit</div>
+              <div className={styles.heading}>{t.channelPage.profit.heading}</div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Total</div>
+                <div className={styles.rowLabel}>{t.channelPage.profit.total}</div>
                 <div className={classNames(styles.rowValue)}>{ft(profit)}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Gross Profit Margin</div>
+                <div className={styles.rowLabel}>{t.channelPage.profit.grossProfitMargin}</div>
                 <div className={classNames(styles.rowValue)}>{d3.format(".2%")(historyReveueOutMinusCost)}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Turnover</div>
+                <div className={styles.rowLabel}>{t.channelPage.profit.turnover}</div>
                 <div className={classNames(styles.rowValue)}>{d3.format(",.2")(historyAmountTotalCapacity)}</div>
               </div>
             </div>
             <div className={styles.card}>
-              <div className={styles.heading}>Automation</div>
-              <div className={styles.sliderRow}>
-                <div className={styles.rowLabel}>
-                  <Switch label={"Fees"} />
-                </div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
+              <div className={styles.heading}>
+                {t.channelPage.policyDetails.outbound} {t.channelPage.policyDetails.heading}
               </div>
-              <div className={styles.sliderRow}>
-                <div className={styles.rowLabel}>
-                  <Switch label={"Rebalancing"} />
-                </div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.feeRate}</div>
+                <div className={classNames(styles.rowValue)}>{channelDetail?.feeRateMilliMsat}</div>
               </div>
-              <div className={styles.sliderRow}>
-                <div className={styles.rowLabel}>
-                  <Switch label={"HTLC amount"} />
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.baseFee}</div>
+                <div className={classNames(styles.rowValue)}>
+                  {d3.format(",.0f")(channelDetail ? channelDetail.feeBaseMsat : 0)}
                 </div>
-                <div className={classNames(styles.rowValue, styles.comingSoon)}>(Coming soon)</div>
+              </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.timeLockDelta}</div>
+                <div className={classNames(styles.rowValue)}>{channelDetail?.remoteTimeLockDelta}</div>
+              </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.minimumHTLC}</div>
+                <div className={classNames(styles.rowValue)}>
+                  {d3.format(",.0f")(channelDetail ? channelDetail.minHtlcMsat : 0)}
+                </div>
+              </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.maximumHTLC}</div>
+                <div className={classNames(styles.rowValue)}>
+                  {d3.format(",.0f")(channelDetail ? channelDetail.maxHtlcMsat : 0)}
+                </div>
+              </div>
+            </div>
+            <div className={styles.card}>
+              <div className={styles.heading}>
+                {t.channelPage.policyDetails.inbound} {t.channelPage.policyDetails.heading}
+              </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.feeRate}</div>
+                <div className={classNames(styles.rowValue)}>{channelDetail?.remoteFeeRateMilliMsat}</div>
+              </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.baseFee}</div>
+                <div className={classNames(styles.rowValue)}>
+                  {d3.format(",.0f")(channelDetail ? channelDetail.remoteFeeBaseMsat : 0)}
+                </div>
+              </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.timeLockDelta}</div>
+                <div className={classNames(styles.rowValue)}>{channelDetail?.remoteTimeLockDelta}</div>
+              </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.minimumHTLC}</div>
+                <div className={classNames(styles.rowValue)}>
+                  {d3.format(",.0f")(channelDetail ? channelDetail.remoteMinHtlcMsat : 0)}
+                </div>
+              </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.maximumHTLC}</div>
+                <div className={classNames(styles.rowValue)}>
+                  {d3.format(",.0f")(channelDetail ? channelDetail.remoteMaxHtlcMsat : 0)}
+                </div>
               </div>
             </div>
           </div>
@@ -337,16 +380,16 @@ function ChannelPage(_: ChannelPageProps) {
                         updateProfitChartKey({
                           key: (newValue as { value: string; label: string }) || {
                             value: "amount",
-                            label: "Amount",
+                            label: t.channelPage.chart.amount,
                           },
                         })
                       );
                     }
                   }}
                   options={[
-                    { value: "amount", label: "Amount" },
-                    { value: "revenue", label: "Revenue" },
-                    { value: "count", label: "Count" },
+                    { value: "amount", label: t.channelPage.chart.amount },
+                    { value: "revenue", label: t.channelPage.chart.revenue },
+                    { value: "count", label: t.channelPage.chart.count },
                   ]}
                 />
               </div>
@@ -363,77 +406,77 @@ function ChannelPage(_: ChannelPageProps) {
 
         <div className={classNames(styles.pageRow, styles.tripleRow)}>
           <div className={styles.card}>
-            <div className={styles.heading}>Amount</div>
+            <div className={styles.heading}>{t.channelPage.amount.header}</div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Capacity</div>
+              <div className={styles.rowLabel}>{t.channelPage.amount.capacity}</div>
               <div className={styles.rowValue}>{ft(totalCapacity)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Outbound</div>
+              <div className={styles.rowLabel}>{t.channelPage.amount.outbound}</div>
               <div className={styles.rowValue}>{ft(historyAmountOut)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Inbound</div>
+              <div className={styles.rowLabel}>{t.channelPage.amount.inbound}</div>
               <div className={classNames(styles.rowValue)}>{ft(historyAmountIn)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Total</div>
+              <div className={styles.rowLabel}>{t.channelPage.amount.total}</div>
               <div className={styles.rowValue}>{ft(historyAmountTotal)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Turnover</div>
+              <div className={styles.rowLabel}>{t.channelPage.amount.turnover}</div>
               <div className={classNames(styles.rowValue)}>{d3.format(",.2")(historyAmountTotalCapacity)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Balance score</div>
+              <div className={styles.rowLabel}>{t.channelPage.amount.balanceScore}</div>
               <div className={classNames(styles.rowValue)}>{d3.format(".1%")(historyAmountInOut)}</div>
             </div>
           </div>
 
           <div className={styles.card}>
-            <div className={styles.heading}>Revenue</div>
+            <div className={styles.heading}>{t.channelPage.revenue.header}</div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Outbound</div>
+              <div className={styles.rowLabel}>{t.channelPage.revenue.outbound}</div>
               <div className={styles.rowValue}>{ft(historyRevenueOut)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Inbound</div>
+              <div className={styles.rowLabel}>{t.channelPage.revenue.inbound}</div>
               <div className={classNames(styles.rowValue)}>{ft(historyRevenueIn)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Total</div>
+              <div className={styles.rowLabel}>{t.channelPage.revenue.total}</div>
               <div className={styles.rowValue}>{ft(historyRevenueTotal)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Average fee out</div>
+              <div className={styles.rowLabel}>{t.channelPage.revenue.averageFeeOut}</div>
               <div className={classNames(styles.rowValue)}>{d3.format(",.1f")(historyRevenueOutAmountOut)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Average fee in</div>
+              <div className={styles.rowLabel}>{t.channelPage.revenue.averageFeeIn}</div>
               <div className={classNames(styles.rowValue)}>{d3.format(",.1f")(historyRevenueInAmountIn)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Average fee</div>
+              <div className={styles.rowLabel}>{t.channelPage.revenue.averageFee}</div>
               <div className={classNames(styles.rowValue)}>{d3.format(",.1f")(historyRevenueTotalAmountTotal)}</div>
             </div>
           </div>
 
           <div className={styles.card}>
-            <div className={styles.heading}>Transaction count</div>
+            <div className={styles.heading}>{t.channelPage.transactionCount.header}</div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Outbound</div>
+              <div className={styles.rowLabel}>{t.channelPage.transactionCount.outbound}</div>
               <div className={styles.rowValue}>{ft(historyCountOut)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Inbound</div>
+              <div className={styles.rowLabel}>{t.channelPage.transactionCount.inbound}</div>
               <div className={classNames(styles.rowValue)}>{ft(historyCountIn)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Total</div>
+              <div className={styles.rowLabel}>{t.channelPage.transactionCount.total}</div>
               <div className={styles.rowValue}>{ft(historyCountTotal)}</div>
             </div>
             <div className={styles.cardRow}>
-              <div className={styles.rowLabel}>Balance score (Nb. Tx)</div>
+              <div className={styles.rowLabel}>{t.channelPage.transactionCount.balanceScore}</div>
               <div className={classNames(styles.rowValue)}>{d3.format(".1%")(historyCountInOut)}</div>
             </div>
           </div>
@@ -459,16 +502,16 @@ function ChannelPage(_: ChannelPageProps) {
                         updateEventChartKey({
                           key: (newValue as { value: string; label: string }) || {
                             value: "amount",
-                            label: "Amount",
+                            label: t.channelPage.chart.amount,
                           },
                         })
                       );
                     }
                   }}
                   options={[
-                    { value: "amount", label: "Amount" },
-                    { value: "revenue", label: "Revenue" },
-                    { value: "count", label: "Count" },
+                    { value: "amount", label: t.channelPage.chart.amount },
+                    { value: "revenue", label: t.channelPage.chart.revenue },
+                    { value: "count", label: t.channelPage.chart.count },
                   ]}
                 />
               </div>
@@ -490,7 +533,7 @@ function ChannelPage(_: ChannelPageProps) {
                     <div className={styles.cardRow}>
                       <div className={styles.rowLabel}>
                         <Switch
-                          label="Toggle all"
+                          label={t.channelPage.chartSetting.toggleAll}
                           checked={allToggle}
                           colorVariant={InputColorVaraint.accent1}
                           onChange={() => {
@@ -592,16 +635,16 @@ function ChannelPage(_: ChannelPageProps) {
                         updateFlowKey({
                           flowKey: (newValue as { value: string; label: string }) || {
                             value: "amount",
-                            label: "Amount",
+                            label: t.channelPage.chart.amount,
                           },
                         })
                       );
                     }
                   }}
                   options={[
-                    { value: "amount", label: "Amount" },
-                    { value: "revenue", label: "Revenue" },
-                    { value: "count", label: "Count" },
+                    { value: "amount", label: t.channelPage.chart.amount },
+                    { value: "revenue", label: t.channelPage.chart.revenue },
+                    { value: "count", label: t.channelPage.chart.count },
                   ]}
                 />
               </div>
@@ -615,10 +658,10 @@ function ChannelPage(_: ChannelPageProps) {
               </div>
             </div>
             <div className="legendsContainer">
-              <div className="sources">Sources</div>
-              <div className="outbound">Outbound</div>
-              <div className="inbound">Inbound</div>
-              <div className="destinations">Destinations</div>
+              <div className="sources">{t.channelPage.legendsContainer.sources}</div>
+              <div className="outbound">{t.channelPage.legendsContainer.outbound}</div>
+              <div className="inbound">{t.channelPage.legendsContainer.inbound}</div>
+              <div className="destinations">{t.channelPage.legendsContainer.destinations}</div>
             </div>
             <div className={classNames(styles.chartWrapper, styles.flowChartWrapper)}>
               {!isLoading && data && <FlowChart data={data} />}

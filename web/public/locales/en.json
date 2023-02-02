@@ -283,5 +283,74 @@
       "areYouSure": "Are you sure?",
       "addTag": "Add tag"
     }
+  },
+  "channelPage": {
+    "expenses": {
+      "heading": "Expenses",
+      "rebalancing": "Rebalancing",
+      "openAndClose": "Open & Close",
+      "total": "Total"
+    },
+    "profit": {
+      "heading": "Profit",
+      "total": "Total",
+      "grossProfitMargin": "Gross Profit Margin",
+      "turnover": "Turnover"
+    },
+    "policyDetails" : {
+      "heading": "Policy Details",
+      "outbound": "Outbound",
+      "inbound": "Inbound",
+      "feeRate": "Fee Rate (PPM)",
+      "baseFee": "Base Fee Msat",
+      "timeLockDelta": "Time Lock Delta",
+      "minimumHTLC": "Minimum HTLC",
+      "maximumHTLC": "Maximum HTLC"
+    },
+    "chart": {
+      "amount": "Amount",
+      "revenue": "Revenue",
+      "count": "Count"
+    },
+    "amount": {
+      "header": "Amount",
+      "capacity": "Capacity",
+      "outbound": "Outbound",
+      "inbound": "Inbound",
+      "total": "Total",
+      "turnover": "Turnover",
+      "balanceScore": "Balance Score"
+    },
+    "revenue": {
+      "header": "Revenue",
+      "outbound": "Outbound",
+      "inbound": "Inbound",
+      "total": "Total",
+      "averageFeeOut": "Average Fee Out",
+      "averageFeeIn": "Average Fee In",
+      "averageFee": "Average Fee",
+      "forwardingFees": "Forwarding Fees",
+      "channelLeases": "Channel Leases"
+    },
+    "transactionCount": {
+      "header": "Transaction Count",
+      "outbound": "Outbound",
+      "inbound": "Inbound",
+      "total": "Total",
+      "balanceScore": "Balance Score (Nb. Tx)"
+    },
+    "summaryChart": {
+      "amount": "Amount"
+    },
+    "chartSetting": {
+      "toggleAll": "Toggle All"
+    },
+    "legendsContainer": {
+      "sources": "Sources",
+      "outbound": "Outbound",
+      "inbound": "Inbound",
+      "destinations": "Destinations"
+    }
   }
+
 }
