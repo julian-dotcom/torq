@@ -917,8 +917,8 @@ func updateNodeVisibilitySettings(db *sqlx.DB, workflowVersionNodeId int, visibi
 func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
 	tx := db.MustBegin()
 
-	// First delete all node Links that are connected to this node
-	_, err := tx.Exec(`DELETE FROM workflow_version_node_link WHERE parent_workflow_version_node_id = $1 or child_workflow_version_node_id = $1`, workflowVersionNodeId)
+	// delete all node logs that are connected to this node,
+	_, err := tx.Exec(`DELETE FROM workflow_version_node_log WHERE workflow_version_node_id=$1 OR triggering_workflow_version_node_id=$1`, workflowVersionNodeId)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return 0, errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
@@ -926,7 +926,16 @@ func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
 		return 0, errors.Wrap(err, "Deleting the node links while deleting node")
 	}
 
-	res, err := tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id = $1;`, workflowVersionNodeId)
+	// delete all node Links that are connected to this node
+	_, err = tx.Exec(`DELETE FROM workflow_version_node_link WHERE parent_workflow_version_node_id=$1 OR child_workflow_version_node_id=$1`, workflowVersionNodeId)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return 0, errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
+		}
+		return 0, errors.Wrap(err, "Deleting the node links while deleting node")
+	}
+
+	res, err := tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id=$1;`, workflowVersionNodeId)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return 0, errors.Wrap(rollbackErr, "Deleting the node (rollback failed too)")

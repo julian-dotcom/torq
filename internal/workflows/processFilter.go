@@ -137,8 +137,8 @@ func (c *Clause) parseClause(data map[string]interface{}) {
 			if !ok {
 				panic("Filter function is not yet defined")
 			}
-			if _, ok := data[filterClause.Filter.Key]; ok {
-				c.ChildClauses[i].Result = filterFunc(data, filterClause.Filter.Key, filterClause.Filter.Parameter)
+			if _, ok := data[strings.ToLower(filterClause.Filter.Key)]; ok {
+				c.ChildClauses[i].Result = filterFunc(data, strings.ToLower(filterClause.Filter.Key), filterClause.Filter.Parameter)
 			} else {
 				c.ChildClauses[i].Result = true
 			}
