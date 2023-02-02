@@ -166,6 +166,15 @@ func addTableView(tx *sqlx.Tx, tableView TableView) (TableView, error) {
 	return tableView, nil
 }
 
+func updateTableView(tx *sqlx.Tx, tableViewId int, title string) error {
+	_, err := tx.Exec(`UPDATE table_view SET title=$1, updated_on=$2 WHERE table_view_id = $3;`,
+		title, time.Now(), tableViewId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
+}
+
 func addTableViewColumn(tx *sqlx.Tx, tableViewColumn TableViewColumn) (TableViewColumn, error) {
 	tableViewColumn.CreatedOn = time.Now().UTC()
 	tableViewColumn.UpdateOn = tableViewColumn.CreatedOn
@@ -235,30 +244,23 @@ func setTableViewLayout(db *sqlx.DB, updateTableView UpdateTableView) (TableView
 	if err != nil {
 		return TableViewLayout{}, errors.Wrap(err, database.SqlBeginTransactionError)
 	}
-	err = removeTableView(tx, updateTableView.Id)
-	if err != nil {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil {
-			log.Error().Err(rollbackErr).Msgf("Failed to rollback add table view (remove).")
-		}
-		return TableViewLayout{}, errors.Wrap(err, "Removing tableView (update)")
-	}
-	layout, err := addTableViewLayout(tx, NewTableView{
-		View: updateTableView.View,
-		Page: tableView.Page,
+	tableViewLayout, err := updateLegacyTableView(tx, tableView.TableViewId, TableViewLayout{
+		View:    updateTableView.View,
+		Page:    tableView.Page,
+		Version: "v3",
 	})
 	if err != nil {
 		rollbackErr := tx.Rollback()
 		if rollbackErr != nil {
 			log.Error().Err(rollbackErr).Msgf("Failed to rollback add table view (add).")
 		}
-		return TableViewLayout{}, errors.Wrap(err, "Adding tableView (update)")
+		return TableViewLayout{}, errors.Wrap(err, "Update tableView")
 	}
 	err = tx.Commit()
 	if err != nil {
 		return TableViewLayout{}, errors.Wrap(err, database.SqlCommitTransactionError)
 	}
-	return layout, nil
+	return tableViewLayout, nil
 }
 
 func setTableViewLayoutOrder(db *sqlx.DB, tableViewOrder []TableViewOrder) error {

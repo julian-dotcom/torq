@@ -223,39 +223,9 @@ func convertLegacyTableView(tx *sqlx.Tx, tableViewLayout TableViewLayout) (Table
 	if err != nil {
 		return TableViewLayout{}, err
 	}
-	for columnIndex, column := range tableViewDetail.Columns {
-		_, err = addTableViewColumn(tx, TableViewColumn{
-			Key:         column.Key,
-			KeySecond:   column.Key2,
-			Order:       columnIndex + 1,
-			Type:        column.Type,
-			TableViewId: tableView.TableViewId,
-		})
-		if err != nil {
-			return TableViewLayout{}, err
-		}
-	}
-	filtersJson, err := json.Marshal(tableViewDetail.Filters)
+	err = addTableViewDependencies(tx, tableViewDetail, tableView)
 	if err != nil {
 		return TableViewLayout{}, errors.Wrap(err, "JSON marshal table view")
-	}
-	_, err = addTableViewFilter(tx, TableViewFilter{
-		Filter:      filtersJson,
-		TableViewId: tableView.TableViewId,
-	})
-	if err != nil {
-		return TableViewLayout{}, err
-	}
-	for sortIndex, sorting := range tableViewDetail.SortBy {
-		_, err = addTableViewSorting(tx, TableViewSorting{
-			Key:         sorting.Key,
-			Order:       sortIndex + 1,
-			Ascending:   sorting.Direction == "asc",
-			TableViewId: tableView.TableViewId,
-		})
-		if err != nil {
-			return TableViewLayout{}, err
-		}
 	}
 	_, err = tx.Exec("DELETE FROM table_view_legacy WHERE id = $1;", tableViewLayout.Id)
 	if err != nil {
@@ -268,4 +238,82 @@ func convertLegacyTableView(tx *sqlx.Tx, tableViewLayout TableViewLayout) (Table
 		ViewOrder: tableView.Order,
 		Version:   "v3",
 	}, nil
+}
+
+func updateLegacyTableView(tx *sqlx.Tx, tableViewId int, tableViewLayout TableViewLayout) (TableViewLayout, error) {
+	err := removeTableViewColumns(tx, tableViewId)
+	if err != nil {
+		return TableViewLayout{}, errors.Wrap(err, "Removing tableView columns.")
+	}
+	err = removeTableViewFilters(tx, tableViewId)
+	if err != nil {
+		return TableViewLayout{}, errors.Wrap(err, "Removing tableView filters.")
+	}
+	err = removeTableViewSortings(tx, tableViewId)
+	if err != nil {
+		return TableViewLayout{}, errors.Wrap(err, "Removing tableView sortings.")
+	}
+
+	tableView := TableView{
+		TableViewId: tableViewId,
+		Page:        tableViewLayout.Page,
+		Order:       tableViewLayout.ViewOrder,
+	}
+	var tableViewDetail TableViewDetailLegacy
+	err = json.Unmarshal(tableViewLayout.View, &tableViewDetail)
+	if err != nil {
+		return TableViewLayout{}, errors.Wrap(err, "JSON unmarshal")
+	}
+	tableView.Title = tableViewDetail.Title
+	if tableView.Page == "" {
+		tableView.Page = tableViewDetail.Page
+	}
+
+	err = updateTableView(tx, tableView.TableViewId, tableView.Title)
+	if err != nil {
+		return TableViewLayout{}, errors.Wrap(err, "Updating tableView.")
+	}
+	err = addTableViewDependencies(tx, tableViewDetail, tableView)
+	if err != nil {
+		return TableViewLayout{}, errors.Wrap(err, "Updating tableView Dependencies.")
+	}
+	return tableViewLayout, nil
+}
+
+func addTableViewDependencies(tx *sqlx.Tx, tableViewDetail TableViewDetailLegacy, tableView TableView) error {
+	for columnIndex, column := range tableViewDetail.Columns {
+		_, err := addTableViewColumn(tx, TableViewColumn{
+			Key:         column.Key,
+			KeySecond:   column.Key2,
+			Order:       columnIndex + 1,
+			Type:        column.Type,
+			TableViewId: tableView.TableViewId,
+		})
+		if err != nil {
+			return errors.Wrap(err, "Add tableView column.")
+		}
+	}
+	filtersJson, err := json.Marshal(tableViewDetail.Filters)
+	if err != nil {
+		return errors.Wrap(err, "JSON marshal table view")
+	}
+	_, err = addTableViewFilter(tx, TableViewFilter{
+		Filter:      filtersJson,
+		TableViewId: tableView.TableViewId,
+	})
+	if err != nil {
+		return errors.Wrap(err, "Add tableView filter.")
+	}
+	for sortIndex, sorting := range tableViewDetail.SortBy {
+		_, err = addTableViewSorting(tx, TableViewSorting{
+			Key:         sorting.Key,
+			Order:       sortIndex + 1,
+			Ascending:   sorting.Direction == "asc",
+			TableViewId: tableView.TableViewId,
+		})
+		if err != nil {
+			return errors.Wrap(err, "Add tableView sorting.")
+		}
+	}
+	return nil
 }
