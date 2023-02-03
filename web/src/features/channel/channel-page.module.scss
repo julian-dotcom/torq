@@ -87,6 +87,15 @@
     padding-bottom: 12px;
   }
 }
+.actionRow {
+  display: flex;
+  column-gap: 16px;
+}
+.actionRow .actionButtons {
+  display: flex;
+  column-gap: 8px;
+  font-size: var(--font-size-tiny);
+}
 .pageRow {
   display: grid;
   grid-auto-flow: column;

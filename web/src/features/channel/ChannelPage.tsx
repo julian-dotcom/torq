@@ -1,5 +1,7 @@
 import {
   ArrowRoutingRegular as ChannelsIcon,
+  Delete16Regular as CloseIcon,
+  Edit16Regular as UpdateIcon,
   Flag16Regular as EventFlagIcon,
   MoleculeRegular as NodeIcon,
 } from "@fluentui/react-icons";
@@ -47,6 +49,7 @@ import PageTitle from "features/templates/PageTitle";
 import useTranslations from "services/i18n/useTranslations";
 import Tag, { TagColor } from "components/tags/Tag";
 import mixpanel from "mixpanel-browser";
+import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
 
 const ft = d3.format(",.0f");
 
@@ -196,6 +199,9 @@ function ChannelPage(_: ChannelPageProps) {
       return { value: i, label: d.channelId };
     });
   }
+
+  const isSingleChannel = channelDetails?.length && history?.channels?.length === 1;
+
   return (
     <PopoutPageTemplate
       title={t.inspectChannel}
@@ -224,39 +230,81 @@ function ChannelPage(_: ChannelPageProps) {
       </PageTitle>
 
       <div className={styles.channelWrapper}>
-        <div className={styles.tags}>
-          {((history?.channels && history.channels[0].tags) || []).map((tag) => (
-            <Tag key={"tag-" + tag.tagId} label={tag.name} colorVariant={TagColor[tag.style]} />
-          ))}
-          {channelDetails?.length && history?.channels?.length === 1 && (
-            <>
-              <LinkButton
-                to={`/tag-channel/${chanId}`}
-                state={{ background: location }}
-                onClick={() => {
-                  mixpanel.track("Navigate to Tag Channel", {
-                    channelId: chanId,
-                  });
-                }}
-                icon={<ChannelsIcon />}
-                buttonSize={SizeVariant.small}
-                buttonColor={ColorVariant.disabled}
-              />
-              <LinkButton
-                to={`/tag-node/${channelDetail?.peerNodeId}`}
-                state={{ background: location }}
-                onClick={() => {
-                  mixpanel.track("Navigate to Tag Node", {
-                    nodeId: channelDetail?.peerNodeId,
-                  });
-                }}
-                icon={<NodeIcon />}
-                buttonSize={SizeVariant.small}
-                buttonColor={ColorVariant.disabled}
-              />
-            </>
-          )}
+        <div className={styles.actionRow}>
+          <div className={styles.actionButtons}>
+            {isSingleChannel && (
+              <>
+                <LinkButton
+                  to={`${UPDATE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
+                  state={{ background: location }}
+                  hideMobileText={true}
+                  icon={<UpdateIcon />}
+                  buttonColor={ColorVariant.success}
+                  buttonSize={SizeVariant.small}
+                  onClick={() => {
+                    mixpanel.track("Navigate to Update Channel", {
+                      nodeId: channelDetail?.nodeId,
+                      channelId: channelDetail?.channelId,
+                    });
+                  }}
+                >
+                  {t.update}
+                </LinkButton>
+
+                <LinkButton
+                  to={`${CLOSE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
+                  state={{ background: location }}
+                  hideMobileText={true}
+                  icon={<CloseIcon />}
+                  buttonSize={SizeVariant.small}
+                  buttonColor={ColorVariant.error}
+                  onClick={() => {
+                    mixpanel.track("Navigate to Close Channel", {
+                      nodeId: channelDetail?.nodeId,
+                      channelId: channelDetail?.channelId,
+                    });
+                  }}
+                >
+                  {t.close}
+                </LinkButton>
+              </>
+            )}
+          </div>
+          <div className={styles.tags}>
+            {((history?.channels && history.channels[0].tags) || []).map((tag) => (
+              <Tag key={"tag-" + tag.tagId} label={tag.name} colorVariant={TagColor[tag.style]} />
+            ))}
+            {isSingleChannel && (
+              <>
+                <LinkButton
+                  to={`/tag-channel/${chanId}`}
+                  state={{ background: location }}
+                  onClick={() => {
+                    mixpanel.track("Navigate to Tag Channel", {
+                      channelId: chanId,
+                    });
+                  }}
+                  icon={<ChannelsIcon />}
+                  buttonSize={SizeVariant.small}
+                  buttonColor={ColorVariant.disabled}
+                />
+                <LinkButton
+                  to={`/tag-node/${channelDetail?.peerNodeId}`}
+                  state={{ background: location }}
+                  onClick={() => {
+                    mixpanel.track("Navigate to Tag Node", {
+                      nodeId: channelDetail?.peerNodeId,
+                    });
+                  }}
+                  icon={<NodeIcon />}
+                  buttonSize={SizeVariant.small}
+                  buttonColor={ColorVariant.disabled}
+                />
+              </>
+            )}
+          </div>
         </div>
+
         <div className={classNames(styles.pageRow, styles.channelSummary)}>
           <div className={styles.shortColumn}>
             <div className={styles.card}>
