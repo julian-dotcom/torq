@@ -246,44 +246,35 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
 		return
 	}
-	node, err := nodes.GetNodeByPublicKey(db, publicKey)
+
+	nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
+	if nodeId == 0 {
+		newNode := nodes.Node{
+			PublicKey: publicKey,
+			Network:   network,
+			Chain:     chain,
+		}
+		nodeId, err = nodes.AddNodeWhenNew(db, newNode)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err, "Adding node")
+			return
+		}
+	}
+	ncd.NodeId = nodeId
+	existingNcd, err = getNodeConnectionDetails(db, ncd.NodeId)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Getting existing node by public key")
+		server_errors.WrapLogAndSendServerError(c, err, "Getting existing node connection details by nodeId")
 		return
 	}
-	if node.Chain == chain && node.Network == network {
-		ncd.NodeId = node.NodeId
-		existingNcd, err = getNodeConnectionDetails(db, node.NodeId)
-		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Getting existing node connection details by nodeId")
-			return
-		}
-		if existingNcd.NodeId == ncd.NodeId && existingNcd.Status != commons.Deleted {
-			server_errors.SendUnprocessableEntity(c, "This node already exists")
-			return
-		}
-		if existingNcd.Status == commons.Deleted {
-			ncd.CreateOn = existingNcd.CreateOn
-			if strings.TrimSpace(ncd.Name) == "" {
-				ncd.Name = existingNcd.Name
-			}
-		}
+	if existingNcd.NodeId == ncd.NodeId && existingNcd.Status != commons.Deleted {
+		server_errors.SendUnprocessableEntity(c, "This node already exists")
+		return
 	}
-
-	if ncd.NodeId == 0 {
-		nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
-		if nodeId == 0 {
-			newNode := nodes.Node{
-				PublicKey: publicKey,
-				Network:   network,
-				Chain:     chain,
-			}
-			nodeId, err = nodes.AddNodeWhenNew(db, newNode)
-			if err != nil {
-				server_errors.WrapLogAndSendServerError(c, err, "Adding node")
-			}
+	if existingNcd.Status == commons.Deleted {
+		ncd.CreateOn = existingNcd.CreateOn
+		if strings.TrimSpace(ncd.Name) == "" {
+			ncd.Name = existingNcd.Name
 		}
-		ncd.NodeId = nodeId
 	}
 
 	canSignMessages, err := getSignMessagesPermissionFromLndNode(*ncd.GRPCAddress, ncd.TLSDataBytes, ncd.MacaroonDataBytes)
