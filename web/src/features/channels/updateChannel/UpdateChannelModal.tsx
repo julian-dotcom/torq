@@ -21,7 +21,7 @@ import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
 import Input from "components/forms/input/Input";
 import mixpanel from "mixpanel-browser";
-import {PolicyInterface} from "features/channels/channelsTypes";
+import { PolicyInterface } from "features/channels/channelsTypes";
 
 const updateStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -76,7 +76,6 @@ function NodechannelModal() {
   const [maxHtlc, setMaxHtlc] = useState<number | undefined>(undefined);
   const [minHtlc, setMinHtlc] = useState<number | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
-
 
   const closeAndReset = () => {
     setStepIndex(0);
@@ -193,21 +192,21 @@ function NodechannelModal() {
                       timeLockDelta: timeLockDelta,
                       channelId: channelId,
                       nodeId: nodeId,
-                    }
+                    };
+                    mixpanel.track("Update Channel", {
+                      channelId: channelId,
+                      nodeId: nodeId,
+                    });
                     if (feeBase !== undefined) {
-                      pi.feeBaseMsat = feeBase * 1000
+                      pi.feeBaseMsat = feeBase * 1000;
                     }
                     if (maxHtlc !== undefined) {
-                      pi.maxHtlcMsat = maxHtlc * 1000
+                      pi.maxHtlcMsat = maxHtlc * 1000;
                     }
                     if (minHtlc !== undefined) {
-                      pi.minHtlcMsat = minHtlc * 1000
+                      pi.minHtlcMsat = minHtlc * 1000;
                     }
                     updateChannelMutation(pi);
-                    mixpanel.track("Updating Channel Policy", {
-                      ChannelId: channelId,
-                      NodeId: nodeId,
-                    });
                   }}
                   buttonColor={ColorVariant.success}
                 >

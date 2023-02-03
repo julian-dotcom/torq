@@ -32,6 +32,7 @@ import FormRow from "features/forms/FormWrappers";
 import Note, { NoteType } from "features/note/Note";
 import { Select, TextArea } from "components/forms/forms";
 import { InputSizeVariant } from "components/forms/input/variants";
+import mixpanel from "mixpanel-browser";
 
 const openStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -152,7 +153,8 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableSingle}>
                 <div className={styles.input}>
                   <TextArea
-                    label={t.AddressAndPubKey}
+                    label={t.ConnectionString}
+                    helpText={t.NodeConnectionStringHelp}
                     sizeVariant={InputSizeVariant.normal}
                     value={connectionString}
                     rows={4}
@@ -194,13 +196,14 @@ function OpenChannelModal() {
             <div className={styles.openChannelTableRow}>
               <FormRow>
                 <div className={styles.openChannelTableSingle}>
-                  <span className={styles.label}>{"Channel Size"}</span>
+                  <span className={styles.label}>{t.ChannelSize}</span>
                   <div className={styles.input}>
                     <Input
                       formatted={true}
                       className={styles.single}
                       thousandSeparator={","}
                       value={localFundingAmount}
+                      suffix={" sat"}
                       onValueChange={(values: NumberFormatValues) => {
                         setLocalFundingAmount(values.floatValue as number);
                       }}
@@ -212,13 +215,14 @@ function OpenChannelModal() {
             <div className={styles.openChannelTableRow}>
               <FormRow>
                 <div className={styles.openChannelTableSingle}>
-                  <span className={styles.label}>{"Sats per vbyte"}</span>
                   <div className={styles.input}>
                     <Input
+                      label={t.SatPerVbyte}
                       formatted={true}
                       className={styles.single}
                       thousandSeparator={","}
                       value={satPerVbyte}
+                      suffix={" sat"}
                       onValueChange={(values: NumberFormatValues) => {
                         setSatPerVbyte(values.floatValue as number);
                       }}
@@ -228,7 +232,7 @@ function OpenChannelModal() {
               </FormRow>
             </div>
             <SectionContainer
-              title={"Advanced Options"}
+              title={t.AdvancedOptions}
               icon={AdvencedOption}
               expanded={expandAdvancedOptions}
               handleToggle={() => {
@@ -238,12 +242,14 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableRow}>
                 <FormRow>
                   <div className={styles.openChannelTableSingle}>
-                    <span className={styles.label}>{"Push Amount"}</span>
                     <div className={styles.input}>
                       <Input
+                        label={t.PushAmount}
                         formatted={true}
                         className={styles.single}
+                        helpText={t.PushAmountHelpText}
                         thousandSeparator={","}
+                        suffix={" sat"}
                         value={pushSat}
                         onValueChange={(values: NumberFormatValues) => {
                           setPushSat(values.floatValue as number);
@@ -256,11 +262,12 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableRow}>
                 <FormRow>
                   <div className={styles.openChannelTableSingle}>
-                    <span className={styles.label}>{"HTLC min sat"}</span>
                     <div className={styles.input}>
                       <Input
+                        label={t.HTLCMinSat}
                         formatted={true}
                         className={styles.single}
+                        suffix={" sat"}
                         thousandSeparator={","}
                         value={minHtlcMsat}
                         onValueChange={(values: NumberFormatValues) => {
@@ -274,9 +281,9 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableRow}>
                 <FormRow>
                   <div className={styles.openChannelTableSingle}>
-                    <span className={styles.label}>{"Minimum Confirmations"}</span>
                     <div className={styles.input}>
                       <Input
+                        label={t.MinimumConfirmations}
                         formatted={true}
                         className={styles.single}
                         thousandSeparator={","}
@@ -292,9 +299,9 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableRow}>
                 <FormRow>
                   <div className={styles.openChannelTableSingle}>
-                    <span className={styles.label}>{"Channel Close Address"}</span>
                     <div className={styles.input}>
                       <Input
+                        label={t.ChannelCloseAddress}
                         value={closeAddress}
                         type={"text"}
                         placeholder={"e.g. bc1q..."}
@@ -309,7 +316,7 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableRow}>
                 <FormRow className={styles.switchRow}>
                   <Switch
-                    label={"Private"}
+                    label={t.Private}
                     checked={privateChan}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       setPrivate(e.target.checked);
@@ -334,6 +341,14 @@ function OpenChannelModal() {
                     setStepIndex(2);
                     setDetailState(ProgressStepState.completed);
                     setResultState(ProgressStepState.completed);
+                    mixpanel.track("Open Channel", {
+                      nodeId: selectedNodeId,
+                      openChannelUseSatPerVbyte: satPerVbyte !== 0,
+                      openChannelUsePushAmount: pushSat !== 0,
+                      openChannelUseHTLCMinSat: minHtlcMsat !== 0,
+                      openChannelUseMinimumConfirmations: minConfs !== 0,
+                      openChannelUseChannelCloseAddress: closeAddress !== "",
+                    });
                     sendJsonMessage({
                       requestId: "randId",
                       type: "openChannel",
