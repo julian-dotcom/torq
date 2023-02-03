@@ -67,12 +67,14 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
 		type: "NumericDoubleCell",
 		key: "feeRateMilliMsat",
 		valueType: "number",
+		key2: "remoteFeeRateMilliMsat",
 	},
 	{
 		heading: "Base Fee",
 		type: "NumericDoubleCell",
 		key: "feeBase",
 		valueType: "number",
+		key2: "remoteFeeBase",
 	},
 	{
 		heading: "Remote Fee rate (PPM)",
@@ -91,12 +93,14 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
 		type: "NumericDoubleCell",
 		key: "minHtlc",
 		valueType: "number",
+		key2: "remoteMinHtlc",
 	},
 	{
 		heading: "Maximum HTLC",
 		type: "NumericDoubleCell",
 		key: "maxHtlc",
 		valueType: "number",
+		key2: "remoteMaxHtlc",
 	},
 	{
 		heading: "Remote Minimum HTLC",
@@ -115,6 +119,7 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
 		type: "NumericDoubleCell",
 		key: "timeLockDelta",
 		valueType: "number",
+		key2: "remoteTimeLockDelta",
 	},
 	{
 		heading: "Remote Time Lock Delta",
@@ -259,6 +264,7 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
 		type: "NumericDoubleCell",
 		key: "localChanReserveSat",
 		valueType: "number",
+		key2: "remoteChanReserveSat",
 	},
 	{
 		heading: "Remote Channel Reserve",

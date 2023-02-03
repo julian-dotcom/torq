@@ -163,6 +163,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			}
 			if len(filteredChannelIds) == 0 {
 				activeOutputs = append(activeOutputs,
+					commons.WorkflowParameterLabelManuallyTriggered,
 					commons.WorkflowParameterLabelTimeTriggered,
 					commons.WorkflowParameterLabelChannelEventTriggered)
 			} else {
@@ -365,6 +366,9 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		case commons.WorkflowNodeChannelCloseEventTrigger:
 			log.Debug().Msgf("Channel Close Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
+		case commons.WorkflowNodeManualTrigger:
+			log.Debug().Msgf("Manual Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelManuallyTriggered] = inputs[commons.WorkflowParameterLabelManuallyTriggered]
 		case commons.WorkflowNodeStageTrigger:
 			if iteration > 1 {
 				// There shouldn't be any stage nodes except when it's the first node
@@ -422,6 +426,7 @@ func processRoutingPolicyRun(
 	reference string) ([]commons.WorkflowParameterLabel, []commons.RoutingPolicyUpdateResponse, error) {
 	if len(routingPolicySettings.ChannelIds) == 0 {
 		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelManuallyTriggered,
 			commons.WorkflowParameterLabelTimeTriggered,
 			commons.WorkflowParameterLabelChannelEventTriggered)
 		return activeOutputs, nil, nil
@@ -429,6 +434,7 @@ func processRoutingPolicyRun(
 	if lightningRequestChannel == nil {
 		log.Info().Msgf("Routing policy update skipped because lightningRequestChannel is nil for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelManuallyTriggered,
 			commons.WorkflowParameterLabelTimeTriggered,
 			commons.WorkflowParameterLabelChannelEventTriggered)
 		return activeOutputs, nil, nil
@@ -440,6 +446,7 @@ func processRoutingPolicyRun(
 		routingPolicySettings.TimeLockDelta == nil {
 		log.Info().Msgf("Routing policy update skipped because no data was found for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelManuallyTriggered,
 			commons.WorkflowParameterLabelTimeTriggered,
 			commons.WorkflowParameterLabelChannelEventTriggered)
 		return activeOutputs, nil, nil
@@ -492,6 +499,7 @@ func processRoutingPolicyConfigurator(
 
 	if len(linkedChannelIds) == 0 {
 		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelManuallyTriggered,
 			commons.WorkflowParameterLabelTimeTriggered,
 			commons.WorkflowParameterLabelChannelEventTriggered)
 		return activeOutputs, ChannelPolicyConfiguration{}, nil
@@ -536,6 +544,7 @@ func addOrRemoveTags(db *sqlx.DB,
 
 	if len(linkedChannelIds) == 0 {
 		activeOutputs = append(activeOutputs,
+			commons.WorkflowParameterLabelManuallyTriggered,
 			commons.WorkflowParameterLabelTimeTriggered,
 			commons.WorkflowParameterLabelChannelEventTriggered)
 		return activeOutputs, nil
@@ -671,6 +680,7 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB,
 	if triggeringWorkflowVersionNodeId > 0 {
 		workflowVersionNodeLog.TriggeringWorkflowVersionNodeId = &triggeringWorkflowVersionNodeId
 	}
+	workflowVersionNodeLog.InputData = "[]"
 	if len(inputs) > 0 {
 		marshalledInputs, err := json.Marshal(inputs)
 		if err == nil {
@@ -679,7 +689,8 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB,
 			log.Error().Err(err).Msgf("Failed to marshal inputs for WorkflowVersionNodeId: %v", workflowVersionNodeId)
 		}
 	}
-	if len(outputs) > 0 {
+	workflowVersionNodeLog.OutputData = "[]"
+	if len(outputs) != 0 {
 		marshalledOutputs, err := json.Marshal(outputs)
 		if err == nil {
 			workflowVersionNodeLog.OutputData = string(marshalledOutputs)

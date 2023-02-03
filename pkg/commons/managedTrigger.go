@@ -265,7 +265,7 @@ func GetEventTriggerSettingsByWorkflowVersionId(
 	return <-triggerSettingsChannel
 }
 
-func ActivateTimeTrigger(
+func ActivateWorkflowTrigger(
 	reference string,
 	workflowVersionId int,
 	cancel context.CancelFunc) {
@@ -282,7 +282,7 @@ func ActivateTimeTrigger(
 	}
 }
 
-func DeactivateTimeTrigger(workflowVersionId int) {
+func DeactivateWorkflowTrigger(workflowVersionId int) {
 	ManagedTriggerChannel <- ManagedTrigger{
 		WorkflowVersionId: workflowVersionId,
 		Status:            Inactive,

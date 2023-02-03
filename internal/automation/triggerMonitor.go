@@ -214,6 +214,11 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			workflowTriggerNode.ParentNodes = make(map[int]*workflows.WorkflowNode)
 			workflowTriggerNode.LinkDetails = groupWorkflowVersionNode.LinkDetails
 
+			// Override the default WorkflowTrigger since you should never directly run the group node
+			if scheduledTrigger.TriggeringNodeType == commons.WorkflowNodeManualTrigger && workflowTriggerNode.Type == commons.WorkflowTrigger {
+				workflowTriggerNode.Type = commons.WorkflowNodeManualTrigger
+			}
+
 			if scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeTimeTrigger &&
 				scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeCronTrigger {
 				// If the event is a WorkflowNode then this is the bootstrapping event that simulates a channel update
@@ -325,13 +330,17 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 				fallthrough
 			case commons.WorkflowNodeChannelOpenEventTrigger:
 				inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledEvents)
+			case commons.WorkflowNodeManualTrigger:
+				inputs[commons.WorkflowParameterLabelManuallyTriggered] = string(marshalledEvents)
 			}
-			marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-				continue
+			if len(eventChannelIds) != 0 {
+				marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+					continue
+				}
+				inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
 			}
-			inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
 
 			triggerCtx, triggerCancel := context.WithCancel(ctx)
 
@@ -339,7 +348,9 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			case commons.WorkflowNodeTimeTrigger:
 				fallthrough
 			case commons.WorkflowNodeCronTrigger:
-				commons.ActivateTimeTrigger(scheduledTrigger.Reference,
+				fallthrough
+			case commons.WorkflowNodeManualTrigger:
+				commons.ActivateWorkflowTrigger(scheduledTrigger.Reference,
 					workflowTriggerNode.WorkflowVersionId, triggerCancel)
 			default:
 				commons.ActivateEventTrigger(scheduledTrigger.Reference,
@@ -357,7 +368,9 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			case commons.WorkflowNodeTimeTrigger:
 				fallthrough
 			case commons.WorkflowNodeCronTrigger:
-				commons.DeactivateTimeTrigger(workflowTriggerNode.WorkflowVersionId)
+				fallthrough
+			case commons.WorkflowNodeManualTrigger:
+				commons.DeactivateWorkflowTrigger(workflowTriggerNode.WorkflowVersionId)
 			default:
 				commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
 					workflowTriggerNode.WorkflowVersionNodeId, scheduledTrigger.TriggeringNodeType, firstEvent)
