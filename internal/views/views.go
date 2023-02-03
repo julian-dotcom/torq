@@ -166,6 +166,9 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		if definition.locked {
 			result = result + "\n\t\tlocked: true,"
 		}
+		if definition.keySecond != "" {
+			result = result + fmt.Sprintf("\n\t\tkey2: \"%v\",", definition.keySecond)
+		}
 		result = result + "\n\t},"
 	}
 	result = result + "\n];"
