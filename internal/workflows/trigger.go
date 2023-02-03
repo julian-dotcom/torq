@@ -366,13 +366,14 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			log.Debug().Msgf("Channel Close Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
 		case commons.WorkflowNodeStageTrigger:
-			if iteration > 0 {
+			if iteration > 1 {
 				// There shouldn't be any stage nodes except when it's the first node
 				return outputs, commons.Deleted, nil
 			}
 			if workflowNode.Stage > 1 {
 				for label, value := range workflowStageExitConfigurationCache[workflowNode.Stage-1] {
 					inputs[label] = value
+					outputs[label] = value
 				}
 			}
 		}
@@ -387,8 +388,12 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			}
 			childInput := workflowNode.LinkDetails[childLinkId].ChildInput
 			parentOutput := workflowNode.LinkDetails[childLinkId].ParentOutput
-			if childInput != "" && parentOutput != "" && outputs[parentOutput] != "" {
-				workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
+			if childInput != "" && parentOutput != "" {
+				if outputs[parentOutput] != "" {
+					workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
+				} else if outputs[childInput] != "" {
+					workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[childInput]
+				}
 			}
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, *childNode, workflowNode.WorkflowVersionNodeId,
