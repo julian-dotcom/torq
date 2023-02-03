@@ -304,6 +304,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <div className={classNames(styles.rowValue)}>{d3.format(",.2")(historyAmountTotalCapacity)}</div>
               </div>
             </div>
+
             <div className={styles.card}>
               <div className={styles.heading}>
                 {t.channelPage.policyDetails.outbound} {t.channelPage.policyDetails.heading}
@@ -313,7 +314,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <div className={classNames(styles.rowValue)}>{channelDetail?.feeRateMilliMsat}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>{t.channelPage.policyDetails.feeBase}</div>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.baseFee}</div>
                 <div className={classNames(styles.rowValue)}>
                   {d3.format(",.0f")(channelDetail ? channelDetail.feeBase : 0)}
                 </div>
@@ -344,7 +345,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <div className={classNames(styles.rowValue)}>{channelDetail?.remoteFeeRateMilliMsat}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>{t.channelPage.policyDetails.feeBase}</div>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.baseFee}</div>
                 <div className={classNames(styles.rowValue)}>
                   {d3.format(",.0f")(channelDetail ? channelDetail.remoteFeeBase : 0)}
                 </div>

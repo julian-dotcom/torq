@@ -26,6 +26,7 @@ import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
 import { Buffer } from "buffer";
 import Note, { NoteType } from "features/note/Note";
+import mixpanel from "mixpanel-browser";
 
 const closeStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -149,6 +150,12 @@ function closeChannelModal() {
                     setStepIndex(1);
                     setDetailState(ProgressStepState.completed);
                     setResultState(ProgressStepState.completed);
+                    mixpanel.track("Close Channel", {
+                      nodeId: nodeId,
+                      channelId: channelId,
+                      openChannelUseSatPerVbyte: satPerVbyte !== 0,
+                      force: force,
+                    });
                     sendJsonMessage({
                       requestId: "randId",
                       type: "closeChannel",
