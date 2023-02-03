@@ -313,9 +313,9 @@ function ChannelPage(_: ChannelPageProps) {
                 <div className={classNames(styles.rowValue)}>{channelDetail?.feeRateMilliMsat}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>{t.channelPage.policyDetails.baseFee}</div>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.feeBase}</div>
                 <div className={classNames(styles.rowValue)}>
-                  {d3.format(",.0f")(channelDetail ? channelDetail.feeBaseMsat : 0)}
+                  {d3.format(",.0f")(channelDetail ? channelDetail.feeBase : 0)}
                 </div>
               </div>
               <div className={styles.cardRow}>
@@ -325,13 +325,13 @@ function ChannelPage(_: ChannelPageProps) {
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>{t.channelPage.policyDetails.minimumHTLC}</div>
                 <div className={classNames(styles.rowValue)}>
-                  {d3.format(",.0f")(channelDetail ? channelDetail.minHtlcMsat : 0)}
+                  {d3.format(",.0f")(channelDetail ? channelDetail.minHtlc : 0)}
                 </div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>{t.channelPage.policyDetails.maximumHTLC}</div>
                 <div className={classNames(styles.rowValue)}>
-                  {d3.format(",.0f")(channelDetail ? channelDetail.maxHtlcMsat : 0)}
+                  {d3.format(",.0f")(channelDetail ? channelDetail.maxHtlc : 0)}
                 </div>
               </div>
             </div>
@@ -344,9 +344,9 @@ function ChannelPage(_: ChannelPageProps) {
                 <div className={classNames(styles.rowValue)}>{channelDetail?.remoteFeeRateMilliMsat}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>{t.channelPage.policyDetails.baseFee}</div>
+                <div className={styles.rowLabel}>{t.channelPage.policyDetails.feeBase}</div>
                 <div className={classNames(styles.rowValue)}>
-                  {d3.format(",.0f")(channelDetail ? channelDetail.remoteFeeBaseMsat : 0)}
+                  {d3.format(",.0f")(channelDetail ? channelDetail.remoteFeeBase : 0)}
                 </div>
               </div>
               <div className={styles.cardRow}>
@@ -356,13 +356,13 @@ function ChannelPage(_: ChannelPageProps) {
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>{t.channelPage.policyDetails.minimumHTLC}</div>
                 <div className={classNames(styles.rowValue)}>
-                  {d3.format(",.0f")(channelDetail ? channelDetail.remoteMinHtlcMsat : 0)}
+                  {d3.format(",.0f")(channelDetail ? channelDetail.remoteMinHtlc : 0)}
                 </div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>{t.channelPage.policyDetails.maximumHTLC}</div>
                 <div className={classNames(styles.rowValue)}>
-                  {d3.format(",.0f")(channelDetail ? channelDetail.remoteMaxHtlcMsat : 0)}
+                  {d3.format(",.0f")(channelDetail ? channelDetail.remoteMaxHtlc : 0)}
                 </div>
               </div>
             </div>
