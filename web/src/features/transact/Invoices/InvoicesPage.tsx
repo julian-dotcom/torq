@@ -16,15 +16,15 @@ import { useState } from "react";
 import Button, { ColorVariant } from "components/buttons/Button";
 import { NEW_INVOICE } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
-import { Invoice } from "./invoiceTypes";
+import { Invoice } from "features/transact/Invoices/invoiceTypes";
 import {
-  AllInvoicesColumns,
   InvoiceFilterTemplate,
   InvoiceSortTemplate,
   DefaultInvoiceView,
   SortableInvoiceColumns,
   FilterableInvoiceColumns,
-} from "./invoiceDefaults";
+} from "features/transact/Invoices/invoiceDefaults";
+import { AllInvoicesColumns } from "features/transact/Invoices/invoicesColumns.generated";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import { usePagination } from "components/table/pagination/usePagination";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";

@@ -1,0 +1,40 @@
+ALTER TABLE table_view RENAME TO table_view_legacy;
+
+CREATE TABLE table_view (
+    table_view_id SERIAL PRIMARY KEY,
+    page TEXT NOT NULL,
+    title TEXT NOT NULL,
+    "order" INTEGER NOT NULL,
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE table_view_column (
+    table_view_column_id SERIAL PRIMARY KEY,
+    key TEXT NOT NULL,
+    key_second TEXT,
+    "order"  INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    table_view_id INTEGER REFERENCES table_view(table_view_id),
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL,
+    UNIQUE (table_view_id, key, "order")
+);
+
+CREATE TABLE table_view_filter (
+    table_view_filter_id SERIAL PRIMARY KEY,
+    filter JSONB NOT NULL,
+    table_view_id INTEGER REFERENCES table_view(table_view_id),
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE table_view_sorting (
+    table_view_sorting_id SERIAL PRIMARY KEY,
+    key TEXT NOT NULL,
+    "order"  INTEGER NOT NULL,
+    ascending BOOLEAN NOT NULL,
+    table_view_id INTEGER REFERENCES table_view(table_view_id),
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL
+);

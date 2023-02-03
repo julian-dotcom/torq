@@ -20,13 +20,13 @@ import useTranslations from "services/i18n/useTranslations";
 import { OnChainTx } from "./types";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import {
-  AllOnChainColumns,
   DefaultOnChainView,
   FilterableOnChainColumns,
   OnChainFilterTemplate,
   OnChainSortTemplate,
   SortableOnChainColumns,
-} from "./onChainDefaults";
+} from "features/transact/OnChain/onChainDefaults";
+import { AllOnChainTransactionsColumns } from "features/transact/OnChain/onChainColumns.generated"
 import { usePagination } from "components/table/pagination/usePagination";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
@@ -116,7 +116,7 @@ function OnChainPage() {
       expanded={sidebarExpanded}
       viewResponse={viewResponse}
       selectedViewIndex={selectedViewIndex}
-      allColumns={AllOnChainColumns}
+      allColumns={AllOnChainTransactionsColumns}
       defaultView={DefaultOnChainView}
       filterableColumns={FilterableOnChainColumns}
       filterTemplate={OnChainFilterTemplate}

@@ -14,7 +14,7 @@ export type channel = {
   active: boolean;
   tags: Tag[];
   ambossSpace: string;
-  feeBaseMsat: number;
+  feeBase: number;
   capacity: number;
   channelPoint: string;
   chanStatusFlags: string;
@@ -42,9 +42,9 @@ export type channel = {
   balance: number; // NB! This column only exists in the frontend!
   localBalance: number;
   localChanReserveSat: number;
-  maxHtlcMsat: number;
+  maxHtlc: number;
   mempoolSpace: string;
-  minHtlcMsat: number;
+  minHtlc: number;
   nodeId: number;
   channelId: number;
   nodeName: string;
@@ -59,11 +59,11 @@ export type channel = {
   pendingTotalHTLCsAmount: number;
   pendingTotalHTLCsCount: number;
   remoteBalance: number;
-  remoteFeeBaseMsat: number;
+  remoteFeeBase: number;
   remoteChanReserveSat: number;
   remoteFeeRateMilliMsat: number;
-  remoteMaxHtlcMsat: number;
-  remoteMinHtlcMsat: number;
+  remoteMaxHtlc: number;
+  remoteMinHtlc: number;
   remotePubkey: number;
   remoteTimeLockDelta: number;
   shortChannelId: string;

@@ -15,12 +15,12 @@ import { OPEN_CHANNEL } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import Table from "features/table/Table";
 import {
-  AllChannelsColumns,
   ChannelsFilterTemplate,
   ChannelsSortTemplate,
   DefaultChannelsView,
   SortableChannelsColumns,
-} from "./channelsDefaults";
+} from "features/channels/channelsDefaults";
+import { AllChannelsColumns } from "features/channels/channelsColumns.generated";
 import { useGetChannelsQuery } from "apiSlice";
 import { useAppSelector } from "store/hooks";
 import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
@@ -41,7 +41,7 @@ function useMaximums(data: Array<channel>): channel | undefined {
     return {
       ...prev,
       alias: "Max",
-      feeBaseMsat: Math.max(prev.feeBaseMsat, current.feeBaseMsat),
+      feeBase: Math.max(prev.feeBase, current.feeBase),
       capacity: Math.max(prev.capacity, current.capacity),
       commitFee: Math.max(prev.commitFee, current.commitFee),
       commitmentType: Math.max(prev.commitmentType, current.commitmentType),
@@ -55,8 +55,8 @@ function useMaximums(data: Array<channel>): channel | undefined {
       balance: Math.max(prev.balance, current.balance), // NB! This column only exists in the frontend!
       localBalance: Math.max(prev.localBalance, current.localBalance),
       localChanReserveSat: Math.max(prev.localChanReserveSat, current.localChanReserveSat),
-      maxHtlcMsat: Math.max(prev.maxHtlcMsat, current.maxHtlcMsat),
-      minHtlcMsat: Math.max(prev.minHtlcMsat, current.minHtlcMsat),
+      maxHtlc: Math.max(prev.maxHtlc, current.maxHtlc),
+      minHtlc: Math.max(prev.minHtlc, current.minHtlc),
       nodeId: Math.max(prev.nodeId, current.nodeId),
       channelId: Math.max(prev.channelId, current.channelId),
       numUpdates: Math.max(prev.numUpdates, current.numUpdates),
@@ -67,11 +67,11 @@ function useMaximums(data: Array<channel>): channel | undefined {
       pendingTotalHTLCsAmount: Math.max(prev.pendingTotalHTLCsAmount, current.pendingTotalHTLCsAmount),
       pendingTotalHTLCsCount: Math.max(prev.pendingTotalHTLCsCount, current.pendingTotalHTLCsCount),
       remoteBalance: Math.max(prev.remoteBalance, current.remoteBalance),
-      remoteFeeBaseMsat: Math.max(prev.remoteFeeBaseMsat, current.remoteFeeBaseMsat),
+      remoteFeeBase: Math.max(prev.remoteFeeBase, current.remoteFeeBase),
       remoteChanReserveSat: Math.max(prev.remoteChanReserveSat, current.remoteChanReserveSat),
       remoteFeeRateMilliMsat: Math.max(prev.remoteFeeRateMilliMsat, current.remoteFeeRateMilliMsat),
-      remoteMaxHtlcMsat: Math.max(prev.remoteMaxHtlcMsat, current.remoteMaxHtlcMsat),
-      remoteMinHtlcMsat: Math.max(prev.remoteMinHtlcMsat, current.remoteMinHtlcMsat),
+      remoteMaxHtlc: Math.max(prev.remoteMaxHtlc, current.remoteMaxHtlc),
+      remoteMinHtlc: Math.max(prev.remoteMinHtlc, current.remoteMinHtlc),
       remotePubkey: Math.max(prev.remotePubkey, current.remotePubkey),
       remoteTimeLockDelta: Math.max(prev.remoteTimeLockDelta, current.remoteTimeLockDelta),
       timeLockDelta: Math.max(prev.timeLockDelta, current.timeLockDelta),
