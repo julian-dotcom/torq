@@ -288,13 +288,19 @@ func updateLegacyTableView(tx *sqlx.Tx, tableViewId int, tableViewLayout TableVi
 
 func addTableViewDependencies(tx *sqlx.Tx, tableViewDetail TableViewDetailLegacy, tableView TableView) error {
 	for columnIndex, column := range tableViewDetail.Columns {
-		_, err := addTableViewColumn(tx, TableViewColumn{
+		tableviewColumn := TableViewColumn{
 			Key:         column.Key,
-			KeySecond:   column.Key2,
 			Order:       columnIndex + 1,
 			Type:        column.Type,
 			TableViewId: tableView.TableViewId,
-		})
+		}
+		columnDefinition := getTableViewColumnDefinition(column.Key)
+		if columnDefinition.visualType == column.Type {
+			if columnDefinition.keySecond != "" {
+				tableviewColumn.KeySecond = &columnDefinition.keySecond
+			}
+		}
+		_, err := addTableViewColumn(tx, tableviewColumn)
 		if err != nil {
 			return errors.Wrap(err, "Add tableView column.")
 		}
