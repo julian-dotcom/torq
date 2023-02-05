@@ -251,6 +251,7 @@ const (
 	WorkflowParameterTypeTagSettings           = WorkflowParameterType("tagSettings")
 	WorkflowParameterTypeStatus                = WorkflowParameterType("status")
 	WorkflowParameterChannelFilter             = WorkflowParameterType("channelFilter")
+	WorkflowParameterTypeManuallyTriggered     = WorkflowParameterType("manuallyTriggered")
 )
 
 type WorkflowParameterLabel string
@@ -265,6 +266,7 @@ const (
 	WorkflowParameterLabelIncomingChannels      = WorkflowParameterLabel("incomingChannels")
 	WorkflowParameterLabelOutgoingChannels      = WorkflowParameterLabel("outgoingChannels")
 	WorkflowParameterLabelStatus                = WorkflowParameterLabel("status")
+	WorkflowParameterLabelManuallyTriggered     = WorkflowParameterLabel("manuallyTriggered")
 )
 
 type WorkflowNodeTypeParameters struct {

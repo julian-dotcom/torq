@@ -363,9 +363,13 @@ func getLegacyTableViews(db *sqlx.DB) ([]TableViewLayout, error) {
 	var legacyTableViewLayouts []TableViewLayout
 	for rows.Next() {
 		v := &TableViewLayout{}
-		err := rows.Scan(&v.Id, &v.View, &v.Page, &v.ViewOrder, &v.Version)
+		var viewOrder *int
+		err := rows.Scan(&v.Id, &v.View, &v.Page, &viewOrder, &v.Version)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Unable to scan table view response")
+		}
+		if viewOrder != nil {
+			v.ViewOrder = *viewOrder
 		}
 		// Append to the result
 		legacyTableViewLayouts = append(legacyTableViewLayouts, *v)

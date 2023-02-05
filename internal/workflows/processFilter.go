@@ -1,7 +1,14 @@
 package workflows
 
 import (
+	"fmt"
+	"math"
+	"reflect"
+	"strconv"
 	"strings"
+
+	"github.com/cockroachdb/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/tags"
 )
@@ -35,7 +42,7 @@ type Filter struct {
 
 type FilterParameterType interface{}
 
-type FilterFunc func(input map[string]interface{}, key string, parameter FilterParameterType) bool
+type FilterFunc func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool
 
 type SelectOptionType struct {
 	Value string
@@ -149,139 +156,469 @@ func (c *Clause) parseClause(data map[string]interface{}) {
 func GetFilterFunctions() map[FilterCategoryType]map[string]FilterFunc {
 	return map[FilterCategoryType]map[string]FilterFunc{
 		FilterCategoryTypeNumber: {
-			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key] == parameter
+			"eq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat == filterValueFloat
 			},
-			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key] != parameter
+			"neq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat != filterValueFloat
 			},
-			"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) > int64(parameter.(float64))
+			"gt": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat > filterValueFloat
 			},
-			"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) >= int64(parameter.(float64))
+			"gte": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat >= filterValueFloat
 			},
-			"lt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) < int64(parameter.(float64))
+			"lt": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat < filterValueFloat
 			},
-			"lte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) <= int64(parameter.(float64))
+			"lte": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat <= filterValueFloat
 			},
 		},
 		FilterCategoryTypeDuration: {
-			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key] == parameter
+			"eq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDuration) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat == filterValueFloat
 			},
-			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key] != parameter
+			"neq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDuration) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat != filterValueFloat
 			},
-			"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) > int64(parameter.(float64))
+			"gt": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDuration) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat > filterValueFloat
 			},
-			"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) >= int64(parameter.(float64))
+			"gte": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDuration) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat >= filterValueFloat
 			},
-			"lt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) < int64(parameter.(float64))
+			"lt": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDuration) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat < filterValueFloat
 			},
-			"lte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) <= int64(parameter.(float64))
+			"lte": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDuration) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat <= filterValueFloat
 			},
 		},
 		FilterCategoryTypeString: {
-			"like": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
+			"like": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueString, ok := dataMap[dataKey].(string)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeString: dataValueString) so defaulting to false instead of a panic!")
+					return false
+				}
+				filterValueString, ok := filterValue.(string)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeString: filterValueString) so defaulting to false instead of a panic!")
+					return false
+				}
+				return strings.Contains(strings.ToLower(dataValueString), strings.ToLower(filterValueString))
 			},
-			"notLike": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return !strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
+			"notLike": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueString, ok := dataMap[dataKey].(string)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeString: dataValueString) so defaulting to false instead of a panic!")
+					return false
+				}
+				filterValueString, ok := filterValue.(string)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeString: filterValueString) so defaulting to false instead of a panic!")
+					return false
+				}
+				return !strings.Contains(strings.ToLower(dataValueString), strings.ToLower(filterValueString))
 			},
 		},
 		FilterCategoryTypeEnum: {
-			"like": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
+			"like": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueString, ok := dataMap[dataKey].(string)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: dataValueString) so defaulting to false instead of a panic!")
+					return false
+				}
+				filterValueString, ok := filterValue.(string)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: filterValueString) so defaulting to false instead of a panic!")
+					return false
+				}
+				return strings.Contains(strings.ToLower(dataValueString), strings.ToLower(filterValueString))
 			},
-			"notLike": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return !strings.Contains(strings.ToLower(input[key].(string)), strings.ToLower(parameter.(string)))
+			"notLike": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueString, ok := dataMap[dataKey].(string)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: dataValueString) so defaulting to false instead of a panic!")
+					return false
+				}
+				filterValueString, ok := filterValue.(string)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: filterValueString) so defaulting to false instead of a panic!")
+					return false
+				}
+				return !strings.Contains(strings.ToLower(dataValueString), strings.ToLower(filterValueString))
 			},
 		},
 		FilterCategoryTypeDate: {
-			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key] == parameter
+			"eq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDate) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat == filterValueFloat
 			},
-			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key] != parameter
+			"neq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDate) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat != filterValueFloat
 			},
-			"gt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) > int64(parameter.(float64))
+			"gt": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDate) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat > filterValueFloat
 			},
-			"gte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) >= int64(parameter.(float64))
+			"gte": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDate) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat >= filterValueFloat
 			},
-			"lt": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) < int64(parameter.(float64))
+			"lt": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDate) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat < filterValueFloat
 			},
-			"lte": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(int64) <= int64(parameter.(float64))
+			"lte": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+				if err != nil {
+					log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeDate) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueFloat <= filterValueFloat
 			},
 		},
 		FilterCategoryTypeBoolean: {
-			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(bool) == parameter
+			"eq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueBoolean, ok := dataMap[dataKey].(bool)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeBoolean: dataValueBoolean) so defaulting to false instead of a panic!")
+					return false
+				}
+				filterValueBoolean, ok := filterValue.(bool)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: filterValueBoolean) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueBoolean == filterValueBoolean
 			},
-			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				return input[key].(bool) != parameter
+			"neq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				dataValueBoolean, ok := dataMap[dataKey].(bool)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeBoolean: dataValueBoolean) so defaulting to false instead of a panic!")
+					return false
+				}
+				filterValueBoolean, ok := filterValue.(bool)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: filterValueBoolean) so defaulting to false instead of a panic!")
+					return false
+				}
+				return dataValueBoolean != filterValueBoolean
 			},
 		},
 		FilterCategoryTypeArray: {
-			"eq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				paramArray := parameter.([]interface{})
-				for _, value := range input[key].([]interface{}) {
-					for _, paramValue := range paramArray {
-						if value == paramValue {
-							return true
+			"eq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				// TODO FIXME this will not work and panic???
+				dataValueArray, ok := dataMap[dataKey].([]interface{})
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeArray: dataValueArray) so defaulting to false!")
+					return false
+				}
+				filterValueArray, ok := filterValue.([]interface{})
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeArray: filterValueArray) so defaulting to false!")
+					return false
+				}
+				for _, dataValueEntry := range dataValueArray {
+					foundIt := false
+					for _, filterValueEntry := range filterValueArray {
+						if dataValueEntry == filterValueEntry {
+							foundIt = true
 						}
 					}
-				}
-				return false
-			},
-			"neq": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				paramArray := parameter.([]interface{})
-				for _, value := range input[key].([]interface{}) {
-					for _, paramValue := range paramArray {
-						if value == paramValue {
-							return false
-						}
+					if !foundIt {
+						return false
 					}
 				}
 				return true
+			},
+			"neq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				// TODO FIXME this will not work and panic???
+				dataValueArray, ok := dataMap[dataKey].([]interface{})
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeArray: dataValueArray) so defaulting to false!")
+					return false
+				}
+				filterValueArray, ok := filterValue.([]interface{})
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeArray: filterValueArray) so defaulting to false!")
+					return false
+				}
+				for _, dataValueEntry := range dataValueArray {
+					foundIt := false
+					for _, filterValueEntry := range filterValueArray {
+						if dataValueEntry == filterValueEntry {
+							foundIt = true
+						}
+					}
+					if !foundIt {
+						return true
+					}
+				}
+				return false
 			},
 		},
 		FilterCategoryTypeTag: {
-			"any": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				tags := input[key].([]tags.TagResponse)
-				tagIds := parameter.([]int)
-				for _, tag := range tags {
-					for _, tagId := range tagIds {
-						if tag.TagId == tagId {
-							return true
+			"any": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				if dataMap[dataKey] == nil {
+					return false
+				}
+				dataValueTags, ok := dataMap[dataKey].([]tags.Tag)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeTag: dataValueTags) so defaulting to false!")
+					return false
+				}
+				tagResponses, tagResponsesOk := dataMap[dataKey].([]tags.TagResponse)
+				if tagResponsesOk {
+					for _, tag := range tagResponses {
+						for _, dataValueTag := range dataValueTags {
+							if tag.TagId == dataValueTag.TagId {
+								return true
+							}
 						}
 					}
 				}
-				return false
-			},
-			"notAny": func(input map[string]interface{}, key string, parameter FilterParameterType) bool {
-				tags := input[key].([]tags.TagResponse)
-				tagIds := parameter.([]int)
-				for _, tag := range tags {
-					for _, tagId := range tagIds {
-						if tag.TagId == tagId {
-							return false
+				tgs, tagsOk := dataMap[dataKey].([]tags.Tag)
+				if tagsOk {
+					for _, tag := range tgs {
+						for _, dataValueTag := range dataValueTags {
+							if tag.TagId == dataValueTag.TagId {
+								return true
+							}
 						}
 					}
+				}
+				if !tagsOk && !tagResponsesOk {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeTag) so defaulting to false!")
+					return false
+				}
+				return false
+			},
+			"notAny": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+				if dataMap[dataKey] == nil {
+					return true
+				}
+				dataValueTags, ok := dataMap[dataKey].([]tags.Tag)
+				if !ok {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeTag: dataValueTags) so defaulting to false!")
+					return false
+				}
+				tagResponses, tagsOk := dataMap[dataKey].([]tags.TagResponse)
+				if tagsOk {
+					for _, tag := range tagResponses {
+						for _, dataValueTag := range dataValueTags {
+							if tag.TagId == dataValueTag.TagId {
+								return false
+							}
+						}
+					}
+				}
+				tgs, tagResponsesOk := dataMap[dataKey].([]tags.Tag)
+				if tagResponsesOk {
+					for _, tag := range tgs {
+						for _, dataValueTag := range dataValueTags {
+							if tag.TagId == dataValueTag.TagId {
+								return false
+							}
+						}
+					}
+				}
+				if !tagsOk && !tagResponsesOk {
+					log.Error().Msgf("could not run the filter function (FilterCategoryTypeTag) so defaulting to false!")
+					return false
 				}
 				return true
 			},
 		},
+	}
+}
+
+func getFloats(dataValueOfUnknownType interface{}, filterValueOfUnknownType interface{}) (float64, float64, error) {
+	dataValueFloat, err := getFloat(dataValueOfUnknownType)
+	if err != nil {
+		return math.NaN(), math.NaN(), errors.Wrap(err, "converting dataValueOfUnknownType into dataValueFloat")
+	}
+	filterValueFloat, err := getFloat(filterValueOfUnknownType)
+	if err != nil {
+		return math.NaN(), math.NaN(), errors.Wrap(err, "converting filterValueOfUnknownType into filterValueFloat")
+	}
+	return dataValueFloat, filterValueFloat, nil
+}
+
+//func getInt(unknownType interface{}) (int64, error) {
+//	switch i := unknownType.(type) {
+//	case float64:
+//		return int64(i), nil
+//	case float32:
+//		return int64(i), nil
+//	case int64:
+//		return i, nil
+//	case int32:
+//		return int64(i), nil
+//	case int:
+//		return int64(i), nil
+//	case uint64:
+//		return int64(i), nil
+//	case uint32:
+//		return int64(i), nil
+//	case uint:
+//		return int64(i), nil
+//	case string:
+//		parameter, err := strconv.ParseInt(i, 10, 64)
+//		if err != nil {
+//			log.Debug().Err(err).Msgf("Failed to convert string to int64 while filtering")
+//		}
+//		return parameter, err
+//	default:
+//		var floatType = reflect.TypeOf(int64(0))
+//		var stringType = reflect.TypeOf("")
+//		v := reflect.ValueOf(unknownType)
+//		v = reflect.Indirect(v)
+//		if v.Type().ConvertibleTo(floatType) {
+//			fv := v.Convert(floatType)
+//			return fv.Int(), nil
+//		} else if v.Type().ConvertibleTo(stringType) {
+//			sv := v.Convert(stringType)
+//			s := sv.String()
+//			parameter, err := strconv.ParseInt(s, 10, 64)
+//			if err != nil {
+//				log.Debug().Err(err).Msgf("Failed to convert string to int64 while filtering")
+//			}
+//			return parameter, err
+//		} else {
+//			return 0, fmt.Errorf("can't convert %v to float64", v.Type())
+//		}
+//	}
+//}
+
+// Note that large int64's (over 2 pow 53) will be rounded when converted to float64,
+// so if you're thinking of float64 as a "universal" number type, take its limitations into account.
+func getFloat(unknownType interface{}) (float64, error) {
+	switch i := unknownType.(type) {
+	case float64:
+		return i, nil
+	case float32:
+		return float64(i), nil
+	case int64:
+		return float64(i), nil
+	case int32:
+		return float64(i), nil
+	case int:
+		return float64(i), nil
+	case uint64:
+		return float64(i), nil
+	case uint32:
+		return float64(i), nil
+	case uint:
+		return float64(i), nil
+	case string:
+		parameter, err := strconv.ParseFloat(i, 64)
+		if err != nil {
+			log.Debug().Err(err).Msgf("Failed to convert string to float64 while filtering")
+		}
+		return parameter, errors.Wrap(err, "converting string to float64 while filtering")
+	default:
+		var floatType = reflect.TypeOf(float64(0))
+		var stringType = reflect.TypeOf("")
+		v := reflect.ValueOf(unknownType)
+		v = reflect.Indirect(v)
+		if v.Type().ConvertibleTo(floatType) {
+			fv := v.Convert(floatType)
+			return fv.Float(), nil
+		} else if v.Type().ConvertibleTo(stringType) {
+			sv := v.Convert(stringType)
+			s := sv.String()
+			parameter, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				log.Debug().Err(err).Msgf("Failed to convert string to float64 while filtering")
+			}
+			return parameter, errors.Wrap(err, "converting string to float64 while filtering")
+		} else {
+			return math.NaN(), errors.New(fmt.Sprintf("can't convert %v to float64", v.Type()))
+		}
 	}
 }
 
