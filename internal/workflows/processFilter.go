@@ -527,47 +527,51 @@ func getFloats(dataValueOfUnknownType interface{}, filterValueOfUnknownType inte
 	return dataValueFloat, filterValueFloat, nil
 }
 
-// Note that large int64's (over 2 pow 53) will be rounded when converted to float64,
-// so if you're thinking of float64 as a "universal" number type, take its limitations into account.
-func getInt(unknownType interface{}) (int64, error) {
-	switch i := unknownType.(type) {
-	case float64:
-		return int64(i), nil
-	case float32:
-		return int64(i), nil
-	case int64:
-		return i, nil
-	case int32:
-		return int64(i), nil
-	case int:
-		return int64(i), nil
-	case uint64:
-		return int64(i), nil
-	case uint32:
-		return int64(i), nil
-	case uint:
-		return int64(i), nil
-	case string:
-		parameter, err := strconv.ParseInt(i, 10, 64)
-		return parameter, err
-	default:
-		var floatType = reflect.TypeOf(int64(0))
-		var stringType = reflect.TypeOf("")
-		v := reflect.ValueOf(unknownType)
-		v = reflect.Indirect(v)
-		if v.Type().ConvertibleTo(floatType) {
-			fv := v.Convert(floatType)
-			return fv.Int(), nil
-		} else if v.Type().ConvertibleTo(stringType) {
-			sv := v.Convert(stringType)
-			s := sv.String()
-			parameter, err := strconv.ParseInt(s, 10, 64)
-			return parameter, err
-		} else {
-			return 0, fmt.Errorf("can't convert %v to float64", v.Type())
-		}
-	}
-}
+//func getInt(unknownType interface{}) (int64, error) {
+//	switch i := unknownType.(type) {
+//	case float64:
+//		return int64(i), nil
+//	case float32:
+//		return int64(i), nil
+//	case int64:
+//		return i, nil
+//	case int32:
+//		return int64(i), nil
+//	case int:
+//		return int64(i), nil
+//	case uint64:
+//		return int64(i), nil
+//	case uint32:
+//		return int64(i), nil
+//	case uint:
+//		return int64(i), nil
+//	case string:
+//		parameter, err := strconv.ParseInt(i, 10, 64)
+//		if err != nil {
+//			log.Debug().Err(err).Msgf("Failed to convert string to int64 while filtering")
+//		}
+//		return parameter, err
+//	default:
+//		var floatType = reflect.TypeOf(int64(0))
+//		var stringType = reflect.TypeOf("")
+//		v := reflect.ValueOf(unknownType)
+//		v = reflect.Indirect(v)
+//		if v.Type().ConvertibleTo(floatType) {
+//			fv := v.Convert(floatType)
+//			return fv.Int(), nil
+//		} else if v.Type().ConvertibleTo(stringType) {
+//			sv := v.Convert(stringType)
+//			s := sv.String()
+//			parameter, err := strconv.ParseInt(s, 10, 64)
+//			if err != nil {
+//				log.Debug().Err(err).Msgf("Failed to convert string to int64 while filtering")
+//			}
+//			return parameter, err
+//		} else {
+//			return 0, fmt.Errorf("can't convert %v to float64", v.Type())
+//		}
+//	}
+//}
 
 // Note that large int64's (over 2 pow 53) will be rounded when converted to float64,
 // so if you're thinking of float64 as a "universal" number type, take its limitations into account.
@@ -591,6 +595,9 @@ func getFloat(unknownType interface{}) (float64, error) {
 		return float64(i), nil
 	case string:
 		parameter, err := strconv.ParseFloat(i, 64)
+		if err != nil {
+			log.Debug().Err(err).Msgf("Failed to convert string to float64 while filtering")
+		}
 		return parameter, err
 	default:
 		var floatType = reflect.TypeOf(float64(0))
@@ -604,6 +611,9 @@ func getFloat(unknownType interface{}) (float64, error) {
 			sv := v.Convert(stringType)
 			s := sv.String()
 			parameter, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				log.Debug().Err(err).Msgf("Failed to convert string to float64 while filtering")
+			}
 			return parameter, err
 		} else {
 			return math.NaN(), fmt.Errorf("can't convert %v to float64", v.Type())
