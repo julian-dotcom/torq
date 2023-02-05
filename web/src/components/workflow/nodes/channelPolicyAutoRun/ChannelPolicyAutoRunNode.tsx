@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { MoneySettings20Regular as ChannelPolicyConfiguratorIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import {
+  MoneySettings20Regular as ChannelPolicyConfiguratorIcon,
+  Save16Regular as SaveIcon,
+} from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Input from "components/forms/input/Input";
@@ -29,7 +32,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
 
   const [channelPolicy, setChannelPolicy] = useState<ChannelPolicyConfiguration>({
     feeBaseMsat: undefined,
-    feeRateMilliMsat: undefined,
+    feeRateMilliMsat: undefined, // TODO: rename to PPM or FeeRate
     maxHtlcMsat: undefined,
     minHtlcMsat: undefined,
     timeLockDelta: undefined,
@@ -37,30 +40,36 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
   });
 
   const [feeBase, setFeeBase] = useState<number | undefined>(
-    (wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat || 0) / 1000:undefined
+    (wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat
+      ? ((wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat || 0) / 1000
+      : undefined
   );
   const [maxHtlc, setMaxHtlc] = useState<number | undefined>(
-    (wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat || 0) / 1000:undefined
+    (wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat
+      ? ((wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat || 0) / 1000
+      : undefined
   );
   const [minHtlc, setMinHtlc] = useState<number | undefined>(
-    (wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat || 0) / 1000:undefined
+    (wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat
+      ? ((wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat || 0) / 1000
+      : undefined
   );
 
   function createChangeMsatHandler(key: keyof ChannelPolicyConfiguration) {
     return (e: NumberFormatValues) => {
       if (key == "feeBaseMsat") {
-        setFeeBase(e.floatValue)
+        setFeeBase(e.floatValue);
       }
       if (key == "maxHtlcMsat") {
-        setMaxHtlc(e.floatValue)
+        setMaxHtlc(e.floatValue);
       }
       if (key == "minHtlcMsat") {
-        setMinHtlc(e.floatValue)
+        setMinHtlc(e.floatValue);
       }
       if (e.floatValue === undefined) {
         setChannelPolicy((prev) => ({
           ...prev,
-          [key]: undefined
+          [key]: undefined,
         }));
       } else {
         setChannelPolicy((prev) => ({
@@ -126,15 +135,6 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           formatted={true}
           value={channelPolicy.feeRateMilliMsat}
           thousandSeparator={","}
-          suffix={" ppm"}
-          onValueChange={createChangeHandler("feeRateMilliMsat")}
-          label={t.updateChannelPolicy.feeRateMilliMsat}
-          sizeVariant={InputSizeVariant.small}
-        />
-        <Input
-          formatted={true}
-          value={feeBase}
-          thousandSeparator={","}
           suffix={" sat"}
           onValueChange={createChangeHandler("feeRateMilliMsat")}
           label={t.updateChannelPolicy.feeRateMilliMsat}
@@ -159,13 +159,13 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           sizeVariant={InputSizeVariant.small}
         />
         <Input
-        formatted={true}
-        value={maxHtlc}
-        thousandSeparator={","}
-        suffix={" sat"}
-        onValueChange={createChangeMsatHandler("maxHtlcMsat")}
-        label={t.maxHTLCAmount}
-        sizeVariant={InputSizeVariant.small}
+          formatted={true}
+          value={maxHtlc}
+          thousandSeparator={","}
+          suffix={" sat"}
+          onValueChange={createChangeMsatHandler("maxHtlcMsat")}
+          label={t.maxHTLCAmount}
+          sizeVariant={InputSizeVariant.small}
         />
         <Input
           formatted={true}

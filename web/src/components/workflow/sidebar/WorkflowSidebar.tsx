@@ -44,6 +44,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
   const [sectionState, setSectionState] = useState({
     triggers: true,
     actions: true,
+    advanced: true,
   });
 
   const toggleSection = (section: keyof typeof sectionState) => {
@@ -70,25 +71,25 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           <ChannelCloseTriggerNodeButton />
         </SectionContainer>
         <SectionContainer
-          title={t.channels}
+          title={t.actions}
           icon={ChannelsIcon}
           expanded={sectionState.actions}
           handleToggle={() => toggleSection("actions")}
         >
           <ChannelFilterNodeButton />
           <ChannelPolicyAutoRunNodeButton />
+          <AddTagNodeButton />
+          <RemoveTagNodeButton />
+        </SectionContainer>
+        <SectionContainer
+          title={t.AdvancedActions}
+          icon={TagsIcon}
+          expanded={sectionState.advanced}
+          handleToggle={() => toggleSection("advanced")}
+        >
           <ChannelPolicyRunNodeButton />
           <ChannelPolicyConfiguratorNodeButton />
           <RebalanceConfiguratorNodeButton />
-          <SectionContainer
-            title={t.tags}
-            icon={TagsIcon}
-            expanded={sectionState.actions}
-            handleToggle={() => toggleSection("actions")}
-          >
-            <AddTagNodeButton />
-            <RemoveTagNodeButton />
-          </SectionContainer>
         </SectionContainer>
       </Sidebar>
     </div>
