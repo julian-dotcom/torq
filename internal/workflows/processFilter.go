@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/tags"
@@ -518,11 +519,11 @@ func GetFilterFunctions() map[FilterCategoryType]map[string]FilterFunc {
 func getFloats(dataValueOfUnknownType interface{}, filterValueOfUnknownType interface{}) (float64, float64, error) {
 	dataValueFloat, err := getFloat(dataValueOfUnknownType)
 	if err != nil {
-		return math.NaN(), math.NaN(), err
+		return math.NaN(), math.NaN(), errors.Wrap(err, "converting dataValueOfUnknownType into dataValueFloat")
 	}
 	filterValueFloat, err := getFloat(filterValueOfUnknownType)
 	if err != nil {
-		return math.NaN(), math.NaN(), err
+		return math.NaN(), math.NaN(), errors.Wrap(err, "converting filterValueOfUnknownType into filterValueFloat")
 	}
 	return dataValueFloat, filterValueFloat, nil
 }
@@ -598,7 +599,7 @@ func getFloat(unknownType interface{}) (float64, error) {
 		if err != nil {
 			log.Debug().Err(err).Msgf("Failed to convert string to float64 while filtering")
 		}
-		return parameter, err
+		return parameter, errors.Wrap(err, "converting string to float64 while filtering")
 	default:
 		var floatType = reflect.TypeOf(float64(0))
 		var stringType = reflect.TypeOf("")
@@ -614,9 +615,9 @@ func getFloat(unknownType interface{}) (float64, error) {
 			if err != nil {
 				log.Debug().Err(err).Msgf("Failed to convert string to float64 while filtering")
 			}
-			return parameter, err
+			return parameter, errors.Wrap(err, "converting string to float64 while filtering")
 		} else {
-			return math.NaN(), fmt.Errorf("can't convert %v to float64", v.Type())
+			return math.NaN(), errors.New(fmt.Sprintf("can't convert %v to float64", v.Type()))
 		}
 	}
 }
