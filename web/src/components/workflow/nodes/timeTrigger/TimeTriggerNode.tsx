@@ -8,6 +8,7 @@ import { Form, Input, InputRow, InputSizeVariant, Select } from "components/form
 import { NumberFormatValues } from "react-number-format";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
+import Spinny from "features/spinny/Spinny";
 
 type TimeTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -65,6 +66,17 @@ export function TimeTriggerNode({ ...wrapperProps }: TimeTriggerNodeProps) {
 
   const selectedOption = timeUnitOptions.find((option) => option.value === selectedTimeUnit);
 
+  const [dirty, setDirty] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  useEffect(() => {
+    // if the original parameters are different from the current parameters, set dirty to true
+    if (parameters.seconds !== seconds || parameters.timeUnit !== selectedTimeUnit) {
+      setDirty(true);
+    } else {
+      setDirty(false);
+    }
+  }, [selectedOption, seconds, frequency, selectedTimeUnit, wrapperProps.parameters]);
+
   useEffect(() => {
     setSeconds(convertTimeUnits(selectedTimeUnit, timeUnits.seconds, frequency));
   }, [frequency, selectedTimeUnit]);
@@ -83,21 +95,20 @@ export function TimeTriggerNode({ ...wrapperProps }: TimeTriggerNodeProps) {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: {
         seconds: seconds,
         timeUnit: selectedTimeUnit,
       },
+    }).finally(() => {
+      setProcessing(false);
     });
   }
 
   return (
-    <WorkflowNodeWrapper
-      {...wrapperProps}
-      headerIcon={<TimeTriggerIcon />}
-      colorVariant={NodeColorVariant.accent2}
-    >
+    <WorkflowNodeWrapper {...wrapperProps} headerIcon={<TimeTriggerIcon />} colorVariant={NodeColorVariant.accent2}>
       <Form onSubmit={handleSubmit}>
         <InputRow>
           <div style={{ flexGrow: 1 }}>
@@ -121,8 +132,14 @@ export function TimeTriggerNode({ ...wrapperProps }: TimeTriggerNodeProps) {
             sizeVariant={InputSizeVariant.small}
           />
         </InputRow>
-        <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
-          {t.save.toString()}
+        <Button
+          type="submit"
+          buttonColor={ColorVariant.success}
+          buttonSize={SizeVariant.small}
+          icon={!processing ? <SaveIcon /> : <Spinny />}
+          disabled={!dirty || processing}
+        >
+          {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
       </Form>
     </WorkflowNodeWrapper>

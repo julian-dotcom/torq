@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Filter20Regular as FilterIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
@@ -12,6 +12,7 @@ import FilterComponent from "features/sidebar/sections/filter/FilterComponent";
 import { AndClause, deserialiseQuery, OrClause } from "features/sidebar/sections/filter/filter";
 import { ChannelsFilterTemplate } from "features/channels/channelsDefaults";
 import { AllChannelsColumns } from "features/channels/channelsColumns.generated";
+import Spinny from "features/spinny/Spinny";
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -24,11 +25,27 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
     deserialiseQuery(wrapperProps.parameters || { $and: [] }) as AndClause | OrClause
   );
 
+  const [dirty, setDirty] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  useEffect(() => {
+    if (
+      Array.from(JSON.stringify(wrapperProps.parameters)).sort().join("") !==
+      Array.from(JSON.stringify(filterState)).sort().join("")
+    ) {
+      setDirty(true);
+    } else {
+      setDirty(false);
+    }
+  }, [filterState, wrapperProps.parameters]);
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: filterState as unknown as Record<string, unknown>,
+    }).finally(() => {
+      setProcessing(false);
     });
   }
 
@@ -54,6 +71,8 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
     setFilterState(filter);
   };
 
+  const filters = AllChannelsColumns.filter((column) => column.valueType !== "link");
+
   return (
     <WorkflowNodeWrapper {...wrapperProps} headerIcon={<FilterIcon />} colorVariant={NodeColorVariant.accent1}>
       <Form onSubmit={handleSubmit}>
@@ -68,14 +87,20 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
         {filterState !== undefined && (
           <FilterComponent
             filters={filterState}
-            columns={AllChannelsColumns}
+            columns={filters}
             defaultFilter={ChannelsFilterTemplate}
             child={false}
             onFilterUpdate={handleFilterUpdate}
           />
         )}
-        <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
-          {t.save.toString()}
+        <Button
+          type="submit"
+          buttonColor={ColorVariant.success}
+          buttonSize={SizeVariant.small}
+          icon={!processing ? <SaveIcon /> : <Spinny />}
+          disabled={!dirty || processing}
+        >
+          {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
       </Form>
     </WorkflowNodeWrapper>

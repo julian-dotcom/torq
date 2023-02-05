@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MoneySettings20Regular as ChannelPolicyConfiguratorIcon,
   Save16Regular as SaveIcon,
@@ -14,6 +14,7 @@ import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } f
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
+import Spinny from "features/spinny/Spinny";
 
 type ChannelPolicyAutoRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -38,6 +39,17 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
     timeLockDelta: undefined,
     ...wrapperProps.parameters,
   });
+
+  const [dirty, setDirty] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  useEffect(() => {
+    // if the original parameters are different from the current parameters, set dirty to true
+    if (JSON.stringify(wrapperProps.parameters) !== JSON.stringify(channelPolicy)) {
+      setDirty(true);
+    } else {
+      setDirty(false);
+    }
+  }, [channelPolicy, wrapperProps.parameters]);
 
   const [feeBase, setFeeBase] = useState<number | undefined>(
     (wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat
@@ -91,9 +103,12 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: channelPolicy,
+    }).finally(() => {
+      setProcessing(false);
     });
   }
 
@@ -125,7 +140,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.inputs}
+          label={t.channels}
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
@@ -135,7 +150,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           formatted={true}
           value={channelPolicy.feeRateMilliMsat}
           thousandSeparator={","}
-          suffix={" sat"}
+          suffix={" ppm"}
           onValueChange={createChangeHandler("feeRateMilliMsat")}
           label={t.updateChannelPolicy.feeRateMilliMsat}
           sizeVariant={InputSizeVariant.small}
@@ -175,8 +190,14 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           label={t.updateChannelPolicy.timeLockDelta}
           sizeVariant={InputSizeVariant.small}
         />
-        <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
-          {t.save.toString()}
+        <Button
+          type="submit"
+          buttonColor={ColorVariant.success}
+          buttonSize={SizeVariant.small}
+          icon={!processing ? <SaveIcon /> : <Spinny />}
+          disabled={!dirty || processing}
+        >
+          {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
       </Form>
     </WorkflowNodeWrapper>
