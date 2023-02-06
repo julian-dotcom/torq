@@ -131,7 +131,7 @@ const Router = () => {
   const routes = [publicRoutes, authenticatedRoutes];
 
   const router = useRoutes(routes, currentLocation);
-  const modalRouter = useRoutes([modalRoutes]);
+  const modalRouter = useRoutes([modalRoutes, publicRoutes, authenticatedRoutes]);
 
   return (
     <>
