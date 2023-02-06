@@ -115,6 +115,7 @@ func getPayments(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string,
 	if err != nil {
 		return nil, total, errors.Wrap(err, "Running query")
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var p Payment

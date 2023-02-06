@@ -63,6 +63,7 @@ func getOnChainTxs(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "Run SQL Query")
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var tx Transaction
 		err = rows.Scan(

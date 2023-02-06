@@ -79,6 +79,7 @@ func getInvoices(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string, 
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "Running SQL Query")
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var i Invoice

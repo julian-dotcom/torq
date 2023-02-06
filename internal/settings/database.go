@@ -160,6 +160,8 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 	if err != nil {
 		return errors.Wrap(err, "Obtaining nodeIds and publicKeys")
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var publicKey string
 		var nodeId int

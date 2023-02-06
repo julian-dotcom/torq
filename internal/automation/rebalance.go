@@ -202,7 +202,7 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 		runningFor := request.RequestTime.Sub(latestResult.UpdateOn)
 		if runningFor.Seconds() < commons.REBALANCE_MINIMUM_DELTA_SECONDS {
 			sleepTime := commons.REBALANCE_MINIMUM_DELTA_SECONDS*time.Second - runningFor
-			createdOn.Add(sleepTime)
+			createdOn = createdOn.Add(sleepTime)
 		}
 	}
 

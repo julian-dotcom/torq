@@ -156,6 +156,7 @@ order by datetime desc) as events where prev is not null and value is not null`
 		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v)",
 			sql, preferredTimeZone, from, to, channelIds, nodeIds)
 	}
+	defer rows.Close()
 	for rows.Next() {
 		c := &ChannelEvent{}
 		err = rows.Scan(

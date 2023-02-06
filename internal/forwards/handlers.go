@@ -204,6 +204,7 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running aggregated forwards query")
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		c := &forwardsTableRow{}

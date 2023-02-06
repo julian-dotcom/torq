@@ -65,10 +65,7 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 				OutgoingChannelId: outgoingChannelIdP,
 			})
 		}
-		err = stmt.Close()
-		if err != nil {
-			return errors.Wrap(err, "Close of prepared statement")
-		}
+		defer stmt.Close()
 		err = tx.Commit()
 		if err != nil {
 			return errors.Wrap(err, "DB Commit")
