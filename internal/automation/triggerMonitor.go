@@ -52,7 +52,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 					bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
 				}
 				commons.ScheduleTrigger(reference, workflowTriggerNode.WorkflowVersionId,
-					workflowTriggerNode.Type, workflowTriggerNode)
+					workflowTriggerNode.Type, workflowTriggerNode.WorkflowVersionNodeId, workflowTriggerNode)
 			}
 			// When bootstrapping the automations run ALL workflows because we might have missed some events.
 			if bootstrapping {
@@ -71,7 +71,7 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 					reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
 					commons.ScheduleTrigger(reference,
 						workflowTriggerNode.WorkflowVersionId,
-						workflowTriggerNode.Type, workflowTriggerNode)
+						workflowTriggerNode.Type, workflowTriggerNode.WorkflowVersionNodeId, workflowTriggerNode)
 				}
 				bootstrapping = false
 			}
@@ -106,7 +106,7 @@ func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			log.Debug().Msgf("Scheduling for immediate execution cron trigger for workflow version node id %v", trigger.WorkflowVersionNodeId)
 			reference := fmt.Sprintf("%v_%v", trigger.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
 			commons.ScheduleTrigger(reference, trigger.WorkflowVersionId,
-				commons.WorkflowNodeCronTrigger, trigger)
+				commons.WorkflowNodeCronTrigger, trigger.WorkflowVersionNodeId, trigger)
 		})
 		if err != nil {
 			log.Error().Msgf("Unable to add cron func for workflow version node id: %v", trigger.WorkflowVersionNodeId)
@@ -179,28 +179,12 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 				}
 			}
 
-			var workflowVersionNodeId int
-			switch scheduledTrigger.TriggeringNodeType {
-			case commons.WorkflowNodeTimeTrigger:
-				fallthrough
-			case commons.WorkflowNodeCronTrigger:
-				workflowVersionNodeId = firstEvent.(workflows.WorkflowNode).WorkflowVersionNodeId
-			case commons.WorkflowNodeManualTrigger:
-				workflowVersionNodeId = firstEvent.(commons.ManualTriggerEvent).WorkflowVersionNodeId
-			default:
-				workflowVersionNodeId = scheduledTrigger.TriggeringWorkflowVersionNodeId
-				if workflowVersionNodeId == 0 {
-					// Initial run without event when Torq boots
-					workflowVersionNodeId = firstEvent.(workflows.WorkflowNode).WorkflowVersionNodeId
-				}
-			}
-
-			workflowTriggerNode, err := workflows.GetWorkflowNode(db, workflowVersionNodeId)
+			workflowTriggerNode, err := workflows.GetWorkflowNode(db, scheduledTrigger.TriggeringWorkflowVersionNodeId)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed to obtain the Triggering WorkflowNode for WorkflowVersionNodeId: %v", workflowVersionNodeId)
+				log.Error().Err(err).Msgf("Failed to obtain the Triggering WorkflowNode for WorkflowVersionNodeId: %v", scheduledTrigger.TriggeringWorkflowVersionNodeId)
 				continue
 			}
-			triggerGroupWorkflowVersionNodeId, err := workflows.GetTriggerGroupWorkflowVersionNodeId(db, workflowVersionNodeId)
+			triggerGroupWorkflowVersionNodeId, err := workflows.GetTriggerGroupWorkflowVersionNodeId(db, scheduledTrigger.TriggeringWorkflowVersionNodeId)
 			if err != nil || triggerGroupWorkflowVersionNodeId == 0 {
 				log.Error().Err(err).Msgf("Failed to obtain the group node id for WorkflowVersionNodeId: %v", scheduledTrigger.TriggeringWorkflowVersionNodeId)
 				continue
@@ -433,7 +417,7 @@ func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType comm
 	}
 	for _, workflowTriggerNode := range workflowTriggerNodes {
 		reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-		commons.ScheduleTrigger(reference, workflowTriggerNode.WorkflowVersionId, workflowNodeType, triggeringEvent)
+		commons.ScheduleTrigger(reference, workflowTriggerNode.WorkflowVersionId, workflowNodeType, workflowTriggerNode.WorkflowVersionNodeId, triggeringEvent)
 	}
 }
 
