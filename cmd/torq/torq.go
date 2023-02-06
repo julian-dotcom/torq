@@ -102,7 +102,7 @@ func main() {
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.password",
-			Usage: "Password used to access the API and frontend.",
+			Usage: "Password used to access the API and frontend",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.port",
@@ -112,7 +112,7 @@ func main() {
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:  "torq.no-sub",
 			Value: false,
-			Usage: "Start the server without subscribing to node data.",
+			Usage: "Start the server without subscribing to node data",
 		}),
 
 		// Torq database
@@ -124,12 +124,12 @@ func main() {
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "db.port",
 			Value: "5432",
-			Usage: "port of the database",
+			Usage: "Port of the database",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "db.host",
 			Value: "localhost",
-			Usage: "host of the database",
+			Usage: "Host of the database",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "db.user",
@@ -139,7 +139,7 @@ func main() {
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "db.password",
 			Value: "password",
-			Usage: "Name of the postgres user with access to the database",
+			Usage: "Password used to access the database",
 		}),
 
 		// LND connection details
