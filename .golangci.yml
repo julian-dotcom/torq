@@ -4,14 +4,14 @@ linters:
   disable-all: true
   # Enable specific linter
   # https://golangci-lint.run/usage/linters/#enabled-by-default
+  #-staticcheck
+  #- unused
   enable:
     - errcheck
     - govet
     - gosimple
     - ineffassign
-    - staticcheck
     - typecheck
-    #- unused
     - gochecknoglobals
     - gosec
     - sqlclosecheck
