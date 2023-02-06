@@ -198,11 +198,12 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 		}
 		now := time.Now()
 		scheduledTriggerCache = append(scheduledTriggerCache, ManagedTriggerSettings{
-			SchedulingTime:       &now,
-			WorkflowVersionId:    managedTrigger.WorkflowVersionId,
-			TriggeringNodeType:   managedTrigger.TriggeringNodeType,
-			TriggeringEventQueue: []any{managedTrigger.TriggeringEvent},
-			Reference:            managedTrigger.Reference,
+			SchedulingTime:                  &now,
+			WorkflowVersionId:               managedTrigger.WorkflowVersionId,
+			TriggeringNodeType:              managedTrigger.TriggeringNodeType,
+			TriggeringWorkflowVersionNodeId: managedTrigger.TriggeringWorkflowVersionNodeId,
+			TriggeringEventQueue:            []any{managedTrigger.TriggeringEvent},
+			Reference:                       managedTrigger.Reference,
 		})
 	}
 	return scheduledTriggerCache
@@ -333,14 +334,16 @@ func ScheduleTrigger(
 	reference string,
 	workflowVersionId int,
 	triggeringNodeType WorkflowNodeType,
+	triggeringWorkflowVersionNodeId int,
 	triggeringEvent any) {
 
 	ManagedTriggerChannel <- ManagedTrigger{
-		Reference:          reference,
-		WorkflowVersionId:  workflowVersionId,
-		TriggeringNodeType: triggeringNodeType,
-		TriggeringEvent:    triggeringEvent,
-		Type:               WRITE_SCHEDULED_TRIGGER,
+		Reference:                       reference,
+		WorkflowVersionId:               workflowVersionId,
+		TriggeringNodeType:              triggeringNodeType,
+		TriggeringWorkflowVersionNodeId: triggeringWorkflowVersionNodeId,
+		TriggeringEvent:                 triggeringEvent,
+		Type:                            WRITE_SCHEDULED_TRIGGER,
 	}
 }
 

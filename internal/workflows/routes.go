@@ -118,7 +118,7 @@ func workFlowTriggerHandler(c *gin.Context, db *sqlx.DB) {
 		WorkflowVersionNodeId: workflow.WorkflowVersionNodeId,
 	}
 	reference := fmt.Sprintf("%v_%v", workflow.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-	commons.ScheduleTrigger(reference, workflow.WorkflowVersionId, commons.WorkflowNodeManualTrigger, manualTriggerEvent)
+	commons.ScheduleTrigger(reference, workflow.WorkflowVersionId, commons.WorkflowNodeManualTrigger, workflow.WorkflowVersionNodeId, manualTriggerEvent)
 
 	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully triggered Workflow."})
 }
