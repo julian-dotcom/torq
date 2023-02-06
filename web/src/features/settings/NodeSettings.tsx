@@ -222,7 +222,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         .catch((error) => {
           setSaveEnabledState(true);
           /* toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error); */
-          setServerErrorState(error.data["errors"]["server"][0].split(":")[0]);
+          setServerErrorState(error.data["errors"]["server"].map((error: string) => error.split(":")[0]));
         });
       mixpanel.track("Add Local Node");
       return;
@@ -237,7 +237,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         .catch((error) => {
           setSaveEnabledState(true);
           /* toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error); */
-          setServerErrorState(error.data["errors"]["server"][0].split(":")[0]);
+          setServerErrorState(error.data["errors"]["server"].map((error: string) => error.split(":")[0]));
         });
       mixpanel.track("Update Local Node", { nodeId: nodeConfigurationState.nodeId });
     }
