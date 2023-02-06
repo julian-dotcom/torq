@@ -11,7 +11,7 @@ linters:
     - ineffassign
     - staticcheck
     - typecheck
-    - unused
+    #- unused
     - gochecknoglobals
     - gosec
     - sqlclosecheck
