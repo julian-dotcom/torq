@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tag20Regular as TagIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
@@ -11,6 +11,7 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import { Tag } from "pages/tags/tagsTypes";
 import { InputSizeVariant, RadioChips, Select } from "components/forms/forms";
+import Spinny from "../../../../features/spinny/Spinny";
 
 type SelectOptions = {
   label?: string;
@@ -62,8 +63,30 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
     setSelectedAddedtags(newValue as SelectedTag[]);
   }
 
+  const [dirty, setDirty] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  useEffect(() => {
+    const appliesTo = applyTo === applyToNodesId ? "nodes" : "channel";
+    if (
+      ((wrapperProps.parameters as TagParameters).addedTags || [])
+        .map((t) => t.value)
+        .sort()
+        .join("") !==
+        (selectedAddedTags || [])
+          .map((t) => t.value)
+          .sort()
+          .join("") ||
+      appliesTo !== wrapperProps.parameters?.applyTo
+    ) {
+      setDirty(true);
+    } else {
+      setDirty(false);
+    }
+  }, [applyTo, selectedAddedTags, wrapperProps.parameters]);
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setProcessing(true);
     const appliesTo = applyTo === applyToNodesId ? "nodes" : "channel";
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
@@ -71,6 +94,8 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
         applyTo: appliesTo,
         addedTags: selectedAddedTags,
       },
+    }).finally(() => {
+      setProcessing(false);
     });
   }
 
@@ -136,8 +161,14 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
           sizeVariant={InputSizeVariant.small}
           value={selectedAddedTags}
         />
-        <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
-          {t.save.toString()}
+        <Button
+          type="submit"
+          buttonColor={ColorVariant.success}
+          buttonSize={SizeVariant.small}
+          icon={!processing ? <SaveIcon /> : <Spinny />}
+          disabled={!dirty || processing}
+        >
+          {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
       </Form>
     </WorkflowNodeWrapper>

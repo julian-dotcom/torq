@@ -48,7 +48,6 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
 
   const handleNoChildrenLeft = (index: number) => {
     return () => {
-      console.log("changed it");
       removeFilter(index);
     };
   };

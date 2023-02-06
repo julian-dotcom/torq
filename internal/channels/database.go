@@ -32,6 +32,7 @@ func GetChannels(db *sqlx.DB, nodeIds []int, all bool, channelIds []int) ([]*Cha
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running getChannels query all: %v, channelIds: %v", all, channelIds)
 	}
+	defer rows.Close()
 	var r []*Channel
 	for rows.Next() {
 		c := &Channel{}
@@ -201,6 +202,7 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 	if err != nil {
 		return errors.Wrap(err, "Obtaining channelIds and shortChannelIds")
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var channelId int
 		var shortChannelId *string

@@ -66,6 +66,13 @@ export const FilterFunctions = new Map<string, Map<string, FilterFunc>>([
     ]),
   ],
   [
+    "link",
+    new Map<string, FilterFunc>([
+      ["like", (input, key, parameter) => (input[key] as string).toLowerCase().includes(parameter as string)],
+      ["notLike", (input, key, parameter) => !(input[key] as string).toLowerCase().includes(parameter as string)],
+    ]),
+  ],
+  [
     "enum",
     new Map<string, FilterFunc>([
       ["like", (input, key, parameter) => (input[key] as string).toLowerCase().includes(parameter as string)],

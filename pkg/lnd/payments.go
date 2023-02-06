@@ -363,6 +363,7 @@ func fetchInFlightPaymentIndexes(db *sqlx.DB, nodeId int) (r []uint64, err error
 	if err != nil {
 		return nil, errors.Wrap(err, "DB Query of inflight payment indexes")
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var res *uint64

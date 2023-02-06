@@ -53,6 +53,7 @@ func getChannelTotal(db *sqlx.DB, nodeIds []int, all bool, channelIds []int, fro
 	if err != nil {
 		return ChannelHistory{}, errors.Wrap(err, "Getting channel total")
 	}
+	defer rows.Close()
 	for rows.Next() {
 		err = rows.Scan(
 			&r.AmountIn,

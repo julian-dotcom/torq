@@ -475,6 +475,7 @@ func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB
 	if err != nil {
 		return []int{}, errors.Wrap(err, "DB Query")
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var channelId int
 		err = rows.Scan(&channelId)
@@ -483,7 +484,6 @@ func getExistingChannelEvents(t lnrpc.ChannelEventUpdate_UpdateType, db *sqlx.DB
 		}
 		existingChannelIds = append(existingChannelIds, channelId)
 	}
-
 	return existingChannelIds, nil
 }
 

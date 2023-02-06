@@ -360,6 +360,8 @@ func getLegacyTableViews(db *sqlx.DB) ([]TableViewLayout, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to get table views. SQL statement error")
 	}
+	defer rows.Close()
+
 	var legacyTableViewLayouts []TableViewLayout
 	for rows.Next() {
 		v := &TableViewLayout{}

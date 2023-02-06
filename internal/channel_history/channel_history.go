@@ -90,6 +90,7 @@ func getChannelHistory(db *sqlx.DB, nodeIds []int, all bool, channelIds []int, f
 	if err != nil {
 		return nil, errors.Wrapf(err, "Getting channel history")
 	}
+	defer rows.Close()
 	for rows.Next() {
 		c := &ChannelHistoryRecords{}
 		err = rows.Scan(

@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { MoneySettings20Regular as ChannelPolicyConfiguratorIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import { useEffect, useState } from "react";
+import {
+  MoneySettings20Regular as ChannelPolicyConfiguratorIcon,
+  Save16Regular as SaveIcon,
+} from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Input from "components/forms/input/Input";
@@ -11,6 +14,7 @@ import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } f
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
+import Spinny from "features/spinny/Spinny";
 
 type ChannelPolicyAutoRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -29,38 +33,55 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
 
   const [channelPolicy, setChannelPolicy] = useState<ChannelPolicyConfiguration>({
     feeBaseMsat: undefined,
-    feeRateMilliMsat: undefined,
+    feeRateMilliMsat: undefined, // TODO: rename to PPM or FeeRate
     maxHtlcMsat: undefined,
     minHtlcMsat: undefined,
     timeLockDelta: undefined,
     ...wrapperProps.parameters,
   });
 
+  const [dirty, setDirty] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  useEffect(() => {
+    // if the original parameters are different from the current parameters, set dirty to true
+    if (JSON.stringify(wrapperProps.parameters) !== JSON.stringify(channelPolicy)) {
+      setDirty(true);
+    } else {
+      setDirty(false);
+    }
+  }, [channelPolicy, wrapperProps.parameters]);
+
   const [feeBase, setFeeBase] = useState<number | undefined>(
-    (wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat || 0) / 1000:undefined
+    (wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat
+      ? ((wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat || 0) / 1000
+      : undefined
   );
   const [maxHtlc, setMaxHtlc] = useState<number | undefined>(
-    (wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat || 0) / 1000:undefined
+    (wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat
+      ? ((wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat || 0) / 1000
+      : undefined
   );
   const [minHtlc, setMinHtlc] = useState<number | undefined>(
-    (wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat?((wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat || 0) / 1000:undefined
+    (wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat
+      ? ((wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat || 0) / 1000
+      : undefined
   );
 
   function createChangeMsatHandler(key: keyof ChannelPolicyConfiguration) {
     return (e: NumberFormatValues) => {
       if (key == "feeBaseMsat") {
-        setFeeBase(e.floatValue)
+        setFeeBase(e.floatValue);
       }
       if (key == "maxHtlcMsat") {
-        setMaxHtlc(e.floatValue)
+        setMaxHtlc(e.floatValue);
       }
       if (key == "minHtlcMsat") {
-        setMinHtlc(e.floatValue)
+        setMinHtlc(e.floatValue);
       }
       if (e.floatValue === undefined) {
         setChannelPolicy((prev) => ({
           ...prev,
-          [key]: undefined
+          [key]: undefined,
         }));
       } else {
         setChannelPolicy((prev) => ({
@@ -82,9 +103,12 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: channelPolicy,
+    }).finally(() => {
+      setProcessing(false);
     });
   }
 
@@ -116,7 +140,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.inputs}
+          label={t.channels}
           selectedNodes={parentNodes || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
@@ -127,15 +151,6 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           value={channelPolicy.feeRateMilliMsat}
           thousandSeparator={","}
           suffix={" ppm"}
-          onValueChange={createChangeHandler("feeRateMilliMsat")}
-          label={t.updateChannelPolicy.feeRateMilliMsat}
-          sizeVariant={InputSizeVariant.small}
-        />
-        <Input
-          formatted={true}
-          value={feeBase}
-          thousandSeparator={","}
-          suffix={" sat"}
           onValueChange={createChangeHandler("feeRateMilliMsat")}
           label={t.updateChannelPolicy.feeRateMilliMsat}
           sizeVariant={InputSizeVariant.small}
@@ -159,13 +174,13 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           sizeVariant={InputSizeVariant.small}
         />
         <Input
-        formatted={true}
-        value={maxHtlc}
-        thousandSeparator={","}
-        suffix={" sat"}
-        onValueChange={createChangeMsatHandler("maxHtlcMsat")}
-        label={t.maxHTLCAmount}
-        sizeVariant={InputSizeVariant.small}
+          formatted={true}
+          value={maxHtlc}
+          thousandSeparator={","}
+          suffix={" sat"}
+          onValueChange={createChangeMsatHandler("maxHtlcMsat")}
+          label={t.maxHTLCAmount}
+          sizeVariant={InputSizeVariant.small}
         />
         <Input
           formatted={true}
@@ -175,8 +190,14 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           label={t.updateChannelPolicy.timeLockDelta}
           sizeVariant={InputSizeVariant.small}
         />
-        <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
-          {t.save.toString()}
+        <Button
+          type="submit"
+          buttonColor={ColorVariant.success}
+          buttonSize={SizeVariant.small}
+          icon={!processing ? <SaveIcon /> : <Spinny />}
+          disabled={!dirty || processing}
+        >
+          {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
       </Form>
     </WorkflowNodeWrapper>

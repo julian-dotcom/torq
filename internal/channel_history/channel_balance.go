@@ -85,6 +85,7 @@ func getChannelBalance(db *sqlx.DB, channelIdString string, from time.Time, to t
 	if err != nil {
 		return cb, errors.Wrap(err, "SQL run query")
 	}
+	defer rows.Close()
 	for rows.Next() {
 		b := Balance{}
 

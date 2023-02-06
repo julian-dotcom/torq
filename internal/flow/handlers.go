@@ -175,7 +175,7 @@ func getFlow(db *sqlx.DB, nodeIds []int, chanIdStrings []string, fromTime time.T
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error running flow query")
 	}
-
+	defer rows.Close()
 	for rows.Next() {
 		c := &channelFlowData{}
 		err = rows.Scan(

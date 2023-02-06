@@ -7,7 +7,8 @@ import { Form, Input, InputRow, InputSizeVariant } from "components/forms/forms"
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import cronstrue from "cronstrue";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import Spinny from "features/spinny/Spinny";
 
 type CronTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -20,13 +21,26 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
   );
   const [isValidState, setIsValidState] = React.useState(true);
 
+  const [dirty, setDirty] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  useEffect(() => {
+    if (((wrapperProps.parameters as { cronValue: string }).cronValue ?? "0 23 ? * MON-FRI") !== cronValueState) {
+      setDirty(true);
+    } else {
+      setDirty(false);
+    }
+  }, [cronValueState, wrapperProps.parameters]);
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: {
         cronValue: cronValueState,
       },
+    }).finally(() => {
+      setProcessing(false);
     });
   }
 
@@ -69,12 +83,12 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
         </span>
         <Button
           type="submit"
-          disabled={!isValidState}
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}
-          icon={<SaveIcon />}
+          icon={!processing ? <SaveIcon /> : <Spinny />}
+          disabled={!isValidState || !dirty || processing}
         >
-          {t.save.toString()}
+          {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
       </Form>
     </WorkflowNodeWrapper>
