@@ -2,46 +2,52 @@ package database
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"log"
 )
 
-func PgConnect(dbName, user, password, host, port string) (db *sqlx.DB, err error) {
-	defaultDB, err := sqlx.Connect("postgres",
-		fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", "postgres", password, host, port, "postgres"))
+func PgConnect(dbName string, user string, password string, host string, port string) (*sqlx.DB, error) {
+	db, err := sqlx.Connect("postgres",
+		fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			host, port, user, password, dbName))
 	if err != nil {
-		return nil, errors.Wrapf(err, "default database connect")
-	}
-	defer defaultDB.Close()
+		defaultDB, err := sqlx.Connect("postgres",
+			fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+				host, port, "postgres", password, "postgres"))
+		if err != nil {
+			return nil, errors.Wrapf(err, "default database connect")
+		}
+		defer defaultDB.Close()
 
-	userExists, err := checkUserExists(defaultDB, user)
-	if err != nil {
-		return nil, errors.Wrap(err, "pg connect")
-	}
-	if !userExists {
-		log.Println("Creating database user")
-		if err := createUser(defaultDB, user, password); err != nil {
+		userExists, err := checkUserExists(defaultDB, user)
+		if err != nil {
 			return nil, errors.Wrap(err, "pg connect")
 		}
-	}
-	dbExists, err := checkDatabaseExists(defaultDB, dbName)
-	if err != nil {
-		return nil, errors.Wrap(err, "pg connect")
-	}
-	if !dbExists {
-		log.Println("Creating new database")
-		if err := createDb(defaultDB, user, dbName); err != nil {
+		if !userExists {
+			log.Println("Creating database user")
+			if err := createUser(defaultDB, user, password); err != nil {
+				return nil, errors.Wrap(err, "pg connect")
+			}
+		}
+		dbExists, err := checkDatabaseExists(defaultDB, dbName)
+		if err != nil {
 			return nil, errors.Wrap(err, "pg connect")
 		}
-	}
-	db, err = sqlx.Connect("postgres",
-		fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", user, password, host, port,
-			dbName))
-
-	if err != nil {
-		return nil, errors.Wrap(err, "database connect")
+		if !dbExists {
+			log.Println("Creating new database")
+			if err := createDb(defaultDB, user, dbName); err != nil {
+				return nil, errors.Wrap(err, "pg connect")
+			}
+		}
+		db, err = sqlx.Connect("postgres",
+			fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+				host, port, user, password, dbName))
+		if err != nil {
+			return nil, errors.Wrap(err, "database connect")
+		}
 	}
 	return db, nil
 }
