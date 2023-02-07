@@ -52,6 +52,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
       toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
       return;
     }
+
     setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
