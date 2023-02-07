@@ -5,6 +5,10 @@ import { AndClause, OrClause, FilterClause, FilterInterface, Clause } from "./fi
 import { ColumnMetaData } from "features/table/types";
 import styles from "./filter-section.module.scss";
 import clone from "clone";
+import React from "react";
+import { toastCategory } from "features/toast/Toasts";
+import ToastContext from "features/toast/context";
+import useTranslations from "services/i18n/useTranslations";
 
 export interface FilterComponentProps<T> {
   columns: Array<ColumnMetaData<T>>;
@@ -13,6 +17,7 @@ export interface FilterComponentProps<T> {
   onFilterUpdate: (filter: AndClause | OrClause) => void;
   onNoChildrenLeft?: () => void;
   child: boolean;
+  editingDisabled: boolean;
 }
 
 const combinerOptions = new Map<string, string>([
@@ -21,6 +26,9 @@ const combinerOptions = new Map<string, string>([
 ]);
 
 function FilterComponent<T>(props: FilterComponentProps<T>) {
+  const toastRef = React.useContext(ToastContext);
+  const { t } = useTranslations();
+
   const generateUpdateFilterFunc = (index: number) => {
     const handleUpdateFilter = (updatedFilters: Clause) => {
       const filters = clone(props.filters);
@@ -31,6 +39,10 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
   };
 
   const removeFilter = (index: number) => {
+    if (props.editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
     // if it's the last child then let my parent remove me
     if (props.filters.childClauses.length === 1 && props.onNoChildrenLeft) {
       props.onNoChildrenLeft();
@@ -53,12 +65,20 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
   };
 
   const addFilter = () => {
+    if (props.editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
     const filters = clone(props.filters);
     filters.addChildClause(new FilterClause(props.defaultFilter));
     props.onFilterUpdate(filters);
   };
 
   const addGroup = () => {
+    if (props.editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
     const filters = clone(props.filters);
     filters.addChildClause(new AndClause([new FilterClause(props.defaultFilter)]));
     props.onFilterUpdate(filters);
@@ -122,6 +142,7 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
                   onRemoveFilter={removeFilter}
                   combiner={combinerOptions.get(props.filters.prefix)}
                   handleCombinerChange={handleCombinerChange}
+                  editingDisabled={props.editingDisabled}
                 />
               </div>
             );
@@ -141,6 +162,7 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
                   filters={filter as OrClause | AndClause}
                   onNoChildrenLeft={handleNoChildrenLeft(index)}
                   onFilterUpdate={generateUpdateFilterFunc(index)}
+                  editingDisabled={props.editingDisabled}
                 />
               </div>
             );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Filter20Regular as FilterIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
@@ -13,11 +13,18 @@ import { AndClause, deserialiseQuery, OrClause } from "features/sidebar/sections
 import { ChannelsFilterTemplate } from "features/channels/channelsDefaults";
 import { AllChannelsColumns } from "features/channels/channelsColumns.generated";
 import Spinny from "features/spinny/Spinny";
+import { WorkflowContext } from "components/workflow/WorkflowContext";
+import { Status } from "constants/backend";
+import { toastCategory } from "features/toast/Toasts";
+import ToastContext from "features/toast/context";
 
 type FilterChannelsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) {
   const { t } = useTranslations();
+  const toastRef = React.useContext(ToastContext);
+  const { workflowStatus } = useContext(WorkflowContext);
+  const editingDisabled = workflowStatus === Status.Active;
 
   const [updateNode] = useUpdateNodeMutation();
 
@@ -40,6 +47,11 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
     setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
@@ -89,6 +101,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"channels"}
+          editingDisabled={editingDisabled}
         />
         {filterState !== undefined && (
           <FilterComponent
@@ -97,6 +110,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
             defaultFilter={ChannelsFilterTemplate}
             child={false}
             onFilterUpdate={handleFilterUpdate}
+            editingDisabled={editingDisabled}
           />
         )}
         <Button
@@ -104,7 +118,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}
           icon={!processing ? <SaveIcon /> : <Spinny />}
-          disabled={!dirty || processing}
+          disabled={!dirty || processing || editingDisabled}
         >
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>

@@ -55,6 +55,7 @@ interface filterRowInterface {
   onRemoveFilter: (index: number) => void;
   handleCombinerChange: () => void;
   combiner?: string;
+  editingDisabled: boolean;
 }
 
 function FilterRow({
@@ -66,6 +67,7 @@ function FilterRow({
   onRemoveFilter,
   handleCombinerChange,
   combiner,
+  editingDisabled,
 }: filterRowInterface) {
   const rowValues = filterClause.filter;
   const [rowExpanded, setRowExpanded] = useState(false);
@@ -85,6 +87,9 @@ function FilterRow({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleKeyChange = (item: any) => {
+    if (editingDisabled) {
+      return;
+    }
     const newRow = { ...rowValues };
     newRow.key = item.value;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,6 +134,9 @@ function FilterRow({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleFunctionChange = (item: any) => {
+    if (editingDisabled) {
+      return;
+    }
     const updatedFilterClause = clone(filterClause);
     updatedFilterClause.filter = { ...rowValues, funcName: item.value };
     onUpdateFilter(updatedFilterClause);
@@ -136,6 +144,9 @@ function FilterRow({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleParamChange = (e: any) => {
+    if (editingDisabled) {
+      return;
+    }
     const newRow = { ...rowValues };
     switch (newRow.category) {
       case "number":
@@ -248,7 +259,13 @@ function FilterRow({
         </div>
 
         <div className={styles.filterParameterContainer}>
-          <FilterInputField onChange={handleParamChange} rowValues={rowValues} options={options} child={child} />
+          <FilterInputField
+            onChange={handleParamChange}
+            rowValues={rowValues}
+            options={options}
+            child={child}
+            editingDisabled={editingDisabled}
+          />
         </div>
       </div>
     </div>
@@ -262,13 +279,16 @@ function FilterInputField(props: {
   rowValues: FilterInterface;
   child: boolean;
   options: Array<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  editingDisabled: boolean;
 }) {
+  const { editingDisabled } = props;
   const { data: getTags } = useGetTagsQuery();
   const tags = (getTags || []).map((tag: TagResponse) => ({ label: tag.name, value: tag.tagId })) || [];
   switch (props.rowValues.category) {
     case "number":
       return (
         <Input
+          disabled={editingDisabled}
           formatted={true}
           thousandSeparator=","
           sizeVariant={InputSizeVariant.small}
@@ -282,6 +302,7 @@ function FilterInputField(props: {
     case "duration":
       return (
         <Input
+          disabled={editingDisabled}
           formatted={true}
           thousandSeparator=","
           sizeVariant={InputSizeVariant.small}
@@ -296,6 +317,7 @@ function FilterInputField(props: {
     case "boolean":
       return (
         <Select
+          isDisabled={editingDisabled}
           options={[
             { label: "True", value: true },
             { label: "False", value: false },
@@ -312,6 +334,7 @@ function FilterInputField(props: {
       })?.label;
       return (
         <Select
+          isDisabled={editingDisabled}
           options={props.options}
           value={{ value: props.rowValues.parameter, label: label }}
           onChange={props.onChange}
@@ -323,6 +346,7 @@ function FilterInputField(props: {
     case "tag": {
       return (
         <Select
+          isDisabled={editingDisabled}
           isMulti={true}
           options={tags}
           value={((props.rowValues.parameter as Array<number>) || []).map((tagId) => {
@@ -337,6 +361,7 @@ function FilterInputField(props: {
     case "enum": {
       return (
         <Select
+          isDisabled={editingDisabled}
           options={props.options}
           value={props.rowValues.parameter}
           onChange={props.onChange}
@@ -348,6 +373,7 @@ function FilterInputField(props: {
     case "date":
       return (
         <Input
+          disabled={editingDisabled}
           type="datetime-local"
           sizeVariant={InputSizeVariant.small}
           colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
@@ -358,6 +384,7 @@ function FilterInputField(props: {
     default:
       return (
         <Input
+          disabled={editingDisabled}
           type="text"
           sizeVariant={InputSizeVariant.small}
           colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
