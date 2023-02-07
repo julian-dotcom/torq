@@ -118,7 +118,16 @@ func Start(ctx context.Context, conn *grpc.ClientConn, vectorUrl string, nodeId 
 			return errors.Wrapf(err, "Marshalling message: %v", string(pingInfoJsonByteArray))
 		}
 
-		resp, err := http.Post(commons.GetVectorUrl(vectorUrl, commons.VECTOR_PING_URL_SUFFIX), "application/json", bytes.NewBuffer(b))
+		req, err := http.NewRequest("POST", commons.GetVectorUrl(vectorUrl, commons.VECTOR_PING_URL_SUFFIX), bytes.NewBuffer(b))
+		if err != nil {
+			monitorCancel()
+			return errors.Wrapf(err, "Creating new request for message: %v", string(pingInfoJsonByteArray))
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Torq-Version", build.ExtendedVersion())
+		req.Header.Set("Torq-UUID", commons.GetSettings().TorqUuid)
+		httpClient := &http.Client{}
+		resp, err := httpClient.Do(req)
 		if err != nil {
 			monitorCancel()
 			return errors.Wrapf(err, "Posting message: %v", string(pingInfoJsonByteArray))
