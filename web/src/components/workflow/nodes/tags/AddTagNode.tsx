@@ -5,13 +5,13 @@ import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/node
 import { useGetTagsQuery } from "pages/tags/tagsApi";
 import Form from "components/forms/form/Form";
 import Socket from "components/forms/socket/Socket";
-import { NodeColorVariant } from "../nodeVariants";
+import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import { Tag } from "pages/tags/tagsTypes";
 import { InputSizeVariant, RadioChips, Select } from "components/forms/forms";
-import Spinny from "../../../../features/spinny/Spinny";
+import Spinny from "features/spinny/Spinny";
 
 type SelectOptions = {
   label?: string;

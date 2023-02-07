@@ -590,7 +590,7 @@ func addOrRemoveTags(db *sqlx.DB,
 }
 
 func getTagEntityRequest(channelId int, tagId int, params TagParameters, torqNodeIds []int, processedNodeIds []int) ([]int, tags.TagEntityRequest) {
-	if params.NodeTag {
+	if params.ApplyTo == "nodes" {
 		channelSettings := commons.GetChannelSettingByChannelId(channelId)
 		nodeId := channelSettings.FirstNodeId
 		if slices.Contains(torqNodeIds, nodeId) {
