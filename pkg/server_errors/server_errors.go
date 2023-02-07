@@ -79,15 +79,32 @@ func SingleServerError(serverErrorDescription string) *ServerError {
 	return serverError
 }
 
+func SingleServerErrorCode(serverErrorCode string) *ServerError {
+	serverError := &ServerError{}
+	serverError.AddServerErrorCode(serverErrorCode)
+	return serverError
+}
+
 func SingleFieldError(field string, fieldError string) *ServerError {
 	serverError := &ServerError{}
 	serverError.AddFieldError(field, fieldError)
 	return serverError
 }
 
+func SingleFieldErrorCode(field string, fieldErrorCode string) *ServerError {
+	serverError := &ServerError{}
+	serverError.AddFieldErrorCode(field, fieldErrorCode)
+	return serverError
+}
+
 func LogAndSendServerError(c *gin.Context, err error) {
 	log.Error().Err(err).Send()
 	c.JSON(http.StatusInternalServerError, SingleServerError(err.Error()))
+}
+
+func LogAndSendServerErrorCode(c *gin.Context, err error, code string) {
+	log.Error().Err(err).Send()
+	c.JSON(http.StatusInternalServerError, SingleServerErrorCode(code))
 }
 
 func WrapLogAndSendServerError(c *gin.Context, err error, message string) {
