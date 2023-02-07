@@ -10,6 +10,7 @@ export type RadioChipsProps = {
   options: Array<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & { label: string }>;
   sizeVariant?: InputSizeVariant;
   colorVariant?: InputColorVaraint;
+  editingDisabled: boolean;
 };
 
 export default function RadioChips(props: RadioChipsProps) {
@@ -31,6 +32,7 @@ export default function RadioChips(props: RadioChipsProps) {
                 type="radio"
                 className={(styles.radioButton, inputOptions.className)}
                 name={props.groupName}
+                disabled={props.editingDisabled}
               />
               <label htmlFor={option.id} className={styles.optionLabel}>
                 {label}

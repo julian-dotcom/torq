@@ -18,7 +18,7 @@ import Spinny from "features/spinny/Spinny";
 import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
-import { toastCategory } from "../../../../features/toast/Toasts";
+import { toastCategory } from "features/toast/Toasts";
 
 type ChannelPolicyAutoRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
