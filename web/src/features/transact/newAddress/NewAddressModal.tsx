@@ -138,17 +138,21 @@ function NewAddressModal() {
 
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
-          <Select
-            label={t.yourNode}
-            onChange={(newValue: unknown) => {
-              if (typeof newValue === "number") {
-                setSelectedNodeId(newValue);
-                mixpanel.track("New Address - Select Node", { nodeId: newValue });
-              }
-            }}
-            options={nodeConfigurationOptions}
-            value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
-          />
+          <div className={styles.nodeSelectionWrapper}>
+            <div className={styles.nodeSelection}>
+              <Select
+                label={t.yourNode}
+                onChange={(newValue: unknown) => {
+                  if (typeof newValue === "number") {
+                    setSelectedNodeId(newValue);
+                    mixpanel.track("New Address - Select Node", { nodeId: newValue });
+                  }
+                }}
+                options={nodeConfigurationOptions}
+                value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
+              />
+            </div>
+          </div>
           <div className={styles.addressTypeWrapper}>
             <div className={styles.addressTypes}>
               {addressTypeOptions.map((addType, index) => {

@@ -1,8 +1,13 @@
-.addressTypes {
-  display: flex;
-  flex-direction: column;
-  row-gap: 8px;
+.nodeSelection {
+  margin-top: 24px;
+  margin-bottom: 16px;
 }
+
+.addressTypes {
+   display: flex;
+   flex-direction: column;
+   row-gap: 8px;
+ }
 .addressTypeButtons {
   background-color: var(--primary-50);
   border: 1px solid var(--primary-250);
