@@ -18,18 +18,18 @@ const ErrorSummary = ({ errors, title }: errorSummaryType) => {
   }
   return (
     <>
-      (errors.server || errors.fields) && (
-      <Note icon={<ErrorIcon />} title={title ?? "Error"} noteType={NoteType.error}>
-        {errors.server &&
-          errors.server.map((error, index) => {
-            if (error.code) {
-              return <p key={index}>{t.errors[error.code]}</p>;
-            }
-            return <p key={index}>{error.description}</p>;
-          })}
-        {errors.fields && errors.fields.keys() && <p>See above for form error(s)</p>}
-      </Note>
-      )
+      {(errors.server || errors.fields) && (
+        <Note icon={<ErrorIcon />} title={title ?? "Error"} noteType={NoteType.error}>
+          {errors.server &&
+            errors.server.map((error, index) => {
+              if (error.code) {
+                return <p key={index}>{t.errors[error.code]}</p>;
+              }
+              return <p key={index}>{error.description}</p>;
+            })}
+          {errors.fields && errors.fields.keys() && <p>See above for form error(s)</p>}
+        </Note>
+      )}
     </>
   );
 };
