@@ -16,6 +16,7 @@ type StageSelectorProps = {
   workflowVersionId: number;
   workflowId: number;
   version: number;
+  disabled: boolean;
 };
 
 export function StageSelector({
@@ -25,6 +26,7 @@ export function StageSelector({
   workflowVersionId,
   workflowId,
   version,
+  disabled,
 }: StageSelectorProps) {
   return (
     <div className={styles.stagesWrapper}>
@@ -39,10 +41,12 @@ export function StageSelector({
             buttonIndex={index}
             workflowId={workflowId}
             version={version}
+            disabled={disabled}
           />
         );
       })}
       <AddStageButton
+        disabled={disabled}
         setSelectedStage={setSelectedStage}
         workflowVersionId={workflowVersionId}
         selectedStage={selectedStage}
@@ -60,6 +64,7 @@ type SelectStageButtonProps = {
   buttonIndex: number;
   workflowId: number;
   version: number;
+  disabled: boolean;
 };
 
 function SelectStageButton(props: SelectStageButtonProps) {
@@ -69,6 +74,7 @@ function SelectStageButton(props: SelectStageButtonProps) {
   const [deleteStage] = useDeleteStageMutation();
 
   function handleDeleteStage(stage: number) {
+    if (props.disabled) return;
     // Ask the user to confirm deletion of the stage
     if (!confirm(t.deleteStageConfirm)) {
       return;
@@ -97,7 +103,7 @@ function SelectStageButton(props: SelectStageButtonProps) {
       <div className={styles.stage}>
         {`${t.stage} ${buttonIndex + 1}`}
         {buttonIndex !== 0 && (
-          <div className={styles.deleteStage} onClick={() => handleDeleteStage(stage)}>
+          <div className={classNames(styles.deleteStage)} onClick={() => handleDeleteStage(stage)}>
             <DeleteIcon />
           </div>
         )}
@@ -112,6 +118,7 @@ type AddStageButtonProps = {
   selectedStage: number;
   setSelectedStage: (stage: number) => void;
   workflowVersionId: number;
+  disabled: boolean;
 };
 
 function AddStageButton(props: AddStageButtonProps) {
@@ -120,6 +127,8 @@ function AddStageButton(props: AddStageButtonProps) {
   const nextStage = Math.max(...props.stageNumbers) + 1;
 
   function handleAddStage() {
+    if (props.disabled) return;
+
     mixpanel.track("Workflow Add Stage", {
       workflowVersionId: props.workflowVersionId,
       workflowCurrentStage: props.selectedStage,
@@ -142,9 +151,12 @@ function AddStageButton(props: AddStageButtonProps) {
   }
 
   return (
-    <button className={classNames(styles.stageContainer, styles.addStageButton)} onClick={handleAddStage}>
+    <button
+      className={classNames(styles.stageContainer, props.disabled ? styles.disabledStage : styles.addStageButton)}
+      onClick={handleAddStage}
+    >
       <StageArrowBack />
-      <div className={styles.stage}>
+      <div className={classNames(styles.stage, props.disabled ? styles.disabled : "")}>
         <NewStageIcon />
       </div>
       <StageArrowFront />
