@@ -163,9 +163,8 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			}
 			if len(filteredChannelIds) == 0 {
 				activeOutputs = append(activeOutputs,
-					commons.WorkflowParameterLabelManuallyTriggered,
-					commons.WorkflowParameterLabelTimeTriggered,
-					commons.WorkflowParameterLabelChannelEventTriggered)
+					commons.WorkflowParameterLabelGroupTriggered,
+					commons.WorkflowParameterLabelGroupChannelEventTriggered)
 			} else {
 				ba, err := json.Marshal(filteredChannelIds)
 				if err != nil {
@@ -359,13 +358,13 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelTimeTriggered] = inputs[commons.WorkflowParameterLabelTimeTriggered]
 		case commons.WorkflowNodeChannelBalanceEventTrigger:
 			log.Debug().Msgf("Channel Balance Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelBalanceEventTriggered] = inputs[commons.WorkflowParameterLabelChannelBalanceEventTriggered]
 		case commons.WorkflowNodeChannelOpenEventTrigger:
 			log.Debug().Msgf("Channel Open Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelOpenEventTriggered] = inputs[commons.WorkflowParameterLabelChannelOpenEventTriggered]
 		case commons.WorkflowNodeChannelCloseEventTrigger:
 			log.Debug().Msgf("Channel Close Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelEventTriggered] = inputs[commons.WorkflowParameterLabelChannelEventTriggered]
+			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelChannelCloseEventTriggered] = inputs[commons.WorkflowParameterLabelChannelCloseEventTriggered]
 		case commons.WorkflowNodeManualTrigger:
 			log.Debug().Msgf("Manual Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			workflowStageExitConfigurationCache[workflowNode.Stage][commons.WorkflowParameterLabelManuallyTriggered] = inputs[commons.WorkflowParameterLabelManuallyTriggered]
@@ -383,7 +382,14 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		}
 		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
 		for childLinkId, childNode := range workflowNode.ChildNodes {
-			if activeOutputs != nil && !slices.Contains(activeOutputs, workflowNode.LinkDetails[childLinkId].ParentOutput) {
+			foundId := false
+			for _, activeOutput := range activeOutputs {
+				if slices.Contains(commons.GetWorkflowParameterLabelGroup(activeOutput), workflowNode.LinkDetails[childLinkId].ParentOutput) {
+					foundId = true
+					break
+				}
+			}
+			if activeOutputs == nil || !foundId {
 				continue
 			}
 			// If there is no entry in the workflowNodeStagingParametersCache map for the child node's workflow version node ID, initialize an empty map
@@ -426,17 +432,15 @@ func processRoutingPolicyRun(
 	reference string) ([]commons.WorkflowParameterLabel, []commons.RoutingPolicyUpdateResponse, error) {
 	if len(routingPolicySettings.ChannelIds) == 0 {
 		activeOutputs = append(activeOutputs,
-			commons.WorkflowParameterLabelManuallyTriggered,
-			commons.WorkflowParameterLabelTimeTriggered,
-			commons.WorkflowParameterLabelChannelEventTriggered)
+			commons.WorkflowParameterLabelGroupTriggered,
+			commons.WorkflowParameterLabelGroupChannelEventTriggered)
 		return activeOutputs, nil, nil
 	}
 	if lightningRequestChannel == nil {
 		log.Info().Msgf("Routing policy update skipped because lightningRequestChannel is nil for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		activeOutputs = append(activeOutputs,
-			commons.WorkflowParameterLabelManuallyTriggered,
-			commons.WorkflowParameterLabelTimeTriggered,
-			commons.WorkflowParameterLabelChannelEventTriggered)
+			commons.WorkflowParameterLabelGroupTriggered,
+			commons.WorkflowParameterLabelGroupChannelEventTriggered)
 		return activeOutputs, nil, nil
 	}
 	if routingPolicySettings.FeeBaseMsat == nil &&
@@ -446,9 +450,8 @@ func processRoutingPolicyRun(
 		routingPolicySettings.TimeLockDelta == nil {
 		log.Info().Msgf("Routing policy update skipped because no data was found for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		activeOutputs = append(activeOutputs,
-			commons.WorkflowParameterLabelManuallyTriggered,
-			commons.WorkflowParameterLabelTimeTriggered,
-			commons.WorkflowParameterLabelChannelEventTriggered)
+			commons.WorkflowParameterLabelGroupTriggered,
+			commons.WorkflowParameterLabelGroupChannelEventTriggered)
 		return activeOutputs, nil, nil
 	}
 
@@ -499,9 +502,8 @@ func processRoutingPolicyConfigurator(
 
 	if len(linkedChannelIds) == 0 {
 		activeOutputs = append(activeOutputs,
-			commons.WorkflowParameterLabelManuallyTriggered,
-			commons.WorkflowParameterLabelTimeTriggered,
-			commons.WorkflowParameterLabelChannelEventTriggered)
+			commons.WorkflowParameterLabelGroupTriggered,
+			commons.WorkflowParameterLabelGroupChannelEventTriggered)
 		return activeOutputs, ChannelPolicyConfiguration{}, nil
 	}
 	var channelPolicyInputConfiguration ChannelPolicyConfiguration
@@ -544,9 +546,8 @@ func addOrRemoveTags(db *sqlx.DB,
 
 	if len(linkedChannelIds) == 0 {
 		activeOutputs = append(activeOutputs,
-			commons.WorkflowParameterLabelManuallyTriggered,
-			commons.WorkflowParameterLabelTimeTriggered,
-			commons.WorkflowParameterLabelChannelEventTriggered)
+			commons.WorkflowParameterLabelGroupTriggered,
+			commons.WorkflowParameterLabelGroupChannelEventTriggered)
 		return activeOutputs, nil
 	}
 	var params TagParameters

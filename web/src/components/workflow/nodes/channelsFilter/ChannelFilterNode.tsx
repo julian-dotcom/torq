@@ -4,7 +4,7 @@ import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Form from "components/forms/form/Form";
 import Socket from "components/forms/socket/Socket";
-import { NodeColorVariant } from "../nodeVariants";
+import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
@@ -58,12 +58,33 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
     })
   );
 
-  const parentNodeIds = childLinks?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
-  const parentNodes = useSelector(
+  const triggered =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "triggered";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const triggers = useSelector(
     SelectWorkflowNodes({
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
-      nodeIds: parentNodeIds,
+      nodeIds: triggered,
+    })
+  );
+
+  const channelIds =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "channels";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const channels = useSelector(
+    SelectWorkflowNodes({
+      version: wrapperProps.version,
+      workflowId: wrapperProps.workflowId,
+      nodeIds: channelIds,
     })
   );
 
@@ -78,8 +99,16 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
+          label={t.trigger}
+          selectedNodes={triggers || []}
+          workflowVersionId={wrapperProps.workflowVersionId}
+          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
+          inputName={"triggered"}
+        />
+        <Socket
+          collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.channels}
-          selectedNodes={parentNodes || []}
+          selectedNodes={channels || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"channels"}

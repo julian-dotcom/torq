@@ -3,11 +3,14 @@ import { Scales20Regular as Icon } from "@fluentui/react-icons";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import Note, { NoteType } from "features/note/Note";
+import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
+import {useId} from "react";
 
 type BalanceTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export function BalanceTriggerNode({ ...wrapperProps }: BalanceTriggerNodeProps) {
   const { t } = useTranslations();
+  const connectorId = useId();
 
   return (
     <WorkflowNodeWrapper
@@ -21,6 +24,13 @@ export function BalanceTriggerNode({ ...wrapperProps }: BalanceTriggerNodeProps)
           <p>{t.workflowNodes.balanceTriggerNodeDescription}</p>
         </Note>
       </div>
+      <NodeConnector
+        id={connectorId}
+        name={t.trigger}
+        outputName={"channels"}
+        workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
+        workflowVersionId={wrapperProps.workflowVersionId}
+      />
     </WorkflowNodeWrapper>
   );
 }

@@ -173,6 +173,7 @@
   "version": "Versions",
   "automation": "Automation",
   "triggers": "Triggers",
+  "trigger": "Trigger",
   "actions": "Actions",
   "MainNet": "MainNet",
   "TestNet": "TestNet",

@@ -16,7 +16,7 @@ export function StageTriggerNode({ ...wrapperProps }: StageTriggerNodeProps) {
       headerIcon={<StageTriggerIcon />}
       colorVariant={NodeColorVariant.accent2}
       noOptions={true}
-      outputName={"all"}
+      outputName={"triggered"}
     >
       <div style={{ flexGrow: 1 }}>
         <Note title={t.note} noteType={NoteType.info}>
