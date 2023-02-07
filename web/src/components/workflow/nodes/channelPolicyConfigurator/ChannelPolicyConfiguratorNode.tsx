@@ -121,12 +121,33 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
     })
   );
 
-  const parentNodeIds = childLinks?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
-  const parentNodes = useSelector(
+  const routingPolicySettingIds =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "routingPolicySettings";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const routingPolicySettings = useSelector(
     SelectWorkflowNodes({
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
-      nodeIds: parentNodeIds,
+      nodeIds: routingPolicySettingIds,
+    })
+  );
+
+  const channelIds =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "channels";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const channels = useSelector(
+    SelectWorkflowNodes({
+      version: wrapperProps.version,
+      workflowId: wrapperProps.workflowId,
+      nodeIds: channelIds,
     })
   );
 
@@ -135,13 +156,21 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
       {...wrapperProps}
       headerIcon={<ChannelPolicyConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
-      outputName={"channels"}
+      outputName={"routingPolicySettings"}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
+          label={t.inputs}
+          selectedNodes={routingPolicySettings || []}
+          workflowVersionId={wrapperProps.workflowVersionId}
+          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
+          inputName={"routingPolicySettings"}
+        />
+        <Socket
+          collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.channels}
-          selectedNodes={parentNodes || []}
+          selectedNodes={channels || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"channels"}

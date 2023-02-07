@@ -2,6 +2,7 @@ package build
 
 import (
 	_ "embed"
+	"strings"
 )
 
 //go:generate bash get_version.sh
@@ -9,5 +10,5 @@ import (
 var version string //nolint:gochecknoglobals
 
 func ExtendedVersion() string {
-	return version
+	return strings.TrimSpace(version)
 }
