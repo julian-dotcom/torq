@@ -18,7 +18,7 @@ import Spinny from "features/spinny/Spinny";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import File from "components/forms/file/File";
-import Input from "components/forms/input/Input";
+import Input from "components/formsWithValidation/input/InputWithValidation";
 import {
   useAddNodeConfigurationMutation,
   useGetNodeConfigurationQuery,
@@ -483,6 +483,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   value={nodeConfigurationState.grpcAddress}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAddressChange(e.target.value)}
                   placeholder="100.100.100.100:10009"
+                  name="grpcAddress"
+                  errors={formErrorState}
                 />
               </span>
               <span id="tls">
