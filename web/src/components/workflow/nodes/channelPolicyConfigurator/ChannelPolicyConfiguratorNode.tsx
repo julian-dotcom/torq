@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   MoneySettings20Regular as ChannelPolicyConfiguratorIcon,
   Save16Regular as SaveIcon,
@@ -15,6 +15,10 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
 import Spinny from "features/spinny/Spinny";
+import { WorkflowContext } from "components/workflow/WorkflowContext";
+import { Status } from "constants/backend";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
 
 type ChannelPolicyConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -28,6 +32,10 @@ export type ChannelPolicyConfiguration = {
 
 export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicyConfiguratorNodeProps) {
   const { t } = useTranslations();
+
+  const { workflowStatus } = useContext(WorkflowContext);
+  const editingDisabled = workflowStatus === Status.Active;
+  const toastRef = React.useContext(ToastContext);
 
   const [updateNode] = useUpdateNodeMutation();
 
@@ -103,6 +111,12 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
+
     setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
@@ -174,6 +188,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"channels"}
+          editingDisabled={editingDisabled}
         />
         <Input
           formatted={true}
@@ -183,6 +198,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           onValueChange={createChangeHandler("feeRateMilliMsat")}
           label={t.updateChannelPolicy.feeRateMilliMsat}
           sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
         />
         <Input
           formatted={true}
@@ -192,6 +208,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           onValueChange={createChangeMsatHandler("feeBaseMsat")}
           label={t.baseFee}
           sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
         />
         <Input
           formatted={true}
@@ -201,6 +218,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           onValueChange={createChangeMsatHandler("minHtlcMsat")}
           label={t.minHTLCAmount}
           sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
         />
         <Input
           formatted={true}
@@ -210,6 +228,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           onValueChange={createChangeMsatHandler("maxHtlcMsat")}
           label={t.maxHTLCAmount}
           sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
         />
         <Input
           formatted={true}
@@ -218,13 +237,14 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           onValueChange={createChangeHandler("timeLockDelta")}
           label={t.updateChannelPolicy.timeLockDelta}
           sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
         />
         <Button
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}
           icon={!processing ? <SaveIcon /> : <Spinny />}
-          disabled={!dirty || processing}
+          disabled={!dirty || processing || editingDisabled}
         >
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
