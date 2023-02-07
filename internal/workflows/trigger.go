@@ -24,7 +24,6 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	triggeringWorkflowVersionNodeId int,
 	workflowNodeCache map[int]WorkflowNode,
 	workflowNodeStatus map[int]commons.Status,
-	workflowNodeStagingParametersCache map[int]map[commons.WorkflowParameterLabel]string,
 	reference string,
 	inputs map[commons.WorkflowParameterLabel]string,
 	iteration int,
@@ -138,9 +137,6 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				} else {
 					filteredChannelIds = linkedChannelIds
 				}
-			}
-			if len(filteredChannelIds) == 0 {
-				return nil, commons.Inactive, nil
 			}
 			ba, err := json.Marshal(filteredChannelIds)
 			if err != nil {
@@ -358,21 +354,19 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
 		for childLinkId, childNode := range workflowNode.ChildNodes {
 			// If there is no entry in the workflowNodeStagingParametersCache map for the child node's workflow version node ID, initialize an empty map
-			if workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId] == nil {
-				workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId] = make(map[commons.WorkflowParameterLabel]string)
+			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
+				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
 			}
 			childInput := workflowNode.LinkDetails[childLinkId].ChildInput
 			parentOutput := workflowNode.LinkDetails[childLinkId].ParentOutput
-			if childInput != "" && parentOutput != "" {
-				if outputs[parentOutput] != "" {
-					workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[parentOutput]
-				} else if outputs[childInput] != "" {
-					workflowNodeStagingParametersCache[childNode.WorkflowVersionNodeId][childInput] = outputs[childInput]
-				}
+			if outputs[parentOutput] != "" {
+				workflowStageExitConfigurationCache[workflowNode.Stage][childInput] = outputs[parentOutput]
+			} else if outputs[childInput] != "" {
+				workflowStageExitConfigurationCache[workflowNode.Stage][childInput] = outputs[childInput]
 			}
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, *childNode, workflowNode.WorkflowVersionNodeId,
-				workflowNodeCache, workflowNodeStatus, workflowNodeStagingParametersCache, reference, outputs, iteration,
+				workflowNodeCache, workflowNodeStatus, reference, outputs, iteration,
 				workflowStageExitConfigurationCache, lightningRequestChannel, rebalanceRequestChannel)
 			// If childProcessingStatus is not equal to commons.Pending, call AddWorkflowVersionNodeLog with several arguments, including nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, triggeringWorkflowVersionNodeId, inputs, and childOutputs
 			if childProcessingStatus != commons.Pending {
