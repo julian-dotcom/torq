@@ -4,7 +4,7 @@ import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/node
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import Note, { NoteType } from "features/note/Note";
 import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
-import {useId} from "react";
+import { useId } from "react";
 
 type BalanceTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
