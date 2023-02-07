@@ -389,7 +389,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 					break
 				}
 			}
-			if activeOutputs == nil || !foundId {
+			if activeOutputs != nil && !foundId {
 				continue
 			}
 			// If there is no entry in the workflowNodeStagingParametersCache map for the child node's workflow version node ID, initialize an empty map
