@@ -338,7 +338,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 	if ncd.GRPCAddress == nil || *ncd.GRPCAddress == "" {
-		server_errors.SendBadRequest(c, "Failed to find/parse GRPCAddress in the request.")
+		c.JSON(http.StatusBadRequest, server_errors.SingleFieldErrorCode("grpcAddress", "missingField"))
 		return
 	}
 	if strings.TrimSpace(ncd.Name) == "" {
