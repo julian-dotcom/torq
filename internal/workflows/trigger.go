@@ -389,7 +389,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		for childLinkId, childNode := range workflowNode.ChildNodes {
 			foundId := false
 			for _, activeOutput := range activeOutputs {
-				if slices.Contains(commons.GetWorkflowParameterLabelGroup(activeOutput), workflowNode.LinkDetails[childLinkId].ParentOutput) {
+				if slices.Contains(commons.GetWorkflowParameterLabelGroup(workflowNode.LinkDetails[childLinkId].ParentOutput), activeOutput) {
 					foundId = true
 					break
 				}
