@@ -13,7 +13,7 @@ import {
   ChannelPolicyConfiguratorNodeButton,
   ChannelPolicyAutoRunNodeButton,
   ChannelPolicyRunNodeButton,
-  TimeTriggerNodeButton,
+  IntervalTriggerNodeButton,
   CronTriggerNodeButton,
   ChannelFilterNodeButton,
   RebalanceConfiguratorNodeButton,
@@ -64,7 +64,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           expanded={sectionState.triggers}
           handleToggle={() => toggleSection("triggers")}
         >
-          <TimeTriggerNodeButton />
+          <IntervalTriggerNodeButton />
           <CronTriggerNodeButton />
           <BalanceTriggerNodeButton />
           <ChannelOpenTriggerNodeButton />

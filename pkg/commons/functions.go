@@ -228,7 +228,7 @@ func GetVectorUrl(vectorUrl string, suffix string) string {
 
 func IsWorkflowNodeTypeGrouped(workflowNodeType WorkflowNodeType) bool {
 	switch workflowNodeType {
-	case WorkflowNodeTimeTrigger:
+	case WorkflowNodeIntervalTrigger:
 		return true
 	case WorkflowNodeCronTrigger:
 		return true
@@ -308,8 +308,8 @@ func SignatureVerificationRequestWithTimeout(unixTime time.Time, nodeId int, mes
 //		fallthrough
 //	case WorkflowParameterLabelManuallyTriggered:
 //		return WorkflowParameterTypeTriggered
-//	case WorkflowParameterLabelTimeTriggered:
-//		return WorkflowParameterTypeTimeTriggered
+//	case WorkflowParameterLabelIntervalTriggered:
+//		return WorkflowParameterTypeIntervalTriggered
 //	case WorkflowParameterLabelGroupChannelEventTriggered:
 //		fallthrough
 //	case WorkflowParameterLabelChannelBalanceEventTriggered:
@@ -351,7 +351,8 @@ func GetWorkflowParameterLabelGroup(workflowParameterLabel WorkflowParameterLabe
 	case WorkflowParameterLabelGroupTriggered:
 		return []WorkflowParameterLabel{
 			WorkflowParameterLabelGroupTriggered,
-			WorkflowParameterLabelTimeTriggered,
+			WorkflowParameterLabelIntervalTriggered,
+			WorkflowParameterLabelCronTriggered,
 			WorkflowParameterLabelManuallyTriggered,
 			WorkflowParameterLabelGroupChannelEventTriggered,
 			WorkflowParameterLabelChannelBalanceEventTriggered,
@@ -387,7 +388,7 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 	channelsOnly[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
 
 	timeTriggerRequiredOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
-	timeTriggerRequiredOutputs[WorkflowParameterLabelTimeTriggered] = WorkflowParameterTypeTimeTriggered
+	timeTriggerRequiredOutputs[WorkflowParameterLabelGroupTimeTriggered] = WorkflowParameterTypeTimeTriggered
 
 	channelEventTriggerOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
 	channelEventTriggerOptionalOutputs[WorkflowParameterLabelGroupChannelEventTriggered] = WorkflowParameterTypeChannelEventTriggered
@@ -479,8 +480,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			RequiredOutputs:  timeTriggerRequiredOutputs,
 			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
-		WorkflowNodeTimeTrigger: {
-			WorkflowNodeType: WorkflowNodeTimeTrigger,
+		WorkflowNodeIntervalTrigger: {
+			WorkflowNodeType: WorkflowNodeIntervalTrigger,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  timeTriggerRequiredOutputs,

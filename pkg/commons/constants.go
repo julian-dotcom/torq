@@ -212,7 +212,7 @@ const (
 type WorkflowNodeType int
 
 const (
-	WorkflowNodeTimeTrigger = WorkflowNodeType(iota)
+	WorkflowNodeIntervalTrigger = WorkflowNodeType(iota)
 	WorkflowNodeChannelBalanceEventTrigger
 	WorkflowNodeChannelFilter
 	WorkflowNodeChannelPolicyConfigurator
@@ -256,7 +256,7 @@ const (
 type WorkflowParameterLabel string
 
 const (
-	WorkflowParameterLabelTimeTriggered                = WorkflowParameterLabel("timeTriggered")
+	WorkflowParameterLabelIntervalTriggered            = WorkflowParameterLabel("intervalTriggered")
 	WorkflowParameterLabelChannelBalanceEventTriggered = WorkflowParameterLabel("channelBalanceEventTriggered")
 	WorkflowParameterLabelChannels                     = WorkflowParameterLabel("channels")
 	WorkflowParameterLabelRoutingPolicySettings        = WorkflowParameterLabel("routingPolicySettings")
@@ -270,6 +270,8 @@ const (
 	WorkflowParameterLabelGroupChannelEventTriggered   = WorkflowParameterLabel("channelEventTriggered")
 	WorkflowParameterLabelChannelCloseEventTriggered   = WorkflowParameterLabel("channelCloseEventTriggered")
 	WorkflowParameterLabelChannelOpenEventTriggered    = WorkflowParameterLabel("channelOpenEventTriggered")
+	WorkflowParameterLabelCronTriggered                = WorkflowParameterLabel("cronTriggered")
+	WorkflowParameterLabelGroupTimeTriggered           = WorkflowParameterLabel("timeTriggered")
 )
 
 type WorkflowNodeTypeParameters struct {

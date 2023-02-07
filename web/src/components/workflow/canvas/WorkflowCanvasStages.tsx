@@ -12,7 +12,7 @@ import {
   ChannelPolicyAutoRunNode,
   ChannelPolicyConfiguratorNode,
   ChannelPolicyRunNode,
-  TimeTriggerNode,
+  IntervalTriggerNode,
   CronTriggerNode,
   StageTriggerNode,
   ChannelFilterNode,
@@ -185,8 +185,8 @@ export function WorkflowCanvases(props: WorkflowCanvasStagesProps) {
 // A function that returns the correct node component based on the node type
 function getNodeComponent(node: WorkflowVersionNode) {
   switch (node.type) {
-    case WorkflowNodeType.TimeTrigger:
-      return <TimeTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.IntervalTrigger:
+      return <IntervalTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.CronTrigger:
       return <CronTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelBalanceEventTrigger:

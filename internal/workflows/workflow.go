@@ -75,7 +75,7 @@ type WorkflowToTrigger struct {
 	WorkflowVersionNodeId int `json:"workflowVersionNodeId"`
 }
 
-type TimeTriggerParameters struct {
+type IntervalTriggerParameters struct {
 	Seconds  int32 `json:"seconds" db:"seconds"`
 	TimeUnit int   `json:"timeUnit" db:"time_unit"` // Time Unit is just used in the frontend
 }
