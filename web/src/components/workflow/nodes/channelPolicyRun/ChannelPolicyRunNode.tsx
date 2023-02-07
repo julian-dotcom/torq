@@ -5,11 +5,17 @@ import Socket from "components/forms/socket/Socket";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes } from "pages/WorkflowPage/workflowApi";
 import { useSelector } from "react-redux";
+import { WorkflowContext } from "components/workflow/WorkflowContext";
+import { Status } from "constants/backend";
+import { useContext } from "react";
 
 type ChannelPolicyRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export function ChannelPolicyRunNode({ ...wrapperProps }: ChannelPolicyRunNodeProps) {
   const { t } = useTranslations();
+
+  const { workflowStatus } = useContext(WorkflowContext);
+  const editingDisabled = workflowStatus === Status.Active;
 
   const { childLinks } = useSelector(
     SelectWorkflowNodeLinks({
@@ -49,6 +55,7 @@ export function ChannelPolicyRunNode({ ...wrapperProps }: ChannelPolicyRunNodePr
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"routingPolicySettings"}
+          editingDisabled={editingDisabled}
         />
       </div>
     </WorkflowNodeWrapper>
