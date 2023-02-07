@@ -10,7 +10,7 @@ export type RadioChipsProps = {
   options: Array<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & { label: string }>;
   sizeVariant?: InputSizeVariant;
   colorVariant?: InputColorVaraint;
-  editingDisabled: boolean;
+  editingDisabled?: boolean | false;
 };
 
 export default function RadioChips(props: RadioChipsProps) {

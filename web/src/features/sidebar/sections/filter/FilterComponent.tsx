@@ -17,7 +17,7 @@ export interface FilterComponentProps<T> {
   onFilterUpdate: (filter: AndClause | OrClause) => void;
   onNoChildrenLeft?: () => void;
   child: boolean;
-  editingDisabled: boolean;
+  editingDisabled?: boolean | false;
 }
 
 const combinerOptions = new Map<string, string>([

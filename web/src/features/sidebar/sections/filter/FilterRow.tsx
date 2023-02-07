@@ -55,7 +55,7 @@ interface filterRowInterface {
   onRemoveFilter: (index: number) => void;
   handleCombinerChange: () => void;
   combiner?: string;
-  editingDisabled: boolean;
+  editingDisabled?: boolean;
 }
 
 function FilterRow({
@@ -279,7 +279,7 @@ function FilterInputField(props: {
   rowValues: FilterInterface;
   child: boolean;
   options: Array<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-  editingDisabled: boolean;
+  editingDisabled?: boolean | false;
 }) {
   const { editingDisabled } = props;
   const { data: getTags } = useGetTagsQuery();
