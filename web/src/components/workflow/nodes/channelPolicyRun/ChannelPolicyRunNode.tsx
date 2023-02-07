@@ -20,12 +20,33 @@ export function ChannelPolicyRunNode({ ...wrapperProps }: ChannelPolicyRunNodePr
     })
   );
 
-  const parentNodeIds = childLinks?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
-  const parentNodes = useSelector(
+  const triggered =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "triggered";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const triggers = useSelector(
     SelectWorkflowNodes({
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
-      nodeIds: parentNodeIds,
+      nodeIds: triggered,
+    })
+  );
+
+  const routingPolicySettingIds =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "routingPolicySettings";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const routingPolicySettings = useSelector(
+    SelectWorkflowNodes({
+      version: wrapperProps.version,
+      workflowId: wrapperProps.workflowId,
+      nodeIds: routingPolicySettingIds,
     })
   );
 
@@ -38,8 +59,16 @@ export function ChannelPolicyRunNode({ ...wrapperProps }: ChannelPolicyRunNodePr
       <div style={{ flexGrow: 1 }}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
+          label={t.trigger}
+          selectedNodes={triggers || []}
+          workflowVersionId={wrapperProps.workflowVersionId}
+          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
+          inputName={"triggered"}
+        />
+        <Socket
+          collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.inputs}
-          selectedNodes={parentNodes || []}
+          selectedNodes={routingPolicySettings || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"routingPolicySettings"}

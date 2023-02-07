@@ -18,9 +18,9 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB) {
+func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
-	defer log.Info().Msgf("TimeTriggerMonitor terminated")
+	defer log.Info().Msgf("IntervalTriggerMonitor terminated")
 
 	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
 	bootstrapping := true
@@ -31,15 +31,15 @@ func TimeTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			return
 		case <-ticker:
 			var bootedWorkflowVersionIds []int
-			workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeTimeTrigger)
+			workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeIntervalTrigger)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain root nodes (time trigger nodes)")
+				log.Error().Err(err).Msg("Failed to obtain root nodes (interval trigger nodes)")
 				continue
 			}
 			for _, workflowTriggerNode := range workflowTriggerNodes {
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
 				triggerSettings := commons.GetTimeTriggerSettingsByWorkflowVersionId(workflowTriggerNode.WorkflowVersionId)
-				var param workflows.TimeTriggerParameters
+				var param workflows.IntervalTriggerParameters
 				err := json.Unmarshal([]byte(workflowTriggerNode.Parameters.([]uint8)), &param)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to parse parameters for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
@@ -203,7 +203,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 				workflowTriggerNode.Type = commons.WorkflowNodeManualTrigger
 			}
 
-			if scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeTimeTrigger &&
+			if scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeIntervalTrigger &&
 				scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeCronTrigger {
 				// If the event is a WorkflowNode then this is the bootstrapping event that simulates a channel update
 				// since we don't know what happened while Torq was offline.
@@ -267,7 +267,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 								log.Error().Err(err).Msgf("Failed to marshal ChannelBalanceEvent for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 								continue
 							}
-							inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledChannelBalanceEvent)
+							inputs[commons.WorkflowParameterLabelChannelBalanceEventTriggered] = string(marshalledChannelBalanceEvent)
 							marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
 							if err != nil {
 								log.Error().Err(err).Msgf("Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
@@ -304,16 +304,16 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 				continue
 			}
 			switch workflowTriggerNode.Type {
-			case commons.WorkflowNodeTimeTrigger:
-				fallthrough
+			case commons.WorkflowNodeIntervalTrigger:
+				inputs[commons.WorkflowParameterLabelIntervalTriggered] = string(marshalledEvents)
 			case commons.WorkflowNodeCronTrigger:
-				inputs[commons.WorkflowParameterLabelTimeTriggered] = string(marshalledEvents)
+				inputs[commons.WorkflowParameterLabelCronTriggered] = string(marshalledEvents)
 			case commons.WorkflowNodeChannelBalanceEventTrigger:
-				fallthrough
+				inputs[commons.WorkflowParameterLabelChannelBalanceEventTriggered] = string(marshalledEvents)
 			case commons.WorkflowNodeChannelCloseEventTrigger:
-				fallthrough
+				inputs[commons.WorkflowParameterLabelChannelCloseEventTriggered] = string(marshalledEvents)
 			case commons.WorkflowNodeChannelOpenEventTrigger:
-				inputs[commons.WorkflowParameterLabelChannelEventTriggered] = string(marshalledEvents)
+				inputs[commons.WorkflowParameterLabelChannelOpenEventTriggered] = string(marshalledEvents)
 			case commons.WorkflowNodeManualTrigger:
 				inputs[commons.WorkflowParameterLabelManuallyTriggered] = string(marshalledEvents)
 			}
@@ -329,7 +329,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			triggerCtx, triggerCancel := context.WithCancel(ctx)
 
 			switch workflowTriggerNode.Type {
-			case commons.WorkflowNodeTimeTrigger:
+			case commons.WorkflowNodeIntervalTrigger:
 				fallthrough
 			case commons.WorkflowNodeCronTrigger:
 				fallthrough
@@ -349,7 +349,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			triggerCancel()
 
 			switch workflowTriggerNode.Type {
-			case commons.WorkflowNodeTimeTrigger:
+			case commons.WorkflowNodeIntervalTrigger:
 				fallthrough
 			case commons.WorkflowNodeCronTrigger:
 				fallthrough

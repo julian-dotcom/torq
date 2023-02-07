@@ -5,14 +5,14 @@ import {
   useAddManualWorkflowTriggerMutation,
   useAddNodeMutation,
 } from "pages/WorkflowPage/workflowApi";
-import WorkflowCanvas from "./WorkflowCanvas";
-import styles from "./workflow_canvas.module.scss";
+import WorkflowCanvas from "components/workflow/canvas/WorkflowCanvas";
+import styles from "components/workflow/canvas/workflow_canvas.module.scss";
 import { TriggerNodeTypes, WorkflowNodeType } from "pages/WorkflowPage/constants";
 import {
   ChannelPolicyAutoRunNode,
   ChannelPolicyConfiguratorNode,
   ChannelPolicyRunNode,
-  TimeTriggerNode,
+  IntervalTriggerNode,
   CronTriggerNode,
   StageTriggerNode,
   ChannelFilterNode,
@@ -26,7 +26,7 @@ import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
 import useTranslations from "services/i18n/useTranslations";
 import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
-import { RemoveTagNode } from "../nodes/tags/RemoveTagNode";
+import { RemoveTagNode } from "components/workflow/nodes/tags/RemoveTagNode";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { Play12Regular as PlayIcon } from "@fluentui/react-icons";
 import { useContext } from "react";
@@ -128,11 +128,10 @@ function FirstStageTrigger(props: {
           <NodeConnector
             id={"ss"}
             name={t.triggers}
-            outputName={"all"}
+            outputName={"triggered"}
             workflowVersionNodeId={triggerNode?.workflowVersionNodeId || 0}
             workflowVersionId={props.workflowVersionId}
           />
-
           <div className={classNames(styles.triggerContainerHeading)}>
             <div>{t.triggers}</div>
             <Button
@@ -186,8 +185,8 @@ export function WorkflowCanvases(props: WorkflowCanvasStagesProps) {
 // A function that returns the correct node component based on the node type
 function getNodeComponent(node: WorkflowVersionNode) {
   switch (node.type) {
-    case WorkflowNodeType.TimeTrigger:
-      return <TimeTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.IntervalTrigger:
+      return <IntervalTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.CronTrigger:
       return <CronTriggerNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelBalanceEventTrigger:

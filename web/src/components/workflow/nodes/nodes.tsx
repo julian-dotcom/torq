@@ -4,8 +4,8 @@ export { ChannelPolicyConfiguratorNodeButton } from "components/workflow/nodes/c
 export { ChannelPolicyConfiguratorNode } from "components/workflow/nodes/channelPolicyConfigurator/ChannelPolicyConfiguratorNode";
 export { ChannelPolicyRunNodeButton } from "components/workflow/nodes/channelPolicyRun/ChannelPolicyRunButton";
 export { ChannelPolicyRunNode } from "components/workflow/nodes/channelPolicyRun/ChannelPolicyRunNode";
-export { TimeTriggerNodeButton } from "components/workflow/nodes/timeTrigger/TimeTriggerNodeButton";
-export { TimeTriggerNode } from "components/workflow/nodes/timeTrigger/TimeTriggerNode";
+export { IntervalTriggerNodeButton } from "components/workflow/nodes/intervalTrigger/IntervalTriggerNodeButton";
+export { IntervalTriggerNode } from "components/workflow/nodes/intervalTrigger/IntervalTriggerNode";
 export { CronTriggerNodeButton } from "components/workflow/nodes/cronTrigger/CronTriggerNodeButton";
 export { CronTriggerNode } from "components/workflow/nodes/cronTrigger/CronTriggerNode";
 export { StageTriggerNode } from "components/workflow/nodes/stageTrigger/StageTriggerNode";

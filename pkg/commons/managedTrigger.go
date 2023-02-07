@@ -236,7 +236,6 @@ func initializeEventTriggerCache(
 }
 
 func GetTimeTriggerSettingsByWorkflowVersionId(workflowVersionId int) ManagedTriggerSettings {
-
 	triggerSettingsChannel := make(chan ManagedTriggerSettings, 1)
 	managedTrigger := ManagedTrigger{
 		WorkflowVersionId:  workflowVersionId,

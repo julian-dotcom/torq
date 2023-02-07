@@ -212,7 +212,7 @@ const (
 type WorkflowNodeType int
 
 const (
-	WorkflowNodeTimeTrigger = WorkflowNodeType(iota)
+	WorkflowNodeIntervalTrigger = WorkflowNodeType(iota)
 	WorkflowNodeChannelBalanceEventTrigger
 	WorkflowNodeChannelFilter
 	WorkflowNodeChannelPolicyConfigurator
@@ -250,23 +250,28 @@ const (
 	WorkflowParameterTypeRebalanceSettings     = WorkflowParameterType("rebalanceSettings")
 	WorkflowParameterTypeTagSettings           = WorkflowParameterType("tagSettings")
 	WorkflowParameterTypeStatus                = WorkflowParameterType("status")
-	WorkflowParameterChannelFilter             = WorkflowParameterType("channelFilter")
-	WorkflowParameterTypeManuallyTriggered     = WorkflowParameterType("manuallyTriggered")
+	WorkflowParameterTypeTriggered             = WorkflowParameterType("triggered")
 )
 
 type WorkflowParameterLabel string
 
 const (
-	WorkflowParameterLabelTimeTriggered         = WorkflowParameterLabel("timeTriggered")
-	WorkflowParameterLabelChannelEventTriggered = WorkflowParameterLabel("channelEventTriggered")
-	WorkflowParameterLabelChannels              = WorkflowParameterLabel("channels")
-	WorkflowParameterLabelRoutingPolicySettings = WorkflowParameterLabel("routingPolicySettings")
-	WorkflowParameterLabelRebalanceSettings     = WorkflowParameterLabel("rebalanceSettings")
-	WorkflowParameterLabelTagSettings           = WorkflowParameterLabel("tagSettings")
-	WorkflowParameterLabelIncomingChannels      = WorkflowParameterLabel("incomingChannels")
-	WorkflowParameterLabelOutgoingChannels      = WorkflowParameterLabel("outgoingChannels")
-	WorkflowParameterLabelStatus                = WorkflowParameterLabel("status")
-	WorkflowParameterLabelManuallyTriggered     = WorkflowParameterLabel("manuallyTriggered")
+	WorkflowParameterLabelIntervalTriggered            = WorkflowParameterLabel("intervalTriggered")
+	WorkflowParameterLabelChannelBalanceEventTriggered = WorkflowParameterLabel("channelBalanceEventTriggered")
+	WorkflowParameterLabelChannels                     = WorkflowParameterLabel("channels")
+	WorkflowParameterLabelRoutingPolicySettings        = WorkflowParameterLabel("routingPolicySettings")
+	WorkflowParameterLabelRebalanceSettings            = WorkflowParameterLabel("rebalanceSettings")
+	WorkflowParameterLabelTagSettings                  = WorkflowParameterLabel("tagSettings")
+	WorkflowParameterLabelIncomingChannels             = WorkflowParameterLabel("incomingChannels")
+	WorkflowParameterLabelOutgoingChannels             = WorkflowParameterLabel("outgoingChannels")
+	WorkflowParameterLabelStatus                       = WorkflowParameterLabel("status")
+	WorkflowParameterLabelManuallyTriggered            = WorkflowParameterLabel("manuallyTriggered")
+	WorkflowParameterLabelGroupTriggered               = WorkflowParameterLabel("triggered")
+	WorkflowParameterLabelGroupChannelEventTriggered   = WorkflowParameterLabel("channelEventTriggered")
+	WorkflowParameterLabelChannelCloseEventTriggered   = WorkflowParameterLabel("channelCloseEventTriggered")
+	WorkflowParameterLabelChannelOpenEventTriggered    = WorkflowParameterLabel("channelOpenEventTriggered")
+	WorkflowParameterLabelCronTriggered                = WorkflowParameterLabel("cronTriggered")
+	WorkflowParameterLabelGroupTimeTriggered           = WorkflowParameterLabel("timeTriggered")
 )
 
 type WorkflowNodeTypeParameters struct {

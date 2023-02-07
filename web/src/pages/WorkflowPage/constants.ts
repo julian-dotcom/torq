@@ -1,5 +1,5 @@
 export enum WorkflowNodeType {
-  TimeTrigger,
+  IntervalTrigger,
   ChannelBalanceEventTrigger,
   ChannelFilter,
   ChannelPolicyConfigurator,
@@ -23,7 +23,7 @@ export enum WorkflowNodeType {
 }
 
 export const TriggerNodeTypes = [
-  WorkflowNodeType.TimeTrigger,
+  WorkflowNodeType.IntervalTrigger,
   WorkflowNodeType.ChannelBalanceEventTrigger,
   WorkflowNodeType.StageTrigger,
   WorkflowNodeType.ChannelOpenEventTrigger,

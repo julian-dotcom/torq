@@ -1,7 +1,7 @@
 import { Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import { useEffect, useState } from "react";
 import useTranslations from "services/i18n/useTranslations";
-import { Timer16Regular as TimeTriggerIcon } from "@fluentui/react-icons";
+import { Timer16Regular as IntervalTriggerIcon } from "@fluentui/react-icons";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { Form, Input, InputRow, InputSizeVariant, Select } from "components/forms/forms";
@@ -10,7 +10,7 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Spinny from "features/spinny/Spinny";
 
-type TimeTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
+type IntervalTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 enum timeUnits {
   seconds = 1,
@@ -32,23 +32,23 @@ function convertTimeUnits(from: timeUnits, to: timeUnits, value: number): number
 
 const ONE_HOUR = 60 * 60; // 1 hour
 
-type TimeTriggerParameters = {
+type IntervalTriggerParameters = {
   seconds: number;
   timeUnit: timeUnits;
 };
 
-// Function for checking if the parameters passed into the node are of type TimeTriggerParameters
-function isTimeTriggerParameters(parameters: unknown): parameters is TimeTriggerParameters {
-  const p = parameters as TimeTriggerParameters;
+// Function for checking if the parameters passed into the node are of type IntervalTriggerParameters
+function isIntervalTriggerParameters(parameters: unknown): parameters is IntervalTriggerParameters {
+  const p = parameters as IntervalTriggerParameters;
   return p.seconds !== undefined;
 }
 
-export function TimeTriggerNode({ ...wrapperProps }: TimeTriggerNodeProps) {
+export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProps) {
   const { t } = useTranslations();
 
   const [updateNode] = useUpdateNodeMutation();
 
-  const parameters = isTimeTriggerParameters(wrapperProps.parameters)
+  const parameters = isIntervalTriggerParameters(wrapperProps.parameters)
     ? wrapperProps.parameters
     : { seconds: ONE_HOUR, timeUnit: timeUnits.hours };
 
@@ -108,7 +108,7 @@ export function TimeTriggerNode({ ...wrapperProps }: TimeTriggerNodeProps) {
   }
 
   return (
-    <WorkflowNodeWrapper {...wrapperProps} headerIcon={<TimeTriggerIcon />} colorVariant={NodeColorVariant.accent2}>
+    <WorkflowNodeWrapper {...wrapperProps} headerIcon={<IntervalTriggerIcon />} colorVariant={NodeColorVariant.accent2}>
       <Form onSubmit={handleSubmit}>
         <InputRow>
           <div style={{ flexGrow: 1 }}>

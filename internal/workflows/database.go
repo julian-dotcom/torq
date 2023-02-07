@@ -7,6 +7,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"golang.org/x/exp/slices"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -917,7 +918,10 @@ func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
 	tx := db.MustBegin()
 
 	// delete all node logs that are connected to this node,
-	_, err := tx.Exec(`DELETE FROM workflow_version_node_log WHERE workflow_version_node_id=$1 OR triggering_workflow_version_node_id=$1`, workflowVersionNodeId)
+	_, err := tx.Exec(`
+		DELETE FROM workflow_version_node_log
+		       WHERE workflow_version_node_id=$1 OR triggering_workflow_version_node_id=$1`,
+		workflowVersionNodeId)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return 0, errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
@@ -926,7 +930,10 @@ func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
 	}
 
 	// delete all node Links that are connected to this node
-	_, err = tx.Exec(`DELETE FROM workflow_version_node_link WHERE parent_workflow_version_node_id=$1 OR child_workflow_version_node_id=$1`, workflowVersionNodeId)
+	_, err = tx.Exec(`
+		DELETE FROM workflow_version_node_link
+		       WHERE parent_workflow_version_node_id=$1 OR child_workflow_version_node_id=$1`,
+		workflowVersionNodeId)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return 0, errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
@@ -934,7 +941,8 @@ func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
 		return 0, errors.Wrap(err, "Deleting the node links while deleting node")
 	}
 
-	res, err := tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id=$1;`, workflowVersionNodeId)
+	res, err := tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id=$1;`,
+		workflowVersionNodeId)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return 0, errors.Wrap(rollbackErr, "Deleting the node (rollback failed too)")
@@ -958,14 +966,35 @@ func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
 // deleteStage deletes a stage by deleting all nodes and node links in a stage
 func deleteStage(db *sqlx.DB, workflowVersionId int, stage int) error {
 	tx := db.MustBegin()
+	var workflowVersionNodeIds []int
+	err := tx.Select(&workflowVersionNodeIds, `
+		SELECT workflow_version_node_id
+		FROM workflow_version_node
+		WHERE workflow_version_id = $1 AND stage = $2`, workflowVersionId, stage)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return errors.Wrap(rollbackErr, "Obtaining the node id while deleting node (rollback failed too)")
+		}
+		return errors.Wrap(err, "Obtaining the node id while deleting node")
+	}
+
+	// delete all node logs that are connected to this node,
+	_, err = tx.Exec(`
+		DELETE FROM workflow_version_node_log
+		       WHERE workflow_version_node_id = ANY ($1) OR triggering_workflow_version_node_id = ANY ($1)`,
+		pq.Array(workflowVersionNodeIds))
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
+		}
+		return errors.Wrap(err, "Deleting the node links while deleting node")
+	}
 
 	// Delete all workflow_version_node_link where workflow_version_node_id is in the stage
-	_, err := tx.Exec(`
-			WITH nodes AS (
-			    SELECT workflow_version_node_id FROM workflow_version_node
-					WHERE workflow_version_id = $1 AND stage = $2)
-			DELETE FROM workflow_version_node_link
-    		WHERE (parent_workflow_version_node_id) IN ((table nodes)) OR (child_workflow_version_node_id) IN ((table nodes));`, workflowVersionId, stage)
+	_, err = tx.Exec(`
+		DELETE FROM workflow_version_node_link
+		       WHERE parent_workflow_version_node_id = ANY ($1) OR child_workflow_version_node_id = ANY ($1);`,
+		pq.Array(workflowVersionNodeIds))
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return errors.Wrap(rollbackErr, "deleting workflow stage node links failed (rollback failed too)")
@@ -973,7 +1002,8 @@ func deleteStage(db *sqlx.DB, workflowVersionId int, stage int) error {
 		return errors.Wrap(err, "deleting workflow stage node links failed")
 	}
 
-	_, err = tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_id = $1 AND stage = $2;`, workflowVersionId, stage)
+	_, err = tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id = ANY ($1);`,
+		pq.Array(workflowVersionNodeIds))
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return errors.Wrap(rollbackErr, "deleting workflow stage nodes failed (rollback failed too)")
@@ -1047,8 +1077,29 @@ func addWorkflowVersionNodeLink(db *sqlx.DB, req CreateWorkflowVersionNodeLinkRe
 	wvnl.WorkflowVersionId = req.WorkflowVersionId
 	wvnl.ParentWorkflowVersionNodeId = req.ParentWorkflowVersionNodeId
 	wvnl.ChildWorkflowVersionNodeId = req.ChildWorkflowVersionNodeId
-	wvnl.ParentOutput = req.ParentOutput
 	wvnl.ChildInput = req.ChildInput
+	wvnl.ParentOutput = req.ParentOutput
+
+	if wvnl.ChildInput != wvnl.ParentOutput {
+		childWorkflowParameterType, err := verifyChildInput(db, wvnl)
+		if err != nil {
+			return WorkflowVersionNodeLink{},
+				errors.Wrapf(err, "verification of child input failed for ChildInput: %v and ChildWorkflowVersionNodeId: %v",
+					wvnl.ChildInput, wvnl.ChildWorkflowVersionNodeId)
+		}
+
+		parentWorkflowParameterType, err := verifyParentOutput(db, wvnl)
+		if err != nil {
+			return WorkflowVersionNodeLink{},
+				errors.Wrapf(err, "verification of child input failed for ParentOutput: %v and ParentWorkflowVersionNodeId: %v",
+					wvnl.ParentOutput, wvnl.ParentWorkflowVersionNodeId)
+		}
+
+		if !slices.Contains(commons.GetWorkflowParameterTypeGroup(parentWorkflowParameterType), childWorkflowParameterType) {
+			return WorkflowVersionNodeLink{},
+				errors.Wrapf(err, "ParentOutput: %v is incompatible with ChildInput: %v", wvnl.ParentOutput, wvnl.ChildInput)
+		}
+	}
 
 	err = db.QueryRowx(`INSERT INTO workflow_version_node_link
     	(name,
@@ -1079,6 +1130,56 @@ func addWorkflowVersionNodeLink(db *sqlx.DB, req CreateWorkflowVersionNodeLinkRe
 		return WorkflowVersionNodeLink{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return wvnl, nil
+}
+
+func verifyParentOutput(db *sqlx.DB, wvnl WorkflowVersionNodeLink) (commons.WorkflowParameterType, error) {
+	parentWorkflowVersionNode, err := GetWorkflowVersionNode(db, wvnl.ParentWorkflowVersionNodeId)
+	if err != nil {
+		return commons.WorkflowParameterTypeStatus, errors.Wrapf(err, "obtaining parent workflow version node for: %v", wvnl.ParentWorkflowVersionNodeId)
+	}
+	parentOutputs := []commons.WorkflowParameterLabel{wvnl.ParentOutput}
+	parentOutputs = append(parentOutputs, commons.GetWorkflowParameterLabelGroup(wvnl.ParentOutput)...)
+	workflowNodeParameters := commons.GetWorkflowNodes()[parentWorkflowVersionNode.Type]
+	for requiredOutputLabel := range workflowNodeParameters.RequiredOutputs {
+		for _, label := range commons.GetWorkflowParameterLabelGroup(requiredOutputLabel) {
+			if slices.Contains(parentOutputs, label) {
+				return workflowNodeParameters.RequiredOutputs[requiredOutputLabel], nil
+			}
+		}
+	}
+	for optionalOutputLabel := range workflowNodeParameters.OptionalOutputs {
+		for _, label := range commons.GetWorkflowParameterLabelGroup(optionalOutputLabel) {
+			if slices.Contains(parentOutputs, label) {
+				return workflowNodeParameters.OptionalOutputs[optionalOutputLabel], nil
+			}
+		}
+	}
+	return commons.WorkflowParameterTypeStatus, errors.New(fmt.Sprintf("parent workflow version node could not find label: %v", wvnl.ParentOutput))
+}
+
+func verifyChildInput(db *sqlx.DB, wvnl WorkflowVersionNodeLink) (commons.WorkflowParameterType, error) {
+	childWorkflowVersionNode, err := GetWorkflowVersionNode(db, wvnl.ChildWorkflowVersionNodeId)
+	if err != nil {
+		return commons.WorkflowParameterTypeStatus, errors.Wrapf(err, "obtaining child workflow version node for: %v", wvnl.ChildWorkflowVersionNodeId)
+	}
+	childInputs := []commons.WorkflowParameterLabel{wvnl.ChildInput}
+	childInputs = append(childInputs, commons.GetWorkflowParameterLabelGroup(wvnl.ChildInput)...)
+	workflowNodeParameters := commons.GetWorkflowNodes()[childWorkflowVersionNode.Type]
+	for requiredInputLabel := range workflowNodeParameters.RequiredInputs {
+		for _, label := range commons.GetWorkflowParameterLabelGroup(requiredInputLabel) {
+			if slices.Contains(childInputs, label) {
+				return workflowNodeParameters.RequiredInputs[requiredInputLabel], nil
+			}
+		}
+	}
+	for optionalInputLabel := range workflowNodeParameters.OptionalInputs {
+		for _, label := range commons.GetWorkflowParameterLabelGroup(optionalInputLabel) {
+			if slices.Contains(childInputs, label) {
+				return workflowNodeParameters.OptionalInputs[optionalInputLabel], nil
+			}
+		}
+	}
+	return commons.WorkflowParameterTypeStatus, errors.New(fmt.Sprintf("child workflow version node could not find label: %v", wvnl.ChildInput))
 }
 
 func updateWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVersionNodeLink) (WorkflowVersionNodeLink, error) {

@@ -23,17 +23,17 @@ func Start(ctx context.Context, db *sqlx.DB,
 
 	active := commons.Active
 
-	// Time Trigger Monitor
+	// Interval Trigger Monitor
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in TimeTriggerMonitor %v", panicError)
+				log.Error().Msgf("Panic occurred in IntervalTriggerMonitor %v", panicError)
 				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
-		automation.TimeTriggerMonitor(ctx, db)
+		automation.IntervalTriggerMonitor(ctx, db)
 	})()
 
 	// Event Trigger Monitor
