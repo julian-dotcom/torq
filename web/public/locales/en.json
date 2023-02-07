@@ -254,7 +254,8 @@
     "settingsSaved": "Settings saved",
     "tagAdded": "Tag added",
     "tagSaved": "Tag saved",
-    "cannotBeUndone": "This operation cannot be undone, type delete to confirm."
+    "cannotBeUndone": "This operation cannot be undone, type delete to confirm.",
+    "cannotModifyWorkflowActive": "Workflow is currently Active, Deactivate workflow to make changes."
   },
   "header": {
     "newInvoice": "New Invoice",

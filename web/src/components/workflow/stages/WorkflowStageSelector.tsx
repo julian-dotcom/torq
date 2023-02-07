@@ -8,6 +8,9 @@ import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
 import useTranslations from "services/i18n/useTranslations";
 import mixpanel from "mixpanel-browser";
+import React from "react";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
 
 type StageSelectorProps = {
   stageNumbers: Array<number>;
@@ -70,11 +73,14 @@ type SelectStageButtonProps = {
 function SelectStageButton(props: SelectStageButtonProps) {
   const { stage, stageNumbers, selectedStage, setSelectedStage, buttonIndex, workflowId, version } = props;
   const { t } = useTranslations();
-
+  const toastRef = React.useContext(ToastContext);
   const [deleteStage] = useDeleteStageMutation();
 
   function handleDeleteStage(stage: number) {
-    if (props.disabled) return;
+    if (props.disabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
     // Ask the user to confirm deletion of the stage
     if (!confirm(t.deleteStageConfirm)) {
       return;
@@ -123,11 +129,15 @@ type AddStageButtonProps = {
 
 function AddStageButton(props: AddStageButtonProps) {
   const { t } = useTranslations();
+  const toastRef = React.useContext(ToastContext);
   const [addNode] = useAddNodeMutation();
   const nextStage = Math.max(...props.stageNumbers) + 1;
 
   function handleAddStage() {
-    if (props.disabled) return;
+    if (props.disabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
 
     mixpanel.track("Workflow Add Stage", {
       workflowVersionId: props.workflowVersionId,
