@@ -426,7 +426,6 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 
 	channelPolicyRunRequiredInputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
 	channelPolicyRunRequiredInputs[WorkflowParameterLabelRoutingPolicySettings] = WorkflowParameterTypeRoutingPolicySettings
-	channelPolicyRunRequiredInputs[WorkflowParameterLabelChannels] = WorkflowParameterTypeChannelIds
 	channelPolicyRunOptionalInputs := channelPolicyAutoRunOptionalInputs
 	channelPolicyRunRequiredOutputs := channelPolicyAutoRunRequiredOutputs
 	channelPolicyRunOptionalOutputs := channelPolicyAutoRunOptionalOutputs
