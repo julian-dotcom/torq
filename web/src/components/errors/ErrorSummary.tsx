@@ -8,6 +8,12 @@ type errorSummaryType = {
 };
 
 const ErrorSummary = ({ errors, title }: errorSummaryType) => {
+  if (errors && errors.server) {
+    // Bit of a hack to only show the top most error rather than all the wrapped errors
+    errors.server = errors.server.map((error) => {
+      return { code: error.code, description: (error.description ?? "").split(":")[0] };
+    });
+  }
   return (
     (errors.server || errors.fields) && (
       <Note icon={<ErrorIcon />} title={title ?? "Error"} noteType={NoteType.error}>

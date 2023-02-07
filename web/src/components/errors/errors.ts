@@ -2,8 +2,8 @@ export type FieldName = string;
 export type ErrorDescription = string;
 
 export type ErrorCodeOrDescription = {
-  code: string;
-  description: string;
+  code?: string;
+  description?: string;
 };
 
 export type FormErrors = {
