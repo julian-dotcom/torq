@@ -17,7 +17,8 @@ const ErrorSummary = ({ errors, title }: errorSummaryType) => {
     });
   }
   return (
-    (errors.server || errors.fields) && (
+    <>
+      (errors.server || errors.fields) && (
       <Note icon={<ErrorIcon />} title={title ?? "Error"} noteType={NoteType.error}>
         {errors.server &&
           errors.server.map((error, index) => {
@@ -28,7 +29,8 @@ const ErrorSummary = ({ errors, title }: errorSummaryType) => {
           })}
         {errors.fields && errors.fields.keys() && <p>See above for form error(s)</p>}
       </Note>
-    )
+      )
+    </>
   );
 };
 
