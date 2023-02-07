@@ -27,7 +27,7 @@ const ErrorSummary = ({ errors, title }: errorSummaryType) => {
               }
               return <p key={index}>{error.description}</p>;
             })}
-          {errors.fields && <p>See above for form error{Object.keys(errors.fields).length > 1 && <>s</>}</p>}
+          {errors.fields && <p>See form error{Object.keys(errors.fields).length > 1 && <>s</>}</p>}
         </Note>
       )}
     </>
