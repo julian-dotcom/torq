@@ -78,7 +78,7 @@ function WorkflowPage() {
                 workflowVersionId={workflowVersion?.workflowVersionId || 0}
                 workflowId={workflow?.workflowId || 0}
                 version={workflowVersion?.version || 0}
-                disabled={workflow?.status === Status.Active}
+                editingDisabled={workflow?.status === Status.Active}
               />
             </div>
           </div>

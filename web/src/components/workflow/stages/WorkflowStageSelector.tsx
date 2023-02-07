@@ -19,7 +19,7 @@ type StageSelectorProps = {
   workflowVersionId: number;
   workflowId: number;
   version: number;
-  disabled: boolean;
+  editingDisabled: boolean;
 };
 
 export function StageSelector({
@@ -29,7 +29,7 @@ export function StageSelector({
   workflowVersionId,
   workflowId,
   version,
-  disabled,
+  editingDisabled,
 }: StageSelectorProps) {
   return (
     <div className={styles.stagesWrapper}>
@@ -44,12 +44,12 @@ export function StageSelector({
             buttonIndex={index}
             workflowId={workflowId}
             version={version}
-            disabled={disabled}
+            editingDisabled={editingDisabled}
           />
         );
       })}
       <AddStageButton
-        disabled={disabled}
+        editingDisabled={editingDisabled}
         setSelectedStage={setSelectedStage}
         workflowVersionId={workflowVersionId}
         selectedStage={selectedStage}
@@ -67,7 +67,7 @@ type SelectStageButtonProps = {
   buttonIndex: number;
   workflowId: number;
   version: number;
-  disabled: boolean;
+  editingDisabled: boolean;
 };
 
 function SelectStageButton(props: SelectStageButtonProps) {
@@ -77,7 +77,7 @@ function SelectStageButton(props: SelectStageButtonProps) {
   const [deleteStage] = useDeleteStageMutation();
 
   function handleDeleteStage(stage: number) {
-    if (props.disabled) {
+    if (props.editingDisabled) {
       toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
       return;
     }
@@ -124,7 +124,7 @@ type AddStageButtonProps = {
   selectedStage: number;
   setSelectedStage: (stage: number) => void;
   workflowVersionId: number;
-  disabled: boolean;
+  editingDisabled: boolean;
 };
 
 function AddStageButton(props: AddStageButtonProps) {
@@ -134,7 +134,7 @@ function AddStageButton(props: AddStageButtonProps) {
   const nextStage = Math.max(...props.stageNumbers) + 1;
 
   function handleAddStage() {
-    if (props.disabled) {
+    if (props.editingDisabled) {
       toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
       return;
     }
@@ -162,11 +162,14 @@ function AddStageButton(props: AddStageButtonProps) {
 
   return (
     <button
-      className={classNames(styles.stageContainer, props.disabled ? styles.disabledStage : styles.addStageButton)}
+      className={classNames(
+        styles.stageContainer,
+        props.editingDisabled ? styles.disabledStage : styles.addStageButton
+      )}
       onClick={handleAddStage}
     >
       <StageArrowBack />
-      <div className={classNames(styles.stage, props.disabled ? styles.disabled : "")}>
+      <div className={classNames(styles.stage, props.editingDisabled ? styles.disabled : "")}>
         <NewStageIcon />
       </div>
       <StageArrowFront />
