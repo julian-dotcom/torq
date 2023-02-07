@@ -120,7 +120,7 @@ function OpenChannelModal() {
           0,
           response.pendingChannelPoint?.indexOf(":")
         );
-        setOpeningTx(`https://mempool.space/tx/${channelPoint.trim()}`);
+        setOpeningTx(channelPoint.trim());
       }
     }
   }
