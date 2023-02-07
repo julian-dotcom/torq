@@ -44,7 +44,7 @@ func addCategory(db *sqlx.DB, category Category) (Category, error) {
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return Category{}, errors.Wrap(err, database.SqlUniqueConstraintError)
+				return Category{}, database.SqlUniqueConstraintError
 			}
 		}
 		return Category{}, errors.Wrap(err, database.SqlExecutionError)
@@ -59,7 +59,7 @@ func setCategory(db *sqlx.DB, category Category) (Category, error) {
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return Category{}, errors.Wrap(err, database.SqlUniqueConstraintError)
+				return Category{}, database.SqlUniqueConstraintError
 			}
 		}
 		return Category{}, errors.Wrap(err, database.SqlExecutionError)

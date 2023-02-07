@@ -187,7 +187,7 @@ func addTableViewColumn(tx *sqlx.Tx, tableViewColumn TableViewColumn) (TableView
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return TableViewColumn{}, errors.Wrap(err, database.SqlUniqueConstraintError)
+				return TableViewColumn{}, database.SqlUniqueConstraintError
 			}
 		}
 		return TableViewColumn{}, errors.Wrap(err, database.SqlExecutionError)

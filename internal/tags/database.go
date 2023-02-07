@@ -125,7 +125,7 @@ func createTag(db *sqlx.DB, tag Tag) (Tag, error) {
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return Tag{}, errors.Wrap(err, database.SqlUniqueConstraintError)
+				return Tag{}, database.SqlUniqueConstraintError
 			}
 		}
 		return Tag{}, errors.Wrap(err, database.SqlExecutionError)
@@ -141,7 +141,7 @@ func updateTag(db *sqlx.DB, tag Tag) (Tag, error) {
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return Tag{}, errors.Wrap(err, database.SqlUniqueConstraintError)
+				return Tag{}, database.SqlUniqueConstraintError
 			}
 		}
 		return Tag{}, errors.Wrap(err, database.SqlExecutionError)
@@ -184,8 +184,8 @@ func TagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
-			if err.Constraint == "tagged_entity_tag_id_channel_id_key" {
-				return errors.Wrap(err, database.SqlUniqueConstraintError)
+			if err.Code == "23505" {
+				return database.SqlUniqueConstraintError
 			}
 		}
 		return errors.Wrap(err, database.SqlExecutionError)

@@ -14,7 +14,7 @@ type WorkflowStatus int
 const (
 	Inactive = WorkflowStatus(commons.Inactive)
 	Active   = WorkflowStatus(commons.Active)
-	Deleted  = WorkflowStatus(commons.Deleted)
+	Archived = WorkflowStatus(commons.Archived)
 )
 
 type TagAction int

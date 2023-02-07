@@ -126,7 +126,7 @@ func createWorkflow(db *sqlx.DB) (Workflow, error) {
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return Workflow{}, errors.Wrap(err, database.SqlUniqueConstraintError)
+				return Workflow{}, database.SqlUniqueConstraintError
 			}
 		}
 		return Workflow{}, errors.Wrap(err, database.SqlExecutionError)
@@ -135,25 +135,30 @@ func createWorkflow(db *sqlx.DB) (Workflow, error) {
 }
 
 func updateWorkflow(db *sqlx.DB, req UpdateWorkflow) (UpdateWorkflow, error) {
-
-	qb := sq.Update("workflow").PlaceholderFormat(sq.Dollar).
-		Set("updated_on", time.Now().UTC())
-
-	if req.Name != nil {
-		qb = qb.Set("name", req.Name)
+	if req.Status != nil && *req.Status == Archived {
+		_, err := db.Exec(`UPDATE workflow SET status=$1, name=name||'_ARCHIVED_'||$4, updated_on=$2 WHERE workflow_id=$3;`,
+			req.Status, time.Now().UTC(), req.WorkflowId, time.Now().UnixMilli())
+		if err != nil {
+			return UpdateWorkflow{}, errors.Wrap(err, database.SqlExecutionError)
+		}
+	} else {
+		qb := sq.Update("workflow").PlaceholderFormat(sq.Dollar).Set("updated_on", time.Now().UTC())
+		if req.Name != nil {
+			qb = qb.Set("name", req.Name)
+		}
+		if req.Status != nil {
+			qb = qb.Set("status", req.Status)
+		}
+		_, err := qb.Where(sq.Eq{"workflow_id": req.WorkflowId}).RunWith(db).Exec()
+		if err != nil {
+			if err, ok := err.(*pq.Error); ok {
+				if err.Code == "23505" {
+					return UpdateWorkflow{}, database.SqlUniqueConstraintError
+				}
+			}
+			return UpdateWorkflow{}, errors.Wrap(err, database.SqlExecutionError)
+		}
 	}
-
-	if req.Status != nil {
-		qb = qb.Set("status", req.Status)
-	}
-
-	_, err := qb.Where(sq.Eq{"workflow_id": req.WorkflowId}).RunWith(db).Exec()
-
-	if err != nil {
-		// TODO: Handle wrapped error while still being able to check for unique constraint violation
-		return UpdateWorkflow{}, err //nolint:wrapcheck
-	}
-
 	return req, nil
 }
 
@@ -858,7 +863,7 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return WorkflowVersionNode{}, errors.Wrap(err, database.SqlUniqueConstraintError)
+				return WorkflowVersionNode{}, database.SqlUniqueConstraintError
 			}
 		}
 		return WorkflowVersionNode{}, errors.Wrap(err, database.SqlExecutionError)
@@ -1124,7 +1129,7 @@ func addWorkflowVersionNodeLink(db *sqlx.DB, req CreateWorkflowVersionNodeLinkRe
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return WorkflowVersionNodeLink{}, errors.Wrap(err, database.SqlUniqueConstraintError)
+				return WorkflowVersionNodeLink{}, database.SqlUniqueConstraintError
 			}
 		}
 		return WorkflowVersionNodeLink{}, errors.Wrap(err, database.SqlExecutionError)
@@ -1197,7 +1202,7 @@ func updateWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink Workflow
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return WorkflowVersionNodeLink{}, errors.Wrap(err, database.SqlUniqueConstraintError)
+				return WorkflowVersionNodeLink{}, database.SqlUniqueConstraintError
 			}
 		}
 		return WorkflowVersionNodeLink{}, errors.Wrap(err, database.SqlExecutionError)
