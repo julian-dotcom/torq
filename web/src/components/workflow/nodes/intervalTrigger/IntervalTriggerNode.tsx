@@ -1,7 +1,6 @@
-import { Save16Regular as SaveIcon } from "@fluentui/react-icons";
-import { useEffect, useState } from "react";
+import { Save16Regular as SaveIcon, Timer16Regular as IntervalTriggerIcon } from "@fluentui/react-icons";
+import { useContext, useEffect, useState } from "react";
 import useTranslations from "services/i18n/useTranslations";
-import { Timer16Regular as IntervalTriggerIcon } from "@fluentui/react-icons";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { Form, Input, InputRow, InputSizeVariant, Select } from "components/forms/forms";
@@ -9,6 +8,8 @@ import { NumberFormatValues } from "react-number-format";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Spinny from "features/spinny/Spinny";
+import { WorkflowContext } from "../../WorkflowContext";
+import { Status } from "../../../../constants/backend";
 
 type IntervalTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -45,6 +46,8 @@ function isIntervalTriggerParameters(parameters: unknown): parameters is Interva
 
 export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProps) {
   const { t } = useTranslations();
+  const { workflowStatus } = useContext(WorkflowContext);
+  const editingDisabled = workflowStatus === Status.Active;
 
   const [updateNode] = useUpdateNodeMutation();
 
@@ -68,6 +71,7 @@ export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProp
 
   const [dirty, setDirty] = useState(false);
   const [processing, setProcessing] = useState(false);
+
   useEffect(() => {
     // if the original parameters are different from the current parameters, set dirty to true
     if (parameters.seconds !== seconds || parameters.timeUnit !== selectedTimeUnit) {
@@ -113,6 +117,7 @@ export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProp
         <InputRow>
           <div style={{ flexGrow: 1 }}>
             <Input
+              disabled={editingDisabled}
               formatted={true}
               value={frequency}
               thousandSeparator={true}
@@ -126,6 +131,7 @@ export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProp
             />
           </div>
           <Select
+            isDisabled={editingDisabled}
             options={timeUnitOptions}
             onChange={handleTimeUnitChange}
             value={selectedOption}
