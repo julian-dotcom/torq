@@ -14,6 +14,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -131,19 +132,13 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	storedWorkflow, err := updateWorkflow(db, req)
 	if err != nil {
-		pqErr, ok := err.(*pq.Error)
-		if !ok {
-			server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow for workflowId: %v", req.WorkflowId))
-		}
-		switch true {
-		case pqErr.Constraint == "workflow_name_key":
+		if errors.Is(err, database.SqlUniqueConstraintError) {
 			se := server_errors.SingleFieldError("name", "Name already exists.")
 			se.AddServerError(err.Error())
 			server_errors.SendBadRequestFieldError(c, se)
-		default:
-			server_errors.WrapLogAndSendServerError(c, pqErr, fmt.Sprintf("Updating workflow for workflowId: %v", req.WorkflowId))
+			return
 		}
-
+		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Setting workflow for workflowId: %v", req.WorkflowId))
 		return
 	}
 	if req.Status != nil {
