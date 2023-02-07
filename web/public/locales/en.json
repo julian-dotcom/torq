@@ -309,7 +309,7 @@
       "grossProfitMargin": "Gross Profit Margin",
       "turnover": "Turnover"
     },
-    "policyDetails" : {
+    "policyDetails": {
       "heading": "Policy Details",
       "outbound": "Outbound",
       "inbound": "Inbound",
@@ -363,6 +363,8 @@
       "inbound": "Inbound",
       "destinations": "Destinations"
     }
+  },
+  "errors": {
+    "LNDConnect": "Unable to connect to LND Node. Please check connection details."
   }
-
 }

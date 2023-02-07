@@ -1,6 +1,7 @@
 import Note, { NoteType } from "features/note/Note";
 import { ErrorCircle20Regular as ErrorIcon } from "@fluentui/react-icons";
 import { FormErrors } from "./errors";
+import useTranslations from "services/i18n/useTranslations";
 
 type errorSummaryType = {
   title?: string;
@@ -8,6 +9,7 @@ type errorSummaryType = {
 };
 
 const ErrorSummary = ({ errors, title }: errorSummaryType) => {
+  const { t } = useTranslations();
   if (errors && errors.server) {
     // Bit of a hack to only show the top most error rather than all the wrapped errors
     errors.server = errors.server.map((error) => {
@@ -20,7 +22,7 @@ const ErrorSummary = ({ errors, title }: errorSummaryType) => {
         {errors.server &&
           errors.server.map((error, index) => {
             if (error.code) {
-              return <p key={index}>{error.code}</p>;
+              return <p key={index}>{t.errors[error.code]}</p>;
             }
             return <p key={index}>{error.description}</p>;
           })}
