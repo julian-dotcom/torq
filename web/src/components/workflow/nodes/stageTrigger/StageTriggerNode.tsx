@@ -16,7 +16,7 @@ export function StageTriggerNode({ ...wrapperProps }: StageTriggerNodeProps) {
       headerIcon={<StageTriggerIcon />}
       colorVariant={NodeColorVariant.accent2}
       noOptions={true}
-      outputName={"triggered"}
+      outputName={"routingPolicySettings"}
     >
       <div style={{ flexGrow: 1 }}>
         <Note title={t.note} noteType={NoteType.info}>

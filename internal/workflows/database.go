@@ -7,8 +7,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"golang.org/x/exp/slices"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -709,8 +707,10 @@ func GetTriggerGroupWorkflowVersionNodeId(db *sqlx.DB, workflowVersionNodeId int
 		SELECT n.workflow_version_node_id
 		FROM workflow_version_node_link l
 		JOIN workflow_version_node n ON n.type=$2
-        AND n.stage = (SELECT stage FROM workflow_version_node where workflow_version_node_id = $1);`,
-		workflowVersionNodeId, commons.WorkflowTrigger)
+		JOIN workflow_version wfv on wfv.workflow_version_id=n.workflow_version_id
+		JOIN workflow wf on wf.workflow_id=wfv.workflow_id
+        WHERE wf.status=$3 AND wfv.status=$3 AND n.stage = (SELECT stage FROM workflow_version_node where workflow_version_node_id = $1);`,
+		workflowVersionNodeId, commons.WorkflowTrigger, Active)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.Wrap(err, database.SqlExecutionError)
@@ -1080,26 +1080,26 @@ func addWorkflowVersionNodeLink(db *sqlx.DB, req CreateWorkflowVersionNodeLinkRe
 	wvnl.ChildInput = req.ChildInput
 	wvnl.ParentOutput = req.ParentOutput
 
-	if wvnl.ChildInput != wvnl.ParentOutput {
-		childWorkflowParameterType, err := verifyChildInput(db, wvnl)
-		if err != nil {
-			return WorkflowVersionNodeLink{},
-				errors.Wrapf(err, "verification of child input failed for ChildInput: %v and ChildWorkflowVersionNodeId: %v",
-					wvnl.ChildInput, wvnl.ChildWorkflowVersionNodeId)
-		}
-
-		parentWorkflowParameterType, err := verifyParentOutput(db, wvnl)
-		if err != nil {
-			return WorkflowVersionNodeLink{},
-				errors.Wrapf(err, "verification of child input failed for ParentOutput: %v and ParentWorkflowVersionNodeId: %v",
-					wvnl.ParentOutput, wvnl.ParentWorkflowVersionNodeId)
-		}
-
-		if !slices.Contains(commons.GetWorkflowParameterTypeGroup(parentWorkflowParameterType), childWorkflowParameterType) {
-			return WorkflowVersionNodeLink{},
-				errors.Wrapf(err, "ParentOutput: %v is incompatible with ChildInput: %v", wvnl.ParentOutput, wvnl.ChildInput)
-		}
-	}
+	//if wvnl.ChildInput != wvnl.ParentOutput {
+	//	childWorkflowParameterType, err := verifyChildInput(db, wvnl)
+	//	if err != nil {
+	//		return WorkflowVersionNodeLink{},
+	//			errors.Wrapf(err, "verification of child input failed for ChildInput: %v and ChildWorkflowVersionNodeId: %v",
+	//				wvnl.ChildInput, wvnl.ChildWorkflowVersionNodeId)
+	//	}
+	//
+	//	parentWorkflowParameterType, err := verifyParentOutput(db, wvnl)
+	//	if err != nil {
+	//		return WorkflowVersionNodeLink{},
+	//			errors.Wrapf(err, "verification of child input failed for ParentOutput: %v and ParentWorkflowVersionNodeId: %v",
+	//				wvnl.ParentOutput, wvnl.ParentWorkflowVersionNodeId)
+	//	}
+	//
+	//	if !slices.Contains(commons.GetWorkflowParameterTypeGroup(parentWorkflowParameterType), childWorkflowParameterType) {
+	//		return WorkflowVersionNodeLink{},
+	//			errors.Wrapf(err, "ParentOutput: %v is incompatible with ChildInput: %v", wvnl.ParentOutput, wvnl.ChildInput)
+	//	}
+	//}
 
 	err = db.QueryRowx(`INSERT INTO workflow_version_node_link
     	(name,
@@ -1130,56 +1130,6 @@ func addWorkflowVersionNodeLink(db *sqlx.DB, req CreateWorkflowVersionNodeLinkRe
 		return WorkflowVersionNodeLink{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return wvnl, nil
-}
-
-func verifyParentOutput(db *sqlx.DB, wvnl WorkflowVersionNodeLink) (commons.WorkflowParameterType, error) {
-	parentWorkflowVersionNode, err := GetWorkflowVersionNode(db, wvnl.ParentWorkflowVersionNodeId)
-	if err != nil {
-		return commons.WorkflowParameterTypeStatus, errors.Wrapf(err, "obtaining parent workflow version node for: %v", wvnl.ParentWorkflowVersionNodeId)
-	}
-	parentOutputs := []commons.WorkflowParameterLabel{wvnl.ParentOutput}
-	parentOutputs = append(parentOutputs, commons.GetWorkflowParameterLabelGroup(wvnl.ParentOutput)...)
-	workflowNodeParameters := commons.GetWorkflowNodes()[parentWorkflowVersionNode.Type]
-	for requiredOutputLabel := range workflowNodeParameters.RequiredOutputs {
-		for _, label := range commons.GetWorkflowParameterLabelGroup(requiredOutputLabel) {
-			if slices.Contains(parentOutputs, label) {
-				return workflowNodeParameters.RequiredOutputs[requiredOutputLabel], nil
-			}
-		}
-	}
-	for optionalOutputLabel := range workflowNodeParameters.OptionalOutputs {
-		for _, label := range commons.GetWorkflowParameterLabelGroup(optionalOutputLabel) {
-			if slices.Contains(parentOutputs, label) {
-				return workflowNodeParameters.OptionalOutputs[optionalOutputLabel], nil
-			}
-		}
-	}
-	return commons.WorkflowParameterTypeStatus, errors.New(fmt.Sprintf("parent workflow version node could not find label: %v", wvnl.ParentOutput))
-}
-
-func verifyChildInput(db *sqlx.DB, wvnl WorkflowVersionNodeLink) (commons.WorkflowParameterType, error) {
-	childWorkflowVersionNode, err := GetWorkflowVersionNode(db, wvnl.ChildWorkflowVersionNodeId)
-	if err != nil {
-		return commons.WorkflowParameterTypeStatus, errors.Wrapf(err, "obtaining child workflow version node for: %v", wvnl.ChildWorkflowVersionNodeId)
-	}
-	childInputs := []commons.WorkflowParameterLabel{wvnl.ChildInput}
-	childInputs = append(childInputs, commons.GetWorkflowParameterLabelGroup(wvnl.ChildInput)...)
-	workflowNodeParameters := commons.GetWorkflowNodes()[childWorkflowVersionNode.Type]
-	for requiredInputLabel := range workflowNodeParameters.RequiredInputs {
-		for _, label := range commons.GetWorkflowParameterLabelGroup(requiredInputLabel) {
-			if slices.Contains(childInputs, label) {
-				return workflowNodeParameters.RequiredInputs[requiredInputLabel], nil
-			}
-		}
-	}
-	for optionalInputLabel := range workflowNodeParameters.OptionalInputs {
-		for _, label := range commons.GetWorkflowParameterLabelGroup(optionalInputLabel) {
-			if slices.Contains(childInputs, label) {
-				return workflowNodeParameters.OptionalInputs[optionalInputLabel], nil
-			}
-		}
-	}
-	return commons.WorkflowParameterTypeStatus, errors.New(fmt.Sprintf("child workflow version node could not find label: %v", wvnl.ChildInput))
 }
 
 func updateWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLink WorkflowVersionNodeLink) (WorkflowVersionNodeLink, error) {

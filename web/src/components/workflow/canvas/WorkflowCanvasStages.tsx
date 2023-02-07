@@ -128,7 +128,7 @@ function FirstStageTrigger(props: {
           <NodeConnector
             id={"ss"}
             name={t.triggers}
-            outputName={"triggered"}
+            outputName={"channels"}
             workflowVersionNodeId={triggerNode?.workflowVersionNodeId || 0}
             workflowVersionId={props.workflowVersionId}
           />
