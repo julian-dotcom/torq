@@ -58,21 +58,6 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
     })
   );
 
-  const triggered =
-    childLinks
-      ?.filter((n) => {
-        return n.childInput === "triggered";
-      })
-      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
-
-  const triggers = useSelector(
-    SelectWorkflowNodes({
-      version: wrapperProps.version,
-      workflowId: wrapperProps.workflowId,
-      nodeIds: triggered,
-    })
-  );
-
   const channelIds =
     childLinks
       ?.filter((n) => {
@@ -97,14 +82,6 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
   return (
     <WorkflowNodeWrapper {...wrapperProps} headerIcon={<FilterIcon />} colorVariant={NodeColorVariant.accent1}>
       <Form onSubmit={handleSubmit}>
-        <Socket
-          collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.trigger}
-          selectedNodes={triggers || []}
-          workflowVersionId={wrapperProps.workflowVersionId}
-          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputName={"triggered"}
-        />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.channels}
