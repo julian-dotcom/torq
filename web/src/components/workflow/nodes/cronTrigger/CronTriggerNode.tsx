@@ -7,13 +7,17 @@ import { Form, Input, InputRow, InputSizeVariant } from "components/forms/forms"
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import cronstrue from "cronstrue";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Spinny from "features/spinny/Spinny";
+import { WorkflowContext } from "components/workflow/WorkflowContext";
+import { Status } from "constants/backend";
 
 type CronTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
   const { t } = useTranslations();
+  const { workflowStatus } = useContext(WorkflowContext);
+  const editingDisabled = workflowStatus === Status.Active;
 
   const [updateNode] = useUpdateNodeMutation();
   const [cronValueState, setCronValueState] = React.useState(
@@ -33,6 +37,9 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (editingDisabled) {
+      return;
+    }
     setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
@@ -69,6 +76,7 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
         <InputRow>
           <div style={{ flexGrow: 1 }}>
             <Input
+              disabled={editingDisabled}
               value={cronValueState}
               onChange={handleCronChange}
               placeholder={"0 23 ? * MON-FRI"}
@@ -86,7 +94,7 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}
           icon={!processing ? <SaveIcon /> : <Spinny />}
-          disabled={!isValidState || !dirty || processing}
+          disabled={!isValidState || !dirty || processing || editingDisabled}
         >
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>

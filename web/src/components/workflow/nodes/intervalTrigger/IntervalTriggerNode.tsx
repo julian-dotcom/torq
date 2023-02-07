@@ -8,8 +8,8 @@ import { NumberFormatValues } from "react-number-format";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Spinny from "features/spinny/Spinny";
-import { WorkflowContext } from "../../WorkflowContext";
-import { Status } from "../../../../constants/backend";
+import { WorkflowContext } from "components/workflow/WorkflowContext";
+import { Status } from "constants/backend";
 
 type IntervalTriggerNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -99,6 +99,10 @@ export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProp
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (editingDisabled) {
+      return;
+    }
+
     setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
@@ -143,7 +147,7 @@ export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProp
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}
           icon={!processing ? <SaveIcon /> : <Spinny />}
-          disabled={!dirty || processing}
+          disabled={!dirty || processing || editingDisabled}
         >
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
