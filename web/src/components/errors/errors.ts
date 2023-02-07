@@ -7,8 +7,8 @@ export type ErrorCodeOrDescription = {
 };
 
 export type FormErrors = {
-  server: Array<ErrorCodeOrDescription>;
-  fields: Map<FieldName, Array<ErrorCodeOrDescription>>;
+  server?: Array<ErrorCodeOrDescription>;
+  fields?: Map<FieldName, Array<ErrorCodeOrDescription>>;
 };
 
 export type ServerErrorType = {
@@ -21,7 +21,13 @@ export function mergeServerError(serverErrors: ServerErrorType, existingErrors: 
     existingErrors.server = [];
   }
   existingErrors.server = serverErrors.errors.server;
+  if (!serverErrors.errors.fields) {
+    return existingErrors;
+  }
   for (const [key, errorCodeOrDescription] of serverErrors.errors.fields) {
+    if (existingErrors.fields === undefined) {
+      existingErrors.fields = new Map<FieldName, Array<ErrorCodeOrDescription>>();
+    }
     if (!existingErrors.fields.get(key)) {
       existingErrors.fields.set(key, []);
     }
