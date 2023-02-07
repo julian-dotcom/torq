@@ -1,20 +1,24 @@
 import Note, { NoteType } from "features/note/Note";
 import { ErrorCircle20Regular as ErrorIcon } from "@fluentui/react-icons";
+import { FormErrors } from "./errors";
 
 type errorSummaryType = {
   title?: string;
-  errors: Array<string>;
-  hasFieldValidationError: boolean;
+  errors: FormErrors;
 };
 
-const ErrorSummary = ({ errors, title, hasFieldValidationError }: errorSummaryType) => {
+const ErrorSummary = ({ errors, title }: errorSummaryType) => {
   return (
-    errors && (
+    (errors.server || errors.fields) && (
       <Note icon={<ErrorIcon />} title={title ?? "Error"} noteType={NoteType.error}>
-        {errors.map((error, index) => (
-          <p key={index}>{error}</p>
-        ))}
-        {hasFieldValidationError && <p>See above for form error(s)</p>}
+        {errors.server &&
+          errors.server.map((error, index) => {
+            if (error.code) {
+              return <p key={index}>{error.code}</p>;
+            }
+            return <p key={index}>{error.description}</p>;
+          })}
+        {errors.fields && errors.fields.keys() && <p>See above for form error(s)</p>}
       </Note>
     )
   );

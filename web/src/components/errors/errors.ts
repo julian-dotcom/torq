@@ -1,23 +1,31 @@
 export type FieldName = string;
 export type ErrorDescription = string;
 
-export type ValidationErrors = {
-  serverErrors: Array<ErrorDescription>;
-  fieldErrors: Map<FieldName, Array<ErrorDescription>>;
+export type ErrorCodeOrDescription = {
+  code: string;
+  description: string;
 };
 
 export type FormErrors = {
-  server: Array<ErrorDescription>;
-  fields: Map<FieldName, Array<ErrorDescription>>;
+  server: Array<ErrorCodeOrDescription>;
+  fields: Map<FieldName, Array<ErrorCodeOrDescription>>;
 };
 
 export type ServerErrorType = {
   errors: FormErrors;
 };
 
-// Example JSON from server as specified in server_errors.go
-// {"errors":{"fields":null,"server":["Obtaining publicKey/chain/network from gRPC"]}}
-
-// export function parseServerError(errorJSON: {errors: {server: Array<string>}}): ValidationErrors {
-//   return errorJSON as ValidationErrors;
-// }
+// .map((error: string) => error.split(":")[0])
+export function mergeServerError(serverErrors: ServerErrorType, existingErrors: FormErrors): FormErrors {
+  if (existingErrors.server === undefined) {
+    existingErrors.server = [];
+  }
+  existingErrors.server.push(...serverErrors.errors.server);
+  for (const [key, errorCodeOrDescription] of serverErrors.errors.fields) {
+    if (!existingErrors.fields.get(key)) {
+      existingErrors.fields.set(key, []);
+    }
+    existingErrors.fields.get(key)?.push(...errorCodeOrDescription);
+  }
+  return existingErrors;
+}
