@@ -186,15 +186,19 @@ function FilterRow({
         return formatParameter(rowValues.parameter as number);
       case "duration":
         if (rowValues.parameter >= 1) {
-          const d = intervalToDuration({ start: 0, end: (rowValues.parameter as number) * 1000 });
-          return formatDuration({
-            years: d.years,
-            months: d.months,
-            days: d.days,
-            hours: d.hours,
-            minutes: d.minutes,
-            seconds: d.seconds,
-          });
+          try {
+            const d = intervalToDuration({ start: 0, end: (rowValues.parameter as number) * 1000 });
+            return formatDuration({
+              years: d.years,
+              months: d.months,
+              days: d.days,
+              hours: d.hours,
+              minutes: d.minutes,
+              seconds: d.seconds,
+            });
+          } catch (e) {
+            return `${formatter(rowValues.parameter as number)} seconds`;
+          }
         } else if (rowValues.parameter < 1 && rowValues.parameter > 0) {
           return `${subSecFormat(rowValues.parameter as number)} seconds`;
         }
