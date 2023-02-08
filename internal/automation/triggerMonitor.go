@@ -30,6 +30,18 @@ func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 		case <-ctx.Done():
 			return
 		case <-ticker:
+			if bootstrapping {
+				var allChannelIds []int
+				torqNodeIds := commons.GetAllTorqNodeIds()
+				for _, torqNodeId := range torqNodeIds {
+					// Force Response because we don't care about balance accuracy
+					channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
+					allChannelIds = append(allChannelIds, channelIdsByNode...)
+				}
+				if len(allChannelIds) == 0 {
+					continue
+				}
+			}
 			var bootedWorkflowVersionIds []int
 			workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeIntervalTrigger)
 			if err != nil {
@@ -85,6 +97,27 @@ type CronTriggerParams struct {
 
 func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	defer log.Info().Msgf("Cron trigger monitor terminated")
+
+	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
+
+bootstrappingLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker:
+			var allChannelIds []int
+			torqNodeIds := commons.GetAllTorqNodeIds()
+			for _, torqNodeId := range torqNodeIds {
+				// Force Response because we don't care about balance accuracy
+				channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
+				allChannelIds = append(allChannelIds, channelIdsByNode...)
+			}
+			if len(allChannelIds) != 0 {
+				break bootstrappingLoop
+			}
+		}
+	}
 
 	workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeCronTrigger)
 	if err != nil {

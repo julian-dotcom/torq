@@ -714,8 +714,8 @@ func GetTriggerGroupWorkflowVersionNodeId(db *sqlx.DB, workflowVersionNodeId int
 		JOIN workflow_version_node n ON n.type=$2
 		JOIN workflow_version wfv on wfv.workflow_version_id=n.workflow_version_id
 		JOIN workflow wf on wf.workflow_id=wfv.workflow_id
-        WHERE wf.status=$3 AND wfv.status=$3 AND n.stage = (SELECT stage FROM workflow_version_node where workflow_version_node_id = $1);`,
-		workflowVersionNodeId, commons.WorkflowTrigger, Active)
+        WHERE wf.status = ANY ($3) AND wfv.status = ANY ($3) AND n.stage = (SELECT stage FROM workflow_version_node where workflow_version_node_id = $1);`,
+		workflowVersionNodeId, commons.WorkflowTrigger, pq.Array([]WorkflowStatus{Active, Inactive}))
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.Wrap(err, database.SqlExecutionError)
