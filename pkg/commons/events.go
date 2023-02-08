@@ -380,6 +380,8 @@ type ChannelStatusUpdateResponse struct {
 type RoutingPolicyUpdateRequest struct {
 	CommunicationRequest
 	ResponseChannel  chan RoutingPolicyUpdateResponse `json:"-"`
+	RateLimitSeconds int                              `json:"rateLimitSeconds"`
+	RateLimitCount   int                              `json:"rateLimitCount"`
 	ChannelId        int                              `json:"channelId"`
 	FeeRateMilliMsat *int64                           `json:"feeRateMilliMsat"`
 	FeeBaseMsat      *int64                           `json:"feeBaseMsat"`

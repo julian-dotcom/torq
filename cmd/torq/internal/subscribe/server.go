@@ -2,6 +2,7 @@ package subscribe
 
 import (
 	"context"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -146,7 +147,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in ChannelEventStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in ChannelEventStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -161,7 +162,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in GraphEventStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in GraphEventStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -176,7 +177,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in HtlcEventStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in HtlcEventStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -191,7 +192,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in PeerEventStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in PeerEventStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -206,7 +207,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in ChannelBalanceCacheStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in ChannelBalanceCacheStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -220,7 +221,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in TransactionStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in TransactionStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -235,7 +236,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in ForwardStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in ForwardStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -250,7 +251,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in PaymentStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in PaymentStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -265,7 +266,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in InvoiceStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in InvoiceStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -280,7 +281,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in InFlightPaymentStream (nodeId: %v) %v", nodeId, panicError)
+				log.Error().Msgf("Panic occurred in InFlightPaymentStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()

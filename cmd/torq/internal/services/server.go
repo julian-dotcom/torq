@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"runtime/debug"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -29,7 +30,7 @@ func Start(ctx context.Context, db *sqlx.DB,
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in IntervalTriggerMonitor %v", panicError)
+				log.Error().Msgf("Panic occurred in IntervalTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
 				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
@@ -42,7 +43,7 @@ func Start(ctx context.Context, db *sqlx.DB,
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in EventTriggerMonitor %v", panicError)
+				log.Error().Msgf("Panic occurred in EventTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
 				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
@@ -55,7 +56,7 @@ func Start(ctx context.Context, db *sqlx.DB,
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in ScheduledTriggerMonitor %v", panicError)
+				log.Error().Msgf("Panic occurred in ScheduledTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
 				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
@@ -79,7 +80,7 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in LightningCommunicationService %v", panicError)
+				log.Error().Msgf("Panic occurred in LightningCommunicationService %v with stack: %v", panicError, string(debug.Stack()))
 				commons.RunningServices[commons.LightningCommunicationService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -103,7 +104,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in RebalanceServiceStart %v", panicError)
+				log.Error().Msgf("Panic occurred in RebalanceServiceStart %v with stack: %v", panicError, string(debug.Stack()))
 				commons.RunningServices[commons.RebalanceService].Cancel(nodeId, &active, true)
 			}
 		}()
@@ -125,7 +126,7 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string,
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in MaintenanceService %v", panicError)
+				log.Error().Msgf("Panic occurred in MaintenanceService %v with stack: %v", panicError, string(debug.Stack()))
 				commons.RunningServices[commons.MaintenanceService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
@@ -148,7 +149,7 @@ func StartCronService(ctx context.Context, db *sqlx.DB) error {
 		defer wg.Done()
 		defer func() {
 			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in CronTriggerMonitor %v", panicError)
+				log.Error().Msgf("Panic occurred in CronTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
 				commons.RunningServices[commons.CronService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
