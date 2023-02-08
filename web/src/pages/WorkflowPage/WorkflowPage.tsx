@@ -13,6 +13,7 @@ import WorkflowControls from "./WorkflowControls";
 import { Status } from "constants/backend";
 import mixpanel from "mixpanel-browser";
 import { WorkflowContext } from "components/workflow/WorkflowContext";
+import Note, { NoteType } from "features/note/Note";
 
 function WorkflowPage() {
   const { t } = useTranslations();
@@ -80,6 +81,13 @@ function WorkflowPage() {
                 version={workflowVersion?.version || 0}
                 editingDisabled={workflow?.status === Status.Active}
               />
+              {workflow?.status === Status.Active && (
+                <div className={styles.workflowStatusNote}>
+                  <Note title={t.note} noteType={NoteType.warning}>
+                    <p>{t.toast.cannotModifyWorkflowActive}</p>
+                  </Note>
+                </div>
+              )}
             </div>
           </div>
         </div>
