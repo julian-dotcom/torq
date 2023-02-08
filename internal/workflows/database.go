@@ -707,15 +707,22 @@ func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNod
 }
 
 func GetTriggerGroupWorkflowVersionNodeId(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
+	wfvn, err := GetWorkflowVersionNode(db, workflowVersionNodeId)
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
 	var workflowVersionGroupNodeId int
-	err := db.Get(&workflowVersionGroupNodeId, `
+	err = db.Get(&workflowVersionGroupNodeId, `
 		SELECT n.workflow_version_node_id
-		FROM workflow_version_node_link l
-		JOIN workflow_version_node n ON n.type=$2
+		FROM workflow_version_node n
 		JOIN workflow_version wfv on wfv.workflow_version_id=n.workflow_version_id
 		JOIN workflow wf on wf.workflow_id=wfv.workflow_id
-        WHERE wf.status = ANY ($3) AND wfv.status = ANY ($3) AND n.stage = (SELECT stage FROM workflow_version_node where workflow_version_node_id = $1);`,
-		workflowVersionNodeId, commons.WorkflowTrigger, pq.Array([]WorkflowStatus{Active, Inactive}))
+        WHERE n.type=$1 AND
+              wf.status = ANY ($2) AND
+              wfv.status = ANY ($2) AND
+			  wfv.workflow_version_id = $3 AND
+              n.stage = $4;`,
+		commons.WorkflowTrigger, pq.Array([]WorkflowStatus{Active, Inactive}), wfvn.WorkflowVersionId, wfvn.Stage)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.Wrap(err, database.SqlExecutionError)
