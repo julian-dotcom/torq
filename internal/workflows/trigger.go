@@ -530,31 +530,6 @@ func getTagEntityRequest(channelId int, tagId int, params TagParameters, torqNod
 	}
 }
 
-func hasRoutingPolicyChanges(nodeId int, channelId int, routingPolicySettings ChannelPolicyConfiguration) bool {
-	channelStateSettings := commons.GetChannelState(nodeId, channelId, true)
-	if routingPolicySettings.FeeBaseMsat != nil &&
-		*routingPolicySettings.FeeBaseMsat != channelStateSettings.LocalFeeBaseMsat {
-		return true
-	}
-	if routingPolicySettings.FeeRateMilliMsat != nil &&
-		*routingPolicySettings.FeeRateMilliMsat != channelStateSettings.LocalFeeRateMilliMsat {
-		return true
-	}
-	if routingPolicySettings.MinHtlcMsat != nil &&
-		*routingPolicySettings.MinHtlcMsat != channelStateSettings.LocalMinHtlcMsat {
-		return true
-	}
-	if routingPolicySettings.MaxHtlcMsat != nil &&
-		*routingPolicySettings.MaxHtlcMsat != channelStateSettings.LocalMaxHtlcMsat {
-		return true
-	}
-	if routingPolicySettings.TimeLockDelta != nil &&
-		*routingPolicySettings.TimeLockDelta != channelStateSettings.LocalTimeLockDelta {
-		return true
-	}
-	return false
-}
-
 func getLinkedChannelIds(inputs map[commons.WorkflowParameterLabel]string, workflowNode WorkflowNode) ([]int, error) {
 	var linkedChannelIds []int
 	linkedChannelIdsString, exists := inputs[commons.WorkflowParameterLabelChannels]
