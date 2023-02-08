@@ -13,8 +13,7 @@ export function RemoveTagNodeButton() {
       nodeType={WorkflowNodeType.RemoveTag}
       icon={<TagHeaderIcon />}
       title={t.removeTag}
-      // TODO: After merging with master, add the bellow default parameters on drop
-      // parameters={{ applyTo: "channels", addedTags: [], removedTags: [] }}
+      parameters={'{ "applyTo": "channel", "addedTags": [], "removedTags": [] }'}
     />
   );
 }
