@@ -13,6 +13,7 @@ export function IntervalTriggerNodeButton() {
       nodeType={WorkflowNodeType.IntervalTrigger}
       icon={<IntervalTriggerIcon />}
       title={t.workflowNodes.intervalTrigger}
+      parameters={'{"seconds": 3600, "timeUnit": "seconds"}'}
     />
   );
 }
