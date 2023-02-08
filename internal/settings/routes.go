@@ -243,7 +243,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 
 	publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, ncd.TLSDataBytes, ncd.MacaroonDataBytes)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
+		server_errors.LogAndSendServerErrorCode(c, errors.Wrap(err, "Get info from LND Node"), "LNDConnect")
 		return
 	}
 
@@ -338,7 +338,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 	if ncd.GRPCAddress == nil || *ncd.GRPCAddress == "" {
-		server_errors.SendBadRequest(c, "Failed to find/parse GRPCAddress in the request.")
+		c.JSON(http.StatusBadRequest, server_errors.SingleFieldErrorCode("grpcAddress", "missingField"))
 		return
 	}
 	if strings.TrimSpace(ncd.Name) == "" {
@@ -388,7 +388,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	if lndDetailsUpdate {
 		publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, ncd.TLSDataBytes, ncd.MacaroonDataBytes)
 		if err != nil {
-			server_errors.WrapLogAndSendServerError(c, err, "Obtaining publicKey/chain/network from gRPC (gRPC connection fails)")
+			server_errors.LogAndSendServerErrorCode(c, errors.Wrap(err, "Get info from LND Node"), "LNDConnect")
 			return
 		}
 

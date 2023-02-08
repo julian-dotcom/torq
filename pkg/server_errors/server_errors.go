@@ -29,30 +29,59 @@ const (
 	JsonParseError = "Parsing JSON"
 )
 
+type ErrorCodeOrDescription struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
 type ServerError struct {
 	Errors struct {
-		Fields map[string][]string `json:"fields"`
-		Server []string            `json:"server"`
+		Fields map[string][]ErrorCodeOrDescription `json:"fields"`
+		Server []ErrorCodeOrDescription            `json:"server"`
 	} `json:"errors"`
 }
 
 func (se *ServerError) AddFieldError(field string, fieldError string) {
 	if se.Errors.Fields == nil {
-		se.Errors.Fields = make(map[string][]string)
+		se.Errors.Fields = make(map[string][]ErrorCodeOrDescription)
 	}
 	if _, exists := se.Errors.Fields[field]; !exists {
-		se.Errors.Fields[field] = []string{}
+		se.Errors.Fields[field] = []ErrorCodeOrDescription{}
 	}
-	se.Errors.Fields[field] = append(se.Errors.Fields[field], fieldError)
+	ecod := ErrorCodeOrDescription{Description: fieldError}
+	se.Errors.Fields[field] = append(se.Errors.Fields[field], ecod)
+}
+
+func (se *ServerError) AddFieldErrorCode(field string, fieldErrorCode string) {
+	if se.Errors.Fields == nil {
+		se.Errors.Fields = make(map[string][]ErrorCodeOrDescription)
+	}
+	if _, exists := se.Errors.Fields[field]; !exists {
+		se.Errors.Fields[field] = []ErrorCodeOrDescription{}
+	}
+	ecod := ErrorCodeOrDescription{Code: fieldErrorCode}
+	se.Errors.Fields[field] = append(se.Errors.Fields[field], ecod)
+}
+
+func (se *ServerError) AddServerErrorCode(serverErrorCode string) {
+	ecod := ErrorCodeOrDescription{Code: serverErrorCode}
+	se.Errors.Server = append(se.Errors.Server, ecod)
 }
 
 func (se *ServerError) AddServerError(serverErrorDescription string) {
-	se.Errors.Server = append(se.Errors.Server, serverErrorDescription)
+	ecod := ErrorCodeOrDescription{Description: serverErrorDescription}
+	se.Errors.Server = append(se.Errors.Server, ecod)
 }
 
 func SingleServerError(serverErrorDescription string) *ServerError {
 	serverError := &ServerError{}
 	serverError.AddServerError(serverErrorDescription)
+	return serverError
+}
+
+func SingleServerErrorCode(serverErrorCode string) *ServerError {
+	serverError := &ServerError{}
+	serverError.AddServerErrorCode(serverErrorCode)
 	return serverError
 }
 
@@ -62,9 +91,20 @@ func SingleFieldError(field string, fieldError string) *ServerError {
 	return serverError
 }
 
+func SingleFieldErrorCode(field string, fieldErrorCode string) *ServerError {
+	serverError := &ServerError{}
+	serverError.AddFieldErrorCode(field, fieldErrorCode)
+	return serverError
+}
+
 func LogAndSendServerError(c *gin.Context, err error) {
 	log.Error().Err(err).Send()
 	c.JSON(http.StatusInternalServerError, SingleServerError(err.Error()))
+}
+
+func LogAndSendServerErrorCode(c *gin.Context, err error, code string) {
+	log.Error().Err(err).Send()
+	c.JSON(http.StatusInternalServerError, SingleServerErrorCode(code))
 }
 
 func WrapLogAndSendServerError(c *gin.Context, err error, message string) {

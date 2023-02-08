@@ -18,7 +18,7 @@ import Spinny from "features/spinny/Spinny";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import File from "components/forms/file/File";
-import Input from "components/forms/input/Input";
+import Input from "components/formsWithValidation/input/InputWithValidation";
 import {
   useAddNodeConfigurationMutation,
   useGetNodeConfigurationQuery,
@@ -37,6 +37,8 @@ import Switch from "components/forms/switch/Switch";
 import useTranslations from "services/i18n/useTranslations";
 import Form from "components/forms/form/Form";
 import Note, { NoteType } from "features/note/Note";
+import ErrorSummary from "components/errors/ErrorSummary";
+import { FormErrors, mergeServerError } from "components/errors/errors";
 
 interface nodeProps {
   nodeId: number;
@@ -133,6 +135,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [saveBootstrappingState, setSaveBootstrappingState] = useState(false);
   const [enableEnableButtonState, setEnableEnableButtonState] = useState(true);
   const [customSettingsState, setCustomSettingsState] = React.useState(customSettingsDefault);
+  const [formErrorState, setFormErrorState] = React.useState({} as FormErrors);
 
   const { data: bootingCheck } = useGetLndServicesQuery(nodeId, {
     skip: !saveBootstrappingState,
@@ -219,7 +222,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         })
         .catch((error) => {
           setSaveEnabledState(true);
-          toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
+          /* toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error); */
+          const mergedErrors = mergeServerError(error.data, formErrorState);
+          setFormErrorState(mergedErrors);
         });
       mixpanel.track("Add Local Node");
       return;
@@ -233,7 +238,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         })
         .catch((error) => {
           setSaveEnabledState(true);
-          toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
+          /* toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error); */
+          const mergedErrors = mergeServerError(error.data, formErrorState);
+          setFormErrorState(mergedErrors);
         });
       mixpanel.track("Update Local Node", { nodeId: nodeConfigurationState.nodeId });
     }
@@ -476,6 +483,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   value={nodeConfigurationState.grpcAddress}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAddressChange(e.target.value)}
                   placeholder="100.100.100.100:10009"
+                  name="grpcAddress"
+                  errors={formErrorState}
                 />
               </span>
               <span id="tls">
@@ -564,6 +573,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   </div>
                 </Collapse>
               </div>
+              <ErrorSummary errors={formErrorState} />
               <Button
                 id={"save-node"}
                 buttonColor={ColorVariant.success}

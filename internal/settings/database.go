@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/database"
