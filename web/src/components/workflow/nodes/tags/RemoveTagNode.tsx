@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Tag20Regular as TagIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
@@ -11,7 +11,11 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import { Tag } from "pages/tags/tagsTypes";
 import { InputSizeVariant, RadioChips, Select } from "components/forms/forms";
-import Spinny from "../../../../features/spinny/Spinny";
+import Spinny from "features/spinny/Spinny";
+import { WorkflowContext } from "components/workflow/WorkflowContext";
+import { Status } from "constants/backend";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
 
 type SelectOptions = {
   label?: string;
@@ -22,6 +26,10 @@ type TagProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export function RemoveTagNode({ ...wrapperProps }: TagProps) {
   const { t } = useTranslations();
+
+  const { workflowStatus } = useContext(WorkflowContext);
+  const editingDisabled = workflowStatus === Status.Active;
+  const toastRef = React.useContext(ToastContext);
 
   const [updateNode] = useUpdateNodeMutation();
 
@@ -86,6 +94,12 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
+
     setProcessing(true);
     const appliesTo = applyTo === applyToNodesId ? "nodes" : "channel";
     updateNode({
@@ -133,6 +147,7 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"channels"}
+          editingDisabled={editingDisabled}
         />
         <RadioChips
           label={t.ApplyTo}
@@ -152,6 +167,7 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
               onChange: () => setApplyTo(applyToNodesId),
             },
           ]}
+          editingDisabled={editingDisabled}
         />
         <Select
           isMulti={true}
@@ -160,13 +176,14 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
           label={t.workflowNodes.removeTag}
           sizeVariant={InputSizeVariant.small}
           value={selectedRemovedTags}
+          isDisabled={editingDisabled}
         />
         <Button
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}
           icon={!processing ? <SaveIcon /> : <Spinny />}
-          disabled={!dirty || processing}
+          disabled={!dirty || processing || editingDisabled}
         >
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>

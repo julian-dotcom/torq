@@ -33,6 +33,7 @@
 .stageContainer + .stageContainer {
   margin-left: -8px;
 }
+
 .stage {
   background-color: var(--color-primary-layer-4);
   transition: background-color 100ms ease-in-out, color 100ms ease-in-out;
@@ -43,11 +44,21 @@
   align-items: center;
   justify-content: center;
 }
+
 .stage:not(svg + .stage) {
   border-bottom-left-radius: var(--radius-default);
   border-top-left-radius: var(--radius-default);
   padding-left: 12px;
 }
+
+.stage.disabled {
+  background-color: var(--color-text-primary-extra-faint);
+  &:hover {
+    cursor: default;
+    fill: var(--color-text-primary-extra-faint);
+  }
+}
+
 .deleteStage {
   display: flex;
   width: 0px;
@@ -75,3 +86,29 @@
   background-color: var(--color-error-layer-4);
   color: var(--color-text-error-strong);
 }
+
+.stageContainer:has(.stage .deleteStage:hover .disabled) {
+  background-color: var(--color-primary-faint);
+}
+.stage:has(.deleteStage:hover) {
+  background-color: var(--color-error-layer-4);
+  color: var(--color-text-error-strong);
+}
+
+.stage:has(.deleteStage:hover .disabled) {
+  background-color: var(--color-primary-faint);
+  color: var(--color-text-error-strong);
+}
+
+.stageContainer:hover .stage.disabled {
+  background-color: var(--color-text-primary-extra-faint);
+}
+
+.disabledStage{
+  fill: var(--color-text-primary-extra-faint);
+  &:hover {
+    cursor: default;
+    fill: var(--color-text-primary-extra-faint);
+  }
+}
+

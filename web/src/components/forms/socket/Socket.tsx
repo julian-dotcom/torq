@@ -21,6 +21,7 @@ export type SocketProps = BasicInputType & {
   collapsed: boolean;
   placeholder?: string;
   acceptMultiple?: boolean;
+  editingDisabled: boolean;
 };
 
 function Socket(props: SocketProps) {
@@ -75,6 +76,12 @@ function Socket(props: SocketProps) {
     e.preventDefault();
     e.stopPropagation();
     setIsDragover(false);
+
+    if (props.editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
+
     // Get the id of the nodes connector that was dropped
     const parentWorkflowVersionNodeId = parseInt(e.dataTransfer.getData("node/parentWorkflowVersionNodeId"));
     const parentOutput = e.dataTransfer.getData("node/parentOutput");

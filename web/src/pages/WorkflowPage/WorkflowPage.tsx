@@ -12,6 +12,7 @@ import { StageSelector } from "components/workflow/stages/WorkflowStageSelector"
 import WorkflowControls from "./WorkflowControls";
 import { Status } from "constants/backend";
 import mixpanel from "mixpanel-browser";
+import { WorkflowContext } from "components/workflow/WorkflowContext";
 
 function WorkflowPage() {
   const { t } = useTranslations();
@@ -52,36 +53,39 @@ function WorkflowPage() {
   ];
 
   return (
-    <div className={styles.contentWrapper}>
-      <PageTitle breadcrumbs={breadcrumbs} title={workflow?.name || ""} onNameChange={handleWorkflowNameChange} />
-      <WorkflowControls
-        sidebarExpanded={sidebarExpanded}
-        setSidebarExpanded={setSidebarExpanded}
-        workflowId={workflow?.workflowId || 0}
-        status={workflow?.status || Status.Inactive}
-      />
-      <div className={styles.tableWrapper}>
-        <div className={styles.tableContainer}>
-          <div className={styles.tableExpander}>
-            <WorkflowCanvases
-              selectedStage={selectedStage}
-              workflowVersionId={workflowVersion?.workflowVersionId || 0}
-              workflowId={workflow?.workflowId || 0}
-              version={workflowVersion?.version || 0}
-            />
-            <StageSelector
-              stageNumbers={stageNumbers}
-              selectedStage={selectedStage}
-              setSelectedStage={selectStage}
-              workflowVersionId={workflowVersion?.workflowVersionId || 0}
-              workflowId={workflow?.workflowId || 0}
-              version={workflowVersion?.version || 0}
-            />
+    <WorkflowContext.Provider value={{ workflowStatus: workflow?.status || Status.Inactive }}>
+      <div className={styles.contentWrapper}>
+        <PageTitle breadcrumbs={breadcrumbs} title={workflow?.name || ""} onNameChange={handleWorkflowNameChange} />
+        <WorkflowControls
+          sidebarExpanded={sidebarExpanded}
+          setSidebarExpanded={setSidebarExpanded}
+          workflowId={workflow?.workflowId || 0}
+          status={workflow?.status || Status.Inactive}
+        />
+        <div className={styles.tableWrapper}>
+          <div className={styles.tableContainer}>
+            <div className={styles.tableExpander}>
+              <WorkflowCanvases
+                selectedStage={selectedStage}
+                workflowVersionId={workflowVersion?.workflowVersionId || 0}
+                workflowId={workflow?.workflowId || 0}
+                version={workflowVersion?.version || 0}
+              />
+              <StageSelector
+                stageNumbers={stageNumbers}
+                selectedStage={selectedStage}
+                setSelectedStage={selectStage}
+                workflowVersionId={workflowVersion?.workflowVersionId || 0}
+                workflowId={workflow?.workflowId || 0}
+                version={workflowVersion?.version || 0}
+                editingDisabled={workflow?.status === Status.Active}
+              />
+            </div>
           </div>
         </div>
+        <WorkflowSidebar expanded={sidebarExpanded} setExpanded={setSidebarExpanded} />
       </div>
-      <WorkflowSidebar expanded={sidebarExpanded} setExpanded={setSidebarExpanded} />
-    </div>
+    </WorkflowContext.Provider>
   );
 }
 

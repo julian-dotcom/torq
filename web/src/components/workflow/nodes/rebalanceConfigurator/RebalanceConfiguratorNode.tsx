@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { ArrowRotateClockwise20Regular as RebalanceConfiguratorIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import React, { useContext, useState } from "react";
+import {
+  ArrowRotateClockwise20Regular as RebalanceConfiguratorIcon,
+  Save16Regular as SaveIcon,
+} from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
@@ -8,6 +11,10 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
 import { Input, InputSizeVariant, Socket, Form } from "components/forms/forms";
+import { WorkflowContext } from "components/workflow/WorkflowContext";
+import { Status } from "constants/backend";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
 
 type RebalanceConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -20,6 +27,10 @@ export type RebalanceConfiguration = {
 
 export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfiguratorNodeProps) {
   const { t } = useTranslations();
+
+  const { workflowStatus } = useContext(WorkflowContext);
+  const editingDisabled = workflowStatus === Status.Active;
+  const toastRef = React.useContext(ToastContext);
 
   const [updateNode] = useUpdateNodeMutation();
 
@@ -35,7 +46,9 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
     ((wrapperProps.parameters as RebalanceConfiguration).amountMsat || 0) / 1000
   );
   const [maximumCostSat, setMaximumCostSat] = useState<number | undefined>(
-    (wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat?((wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat || 0) / 1000:undefined
+    (wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat
+      ? ((wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat || 0) / 1000
+      : undefined
   );
 
   function handleAmountSatChange(e: NumberFormatValues) {
@@ -65,6 +78,12 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
+
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: configuration,
@@ -139,6 +158,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"destinationChannels"}
+          editingDisabled={editingDisabled}
         />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
@@ -147,6 +167,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"sourceChannels"}
+          editingDisabled={editingDisabled}
         />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
@@ -155,6 +176,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"avoidChannels"}
+          editingDisabled={editingDisabled}
         />
         <Input
           formatted={true}
@@ -164,6 +186,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           onValueChange={handleAmountSatChange}
           label={t.amountSat}
           sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
         />
         <Input
           formatted={true}
@@ -173,6 +196,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           onValueChange={handleMaximumCostSatChange}
           label={t.maximumCostSat}
           sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
         />
         <Input
           formatted={true}
@@ -182,6 +206,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           onValueChange={createChangeHandler("maximumCostMilliMsat")}
           label={t.maximumCostMilliMsat}
           sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
         />
         {/*<Input*/}
         {/*  formatted={true}*/}

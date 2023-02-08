@@ -1,7 +1,12 @@
-import React, { MutableRefObject, useRef, useState } from "react";
+import React, { MutableRefObject, useContext, useRef, useState } from "react";
 import styles from "./node_button_wrapper.module.scss";
 import classNames from "classnames";
 import { GetColorClass, NodeColorVariant } from "components/workflow/nodes/nodeVariants";
+import { WorkflowContext } from "components/workflow/WorkflowContext";
+import { Status } from "constants/backend";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
+import useTranslations from "services/i18n/useTranslations";
 
 export type WorkflowNodeButtonProps = {
   title: string;
@@ -13,7 +18,12 @@ export type WorkflowNodeButtonProps = {
 };
 
 function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
+  const { t } = useTranslations();
   const buttonRef = useRef() as MutableRefObject<HTMLDivElement>;
+
+  const { workflowStatus } = useContext(WorkflowContext);
+  const editingDisabled = workflowStatus === Status.Active;
+  const toastRef = React.useContext(ToastContext);
 
   const [isDragging, setIsDragging] = useState(false);
 
@@ -21,6 +31,12 @@ function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
     if (props.disabled) {
       return;
     }
+
+    if (editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
+
     setIsDragging(true);
 
     // Set the drag image to the button itself with the position of the mouse relative to the button

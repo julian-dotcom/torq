@@ -8,6 +8,9 @@ import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
 import useTranslations from "services/i18n/useTranslations";
 import mixpanel from "mixpanel-browser";
+import React from "react";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
 
 type StageSelectorProps = {
   stageNumbers: Array<number>;
@@ -16,6 +19,7 @@ type StageSelectorProps = {
   workflowVersionId: number;
   workflowId: number;
   version: number;
+  editingDisabled: boolean;
 };
 
 export function StageSelector({
@@ -25,6 +29,7 @@ export function StageSelector({
   workflowVersionId,
   workflowId,
   version,
+  editingDisabled,
 }: StageSelectorProps) {
   return (
     <div className={styles.stagesWrapper}>
@@ -39,10 +44,12 @@ export function StageSelector({
             buttonIndex={index}
             workflowId={workflowId}
             version={version}
+            editingDisabled={editingDisabled}
           />
         );
       })}
       <AddStageButton
+        editingDisabled={editingDisabled}
         setSelectedStage={setSelectedStage}
         workflowVersionId={workflowVersionId}
         selectedStage={selectedStage}
@@ -60,15 +67,20 @@ type SelectStageButtonProps = {
   buttonIndex: number;
   workflowId: number;
   version: number;
+  editingDisabled: boolean;
 };
 
 function SelectStageButton(props: SelectStageButtonProps) {
   const { stage, stageNumbers, selectedStage, setSelectedStage, buttonIndex, workflowId, version } = props;
   const { t } = useTranslations();
-
+  const toastRef = React.useContext(ToastContext);
   const [deleteStage] = useDeleteStageMutation();
 
   function handleDeleteStage(stage: number) {
+    if (props.editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
     // Ask the user to confirm deletion of the stage
     if (!confirm(t.deleteStageConfirm)) {
       return;
@@ -97,7 +109,7 @@ function SelectStageButton(props: SelectStageButtonProps) {
       <div className={styles.stage}>
         {`${t.stage} ${buttonIndex + 1}`}
         {buttonIndex !== 0 && (
-          <div className={styles.deleteStage} onClick={() => handleDeleteStage(stage)}>
+          <div className={classNames(styles.deleteStage)} onClick={() => handleDeleteStage(stage)}>
             <DeleteIcon />
           </div>
         )}
@@ -112,14 +124,21 @@ type AddStageButtonProps = {
   selectedStage: number;
   setSelectedStage: (stage: number) => void;
   workflowVersionId: number;
+  editingDisabled: boolean;
 };
 
 function AddStageButton(props: AddStageButtonProps) {
   const { t } = useTranslations();
+  const toastRef = React.useContext(ToastContext);
   const [addNode] = useAddNodeMutation();
   const nextStage = Math.max(...props.stageNumbers) + 1;
 
   function handleAddStage() {
+    if (props.editingDisabled) {
+      toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
+      return;
+    }
+
     mixpanel.track("Workflow Add Stage", {
       workflowVersionId: props.workflowVersionId,
       workflowCurrentStage: props.selectedStage,
@@ -142,9 +161,15 @@ function AddStageButton(props: AddStageButtonProps) {
   }
 
   return (
-    <button className={classNames(styles.stageContainer, styles.addStageButton)} onClick={handleAddStage}>
+    <button
+      className={classNames(
+        styles.stageContainer,
+        props.editingDisabled ? styles.disabledStage : styles.addStageButton
+      )}
+      onClick={handleAddStage}
+    >
       <StageArrowBack />
-      <div className={styles.stage}>
+      <div className={classNames(styles.stage, props.editingDisabled ? styles.disabled : "")}>
         <NewStageIcon />
       </div>
       <StageArrowFront />
