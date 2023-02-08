@@ -180,6 +180,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"routingPolicySettings"}
+          editingDisabled={editingDisabled}
         />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
