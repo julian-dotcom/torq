@@ -437,15 +437,15 @@ func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPo
 
 	if len(channelEventsFromGraph) > 1 {
 		timeLockDelta := channelEventsFromGraph[0].TimeLockDelta
-		timeLockDeltaCounter := 0
+		timeLockDeltaCounter := 1
 		minHtlcMsat := channelEventsFromGraph[0].MinHtlcMsat
-		minHtlcMsatCounter := 0
+		minHtlcMsatCounter := 1
 		maxHtlcMsat := channelEventsFromGraph[0].MaxHtlcMsat
-		maxHtlcMsatCounter := 0
+		maxHtlcMsatCounter := 1
 		feeBaseMsat := channelEventsFromGraph[0].FeeBaseMsat
-		feeBaseMsatCounter := 0
+		feeBaseMsatCounter := 1
 		feeRateMilliMsat := channelEventsFromGraph[0].FeeRateMilliMsat
-		feeRateMilliMsatCounter := 0
+		feeRateMilliMsatCounter := 1
 		for i := 0; i < len(channelEventsFromGraph); i++ {
 			if timeLockDelta != channelEventsFromGraph[i].TimeLockDelta {
 				timeLockDeltaCounter++
@@ -480,7 +480,7 @@ func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPo
 				Request: request,
 				CommunicationResponse: commons.CommunicationResponse{
 					Status: commons.Inactive,
-					Error:  err.Error(),
+					Error:  "Routing policy update ignored due to rate limiter",
 				},
 			}
 		}
