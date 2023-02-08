@@ -338,6 +338,8 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			log.Debug().Msgf("Channel Open Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		case commons.WorkflowNodeChannelCloseEventTrigger:
 			log.Debug().Msgf("Channel Close Event Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		case commons.WorkflowTrigger:
+			fallthrough
 		case commons.WorkflowNodeManualTrigger:
 			log.Debug().Msgf("Manual Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		case commons.WorkflowNodeStageTrigger:
