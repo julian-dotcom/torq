@@ -8,7 +8,7 @@ import { useWorkflowData } from "./workflowHooks";
 import { useUpdateWorkflowMutation } from "./workflowApi";
 import WorkflowSidebar from "components/workflow/sidebar/WorkflowSidebar";
 import { WorkflowCanvases } from "components/workflow/canvas/WorkflowCanvasStages";
-// import { StageSelector } from "components/workflow/stages/WorkflowStageSelector";
+import { StageSelector } from "components/workflow/stages/WorkflowStageSelector";
 import WorkflowControls from "./WorkflowControls";
 import { Status } from "constants/backend";
 import mixpanel from "mixpanel-browser";
@@ -20,19 +20,19 @@ function WorkflowPage() {
 
   // Fetch the workflow data
   const { workflowId, version } = useParams();
-  const { workflow, workflowVersion } = useWorkflowData(workflowId, version); // stageNumbers
+  const { workflow, workflowVersion, stageNumbers } = useWorkflowData(workflowId, version);
 
-  const [selectedStage] = useState<number>(1); //setSelectedStage
+  const [selectedStage, setSelectedStage] = useState<number>(1); //setSelectedStage
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
 
-  // function selectStage(stage: number) {
-  //   mixpanel.track("Workflow Select Stage", {
-  //     workflowId: workflowId,
-  //     workflowVersion: version,
-  //     workflowStage: stage,
-  //   });
-  //   setSelectedStage(stage);
-  // }
+   function selectStage(stage: number) {
+     mixpanel.track("Workflow Select Stage", {
+       workflowId: workflowId,
+       workflowVersion: version,
+       workflowStage: stage,
+     });
+     setSelectedStage(stage);
+   }
 
   const [updateWorkflow] = useUpdateWorkflowMutation();
 
@@ -72,15 +72,15 @@ function WorkflowPage() {
                 workflowId={workflow?.workflowId || 0}
                 version={workflowVersion?.version || 0}
               />
-              {/*<StageSelector*/}
-              {/*  stageNumbers={stageNumbers}*/}
-              {/*  selectedStage={selectedStage}*/}
-              {/*  setSelectedStage={selectStage}*/}
-              {/*  workflowVersionId={workflowVersion?.workflowVersionId || 0}*/}
-              {/*  workflowId={workflow?.workflowId || 0}*/}
-              {/*  version={workflowVersion?.version || 0}*/}
-              {/*  editingDisabled={workflow?.status === Status.Active}*/}
-              {/*/>*/}
+              <StageSelector
+                stageNumbers={stageNumbers}
+                selectedStage={selectedStage}
+                setSelectedStage={selectStage}
+                workflowVersionId={workflowVersion?.workflowVersionId || 0}
+                workflowId={workflow?.workflowId || 0}
+                version={workflowVersion?.version || 0}
+                editingDisabled={workflow?.status === Status.Active}
+              />
               {workflow?.status === Status.Active && (
                 <div className={styles.workflowStatusNote}>
                   <Note title={t.note} noteType={NoteType.warning}>
