@@ -1,0 +1,16 @@
+
+UPDATE tag SET name = 'Free' WHERE tag_id=-1;
+UPDATE tag SET name = 'New' WHERE tag_id=-5;
+UPDATE tag SET name = 'Sink' WHERE tag_id=-7;
+UPDATE tag SET name = 'Source' WHERE tag_id=-8;
+UPDATE tag SET name = 'Merchant' WHERE tag_id=-10;
+UPDATE tag SET name = 'Exchange' WHERE tag_id=-11;
+UPDATE tag SET name = 'Wallet' WHERE tag_id=-12;
+UPDATE tag SET name = 'Balanced' WHERE tag_id=-13;
+
+INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-15, 'Depleted', 'error', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-16, 'Filled', 'warning', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-17, 'Leased', 'success', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-18, 'Rented', 'success', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-19, 'Expensive', 'success', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-20, 'Cheap', 'success', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
