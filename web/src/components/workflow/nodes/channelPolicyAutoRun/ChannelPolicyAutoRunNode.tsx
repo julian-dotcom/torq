@@ -19,6 +19,7 @@ import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
+import Note, { NoteType } from "features/note/Note";
 
 type ChannelPolicyAutoRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -219,6 +220,9 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
       </Form>
+      <Note title={t.note} noteType={NoteType.info}>
+        <p>{t.workflowNodes.channelPolicyDescription}</p>
+      </Note>
     </WorkflowNodeWrapper>
   );
 }
