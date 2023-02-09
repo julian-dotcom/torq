@@ -460,7 +460,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 
 	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
 		0, workflowNodeCache, workflowNodeStatus,
-		reference, inputs, 0, workflowStageExitConfigurationCache,
+		reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
 		lightningRequestChannel, rebalanceRequestChannel)
 	workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
 		0, inputs, outputs, err)
@@ -480,7 +480,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 		inputs = commons.CopyParameters(outputs)
 		outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, workflowDeferredLinkNode,
 			0, workflowNodeCache, workflowNodeStatus,
-			reference, inputs, 0, workflowStageExitConfigurationCache,
+			reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
 			lightningRequestChannel, rebalanceRequestChannel)
 		workflows.AddWorkflowVersionNodeLog(db, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
 			0, inputs, outputs, err)

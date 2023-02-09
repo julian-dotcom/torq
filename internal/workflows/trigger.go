@@ -27,6 +27,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	reference string,
 	inputs map[commons.WorkflowParameterLabel]string,
 	iteration int,
+	triggerType commons.WorkflowNodeType,
 	workflowStageExitConfigurationCache map[int]map[commons.WorkflowParameterLabel]string,
 	lightningRequestChannel chan interface{},
 	rebalanceRequestChannel chan commons.RebalanceRequest) (map[commons.WorkflowParameterLabel]string, commons.Status, error) {
@@ -189,7 +190,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 
 			if len(linkedChannelIds) != 0 {
 				var responses []commons.RoutingPolicyUpdateResponse
-				responses, err = processRoutingPolicyRun(routingPolicySettings, lightningRequestChannel, workflowNode, reference)
+				responses, err = processRoutingPolicyRun(routingPolicySettings, lightningRequestChannel, workflowNode, reference, triggerType)
 				if err != nil {
 					return nil, commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 				}
@@ -220,7 +221,7 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 
 			if len(routingPolicySettings.ChannelIds) != 0 {
 				var responses []commons.RoutingPolicyUpdateResponse
-				responses, err = processRoutingPolicyRun(routingPolicySettings, lightningRequestChannel, workflowNode, reference)
+				responses, err = processRoutingPolicyRun(routingPolicySettings, lightningRequestChannel, workflowNode, reference, triggerType)
 				if err != nil {
 					return nil, commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 				}
@@ -354,21 +355,16 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			}
 		}
 		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
-		for childLinkId, childNode := range workflowNode.ChildNodes {
-			// If there is no entry in the workflowNodeStagingParametersCache map for the child node's workflow version node ID, initialize an empty map
-			if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
-				workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
-			}
-			childInput := workflowNode.LinkDetails[childLinkId].ChildInput
-			parentOutput := workflowNode.LinkDetails[childLinkId].ParentOutput
-			if outputs[parentOutput] != "" {
-				workflowStageExitConfigurationCache[workflowNode.Stage][childInput] = outputs[parentOutput]
-			} else if outputs[childInput] != "" {
-				workflowStageExitConfigurationCache[workflowNode.Stage][childInput] = outputs[childInput]
-			}
+		if workflowStageExitConfigurationCache[workflowNode.Stage] == nil {
+			workflowStageExitConfigurationCache[workflowNode.Stage] = make(map[commons.WorkflowParameterLabel]string)
+		}
+		for label, value := range outputs {
+			workflowStageExitConfigurationCache[workflowNode.Stage][label] = value
+		}
+		for _, childNode := range workflowNode.ChildNodes {
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
 			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, *childNode, workflowNode.WorkflowVersionNodeId,
-				workflowNodeCache, workflowNodeStatus, reference, outputs, iteration,
+				workflowNodeCache, workflowNodeStatus, reference, outputs, iteration, triggerType,
 				workflowStageExitConfigurationCache, lightningRequestChannel, rebalanceRequestChannel)
 			// If childProcessingStatus is not equal to commons.Pending, call AddWorkflowVersionNodeLog with several arguments, including nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, triggeringWorkflowVersionNodeId, inputs, and childOutputs
 			if childProcessingStatus != commons.Pending {
@@ -389,7 +385,8 @@ func processRoutingPolicyRun(
 	routingPolicySettings ChannelPolicyConfiguration,
 	lightningRequestChannel chan interface{},
 	workflowNode WorkflowNode,
-	reference string) ([]commons.RoutingPolicyUpdateResponse, error) {
+	reference string,
+	triggerType commons.WorkflowNodeType) ([]commons.RoutingPolicyUpdateResponse, error) {
 
 	now := time.Now()
 	torqNodeIds := commons.GetAllTorqNodeIds()
@@ -404,7 +401,7 @@ func processRoutingPolicyRun(
 			log.Info().Msgf("Routing policy update on unmanaged channel for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			continue
 		}
-		response := channels.SetRoutingPolicyWithTimeout(commons.RoutingPolicyUpdateRequest{
+		routingPolicyUpdateRequest := commons.RoutingPolicyUpdateRequest{
 			CommunicationRequest: commons.CommunicationRequest{
 				RequestId:   reference,
 				RequestTime: &now,
@@ -416,7 +413,11 @@ func processRoutingPolicyRun(
 			MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
 			MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
 			TimeLockDelta:    routingPolicySettings.TimeLockDelta,
-		}, lightningRequestChannel)
+		}
+		if triggerType == commons.WorkflowNodeManualTrigger {
+			routingPolicyUpdateRequest.RateLimitSeconds = 1
+		}
+		response := channels.SetRoutingPolicyWithTimeout(routingPolicyUpdateRequest, lightningRequestChannel)
 		if response.Error != "" {
 			log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}

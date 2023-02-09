@@ -135,21 +135,6 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
     })
   );
 
-  const routingPolicySettingIds =
-    childLinks
-      ?.filter((n) => {
-        return n.childInput === "routingPolicySettings";
-      })
-      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
-
-  const routingPolicySettings = useSelector(
-    SelectWorkflowNodes({
-      version: wrapperProps.version,
-      workflowId: wrapperProps.workflowId,
-      nodeIds: routingPolicySettingIds,
-    })
-  );
-
   const channelIds =
     childLinks
       ?.filter((n) => {
@@ -170,18 +155,9 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
       {...wrapperProps}
       headerIcon={<ChannelPolicyConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
-      outputName={"routingPolicySettings"}
+      outputName={"channels"}
     >
       <Form onSubmit={handleSubmit}>
-        <Socket
-          collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.inputs}
-          selectedNodes={routingPolicySettings || []}
-          workflowVersionId={wrapperProps.workflowVersionId}
-          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputName={"routingPolicySettings"}
-          editingDisabled={editingDisabled}
-        />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.channels}

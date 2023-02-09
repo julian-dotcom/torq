@@ -711,6 +711,9 @@ func GetTriggerGroupWorkflowVersionNodeId(db *sqlx.DB, workflowVersionNodeId int
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}
+	if wfvn.Type == commons.WorkflowTrigger {
+		return wfvn.WorkflowVersionNodeId, nil
+	}
 	var workflowVersionGroupNodeId int
 	err = db.Get(&workflowVersionGroupNodeId, `
 		SELECT n.workflow_version_node_id
