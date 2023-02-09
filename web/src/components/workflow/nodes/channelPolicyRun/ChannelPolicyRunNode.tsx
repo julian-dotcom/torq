@@ -8,6 +8,7 @@ import { useSelector } from "react-redux";
 import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import { useContext } from "react";
+import Note, { NoteType } from "features/note/Note";
 
 type ChannelPolicyRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -57,6 +58,9 @@ export function ChannelPolicyRunNode({ ...wrapperProps }: ChannelPolicyRunNodePr
           inputName={"channels"}
           editingDisabled={editingDisabled}
         />
+        <Note title={t.note} noteType={NoteType.info}>
+          <p>{t.workflowNodes.channelPolicyDescription}</p>
+        </Note>
       </div>
     </WorkflowNodeWrapper>
   );
