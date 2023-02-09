@@ -390,24 +390,12 @@ func processRoutingPolicyRun(
 	lightningRequestChannel chan interface{},
 	workflowNode WorkflowNode,
 	reference string) ([]commons.RoutingPolicyUpdateResponse, error) {
-	if lightningRequestChannel == nil {
-		log.Info().Msgf("Routing policy update skipped because lightningRequestChannel is nil for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-		return nil, nil
-	}
-	if routingPolicySettings.FeeBaseMsat == nil &&
-		routingPolicySettings.FeeRateMilliMsat == nil &&
-		routingPolicySettings.MaxHtlcMsat == nil &&
-		routingPolicySettings.MinHtlcMsat == nil &&
-		routingPolicySettings.TimeLockDelta == nil {
-		log.Info().Msgf("Routing policy update skipped because no data was found for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-		return nil, nil
-	}
 
 	now := time.Now()
 	torqNodeIds := commons.GetAllTorqNodeIds()
 	var responses []commons.RoutingPolicyUpdateResponse
-	for index := range routingPolicySettings.ChannelIds {
-		channelSettings := commons.GetChannelSettingByChannelId(routingPolicySettings.ChannelIds[index])
+	for _, channelId := range routingPolicySettings.ChannelIds {
+		channelSettings := commons.GetChannelSettingByChannelId(channelId)
 		nodeId := channelSettings.FirstNodeId
 		if !slices.Contains(torqNodeIds, nodeId) {
 			nodeId = channelSettings.SecondNodeId
@@ -416,27 +404,23 @@ func processRoutingPolicyRun(
 			log.Info().Msgf("Routing policy update on unmanaged channel for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			continue
 		}
-		if commons.RunningServices[commons.LightningCommunicationService].GetStatus(nodeId) == commons.Active {
-			if hasRoutingPolicyChanges(nodeId, routingPolicySettings.ChannelIds[index], routingPolicySettings) {
-				response := channels.SetRoutingPolicyWithTimeout(commons.RoutingPolicyUpdateRequest{
-					CommunicationRequest: commons.CommunicationRequest{
-						RequestId:   reference,
-						RequestTime: &now,
-						NodeId:      nodeId,
-					},
-					ChannelId:        routingPolicySettings.ChannelIds[index],
-					FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
-					FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
-					MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
-					MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
-					TimeLockDelta:    routingPolicySettings.TimeLockDelta,
-				}, lightningRequestChannel)
-				if response.Error != "" {
-					log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				}
-				responses = append(responses, response)
-			}
+		response := channels.SetRoutingPolicyWithTimeout(commons.RoutingPolicyUpdateRequest{
+			CommunicationRequest: commons.CommunicationRequest{
+				RequestId:   reference,
+				RequestTime: &now,
+				NodeId:      nodeId,
+			},
+			ChannelId:        channelId,
+			FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
+			FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
+			MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
+			MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
+			TimeLockDelta:    routingPolicySettings.TimeLockDelta,
+		}, lightningRequestChannel)
+		if response.Error != "" {
+			log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
+		responses = append(responses, response)
 	}
 	return responses, nil
 }
@@ -544,31 +528,6 @@ func getTagEntityRequest(channelId int, tagId int, params TagParameters, torqNod
 			TagId:     tagId,
 		}
 	}
-}
-
-func hasRoutingPolicyChanges(nodeId int, channelId int, routingPolicySettings ChannelPolicyConfiguration) bool {
-	channelStateSettings := commons.GetChannelState(nodeId, channelId, true)
-	if routingPolicySettings.FeeBaseMsat != nil &&
-		*routingPolicySettings.FeeBaseMsat != channelStateSettings.LocalFeeBaseMsat {
-		return true
-	}
-	if routingPolicySettings.FeeRateMilliMsat != nil &&
-		*routingPolicySettings.FeeRateMilliMsat != channelStateSettings.LocalFeeRateMilliMsat {
-		return true
-	}
-	if routingPolicySettings.MinHtlcMsat != nil &&
-		*routingPolicySettings.MinHtlcMsat != channelStateSettings.LocalMinHtlcMsat {
-		return true
-	}
-	if routingPolicySettings.MaxHtlcMsat != nil &&
-		*routingPolicySettings.MaxHtlcMsat != channelStateSettings.LocalMaxHtlcMsat {
-		return true
-	}
-	if routingPolicySettings.TimeLockDelta != nil &&
-		*routingPolicySettings.TimeLockDelta != channelStateSettings.LocalTimeLockDelta {
-		return true
-	}
-	return false
 }
 
 func getLinkedChannelIds(inputs map[commons.WorkflowParameterLabel]string, workflowNode WorkflowNode) ([]int, error) {

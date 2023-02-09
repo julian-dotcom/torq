@@ -261,6 +261,15 @@ func processRoutingPolicyUpdateRequest(ctx context.Context, db *sqlx.DB, request
 	}
 
 	channelState := commons.GetChannelState(request.NodeId, request.ChannelId, true)
+	if channelState == nil {
+		return commons.RoutingPolicyUpdateResponse{
+			Request: request,
+			CommunicationResponse: commons.CommunicationResponse{
+				Status:  commons.Inactive,
+				Message: "channelState was nil",
+			},
+		}
+	}
 	if !routingPolicyUpdateRequestContainsUpdates(request, channelState) {
 		return commons.RoutingPolicyUpdateResponse{
 			Request: request,
@@ -283,6 +292,15 @@ func processRoutingPolicyUpdateRequest(ctx context.Context, db *sqlx.DB, request
 func processRoutingPolicyUpdateResponse(request commons.RoutingPolicyUpdateRequest, resp *lnrpc.PolicyUpdateResponse,
 	err error) commons.RoutingPolicyUpdateResponse {
 
+	if err != nil && resp == nil {
+		log.Error().Err(err).Msgf("Failed to update routing policy for channelId: %v on nodeId: %v", request.ChannelId, request.NodeId)
+		return commons.RoutingPolicyUpdateResponse{
+			Request: request,
+			CommunicationResponse: commons.CommunicationResponse{
+				Status: commons.Inactive,
+			},
+		}
+	}
 	var failedUpdateArray []commons.FailedRequest
 	for _, failedUpdate := range resp.GetFailedUpdates() {
 		log.Error().Msgf("Failed to update routing policy for channelId: %v on nodeId: %v (%v)",
@@ -293,7 +311,7 @@ func processRoutingPolicyUpdateResponse(request commons.RoutingPolicyUpdateReque
 		}
 		failedUpdateArray = append(failedUpdateArray, failedRequest)
 	}
-	if err != nil || len(failedUpdateArray) > 0 {
+	if err != nil || len(failedUpdateArray) != 0 {
 		log.Error().Err(err).Msgf("Failed to update routing policy for channelId: %v on nodeId: %v", request.ChannelId, request.NodeId)
 		return commons.RoutingPolicyUpdateResponse{
 			Request: request,
@@ -402,8 +420,11 @@ func routingPolicyUpdateRequestContainsUpdates(request commons.RoutingPolicyUpda
 }
 
 func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPolicyUpdateRequest) *commons.RoutingPolicyUpdateResponse {
-	secondsAgo := commons.ROUTING_POLICY_UPDATE_LIMITER_SECONDS
-	channelEventsFromGraph, err := graph_events.GetChannelEventFromGraph(db, request.ChannelId, &secondsAgo)
+	rateLimitSeconds := commons.ROUTING_POLICY_UPDATE_LIMITER_SECONDS
+	if request.RateLimitSeconds > 0 {
+		rateLimitSeconds = request.RateLimitSeconds
+	}
+	channelEventsFromGraph, err := graph_events.GetChannelEventFromGraph(db, request.ChannelId, &rateLimitSeconds)
 	if err != nil {
 		return &commons.RoutingPolicyUpdateResponse{
 			Request: request,
@@ -416,15 +437,15 @@ func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPo
 
 	if len(channelEventsFromGraph) > 1 {
 		timeLockDelta := channelEventsFromGraph[0].TimeLockDelta
-		timeLockDeltaCounter := 0
+		timeLockDeltaCounter := 1
 		minHtlcMsat := channelEventsFromGraph[0].MinHtlcMsat
-		minHtlcMsatCounter := 0
+		minHtlcMsatCounter := 1
 		maxHtlcMsat := channelEventsFromGraph[0].MaxHtlcMsat
-		maxHtlcMsatCounter := 0
+		maxHtlcMsatCounter := 1
 		feeBaseMsat := channelEventsFromGraph[0].FeeBaseMsat
-		feeBaseMsatCounter := 0
+		feeBaseMsatCounter := 1
 		feeRateMilliMsat := channelEventsFromGraph[0].FeeRateMilliMsat
-		feeRateMilliMsatCounter := 0
+		feeRateMilliMsatCounter := 1
 		for i := 0; i < len(channelEventsFromGraph); i++ {
 			if timeLockDelta != channelEventsFromGraph[i].TimeLockDelta {
 				timeLockDeltaCounter++
@@ -447,15 +468,19 @@ func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPo
 				feeRateMilliMsat = channelEventsFromGraph[i].FeeRateMilliMsat
 			}
 		}
-		if timeLockDeltaCounter > 2 ||
-			minHtlcMsatCounter > 2 || maxHtlcMsatCounter > 2 ||
-			feeBaseMsatCounter > 2 || feeRateMilliMsatCounter > 2 {
+		rateLimitCount := 2
+		if request.RateLimitCount > 0 {
+			rateLimitCount = request.RateLimitCount
+		}
+		if timeLockDeltaCounter >= rateLimitCount ||
+			minHtlcMsatCounter >= rateLimitCount || maxHtlcMsatCounter >= rateLimitCount ||
+			feeBaseMsatCounter >= rateLimitCount || feeRateMilliMsatCounter >= rateLimitCount {
 
 			return &commons.RoutingPolicyUpdateResponse{
 				Request: request,
 				CommunicationResponse: commons.CommunicationResponse{
 					Status: commons.Inactive,
-					Error:  err.Error(),
+					Error:  "Routing policy update ignored due to rate limiter",
 				},
 			}
 		}
