@@ -62,7 +62,7 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
   const applyToChannelId = "channels-" + wrapperProps.workflowVersionNodeId;
   const applyToNodesId = "nodes-" + wrapperProps.workflowVersionNodeId;
 
-  const [applyTo, setApplyTo] = useState(applyToChannelId);
+  const [appliesTo, setAppliesTo] = useState(wrapperProps.parameters.applyTo || "channel");
   const [selectedAddedTags, setSelectedAddedtags] = useState<SelectedTag[]>(
     (wrapperProps.parameters as TagParameters).addedTags
   );
@@ -74,7 +74,6 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
   const [dirty, setDirty] = useState(false);
   const [processing, setProcessing] = useState(false);
   useEffect(() => {
-    const appliesTo = applyTo === applyToNodesId ? "nodes" : "channel";
     if (
       ((wrapperProps.parameters as TagParameters).addedTags || [])
         .map((t) => t.value)
@@ -90,7 +89,7 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
     } else {
       setDirty(false);
     }
-  }, [applyTo, selectedAddedTags, wrapperProps.parameters]);
+  }, [appliesTo, selectedAddedTags, wrapperProps.parameters]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -101,7 +100,6 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
     }
 
     setProcessing(true);
-    const appliesTo = applyTo === applyToNodesId ? "nodes" : "channel";
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: {
@@ -157,14 +155,14 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
             {
               label: t.channels,
               id: applyToChannelId,
-              checked: applyTo === applyToChannelId,
-              onChange: () => setApplyTo(applyToChannelId),
+              checked: appliesTo === "channel",
+              onChange: () => setAppliesTo("channel"),
             },
             {
               label: t.nodes,
               id: applyToNodesId,
-              checked: applyTo === applyToNodesId,
-              onChange: () => setApplyTo(applyToNodesId),
+              checked: appliesTo === "nodes",
+              onChange: () => setAppliesTo("nodes"),
             },
           ]}
           editingDisabled={editingDisabled}
