@@ -8,9 +8,15 @@ UPDATE tag SET name = 'Exchange' WHERE tag_id=-11;
 UPDATE tag SET name = 'Wallet' WHERE tag_id=-12;
 UPDATE tag SET name = 'Balanced' WHERE tag_id=-13;
 
+UPDATE tag SET name = 'Depleted [User defined]' WHERE name='Depleted';
 INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-15, 'Depleted', 'error', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+UPDATE tag SET name = 'Filled [User defined]' WHERE name='Filled';
 INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-16, 'Filled', 'warning', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+UPDATE tag SET name = 'Leased [User defined]' WHERE name='Leased';
 INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-17, 'Leased', 'success', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+UPDATE tag SET name = 'Rented [User defined]' WHERE name='Rented';
 INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-18, 'Rented', 'success', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+UPDATE tag SET name = 'Expensive [User defined]' WHERE name='Expensive';
 INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-19, 'Expensive', 'success', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+UPDATE tag SET name = 'Cheap [User defined]' WHERE name='Cheap';
 INSERT INTO tag (tag_id, name, style, created_on, updated_on) VALUES (-20, 'Cheap', 'success', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
