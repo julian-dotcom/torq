@@ -26,12 +26,13 @@ import * as routes from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import NetworkSelector from "./NetworkSelector";
 import { useEffect } from "react";
-import { useGetSettingsQuery } from "apiSlice";
+import { useGetAutoLoginSettingQuery, useGetSettingsQuery } from "apiSlice";
 import MenuButtonItem from "./MenuButtonItem";
 
 function Navigation() {
   const dispatch = useAppDispatch();
   const { data: settingsData } = useGetSettingsQuery();
+  const { data: autoLogin } = useGetAutoLoginSettingQuery();
   const { t } = useTranslations();
   const { boot } = useIntercom();
 
@@ -148,7 +149,14 @@ function Navigation() {
           routeTo={"/settings"}
           onClick={() => mixpanel.track("Navigate to Settings")}
         />
-        <MenuItem text={t.logout} icon={<LogoutIcon />} routeTo={"/logout"} onClick={() => mixpanel.track("Logout")} />
+        {!autoLogin && (
+          <MenuItem
+            text={t.logout}
+            icon={<LogoutIcon />}
+            routeTo={"/logout"}
+            onClick={() => mixpanel.track("Logout")}
+          />
+        )}
       </div>
     </div>
   );

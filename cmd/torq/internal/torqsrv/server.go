@@ -144,6 +144,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 	rl := NewLoginRateLimitMiddleware()
 	api.POST("/login", rl, auth.Login(apiPwd))
 	api.POST("/cookie-login", rl, auth.CookieLogin(cookiePath))
+	api.GET("auto-login-setting", rl, auth.AutoLoginSetting(autoLogin))
 
 	unauthorisedSettingRoutes := api.Group("settings")
 	{

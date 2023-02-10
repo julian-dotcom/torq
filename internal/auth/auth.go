@@ -179,3 +179,9 @@ func Logout(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
 }
+
+func AutoLoginSetting(autoLogin bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, autoLogin)
+	}
+}
