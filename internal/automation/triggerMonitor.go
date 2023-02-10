@@ -236,8 +236,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 				workflowTriggerNode.Type = commons.WorkflowNodeManualTrigger
 			}
 
-			if scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeIntervalTrigger &&
-				scheduledTrigger.TriggeringNodeType != commons.WorkflowNodeCronTrigger {
+			if scheduledTrigger.TriggeringNodeType == commons.WorkflowNodeChannelBalanceEventTrigger {
 				// If the event is a WorkflowNode then this is the bootstrapping event that simulates a channel update
 				// since we don't know what happened while Torq was offline.
 				switch firstEvent.(type) {
@@ -458,17 +457,6 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 		workflowNodeStatus[triggerGroupWorkflowVersionNodeId] = commons.Active
 	}
 
-	outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
-		0, workflowNodeCache, workflowNodeStatus,
-		reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
-		lightningRequestChannel, rebalanceRequestChannel)
-	workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
-		0, inputs, outputs, err)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		return
-	}
-
 	workflowChannelBalanceTriggerNodes, err := workflows.GetActiveSortedStageTriggerNodeForWorkflowVersionId(db,
 		workflowTriggerNode.WorkflowVersionId)
 	if err != nil {
@@ -476,16 +464,53 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 		return
 	}
 
-	for _, workflowDeferredLinkNode := range workflowChannelBalanceTriggerNodes {
-		inputs = commons.CopyParameters(outputs)
-		outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, workflowDeferredLinkNode,
+	if len(workflowChannelBalanceTriggerNodes) == 0 {
+		outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
 			0, workflowNodeCache, workflowNodeStatus,
 			reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
 			lightningRequestChannel, rebalanceRequestChannel)
-		workflows.AddWorkflowVersionNodeLog(db, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
+		workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
 			0, inputs, outputs, err)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to trigger deferred link node for WorkflowVersionNodeId: %v", workflowDeferredLinkNode.WorkflowVersionNodeId)
+			log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+		}
+		return
+	}
+	var channelIds []int
+	err = json.Unmarshal([]byte(inputs[commons.WorkflowParameterLabelChannels]), &channelIds)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to unmarshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+		return
+	}
+	for _, channelId := range channelIds {
+		marshalledChannelIdsFromEvents, err := json.Marshal([]int{channelId})
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to marshal eventChannelId for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+			continue
+		}
+		inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
+
+		outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
+			0, workflowNodeCache, workflowNodeStatus,
+			reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
+			lightningRequestChannel, rebalanceRequestChannel)
+		workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
+			0, inputs, outputs, err)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+		}
+
+		for _, workflowDeferredLinkNode := range workflowChannelBalanceTriggerNodes {
+			inputs = commons.CopyParameters(outputs)
+			outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, workflowDeferredLinkNode,
+				0, workflowNodeCache, workflowNodeStatus,
+				reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
+				lightningRequestChannel, rebalanceRequestChannel)
+			workflows.AddWorkflowVersionNodeLog(db, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
+				0, inputs, outputs, err)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to trigger deferred link node for WorkflowVersionNodeId: %v", workflowDeferredLinkNode.WorkflowVersionNodeId)
+			}
 		}
 	}
 }

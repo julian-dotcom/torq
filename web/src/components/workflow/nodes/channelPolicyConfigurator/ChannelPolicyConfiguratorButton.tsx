@@ -13,7 +13,6 @@ export function ChannelPolicyConfiguratorNodeButton() {
       nodeType={WorkflowNodeType.ChannelPolicyConfigurator}
       icon={<ChannelPolicyConfiguratorIcon />}
       title={t.workflowNodes.channelPolicyConfigurator}
-      disabled={true}
     />
   );
 }
