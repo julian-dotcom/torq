@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -246,8 +247,11 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctx, channelBalanceEventChannelGlobal)
 	go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctx)
 	go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
+	go commons.ManagedNodeAliasCache(commons.ManagedNodeAliasChannel, ctx)
 	go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)
+	go commons.ManagedTaggedCache(commons.ManagedTaggedChannel, ctx)
 	go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctx)
+	go tags.ManagedTagCache(tags.ManagedTagChannel, ctx)
 	// TODO FIXME cyclic dependency so if you need this in tests then initialise it in the test
 	//go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctx)
 

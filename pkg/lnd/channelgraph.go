@@ -362,6 +362,7 @@ func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias st
 		if err != nil {
 			return errors.Wrap(err, "Executing SQL")
 		}
+		commons.SetNodeAlias(eventNodeId, alias)
 
 		if nodeGraphEventChannel != nil {
 			nodeGraphEvent := commons.NodeGraphEvent{

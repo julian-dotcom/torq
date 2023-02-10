@@ -40,18 +40,7 @@ func GetChannels(db *sqlx.DB, nodeIds []int, all bool, channelIds []int) ([]*Cha
 		if err != nil {
 			return nil, errors.Wrapf(err, "Running getChannels query StructScan all: %v, channelIds: %v", all, channelIds)
 		}
-
-		// Improve this. Get all tags for all channels in one query
-		t, err := tags.GetChannelTags(db, tags.ChannelTagsRequest{
-			ChannelId: c.ChannelID,
-			NodeId:    &c.SecondNodeId,
-		})
-		c.Tags = t
-
-		if err != nil {
-			return r, errors.Wrap(err, "Getting channel tags in forwards")
-		}
-
+		c.Tags = tags.GetTagsByTagIds(commons.GetTagIdsByChannelId(c.SecondNodeId, c.ChannelID))
 		r = append(r, c)
 	}
 	return r, nil
@@ -129,18 +118,6 @@ func GetRemoteRoutingPolicy(channelId, nodeId int, db *sqlx.DB) (ChannelPolicy, 
 	return cp, nil
 }
 
-func GetNodePeerAlias(nodeId int, eventNodeId int, db *sqlx.DB) (string, error) {
-	var alias string
-	err := db.Get(&alias, "SELECT DISTINCT alias FROM node_event WHERE node_id = $1 AND event_node_id = $2 LIMIT 1;", nodeId, eventNodeId)
-	if err != nil {
-		if errors.As(err, &sql.ErrNoRows) {
-			return "", nil
-		}
-		return "", errors.Wrap(err, database.SqlExecutionError)
-	}
-	return alias, nil
-}
-
 func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err error) {
 	err = db.Select(&channels, `
 		SELECT *
@@ -156,36 +133,46 @@ func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err 
 	return channels, nil
 }
 
-func GetChannelsForTag(db *sqlx.DB) (channels []ChannelForTag, err error) {
-	err = db.Select(&channels, `
-		select distinct short_channel_id, channel_id, c.second_node_id as node_id, ne.alias as alias, 'channel' as type
-		from channel c
-		left join (select event_node_id, node_id, last(alias, timestamp) as alias from node_event group by event_node_id, node_id) ne on c.second_node_id = ne.event_node_id`)
-
+func GetChannelsForTag(db *sqlx.DB) ([]ChannelForTag, error) {
+	// TODO FIXME FYI: second_node_id is not always remote_node_id
+	var channels []ChannelForTag
+	err := db.Select(&channels, `
+		SELECT short_channel_id, channel_id, second_node_id AS node_id, 'channel' AS type
+		FROM channel`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return channels, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return channels, nil
+	var response []ChannelForTag
+	for _, channel := range channels {
+		alias := commons.GetNodeAlias(channel.NodeId)
+		channel.Alias = &alias
+		response = append(response, channel)
+	}
+	return response, nil
 }
 
-func GetNodesForTag(db *sqlx.DB) (nodes []NodeForTag, err error) {
-	err = db.Select(&nodes, `
-	select distinct ne.event_node_id as node_id, ne.alias, 'node' as type  from node n
-		left join node_event ne on ne.node_id = n.node_id
-		left join channel ch on n.node_id = ch.first_node_id
-		and ch.status_id = 1
-	where ne.event_node_id = n.node_id
-	or ne.event_node_id = ch.second_node_id;`)
+func GetNodesForTag(db *sqlx.DB) ([]NodeForTag, error) {
+	// TODO FIXME FYI: first_node_id is not always torq_node_id
+	// TODO FIXME FYI: second_node_id is not always remote_node_id
+	var nodes []NodeForTag
+	err := db.Select(&nodes, `
+		SELECT second_node_id AS node_id, 'node' AS type
+		FROM channel WHERE status_id=$1;`, commons.Active)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nodes, nil
+			return []NodeForTag{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
-	return nodes, nil
+	var response []NodeForTag
+	for _, node := range nodes {
+		node.Alias = commons.GetNodeAlias(node.NodeId)
+		response = append(response, node)
+	}
+	return response, nil
 }
 
 func InitializeManagedChannelCache(db *sqlx.DB) error {

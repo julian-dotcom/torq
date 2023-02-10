@@ -14,7 +14,8 @@ export type Tag = {
 export type TaggedNodes = {
   name: string;
   nodeId: number;
-  channelCount: number;
+  openChannelCount: number;
+  closedChannelCount: number;
 };
 
 export type TaggedChannels = {

@@ -757,7 +757,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 			&versionNodeLinkId, &parentVersionNodeId, &parentOutput, &linkName, &linkVisibilitySettings,
 			&childVersionNodeId, &childInput, &linkUpdatedOn)
 		if err != nil {
-			return errors.Wrap(err, "Obtaining nodeId and publicKey from the resultSet")
+			return errors.Wrap(err, "Obtaining workflow node details from the resultSet")
 		}
 		nodeLinkDetails[versionNodeLinkId] = WorkflowVersionNodeLink{
 			WorkflowVersionNodeLinkId:   versionNodeLinkId,
