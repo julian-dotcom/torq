@@ -3,7 +3,6 @@ import { Cookies } from "react-cookie";
 import { RouteObject, useRoutes } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLogoutMutation } from "apiSlice";
-import RequireAuth from "RequireAuth";
 import RequireTorq from "RequireTorq";
 import DefaultLayout from "layout/DefaultLayout";
 import LoginLayout from "layout/LoginLayout";
@@ -79,45 +78,40 @@ const authenticatedRoutes: RouteObject = {
   element: <DefaultLayout />,
   children: [
     {
-      element: <RequireAuth />,
+      element: <RequireTorq />,
       children: [
         {
-          element: <RequireTorq />,
+          path: routes.ROOT,
+          element: <DashboardPage />,
+          children: modalRoutes.children,
+        },
+        {
+          path: routes.MANAGE,
           children: [
-            {
-              path: routes.ROOT,
-              element: <DashboardPage />,
-              children: modalRoutes.children,
-            },
-            {
-              path: routes.MANAGE,
-              children: [
-                { path: routes.CHANNELS, element: <ChannelsPage /> },
-                { path: routes.WORKFLOWS, element: <WorkflowsTablePage /> },
-                { path: routes.TAGS, element: <TagsPage /> },
-                { path: routes.WORKFLOW, element: <WorkflowPage /> },
-              ],
-            },
-            {
-              path: routes.ANALYSE,
-              children: [
-                { path: routes.FORWARDS, element: <ForwardsPage /> },
-                { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
-              ],
-            },
-            {
-              path: routes.TRANSACTIONS,
-              children: [
-                { path: routes.PAYMENTS, element: <PaymentsPage /> },
-                { path: routes.INVOICES, element: <InvoicesPage /> },
-                { path: routes.ONCHAIN, element: <OnChainPage /> },
-                { path: routes.ALL, element: <AllTxPage /> },
-              ],
-            },
-            { path: routes.SETTINGS, element: <SettingsPage /> },
-            { path: "*", element: <NoMatch /> },
+            { path: routes.CHANNELS, element: <ChannelsPage /> },
+            { path: routes.WORKFLOWS, element: <WorkflowsTablePage /> },
+            { path: routes.TAGS, element: <TagsPage /> },
+            { path: routes.WORKFLOW, element: <WorkflowPage /> },
           ],
         },
+        {
+          path: routes.ANALYSE,
+          children: [
+            { path: routes.FORWARDS, element: <ForwardsPage /> },
+            { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
+          ],
+        },
+        {
+          path: routes.TRANSACTIONS,
+          children: [
+            { path: routes.PAYMENTS, element: <PaymentsPage /> },
+            { path: routes.INVOICES, element: <InvoicesPage /> },
+            { path: routes.ONCHAIN, element: <OnChainPage /> },
+            { path: routes.ALL, element: <AllTxPage /> },
+          ],
+        },
+        { path: routes.SETTINGS, element: <SettingsPage /> },
+        { path: "*", element: <NoMatch /> },
       ],
     },
   ],
