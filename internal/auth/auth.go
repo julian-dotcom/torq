@@ -72,16 +72,24 @@ func TorqRequired(c *gin.Context) {
 }
 
 // AuthRequired is a simple middleware to check the session
-func AuthRequired(c *gin.Context) {
-	session := sessions.Default(c)
-	user := session.Get(Userkey)
-	if user == nil {
-		// Abort the request with the appropriate error code
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
+func AuthRequired(autoLogin bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		if autoLogin {
+			c.Next()
+			return
+		}
+
+		session := sessions.Default(c)
+		user := session.Get(Userkey)
+		if user == nil {
+			// Abort the request with the appropriate error code
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+		// Continue down the chain to handler etc
+		c.Next()
 	}
-	// Continue down the chain to handler etc
-	c.Next()
 }
 
 // Login creates a user session, logging them in given the right username and password
@@ -170,4 +178,10 @@ func Logout(c *gin.Context) {
 	session.Delete(Userkey)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+}
+
+func AutoLoginSetting(autoLogin bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, autoLogin)
+	}
 }

@@ -23,7 +23,7 @@ import { Forward } from "features/forwards/forwardsTypes";
 import type { nodeConfiguration, settings, timeZone, services, updateSettingsRequest } from "apiTypes";
 import { createSelector } from "@reduxjs/toolkit";
 import { Network } from "features/network/networkSlice";
-import {lndServices} from "apiTypes";
+import { lndServices } from "apiTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -196,6 +196,9 @@ export const torqApi = createApi({
     getLndServices: builder.query<lndServices, number>({
       query: (nodeId) => `services/${nodeId}/lndStatus`,
     }),
+    getAutoLoginSetting: builder.query<boolean, void>({
+      query: () => `auto-login-setting`,
+    }),
   }),
 });
 
@@ -225,6 +228,7 @@ export const {
   useUpdateChannelMutation,
   useGetServicesQuery,
   useGetLndServicesQuery,
+  useGetAutoLoginSettingQuery,
 } = torqApi;
 
 export const SelectChannel = (props: { network: Network; channelId: number }) => {
