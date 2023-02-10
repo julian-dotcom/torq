@@ -289,26 +289,30 @@ func getTagNodes(db *sqlx.DB, tagId int) ([]TaggedNodes, error) {
 		}
 
 		var openChannelCount int
-		err := db.Select(&openChannelCount, `
-			SELECT COUNT(channel.channel_id)
+		err := db.Get(&openChannelCount, `
+			SELECT COUNT(oc.channel_id)
 			FROM node n
 			JOIN channel oc ON oc.second_node_id = n.node_id AND oc.status_id = $2
 			WHERE n.node_id=$1
 			GROUP BY n.node_id;`, nodeId, commons.Open)
 		if err != nil {
-			log.Error().Err(err).Msgf("Could not obtain open channel count for tagId: %v and nodeId: %v", tagId, nodeId)
+			if !errors.Is(err, sql.ErrNoRows) {
+				log.Error().Err(err).Msgf("Could not obtain open channel count for tagId: %v and nodeId: %v", tagId, nodeId)
+			}
 		}
 		taggedNode.OpenChannelCount = openChannelCount
 
 		var closedChannelCount int
-		err = db.Select(&closedChannelCount, `
-			SELECT COUNT(channel.channel_id)
+		err = db.Get(&closedChannelCount, `
+			SELECT COUNT(noc.channel_id)
 			FROM node n
-			JOIN channel oc ON oc.second_node_id = n.node_id AND oc.status_id != $2
+			JOIN channel noc ON noc.second_node_id = n.node_id AND noc.status_id != $2
 			WHERE n.node_id=$1
 			GROUP BY n.node_id;`, nodeId, commons.Open)
 		if err != nil {
-			log.Error().Err(err).Msgf("Could not obtain closed channel count for tagId: %v and nodeId: %v", tagId, nodeId)
+			if !errors.Is(err, sql.ErrNoRows) {
+				log.Error().Err(err).Msgf("Could not obtain closed channel count for tagId: %v and nodeId: %v", tagId, nodeId)
+			}
 		}
 		taggedNode.ClosedChannelCount = closedChannelCount
 
