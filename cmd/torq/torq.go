@@ -115,6 +115,11 @@ func main() {
 			Value: false,
 			Usage: "Start the server without subscribing to node data",
 		}),
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:  "torq.auto-login",
+			Value: false,
+			Usage: "Allows logging in without a password",
+		}),
 
 		// Torq database
 		altsrc.NewStringFlag(&cli.StringFlag{
@@ -242,7 +247,7 @@ func main() {
 
 			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
 				db, webSocketResponseChannelGlobal, broadcasterGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal,
-				serviceChannelGlobal); err != nil {
+				serviceChannelGlobal, c.Bool("torq.auto-login")); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}
 

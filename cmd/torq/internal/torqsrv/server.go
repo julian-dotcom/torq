@@ -44,7 +44,8 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 	webSocketResponseChannel chan interface{}, broadcaster broadcast.BroadcastServer,
 	lightningRequestChannel chan interface{},
 	rebalanceRequestChannel chan commons.RebalanceRequest,
-	serviceChannel chan commons.ServiceChannelMessage) error {
+	serviceChannel chan commons.ServiceChannelMessage,
+	autoLogin bool) error {
 
 	r := gin.Default()
 
@@ -57,7 +58,7 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 		return errors.Wrap(err, "Creating Gin Session")
 	}
 
-	registerRoutes(r, db, apiPswd, cookiePath, webSocketResponseChannel, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel)
+	registerRoutes(r, db, apiPswd, cookiePath, webSocketResponseChannel, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel, autoLogin)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -120,13 +121,14 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 	webSocketResponseChannel chan interface{}, broadcaster broadcast.BroadcastServer,
 	lightningRequestChannel chan interface{},
 	rebalanceRequestChannel chan commons.RebalanceRequest,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan commons.ServiceChannelMessage,
+	autoLogin bool) {
 
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	applyCors(r)
 	// Websocket
 	ws := r.Group("/ws")
-	ws.Use(auth.AuthRequired)
+	ws.Use(auth.AuthRequired(autoLogin))
 	ws.GET("", func(c *gin.Context) {
 		err := WebsocketHandler(c, db, webSocketResponseChannel, broadcaster)
 		log.Debug().Msgf("WebsocketHandler: %v", err)
@@ -153,7 +155,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		services.RegisterUnauthenticatedRoutes(unauthorisedServicesRoutes, db)
 	}
 
-	api.Use(auth.AuthRequired).Use(auth.TorqRequired)
+	api.Use(auth.AuthRequired(autoLogin)).Use(auth.TorqRequired)
 	{
 
 		tableViewRoutes := api.Group("/table-views")
