@@ -139,7 +139,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
                     }}
                     key={"node-target-" + c.nodeId}
                     icon={<NodesIcon />}
-                    details={"Channels " + c.channelCount}
+                    details={"Open channels: " + c.openChannelCount + " (closed: " + c.closedChannelCount + ")"}
                     title={c.name}
                   />
                 );

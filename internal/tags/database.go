@@ -7,8 +7,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 type Tag struct {
@@ -23,9 +25,10 @@ type Tag struct {
 }
 
 type TaggedNodes struct {
-	Name         *string `db:"name" json:"name"`
-	NodeId       int     `db:"node_id" json:"nodeId"`
-	ChannelCount int     `db:"channel_count" json:"channelCount"`
+	Name               *string `db:"name" json:"name"`
+	NodeId             int     `db:"node_id" json:"nodeId"`
+	OpenChannelCount   int     `db:"open_channel_count" json:"openChannelCount"`
+	ClosedChannelCount int     `db:"closed_channel_count" json:"closedChannelCount"`
 }
 
 type TaggedChannels struct {
@@ -53,7 +56,7 @@ func GetTagsByCategoryId(db *sqlx.DB, categoryId int) ([]TagResponse, error) {
 	}
 
 	for _, tag := range tags {
-		tag.Channels, err = getTagChannels(db, tag.TagId)
+		tag.Channels, err = getTagChannels(tag.TagId)
 		if err != nil {
 			return []TagResponse{}, errors.Wrap(err, database.SqlExecutionError)
 		}
@@ -80,7 +83,7 @@ func GetTags(db *sqlx.DB) ([]TagResponse, error) {
 	}
 
 	for i, tag := range tags {
-		tags[i].Channels, err = getTagChannels(db, tag.TagId)
+		tags[i].Channels, err = getTagChannels(tag.TagId)
 		if err != nil {
 			return []TagResponse{}, errors.Wrap(err, database.SqlExecutionError)
 		}
@@ -91,6 +94,24 @@ func GetTags(db *sqlx.DB) ([]TagResponse, error) {
 	}
 
 	return tags, nil
+}
+
+func InitializeManagedTagCache(db *sqlx.DB) error {
+	var tags []Tag
+	err := db.Select(&tags, `
+			SELECT tag.*, category.name as category_name, category.style as category_style FROM tag
+			left JOIN category ON category.category_id = tag.category_id
+			ORDER BY name ASC ;`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	for _, tag := range tags {
+		SetTag(tag)
+	}
+	return nil
 }
 
 func GetTag(db *sqlx.DB, tagId int) (TagResponse, error) {
@@ -105,7 +126,7 @@ func GetTag(db *sqlx.DB, tagId int) (TagResponse, error) {
 		return TagResponse{}, errors.Wrap(err, database.SqlExecutionError)
 	}
 
-	tag.Channels, err = getTagChannels(db, tagId)
+	tag.Channels, err = getTagChannels(tagId)
 	if err != nil {
 		return TagResponse{}, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -130,6 +151,7 @@ func createTag(db *sqlx.DB, tag Tag) (Tag, error) {
 		}
 		return Tag{}, errors.Wrap(err, database.SqlExecutionError)
 	}
+	SetTag(tag)
 	return tag, nil
 }
 
@@ -146,6 +168,7 @@ func updateTag(db *sqlx.DB, tag Tag) (Tag, error) {
 		}
 		return Tag{}, errors.Wrap(err, database.SqlExecutionError)
 	}
+	SetTag(tag)
 	return tag, nil
 }
 
@@ -154,6 +177,7 @@ func deleteTag(db *sqlx.DB, tagId int) error {
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
+	RemoveTag(tagId)
 	return nil
 }
 
@@ -176,10 +200,12 @@ func TagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 
 	if req.ChannelId != nil {
 		_, err = db.Exec(`INSERT INTO tagged_entity (tag_id, channel_id) VALUES ($1, $2)  ON CONFLICT ON CONSTRAINT unique_tagged_channel DO NOTHING;`, req.TagId, *req.ChannelId)
+		commons.AddTagIdByChannelId(*req.ChannelId, req.TagId)
 	}
 
 	if req.NodeId != nil {
 		_, err = db.Exec(`INSERT INTO tagged_entity (tag_id, node_id) VALUES ($1, $2) ON CONFLICT ON CONSTRAINT unique_tagged_node DO NOTHING;`, req.TagId, *req.NodeId)
+		commons.AddTagIdByNodeId(*req.ChannelId, req.TagId)
 	}
 
 	if err != nil {
@@ -205,10 +231,12 @@ func UntagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 
 	if req.ChannelId != nil {
 		_, err = db.Exec(`DELETE FROM tagged_entity WHERE tag_id=$1 AND channel_id=$2;`, req.TagId, *req.ChannelId)
+		commons.RemoveTagIdByChannelId(*req.ChannelId, req.TagId)
 	}
 
 	if req.NodeId != nil {
 		_, err = db.Exec(`DELETE FROM tagged_entity WHERE tag_id=$1 AND node_id=$2;`, req.TagId, *req.NodeId)
+		commons.RemoveTagIdByNodeId(*req.NodeId, req.TagId)
 	}
 
 	if err != nil {
@@ -221,80 +249,70 @@ type NodeTagsRequest struct {
 	NodeId int `db:"node_id"`
 }
 
-// Get the tags for a node
-func GetNodeTags(db *sqlx.DB, nodeId int) ([]Tag, error) {
-	var tags []Tag
-	err := db.Select(&tags, `
-			SELECT tag.*, category.name as category_name FROM tag
-			left JOIN category ON category.category_id = tag.category_id
-			left JOIN tagged_entity ON tagged_entity.tag_id = tag.tag_id
-			WHERE tagged_entity.node_id = $1
-			ORDER BY name ASC ;`, nodeId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []Tag{}, nil
-		}
-		return nil, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return tags, nil
-}
-
 type ChannelTagsRequest struct {
 	ChannelId int  `db:"channel_id"`
 	NodeId    *int `db:"node_id"`
 }
 
-// GetChannelTags gets the tags for a channel, if both the channel id and node id is set it will also return the tags for the node
-func GetChannelTags(db *sqlx.DB, req ChannelTagsRequest) ([]Tag, error) {
-	var tags []Tag
-	err := db.Select(&tags, `
-				SELECT DISTINCT tag.tag_id, tag.*, category.name as category_name FROM tag
-				left JOIN category ON category.category_id = tag.category_id
-				left JOIN tagged_entity ON tagged_entity.tag_id = tag.tag_id
-				WHERE tagged_entity.channel_id = $1
-				OR ($2::int IS NOT NULL AND tagged_entity.node_id = $2::int)
-				ORDER BY name ASC ;`, req.ChannelId, req.NodeId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []Tag{}, nil
-		}
-		return nil, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return tags, nil
-}
-
+// TODO FIXME FYI: second_node_id is not always remote_node_id
 // Get all the channels belonging to a tag and inclide the node name based on the "second node id"
-func getTagChannels(db *sqlx.DB, tagId int) ([]TaggedChannels, error) {
+func getTagChannels(tagId int) ([]TaggedChannels, error) {
 	var channels []TaggedChannels
-	err := db.Select(&channels, `
-				SELECT channel.channel_id, channel.short_channel_id, ne.name FROM channel
-				LEFT JOIN tagged_entity ON tagged_entity.channel_id = channel.channel_id
-				left JOIN (select last(alias, timestamp) as name, last(node_id, timestamp) as ni, event_node_id from node_event group by event_node_id) as ne ON ne.event_node_id = channel.second_node_id
-				WHERE tagged_entity.tag_id = $1;`, tagId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []TaggedChannels{}, nil
+	channelIds := commons.GetChannelIdsByTagId(tagId)
+	for _, channelId := range channelIds {
+		channelSettings := commons.GetChannelSettingByChannelId(channelId)
+		nodeAlias := commons.GetNodeAlias(channelSettings.SecondNodeId)
+		taggedChannel := TaggedChannels{
+			ShortChannelId: channelSettings.ShortChannelId,
+			ChannelId:      channelId,
 		}
-		return nil, errors.Wrap(err, database.SqlExecutionError)
+		if nodeAlias != "" {
+			taggedChannel.Name = &nodeAlias
+		}
+		channels = append(channels, taggedChannel)
 	}
 	return channels, nil
 }
 
+// TODO FIXME FYI: second_node_id is not always remote_node_id
 // Get all the Nodes belonging to a tag, include the number of channels belonging to each node
 func getTagNodes(db *sqlx.DB, tagId int) ([]TaggedNodes, error) {
 	var nodes []TaggedNodes
-	err := db.Select(&nodes, `
-				SELECT ne.name, node.node_id, count(channel.channel_id) as channel_count FROM node
-				left JOIN tagged_entity ON tagged_entity.node_id = node.node_id
-				left JOIN channel ON channel.second_node_id = node.node_id
-				left JOIN (select last(alias, timestamp) as name, last(node_id, timestamp) as ni, event_node_id from node_event group by event_node_id) as ne ON ne.event_node_id = channel.second_node_id
-				WHERE tagged_entity.tag_id = $1
-				GROUP BY node.node_id, ne.name;`, tagId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []TaggedNodes{}, nil
+	nodeIds := commons.GetNodeIdsByTagId(tagId)
+	for _, nodeId := range nodeIds {
+		nodeAlias := commons.GetNodeAlias(nodeId)
+		taggedNode := TaggedNodes{
+			NodeId: nodeId,
 		}
-		return nil, errors.Wrap(err, database.SqlExecutionError)
+		if nodeAlias != "" {
+			taggedNode.Name = &nodeAlias
+		}
+
+		var openChannelCount int
+		err := db.Select(&openChannelCount, `
+			SELECT COUNT(channel.channel_id)
+			FROM node n
+			JOIN channel oc ON oc.second_node_id = n.node_id AND oc.status_id = $2
+			WHERE n.node_id=$1
+			GROUP BY n.node_id;`, nodeId, commons.Open)
+		if err != nil {
+			log.Error().Err(err).Msgf("Could not obtain open channel count for tagId: %v and nodeId: %v", tagId, nodeId)
+		}
+		taggedNode.OpenChannelCount = openChannelCount
+
+		var closedChannelCount int
+		err = db.Select(&closedChannelCount, `
+			SELECT COUNT(channel.channel_id)
+			FROM node n
+			JOIN channel oc ON oc.second_node_id = n.node_id AND oc.status_id != $2
+			WHERE n.node_id=$1
+			GROUP BY n.node_id;`, nodeId, commons.Open)
+		if err != nil {
+			log.Error().Err(err).Msgf("Could not obtain closed channel count for tagId: %v and nodeId: %v", tagId, nodeId)
+		}
+		taggedNode.ClosedChannelCount = closedChannelCount
+
+		nodes = append(nodes, taggedNode)
 	}
 	return nodes, nil
 }

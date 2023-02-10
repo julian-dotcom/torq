@@ -330,8 +330,16 @@ func GetChannelIdsByNodeId(peerNodeId int) []int {
 	}
 	ManagedChannelChannel <- managedChannel
 	return <-channelIdsResponseChannel
-
 }
+
+//func GetAllChannelIds() []int {
+//	var allChannelIds []int
+//	torqNodeIds := GetAllTorqNodeIds()
+//	for _, torqNodeId := range torqNodeIds {
+//		allChannelIds = append(allChannelIds, GetChannelIdsByNodeId(torqNodeId)...)
+//	}
+//	return allChannelIds
+//}
 
 func GetChannelStatusByChannelId(channelId int) ChannelStatus {
 	channelResponseChannel := make(chan ManagedChannel, 1)

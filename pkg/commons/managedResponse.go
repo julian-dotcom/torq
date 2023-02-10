@@ -16,6 +16,14 @@ func SendToManagedPublicKeysChannel(ch chan []string, publicKeys []string) {
 	ch <- publicKeys
 }
 
+func SendToManagedNodeAliasChannel(ch chan string, nodeAlias string) {
+	ch <- nodeAlias
+}
+
+func SendToManagedTagIdsChannel(ch chan []int, tagIds []int) {
+	ch <- tagIds
+}
+
 func SendToManagedChannelGroupSettingsChannel(ch chan *ManagedChannelGroupSettings, managedChannelGroupSettings *ManagedChannelGroupSettings) {
 	ch <- managedChannelGroupSettings
 }

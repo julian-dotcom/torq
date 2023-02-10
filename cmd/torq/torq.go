@@ -30,6 +30,7 @@ import (
 	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
@@ -204,8 +205,11 @@ func main() {
 			go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctxGlobal, channelBalanceEventChannelGlobal)
 			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctxGlobal)
 			go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctxGlobal)
+			go commons.ManagedNodeAliasCache(commons.ManagedNodeAliasChannel, ctxGlobal)
 			go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctxGlobal)
+			go commons.ManagedTaggedCache(commons.ManagedTaggedChannel, ctxGlobal)
 			go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctxGlobal)
+			go tags.ManagedTagCache(tags.ManagedTagChannel, ctxGlobal)
 			go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctxGlobal)
 
 			// This listens to events:
@@ -545,6 +549,18 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 				err = channels.InitializeManagedChannelCache(db)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")
+				}
+
+				settings.InitializeManagedNodeAliasCache(db)
+
+				err = settings.InitializeManagedTaggedCache(db)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to obtain tags for ManagedTagged cache.")
+				}
+
+				err = tags.InitializeManagedTagCache(db)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to obtain tags for ManagedTag cache.")
 				}
 
 				log.Info().Msg("Loading caches in memory.")

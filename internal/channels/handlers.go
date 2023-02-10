@@ -8,8 +8,6 @@ import (
 	"github.com/lncapital/torq/internal/tags"
 
 	"github.com/cockroachdb/errors"
-	"github.com/rs/zerolog/log"
-
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -110,13 +108,13 @@ type ChannelForTag struct {
 	ShortChannelId *string `json:"shortChannelId" db:"short_channel_id"`
 	ChannelId      int     `json:"channelId" db:"channel_id"`
 	NodeId         int     `json:"nodeId" db:"node_id"`
-	Alias          *string `json:"alias" db:"alias"`
+	Alias          *string `json:"alias"`
 	Type           string  `json:"type" db:"type"`
 }
 
 type NodeForTag struct {
 	NodeId int    `json:"nodeId" db:"node_id"`
-	Alias  string `json:"alias" db:"alias"`
+	Alias  string `json:"alias"`
 	Type   string `json:"type" db:"type"`
 }
 
@@ -173,34 +171,23 @@ func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody,
 	for _, channelId := range channelIds {
 		// Force Response because we don't care about balance accuracy
 		channel := commons.GetChannelState(nodeId, channelId, true)
-		nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 		channelSettings := commons.GetChannelSettingByChannelId(channel.ChannelId)
 		lndShortChannelIdString := strconv.FormatUint(channelSettings.LndShortChannelId, 10)
 
 		pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
 
-		gauge := (float64(channel.LocalBalance) / float64(channelSettings.Capacity)) * 100
-
-		channelTags, err := tags.GetChannelTags(db, tags.ChannelTagsRequest{
-			ChannelId: channelSettings.ChannelId,
-			NodeId:    &channel.RemoteNodeId,
-		})
-		if err != nil {
-			return channelsBody, errors.Wrap(err, server_errors.JsonParseError)
-		}
-
-		remoteNode := commons.GetNodeSettingsByNodeId(channel.RemoteNodeId)
 		chanBody := ChannelBody{
 			NodeId:                       nodeId,
 			PeerNodeId:                   channel.RemoteNodeId,
-			Tags:                         channelTags,
+			Tags:                         tags.GetTagsByTagIds(commons.GetTagIdsByChannelId(channel.RemoteNodeId, channelSettings.ChannelId)),
 			ChannelId:                    channelSettings.ChannelId,
-			NodeName:                     *nodeSettings.Name,
+			NodeName:                     *commons.GetNodeSettingsByNodeId(nodeId).Name,
 			Active:                       !channel.LocalDisabled,
 			RemoteActive:                 !channel.RemoteDisabled,
 			ChannelPoint:                 commons.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
-			Gauge:                        gauge,
-			RemotePubkey:                 remoteNode.PublicKey,
+			Gauge:                        (float64(channel.LocalBalance) / float64(channelSettings.Capacity)) * 100,
+			RemotePubkey:                 commons.GetNodeSettingsByNodeId(channel.RemoteNodeId).PublicKey,
+			PeerAlias:                    commons.GetNodeAlias(channel.RemoteNodeId),
 			FundingTransactionHash:       channelSettings.FundingTransactionHash,
 			FundingOutputIndex:           channelSettings.FundingOutputIndex,
 			CurrentBlockHeight:           commons.GetBlockHeight(),
@@ -260,13 +247,6 @@ func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody,
 		if channelSettings.ClosedOn != nil {
 			deltaSeconds := uint64(time.Since(*channelSettings.ClosedOn).Seconds())
 			chanBody.ClosedOnSecondsDelta = &deltaSeconds
-		}
-
-		peerInfo, err := GetNodePeerAlias(nodeId, channel.RemoteNodeId, db)
-		if err == nil {
-			chanBody.PeerAlias = peerInfo
-		} else {
-			log.Error().Err(err).Msgf("Could not obtain the alias of the peer with nodeId: %v (for Torq nodeId: %v)", channel.RemoteNodeId, nodeId)
 		}
 		channelsBody = append(channelsBody, chanBody)
 	}

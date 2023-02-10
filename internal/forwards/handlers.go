@@ -247,16 +247,7 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 
 		c.LocalNodeIds = nodeIds
 		if c.ChannelID != nil {
-
-			// TODO: Improve this by using a single query
-			c.Tags, err = tags.GetChannelTags(db, tags.ChannelTagsRequest{
-				ChannelId: *c.ChannelID,
-				NodeId:    &c.SecondNodeId,
-			})
-
-			if err != nil {
-				return r, errors.Wrap(err, "Getting channel tags in forwards")
-			}
+			c.Tags = tags.GetTagsByTagIds(commons.GetTagIdsByChannelId(c.SecondNodeId, *c.ChannelID))
 		}
 
 		// Append to the result

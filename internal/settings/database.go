@@ -177,6 +177,73 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 	return nil
 }
 
+func InitializeManagedNodeAliasCache(db *sqlx.DB) {
+	log.Debug().Msg("Pushing node aliases to ManagedNodeAlias cache.")
+
+	torqNodeIds := commons.GetAllTorqNodeIds()
+	for _, torqNodeId := range torqNodeIds {
+		commons.SetNodeAlias(torqNodeId, getNodeAlias(db, torqNodeId))
+		for _, channelId := range commons.GetChannelIdsByNodeId(torqNodeId) {
+			channelSettings := commons.GetChannelSettingByChannelId(channelId)
+			remoteNodeId := channelSettings.FirstNodeId
+			if remoteNodeId == torqNodeId {
+				remoteNodeId = channelSettings.SecondNodeId
+			}
+			commons.SetNodeAlias(remoteNodeId, getNodeAlias(db, remoteNodeId))
+		}
+	}
+}
+
+func InitializeManagedTaggedCache(db *sqlx.DB) error {
+	log.Debug().Msg("Pushing tags to ManagedTagged cache.")
+	rows, err := db.Queryx(`SELECT tag_id, node_id, channel_id FROM tagged_entity;`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return errors.Wrap(err, "Obtaining tags")
+	}
+	nodeTags := make(map[int][]int)
+	channelTags := make(map[int][]int)
+	for rows.Next() {
+		var tagId int
+		var nodeId *int
+		var channelId *int
+		err := rows.Scan(&tagId, &nodeId, &channelId)
+		if err != nil {
+			return errors.Wrap(err, "Obtaining nodeId and channelId from the resultSet")
+		}
+		if tagId != 0 {
+			if nodeId != nil && *nodeId != 0 {
+				nodeTags[*nodeId] = append(nodeTags[*nodeId], tagId)
+			}
+			if channelId != nil && *channelId != 0 {
+				channelTags[*channelId] = append(nodeTags[*channelId], tagId)
+			}
+		}
+	}
+	for nodeId, tagIds := range nodeTags {
+		commons.SetTagIdsByNodeId(nodeId, tagIds)
+	}
+	for channelId, tagIds := range channelTags {
+		commons.SetTagIdsByChannelId(channelId, tagIds)
+	}
+	return nil
+}
+
+func getNodeAlias(db *sqlx.DB, nodeId int) string {
+	var alias string
+	err := db.Get(&alias, `SELECT alias FROM node_event WHERE event_node_id = $1 ORDER BY timestamp DESC LIMIT 1;`,
+		nodeId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ""
+		}
+		log.Info().Msgf("Tried to obtain node alias for ManagedNodeAlias cache with nodeId: %v.", nodeId)
+	}
+	return alias
+}
+
 func getNodeConnectionDetailsByStatus(db *sqlx.DB, status commons.Status) ([]NodeConnectionDetails, error) {
 	var nodeConnectionDetailsArray []NodeConnectionDetails
 	err := db.Select(&nodeConnectionDetailsArray, `
