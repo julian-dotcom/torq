@@ -64,7 +64,6 @@ func processManagedTag(managedTag ManagedTag, tagsByIdCache map[int]Tag) {
 			}
 		}
 		SendToManagedTagsChannel(managedTag.TagsOut, tags)
-		break
 	case WRITE_TAG:
 		if managedTag.Tag.TagId == 0 {
 			log.Error().Msgf("No empty Tag.TagId allowed")

@@ -203,6 +203,7 @@ func InitializeManagedTaggedCache(db *sqlx.DB) error {
 		}
 		return errors.Wrap(err, "Obtaining tags")
 	}
+	defer rows.Close()
 	nodeTags := make(map[int][]int)
 	channelTags := make(map[int][]int)
 	for rows.Next() {
