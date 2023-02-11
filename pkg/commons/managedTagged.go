@@ -74,7 +74,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 			break
 		}
 		var nodeIds []int
-		for nodeId, tagIds := range tagsByChannelIdCache {
+		for nodeId, tagIds := range tagsByNodeIdCache {
 			_, exists := tagIds[managedTagged.TagId]
 			if exists {
 				nodeIds = append(nodeIds, nodeId)
@@ -99,13 +99,6 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 		if managedTagged.NodeId == 0 && managedTagged.ChannelId == 0 {
 			log.Error().Msgf("No empty NodeId and ChannelId allowed")
 		} else {
-			if managedTagged.ChannelId != 0 {
-				tagIds := make(map[int]bool)
-				for _, tagId := range managedTagged.TagIds {
-					tagIds[tagId] = true
-				}
-				tagsByChannelIdCache[managedTagged.ChannelId] = tagIds
-			}
 			if managedTagged.NodeId != 0 {
 				tagIds := make(map[int]bool)
 				for _, tagId := range managedTagged.TagIds {
@@ -113,12 +106,29 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 				}
 				tagsByNodeIdCache[managedTagged.NodeId] = tagIds
 			}
+			if managedTagged.ChannelId != 0 {
+				tagIds := make(map[int]bool)
+				for _, tagId := range managedTagged.TagIds {
+					tagIds[tagId] = true
+				}
+				tagsByChannelIdCache[managedTagged.ChannelId] = tagIds
+			}
 		}
 	case ADD_TAGGED:
 		if (managedTagged.NodeId == 0 && managedTagged.ChannelId == 0) || managedTagged.TagId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) and ChannelId (%v) or TagId (%v) allowed",
 				managedTagged.NodeId, managedTagged.ChannelId, managedTagged.TagId)
 		} else {
+			if managedTagged.NodeId != 0 {
+				tagIds, exists := tagsByNodeIdCache[managedTagged.NodeId]
+				if exists {
+					_, exists := tagIds[managedTagged.TagId]
+					if !exists {
+						tagIds[managedTagged.TagId] = true
+						tagsByNodeIdCache[managedTagged.NodeId] = tagIds
+					}
+				}
+			}
 			if managedTagged.ChannelId != 0 {
 				tagIds, exists := tagsByChannelIdCache[managedTagged.ChannelId]
 				if exists {
@@ -129,31 +139,21 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 					}
 				}
 			}
-			if managedTagged.NodeId != 0 {
-				tagIds, exists := tagsByNodeIdCache[managedTagged.ChannelId]
-				if exists {
-					_, exists := tagIds[managedTagged.TagId]
-					if !exists {
-						tagIds[managedTagged.TagId] = true
-						tagsByNodeIdCache[managedTagged.NodeId] = tagIds
-					}
-				}
-			}
 		}
 	case REMOVE_TAGGED:
 		if (managedTagged.NodeId == 0 && managedTagged.ChannelId == 0) || managedTagged.TagId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) and ChannelId (%v) or TagId (%v) allowed",
 				managedTagged.NodeId, managedTagged.ChannelId, managedTagged.TagId)
 		} else {
-			if managedTagged.ChannelId != 0 {
-				tagIds := tagsByChannelIdCache[managedTagged.ChannelId]
-				delete(tagIds, managedTagged.TagId)
-				tagsByChannelIdCache[managedTagged.ChannelId] = tagIds
-			}
 			if managedTagged.NodeId != 0 {
 				tagIds := tagsByNodeIdCache[managedTagged.NodeId]
 				delete(tagIds, managedTagged.TagId)
 				tagsByNodeIdCache[managedTagged.NodeId] = tagIds
+			}
+			if managedTagged.ChannelId != 0 {
+				tagIds := tagsByChannelIdCache[managedTagged.ChannelId]
+				delete(tagIds, managedTagged.TagId)
+				tagsByChannelIdCache[managedTagged.ChannelId] = tagIds
 			}
 		}
 	}
