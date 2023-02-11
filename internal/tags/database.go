@@ -205,7 +205,7 @@ func TagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 
 	if req.NodeId != nil {
 		_, err = db.Exec(`INSERT INTO tagged_entity (tag_id, node_id) VALUES ($1, $2) ON CONFLICT ON CONSTRAINT unique_tagged_node DO NOTHING;`, req.TagId, *req.NodeId)
-		commons.AddTagIdByNodeId(*req.ChannelId, req.TagId)
+		commons.AddTagIdByNodeId(*req.NodeId, req.TagId)
 	}
 
 	if err != nil {
