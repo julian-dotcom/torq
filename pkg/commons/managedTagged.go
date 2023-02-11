@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/slices"
 )
 
 var ManagedTaggedChannel = make(chan ManagedTagged) //nolint:gochecknoglobals
@@ -62,7 +63,9 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 			nodeTagIds, exists := tagsByNodeIdCache[managedTagged.NodeId]
 			if exists {
 				for nodeTagId := range nodeTagIds {
-					tagIds = append(tagIds, nodeTagId)
+					if !slices.Contains(tagIds, nodeTagId) {
+						tagIds = append(tagIds, nodeTagId)
+					}
 				}
 			}
 		}
