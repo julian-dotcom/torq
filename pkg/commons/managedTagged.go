@@ -99,6 +99,9 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 		if managedTagged.NodeId == 0 && managedTagged.ChannelId == 0 {
 			log.Error().Msgf("No empty NodeId and ChannelId allowed")
 		} else {
+			if len(managedTagged.TagIds) == 0 {
+				break
+			}
 			if managedTagged.NodeId != 0 {
 				tagIds := make(map[int]bool)
 				for _, tagId := range managedTagged.TagIds {
@@ -127,7 +130,9 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 						tagIds[managedTagged.TagId] = true
 						tagsByNodeIdCache[managedTagged.NodeId] = tagIds
 					}
+					break
 				}
+				tagsByNodeIdCache[managedTagged.NodeId] = map[int]bool{managedTagged.TagId: true}
 			}
 			if managedTagged.ChannelId != 0 {
 				tagIds, exists := tagsByChannelIdCache[managedTagged.ChannelId]
@@ -137,7 +142,9 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 						tagIds[managedTagged.TagId] = true
 						tagsByChannelIdCache[managedTagged.ChannelId] = tagIds
 					}
+					break
 				}
+				tagsByChannelIdCache[managedTagged.ChannelId] = map[int]bool{managedTagged.TagId: true}
 			}
 		}
 	case REMOVE_TAGGED:
@@ -146,14 +153,18 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 				managedTagged.NodeId, managedTagged.ChannelId, managedTagged.TagId)
 		} else {
 			if managedTagged.NodeId != 0 {
-				tagIds := tagsByNodeIdCache[managedTagged.NodeId]
-				delete(tagIds, managedTagged.TagId)
-				tagsByNodeIdCache[managedTagged.NodeId] = tagIds
+				tagIds, exists := tagsByNodeIdCache[managedTagged.NodeId]
+				if exists {
+					delete(tagIds, managedTagged.TagId)
+					tagsByNodeIdCache[managedTagged.NodeId] = tagIds
+				}
 			}
 			if managedTagged.ChannelId != 0 {
-				tagIds := tagsByChannelIdCache[managedTagged.ChannelId]
-				delete(tagIds, managedTagged.TagId)
-				tagsByChannelIdCache[managedTagged.ChannelId] = tagIds
+				tagIds, exists := tagsByChannelIdCache[managedTagged.ChannelId]
+				if exists {
+					delete(tagIds, managedTagged.TagId)
+					tagsByChannelIdCache[managedTagged.ChannelId] = tagIds
+				}
 			}
 		}
 	}
@@ -235,7 +246,7 @@ func RemoveTagIdByChannelId(channelId int, tagId int) {
 	managedManagedTagged := ManagedTagged{
 		TagId:     tagId,
 		ChannelId: channelId,
-		Type:      WRITE_TAGGED,
+		Type:      REMOVE_TAGGED,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
 }
