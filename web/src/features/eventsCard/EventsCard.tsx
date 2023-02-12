@@ -59,6 +59,22 @@ function EventsCard({ events, selectedEvents, channels }: eventCardType) {
         {events?.events &&
           events.events
             .filter((d: Event) => {
+              switch (d.type) {
+                case "fee_rate":
+                  return selectedEvents.feeRate;
+                case "base_fee":
+                  return selectedEvents.baseFee;
+                case "min_htlc":
+                  return selectedEvents.minHtlc;
+                case "max_htlc":
+                  return selectedEvents.maxHtlc;
+                case "rebalanced":
+                  return false;
+                case "disabled":
+                  return selectedEvents.disabled;
+                case "enabled":
+                  return selectedEvents.enabled;
+              }
               return selectedEvents[d.type as keyof typeof selectedEvents]; // selectedEventTypes
             })
             .map((event: Event, index: number) => {
