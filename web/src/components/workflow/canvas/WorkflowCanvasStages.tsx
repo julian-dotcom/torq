@@ -16,7 +16,9 @@ import {
   CronTriggerNode,
   StageTriggerNode,
   ChannelFilterNode,
+  RebalanceAutoRunNode,
   RebalanceConfiguratorNode,
+  RebalanceRunNode,
   AddTagNode,
   BalanceTriggerNode,
   ChannelOpenTriggerNode,
@@ -200,19 +202,17 @@ function getNodeComponent(node: WorkflowVersionNode) {
     case WorkflowNodeType.ChannelPolicyAutoRun:
       return <ChannelPolicyAutoRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelPolicyConfigurator:
-      return (
-        <ChannelPolicyConfiguratorNode
-          {...node}
-          key={"node-id-" + node.workflowVersionNodeId}
-          outputName={"channels"}
-        />
-      );
+      return <ChannelPolicyConfiguratorNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelPolicyRun:
       return <ChannelPolicyRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelFilter:
-      return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
+      return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.RebalanceAutoRun:
+      return <RebalanceAutoRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RebalanceConfigurator:
       return <RebalanceConfiguratorNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.RebalanceRun:
+      return <RebalanceRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.AddTag:
       return <AddTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RemoveTag:

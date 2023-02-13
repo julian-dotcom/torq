@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   ArrowRotateClockwise20Regular as RebalanceConfiguratorIcon,
   Save16Regular as SaveIcon,
@@ -15,6 +15,7 @@ import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
+import Spinny from "features/spinny/Spinny";
 
 type RebalanceConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -42,8 +43,18 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
     ...wrapperProps.parameters,
   });
 
+  const [dirty, setDirty] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  useEffect(() => {
+    setDirty(
+      JSON.stringify(wrapperProps.parameters, Object.keys(wrapperProps.parameters).sort()) !==
+      JSON.stringify(configuration, Object.keys(configuration).sort()));
+  }, [configuration, wrapperProps.parameters]);
+
   const [amountSat, setAmountSat] = useState<number | undefined>(
-    ((wrapperProps.parameters as RebalanceConfiguration).amountMsat || 0) / 1000
+    (wrapperProps.parameters as RebalanceConfiguration).amountMsat
+      ? ((wrapperProps.parameters as RebalanceConfiguration).amountMsat || 0) / 1000
+      : undefined
   );
   const [maximumCostSat, setMaximumCostSat] = useState<number | undefined>(
     (wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat
@@ -51,20 +62,26 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
       : undefined
   );
 
-  function handleAmountSatChange(e: NumberFormatValues) {
-    setAmountSat(e.floatValue);
-    setConfiguration((prev) => ({
-      ...prev,
-      amountMsat: (e.floatValue || 0) * 1000,
-    }));
-  }
-
-  function handleMaximumCostSatChange(e: NumberFormatValues) {
-    setMaximumCostSat(e.floatValue);
-    setConfiguration((prev) => ({
-      ...prev,
-      maximumCostMsat: (e.floatValue || 0) * 1000,
-    }));
+  function createChangeMsatHandler(key: keyof RebalanceConfiguration) {
+    return (e: NumberFormatValues) => {
+      if (key == "amountMsat") {
+        setAmountSat(e.floatValue);
+      }
+      if (key == "maximumCostMsat") {
+        setMaximumCostSat(e.floatValue);
+      }
+      if (e.floatValue === undefined) {
+        setConfiguration((prev) => ({
+          ...prev,
+          [key]: undefined,
+        }));
+      } else {
+        setConfiguration((prev) => ({
+          ...prev,
+          [key]: (e.floatValue || 0) * 1000,
+        }));
+      }
+    };
   }
 
   function createChangeHandler(key: keyof RebalanceConfiguration) {
@@ -78,15 +95,16 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
     if (editingDisabled) {
       toastRef?.current?.addToast(t.toast.cannotModifyWorkflowActive, toastCategory.warn);
       return;
     }
-
+    setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
       parameters: configuration,
+    }).finally(() => {
+      setProcessing(false);
     });
   }
 
@@ -99,33 +117,33 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
     })
   );
 
-  const destinationChannelsIds =
+  const incomingChannelIds =
     childLinks
       ?.filter((n) => {
-        return n.childInput === "destinationChannels";
+        return n.childInput === "incomingChannels";
       })
       ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
 
-  const destinationChannels = useSelector(
+  const incomingChannels = useSelector(
     SelectWorkflowNodes({
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
-      nodeIds: destinationChannelsIds,
+      nodeIds: incomingChannelIds,
     })
   );
 
-  const sourceChannelIds =
+  const outgoingChannelIds =
     childLinks
       ?.filter((n) => {
-        return n.childInput === "sourceChannels";
+        return n.childInput === "outgoingChannels";
       })
       ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
 
-  const sourceChannels = useSelector(
+  const outgoingChannels = useSelector(
     SelectWorkflowNodes({
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
-      nodeIds: sourceChannelIds,
+      nodeIds: outgoingChannelIds,
     })
   );
 
@@ -149,24 +167,25 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
       {...wrapperProps}
       headerIcon={<RebalanceConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
+      outputName={"channels"}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.Destinations}
-          selectedNodes={destinationChannels || []}
+          selectedNodes={incomingChannels || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputName={"destinationChannels"}
+          inputName={"incomingChannels"}
           editingDisabled={editingDisabled}
         />
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.Sources}
-          selectedNodes={sourceChannels || []}
+          selectedNodes={outgoingChannels || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputName={"sourceChannels"}
+          inputName={"outgoingChannels"}
           editingDisabled={editingDisabled}
         />
         <Socket
@@ -183,7 +202,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           value={amountSat}
           thousandSeparator={","}
           suffix={" sat"}
-          onValueChange={handleAmountSatChange}
+          onValueChange={createChangeMsatHandler("amountMsat")}
           label={t.amountSat}
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
@@ -193,7 +212,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           value={maximumCostSat}
           thousandSeparator={","}
           suffix={" sat"}
-          onValueChange={handleMaximumCostSatChange}
+          onValueChange={createChangeMsatHandler("maximumCostMsat")}
           label={t.maximumCostSat}
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
@@ -210,15 +229,20 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
         />
         {/*<Input*/}
         {/*  formatted={true}*/}
-        {/*  value={parameters.maximumConcurrency}*/}
+        {/*  value={configuration.maximumConcurrency}*/}
         {/*  thousandSeparator={","}*/}
-        {/*  suffix={" sat"}*/}
         {/*  onValueChange={createChangeHandler("maximumConcurrency")}*/}
         {/*  label={t.maximumConcurrency}*/}
         {/*  sizeVariant={InputSizeVariant.small}*/}
         {/*/>*/}
-        <Button type="submit" buttonColor={ColorVariant.success} buttonSize={SizeVariant.small} icon={<SaveIcon />}>
-          {t.save.toString()}
+        <Button
+          type="submit"
+          buttonColor={ColorVariant.success}
+          buttonSize={SizeVariant.small}
+          icon={!processing ? <SaveIcon /> : <Spinny />}
+          disabled={!dirty || processing}
+        >
+          {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
       </Form>
     </WorkflowNodeWrapper>

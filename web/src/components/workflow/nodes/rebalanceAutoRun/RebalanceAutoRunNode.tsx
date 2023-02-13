@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import {
-  MoneySettings20Regular as ChannelPolicyConfiguratorIcon,
+  ArrowRotateClockwise20Regular as RebalanceConfiguratorIcon,
   Save16Regular as SaveIcon,
 } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
@@ -20,79 +20,65 @@ import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 
-type ChannelPolicyConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
+type RebalanceAutoRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
-export type ChannelPolicyConfiguration = {
-  feeBaseMsat?: number;
-  feeRateMilliMsat?: number;
-  maxHtlcMsat?: number;
-  minHtlcMsat?: number;
-  timeLockDelta?: number;
+export type RebalanceConfiguration = {
+  amountMsat: number;
+  maximumCostMsat?: number;
+  maximumCostMilliMsat?: number;
+  maximumConcurrency?: number;
 };
 
-export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicyConfiguratorNodeProps) {
+export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodeProps) {
   const { t } = useTranslations();
-
   const { workflowStatus } = useContext(WorkflowContext);
   const editingDisabled = workflowStatus === Status.Active;
   const toastRef = React.useContext(ToastContext);
 
   const [updateNode] = useUpdateNodeMutation();
 
-  const [channelPolicy, setChannelPolicy] = useState<ChannelPolicyConfiguration>({
-    feeBaseMsat: undefined,
-    feeRateMilliMsat: undefined,
-    maxHtlcMsat: undefined,
-    minHtlcMsat: undefined,
-    timeLockDelta: undefined,
+  const [rebalance, setRebalance] = useState<RebalanceConfiguration>({
+    amountMsat: 0,
+    maximumCostMsat: undefined,
+    maximumCostMilliMsat: undefined,
+    maximumConcurrency: undefined,
     ...wrapperProps.parameters,
   });
 
   const [dirty, setDirty] = useState(false);
   const [processing, setProcessing] = useState(false);
   useEffect(() => {
-    // if the original parameters are different from the current parameters, set dirty to true
-    if (JSON.stringify(wrapperProps.parameters, Object.keys(wrapperProps.parameters).sort()) !== JSON.stringify(channelPolicy, Object.keys(channelPolicy).sort())) {
-      setDirty(true);
-    } else {
-      setDirty(false);
-    }
-  }, [channelPolicy, wrapperProps.parameters]);
+    setDirty(
+      JSON.stringify(wrapperProps.parameters, Object.keys(wrapperProps.parameters).sort()) !==
+      JSON.stringify(rebalance, Object.keys(rebalance).sort()));
+  }, [rebalance, wrapperProps.parameters]);
 
-  const [feeBase, setFeeBase] = useState<number | undefined>(
-    (wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat
-      ? ((wrapperProps.parameters as ChannelPolicyConfiguration).feeBaseMsat || 0) / 1000
+  const [amountSat, setAmountSat] = useState<number | undefined>(
+    (wrapperProps.parameters as RebalanceConfiguration).amountMsat
+      ? ((wrapperProps.parameters as RebalanceConfiguration).amountMsat || 0) / 1000
       : undefined
   );
-  const [maxHtlc, setMaxHtlc] = useState<number | undefined>(
-    (wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat
-      ? ((wrapperProps.parameters as ChannelPolicyConfiguration).maxHtlcMsat || 0) / 1000
-      : undefined
-  );
-  const [minHtlc, setMinHtlc] = useState<number | undefined>(
-    (wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat
-      ? ((wrapperProps.parameters as ChannelPolicyConfiguration).minHtlcMsat || 0) / 1000
+  const [maximumCostSat, setMaximumCostSat] = useState<number | undefined>(
+    (wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat
+      ? ((wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat || 0) / 1000
       : undefined
   );
 
-  function createChangeMsatHandler(key: keyof ChannelPolicyConfiguration) {
+  function createChangeMsatHandler(key: keyof RebalanceConfiguration) {
     return (e: NumberFormatValues) => {
-      if (key == "feeBaseMsat") {
-        setFeeBase(e.floatValue);
+      if (key == "amountMsat") {
+        setAmountSat(e.floatValue);
       }
-      if (key == "maxHtlcMsat") {
-        setMaxHtlc(e.floatValue);
-      }
-      if (key == "minHtlcMsat") {
-        setMinHtlc(e.floatValue);
+      if (key == "maximumCostMsat") {
+        setMaximumCostSat(e.floatValue);
       }
       if (e.floatValue === undefined) {
-        setChannelPolicy((prev) => ({
+        setRebalance((prev) => ({
           ...prev,
           [key]: undefined,
         }));
       } else {
-        setChannelPolicy((prev) => ({
+        setRebalance((prev) => ({
           ...prev,
           [key]: (e.floatValue || 0) * 1000,
         }));
@@ -100,9 +86,9 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
     };
   }
 
-  function createChangeHandler(key: keyof ChannelPolicyConfiguration) {
+  function createChangeHandler(key: keyof RebalanceConfiguration) {
     return (e: NumberFormatValues) => {
-      setChannelPolicy((prev) => ({
+      setRebalance((prev) => ({
         ...prev,
         [key]: e.floatValue,
       }));
@@ -120,7 +106,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
     setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
-      parameters: channelPolicy,
+      parameters: rebalance,
     }).finally(() => {
       setProcessing(false);
     });
@@ -135,87 +121,124 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
     })
   );
 
-  const channelIds =
+  const incomingChannelIds =
     childLinks
       ?.filter((n) => {
-        return n.childInput === "channels";
+        return n.childInput === "incomingChannels";
       })
       ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
 
-  const channels = useSelector(
+  const incomingChannels = useSelector(
     SelectWorkflowNodes({
       version: wrapperProps.version,
       workflowId: wrapperProps.workflowId,
-      nodeIds: channelIds,
+      nodeIds: incomingChannelIds,
+    })
+  );
+
+  const outgoingChannelIds =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "outgoingChannels";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const outgoingChannels = useSelector(
+    SelectWorkflowNodes({
+      version: wrapperProps.version,
+      workflowId: wrapperProps.workflowId,
+      nodeIds: outgoingChannelIds,
+    })
+  );
+
+  const avoidChannelsIds =
+    childLinks
+      ?.filter((n) => {
+        return n.childInput === "avoidChannels";
+      })
+      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+
+  const avoidChannels = useSelector(
+    SelectWorkflowNodes({
+      version: wrapperProps.version,
+      workflowId: wrapperProps.workflowId,
+      nodeIds: avoidChannelsIds,
     })
   );
 
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
-      headerIcon={<ChannelPolicyConfiguratorIcon />}
+      headerIcon={<RebalanceConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
       outputName={"channels"}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.channels}
-          selectedNodes={channels || []}
+          label={t.Destinations}
+          selectedNodes={incomingChannels || []}
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputName={"channels"}
+          inputName={"incomingChannels"}
+          editingDisabled={editingDisabled}
+        />
+        <Socket
+          collapsed={wrapperProps.visibilitySettings.collapsed}
+          label={t.Sources}
+          selectedNodes={outgoingChannels || []}
+          workflowVersionId={wrapperProps.workflowVersionId}
+          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
+          inputName={"outgoingChannels"}
+          editingDisabled={editingDisabled}
+        />
+        <Socket
+          collapsed={wrapperProps.visibilitySettings.collapsed}
+          label={t.Avoid}
+          selectedNodes={avoidChannels || []}
+          workflowVersionId={wrapperProps.workflowVersionId}
+          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
+          inputName={"avoidChannels"}
           editingDisabled={editingDisabled}
         />
         <Input
           formatted={true}
-          value={channelPolicy.feeRateMilliMsat}
+          value={amountSat}
+          thousandSeparator={","}
+          suffix={" sat"}
+          onValueChange={createChangeMsatHandler("amountMsat")}
+          label={t.amountSat}
+          sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
+        />
+        <Input
+          formatted={true}
+          value={maximumCostSat}
+          thousandSeparator={","}
+          suffix={" sat"}
+          onValueChange={createChangeMsatHandler("maximumCostMsat")}
+          label={t.maximumCostSat}
+          sizeVariant={InputSizeVariant.small}
+          disabled={editingDisabled}
+        />
+        <Input
+          formatted={true}
+          value={rebalance.maximumCostMilliMsat}
           thousandSeparator={","}
           suffix={" ppm"}
-          onValueChange={createChangeHandler("feeRateMilliMsat")}
-          label={t.updateChannelPolicy.feeRateMilliMsat}
+          onValueChange={createChangeHandler("maximumCostMilliMsat")}
+          label={t.maximumCostMilliMsat}
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
         />
-        <Input
-          formatted={true}
-          value={feeBase}
-          thousandSeparator={","}
-          suffix={" sat"}
-          onValueChange={createChangeMsatHandler("feeBaseMsat")}
-          label={t.feeBase}
-          sizeVariant={InputSizeVariant.small}
-          disabled={editingDisabled}
-        />
-        <Input
-          formatted={true}
-          value={minHtlc}
-          thousandSeparator={","}
-          suffix={" sat"}
-          onValueChange={createChangeMsatHandler("minHtlcMsat")}
-          label={t.minHTLCAmount}
-          sizeVariant={InputSizeVariant.small}
-          disabled={editingDisabled}
-        />
-        <Input
-          formatted={true}
-          value={maxHtlc}
-          thousandSeparator={","}
-          suffix={" sat"}
-          onValueChange={createChangeMsatHandler("maxHtlcMsat")}
-          label={t.maxHTLCAmount}
-          sizeVariant={InputSizeVariant.small}
-          disabled={editingDisabled}
-        />
-        <Input
-          formatted={true}
-          value={channelPolicy.timeLockDelta}
-          thousandSeparator={","}
-          onValueChange={createChangeHandler("timeLockDelta")}
-          label={t.updateChannelPolicy.timeLockDelta}
-          sizeVariant={InputSizeVariant.small}
-          disabled={editingDisabled}
-        />
+        {/*<Input*/}
+        {/*  formatted={true}*/}
+        {/*  value={rebalance.maximumConcurrency}*/}
+        {/*  thousandSeparator={","}*/}
+        {/*  onValueChange={createChangeHandler("maximumConcurrency")}*/}
+        {/*  label={t.maximumConcurrency}*/}
+        {/*  sizeVariant={InputSizeVariant.small}*/}
+        {/*/>*/}
         <Button
           type="submit"
           buttonColor={ColorVariant.success}

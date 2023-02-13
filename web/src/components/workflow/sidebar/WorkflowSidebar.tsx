@@ -17,8 +17,8 @@ import {
   CronTriggerNodeButton,
   ChannelFilterNodeButton,
   RebalanceConfiguratorNodeButton,
-  //RebalanceAutoRunNodeButton,
-  //RebalanceRunNodeButton,
+  RebalanceAutoRunNodeButton,
+  RebalanceRunNodeButton,
   RemoveTagNodeButton,
   BalanceTriggerNodeButton,
   AddTagNodeButton,
@@ -78,6 +78,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
         >
           <ChannelFilterNodeButton />
           <ChannelPolicyAutoRunNodeButton />
+          <RebalanceAutoRunNodeButton />
           <AddTagNodeButton />
           <RemoveTagNodeButton />
         </SectionContainer>
@@ -89,6 +90,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
         >
           <ChannelPolicyRunNodeButton />
           <ChannelPolicyConfiguratorNodeButton />
+          <RebalanceRunNodeButton />
           <RebalanceConfiguratorNodeButton />
         </SectionContainer>
       </Sidebar>
