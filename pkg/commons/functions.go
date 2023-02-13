@@ -98,12 +98,18 @@ func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) s
 	return fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)
 }
 
-func CopyParameters(parameters map[WorkflowParameterLabel]string) map[WorkflowParameterLabel]string {
+func CloneParameters(parameters map[WorkflowParameterLabel]string) map[WorkflowParameterLabel]string {
 	parametersCopy := make(map[WorkflowParameterLabel]string)
 	for k, v := range parameters {
 		parametersCopy[k] = v
 	}
 	return parametersCopy
+}
+
+func CopyParameters(destination map[WorkflowParameterLabel]string, source map[WorkflowParameterLabel]string) {
+	for k, v := range source {
+		destination[k] = v
+	}
 }
 
 func (s *Status) String() string {

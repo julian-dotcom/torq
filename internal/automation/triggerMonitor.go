@@ -463,6 +463,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	workflowNodeStatus := make(map[int]commons.Status)
 	workflowStageExitConfigurationCache := make(map[int]map[commons.WorkflowParameterLabel]string)
 	workflowNodeCache := make(map[int]workflows.WorkflowNode)
+	stagedInputsByWorkflowVersionNodeId := make(map[int]map[commons.WorkflowParameterLabel]string)
 
 	if workflowTriggerNode.Type != commons.WorkflowNodeManualTrigger {
 		// Flag the trigger group node as processed
@@ -478,8 +479,9 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 
 	if len(workflowChannelBalanceTriggerNodes) == 0 {
 		outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
-			0, workflowNodeCache, workflowNodeStatus,
-			reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
+			0, 0, workflowNodeCache, workflowNodeStatus,
+			reference, inputs, stagedInputsByWorkflowVersionNodeId, 0, workflowTriggerNode.Type,
+			workflowStageExitConfigurationCache,
 			lightningRequestChannel, rebalanceRequestChannel)
 		workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
 			0, inputs, outputs, err)
@@ -503,8 +505,9 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 		inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
 
 		outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
-			0, workflowNodeCache, workflowNodeStatus,
-			reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
+			0, 0, workflowNodeCache, workflowNodeStatus,
+			reference, inputs, stagedInputsByWorkflowVersionNodeId, 0, workflowTriggerNode.Type,
+			workflowStageExitConfigurationCache,
 			lightningRequestChannel, rebalanceRequestChannel)
 		workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
 			0, inputs, outputs, err)
@@ -513,10 +516,12 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 		}
 
 		for _, workflowDeferredLinkNode := range workflowChannelBalanceTriggerNodes {
-			inputs = commons.CopyParameters(outputs)
+			stagedInputsByWorkflowVersionNodeId = make(map[int]map[commons.WorkflowParameterLabel]string)
+			inputs = commons.CloneParameters(outputs)
 			outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, workflowDeferredLinkNode,
-				0, workflowNodeCache, workflowNodeStatus,
-				reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
+				0, 0, workflowNodeCache, workflowNodeStatus,
+				reference, inputs, stagedInputsByWorkflowVersionNodeId, 0, workflowTriggerNode.Type,
+				workflowStageExitConfigurationCache,
 				lightningRequestChannel, rebalanceRequestChannel)
 			workflows.AddWorkflowVersionNodeLog(db, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
 				0, inputs, outputs, err)
