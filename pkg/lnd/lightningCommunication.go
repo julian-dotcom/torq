@@ -342,9 +342,9 @@ func constructPolicyUpdateRequest(request commons.RoutingPolicyUpdateRequest, ch
 		policyUpdateRequest.FeeRatePpm = uint32(*request.FeeRateMilliMsat)
 	}
 	if request.FeeBaseMsat == nil {
-		policyUpdateRequest.BaseFeeMsat = int64(channelState.LocalFeeBaseMsat)
+		policyUpdateRequest.BaseFeeMsat = channelState.LocalFeeBaseMsat
 	} else {
-		policyUpdateRequest.BaseFeeMsat = int64(*request.FeeBaseMsat)
+		policyUpdateRequest.BaseFeeMsat = *request.FeeBaseMsat
 	}
 	if request.MinHtlcMsat == nil {
 		policyUpdateRequest.MinHtlcMsat = channelState.LocalMinHtlcMsat
