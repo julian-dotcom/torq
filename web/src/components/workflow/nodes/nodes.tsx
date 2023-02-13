@@ -11,12 +11,12 @@ export { CronTriggerNode } from "components/workflow/nodes/cronTrigger/CronTrigg
 export { StageTriggerNode } from "components/workflow/nodes/stageTrigger/StageTriggerNode";
 export { ChannelFilterNode } from "components/workflow/nodes/channelsFilter/ChannelFilterNode";
 export { ChannelFilterNodeButton } from "components/workflow/nodes/channelsFilter/ChannelFilterNodeButton";
-//export { RebalanceAutoRunNodeButton } from "components/workflow/nodes/rebalanceAutoRun/RebalanceAutoRunNodeButton";
-//export { RebalanceAutoRunNode } from "components/workflow/nodes/rebalanceAutoRun/RebalanceAutoRunNode";
+export { RebalanceAutoRunNodeButton } from "components/workflow/nodes/rebalanceAutoRun/RebalanceAutoRunNodeButton";
+export { RebalanceAutoRunNode } from "components/workflow/nodes/rebalanceAutoRun/RebalanceAutoRunNode";
 export { RebalanceConfiguratorNodeButton } from "components/workflow/nodes/rebalanceConfigurator/RebalanceConfiguratorNodeButton";
 export { RebalanceConfiguratorNode } from "components/workflow/nodes/rebalanceConfigurator/RebalanceConfiguratorNode";
-//export { RebalanceRunNodeButton } from "components/workflow/nodes/rebalanceRun/RebalanceRunNodeButton";
-//export { RebalanceRunNode } from "components/workflow/nodes/rebalanceRun/RebalanceRunNode";
+export { RebalanceRunNodeButton } from "components/workflow/nodes/rebalanceRun/RebalanceRunNodeButton";
+export { RebalanceRunNode } from "components/workflow/nodes/rebalanceRun/RebalanceRunNode";
 export { AddTagNodeButton } from "components/workflow/nodes/tags/AddTagNodeButton";
 export { AddTagNode } from "components/workflow/nodes/tags/AddTagNode";
 export { RemoveTagNodeButton } from "components/workflow/nodes/tags/RemoveTagNodeButton";

@@ -177,7 +177,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           thousandSeparator={","}
           suffix={" sat"}
           onValueChange={createChangeMsatHandler("feeBaseMsat")}
-          label={t.baseFee}
+          label={t.feeBase}
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
         />
