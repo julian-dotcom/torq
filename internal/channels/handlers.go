@@ -124,6 +124,9 @@ func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interfac
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
+	// DISABLE the rate limiter
+	requestBody.RateLimitSeconds = 1
+	requestBody.RateLimitCount = 10
 
 	response := SetRoutingPolicyWithTimeout(requestBody, lightningRequestChannel)
 	if response.Status != commons.Active {
