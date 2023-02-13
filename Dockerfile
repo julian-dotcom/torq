@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build cmd/torq/torq.go
 FROM node:buster-slim as frontend-builder
 WORKDIR /app
 COPY web/package*.json ./
-RUN npm install --legacy-peer-deps && npm cache clean --force;
+RUN npm install && npm cache clean --force;
 COPY web/. .
 RUN TSX_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true npm run build
 
