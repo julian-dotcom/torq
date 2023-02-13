@@ -79,6 +79,22 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
       });
       const filteredEvents =
         events?.events?.filter((d) => {
+          switch (d.type) {
+            case "fee_rate":
+              return selectedEventTypes.feeRate;
+            case "base_fee":
+              return selectedEventTypes.baseFee;
+            case "min_htlc":
+              return selectedEventTypes.minHtlc;
+            case "max_htlc":
+              return selectedEventTypes.maxHtlc;
+            case "rebalanced":
+              return false;
+            case "disabled":
+              return selectedEventTypes.disabled;
+            case "enabled":
+              return selectedEventTypes.enabled;
+          }
           return selectedEventTypes[d.type as keyof typeof selectedEventTypes]; // selectedEventTypes
         }) || [];
       chart.plot(EventsPlot, { id: "events", key: "events", events: filteredEvents });
