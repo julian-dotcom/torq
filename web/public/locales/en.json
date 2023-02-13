@@ -188,6 +188,7 @@
   "deleteStageConfirm": "Are you sure you want to delete this stage?",
   "maximumCostSat": "Maximum cost (sat)",
   "maximumCostMilliMsat": "Maximum cost (ppm)",
+  "maximumConcurrency": "Maximum concurrency",
   "amountSat": "Amount (sat)",
   "close": "Close",
   "update": "Update",

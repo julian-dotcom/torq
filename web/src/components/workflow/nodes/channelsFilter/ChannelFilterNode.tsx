@@ -1,5 +1,8 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Filter20Regular as FilterIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import {
+  Filter20Regular as FilterIcon,
+  Save16Regular as SaveIcon
+} from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Form from "components/forms/form/Form";
@@ -93,7 +96,12 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
   const filters = AllChannelsColumns.filter((column) => column.valueType !== "link");
 
   return (
-    <WorkflowNodeWrapper {...wrapperProps} headerIcon={<FilterIcon />} colorVariant={NodeColorVariant.accent1}>
+    <WorkflowNodeWrapper
+      {...wrapperProps}
+      headerIcon={<FilterIcon />}
+      colorVariant={NodeColorVariant.accent1}
+      outputName={"channels"}
+    >
       <Form onSubmit={handleSubmit}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}

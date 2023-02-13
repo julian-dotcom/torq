@@ -21,11 +21,13 @@ import (
 // ProcessWorkflowNode workflowNodeStagingParametersCache[WorkflowVersionNodeId][parameterLabel] (i.e. parameterLabel = sourceChannels)
 func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	workflowNode WorkflowNode,
+	workflowNodeLinkId int,
 	triggeringWorkflowVersionNodeId int,
 	workflowNodeCache map[int]WorkflowNode,
 	workflowNodeStatus map[int]commons.Status,
 	reference string,
 	inputs map[commons.WorkflowParameterLabel]string,
+	stagedInputsByWorkflowVersionNodeId map[int]map[commons.WorkflowParameterLabel]string,
 	iteration int,
 	triggerType commons.WorkflowNodeType,
 	workflowStageExitConfigurationCache map[int]map[commons.WorkflowParameterLabel]string,
@@ -41,18 +43,14 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		return nil, commons.Inactive, errors.New(fmt.Sprintf("Context terminated for WorkflowVersionId: %v", workflowNode.WorkflowVersionId))
 	default:
 	}
-	outputs := commons.CopyParameters(inputs)
 	var err error
 
+	outputs := commons.CloneParameters(inputs)
 	if workflowNode.Status == Active {
 		status, exists := workflowNodeStatus[workflowNode.WorkflowVersionNodeId]
 		if exists && status == commons.Active {
 			// When the node is in the cache and active then it's already been processed successfully
 			return nil, commons.Deleted, nil
-		}
-		if !getWorkflowNodeInputsComplete(workflowNode, inputs) {
-			// When the node is pending then not all inputs are available yet
-			return nil, commons.Pending, nil
 		}
 
 		cachedWorkflowNode, exists := workflowNodeCache[workflowNode.WorkflowVersionNodeId]
@@ -68,6 +66,17 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			workflowNode = cachedWorkflowNode
 		}
 
+		stagedInputs, exists := stagedInputsByWorkflowVersionNodeId[workflowNode.WorkflowVersionNodeId]
+		if exists {
+			commons.CopyParameters(inputs, stagedInputs)
+		}
+
+		if workflowNodeLinkId != 0 &&
+			workflowNode.LinkDetails[workflowNodeLinkId].ChildInput != workflowNode.LinkDetails[workflowNodeLinkId].ParentOutput {
+
+			inputs[workflowNode.LinkDetails[workflowNodeLinkId].ChildInput] = inputs[workflowNode.LinkDetails[workflowNodeLinkId].ParentOutput]
+		}
+
 		parentLinkedInputs := make(map[commons.WorkflowParameterLabel][]WorkflowNode)
 		for parentWorkflowNodeLinkId, parentWorkflowNode := range workflowNode.ParentNodes {
 			parentLink := workflowNode.LinkDetails[parentWorkflowNodeLinkId]
@@ -81,10 +90,30 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 					continue linkedInputLoop
 				}
 			}
+			if stagedInputsByWorkflowVersionNodeId[workflowNode.WorkflowVersionNodeId] == nil {
+				stagedInputsByWorkflowVersionNodeId[workflowNode.WorkflowVersionNodeId] = make(map[commons.WorkflowParameterLabel]string)
+			}
+			commons.CopyParameters(stagedInputsByWorkflowVersionNodeId[workflowNode.WorkflowVersionNodeId], inputs)
 			// Not all inputs are available yet
 			return nil, commons.Pending, nil
 		}
 
+		if !getWorkflowNodeInputsComplete(workflowNode, inputs) {
+			if stagedInputsByWorkflowVersionNodeId[workflowNode.WorkflowVersionNodeId] == nil {
+				stagedInputsByWorkflowVersionNodeId[workflowNode.WorkflowVersionNodeId] = make(map[commons.WorkflowParameterLabel]string)
+			}
+			commons.CopyParameters(stagedInputsByWorkflowVersionNodeId[workflowNode.WorkflowVersionNodeId], inputs)
+			// When the node is pending then not all inputs are available yet
+			return nil, commons.Pending, nil
+		}
+
+		_, exists = stagedInputsByWorkflowVersionNodeId[workflowNode.WorkflowVersionNodeId]
+		if exists {
+			delete(stagedInputsByWorkflowVersionNodeId, workflowNode.WorkflowVersionNodeId)
+		}
+
+		// Inputs might have been updated
+		outputs = commons.CloneParameters(inputs)
 		switch workflowNode.Type {
 		case commons.WorkflowNodeSetVariable:
 			//variableName := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableName).ValueString
@@ -109,22 +138,20 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 			//	activeOutputIndex = 1
 			//}
 		case commons.WorkflowNodeChannelFilter:
+			linkedChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelChannels)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Obtaining linkedChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
 			var params FilterClauses
 			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
 			if err != nil {
 				return nil, commons.Inactive, errors.Wrapf(err, "Parsing parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
-			filtered := params.Filter.FuncName != "" || len(params.Or) != 0 || len(params.And) != 0
 
 			var filteredChannelIds []int
-			linkedChannelIdsString, exists := inputs[commons.WorkflowParameterLabelChannels]
-			if exists && linkedChannelIdsString != "" && linkedChannelIdsString != "null" {
-				var linkedChannelIds []int
-				err = json.Unmarshal([]byte(linkedChannelIdsString), &linkedChannelIds)
-				if err != nil {
-					return nil, commons.Inactive, errors.Wrapf(err, "Unmarshal the parent channelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIdsString, workflowNode.WorkflowVersionNodeId)
-				}
-				if filtered {
+			if len(linkedChannelIds) > 0 {
+				if params.Filter.FuncName != "" || len(params.Or) != 0 || len(params.And) != 0 {
 					var linkedChannels []channels.ChannelBody
 					torqNodeIds := commons.GetAllTorqNodeIds()
 					for _, torqNodeId := range torqNodeIds {
@@ -139,16 +166,17 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 					filteredChannelIds = linkedChannelIds
 				}
 			}
-			ba, err := json.Marshal(filteredChannelIds)
+
+			err = setChannelIds(outputs, commons.WorkflowParameterLabelChannels, filteredChannelIds)
 			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Marshal the filteredChannelIds: %v for WorkflowVersionNodeId: %v", filteredChannelIds, workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, errors.Wrapf(err, "Adding ChannelIds to the output for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
-			outputs[commons.WorkflowParameterLabelChannels] = string(ba)
 		case commons.WorkflowNodeAddTag, commons.WorkflowNodeRemoveTag:
-			linkedChannelIds, err := getLinkedChannelIds(inputs, workflowNode)
+			linkedChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelChannels)
 			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Getting the Linked ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, errors.Wrapf(err, "Obtaining linkedChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
+
 			if len(linkedChannelIds) != 0 {
 				err = addOrRemoveTags(db, linkedChannelIds, workflowNode)
 				if err != nil {
@@ -156,9 +184,9 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				}
 			}
 		case commons.WorkflowNodeChannelPolicyConfigurator:
-			linkedChannelIds, err := getLinkedChannelIds(inputs, workflowNode)
+			linkedChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelChannels)
 			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Getting the Linked ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, errors.Wrapf(err, "Obtaining linkedChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
 			if len(linkedChannelIds) != 0 {
@@ -176,9 +204,9 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				outputs[commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
 			}
 		case commons.WorkflowNodeChannelPolicyAutoRun:
-			linkedChannelIds, err := getLinkedChannelIds(inputs, workflowNode)
+			linkedChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelChannels)
 			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Getting the Linked ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, errors.Wrapf(err, "Obtaining linkedChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
 			var routingPolicySettings ChannelPolicyConfiguration
@@ -234,101 +262,91 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 				outputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponses)
 			}
 		case commons.WorkflowNodeRebalanceConfigurator:
-			var incomingChannelIds []int
-			incomingChannelIdsString, exists := inputs[commons.WorkflowParameterLabelIncomingChannels]
-			if !exists {
-				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			}
-			err = json.Unmarshal([]byte(incomingChannelIdsString), &incomingChannelIds)
+			incomingChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelIncomingChannels)
 			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, errors.Wrapf(err, "Obtaining incomingChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
-			var outgoingChannelIds []int
-			outgoingChannelIdsString, exists := inputs[commons.WorkflowParameterLabelOutgoingChannels]
-			if !exists {
-				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			}
-			err = json.Unmarshal([]byte(outgoingChannelIdsString), &outgoingChannelIds)
+			outgoingChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelOutgoingChannels)
 			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				return nil, commons.Inactive, errors.Wrapf(err, "Obtaining outgoingChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
-			var rebalanceInputConfiguration RebalanceConfiguration
-			rebalanceInputConfigurationString, exists := inputs[commons.WorkflowParameterLabelRebalanceSettings]
-			if exists && rebalanceInputConfigurationString != "" && rebalanceInputConfigurationString != "null" {
-				err = json.Unmarshal([]byte(rebalanceInputConfigurationString), &rebalanceInputConfiguration)
+			if len(incomingChannelIds) != 0 && len(outgoingChannelIds) != 0 {
+				rebalanceConfiguration, err := processRebalanceConfigurator(incomingChannelIds, outgoingChannelIds, inputs, workflowNode)
 				if err != nil {
-					return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+					return nil, commons.Inactive, errors.Wrapf(err, "Processing Rebalance configurator for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 				}
+
+				marshalledRebalanceConfiguration, err := json.Marshal(rebalanceConfiguration)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+				outputs[commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
+			}
+		case commons.WorkflowNodeRebalanceAutoRun:
+			incomingChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelIncomingChannels)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Obtaining incomingChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
+			outgoingChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelOutgoingChannels)
+			if err != nil {
+				return nil, commons.Inactive, errors.Wrapf(err, "Obtaining outgoingChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			if len(incomingChannelIds) != 0 && len(outgoingChannelIds) != 0 {
+				rebalanceConfiguration, err := processRebalanceConfigurator(incomingChannelIds, outgoingChannelIds, inputs, workflowNode)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Processing Rebalance configurator for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+
+				var responses []commons.RebalanceResponse
+				responses, err = processRebalanceRun(rebalanceConfiguration, rebalanceRequestChannel, workflowNode, reference)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+
+				marshalledRebalanceConfiguration, err := json.Marshal(rebalanceConfiguration)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+				outputs[commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
+
+				marshalledResponses, err := json.Marshal(responses)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance Responses for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+				// TODO FIXME create a more uniform status object
+				outputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponses)
+			}
+		case commons.WorkflowNodeRebalanceRun:
 			var rebalanceConfiguration RebalanceConfiguration
 			err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &rebalanceConfiguration)
 			if err != nil {
 				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
-			marshalledRebalanceConfiguration, err := json.Marshal(rebalanceInputConfiguration)
-			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			if len(rebalanceConfiguration.IncomingChannelIds) != 0 && len(rebalanceConfiguration.OutgoingChannelIds) != 0 {
+				var responses []commons.RebalanceResponse
+				responses, err = processRebalanceRun(rebalanceConfiguration, rebalanceRequestChannel, workflowNode, reference)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+
+				marshalledRebalanceConfiguration, err := json.Marshal(rebalanceConfiguration)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+				outputs[commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
+
+				marshalledResponses, err := json.Marshal(responses)
+				if err != nil {
+					return nil, commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance Responses for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+				// TODO FIXME create a more uniform status object
+				outputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponses)
 			}
-			outputs[commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
-		case commons.WorkflowNodeRebalanceRun:
-			rebalanceSettingsString, exists := inputs[commons.WorkflowParameterLabelRebalanceSettings]
-			if !exists {
-				return nil, commons.Inactive, errors.Wrapf(err, "No rebalance settings found for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			}
-			var rebalanceSettings RebalanceConfiguration
-			err = json.Unmarshal([]byte(rebalanceSettingsString), &rebalanceSettings)
-			if err != nil {
-				return nil, commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			}
-			//if len(sourceChannelIds) != 0 &&
-			//	len(destinationChannelIds) != 0 &&
-			//	rebalanceRequestChannel != nil &&
-			//	commons.RunningServices[commons.RebalanceService].GetStatus(nodeSettings.NodeId) == commons.Active {
-			//
-			//	now := time.Now()
-			//	responseChannel := make(chan commons.RebalanceResponse, 1)
-			//	request := commons.RebalanceRequest{
-			//		CommunicationRequest: commons.CommunicationRequest{
-			//			RequestId:   reference,
-			//			RequestTime: &now,
-			//			NodeId:      nodeSettings.NodeId,
-			//		},
-			//		ResponseChannel:    responseChannel,
-			//		Origin:             commons.RebalanceRequestWorkflowNode,
-			//		OriginId:           workflowNode.WorkflowVersionNodeId,
-			//		OriginReference:    reference,
-			//		ChannelIds:         rebalanceSettings.ChannelIds,
-			//		AmountMsat:         *rebalanceSettings.AmountMsat,
-			//		MaximumCostMsat:    *rebalanceSettings.MaximumCostMsat,
-			//		MaximumConcurrency: 1,
-			//	}
-			//	if rebalanceSettings.IncomingChannelIds != nil {
-			//		request.IncomingChannelId = rebalanceSettings.IncomingChannelIds
-			//	}
-			//	if rebalanceSettings.OutgoingChannelIds != nil {
-			//		request.OutgoingChannelId = *rebalanceSettings.OutgoingChannelIds
-			//	}
-			//	lightningRequestChannel <- request
-			//time.AfterFunc(commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
-			//	message := fmt.Sprintf("Routing policy update timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
-			//	responseChannel <- commons.RoutingPolicyUpdateResponse{
-			//		Request: request,
-			//		CommunicationResponse: commons.CommunicationResponse{
-			//			Status:  commons.TimedOut,
-			//			Message: "Routing policy update timed out after 2 seconds.",
-			//			Error:   "Routing policy update timed out after 2 seconds.",
-			//		},
-			//	}
-			//})
-			//	response := <-responseChannel
-			//	if response.Error != "" {
-			//		log.Error().Err(errors.New(response.Error)).Msg("Channel Interval Trigger Fired")
-			//	}
-			//}
 		case commons.WorkflowNodeIntervalTrigger:
 			log.Debug().Msgf("Interval Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		case commons.WorkflowNodeCronTrigger:
@@ -361,10 +379,10 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 		for label, value := range outputs {
 			workflowStageExitConfigurationCache[workflowNode.Stage][label] = value
 		}
-		for _, childNode := range workflowNode.ChildNodes {
+		for linkId, childNode := range workflowNode.ChildNodes {
 			// Call ProcessWorkflowNode with several arguments, including childNode, workflowNode.WorkflowVersionNodeId, and workflowNodeStagingParametersCache
-			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, *childNode, workflowNode.WorkflowVersionNodeId,
-				workflowNodeCache, workflowNodeStatus, reference, outputs, iteration, triggerType,
+			childOutputs, childProcessingStatus, err := ProcessWorkflowNode(ctx, db, *childNode, linkId, workflowNode.WorkflowVersionNodeId,
+				workflowNodeCache, workflowNodeStatus, reference, outputs, stagedInputsByWorkflowVersionNodeId, iteration, triggerType,
 				workflowStageExitConfigurationCache, lightningRequestChannel, rebalanceRequestChannel)
 			// If childProcessingStatus is not equal to commons.Pending, call AddWorkflowVersionNodeLog with several arguments, including nodeSettings.NodeId, reference, workflowNode.WorkflowVersionNodeId, triggeringWorkflowVersionNodeId, inputs, and childOutputs
 			if childProcessingStatus != commons.Pending {
@@ -381,47 +399,127 @@ func ProcessWorkflowNode(ctx context.Context, db *sqlx.DB,
 	return outputs, commons.Active, nil
 }
 
-func processRoutingPolicyRun(
-	routingPolicySettings ChannelPolicyConfiguration,
-	lightningRequestChannel chan interface{},
-	workflowNode WorkflowNode,
-	reference string,
-	triggerType commons.WorkflowNodeType) ([]commons.RoutingPolicyUpdateResponse, error) {
+func getChannelIds(inputs map[commons.WorkflowParameterLabel]string, label commons.WorkflowParameterLabel) ([]int, error) {
+	outgoingChannelIdsString, exists := inputs[commons.WorkflowParameterLabelOutgoingChannels]
+	if !exists {
+		return nil, errors.New(fmt.Sprintf("Parse %v", label))
+	}
+	var channelIds []int
+	err := json.Unmarshal([]byte(outgoingChannelIdsString), &channelIds)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unmarshalling  %v", label)
+	}
+	return channelIds, nil
+}
 
+func setChannelIds(outputs map[commons.WorkflowParameterLabel]string, label commons.WorkflowParameterLabel, channelIds []int) error {
+	ba, err := json.Marshal(channelIds)
+	if err != nil {
+		return errors.Wrapf(err, "Marshal the channelIds: %v", channelIds)
+	}
+	outputs[label] = string(ba)
+	return nil
+}
+
+func processRebalanceConfigurator(
+	incomingChannelIds []int,
+	outgoingChannelIds []int,
+	inputs map[commons.WorkflowParameterLabel]string,
+	workflowNode WorkflowNode) (RebalanceConfiguration, error) {
+
+	var rebalanceInputConfiguration RebalanceConfiguration
+	rebalanceInputConfigurationString, exists := inputs[commons.WorkflowParameterLabelRebalanceSettings]
+	if exists && rebalanceInputConfigurationString != "" && rebalanceInputConfigurationString != "null" {
+		err := json.Unmarshal([]byte(rebalanceInputConfigurationString), &rebalanceInputConfiguration)
+		if err != nil {
+			return RebalanceConfiguration{}, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+	}
+
+	var rebalanceConfiguration RebalanceConfiguration
+	err := json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &rebalanceConfiguration)
+	if err != nil {
+		return RebalanceConfiguration{}, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+	}
+	if rebalanceConfiguration.AmountMsat != nil {
+		rebalanceInputConfiguration.AmountMsat = rebalanceConfiguration.AmountMsat
+	}
+	if rebalanceConfiguration.MaximumCostMilliMsat != nil {
+		rebalanceInputConfiguration.MaximumCostMilliMsat = rebalanceConfiguration.MaximumCostMilliMsat
+	}
+	if rebalanceConfiguration.MaximumCostMsat != nil {
+		rebalanceInputConfiguration.MaximumCostMsat = rebalanceConfiguration.MaximumCostMsat
+	}
+	rebalanceInputConfiguration.IncomingChannelIds = incomingChannelIds
+	rebalanceInputConfiguration.OutgoingChannelIds = outgoingChannelIds
+	return rebalanceInputConfiguration, nil
+}
+
+func processRebalanceRun(
+	rebalanceSettings RebalanceConfiguration,
+	rebalanceRequestChannel chan commons.RebalanceRequest,
+	workflowNode WorkflowNode,
+	reference string) ([]commons.RebalanceResponse, error) {
+
+	var responses []commons.RebalanceResponse
 	now := time.Now()
-	torqNodeIds := commons.GetAllTorqNodeIds()
-	var responses []commons.RoutingPolicyUpdateResponse
-	for _, channelId := range routingPolicySettings.ChannelIds {
-		channelSettings := commons.GetChannelSettingByChannelId(channelId)
-		nodeId := channelSettings.FirstNodeId
-		if !slices.Contains(torqNodeIds, nodeId) {
-			nodeId = channelSettings.SecondNodeId
+	if len(rebalanceSettings.OutgoingChannelIds) == 1 {
+		outgoingChannelId := rebalanceSettings.OutgoingChannelIds[0]
+		channelSetting := commons.GetChannelSettingByChannelId(outgoingChannelId)
+		nodeId := channelSetting.FirstNodeId
+		if !slices.Contains(commons.GetAllTorqNodeIds(), nodeId) {
+			nodeId = channelSetting.SecondNodeId
 		}
-		if !slices.Contains(torqNodeIds, nodeId) {
-			log.Info().Msgf("Routing policy update on unmanaged channel for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			continue
-		}
-		routingPolicyUpdateRequest := commons.RoutingPolicyUpdateRequest{
+		request := commons.RebalanceRequest{
 			CommunicationRequest: commons.CommunicationRequest{
 				RequestId:   reference,
 				RequestTime: &now,
 				NodeId:      nodeId,
 			},
-			ChannelId:        channelId,
-			FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
-			FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
-			MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
-			MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
-			TimeLockDelta:    routingPolicySettings.TimeLockDelta,
+			Origin:          commons.RebalanceRequestWorkflowNode,
+			OriginId:        workflowNode.WorkflowVersionNodeId,
+			OriginReference: reference,
+			ChannelIds:      rebalanceSettings.IncomingChannelIds,
+			AmountMsat:      *rebalanceSettings.AmountMsat,
+			MaximumCostMsat: *rebalanceSettings.MaximumCostMsat,
+			//MaximumConcurrency: *rebalanceSettings.MaximumConcurrency,
 		}
-		if triggerType == commons.WorkflowNodeManualTrigger {
-			routingPolicyUpdateRequest.RateLimitSeconds = 1
-		}
-		response := channels.SetRoutingPolicyWithTimeout(routingPolicyUpdateRequest, lightningRequestChannel)
+		request.OutgoingChannelId = outgoingChannelId
+
+		response := channels.SetRebalanceWithTimeout(request, rebalanceRequestChannel)
 		if response.Error != "" {
 			log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 		responses = append(responses, response)
+	} else {
+		for _, incomingChannelId := range rebalanceSettings.IncomingChannelIds {
+			channelSetting := commons.GetChannelSettingByChannelId(incomingChannelId)
+			nodeId := channelSetting.FirstNodeId
+			if !slices.Contains(commons.GetAllTorqNodeIds(), nodeId) {
+				nodeId = channelSetting.SecondNodeId
+			}
+			request := commons.RebalanceRequest{
+				CommunicationRequest: commons.CommunicationRequest{
+					RequestId:   reference,
+					RequestTime: &now,
+					NodeId:      nodeId,
+				},
+				Origin:          commons.RebalanceRequestWorkflowNode,
+				OriginId:        workflowNode.WorkflowVersionNodeId,
+				OriginReference: reference,
+				ChannelIds:      rebalanceSettings.OutgoingChannelIds,
+				AmountMsat:      *rebalanceSettings.AmountMsat,
+				MaximumCostMsat: *rebalanceSettings.MaximumCostMsat,
+				//MaximumConcurrency: *rebalanceSettings.MaximumConcurrency,
+			}
+			request.IncomingChannelId = incomingChannelId
+
+			response := channels.SetRebalanceWithTimeout(request, rebalanceRequestChannel)
+			if response.Error != "" {
+				log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			responses = append(responses, response)
+		}
 	}
 	return responses, nil
 }
@@ -462,6 +560,53 @@ func processRoutingPolicyConfigurator(
 	}
 	channelPolicyInputConfiguration.ChannelIds = linkedChannelIds
 	return channelPolicyInputConfiguration, nil
+}
+
+func processRoutingPolicyRun(
+	routingPolicySettings ChannelPolicyConfiguration,
+	lightningRequestChannel chan interface{},
+	workflowNode WorkflowNode,
+	reference string,
+	triggerType commons.WorkflowNodeType) ([]commons.RoutingPolicyUpdateResponse, error) {
+
+	now := time.Now()
+	torqNodeIds := commons.GetAllTorqNodeIds()
+	var responses []commons.RoutingPolicyUpdateResponse
+	for _, channelId := range routingPolicySettings.ChannelIds {
+		channelSettings := commons.GetChannelSettingByChannelId(channelId)
+		nodeId := channelSettings.FirstNodeId
+		if !slices.Contains(torqNodeIds, nodeId) {
+			nodeId = channelSettings.SecondNodeId
+		}
+		if !slices.Contains(torqNodeIds, nodeId) {
+			log.Info().Msgf("Routing policy update on unmanaged channel for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			continue
+		}
+		routingPolicyUpdateRequest := commons.RoutingPolicyUpdateRequest{
+			CommunicationRequest: commons.CommunicationRequest{
+				RequestId:   reference,
+				RequestTime: &now,
+				NodeId:      nodeId,
+			},
+			ChannelId:        channelId,
+			FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
+			FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
+			MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
+			MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
+			TimeLockDelta:    routingPolicySettings.TimeLockDelta,
+		}
+		if triggerType == commons.WorkflowNodeManualTrigger {
+			// DISABLE rate limiter
+			routingPolicyUpdateRequest.RateLimitSeconds = 1
+			routingPolicyUpdateRequest.RateLimitCount = 10
+		}
+		response := channels.SetRoutingPolicyWithTimeout(routingPolicyUpdateRequest, lightningRequestChannel)
+		if response.Error != "" {
+			log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+		responses = append(responses, response)
+	}
+	return responses, nil
 }
 
 func addOrRemoveTags(db *sqlx.DB, linkedChannelIds []int, workflowNode WorkflowNode) error {
@@ -529,19 +674,6 @@ func getTagEntityRequest(channelId int, tagId int, params TagParameters, torqNod
 			TagId:     tagId,
 		}
 	}
-}
-
-func getLinkedChannelIds(inputs map[commons.WorkflowParameterLabel]string, workflowNode WorkflowNode) ([]int, error) {
-	var linkedChannelIds []int
-	linkedChannelIdsString, exists := inputs[commons.WorkflowParameterLabelChannels]
-	if !exists {
-		return nil, errors.New(fmt.Sprintf("Finding channel parameter for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId))
-	}
-	err := json.Unmarshal([]byte(linkedChannelIdsString), &linkedChannelIds)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Unmarshal the parent channelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIdsString, workflowNode.WorkflowVersionNodeId)
-	}
-	return linkedChannelIds, nil
 }
 
 func filterChannelIds(params FilterClauses, linkedChannels []channels.ChannelBody) []int {
