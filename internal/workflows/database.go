@@ -462,23 +462,28 @@ func GetActiveSortedStageTriggerNodeForWorkflowVersionId(db *sqlx.DB, workflowVe
 	return response, nil
 }
 
-//func GetWorkflowVersionNodeIdByVersionIdAndNodeType(db *sqlx.DB,
-//	workflowVersionId int,
-//	workflowNodeType commons.WorkflowNodeType) (int, error) {
-//
-//	var wfvnId int
-//	err := db.Get(&wfvnId, `
-//		SELECT workflow_version_node_id
-//		FROM workflow_version_node
-//		WHERE workflow_version_id = $1 AND type = $2;`, workflowVersionId, workflowNodeType)
-//	if err != nil {
-//		if errors.Is(err, sql.ErrNoRows) {
-//			return 0, nil
-//		}
-//		return 0, errors.Wrap(err, database.SqlExecutionError)
-//	}
-//	return wfvnId, nil
-//}
+func GetWorkflowVersionNodesByStage(db *sqlx.DB, workflowVersionId int, stage int) ([]WorkflowNode, error) {
+	var wfvnIds []int
+	err := db.Select(&wfvnIds, `
+		SELECT workflow_version_node_id
+		FROM workflow_version_node
+		WHERE workflow_version_id=$1 AND stage=$2;`, workflowVersionId, stage)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	var results []WorkflowNode
+	for _, wfvnId := range wfvnIds {
+		wfvn, err := GetWorkflowNode(db, wfvnId)
+		if err != nil {
+			return nil, errors.Wrap(err, database.SqlExecutionError)
+		}
+		results = append(results, wfvn)
+	}
+	return results, nil
+}
 
 // GetWorkflowNode is not recursive and only returns direct parent/child relations without further nesting.
 func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, error) {

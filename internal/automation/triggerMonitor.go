@@ -200,18 +200,6 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			firstEvent := events[0]
 			lastEvent := events[len(events)-1]
 
-			var eventChannelIds []int
-			for _, event := range events {
-				channelBalanceEvent, ok := event.(commons.ChannelBalanceEvent)
-				if ok {
-					eventChannelIds = append(eventChannelIds, channelBalanceEvent.ChannelId)
-				}
-				channelEvent, ok := event.(commons.ChannelEvent)
-				if ok {
-					eventChannelIds = append(eventChannelIds, channelEvent.ChannelId)
-				}
-			}
-
 			workflowTriggerNode, err := workflows.GetWorkflowNode(db, scheduledTrigger.TriggeringWorkflowVersionNodeId)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to obtain the Triggering WorkflowNode for WorkflowVersionNodeId: %v", scheduledTrigger.TriggeringWorkflowVersionNodeId)
@@ -293,13 +281,6 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
 							dummyChannelBalanceEvent.AggregatedLocalBalance = aggregateLocalBalance[remoteNodeId]
 							dummyChannelBalanceEvent.AggregatedLocalBalancePerMilleRatio = aggregateLocalBalancePerMilleRatio[remoteNodeId]
-							inputs := make(map[commons.WorkflowParameterLabel]string)
-							marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
-							if err != nil {
-								log.Error().Err(err).Msgf("Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-								continue
-							}
-							inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
 
 							triggerCtx, triggerCancel := context.WithCancel(ctx)
 
@@ -307,8 +288,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 								workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
 								scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
 
-							processWorkflowNode(triggerCtx, db, triggerGroupWorkflowVersionNodeId,
-								workflowTriggerNode, scheduledTrigger.Reference, inputs, lightningRequestChannel,
+							processWorkflowNode(triggerCtx, db, workflowTriggerNode,
+								scheduledTrigger.Reference, events, lightningRequestChannel,
 								rebalanceRequestChannel)
 
 							triggerCancel()
@@ -320,31 +301,6 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 					}
 					continue
 				}
-			}
-
-			inputs := make(map[commons.WorkflowParameterLabel]string)
-			if len(eventChannelIds) != 0 {
-				marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-					continue
-				}
-				inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
-			} else {
-				var allChannelIds []int
-				torqNodeIds := commons.GetAllTorqNodeIds()
-				for _, torqNodeId := range torqNodeIds {
-					// Force Response because we don't care about balance accuracy
-					channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
-					allChannelIds = append(allChannelIds, channelIdsByNode...)
-				}
-
-				ba, err := json.Marshal(allChannelIds)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to marshal allChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-					continue
-				}
-				inputs[commons.WorkflowParameterLabelChannels] = string(ba)
 			}
 
 			triggerCtx, triggerCancel := context.WithCancel(ctx)
@@ -363,8 +319,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 					scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
 			}
 
-			processWorkflowNode(triggerCtx, db, triggerGroupWorkflowVersionNodeId,
-				workflowTriggerNode, scheduledTrigger.Reference, inputs, lightningRequestChannel,
+			processWorkflowNode(triggerCtx, db, workflowTriggerNode,
+				scheduledTrigger.Reference, events, lightningRequestChannel,
 				rebalanceRequestChannel)
 
 			triggerCancel()
@@ -455,79 +411,14 @@ func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType comm
 }
 
 func processWorkflowNode(ctx context.Context, db *sqlx.DB,
-	triggerGroupWorkflowVersionNodeId int, workflowTriggerNode workflows.WorkflowNode, reference string,
-	inputs map[commons.WorkflowParameterLabel]string,
+	workflowTriggerNode workflows.WorkflowNode,
+	reference string,
+	events []any,
 	lightningRequestChannel chan interface{},
 	rebalanceRequestChannel chan commons.RebalanceRequest) {
 
-	workflowNodeStatus := make(map[int]commons.Status)
-	workflowStageExitConfigurationCache := make(map[int]map[commons.WorkflowParameterLabel]string)
-	workflowNodeCache := make(map[int]workflows.WorkflowNode)
-	stagedInputsByWorkflowVersionNodeId := make(map[int]map[commons.WorkflowParameterLabel]string)
-
-	if workflowTriggerNode.Type != commons.WorkflowNodeManualTrigger {
-		// Flag the trigger group node as processed
-		workflowNodeStatus[triggerGroupWorkflowVersionNodeId] = commons.Active
-	}
-
-	workflowChannelBalanceTriggerNodes, err := workflows.GetActiveSortedStageTriggerNodeForWorkflowVersionId(db,
-		workflowTriggerNode.WorkflowVersionId)
+	err := workflows.ProcessWorkflow(ctx, db, workflowTriggerNode, reference, events, lightningRequestChannel, rebalanceRequestChannel)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to obtain stage trigger nodes for WorkflowVersionId: %v", workflowTriggerNode.WorkflowVersionId)
-		return
-	}
-
-	if len(workflowChannelBalanceTriggerNodes) == 0 {
-		outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
-			0, 0, workflowNodeCache, workflowNodeStatus,
-			reference, inputs, stagedInputsByWorkflowVersionNodeId, 0, workflowTriggerNode.Type,
-			workflowStageExitConfigurationCache,
-			lightningRequestChannel, rebalanceRequestChannel)
-		workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
-			0, inputs, outputs, err)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		}
-		return
-	}
-	var channelIds []int
-	err = json.Unmarshal([]byte(inputs[commons.WorkflowParameterLabelChannels]), &channelIds)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to unmarshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		return
-	}
-	for _, channelId := range channelIds {
-		marshalledChannelIdsFromEvents, err := json.Marshal([]int{channelId})
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal eventChannelId for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-			continue
-		}
-		inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
-
-		outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
-			0, 0, workflowNodeCache, workflowNodeStatus,
-			reference, inputs, stagedInputsByWorkflowVersionNodeId, 0, workflowTriggerNode.Type,
-			workflowStageExitConfigurationCache,
-			lightningRequestChannel, rebalanceRequestChannel)
-		workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
-			0, inputs, outputs, err)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		}
-
-		for _, workflowDeferredLinkNode := range workflowChannelBalanceTriggerNodes {
-			stagedInputsByWorkflowVersionNodeId = make(map[int]map[commons.WorkflowParameterLabel]string)
-			inputs = commons.CloneParameters(outputs)
-			outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, workflowDeferredLinkNode,
-				0, 0, workflowNodeCache, workflowNodeStatus,
-				reference, inputs, stagedInputsByWorkflowVersionNodeId, 0, workflowTriggerNode.Type,
-				workflowStageExitConfigurationCache,
-				lightningRequestChannel, rebalanceRequestChannel)
-			workflows.AddWorkflowVersionNodeLog(db, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
-				0, inputs, outputs, err)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to trigger deferred link node for WorkflowVersionNodeId: %v", workflowDeferredLinkNode.WorkflowVersionNodeId)
-			}
-		}
+		log.Error().Err(err).Msgf("Failed to trigger nodes for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 	}
 }
