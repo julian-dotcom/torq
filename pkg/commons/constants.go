@@ -231,6 +231,8 @@ const (
 	WorkflowNodeManualTrigger
 	WorkflowNodeChannelPolicyAutoRun
 	WorkflowNodeRebalanceAutoRun
+	WorkflowNodeDataSourceAllChannels
+	WorkflowNodeDataSourceEventChannels
 )
 
 type WorkflowTriggerType int
