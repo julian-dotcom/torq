@@ -186,12 +186,9 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 func processServiceEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribeServiceEvent()
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				broadcaster.CancelSubscriptionServiceEvent(listener)
-				return
-			}
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionServiceEvent(listener)
+			return
 		}
 	}()
 	go func() {
