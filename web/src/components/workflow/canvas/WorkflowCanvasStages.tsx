@@ -23,11 +23,12 @@ import {
   BalanceTriggerNode,
   ChannelOpenTriggerNode,
   ChannelCloseTriggerNode,
+  DataSourceEventChannelsNode,
+  DataSourceAllChannelsNode
 } from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
 import useTranslations from "services/i18n/useTranslations";
-import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
 import { RemoveTagNode } from "components/workflow/nodes/tags/RemoveTagNode";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { Play12Regular as PlayIcon } from "@fluentui/react-icons";
@@ -127,13 +128,6 @@ function FirstStageTrigger(props: {
     return (
       <div className={classNames(styles.triggerNodeWrapper)} onDrop={handleDrop}>
         <div className={styles.triggerNodeContainer}>
-          <NodeConnector
-            id={"ss"}
-            name={t.triggers}
-            outputName={"channels"}
-            workflowVersionNodeId={triggerNode?.workflowVersionNodeId || 0}
-            workflowVersionId={props.workflowVersionId}
-          />
           <div className={classNames(styles.triggerContainerHeading)}>
             <div>{t.triggers}</div>
             <Button
@@ -217,6 +211,10 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <AddTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RemoveTag:
       return <RemoveTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.DataSourceAllChannels:
+      return <DataSourceAllChannelsNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.DataSourceEventChannels:
+      return <DataSourceEventChannelsNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     default:
       return null;
   }
