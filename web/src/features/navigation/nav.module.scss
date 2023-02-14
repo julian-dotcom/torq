@@ -165,6 +165,23 @@
   }
 }
 
+@media only screen and (max-width: 900px) {
+  .bottomWrapper {
+    row-gap: 2px;
+    padding-top: 0px;
+    padding-bottom: 24px;
+  }
+
+  .navCategory {
+    margin-bottom: 4px;
+  }
+  .NavCategoryTitleContainer {
+    grid-column-gap: 4px;
+    padding: 6px 16px 8px;
+  }
+
+}
+
 /*
 ----------------------------
 -- Menu Items
@@ -246,6 +263,16 @@
     }
   }
 }
+
+@media only screen and (max-width: 900px) {
+  .menuItemWrapper {
+    display: grid;
+    grid-auto-flow: row;
+    row-gap: 2px;
+  }
+}
+
+
 /*
 ----------------------------
 -- Top navigation (Mobile nav)
@@ -258,7 +285,7 @@
   .navigationWrapper {
     width: 0;
     //overflow: hidden;
-    height: calc(100vh - 50px);
+    height: calc(100vh - 12vh);
     margin-top: 50px;
     transition: width 200ms;
   }
@@ -266,7 +293,7 @@
     width: 0;
     overflow: hidden;
     transition: width 200ms;
-    height: calc(100vh - 50px);
+    height: calc(100vh - 12vh);
     grid-template-rows: auto min-content;
   }
   .mainNavWrapper {
