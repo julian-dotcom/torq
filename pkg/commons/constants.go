@@ -260,6 +260,8 @@ const (
 	WorkflowParameterLabelIncomingChannels      = WorkflowParameterLabel("incomingChannels")
 	WorkflowParameterLabelOutgoingChannels      = WorkflowParameterLabel("outgoingChannels")
 	WorkflowParameterLabelStatus                = WorkflowParameterLabel("status")
+	WorkflowParameterLabelAllChannels           = WorkflowParameterLabel("allChannels")
+	WorkflowParameterLabelEventChannels         = WorkflowParameterLabel("eventChannels")
 )
 
 type WorkflowNodeTypeParameters struct {
