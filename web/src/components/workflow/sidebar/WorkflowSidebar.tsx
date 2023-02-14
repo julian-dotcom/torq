@@ -5,7 +5,7 @@ import Sidebar from "features/sidebar/Sidebar";
 import { SectionContainer } from "features/section/SectionContainer";
 import {
   Timer20Regular as TriggersIcon,
-  ArrowForward20Regular as DataSourcesIcon,
+  Play20Regular as DataSourcesIcon,
   ArrowRouting20Regular as ChannelsIcon,
   Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
