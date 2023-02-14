@@ -2,6 +2,7 @@ package commons
 
 import (
 	"context"
+	"sort"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
@@ -69,6 +70,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 				}
 			}
 		}
+		sort.Ints(tagIds)
 		SendToManagedTagIdsChannel(managedTagged.Out, tagIds)
 	case READ_TAGGED_NODES:
 		if managedTagged.TagId == 0 {
@@ -83,6 +85,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 				nodeIds = append(nodeIds, nodeId)
 			}
 		}
+		sort.Ints(nodeIds)
 		SendToManagedNodeIdsChannel(managedTagged.Out, nodeIds)
 	case READ_TAGGED_CHANNELS:
 		if managedTagged.TagId == 0 {
@@ -97,6 +100,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 				channelIds = append(channelIds, channelId)
 			}
 		}
+		sort.Ints(channelIds)
 		SendToManagedChannelIdsChannel(managedTagged.Out, channelIds)
 	case WRITE_TAGGED:
 		if managedTagged.NodeId == 0 && managedTagged.ChannelId == 0 {
