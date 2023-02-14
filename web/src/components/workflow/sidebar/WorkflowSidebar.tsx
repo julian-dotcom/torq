@@ -5,6 +5,7 @@ import Sidebar from "features/sidebar/Sidebar";
 import { SectionContainer } from "features/section/SectionContainer";
 import {
   Timer20Regular as TriggersIcon,
+  ArrowForward20Regular as DataSourcesIcon,
   ArrowRouting20Regular as ChannelsIcon,
   Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
@@ -24,6 +25,8 @@ import {
   AddTagNodeButton,
   ChannelCloseTriggerNodeButton,
   ChannelOpenTriggerNodeButton,
+  DataSourceEventChannelsNodeButton,
+  DataSourceAllChannelsNodeButton
 } from "components/workflow/nodes/nodes";
 import mixpanel from "mixpanel-browser";
 
@@ -43,6 +46,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
 
   const [sectionState, setSectionState] = useState({
     triggers: true,
+    dataSources: true,
     actions: true,
     advanced: true,
   });
@@ -69,6 +73,15 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           <BalanceTriggerNodeButton />
           <ChannelOpenTriggerNodeButton />
           <ChannelCloseTriggerNodeButton />
+        </SectionContainer>
+        <SectionContainer
+          title={t.dataSources}
+          icon={DataSourcesIcon}
+          expanded={sectionState.dataSources}
+          handleToggle={() => toggleSection("dataSources")}
+        >
+          <DataSourceEventChannelsNodeButton />
+          <DataSourceAllChannelsNodeButton />
         </SectionContainer>
         <SectionContainer
           title={t.actions}

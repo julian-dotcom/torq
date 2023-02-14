@@ -177,6 +177,7 @@
   "automation": "Automation",
   "triggers": "Triggers",
   "trigger": "Trigger",
+  "dataSources": "Data Sources",
   "actions": "Actions",
   "MainNet": "MainNet",
   "TestNet": "TestNet",
@@ -222,7 +223,9 @@
     "removeTag": "Remove Tags",
     "targetChannel": "Target Channels",
     "targetNode": "Target Nodes",
-    "run": "Run Workflow"
+    "run": "Run Workflow",
+    "eventChannels": "Event Channel(s)",
+    "allChannels": "All Channel(s)"
   },
   "workflowDetails": {
     "cantAddTriggerNodeToStages": "Trigger nodes can only be added to the first stage.",
