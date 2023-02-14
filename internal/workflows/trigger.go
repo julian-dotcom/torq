@@ -276,9 +276,14 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 		return commons.Deleted, nil
 	}
 
-	status, exists := workflowNodeStatus[workflowNode.WorkflowVersionNodeId]
-	if exists && status == commons.Active {
+	status, statusExists := workflowNodeStatus[workflowNode.WorkflowVersionNodeId]
+	if statusExists && status == commons.Active {
 		// When the node is in the cache and active then it's already been processed successfully
+		return commons.Deleted, nil
+	}
+
+	if commons.IsWorkflowNodeTypeGrouped(workflowNode.Type) {
+		workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
 		return commons.Deleted, nil
 	}
 
@@ -290,8 +295,8 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 linkedInputLoop:
 	for _, parentWorkflowNodesByInput := range parentLinkedInputs {
 		for _, parentWorkflowNode := range parentWorkflowNodesByInput {
-			status, exists = workflowNodeStatus[parentWorkflowNode.WorkflowVersionNodeId]
-			if exists && status == commons.Active {
+			status, statusExists = workflowNodeStatus[parentWorkflowNode.WorkflowVersionNodeId]
+			if statusExists && status == commons.Active {
 				continue linkedInputLoop
 			}
 		}
@@ -306,14 +311,37 @@ linkedInputLoop:
 
 	for parentWorkflowNodeLinkId, parentWorkflowNode := range workflowNode.ParentNodes {
 		parentLink := workflowNode.LinkDetails[parentWorkflowNodeLinkId]
-		inputs[parentLink.ChildInput] = workflowNodeOutputCache[parentWorkflowNode.WorkflowVersionNodeId][parentLink.ParentOutput]
-		parentOutputsByReferenceIds := workflowNodeOutputByReferenceIdCache[parentWorkflowNode.WorkflowVersionNodeId]
-		for referencId, labelValueMap := range parentOutputsByReferenceIds {
-			inputsByReferenceId[referencId][parentLink.ChildInput] = labelValueMap[parentLink.ParentOutput]
+		parentOutputValue, labelExists := workflowNodeOutputCache[parentWorkflowNode.WorkflowVersionNodeId][parentLink.ParentOutput]
+		if labelExists {
+			inputs[parentLink.ChildInput] = parentOutputValue
+		}
+		for referencId, labelValueMap := range workflowNodeOutputByReferenceIdCache[parentWorkflowNode.WorkflowVersionNodeId] {
+			parentOutputValueByReferenceId, labelByReferenceIdExists := labelValueMap[parentLink.ParentOutput]
+			if labelByReferenceIdExists {
+				inputsByReferenceId[referencId][parentLink.ChildInput] = parentOutputValueByReferenceId
+			}
 		}
 	}
 
 	switch workflowNode.Type {
+	case commons.WorkflowNodeDataSourceAllChannels:
+		allChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelAllChannels)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Obtaining allChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+		err = setChannelIds(outputs, commons.WorkflowParameterLabelChannels, allChannelIds)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Adding All ChannelIds to the output for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+	case commons.WorkflowNodeDataSourceEventChannels:
+		eventChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelEventChannels)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Obtaining eventChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+		err = setChannelIds(outputs, commons.WorkflowParameterLabelChannels, eventChannelIds)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Adding Event ChannelIds to the output for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
 	case commons.WorkflowNodeSetVariable:
 		//variableName := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableName).ValueString
 		//stringVariableParameter := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableValueString)
@@ -580,7 +608,7 @@ linkedInputLoop:
 		DebugData:                       "",
 		ErrorData:                       "",
 		WorkflowVersionNodeId:           workflowNode.WorkflowVersionNodeId,
-		TriggeringWorkflowVersionNodeId: &workflowTriggerNode.WorkflowVersionId,
+		TriggeringWorkflowVersionNodeId: &workflowTriggerNode.WorkflowVersionNodeId,
 		CreatedOn:                       time.Now().UTC(),
 	})
 	if err != nil {

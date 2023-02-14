@@ -1,4 +1,4 @@
-import { ArrowForward20Regular as DataSourceAllChannelsIcon } from "@fluentui/react-icons";
+import { Play20Regular as DataSourceAllChannelsIcon } from "@fluentui/react-icons";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 
