@@ -23,14 +23,15 @@ import {
 import { AllChannelsColumns } from "features/channels/channelsColumns.generated";
 import { useGetChannelsQuery } from "apiSlice";
 import { useAppSelector } from "store/hooks";
-import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
-import { selectChannelView } from "features/viewManagement/viewSlice";
+import { useGetTableViewsQuery, useUpdateTableViewMutation } from "features/viewManagement/viewsApiSlice";
+import { selectChannelView, selectViews } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { useState } from "react";
 import { useFilterData, useSortData } from "features/viewManagement/hooks";
 import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import channelsCellRenderer from "./channelsCellRenderer";
 import { selectActiveNetwork } from "features/network/networkSlice";
+import { TableResponses, ViewResponse } from "../viewManagement/types";
 
 function useMaximums(data: Array<channel>): channel | undefined {
   if (!data.length) {
@@ -89,7 +90,9 @@ function ChannelsPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectChannelView);
+  const channelViews = useAppSelector(selectViews)("channel");
   const activeNetwork = useAppSelector(selectActiveNetwork);
+  const [updateTableView] = useUpdateTableViewMutation();
 
   const channelsResponse = useGetChannelsQuery<{
     data: Array<channel>;
@@ -109,6 +112,16 @@ function ChannelsPage() {
     setSidebarExpanded(false);
     mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
   };
+
+  function handleNameChange(name: string) {
+    const view = channelViews.views[selectedViewIndex] as ViewResponse<TableResponses>;
+    if (view.id) {
+      updateTableView({
+        id: view.id,
+        view: { ...view.view, title: name },
+      });
+    }
+  }
 
   const tableControls = (
     <TableControlSection>
@@ -164,12 +177,13 @@ function ChannelsPage() {
 
   return (
     <TablePageTemplate
-      title={t.channels}
+      title={viewResponse.view.title}
       titleContent={""}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}
       tableControls={tableControls}
+      onNameChange={handleNameChange}
     >
       <Table
         cellRenderer={channelsCellRenderer}
