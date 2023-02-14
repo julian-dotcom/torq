@@ -250,6 +250,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setNodeConfigurationState(nodeConfigurationData || nodeConfigurationTemplate);
     if (nodeConfigurationData == undefined) {
       setNodeConfigurationState({ ...nodeConfigurationState, customSettings: 254 });
+      setCustomSettingsState(customSettingsDefault);
     } else {
       setCustomSettingsState({
         importFailedPayments:
