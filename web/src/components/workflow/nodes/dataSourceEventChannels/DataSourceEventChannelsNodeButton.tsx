@@ -1,4 +1,4 @@
-import { ArrowForward20Regular as DataSourceEventChannelsIcon } from "@fluentui/react-icons";
+import { Play20Regular as DataSourceEventChannelsIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeButtonWrapper from "components/workflow/nodeButtonWrapper/NodeButtonWrapper";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
