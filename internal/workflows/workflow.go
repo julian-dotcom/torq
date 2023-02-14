@@ -86,7 +86,7 @@ type ModifyTagsParameters struct {
 }
 
 type ChannelPolicyConfiguration struct {
-	ChannelIds       []int   `json:"channelIds"`
+	ChannelId        int     `json:"channelId"`
 	TimeLockDelta    *uint32 `json:"timeLockDelta"`
 	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
 	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
