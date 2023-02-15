@@ -185,12 +185,14 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 
 func processServiceEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribeServiceEvent()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
 			broadcaster.CancelSubscriptionServiceEvent(listener)
 			return
-		case serviceEvent := <-listener:
+		}
+	}()
+	go func() {
+		for serviceEvent := range listener {
 			if serviceEvent.NodeId == 0 || serviceEvent.Type != commons.LndService {
 				continue
 			}
@@ -200,9 +202,10 @@ func processServiceEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 			if !serviceEvent.SubscriptionStream.IsChannelBalanceCache() {
 				continue
 			}
-			commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(serviceEvent.NodeId))
+			channelBalanceStreamStatus := commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(serviceEvent.NodeId)
+			commons.SetChannelStateNodeStatus(serviceEvent.NodeId, channelBalanceStreamStatus)
 		}
-	}
+	}()
 }
 
 func processChannelEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
