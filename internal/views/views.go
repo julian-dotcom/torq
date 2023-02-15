@@ -247,6 +247,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			key:        "peerAlias",
 			locked:     true,
 			sortable:   true,
+			filterable: true,
 			heading:    "Peer Alias",
 			visualType: "AliasCell",
 			valueType:  "string",
@@ -257,6 +258,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "active",
 			sortable:   true,
+			filterable: true,
 			heading:    "Active",
 			visualType: "BooleanCell",
 			valueType:  "boolean",
@@ -275,6 +277,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "tags",
+			filterable: true,
 			heading:    "Tags",
 			visualType: "TagsCell",
 			valueType:  "tag",
@@ -286,6 +289,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "shortChannelId",
 			sortable:   true,
+			filterable: true,
 			heading:    "Short Channel ID",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -297,6 +301,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "gauge",
 			sortable:   true,
+			filterable: true,
 			heading:    "Channel Balance (%)",
 			visualType: "BarCell",
 			valueType:  "number",
@@ -308,6 +313,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "remoteBalance",
 			sortable:   true,
+			filterable: true,
 			heading:    "Remote Balance",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -318,6 +324,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "localBalance",
 			sortable:   true,
+			filterable: true,
 			heading:    "Local Balance",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -328,6 +335,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "capacity",
 			sortable:   true,
+			filterable: true,
 			heading:    "Capacity",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -339,6 +347,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "feeRateMilliMsat",
 			sortable:   true,
+			filterable: true,
 			heading:    "Fee rate (PPM)",
 			visualType: "NumericDoubleCell",
 			keySecond:  "remoteFeeRateMilliMsat",
@@ -351,6 +360,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "feeBase",
 			sortable:   true,
+			filterable: true,
 			heading:    "Base Fee",
 			visualType: "NumericDoubleCell",
 			keySecond:  "remoteFeeBase",
@@ -363,6 +373,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "remoteFeeRateMilliMsat",
 			sortable:   true,
+			filterable: true,
 			heading:    "Remote Fee rate (PPM)",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -374,6 +385,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "remoteFeeBase",
 			sortable:   true,
+			filterable: true,
 			heading:    "Remote Base Fee",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -385,6 +397,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "minHtlc",
 			sortable:   true,
+			filterable: true,
 			heading:    "Minimum HTLC",
 			visualType: "NumericDoubleCell",
 			keySecond:  "remoteMinHtlc",
@@ -397,6 +410,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "maxHtlc",
 			sortable:   true,
+			filterable: true,
 			heading:    "Maximum HTLC",
 			visualType: "NumericDoubleCell",
 			keySecond:  "remoteMaxHtlc",
@@ -409,6 +423,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "remoteMinHtlc",
 			sortable:   true,
+			filterable: true,
 			heading:    "Remote Minimum HTLC",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -420,6 +435,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "remoteMaxHtlc",
 			sortable:   true,
+			filterable: true,
 			heading:    "Remote Maximum HTLC",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -430,6 +446,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "timeLockDelta",
+			sortable:   true,
+			filterable: true,
 			heading:    "Time Lock Delta",
 			visualType: "NumericDoubleCell",
 			keySecond:  "remoteTimeLockDelta",
@@ -440,6 +458,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "remoteTimeLockDelta",
+			sortable:   true,
+			filterable: true,
 			heading:    "Remote Time Lock Delta",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -449,6 +469,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "lndShortChannelId",
+			sortable:   true,
+			filterable: true,
 			heading:    "LND Short Channel ID",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -459,6 +481,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "channelPoint",
+			sortable:   true,
+			filterable: true,
 			heading:    "Channel Point",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -470,6 +494,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "currentBlockHeight",
 			sortable:   true,
+			filterable: true,
 			heading:    "Current BlockHeight",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -479,6 +504,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "fundingTransactionHash",
+			sortable:   true,
+			filterable: true,
 			heading:    "Funding Transaction",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -490,6 +517,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "fundingBlockHeight",
 			sortable:   true,
+			filterable: true,
 			heading:    "Funding BlockHeight",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -500,6 +528,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "fundingBlockHeightDelta",
 			sortable:   true,
+			filterable: true,
 			heading:    "Funding BlockHeight Delta",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -509,6 +538,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "fundedOn",
+			sortable:   true,
+			filterable: true,
 			heading:    "Funding Date",
 			visualType: "DateCell",
 			valueType:  "date",
@@ -519,6 +550,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "fundedOnSecondsDelta",
 			sortable:   true,
+			filterable: true,
 			heading:    "Funding Date Delta (Seconds)",
 			visualType: "DurationCell",
 			valueType:  "duration",
@@ -528,6 +560,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "closingTransactionHash",
+			sortable:   true,
+			filterable: true,
 			heading:    "Closing Transaction",
 			visualType: "LongTextCell",
 			valueType:  "string",
@@ -538,6 +572,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "closingBlockHeight",
 			sortable:   true,
+			filterable: true,
 			heading:    "Closing BlockHeight",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -548,6 +583,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "closingBlockHeightDelta",
 			sortable:   true,
+			filterable: true,
 			heading:    "Closing BlockHeight Delta",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -557,6 +593,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "closedOn",
+			sortable:   true,
+			filterable: true,
 			heading:    "Closing Date",
 			visualType: "DateCell",
 			valueType:  "date",
@@ -567,6 +605,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "closedOnSecondsDelta",
 			sortable:   true,
+			filterable: true,
 			heading:    "Closing Date Delta (Seconds)",
 			visualType: "DurationCell",
 			valueType:  "duration",
@@ -577,6 +616,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "unsettledBalance",
 			sortable:   true,
+			filterable: true,
 			heading:    "Unsettled Balance",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -587,6 +627,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "totalSatoshisSent",
 			sortable:   true,
+			filterable: true,
 			heading:    "Satoshis Sent",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -597,6 +638,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "totalSatoshisReceived",
 			sortable:   true,
+			filterable: true,
 			heading:    "Satoshis Received",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -606,6 +648,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "pendingForwardingHTLCsCount",
+			sortable:   true,
+			filterable: true,
 			heading:    "Pending Forwarding HTLCs count",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -615,6 +659,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "pendingForwardingHTLCsAmount",
+			sortable:   true,
+			filterable: true,
 			heading:    "Pending Forwarding HTLCs",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -624,6 +670,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "pendingLocalHTLCsCount",
+			sortable:   true,
+			filterable: true,
 			heading:    "Pending Forwarding HTLCs count",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -633,6 +681,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "pendingLocalHTLCsAmount",
+			sortable:   true,
+			filterable: true,
 			heading:    "Pending Forwarding HTLCs",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -642,6 +692,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "pendingTotalHTLCsCount",
+			sortable:   true,
+			filterable: true,
 			heading:    "Total Pending Forwarding HTLCs count",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -651,6 +703,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "pendingTotalHTLCsAmount",
+			sortable:   true,
+			filterable: true,
 			heading:    "Total Pending Forwarding HTLCs",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -661,6 +715,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "localChanReserveSat",
 			sortable:   true,
+			filterable: true,
 			heading:    "Local Channel Reserve",
 			visualType: "NumericDoubleCell",
 			keySecond:  "remoteChanReserveSat",
@@ -673,6 +728,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "remoteChanReserveSat",
 			sortable:   true,
+			filterable: true,
 			heading:    "Remote Channel Reserve",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -684,6 +740,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "commitFee",
 			sortable:   true,
+			filterable: true,
 			heading:    "Commit Fee",
 			visualType: "NumericCell",
 			valueType:  "number",
@@ -694,8 +751,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		{
 			key:        "nodeName",
 			sortable:   true,
+			filterable: true,
 			heading:    "Node Name",
-			visualType: "AliasCell",
+			visualType: "TextCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
 				PageChannels: 45,

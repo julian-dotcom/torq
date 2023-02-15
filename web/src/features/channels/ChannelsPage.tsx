@@ -17,7 +17,7 @@ import Table from "features/table/Table";
 import {
   ChannelsFilterTemplate,
   ChannelsSortTemplate,
-  DefaultChannelsView,
+  DefaultChannelsView, FilterableChannelsColumns,
   SortableChannelsColumns,
 } from "features/channels/channelsDefaults";
 import { AllChannelsColumns } from "features/channels/channelsColumns.generated";
@@ -161,7 +161,7 @@ function ChannelsPage() {
       selectedViewIndex={selectedViewIndex}
       allColumns={AllChannelsColumns}
       defaultView={DefaultChannelsView}
-      filterableColumns={AllChannelsColumns}
+      filterableColumns={FilterableChannelsColumns}
       filterTemplate={ChannelsFilterTemplate}
       sortableColumns={SortableChannelsColumns}
       sortByTemplate={ChannelsSortTemplate}

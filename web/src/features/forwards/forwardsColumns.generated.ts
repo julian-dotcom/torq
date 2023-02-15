@@ -149,7 +149,10 @@ export const AllForwardsColumns: ColumnMetaData<Forward>[] = [
 
 export const ForwardsSortableColumns: Array<keyof Forward> = [
 	"capacity",
+	"fundingTransactionHash",
 	"shortChannelId",
+	"lndShortChannelId",
+	"channelPoint",
 ];
 
 
@@ -158,4 +161,10 @@ export const ForwardsSortableColumns: Array<keyof Forward> = [
 // For more information look at cmd/torq/gen.go
 
 export const ForwardsFilterableColumns: Array<keyof Forward> = [
+	"tags",
+	"capacity",
+	"fundingTransactionHash",
+	"shortChannelId",
+	"lndShortChannelId",
+	"channelPoint",
 ];

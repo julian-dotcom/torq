@@ -1,7 +1,8 @@
 import { ViewResponse } from "features/viewManagement/types";
 import { channel } from "features/channels/channelsTypes";
-import { AllChannelsColumns, ChannelsSortableColumns } from "features/channels/channelsColumns.generated";
+import { AllChannelsColumns, ChannelsSortableColumns, ChannelsFilterableColumns } from "features/channels/channelsColumns.generated";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
+import { ColumnMetaData } from "features/table/types";
 
 const defaultColumns: Array<keyof channel> = [
   "peerAlias",
@@ -16,6 +17,10 @@ const defaultColumns: Array<keyof channel> = [
 ];
 
 export const DefaultChannelsColumns = AllChannelsColumns.filter((c) => defaultColumns.includes(c.key));
+
+export const FilterableChannelsColumns = AllChannelsColumns.filter((column: ColumnMetaData<channel>) =>
+  ChannelsFilterableColumns.includes(column.key)
+);
 
 export const ChannelsFilterTemplate: FilterInterface = {
   funcName: "gte",
