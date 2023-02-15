@@ -17,12 +17,13 @@ type TablePageTemplateProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   breadcrumbs?: Array<any>;
   children?: React.ReactNode;
+  onNameChange?: (title: string) => void;
 };
 
 export default function TablePageTemplate(props: TablePageTemplateProps) {
   return (
     <div className={classNames(styles.contentWrapper)}>
-      <PageTitle breadcrumbs={props.breadcrumbs} title={props.title}>
+      <PageTitle breadcrumbs={props.breadcrumbs} title={props.title} onNameChange={props.onNameChange}>
         {props.titleContent}
       </PageTitle>
 
