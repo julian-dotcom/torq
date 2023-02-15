@@ -389,8 +389,11 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 	defer log.Info().Msgf("EventTriggerMonitor terminated")
 
+	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeChannelBalanceEvent()
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for range ctx.Done() {
 			broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
 			return
@@ -404,11 +407,15 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			processEventTrigger(db, channelBalanceEvent, commons.WorkflowNodeChannelBalanceEventTrigger)
 		}
 	}()
+	wg.Wait()
 }
 
 func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster broadcast.BroadcastServer) {
+	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeChannelEvent()
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for range ctx.Done() {
 			broadcaster.CancelSubscriptionChannelEvent(listener)
 			return
@@ -427,6 +434,7 @@ func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster br
 			}
 		}
 	}()
+	wg.Wait()
 }
 
 func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType commons.WorkflowNodeType) {

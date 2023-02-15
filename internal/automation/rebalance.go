@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/andres-erbsen/clock"
@@ -84,8 +85,11 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 	go initiateDelayedRebalancers(ctx, db, client, router)
 
+	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeRebalanceRequest()
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for range ctx.Done() {
 			broadcaster.CancelSubscriptionRebalanceRequest(listener)
 			return
@@ -105,6 +109,7 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 			processRebalanceRequest(ctx, db, request, nodeId)
 		}
 	}()
+	wg.Wait()
 }
 
 func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
