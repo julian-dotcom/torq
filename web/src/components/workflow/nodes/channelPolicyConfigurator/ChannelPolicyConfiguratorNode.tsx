@@ -183,7 +183,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           thousandSeparator={","}
           suffix={" sat"}
           onValueChange={createChangeMsatHandler("feeBaseMsat")}
-          label={t.feeBase}
+          label={t.baseFee}
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
         />
