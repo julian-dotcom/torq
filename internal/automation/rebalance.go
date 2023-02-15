@@ -85,11 +85,14 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	go initiateDelayedRebalancers(ctx, db, client, router)
 
 	listener := broadcaster.SubscribeRebalanceRequest()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionRebalanceRequest(listener)
 			return
-		case request := <-listener:
+		}
+	}()
+	go func() {
+		for request := range listener {
 			if request.NodeId != nodeId {
 				continue
 			}
@@ -101,7 +104,7 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 			time.Sleep(commons.REBALANCE_REBALANCE_DELAY_MILLISECONDS * time.Millisecond)
 			processRebalanceRequest(ctx, db, request, nodeId)
 		}
-	}
+	}()
 }
 
 func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,

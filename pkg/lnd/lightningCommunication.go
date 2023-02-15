@@ -25,11 +25,14 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 
 	listener := broadcaster.SubscribeLightningRequest()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionWebSocketResponse(listener)
 			return
-		case lightningRequest := <-listener:
+		}
+	}()
+	go func() {
+		for lightningRequest := range listener {
 			if request, ok := lightningRequest.(commons.ChannelStatusUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
 					continue
@@ -67,7 +70,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 				}
 			}
 		}
-	}
+	}()
 }
 
 func processSignMessageRequest(ctx context.Context, request commons.SignMessageRequest,

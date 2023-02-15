@@ -210,12 +210,14 @@ func processServiceEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 
 func processChannelEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribeChannelEvent()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
 			broadcaster.CancelSubscriptionChannelEvent(listener)
 			return
-		case channelEvent := <-listener:
+		}
+	}()
+	go func() {
+		for channelEvent := range listener {
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 				continue
 			}
@@ -230,17 +232,19 @@ func processChannelEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 			}
 			commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, status)
 		}
-	}
+	}()
 }
 
 func processChannelGraphEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribeChannelGraphEvent()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
 			broadcaster.CancelSubscriptionChannelGraphEvent(listener)
 			return
-		case channelGraphEvent := <-listener:
+		}
+	}()
+	go func() {
+		for channelGraphEvent := range listener {
 			if channelGraphEvent.NodeId == 0 || channelGraphEvent.ChannelId == nil || *channelGraphEvent.ChannelId == 0 ||
 				channelGraphEvent.AnnouncingNodeId == nil || *channelGraphEvent.AnnouncingNodeId == 0 ||
 				channelGraphEvent.ConnectingNodeId == nil || *channelGraphEvent.ConnectingNodeId == 0 {
@@ -251,17 +255,19 @@ func processChannelGraphEvent(ctx context.Context, broadcaster broadcast.Broadca
 				channelGraphEvent.Disabled, channelGraphEvent.TimeLockDelta, channelGraphEvent.MinHtlcMsat,
 				channelGraphEvent.MaxHtlcMsat, channelGraphEvent.FeeBaseMsat, channelGraphEvent.FeeRateMilliMsat)
 		}
-	}
+	}()
 }
 
 func processForwardEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribeForwardEvent()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
 			broadcaster.CancelSubscriptionForwardEvent(listener)
 			return
-		case forwardEvent := <-listener:
+		}
+	}()
+	go func() {
+		for forwardEvent := range listener {
 			if forwardEvent.NodeId == 0 {
 				continue
 			}
@@ -272,65 +278,55 @@ func processForwardEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 				commons.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.OutgoingChannelId, false, forwardEvent.AmountOutMsat)
 			}
 		}
-	}
+	}()
 }
 
 func processInvoiceEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribeInvoiceEvent()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
 			broadcaster.CancelSubscriptionInvoiceEvent(listener)
 			return
-		case invoiceEvent := <-listener:
+		}
+	}()
+	go func() {
+		for invoiceEvent := range listener {
 			if invoiceEvent.NodeId == 0 || invoiceEvent.State != lnrpc.Invoice_SETTLED {
 				continue
 			}
 			commons.SetChannelStateBalanceUpdateMsat(invoiceEvent.NodeId, invoiceEvent.ChannelId, true, invoiceEvent.AmountPaidMsat)
 		}
-	}
+	}()
 }
 
 func processPaymentEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribePaymentEvent()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
 			broadcaster.CancelSubscriptionPaymentEvent(listener)
 			return
-		case paymentEvent := <-listener:
+		}
+	}()
+	go func() {
+		for paymentEvent := range listener {
 			if paymentEvent.NodeId == 0 || paymentEvent.OutgoingChannelId == nil || *paymentEvent.OutgoingChannelId == 0 || paymentEvent.PaymentStatus != lnrpc.Payment_SUCCEEDED {
 				continue
 			}
 			commons.SetChannelStateBalanceUpdate(paymentEvent.NodeId, *paymentEvent.OutgoingChannelId, false, paymentEvent.AmountPaid)
 		}
-	}
+	}()
 }
-
-//func processHtlcEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
-//	listener := broadcaster.SubscribeHtlcEvent()
-//	for {
-//		select {
-//		case <-ctx.Done():
-//			broadcaster.CancelSubscriptionHtlcEvent(listener)
-//			return
-//		case htlcEvent := <- listener:
-//		    if htlcEvent.NodeId == 0 {
-//			    continue
-//		    }
-//		    commons.SetChannelStateBalanceHtlcEvent(htlcEvent)
-//	    }
-//	}
-//}
 
 func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribePeerEvent()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
 			broadcaster.CancelSubscriptionPeerEvent(listener)
 			return
-		case peerEvent := <-listener:
+		}
+	}()
+	go func() {
+		for peerEvent := range listener {
 			if peerEvent.NodeId == 0 || peerEvent.EventNodeId == 0 {
 				continue
 			}
@@ -352,17 +348,19 @@ func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer
 			//	}
 			//	commons.SetChannelStateChannelStatus(openChannelEvent.Request.NodeId, openChannelEvent.ChannelId, commons.Inactive)
 		}
-	}
+	}()
 }
 
 func processWebSocketResponse(ctx context.Context, broadcaster broadcast.BroadcastServer) {
 	listener := broadcaster.SubscribeWebSocketResponse()
-	for {
-		select {
-		case <-ctx.Done():
+	go func() {
+		for range ctx.Done() {
 			broadcaster.CancelSubscriptionWebSocketResponse(listener)
 			return
-		case event := <-listener:
+		}
+	}()
+	go func() {
+		for event := range listener {
 			if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
 				if closeChannelEvent.Request.NodeId == 0 {
 					continue
@@ -398,5 +396,5 @@ func processWebSocketResponse(ctx context.Context, broadcaster broadcast.Broadca
 					currentStates.LocalDisabled, timeLockDelta, minHtlcMsat, maxHtlcMsat, feeBaseMsat, feeRateMilliMsat)
 			}
 		}
-	}
+	}()
 }
