@@ -314,16 +314,19 @@ linkedInputLoop:
 		parentOutputValue, labelExists := workflowNodeOutputCache[parentWorkflowNode.WorkflowVersionNodeId][parentLink.ParentOutput]
 		if labelExists {
 			inputs[parentLink.ChildInput] = parentOutputValue
+			outputs[parentLink.ChildInput] = parentOutputValue
 		}
 		for referencId, labelValueMap := range workflowNodeOutputByReferenceIdCache[parentWorkflowNode.WorkflowVersionNodeId] {
 			parentOutputValueByReferenceId, labelByReferenceIdExists := labelValueMap[parentLink.ParentOutput]
 			if labelByReferenceIdExists {
 				inputsByReferenceId[referencId][parentLink.ChildInput] = parentOutputValueByReferenceId
+				outputsByReferenceId[referencId][parentLink.ChildInput] = parentOutputValueByReferenceId
 			}
 			for _, workflowNodeParameterLabelEnforced := range commons.GetWorkflowParameterLabelsEnforced() {
 				parentByReferenceId, parentByReferenceIdExists := labelValueMap[workflowNodeParameterLabelEnforced]
 				if parentByReferenceIdExists {
 					inputsByReferenceId[referencId][workflowNodeParameterLabelEnforced] = parentByReferenceId
+					outputsByReferenceId[referencId][workflowNodeParameterLabelEnforced] = parentByReferenceId
 				}
 			}
 		}

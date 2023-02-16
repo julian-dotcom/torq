@@ -22,7 +22,7 @@ type RebalanceConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export type RebalanceConfiguration = {
   focus: string;
-  amountMsat: number;
+  amountMsat?: number;
   maximumCostMsat?: number;
   maximumCostMilliMsat?: number;
   maximumConcurrency?: number;
@@ -39,7 +39,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
 
   const [configuration, setConfiguration] = useState<RebalanceConfiguration>({
     focus: "",
-    amountMsat: 0,
+    amountMsat: undefined,
     maximumCostMsat: undefined,
     maximumCostMilliMsat: undefined,
     maximumConcurrency: undefined,
