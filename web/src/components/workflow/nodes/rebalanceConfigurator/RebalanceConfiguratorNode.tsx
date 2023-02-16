@@ -10,16 +10,18 @@ import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } f
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
-import { Input, InputSizeVariant, Socket, Form } from "components/forms/forms";
+import {Input, InputSizeVariant, Socket, Form, Select} from "components/forms/forms";
 import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import Spinny from "features/spinny/Spinny";
+import {SelectOptions} from "features/forms/Select";
 
 type RebalanceConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export type RebalanceConfiguration = {
+  focus: string;
   amountMsat: number;
   maximumCostMsat?: number;
   maximumCostMilliMsat?: number;
@@ -36,6 +38,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
   const [updateNode] = useUpdateNodeMutation();
 
   const [configuration, setConfiguration] = useState<RebalanceConfiguration>({
+    focus: "incomingChannels",
     amountMsat: 0,
     maximumCostMsat: undefined,
     maximumCostMilliMsat: undefined,
@@ -167,7 +170,6 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
       {...wrapperProps}
       headerIcon={<RebalanceConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
-      outputName={"channels"}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
@@ -177,6 +179,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"incomingChannels"}
+          outputName={configuration.focus==="incomingChannels"?"incomingChannels":undefined}
           editingDisabled={editingDisabled}
         />
         <Socket
@@ -186,6 +189,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"outgoingChannels"}
+          outputName={configuration.focus==="outgoingChannels"?"outgoingChannels":undefined}
           editingDisabled={editingDisabled}
         />
         <Socket
@@ -196,6 +200,27 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"avoidChannels"}
           editingDisabled={editingDisabled}
+        />
+        <Select
+          isMulti={false}
+          label={t.focus}
+          sizeVariant={InputSizeVariant.small}
+          value={configuration.focus}
+          onChange={(newValue) => {
+            const selectOptions = newValue as SelectOptions;
+            if (newValue) {
+              setConfiguration((prev) => ({
+                ...prev,
+                ["focus" as keyof RebalanceConfiguration]: selectOptions.value,
+              }));
+              //TODO FIXME DELETE EXISTING LINK IF THERE IS A LINK ALREADY
+            }
+          }}
+          options={[
+            { value: "incomingChannels", label: t.Destinations },
+            { value: "outgoingChannels", label: t.Sources },
+          ]}
+          isDisabled={editingDisabled}
         />
         <Input
           formatted={true}

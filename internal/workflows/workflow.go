@@ -25,6 +25,13 @@ const (
 	TagActionToggle
 )
 
+type RebalancerFocus string
+
+const (
+	RebalancerFocusIncomingChannels = RebalancerFocus("incomingChannels")
+	RebalancerFocusOutgoingChannels = RebalancerFocus("outgoingChannels")
+)
+
 type Workflow struct {
 	WorkflowId int            `json:"workflowId" db:"workflow_id"`
 	Name       string         `json:"name" db:"name"`
@@ -95,11 +102,12 @@ type ChannelPolicyConfiguration struct {
 }
 
 type RebalanceConfiguration struct {
-	IncomingChannelIds   []int   `json:"incomingChannelIds"`
-	OutgoingChannelIds   []int   `json:"outgoingChannelIds"`
-	AmountMsat           *uint64 `json:"amountMsat"`
-	MaximumCostMilliMsat *int64  `json:"maximumCostMilliMsat"`
-	MaximumCostMsat      *uint64 `json:"maximumCostMsat"`
+	IncomingChannelIds   []int           `json:"incomingChannelIds"`
+	OutgoingChannelIds   []int           `json:"outgoingChannelIds"`
+	Focus                RebalancerFocus `json:"focus"`
+	AmountMsat           *uint64         `json:"amountMsat"`
+	MaximumCostMilliMsat *int64          `json:"maximumCostMilliMsat"`
+	MaximumCostMsat      *uint64         `json:"maximumCostMsat"`
 }
 
 type TagParameters struct {
