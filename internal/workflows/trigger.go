@@ -822,64 +822,76 @@ func processRebalanceRun(
 	if rebalanceSettings.Focus == RebalancerFocusIncomingChannels {
 		for _, incomingChannelId := range rebalanceSettings.IncomingChannelIds {
 			channelSetting := commons.GetChannelSettingByChannelId(incomingChannelId)
-			nodeId := channelSetting.FirstNodeId
-			if !slices.Contains(commons.GetAllTorqNodeIds(), nodeId) {
-				nodeId = channelSetting.SecondNodeId
-			}
-			request := commons.RebalanceRequest{
-				CommunicationRequest: commons.CommunicationRequest{
-					RequestId:   reference,
-					RequestTime: &now,
-					NodeId:      nodeId,
-				},
-				Origin:             commons.RebalanceRequestWorkflowNode,
-				OriginId:           workflowNode.WorkflowVersionNodeId,
-				OriginReference:    reference,
-				ChannelIds:         rebalanceSettings.OutgoingChannelIds,
-				AmountMsat:         *rebalanceSettings.AmountMsat,
-				MaximumCostMsat:    *rebalanceSettings.MaximumCostMsat,
-				MaximumConcurrency: 1,
-			}
+			var request commons.RebalanceRequest
+			request.ChannelIds = rebalanceSettings.OutgoingChannelIds
 			request.IncomingChannelId = incomingChannelId
-
-			response := channels.SetRebalanceWithTimeout(request, rebalanceRequestChannel)
-			if response.Error != "" {
-				log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			}
-			responses = append(responses, response)
+			responses = initiatedRebalance(rebalanceSettings, channelSetting, reference, now,
+				workflowNode.WorkflowVersionNodeId, request, responses, rebalanceRequestChannel)
 		}
 	}
 	if rebalanceSettings.Focus == RebalancerFocusOutgoingChannels {
 		for _, outgoingChannelId := range rebalanceSettings.OutgoingChannelIds {
 			channelSetting := commons.GetChannelSettingByChannelId(outgoingChannelId)
-			nodeId := channelSetting.FirstNodeId
-			if !slices.Contains(commons.GetAllTorqNodeIds(), nodeId) {
-				nodeId = channelSetting.SecondNodeId
-			}
-			request := commons.RebalanceRequest{
-				CommunicationRequest: commons.CommunicationRequest{
-					RequestId:   reference,
-					RequestTime: &now,
-					NodeId:      nodeId,
-				},
-				Origin:             commons.RebalanceRequestWorkflowNode,
-				OriginId:           workflowNode.WorkflowVersionNodeId,
-				OriginReference:    reference,
-				ChannelIds:         rebalanceSettings.IncomingChannelIds,
-				AmountMsat:         *rebalanceSettings.AmountMsat,
-				MaximumCostMsat:    *rebalanceSettings.MaximumCostMsat,
-				MaximumConcurrency: 1,
-			}
+			var request commons.RebalanceRequest
+			request.ChannelIds = rebalanceSettings.IncomingChannelIds
 			request.OutgoingChannelId = outgoingChannelId
-
-			response := channels.SetRebalanceWithTimeout(request, rebalanceRequestChannel)
-			if response.Error != "" {
-				log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			}
-			responses = append(responses, response)
+			responses = initiatedRebalance(rebalanceSettings, channelSetting, reference, now,
+				workflowNode.WorkflowVersionNodeId, request, responses, rebalanceRequestChannel)
 		}
 	}
 	return responses, nil
+}
+
+func initiatedRebalance(
+	rebalanceSettings RebalanceConfiguration,
+	channelSetting commons.ManagedChannelSettings,
+	reference string,
+	now time.Time,
+	workflowVersionNodeId int,
+	request commons.RebalanceRequest,
+	responses []commons.RebalanceResponse,
+	rebalanceRequestChannel chan commons.RebalanceRequest) []commons.RebalanceResponse {
+
+	nodeId := channelSetting.FirstNodeId
+	if !slices.Contains(commons.GetAllTorqNodeIds(), nodeId) {
+		nodeId = channelSetting.SecondNodeId
+	}
+	request.CommunicationRequest = commons.CommunicationRequest{
+		RequestId:   reference,
+		RequestTime: &now,
+		NodeId:      nodeId,
+	}
+	request.Origin = commons.RebalanceRequestWorkflowNode
+	request.OriginId = workflowVersionNodeId
+	request.OriginReference = reference
+	request.MaximumConcurrency = 1
+	if rebalanceSettings.AmountMsat == nil {
+		log.Error().Err(errors.New("empty rebalance amount")).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowVersionNodeId)
+		responses = append(responses, commons.RebalanceResponse{
+			Request: request,
+			CommunicationResponse: commons.CommunicationResponse{
+				Status:  commons.Inactive,
+				Message: "empty rebalance amount",
+				Error:   "empty rebalance amount",
+			},
+		})
+		return responses
+	}
+	request.AmountMsat = *rebalanceSettings.AmountMsat
+	var maxCostMsat uint64
+	if rebalanceSettings.MaximumCostMsat != nil {
+		maxCostMsat = *rebalanceSettings.MaximumCostMsat
+	}
+	if rebalanceSettings.MaximumCostMilliMsat != nil {
+		maxCostMsat = uint64(*rebalanceSettings.MaximumCostMilliMsat) * request.AmountMsat / 1_000_000
+	}
+	request.MaximumCostMsat = maxCostMsat
+	response := channels.SetRebalanceWithTimeout(request, rebalanceRequestChannel)
+	if response.Error != "" {
+		log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowVersionNodeId)
+	}
+	responses = append(responses, response)
+	return responses
 }
 
 func processRoutingPolicyConfigurator(
