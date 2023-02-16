@@ -80,7 +80,7 @@ func SetRebalanceWithTimeout(request commons.RebalanceRequest,
 	request.ResponseChannel = responseChannel
 	rebalanceRequestChannel <- request
 	time.AfterFunc(commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
-		message := fmt.Sprintf("Routing policy update timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
+		message := fmt.Sprintf("Rebalance timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
 		responseChannel <- commons.RebalanceResponse{
 			Request: request,
 			CommunicationResponse: commons.CommunicationResponse{
