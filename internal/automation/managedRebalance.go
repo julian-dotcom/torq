@@ -211,19 +211,17 @@ func processResultsCache(
 		for originId := range resultsCache[origin] {
 			for channelId := range resultsCache[origin][originId] {
 				rebalanceResults := resultsCache[origin][originId][channelId]
-				if len(rebalanceResults) != 0 {
-					for i := len(rebalanceResults) - 1; i >= 0; i-- {
-						if rebalanceResults[i].OutgoingChannelId == managedRebalance.OutgoingChannelId &&
-							rebalanceResults[i].IncomingChannelId == managedRebalance.IncomingChannelId &&
-							(managedRebalance.Status == nil || *managedRebalance.Status == rebalanceResults[i].Status) {
-							if latest.RebalanceId == 0 {
-								latest = rebalanceResults[i]
-								break
-							}
-							if latest.UpdateOn.Before(rebalanceResults[i].UpdateOn) {
-								latest = rebalanceResults[i]
-								break
-							}
+				for i := len(rebalanceResults) - 1; i >= 0; i-- {
+					if rebalanceResults[i].OutgoingChannelId == managedRebalance.OutgoingChannelId &&
+						rebalanceResults[i].IncomingChannelId == managedRebalance.IncomingChannelId &&
+						(managedRebalance.Status == nil || *managedRebalance.Status == rebalanceResults[i].Status) {
+						if latest.RebalanceId == 0 {
+							latest = rebalanceResults[i]
+							break
+						}
+						if latest.UpdateOn.Before(rebalanceResults[i].UpdateOn) {
+							latest = rebalanceResults[i]
+							break
 						}
 					}
 				}
@@ -281,7 +279,7 @@ func initializeRebalancersCache(managedRebalance ManagedRebalance,
 }
 
 func isValidRequest(managedRebalance ManagedRebalance) bool {
-	if managedRebalance.IncomingChannelId != 0 && managedRebalance.OutgoingChannelId != 0 {
+	if managedRebalance.Type != READ_REBALANCE_RESULT && managedRebalance.IncomingChannelId != 0 && managedRebalance.OutgoingChannelId != 0 {
 		log.Error().Msgf("IncomingChannelId (%v) and OutgoingChannelId (%v) cannot both be populated at the same time",
 			managedRebalance.IncomingChannelId, managedRebalance.OutgoingChannelId)
 		return false

@@ -38,7 +38,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
   const [updateNode] = useUpdateNodeMutation();
 
   const [configuration, setConfiguration] = useState<RebalanceConfiguration>({
-    focus: "incomingChannels",
+    focus: "",
     amountMsat: 0,
     maximumCostMsat: undefined,
     maximumCostMilliMsat: undefined,
@@ -214,6 +214,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
                 ["focus" as keyof RebalanceConfiguration]: selectOptions.value,
               }));
               //TODO FIXME DELETE EXISTING LINK IF THERE IS A LINK ALREADY
+              //OR you cannot change this when a link already exists
             }
           }}
           options={[

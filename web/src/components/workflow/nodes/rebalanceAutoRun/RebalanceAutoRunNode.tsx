@@ -23,7 +23,7 @@ import { toastCategory } from "features/toast/Toasts";
 type RebalanceAutoRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export type RebalanceConfiguration = {
-  amountMsat: number;
+  amountMsat?: number;
   maximumCostMsat?: number;
   maximumCostMilliMsat?: number;
   maximumConcurrency?: number;
@@ -38,7 +38,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
   const [updateNode] = useUpdateNodeMutation();
 
   const [rebalance, setRebalance] = useState<RebalanceConfiguration>({
-    amountMsat: 0,
+    amountMsat: undefined,
     maximumCostMsat: undefined,
     maximumCostMilliMsat: undefined,
     maximumConcurrency: undefined,
