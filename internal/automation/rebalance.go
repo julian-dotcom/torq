@@ -596,7 +596,7 @@ func (runner *RebalanceRunner) pay(
 			PaymentHash: invoice.RHash,
 			Route:       route,
 		})
-	if result.Route != nil {
+	if result != nil && result.Route != nil {
 		rebalanceResult.Route = result.Route
 		rebalanceResult.TotalFeeMsat = uint64(result.Route.TotalFeesMsat)
 		rebalanceResult.TotalTimeLock = result.Route.TotalTimeLock
