@@ -248,6 +248,13 @@ func IsWorkflowNodeTypeGrouped(workflowNodeType WorkflowNodeType) bool {
 	return false
 }
 
+func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
+	return []WorkflowParameterLabel{
+		WorkflowParameterLabelRoutingPolicySettings,
+		WorkflowParameterLabelRebalanceSettings,
+		WorkflowParameterLabelStatus}
+}
+
 func SignMessageWithTimeout(unixTime time.Time, nodeId int, message string, singleHash *bool,
 	lightningRequestChannel chan interface{}) SignMessageResponse {
 
