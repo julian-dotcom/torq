@@ -21,9 +21,6 @@ You do not need sudo/root to run this and you can check the contents of the inst
 Since Torq is built to manage your node, it needs most/all permissions to be fully functional. However, if you want to
 be extra careful you can disable some permissions that are not strictly needed.
 
-**NB: You sometimes need to restart Torq after updating the macaroon.
-Wait until the save button in the UI is green before restarting Torq.**
-
 Torq does not for now need the ability to create new macaroon or stop the LND daemon,
 
     lncli bakemacaroon \
