@@ -377,8 +377,14 @@ func (rebalancer *Rebalancer) createRunner(
 		removeRebalancer(rebalancer)
 		rebalancer.RebalanceCancel()
 		runningFor := time.Since(rebalancer.CreatedOn).Round(1 * time.Second)
-		log.Info().Msgf("Pending ChannelId got exhausted for Origin: %v, OriginId: %v (%s)",
-			rebalancer.Request.Origin, rebalancer.Request.OriginId, runningFor)
+		if rebalancer.Request.IncomingChannelId != 0 {
+			log.Info().Msgf("Pending Outgoing ChannelIds got exhausted for Origin: %v, OriginId: %v (%v %s)",
+				rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.IncomingChannelId, runningFor)
+		}
+		if rebalancer.Request.OutgoingChannelId != 0 {
+			log.Info().Msgf("Pending Incoming ChannelIds got exhausted for Origin: %v, OriginId: %v (%v %s)",
+				rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OutgoingChannelId, runningFor)
+		}
 		if runningFor.Seconds() < commons.REBALANCE_MINIMUM_DELTA_SECONDS {
 			sleepTime := commons.REBALANCE_MINIMUM_DELTA_SECONDS*time.Second - runningFor
 			rebalancer.CreatedOn = time.Now().UTC()
@@ -387,8 +393,14 @@ func (rebalancer *Rebalancer) createRunner(
 		rebalancer.Runners = make(map[int]*RebalanceRunner)
 		rebalancer.Status = commons.Pending
 		if !addRebalancer(rebalancer) {
-			log.Error().Msgf("Failed to reschedule the rebalancer for Origin: %v, OriginId: %v",
-				rebalancer.Request.Origin, rebalancer.Request.OriginId)
+			if rebalancer.Request.IncomingChannelId != 0 {
+				log.Error().Msgf("Failed to reschedule the incoming rebalancer for Origin: %v, OriginId: %v (%v)",
+					rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.IncomingChannelId)
+			}
+			if rebalancer.Request.OutgoingChannelId != 0 {
+				log.Error().Msgf("Failed to reschedule the outgoing rebalancer for Origin: %v, OriginId: %v (%v)",
+					rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OutgoingChannelId)
+			}
 		}
 		return
 	}
@@ -405,8 +417,8 @@ func (rebalancer *Rebalancer) createRunner(
 		removeRebalancer(rebalancer)
 		rebalancer.RebalanceCancel()
 		runningFor := time.Since(rebalancer.CreatedOn).Round(1 * time.Second)
-		log.Info().Msgf("Successfully rebalanced for Origin: %v, OriginId: %v (%s)",
-			rebalancer.Request.Origin, rebalancer.Request.OriginId, runningFor)
+		log.Info().Msgf("Successfully rebalanced for Origin: %v, OriginId: %v (%v -> %v in %s)",
+			rebalancer.Request.Origin, rebalancer.Request.OriginId, runner.IncomingChannelId, runner.OutgoingChannelId, runningFor)
 		rebalancer.Status = commons.Inactive
 	} else {
 		runner.Cancel()
