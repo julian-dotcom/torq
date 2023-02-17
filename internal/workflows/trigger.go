@@ -353,10 +353,7 @@ linkedInputLoop:
 				return commons.Inactive, errors.Wrapf(err, "Obtaining eventChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 		case "eventXorAll":
-			channelIds, err = getChannelIds(inputs, commons.WorkflowParameterLabelEventChannels)
-			if err != nil {
-				// Ignoring this error it means there are no event channels...
-			}
+			channelIds, _ = getChannelIds(inputs, commons.WorkflowParameterLabelEventChannels)
 			if len(channelIds) == 0 {
 				channelIds, err = getChannelIds(inputs, commons.WorkflowParameterLabelAllChannels)
 				if err != nil {
