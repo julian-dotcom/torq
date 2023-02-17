@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { DismissCircle24Regular as DeleteLinkIcon } from "@fluentui/react-icons";
 import { SelectWorkflowLinks, useDeleteNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
+import { selectDisplayPreviewLink } from "pages/WorkflowPage/WorkflowSlice";
 import { WorkflowVersionNodeLink } from "pages/WorkflowPage/workflowTypes";
 import styles from "./workflow_link.module.scss";
 import mixpanel from "mixpanel-browser";
@@ -12,6 +13,55 @@ type WorkflowLinkProp = {
 };
 
 export type LinkPositionEventDetails = { x: number; y: number; nodeId: number };
+export type PreviewLinkPositionEventDetails = { startX: number; startY: number; x: number; y: number; nodeId: number };
+
+function PreviewWorkflowLink() {
+  const linkPreviewRef = useRef<SVGLineElement>(null);
+  function setPath(path: { x1: number; y1: number; x2: number; y2: number }) {
+    if (linkPreviewRef === null) return;
+
+    const { x1, y1, x2, y2 } = path;
+    const t = 0.5;
+
+    const controlPoint1X = x1 + t * (x2 - x1);
+    const controlPoint2X = x2 - t * (x2 - x1);
+
+    linkPreviewRef?.current &&
+      linkPreviewRef.current.setAttribute(
+        "d",
+        `M ${x1} ${y1} C ${controlPoint1X} ${y1} ${controlPoint2X} ${y2} ${x2} ${y2}`
+      );
+  }
+
+  function handlePreviewPositionUpdate(e: CustomEventInit<PreviewLinkPositionEventDetails>) {
+    if (linkPreviewRef !== null && linkPreviewRef.current !== null) {
+      const x1 = e.detail?.startX || 0;
+      const y1 = e.detail?.startY || 0;
+
+      const x2 = e.detail?.x || 0;
+      const y2 = e.detail?.y || 0;
+
+      setPath({ x1, y1, x2, y2 });
+    }
+  }
+
+  useLayoutEffect(() => {
+    window.addEventListener("previewLinkEvent", handlePreviewPositionUpdate);
+
+    // cleanup event listeners
+    return () => {
+      window.removeEventListener("previewLinkEvent", handlePreviewPositionUpdate);
+    };
+  }, [linkPreviewRef]);
+
+  return (
+    <g className={styles.linkWrapper}>
+      <path strokeDasharray="10,10" ref={linkPreviewRef} id={"previewLink"} className={styles.previewLink}>
+        <animate attributeName="stroke-dashoffset" values="100;0" dur="2s" calcMode="linear" repeatCount="indefinite" />
+      </path>
+    </g>
+  );
+}
 
 function WorkflowLink(props: WorkflowLinkProp) {
   const { link } = props;
@@ -135,6 +185,8 @@ function WorkflowLinks(props: WorkflowLinkProps) {
     SelectWorkflowLinks({ workflowId: props.workflowId, version: props.version, stage: props.stage })
   );
 
+  const displayPreviewLink = useSelector(selectDisplayPreviewLink);
+
   return (
     <div
       style={{
@@ -153,6 +205,8 @@ function WorkflowLinks(props: WorkflowLinkProps) {
         overflow={"visible"}
         style={props.style}
       >
+        {displayPreviewLink && <PreviewWorkflowLink key="preview" />}
+
         {links.map((link) => {
           return <WorkflowLink key={"link-" + link.workflowVersionNodeLinkId} link={link} />;
         })}
