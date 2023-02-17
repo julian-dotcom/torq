@@ -5,10 +5,6 @@ import {
 } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
-import Input from "components/forms/input/Input";
-import { InputSizeVariant } from "components/forms/input/variants";
-import Form from "components/forms/form/Form";
-import Socket from "components/forms/socket/Socket";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
 import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } from "pages/WorkflowPage/workflowApi";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
@@ -19,10 +15,12 @@ import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
+import { Input, InputSizeVariant, Socket, Form, RadioChips } from "components/forms/forms";
 
 type RebalanceAutoRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
 export type RebalanceConfiguration = {
+  focus: string;
   amountMsat?: number;
   maximumCostMsat?: number;
   maximumCostMilliMsat?: number;
@@ -37,7 +35,8 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
 
   const [updateNode] = useUpdateNodeMutation();
 
-  const [rebalance, setRebalance] = useState<RebalanceConfiguration>({
+  const [configuration, setConfiguration] = useState<RebalanceConfiguration>({
+    focus: "",
     amountMsat: undefined,
     maximumCostMsat: undefined,
     maximumCostMilliMsat: undefined,
@@ -50,8 +49,8 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
   useEffect(() => {
     setDirty(
       JSON.stringify(wrapperProps.parameters, Object.keys(wrapperProps.parameters).sort()) !==
-      JSON.stringify(rebalance, Object.keys(rebalance).sort()));
-  }, [rebalance, wrapperProps.parameters]);
+      JSON.stringify(configuration, Object.keys(configuration).sort()));
+  }, [configuration, wrapperProps.parameters]);
 
   const [amountSat, setAmountSat] = useState<number | undefined>(
     (wrapperProps.parameters as RebalanceConfiguration).amountMsat
@@ -73,12 +72,12 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
         setMaximumCostSat(e.floatValue);
       }
       if (e.floatValue === undefined) {
-        setRebalance((prev) => ({
+        setConfiguration((prev) => ({
           ...prev,
           [key]: undefined,
         }));
       } else {
-        setRebalance((prev) => ({
+        setConfiguration((prev) => ({
           ...prev,
           [key]: (e.floatValue || 0) * 1000,
         }));
@@ -88,7 +87,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
 
   function createChangeHandler(key: keyof RebalanceConfiguration) {
     return (e: NumberFormatValues) => {
-      setRebalance((prev) => ({
+      setConfiguration((prev) => ({
         ...prev,
         [key]: e.floatValue,
       }));
@@ -106,7 +105,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
     setProcessing(true);
     updateNode({
       workflowVersionNodeId: wrapperProps.workflowVersionNodeId,
-      parameters: rebalance,
+      parameters: configuration,
     }).finally(() => {
       setProcessing(false);
     });
@@ -171,7 +170,6 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
       {...wrapperProps}
       headerIcon={<RebalanceConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
-      outputName={"channels"}
     >
       <Form onSubmit={handleSubmit}>
         <Socket
@@ -181,6 +179,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"incomingChannels"}
+          outputName={configuration.focus==="incomingChannels"?"incomingChannels":undefined}
           editingDisabled={editingDisabled}
         />
         <Socket
@@ -190,6 +189,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"outgoingChannels"}
+          outputName={configuration.focus==="outgoingChannels"?"outgoingChannels":undefined}
           editingDisabled={editingDisabled}
         />
         <Socket
@@ -199,6 +199,32 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"avoidChannels"}
+          editingDisabled={editingDisabled}
+        />
+        <RadioChips
+          label={t.focus}
+          sizeVariant={InputSizeVariant.small}
+          groupName={"focus-switch-" + wrapperProps.workflowVersionNodeId}
+          options={[
+            {
+              label: t.Destinations,
+              id: "focus-switch-incomingChannels-" + wrapperProps.workflowVersionNodeId,
+              checked: configuration.focus === "incomingChannels",
+              onChange: () => setConfiguration((prev) => ({
+                ...prev,
+                ["focus" as keyof RebalanceConfiguration]: "incomingChannels",
+              })),
+            },
+            {
+              label: t.Sources,
+              id: "focus-switch-outgoingChannels-" + wrapperProps.workflowVersionNodeId,
+              checked: configuration.focus === "outgoingChannels",
+              onChange: () => setConfiguration((prev) => ({
+                ...prev,
+                ["focus" as keyof RebalanceConfiguration]: "outgoingChannels",
+              })),
+            },
+          ]}
           editingDisabled={editingDisabled}
         />
         <Input
@@ -223,7 +249,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
         />
         <Input
           formatted={true}
-          value={rebalance.maximumCostMilliMsat}
+          value={configuration.maximumCostMilliMsat}
           thousandSeparator={","}
           suffix={" ppm"}
           onValueChange={createChangeHandler("maximumCostMilliMsat")}

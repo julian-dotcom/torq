@@ -10,13 +10,12 @@ import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } f
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { NumberFormatValues } from "react-number-format";
 import { useSelector } from "react-redux";
-import {Input, InputSizeVariant, Socket, Form, Select} from "components/forms/forms";
+import { Input, InputSizeVariant, Socket, Form, RadioChips } from "components/forms/forms";
 import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import Spinny from "features/spinny/Spinny";
-import {SelectOptions} from "features/forms/Select";
 
 type RebalanceConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -201,27 +200,31 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           inputName={"avoidChannels"}
           editingDisabled={editingDisabled}
         />
-        <Select
-          isMulti={false}
+        <RadioChips
           label={t.focus}
           sizeVariant={InputSizeVariant.small}
-          value={configuration.focus}
-          onChange={(newValue) => {
-            const selectOptions = newValue as SelectOptions;
-            if (newValue) {
-              setConfiguration((prev) => ({
-                ...prev,
-                ["focus" as keyof RebalanceConfiguration]: selectOptions.value,
-              }));
-              //TODO FIXME DELETE EXISTING LINK IF THERE IS A LINK ALREADY
-              //OR you cannot change this when a link already exists
-            }
-          }}
+          groupName={"focus-switch-" + wrapperProps.workflowVersionNodeId}
           options={[
-            { value: "incomingChannels", label: t.Destinations },
-            { value: "outgoingChannels", label: t.Sources },
+            {
+              label: t.Destinations,
+              id: "focus-switch-incomingChannels-" + wrapperProps.workflowVersionNodeId,
+              checked: configuration.focus === "incomingChannels",
+              onChange: () => setConfiguration((prev) => ({
+                ...prev,
+                ["focus" as keyof RebalanceConfiguration]: "incomingChannels",
+              })),
+            },
+            {
+              label: t.Sources,
+              id: "focus-switch-outgoingChannels-" + wrapperProps.workflowVersionNodeId,
+              checked: configuration.focus === "outgoingChannels",
+              onChange: () => setConfiguration((prev) => ({
+                ...prev,
+                ["focus" as keyof RebalanceConfiguration]: "outgoingChannels",
+              })),
+            },
           ]}
-          isDisabled={editingDisabled}
+          editingDisabled={editingDisabled}
         />
         <Input
           formatted={true}
