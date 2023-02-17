@@ -414,10 +414,9 @@ func (rebalancer *Rebalancer) createRunner(
 			log.Info().Msgf("Pending Incoming ChannelIds got exhausted for Origin: %v, OriginId: %v (%v %s)",
 				rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OutgoingChannelId, runningFor)
 		}
+		rebalancer.ScheduleTarget = time.Now().UTC()
 		if runningFor.Seconds() < commons.REBALANCE_MINIMUM_DELTA_SECONDS {
-			sleepTime := commons.REBALANCE_MINIMUM_DELTA_SECONDS*time.Second - runningFor
-			rebalancer.ScheduleTarget = time.Now().UTC()
-			rebalancer.ScheduleTarget = rebalancer.ScheduleTarget.Add(sleepTime)
+			rebalancer.ScheduleTarget = rebalancer.ScheduleTarget.Add(commons.REBALANCE_MINIMUM_DELTA_SECONDS*time.Second - runningFor)
 		}
 		rebalancer.Runners = make(map[int]*RebalanceRunner)
 		rebalancer.Status = commons.Pending
@@ -850,7 +849,7 @@ func verifyNotZeroInt(request commons.RebalanceRequest, value int64, label strin
 }
 
 func updateExistingRebalanceRequest(db *sqlx.DB, request commons.RebalanceRequest) *commons.RebalanceResponse {
-	rebalancer := getRebalancer(request.Origin, request.OriginId)
+	rebalancer := getRebalancer(request.Origin, request.OriginId, request.IncomingChannelId, request.OutgoingChannelId)
 	if rebalancer == nil {
 		return nil
 	}
