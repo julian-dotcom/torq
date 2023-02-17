@@ -368,6 +368,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context, serviceEventChannel
 					}
 				}
 				nodeConnectionDetails.Name = "Auto configured node"
+				nodeConnectionDetails.CustomSettings = commons.NodeConnectionDetailCustomSettings(commons.NodeConnectionDetailCustomSettingsMax - int(commons.ImportFailedPayments))
 				_, err = settings.SetNodeConnectionDetails(db, nodeConnectionDetails)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to update the node name (cosmetics problem).")
