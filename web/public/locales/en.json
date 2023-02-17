@@ -176,6 +176,9 @@
   "triggers": "Triggers",
   "trigger": "Trigger",
   "dataSources": "Data Sources",
+  "triggering": "Triggering",
+  "all": "All",
+  "both": "Both",
   "actions": "Actions",
   "MainNet": "MainNet",
   "TestNet": "TestNet",
@@ -222,8 +225,7 @@
     "targetChannel": "Target Channels",
     "targetNode": "Target Nodes",
     "run": "Run Workflow",
-    "eventChannels": "Event Channel(s)",
-    "allChannels": "All Channel(s)"
+    "torqChannels": "Torq Channel(s)"
   },
   "workflowDetails": {
     "cantAddTriggerNodeToStages": "Trigger nodes can only be added to the first stage.",

@@ -231,15 +231,7 @@ const (
 	WorkflowNodeManualTrigger
 	WorkflowNodeChannelPolicyAutoRun
 	WorkflowNodeRebalanceAutoRun
-	WorkflowNodeDataSourceAllChannels
-	WorkflowNodeDataSourceEventChannels
-)
-
-type WorkflowTriggerType int
-
-const (
-	WorkflowTriggerTimingService = WorkflowTriggerType(iota)
-	WorkflowTriggerEventService
+	WorkflowNodeDataSourceTorqChannels
 )
 
 type WorkflowParameterType string
