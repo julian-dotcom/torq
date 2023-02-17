@@ -27,7 +27,5 @@ export { ChannelCloseTriggerNodeButton } from "components/workflow/nodes/channel
 export { ChannelCloseTriggerNode } from "components/workflow/nodes/channelCloseTrigger/ChannelCloseTriggerNode";
 export { ChannelOpenTriggerNodeButton } from "components/workflow/nodes/channelOpenTrigger/ChannelOpenTriggerNodeButton";
 export { ChannelOpenTriggerNode } from "components/workflow/nodes/channelOpenTrigger/ChannelOpenTriggerNode";
-export { DataSourceEventChannelsNodeButton } from "components/workflow/nodes/dataSourceEventChannels/DataSourceEventChannelsNodeButton";
-export { DataSourceEventChannelsNode } from "components/workflow/nodes/dataSourceEventChannels/DataSourceEventChannelsNode";
-export { DataSourceAllChannelsNodeButton } from "components/workflow/nodes/dataSourceAllChannels/DataSourceAllChannelsNodeButton";
-export { DataSourceAllChannelsNode } from "components/workflow/nodes/dataSourceAllChannels/DataSourceAllChannelsNode";
+export { DataSourceTorqChannelsNodeButton } from "components/workflow/nodes/dataSourceTorqChannels/DataSourceTorqChannelsNodeButton";
+export { DataSourceTorqChannelsNode } from "components/workflow/nodes/dataSourceTorqChannels/DataSourceTorqChannelsNode";
