@@ -119,7 +119,8 @@ func ManagedRebalanceCache(ch chan ManagedRebalance, ctx context.Context) {
 					continue
 				}
 				initializeRebalancersCache(managedRebalance, rebalancers)
-				if getRebalancersCache(managedRebalance, rebalancers) == nil {
+				rebalancer := getRebalancersCache(managedRebalance, rebalancers)
+				if rebalancer == nil {
 					continue
 				}
 				removeRebalancersCache(managedRebalance, rebalancers)
