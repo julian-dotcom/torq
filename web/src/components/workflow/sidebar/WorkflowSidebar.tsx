@@ -25,8 +25,7 @@ import {
   AddTagNodeButton,
   ChannelCloseTriggerNodeButton,
   ChannelOpenTriggerNodeButton,
-  DataSourceEventChannelsNodeButton,
-  DataSourceAllChannelsNodeButton
+  DataSourceTorqChannelsNodeButton
 } from "components/workflow/nodes/nodes";
 import mixpanel from "mixpanel-browser";
 
@@ -80,8 +79,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           expanded={sectionState.dataSources}
           handleToggle={() => toggleSection("dataSources")}
         >
-          <DataSourceEventChannelsNodeButton />
-          <DataSourceAllChannelsNodeButton />
+          <DataSourceTorqChannelsNodeButton />
         </SectionContainer>
         <SectionContainer
           title={t.actions}

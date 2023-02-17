@@ -92,6 +92,10 @@ type ModifyTagsParameters struct {
 	TagAction TagAction `json:"tagAction"`
 }
 
+type TorqChannelsConfiguration struct {
+	Source string `json:"source"`
+}
+
 type ChannelPolicyConfiguration struct {
 	ChannelId        int     `json:"channelId"`
 	TimeLockDelta    *uint32 `json:"timeLockDelta"`
