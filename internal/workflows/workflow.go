@@ -280,15 +280,3 @@ func (nvs *WorkflowNodeVisibilitySettings) Scan(val interface{}) (err error) {
 	}
 	return nil
 }
-
-func getWorkflowNodeInputsComplete(workflowNode WorkflowNode, inputs map[commons.WorkflowParameterLabel]string) bool {
-	requiredInputs := commons.GetWorkflowNodes()[workflowNode.Type].RequiredInputs
-	for label := range requiredInputs {
-		_, exists := inputs[label]
-		if exists {
-			continue
-		}
-		return false
-	}
-	return true
-}
