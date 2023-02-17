@@ -333,25 +333,41 @@ linkedInputLoop:
 	}
 
 	switch workflowNode.Type {
-	case commons.WorkflowNodeDataSourceAllChannels:
-		allChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelAllChannels)
+	case commons.WorkflowNodeDataSourceTorqChannels:
+		var params TorqChannelsConfiguration
+		err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
 		if err != nil {
-			return commons.Inactive, errors.Wrapf(err, "Obtaining allChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			return commons.Inactive, errors.Wrapf(err, "Parsing parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
-		err = setChannelIds(outputs, commons.WorkflowParameterLabelChannels, allChannelIds)
+		var channelIds []int
+		switch params.Source {
+		case "all":
+			channelIds, err = getChannelIds(inputs, commons.WorkflowParameterLabelAllChannels)
+			if err != nil {
+				return commons.Inactive, errors.Wrapf(err, "Obtaining allChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+		case "event":
+			channelIds, err = getChannelIds(inputs, commons.WorkflowParameterLabelEventChannels)
+			if err != nil {
+				return commons.Inactive, errors.Wrapf(err, "Obtaining eventChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+		case "eventXorAll":
+			channelIds, err = getChannelIds(inputs, commons.WorkflowParameterLabelEventChannels)
+			if err != nil {
+				// Ignoring this error it means there are no event channels...
+			}
+			if len(channelIds) == 0 {
+				channelIds, err = getChannelIds(inputs, commons.WorkflowParameterLabelAllChannels)
+				if err != nil {
+					return commons.Inactive, errors.Wrapf(err, "Obtaining allChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+				}
+			}
+		}
+
+		err = setChannelIds(outputs, commons.WorkflowParameterLabelChannels, channelIds)
 		if err != nil {
 			return commons.Inactive, errors.Wrapf(err, "Adding All ChannelIds to the output for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-		}
-	case commons.WorkflowNodeDataSourceEventChannels:
-		eventChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelEventChannels)
-		if err != nil {
-			return commons.Inactive, errors.Wrapf(err, "Obtaining eventChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-		}
-
-		err = setChannelIds(outputs, commons.WorkflowParameterLabelChannels, eventChannelIds)
-		if err != nil {
-			return commons.Inactive, errors.Wrapf(err, "Adding Event ChannelIds to the output for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 	case commons.WorkflowNodeSetVariable:
 		//variableName := getWorkflowNodeParameter(parameters, commons.WorkflowParameterVariableName).ValueString

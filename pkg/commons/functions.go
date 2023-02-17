@@ -438,15 +438,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalOutputs:  all,
 		},
-		WorkflowNodeDataSourceAllChannels: {
-			WorkflowNodeType: WorkflowNodeDataSourceAllChannels,
-			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
-			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
-			RequiredOutputs:  channelsOnly,
-			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
-		},
-		WorkflowNodeDataSourceEventChannels: {
-			WorkflowNodeType: WorkflowNodeDataSourceEventChannels,
+		WorkflowNodeDataSourceTorqChannels: {
+			WorkflowNodeType: WorkflowNodeDataSourceTorqChannels,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  channelsOnly,
