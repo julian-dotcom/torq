@@ -444,8 +444,10 @@ func (rebalancer *Rebalancer) createRunner(
 	if result.Status == commons.Active {
 		removeRebalancer(rebalancer)
 		runningFor := time.Since(rebalancer.ScheduleTarget).Round(1 * time.Second)
-		msg := fmt.Sprintf("Successfully rebalanced after %s %vsats @ %vsats (%v ppm) using incomingChannelId: %v, outgoingChannelId: %v",
-			runningFor, result.TotalAmountMsat/1000, result.TotalFeeMsat/1000, result.TotalFeeMsat/result.TotalAmountMsat*1_000_000, result.IncomingChannelId, result.OutgoingChannelId)
+		msg := fmt.Sprintf("Successfully rebalanced after %s %vmsats @ %vmsats (%v ppm) using incomingChannelId: %v, outgoingChannelId: %v",
+			runningFor, result.TotalAmountMsat, result.TotalFeeMsat,
+			((result.TotalFeeMsat*1_000_000)/result.TotalAmountMsat)+1, // + 1 for rounding error
+			result.IncomingChannelId, result.OutgoingChannelId)
 		log.Debug().Msgf("%v for Origin: %v, OriginId: %v (Hops: %v)", msg, rebalancer.Request.Origin, rebalancer.Request.OriginId, result.Hops)
 		rebalancer.Status = commons.Inactive
 		return
