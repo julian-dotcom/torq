@@ -140,11 +140,11 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 					removeRebalancer(pendingRebalancers[0])
 					runningFor := time.Since(pendingRebalancers[0].CreatedOn).Round(1 * time.Second)
 					if pendingRebalancers[0].Request.IncomingChannelId != 0 {
-						log.Info().Msgf("Rebalancer timed out after %s for Origin: %v, OriginId: %v, Incoming Channel: %v",
+						log.Debug().Msgf("Rebalancer timed out after %s for Origin: %v, OriginId: %v, Incoming Channel: %v",
 							runningFor, pendingRebalancers[0].Request.Origin, pendingRebalancers[0].Request.OriginId, pendingRebalancers[0].Request.IncomingChannelId)
 					}
 					if pendingRebalancers[0].Request.OutgoingChannelId != 0 {
-						log.Info().Msgf("Rebalancer timed out after %s for Origin: %v, OriginId: %v, Outgoing Channel: %v",
+						log.Debug().Msgf("Rebalancer timed out after %s for Origin: %v, OriginId: %v, Outgoing Channel: %v",
 							runningFor, pendingRebalancers[0].Request.Origin, pendingRebalancers[0].Request.OriginId, pendingRebalancers[0].Request.OutgoingChannelId)
 					}
 					continue
@@ -407,11 +407,11 @@ func (rebalancer *Rebalancer) createRunner(
 		removeRebalancer(rebalancer)
 		runningFor := time.Since(rebalancer.ScheduleTarget).Round(1 * time.Second)
 		if rebalancer.Request.IncomingChannelId != 0 {
-			log.Info().Msgf("Pending Outgoing ChannelIds got exhausted for Origin: %v, OriginId: %v (%v %s)",
+			log.Debug().Msgf("Pending Outgoing ChannelIds got exhausted for Origin: %v, OriginId: %v, IncomingChannelId: %v (%s)",
 				rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.IncomingChannelId, runningFor)
 		}
 		if rebalancer.Request.OutgoingChannelId != 0 {
-			log.Info().Msgf("Pending Incoming ChannelIds got exhausted for Origin: %v, OriginId: %v (%v %s)",
+			log.Debug().Msgf("Pending Incoming ChannelIds got exhausted for Origin: %v, OriginId: %v, OutgoingChannelId: %v (%s)",
 				rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OutgoingChannelId, runningFor)
 		}
 		rebalancer.ScheduleTarget = time.Now().UTC()
@@ -446,7 +446,7 @@ func (rebalancer *Rebalancer) createRunner(
 		runningFor := time.Since(rebalancer.ScheduleTarget).Round(1 * time.Second)
 		msg := fmt.Sprintf("Successfully rebalanced after %s %vsats @ %vsats (%v ppm) using incomingChannelId: %v, outgoingChannelId: %v",
 			runningFor, result.TotalAmountMsat/1000, result.TotalFeeMsat/1000, result.TotalFeeMsat/result.TotalAmountMsat*1_000_000, result.IncomingChannelId, result.OutgoingChannelId)
-		log.Info().Msgf("%v for Origin: %v, OriginId: %v (Hops: %v)", msg, rebalancer.Request.Origin, rebalancer.Request.OriginId, result.Hops)
+		log.Debug().Msgf("%v for Origin: %v, OriginId: %v (Hops: %v)", msg, rebalancer.Request.Origin, rebalancer.Request.OriginId, result.Hops)
 		rebalancer.Status = commons.Inactive
 		return
 	}
