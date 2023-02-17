@@ -2,6 +2,7 @@ package lnd
 
 import (
 	"context"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -24,12 +25,18 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 
+	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeLightningRequest()
-	for {
-		select {
-		case <-ctx.Done():
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionWebSocketResponse(listener)
 			return
-		case lightningRequest := <-listener:
+		}
+	}()
+	go func() {
+		for lightningRequest := range listener {
 			if request, ok := lightningRequest.(commons.ChannelStatusUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
 					continue
@@ -67,7 +74,8 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 				}
 			}
 		}
-	}
+	}()
+	wg.Wait()
 }
 
 func processSignMessageRequest(ctx context.Context, request commons.SignMessageRequest,

@@ -389,29 +389,40 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 	defer log.Info().Msgf("EventTriggerMonitor terminated")
 
+	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeChannelBalanceEvent()
-	for {
-		select {
-		case <-ctx.Done():
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
 			broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
 			return
-		case channelBalanceEvent := <-listener:
+		}
+	}()
+	go func() {
+		for channelBalanceEvent := range listener {
 			if channelBalanceEvent.NodeId == 0 || channelBalanceEvent.ChannelId == 0 {
 				continue
 			}
 			processEventTrigger(db, channelBalanceEvent, commons.WorkflowNodeChannelBalanceEventTrigger)
 		}
-	}
+	}()
+	wg.Wait()
 }
 
 func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster broadcast.BroadcastServer) {
-	channelEventListener := broadcaster.SubscribeChannelEvent()
-	for {
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionChannelEvent(channelEventListener)
+	wg := sync.WaitGroup{}
+	listener := broadcaster.SubscribeChannelEvent()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionChannelEvent(listener)
 			return
-		case channelEvent := <-channelEventListener:
+		}
+	}()
+	go func() {
+		for channelEvent := range listener {
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 				continue
 			}
@@ -422,7 +433,8 @@ func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster br
 				processEventTrigger(db, channelEvent, commons.WorkflowNodeChannelCloseEventTrigger)
 			}
 		}
-	}
+	}()
+	wg.Wait()
 }
 
 func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType commons.WorkflowNodeType) {
