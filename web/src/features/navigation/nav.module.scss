@@ -10,6 +10,10 @@
 }
 .navigation {
   background-color: var(--bg-default);
+  border: 1px solid var(--material-layer-3);
+  box-shadow: 0 0 8px rgba(3, 48, 72, 0.06);
+  border-bottom-right-radius: 8px;
+  border-top-right-radius: 8px;
   height: 100vh;
   display: grid;
   grid-auto-flow: row;
@@ -120,13 +124,13 @@
 
 .quickToggles {
   border-radius: 28px;
-  background-color: var(--color-primary-layer-1);
+  background-color: var(--color-gray-layer-1);
   height: 32px;
   display: flex;
   align-items: center;
   svg {
     display: block;
-    color: var(--color-green-500);
+    color: var(--color-border-success-faded);
   }
 }
 
@@ -179,7 +183,6 @@
     grid-column-gap: 4px;
     padding: 6px 16px 8px;
   }
-
 }
 
 /*
@@ -272,7 +275,6 @@
   }
 }
 
-
 /*
 ----------------------------
 -- Top navigation (Mobile nav)
@@ -283,14 +285,16 @@
 }
 @media only screen and (max-width: 900px) {
   .navigationWrapper {
-    width: 0;
+    position: absolute;
+    top: 0px;
+    z-index: 100;
+    left: -100%;
+    transition: left 250ms ease-in-out;
     //overflow: hidden;
     height: calc(100vh - 12vh);
-    margin-top: 50px;
-    transition: width 200ms;
+    margin-top: 0;
   }
   .navigation {
-    width: 0;
     overflow: hidden;
     transition: width 200ms;
     height: calc(100vh - 12vh);
@@ -301,7 +305,7 @@
   }
   .navCollapsed {
     .navigationWrapper {
-      width: 280px;
+      left: 0;
       overflow: hidden;
     }
     .navigation {
@@ -313,6 +317,10 @@
     display: none;
   }
   .topNavigation {
+    box-shadow: 0 0 8px rgba(3, 48, 72, 0.06);
+    border-bottom: 1px solid var(--material-layer-3);
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
     height: 50px;
     width: 100vw;
     position: fixed;
@@ -324,7 +332,6 @@
     z-index: 10;
     padding: 0 24px;
     background-color: var(--bg-default);
-    border-bottom: 1px solid var(--primary-100);
     .topCollapseButton {
       svg {
         display: block;
