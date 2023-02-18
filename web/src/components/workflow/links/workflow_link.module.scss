@@ -19,6 +19,14 @@
     stroke-opacity: 0.8;
   }
 
+  path.previewLink {
+    stroke: var(--color-text-primary-faint);
+    stroke-width: 4px;
+    stroke-opacity: 0.4;
+    fill: transparent;
+    cursor: initial;
+  }
+
   path.shadowLink {
     stroke: transparent;
     stroke-opacity: 0.1;

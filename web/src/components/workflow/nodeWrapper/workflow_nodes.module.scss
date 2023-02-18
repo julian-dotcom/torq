@@ -89,6 +89,10 @@
   left: 10px;
   box-shadow: none !important;
   z-index: 10;
+
+}
+.selectedNonDraggable {
+  border: 3px solid var(--header-hover-background-color);
 }
 .title {
   cursor: text;
