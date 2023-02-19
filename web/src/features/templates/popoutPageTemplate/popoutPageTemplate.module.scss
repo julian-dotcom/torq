@@ -21,8 +21,8 @@
   top: 12px;
   bottom: 12px;
   background-color: var(--color-white);
-  border-bottom-left-radius: var(--radius-default);
-  border-top-left-radius: var(--radius-default);
+  border-bottom-left-radius: 8px;
+  border-top-left-radius: 8px;
   width: 500px;
   max-width: 90%;
   overflow: hidden;
@@ -71,6 +71,7 @@
 .contentWrapper {
   padding: 8px 24px 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   height: calc(100% - 48px);
   position: relative;
   display: flex;
