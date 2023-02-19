@@ -15,7 +15,6 @@
   grid-row-gap: 0;
   @media only screen and (max-width: 900px) {
     padding-right: 12px;
-    padding-left: 12px;
     grid-template-columns: auto;
     grid-template-rows: min-content min-content auto min-content;
     grid-template-areas:

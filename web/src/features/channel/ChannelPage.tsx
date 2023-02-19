@@ -351,9 +351,13 @@ function ChannelPage(_: ChannelPageProps) {
                 <div className={styles.rowLabel}>{t.channelPage.profit.turnover}</div>
                 <div className={classNames(styles.rowValue)}>{d3.format(",.2")(historyAmountTotalCapacity)}</div>
               </div>
+              <div className={styles.cardRow}>
+                <div className={styles.rowLabel}>Return on Capacity</div>
+                <div className={classNames(styles.rowValue)}>{d3.format(".2%")(profit / totalCapacity)}</div>
+              </div>
             </div>
 
-            <div className={styles.card}>
+            <div className={classNames(styles.card, styles.currentCard)}>
               <div className={styles.heading}>
                 {t.channelPage.policyDetails.outbound} {t.channelPage.policyDetails.heading}
               </div>
@@ -384,7 +388,7 @@ function ChannelPage(_: ChannelPageProps) {
                 </div>
               </div>
             </div>
-            <div className={styles.card}>
+            <div className={classNames(styles.card, styles.currentCard)}>
               <div className={styles.heading}>
                 {t.channelPage.policyDetails.inbound} {t.channelPage.policyDetails.heading}
               </div>
