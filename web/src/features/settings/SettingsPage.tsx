@@ -17,6 +17,7 @@ import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
 import NodeSettings from "features/settings/NodeSettings";
 import Modal from "features/modal/Modal";
+import { useGetServicesQuery } from "apiSlice";
 import useTranslations from "services/i18n/useTranslations";
 import { supportedLangs } from "config/i18nConfig";
 
@@ -110,6 +111,10 @@ function Settings() {
     setShowAddNodeState(false);
   };
 
+  // We only fetch the Version once when intial rendering.
+  const { data: servicesData } = useGetServicesQuery();
+  const [version = "Unknown", commit = "Unknown"] = servicesData?.torqService?.version?.split(" | ") ?? [];
+
   return (
     <Page>
       <React.Fragment>
@@ -178,6 +183,9 @@ function Settings() {
                 onAddSuccess={handleOnAddSuccess}
               />
             </Modal>
+            <footer className={styles.footer}>
+              © Torq: {version} | Commit: {commit}
+            </footer>
           </div>
         </div>
       </React.Fragment>
