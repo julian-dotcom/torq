@@ -11,6 +11,8 @@
 }
 
 .tableWrapper {
+  border: 1px solid var(--material-layer-3);
+  box-shadow: 0 0 8px rgba(3, 48, 72, 0.06);
   display: flex;
   height: 100%;
   flex-direction: row;
@@ -24,7 +26,7 @@
 
 @media only screen and (min-width: 900px) {
   .tableContent:global(::-webkit-scrollbar) {
-    background-color: transparent;
+    background-color: white;
   }
   .tableContent:global(::-webkit-scrollbar-track) {
     border: none;

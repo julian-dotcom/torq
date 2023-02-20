@@ -319,7 +319,7 @@
       "turnover": "Turnover"
     },
     "policyDetails": {
-      "heading": "Policy Details",
+      "heading": "Policy Details (now)",
       "outbound": "Outbound",
       "inbound": "Inbound",
       "feeRate": "Fee Rate (PPM)",

@@ -188,7 +188,7 @@ canvas {
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: 1fr min-content min-content 1fr;
-  column-gap: 32px;
+  column-gap: 24px;
   .destinations {
     justify-self: end;
   }
