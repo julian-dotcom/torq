@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "store/store";
+import { getItem } from "features/helpers/useLocalStorage";
 
 export enum Network {
   MainNet,
@@ -12,9 +13,22 @@ export enum Network {
 export interface NetworkState {
   activeNetwork: Network;
 }
+// Setting default values.
+let network = process.env.NODE_ENV === "development" ? Network.SimNet : Network.MainNet;
+
+// Read localstorage and when available set it to the initial value.
+const networkString = getItem("activeNetwork");
+if (networkString) {
+  const networkEnumValue = Network[networkString as keyof typeof Network] ?? undefined;
+  const networkValues = Object.values(Network);
+  if (networkValues.includes(networkEnumValue)) {
+    // We cannot use the networkEnumValue because its not a number but the string of the enum value
+    network = Number(networkString);
+  }
+}
 
 const initialState: NetworkState = {
-  activeNetwork: process.env.NODE_ENV === "development" ? Network.SimNet : Network.MainNet,
+  activeNetwork: network,
 };
 
 export const networkSlice = createSlice({
