@@ -102,11 +102,11 @@ function FirstStageTrigger(props: {
       mixpanel.track("Workflow Add New Node", {
         workflowId: props.workflowId,
         workflowVersionId: props.workflowVersionId,
-        version: props.version,
-        stageNumber: props.stage,
-        nodeType: nodeType,
-        nodeName: nodeName,
-        method: "trigger drop",
+        workflowVersion: props.version,
+        workflowStageNumber: props.stage,
+        workflowNodeType: nodeType,
+        workflowNodeName: nodeName,
+        workflowNodeMethod: "trigger drop",
       });
       addNode({
         type: nodeType,
