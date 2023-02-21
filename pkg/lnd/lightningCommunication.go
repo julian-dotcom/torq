@@ -160,7 +160,7 @@ func processChannelStatusUpdateRequest(ctx context.Context, db *sqlx.DB, request
 
 	_, err := router.UpdateChanStatus(ctx, constructUpdateChanStatusRequest(request))
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to update routing policy for channelId: %v on nodeId: %v", request.ChannelId, request.NodeId)
+		log.Error().Err(err).Msgf("Failed to update channel status for channelId: %v on nodeId: %v", request.ChannelId, request.NodeId)
 		return commons.ChannelStatusUpdateResponse{
 			Request: request,
 			CommunicationResponse: commons.CommunicationResponse{
@@ -311,8 +311,8 @@ func processRoutingPolicyUpdateResponse(request commons.RoutingPolicyUpdateReque
 	}
 	var failedUpdateArray []commons.FailedRequest
 	for _, failedUpdate := range resp.GetFailedUpdates() {
-		log.Error().Msgf("Failed to update routing policy for channelId: %v on nodeId: %v (%v)",
-			request.ChannelId, request.NodeId, failedUpdate.UpdateError)
+		log.Error().Msgf("Failed to update routing policy for channelId: %v on nodeId: %v (lnd-grpc error: %v)",
+			request.ChannelId, request.NodeId, failedUpdate.Reason)
 		failedRequest := commons.FailedRequest{
 			Reason: failedUpdate.UpdateError,
 			Error:  failedUpdate.UpdateError,
