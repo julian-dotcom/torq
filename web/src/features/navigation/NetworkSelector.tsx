@@ -6,6 +6,7 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { selectActiveNetwork, setActiveNetwork, Network } from "features/network/networkSlice";
 import useTranslations from "services/i18n/useTranslations";
 import mixpanel from "mixpanel-browser";
+import { setItem } from "features/helpers/useLocalStorage";
 
 function NetworkSelector() {
   const { t } = useTranslations();
@@ -30,6 +31,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.MainNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.MainNet));
+              setItem("activeNetwork", Network.MainNet);
               mixpanel.track("Select Network", { networkSelected: "MainNet" });
             }}
           >
@@ -39,6 +41,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.TestNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.TestNet));
+              setItem("activeNetwork", Network.TestNet);
               mixpanel.track("Select Network", { networkSelected: "TestNet" });
             }}
           >
@@ -48,6 +51,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.RegTest ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.RegTest));
+              setItem("activeNetwork", Network.RegTest);
               mixpanel.track("Select Network", { networkSelected: "RegTest" });
             }}
           >
@@ -57,6 +61,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.SigNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.SigNet));
+              setItem("activeNetwork", Network.SigNet);
               mixpanel.track("Select Network", { networkSelected: "SigNet" });
             }}
           >
@@ -66,6 +71,7 @@ function NetworkSelector() {
             buttonColor={activeNetwork === Network.SimNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.SimNet));
+              setItem("activeNetwork", Network.SimNet);
               mixpanel.track("Select Network", { networkSelected: "SimNet" });
             }}
           >
