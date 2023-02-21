@@ -551,8 +551,10 @@ func filterChannelIds(params FilterClauses, linkedChannels []channels.ChannelBod
 		channel, ok := filteredChannel.(map[string]interface{})
 		if ok {
 			filteredChannelIds = append(filteredChannelIds, channel["channelid"].(int))
+			log.Trace().Msgf("Filter applied to channelId: %v", channel["lndshortchannelid"])
 		}
 	}
+	log.Debug().Msgf("Filtering applied to %d of %d channels", len(filteredChannelIds),len(linkedChannels))
 	return filteredChannelIds
 }
 
