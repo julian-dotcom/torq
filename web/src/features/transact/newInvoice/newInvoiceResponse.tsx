@@ -79,7 +79,7 @@ export function NewInvoiceResponseStep(props: NewInvoiceResponseProps) {
             }}
             buttonColor={ColorVariant.primary}
           >
-            {t.newPayment}
+            {t.newInvoice.title}
           </Button>
         }
       />
