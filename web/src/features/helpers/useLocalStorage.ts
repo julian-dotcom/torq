@@ -39,25 +39,3 @@ export default function useLocalStorage(key: any, initialValue: any) {
   };
   return [storedValue, setValue];
 }
-
-export function setItem(key: any, value: any) {
-  try {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(key, JSON.stringify(value));
-    }
-  } catch (error) {
-    console.log(error);
-  }
-}
-
-export function getItem(key: any): string | null {
-  try {
-    if (typeof window !== "undefined") {
-      return window.localStorage.getItem(key);
-    }
-    return null;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
