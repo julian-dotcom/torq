@@ -374,7 +374,7 @@
     }
   },
   "errors": {
-    "missingField": "Field is required",
+    "missingField": ":field: is required",
     "LNDConnect": "Unable to connect to LND Node. Please check connection details."
   }
 }

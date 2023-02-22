@@ -8,30 +8,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-/*
-Error structure expected by the front end
-{
-	"errors": {
-		"fields": {
-			"email": ["The email field is required", "The email field must be a valid email"],
-			"name": ["The email field is required"],
-			"age": ["The age field must be a valid number"]
-		},
-		"server": [
-			"Bad request to the server",
-			"Email or password wrong"
-		]
-	}
-}
-*/
-
 const (
 	JsonParseError = "Parsing JSON"
 )
 
 type ErrorCodeOrDescription struct {
-	Code        string `json:"code"`
-	Description string `json:"description"`
+	Code        string            `json:"code"`
+	Description string            `json:"description"`
+	Attributes  map[string]string `json:"attributes"`
 }
 
 type ServerError struct {
@@ -52,19 +36,19 @@ func (se *ServerError) AddFieldError(field string, fieldError string) {
 	se.Errors.Fields[field] = append(se.Errors.Fields[field], ecod)
 }
 
-func (se *ServerError) AddFieldErrorCode(field string, fieldErrorCode string) {
+func (se *ServerError) AddFieldErrorCode(field string, fieldErrorCode string, attributes map[string]string) {
 	if se.Errors.Fields == nil {
 		se.Errors.Fields = make(map[string][]ErrorCodeOrDescription)
 	}
 	if _, exists := se.Errors.Fields[field]; !exists {
 		se.Errors.Fields[field] = []ErrorCodeOrDescription{}
 	}
-	ecod := ErrorCodeOrDescription{Code: fieldErrorCode}
+	ecod := ErrorCodeOrDescription{Code: fieldErrorCode, Attributes: attributes}
 	se.Errors.Fields[field] = append(se.Errors.Fields[field], ecod)
 }
 
-func (se *ServerError) AddServerErrorCode(serverErrorCode string) {
-	ecod := ErrorCodeOrDescription{Code: serverErrorCode}
+func (se *ServerError) AddServerErrorCode(serverErrorCode string, attributes map[string]string) {
+	ecod := ErrorCodeOrDescription{Code: serverErrorCode, Attributes: attributes}
 	se.Errors.Server = append(se.Errors.Server, ecod)
 }
 
@@ -79,9 +63,9 @@ func SingleServerError(serverErrorDescription string) *ServerError {
 	return serverError
 }
 
-func SingleServerErrorCode(serverErrorCode string) *ServerError {
+func SingleServerErrorCode(serverErrorCode string, attributes map[string]string) *ServerError {
 	serverError := &ServerError{}
-	serverError.AddServerErrorCode(serverErrorCode)
+	serverError.AddServerErrorCode(serverErrorCode, attributes)
 	return serverError
 }
 
@@ -91,9 +75,9 @@ func SingleFieldError(field string, fieldError string) *ServerError {
 	return serverError
 }
 
-func SingleFieldErrorCode(field string, fieldErrorCode string) *ServerError {
+func SingleFieldErrorCode(field string, fieldErrorCode string, attributes map[string]string) *ServerError {
 	serverError := &ServerError{}
-	serverError.AddFieldErrorCode(field, fieldErrorCode)
+	serverError.AddFieldErrorCode(field, fieldErrorCode, attributes)
 	return serverError
 }
 
@@ -102,9 +86,9 @@ func LogAndSendServerError(c *gin.Context, err error) {
 	c.JSON(http.StatusInternalServerError, SingleServerError(err.Error()))
 }
 
-func LogAndSendServerErrorCode(c *gin.Context, err error, code string) {
+func LogAndSendServerErrorCode(c *gin.Context, err error, code string, attributes map[string]string) {
 	log.Error().Err(err).Send()
-	c.JSON(http.StatusInternalServerError, SingleServerErrorCode(code))
+	c.JSON(http.StatusInternalServerError, SingleServerErrorCode(code, attributes))
 }
 
 func WrapLogAndSendServerError(c *gin.Context, err error, message string) {
