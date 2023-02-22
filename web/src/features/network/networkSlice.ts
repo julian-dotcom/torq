@@ -1,6 +1,5 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { Action, createSlice, Dispatch, Middleware, MiddlewareAPI } from "@reduxjs/toolkit";
 import { RootState } from "store/store";
-import { getItem } from "features/helpers/useLocalStorage";
 
 export enum Network {
   MainNet,
@@ -13,22 +12,19 @@ export enum Network {
 export interface NetworkState {
   activeNetwork: Network;
 }
-// Setting default values.
-let network = process.env.NODE_ENV === "development" ? Network.SimNet : Network.MainNet;
 
-// Read localstorage and when available set it to the initial value.
-const networkString = getItem("activeNetwork");
-if (networkString) {
-  const networkEnumValue = Network[networkString as keyof typeof Network] ?? undefined;
-  const networkValues = Object.values(Network);
-  if (networkValues.includes(networkEnumValue)) {
-    // We cannot use the networkEnumValue because its not a number but the string of the enum value
-    network = Number(networkString);
+const defaultNetwork = process.env.NODE_ENV === "development" ? Network.SimNet : Network.MainNet;
+
+const getActiveNetworkFromLocalStorage = (): Network | undefined => {
+  const lsActiveNetwork = localStorage.getItem("activeNetwork");
+  if (!lsActiveNetwork) {
+    return undefined;
   }
-}
+  return parseInt(lsActiveNetwork) as Network;
+};
 
 const initialState: NetworkState = {
-  activeNetwork: network,
+  activeNetwork: getActiveNetworkFromLocalStorage() ?? defaultNetwork,
 };
 
 export const networkSlice = createSlice({
@@ -42,6 +38,14 @@ export const networkSlice = createSlice({
     },
   },
 });
+
+export const networkMiddleware: Middleware = (_: MiddlewareAPI) => (next: Dispatch) => (action) => {
+  if (networkSlice.actions.setActiveNetwork.match(action)) {
+    localStorage.setItem("activeNetwork", action.payload);
+  }
+  // Call the next dispatch method in the middleware chain.
+  return next(action);
+};
 
 export const { setActiveNetwork } = networkSlice.actions;
 

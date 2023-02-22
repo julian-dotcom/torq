@@ -1,7 +1,7 @@
 import { configureStore, ThunkAction, Action } from "@reduxjs/toolkit";
 import navReducer from "features/navigation/navSlice";
 import channelReducer from "features/channel/channelSlice";
-import networkReducer from "features/network/networkSlice";
+import networkReducer, { networkMiddleware } from "features/network/networkSlice";
 // import channelsReducer from "features/channels/ChannelsSlice";
 // import tableReducer from "features/forwards/forwardsSlice";
 import timeIntervalReducer from "features/timeIntervalSelect/timeIntervalSlice";
@@ -29,7 +29,7 @@ export const store = configureStore({
     i18n: i18nReducer,
     workflow: workflowReducer,
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(torqApi.middleware),
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(torqApi.middleware).concat(networkMiddleware),
 });
 
 setupListeners(store.dispatch);
