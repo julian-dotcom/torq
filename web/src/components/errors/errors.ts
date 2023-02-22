@@ -4,6 +4,7 @@ export type ErrorDescription = string;
 export type ErrorCodeOrDescription = {
   code?: string;
   description?: string;
+  attributes: Record<string, string>;
 };
 
 export type FormErrors = {
@@ -31,7 +32,19 @@ export function mergeServerError(serverErrors: ServerErrorType, existingErrors: 
     if (!existingErrors.fields[key]) {
       existingErrors.fields[key] = [];
     }
+
     existingErrors.fields[key].push(...errorCodeOrDescription);
   }
   return existingErrors;
+}
+
+// template messages should use :mergetag: format and attributes should just use mergetag (without colons) as key
+export function replaceMessageMergeTags(message: string, attributes: Record<string, string>): string {
+  const words = message.split(" ");
+  for (const word of words) {
+    if (word.startsWith(":") && word.endsWith(":")) {
+      message = message.replace(word, attributes[word.slice(1, -1) ?? ""]);
+    }
+  }
+  return message;
 }
