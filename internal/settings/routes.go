@@ -243,7 +243,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 
 	publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, ncd.TLSDataBytes, ncd.MacaroonDataBytes)
 	if err != nil {
-		server_errors.LogAndSendServerErrorCode(c, errors.Wrap(err, "Get info from LND Node"), "LNDConnect")
+		server_errors.LogAndSendServerErrorCode(c, errors.Wrap(err, "Get info from LND Node"), "LNDConnect", nil)
 		return
 	}
 
@@ -338,7 +338,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 	if ncd.GRPCAddress == nil || *ncd.GRPCAddress == "" {
-		c.JSON(http.StatusBadRequest, server_errors.SingleFieldErrorCode("grpcAddress", "missingField"))
+		c.JSON(http.StatusBadRequest, server_errors.SingleFieldErrorCode("grpcAddress", "missingField", map[string]string{"field": "GRPC Address"}))
 		return
 	}
 	if strings.TrimSpace(ncd.Name) == "" {
@@ -388,7 +388,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	if lndDetailsUpdate {
 		publicKey, chain, network, err := getInformationFromLndNode(*ncd.GRPCAddress, ncd.TLSDataBytes, ncd.MacaroonDataBytes)
 		if err != nil {
-			server_errors.LogAndSendServerErrorCode(c, errors.Wrap(err, "Get info from LND Node"), "LNDConnect")
+			server_errors.LogAndSendServerErrorCode(c, errors.Wrap(err, "Get info from LND Node"), "LNDConnect", nil)
 			return
 		}
 
