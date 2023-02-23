@@ -118,8 +118,8 @@ function Settings() {
   return (
     <Page>
       <React.Fragment>
-        <div>
-          <div className={styles.center}>
+        <div className={styles.settingsPage}>
+          <div className={styles.settingsColumn}>
             <div>
               <h3>{t.settings}</h3>
 
