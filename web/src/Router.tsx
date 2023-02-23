@@ -32,6 +32,7 @@ import TagsPage from "pages/tags/tagsPage/TagsPage";
 import TagsModal from "pages/tags/tagPage/TagsModal";
 import AddTag from "pages/tags/addTagPage/AddTag";
 import MessageVerificationModal from "./pages/messageVerificationPage/MessageVerificationModal";
+import ClosedChannelsPage from "features/channelsClosed/ChannelsClosedPage";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -86,9 +87,16 @@ const authenticatedRoutes: RouteObject = {
           children: modalRoutes.children,
         },
         {
+          path: routes.CHANNELS,
+          children: [
+            { path: routes.OPENED_CHANNELS, element: <ChannelsPage /> },
+            { path: routes.PENDING_CHANNELS, element: <ChannelsPage /> },
+            { path: routes.CLOSED_CHANNELS, element: <ClosedChannelsPage /> },
+          ],
+        },
+        {
           path: routes.MANAGE,
           children: [
-            { path: routes.CHANNELS, element: <ChannelsPage /> },
             { path: routes.WORKFLOWS, element: <WorkflowsTablePage /> },
             { path: routes.TAGS, element: <TagsPage /> },
             { path: routes.WORKFLOW, element: <WorkflowPage /> },

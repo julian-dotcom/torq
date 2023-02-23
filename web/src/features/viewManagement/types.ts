@@ -1,6 +1,7 @@
 import { ColumnMetaData } from "features/table/types";
 import { ExpandedTag } from "pages/tags/tagsTypes";
 import { channel } from "features/channels/channelsTypes";
+import { ChannelClosed } from "features/channelsClosed/channelsClosedTypes";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";
 import { OnChainTx } from "features/transact/OnChain/types";
 import { Payment } from "features/transact/Payments/types";
@@ -25,6 +26,7 @@ export type AllViewsResponse = {
   invoices: Array<ViewResponse<Invoice>>;
   tags: Array<ViewResponse<ExpandedTag>>;
   channel: Array<ViewResponse<channel>>;
+  channelsClosed: Array<ViewResponse<ChannelClosed>>;
 };
 
 export type CreateViewRequest = {
