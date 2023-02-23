@@ -276,3 +276,5 @@ const (
 	RebalanceRequestWorkflowNode = RebalanceRequestOrigin(iota)
 	RebalanceRequestManual
 )
+
+type ChannelStatusRequest int
