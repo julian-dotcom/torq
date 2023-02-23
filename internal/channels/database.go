@@ -294,3 +294,13 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
 	return channel, nil
 }
+
+func getClosedChannels(db *sqlx.DB) ([]Channel, error) {
+	var channels []Channel
+
+	err := db.Select(&channels, `
+		SELECT * FROM Channel WHERE Status_id in (100,101,102,103,104,105)
+	`)
+
+	return channels, err
+}
