@@ -1,8 +1,16 @@
-.center {
-  display: grid;
-  justify-content: center;
-  grid-template-columns: minmax(300px, 440px);
-  grid-row-gap: 30px;
+.settingsPage {
+  height: 100%;
+  overflow: scroll;
+  width: 100%;
+}
+.settingsColumn {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 300px;
+  max-width: 440px;
+  gap: 30px;
   padding-bottom: 20px;
 }
 .settingsForm {
@@ -17,9 +25,5 @@
 
 .footer {
   text-align: center;
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  max-width: 440px;
-  height: 50px;
+  margin-top: auto;
 }
