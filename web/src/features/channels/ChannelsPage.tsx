@@ -11,7 +11,6 @@ import Button, { ColorVariant } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
 import { channel } from "./channelsTypes";
-import { OPEN_CHANNEL } from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import Table from "features/table/Table";
 import {
@@ -33,6 +32,7 @@ import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import channelsCellRenderer from "./channelsCellRenderer";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import { TableResponses, ViewResponse } from "../viewManagement/types";
+import * as Routes from "../../constants/routes";
 
 function useMaximums(data: Array<channel>): channel | undefined {
   if (!data || !data.length) {
@@ -134,7 +134,7 @@ function ChannelsPage() {
             icon={<ChannelsIcon />}
             onClick={() => {
               mixpanel.track("Navigate to Open Channel");
-              navigate(OPEN_CHANNEL, { state: { background: location } });
+              navigate(Routes.OPEN_CHANNEL, { state: { background: location } });
             }}
           >
             {t.openChannel}
@@ -170,9 +170,9 @@ function ChannelsPage() {
   );
 
   const breadcrumbs = [
-    <span key="b1">Analyse</span>,
-    <Link key="b2" to={"/analyse/channels"}>
-      {t.channels}
+    <span key="b1">{t.channels}</span>,
+    <Link key="b2" to={`/${Routes.CHANNELS}/${Routes.OPENED_CHANNELS}`}>
+      {t.openChannels}
     </Link>,
   ];
 
