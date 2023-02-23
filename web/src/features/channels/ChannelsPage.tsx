@@ -17,7 +17,8 @@ import Table from "features/table/Table";
 import {
   ChannelsFilterTemplate,
   ChannelsSortTemplate,
-  DefaultChannelsView, FilterableChannelsColumns,
+  DefaultChannelsView,
+  FilterableChannelsColumns,
   SortableChannelsColumns,
 } from "features/channels/channelsDefaults";
 import { AllChannelsColumns } from "features/channels/channelsColumns.generated";
@@ -34,7 +35,7 @@ import { selectActiveNetwork } from "features/network/networkSlice";
 import { TableResponses, ViewResponse } from "../viewManagement/types";
 
 function useMaximums(data: Array<channel>): channel | undefined {
-  if (!data.length) {
+  if (!data || !data.length) {
     return undefined;
   }
 
