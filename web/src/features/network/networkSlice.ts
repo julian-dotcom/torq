@@ -1,4 +1,4 @@
-import { Action, createSlice, Dispatch, Middleware, MiddlewareAPI } from "@reduxjs/toolkit";
+import { createSlice, Dispatch, Middleware, MiddlewareAPI } from "@reduxjs/toolkit";
 import { RootState } from "store/store";
 
 export enum Network {
