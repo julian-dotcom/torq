@@ -85,13 +85,22 @@ function Navigation() {
           />
         </NavCategory>
 
-        <NavCategory text={t.manage} collapsed={false}>
+        <NavCategory text={t.channels} collapsed={false}>
           <MenuItem
-            text={t.channels}
+            text={t.openChannels}
             icon={<ChannelsIcon />}
-            routeTo={"/manage/channels"}
-            onClick={() => mixpanel.track("Navigate to Channels")}
+            routeTo={`/${routes.CHANNELS}/${routes.OPENED_CHANNELS}`}
+            onClick={() => mixpanel.track("Navigate to Open Channels")}
           />
+          <MenuItem
+            text={t.closedChannels}
+            icon={<ChannelsIcon />}
+            routeTo={`/${routes.CHANNELS}/${routes.CLOSED_CHANNELS}`}
+            onClick={() => mixpanel.track("Navigate to Closed Channels")}
+          />
+        </NavCategory>
+
+        <NavCategory text={t.manage} collapsed={false}>
           <MenuItem
             text={t.automation}
             icon={<WorkflowsIcon />}

@@ -18,6 +18,7 @@ interface ChannelCell {
   nodeId: number;
   open?: boolean;
   className?: string;
+  hideActionButtons: boolean;
 }
 
 function ChannelCell(props: ChannelCell) {
@@ -27,58 +28,60 @@ function ChannelCell(props: ChannelCell) {
   const content = (
     <>
       <div className={classNames(cellStyles.current, cellStyles.text)}>{props.alias}</div>
-      <div className={styles.actionButtons}>
-        <LinkButton
-          key={"buttons-node-inspect"}
-          state={{ background: location }}
-          to={"/analyse/inspect/" + props.channelId}
-          icon={<InspectIcon />}
-          hideMobileText={true}
-          buttonSize={SizeVariant.tiny}
-          buttonColor={ColorVariant.accent1}
-          onClick={() => {
-            mixpanel.track("Navigate to Inspect Channel", {
-              channelId: props.channelId,
-            });
-          }}
-        >
-          {t.inspect}
-        </LinkButton>
+      {!props.hideActionButtons && (
+        <div className={styles.actionButtons}>
+          <LinkButton
+            key={"buttons-node-inspect"}
+            state={{ background: location }}
+            to={"/analyse/inspect/" + props.channelId}
+            icon={<InspectIcon />}
+            hideMobileText={true}
+            buttonSize={SizeVariant.tiny}
+            buttonColor={ColorVariant.accent1}
+            onClick={() => {
+              mixpanel.track("Navigate to Inspect Channel", {
+                channelId: props.channelId,
+              });
+            }}
+          >
+            {t.inspect}
+          </LinkButton>
 
-        <LinkButton
-          to={`${UPDATE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
-          state={{ background: location }}
-          hideMobileText={true}
-          icon={<UpdateIcon />}
-          buttonColor={ColorVariant.success}
-          buttonSize={SizeVariant.tiny}
-          onClick={() => {
-            mixpanel.track("Navigate to Update Channel", {
-              nodeId: props.nodeId,
-              channelId: props.channelId,
-            });
-          }}
-        >
-          {t.update}
-        </LinkButton>
+          <LinkButton
+            to={`${UPDATE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
+            state={{ background: location }}
+            hideMobileText={true}
+            icon={<UpdateIcon />}
+            buttonColor={ColorVariant.success}
+            buttonSize={SizeVariant.tiny}
+            onClick={() => {
+              mixpanel.track("Navigate to Update Channel", {
+                nodeId: props.nodeId,
+                channelId: props.channelId,
+              });
+            }}
+          >
+            {t.update}
+          </LinkButton>
 
-        <LinkButton
-          to={`${CLOSE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
-          state={{ background: location }}
-          hideMobileText={true}
-          icon={<CloseIcon />}
-          buttonSize={SizeVariant.tiny}
-          buttonColor={ColorVariant.error}
-          onClick={() => {
-            mixpanel.track("Navigate to Close Channel", {
-              nodeId: props.nodeId,
-              channelId: props.channelId,
-            });
-          }}
-        >
-          {t.close}
-        </LinkButton>
-      </div>
+          <LinkButton
+            to={`${CLOSE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
+            state={{ background: location }}
+            hideMobileText={true}
+            icon={<CloseIcon />}
+            buttonSize={SizeVariant.tiny}
+            buttonColor={ColorVariant.error}
+            onClick={() => {
+              mixpanel.track("Navigate to Close Channel", {
+                nodeId: props.nodeId,
+                channelId: props.channelId,
+              });
+            }}
+          >
+            {t.close}
+          </LinkButton>
+        </div>
+      )}
     </>
   );
 

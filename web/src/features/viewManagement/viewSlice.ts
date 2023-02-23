@@ -8,6 +8,7 @@ import { DefaultOnChainView } from "features/transact/OnChain/onChainDefaults";
 import { DefaultPaymentView } from "features/transact/Payments/paymentDefaults";
 import { DefaultInvoiceView } from "features/transact/Invoices/invoiceDefaults";
 import { DefaultChannelsView } from "features/channels/channelsDefaults";
+import { DefaultClosedChannelsView } from "features/channelsClosed/channelsClosedDefaults";
 import { DefaultTagsView } from "pages/tags/tagsPage/tagsDefaults";
 import { ColumnMetaData } from "features/table/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
@@ -40,6 +41,10 @@ const initialState = {
       selected: 0,
       views: [DefaultChannelsView],
       // persistedViews: <Array<ViewResponse<channel>>>[],
+    },
+    channelsClosed: {
+      selected: 0,
+      views: [DefaultClosedChannelsView],
     },
     tags: {
       selected: 0,
@@ -424,6 +429,10 @@ export const viewsSlice = createSlice({
         if (payload.tags) {
           state.pages["tags"].views = payload.tags;
         }
+
+        if (payload.channelsClosed) {
+          state.pages["channelsClosed"].views = payload.channelsClosed;
+        }
         state.initiated = true;
       }
     });
@@ -542,6 +551,12 @@ export const selectViews = (state: RootState) => (page: ViewSliceStatePages) => 
 
 export const getSelectedView = (state: RootState) => (page: ViewSliceStatePages) => {
   return state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
+};
+
+export const selectClosedChannelView = (state: RootState) => {
+  const page = "channelsClosed";
+  const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
+  return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
 };
 
 export default viewsSlice.reducer;
