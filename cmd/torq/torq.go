@@ -7,6 +7,7 @@ import (
 	_ "net/http/pprof" //nolint:gosec
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -54,6 +55,16 @@ var peerEventChannelGlobal = make(chan commons.PeerEvent)                     //
 var blockEventChannelGlobal = make(chan commons.BlockEvent)                   //nolint:gochecknoglobals
 var webSocketResponseChannelGlobal = make(chan interface{})                   //nolint:gochecknoglobals
 
+var debuglevels = map[string]zerolog.Level{ //nolint:gochecknoglobals
+	"panic": zerolog.PanicLevel,
+	"fatal": zerolog.FatalLevel,
+	"error": zerolog.ErrorLevel,
+	"warn":  zerolog.WarnLevel,
+	"info":  zerolog.InfoLevel,
+	"debug": zerolog.DebugLevel,
+	"trace": zerolog.TraceLevel,
+}
+
 func main() {
 
 	app := cli.NewApp()
@@ -92,10 +103,10 @@ func main() {
 			Value: commons.VECTOR_URL,
 			Usage: "Enable test mode",
 		}),
-		altsrc.NewBoolFlag(&cli.BoolFlag{
-			Name:  "torq.debug",
-			Value: false,
-			Usage: "Enable debug logging",
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "torq.debuglevel",
+			Value: "info",
+			Usage: "Specify different debuglevels (panic|fatal|error|warn|info|debug|trace)",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.cookie-path",
@@ -169,9 +180,9 @@ func main() {
 		Action: func(c *cli.Context) error {
 
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
-			if c.Bool("torq.debug") {
-				zerolog.SetGlobalLevel(zerolog.DebugLevel)
-				log.Debug().Msg("Debug logging enabled")
+			if debuglevel, ok := debuglevels[strings.ToLower(c.String("torq.debuglevel"))]; ok {
+				zerolog.SetGlobalLevel(debuglevel)
+				log.Debug().Msgf("DebugLevel: %v enabled", debuglevel)
 			}
 
 			// Print startup message
