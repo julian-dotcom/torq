@@ -80,6 +80,8 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 			response.Invoices = append(response.Invoices, view)
 		case "onChain":
 			response.OnChain = append(response.OnChain, view)
+		case "channelsClosed":
+			response.ChannelsClosed = append(response.ChannelsClosed, view)
 		}
 	}
 	c.JSON(http.StatusOK, response)
