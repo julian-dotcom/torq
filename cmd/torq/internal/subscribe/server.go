@@ -122,7 +122,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		}
 	})()
 
-	responseChannel := make(chan error, 1)
+	responseChannel := make(chan error)
 	importRequestChannel <- commons.ImportRequest{
 		ImportType: commons.ImportChannelAndRoutingPolicies,
 		Out:        responseChannel,

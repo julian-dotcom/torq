@@ -95,7 +95,7 @@ func SendToManagedTagsChannel(ch chan []Tag, tags []Tag) {
 }
 
 func GetTagsByTagIds(tagIds []int) []Tag {
-	tagsResponseChannel := make(chan []Tag, 1)
+	tagsResponseChannel := make(chan []Tag)
 	managedManagedTag := ManagedTag{
 		TagIds:  tagIds,
 		Type:    READ_TAGS,
@@ -106,7 +106,7 @@ func GetTagsByTagIds(tagIds []int) []Tag {
 }
 
 func GetTagByTagId(tagId int) Tag {
-	tagResponseChannel := make(chan Tag, 1)
+	tagResponseChannel := make(chan Tag)
 	managedManagedTag := ManagedTag{
 		TagId: tagId,
 		Type:  READ_TAGS,
