@@ -33,7 +33,7 @@ func RemoveChannelGroupByTags(db *sqlx.DB, tags []int) (int64, error) {
 	origin := tagCorridor
 	var total int64
 
-	finished := make(chan bool, 1)
+	finished := make(chan bool)
 	for _, tag := range tags {
 		count, err := corridors.RemoveCorridorByTag(db, tag)
 		if err != nil {
@@ -83,7 +83,7 @@ func AddChannelGroupByTags(db *sqlx.DB, tags []int) error {
 	}
 	if CorridorsToInsert != duplicateCorridors {
 		origin := tagCorridor
-		finished := make(chan bool, 1)
+		finished := make(chan bool)
 		go func() {
 			err = GenerateChannelGroupsByOrigin(db, origin, true)
 			if err != nil {

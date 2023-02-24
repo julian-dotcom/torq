@@ -1064,7 +1064,7 @@ func filterChannelIds(params FilterClauses, linkedChannels []channels.ChannelBod
 			log.Trace().Msgf("Filter applied to channelId: %v", channel["lndshortchannelid"])
 		}
 	}
-	log.Debug().Msgf("Filtering applied to %d of %d channels", len(filteredChannelIds),len(linkedChannels))
+	log.Debug().Msgf("Filtering applied to %d of %d channels", len(filteredChannelIds), len(linkedChannels))
 	return filteredChannelIds
 }
 

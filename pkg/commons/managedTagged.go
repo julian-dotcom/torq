@@ -178,7 +178,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 }
 
 func GetNodeIdsByTagId(tagId int) []int {
-	nodeIdsResponseChannel := make(chan []int, 1)
+	nodeIdsResponseChannel := make(chan []int)
 	managedManagedTagged := ManagedTagged{
 		TagId: tagId,
 		Type:  READ_TAGGED_NODES,
@@ -189,7 +189,7 @@ func GetNodeIdsByTagId(tagId int) []int {
 }
 
 func GetChannelIdsByTagId(tagId int) []int {
-	channelIdsResponseChannel := make(chan []int, 1)
+	channelIdsResponseChannel := make(chan []int)
 	managedManagedTagged := ManagedTagged{
 		TagId: tagId,
 		Type:  READ_TAGGED_CHANNELS,
@@ -200,7 +200,7 @@ func GetChannelIdsByTagId(tagId int) []int {
 }
 
 func GetTagIdsByNodeId(nodeId int) []int {
-	tagIdsResponseChannel := make(chan []int, 1)
+	tagIdsResponseChannel := make(chan []int)
 	managedManagedTagged := ManagedTagged{
 		NodeId: nodeId,
 		Type:   READ_TAGGED,
@@ -211,7 +211,7 @@ func GetTagIdsByNodeId(nodeId int) []int {
 }
 
 func GetTagIdsByChannelId(nodeId int, channelId int) []int {
-	tagIdsResponseChannel := make(chan []int, 1)
+	tagIdsResponseChannel := make(chan []int)
 	managedManagedTagged := ManagedTagged{
 		ChannelId: channelId,
 		NodeId:    nodeId,

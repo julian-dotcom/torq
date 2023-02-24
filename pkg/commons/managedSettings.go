@@ -93,7 +93,7 @@ func SendToManagedSettingsChannel(ch chan ManagedSettings, managedSettings Manag
 }
 
 func GetSettings() ManagedSettings {
-	settingsResponseChannel := make(chan ManagedSettings, 1)
+	settingsResponseChannel := make(chan ManagedSettings)
 	managedSettings := ManagedSettings{
 		Type: READ_SETTINGS,
 		Out:  settingsResponseChannel,
@@ -117,7 +117,7 @@ func SetSettings(defaultDateRange string, defaultLanguage string, weekStartsOn s
 }
 
 func GetBlockHeight() uint32 {
-	settingsResponseChannel := make(chan ManagedSettings, 1)
+	settingsResponseChannel := make(chan ManagedSettings)
 	managedSettings := ManagedSettings{
 		Type: READ_SETTINGS,
 		Out:  settingsResponseChannel,

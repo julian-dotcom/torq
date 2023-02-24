@@ -58,7 +58,7 @@ func processManagedNodeAlias(managedNodeAlias ManagedNodeAlias, nodeAliasesByNod
 }
 
 func GetNodeAlias(nodeId int) string {
-	nodeAliasResponseChannel := make(chan string, 1)
+	nodeAliasResponseChannel := make(chan string)
 	managedNodeAlias := ManagedNodeAlias{
 		NodeId: nodeId,
 		Type:   READ_ALIAS,
