@@ -90,7 +90,7 @@ function Navigation() {
           <MenuItem
             text={t.openChannels}
             icon={<ChannelsIcon />}
-            routeTo={`/${routes.CHANNELS}/${routes.OPENED_CHANNELS}`}
+            routeTo={`/${routes.CHANNELS}/${routes.OPEN_CHANNELS}`}
             onClick={() => mixpanel.track("Navigate to Open Channels")}
           />
           <MenuItem
