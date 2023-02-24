@@ -33,8 +33,8 @@ export const ChannelsClosedFilterTemplate: FilterInterface = {
 };
 
 export const ChannelsClosedSortTemplate: { key: keyof ChannelClosed; direction: "desc" | "asc" } = {
-  key: "peerAlias",
-  direction: "asc",
+  key: "closedOnSecondsDelta",
+  direction: "desc",
 };
 
 export const DefaultClosedChannelsView: ViewResponse<ChannelClosed> = {
