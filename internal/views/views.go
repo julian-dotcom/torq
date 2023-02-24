@@ -1469,16 +1469,5 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				PageChannelsClosed: 18,
 			},
 		},
-		{
-			key:        "closingNodeName",
-			sortable:   true,
-			filterable: true,
-			heading:    "Closing Node Name",
-			visualType: "TextCell",
-			valueType:  "string",
-			pages: map[TableViewPage]int{
-				PageChannelsClosed: 19,
-			},
-		},
 	}
 }
