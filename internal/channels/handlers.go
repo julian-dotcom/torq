@@ -120,32 +120,32 @@ type NodeForTag struct {
 }
 
 type ClosedChannel struct {
-	ChannelID               int                   `json:"channelId"`
-	Tags                    []tags.Tag            `json:"tags"`
-	ShortChannelID          *string               `json:"shortChannelId"`
-	ClosingTransactionHash  *string               `json:"closingTransactionHash"`
-	LNDShortChannelID       string                `json:"lndShortChannelId"`
-	Capacity                int64                 `json:"capacity"`
-	FirstNodeId             int                   `json:"nodeId"`
-	SecondNodeId            int                   `json:"peerNodeId"`
-	InitiatingNodeId        *int                  `json:"initiatingNodeId"`
-	AcceptingNodeId         *int                  `json:"acceptingNodeId"`
-	ClosingNodeId           *int                  `json:"closingNodeId"`
-	Status                  commons.ChannelStatus `json:"status"`
-	ClosingBlockHeight      *uint32               `json:"closingBlockHeight"`
-	ClosedOn                *time.Time            `json:"closedOn"`
-	FundedOn                *time.Time            `json:"fundedOn"`
-	NodeName                string                `json:"nodeName"`
-	PublicKey               string                `json:"pubKey"`
-	PeerAlias               string                `json:"peerAlias"`
-	ClosingNodeName         string                `json:"closingNodeName"`
-	FundedOnSecondsDelta    *uint64               `json:"fundedOnSecondsDelta"`
-	FundingBlockHeightDelta *uint32               `json:"fundingBlockHeightDelta"`
-	ClosingBlockHeightDelta *uint32               `json:"closingBlockHeightDelta"`
-	ClosedOnSecondsDelta    *uint64               `json:"closedOnSecondsDelta"`
-	MempoolSpace            string                `json:"mempoolSpace"`
-	AmbossSpace             string                `json:"ambossSpace"`
-	OneMl                   string                `json:"oneMl"`
+	ChannelID               int        `json:"channelId"`
+	Tags                    []tags.Tag `json:"tags"`
+	ShortChannelID          *string    `json:"shortChannelId"`
+	ClosingTransactionHash  *string    `json:"closingTransactionHash"`
+	LNDShortChannelID       string     `json:"lndShortChannelId"`
+	Capacity                int64      `json:"capacity"`
+	FirstNodeId             int        `json:"nodeId"`
+	SecondNodeId            int        `json:"peerNodeId"`
+	InitiatingNodeId        *int       `json:"initiatingNodeId"`
+	AcceptingNodeId         *int       `json:"acceptingNodeId"`
+	ClosingNodeId           *int       `json:"closingNodeId"`
+	Status                  string     `json:"status"`
+	ClosingBlockHeight      *uint32    `json:"closingBlockHeight"`
+	ClosedOn                *time.Time `json:"closedOn"`
+	FundedOn                *time.Time `json:"fundedOn"`
+	NodeName                string     `json:"nodeName"`
+	PublicKey               string     `json:"pubKey"`
+	PeerAlias               string     `json:"peerAlias"`
+	ClosingNodeName         string     `json:"closingNodeName"`
+	FundedOnSecondsDelta    *uint64    `json:"fundedOnSecondsDelta"`
+	FundingBlockHeightDelta *uint32    `json:"fundingBlockHeightDelta"`
+	ClosingBlockHeightDelta *uint32    `json:"closingBlockHeightDelta"`
+	ClosedOnSecondsDelta    *uint64    `json:"closedOnSecondsDelta"`
+	MempoolSpace            string     `json:"mempoolSpace"`
+	AmbossSpace             string     `json:"ambossSpace"`
+	OneMl                   string     `json:"oneMl"`
 }
 
 func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interface{}) {
@@ -339,7 +339,7 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 			InitiatingNodeId:       channel.InitiatingNodeId,
 			AcceptingNodeId:        channel.AcceptingNodeId,
 			ClosingNodeId:          channel.ClosingNodeId,
-			Status:                 channel.Status,
+			Status:                 channel.Status.String(),
 			ClosingBlockHeight:     channel.ClosingBlockHeight,
 			ClosedOn:               channel.ClosedOn,
 			FundedOn:               channel.FundedOn,

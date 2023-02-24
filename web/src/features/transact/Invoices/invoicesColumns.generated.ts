@@ -20,7 +20,7 @@ export const AllInvoicesColumns: ColumnMetaData<Invoice>[] = [
 		valueType: "date",
 	},
 	{
-		heading: "Settle Date",
+		heading: "Settle State",
 		type: "TextCell",
 		key: "invoiceState",
 		valueType: "enum",

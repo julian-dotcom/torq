@@ -1069,7 +1069,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			key:        "invoiceState",
 			sortable:   true,
 			filterable: true,
-			heading:    "Settle Date",
+			heading:    "Settle State",
 			visualType: "TextCell",
 			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
@@ -1463,7 +1463,18 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			filterable: true,
 			heading:    "Status",
 			visualType: "TextCell",
-			valueType:  "number",
+			valueType:  "enum",
+			selectOptions: []tableViewSelectOptions{
+				{label: "Opening", value: "Opening"},
+				{label: "Open", value: "Open"},
+				{label: "Closing", value: "Closing"},
+				{label: "Cooperative Closed", value: "CooperativeClosed"},
+				{label: "Local Force Closed", value: "LocalForceClosed"},
+				{label: "Remote Force Closed", value: "RemoteForceClosed"},
+				{label: "Breach Closed", value: "BreachClosed"},
+				{label: "Funding Cancelled Closed", value: "FundingCancelledClosed"},
+				{label: "Abandoned Closed", value: "AbandonedClosed"},
+			},
 			pages: map[TableViewPage]int{
 				PageChannelsClosed: 18,
 			},

@@ -5,9 +5,6 @@ import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import ChannelCell from "components/table/cells/channelCell/ChannelCell";
 import TagsCell from "components/table/cells/tags/TagsCell";
 import LinkCell from "components/table/cells/link/LinkCell";
-import TextCell from "components/table/cells/text/TextCell";
-import { ChannelStatus } from "constants/backend";
-import { GetFormattedEnumLabelByValue } from "utils/stringUtils";
 
 const links = new Map([
   ["mempoolSpace", "Mempool"],
@@ -49,10 +46,7 @@ export default function channelsClosedCellRenderer(
           totalCell={isTotalsRow}
         />
       );
-    case "status": {
-      const enumLabel = GetFormattedEnumLabelByValue(ChannelStatus, row[column.key]);
-      return <TextCell current={enumLabel} key={column.key + rowIndex} copyText={enumLabel} />;
-    }
+
     default:
       return DefaultCellRenderer(row, rowIndex, column, columnIndex, false, maxRow);
   }

@@ -15,12 +15,6 @@ export const AllChannelClosedColumns: ColumnMetaData<ChannelClosed>[] = [
 		locked: true,
 	},
 	{
-		heading: "Tags",
-		type: "TagsCell",
-		key: "tags",
-		valueType: "tag",
-	},
-	{
 		heading: "Short Channel ID",
 		type: "LongTextCell",
 		key: "shortChannelId",
@@ -114,13 +108,7 @@ export const AllChannelClosedColumns: ColumnMetaData<ChannelClosed>[] = [
 		heading: "Status",
 		type: "TextCell",
 		key: "status",
-		valueType: "number",
-	},
-	{
-		heading: "Closing Node Name",
-		type: "TextCell",
-		key: "closingNodeName",
-		valueType: "string",
+		valueType: "enum",
 	},
 ];
 
@@ -146,7 +134,6 @@ export const ChannelsClosedSortableColumns: Array<keyof ChannelClosed> = [
 	"closedOnSecondsDelta",
 	"nodeName",
 	"status",
-	"closingNodeName",
 ];
 
 
@@ -156,7 +143,6 @@ export const ChannelsClosedSortableColumns: Array<keyof ChannelClosed> = [
 
 export const ChannelsClosedFilterableColumns: Array<keyof ChannelClosed> = [
 	"peerAlias",
-	"tags",
 	"shortChannelId",
 	"capacity",
 	"lndShortChannelId",
@@ -172,5 +158,4 @@ export const ChannelsClosedFilterableColumns: Array<keyof ChannelClosed> = [
 	"closedOnSecondsDelta",
 	"nodeName",
 	"status",
-	"closingNodeName",
 ];
