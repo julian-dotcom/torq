@@ -302,5 +302,12 @@ func getClosedChannels(db *sqlx.DB) ([]Channel, error) {
 		SELECT * FROM Channel WHERE Status_id in (100,101,102,103,104,105)
 	`)
 
-	return channels, err
+	if err != nil {
+		if errors.As(err, &sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	return channels, nil
 }
