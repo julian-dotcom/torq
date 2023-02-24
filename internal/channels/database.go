@@ -295,12 +295,14 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	return channel, nil
 }
 
-func getClosedChannels(db *sqlx.DB) ([]Channel, error) {
+func getClosedChannels(db *sqlx.DB, network int) ([]Channel, error) {
 	var channels []Channel
 
 	err := db.Select(&channels, `
-		SELECT * FROM Channel WHERE Status_id in (100,101,102,103,104,105)
-	`)
+		SELECT c.* FROM Channel c
+		JOIN Node n on n.node_id = c.First_Node_Id
+	 	WHERE n.network =$1 AND c.Status_id in (100,101,102,103,104,105)
+	`, network)
 
 	if err != nil {
 		if errors.As(err, &sql.ErrNoRows) {

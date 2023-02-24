@@ -302,8 +302,13 @@ func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
 
-	channels, err := getClosedChannels(db)
+	channels, err := getClosedChannels(db, network)
 
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Unable to get closed channels")
