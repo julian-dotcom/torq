@@ -11,15 +11,20 @@ import {
 
 const defaultColumns: Array<keyof ChannelClosed> = [
   "peerAlias",
+  "capacity",
+  "closedOn",
+  "fundedOn",
   "status",
-  "nodeName",
-  "pubKey",
   "shortChannelId",
   "lndShortChannelId",
-  "closingNodeName",
+  "fundingTransactionHash",
+  "closingTransactionHash",
 ];
 
-export const DefaultChannelsClosedColumns = AllChannelClosedColumns.filter((c) => defaultColumns.includes(c.key));
+//changed to not have to rely on the generated file for default columns ordering
+export const DefaultChannelsClosedColumns = defaultColumns.map((col) =>
+  AllChannelClosedColumns.find((x) => x.key === col)
+) as Array<ColumnMetaData<ChannelClosed>>;
 
 export const FilterableChannelsClosedColumns = AllChannelClosedColumns.filter((column: ColumnMetaData<ChannelClosed>) =>
   ChannelsClosedFilterableColumns.includes(column.key)
