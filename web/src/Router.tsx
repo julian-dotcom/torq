@@ -89,7 +89,7 @@ const authenticatedRoutes: RouteObject = {
         {
           path: routes.CHANNELS,
           children: [
-            { path: routes.OPENED_CHANNELS, element: <ChannelsPage /> },
+            { path: routes.OPEN_CHANNELS, element: <ChannelsPage /> },
             { path: routes.PENDING_CHANNELS, element: <ChannelsPage /> },
             { path: routes.CLOSED_CHANNELS, element: <ClosedChannelsPage /> },
           ],

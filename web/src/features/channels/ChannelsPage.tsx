@@ -171,7 +171,7 @@ function ChannelsPage() {
 
   const breadcrumbs = [
     <span key="b1">{t.channels}</span>,
-    <Link key="b2" to={`/${Routes.CHANNELS}/${Routes.OPENED_CHANNELS}`}>
+    <Link key="b2" to={`/${Routes.CHANNELS}/${Routes.OPEN_CHANNELS}`}>
       {t.openChannels}
     </Link>,
   ];

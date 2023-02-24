@@ -95,7 +95,7 @@
   "sort": "Sort",
   "group": "Group",
   "channels": "Channels",
-  "openChannels": "Opened",
+  "openChannels": "Open",
   "closedChannels": "Closed",
   "pendingChannels": "Pending",
   "channelPolicy": "Channel policy",
