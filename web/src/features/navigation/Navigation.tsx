@@ -17,6 +17,7 @@ import {
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
+  ArrowWrapOff20Regular as ChannelsClosedIcon,
   Signature20Regular as MessageVerificationIcon,
   Flash20Regular as WorkflowsIcon,
   Tag20Regular as TagsIcon,
@@ -94,7 +95,7 @@ function Navigation() {
           />
           <MenuItem
             text={t.closedChannels}
-            icon={<ChannelsIcon />}
+            icon={<ChannelsClosedIcon />}
             routeTo={`/${routes.CHANNELS}/${routes.CLOSED_CHANNELS}`}
             onClick={() => mixpanel.track("Navigate to Closed Channels")}
           />
