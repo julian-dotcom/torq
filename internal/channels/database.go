@@ -313,3 +313,22 @@ func getClosedChannels(db *sqlx.DB, network int) ([]Channel, error) {
 
 	return channels, nil
 }
+
+func getPendingChannels(db *sqlx.DB, network int) ([]Channel, error) {
+	var channels []Channel
+
+	err := db.Select(&channels, `
+		SELECT c.* FROM Channel c
+		JOIN Node n on n.node_id = c.First_Node_Id
+	 	WHERE n.network =$1 AND c.Status_id in (0,2)
+	`, network)
+
+	if err != nil {
+		if errors.As(err, &sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	return channels, nil
+}

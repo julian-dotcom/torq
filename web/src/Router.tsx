@@ -33,6 +33,7 @@ import TagsModal from "pages/tags/tagPage/TagsModal";
 import AddTag from "pages/tags/addTagPage/AddTag";
 import MessageVerificationModal from "./pages/messageVerificationPage/MessageVerificationModal";
 import ClosedChannelsPage from "features/channelsClosed/ChannelsClosedPage";
+import ChannelsPendingPage from "./features/channelsPending/ChannelsPendingPage";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -90,7 +91,7 @@ const authenticatedRoutes: RouteObject = {
           path: routes.CHANNELS,
           children: [
             { path: routes.OPEN_CHANNELS, element: <ChannelsPage /> },
-            { path: routes.PENDING_CHANNELS, element: <ChannelsPage /> },
+            { path: routes.PENDING_CHANNELS, element: <ChannelsPendingPage /> },
             { path: routes.CLOSED_CHANNELS, element: <ClosedChannelsPage /> },
           ],
         },
