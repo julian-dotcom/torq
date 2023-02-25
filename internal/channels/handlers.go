@@ -153,6 +153,42 @@ type ClosedChannel struct {
 	OneMl                   string     `json:"oneMl"`
 }
 
+type PendingChannel struct {
+	ChannelID               int        `json:"channelId"`
+	Tags                    []tags.Tag `json:"tags"`
+	ShortChannelID          *string    `json:"shortChannelId"`
+	ClosingTransactionHash  *string    `json:"closingTransactionHash"`
+	LNDShortChannelID       string     `json:"lndShortChannelId"`
+	Capacity                int64      `json:"capacity"`
+	FirstNodeId             int        `json:"nodeId"`
+	SecondNodeId            int        `json:"peerNodeId"`
+	InitiatingNodeId        *int       `json:"initiatingNodeId"`
+	AcceptingNodeId         *int       `json:"acceptingNodeId"`
+	ClosingNodeId           *int       `json:"closingNodeId"`
+	Status                  string     `json:"status"`
+	ClosingBlockHeight      *uint32    `json:"closingBlockHeight"`
+	ClosedOn                *time.Time `json:"closedOn"`
+	FundedOn                *time.Time `json:"fundedOn"`
+	NodeName                string     `json:"nodeName"`
+	PublicKey               string     `json:"pubKey"`
+	PeerAlias               string     `json:"peerAlias"`
+	ClosingNodeName         string     `json:"closingNodeName"`
+	FundedOnSecondsDelta    *uint64    `json:"fundedOnSecondsDelta"`
+	FundingBlockHeightDelta *uint32    `json:"fundingBlockHeightDelta"`
+	ClosingBlockHeightDelta *uint32    `json:"closingBlockHeightDelta"`
+	ClosedOnSecondsDelta    *uint64    `json:"closedOnSecondsDelta"`
+	MempoolSpace            string     `json:"mempoolSpace"`
+	AmbossSpace             string     `json:"ambossSpace"`
+	OneMl                   string     `json:"oneMl"`
+	LocalBalance            int64      `json:"localBalance"`
+	RemoteBalance           int64      `json:"remoteBalance"`
+	UnsettledBalance        int64      `json:"unsettledBalance"`
+	FeeBase                 int64      `json:"feeBase"`
+	RemoteFeeBase           int64      `json:"remoteFeeBase"`
+	FeeRateMilliMsat        int64      `json:"feeRateMilliMsat"`
+	RemoteFeeRateMilliMsat  int64      `json:"remoteFeeRateMilliMsat"`
+}
+
 func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interface{}) {
 	var requestBody commons.RoutingPolicyUpdateRequest
 	if err := c.BindJSON(&requestBody); err != nil {
@@ -340,6 +376,89 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 		}
 
 		closedChannels[i] = ClosedChannel{
+			ChannelID:              channel.ChannelID,
+			Tags:                   channel.Tags,
+			ShortChannelID:         channel.ShortChannelID,
+			ClosingTransactionHash: channel.ClosingTransactionHash,
+			Capacity:               channel.Capacity,
+			FirstNodeId:            channel.FirstNodeId,
+			SecondNodeId:           channel.SecondNodeId,
+			InitiatingNodeId:       channel.InitiatingNodeId,
+			AcceptingNodeId:        channel.AcceptingNodeId,
+			ClosingNodeId:          channel.ClosingNodeId,
+			Status:                 channel.Status.String(),
+			ClosingBlockHeight:     channel.ClosingBlockHeight,
+			ClosedOn:               channel.ClosedOn,
+			FundedOn:               channel.FundedOn,
+			NodeName:               commons.GetNodeAlias(torqNodeId),
+			PublicKey:              commons.GetNodeSettingsByNodeId(torqNodeId).PublicKey,
+			PeerAlias:              commons.GetNodeAlias(peerNodeId),
+		}
+
+		if channel.ClosingNodeId != nil {
+			closedChannels[i].ClosingNodeName = commons.GetNodeAlias(*channel.ClosingNodeId)
+		}
+		if channel.FundingBlockHeight != nil {
+			delta := commons.GetBlockHeight() - *channel.FundingBlockHeight
+			closedChannels[i].FundingBlockHeightDelta = &delta
+		}
+		if channel.FundedOn != nil {
+			deltaSeconds := uint64(time.Since(*channel.FundedOn).Seconds())
+			closedChannels[i].FundedOnSecondsDelta = &deltaSeconds
+		}
+		if channel.ClosingBlockHeight != nil {
+			delta := commons.GetBlockHeight() - *channel.ClosingBlockHeight
+			closedChannels[i].ClosingBlockHeightDelta = &delta
+		}
+		if channel.ClosedOn != nil {
+			deltaSeconds := uint64(time.Since(*channel.ClosedOn).Seconds())
+			closedChannels[i].ClosedOnSecondsDelta = &deltaSeconds
+		}
+
+		if channel.LNDShortChannelID != nil {
+			lndShortChannelIdString := strconv.FormatUint(*channel.LNDShortChannelID, 10)
+			closedChannels[i].LNDShortChannelID = lndShortChannelIdString
+			closedChannels[i].MempoolSpace = commons.MEMPOOL + lndShortChannelIdString
+			closedChannels[i].OneMl = commons.ONEML + lndShortChannelIdString
+		}
+
+		if channel.ShortChannelID != nil {
+			closedChannels[i].AmbossSpace = commons.AMBOSS + *channel.ShortChannelID
+		}
+
+	}
+
+	c.JSON(http.StatusOK, closedChannels)
+}
+
+func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
+	network, err := strconv.Atoi(c.Query("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+
+	channels, err := getPendingChannels(db, network)
+
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Unable to get pending channels")
+		return
+	}
+
+	closedChannels := make([]PendingChannel, len(channels))
+	torqNodeIds := commons.GetAllTorqNodeIds()
+
+	for i, channel := range channels {
+
+		torqNodeId := channel.FirstNodeId
+		peerNodeId := channel.SecondNodeId
+
+		if !slices.Contains(torqNodeIds, channel.FirstNodeId) {
+			torqNodeId = channel.SecondNodeId
+			peerNodeId = channel.FirstNodeId
+		}
+
+		closedChannels[i] = PendingChannel{
 			ChannelID:              channel.ChannelID,
 			Tags:                   channel.Tags,
 			ShortChannelID:         channel.ShortChannelID,
