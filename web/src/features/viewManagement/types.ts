@@ -9,6 +9,7 @@ import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { Forward } from "features/forwards/forwardsTypes";
 import { workflowListItem } from "pages/WorkflowPage/workflowTypes";
 import { SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";
+import { ChannelPending } from "features/channelsPending/channelsPendingTypes";
 
 export type ViewResponse<T> = {
   view: ViewInterface<T>;
@@ -27,6 +28,7 @@ export type AllViewsResponse = {
   tags: Array<ViewResponse<ExpandedTag>>;
   channel: Array<ViewResponse<channel>>;
   channelsClosed: Array<ViewResponse<ChannelClosed>>;
+  channelsPending: Array<ViewResponse<ChannelPending>>;
 };
 
 export type CreateViewRequest = {

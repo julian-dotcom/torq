@@ -58,4 +58,11 @@ func main() {
 		println(err.Error())
 		panic(err)
 	}
+
+	channelPendingColumns := views.GetTableViewColumnDefinitionsForPage(views.PageChannelsPending)
+	err = os.WriteFile("web/src/features/channelsPending/channelsPendingColumns.generated.ts", []byte(channelPendingColumns), 0600)
+	if err != nil {
+		println(err.Error())
+		panic(err)
+	}
 }

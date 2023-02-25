@@ -18,6 +18,7 @@ import {
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
   ArrowWrapOff20Regular as ChannelsClosedIcon,
+  ArrowRoutingRectangleMultiple20Regular as ChannelsPendingIcon,
   Signature20Regular as MessageVerificationIcon,
   Flash20Regular as WorkflowsIcon,
   Tag20Regular as TagsIcon,
@@ -92,6 +93,12 @@ function Navigation() {
             icon={<ChannelsIcon />}
             routeTo={`/${routes.CHANNELS}/${routes.OPEN_CHANNELS}`}
             onClick={() => mixpanel.track("Navigate to Open Channels")}
+          />
+          <MenuItem
+            text={t.pendingChannels}
+            icon={<ChannelsPendingIcon />}
+            routeTo={`/${routes.CHANNELS}/${routes.PENDING_CHANNELS}`}
+            onClick={() => mixpanel.track("Navigate to Closed Channels")}
           />
           <MenuItem
             text={t.closedChannels}
