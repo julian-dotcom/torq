@@ -206,6 +206,7 @@ func processResultsCache(
 		for originId := range resultsCache[origin] {
 			for channelId := range resultsCache[origin][originId] {
 				rebalanceResults := resultsCache[origin][originId][channelId]
+				// Reverse order, so we process the most recent result first.
 				for i := len(rebalanceResults) - 1; i >= 0; i-- {
 					if rebalanceResults[i].OutgoingChannelId == managedRebalance.OutgoingChannelId &&
 						rebalanceResults[i].IncomingChannelId == managedRebalance.IncomingChannelId &&
