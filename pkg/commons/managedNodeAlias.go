@@ -49,11 +49,15 @@ func processManagedNodeAlias(managedNodeAlias ManagedNodeAlias, nodeAliasesByNod
 		}
 		SendToManagedNodeAliasChannel(managedNodeAlias.Out, "")
 	case WRITE_ALIAS:
-		if managedNodeAlias.NodeId == 0 || managedNodeAlias.Alias == "" {
-			log.Error().Msgf("No empty NodeId nor Alias allowed")
-		} else {
-			nodeAliasesByNodeIdCache[managedNodeAlias.NodeId] = managedNodeAlias.Alias
+		if managedNodeAlias.NodeId == 0 {
+			log.Error().Msg("No empty NodeId allowed")
+			break
 		}
+		if managedNodeAlias.Alias == "" {
+			log.Debug().Msgf("No empty Alias allowed (nodeId: %v)", managedNodeAlias.NodeId)
+			break
+		}
+		nodeAliasesByNodeIdCache[managedNodeAlias.NodeId] = managedNodeAlias.Alias
 	}
 }
 
