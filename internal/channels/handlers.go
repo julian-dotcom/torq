@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lncapital/torq/internal/tags"
+	"github.com/rs/zerolog/log"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -130,7 +131,10 @@ func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interfac
 
 	response := SetRoutingPolicyWithTimeout(requestBody, lightningRequestChannel)
 	if response.Status != commons.Active {
-		server_errors.WrapLogAndSendServerError(c, errors.New(response.Error), "Update channel/s policy")
+		err := errors.New(response.Error)
+		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
+		err = errors.Wrap(err, "Problem when setting routing policy")
+		log.Error().Err(err).Send()
 		return
 	}
 

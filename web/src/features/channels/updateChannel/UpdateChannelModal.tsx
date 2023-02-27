@@ -22,6 +22,9 @@ import { useSearchParams } from "react-router-dom";
 import Input from "components/forms/input/Input";
 import mixpanel from "mixpanel-browser";
 import { PolicyInterface } from "features/channels/channelsTypes";
+import ErrorSummary from "components/errors/ErrorSummary";
+import { FormErrors, mergeServerError, ServerErrorType } from "components/errors/errors";
+import Note from "features/note/Note";
 
 const updateStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -36,40 +39,16 @@ const updateStatusIcon = {
   NOTE: <NoteIcon />,
 };
 
-function NodechannelModal() {
+function UpdateChannelModal() {
   const { t } = useTranslations();
   const [queryParams] = useSearchParams();
   const nodeId = parseInt(queryParams.get("nodeId") || "0");
   const channelId = parseInt(queryParams.get("channelId") || "0");
 
   const [updateChannelMutation, response] = useUpdateChannelMutation();
+  const [policyState, setPolicyState] = useState(ProgressStepState.active);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [errMessage, setErrorMessage] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (response.isSuccess) {
-      if (response.data.status != 1) {
-        setResultState(ProgressStepState.error);
-        const message = clone(errMessage) || [];
-        if (response.data?.failedUpdates?.length) {
-          for (let i = 0; i < response.data.failedUpdates.length; i++) {
-            message.push(
-              <span key={i} className={classNames(styles.updateChannelStatusMessage)}>
-                {" "}
-                {response.data.failedUpdates[i].reason}{" "}
-              </span>
-            );
-          }
-          setErrorMessage(message);
-        }
-      } else {
-        setResultState(ProgressStepState.completed);
-      }
-    }
-  }, [response]);
-
-  const [policyState, setPolicyState] = useState(ProgressStepState.disabled);
+  const [formErrorState, setFormErrorState] = useState({} as FormErrors);
   const [feeRateMilliMsat, setFeeRateMilliMsat] = useState<number | undefined>(undefined);
   const [timeLockDelta, setTimeLockDelta] = useState<number | undefined>(undefined);
   const [feeBase, setFeeBase] = useState<number | undefined>(undefined);
@@ -77,14 +56,53 @@ function NodechannelModal() {
   const [minHtlc, setMinHtlc] = useState<number | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
 
+  useEffect(() => {
+    if (response && response.error && "data" in response.error && response.error.data) {
+      const mergedErrors = mergeServerError(response.error.data as ServerErrorType, clone(formErrorState));
+      setFormErrorState(mergedErrors);
+      setResultState(ProgressStepState.error);
+      return;
+    }
+    if (response.isSuccess) {
+      setResultState(ProgressStepState.completed);
+    }
+  }, [response]);
+
   const closeAndReset = () => {
     setStepIndex(0);
     setPolicyState(ProgressStepState.active);
     setResultState(ProgressStepState.disabled);
-    setErrorMessage([]);
+    setFormErrorState({} as FormErrors);
   };
 
   const navigate = useNavigate();
+
+  const updateChannel = () => {
+    setStepIndex(1);
+    setPolicyState(ProgressStepState.completed);
+    setResultState(ProgressStepState.processing);
+    const pi: PolicyInterface = {
+      feeRateMilliMsat: feeRateMilliMsat,
+      timeLockDelta: timeLockDelta,
+      channelId: channelId,
+      nodeId: nodeId,
+    };
+    mixpanel.track("Update Channel", {
+      channelId: channelId,
+      nodeId: nodeId,
+    });
+
+    if (feeBase !== undefined) {
+      pi.feeBaseMsat = feeBase * 1000;
+    }
+    if (maxHtlc !== undefined) {
+      pi.maxHtlcMsat = maxHtlc * 1000;
+    }
+    if (minHtlc !== undefined) {
+      pi.minHtlcMsat = minHtlc * 1000;
+    }
+    updateChannelMutation(pi);
+  };
 
   return (
     <PopoutPageTemplate title={"Update Channel"} show={true} onClose={() => navigate(-1)} icon={<ChannelsIcon />}>
@@ -182,34 +200,7 @@ function NodechannelModal() {
             </div>
             <ButtonWrapper
               rightChildren={
-                <Button
-                  onClick={() => {
-                    setStepIndex(1);
-                    setPolicyState(ProgressStepState.completed);
-                    setResultState(ProgressStepState.processing);
-                    const pi: PolicyInterface = {
-                      feeRateMilliMsat: feeRateMilliMsat,
-                      timeLockDelta: timeLockDelta,
-                      channelId: channelId,
-                      nodeId: nodeId,
-                    };
-                    mixpanel.track("Update Channel", {
-                      channelId: channelId,
-                      nodeId: nodeId,
-                    });
-                    if (feeBase !== undefined) {
-                      pi.feeBaseMsat = feeBase * 1000;
-                    }
-                    if (maxHtlc !== undefined) {
-                      pi.maxHtlcMsat = maxHtlc * 1000;
-                    }
-                    if (minHtlc !== undefined) {
-                      pi.minHtlcMsat = minHtlc * 1000;
-                    }
-                    updateChannelMutation(pi);
-                  }}
-                  buttonColor={ColorVariant.success}
-                >
+                <Button onClick={updateChannel} buttonColor={ColorVariant.success}>
                   {t.updateChannelPolicy.update}
                 </Button>
               }
@@ -224,27 +215,16 @@ function NodechannelModal() {
               updateStatusClass[response.data?.status == 1 ? "SUCCEEDED" : "FAILED"]
             )}
           >
-            {" "}
-            {!response.data && updateStatusIcon["FAILED"]}
             {updateStatusIcon[response.data?.status == 1 ? "SUCCEEDED" : "FAILED"]}
           </div>
-          <div className={errMessage.length ? styles.errorBox : styles.successeBox}>
-            <div>
-              <div className={errMessage.length ? styles.errorIcon : styles.successIcon}>
-                {updateStatusIcon["NOTE"]}
-              </div>
-              <div className={errMessage.length ? styles.errorNote : styles.successNote}>
-                {errMessage.length ? t.openCloseChannel.error : t.openCloseChannel.note}
-              </div>
-            </div>
-            <div className={errMessage.length ? styles.errorMessage : styles.successMessage}>
-              {errMessage.length ? errMessage : t.updateChannelPolicy.confirmedMessage}
-            </div>
-          </div>
+          <ErrorSummary errors={formErrorState} />
+          {resultState === ProgressStepState.completed && (
+            <Note title="Success">{t.updateChannelPolicy.confirmedMessage}</Note>
+          )}
         </ProgressTabContainer>
       </ProgressTabs>
     </PopoutPageTemplate>
   );
 }
 
-export default NodechannelModal;
+export default UpdateChannelModal;
