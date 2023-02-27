@@ -113,16 +113,48 @@ function OpenChannelModal() {
     if (response?.type === "Error") {
       setErrorMEssage(response.error);
       setResultState(ProgressStepState.error);
+      setDetailState(ProgressStepState.completed);
+      setStepIndex(2);
       return;
-    } else {
-      if (!openingTx) {
-        const channelPoint: string = response.pendingChannelPoint?.substring(
-          0,
-          response.pendingChannelPoint?.indexOf(":")
-        );
-        setOpeningTx(channelPoint.trim());
-      }
     }
+    if (!openingTx) {
+      setDetailState(ProgressStepState.completed);
+      setResultState(ProgressStepState.completed);
+      const channelPoint: string = response.pendingChannelPoint?.substring(
+        0,
+        response.pendingChannelPoint?.indexOf(":")
+      );
+      setOpeningTx(channelPoint.trim());
+    }
+  }
+
+  function openChannel() {
+    setDetailState(ProgressStepState.processing);
+    mixpanel.track("Open Channel", {
+      nodeId: selectedNodeId,
+      openChannelUseSatPerVbyte: satPerVbyte !== 0,
+      openChannelUsePushAmount: pushSat !== 0,
+      openChannelUseHTLCMinSat: minHtlcMsat !== 0,
+      openChannelUseMinimumConfirmations: minConfs !== 0,
+      openChannelUseChannelCloseAddress: closeAddress !== "",
+    });
+    sendJsonMessage({
+      requestId: "randId",
+      type: "openChannel",
+      openChannelRequest: {
+        nodeId: selectedNodeId,
+        satPerVbyte,
+        nodePubKey,
+        host,
+        localFundingAmount,
+        pushSat,
+        private: privateChan,
+        spendUnconfirmed,
+        minHtlcMsat,
+        minConfs,
+        closeAddress,
+      },
+    });
   }
 
   return (
@@ -336,39 +368,7 @@ function OpenChannelModal() {
             </SectionContainer>
             <ButtonWrapper
               rightChildren={
-                <Button
-                  onClick={() => {
-                    setStepIndex(2);
-                    setDetailState(ProgressStepState.completed);
-                    setResultState(ProgressStepState.completed);
-                    mixpanel.track("Open Channel", {
-                      nodeId: selectedNodeId,
-                      openChannelUseSatPerVbyte: satPerVbyte !== 0,
-                      openChannelUsePushAmount: pushSat !== 0,
-                      openChannelUseHTLCMinSat: minHtlcMsat !== 0,
-                      openChannelUseMinimumConfirmations: minConfs !== 0,
-                      openChannelUseChannelCloseAddress: closeAddress !== "",
-                    });
-                    sendJsonMessage({
-                      requestId: "randId",
-                      type: "openChannel",
-                      openChannelRequest: {
-                        nodeId: selectedNodeId,
-                        satPerVbyte,
-                        nodePubKey,
-                        host,
-                        localFundingAmount,
-                        pushSat,
-                        private: privateChan,
-                        spendUnconfirmed,
-                        minHtlcMsat,
-                        minConfs,
-                        closeAddress,
-                      },
-                    });
-                  }}
-                  buttonColor={ColorVariant.success}
-                >
+                <Button onClick={openChannel} buttonColor={ColorVariant.success}>
                   {t.confirm}
                 </Button>
               }
@@ -383,7 +383,6 @@ function OpenChannelModal() {
               openStatusClass[errMessage ? "FAILED" : "SUCCEEDED"]
             )}
           >
-            {" "}
             {openStatusIcon[errMessage ? "FAILED" : "SUCCEEDED"]}
           </div>
           <div className={styles.closeChannelResultDetails}>
