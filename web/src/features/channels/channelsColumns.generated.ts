@@ -308,6 +308,24 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
 		key: "numUpdates",
 		valueType: "number",
 	},
+	{
+		heading: "Peer Total Capacity",
+		type: "NumericCell",
+		key: "peerChannelCapacity",
+		valueType: "number",
+	},
+	{
+		heading: "Peer Channel Count",
+		type: "NumericCell",
+		key: "peerChannelCount",
+		valueType: "number",
+	},
+	{
+		heading: "Peer Total Local Balance",
+		type: "NumericCell",
+		key: "peerLocalBalance",
+		valueType: "number",
+	},
 ];
 
 
@@ -360,6 +378,9 @@ export const ChannelsSortableColumns: Array<keyof channel> = [
 	"commitFee",
 	"nodeName",
 	"numUpdates",
+	"peerChannelCapacity",
+	"peerChannelCount",
+	"peerLocalBalance",
 ];
 
 
@@ -413,4 +434,7 @@ export const ChannelsFilterableColumns: Array<keyof channel> = [
 	"commitFee",
 	"nodeName",
 	"numUpdates",
+	"peerChannelCapacity",
+	"peerChannelCount",
+	"peerLocalBalance",
 ];

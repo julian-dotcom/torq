@@ -798,6 +798,39 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			},
 		},
 		{
+			key:        "peerChannelCapacity",
+			sortable:   true,
+			filterable: true,
+			heading:    "Peer Total Capacity",
+			visualType: "NumericCell",
+			valueType:  "number",
+			pages: map[TableViewPage]int{
+				PageChannels: 50,
+			},
+		},
+		{
+			key:        "peerChannelCount",
+			sortable:   true,
+			filterable: true,
+			heading:    "Peer Channel Count",
+			visualType: "NumericCell",
+			valueType:  "number",
+			pages: map[TableViewPage]int{
+				PageChannels: 51,
+			},
+		},
+		{
+			key:        "peerLocalBalance",
+			sortable:   true,
+			filterable: true,
+			heading:    "Peer Total Local Balance",
+			visualType: "NumericCell",
+			valueType:  "number",
+			pages: map[TableViewPage]int{
+				PageChannels: 52,
+			},
+		},
+		{
 			key:        "date",
 			sortable:   true,
 			filterable: true,

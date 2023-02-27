@@ -152,6 +152,9 @@ type ManagedChannelStateSettings struct {
 	Lifetime              int64                `json:"lifetime"`
 	TotalSatoshisReceived int64                `json:"totalSatoshisReceived"`
 	TotalSatoshisSent     int64                `json:"totalSatoshisSent"`
+	PeerChannelCount      int                  `json:"peerChannelCount"`
+	PeerChannelCapacity   int64                `json:"peerChannelCapacity"`
+	PeerLocalBalance      int64                `json:"peerRemoteBalance"`
 }
 
 type ManagedChannelBalanceStateSettings struct {
@@ -319,26 +322,23 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 		}
 		settingsByChannel := make(map[int]ManagedChannelStateSettings)
 		eventTime := time.Now()
+		aggregateChannels := make(map[int]int)
+		aggregateCapacity := make(map[int]int64)
 		aggregateLocalBalance := make(map[int]int64)
-		aggregateLocalBalancePerMilleRatio := make(map[int]int)
 		previousAggregateLocalBalance := make(map[int]int64)
-		previousAggregateLocalBalancePerMilleRatio := make(map[int]int)
 		for _, channelStateSetting := range managedChannelState.ChannelStateSettings {
 			channelSettings := GetChannelSettingByChannelId(channelStateSetting.ChannelId)
 			capacity := channelSettings.Capacity
-			_, aggregateExists := aggregateLocalBalance[channelStateSetting.RemoteNodeId]
+			_, aggregateExists := aggregateChannels[channelStateSetting.RemoteNodeId]
 			if !aggregateExists {
-				var localBalanceAggregate int64
-				var capacityAggregate int64
-				for _, channelStateSettingInner := range managedChannelState.ChannelStateSettings {
-					if channelStateSettingInner.RemoteNodeId == channelStateSetting.RemoteNodeId {
-						localBalanceAggregate += channelStateSettingInner.LocalBalance
-						capacityAggregate += GetChannelSettingByChannelId(channelStateSettingInner.ChannelId).Capacity
-					}
-				}
+				channelCountAggregate, capacityAggregate, localBalanceAggregate := getAggregate(managedChannelState.ChannelStateSettings, channelStateSetting.RemoteNodeId)
+				aggregateChannels[channelStateSetting.RemoteNodeId] = channelCountAggregate
+				aggregateCapacity[channelStateSetting.RemoteNodeId] = capacityAggregate
 				aggregateLocalBalance[channelStateSetting.RemoteNodeId] = localBalanceAggregate
-				aggregateLocalBalancePerMilleRatio[channelStateSetting.RemoteNodeId] = int(localBalanceAggregate / capacityAggregate * 1000)
 			}
+			channelStateSetting.PeerChannelCount = aggregateChannels[channelStateSetting.RemoteNodeId]
+			channelStateSetting.PeerChannelCapacity = aggregateCapacity[channelStateSetting.RemoteNodeId]
+			channelStateSetting.PeerLocalBalance = aggregateLocalBalance[channelStateSetting.RemoteNodeId]
 			settingsByChannel[channelStateSetting.ChannelId] = channelStateSetting
 			channelBalanceEvent := ChannelBalanceEvent{
 				EventData: EventData{
@@ -350,8 +350,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					LocalBalance:                        channelStateSetting.LocalBalance,
 					RemoteBalance:                       channelStateSetting.RemoteBalance,
 					LocalBalancePerMilleRatio:           int(channelStateSetting.LocalBalance / capacity * 1000),
+					AggregatedChannels:                  aggregateChannels[channelStateSetting.RemoteNodeId],
+					AggregatedCapacity:                  aggregateCapacity[channelStateSetting.RemoteNodeId],
 					AggregatedLocalBalance:              aggregateLocalBalance[channelStateSetting.RemoteNodeId],
-					AggregatedLocalBalancePerMilleRatio: aggregateLocalBalancePerMilleRatio[channelStateSetting.RemoteNodeId],
+					AggregatedLocalBalancePerMilleRatio: int(aggregateLocalBalance[channelStateSetting.RemoteNodeId] / aggregateCapacity[channelStateSetting.RemoteNodeId] * 1000),
 				},
 				ChannelId: channelStateSetting.ChannelId,
 			}
@@ -359,16 +361,13 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			if exists && existingChannelStateSetting[channelStateSetting.ChannelId].ChannelId != 0 {
 				_, previousAggregateExists := previousAggregateLocalBalance[channelStateSetting.RemoteNodeId]
 				if !previousAggregateExists {
-					var previousLocalBalanceAggregate int64
-					var previousCapacityAggregate int64
-					for _, previousChannelStateSettingInner := range existingChannelStateSetting {
-						if previousChannelStateSettingInner.RemoteNodeId == channelStateSetting.RemoteNodeId {
-							previousLocalBalanceAggregate += previousChannelStateSettingInner.LocalBalance
-							previousCapacityAggregate += GetChannelSettingByChannelId(previousChannelStateSettingInner.ChannelId).Capacity
+					var localBalanceAggregate int64
+					for _, channelStateSettingInner := range existingChannelStateSetting {
+						if channelStateSettingInner.RemoteNodeId == channelStateSetting.RemoteNodeId {
+							localBalanceAggregate += channelStateSettingInner.LocalBalance
 						}
 					}
-					previousAggregateLocalBalance[channelStateSetting.RemoteNodeId] = previousLocalBalanceAggregate
-					previousAggregateLocalBalancePerMilleRatio[channelStateSetting.RemoteNodeId] = int(previousLocalBalanceAggregate / previousCapacityAggregate * 1000)
+					previousAggregateLocalBalance[channelStateSetting.RemoteNodeId] = localBalanceAggregate
 				}
 
 				existingState := existingChannelStateSetting[channelStateSetting.ChannelId]
@@ -377,16 +376,15 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					LocalBalance:                        existingState.LocalBalance,
 					RemoteBalance:                       existingState.RemoteBalance,
 					LocalBalancePerMilleRatio:           int(existingState.LocalBalance / capacity * 1000),
+					AggregatedChannels:                  aggregateChannels[channelStateSetting.RemoteNodeId],
+					AggregatedCapacity:                  aggregateCapacity[channelStateSetting.RemoteNodeId],
 					AggregatedLocalBalance:              previousAggregateLocalBalance[channelStateSetting.RemoteNodeId],
-					AggregatedLocalBalancePerMilleRatio: previousAggregateLocalBalancePerMilleRatio[channelStateSetting.RemoteNodeId],
+					AggregatedLocalBalancePerMilleRatio: int(previousAggregateLocalBalance[channelStateSetting.RemoteNodeId] / aggregateCapacity[channelStateSetting.RemoteNodeId] * 1000),
 				}
 			}
 			if channelBalanceEvent.PreviousEventData != nil &&
 				(channelBalanceEvent.PreviousEventData.LocalBalance != channelBalanceEvent.LocalBalance ||
-					channelBalanceEvent.PreviousEventData.RemoteBalance != channelBalanceEvent.RemoteBalance ||
-					channelBalanceEvent.PreviousEventData.LocalBalancePerMilleRatio != channelBalanceEvent.LocalBalancePerMilleRatio ||
-					channelBalanceEvent.PreviousEventData.AggregatedLocalBalance != channelBalanceEvent.AggregatedLocalBalance ||
-					channelBalanceEvent.PreviousEventData.AggregatedLocalBalancePerMilleRatio != channelBalanceEvent.AggregatedLocalBalancePerMilleRatio) {
+					channelBalanceEvent.PreviousEventData.AggregatedLocalBalance != channelBalanceEvent.AggregatedLocalBalance) {
 				channelBalanceEventChannel <- channelBalanceEvent
 			}
 		}
@@ -431,6 +429,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 				case Deleted:
 					delete(nodeChannels, managedChannelState.ChannelId)
 				}
+				channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = nodeChannels
 			} else {
 				managedChannelSettings := GetChannelSettingByChannelId(managedChannelState.ChannelId)
 				if managedChannelSettings.Status == Open {
@@ -466,6 +465,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					channelSetting.RemoteFeeRateMilliMsat = managedChannelState.FeeRateMilliMsat
 					nodeChannels[managedChannelState.ChannelId] = channelSetting
 				}
+				channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = nodeChannels
 			} else {
 				managedChannelSettings := GetChannelSettingByChannelId(managedChannelState.ChannelId)
 				if managedChannelSettings.Status == Open {
@@ -488,6 +488,12 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 				channelSetting.LocalBalance = channelSetting.LocalBalance + managedChannelState.Amount
 				channelSetting.RemoteBalance = channelSetting.LocalBalance - managedChannelState.Amount
 				nodeChannels[managedChannelState.ChannelId] = channelSetting
+				for _, nc := range nodeChannels {
+					if nc.RemoteNodeId == channelSetting.RemoteNodeId {
+						nc.PeerLocalBalance = nc.PeerLocalBalance + managedChannelState.Amount
+					}
+				}
+				channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = nodeChannels
 			} else {
 				managedChannelSettings := GetChannelSettingByChannelId(managedChannelState.ChannelId)
 				if managedChannelSettings.Status == Open {
@@ -531,6 +537,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					}
 					channelSetting.PendingHtlcs = pendingHtlc
 					nodeChannels[*managedChannelState.HtlcEvent.IncomingChannelId] = channelSetting
+					channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = nodeChannels
 				} else {
 					if !channelExists {
 						managedChannelSettings := GetChannelSettingByChannelId(*managedChannelState.HtlcEvent.IncomingChannelId)
@@ -564,6 +571,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					}
 					channelSetting.PendingHtlcs = pendingHtlc
 					nodeChannels[*managedChannelState.HtlcEvent.OutgoingChannelId] = channelSetting
+					channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = nodeChannels
 				} else {
 					if !channelExists {
 						managedChannelSettings := GetChannelSettingByChannelId(*managedChannelState.HtlcEvent.OutgoingChannelId)
@@ -577,6 +585,20 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			log.Error().Msgf("Received HTLC channel balance update for uncached node with nodeId: %v", managedChannelState.HtlcEvent.NodeId)
 		}
 	}
+}
+
+func getAggregate(channelStateSettings []ManagedChannelStateSettings, remoteNodeId int) (int, int64, int64) {
+	var channelCountAggregate int
+	var capacityAggregate int64
+	var localBalanceAggregate int64
+	for _, channelStateSettingInner := range channelStateSettings {
+		if channelStateSettingInner.RemoteNodeId == remoteNodeId {
+			channelCountAggregate++
+			capacityAggregate += GetChannelSettingByChannelId(channelStateSettingInner.ChannelId).Capacity
+			localBalanceAggregate += channelStateSettingInner.LocalBalance
+		}
+	}
+	return channelCountAggregate, capacityAggregate, localBalanceAggregate
 }
 
 func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSettings {
