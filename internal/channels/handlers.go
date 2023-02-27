@@ -133,7 +133,7 @@ func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interfac
 	requestBody.RateLimitSeconds = 1
 	requestBody.RateLimitCount = 10
 
-	response := SetRoutingPolicyWithTimeout(requestBody, lightningRequestChannel)
+	response := SetRoutingPolicy(requestBody, lightningRequestChannel)
 	if response.Status != commons.Active {
 		err := errors.New(response.Error)
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))

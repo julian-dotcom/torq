@@ -255,7 +255,7 @@ func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
 		WorkflowParameterLabelStatus}
 }
 
-func SignMessageWithTimeout(unixTime time.Time, nodeId int, message string, singleHash *bool,
+func SignMessage(unixTime time.Time, nodeId int, message string, singleHash *bool,
 	lightningRequestChannel chan interface{}) SignMessageResponse {
 
 	responseChannel := make(chan SignMessageResponse)
@@ -270,30 +270,10 @@ func SignMessageWithTimeout(unixTime time.Time, nodeId int, message string, sing
 		SingleHash:      singleHash,
 	}
 	lightningRequestChannel <- request
-
-	startTime := time.Now()
-	for {
-		select {
-		case response := <-responseChannel:
-			return response
-		default:
-		}
-		if time.Since(startTime).Seconds() > LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS {
-			timeOutMessage := fmt.Sprintf("Sign Message timed out after %v seconds.", LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
-			return SignMessageResponse{
-				Request: request,
-				CommunicationResponse: CommunicationResponse{
-					Status:  TimedOut,
-					Message: timeOutMessage,
-					Error:   timeOutMessage,
-				},
-			}
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
+	return <-responseChannel
 }
 
-func SignatureVerificationRequestWithTimeout(unixTime time.Time, nodeId int, message string, signature string,
+func SignatureVerification(unixTime time.Time, nodeId int, message string, signature string,
 	lightningRequestChannel chan interface{}) SignatureVerificationResponse {
 
 	responseChannel := make(chan SignatureVerificationResponse)
@@ -308,27 +288,7 @@ func SignatureVerificationRequestWithTimeout(unixTime time.Time, nodeId int, mes
 		Signature:       signature,
 	}
 	lightningRequestChannel <- request
-
-	startTime := time.Now()
-	for {
-		select {
-		case response := <-responseChannel:
-			return response
-		default:
-		}
-		if time.Since(startTime).Seconds() > LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS {
-			timeOutMessage := fmt.Sprintf("Signature Verification timed out after %v seconds.", LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
-			return SignatureVerificationResponse{
-				Request: request,
-				CommunicationResponse: CommunicationResponse{
-					Status:  TimedOut,
-					Message: timeOutMessage,
-					Error:   timeOutMessage,
-				},
-			}
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
+	return <-responseChannel
 }
 
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
