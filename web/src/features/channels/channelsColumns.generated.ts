@@ -302,6 +302,12 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
 		key: "oneMl",
 		valueType: "link",
 	},
+	{
+		heading: "Updates",
+		type: "NumericCell",
+		key: "numUpdates",
+		valueType: "number",
+	},
 ];
 
 
@@ -353,6 +359,7 @@ export const ChannelsSortableColumns: Array<keyof channel> = [
 	"remoteChanReserveSat",
 	"commitFee",
 	"nodeName",
+	"numUpdates",
 ];
 
 
@@ -405,4 +412,5 @@ export const ChannelsFilterableColumns: Array<keyof channel> = [
 	"remoteChanReserveSat",
 	"commitFee",
 	"nodeName",
+	"numUpdates",
 ];

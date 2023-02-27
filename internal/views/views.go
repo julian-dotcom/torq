@@ -787,6 +787,17 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			},
 		},
 		{
+			key:        "numUpdates",
+			sortable:   true,
+			filterable: true,
+			heading:    "Updates",
+			visualType: "NumericCell",
+			valueType:  "number",
+			pages: map[TableViewPage]int{
+				PageChannels: 49,
+			},
+		},
+		{
 			key:        "date",
 			sortable:   true,
 			filterable: true,
