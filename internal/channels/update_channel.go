@@ -2,12 +2,11 @@ package channels
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func SetRoutingPolicyWithTimeout(request commons.RoutingPolicyUpdateRequest,
+func SetRoutingPolicy(request commons.RoutingPolicyUpdateRequest,
 	lightningRequestChannel chan interface{}) commons.RoutingPolicyUpdateResponse {
 
 	if lightningRequestChannel == nil {
@@ -37,30 +36,10 @@ func SetRoutingPolicyWithTimeout(request commons.RoutingPolicyUpdateRequest,
 	responseChannel := make(chan commons.RoutingPolicyUpdateResponse)
 	request.ResponseChannel = responseChannel
 	lightningRequestChannel <- request
-
-	startTime := time.Now()
-	for {
-		select {
-		case response := <-responseChannel:
-			return response
-		default:
-		}
-		if time.Since(startTime).Seconds() > commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS {
-			message := fmt.Sprintf("Routing policy update timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
-			return commons.RoutingPolicyUpdateResponse{
-				Request: request,
-				CommunicationResponse: commons.CommunicationResponse{
-					Status:  commons.TimedOut,
-					Message: message,
-					Error:   message,
-				},
-			}
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
+	return <-responseChannel
 }
 
-func SetRebalanceWithTimeout(request commons.RebalanceRequest,
+func SetRebalance(request commons.RebalanceRequest,
 	rebalanceRequestChannel chan commons.RebalanceRequest) commons.RebalanceResponse {
 
 	if rebalanceRequestChannel == nil {
@@ -85,28 +64,8 @@ func SetRebalanceWithTimeout(request commons.RebalanceRequest,
 			},
 		}
 	}
-	responseChannel := make(chan commons.RebalanceResponse, 1)
+	responseChannel := make(chan commons.RebalanceResponse)
 	request.ResponseChannel = responseChannel
 	rebalanceRequestChannel <- request
-
-	startTime := time.Now()
-	for {
-		select {
-		case response := <-responseChannel:
-			return response
-		default:
-		}
-		if time.Since(startTime).Seconds() > commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS {
-			message := fmt.Sprintf("Rebalance timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
-			return commons.RebalanceResponse{
-				Request: request,
-				CommunicationResponse: commons.CommunicationResponse{
-					Status:  commons.TimedOut,
-					Message: message,
-					Error:   message,
-				},
-			}
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
+	return <-responseChannel
 }

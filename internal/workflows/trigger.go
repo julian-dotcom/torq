@@ -899,7 +899,7 @@ func initiatedRebalance(
 		maxCostMsat = uint64(*rebalanceSettings.MaximumCostMilliMsat) * request.AmountMsat / 1_000_000
 	}
 	request.MaximumCostMsat = maxCostMsat
-	response := channels.SetRebalanceWithTimeout(request, rebalanceRequestChannel)
+	response := channels.SetRebalance(request, rebalanceRequestChannel)
 	if response.Error != "" {
 		log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowVersionNodeId)
 	}
@@ -980,7 +980,7 @@ func processRoutingPolicyRun(
 		routingPolicyUpdateRequest.RateLimitSeconds = 1
 		routingPolicyUpdateRequest.RateLimitCount = 10
 	}
-	response := channels.SetRoutingPolicyWithTimeout(routingPolicyUpdateRequest, lightningRequestChannel)
+	response := channels.SetRoutingPolicy(routingPolicyUpdateRequest, lightningRequestChannel)
 	if response.Error != "" {
 		log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 	}

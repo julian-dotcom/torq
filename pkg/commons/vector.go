@@ -23,7 +23,7 @@ func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string
 
 	unixTime := time.Now()
 	message := fmt.Sprintf("%v/%v/%v", fundingTransactionHash, fundingOutputIndex, unixTime.Unix())
-	response := SignMessageWithTimeout(unixTime, nodeSettings.NodeId, message, nil, lightningRequestChannel)
+	response := SignMessage(unixTime, nodeSettings.NodeId, message, nil, lightningRequestChannel)
 
 	requestObject := ShortChannelIdHttpRequest{
 		TransactionHash: fundingTransactionHash,
@@ -77,7 +77,7 @@ func GetTransactionDetailsFromVector(vectorUrl string, transactionHash string, n
 
 	unixTime := time.Now()
 	message := fmt.Sprintf("%v/%v", transactionHash, unixTime.Unix())
-	response := SignMessageWithTimeout(unixTime, nodeSettings.NodeId, message, nil, lightningRequestChannel)
+	response := SignMessage(unixTime, nodeSettings.NodeId, message, nil, lightningRequestChannel)
 
 	requestObject := TransactionDetailsHttpRequest{
 		TransactionHash: transactionHash,

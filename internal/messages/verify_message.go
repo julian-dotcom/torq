@@ -13,7 +13,7 @@ func verifyMessage(db *sqlx.DB, req VerifyMessageRequest, lightningRequestChanne
 	if req.NodeId == 0 {
 		return VerifyMessageResponse{}, errors.New("Node Id missing")
 	}
-	response := commons.SignatureVerificationRequestWithTimeout(time.Now(), req.NodeId, req.Message, req.Signature, lightningRequestChannel)
+	response := commons.SignatureVerification(time.Now(), req.NodeId, req.Message, req.Signature, lightningRequestChannel)
 	if response.Status != commons.Active {
 		return VerifyMessageResponse{}, errors.New(response.Error)
 	}
