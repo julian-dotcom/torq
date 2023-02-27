@@ -120,7 +120,7 @@ function ChannelsPendingPage() {
   const breadcrumbs = [
     <span key="b1">{t.channels}</span>,
     <Link key="b2" to={`/${Routes.CHANNELS}/${Routes.PENDING_CHANNELS}`}>
-      {t.closedChannels}
+      {t.pendingChannels}
     </Link>,
   ];
 
