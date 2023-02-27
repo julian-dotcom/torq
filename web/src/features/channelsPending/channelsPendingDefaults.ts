@@ -12,11 +12,18 @@ import { ChannelPending } from "./channelsPendingTypes";
 const defaultColumns: Array<keyof ChannelPending> = [
   "peerAlias",
   "capacity",
-  "fundedOn",
   "status",
-  "shortChannelId",
-  "lndShortChannelId",
   "fundingTransactionHash",
+  "closingTransactionHash",
+  "lndShortChannelId",
+  "fundedOn",
+  "shortChannelId",
+  "nodeName",
+  "fundingBlockHeight",
+  "fundingBlockHeightDelta",
+  "fundedOnSecondsDelta",
+  "closingBlockHeight",
+  "closingBlockHeightDelta",
 ];
 
 //changed to not have to rely on the generated file for default columns ordering
