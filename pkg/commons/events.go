@@ -45,6 +45,8 @@ type ChannelBalanceEventData struct {
 	LocalBalance                        int64 `json:"localBalance"`
 	LocalBalancePerMilleRatio           int   `json:"localBalancePerMilleRatio"`
 	RemoteBalance                       int64 `json:"remoteBalance"`
+	AggregatedChannels                  int   `json:"aggregatedChannels"`
+	AggregatedCapacity                  int64 `json:"aggregatedCapacity"`
 	AggregatedLocalBalance              int64 `json:"aggregatedLocalBalance"`
 	AggregatedLocalBalancePerMilleRatio int   `json:"aggregatedLocalBalancePerMilleRatio"`
 }

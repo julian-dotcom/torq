@@ -71,6 +71,9 @@ export type channel = {
   totalSatoshisReceived: number;
   totalSatoshisSent: number;
   unsettledBalance: number;
+  peerChannelCapacity: number;
+  peerChannelCount: number;
+  peerLocalBalance: number;
 };
 
 export type PolicyInterface = {

@@ -5,8 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/lncapital/torq/internal/tags"
 	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/internal/tags"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,9 @@ type ChannelBody struct {
 	LNDShortChannelId            string               `json:"lndShortChannelId"`
 	ShortChannelId               string               `json:"shortChannelId"`
 	Capacity                     int64                `json:"capacity"`
+	PeerChannelCapacity          int64                `json:"peerChannelCapacity"`
+	PeerChannelCount             int                  `json:"peerChannelCount"`
+	PeerLocalBalance             int64                `json:"peerLocalBalance"`
 	LocalBalance                 int64                `json:"localBalance"`
 	RemoteBalance                int64                `json:"remoteBalance"`
 	UnsettledBalance             int64                `json:"unsettledBalance"`
@@ -205,6 +209,9 @@ func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody,
 			LNDShortChannelId:            lndShortChannelIdString,
 			ShortChannelId:               channelSettings.ShortChannelId,
 			Capacity:                     channelSettings.Capacity,
+			PeerChannelCapacity:          channel.PeerChannelCapacity,
+			PeerChannelCount:             channel.PeerChannelCount,
+			PeerLocalBalance:             channel.PeerLocalBalance,
 			LocalBalance:                 channel.LocalBalance,
 			RemoteBalance:                channel.RemoteBalance,
 			UnsettledBalance:             channel.UnsettledBalance,
