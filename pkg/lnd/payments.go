@@ -17,6 +17,9 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const streamPaymentsTickerSeconds = 10
+const streamInflightPaymentsTickerSeconds = 60
+
 type lightningClient_ListPayments interface {
 	ListPayments(ctx context.Context, in *lnrpc.ListPaymentsRequest,
 		opts ...grpc.CallOption) (*lnrpc.ListPaymentsResponse,
@@ -41,7 +44,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.PaymentStream
-	ticker := clock.New().Tick(commons.STREAM_PAYMENTS_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(streamPaymentsTickerSeconds * time.Second)
 	includeIncomplete := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportFailedPayments)
 
 	// If a custom ticker is set in the options, override the default ticker.
@@ -70,7 +73,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 			lastPaymentIndex, err = fetchLastPaymentIndex(db, nodeSettings.NodeId)
 			if err != nil {
 				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
+				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", streamPaymentsTickerSeconds)
 				continue
 			}
 
@@ -86,14 +89,14 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 						return
 					}
 					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
+					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in %v seconds", streamPaymentsTickerSeconds)
 					break
 				}
 
 				// Store the payments
 				err = storePayments(db, payments.Payments, nodeSettings, paymentEventChannel, bootStrapping)
 				if err != nil {
-					log.Error().Err(err).Msgf("Failed to store payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
+					log.Error().Err(err).Msgf("Failed to store payments, will retry in %v seconds", streamPaymentsTickerSeconds)
 					break
 				}
 
@@ -265,7 +268,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.InFlightPaymentStream
-	ticker := clock.New().Tick(commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(streamInflightPaymentsTickerSeconds * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -291,7 +294,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db, nodeSettings.NodeId)
 			if err != nil {
 				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS)
+				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", streamInflightPaymentsTickerSeconds)
 				continue
 			}
 			if bootStrapping {

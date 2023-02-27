@@ -22,6 +22,17 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const rebalanceQueueTickerSeconds = 10
+const rebalanceMaximumConcurrency = 10
+const rebalanceRouteFailedHopAllowedDeltaPerMille = 10
+const rebalanceRebalanceDelayMilliseconds = 500
+const rebalanceSuccessTimeoutSeconds = 2 * 60
+const rebalanceTimeoutSeconds = 2 * 60 * 60
+const rebalanceRunnerTimeoutSeconds = 1 * 60 * 60
+const rebalanceRoutesTimeoutSeconds = 1 * 60
+const rebalancePayTimeoutSeconds = 10 * 60
+const rebalanceMinimumDeltaSeconds = 10 * 60
+
 type Rebalancer struct {
 	NodeId          int
 	RebalanceId     int
@@ -57,7 +68,7 @@ func (runner *RebalanceRunner) isFailedHop(hopSourcePublicKey string, hopDestina
 	failedHopAmountMsat, exists := runner.FailedHops[hopSourcePublicKey+"_"+hopDestinationPublicKey]
 	return exists &&
 		commons.GetDeltaPerMille(failedHopAmountMsat, amountMsat) <
-			commons.REBALANCE_ROUTE_FAILED_HOP_ALLOWED_DELTA_PER_MILLE
+			rebalanceRouteFailedHopAllowedDeltaPerMille
 }
 
 type RebalanceResult struct {
@@ -106,7 +117,7 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 				request.RequestTime = &now
 			}
 			// Previous rebalance cleanup delay
-			time.Sleep(commons.REBALANCE_REBALANCE_DELAY_MILLISECONDS * time.Millisecond)
+			time.Sleep(rebalanceRebalanceDelayMilliseconds * time.Millisecond)
 			processRebalanceRequest(ctx, db, request, nodeId)
 		}
 	}()
@@ -116,7 +127,7 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 	client lnrpc.LightningClient, router routerrpc.RouterClient) {
 
-	ticker := clock.New().Tick(commons.REBALANCE_QUEUE_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(rebalanceQueueTickerSeconds * time.Second)
 	pending := commons.Pending
 	active := commons.Active
 
@@ -126,7 +137,7 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 			return
 		case <-ticker:
 			activeRebalancers := getRebalancers(&active)
-			if len(activeRebalancers) > commons.REBALANCE_MAXIMUM_CONCURRENCY {
+			if len(activeRebalancers) > rebalanceMaximumConcurrency {
 				continue
 			}
 
@@ -152,9 +163,9 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 
 				if pendingRebalancers[0].ScheduleTarget.Before(time.Now()) {
 					go pendingRebalancers[0].start(db, client, router,
-						commons.REBALANCE_RUNNER_TIMEOUT_SECONDS,
-						commons.REBALANCE_ROUTES_TIMEOUT_SECONDS,
-						commons.REBALANCE_PAY_TIMEOUT_SECONDS)
+						rebalanceRunnerTimeoutSeconds,
+						rebalanceRoutesTimeoutSeconds,
+						rebalancePayTimeoutSeconds)
 				}
 			}
 		}
@@ -240,7 +251,7 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 		Status:         commons.Pending,
 	}
 	rebalancerCtx, rebalancerCancel := context.WithTimeout(rebalancer.GlobalCtx,
-		time.Second*time.Duration(commons.REBALANCE_TIMEOUT_SECONDS))
+		time.Second*time.Duration(rebalanceTimeoutSeconds))
 	rebalancer.RebalanceCtx = rebalancerCtx
 	rebalancer.RebalanceCancel = rebalancerCancel
 	if !addRebalancer(rebalancer) {
@@ -327,7 +338,7 @@ func (rebalancer *Rebalancer) start(
 	rebalancer.Status = commons.Active
 	previousSuccess := getLatestResultByOrigin(rebalancer.Request.Origin, rebalancer.Request.OriginId,
 		rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, &active)
-	if time.Since(previousSuccess.UpdateOn).Seconds() > commons.REBALANCE_SUCCESS_TIMEOUT_SECONDS {
+	if time.Since(previousSuccess.UpdateOn).Seconds() > rebalanceSuccessTimeoutSeconds {
 		previousSuccess = RebalanceResult{}
 	}
 
@@ -415,8 +426,8 @@ func (rebalancer *Rebalancer) createRunner(
 				rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OutgoingChannelId, runningFor)
 		}
 		rebalancer.ScheduleTarget = time.Now().UTC()
-		if runningFor.Seconds() < commons.REBALANCE_MINIMUM_DELTA_SECONDS {
-			rebalancer.ScheduleTarget = rebalancer.ScheduleTarget.Add(commons.REBALANCE_MINIMUM_DELTA_SECONDS*time.Second - runningFor)
+		if runningFor.Seconds() < rebalanceMinimumDeltaSeconds {
+			rebalancer.ScheduleTarget = rebalancer.ScheduleTarget.Add(rebalanceMinimumDeltaSeconds*time.Second - runningFor)
 		}
 		rebalancer.Runners = make(map[int]*RebalanceRunner)
 		rebalancer.Status = commons.Pending
@@ -706,7 +717,7 @@ func (runner *RebalanceRunner) createInvoice(
 	}
 	invoice, err := client.AddInvoice(ctx, &lnrpc.Invoice{ValueMsat: int64(amountMsat),
 		Memo:   "Rebalance attempt",
-		Expiry: int64(commons.REBALANCE_TIMEOUT_SECONDS)})
+		Expiry: int64(rebalanceTimeoutSeconds)})
 	if err != nil {
 		return nil, errors.Wrapf(err, "AddInvoice for %v msat", amountMsat)
 	}

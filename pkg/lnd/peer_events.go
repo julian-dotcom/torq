@@ -50,9 +50,9 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				log.Error().Err(err).Msgf("Obtaining stream (SubscribePeerEvents) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribePeerEvents) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				time.Sleep(streamErrorSleepSeconds * time.Second)
 				continue
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
@@ -64,9 +64,9 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 				return
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msgf("Receiving peer events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			log.Error().Err(err).Msgf("Receiving peer events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
-			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+			time.Sleep(streamErrorSleepSeconds * time.Second)
 			continue
 		}
 

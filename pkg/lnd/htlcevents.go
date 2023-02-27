@@ -183,9 +183,9 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				log.Error().Err(err).Msgf("Obtaining stream (SubscribeTransactions) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribeTransactions) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				time.Sleep(streamErrorSleepSeconds * time.Second)
 				continue
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
@@ -197,9 +197,9 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				return
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msgf("Receiving htlc events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			log.Error().Err(err).Msgf("Receiving htlc events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
-			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+			time.Sleep(streamErrorSleepSeconds * time.Second)
 			continue
 		}
 

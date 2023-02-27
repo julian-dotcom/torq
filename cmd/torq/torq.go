@@ -37,6 +37,8 @@ import (
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
+const servicesErrorSleepSeconds = 60
+
 var serviceChannelGlobal = make(chan commons.ServiceChannelMessage)     //nolint:gochecknoglobals
 var lightningRequestChannelGlobal = make(chan interface{})              //nolint:gochecknoglobals
 var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequest) //nolint:gochecknoglobals
@@ -100,7 +102,7 @@ func main() {
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.vector.url",
-			Value: commons.VECTOR_URL,
+			Value: commons.VectorUrl,
 			Usage: "Enable test mode",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
@@ -500,13 +502,13 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel chan comm
 					} else {
 						switch serviceCmd.ServiceType {
 						case commons.VectorService:
-							if serviceNode.Status == commons.Active && serviceNode.HasPingSystem(commons.Vector) {
+							if serviceNode.Status == commons.Active && serviceNode.HasPingSystem(settings.Vector) {
 								nodes = []settings.ConnectionDetails{serviceNode}
 							} else {
 								nodes = []settings.ConnectionDetails{}
 							}
 						case commons.AmbossService:
-							if serviceNode.Status == commons.Active && serviceNode.HasPingSystem(commons.Amboss) {
+							if serviceNode.Status == commons.Active && serviceNode.HasPingSystem(settings.Amboss) {
 								nodes = []settings.ConnectionDetails{serviceNode}
 							} else {
 								nodes = []settings.ConnectionDetails{}
@@ -740,8 +742,8 @@ func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.
 	if runningServices.IsNoDelay(node.NodeId) || serviceCmd.NoDelay {
 		log.Info().Msgf("%v Service will be restarted (when active) for node id: %v", name, node.NodeId)
 	} else {
-		log.Info().Msgf("%v Service will be restarted (when active) in %v seconds for node id: %v", name, commons.SERVICES_ERROR_SLEEP_SECONDS, node.NodeId)
-		time.Sleep(commons.SERVICES_ERROR_SLEEP_SECONDS * time.Second)
+		log.Info().Msgf("%v Service will be restarted (when active) in %v seconds for node id: %v", name, servicesErrorSleepSeconds, node.NodeId)
+		time.Sleep(servicesErrorSleepSeconds * time.Second)
 	}
 	serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: serviceCmd.ServiceType, NodeId: node.NodeId}
 }

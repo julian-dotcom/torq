@@ -18,6 +18,8 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const streamLndMaxInvoices = 1000
+
 type invoicesClient interface {
 	SubscribeInvoices(ctx context.Context, in *lnrpc.InvoiceSubscription,
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeInvoicesClient, error)
@@ -229,7 +231,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 
 		listInvoiceResponse, err := client.ListInvoices(ctx, &lnrpc.ListInvoiceRequest{
-			NumMaxInvoices: commons.STREAM_LND_MAX_INVOICES,
+			NumMaxInvoices: streamLndMaxInvoices,
 			IndexOffset:    addIndex,
 		})
 		if err != nil {
@@ -242,7 +244,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 
 		if bootStrapping {
 			importCounter = importCounter + len(listInvoiceResponse.Invoices)
-			if len(listInvoiceResponse.Invoices) >= commons.STREAM_LND_MAX_INVOICES {
+			if len(listInvoiceResponse.Invoices) >= streamLndMaxInvoices {
 				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
@@ -252,7 +254,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		for _, invoice := range listInvoiceResponse.Invoices {
 			processInvoice(invoice, nodeSettings, db, invoiceEventChannel, bootStrapping)
 		}
-		if bootStrapping && len(listInvoiceResponse.Invoices) < commons.STREAM_LND_MAX_INVOICES {
+		if bootStrapping && len(listInvoiceResponse.Invoices) < streamLndMaxInvoices {
 			bootStrapping = false
 			log.Info().Msgf("Bulk import of invoices done (%v)", importCounter)
 			break
@@ -338,8 +340,8 @@ func processError(serviceStatus commons.Status, serviceEventChannel chan commons
 	subscriptionStream commons.SubscriptionStream, err error) commons.Status {
 
 	serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-	log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
-	time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+	log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", streamErrorSleepSeconds)
+	time.Sleep(streamErrorSleepSeconds * time.Second)
 	return serviceStatus
 }
 

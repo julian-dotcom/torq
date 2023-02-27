@@ -16,6 +16,9 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const vectorSleepSeconds = 20
+const vectorPingUrlSuffix = "api/publicNodeEvents/ping"
+
 type PeerEvent struct {
 	Signature string `json:"signature"`
 	Message   string `json:"message"`
@@ -118,7 +121,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, vectorUrl string, nodeId 
 			return errors.Wrapf(err, "Marshalling message: %v", string(pingInfoJsonByteArray))
 		}
 
-		req, err := http.NewRequest("POST", commons.GetVectorUrl(vectorUrl, commons.VECTOR_PING_URL_SUFFIX), bytes.NewBuffer(b))
+		req, err := http.NewRequest("POST", commons.GetVectorUrl(vectorUrl, vectorPingUrlSuffix), bytes.NewBuffer(b))
 		if err != nil {
 			monitorCancel()
 			return errors.Wrapf(err, "Creating new request for message: %v", string(pingInfoJsonByteArray))
@@ -138,6 +141,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn, vectorUrl string, nodeId 
 			return errors.Wrapf(err, "Closing response body.")
 		}
 		log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signMsgResp)
-		time.Sleep(commons.VECTOR_SLEEP_SECONDS * time.Second)
+		time.Sleep(vectorSleepSeconds * time.Second)
 	}
 }

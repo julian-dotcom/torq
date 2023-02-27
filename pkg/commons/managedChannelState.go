@@ -8,6 +8,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const toleratedSubscriptionDowntimeSeconds = 15
+
 var ManagedChannelStateChannel = make(chan ManagedChannelState) //nolint:gochecknoglobals
 
 type ManagedChannelStateCacheOperationType uint
@@ -752,7 +754,7 @@ func isNodeReady(channelStateSettingsStatusCache map[int]Status, nodeId int,
 	// Channel states not initialized yet
 	if channelStateSettingsStatusCache[nodeId] != Active {
 		deactivationTime, exists := channelStateSettingsDeactivationTimeCache[nodeId]
-		if exists && time.Since(deactivationTime).Seconds() < TOLERATED_SUBSCRIPTION_DOWNTIME_SECONDS {
+		if exists && time.Since(deactivationTime).Seconds() < toleratedSubscriptionDowntimeSeconds {
 			log.Debug().Msgf("Node flagged as active even tough subscription is temporary down for nodeId: %v", nodeId)
 		} else if !forceResponse {
 			return false

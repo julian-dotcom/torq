@@ -12,6 +12,14 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+type PingSystem uint32
+
+const (
+	Amboss PingSystem = 1 << iota
+	Vector
+)
+const PingSystemMax = int(Vector)*2 - 1
+
 type NodeConnectionDetails struct {
 	NodeId            int                                        `json:"nodeId" form:"nodeId" db:"node_id"`
 	Name              string                                     `json:"name" form:"name" db:"name"`
@@ -24,19 +32,19 @@ type NodeConnectionDetails struct {
 	MacaroonDataBytes []byte                                     `db:"macaroon_data"`
 	MacaroonFile      *multipart.FileHeader                      `form:"macaroonFile"`
 	Status            commons.Status                             `json:"status" db:"status_id"`
-	PingSystem        commons.PingSystem                         `json:"pingSystem" db:"ping_system"`
+	PingSystem        PingSystem                                 `json:"pingSystem" db:"ping_system"`
 	CustomSettings    commons.NodeConnectionDetailCustomSettings `json:"customSettings" db:"custom_settings"`
 	CreateOn          time.Time                                  `json:"createdOn" db:"created_on"`
 	UpdatedOn         *time.Time                                 `json:"updatedOn"  db:"updated_on"`
 }
 
-func (ncd *NodeConnectionDetails) AddNotificationType(pingSystem commons.PingSystem) {
+func (ncd *NodeConnectionDetails) AddNotificationType(pingSystem PingSystem) {
 	ncd.PingSystem |= pingSystem
 }
-func (ncd *NodeConnectionDetails) HasNotificationType(pingSystem commons.PingSystem) bool {
+func (ncd *NodeConnectionDetails) HasNotificationType(pingSystem PingSystem) bool {
 	return ncd.PingSystem&pingSystem != 0
 }
-func (ncd *NodeConnectionDetails) RemoveNotificationType(pingSystem commons.PingSystem) {
+func (ncd *NodeConnectionDetails) RemoveNotificationType(pingSystem PingSystem) {
 	ncd.PingSystem &= ^pingSystem
 }
 
