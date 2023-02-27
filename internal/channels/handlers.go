@@ -148,9 +148,6 @@ type ClosedChannel struct {
 	FundingBlockHeightDelta *uint32    `json:"fundingBlockHeightDelta"`
 	ClosingBlockHeightDelta *uint32    `json:"closingBlockHeightDelta"`
 	ClosedOnSecondsDelta    *uint64    `json:"closedOnSecondsDelta"`
-	MempoolSpace            string     `json:"mempoolSpace"`
-	AmbossSpace             string     `json:"ambossSpace"`
-	OneMl                   string     `json:"oneMl"`
 }
 
 type PendingChannel struct {
@@ -177,12 +174,6 @@ type PendingChannel struct {
 	FundingBlockHeightDelta *uint32    `json:"fundingBlockHeightDelta"`
 	ClosingBlockHeightDelta *uint32    `json:"closingBlockHeightDelta"`
 	ClosedOnSecondsDelta    *uint64    `json:"closedOnSecondsDelta"`
-	MempoolSpace            string     `json:"mempoolSpace"`
-	AmbossSpace             string     `json:"ambossSpace"`
-	OneMl                   string     `json:"oneMl"`
-	LocalBalance            int64      `json:"localBalance"`
-	RemoteBalance           int64      `json:"remoteBalance"`
-	UnsettledBalance        int64      `json:"unsettledBalance"`
 }
 
 func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interface{}) {
@@ -411,17 +402,6 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 			closedChannels[i].ClosedOnSecondsDelta = &deltaSeconds
 		}
 
-		if channel.LNDShortChannelID != nil {
-			lndShortChannelIdString := strconv.FormatUint(*channel.LNDShortChannelID, 10)
-			closedChannels[i].LNDShortChannelID = lndShortChannelIdString
-			closedChannels[i].MempoolSpace = commons.MEMPOOL + lndShortChannelIdString
-			closedChannels[i].OneMl = commons.ONEML + lndShortChannelIdString
-		}
-
-		if channel.ShortChannelID != nil {
-			closedChannels[i].AmbossSpace = commons.AMBOSS + *channel.ShortChannelID
-		}
-
 	}
 
 	c.JSON(http.StatusOK, closedChannels)
@@ -492,17 +472,6 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 		if channel.ClosedOn != nil {
 			deltaSeconds := uint64(time.Since(*channel.ClosedOn).Seconds())
 			closedChannels[i].ClosedOnSecondsDelta = &deltaSeconds
-		}
-
-		if channel.LNDShortChannelID != nil {
-			lndShortChannelIdString := strconv.FormatUint(*channel.LNDShortChannelID, 10)
-			closedChannels[i].LNDShortChannelID = lndShortChannelIdString
-			closedChannels[i].MempoolSpace = commons.MEMPOOL + lndShortChannelIdString
-			closedChannels[i].OneMl = commons.ONEML + lndShortChannelIdString
-		}
-
-		if channel.ShortChannelID != nil {
-			closedChannels[i].AmbossSpace = commons.AMBOSS + *channel.ShortChannelID
 		}
 
 	}

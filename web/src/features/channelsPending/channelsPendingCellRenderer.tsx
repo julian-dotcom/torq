@@ -4,13 +4,7 @@ import { ChannelPending } from "features/channelsPending/channelsPendingTypes";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import ChannelCell from "components/table/cells/channelCell/ChannelCell";
 import TagsCell from "components/table/cells/tags/TagsCell";
-import LinkCell from "components/table/cells/link/LinkCell";
-
-const links = new Map([
-  ["mempoolSpace", "Mempool"],
-  ["ambossSpace", "Amboss"],
-  ["oneMl", "1ML"],
-]);
+import LongTextCell from "../../components/table/cells/longText/LongTextCell";
 
 export default function channelsPendingCellRenderer(
   row: ChannelPending,
@@ -35,15 +29,20 @@ export default function channelsPendingCellRenderer(
       );
     case "tags":
       return <TagsCell tags={row.tags} key={"tagsCell" + rowIndex} channelId={row.channelId} nodeId={row.peerNodeId} />;
-    case "mempoolSpace":
-    case "ambossSpace":
-    case "oneMl":
+    case "fundingTransactionHash":
       return (
-        <LinkCell
-          text={links.get(column.key) || ""}
-          link={row[column.key] as string}
-          key={column.key + rowIndex}
-          totalCell={isTotalsRow}
+        <LongTextCell
+          current={row.fundingTransactionHash}
+          link={"https://mempool.space/tx/" + row.fundingTransactionHash}
+          copyText={row.fundingTransactionHash}
+        />
+      );
+    case "closingTransactionHash":
+      return (
+        <LongTextCell
+          current={row.closingTransactionHash}
+          link={"https://mempool.space/tx/" + row.closingTransactionHash}
+          copyText={row.closingTransactionHash}
         />
       );
 
