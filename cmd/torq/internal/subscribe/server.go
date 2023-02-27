@@ -21,6 +21,16 @@ import (
 	"google.golang.org/grpc"
 )
 
+const streamBootedCheckSeconds = 5
+const streamPaymentsTickerSeconds = 10
+const streamInflightPaymentsTickerSeconds = 60
+const streamForwardsTickerSeconds = 10
+
+// 70 because a reconnection is attempted every 60 seconds
+const avoidChannelAndPolicyImportRerunTimeSeconds = 70
+
+const genericBootstrappingTimeSeconds = 60
+
 // Start runs the background server. It subscribes to events, gossip and
 // fetches data as needed and stores it in the database.
 // It is meant to run as a background task / daemon and is the bases for all
@@ -39,26 +49,26 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 
 	var wg sync.WaitGroup
 
-	importRequestChannel := make(chan commons.ImportRequest)
+	importRequestChannel := make(chan lnd.ImportRequest)
 	go (func() {
-		successTimes := make(map[commons.ImportType]time.Time, 0)
+		successTimes := make(map[lnd.ImportType]time.Time, 0)
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case importRequest := <-importRequestChannel:
 				successTime, exists := successTimes[importRequest.ImportType]
-				if exists && time.Since(successTime).Seconds() < commons.AVOID_CHANNEL_AND_POLICY_IMPORT_RERUN_TIME_SECONDS {
-					if importRequest.ImportType == commons.ImportChannelAndRoutingPolicies {
+				if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
+					if importRequest.ImportType == lnd.ImportChannelAndRoutingPolicies {
 						log.Info().Msgf("ImportChannelAndRoutingPolicies were imported very recently for nodeId: %v.", nodeSettings.NodeId)
 					}
-					if importRequest.ImportType == commons.ImportNodeInformation {
+					if importRequest.ImportType == lnd.ImportNodeInformation {
 						log.Info().Msgf("ImportNodeInformation were imported very recently for nodeId: %v.", nodeSettings.NodeId)
 					}
 					importRequest.Out <- nil
 					continue
 				}
-				if importRequest.ImportType == commons.ImportChannelAndRoutingPolicies {
+				if importRequest.ImportType == lnd.ImportChannelAndRoutingPolicies {
 					var err error
 					//Import Pending channels
 					err = lnd.ImportPendingChannels(db, vectorUrl, client, nodeSettings, lightningRequestChannel)
@@ -107,7 +117,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 					}
 					log.Info().Msgf("ImportChannelAndRoutingPolicies was imported successfully for nodeId: %v.", nodeSettings.NodeId)
 				}
-				if importRequest.ImportType == commons.ImportNodeInformation {
+				if importRequest.ImportType == lnd.ImportNodeInformation {
 					err := lnd.ImportNodeInfo(client, db, nodeSettings)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to import node information.")
@@ -123,8 +133,8 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 	})()
 
 	responseChannel := make(chan error)
-	importRequestChannel <- commons.ImportRequest{
-		ImportType: commons.ImportChannelAndRoutingPolicies,
+	importRequestChannel <- lnd.ImportRequest{
+		ImportType: lnd.ImportChannelAndRoutingPolicies,
 		Out:        responseChannel,
 	}
 	err := <-responseChannel
@@ -132,8 +142,8 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 		return errors.Wrapf(err, "LND import Channel And Routing Policies for nodeId: %v", nodeSettings.NodeId)
 	}
 
-	importRequestChannel <- commons.ImportRequest{
-		ImportType: commons.ImportNodeInformation,
+	importRequestChannel <- lnd.ImportRequest{
+		ImportType: lnd.ImportNodeInformation,
 		Out:        responseChannel,
 	}
 	err = <-responseChannel
@@ -310,20 +320,20 @@ func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream
 			log.Info().Msgf("LND %v skipped (in less then %s) for nodeId: %v", name, time.Since(streamStartTime).Round(1*time.Second), nodeId)
 			return
 		}
-		if time.Since(streamStartTime).Seconds() > commons.GENERIC_BOOTSTRAPPING_TIME_SECONDS {
+		if time.Since(streamStartTime).Seconds() > genericBootstrappingTimeSeconds {
 			lastInitializationPing := commons.RunningServices[commons.LndService].GetStreamInitializationPingTime(nodeId, subscriptionStream)
 			if lastInitializationPing == nil {
 				log.Error().Msgf("LND %v could not be initialized for nodeId: %v", name, nodeId)
 				return
 			}
-			pingTimeOutInSeconds := commons.GENERIC_BOOTSTRAPPING_TIME_SECONDS
+			pingTimeOutInSeconds := genericBootstrappingTimeSeconds
 			switch subscriptionStream {
 			case commons.ForwardStream:
-				pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_FORWARDS_TICKER_SECONDS
+				pingTimeOutInSeconds = pingTimeOutInSeconds + streamForwardsTickerSeconds
 			case commons.PaymentStream:
-				pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_PAYMENTS_TICKER_SECONDS
+				pingTimeOutInSeconds = pingTimeOutInSeconds + streamPaymentsTickerSeconds
 			case commons.InFlightPaymentStream:
-				pingTimeOutInSeconds = pingTimeOutInSeconds + commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS
+				pingTimeOutInSeconds = pingTimeOutInSeconds + streamInflightPaymentsTickerSeconds
 			}
 			if time.Since(*lastInitializationPing).Seconds() > float64(pingTimeOutInSeconds) {
 				log.Info().Msgf("LND %v idle for over %v seconds for nodeId: %v", name, pingTimeOutInSeconds, nodeId)
@@ -331,6 +341,6 @@ func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream
 				return
 			}
 		}
-		time.Sleep(commons.STREAM_BOOTED_CHECK_SECONDS * time.Second)
+		time.Sleep(streamBootedCheckSeconds * time.Second)
 	}
 }

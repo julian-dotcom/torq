@@ -88,16 +88,25 @@ func SetRebalanceWithTimeout(request commons.RebalanceRequest,
 	responseChannel := make(chan commons.RebalanceResponse, 1)
 	request.ResponseChannel = responseChannel
 	rebalanceRequestChannel <- request
-	time.AfterFunc(commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
-		message := fmt.Sprintf("Rebalance timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
-		responseChannel <- commons.RebalanceResponse{
-			Request: request,
-			CommunicationResponse: commons.CommunicationResponse{
-				Status:  commons.TimedOut,
-				Message: message,
-				Error:   message,
-			},
+
+	startTime := time.Now()
+	for {
+		select {
+		case response := <-responseChannel:
+			return response
+		default:
 		}
-	})
-	return <-responseChannel
+		if time.Since(startTime).Seconds() > commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS {
+			message := fmt.Sprintf("Rebalance timed out after %v seconds.", commons.LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
+			return commons.RebalanceResponse{
+				Request: request,
+				CommunicationResponse: commons.CommunicationResponse{
+					Status:  commons.TimedOut,
+					Message: message,
+					Error:   message,
+				},
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }

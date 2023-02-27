@@ -9,6 +9,8 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const rebalanceResultsTimeoutSeconds = 5 * 60
+
 var ManagedRebalanceChannel = make(chan ManagedRebalance) //nolint:gochecknoglobals
 
 type ManagedRebalanceCacheOperationType uint
@@ -149,7 +151,7 @@ func appendRebalanceResult(managedRebalance ManagedRebalance,
 	if len(results)%100 == 0 {
 		for i := 0; i < len(results); i++ {
 			result := results[i]
-			if time.Since(result.UpdateOn).Seconds() < commons.REBALANCE_RESULTS_TIMEOUT_SECONDS {
+			if time.Since(result.UpdateOn).Seconds() < rebalanceResultsTimeoutSeconds {
 				results = results[i:]
 				break
 			}

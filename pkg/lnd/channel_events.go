@@ -20,6 +20,20 @@ import (
 	"google.golang.org/grpc"
 )
 
+const streamErrorSleepSeconds = 60
+
+type ImportRequest struct {
+	ImportType ImportType
+	Out        chan error
+}
+
+type ImportType int
+
+const (
+	ImportChannelAndRoutingPolicies = ImportType(iota)
+	ImportNodeInformation
+)
+
 func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 	ch, err := chainhash.NewHash(cb)
 	if err != nil {
@@ -336,7 +350,7 @@ type lndClientSubscribeChannelEvent interface {
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, channelEventChannel chan commons.ChannelEvent,
-	importRequestChannel chan commons.ImportRequest,
+	importRequestChannel chan ImportRequest,
 	serviceEventChannel chan commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelEvents terminated for nodeId: %v", nodeSettings.NodeId)
@@ -361,23 +375,23 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelEvents) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelEvents) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				time.Sleep(streamErrorSleepSeconds * time.Second)
 				continue
 			}
 			// HACK to know if the context is a testcase.
 			if importRequestChannel != nil {
 				responseChannel := make(chan error)
-				importRequestChannel <- commons.ImportRequest{
-					ImportType: commons.ImportChannelAndRoutingPolicies,
+				importRequestChannel <- ImportRequest{
+					ImportType: ImportChannelAndRoutingPolicies,
 					Out:        responseChannel,
 				}
 				err = <-responseChannel
 				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
-					time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+					time.Sleep(streamErrorSleepSeconds * time.Second)
 					continue
 				}
 			}
@@ -390,9 +404,9 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				return
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msgf("Receiving channel events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			log.Error().Err(err).Msgf("Receiving channel events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
-			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+			time.Sleep(streamErrorSleepSeconds * time.Second)
 			continue
 		}
 
@@ -831,7 +845,7 @@ func processEmptyChanId(vectorUrl string, channelPoint string, nodeSettings comm
 		}
 	}
 
-	if vectorUrl == commons.VECTOR_URL && (nodeSettings.Chain != commons.Bitcoin || nodeSettings.Network != commons.MainNet) {
+	if vectorUrl == commons.VectorUrl && (nodeSettings.Chain != commons.Bitcoin || nodeSettings.Network != commons.MainNet) {
 		log.Info().Msgf("Skipping obtaining short channel id from vector for nodeId: %v", nodeSettings.NodeId)
 		return 0
 	}

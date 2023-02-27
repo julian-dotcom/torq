@@ -12,6 +12,11 @@ import (
 	"github.com/lncapital/torq/build"
 )
 
+const VectorUrl = "https://vector.ln.capital/"
+
+const vectorShortchannelidUrlSuffix = "api/bitcoin/shortChannelId"
+const vectorTransactiondetailsUrlSuffix = "api/bitcoin/transactionDetails"
+
 func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string, fundingOutputIndex int,
 	nodeSettings ManagedNodeSettings,
 	lightningRequestChannel chan interface{}) string {
@@ -35,7 +40,7 @@ func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string
 			fundingTransactionHash, fundingOutputIndex)
 		return ""
 	}
-	req, err := http.NewRequest("GET", GetVectorUrl(vectorUrl, VECTOR_SHORTCHANNELID_URL_SUFFIX), bytes.NewBuffer(requestObjectBytes))
+	req, err := http.NewRequest("GET", GetVectorUrl(vectorUrl, vectorShortchannelidUrlSuffix), bytes.NewBuffer(requestObjectBytes))
 	if err != nil {
 		log.Error().Msgf("Failed (http.NewRequest) to obtain shortChannelId for closed channel with channel point %v:%v",
 			fundingTransactionHash, fundingOutputIndex)
@@ -87,7 +92,7 @@ func GetTransactionDetailsFromVector(vectorUrl string, transactionHash string, n
 		log.Error().Msgf("Failed (Marshal) to obtain transaction details for transaction hash %v", transactionHash)
 		return TransactionDetailsHttpResponse{}
 	}
-	req, err := http.NewRequest("GET", GetVectorUrl(vectorUrl, VECTOR_TRANSACTIONDETAILS_URL_SUFFIX), bytes.NewBuffer(requestObjectBytes))
+	req, err := http.NewRequest("GET", GetVectorUrl(vectorUrl, vectorTransactiondetailsUrlSuffix), bytes.NewBuffer(requestObjectBytes))
 	if err != nil {
 		log.Error().Msgf("Failed (http.NewRequest) to obtain transaction details for transaction hash %v", transactionHash)
 		return TransactionDetailsHttpResponse{}

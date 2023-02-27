@@ -16,6 +16,9 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const streamForwardsTickerSeconds = 10
+const streamLndMaxForwards = 50000
+
 // storeForwardingHistory
 func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int,
 	forwardEventChannel chan commons.ForwardEvent, bootStrapping bool) error {
@@ -120,15 +123,15 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 
 	defer log.Info().Msgf("SubscribeForwardingEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
-	maxEvents := commons.STREAM_LND_MAX_FORWARDS
+	maxEvents := streamLndMaxForwards
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.ForwardStream
-	ticker := clock.New().Tick(commons.STREAM_FORWARDS_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(streamForwardsTickerSeconds * time.Second)
 
 	// Check if maxEvents has been set and that it is bellow the hard coded maximum defined by
 	// the constant MAXEVENTS.
-	if (opt != nil) && ((*opt.MaxEvents > commons.STREAM_LND_MAX_FORWARDS) || (*opt.MaxEvents <= 0)) {
+	if (opt != nil) && ((*opt.MaxEvents > streamLndMaxForwards) || (*opt.MaxEvents <= 0)) {
 		maxEvents = *opt.MaxEvents
 	}
 
@@ -173,7 +176,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				lastNs, err := fetchLastForwardTime(db, nodeSettings.NodeId)
 				if err != nil {
 					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_FORWARDS_TICKER_SECONDS)
+					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", streamForwardsTickerSeconds)
 					break
 				}
 				if enforcedReferenceDate != nil && lastNs == 0 {
@@ -198,7 +201,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 						return
 					}
 					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-					log.Error().Err(err).Msgf("Failed to obtain forwards, will retry in %v seconds", commons.STREAM_FORWARDS_TICKER_SECONDS)
+					log.Error().Err(err).Msgf("Failed to obtain forwards, will retry in %v seconds", streamForwardsTickerSeconds)
 					break
 				}
 

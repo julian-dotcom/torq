@@ -17,6 +17,8 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const channelbalanceTickerSeconds = 150
+
 func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.LightningClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings,
 	broadcaster broadcast.BroadcastServer,
@@ -27,7 +29,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	serviceStatus := commons.Inactive
 	bootStrapping := true
 	subscriptionStream := commons.ChannelBalanceCacheStream
-	lndSyncTicker := clock.New().Tick(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
+	lndSyncTicker := clock.New().Tick(channelbalanceTickerSeconds * time.Second)
 	mutex := &sync.RWMutex{}
 
 	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,

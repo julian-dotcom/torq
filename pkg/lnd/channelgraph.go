@@ -33,7 +33,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	nodeSettings commons.ManagedNodeSettings,
 	nodeGraphEventChannel chan commons.NodeGraphEvent,
 	channelGraphEventChannel chan commons.ChannelGraphEvent,
-	importRequestChannel chan commons.ImportRequest,
+	importRequestChannel chan ImportRequest,
 	serviceEventChannel chan commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelGraph terminated for nodeId: %v", nodeSettings.NodeId)
@@ -58,36 +58,36 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+				time.Sleep(streamErrorSleepSeconds * time.Second)
 				continue
 			}
 			// HACK to know if the context is a testcase.
 			if importRequestChannel != nil {
 				responseChannel := make(chan error)
-				importRequestChannel <- commons.ImportRequest{
-					ImportType: commons.ImportChannelAndRoutingPolicies,
+				importRequestChannel <- ImportRequest{
+					ImportType: ImportChannelAndRoutingPolicies,
 					Out:        responseChannel,
 				}
 				err = <-responseChannel
 				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
-					time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+					time.Sleep(streamErrorSleepSeconds * time.Second)
 					continue
 				}
 
 				responseChannel = make(chan error)
-				importRequestChannel <- commons.ImportRequest{
-					ImportType: commons.ImportNodeInformation,
+				importRequestChannel <- ImportRequest{
+					ImportType: ImportNodeInformation,
 					Out:        responseChannel,
 				}
 				err = <-responseChannel
 				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+					log.Error().Err(err).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
-					time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+					time.Sleep(streamErrorSleepSeconds * time.Second)
 					continue
 				}
 			}
@@ -100,9 +100,9 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				return
 			}
 			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-			log.Error().Err(err).Msgf("Receiving channel graph events from the stream failed, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
+			log.Error().Err(err).Msgf("Receiving channel graph events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
-			time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+			time.Sleep(streamErrorSleepSeconds * time.Second)
 			continue
 		}
 

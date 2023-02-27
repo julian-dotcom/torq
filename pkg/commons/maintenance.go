@@ -12,12 +12,15 @@ import (
 	"github.com/lncapital/torq/internal/database"
 )
 
+const maintenanceQueueTickerSeconds = 60 * 60
+const maintenanceVectorDelayMilliseconds = 500
+
 func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB, vectorUrl string,
 	lightningRequestChannel chan interface{}) {
 
 	defer log.Info().Msgf("MaintenanceService terminated")
 
-	ticker := clock.New().Tick(MAINTENANCE_QUEUE_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(maintenanceQueueTickerSeconds * time.Second)
 
 	for {
 		select {
@@ -34,7 +37,7 @@ func processMissingChannelData(db *sqlx.DB, vectorUrl string, lightningRequestCh
 	torqNodeIds := GetAllTorqNodeIds()
 	for _, torqNodeId := range torqNodeIds {
 		nodeSettings := GetNodeSettingsByNodeId(torqNodeId)
-		if vectorUrl == VECTOR_URL && (nodeSettings.Chain != Bitcoin || nodeSettings.Network != MainNet) {
+		if vectorUrl == VectorUrl && (nodeSettings.Chain != Bitcoin || nodeSettings.Network != MainNet) {
 			log.Info().Msgf("Skipping verification of funding and closing details from vector for nodeId: %v", nodeSettings.NodeId)
 			continue
 		}
@@ -46,7 +49,7 @@ func processMissingChannelData(db *sqlx.DB, vectorUrl string, lightningRequestCh
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to update closing details from vector for channelId: %v", channelSetting.ChannelId)
 				}
-				time.Sleep(MAINTENANCE_VECTOR_DELAY_MILLISECONDS * time.Millisecond)
+				time.Sleep(maintenanceVectorDelayMilliseconds * time.Millisecond)
 			}
 			if hasMissingFundingDetails(channelSetting) {
 				transactionDetails := GetTransactionDetailsFromVector(vectorUrl, channelSetting.FundingTransactionHash, nodeSettings, lightningRequestChannel)
@@ -54,7 +57,7 @@ func processMissingChannelData(db *sqlx.DB, vectorUrl string, lightningRequestCh
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)
 				}
-				time.Sleep(MAINTENANCE_VECTOR_DELAY_MILLISECONDS * time.Millisecond)
+				time.Sleep(maintenanceVectorDelayMilliseconds * time.Millisecond)
 			}
 		}
 	}

@@ -42,17 +42,17 @@ type ConnectionDetails struct {
 	TLSFileBytes      []byte
 	MacaroonFileBytes []byte
 	Status            commons.Status
-	PingSystem        commons.PingSystem
+	PingSystem        PingSystem
 	CustomSettings    commons.NodeConnectionDetailCustomSettings
 }
 
-func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem commons.PingSystem) {
+func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem PingSystem) {
 	connectionDetails.PingSystem |= pingSystem
 }
-func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem commons.PingSystem) bool {
+func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem PingSystem) bool {
 	return connectionDetails.PingSystem&pingSystem != 0
 }
-func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.PingSystem) {
+func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem PingSystem) {
 	connectionDetails.PingSystem &= ^pingSystem
 }
 
@@ -414,12 +414,12 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	}
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
-	if ncd.HasNotificationType(commons.Amboss) &&
+	if ncd.HasNotificationType(Amboss) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Amboss Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
-	if ncd.HasNotificationType(commons.Vector) &&
+	if ncd.HasNotificationType(Vector) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
@@ -453,10 +453,10 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 	if err != nil {
 		return NodeConnectionDetails{}, errors.New("Failed to find/parse pingSystem in the request.")
 	}
-	if pingSystem > commons.PingSystemMax {
+	if pingSystem > PingSystemMax {
 		return NodeConnectionDetails{}, errors.New("Failed to parse pingSystem in the request.")
 	}
-	ncd.PingSystem = commons.PingSystem(pingSystem)
+	ncd.PingSystem = PingSystem(pingSystem)
 
 	// TODO c.Bind cannot process customSettings?
 	customSettings, err := strconv.Atoi(c.Request.Form.Get("customSettings"))
@@ -512,7 +512,7 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.SendBadRequest(c, "Failed to find/parse pingSystem in the request.")
 		return
 	}
-	if pingSystem > commons.PingSystemMax {
+	if pingSystem > PingSystemMax {
 		server_errors.SendBadRequest(c, "Failed to parse pingSystem in the request.")
 		return
 	}
@@ -529,16 +529,16 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
 	}
 
 	var subscription commons.ServiceType
-	if commons.PingSystem(pingSystem) == commons.Amboss {
+	if PingSystem(pingSystem) == Amboss {
 		subscription = commons.AmbossService
 	}
-	if commons.PingSystem(pingSystem) == commons.Vector {
+	if PingSystem(pingSystem) == Vector {
 		subscription = commons.VectorService
 	}
 
 	done := startServiceOrRestartWhenRunning(serviceChannel, subscription, nodeId, commons.Status(statusId) == commons.Active)
 	if done {
-		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
+		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, PingSystem(pingSystem), commons.Status(statusId))
 		if err != nil {
 			server_errors.LogAndSendServerError(c, err)
 			return
@@ -560,7 +560,7 @@ func GetActiveNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
 }
 
 func GetAmbossPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
-	ncds, err := getPingConnectionDetails(db, commons.Amboss)
+	ncds, err := getPingConnectionDetails(db, Amboss)
 	if err != nil {
 		return nil, errors.Wrap(err, "Getting node connection details for Amboss from db")
 	}
@@ -568,7 +568,7 @@ func GetAmbossPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, erro
 }
 
 func GetVectorPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
-	ncds, err := getPingConnectionDetails(db, commons.Vector)
+	ncds, err := getPingConnectionDetails(db, Vector)
 	if err != nil {
 		return nil, errors.Wrap(err, "Getting node connection details for Vector from db")
 	}

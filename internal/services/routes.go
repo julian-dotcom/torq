@@ -61,7 +61,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 		}
 		result.LndServices = append(result.LndServices, lndService)
 	}
-	vectorNodeIds, err := settings.GetPingSystemNodeIds(db, commons.Vector)
+	vectorNodeIds, err := settings.GetPingSystemNodeIds(db, settings.Vector)
 	if err == nil {
 		for _, vectorNodeId := range vectorNodeIds {
 			vectorService := VectorService{
@@ -77,7 +77,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	} else {
 		log.Info().Err(err).Msgf("Failed to obtain Vector ping systems maybe the database is not ready yet?")
 	}
-	ambossNodeIds, err := settings.GetPingSystemNodeIds(db, commons.Amboss)
+	ambossNodeIds, err := settings.GetPingSystemNodeIds(db, settings.Amboss)
 	if err == nil {
 		for _, ambossNodeId := range ambossNodeIds {
 			ambossService := AmbossService{

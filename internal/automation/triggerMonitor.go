@@ -18,11 +18,13 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const workflowTickerSeconds = 10
+
 func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
 	defer log.Info().Msgf("IntervalTriggerMonitor terminated")
 
-	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
 	bootstrapping := true
 
 	for {
@@ -98,7 +100,7 @@ type CronTriggerParams struct {
 func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	defer log.Info().Msgf("Cron trigger monitor terminated")
 
-	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
 
 bootstrappingLoop:
 	for {
