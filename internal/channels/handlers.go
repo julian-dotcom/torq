@@ -183,10 +183,6 @@ type PendingChannel struct {
 	LocalBalance            int64      `json:"localBalance"`
 	RemoteBalance           int64      `json:"remoteBalance"`
 	UnsettledBalance        int64      `json:"unsettledBalance"`
-	FeeBase                 int64      `json:"feeBase"`
-	RemoteFeeBase           int64      `json:"remoteFeeBase"`
-	FeeRateMilliMsat        int64      `json:"feeRateMilliMsat"`
-	RemoteFeeRateMilliMsat  int64      `json:"remoteFeeRateMilliMsat"`
 }
 
 func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interface{}) {

@@ -378,8 +378,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			valueType:  "number",
 			suffix:     "ppm",
 			pages: map[TableViewPage]int{
-				PageChannels:        10,
-				PageChannelsPending: 4,
+				PageChannels: 10,
 			},
 		},
 		{
@@ -392,8 +391,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			valueType:  "number",
 			suffix:     "sat",
 			pages: map[TableViewPage]int{
-				PageChannels:        11,
-				PageChannelsPending: 5,
+				PageChannels: 11,
 			},
 		},
 		{
@@ -405,8 +403,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			valueType:  "number",
 			suffix:     "ppm",
 			pages: map[TableViewPage]int{
-				PageChannels:        12,
-				PageChannelsPending: 6,
+				PageChannels: 12,
 			},
 		},
 		{
@@ -418,8 +415,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			valueType:  "number",
 			suffix:     "sat",
 			pages: map[TableViewPage]int{
-				PageChannels:        13,
-				PageChannelsPending: 7,
+				PageChannels: 13,
 			},
 		},
 		{
