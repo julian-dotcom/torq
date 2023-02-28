@@ -32,7 +32,7 @@ import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import channelsCellRenderer from "./channelsCellRenderer";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import { TableResponses, ViewResponse } from "../viewManagement/types";
-import * as Routes from "../../constants/routes";
+import * as Routes from "constants/routes";
 
 function useMaximums(data: Array<channel>): channel | undefined {
   if (!data || !data.length) {
