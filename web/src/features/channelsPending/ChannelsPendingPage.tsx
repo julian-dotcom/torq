@@ -71,7 +71,7 @@ function ChannelsPendingPage() {
   // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
-    mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
+    mixpanel.track("Toggle Table Sidebar", { page: "ChannelsPending" });
   };
 
   function handleNameChange(name: string) {
@@ -92,7 +92,7 @@ function ChannelsPendingPage() {
       <TableControlsButtonGroup>
         <TableControlsButton
           onClickHandler={() => {
-            mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
+            mixpanel.track("Toggle Table Sidebar", { page: "ChannelsPending" });
             setSidebarExpanded(!sidebarExpanded);
           }}
           icon={OptionsIcon}

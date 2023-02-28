@@ -98,7 +98,7 @@ function Navigation() {
             text={t.pendingChannels}
             icon={<ChannelsPendingIcon />}
             routeTo={`/${routes.CHANNELS}/${routes.PENDING_CHANNELS}`}
-            onClick={() => mixpanel.track("Navigate to Closed Channels")}
+            onClick={() => mixpanel.track("Navigate to Pending Channels")}
           />
           <MenuItem
             text={t.closedChannels}

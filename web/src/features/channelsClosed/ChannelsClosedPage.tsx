@@ -70,7 +70,7 @@ function ClosedChannelsPage() {
   // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
-    mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
+    mixpanel.track("Toggle Table Sidebar", { page: "ChannelsClosed" });
   };
 
   function handleNameChange(name: string) {
@@ -91,7 +91,7 @@ function ClosedChannelsPage() {
       <TableControlsButtonGroup>
         <TableControlsButton
           onClickHandler={() => {
-            mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
+            mixpanel.track("Toggle Table Sidebar", { page: "ChannelsClosed" });
             setSidebarExpanded(!sidebarExpanded);
           }}
           icon={OptionsIcon}
