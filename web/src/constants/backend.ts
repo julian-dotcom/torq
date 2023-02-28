@@ -11,15 +11,3 @@ export enum Status {
   Initializing,
   Archived,
 }
-
-export enum ChannelStatus {
-  Opening = 0,
-  Open = 1,
-  Closing = 2,
-  CooperativeClosed = 100,
-  LocalForceClosed = 101,
-  RemoteForceClosed = 102,
-  BreachClosed = 103,
-  FundingCancelledClosed = 104,
-  AbandonedClosed = 105,
-}

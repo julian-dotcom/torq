@@ -1,12 +1,11 @@
 package channels
 
 import (
+	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/tags"
 
@@ -345,7 +344,9 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 	channels, err := getClosedChannels(db, network)
 
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Unable to get closed channels")
+		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
+		err = errors.Wrap(err, "Problem getting closed channels from db")
+		log.Error().Err(err).Send()
 		return
 	}
 
@@ -417,7 +418,9 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 	channels, err := getPendingChannels(db, network)
 
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Unable to get pending channels")
+		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
+		err = errors.Wrap(err, "Problem getting pending channels from db")
+		log.Error().Err(err).Send()
 		return
 	}
 

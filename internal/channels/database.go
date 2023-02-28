@@ -332,3 +332,12 @@ func getPendingChannels(db *sqlx.DB, network int) ([]Channel, error) {
 
 	return channels, nil
 }
+
+func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionId string) error {
+	_, err := db.Exec(`UPDATE channel SET status_id=$1, closing_transaction_hash=$2, updated_on=$3 WHERE channel_id=$4;`,
+		commons.Closing, closingTransactionId, time.Now().UTC(), channelId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
+}
