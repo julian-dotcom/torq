@@ -30,6 +30,7 @@ export default function channelsCellRenderer(
         nodeId={row.nodeId}
         className={cellStyles.locked}
         key={"channelsCell" + rowIndex}
+        hideActionButtons={false}
       />
     );
   }

@@ -17,6 +17,8 @@ import {
   LockClosed20Regular as LogoutIcon,
   Settings20Regular as SettingsIcon,
   ArrowRouting20Regular as ChannelsIcon,
+  ArrowWrapOff20Regular as ChannelsClosedIcon,
+  ArrowRoutingRectangleMultiple20Regular as ChannelsPendingIcon,
   Signature20Regular as MessageVerificationIcon,
   Flash20Regular as WorkflowsIcon,
   Tag20Regular as TagsIcon,
@@ -85,13 +87,28 @@ function Navigation() {
           />
         </NavCategory>
 
-        <NavCategory text={t.manage} collapsed={false}>
+        <NavCategory text={t.channels} collapsed={false}>
           <MenuItem
-            text={t.channels}
+            text={t.openChannels}
             icon={<ChannelsIcon />}
-            routeTo={"/manage/channels"}
-            onClick={() => mixpanel.track("Navigate to Channels")}
+            routeTo={`/${routes.CHANNELS}/${routes.OPEN_CHANNELS}`}
+            onClick={() => mixpanel.track("Navigate to Open Channels")}
           />
+          <MenuItem
+            text={t.pendingChannels}
+            icon={<ChannelsPendingIcon />}
+            routeTo={`/${routes.CHANNELS}/${routes.PENDING_CHANNELS}`}
+            onClick={() => mixpanel.track("Navigate to Pending Channels")}
+          />
+          <MenuItem
+            text={t.closedChannels}
+            icon={<ChannelsClosedIcon />}
+            routeTo={`/${routes.CHANNELS}/${routes.CLOSED_CHANNELS}`}
+            onClick={() => mixpanel.track("Navigate to Closed Channels")}
+          />
+        </NavCategory>
+
+        <NavCategory text={t.manage} collapsed={false}>
           <MenuItem
             text={t.automation}
             icon={<WorkflowsIcon />}

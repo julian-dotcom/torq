@@ -98,3 +98,7 @@ lint-frontend:
 .PHONY: lint
 lint: lint-backend lint-frontend
 	@echo Linting complete
+
+.PHONY: generate-ts
+generate-ts:
+	go run cmd/torq/internal/generators/gen.go

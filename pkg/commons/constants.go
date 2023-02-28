@@ -141,6 +141,31 @@ const (
 	AbandonedClosed        = 105
 )
 
+// override to get human readable enum
+func (s ChannelStatus) String() string {
+	switch s {
+	case Opening:
+		return "Opening"
+	case Open:
+		return "Open"
+	case Closing:
+		return "Closing"
+	case CooperativeClosed:
+		return "Cooperative Closed"
+	case LocalForceClosed:
+		return "Local Force Closed"
+	case RemoteForceClosed:
+		return "Remote Force Closed"
+	case BreachClosed:
+		return "Breach Closed"
+	case FundingCancelledClosed:
+		return "Funding Cancelled Closed"
+	case AbandonedClosed:
+		return "Abandoned Closed"
+	}
+	return "unknown"
+}
+
 type PingSystem uint32
 
 const (
@@ -276,3 +301,5 @@ const (
 	RebalanceRequestWorkflowNode = RebalanceRequestOrigin(iota)
 	RebalanceRequestManual
 )
+
+type ChannelStatusRequest int

@@ -38,7 +38,7 @@ func CloseChannel(eventChannel chan interface{}, db *sqlx.DB, c *gin.Context, cc
 		return errors.Wrap(err, "Preparing close request")
 	}
 
-	return closeChannelResp(client, closeChanReq, eventChannel, ccReq, requestId)
+	return closeChannelResp(client, closeChanReq, eventChannel, ccReq, requestId, db)
 }
 
 func prepareCloseRequest(ccReq commons.CloseChannelRequest) (r *lnrpc.CloseChannelRequest, err error) {
@@ -83,7 +83,7 @@ func prepareCloseRequest(ccReq commons.CloseChannelRequest) (r *lnrpc.CloseChann
 }
 
 func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan interface{},
-	ccReq commons.CloseChannelRequest, requestId string) error {
+	ccReq commons.CloseChannelRequest, requestId string, db *sqlx.DB) error {
 
 	ctx := context.Background()
 	closeChanRes, err := client.CloseChannel(ctx, closeChanReq)
@@ -122,6 +122,11 @@ func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseCha
 			stringOutputIndex := strconv.FormatUint(uint64(closeChanReq.ChannelPoint.GetOutputIndex()), 10)
 			if closeChanReq.ChannelPoint.GetFundingTxidStr()+":"+stringOutputIndex == closing.Channel.ChannelPoint {
 				r.ClosePendingChannelPoint.TxId = []byte(closing.ClosingTxid)
+			}
+
+			err = updateChannelToClosingByChannelId(db, r.Request.ChannelId, closing.ClosingTxid)
+			if err != nil {
+				return errors.Wrap(err, "Updating channel to closing status in the db")
 			}
 		}
 

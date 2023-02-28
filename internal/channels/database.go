@@ -294,3 +294,50 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
 	return channel, nil
 }
+
+func getClosedChannels(db *sqlx.DB, network int) ([]Channel, error) {
+	var channels []Channel
+
+	err := db.Select(&channels, `
+		SELECT c.* FROM Channel c
+		JOIN Node n on n.node_id = c.First_Node_Id
+	 	WHERE n.network =$1 AND c.Status_id in (100,101,102,103,104,105)
+	`, network)
+
+	if err != nil {
+		if errors.As(err, &sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	return channels, nil
+}
+
+func getPendingChannels(db *sqlx.DB, network int) ([]Channel, error) {
+	var channels []Channel
+
+	err := db.Select(&channels, `
+		SELECT c.* FROM Channel c
+		JOIN Node n on n.node_id = c.First_Node_Id
+	 	WHERE n.network =$1 AND c.Status_id in (0,2)
+	`, network)
+
+	if err != nil {
+		if errors.As(err, &sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	return channels, nil
+}
+
+func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionId string) error {
+	_, err := db.Exec(`UPDATE channel SET status_id=$1, closing_transaction_hash=$2, updated_on=$3 WHERE channel_id=$4;`,
+		commons.Closing, closingTransactionId, time.Now().UTC(), channelId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
+}

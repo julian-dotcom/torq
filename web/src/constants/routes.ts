@@ -11,6 +11,9 @@ export const FORWARDS = "forwards";
 export const TAGS = "tags";
 export const FORWARDS_CUSTOM_VIEW = `${FORWARDS}/:viewId`;
 export const CHANNELS = "channels";
+export const OPEN_CHANNELS = "open-channels";
+export const PENDING_CHANNELS = "pending-channels";
+export const CLOSED_CHANNELS = "closed-channels";
 export const INSPECT_CHANNEL = "/analyse/inspect/:chanId";
 
 export const TRANSACTIONS = "transactions";

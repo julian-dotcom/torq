@@ -19,6 +19,8 @@ const (
 	PageOnChainTransactions = TableViewPage("onChain")
 	PageWorkflows           = TableViewPage("workflow")
 	PageTags                = TableViewPage("tag")
+	PageChannelsClosed      = TableViewPage("channelsClosed")
+	PageChannelsPending     = TableViewPage("channelsPending")
 )
 
 type NewTableView struct {
@@ -46,11 +48,13 @@ type TableViewLayout struct {
 }
 
 type TableViewResponses struct {
-	Forwards []TableViewLayout `json:"forwards"`
-	Channel  []TableViewLayout `json:"channel"`
-	Payments []TableViewLayout `json:"payments"`
-	Invoices []TableViewLayout `json:"invoices"`
-	OnChain  []TableViewLayout `json:"onChain"`
+	Forwards        []TableViewLayout `json:"forwards"`
+	Channel         []TableViewLayout `json:"channel"`
+	Payments        []TableViewLayout `json:"payments"`
+	Invoices        []TableViewLayout `json:"invoices"`
+	OnChain         []TableViewLayout `json:"onChain"`
+	ChannelsClosed  []TableViewLayout `json:"channelsClosed"`
+	ChannelsPending []TableViewLayout `json:"channelsPending"`
 }
 
 type TableViewStructured struct {
@@ -158,6 +162,12 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 	case PageTags:
 		result = result + "\nimport { ExpandedTag } from \"pages/tags/tagsTypes\";"
 		result = result + "\n\nexport const AllTagsColumns: ColumnMetaData<ExpandedTag>[] = ["
+	case PageChannelsClosed:
+		result = result + "\nimport { ChannelClosed } from \"features/channelsClosed/channelsClosedTypes\";"
+		result = result + "\n\nexport const AllChannelClosedColumns: ColumnMetaData<ChannelClosed>[] = ["
+	case PageChannelsPending:
+		result = result + "\nimport { ChannelPending } from \"features/channelsPending/channelsPendingTypes\";"
+		result = result + "\n\nexport const AllChannelPendingColumns: ColumnMetaData<ChannelPending>[] = ["
 	}
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		result = result + fmt.Sprintf(
@@ -187,6 +197,10 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		result = result + "\nexport const PaymentsSortableColumns: Array<keyof Payment> = ["
 	case PageTags:
 		result = result + "\nexport const TagsSortableColumns: Array<keyof ExpandedTag> = ["
+	case PageChannelsClosed:
+		result = result + "\nexport const ChannelsClosedSortableColumns: Array<keyof ChannelClosed> = ["
+	case PageChannelsPending:
+		result = result + "\nexport const ChannelsPendingSortableColumns: Array<keyof ChannelPending> = ["
 	}
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		if definition.sortable {
@@ -209,6 +223,10 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		result = result + "\nexport const PaymentsFilterableColumns: Array<keyof Payment> = ["
 	case PageTags:
 		result = result + "\nexport const TagsFilterableColumns: Array<keyof ExpandedTag> = ["
+	case PageChannelsClosed:
+		result = result + "\nexport const ChannelsClosedFilterableColumns: Array<keyof ChannelClosed> = ["
+	case PageChannelsPending:
+		result = result + "\nexport const ChannelsPendingFilterableColumns: Array<keyof ChannelPending> = ["
 	}
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		if definition.filterable {
@@ -252,7 +270,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "AliasCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
-				PageChannels: 1,
+				PageChannels:        1,
+				PageChannelsClosed:  1,
+				PageChannelsPending: 1,
 			},
 		},
 		{
@@ -294,8 +314,10 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "LongTextCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
-				PageChannels: 5,
-				PageForwards: 19,
+				PageChannels:        5,
+				PageChannelsClosed:  3,
+				PageForwards:        19,
+				PageChannelsPending: 2,
 			},
 		},
 		{
@@ -340,8 +362,10 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "NumericCell",
 			valueType:  "number",
 			pages: map[TableViewPage]int{
-				PageChannels: 9,
-				PageForwards: 15,
+				PageChannels:        9,
+				PageChannelsClosed:  4,
+				PageForwards:        15,
+				PageChannelsPending: 3,
 			},
 		},
 		{
@@ -475,8 +499,10 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "LongTextCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
-				PageChannels: 20,
-				PageForwards: 20,
+				PageChannels:        20,
+				PageForwards:        20,
+				PageChannelsClosed:  5,
+				PageChannelsPending: 8,
 			},
 		},
 		{
@@ -510,8 +536,10 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "LongTextCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
-				PageChannels: 23,
-				PageForwards: 17,
+				PageChannels:        23,
+				PageChannelsClosed:  6,
+				PageForwards:        17,
+				PageChannelsPending: 9,
 			},
 		},
 		{
@@ -522,7 +550,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "NumericCell",
 			valueType:  "number",
 			pages: map[TableViewPage]int{
-				PageChannels: 24,
+				PageChannels:        24,
+				PageChannelsClosed:  7,
+				PageChannelsPending: 10,
 			},
 		},
 		{
@@ -533,7 +563,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "NumericCell",
 			valueType:  "number",
 			pages: map[TableViewPage]int{
-				PageChannels: 25,
+				PageChannels:        25,
+				PageChannelsClosed:  8,
+				PageChannelsPending: 11,
 			},
 		},
 		{
@@ -544,7 +576,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "DateCell",
 			valueType:  "date",
 			pages: map[TableViewPage]int{
-				PageChannels: 26,
+				PageChannels:        26,
+				PageChannelsClosed:  9,
+				PageChannelsPending: 12,
 			},
 		},
 		{
@@ -555,7 +589,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "DurationCell",
 			valueType:  "duration",
 			pages: map[TableViewPage]int{
-				PageChannels: 27,
+				PageChannels:        27,
+				PageChannelsClosed:  10,
+				PageChannelsPending: 13,
 			},
 		},
 		{
@@ -566,7 +602,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "LongTextCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
-				PageChannels: 28,
+				PageChannels:        28,
+				PageChannelsClosed:  11,
+				PageChannelsPending: 14,
 			},
 		},
 		{
@@ -577,7 +615,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "NumericCell",
 			valueType:  "number",
 			pages: map[TableViewPage]int{
-				PageChannels: 29,
+				PageChannels:        29,
+				PageChannelsClosed:  12,
+				PageChannelsPending: 15,
 			},
 		},
 		{
@@ -588,7 +628,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "NumericCell",
 			valueType:  "number",
 			pages: map[TableViewPage]int{
-				PageChannels: 30,
+				PageChannels:        30,
+				PageChannelsClosed:  13,
+				PageChannelsPending: 16,
 			},
 		},
 		{
@@ -599,7 +641,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "DateCell",
 			valueType:  "date",
 			pages: map[TableViewPage]int{
-				PageChannels: 31,
+				PageChannels:       31,
+				PageChannelsClosed: 14,
 			},
 		},
 		{
@@ -610,7 +653,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "DurationCell",
 			valueType:  "duration",
 			pages: map[TableViewPage]int{
-				PageChannels: 32,
+				PageChannels:       32,
+				PageChannelsClosed: 15,
 			},
 		},
 		{
@@ -756,7 +800,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "TextCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
-				PageChannels: 45,
+				PageChannels:        45,
+				PageChannelsClosed:  16,
+				PageChannelsPending: 17,
 			},
 		},
 		{
@@ -1041,7 +1087,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "LongTextCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
-				PageForwards: 16,
+				PageForwards:       16,
+				PageChannelsClosed: 17,
 			},
 		},
 		{
@@ -1088,7 +1135,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			key:        "invoiceState",
 			sortable:   true,
 			filterable: true,
-			heading:    "Settle Date",
+			heading:    "Settle State",
 			visualType: "TextCell",
 			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
@@ -1474,6 +1521,29 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			valueType:  "string",
 			pages: map[TableViewPage]int{
 				PageTags: 5,
+			},
+		},
+		{
+			key:        "status",
+			sortable:   true,
+			filterable: true,
+			heading:    "Status",
+			visualType: "TextCell",
+			valueType:  "enum",
+			selectOptions: []tableViewSelectOptions{
+				{label: "Opening", value: "Opening"},
+				{label: "Open", value: "Open"},
+				{label: "Closing", value: "Closing"},
+				{label: "Cooperative Closed", value: "CooperativeClosed"},
+				{label: "Local Force Closed", value: "LocalForceClosed"},
+				{label: "Remote Force Closed", value: "RemoteForceClosed"},
+				{label: "Breach Closed", value: "BreachClosed"},
+				{label: "Funding Cancelled Closed", value: "FundingCancelledClosed"},
+				{label: "Abandoned Closed", value: "AbandonedClosed"},
+			},
+			pages: map[TableViewPage]int{
+				PageChannelsClosed:  18,
+				PageChannelsPending: 19,
 			},
 		},
 	}
