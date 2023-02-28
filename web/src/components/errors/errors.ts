@@ -16,12 +16,19 @@ export type ServerErrorType = {
   errors: FormErrors;
 };
 
-// .map((error: string) => error.split(":")[0])
 export function mergeServerError(serverErrors: ServerErrorType, existingErrors: FormErrors): FormErrors {
   if (existingErrors.server === undefined) {
     existingErrors.server = [];
   }
-  existingErrors.server = serverErrors.errors.server;
+  existingErrors.server = serverErrors.errors.server?.map((se) => {
+    if (se.description) {
+      // remove unessary fluff from GRPC errors
+      se.description = se.description.replace("rpc error: code = Unknown desc =", "");
+      se.description = se.description.trim();
+      se.description = se.description.charAt(0).toUpperCase() + se.description.slice(1);
+    }
+    return se;
+  });
   if (!serverErrors.errors.fields) {
     return existingErrors;
   }

@@ -4,7 +4,6 @@ import {
   Checkmark20Regular as SuccessNoteIcon,
   CheckmarkRegular as SuccessIcon,
   CommentLightning20Regular as AdvencedOption,
-  ErrorCircle20Regular as FailedNoteIcon,
   ErrorCircleRegular as FailedIcon,
   Link20Regular as LinkIcon,
   Note20Regular as NoteIcon,
@@ -33,6 +32,8 @@ import Note, { NoteType } from "features/note/Note";
 import { Select, TextArea } from "components/forms/forms";
 import { InputSizeVariant } from "components/forms/input/variants";
 import mixpanel from "mixpanel-browser";
+import ErrorSummary from "components/errors/ErrorSummary";
+import { FormErrors, mergeServerError } from "components/errors/errors";
 
 const openStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -63,6 +64,7 @@ function OpenChannelModal() {
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
   const [openingTx, setOpeningTx] = useState<string>("");
+  const [formErrorState, setFormErrorState] = useState({} as FormErrors);
 
   useEffect(() => {
     if (nodeConfigurationOptions !== undefined) {
@@ -111,6 +113,7 @@ function OpenChannelModal() {
   function onOpenChannelMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
     if (response?.type === "Error") {
+      setFormErrorState(mergeServerError(response.error, formErrorState));
       setErrorMEssage(response.error);
       setResultState(ProgressStepState.error);
       setDetailState(ProgressStepState.completed);
@@ -406,11 +409,9 @@ function OpenChannelModal() {
                 </Note>
               </>
             )}
-            {errMessage && (
-              <Note title={t.openCloseChannel.error} icon={<FailedNoteIcon />} noteType={NoteType.error}>
-                {errMessage}
-              </Note>
-            )}
+
+            <ErrorSummary errors={formErrorState} />
+
             <ButtonWrapper
               rightChildren={
                 <Button

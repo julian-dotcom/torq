@@ -78,12 +78,14 @@ func OpenChannel(eventChannel chan<- interface{}, db *sqlx.DB, req commons.OpenC
 		}
 
 		if err != nil {
-			return errors.Wrapf(err, "Opening channel")
+			log.Error().Err(err).Msg("Unable to open channel")
+			return err
 		}
 
 		r, err := processOpenResponse(resp, req, requestId)
 		if err != nil {
-			return errors.Wrap(err, "Processing open response")
+			log.Error().Err(err).Msg("Unable to process open channel response")
+			return err
 		}
 		if eventChannel != nil {
 			eventChannel <- r

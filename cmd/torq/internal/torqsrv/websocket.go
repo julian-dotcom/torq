@@ -17,6 +17,7 @@ import (
 	"github.com/lncapital/torq/internal/payments"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 type wsRequest struct {
@@ -39,9 +40,9 @@ type AuthSuccess struct {
 }
 
 type wsError struct {
-	RequestId string `json:"id"`
-	Type      string `json:"type"`
-	Error     string `json:"error"`
+	RequestId string                    `json:"id"`
+	Type      string                    `json:"type"`
+	Error     server_errors.ServerError `json:"error"`
 }
 
 func processWsReq(db *sqlx.DB, eventChannel, webSocketChannel chan<- interface{}, req wsRequest) {
@@ -146,10 +147,11 @@ func processWebsocketRequests(conn *websocket.Conn, done chan<- struct{}, db *sq
 		case nil:
 			go processWsReq(db, eventChannel, webSocketChannel, req)
 		default:
+			serverError := server_errors.SingleServerError("Could not parse request, please check that your JSON is correctly formated.")
 			wsr := wsError{
 				RequestId: req.RequestId,
 				Type:      "Error",
-				Error:     "Could not parse request, please check that your JSON is correctly formated.",
+				Error:     *serverError,
 			}
 			webSocketChannel <- wsr
 		}
@@ -183,10 +185,12 @@ func processBroadcasterEvents(done <-chan struct{}, broadcaster broadcast.Broadc
 
 func sendError(err error, req wsRequest, webSocketChannel chan<- interface{}) {
 	if err != nil {
+
+		serverError := server_errors.SingleServerError(err.Error())
 		webSocketChannel <- wsError{
 			RequestId: req.RequestId,
 			Type:      "Error",
-			Error:     err.Error(),
+			Error:     *serverError,
 		}
 	}
 }
