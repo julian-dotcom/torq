@@ -153,6 +153,7 @@ type PendingChannel struct {
 	ChannelID               int        `json:"channelId"`
 	Tags                    []tags.Tag `json:"tags"`
 	ShortChannelID          *string    `json:"shortChannelId"`
+	FundingTransactionHash  string     `json:"fundingTransactionHash"`
 	ClosingTransactionHash  *string    `json:"closingTransactionHash"`
 	LNDShortChannelID       string     `json:"lndShortChannelId"`
 	Capacity                int64      `json:"capacity"`
@@ -441,6 +442,7 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 			ChannelID:              channel.ChannelID,
 			Tags:                   channel.Tags,
 			ShortChannelID:         channel.ShortChannelID,
+			FundingTransactionHash: channel.FundingTransactionHash,
 			ClosingTransactionHash: channel.ClosingTransactionHash,
 			Capacity:               channel.Capacity,
 			FirstNodeId:            channel.FirstNodeId,
