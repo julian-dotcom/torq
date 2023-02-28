@@ -30,23 +30,28 @@ export default function channelsPendingCellRenderer(
     case "tags":
       return <TagsCell tags={row.tags} key={"tagsCell" + rowIndex} channelId={row.channelId} nodeId={row.peerNodeId} />;
     case "fundingTransactionHash":
-      return (
-        <LongTextCell
-          current={row.fundingTransactionHash}
-          link={"https://mempool.space/tx/" + row.fundingTransactionHash}
-          copyText={row.fundingTransactionHash}
-        />
-      );
+      if (column.type === "LongTextCell") {
+        return (
+          <LongTextCell
+            current={row.fundingTransactionHash}
+            link={"https://mempool.space/tx/" + row.fundingTransactionHash}
+            copyText={row.fundingTransactionHash}
+          />
+        );
+      }
+      break;
     case "closingTransactionHash":
-      return (
-        <LongTextCell
-          current={row.closingTransactionHash}
-          link={"https://mempool.space/tx/" + row.closingTransactionHash}
-          copyText={row.closingTransactionHash}
-        />
-      );
-
-    default:
-      return DefaultCellRenderer(row, rowIndex, column, columnIndex, false, maxRow);
+      if (column.type === "LongTextCell") {
+        return (
+          <LongTextCell
+            current={row.closingTransactionHash}
+            link={"https://mempool.space/tx/" + row.closingTransactionHash}
+            copyText={row.closingTransactionHash}
+          />
+        );
+      }
+      break;
   }
+
+  return DefaultCellRenderer(row, rowIndex, column, columnIndex, false, maxRow);
 }
