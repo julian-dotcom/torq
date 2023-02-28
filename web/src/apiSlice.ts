@@ -59,6 +59,8 @@ export const torqApi = createApi({
     "nodeConfigurations",
     "forwards",
     "channels",
+    "channelsPending",
+    "channelsClosed",
     "channelHistory",
     "services",
     "tags",
@@ -106,14 +108,14 @@ export const torqApi = createApi({
         url: `channels/closed` + queryParamsBuilder(params),
         method: "GET",
       }),
-      providesTags: ["channels"],
+      providesTags: ["channelsClosed"],
     }),
     getChannelsPending: builder.query<channel[], ActiveNetwork>({
       query: (params) => ({
         url: `channels/pending` + queryParamsBuilder(params),
         method: "GET",
       }),
-      providesTags: ["channels"],
+      providesTags: ["channelsPending"],
     }),
     updateChannel: builder.mutation<UpdateChannelResponse, PolicyInterface>({
       query: (data: PolicyInterface) => ({
