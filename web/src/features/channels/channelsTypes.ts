@@ -74,6 +74,7 @@ export type channel = {
   peerChannelCapacity: number;
   peerChannelCount: number;
   peerLocalBalance: number;
+  peerGauge: number;
 };
 
 export type PolicyInterface = {

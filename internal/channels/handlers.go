@@ -1,11 +1,12 @@
 package channels
 
 import (
-	"github.com/rs/zerolog/log"
-	"golang.org/x/exp/slices"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/slices"
 
 	"github.com/lncapital/torq/internal/tags"
 
@@ -46,6 +47,7 @@ type ChannelBody struct {
 	PeerChannelCapacity          int64                `json:"peerChannelCapacity"`
 	PeerChannelCount             int                  `json:"peerChannelCount"`
 	PeerLocalBalance             int64                `json:"peerLocalBalance"`
+	PeerGauge                    float64              `json:"peerGauge"`
 	LocalBalance                 int64                `json:"localBalance"`
 	RemoteBalance                int64                `json:"remoteBalance"`
 	UnsettledBalance             int64                `json:"unsettledBalance"`
@@ -265,6 +267,7 @@ func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody,
 			PeerChannelCapacity:          channel.PeerChannelCapacity,
 			PeerChannelCount:             channel.PeerChannelCount,
 			PeerLocalBalance:             channel.PeerLocalBalance,
+			PeerGauge:                    (float64(channel.PeerLocalBalance) / float64(channel.PeerChannelCapacity)) * 100,
 			LocalBalance:                 channel.LocalBalance,
 			RemoteBalance:                channel.RemoteBalance,
 			UnsettledBalance:             channel.UnsettledBalance,

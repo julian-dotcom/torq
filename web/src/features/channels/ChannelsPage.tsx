@@ -56,6 +56,7 @@ function useMaximums(data: Array<channel>): channel | undefined {
       lndShortChannelId: Math.max(prev.lndShortChannelId, current.lndShortChannelId),
       balance: Math.max(prev.balance, current.balance), // NB! This column only exists in the frontend!
       localBalance: Math.max(prev.localBalance, current.localBalance),
+      peerLocalBalance: Math.max(prev.peerLocalBalance, current.peerLocalBalance),
       localChanReserveSat: Math.max(prev.localChanReserveSat, current.localChanReserveSat),
       maxHtlc: Math.max(prev.maxHtlc, current.maxHtlc),
       minHtlc: Math.max(prev.minHtlc, current.minHtlc),
@@ -80,6 +81,9 @@ function useMaximums(data: Array<channel>): channel | undefined {
       totalSatoshisReceived: Math.max(prev.totalSatoshisReceived, current.totalSatoshisReceived),
       totalSatoshisSent: Math.max(prev.totalSatoshisSent, current.totalSatoshisSent),
       unsettledBalance: Math.max(prev.unsettledBalance, current.unsettledBalance),
+      peerChannelCapacity: Math.max(prev.peerChannelCapacity, current.peerChannelCapacity),
+      peerChannelCount: Math.max(prev.peerChannelCount, current.peerChannelCount),
+      peerGauge: Math.max(prev.peerGauge, current.peerGauge),
     };
   });
 }
