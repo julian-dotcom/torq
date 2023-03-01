@@ -30,6 +30,7 @@ const (
 	WRITE_CHANNELSTATE_ROUTINGPOLICY
 	WRITE_CHANNELSTATE_UPDATEBALANCE
 	WRITE_CHANNELSTATE_UPDATEHTLCEVENT
+	RESET_CHANNELSTATE_CACHE
 )
 
 type ChannelBalanceStateHtlcInclude uint
@@ -178,6 +179,11 @@ func ManagedChannelStateCache(ch chan ManagedChannelState, ctx context.Context, 
 		case <-ctx.Done():
 			return
 		case managedChannelState := <-ch:
+			if managedChannelState.Type == RESET_CHANNELSTATE_CACHE {
+				channelStateSettingsByChannelIdCache = make(map[int]map[int]ManagedChannelStateSettings, 0)
+				channelStateSettingsStatusCache = make(map[int]Status, 0)
+				channelStateSettingsDeactivationTimeCache = make(map[int]time.Time, 0)
+			}
 			processManagedChannelStateSettings(managedChannelState,
 				channelStateSettingsStatusCache, channelStateSettingsByChannelIdCache,
 				channelStateSettingsDeactivationTimeCache, channelBalanceEventChannel)
@@ -789,5 +795,11 @@ func processHtlcInclude(managedChannelState ManagedChannelState, settings Manage
 		LocalBalancePerMilleRatio:  int(settings.LocalBalance / capacity * 1000),
 		RemoteBalance:              remoteBalance,
 		RemoteBalancePerMilleRatio: int(settings.RemoteBalance / capacity * 1000),
+	}
+}
+
+func ResetManagedChannelStateCache() {
+	ManagedChannelStateChannel <- ManagedChannelState{
+		Type: RESET_CHANNELSTATE_CACHE,
 	}
 }

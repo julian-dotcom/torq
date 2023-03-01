@@ -30,6 +30,7 @@ const (
 	READ_ALL_CHANNEL_NODEIDS
 	READ_ALL_CHANNEL_PUBLICKEYS
 	READ_NODE_SETTING
+	RESET_MANAGED_NODE_CACHE
 )
 
 type ManagedNode struct {
@@ -68,6 +69,14 @@ func ManagedNodeCache(ch chan ManagedNode, ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case managedNode := <-ch:
+			if managedNode.Type == RESET_MANAGED_NODE_CACHE {
+				allTorqNodeIdCache = make(map[Chain]map[Network]map[string]int, 0)
+				nodeSettingsByNodeIdCache = make(map[int]ManagedNodeSettings, 0)
+				activeTorqNodeIdCache = make(map[Chain]map[Network]map[string]int, 0)
+				channelNodeIdCache = make(map[Chain]map[Network]map[string]int, 0)
+				allChannelNodeIdCache = make(map[Chain]map[Network]map[string]int, 0)
+				torqNodeNameByNodeIdCache = make(map[int]string, 0)
+			}
 			processManagedNode(managedNode, allTorqNodeIdCache, activeTorqNodeIdCache,
 				channelNodeIdCache, allChannelNodeIdCache, nodeSettingsByNodeIdCache, torqNodeNameByNodeIdCache)
 		}
@@ -539,4 +548,10 @@ func GetNodeSettingsByNodeId(nodeId int) ManagedNodeSettings {
 	}
 	ManagedNodeChannel <- managedNode
 	return <-nodeResponseChannel
+}
+
+func ResetManagedNodeCache() {
+	ManagedNodeChannel <- ManagedNode{
+		Type: RESET_MANAGED_NODE_CACHE,
+	}
 }

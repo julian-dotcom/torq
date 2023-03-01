@@ -130,14 +130,16 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 	return true
 }
 
-func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage) {
+func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage, serviceEventChannel chan commons.ServiceEvent) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
 	r.GET("nodeConnectionDetails", func(c *gin.Context) { getAllNodeConnectionDetailsHandler(c, db) })
 	r.GET("nodeConnectionDetails/:nodeId", func(c *gin.Context) { getNodeConnectionDetailsHandler(c, db) })
 	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db, serviceChannel) })
 	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db, serviceChannel) })
-	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) { setNodeConnectionDetailsStatusHandler(c, db, serviceChannel) })
+	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) {
+		setNodeConnectionDetailsStatusHandler(c, db, serviceChannel, serviceEventChannel)
+	})
 	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) { setNodeConnectionDetailsPingSystemHandler(c, db, serviceChannel) })
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
@@ -471,7 +473,7 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 }
 
 func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan commons.ServiceChannelMessage, serviceEventChannel chan commons.ServiceEvent) {
 
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
@@ -491,6 +493,8 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 			server_errors.LogAndSendServerError(c, err)
 			return
 		}
+		commons.ResetManagedNodeCache()
+		commons.SendServiceEvent(nodeId, serviceEventChannel, commons.Active, commons.Initializing, commons.TorqService, nil)
 	} else {
 		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
 		return

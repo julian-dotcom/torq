@@ -301,7 +301,8 @@ func getClosedChannels(db *sqlx.DB, network int) ([]Channel, error) {
 	err := db.Select(&channels, `
 		SELECT c.* FROM Channel c
 		JOIN Node n on n.node_id = c.First_Node_Id
-	 	WHERE n.network =$1 AND c.Status_id in (100,101,102,103,104,105)
+		JOIN Node_Connection_Details ncd on ncd.node_id = n.node_id
+	 	WHERE ncd.status_id != 3 AND n.network =$1 AND c.Status_id in (100,101,102,103,104,105)
 	`, network)
 
 	if err != nil {
@@ -320,7 +321,8 @@ func getPendingChannels(db *sqlx.DB, network int) ([]Channel, error) {
 	err := db.Select(&channels, `
 		SELECT c.* FROM Channel c
 		JOIN Node n on n.node_id = c.First_Node_Id
-	 	WHERE n.network =$1 AND c.Status_id in (0,2)
+		JOIN Node_Connection_Details ncd on ncd.node_id = n.node_id
+	 	WHERE ncd.status_id != 3 AND n.network =$1 AND n.network =$1 AND c.Status_id in (0,2)
 	`, network)
 
 	if err != nil {

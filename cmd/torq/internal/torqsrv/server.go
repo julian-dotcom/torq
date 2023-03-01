@@ -45,7 +45,8 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 	lightningRequestChannel chan interface{},
 	rebalanceRequestChannel chan commons.RebalanceRequest,
 	serviceChannel chan commons.ServiceChannelMessage,
-	autoLogin bool) error {
+	autoLogin bool,
+	serviceEventChannel chan commons.ServiceEvent) error {
 
 	r := gin.Default()
 
@@ -58,7 +59,7 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 		return errors.Wrap(err, "Creating Gin Session")
 	}
 
-	registerRoutes(r, db, apiPswd, cookiePath, webSocketResponseChannel, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel, autoLogin)
+	registerRoutes(r, db, apiPswd, cookiePath, webSocketResponseChannel, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel, autoLogin, serviceEventChannel)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -122,7 +123,8 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 	lightningRequestChannel chan interface{},
 	rebalanceRequestChannel chan commons.RebalanceRequest,
 	serviceChannel chan commons.ServiceChannelMessage,
-	autoLogin bool) {
+	autoLogin bool,
+	serviceEventChannel chan commons.ServiceEvent) {
 
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	applyCors(r)
@@ -242,7 +244,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 
 		settingRoutes := api.Group("settings")
 		{
-			settings.RegisterSettingRoutes(settingRoutes, db, serviceChannel)
+			settings.RegisterSettingRoutes(settingRoutes, db, serviceChannel, serviceEventChannel)
 		}
 
 		api.GET("/ping", func(c *gin.Context) {
