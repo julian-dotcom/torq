@@ -1,3 +1,5 @@
+import clone from "clone";
+
 export type FieldName = string;
 export type ErrorDescription = string;
 
@@ -17,6 +19,10 @@ export type ServerErrorType = {
 };
 
 export function mergeServerError(serverErrors: ServerErrorType, existingErrors: FormErrors): FormErrors {
+  // clone because this function is often used with useState which are immutable objects
+  serverErrors = clone(serverErrors);
+  existingErrors = clone(existingErrors);
+
   if (existingErrors.server === undefined) {
     existingErrors.server = [];
   }

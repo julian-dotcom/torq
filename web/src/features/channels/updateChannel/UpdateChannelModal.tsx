@@ -1,7 +1,7 @@
 import {
   ArrowSyncFilled as ProcessingIcon,
   CheckmarkRegular as SuccessIcon,
-  DismissRegular as FailedIcon,
+  ErrorCircleRegular as FailedIcon,
   ArrowRouting20Regular as ChannelsIcon,
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
@@ -16,7 +16,6 @@ import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPage
 import useTranslations from "services/i18n/useTranslations";
 import classNames from "classnames";
 import { NumberFormatValues } from "react-number-format";
-import clone from "clone";
 import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
 import Input from "components/forms/input/Input";
@@ -58,7 +57,7 @@ function UpdateChannelModal() {
 
   useEffect(() => {
     if (response && response.error && "data" in response.error && response.error.data) {
-      const mergedErrors = mergeServerError(response.error.data as ServerErrorType, clone(formErrorState));
+      const mergedErrors = mergeServerError(response.error.data as ServerErrorType, formErrorState);
       setFormErrorState(mergedErrors);
       setResultState(ProgressStepState.error);
       return;

@@ -27,6 +27,7 @@ import { useSearchParams } from "react-router-dom";
 import { Buffer } from "buffer";
 import Note, { NoteType } from "features/note/Note";
 import mixpanel from "mixpanel-browser";
+import { FormErrors, mergeServerError } from "components/errors/errors";
 
 const closeStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -54,6 +55,7 @@ function closeChannelModal() {
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
   const [stepIndex, setStepIndex] = useState(0);
   const [force, setForce] = useState<boolean>(false);
+  const [formErrorState, setFormErrorState] = useState({} as FormErrors);
 
   const closeAndReset = () => {
     setStepIndex(0);
@@ -73,8 +75,10 @@ function closeChannelModal() {
   });
 
   function oncloseChannelMessage(event: MessageEvent<string>) {
+    setStepIndex(1);
     const response = JSON.parse(event.data);
     if (response?.type === "Error") {
+      setFormErrorState(mergeServerError(response.error, formErrorState));
       setErrorMessage(response.error);
       setResultState(ProgressStepState.error);
       return;
@@ -86,6 +90,26 @@ function closeChannelModal() {
     }
   }
 
+  function closeChannel() {
+    setDetailState(ProgressStepState.processing);
+    setResultState(ProgressStepState.completed);
+    mixpanel.track("Close Channel", {
+      nodeId: nodeId,
+      channelId: channelId,
+      openChannelUseSatPerVbyte: satPerVbyte !== 0,
+      force: force,
+    });
+    sendJsonMessage({
+      requestId: "randId",
+      type: "closeChannel",
+      closeChannelRequest: {
+        nodeId: nodeId,
+        channelId: channelId,
+        satPerVbyte: satPerVbyte,
+        force: force,
+      },
+    });
+  }
   return (
     <PopoutPageTemplate title={"Close Channel"} show={true} onClose={() => navigate(-1)} icon={<ChannelsIcon />}>
       <ProgressHeader modalCloseHandler={closeAndReset}>
@@ -115,23 +139,6 @@ function closeChannelModal() {
                 </div>
               </FormRow>
             </div>
-            {/*<div className={styles.closeChannelTableRow}>*/}
-            {/*  <FormRow>*/}
-            {/*    <div className={styles.closeChannelTableSingle}>*/}
-            {/*      <span className={styles.label}>{"Close Address (for local funds)"}</span>*/}
-            {/*      <div className={styles.input}>*/}
-            {/*        <Input*/}
-            {/*          type={"text"}*/}
-            {/*          value={closeAddress}*/}
-            {/*          placeholder={"e.g. bc1q..."}*/}
-            {/*          onChange={(e: ChangeEvent<HTMLInputElement>) => {*/}
-            {/*            setCloseAddress(e.target.value);*/}
-            {/*          }}*/}
-            {/*        />*/}
-            {/*      </div>*/}
-            {/*    </div>*/}
-            {/*  </FormRow>*/}
-            {/*</div>*/}
             <div className={styles.closeChannelTableRow}>
               <FormRow className={styles.switchRow}>
                 <Switch
@@ -145,30 +152,7 @@ function closeChannelModal() {
             </div>
             <ButtonWrapper
               rightChildren={
-                <Button
-                  onClick={() => {
-                    setStepIndex(1);
-                    setDetailState(ProgressStepState.completed);
-                    setResultState(ProgressStepState.completed);
-                    mixpanel.track("Close Channel", {
-                      nodeId: nodeId,
-                      channelId: channelId,
-                      openChannelUseSatPerVbyte: satPerVbyte !== 0,
-                      force: force,
-                    });
-                    sendJsonMessage({
-                      requestId: "randId",
-                      type: "closeChannel",
-                      closeChannelRequest: {
-                        nodeId: nodeId,
-                        channelId: channelId,
-                        satPerVbyte: satPerVbyte,
-                        force: force,
-                      },
-                    });
-                  }}
-                  buttonColor={ColorVariant.success}
-                >
+                <Button onClick={closeChannel} buttonColor={ColorVariant.success}>
                   {t.openCloseChannel.closeChannel}
                 </Button>
               }
