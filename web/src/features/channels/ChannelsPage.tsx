@@ -75,7 +75,6 @@ function useMaximums(data: Array<channel>): channel | undefined {
       remoteFeeRateMilliMsat: Math.max(prev.remoteFeeRateMilliMsat, current.remoteFeeRateMilliMsat),
       remoteMaxHtlc: Math.max(prev.remoteMaxHtlc, current.remoteMaxHtlc),
       remoteMinHtlc: Math.max(prev.remoteMinHtlc, current.remoteMinHtlc),
-      remotePubkey: Math.max(prev.remotePubkey, current.remotePubkey),
       remoteTimeLockDelta: Math.max(prev.remoteTimeLockDelta, current.remoteTimeLockDelta),
       timeLockDelta: Math.max(prev.timeLockDelta, current.timeLockDelta),
       totalSatoshisReceived: Math.max(prev.totalSatoshisReceived, current.totalSatoshisReceived),

@@ -64,7 +64,7 @@ export type channel = {
   remoteFeeRateMilliMsat: number;
   remoteMaxHtlc: number;
   remoteMinHtlc: number;
-  remotePubkey: number;
+  remotePubkey: string;
   remoteTimeLockDelta: number;
   shortChannelId: string;
   timeLockDelta: number;
