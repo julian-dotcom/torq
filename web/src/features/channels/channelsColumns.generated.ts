@@ -326,6 +326,18 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
 		key: "peerLocalBalance",
 		valueType: "number",
 	},
+	{
+		heading: "Peer Public Key",
+		type: "LongTextCell",
+		key: "remotePubkey",
+		valueType: "string",
+	},
+	{
+		heading: "Peer Channel Balance (%)",
+		type: "BarCell",
+		key: "peerGauge",
+		valueType: "number",
+	},
 ];
 
 
@@ -381,6 +393,8 @@ export const ChannelsSortableColumns: Array<keyof channel> = [
 	"peerChannelCapacity",
 	"peerChannelCount",
 	"peerLocalBalance",
+	"remotePubkey",
+	"peerGauge",
 ];
 
 
@@ -437,4 +451,6 @@ export const ChannelsFilterableColumns: Array<keyof channel> = [
 	"peerChannelCapacity",
 	"peerChannelCount",
 	"peerLocalBalance",
+	"remotePubkey",
+	"peerGauge",
 ];

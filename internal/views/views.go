@@ -877,6 +877,29 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			},
 		},
 		{
+			key:        "remotePubkey",
+			sortable:   true,
+			filterable: true,
+			heading:    "Peer Public Key",
+			visualType: "LongTextCell",
+			valueType:  "string",
+			pages: map[TableViewPage]int{
+				PageChannels: 53,
+			},
+		},
+		{
+			key:        "peerGauge",
+			sortable:   true,
+			filterable: true,
+			heading:    "Peer Channel Balance (%)",
+			visualType: "BarCell",
+			valueType:  "number",
+			suffix:     "%",
+			pages: map[TableViewPage]int{
+				PageChannels: 54,
+			},
+		},
+		{
 			key:        "date",
 			sortable:   true,
 			filterable: true,
