@@ -29,3 +29,5 @@ export { ChannelOpenTriggerNodeButton } from "components/workflow/nodes/channelO
 export { ChannelOpenTriggerNode } from "components/workflow/nodes/channelOpenTrigger/ChannelOpenTriggerNode";
 export { DataSourceTorqChannelsNodeButton } from "components/workflow/nodes/dataSourceTorqChannels/DataSourceTorqChannelsNodeButton";
 export { DataSourceTorqChannelsNode } from "components/workflow/nodes/dataSourceTorqChannels/DataSourceTorqChannelsNode";
+export { EventFilterNode } from "components/workflow/nodes/eventsFilter/EventFilterNode";
+export { EventFilterNodeButton } from "components/workflow/nodes/eventsFilter/EventFilterNodeButton";

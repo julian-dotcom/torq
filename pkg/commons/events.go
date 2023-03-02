@@ -75,7 +75,9 @@ type ChannelGraphEvent struct {
 
 type ChannelBalanceEvent struct {
 	EventData
-	ChannelId int `json:"channelId"`
+	ChannelId            int   `json:"channelId"`
+	BalanceDelta         int64 `json:"balanceDelta"`
+	BalanceDeltaAbsolute int64 `json:"balanceDeltaAbsolute"`
 	ChannelBalanceEventData
 	PreviousEventData *ChannelBalanceEventData `json:"previous"`
 }

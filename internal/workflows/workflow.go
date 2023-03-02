@@ -96,6 +96,11 @@ type TorqChannelsConfiguration struct {
 	Source string `json:"source"`
 }
 
+type EventFilterConfiguration struct {
+	IgnoreWhenEventless bool          `json:"ignoreWhenEventless"`
+	FilterClauses       FilterClauses `json:"filterClauses"`
+}
+
 type ChannelPolicyConfiguration struct {
 	ChannelId        int     `json:"channelId"`
 	TimeLockDelta    *uint32 `json:"timeLockDelta"`

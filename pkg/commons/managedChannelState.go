@@ -346,6 +346,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					EventTime: eventTime,
 					NodeId:    managedChannelState.NodeId,
 				},
+				BalanceDelta:         0,
+				BalanceDeltaAbsolute: 0,
 				ChannelBalanceEventData: ChannelBalanceEventData{
 					Capacity:                      capacity,
 					LocalBalance:                  channelStateSetting.LocalBalance,
@@ -372,8 +374,12 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 						PeerLocalBalance:              existingState.PeerLocalBalance,
 						PeerLocalBalancePerMilleRatio: int(existingState.PeerLocalBalance / existingState.PeerChannelCapacity * 1000),
 					}
-					if channelBalanceEvent.PreviousEventData != nil &&
-						channelBalanceEvent.PreviousEventData.LocalBalance != channelBalanceEvent.LocalBalance {
+					channelBalanceEvent.BalanceDelta = channelBalanceEvent.PreviousEventData.LocalBalance - channelBalanceEvent.LocalBalance
+					channelBalanceEvent.BalanceDeltaAbsolute = channelBalanceEvent.BalanceDelta
+					if channelBalanceEvent.BalanceDeltaAbsolute < 0 {
+						channelBalanceEvent.BalanceDeltaAbsolute = -1 * channelBalanceEvent.BalanceDeltaAbsolute
+					}
+					if channelBalanceEvent.BalanceDelta != 0 {
 						channelBalanceEventChannel <- channelBalanceEvent
 					}
 				}
@@ -482,7 +488,9 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 						EventTime: eventTime,
 						NodeId:    managedChannelState.NodeId,
 					},
-					ChannelId: channelStateSetting.ChannelId,
+					ChannelId:            channelStateSetting.ChannelId,
+					BalanceDelta:         managedChannelState.Amount,
+					BalanceDeltaAbsolute: managedChannelState.Amount,
 					PreviousEventData: &ChannelBalanceEventData{
 						Capacity:                      channelSettings.Capacity,
 						LocalBalance:                  channelStateSetting.LocalBalance,
@@ -493,6 +501,9 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 						PeerLocalBalance:              channelStateSetting.PeerLocalBalance,
 						PeerLocalBalancePerMilleRatio: int(channelStateSetting.PeerLocalBalance / channelStateSetting.PeerChannelCapacity * 1000),
 					},
+				}
+				if channelBalanceEvent.BalanceDeltaAbsolute < 0 {
+					channelBalanceEvent.BalanceDeltaAbsolute = -1 * channelBalanceEvent.BalanceDeltaAbsolute
 				}
 				channelStateSetting.NumUpdates = channelStateSetting.NumUpdates + 1
 				channelStateSetting.LocalBalance = channelStateSetting.LocalBalance + managedChannelState.Amount

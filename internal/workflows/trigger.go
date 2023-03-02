@@ -395,6 +395,45 @@ linkedInputLoop:
 		//} else {
 		//	activeOutputIndex = 1
 		//}
+	case commons.WorkflowNodeEventFilter:
+		linkedChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelChannels)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Obtaining linkedChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+
+		var params EventFilterConfiguration
+		err = json.Unmarshal([]byte(workflowNode.Parameters.([]uint8)), &params)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Parsing parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+
+		if len(linkedChannelIds) == 0 {
+			return commons.Inactive, errors.Wrapf(err, "No ChannelIds found in the inputs for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+
+		var filteredChannelIds []int
+		events, err := getChannelBalanceEvents(inputs)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Parsing parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+
+		if len(events) == 0 {
+			if !params.IgnoreWhenEventless {
+				return commons.Inactive, errors.Wrapf(err, "No event(s) to filter found for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			filteredChannelIds = linkedChannelIds
+		} else {
+			if params.FilterClauses.Filter.FuncName != "" || len(params.FilterClauses.Or) != 0 || len(params.FilterClauses.And) != 0 {
+				filteredChannelIds = filterChannelBalanceEventChannelIds(params.FilterClauses, linkedChannelIds, events)
+			} else {
+				filteredChannelIds = linkedChannelIds
+			}
+		}
+
+		err = setChannelIds(outputs, commons.WorkflowParameterLabelChannels, filteredChannelIds)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Adding ChannelIds to the output for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
 	case commons.WorkflowNodeChannelFilter:
 		linkedChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelChannels)
 		if err != nil {
@@ -422,7 +461,7 @@ linkedInputLoop:
 				}
 				linkedChannels = append(linkedChannels, linkedChannelsByNode...)
 			}
-			filteredChannelIds = filterChannelIds(params, linkedChannels)
+			filteredChannelIds = filterChannelBodyChannelIds(params, linkedChannels)
 		} else {
 			filteredChannelIds = linkedChannelIds
 		}
@@ -774,6 +813,22 @@ func getChannelIds(inputs map[commons.WorkflowParameterLabel]string, label commo
 	return channelIds, nil
 }
 
+func getChannelBalanceEvents(inputs map[commons.WorkflowParameterLabel]string) ([]commons.ChannelBalanceEvent, error) {
+	channelBalanceEventsString, exists := inputs[commons.WorkflowParameterLabelEvents]
+	if !exists {
+		return nil, errors.New(fmt.Sprintf("Parse %v", commons.WorkflowParameterLabelEvents))
+	}
+	var channelBalanceEvents []commons.ChannelBalanceEvent
+	err := json.Unmarshal([]byte(channelBalanceEventsString), &channelBalanceEvents)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unmarshalling  %v", commons.WorkflowParameterLabelEvents)
+	}
+	if len(channelBalanceEvents) == 1 && channelBalanceEvents[0].ChannelId == 0 {
+		return nil, nil
+	}
+	return channelBalanceEvents, nil
+}
+
 func setChannelIds(outputs map[commons.WorkflowParameterLabel]string, label commons.WorkflowParameterLabel, channelIds []int) error {
 	ba, err := json.Marshal(channelIds)
 	if err != nil {
@@ -1062,17 +1117,32 @@ func getTagEntityRequest(channelId int, tagId int, params TagParameters, torqNod
 	}
 }
 
-func filterChannelIds(params FilterClauses, linkedChannels []channels.ChannelBody) []int {
+func filterChannelBalanceEventChannelIds(params FilterClauses, linkedChannelIds []int, events []commons.ChannelBalanceEvent) []int {
+	filteredChannelIds := extractChannelIds(ApplyFilters(params, ChannelBalanceEventToMap(events)))
+	var resultChannelIds []int
+	for _, linkedChannelId := range linkedChannelIds {
+		if slices.Contains(filteredChannelIds, linkedChannelId) {
+			resultChannelIds = append(resultChannelIds, linkedChannelId)
+		}
+	}
+	return resultChannelIds
+}
+
+func filterChannelBodyChannelIds(params FilterClauses, linkedChannels []channels.ChannelBody) []int {
+	filteredChannelIds := extractChannelIds(ApplyFilters(params, ChannelBodyToMap(linkedChannels)))
+	log.Debug().Msgf("Filtering applied to %d of %d channels", len(filteredChannelIds), len(linkedChannels))
+	return filteredChannelIds
+}
+
+func extractChannelIds(filteredChannels []interface{}) []int {
 	var filteredChannelIds []int
-	filteredChannels := ApplyFilters(params, StructToMap(linkedChannels))
 	for _, filteredChannel := range filteredChannels {
 		channel, ok := filteredChannel.(map[string]interface{})
 		if ok {
 			filteredChannelIds = append(filteredChannelIds, channel["channelid"].(int))
-			log.Trace().Msgf("Filter applied to channelId: %v", channel["lndshortchannelid"])
+			log.Trace().Msgf("Filter applied to channelId: %v", channel["channelid"])
 		}
 	}
-	log.Debug().Msgf("Filtering applied to %d of %d channels", len(filteredChannelIds), len(linkedChannels))
 	return filteredChannelIds
 }
 
@@ -1118,19 +1188,31 @@ func AddWorkflowVersionNodeLog(db *sqlx.DB,
 	}
 }
 
-func StructToMap(structs []channels.ChannelBody) []map[string]interface{} {
+func ChannelBalanceEventToMap(structs []commons.ChannelBalanceEvent) []map[string]interface{} {
 	var maps []map[string]interface{}
 	for _, s := range structs {
-		structValue := reflect.ValueOf(s)
-		structType := reflect.TypeOf(s)
-		mapValue := make(map[string]interface{})
-
-		for i := 0; i < structValue.NumField(); i++ {
-			field := structType.Field(i)
-			mapValue[strings.ToLower(field.Name)] = structValue.Field(i).Interface()
-		}
-		maps = append(maps, mapValue)
+		maps = AddStructToMap(maps, s)
 	}
+	return maps
+}
 
+func ChannelBodyToMap(structs []channels.ChannelBody) []map[string]interface{} {
+	var maps []map[string]interface{}
+	for _, s := range structs {
+		maps = AddStructToMap(maps, s)
+	}
+	return maps
+}
+
+func AddStructToMap(maps []map[string]interface{}, data any) []map[string]interface{} {
+	structValue := reflect.ValueOf(data)
+	structType := reflect.TypeOf(data)
+	mapValue := make(map[string]interface{})
+
+	for i := 0; i < structValue.NumField(); i++ {
+		field := structType.Field(i)
+		mapValue[strings.ToLower(field.Name)] = structValue.Field(i).Interface()
+	}
+	maps = append(maps, mapValue)
 	return maps
 }

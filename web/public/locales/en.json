@@ -196,6 +196,9 @@
   "maximumConcurrency": "Maximum concurrency",
   "amountSat": "Amount (sat)",
   "close": "Close",
+  "ignoreWhenEventless": "When no event is found",
+  "stop": "Stop",
+  "continue": "Continue",
   "update": "Update",
   "MessageVerification": "Sign & Verify",
   "stageTriggerDetails": {
@@ -228,7 +231,8 @@
     "targetChannel": "Target Channels",
     "targetNode": "Target Nodes",
     "run": "Run Workflow",
-    "torqChannels": "Torq Channel(s)"
+    "torqChannels": "Torq Channel(s)",
+    "eventFilter": "Events Filter"
   },
   "workflowDetails": {
     "cantAddTriggerNodeToStages": "Trigger nodes can only be added to the first stage.",
