@@ -182,9 +182,10 @@ func deleteTag(db *sqlx.DB, tagId int) error {
 }
 
 type TagEntityRequest struct {
-	TagId     int  `db:"tag_id"`
-	ChannelId *int `db:"channel_id"`
-	NodeId    *int `db:"node_id"`
+	TagId                          int  `db:"tag_id"`
+	ChannelId                      *int `db:"channel_id"`
+	NodeId                         *int `db:"node_id"`
+	CreatedByWorkflowVersionNodeId *int `db:"created_by_workflow_version_node_id"`
 }
 
 // tagEntity adds a tag to a node or channel
@@ -198,13 +199,20 @@ func TagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 		return errors.New("channel_id and node_id cannot both be set")
 	}
 
+	createdOn := time.Now().UTC()
 	if req.ChannelId != nil {
-		_, err = db.Exec(`INSERT INTO tagged_entity (tag_id, channel_id) VALUES ($1, $2)  ON CONFLICT ON CONSTRAINT unique_tagged_channel DO NOTHING;`, req.TagId, *req.ChannelId)
+		_, err = db.Exec(
+			`INSERT INTO tagged_entity (tag_id, channel_id, created_by_workflow_version_node_id, created_on)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT ON CONSTRAINT unique_tagged_channel DO NOTHING;`, req.TagId, *req.ChannelId, req.CreatedByWorkflowVersionNodeId, createdOn)
 		commons.AddTagIdByChannelId(*req.ChannelId, req.TagId)
 	}
 
 	if req.NodeId != nil {
-		_, err = db.Exec(`INSERT INTO tagged_entity (tag_id, node_id) VALUES ($1, $2) ON CONFLICT ON CONSTRAINT unique_tagged_node DO NOTHING;`, req.TagId, *req.NodeId)
+		_, err = db.Exec(
+			`INSERT INTO tagged_entity (tag_id, node_id, created_by_workflow_version_node_id, created_on)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT ON CONSTRAINT unique_tagged_node DO NOTHING;`, req.TagId, *req.NodeId, req.CreatedByWorkflowVersionNodeId, createdOn)
 		commons.AddTagIdByNodeId(*req.NodeId, req.TagId)
 	}
 

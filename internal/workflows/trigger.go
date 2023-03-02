@@ -66,6 +66,10 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	if err != nil {
 		return errors.Wrapf(err, "Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 	}
+	marshalledEvents, err := json.Marshal(events)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to marshal events for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
+	}
 
 	var allChannelIds []int
 	torqNodeIds := commons.GetAllTorqNodeIds()
@@ -86,8 +90,8 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	}
 	initializeInputCache(workflowVersionNodes, workflowNodeInputCache, workflowNodeInputByReferenceIdCache,
 		workflowNodeOutputCache, workflowNodeOutputByReferenceIdCache,
-		allChannelIds, eventChannelIds, marshalledChannelIdsFromEvents, marshalledAllChannelIds, workflowTriggerNode,
-		workflowStageOutputCache, workflowStageOutputByReferenceIdCache)
+		allChannelIds, eventChannelIds, marshalledChannelIdsFromEvents, marshalledAllChannelIds, marshalledEvents,
+		workflowTriggerNode, workflowStageOutputCache, workflowStageOutputByReferenceIdCache)
 
 	switch workflowTriggerNode.Type {
 	case commons.WorkflowNodeIntervalTrigger:
@@ -159,8 +163,8 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 
 		initializeInputCache(workflowVersionNodes, workflowNodeInputCache, workflowNodeInputByReferenceIdCache,
 			workflowNodeOutputCache, workflowNodeOutputByReferenceIdCache,
-			allChannelIds, eventChannelIds, marshalledChannelIdsFromEvents, marshalledAllChannelIds, workflowStageTriggerNode,
-			workflowStageOutputCache, workflowStageOutputByReferenceIdCache)
+			allChannelIds, eventChannelIds, marshalledChannelIdsFromEvents, marshalledAllChannelIds, marshalledEvents,
+			workflowStageTriggerNode, workflowStageOutputCache, workflowStageOutputByReferenceIdCache)
 		done = false
 		iteration = 0
 		for !done {
@@ -197,6 +201,7 @@ func initializeInputCache(workflowVersionNodes []WorkflowNode,
 	eventChannelIds []int,
 	marshalledChannelIdsFromEvents []byte,
 	marshalledAllChannelIds []byte,
+	marshalledEvents []byte,
 	workflowStageTriggerNode WorkflowNode,
 	workflowStageOutputCache map[int]map[commons.WorkflowParameterLabel]string,
 	workflowStageOutputByReferenceIdCache map[int]map[int]map[commons.WorkflowParameterLabel]string) {
@@ -212,6 +217,7 @@ func initializeInputCache(workflowVersionNodes []WorkflowNode,
 			workflowNodeInputCache[workflowVersionNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
 		}
 		workflowNodeInputCache[workflowVersionNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelAllChannels] = string(marshalledAllChannelIds)
+		workflowNodeInputCache[workflowVersionNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelEvents] = string(marshalledEvents)
 
 		if workflowNodeInputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId] == nil {
 			workflowNodeInputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId] = make(map[int]map[commons.WorkflowParameterLabel]string)
@@ -230,6 +236,7 @@ func initializeInputCache(workflowVersionNodes []WorkflowNode,
 				workflowNodeInputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId][channelId][commons.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
 			}
 			workflowNodeInputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId][channelId][commons.WorkflowParameterLabelAllChannels] = string(marshalledAllChannelIds)
+			workflowNodeInputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId][channelId][commons.WorkflowParameterLabelEvents] = string(marshalledEvents)
 		}
 		if workflowStageTriggerNode.Stage > 0 {
 			for label, value := range workflowStageOutputCache[workflowStageTriggerNode.Stage-1] {
@@ -1018,6 +1025,7 @@ func addOrRemoveTags(db *sqlx.DB, linkedChannelIds []int, workflowNode WorkflowN
 			if tag.TagId == 0 {
 				continue
 			}
+			tag.CreatedByWorkflowVersionNodeId = &workflowNode.WorkflowVersionNodeId
 			err = tags.TagEntity(db, tag)
 			if err != nil {
 				return errors.Wrapf(err, "Failed to add the tags for WorkflowVersionNodeId: %v tagIDd", workflowNode.WorkflowVersionNodeId, tagtoAdd.Value)

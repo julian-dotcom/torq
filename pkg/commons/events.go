@@ -41,14 +41,14 @@ type ChannelGraphEventData struct {
 }
 
 type ChannelBalanceEventData struct {
-	Capacity                            int64 `json:"capacity"`
-	LocalBalance                        int64 `json:"localBalance"`
-	LocalBalancePerMilleRatio           int   `json:"localBalancePerMilleRatio"`
-	RemoteBalance                       int64 `json:"remoteBalance"`
-	AggregatedChannels                  int   `json:"aggregatedChannels"`
-	AggregatedCapacity                  int64 `json:"aggregatedCapacity"`
-	AggregatedLocalBalance              int64 `json:"aggregatedLocalBalance"`
-	AggregatedLocalBalancePerMilleRatio int   `json:"aggregatedLocalBalancePerMilleRatio"`
+	Capacity                      int64 `json:"capacity"`
+	LocalBalance                  int64 `json:"localBalance"`
+	LocalBalancePerMilleRatio     int   `json:"localBalancePerMilleRatio"`
+	RemoteBalance                 int64 `json:"remoteBalance"`
+	PeerChannelCapacity           int64 `json:"peerChannelCapacity"`
+	PeerChannelCount              int   `json:"peerChannelCount"`
+	PeerLocalBalance              int64 `json:"peerLocalBalance"`
+	PeerLocalBalancePerMilleRatio int   `json:"peerLocalBalancePerMilleRatio"`
 }
 
 type ServiceEvent struct {

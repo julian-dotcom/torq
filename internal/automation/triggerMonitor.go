@@ -128,8 +128,7 @@ bootstrappingLoop:
 		return
 	}
 
-	c := cron.New()
-
+	var crons []*cron.Cron
 	for _, trigger := range workflowTriggerNodes {
 		var params CronTriggerParams
 		if err = json.Unmarshal(trigger.Parameters.([]byte), &params); err != nil {
@@ -137,20 +136,28 @@ bootstrappingLoop:
 			continue
 		}
 		log.Debug().Msgf("Scheduling cron (%v) for workflow version node id: %v", params.CronValue, trigger.WorkflowVersionNodeId)
+		c := cron.New()
+		workflowVersionNodeId := trigger.WorkflowVersionNodeId
+		workflowVersionId := trigger.WorkflowVersionId
+		triggeringEvent := trigger
 		_, err = c.AddFunc(params.CronValue, func() {
-			log.Debug().Msgf("Scheduling for immediate execution cron trigger for workflow version node id %v", trigger.WorkflowVersionNodeId)
-			reference := fmt.Sprintf("%v_%v", trigger.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-			commons.ScheduleTrigger(reference, trigger.WorkflowVersionId,
-				commons.WorkflowNodeCronTrigger, trigger.WorkflowVersionNodeId, trigger)
+			log.Debug().Msgf("Scheduling for immediate execution cron trigger for workflow version node id %v", workflowVersionNodeId)
+			reference := fmt.Sprintf("%v_%v", workflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+			commons.ScheduleTrigger(reference, workflowVersionId, commons.WorkflowNodeCronTrigger, workflowVersionNodeId, triggeringEvent)
 		})
 		if err != nil {
 			log.Error().Msgf("Unable to add cron func for workflow version node id: %v", trigger.WorkflowVersionNodeId)
 			continue
 		}
+		c.Start()
+		crons = append(crons, c)
 	}
 
-	c.Start()
-	defer c.Stop()
+	defer func() {
+		for _, c := range crons {
+			c.Stop()
+		}
+	}()
 
 	log.Info().Msgf("Cron trigger monitor started")
 
@@ -264,6 +271,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 						}
 					}
 
+					aggregateCapacity := make(map[int]int64)
+					aggregateCount := make(map[int]int)
 					aggregateLocalBalance := make(map[int]int64)
 					aggregateLocalBalancePerMilleRatio := make(map[int]int)
 					for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
@@ -276,13 +285,17 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 						if capacityAggregate == 0 {
 							continue
 						}
+						aggregateCapacity[remoteNodeId] = capacityAggregate
+						aggregateCount[remoteNodeId] = len(dummyChannelBalanceEventByRemote)
 						aggregateLocalBalance[remoteNodeId] = localBalanceAggregate
 						aggregateLocalBalancePerMilleRatio[remoteNodeId] = int(localBalanceAggregate / capacityAggregate * 1000)
 					}
 					for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
 						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
-							dummyChannelBalanceEvent.AggregatedLocalBalance = aggregateLocalBalance[remoteNodeId]
-							dummyChannelBalanceEvent.AggregatedLocalBalancePerMilleRatio = aggregateLocalBalancePerMilleRatio[remoteNodeId]
+							dummyChannelBalanceEvent.PeerChannelCapacity = aggregateCapacity[remoteNodeId]
+							dummyChannelBalanceEvent.PeerChannelCount = aggregateCount[remoteNodeId]
+							dummyChannelBalanceEvent.PeerLocalBalance = aggregateLocalBalance[remoteNodeId]
+							dummyChannelBalanceEvent.PeerLocalBalancePerMilleRatio = aggregateLocalBalancePerMilleRatio[remoteNodeId]
 
 							triggerCtx, triggerCancel := context.WithCancel(ctx)
 
