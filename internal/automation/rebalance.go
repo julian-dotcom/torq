@@ -945,13 +945,17 @@ func updateExistingRebalanceRequest(db *sqlx.DB, request commons.RebalanceReques
 func setRebalancer(db *sqlx.DB, request commons.RebalanceRequest, rebalancer *Rebalancer) error {
 	rebalancer.UpdateOn = time.Now().UTC()
 	rebalancer.Request = request
-	err := SetRebalanceAndChannels(db, *rebalancer)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to add rebalance log entry for rebalanceId: %v", rebalancer.RebalanceId)
+	if rebalancer.RebalanceId != 0 {
+		// If RebalanceId == 0 then it was not stored yet.
+		err := SetRebalanceAndChannels(db, *rebalancer)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to add rebalance log entry for rebalanceId: %v", rebalancer.RebalanceId)
+			return errors.Wrapf(err,
+				"Updating the database with the new rebalance settings for origin: %v with originId: %v (ref: %v)",
+				rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OriginReference)
+		}
 	}
-	return errors.Wrapf(err,
-		"Updating the database with the new rebalance settings for origin: %v with originId: %v (ref: %v)",
-		rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OriginReference)
+	return nil
 }
 
 func AddRebalanceAndChannels(db *sqlx.DB, rebalancer *Rebalancer) error {
