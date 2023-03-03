@@ -189,13 +189,13 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 	pending := commons.Pending
 	pendingRebalancers := getRebalancers(&pending)
 
-	var filteredChannelIds []int
+	var channelIdsFiltered []int
 	if request.IncomingChannelId != 0 {
 		for _, channelId := range request.ChannelIds {
 			// get rebalance attempts for the other direction
 			latestResult := getLatestResult(channelId, request.IncomingChannelId, nil)
 			if latestResult.RebalanceId == 0 || latestResult.UpdateOn.Before(time.Now().Add(-5*time.Minute)) {
-				filteredChannelIds = rebalancePendingForOppositeDirection(pendingRebalancers, channelId, request.IncomingChannelId, channelId, filteredChannelIds)
+				channelIdsFiltered = rebalancePendingForOppositeDirection(pendingRebalancers, channelId, request.IncomingChannelId, channelId, channelIdsFiltered)
 			} else {
 				log.Info().Msgf(
 					"ChannelId %d was removed because an opposite result already exists (IncomingChannelId: %d) "+
@@ -209,7 +209,7 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 			// get rebalance attempts for the other direction
 			latestResult := getLatestResult(request.OutgoingChannelId, channelId, nil)
 			if latestResult.RebalanceId == 0 || latestResult.UpdateOn.Before(time.Now().Add(-5*time.Minute)) {
-				filteredChannelIds = rebalancePendingForOppositeDirection(pendingRebalancers, channelId, channelId, request.OutgoingChannelId, filteredChannelIds)
+				channelIdsFiltered = rebalancePendingForOppositeDirection(pendingRebalancers, channelId, channelId, request.OutgoingChannelId, channelIdsFiltered)
 			} else {
 				log.Info().Msgf(
 					"ChannelId %d was removed because an opposite result already exists (OutgoingChannelId: %d) "+
@@ -218,7 +218,13 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 			}
 		}
 	}
-	if len(filteredChannelIds) == 0 {
+	var channelIds []int
+	for _, channelIdFiltered := range channelIdsFiltered {
+		if channelIdFiltered != 0 {
+			channelIds = append(channelIds, channelIdFiltered)
+		}
+	}
+	if len(channelIds) == 0 {
 		sendResponse(request, commons.RebalanceResponse{
 			Request: request,
 			CommunicationResponse: commons.CommunicationResponse{
@@ -230,8 +236,8 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 	}
 	// Randomise the sequence of the pending channels
 	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(filteredChannelIds), func(i, j int) { filteredChannelIds[i], filteredChannelIds[j] = filteredChannelIds[j], filteredChannelIds[i] })
-	request.ChannelIds = filteredChannelIds
+	rand.Shuffle(len(channelIds), func(i, j int) { channelIds[i], channelIds[j] = channelIds[j], channelIds[i] })
+	request.ChannelIds = channelIds
 
 	createdOn := time.Now().UTC()
 

@@ -902,30 +902,44 @@ func processRebalanceRun(
 	now := time.Now()
 	if rebalanceSettings.Focus == RebalancerFocusIncomingChannels {
 		for _, incomingChannelId := range rebalanceSettings.IncomingChannelIds {
-			channelSetting := commons.GetChannelSettingByChannelId(incomingChannelId)
-			var request commons.RebalanceRequest
-			shuffledChannelIds := rebalanceSettings.OutgoingChannelIds
-			// Randomise the sequence of the pending channels
-			rand.Seed(time.Now().UnixNano())
-			rand.Shuffle(len(shuffledChannelIds), func(i, j int) { shuffledChannelIds[i], shuffledChannelIds[j] = shuffledChannelIds[j], shuffledChannelIds[i] })
-			request.ChannelIds = shuffledChannelIds
-			request.IncomingChannelId = incomingChannelId
-			responses = initiatedRebalance(rebalanceSettings, channelSetting, reference, now,
-				workflowNode.WorkflowVersionNodeId, request, responses, rebalanceRequestChannel)
+			var channelIds []int
+			for _, outgoingChannelId := range rebalanceSettings.OutgoingChannelIds {
+				if outgoingChannelId != 0 {
+					channelIds = append(channelIds, outgoingChannelId)
+				}
+			}
+			if len(channelIds) > 0 {
+				var request commons.RebalanceRequest
+				channelSetting := commons.GetChannelSettingByChannelId(incomingChannelId)
+				// Randomise the sequence of the pending channels
+				rand.Seed(time.Now().UnixNano())
+				rand.Shuffle(len(channelIds), func(i, j int) { channelIds[i], channelIds[j] = channelIds[j], channelIds[i] })
+				request.ChannelIds = channelIds
+				request.IncomingChannelId = incomingChannelId
+				responses = initiatedRebalance(rebalanceSettings, channelSetting, reference, now,
+					workflowNode.WorkflowVersionNodeId, request, responses, rebalanceRequestChannel)
+			}
 		}
 	}
 	if rebalanceSettings.Focus == RebalancerFocusOutgoingChannels {
 		for _, outgoingChannelId := range rebalanceSettings.OutgoingChannelIds {
-			channelSetting := commons.GetChannelSettingByChannelId(outgoingChannelId)
-			var request commons.RebalanceRequest
-			shuffledChannelIds := rebalanceSettings.IncomingChannelIds
-			// Randomise the sequence of the pending channels
-			rand.Seed(time.Now().UnixNano())
-			rand.Shuffle(len(shuffledChannelIds), func(i, j int) { shuffledChannelIds[i], shuffledChannelIds[j] = shuffledChannelIds[j], shuffledChannelIds[i] })
-			request.ChannelIds = shuffledChannelIds
-			request.OutgoingChannelId = outgoingChannelId
-			responses = initiatedRebalance(rebalanceSettings, channelSetting, reference, now,
-				workflowNode.WorkflowVersionNodeId, request, responses, rebalanceRequestChannel)
+			var channelIds []int
+			for _, incomingChannelId := range rebalanceSettings.IncomingChannelIds {
+				if incomingChannelId != 0 {
+					channelIds = append(channelIds, incomingChannelId)
+				}
+			}
+			if len(channelIds) > 0 {
+				var request commons.RebalanceRequest
+				channelSetting := commons.GetChannelSettingByChannelId(outgoingChannelId)
+				// Randomise the sequence of the pending channels
+				rand.Seed(time.Now().UnixNano())
+				rand.Shuffle(len(channelIds), func(i, j int) { channelIds[i], channelIds[j] = channelIds[j], channelIds[i] })
+				request.ChannelIds = channelIds
+				request.OutgoingChannelId = outgoingChannelId
+				responses = initiatedRebalance(rebalanceSettings, channelSetting, reference, now,
+					workflowNode.WorkflowVersionNodeId, request, responses, rebalanceRequestChannel)
+			}
 		}
 	}
 	return responses, nil
