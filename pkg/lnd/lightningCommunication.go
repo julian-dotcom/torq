@@ -2,6 +2,7 @@ package lnd
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -490,7 +491,7 @@ func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPo
 				Request: request,
 				CommunicationResponse: commons.CommunicationResponse{
 					Status: commons.Inactive,
-					Error:  "Routing policy update ignored due to rate limiter",
+					Error:  fmt.Sprintf("Routing policy update ignored due to rate limiter for channelId: %v", request.ChannelId),
 				},
 			}
 		}
