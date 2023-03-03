@@ -93,50 +93,43 @@ func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseCha
 		return err
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			//log.Debug().Msgf("%v", ctx.Err())
-			return nil
-		default:
+	resp, err := closeChanRes.Recv()
+	if err == io.EOF {
+		//log.Debug().Msgf("Close channel EOF")
+		return nil
+	}
+	if err != nil {
+		log.Error().Err(errors.Wrap(err, "LND close channel")).Send()
+		// return unwrapped error as it will give more context to the user
+		return err
+	}
+
+	r := processCloseResponse(resp, ccReq, requestId)
+
+	pendingChannel, err := client.PendingChannels(ctx, &lnrpc.PendingChannelsRequest{})
+	if err != nil {
+		err = errors.Wrap(err, "Channel closed but problem getting pending channels")
+		log.Error().Err(err).Send()
+		return err
+	}
+
+	for _, closing := range pendingChannel.WaitingCloseChannels {
+		stringOutputIndex := strconv.FormatUint(uint64(closeChanReq.ChannelPoint.GetOutputIndex()), 10)
+		if closeChanReq.ChannelPoint.GetFundingTxidStr()+":"+stringOutputIndex == closing.Channel.ChannelPoint {
+			r.ClosePendingChannelPoint.TxId = []byte(closing.ClosingTxid)
 		}
 
-		resp, err := closeChanRes.Recv()
-		if err == io.EOF {
-			//log.Debug().Msgf("Close channel EOF")
-			return nil
-		}
+		err = updateChannelToClosingByChannelId(db, r.Request.ChannelId, closing.ClosingTxid)
 		if err != nil {
-			log.Error().Err(errors.Wrap(err, "LND close channel")).Send()
-			// return unwrapped error as it will give more context to the user
-			return err
-		}
-
-		r := processCloseResponse(resp, ccReq, requestId)
-
-		pendingChannel, err := client.PendingChannels(ctx, &lnrpc.PendingChannelsRequest{})
-		if err != nil {
-			err = errors.Wrap(err, "Channel closed but problem getting pending channels")
-			log.Error().Err(err).Send()
-			return err
-		}
-
-		for _, closing := range pendingChannel.WaitingCloseChannels {
-			stringOutputIndex := strconv.FormatUint(uint64(closeChanReq.ChannelPoint.GetOutputIndex()), 10)
-			if closeChanReq.ChannelPoint.GetFundingTxidStr()+":"+stringOutputIndex == closing.Channel.ChannelPoint {
-				r.ClosePendingChannelPoint.TxId = []byte(closing.ClosingTxid)
-			}
-
-			err = updateChannelToClosingByChannelId(db, r.Request.ChannelId, closing.ClosingTxid)
-			if err != nil {
-				return errors.Wrap(err, "Updating channel to closing status in the db")
-			}
-		}
-
-		if eventChannel != nil {
-			eventChannel <- r
+			return errors.Wrap(err, "Updating channel to closing status in the db")
 		}
 	}
+
+	if eventChannel != nil {
+		eventChannel <- r
+	}
+
+	return nil
 }
 
 func convertChannelPoint(chanPointStr string) (chanPoint *lnrpc.ChannelPoint, err error) {
