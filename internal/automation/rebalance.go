@@ -771,7 +771,7 @@ func validateRebalanceRequest(request commons.RebalanceRequest) *commons.Rebalan
 				Request: request,
 				CommunicationResponse: commons.CommunicationResponse{
 					Status: commons.Inactive,
-					Error:  "ChannelIds also contain IncomingChannelId",
+					Error:  fmt.Sprintf("ChannelIds also contain IncomingChannelId: %v (%v)", request.IncomingChannelId, request.ChannelIds),
 				},
 			}
 		}
@@ -792,7 +792,7 @@ func validateRebalanceRequest(request commons.RebalanceRequest) *commons.Rebalan
 				Request: request,
 				CommunicationResponse: commons.CommunicationResponse{
 					Status: commons.Inactive,
-					Error:  "ChannelIds also contain OutgoingChannelId",
+					Error:  fmt.Sprintf("ChannelIds also contain OutgoingChannelId: %v (%v)", request.OutgoingChannelId, request.ChannelIds),
 				},
 			}
 		}
