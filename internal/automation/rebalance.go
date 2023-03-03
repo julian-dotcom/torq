@@ -572,7 +572,8 @@ func (rebalancer *Rebalancer) processResult(db *sqlx.DB, result RebalanceResult)
 		rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, result)
 	err := AddRebalanceLog(db, result)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to add rebalance log entry for rebalanceId: %v", rebalancer.RebalanceId)
+		log.Error().Err(err).Msgf("Failed to add rebalance log entry for rebalanceId: %v (ref: %v)",
+			rebalancer.RebalanceId, rebalancer.Request.OriginReference)
 	}
 }
 
@@ -994,14 +995,14 @@ func SetRebalanceAndChannels(db *sqlx.DB, rebalancer Rebalancer) error {
 		if rb := tx.Rollback(); rb != nil {
 			log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
 		}
-		return errors.Wrap(err, database.SqlExecutionError)
+		return errors.Wrapf(err, "Update rebalancer %v", rebalancer.RebalanceId)
 	}
 	_, err = tx.Exec(`UPDATE rebalance_channel SET status=$1 WHERE rebalance_id=$2;`, commons.Inactive, rebalancer.RebalanceId)
 	if err != nil {
 		if rb := tx.Rollback(); rb != nil {
 			log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
 		}
-		return errors.Wrap(err, database.SqlExecutionError)
+		return errors.Wrapf(err, "Inactivate rebalancer's channels %v", rebalancer.RebalanceId)
 	}
 	for _, rebalanceChannelId := range rebalancer.Request.ChannelIds {
 		res, err := tx.Exec(`UPDATE rebalance_channel SET status=$1 WHERE rebalance_id=$2 AND channel_id=$3;`,
@@ -1010,7 +1011,7 @@ func SetRebalanceAndChannels(db *sqlx.DB, rebalancer Rebalancer) error {
 			if rb := tx.Rollback(); rb != nil {
 				log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
 			}
-			return errors.Wrap(err, database.SqlExecutionError)
+			return errors.Wrapf(err, "Reactivate rebalancer's (%v) channel (%v) ", rebalancer.RebalanceId, rebalanceChannelId)
 		}
 		rowsAffected, err := res.RowsAffected()
 		if err != nil {
@@ -1025,7 +1026,7 @@ func SetRebalanceAndChannels(db *sqlx.DB, rebalancer Rebalancer) error {
 				if rb := tx.Rollback(); rb != nil {
 					log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
 				}
-				return errors.Wrap(err, database.SqlExecutionError)
+				return errors.Wrapf(err, "Activate rebalancer's (%v) channel (%v) ", rebalancer.RebalanceId, rebalanceChannelId)
 			}
 		}
 	}
