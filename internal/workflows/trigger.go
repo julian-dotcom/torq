@@ -62,7 +62,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 			eventChannelIds = append(eventChannelIds, channelEvent.ChannelId)
 		}
 	}
-	marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
+	marshalledEventChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 	}
@@ -90,7 +90,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	}
 	initializeInputCache(workflowVersionNodes, workflowNodeInputCache, workflowNodeInputByReferenceIdCache,
 		workflowNodeOutputCache, workflowNodeOutputByReferenceIdCache,
-		allChannelIds, eventChannelIds, marshalledChannelIdsFromEvents, marshalledAllChannelIds, marshalledEvents,
+		allChannelIds, marshalledEventChannelIdsFromEvents, marshalledAllChannelIds, marshalledEvents,
 		workflowTriggerNode, workflowStageOutputCache, workflowStageOutputByReferenceIdCache)
 
 	switch workflowTriggerNode.Type {
@@ -100,13 +100,13 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 		log.Debug().Msgf("Cron Trigger Fired for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 	case commons.WorkflowNodeChannelBalanceEventTrigger:
 		log.Debug().Msgf("Channel Balance Event Trigger Fired for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		workflowNodeOutputCache[workflowTriggerNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
+		workflowNodeOutputCache[workflowTriggerNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelChannels] = string(marshalledEventChannelIdsFromEvents)
 	case commons.WorkflowNodeChannelOpenEventTrigger:
 		log.Debug().Msgf("Channel Open Event Trigger Fired for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		workflowNodeOutputCache[workflowTriggerNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
+		workflowNodeOutputCache[workflowTriggerNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelChannels] = string(marshalledEventChannelIdsFromEvents)
 	case commons.WorkflowNodeChannelCloseEventTrigger:
 		log.Debug().Msgf("Channel Close Event Trigger Fired for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		workflowNodeOutputCache[workflowTriggerNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
+		workflowNodeOutputCache[workflowTriggerNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelChannels] = string(marshalledEventChannelIdsFromEvents)
 	case commons.WorkflowTrigger:
 		fallthrough
 	case commons.WorkflowNodeManualTrigger:
@@ -163,7 +163,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 
 		initializeInputCache(workflowVersionNodes, workflowNodeInputCache, workflowNodeInputByReferenceIdCache,
 			workflowNodeOutputCache, workflowNodeOutputByReferenceIdCache,
-			allChannelIds, eventChannelIds, marshalledChannelIdsFromEvents, marshalledAllChannelIds, marshalledEvents,
+			allChannelIds, marshalledEventChannelIdsFromEvents, marshalledAllChannelIds, marshalledEvents,
 			workflowStageTriggerNode, workflowStageOutputCache, workflowStageOutputByReferenceIdCache)
 		done = false
 		iteration = 0
@@ -198,7 +198,6 @@ func initializeInputCache(workflowVersionNodes []WorkflowNode,
 	workflowNodeOutputCache map[int]map[commons.WorkflowParameterLabel]string,
 	workflowNodeOutputByReferenceIdCache map[int]map[int]map[commons.WorkflowParameterLabel]string,
 	allChannelIds []int,
-	eventChannelIds []int,
 	marshalledChannelIdsFromEvents []byte,
 	marshalledAllChannelIds []byte,
 	marshalledEvents []byte,
@@ -213,9 +212,7 @@ func initializeInputCache(workflowVersionNodes []WorkflowNode,
 		if workflowNodeOutputCache[workflowVersionNode.WorkflowVersionNodeId] == nil {
 			workflowNodeOutputCache[workflowVersionNode.WorkflowVersionNodeId] = make(map[commons.WorkflowParameterLabel]string)
 		}
-		if len(eventChannelIds) != 0 {
-			workflowNodeInputCache[workflowVersionNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
-		}
+		workflowNodeInputCache[workflowVersionNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
 		workflowNodeInputCache[workflowVersionNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelAllChannels] = string(marshalledAllChannelIds)
 		workflowNodeInputCache[workflowVersionNode.WorkflowVersionNodeId][commons.WorkflowParameterLabelEvents] = string(marshalledEvents)
 
@@ -232,9 +229,7 @@ func initializeInputCache(workflowVersionNodes []WorkflowNode,
 			if workflowNodeOutputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId][channelId] == nil {
 				workflowNodeOutputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId][channelId] = make(map[commons.WorkflowParameterLabel]string)
 			}
-			if len(eventChannelIds) != 0 {
-				workflowNodeInputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId][channelId][commons.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
-			}
+			workflowNodeInputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId][channelId][commons.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
 			workflowNodeInputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId][channelId][commons.WorkflowParameterLabelAllChannels] = string(marshalledAllChannelIds)
 			workflowNodeInputByReferenceIdCache[workflowVersionNode.WorkflowVersionNodeId][channelId][commons.WorkflowParameterLabelEvents] = string(marshalledEvents)
 		}
