@@ -207,7 +207,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 		events := scheduledTrigger.TriggeringEventQueue
 		if len(events) > 0 {
 			firstEvent := events[0]
-			lastEvent := events[len(events)-1]
+			//lastEvent := events[len(events)-1]
 
 			workflowTriggerNode, err := workflows.GetWorkflowNode(db, scheduledTrigger.TriggeringWorkflowVersionNodeId)
 			if err != nil {
@@ -233,92 +233,92 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 				workflowTriggerNode.Type = commons.WorkflowNodeManualTrigger
 			}
 
-			if scheduledTrigger.TriggeringNodeType == commons.WorkflowNodeChannelBalanceEventTrigger {
-				// If the event is a WorkflowNode then this is the bootstrapping event that simulates a channel update
-				// since we don't know what happened while Torq was offline.
-				switch firstEvent.(type) {
-				case workflows.WorkflowNode:
-					eventTime := time.Now()
-					dummyChannelBalanceEvents := make(map[int]map[int]*commons.ChannelBalanceEvent)
-					torqNodeIds := commons.GetAllTorqNodeIds()
-					for _, torqNodeId := range torqNodeIds {
-						for _, channelId := range commons.GetChannelIdsByNodeId(torqNodeId) {
-							channelSettings := commons.GetChannelSettingByChannelId(channelId)
-							capacity := channelSettings.Capacity
-							remoteNodeId := channelSettings.FirstNodeId
-							if remoteNodeId == torqNodeId {
-								remoteNodeId = channelSettings.SecondNodeId
-							}
-							channelState := commons.GetChannelState(torqNodeId, channelId, true)
-							if channelState != nil {
-								if dummyChannelBalanceEvents[remoteNodeId] == nil {
-									dummyChannelBalanceEvents[remoteNodeId] = make(map[int]*commons.ChannelBalanceEvent)
-								}
-								dummyChannelBalanceEvents[remoteNodeId][channelId] = &commons.ChannelBalanceEvent{
-									EventData: commons.EventData{
-										EventTime: eventTime,
-										NodeId:    torqNodeId,
-									},
-									ChannelId:            channelId,
-									BalanceDelta:         0,
-									BalanceDeltaAbsolute: 0,
-									ChannelBalanceEventData: commons.ChannelBalanceEventData{
-										Capacity:                  capacity,
-										LocalBalance:              channelState.LocalBalance,
-										RemoteBalance:             channelState.RemoteBalance,
-										LocalBalancePerMilleRatio: int(channelState.LocalBalance / capacity * 1000),
-									},
-								}
-							}
-						}
-					}
-
-					aggregateCapacity := make(map[int]int64)
-					aggregateCount := make(map[int]int)
-					aggregateLocalBalance := make(map[int]int64)
-					aggregateLocalBalancePerMilleRatio := make(map[int]int)
-					for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
-						var localBalanceAggregate int64
-						var capacityAggregate int64
-						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
-							localBalanceAggregate += dummyChannelBalanceEvent.LocalBalance
-							capacityAggregate += dummyChannelBalanceEvent.Capacity
-						}
-						if capacityAggregate == 0 {
-							continue
-						}
-						aggregateCapacity[remoteNodeId] = capacityAggregate
-						aggregateCount[remoteNodeId] = len(dummyChannelBalanceEventByRemote)
-						aggregateLocalBalance[remoteNodeId] = localBalanceAggregate
-						aggregateLocalBalancePerMilleRatio[remoteNodeId] = int(localBalanceAggregate / capacityAggregate * 1000)
-					}
-					for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
-						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
-							dummyChannelBalanceEvent.PeerChannelCapacity = aggregateCapacity[remoteNodeId]
-							dummyChannelBalanceEvent.PeerChannelCount = aggregateCount[remoteNodeId]
-							dummyChannelBalanceEvent.PeerLocalBalance = aggregateLocalBalance[remoteNodeId]
-							dummyChannelBalanceEvent.PeerLocalBalancePerMilleRatio = aggregateLocalBalancePerMilleRatio[remoteNodeId]
-
-							triggerCtx, triggerCancel := context.WithCancel(ctx)
-
-							commons.ActivateEventTrigger(scheduledTrigger.Reference,
-								workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
-								scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
-
-							processWorkflowNode(triggerCtx, db, workflowTriggerNode,
-								scheduledTrigger.Reference, events, lightningRequestChannel,
-								rebalanceRequestChannel)
-
-							triggerCancel()
-
-							commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
-								workflowTriggerNode.WorkflowVersionNodeId, scheduledTrigger.TriggeringNodeType, lastEvent)
-
-						}
-					}
-					continue
-				}
-			}
+			//if scheduledTrigger.TriggeringNodeType == commons.WorkflowNodeChannelBalanceEventTrigger {
+			//	// If the event is a WorkflowNode then this is the bootstrapping event that simulates a channel update
+			//	// since we don't know what happened while Torq was offline.
+			//	switch firstEvent.(type) {
+			//	case workflows.WorkflowNode:
+			//		eventTime := time.Now()
+			//		dummyChannelBalanceEvents := make(map[int]map[int]*commons.ChannelBalanceEvent)
+			//		torqNodeIds := commons.GetAllTorqNodeIds()
+			//		for _, torqNodeId := range torqNodeIds {
+			//			for _, channelId := range commons.GetChannelIdsByNodeId(torqNodeId) {
+			//				channelSettings := commons.GetChannelSettingByChannelId(channelId)
+			//				capacity := channelSettings.Capacity
+			//				remoteNodeId := channelSettings.FirstNodeId
+			//				if remoteNodeId == torqNodeId {
+			//					remoteNodeId = channelSettings.SecondNodeId
+			//				}
+			//				channelState := commons.GetChannelState(torqNodeId, channelId, true)
+			//				if channelState != nil {
+			//					if dummyChannelBalanceEvents[remoteNodeId] == nil {
+			//						dummyChannelBalanceEvents[remoteNodeId] = make(map[int]*commons.ChannelBalanceEvent)
+			//					}
+			//					dummyChannelBalanceEvents[remoteNodeId][channelId] = &commons.ChannelBalanceEvent{
+			//						EventData: commons.EventData{
+			//							EventTime: eventTime,
+			//							NodeId:    torqNodeId,
+			//						},
+			//						ChannelId:            channelId,
+			//						BalanceDelta:         0,
+			//						BalanceDeltaAbsolute: 0,
+			//						ChannelBalanceEventData: commons.ChannelBalanceEventData{
+			//							Capacity:                  capacity,
+			//							LocalBalance:              channelState.LocalBalance,
+			//							RemoteBalance:             channelState.RemoteBalance,
+			//							LocalBalancePerMilleRatio: int(channelState.LocalBalance / capacity * 1000),
+			//						},
+			//					}
+			//				}
+			//			}
+			//		}
+			//
+			//		aggregateCapacity := make(map[int]int64)
+			//		aggregateCount := make(map[int]int)
+			//		aggregateLocalBalance := make(map[int]int64)
+			//		aggregateLocalBalancePerMilleRatio := make(map[int]int)
+			//		for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
+			//			var localBalanceAggregate int64
+			//			var capacityAggregate int64
+			//			for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
+			//				localBalanceAggregate += dummyChannelBalanceEvent.LocalBalance
+			//				capacityAggregate += dummyChannelBalanceEvent.Capacity
+			//			}
+			//			if capacityAggregate == 0 {
+			//				continue
+			//			}
+			//			aggregateCapacity[remoteNodeId] = capacityAggregate
+			//			aggregateCount[remoteNodeId] = len(dummyChannelBalanceEventByRemote)
+			//			aggregateLocalBalance[remoteNodeId] = localBalanceAggregate
+			//			aggregateLocalBalancePerMilleRatio[remoteNodeId] = int(localBalanceAggregate / capacityAggregate * 1000)
+			//		}
+			//		for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
+			//			for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
+			//				dummyChannelBalanceEvent.PeerChannelCapacity = aggregateCapacity[remoteNodeId]
+			//				dummyChannelBalanceEvent.PeerChannelCount = aggregateCount[remoteNodeId]
+			//				dummyChannelBalanceEvent.PeerLocalBalance = aggregateLocalBalance[remoteNodeId]
+			//				dummyChannelBalanceEvent.PeerLocalBalancePerMilleRatio = aggregateLocalBalancePerMilleRatio[remoteNodeId]
+			//
+			//				triggerCtx, triggerCancel := context.WithCancel(ctx)
+			//
+			//				commons.ActivateEventTrigger(scheduledTrigger.Reference,
+			//					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
+			//					scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
+			//
+			//				processWorkflowNode(triggerCtx, db, workflowTriggerNode,
+			//					scheduledTrigger.Reference, events, lightningRequestChannel,
+			//					rebalanceRequestChannel)
+			//
+			//				triggerCancel()
+			//
+			//				commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
+			//					workflowTriggerNode.WorkflowVersionNodeId, scheduledTrigger.TriggeringNodeType, lastEvent)
+			//
+			//			}
+			//		}
+			//		continue
+			//	}
+			//}
 
 			triggerCtx, triggerCancel := context.WithCancel(ctx)
 
