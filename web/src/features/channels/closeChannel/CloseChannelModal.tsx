@@ -77,12 +77,7 @@ function closeChannelModal() {
 
   function oncloseChannelMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
-    console.log(response);
     if (!response || response.id !== requestUUID) {
-      console.log("requestid is");
-      console.log(requestUUID);
-      console.log("and the request id is:");
-      console.log(response);
       return;
     }
     setStepIndex(1);
