@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -227,6 +228,9 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 		})
 		return
 	}
+	// Randomise the sequence of the pending channels
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(filteredChannelIds), func(i, j int) { filteredChannelIds[i], filteredChannelIds[j] = filteredChannelIds[j], filteredChannelIds[i] })
 	request.ChannelIds = filteredChannelIds
 
 	createdOn := time.Now().UTC()
