@@ -4,7 +4,6 @@ import {
   Checkmark20Regular as SuccessNoteIcon,
   CheckmarkRegular as SuccessIcon,
   ErrorCircleRegular as FailedIcon,
-  ErrorCircle20Regular as FailedNoteIcon,
   Link20Regular as LinkIcon,
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
@@ -28,6 +27,8 @@ import { Buffer } from "buffer";
 import Note, { NoteType } from "features/note/Note";
 import mixpanel from "mixpanel-browser";
 import { FormErrors, mergeServerError } from "components/errors/errors";
+import { v4 as uuidv4 } from "uuid";
+import ErrorSummary from "components/errors/ErrorSummary";
 
 const closeStatusClass = {
   IN_FLIGHT: styles.inFlight,
@@ -49,19 +50,19 @@ function closeChannelModal() {
   const channelId = parseInt(queryParams.get("channelId") || "0");
 
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
-  const [errMessage, setErrorMessage] = useState<string>("");
   const [closingTx, setClosingTx] = useState<string>("");
   const [detailState, setDetailState] = useState(ProgressStepState.active);
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
   const [stepIndex, setStepIndex] = useState(0);
   const [force, setForce] = useState<boolean>(false);
   const [formErrorState, setFormErrorState] = useState({} as FormErrors);
+  const [requestUUID, setRequestUUID] = useState("");
 
   const closeAndReset = () => {
     setStepIndex(0);
     setDetailState(ProgressStepState.active);
     setResultState(ProgressStepState.disabled);
-    setErrorMessage("");
+    setFormErrorState({});
     setClosingTx("");
   };
 
@@ -75,32 +76,39 @@ function closeChannelModal() {
   });
 
   function oncloseChannelMessage(event: MessageEvent<string>) {
-    setStepIndex(1);
     const response = JSON.parse(event.data);
-    if (response?.type === "Error") {
-      setFormErrorState(mergeServerError(response.error, formErrorState));
-      setErrorMessage(response.error);
-      setResultState(ProgressStepState.error);
+    console.log(response);
+    if (!response || response.id !== requestUUID) {
+      console.log("requestid is");
+      console.log(requestUUID);
+      console.log("and the request id is:");
+      console.log(response);
       return;
-    } else {
-      if (!closingTx) {
-        const decodedTxId = Buffer.from(response.closePendingChannelPoint.txId, "base64").toString("utf8");
-        setClosingTx(`${decodedTxId}`);
-      }
     }
+    setStepIndex(1);
+    setDetailState(ProgressStepState.completed);
+    if (response.type === "Error") {
+      setResultState(ProgressStepState.error);
+      setFormErrorState(mergeServerError(response.error, formErrorState));
+      return;
+    }
+    setResultState(ProgressStepState.completed);
+    const decodedTxId = Buffer.from(response.closePendingChannelPoint.txId, "base64").toString("utf8");
+    setClosingTx(`${decodedTxId}`);
   }
 
   function closeChannel() {
     setDetailState(ProgressStepState.processing);
-    setResultState(ProgressStepState.completed);
     mixpanel.track("Close Channel", {
       nodeId: nodeId,
       channelId: channelId,
       openChannelUseSatPerVbyte: satPerVbyte !== 0,
       force: force,
     });
+    const newRequestUUID = uuidv4();
+    setRequestUUID(newRequestUUID);
     sendJsonMessage({
-      requestId: "randId",
+      requestId: newRequestUUID,
       type: "closeChannel",
       closeChannelRequest: {
         nodeId: nodeId,
@@ -163,15 +171,14 @@ function closeChannelModal() {
           <div
             className={classNames(
               styles.closeChannelResultIconWrapper,
-              { [styles.failed]: errMessage },
-              closeStatusClass[errMessage ? "FAILED" : "SUCCEEDED"]
+              { [styles.failed]: resultState !== ProgressStepState.completed },
+              closeStatusClass[resultState === ProgressStepState.completed ? "SUCCEEDED" : "FAILED"]
             )}
           >
-            {" "}
-            {closeStatusIcon[errMessage ? "FAILED" : "SUCCEEDED"]}
+            {closeStatusIcon[resultState === ProgressStepState.completed ? "SUCCEEDED" : "FAILED"]}
           </div>
           <div className={styles.closeChannelResultDetails}>
-            {!errMessage && (
+            {resultState === ProgressStepState.completed && (
               <>
                 <Note title={t.TxId} icon={<SuccessNoteIcon />} noteType={NoteType.success}>
                   {closingTx}
@@ -191,11 +198,7 @@ function closeChannelModal() {
                 </Note>
               </>
             )}
-            {errMessage && (
-              <Note title={t.openCloseChannel.error} icon={<FailedNoteIcon />} noteType={NoteType.error}>
-                {errMessage}
-              </Note>
-            )}
+            <ErrorSummary errors={formErrorState} />
           </div>
         </ProgressTabContainer>
       </ProgressTabs>

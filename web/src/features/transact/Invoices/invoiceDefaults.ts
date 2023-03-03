@@ -1,7 +1,10 @@
-// import { uuid } from "uuidv4";
 import { ViewResponse } from "features/viewManagement/types";
 import { Invoice } from "features/transact/Invoices/invoiceTypes";
-import { AllInvoicesColumns, InvoicesSortableColumns, InvoicesFilterableColumns } from "features/transact/Invoices/invoicesColumns.generated";
+import {
+  AllInvoicesColumns,
+  InvoicesSortableColumns,
+  InvoicesFilterableColumns,
+} from "features/transact/Invoices/invoicesColumns.generated";
 import { ColumnMetaData } from "features/table/types";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
 
