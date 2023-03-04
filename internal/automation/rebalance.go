@@ -26,7 +26,7 @@ import (
 const rebalanceQueueTickerSeconds = 10
 const rebalanceMaximumConcurrency = 10
 const rebalanceRouteFailedHopAllowedDeltaPerMille = 10
-const rebalanceRebalanceDelayMilliseconds = 500
+const rebalanceRebalanceDelayMilliseconds = 2_000
 const rebalanceSuccessTimeoutSeconds = 2 * 60
 const rebalanceTimeoutSeconds = 2 * 60 * 60
 const rebalanceRunnerTimeoutSeconds = 1 * 60 * 60
@@ -323,6 +323,8 @@ func (rebalancer *Rebalancer) start(
 	routesTimeout int,
 	payTimeout int) {
 
+	log.Debug().Msgf("Rebalance initiated for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+		rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 	if rebalancer.Request.IncomingChannelId != 0 {
 		incomingChannel := commons.GetChannelSettingByChannelId(rebalancer.Request.IncomingChannelId)
 		if incomingChannel.Capacity == 0 || incomingChannel.Status != commons.Open {
@@ -349,6 +351,8 @@ func (rebalancer *Rebalancer) start(
 	previousSuccess := getLatestResultByOrigin(rebalancer.Request.Origin, rebalancer.Request.OriginId,
 		rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, &active)
 	if time.Since(previousSuccess.UpdateOn).Seconds() > rebalanceSuccessTimeoutSeconds {
+		log.Debug().Msgf("Previous success ignore due to outdated for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 		previousSuccess = RebalanceResult{}
 	}
 
@@ -360,6 +364,8 @@ func (rebalancer *Rebalancer) start(
 	}
 
 	if previousSuccess.Hops != "" && previousSuccess.Route != nil {
+		log.Debug().Msgf("Previous success found for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 		runnerCtx, runnerCancel := context.WithTimeout(rebalancer.RebalanceCtx, time.Second*time.Duration(runnerTimeout))
 		defer runnerCancel()
 		dummyRunner := &RebalanceRunner{
@@ -380,6 +386,8 @@ func (rebalancer *Rebalancer) start(
 		}
 		result := rebalancer.rerunPreviousSuccess(client, router, dummyRunner, previousSuccess.Route, payTimeout)
 		if result.Status == commons.Active {
+			log.Debug().Msgf("Previous success successfully reused for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+				rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 			removeRebalancer(rebalancer)
 			rebalancer.RebalanceCancel()
 		}
@@ -393,6 +401,8 @@ func (rebalancer *Rebalancer) start(
 		} else {
 			delete(rebalancer.Runners, previousSuccess.IncomingChannelId)
 		}
+		log.Debug().Msgf("Previous success reuse failed for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 	}
 	for i := 0; i < rebalancer.Request.MaximumConcurrency; i++ {
 		go rebalancer.createRunner(db, client, router, runnerTimeout, routesTimeout, payTimeout)
