@@ -118,8 +118,6 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 				now := time.Now().UTC()
 				request.RequestTime = &now
 			}
-			// Previous rebalance cleanup delay
-			time.Sleep(rebalanceRebalanceDelayMilliseconds * time.Millisecond)
 			processRebalanceRequest(ctx, db, request, nodeId)
 		}
 	}()
@@ -259,9 +257,10 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 	//}
 
 	rebalancer := &Rebalancer{
-		NodeId:         nodeId,
-		CreatedOn:      createdOn,
-		ScheduleTarget: createdOn,
+		NodeId:    nodeId,
+		CreatedOn: createdOn,
+		// Previous rebalance cleanup delay
+		ScheduleTarget: createdOn.Add(rebalanceRebalanceDelayMilliseconds * time.Millisecond),
 		UpdateOn:       createdOn,
 		GlobalCtx:      ctx,
 		Runners:        make(map[int]*RebalanceRunner),
