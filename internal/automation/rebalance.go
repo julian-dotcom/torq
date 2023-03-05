@@ -363,6 +363,17 @@ func (rebalancer *Rebalancer) start(
 		previousSuccess = RebalanceResult{}
 	}
 
+	if rebalancer.Request.IncomingChannelId == 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.IncomingChannelId) {
+		log.Debug().Msgf("Previous success ignored as it's not available anymore for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
+		previousSuccess = RebalanceResult{}
+	}
+	if rebalancer.Request.OutgoingChannelId == 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.OutgoingChannelId) {
+		log.Debug().Msgf("Previous success ignored as it's not available anymore for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
+		previousSuccess = RebalanceResult{}
+	}
+
 	err := AddRebalanceAndChannels(db, rebalancer)
 	if err != nil {
 		log.Error().Err(err).Msgf("Storing rebalance for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
