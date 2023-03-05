@@ -24,7 +24,7 @@ import (
 )
 
 const rebalanceQueueTickerSeconds = 10
-const rebalanceMaximumConcurrency = 10
+const rebalanceMaximumConcurrency = 100
 const rebalanceRouteFailedHopAllowedDeltaPerMille = 10
 const rebalanceRebalanceDelayMilliseconds = 2_000
 const rebalanceSuccessTimeoutSeconds = 2 * 60
@@ -138,6 +138,7 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 			return
 		case <-ticker:
 			activeRebalancers := getRebalancers(&active)
+			log.Debug().Msgf("Active rebalancers: %v/%v", len(activeRebalancers), rebalanceMaximumConcurrency)
 			if len(activeRebalancers) > rebalanceMaximumConcurrency {
 				continue
 			}
@@ -148,22 +149,28 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 					return pendingRebalancers[i].ScheduleTarget.Before(pendingRebalancers[j].ScheduleTarget)
 				})
 
-				if pendingRebalancers[0].RebalanceCtx.Err() != nil {
-					removeRebalancer(pendingRebalancers[0])
-					runningFor := time.Since(pendingRebalancers[0].CreatedOn).Round(1 * time.Second)
-					if pendingRebalancers[0].Request.IncomingChannelId != 0 {
+				var pendingRebalancer *Rebalancer
+				i := 0
+				for {
+					pendingRebalancer = pendingRebalancers[i]
+					if pendingRebalancer.RebalanceCtx.Err() == nil {
+						break
+					}
+					removeRebalancer(pendingRebalancer)
+					runningFor := time.Since(pendingRebalancer.CreatedOn).Round(1 * time.Second)
+					if pendingRebalancer.Request.IncomingChannelId != 0 {
 						log.Debug().Msgf("Rebalancer timed out after %s for Origin: %v, OriginId: %v, Incoming Channel: %v",
-							runningFor, pendingRebalancers[0].Request.Origin, pendingRebalancers[0].Request.OriginId, pendingRebalancers[0].Request.IncomingChannelId)
+							runningFor, pendingRebalancer.Request.Origin, pendingRebalancer.Request.OriginId, pendingRebalancer.Request.IncomingChannelId)
 					}
-					if pendingRebalancers[0].Request.OutgoingChannelId != 0 {
+					if pendingRebalancer.Request.OutgoingChannelId != 0 {
 						log.Debug().Msgf("Rebalancer timed out after %s for Origin: %v, OriginId: %v, Outgoing Channel: %v",
-							runningFor, pendingRebalancers[0].Request.Origin, pendingRebalancers[0].Request.OriginId, pendingRebalancers[0].Request.OutgoingChannelId)
+							runningFor, pendingRebalancer.Request.Origin, pendingRebalancer.Request.OriginId, pendingRebalancer.Request.OutgoingChannelId)
 					}
-					continue
+					i++
 				}
 
-				if pendingRebalancers[0].ScheduleTarget.Before(time.Now()) {
-					go pendingRebalancers[0].start(db, client, router,
+				if pendingRebalancer.ScheduleTarget.Before(time.Now()) {
+					go pendingRebalancer.start(db, client, router,
 						rebalanceRunnerTimeoutSeconds,
 						rebalanceRoutesTimeoutSeconds,
 						rebalancePayTimeoutSeconds)

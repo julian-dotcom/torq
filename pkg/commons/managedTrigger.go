@@ -193,6 +193,9 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 				// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
 				//}
 
+				log.Debug().Msgf("Trigger got scheduled while there is a pending version with triggerReferenceId: %v, events: %v, queue: %v",
+					triggerReferenceId, len(scheduledItem.TriggeringEventQueue), len(scheduledTriggerCache))
+
 				return scheduledTriggerCache
 			}
 		}
