@@ -19,10 +19,10 @@ type ManagedNodeAlias struct {
 	Type   ManagedNodeAliasCacheOperationType
 	NodeId int
 	Alias  string
-	Out    chan string
+	Out    chan<- string
 }
 
-func ManagedNodeAliasCache(ch chan ManagedNodeAlias, ctx context.Context) {
+func ManagedNodeAliasCache(ch <-chan ManagedNodeAlias, ctx context.Context) {
 	nodeAliasesByNodeIdCache := make(map[int]string, 0)
 	for {
 		select {

@@ -23,8 +23,8 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	workflowTriggerNode WorkflowNode,
 	reference string,
 	events []any,
-	lightningRequestChannel chan interface{},
-	rebalanceRequestChannel chan commons.RebalanceRequest) error {
+	lightningRequestChannel chan<- interface{},
+	rebalanceRequestChannel chan<- commons.RebalanceRequest) error {
 
 	// workflowNodeInputCache: map[workflowVersionNodeId][label]value
 	workflowNodeInputCache := make(map[int]map[commons.WorkflowParameterLabel]string)
@@ -265,8 +265,8 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	workflowNodeOutputByReferenceIdCache map[int]map[int]map[commons.WorkflowParameterLabel]string,
 	workflowStageOutputCache map[int]map[commons.WorkflowParameterLabel]string,
 	workflowStageOutputByReferenceIdCache map[int]map[int]map[commons.WorkflowParameterLabel]string,
-	lightningRequestChannel chan interface{},
-	rebalanceRequestChannel chan commons.RebalanceRequest) (commons.Status, error) {
+	lightningRequestChannel chan<- interface{},
+	rebalanceRequestChannel chan<- commons.RebalanceRequest) (commons.Status, error) {
 
 	select {
 	case <-ctx.Done():
@@ -894,7 +894,7 @@ func processRebalanceConfigurator(
 
 func processRebalanceRun(
 	rebalanceSettings RebalanceConfiguration,
-	rebalanceRequestChannel chan commons.RebalanceRequest,
+	rebalanceRequestChannel chan<- commons.RebalanceRequest,
 	workflowNode WorkflowNode,
 	reference string) ([]commons.RebalanceResponse, error) {
 
@@ -953,7 +953,7 @@ func initiatedRebalance(
 	workflowVersionNodeId int,
 	request commons.RebalanceRequest,
 	responses []commons.RebalanceResponse,
-	rebalanceRequestChannel chan commons.RebalanceRequest) []commons.RebalanceResponse {
+	rebalanceRequestChannel chan<- commons.RebalanceRequest) []commons.RebalanceResponse {
 
 	nodeId := channelSetting.FirstNodeId
 	if !slices.Contains(commons.GetAllTorqNodeIds(), nodeId) {
@@ -1037,7 +1037,7 @@ func processRoutingPolicyConfigurator(
 
 func processRoutingPolicyRun(
 	routingPolicySettings ChannelPolicyConfiguration,
-	lightningRequestChannel chan interface{},
+	lightningRequestChannel chan<- interface{},
 	workflowNode WorkflowNode,
 	reference string,
 	triggerType commons.WorkflowNodeType) (commons.RoutingPolicyUpdateResponse, error) {

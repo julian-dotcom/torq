@@ -56,10 +56,10 @@ type ManagedChannel struct {
 	ClosingNodeId          *int
 	ClosingBlockHeight     *uint32
 	ClosedOn               *time.Time
-	Out                    chan ManagedChannel
-	ChannelSettingOut      chan ManagedChannelSettings
-	ChannelSettingsOut     chan []ManagedChannelSettings
-	ChannelIdsOut          chan []int
+	Out                    chan<- ManagedChannel
+	ChannelSettingOut      chan<- ManagedChannelSettings
+	ChannelSettingsOut     chan<- []ManagedChannelSettings
+	ChannelIdsOut          chan<- []int
 }
 
 type ManagedChannelSettings struct {
@@ -83,7 +83,7 @@ type ManagedChannelSettings struct {
 	ClosedOn               *time.Time
 }
 
-func ManagedChannelCache(ch chan ManagedChannel, ctx context.Context) {
+func ManagedChannelCache(ch <-chan ManagedChannel, ctx context.Context) {
 	allChannelSettingsByChannelIdCache := make(map[int]ManagedChannelSettings, 0)
 	shortChannelIdCache := make(map[string]int, 0)
 	allShortChannelIdCache := make(map[string]int, 0)

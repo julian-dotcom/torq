@@ -105,12 +105,12 @@ type ManagedChannelState struct {
 	HtlcEvent            HtlcEvent
 	ChannelStateSettings []ManagedChannelStateSettings
 	HtlcInclude          ChannelBalanceStateHtlcInclude
-	ChannelIdsOut        chan []int
+	ChannelIdsOut        chan<- []int
 	StateInclude         ChannelStateInclude
-	StateOut             chan *ManagedChannelStateSettings
-	StatesOut            chan []ManagedChannelStateSettings
-	BalanceStateOut      chan *ManagedChannelBalanceStateSettings
-	BalanceStatesOut     chan []ManagedChannelBalanceStateSettings
+	StateOut             chan<- *ManagedChannelStateSettings
+	StatesOut            chan<- []ManagedChannelStateSettings
+	BalanceStateOut      chan<- *ManagedChannelBalanceStateSettings
+	BalanceStatesOut     chan<- []ManagedChannelBalanceStateSettings
 }
 
 type ManagedChannelStateSettings struct {
@@ -171,7 +171,7 @@ type ManagedChannelBalanceStateSettings struct {
 }
 
 // ManagedChannelStateCache parameter Context is for test cases...
-func ManagedChannelStateCache(ch chan ManagedChannelState, ctx context.Context, channelBalanceEventChannel chan ChannelBalanceEvent) {
+func ManagedChannelStateCache(ch <-chan ManagedChannelState, ctx context.Context, channelBalanceEventChannel chan<- ChannelBalanceEvent) {
 	channelStateSettingsByChannelIdCache := make(map[int]map[int]ManagedChannelStateSettings, 0)
 	channelStateSettingsStatusCache := make(map[int]Status, 0)
 	channelStateSettingsDeactivationTimeCache := make(map[int]time.Time, 0)
@@ -191,7 +191,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 	channelStateSettingsStatusCache map[int]Status,
 	channelStateSettingsByChannelIdCache map[int]map[int]ManagedChannelStateSettings,
 	channelStateSettingsDeactivationTimeCache map[int]time.Time,
-	channelBalanceEventChannel chan ChannelBalanceEvent) {
+	channelBalanceEventChannel chan<- ChannelBalanceEvent) {
 	switch managedChannelState.Type {
 	case READ_CHANNELSTATE:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {

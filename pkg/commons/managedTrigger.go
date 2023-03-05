@@ -33,7 +33,7 @@ type ManagedTrigger struct {
 	VerificationTime                *time.Time
 	Status                          Status
 	PreviousState                   Status
-	TriggerSettingsOut              chan ManagedTriggerSettings
+	TriggerSettingsOut              chan<- ManagedTriggerSettings
 }
 
 type ManagedTriggerSettings struct {
@@ -50,7 +50,7 @@ type ManagedTriggerSettings struct {
 	PreviousState                   Status
 }
 
-func ManagedTriggerCache(ch chan ManagedTrigger, ctx context.Context) {
+func ManagedTriggerCache(ch <-chan ManagedTrigger, ctx context.Context) {
 	timeTriggerCache := make(map[int]ManagedTriggerSettings)
 	eventTriggerCache := make(map[int]map[int]map[int]ManagedTriggerSettings)
 	var scheduledTriggerCache []ManagedTriggerSettings
@@ -205,6 +205,7 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 			TriggeringEventQueue:            []any{managedTrigger.TriggeringEvent},
 			Reference:                       managedTrigger.Reference,
 		})
+		log.Debug().Msgf("Amount of triggers currently scheduled: %v", len(scheduledTriggerCache))
 	}
 	return scheduledTriggerCache
 }

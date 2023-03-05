@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/cockroachdb/errors"
-	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/walletrpc"
 	"google.golang.org/grpc"
@@ -27,9 +26,8 @@ type rpcClientNewAddress interface {
 }
 
 func NewAddress(
-	eventChannel chan interface{},
+	eventChannel chan<- interface{},
 	db *sqlx.DB,
-	context *gin.Context,
 	newAddressRequest commons.NewAddressRequest,
 	requestId string,
 ) (err error) {
@@ -72,7 +70,7 @@ func createLndAddressRequest(newAddressRequest commons.NewAddressRequest) (r *wa
 	return lndAddressRequest, nil
 }
 
-func newAddress(client rpcClientNewAddress, newAddressRequest commons.NewAddressRequest, eventChannel chan interface{}, requestId string) (err error) {
+func newAddress(client rpcClientNewAddress, newAddressRequest commons.NewAddressRequest, eventChannel chan<- interface{}, requestId string) (err error) {
 	// Create and validate payment request details
 	lndAddressRequest, err := createLndAddressRequest(newAddressRequest)
 	if err != nil {

@@ -135,6 +135,29 @@ func (s *Status) String() string {
 	return "Unknown"
 }
 
+func (s *ServiceStatus) String() string {
+	if s == nil {
+		return "Unknown"
+	}
+	switch *s {
+	case ServiceInactive:
+		return "Inactive"
+	case ServiceActive:
+		return "Active"
+	case ServicePending:
+		return "Pending"
+	case ServiceDeleted:
+		return "Deleted"
+	case ServiceInitializing:
+		return "Initializing"
+	case ServiceBootRequested:
+		return "BootRequested"
+	case ServiceBootRequestedWithDelay:
+		return "BootRequestedWithDelay"
+	}
+	return "Unknown"
+}
+
 func GetServiceTypes() []ServiceType {
 	return []ServiceType{
 		LndService,
@@ -256,7 +279,7 @@ func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
 }
 
 func SignMessage(unixTime time.Time, nodeId int, message string, singleHash *bool,
-	lightningRequestChannel chan interface{}) SignMessageResponse {
+	lightningRequestChannel chan<- interface{}) SignMessageResponse {
 
 	responseChannel := make(chan SignMessageResponse)
 	request := SignMessageRequest{
@@ -274,7 +297,7 @@ func SignMessage(unixTime time.Time, nodeId int, message string, singleHash *boo
 }
 
 func SignatureVerification(unixTime time.Time, nodeId int, message string, signature string,
-	lightningRequestChannel chan interface{}) SignatureVerificationResponse {
+	lightningRequestChannel chan<- interface{}) SignatureVerificationResponse {
 
 	responseChannel := make(chan SignatureVerificationResponse)
 	request := SignatureVerificationRequest{

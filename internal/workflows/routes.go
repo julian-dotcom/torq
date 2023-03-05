@@ -149,7 +149,7 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 			log.Error().Err(err).Msg("Could not obtain workflowIds for WorkflowNodeCronTrigger")
 		}
 		if slices.Contains(workflowIds, req.WorkflowId) {
-			active := commons.Active
+			active := commons.ServiceActive
 			commons.RunningServices[commons.CronService].Cancel(commons.TorqDummyNodeId, &active, true)
 		}
 	}

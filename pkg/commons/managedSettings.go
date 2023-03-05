@@ -25,10 +25,10 @@ type ManagedSettings struct {
 	TorqUuid          string
 	MixpanelOptOut    bool
 	BlockHeight       uint32
-	Out               chan ManagedSettings
+	Out               chan<- ManagedSettings
 }
 
-func ManagedSettingsCache(ch chan ManagedSettings, ctx context.Context) {
+func ManagedSettingsCache(ch <-chan ManagedSettings, ctx context.Context) {
 	var defaultLanguage string
 	var preferredTimeZone string
 	var defaultDateRange string
@@ -88,7 +88,7 @@ func processManagedSettings(managedSettings ManagedSettings,
 	return defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn, torqUuid, mixpanelOptOut, blockHeight
 }
 
-func SendToManagedSettingsChannel(ch chan ManagedSettings, managedSettings ManagedSettings) {
+func SendToManagedSettingsChannel(ch chan<- ManagedSettings, managedSettings ManagedSettings) {
 	ch <- managedSettings
 }
 

@@ -24,7 +24,7 @@ type PsbtDetails struct {
 	Psbt           []byte `json:"psbt,omitempty"`
 }
 
-func OpenChannel(eventChannel chan interface{}, db *sqlx.DB, req commons.OpenChannelRequest, requestId string) (err error) {
+func OpenChannel(eventChannel chan<- interface{}, db *sqlx.DB, req commons.OpenChannelRequest, requestId string) (err error) {
 	openChanReq, err := prepareOpenRequest(req)
 	if err != nil {
 		return errors.Wrap(err, "Preparing open request")

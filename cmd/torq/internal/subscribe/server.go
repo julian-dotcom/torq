@@ -36,16 +36,16 @@ const genericBootstrappingTimeSeconds = 60
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
 func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl string, nodeId int, broadcaster broadcast.BroadcastServer,
-	serviceEventChannel chan commons.ServiceEvent, htlcEventChannel chan commons.HtlcEvent, forwardEventChannel chan commons.ForwardEvent,
-	channelEventChannel chan commons.ChannelEvent, nodeGraphEventChannel chan commons.NodeGraphEvent, channelGraphEventChannel chan commons.ChannelGraphEvent,
-	invoiceEventChannel chan commons.InvoiceEvent, paymentEventChannel chan commons.PaymentEvent, transactionEventChannel chan commons.TransactionEvent,
-	peerEventChannel chan commons.PeerEvent, blockEventChannel chan commons.BlockEvent, lightningRequestChannel chan interface{}) error {
+	serviceEventChannel chan<- commons.ServiceEvent, htlcEventChannel chan<- commons.HtlcEvent, forwardEventChannel chan<- commons.ForwardEvent,
+	channelEventChannel chan<- commons.ChannelEvent, nodeGraphEventChannel chan<- commons.NodeGraphEvent, channelGraphEventChannel chan<- commons.ChannelGraphEvent,
+	invoiceEventChannel chan<- commons.InvoiceEvent, paymentEventChannel chan<- commons.PaymentEvent, transactionEventChannel chan<- commons.TransactionEvent,
+	peerEventChannel chan<- commons.PeerEvent, blockEventChannel chan<- commons.BlockEvent, lightningRequestChannel chan<- interface{}) error {
 
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
 	chain := chainrpc.NewChainNotifierClient(conn)
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
-	active := commons.Active
+	active := commons.ServiceActive
 
 	var wg sync.WaitGroup
 
@@ -307,16 +307,16 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 	return nil
 }
 
-func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream, name string, serviceEventChannel chan commons.ServiceEvent) {
+func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream, name string, serviceEventChannel chan<- commons.ServiceEvent) {
 	log.Info().Msgf("LND %v initialization started for nodeId: %v", name, nodeId)
 	streamStartTime := time.Now()
 	time.Sleep(1 * time.Second)
 	for {
-		if commons.RunningServices[commons.LndService].GetStreamStatus(nodeId, subscriptionStream) == commons.Active {
+		if commons.RunningServices[commons.LndService].GetStreamStatus(nodeId, subscriptionStream) == commons.ServiceActive {
 			log.Info().Msgf("LND %v initial download done (in less then %s) for nodeId: %v", name, time.Since(streamStartTime).Round(1*time.Second), nodeId)
 			return
 		}
-		if commons.RunningServices[commons.LndService].GetStreamStatus(nodeId, subscriptionStream) == commons.Deleted {
+		if commons.RunningServices[commons.LndService].GetStreamStatus(nodeId, subscriptionStream) == commons.ServiceDeleted {
 			log.Info().Msgf("LND %v skipped (in less then %s) for nodeId: %v", name, time.Since(streamStartTime).Round(1*time.Second), nodeId)
 			return
 		}
@@ -337,7 +337,7 @@ func waitForReadyState(nodeId int, subscriptionStream commons.SubscriptionStream
 			}
 			if time.Since(*lastInitializationPing).Seconds() > float64(pingTimeOutInSeconds) {
 				log.Info().Msgf("LND %v idle for over %v seconds for nodeId: %v", name, pingTimeOutInSeconds, nodeId)
-				lnd.SendStreamEvent(serviceEventChannel, nodeId, subscriptionStream, commons.Active, commons.Initializing)
+				lnd.SendStreamEvent(serviceEventChannel, nodeId, subscriptionStream, commons.ServiceActive, commons.ServiceInitializing)
 				return
 			}
 		}

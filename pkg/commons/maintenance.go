@@ -16,7 +16,7 @@ const maintenanceQueueTickerSeconds = 60 * 60
 const maintenanceVectorDelayMilliseconds = 500
 
 func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB, vectorUrl string,
-	lightningRequestChannel chan interface{}) {
+	lightningRequestChannel chan<- interface{}) {
 
 	defer log.Info().Msgf("MaintenanceService terminated")
 
@@ -33,7 +33,7 @@ func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB, vectorUrl string,
 	}
 }
 
-func processMissingChannelData(db *sqlx.DB, vectorUrl string, lightningRequestChannel chan interface{}) {
+func processMissingChannelData(db *sqlx.DB, vectorUrl string, lightningRequestChannel chan<- interface{}) {
 	torqNodeIds := GetAllTorqNodeIds()
 	for _, torqNodeId := range torqNodeIds {
 		nodeSettings := GetNodeSettingsByNodeId(torqNodeId)

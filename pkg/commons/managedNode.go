@@ -39,11 +39,11 @@ type ManagedNode struct {
 	Network         *Network
 	PublicKey       string
 	Name            *string
-	Out             chan ManagedNode
-	NodeIdsOut      chan []int
-	NodeSettingOut  chan ManagedNodeSettings
-	NodeSettingsOut chan []ManagedNodeSettings
-	PublicKeysOut   chan []string
+	Out             chan<- ManagedNode
+	NodeIdsOut      chan<- []int
+	NodeSettingOut  chan<- ManagedNodeSettings
+	NodeSettingsOut chan<- []ManagedNodeSettings
+	PublicKeysOut   chan<- []string
 }
 
 type ManagedNodeSettings struct {
@@ -56,7 +56,7 @@ type ManagedNodeSettings struct {
 }
 
 // ManagedNodeCache parameter Context is for test cases...
-func ManagedNodeCache(ch chan ManagedNode, ctx context.Context) {
+func ManagedNodeCache(ch <-chan ManagedNode, ctx context.Context) {
 	allTorqNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
 	nodeSettingsByNodeIdCache := make(map[int]ManagedNodeSettings, 0)
 	activeTorqNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)

@@ -33,10 +33,10 @@ type ServiceChannelMessage = struct {
 	ServiceCommand ServiceCommand
 	NodeId         int
 	// EnforcedServiceStatus is a one time status enforcement for a service
-	EnforcedServiceStatus *Status
+	EnforcedServiceStatus *ServiceStatus
 	// NoDelay is a one time no delay enforcement for a service
 	NoDelay bool
-	Out     chan Status
+	Out     chan<- ServiceStatus
 }
 
 const LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS = 10

@@ -16,13 +16,13 @@ import (
 )
 
 func Start(ctx context.Context, db *sqlx.DB,
-	lightningRequestChannel chan interface{},
-	rebalanceRequestChannel chan commons.RebalanceRequest,
+	lightningRequestChannel chan<- interface{},
+	rebalanceRequestChannel chan<- commons.RebalanceRequest,
 	broadcaster broadcast.BroadcastServer) error {
 
 	var wg sync.WaitGroup
 
-	active := commons.Active
+	active := commons.ServiceActive
 
 	// Interval Trigger Monitor
 	wg.Add(1)
@@ -73,7 +73,7 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 
 	var wg sync.WaitGroup
 
-	active := commons.Active
+	active := commons.ServiceActive
 
 	wg.Add(1)
 	go (func() {
@@ -97,7 +97,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 	var wg sync.WaitGroup
 
-	active := commons.Active
+	active := commons.ServiceActive
 
 	wg.Add(1)
 	go (func() {
@@ -116,10 +116,10 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	return nil
 }
 
-func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string, lightningRequestChannel chan interface{}) error {
+func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string, lightningRequestChannel chan<- interface{}) error {
 	var wg sync.WaitGroup
 
-	active := commons.Active
+	active := commons.ServiceActive
 
 	wg.Add(1)
 	go (func() {
@@ -141,7 +141,7 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string,
 func StartCronService(ctx context.Context, db *sqlx.DB) error {
 	var wg sync.WaitGroup
 
-	active := commons.Active
+	active := commons.ServiceActive
 
 	// Cron Trigger Monitor
 	wg.Add(1)

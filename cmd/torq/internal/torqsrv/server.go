@@ -41,10 +41,10 @@ import (
 )
 
 func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
-	webSocketResponseChannel chan interface{}, broadcaster broadcast.BroadcastServer,
-	lightningRequestChannel chan interface{},
-	rebalanceRequestChannel chan commons.RebalanceRequest,
-	serviceChannel chan commons.ServiceChannelMessage,
+	webSocketResponseChannel chan<- interface{}, broadcaster broadcast.BroadcastServer,
+	lightningRequestChannel chan<- interface{},
+	rebalanceRequestChannel chan<- commons.RebalanceRequest,
+	serviceChannel chan<- commons.ServiceChannelMessage,
 	autoLogin bool) error {
 
 	r := gin.Default()
@@ -118,10 +118,10 @@ func equalASCIIFold(s, t string) bool {
 }
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string,
-	webSocketResponseChannel chan interface{}, broadcaster broadcast.BroadcastServer,
-	lightningRequestChannel chan interface{},
-	rebalanceRequestChannel chan commons.RebalanceRequest,
-	serviceChannel chan commons.ServiceChannelMessage,
+	webSocketResponseChannel chan<- interface{}, broadcaster broadcast.BroadcastServer,
+	lightningRequestChannel chan<- interface{},
+	rebalanceRequestChannel chan<- commons.RebalanceRequest,
+	serviceChannel chan<- commons.ServiceChannelMessage,
 	autoLogin bool) {
 
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
@@ -232,7 +232,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 
 		automationRoutes := api.Group("/automation")
 		{
-			automation.RegisterAutomationRoutes(automationRoutes, db, rebalanceRequestChannel)
+			automation.RegisterAutomationRoutes(automationRoutes, rebalanceRequestChannel)
 		}
 
 		messageRoutes := api.Group("messages")

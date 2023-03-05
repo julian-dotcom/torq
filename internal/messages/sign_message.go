@@ -8,7 +8,7 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func signMessage(req SignMessageRequest, lightningRequestChannel chan interface{}) (SignMessageResponse, error) {
+func signMessage(req SignMessageRequest, lightningRequestChannel chan<- interface{}) (SignMessageResponse, error) {
 	if req.NodeId == 0 {
 		return SignMessageResponse{}, errors.New("Node Id missing")
 	}

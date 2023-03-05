@@ -38,17 +38,17 @@ type ManagedRebalance struct {
 	Status             *commons.Status
 	Rebalancer         *Rebalancer
 	RebalanceResult    RebalanceResult
-	Out                chan ManagedRebalance
-	BoolOut            chan bool
-	RebalanceResultOut chan RebalanceResult
-	RebalancersOut     chan []*Rebalancer
+	Out                chan<- ManagedRebalance
+	BoolOut            chan<- bool
+	RebalanceResultOut chan<- RebalanceResult
+	RebalancersOut     chan<- []*Rebalancer
 }
 
 // originId is workflowVersionNodeId in case of workflow triggered rebalances.
 type originIdInt int
 type channelIdInt int
 
-func ManagedRebalanceCache(ch chan ManagedRebalance, ctx context.Context) {
+func ManagedRebalanceCache(ch <-chan ManagedRebalance, ctx context.Context) {
 	rebalancers := make(map[commons.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer)
 	outgoingResultsCache := make(map[commons.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt][]RebalanceResult)
 	incomingResultsCache := make(map[commons.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt][]RebalanceResult)
@@ -350,17 +350,17 @@ func isValidRequest(managedRebalance ManagedRebalance) bool {
 	return true
 }
 
-func SendToManagedRebalanceChannel(ch chan ManagedRebalance, managedRebalance ManagedRebalance) {
+func SendToManagedRebalanceChannel(ch chan<- ManagedRebalance, managedRebalance ManagedRebalance) {
 	ch <- managedRebalance
 	close(ch)
 }
 
-func SendToRebalancersChannel(ch chan []*Rebalancer, rebalancers []*Rebalancer) {
+func SendToRebalancersChannel(ch chan<- []*Rebalancer, rebalancers []*Rebalancer) {
 	ch <- rebalancers
 	close(ch)
 }
 
-func SendToManagedRebalanceResultChannel(ch chan RebalanceResult, rebalanceResult RebalanceResult) {
+func SendToManagedRebalanceResultChannel(ch chan<- RebalanceResult, rebalanceResult RebalanceResult) {
 	ch <- rebalanceResult
 	close(ch)
 }

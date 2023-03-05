@@ -187,8 +187,8 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 }
 
 func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
-	lightningRequestChannel chan interface{},
-	rebalanceRequestChannel chan commons.RebalanceRequest) {
+	lightningRequestChannel chan<- interface{},
+	rebalanceRequestChannel chan<- commons.RebalanceRequest) {
 
 	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
@@ -206,6 +206,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 		}
 		events := scheduledTrigger.TriggeringEventQueue
 		if len(events) > 0 {
+			log.Debug().Msgf("ScheduledTriggerMonitor initiated for %v events", len(events))
 			firstEvent := events[0]
 			//lastEvent := events[len(events)-1]
 
@@ -431,8 +432,8 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	workflowTriggerNode workflows.WorkflowNode,
 	reference string,
 	events []any,
-	lightningRequestChannel chan interface{},
-	rebalanceRequestChannel chan commons.RebalanceRequest) {
+	lightningRequestChannel chan<- interface{},
+	rebalanceRequestChannel chan<- commons.RebalanceRequest) {
 
 	err := workflows.ProcessWorkflow(ctx, db, workflowTriggerNode, reference, events, lightningRequestChannel, rebalanceRequestChannel)
 	if err != nil {

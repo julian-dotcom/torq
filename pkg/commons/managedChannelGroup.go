@@ -40,7 +40,7 @@ type ManagedChannelGroup struct {
 	ChannelId     int
 	Include       ChannelGroupInclude
 	ChannelGroups []ChannelGroup
-	Out           chan *ManagedChannelGroupSettings
+	Out           chan<- *ManagedChannelGroupSettings
 }
 
 type ManagedChannelGroupSettings struct {
@@ -48,7 +48,7 @@ type ManagedChannelGroupSettings struct {
 	ChannelGroups []ChannelGroup
 }
 
-func ManagedChannelGroupCache(ch chan ManagedChannelGroup, ctx context.Context) {
+func ManagedChannelGroupCache(ch <-chan ManagedChannelGroup, ctx context.Context) {
 	channelGroupSettingsByChannelIdCache := make(map[int]ManagedChannelGroupSettings, 0)
 	for {
 		select {

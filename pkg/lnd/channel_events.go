@@ -24,7 +24,7 @@ const streamErrorSleepSeconds = 60
 
 type ImportRequest struct {
 	ImportType ImportType
-	Out        chan error
+	Out        chan<- error
 }
 
 type ImportType int
@@ -47,7 +47,7 @@ func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 // Then it's stored in the database in the channel_event table.
 func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscribeChannelEvent,
 	ce *lnrpc.ChannelEventUpdate, nodeSettings commons.ManagedNodeSettings,
-	channelEventChannel chan commons.ChannelEvent) error {
+	channelEventChannel chan<- commons.ChannelEvent) error {
 
 	timestampMs := time.Now().UTC()
 
@@ -349,16 +349,16 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, channelEventChannel chan commons.ChannelEvent,
-	importRequestChannel chan ImportRequest,
-	serviceEventChannel chan commons.ServiceEvent) {
+	nodeSettings commons.ManagedNodeSettings, channelEventChannel chan<- commons.ChannelEvent,
+	importRequestChannel chan<- ImportRequest,
+	serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
 	var stream lnrpc.Lightning_SubscribeChannelEventsClient
 	var err error
 	var chanEvent *lnrpc.ChannelEventUpdate
-	serviceStatus := commons.Inactive
+	serviceStatus := commons.ServiceInactive
 	subscriptionStream := commons.ChannelEventStream
 
 	for {
@@ -369,7 +369,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
 			stream, err = client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -395,7 +395,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 					continue
 				}
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 		}
 
 		chanEvent, err = stream.Recv()
@@ -403,7 +403,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
 			log.Error().Err(err).Msgf("Receiving channel events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
 			time.Sleep(streamErrorSleepSeconds * time.Second)
@@ -419,7 +419,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 }
 
 func ImportPendingChannels(db *sqlx.DB, vectorUrl string, client lnrpc.LightningClient,
-	nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan interface{}) error {
+	nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan<- interface{}) error {
 	ctx := context.Background()
 	r, err := client.PendingChannels(ctx, &lnrpc.PendingChannelsRequest{})
 	if err != nil {
@@ -442,7 +442,7 @@ func ImportPendingChannels(db *sqlx.DB, vectorUrl string, client lnrpc.Lightning
 }
 
 func ImportOpenChannels(db *sqlx.DB, vectorUrl string, client lnrpc.LightningClient,
-	nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan interface{}) error {
+	nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan<- interface{}) error {
 	ctx := context.Background()
 	r, err := client.ListChannels(ctx, &lnrpc.ListChannelsRequest{})
 	if err != nil {
@@ -457,7 +457,7 @@ func ImportOpenChannels(db *sqlx.DB, vectorUrl string, client lnrpc.LightningCli
 }
 
 func ImportClosedChannels(db *sqlx.DB, vectorUrl string, client lnrpc.LightningClient,
-	nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan interface{}) error {
+	nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan<- interface{}) error {
 	ctx := context.Background()
 	r, err := client.ClosedChannels(ctx, &lnrpc.ClosedChannelsRequest{})
 	if err != nil {
@@ -506,7 +506,7 @@ func storeImportedWaitingCloseChannels(
 	vectorUrl string,
 	waitingCloseChannels []*lnrpc.PendingChannelsResponse_WaitingCloseChannel,
 	nodeSettings commons.ManagedNodeSettings,
-	lightningRequestChannel chan interface{}) error {
+	lightningRequestChannel chan<- interface{}) error {
 
 	if len(waitingCloseChannels) == 0 {
 		return nil
@@ -656,7 +656,7 @@ func storeImportedPendingForceClosingChannels(
 	vectorUrl string,
 	pendingForceClosingChannels []*lnrpc.PendingChannelsResponse_ForceClosedChannel,
 	nodeSettings commons.ManagedNodeSettings,
-	lightningRequestChannel chan interface{}) error {
+	lightningRequestChannel chan<- interface{}) error {
 
 	if len(pendingForceClosingChannels) == 0 {
 		return nil
@@ -691,7 +691,7 @@ func storeImportedPendingForceClosingChannels(
 
 func storeImportedOpenChannels(db *sqlx.DB, vectorUrl string, c []*lnrpc.Channel,
 	nodeSettings commons.ManagedNodeSettings,
-	lightningRequestChannel chan interface{}) error {
+	lightningRequestChannel chan<- interface{}) error {
 
 	if len(c) == 0 {
 		return nil
@@ -757,7 +757,7 @@ icoLoop:
 }
 
 func storeImportedClosedChannels(db *sqlx.DB, vectorUrl string, c []*lnrpc.ChannelCloseSummary, nodeSettings commons.ManagedNodeSettings,
-	lightningRequestChannel chan interface{}) error {
+	lightningRequestChannel chan<- interface{}) error {
 
 	if len(c) == 0 {
 		return nil
@@ -831,7 +831,7 @@ icoLoop:
 }
 
 func processEmptyChanId(vectorUrl string, channelPoint string, nodeSettings commons.ManagedNodeSettings,
-	lightningRequestChannel chan interface{}) uint64 {
+	lightningRequestChannel chan<- interface{}) uint64 {
 
 	fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
 	channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
@@ -866,7 +866,7 @@ func processEmptyChanId(vectorUrl string, channelPoint string, nodeSettings comm
 
 func insertChannelEvent(db *sqlx.DB, eventTime time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,
 	nodeId, channelId int, imported bool, jsonByteArray []byte,
-	channelEvent commons.ChannelEvent, channelEventChannel chan commons.ChannelEvent) error {
+	channelEvent commons.ChannelEvent, channelEventChannel chan<- commons.ChannelEvent) error {
 
 	var sqlStm = `INSERT INTO channel_event (time, event_type, channel_id, imported, event, node_id)
 		VALUES($1, $2, $3, $4, $5, $6);`

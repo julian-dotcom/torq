@@ -19,7 +19,7 @@ const vectorTransactiondetailsUrlSuffix = "api/bitcoin/transactionDetails"
 
 func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string, fundingOutputIndex int,
 	nodeSettings ManagedNodeSettings,
-	lightningRequestChannel chan interface{}) string {
+	lightningRequestChannel chan<- interface{}) string {
 
 	unixTime := time.Now()
 	message := fmt.Sprintf("%v/%v/%v", fundingTransactionHash, fundingOutputIndex, unixTime.Unix())
@@ -73,7 +73,7 @@ func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string
 }
 
 func GetTransactionDetailsFromVector(vectorUrl string, transactionHash string, nodeSettings ManagedNodeSettings,
-	lightningRequestChannel chan interface{}) TransactionDetailsHttpResponse {
+	lightningRequestChannel chan<- interface{}) TransactionDetailsHttpResponse {
 
 	unixTime := time.Now()
 	message := fmt.Sprintf("%v/%v", transactionHash, unixTime.Unix())

@@ -27,10 +27,10 @@ type ManagedTagged struct {
 	ChannelId int
 	TagId     int
 	TagIds    []int
-	Out       chan []int
+	Out       chan<- []int
 }
 
-func ManagedTaggedCache(ch chan ManagedTagged, ctx context.Context) {
+func ManagedTaggedCache(ch <-chan ManagedTagged, ctx context.Context) {
 	tagsByNodeIdCache := make(map[int]map[int]bool, 0)
 	tagsByChannelIdCache := make(map[int]map[int]bool, 0)
 	for {

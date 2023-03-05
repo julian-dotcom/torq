@@ -21,7 +21,7 @@ const streamLndMaxForwards = 50000
 
 // storeForwardingHistory
 func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int,
-	forwardEventChannel chan commons.ForwardEvent, bootStrapping bool) error {
+	forwardEventChannel chan<- commons.ForwardEvent, bootStrapping bool) error {
 
 	if len(fwh) > 0 {
 		var forwardEvents []commons.ForwardEvent
@@ -118,13 +118,13 @@ type FwhOptions struct {
 // SubscribeForwardingEvents repeatedly requests forwarding history starting after the last
 // forwarding stored in the database and stores new forwards.
 func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwardingHistory, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, forwardEventChannel chan commons.ForwardEvent,
-	serviceEventChannel chan commons.ServiceEvent, opt *FwhOptions) {
+	nodeSettings commons.ManagedNodeSettings, forwardEventChannel chan<- commons.ForwardEvent,
+	serviceEventChannel chan<- commons.ServiceEvent, opt *FwhOptions) {
 
 	defer log.Info().Msgf("SubscribeForwardingEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
 	maxEvents := streamLndMaxForwards
-	serviceStatus := commons.Inactive
+	serviceStatus := commons.ServiceInactive
 	bootStrapping := true
 	subscriptionStream := commons.ForwardStream
 	ticker := clock.New().Tick(streamForwardsTickerSeconds * time.Second)
@@ -145,7 +145,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 	importForwards := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportForwards)
 	if !importForwards {
 		log.Info().Msgf("Import of forwards is disabled for nodeId: %v", nodeSettings.NodeId)
-		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceDeleted, serviceStatus)
 		return
 	}
 
@@ -153,7 +153,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 	importHistoricForwards := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportHistoricForwards)
 	if !importHistoricForwards {
 		log.Info().Msgf("Import of historic forwards is disabled for nodeId: %v", nodeSettings.NodeId)
-		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 		enforcedReferenceDateO := time.Now()
 		enforcedReferenceDate = &enforcedReferenceDateO
 		bootStrapping = false
@@ -175,7 +175,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				// Fetch the nanosecond timestamp of the most recent record we have.
 				lastNs, err := fetchLastForwardTime(db, nodeSettings.NodeId)
 				if err != nil {
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", streamForwardsTickerSeconds)
 					break
 				}
@@ -200,15 +200,15 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
 					log.Error().Err(err).Msgf("Failed to obtain forwards, will retry in %v seconds", streamForwardsTickerSeconds)
 					break
 				}
 
 				if bootStrapping {
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceInitializing, serviceStatus)
 				} else {
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 				}
 				// Store the forwarding history
 				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, forwardEventChannel, bootStrapping)

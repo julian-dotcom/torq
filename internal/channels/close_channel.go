@@ -9,7 +9,6 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/cockroachdb/errors"
-	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 
@@ -17,7 +16,7 @@ import (
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
-func CloseChannel(eventChannel chan interface{}, db *sqlx.DB, c *gin.Context, ccReq commons.CloseChannelRequest, requestId string) (err error) {
+func CloseChannel(eventChannel chan<- interface{}, db *sqlx.DB, ccReq commons.CloseChannelRequest, requestId string) (err error) {
 	connectionDetails, err := settings.GetConnectionDetailsById(db, ccReq.NodeId)
 	if err != nil {
 		return errors.New("Getting node connection details from the db")
@@ -82,7 +81,7 @@ func prepareCloseRequest(ccReq commons.CloseChannelRequest) (r *lnrpc.CloseChann
 	return closeChanReq, nil
 }
 
-func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan interface{},
+func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseChannelRequest, eventChannel chan<- interface{},
 	ccReq commons.CloseChannelRequest, requestId string, db *sqlx.DB) error {
 
 	ctx := context.Background()

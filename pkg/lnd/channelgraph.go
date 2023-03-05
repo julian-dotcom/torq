@@ -31,17 +31,17 @@ type subscribeChannelGraphClient interface {
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
 func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings,
-	nodeGraphEventChannel chan commons.NodeGraphEvent,
-	channelGraphEventChannel chan commons.ChannelGraphEvent,
-	importRequestChannel chan ImportRequest,
-	serviceEventChannel chan commons.ServiceEvent) {
+	nodeGraphEventChannel chan<- commons.NodeGraphEvent,
+	channelGraphEventChannel chan<- commons.ChannelGraphEvent,
+	importRequestChannel chan<- ImportRequest,
+	serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelGraph terminated for nodeId: %v", nodeSettings.NodeId)
 
 	var stream lnrpc.Lightning_SubscribeChannelGraphClient
 	var err error
 	var gpu *lnrpc.GraphTopologyUpdate
-	serviceStatus := commons.Inactive
+	serviceStatus := commons.ServiceInactive
 	subscriptionStream := commons.GraphEventStream
 
 	for {
@@ -52,7 +52,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
 			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -91,7 +91,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 					continue
 				}
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 		}
 
 		gpu, err = stream.Recv()
@@ -99,7 +99,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
 			log.Error().Err(err).Msgf("Receiving channel graph events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
 			time.Sleep(streamErrorSleepSeconds * time.Second)
@@ -149,7 +149,7 @@ func ImportNodeInfo(client subscribeChannelGraphClient, db *sqlx.DB, nodeSetting
 }
 
 func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings,
-	nodeGraphEventChannel chan commons.NodeGraphEvent) error {
+	nodeGraphEventChannel chan<- commons.NodeGraphEvent) error {
 	for _, nu := range nus {
 		eventNodeId := commons.GetActiveNodeIdByPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
@@ -164,7 +164,7 @@ func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings commo
 }
 
 func processChannelUpdates(cus []*lnrpc.ChannelEdgeUpdate, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, channelGraphEventChannel chan commons.ChannelGraphEvent) error {
+	nodeSettings commons.ManagedNodeSettings, channelGraphEventChannel chan<- commons.ChannelGraphEvent) error {
 	for _, cu := range cus {
 		channelPoint, err := chanPointFromByte(cu.ChanPoint.GetFundingTxidBytes(), cu.ChanPoint.GetOutputIndex())
 		if err != nil {
@@ -189,7 +189,7 @@ func insertRoutingPolicy(
 	channelId int,
 	nodeSettings commons.ManagedNodeSettings,
 	cu *lnrpc.ChannelEdgeUpdate,
-	channelGraphEventChannel chan commons.ChannelGraphEvent) error {
+	channelGraphEventChannel chan<- commons.ChannelGraphEvent) error {
 
 	channelSettings := commons.GetChannelSettingByChannelId(channelId)
 
@@ -322,7 +322,7 @@ func insertRoutingPolicy(
 }
 
 func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias string, color string,
-	nodeAddress []*lnrpc.NodeAddress, features map[uint32]*lnrpc.Feature, nodeId int, nodeGraphEventChannel chan commons.NodeGraphEvent) error {
+	nodeAddress []*lnrpc.NodeAddress, features map[uint32]*lnrpc.Feature, nodeId int, nodeGraphEventChannel chan<- commons.NodeGraphEvent) error {
 
 	// Create json byte object from node address map
 	najb, err := json.Marshal(nodeAddress)

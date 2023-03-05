@@ -66,7 +66,7 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 	connectionDetails.CustomSettings &= ^customSettings
 }
 
-func startAllLndServicesOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage, nodeId int, lndActive bool) bool {
+func startAllLndServicesOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage, nodeId int, lndActive bool) bool {
 	startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, nodeId, false)
 	// AutomationService is not tight to a torq node so don't restart it
@@ -78,11 +78,11 @@ func startAllLndServicesOrRestartWhenRunning(serviceChannel chan commons.Service
 	return startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, nodeId, lndActive)
 }
 
-func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage,
+func startServiceOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage,
 	serviceType commons.ServiceType, nodeId int, active bool) bool {
 	if active {
-		enforcedServiceStatus := commons.Active
-		resultChannel := make(chan commons.Status)
+		enforcedServiceStatus := commons.ServiceActive
+		resultChannel := make(chan commons.ServiceStatus)
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,
@@ -92,12 +92,12 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 			Out:                   resultChannel,
 		}
 		switch <-resultChannel {
-		case commons.Active:
+		case commons.ServiceActive:
 			// THE RUNNING SERVICE WAS KILLED EnforcedServiceStatus is ACTIVE (subscription will attempt to start)
-		case commons.Pending:
+		case commons.ServicePending:
 			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
 			return false
-		case commons.Inactive:
+		case commons.ServiceInactive:
 			// THE SERVICE WAS NOT RUNNING
 			serviceChannel <- commons.ServiceChannelMessage{
 				NodeId:                nodeId,
@@ -107,8 +107,8 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 			}
 		}
 	} else {
-		enforcedServiceStatus := commons.Inactive
-		resultChannel := make(chan commons.Status)
+		enforcedServiceStatus := commons.ServiceInactive
+		resultChannel := make(chan commons.ServiceStatus)
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,
@@ -118,19 +118,19 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 			Out:                   resultChannel,
 		}
 		switch <-resultChannel {
-		case commons.Active:
+		case commons.ServiceActive:
 			// THE RUNNING SERVICE WAS KILLED AND EnforcedServiceStatus is INACTIVE (subscription will stay down)
-		case commons.Pending:
+		case commons.ServicePending:
 			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
 			return false
-		case commons.Inactive:
+		case commons.ServiceInactive:
 			// THE SERVICE WAS NOT RUNNING
 		}
 	}
 	return true
 }
 
-func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage) {
+func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan<- commons.ServiceChannelMessage) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
 	r.GET("nodeConnectionDetails", func(c *gin.Context) { getAllNodeConnectionDetailsHandler(c, db) })
@@ -199,7 +199,7 @@ func getNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan<- commons.ServiceChannelMessage) {
 
 	var ncd NodeConnectionDetails
 	var err error
@@ -318,7 +318,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 }
 
 func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan<- commons.ServiceChannelMessage) {
 
 	var ncd NodeConnectionDetails
 	var err error
@@ -471,7 +471,7 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 }
 
 func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan<- commons.ServiceChannelMessage) {
 
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
@@ -500,7 +500,7 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 }
 
 func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan<- commons.ServiceChannelMessage) {
 
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {

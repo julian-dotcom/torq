@@ -4,12 +4,11 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func verifyMessage(db *sqlx.DB, req VerifyMessageRequest, lightningRequestChannel chan interface{}) (VerifyMessageResponse, error) {
+func verifyMessage(req VerifyMessageRequest, lightningRequestChannel chan<- interface{}) (VerifyMessageResponse, error) {
 	if req.NodeId == 0 {
 		return VerifyMessageResponse{}, errors.New("Node Id missing")
 	}

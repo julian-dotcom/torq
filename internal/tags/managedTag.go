@@ -22,11 +22,11 @@ type ManagedTag struct {
 	TagId   int
 	TagIds  []int
 	Tag     Tag
-	Out     chan Tag
-	TagsOut chan []Tag
+	Out     chan<- Tag
+	TagsOut chan<- []Tag
 }
 
-func ManagedTagCache(ch chan ManagedTag, ctx context.Context) {
+func ManagedTagCache(ch <-chan ManagedTag, ctx context.Context) {
 	tagsByIdCache := make(map[int]Tag, 0)
 	for {
 		select {
@@ -86,11 +86,11 @@ func processManagedTag(managedTag ManagedTag, tagsByIdCache map[int]Tag) {
 	}
 }
 
-func SendToManagedTagChannel(ch chan Tag, tag Tag) {
+func SendToManagedTagChannel(ch chan<- Tag, tag Tag) {
 	ch <- tag
 }
 
-func SendToManagedTagsChannel(ch chan []Tag, tags []Tag) {
+func SendToManagedTagsChannel(ch chan<- []Tag, tags []Tag) {
 	ch <- tags
 }
 

@@ -18,21 +18,21 @@ type peerEventsClient interface {
 }
 
 func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
-	nodeSettings commons.ManagedNodeSettings, peerEventChannel chan commons.PeerEvent,
-	serviceEventChannel chan commons.ServiceEvent) {
+	nodeSettings commons.ManagedNodeSettings, peerEventChannel chan<- commons.PeerEvent,
+	serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribePeerEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
 	var stream lnrpc.Lightning_SubscribePeerEventsClient
 	var err error
 	var peerEvent *lnrpc.PeerEvent
-	serviceStatus := commons.Inactive
+	serviceStatus := commons.ServiceInactive
 	subscriptionStream := commons.PeerEventStream
 
 	importPeerEvents := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPeerEvents)
 	if !importPeerEvents {
 		log.Info().Msgf("Import of peer events is disabled for nodeId: %v", nodeSettings.NodeId)
-		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceDeleted, serviceStatus)
 		return
 	}
 
@@ -44,7 +44,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
 			stream, err = client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -55,7 +55,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 				time.Sleep(streamErrorSleepSeconds * time.Second)
 				continue
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 		}
 
 		peerEvent, err = stream.Recv()
@@ -63,7 +63,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
 			log.Error().Err(err).Msgf("Receiving peer events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
 			time.Sleep(streamErrorSleepSeconds * time.Second)

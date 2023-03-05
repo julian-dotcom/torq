@@ -7,7 +7,7 @@ import (
 )
 
 func SetRoutingPolicy(request commons.RoutingPolicyUpdateRequest,
-	lightningRequestChannel chan interface{}) commons.RoutingPolicyUpdateResponse {
+	lightningRequestChannel chan<- interface{}) commons.RoutingPolicyUpdateResponse {
 
 	if lightningRequestChannel == nil {
 		message := fmt.Sprintf("Lightning request channel is nil for nodeId: %v, channelId: %v",
@@ -21,7 +21,7 @@ func SetRoutingPolicy(request commons.RoutingPolicyUpdateRequest,
 			},
 		}
 	}
-	if commons.RunningServices[commons.LightningCommunicationService].GetStatus(request.NodeId) != commons.Active {
+	if commons.RunningServices[commons.LightningCommunicationService].GetStatus(request.NodeId) != commons.ServiceActive {
 		message := fmt.Sprintf("Lightning communication service is not active for nodeId: %v, channelId: %v",
 			request.NodeId, request.ChannelId)
 		return commons.RoutingPolicyUpdateResponse{
@@ -40,7 +40,7 @@ func SetRoutingPolicy(request commons.RoutingPolicyUpdateRequest,
 }
 
 func SetRebalance(request commons.RebalanceRequest,
-	rebalanceRequestChannel chan commons.RebalanceRequest) commons.RebalanceResponse {
+	rebalanceRequestChannel chan<- commons.RebalanceRequest) commons.RebalanceResponse {
 
 	if rebalanceRequestChannel == nil {
 		message := fmt.Sprintf("Lightning request channel is nil for nodeId: %v", request.NodeId)
@@ -53,7 +53,7 @@ func SetRebalance(request commons.RebalanceRequest,
 			},
 		}
 	}
-	if commons.RunningServices[commons.RebalanceService].GetStatus(request.NodeId) != commons.Active {
+	if commons.RunningServices[commons.RebalanceService].GetStatus(request.NodeId) != commons.ServiceActive {
 		message := fmt.Sprintf("Lightning communication service is not active for nodeId: %v", request.NodeId)
 		return commons.RebalanceResponse{
 			Request: request,
