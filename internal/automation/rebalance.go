@@ -3,6 +3,7 @@ package automation
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -370,7 +371,7 @@ func (rebalancer *Rebalancer) start(
 		return
 	}
 
-	if previousSuccess.Hops != "" && previousSuccess.Route != nil {
+	if previousSuccess.Route != nil {
 		log.Debug().Msgf("Previous success found for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
 			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 		runnerCtx, runnerCancel := context.WithTimeout(rebalancer.RebalanceCtx, time.Second*time.Duration(runnerTimeout))
@@ -711,6 +712,14 @@ func (runner *RebalanceRunner) pay(
 	}
 	delete(runner.Invoices, amountMsat)
 	rebalanceResult.Status = commons.Active
+	if result != nil && result.Route != nil {
+		hopsJsonByteArray, err := json.Marshal(result.Route.Hops)
+		if err != nil {
+			log.Error().Err(err).Msgf("Marshalling the route hops for rebalancerId: %v", runner.RebalanceId)
+			return rebalanceResult
+		}
+		rebalanceResult.Hops = string(hopsJsonByteArray)
+	}
 	return rebalanceResult
 }
 
