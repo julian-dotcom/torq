@@ -210,7 +210,7 @@ func removeCategoryHandler(c *gin.Context, db *sqlx.DB) {
 
 func removeTagHandler(c *gin.Context, db *sqlx.DB) {
 	tagId, err := strconv.Atoi(c.Param("tagId"))
-	finished := make(chan bool, 1)
+	finished := make(chan bool)
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse tagId in the request.")
 		return

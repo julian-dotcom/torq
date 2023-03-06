@@ -83,7 +83,7 @@ func getNodeConnectionDetails(db *sqlx.DB, nodeId int) (NodeConnectionDetails, e
 	return nodeConnectionDetailsData, nil
 }
 
-func GetPingSystemNodeIds(db *sqlx.DB, pingSystem commons.PingSystem) ([]int, error) {
+func GetPingSystemNodeIds(db *sqlx.DB, pingSystem PingSystem) ([]int, error) {
 	var nodeIds []int
 	err := db.Select(&nodeIds, `
 		SELECT node_id
@@ -99,7 +99,7 @@ func GetPingSystemNodeIds(db *sqlx.DB, pingSystem commons.PingSystem) ([]int, er
 	return nodeIds, nil
 }
 
-func getPingConnectionDetails(db *sqlx.DB, pingSystem commons.PingSystem) ([]NodeConnectionDetails, error) {
+func getPingConnectionDetails(db *sqlx.DB, pingSystem PingSystem) ([]NodeConnectionDetails, error) {
 	var ncds []NodeConnectionDetails
 	err := db.Select(&ncds, `
 		SELECT *
@@ -273,7 +273,7 @@ func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Stat
 }
 
 func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB,
-	nodeId int, pingSystem commons.PingSystem, status commons.Status) (int64, error) {
+	nodeId int, pingSystem PingSystem, status commons.Status) (int64, error) {
 
 	var err error
 	var res sql.Result

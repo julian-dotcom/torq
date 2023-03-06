@@ -16,16 +16,19 @@ import {
   CronTriggerNode,
   StageTriggerNode,
   ChannelFilterNode,
+  RebalanceAutoRunNode,
   RebalanceConfiguratorNode,
+  RebalanceRunNode,
   AddTagNode,
   BalanceTriggerNode,
   ChannelOpenTriggerNode,
   ChannelCloseTriggerNode,
+  DataSourceTorqChannelsNode,
+  EventFilterNode
 } from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
 import useTranslations from "services/i18n/useTranslations";
-import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
 import { RemoveTagNode } from "components/workflow/nodes/tags/RemoveTagNode";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { Play12Regular as PlayIcon } from "@fluentui/react-icons";
@@ -125,13 +128,6 @@ function FirstStageTrigger(props: {
     return (
       <div className={classNames(styles.triggerNodeWrapper)} onDrop={handleDrop}>
         <div className={styles.triggerNodeContainer}>
-          <NodeConnector
-            id={"ss"}
-            name={t.triggers}
-            outputName={"channels"}
-            workflowVersionNodeId={triggerNode?.workflowVersionNodeId || 0}
-            workflowVersionId={props.workflowVersionId}
-          />
           <div className={classNames(styles.triggerContainerHeading)}>
             <div>{t.triggers}</div>
             <Button
@@ -200,23 +196,25 @@ function getNodeComponent(node: WorkflowVersionNode) {
     case WorkflowNodeType.ChannelPolicyAutoRun:
       return <ChannelPolicyAutoRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelPolicyConfigurator:
-      return (
-        <ChannelPolicyConfiguratorNode
-          {...node}
-          key={"node-id-" + node.workflowVersionNodeId}
-          outputName={"channels"}
-        />
-      );
+      return <ChannelPolicyConfiguratorNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelPolicyRun:
       return <ChannelPolicyRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.ChannelFilter:
-      return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} outputName={"channels"} />;
+      return <ChannelFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.RebalanceAutoRun:
+      return <RebalanceAutoRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RebalanceConfigurator:
       return <RebalanceConfiguratorNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.RebalanceRun:
+      return <RebalanceRunNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.AddTag:
       return <AddTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.RemoveTag:
       return <RemoveTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.DataSourceTorqChannels:
+      return <DataSourceTorqChannelsNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.EventFilter:
+      return <EventFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     default:
       return null;
   }

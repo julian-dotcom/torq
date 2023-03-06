@@ -13,7 +13,6 @@ export function RebalanceConfiguratorNodeButton() {
       nodeType={WorkflowNodeType.RebalanceConfigurator}
       icon={<RebalanceConfiguratorIcon />}
       title={t.workflowNodes.rebalanceConfigurator}
-      disabled={true}
     />
   );
 }

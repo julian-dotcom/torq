@@ -61,7 +61,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 		}
 		result.LndServices = append(result.LndServices, lndService)
 	}
-	vectorNodeIds, err := settings.GetPingSystemNodeIds(db, commons.Vector)
+	vectorNodeIds, err := settings.GetPingSystemNodeIds(db, settings.Vector)
 	if err == nil {
 		for _, vectorNodeId := range vectorNodeIds {
 			vectorService := VectorService{
@@ -77,7 +77,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	} else {
 		log.Info().Err(err).Msgf("Failed to obtain Vector ping systems maybe the database is not ready yet?")
 	}
-	ambossNodeIds, err := settings.GetPingSystemNodeIds(db, commons.Amboss)
+	ambossNodeIds, err := settings.GetPingSystemNodeIds(db, settings.Amboss)
 	if err == nil {
 		for _, ambossNodeId := range ambossNodeIds {
 			ambossService := AmbossService{
@@ -95,19 +95,9 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	for svc := range commons.RunningServices {
 		switch svc {
-		case commons.TorqService:
+		case commons.TorqService, commons.LndService, commons.VectorService, commons.AmbossService:
 			// Already done
-		case commons.LndService:
-			// Already done
-		case commons.VectorService:
-			// Already done
-		case commons.AmbossService:
-			// Already done
-		case commons.AutomationService:
-			fallthrough
-		case commons.MaintenanceService:
-			fallthrough
-		case commons.CronService:
+		case commons.AutomationService, commons.MaintenanceService, commons.CronService:
 			service := Service{
 				CommonService: CommonService{
 					Status:   commons.RunningServices[svc].GetStatus(commons.TorqDummyNodeId),

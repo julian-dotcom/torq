@@ -5,6 +5,7 @@ import Sidebar from "features/sidebar/Sidebar";
 import { SectionContainer } from "features/section/SectionContainer";
 import {
   Timer20Regular as TriggersIcon,
+  Play20Regular as DataSourcesIcon,
   ArrowRouting20Regular as ChannelsIcon,
   Tag20Regular as TagsIcon,
 } from "@fluentui/react-icons";
@@ -17,13 +18,15 @@ import {
   CronTriggerNodeButton,
   ChannelFilterNodeButton,
   RebalanceConfiguratorNodeButton,
-  //RebalanceAutoRunNodeButton,
-  //RebalanceRunNodeButton,
+  RebalanceAutoRunNodeButton,
+  RebalanceRunNodeButton,
   RemoveTagNodeButton,
   BalanceTriggerNodeButton,
   AddTagNodeButton,
   ChannelCloseTriggerNodeButton,
   ChannelOpenTriggerNodeButton,
+  DataSourceTorqChannelsNodeButton,
+  EventFilterNodeButton
 } from "components/workflow/nodes/nodes";
 import mixpanel from "mixpanel-browser";
 
@@ -43,6 +46,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
 
   const [sectionState, setSectionState] = useState({
     triggers: true,
+    dataSources: true,
     actions: true,
     advanced: true,
   });
@@ -71,13 +75,23 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           <ChannelCloseTriggerNodeButton />
         </SectionContainer>
         <SectionContainer
+          title={t.dataSources}
+          icon={DataSourcesIcon}
+          expanded={sectionState.dataSources}
+          handleToggle={() => toggleSection("dataSources")}
+        >
+          <DataSourceTorqChannelsNodeButton />
+        </SectionContainer>
+        <SectionContainer
           title={t.actions}
           icon={ChannelsIcon}
           expanded={sectionState.actions}
           handleToggle={() => toggleSection("actions")}
         >
+          <EventFilterNodeButton />
           <ChannelFilterNodeButton />
           <ChannelPolicyAutoRunNodeButton />
+          <RebalanceAutoRunNodeButton />
           <AddTagNodeButton />
           <RemoveTagNodeButton />
         </SectionContainer>
@@ -89,6 +103,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
         >
           <ChannelPolicyRunNodeButton />
           <ChannelPolicyConfiguratorNodeButton />
+          <RebalanceRunNodeButton />
           <RebalanceConfiguratorNodeButton />
         </SectionContainer>
       </Sidebar>

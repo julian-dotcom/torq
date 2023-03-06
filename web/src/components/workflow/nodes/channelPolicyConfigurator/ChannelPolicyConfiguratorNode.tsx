@@ -52,7 +52,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
   const [processing, setProcessing] = useState(false);
   useEffect(() => {
     // if the original parameters are different from the current parameters, set dirty to true
-    if (JSON.stringify(wrapperProps.parameters) !== JSON.stringify(channelPolicy)) {
+    if (JSON.stringify(wrapperProps.parameters, Object.keys(wrapperProps.parameters).sort()) !== JSON.stringify(channelPolicy, Object.keys(channelPolicy).sort())) {
       setDirty(true);
     } else {
       setDirty(false);

@@ -39,11 +39,11 @@ type ManagedNode struct {
 	Network         *Network
 	PublicKey       string
 	Name            *string
-	Out             chan ManagedNode
-	NodeIdsOut      chan []int
-	NodeSettingOut  chan ManagedNodeSettings
-	NodeSettingsOut chan []ManagedNodeSettings
-	PublicKeysOut   chan []string
+	Out             chan<- ManagedNode
+	NodeIdsOut      chan<- []int
+	NodeSettingOut  chan<- ManagedNodeSettings
+	NodeSettingsOut chan<- []ManagedNodeSettings
+	PublicKeysOut   chan<- []string
 }
 
 type ManagedNodeSettings struct {
@@ -56,7 +56,7 @@ type ManagedNodeSettings struct {
 }
 
 // ManagedNodeCache parameter Context is for test cases...
-func ManagedNodeCache(ch chan ManagedNode, ctx context.Context) {
+func ManagedNodeCache(ch <-chan ManagedNode, ctx context.Context) {
 	allTorqNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
 	nodeSettingsByNodeIdCache := make(map[int]ManagedNodeSettings, 0)
 	activeTorqNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
@@ -359,7 +359,7 @@ func initializeNodeIdCache(nodeIdCache map[Chain]map[Network]map[string]int, cha
 }
 
 func GetAllChannelPublicKeys(chain Chain, network Network) []string {
-	publicKeysResponseChannel := make(chan []string, 1)
+	publicKeysResponseChannel := make(chan []string)
 	managedNode := ManagedNode{
 		Chain:         &chain,
 		Network:       &network,
@@ -371,7 +371,7 @@ func GetAllChannelPublicKeys(chain Chain, network Network) []string {
 }
 
 func GetAllTorqPublicKeys(chain Chain, network Network) []string {
-	publicKeysResponseChannel := make(chan []string, 1)
+	publicKeysResponseChannel := make(chan []string)
 	managedNode := ManagedNode{
 		Chain:         &chain,
 		Network:       &network,
@@ -383,7 +383,7 @@ func GetAllTorqPublicKeys(chain Chain, network Network) []string {
 }
 
 func GetAllTorqNodeIdsByNetwork(chain Chain, network Network) []int {
-	nodeIdsResponseChannel := make(chan []int, 1)
+	nodeIdsResponseChannel := make(chan []int)
 	managedNode := ManagedNode{
 		Chain:      &chain,
 		Network:    &network,
@@ -395,7 +395,7 @@ func GetAllTorqNodeIdsByNetwork(chain Chain, network Network) []int {
 }
 
 func GetAllTorqNodeIds() []int {
-	nodeIdsResponseChannel := make(chan []int, 1)
+	nodeIdsResponseChannel := make(chan []int)
 	managedNode := ManagedNode{
 		Type:       READ_ALL_TORQ_NODEIDS_ALL_NETWORKS,
 		NodeIdsOut: nodeIdsResponseChannel,
@@ -405,7 +405,7 @@ func GetAllTorqNodeIds() []int {
 }
 
 func GetChannelPublicKeys(chain Chain, network Network) []string {
-	publicKeysResponseChannel := make(chan []string, 1)
+	publicKeysResponseChannel := make(chan []string)
 	managedNode := ManagedNode{
 		Chain:         &chain,
 		Network:       &network,

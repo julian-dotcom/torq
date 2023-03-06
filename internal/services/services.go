@@ -7,9 +7,9 @@ import (
 )
 
 type CommonService struct {
-	Status       commons.Status `json:"status"`
-	StatusString string         `json:"statusString"`
-	BootTime     *time.Time     `json:"bootTime,omitempty"`
+	Status       commons.ServiceStatus `json:"status"`
+	StatusString string                `json:"statusString"`
+	BootTime     *time.Time            `json:"bootTime,omitempty"`
 }
 type TorqService struct {
 	CommonService

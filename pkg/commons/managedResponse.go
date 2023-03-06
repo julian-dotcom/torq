@@ -1,73 +1,74 @@
 package commons
 
-func SendToManagedBoolChannel(ch chan bool, result bool) {
+func SendToManagedBoolChannel(ch chan<- bool, result bool) {
 	ch <- result
 }
 
-func SendToManagedNodeIdsChannel(ch chan []int, nodeIds []int) {
+func SendToManagedNodeIdsChannel(ch chan<- []int, nodeIds []int) {
 	ch <- nodeIds
 }
 
-func SendToManagedChannelIdsChannel(ch chan []int, channelIds []int) {
+func SendToManagedChannelIdsChannel(ch chan<- []int, channelIds []int) {
 	ch <- channelIds
 }
 
-func SendToManagedPublicKeysChannel(ch chan []string, publicKeys []string) {
+func SendToManagedPublicKeysChannel(ch chan<- []string, publicKeys []string) {
 	ch <- publicKeys
 }
 
-func SendToManagedNodeAliasChannel(ch chan string, nodeAlias string) {
+func SendToManagedNodeAliasChannel(ch chan<- string, nodeAlias string) {
 	ch <- nodeAlias
+	close(ch)
 }
 
-func SendToManagedTagIdsChannel(ch chan []int, tagIds []int) {
+func SendToManagedTagIdsChannel(ch chan<- []int, tagIds []int) {
 	ch <- tagIds
 }
 
-func SendToManagedChannelGroupSettingsChannel(ch chan *ManagedChannelGroupSettings, managedChannelGroupSettings *ManagedChannelGroupSettings) {
+func SendToManagedChannelGroupSettingsChannel(ch chan<- *ManagedChannelGroupSettings, managedChannelGroupSettings *ManagedChannelGroupSettings) {
 	ch <- managedChannelGroupSettings
 }
 
-func SendToManagedNodeChannel(ch chan ManagedNode, managedNode ManagedNode) {
+func SendToManagedNodeChannel(ch chan<- ManagedNode, managedNode ManagedNode) {
 	ch <- managedNode
 }
 
-func SendToManagedNodeSettingChannel(ch chan ManagedNodeSettings, nodeSetting ManagedNodeSettings) {
+func SendToManagedNodeSettingChannel(ch chan<- ManagedNodeSettings, nodeSetting ManagedNodeSettings) {
 	ch <- nodeSetting
 }
 
-func SendToManagedNodeSettingsChannel(ch chan []ManagedNodeSettings, nodeSettings []ManagedNodeSettings) {
+func SendToManagedNodeSettingsChannel(ch chan<- []ManagedNodeSettings, nodeSettings []ManagedNodeSettings) {
 	ch <- nodeSettings
 }
 
-func SendToManagedChannelChannel(ch chan ManagedChannel, managedChannel ManagedChannel) {
+func SendToManagedChannelChannel(ch chan<- ManagedChannel, managedChannel ManagedChannel) {
 	ch <- managedChannel
 }
 
-func SendToManagedChannelSettingChannel(ch chan ManagedChannelSettings, channelSettings ManagedChannelSettings) {
+func SendToManagedChannelSettingChannel(ch chan<- ManagedChannelSettings, channelSettings ManagedChannelSettings) {
 	ch <- channelSettings
 }
 
-func SendToManagedChannelSettingsChannel(ch chan []ManagedChannelSettings, channelSettings []ManagedChannelSettings) {
+func SendToManagedChannelSettingsChannel(ch chan<- []ManagedChannelSettings, channelSettings []ManagedChannelSettings) {
 	ch <- channelSettings
 }
 
-func SendToManagedChannelBalanceStatesSettingsChannel(ch chan []ManagedChannelBalanceStateSettings, managedChannelBalanceStateSettings []ManagedChannelBalanceStateSettings) {
+func SendToManagedChannelBalanceStatesSettingsChannel(ch chan<- []ManagedChannelBalanceStateSettings, managedChannelBalanceStateSettings []ManagedChannelBalanceStateSettings) {
 	ch <- managedChannelBalanceStateSettings
 }
 
-func SendToManagedChannelBalanceStateSettingsChannel(ch chan *ManagedChannelBalanceStateSettings, managedChannelBalanceStateSettings *ManagedChannelBalanceStateSettings) {
+func SendToManagedChannelBalanceStateSettingsChannel(ch chan<- *ManagedChannelBalanceStateSettings, managedChannelBalanceStateSettings *ManagedChannelBalanceStateSettings) {
 	ch <- managedChannelBalanceStateSettings
 }
 
-func SendToManagedChannelStatesSettingsChannel(ch chan []ManagedChannelStateSettings, managedChannelBalanceStateSettings []ManagedChannelStateSettings) {
+func SendToManagedChannelStatesSettingsChannel(ch chan<- []ManagedChannelStateSettings, managedChannelBalanceStateSettings []ManagedChannelStateSettings) {
 	ch <- managedChannelBalanceStateSettings
 }
 
-func SendToManagedChannelStateSettingsChannel(ch chan *ManagedChannelStateSettings, managedChannelStateSettings *ManagedChannelStateSettings) {
+func SendToManagedChannelStateSettingsChannel(ch chan<- *ManagedChannelStateSettings, managedChannelStateSettings *ManagedChannelStateSettings) {
 	ch <- managedChannelStateSettings
 }
 
-func SendToManagedTriggerSettingsChannel(ch chan ManagedTriggerSettings, managedTriggerSettings ManagedTriggerSettings) {
+func SendToManagedTriggerSettingsChannel(ch chan<- ManagedTriggerSettings, managedTriggerSettings ManagedTriggerSettings) {
 	ch <- managedTriggerSettings
 }

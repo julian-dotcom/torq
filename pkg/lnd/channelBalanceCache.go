@@ -17,17 +17,19 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const channelbalanceTickerSeconds = 150
+
 func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.LightningClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings,
 	broadcaster broadcast.BroadcastServer,
-	serviceEventChannel chan commons.ServiceEvent) {
+	serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer log.Info().Msgf("ChannelBalanceCacheMaintenance terminated for nodeId: %v", nodeSettings.NodeId)
 
-	serviceStatus := commons.Inactive
+	serviceStatus := commons.ServiceInactive
 	bootStrapping := true
 	subscriptionStream := commons.ChannelBalanceCacheStream
-	lndSyncTicker := clock.New().Tick(commons.CHANNELBALANCE_TICKER_SECONDS * time.Second)
+	lndSyncTicker := clock.New().Tick(channelbalanceTickerSeconds * time.Second)
 	mutex := &sync.RWMutex{}
 
 	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
@@ -59,30 +61,30 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	}
 }
 
-func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapping bool, serviceStatus commons.Status,
-	serviceEventChannel chan commons.ServiceEvent, subscriptionStream commons.SubscriptionStream,
-	lndClient lnrpc.LightningClient, db *sqlx.DB, mutex *sync.RWMutex) (bool, commons.Status) {
+func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings, bootStrapping bool, serviceStatus commons.ServiceStatus,
+	serviceEventChannel chan<- commons.ServiceEvent, subscriptionStream commons.SubscriptionStream,
+	lndClient lnrpc.LightningClient, db *sqlx.DB, mutex *sync.RWMutex) (bool, commons.ServiceStatus) {
 
-	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
+	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.ServiceActive {
 		if !bootStrapping {
 			bootStrapping = true
 			log.Error().Msgf("Channel balance cache got out-of-sync because of a non-active LND stream. (nodeId: %v)", nodeSettings.NodeId)
 		}
 	}
 	if bootStrapping {
-		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceInitializing, serviceStatus)
 	} else {
-		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 	}
 	err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db, mutex)
 	if err != nil {
-		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
 		log.Error().Err(err).Msgf("Failed to initialize channel balance cache. This is a critical issue! (nodeId: %v)", nodeSettings.NodeId)
 		return bootStrapping, serviceStatus
 	}
-	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) == commons.Active {
+	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) == commons.ServiceActive {
 		bootStrapping = false
-		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 	}
 	return bootStrapping, serviceStatus
 }
@@ -179,7 +181,12 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettingsList = append(channelStateSettingsList, channelStateSettings)
 	}
 	commons.SetChannelStates(nodeId, channelStateSettingsList)
-	commons.SetChannelStateNodeStatus(nodeId, commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeId))
+	serviceStatus := commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeId)
+	if serviceStatus < commons.ServiceBootRequested {
+		commons.SetChannelStateNodeStatus(nodeId, commons.Status(serviceStatus))
+	} else {
+		commons.SetChannelStateNodeStatus(nodeId, commons.Inactive)
+	}
 	return nil
 }
 
@@ -203,7 +210,11 @@ func processServiceEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 				continue
 			}
 			channelBalanceStreamStatus := commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(serviceEvent.NodeId)
-			commons.SetChannelStateNodeStatus(serviceEvent.NodeId, channelBalanceStreamStatus)
+			if channelBalanceStreamStatus < commons.ServiceBootRequested {
+				commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.Status(channelBalanceStreamStatus))
+			} else {
+				commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.Inactive)
+			}
 		}
 	}()
 }

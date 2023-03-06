@@ -17,6 +17,9 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const streamPaymentsTickerSeconds = 10
+const streamInflightPaymentsTickerSeconds = 60
+
 type lightningClient_ListPayments interface {
 	ListPayments(ctx context.Context, in *lnrpc.ListPaymentsRequest,
 		opts ...grpc.CallOption) (*lnrpc.ListPaymentsResponse,
@@ -30,18 +33,18 @@ type PayOptions struct {
 }
 
 func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, paymentEventChannel chan commons.PaymentEvent,
-	serviceEventChannel chan commons.ServiceEvent, opt *PayOptions) {
+	nodeSettings commons.ManagedNodeSettings, paymentEventChannel chan<- commons.PaymentEvent,
+	serviceEventChannel chan<- commons.ServiceEvent, opt *PayOptions) {
 
 	defer log.Info().Msgf("SubscribeAndStorePayments terminated for nodeId: %v", nodeSettings.NodeId)
 
 	var lastPaymentIndex uint64
 	var payments *lnrpc.ListPaymentsResponse
 	var err error
-	serviceStatus := commons.Inactive
+	serviceStatus := commons.ServiceInactive
 	bootStrapping := true
 	subscriptionStream := commons.PaymentStream
-	ticker := clock.New().Tick(commons.STREAM_PAYMENTS_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(streamPaymentsTickerSeconds * time.Second)
 	includeIncomplete := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportFailedPayments)
 
 	// If a custom ticker is set in the options, override the default ticker.
@@ -52,7 +55,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	importPayments := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPayments)
 	if !importPayments {
 		log.Info().Msgf("Import of payments is disabled for nodeId: %v", nodeSettings.NodeId)
-		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceDeleted, serviceStatus)
 		return
 	}
 
@@ -69,31 +72,31 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 			lastPaymentIndex, err = fetchLastPaymentIndex(db, nodeSettings.NodeId)
 			if err != nil {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", streamPaymentsTickerSeconds)
 				continue
 			}
 
 			for {
 				if bootStrapping {
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceInitializing, serviceStatus)
 				} else {
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 				}
 				payments, err = fetchPayments(ctx, client, lastPaymentIndex, includeIncomplete)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
-					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
+					serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in %v seconds", streamPaymentsTickerSeconds)
 					break
 				}
 
 				// Store the payments
 				err = storePayments(db, payments.Payments, nodeSettings, paymentEventChannel, bootStrapping)
 				if err != nil {
-					log.Error().Err(err).Msgf("Failed to store payments, will retry in %v seconds", commons.STREAM_PAYMENTS_TICKER_SECONDS)
+					log.Error().Err(err).Msgf("Failed to store payments, will retry in %v seconds", streamPaymentsTickerSeconds)
 					break
 				}
 
@@ -151,7 +154,7 @@ func fetchPayments(ctx context.Context, client lightningClient_ListPayments, las
 	return r, nil
 }
 
-func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.ManagedNodeSettings, paymentEventChannel chan commons.PaymentEvent, bootStrapping bool) error {
+func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.ManagedNodeSettings, paymentEventChannel chan<- commons.PaymentEvent, bootStrapping bool) error {
 	const q = `INSERT INTO payment(
 				  payment_hash,
 				  creation_timestamp,
@@ -257,15 +260,15 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 }
 
 func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, serviceEventChannel chan commons.ServiceEvent, opt *PayOptions) {
+	nodeSettings commons.ManagedNodeSettings, serviceEventChannel chan<- commons.ServiceEvent, opt *PayOptions) {
 
 	defer log.Info().Msgf("UpdateInFlightPayments terminated for nodeId: %v", nodeSettings.NodeId)
 
 	var listPaymentsResponse *lnrpc.ListPaymentsResponse
-	serviceStatus := commons.Inactive
+	serviceStatus := commons.ServiceInactive
 	bootStrapping := true
 	subscriptionStream := commons.InFlightPaymentStream
-	ticker := clock.New().Tick(commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(streamInflightPaymentsTickerSeconds * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
@@ -275,7 +278,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 	importPayments := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPayments)
 	if !importPayments {
 		log.Info().Msgf("Import of payments (including in-flight) is disabled for nodeId: %v", nodeSettings.NodeId)
-		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceDeleted, serviceStatus)
 		return
 	}
 
@@ -290,14 +293,14 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		case <-ticker:
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db, nodeSettings.NodeId)
 			if err != nil {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", commons.STREAM_INFLIGHT_PAYMENTS_TICKER_SECONDS)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", streamInflightPaymentsTickerSeconds)
 				continue
 			}
 			if bootStrapping {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceInitializing, serviceStatus)
 			} else {
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 			}
 			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.

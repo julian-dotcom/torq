@@ -8,6 +8,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const toleratedSubscriptionDowntimeSeconds = 15
+
 var ManagedChannelStateChannel = make(chan ManagedChannelState) //nolint:gochecknoglobals
 
 type ManagedChannelStateCacheOperationType uint
@@ -104,12 +106,12 @@ type ManagedChannelState struct {
 	HtlcEvent            HtlcEvent
 	ChannelStateSettings []ManagedChannelStateSettings
 	HtlcInclude          ChannelBalanceStateHtlcInclude
-	ChannelIdsOut        chan []int
+	ChannelIdsOut        chan<- []int
 	StateInclude         ChannelStateInclude
-	StateOut             chan *ManagedChannelStateSettings
-	StatesOut            chan []ManagedChannelStateSettings
-	BalanceStateOut      chan *ManagedChannelBalanceStateSettings
-	BalanceStatesOut     chan []ManagedChannelBalanceStateSettings
+	StateOut             chan<- *ManagedChannelStateSettings
+	StatesOut            chan<- []ManagedChannelStateSettings
+	BalanceStateOut      chan<- *ManagedChannelBalanceStateSettings
+	BalanceStatesOut     chan<- []ManagedChannelBalanceStateSettings
 }
 
 type ManagedChannelStateSettings struct {
@@ -170,7 +172,7 @@ type ManagedChannelBalanceStateSettings struct {
 }
 
 // ManagedChannelStateCache parameter Context is for test cases...
-func ManagedChannelStateCache(ch chan ManagedChannelState, ctx context.Context, channelBalanceEventChannel chan ChannelBalanceEvent) {
+func ManagedChannelStateCache(ch <-chan ManagedChannelState, ctx context.Context, channelBalanceEventChannel chan<- ChannelBalanceEvent) {
 	channelStateSettingsByChannelIdCache := make(map[int]map[int]ManagedChannelStateSettings, 0)
 	channelStateSettingsStatusCache := make(map[int]Status, 0)
 	channelStateSettingsDeactivationTimeCache := make(map[int]time.Time, 0)
@@ -190,7 +192,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 	channelStateSettingsStatusCache map[int]Status,
 	channelStateSettingsByChannelIdCache map[int]map[int]ManagedChannelStateSettings,
 	channelStateSettingsDeactivationTimeCache map[int]time.Time,
-	channelBalanceEventChannel chan ChannelBalanceEvent) {
+	channelBalanceEventChannel chan<- ChannelBalanceEvent) {
 	switch managedChannelState.Type {
 	case READ_CHANNELSTATE:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
@@ -326,7 +328,6 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 		aggregateChannels := make(map[int]int)
 		aggregateCapacity := make(map[int]int64)
 		aggregateLocalBalance := make(map[int]int64)
-		previousAggregateLocalBalance := make(map[int]int64)
 		for _, channelStateSetting := range managedChannelState.ChannelStateSettings {
 			channelSettings := GetChannelSettingByChannelId(channelStateSetting.ChannelId)
 			capacity := channelSettings.Capacity
@@ -346,47 +347,43 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					EventTime: eventTime,
 					NodeId:    managedChannelState.NodeId,
 				},
+				BalanceDelta:         0,
+				BalanceDeltaAbsolute: 0,
 				ChannelBalanceEventData: ChannelBalanceEventData{
-					Capacity:                            capacity,
-					LocalBalance:                        channelStateSetting.LocalBalance,
-					RemoteBalance:                       channelStateSetting.RemoteBalance,
-					LocalBalancePerMilleRatio:           int(channelStateSetting.LocalBalance / capacity * 1000),
-					AggregatedChannels:                  aggregateChannels[channelStateSetting.RemoteNodeId],
-					AggregatedCapacity:                  aggregateCapacity[channelStateSetting.RemoteNodeId],
-					AggregatedLocalBalance:              aggregateLocalBalance[channelStateSetting.RemoteNodeId],
-					AggregatedLocalBalancePerMilleRatio: int(aggregateLocalBalance[channelStateSetting.RemoteNodeId] / aggregateCapacity[channelStateSetting.RemoteNodeId] * 1000),
+					Capacity:                      capacity,
+					LocalBalance:                  channelStateSetting.LocalBalance,
+					RemoteBalance:                 channelStateSetting.RemoteBalance,
+					LocalBalancePerMilleRatio:     int(channelStateSetting.LocalBalance / capacity * 1000),
+					PeerChannelCapacity:           aggregateCapacity[channelStateSetting.RemoteNodeId],
+					PeerChannelCount:              aggregateChannels[channelStateSetting.RemoteNodeId],
+					PeerLocalBalance:              aggregateLocalBalance[channelStateSetting.RemoteNodeId],
+					PeerLocalBalancePerMilleRatio: int(aggregateLocalBalance[channelStateSetting.RemoteNodeId] / aggregateCapacity[channelStateSetting.RemoteNodeId] * 1000),
 				},
 				ChannelId: channelStateSetting.ChannelId,
 			}
-			existingChannelStateSetting, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
-			if exists && existingChannelStateSetting[channelStateSetting.ChannelId].ChannelId != 0 {
-				_, previousAggregateExists := previousAggregateLocalBalance[channelStateSetting.RemoteNodeId]
-				if !previousAggregateExists {
-					var localBalanceAggregate int64
-					for _, channelStateSettingInner := range existingChannelStateSetting {
-						if channelStateSettingInner.RemoteNodeId == channelStateSetting.RemoteNodeId {
-							localBalanceAggregate += channelStateSettingInner.LocalBalance
-						}
+			existingChannelStateSettings, existingChannelSettingsExists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
+			if existingChannelSettingsExists {
+				existingState, existingStateExists := existingChannelStateSettings[channelStateSetting.ChannelId]
+				if existingStateExists {
+					channelBalanceEvent.PreviousEventData = &ChannelBalanceEventData{
+						Capacity:                      capacity,
+						LocalBalance:                  existingState.LocalBalance,
+						RemoteBalance:                 existingState.RemoteBalance,
+						LocalBalancePerMilleRatio:     int(existingState.LocalBalance / capacity * 1000),
+						PeerChannelCapacity:           aggregateCapacity[channelStateSetting.RemoteNodeId],
+						PeerChannelCount:              aggregateChannels[channelStateSetting.RemoteNodeId],
+						PeerLocalBalance:              existingState.PeerLocalBalance,
+						PeerLocalBalancePerMilleRatio: int(existingState.PeerLocalBalance / existingState.PeerChannelCapacity * 1000),
 					}
-					previousAggregateLocalBalance[channelStateSetting.RemoteNodeId] = localBalanceAggregate
+					channelBalanceEvent.BalanceDelta = channelBalanceEvent.PreviousEventData.LocalBalance - channelBalanceEvent.LocalBalance
+					channelBalanceEvent.BalanceDeltaAbsolute = channelBalanceEvent.BalanceDelta
+					if channelBalanceEvent.BalanceDeltaAbsolute < 0 {
+						channelBalanceEvent.BalanceDeltaAbsolute = -1 * channelBalanceEvent.BalanceDeltaAbsolute
+					}
+					if channelBalanceEvent.BalanceDelta != 0 {
+						channelBalanceEventChannel <- channelBalanceEvent
+					}
 				}
-
-				existingState := existingChannelStateSetting[channelStateSetting.ChannelId]
-				channelBalanceEvent.PreviousEventData = &ChannelBalanceEventData{
-					Capacity:                            capacity,
-					LocalBalance:                        existingState.LocalBalance,
-					RemoteBalance:                       existingState.RemoteBalance,
-					LocalBalancePerMilleRatio:           int(existingState.LocalBalance / capacity * 1000),
-					AggregatedChannels:                  aggregateChannels[channelStateSetting.RemoteNodeId],
-					AggregatedCapacity:                  aggregateCapacity[channelStateSetting.RemoteNodeId],
-					AggregatedLocalBalance:              previousAggregateLocalBalance[channelStateSetting.RemoteNodeId],
-					AggregatedLocalBalancePerMilleRatio: int(previousAggregateLocalBalance[channelStateSetting.RemoteNodeId] / aggregateCapacity[channelStateSetting.RemoteNodeId] * 1000),
-				}
-			}
-			if channelBalanceEvent.PreviousEventData != nil &&
-				(channelBalanceEvent.PreviousEventData.LocalBalance != channelBalanceEvent.LocalBalance ||
-					channelBalanceEvent.PreviousEventData.AggregatedLocalBalance != channelBalanceEvent.AggregatedLocalBalance) {
-				channelBalanceEventChannel <- channelBalanceEvent
 			}
 		}
 		channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = settingsByChannel
@@ -483,18 +480,53 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 		}
 		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
 		if nodeExists {
-			channelSetting, channelExists := nodeChannels[managedChannelState.ChannelId]
+			channelStateSetting, channelExists := nodeChannels[managedChannelState.ChannelId]
 			if channelExists {
-				channelSetting.NumUpdates = channelSetting.NumUpdates + 1
-				channelSetting.LocalBalance = channelSetting.LocalBalance + managedChannelState.Amount
-				channelSetting.RemoteBalance = channelSetting.LocalBalance - managedChannelState.Amount
-				nodeChannels[managedChannelState.ChannelId] = channelSetting
+				eventTime := time.Now()
+				channelSettings := GetChannelSettingByChannelId(channelStateSetting.ChannelId)
+				channelBalanceEvent := ChannelBalanceEvent{
+					EventData: EventData{
+						EventTime: eventTime,
+						NodeId:    managedChannelState.NodeId,
+					},
+					ChannelId:            channelStateSetting.ChannelId,
+					BalanceDelta:         managedChannelState.Amount,
+					BalanceDeltaAbsolute: managedChannelState.Amount,
+					PreviousEventData: &ChannelBalanceEventData{
+						Capacity:                      channelSettings.Capacity,
+						LocalBalance:                  channelStateSetting.LocalBalance,
+						RemoteBalance:                 channelStateSetting.RemoteBalance,
+						LocalBalancePerMilleRatio:     int(channelStateSetting.LocalBalance / channelSettings.Capacity * 1000),
+						PeerChannelCapacity:           channelStateSetting.PeerChannelCapacity,
+						PeerChannelCount:              channelStateSetting.PeerChannelCount,
+						PeerLocalBalance:              channelStateSetting.PeerLocalBalance,
+						PeerLocalBalancePerMilleRatio: int(channelStateSetting.PeerLocalBalance / channelStateSetting.PeerChannelCapacity * 1000),
+					},
+				}
+				if channelBalanceEvent.BalanceDeltaAbsolute < 0 {
+					channelBalanceEvent.BalanceDeltaAbsolute = -1 * channelBalanceEvent.BalanceDeltaAbsolute
+				}
+				channelStateSetting.NumUpdates = channelStateSetting.NumUpdates + 1
+				channelStateSetting.LocalBalance = channelStateSetting.LocalBalance + managedChannelState.Amount
+				channelStateSetting.RemoteBalance = channelStateSetting.LocalBalance - managedChannelState.Amount
+				nodeChannels[managedChannelState.ChannelId] = channelStateSetting
 				for _, nc := range nodeChannels {
-					if nc.RemoteNodeId == channelSetting.RemoteNodeId {
+					if nc.RemoteNodeId == channelStateSetting.RemoteNodeId {
 						nc.PeerLocalBalance = nc.PeerLocalBalance + managedChannelState.Amount
 					}
 				}
 				channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = nodeChannels
+				channelBalanceEvent.ChannelBalanceEventData = ChannelBalanceEventData{
+					Capacity:                      channelSettings.Capacity,
+					LocalBalance:                  channelStateSetting.LocalBalance,
+					RemoteBalance:                 channelStateSetting.RemoteBalance,
+					LocalBalancePerMilleRatio:     int(channelStateSetting.LocalBalance / channelSettings.Capacity * 1000),
+					PeerChannelCapacity:           channelStateSetting.PeerChannelCapacity,
+					PeerChannelCount:              channelStateSetting.PeerChannelCount,
+					PeerLocalBalance:              channelStateSetting.PeerLocalBalance + managedChannelState.Amount,
+					PeerLocalBalancePerMilleRatio: int(channelStateSetting.PeerLocalBalance / channelStateSetting.PeerChannelCapacity * 1000),
+				}
+				channelBalanceEventChannel <- channelBalanceEvent
 			} else {
 				managedChannelSettings := GetChannelSettingByChannelId(managedChannelState.ChannelId)
 				if managedChannelSettings.Status == Open {
@@ -607,7 +639,7 @@ func getAggregate(channelStateSettings []ManagedChannelStateSettings, remoteNode
 }
 
 func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSettings {
-	channelStatesResponseChannel := make(chan []ManagedChannelStateSettings, 1)
+	channelStatesResponseChannel := make(chan []ManagedChannelStateSettings)
 	managedChannelState := ManagedChannelState{
 		NodeId:        nodeId,
 		ForceResponse: forceResponse,
@@ -619,7 +651,7 @@ func GetChannelStates(nodeId int, forceResponse bool) []ManagedChannelStateSetti
 }
 
 func GetChannelStateChannelIds(nodeId int, forceResponse bool) []int {
-	channelIdsResponseChannel := make(chan []int, 1)
+	channelIdsResponseChannel := make(chan []int)
 	managedChannelState := ManagedChannelState{
 		NodeId:        nodeId,
 		ForceResponse: forceResponse,
@@ -631,7 +663,7 @@ func GetChannelStateChannelIds(nodeId int, forceResponse bool) []int {
 }
 
 func GetChannelState(nodeId, channelId int, forceResponse bool) *ManagedChannelStateSettings {
-	channelStateResponseChannel := make(chan *ManagedChannelStateSettings, 1)
+	channelStateResponseChannel := make(chan *ManagedChannelStateSettings)
 	managedChannelState := ManagedChannelState{
 		NodeId:        nodeId,
 		ChannelId:     channelId,
@@ -644,7 +676,7 @@ func GetChannelState(nodeId, channelId int, forceResponse bool) *ManagedChannelS
 }
 
 func GetChannelBalanceStates(nodeId int, forceResponse bool, channelStateInclude ChannelStateInclude, htlcInclude ChannelBalanceStateHtlcInclude) []ManagedChannelBalanceStateSettings {
-	channelBalanceStateResponseChannel := make(chan []ManagedChannelBalanceStateSettings, 1)
+	channelBalanceStateResponseChannel := make(chan []ManagedChannelBalanceStateSettings)
 	managedChannelState := ManagedChannelState{
 		NodeId:           nodeId,
 		ForceResponse:    forceResponse,
@@ -658,7 +690,7 @@ func GetChannelBalanceStates(nodeId int, forceResponse bool, channelStateInclude
 }
 
 func GetChannelBalanceState(nodeId, channelId int, forceResponse bool, htlcInclude ChannelBalanceStateHtlcInclude) *ManagedChannelBalanceStateSettings {
-	channelBalanceStateResponseChannel := make(chan *ManagedChannelBalanceStateSettings, 1)
+	channelBalanceStateResponseChannel := make(chan *ManagedChannelBalanceStateSettings)
 	managedChannelState := ManagedChannelState{
 		NodeId:          nodeId,
 		ChannelId:       channelId,
@@ -757,7 +789,7 @@ func isNodeReady(channelStateSettingsStatusCache map[int]Status, nodeId int,
 	// Channel states not initialized yet
 	if channelStateSettingsStatusCache[nodeId] != Active {
 		deactivationTime, exists := channelStateSettingsDeactivationTimeCache[nodeId]
-		if exists && time.Since(deactivationTime).Seconds() < TOLERATED_SUBSCRIPTION_DOWNTIME_SECONDS {
+		if exists && time.Since(deactivationTime).Seconds() < toleratedSubscriptionDowntimeSeconds {
 			log.Debug().Msgf("Node flagged as active even tough subscription is temporary down for nodeId: %v", nodeId)
 		} else if !forceResponse {
 			return false

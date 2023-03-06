@@ -9,6 +9,7 @@
   "Destinations": "Destinations",
   "Sources": "Sources",
   "Avoid": "Avoid",
+  "focus": "Focus",
   "SatPerVbyte": "Sat/vbyte",
   "Private": "Private",
   "ChannelSize": "Channel Size",
@@ -177,6 +178,10 @@
   "automation": "Automation",
   "triggers": "Triggers",
   "trigger": "Trigger",
+  "dataSources": "Data Sources",
+  "triggering": "Triggering",
+  "all": "All",
+  "both": "Both",
   "actions": "Actions",
   "MainNet": "MainNet",
   "TestNet": "TestNet",
@@ -188,8 +193,12 @@
   "deleteStageConfirm": "Are you sure you want to delete this stage?",
   "maximumCostSat": "Maximum cost (sat)",
   "maximumCostMilliMsat": "Maximum cost (ppm)",
+  "maximumConcurrency": "Maximum concurrency",
   "amountSat": "Amount (sat)",
   "close": "Close",
+  "ignoreWhenEventless": "When no event is found",
+  "stop": "Stop",
+  "continue": "Continue",
   "update": "Update",
   "MessageVerification": "Sign & Verify",
   "stageTriggerDetails": {
@@ -221,7 +230,9 @@
     "removeTag": "Remove Tags",
     "targetChannel": "Target Channels",
     "targetNode": "Target Nodes",
-    "run": "Run Workflow"
+    "run": "Run Workflow",
+    "torqChannels": "Torq Channel(s)",
+    "eventFilter": "Events Filter"
   },
   "workflowDetails": {
     "cantAddTriggerNodeToStages": "Trigger nodes can only be added to the first stage.",

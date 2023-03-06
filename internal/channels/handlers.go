@@ -179,7 +179,7 @@ type PendingChannel struct {
 	ClosedOnSecondsDelta    *uint64    `json:"closedOnSecondsDelta"`
 }
 
-func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interface{}) {
+func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan<- interface{}) {
 	var requestBody commons.RoutingPolicyUpdateRequest
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -189,7 +189,7 @@ func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan interfac
 	requestBody.RateLimitSeconds = 1
 	requestBody.RateLimitCount = 10
 
-	response := SetRoutingPolicyWithTimeout(requestBody, lightningRequestChannel)
+	response := SetRoutingPolicy(requestBody, lightningRequestChannel)
 	if response.Status != commons.Active {
 		err := errors.New(response.Error)
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))

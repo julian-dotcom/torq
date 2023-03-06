@@ -19,6 +19,8 @@ import (
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
+const workflowLogCount = 100
+
 func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
 	// Workflows Crud (/api/workflows)
@@ -147,7 +149,7 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 			log.Error().Err(err).Msg("Could not obtain workflowIds for WorkflowNodeCronTrigger")
 		}
 		if slices.Contains(workflowIds, req.WorkflowId) {
-			active := commons.Active
+			active := commons.ServiceActive
 			commons.RunningServices[commons.CronService].Cancel(commons.TorqDummyNodeId, &active, true)
 		}
 	}
@@ -609,7 +611,7 @@ func getWorkflowLogsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse workflowId in the request.")
 		return
 	}
-	workflowLogs, err := GetWorkflowLogs(db, workflowId, commons.WORKFLOW_LOG_COUNT)
+	workflowLogs, err := GetWorkflowLogs(db, workflowId, workflowLogCount)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow logs for workflowId: %v", workflowId))
 		return
@@ -623,7 +625,7 @@ func getNodeLogsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse workflowVersionNodeId in the request.")
 		return
 	}
-	workflowVersionNodeLogs, err := GetNodeLogs(db, workflowVersionNodeId, commons.WORKFLOW_LOG_COUNT)
+	workflowVersionNodeLogs, err := GetNodeLogs(db, workflowVersionNodeId, workflowLogCount)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Getting workflow version node logs for workflowVersionNodeId: %v", workflowVersionNodeId))
 		return

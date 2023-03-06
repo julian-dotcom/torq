@@ -33,7 +33,7 @@ type ManagedTrigger struct {
 	VerificationTime                *time.Time
 	Status                          Status
 	PreviousState                   Status
-	TriggerSettingsOut              chan ManagedTriggerSettings
+	TriggerSettingsOut              chan<- ManagedTriggerSettings
 }
 
 type ManagedTriggerSettings struct {
@@ -50,7 +50,7 @@ type ManagedTriggerSettings struct {
 	PreviousState                   Status
 }
 
-func ManagedTriggerCache(ch chan ManagedTrigger, ctx context.Context) {
+func ManagedTriggerCache(ch <-chan ManagedTrigger, ctx context.Context) {
 	timeTriggerCache := make(map[int]ManagedTriggerSettings)
 	eventTriggerCache := make(map[int]map[int]map[int]ManagedTriggerSettings)
 	var scheduledTriggerCache []ManagedTriggerSettings
@@ -193,6 +193,9 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 				// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
 				//}
 
+				log.Debug().Msgf("Trigger got scheduled while there is a pending version with triggerReferenceId: %v, events: %v, queue: %v",
+					triggerReferenceId, len(scheduledItem.TriggeringEventQueue), len(scheduledTriggerCache))
+
 				return scheduledTriggerCache
 			}
 		}
@@ -205,6 +208,7 @@ func processManagedTrigger(managedTrigger ManagedTrigger,
 			TriggeringEventQueue:            []any{managedTrigger.TriggeringEvent},
 			Reference:                       managedTrigger.Reference,
 		})
+		log.Debug().Msgf("Amount of triggers currently scheduled: %v", len(scheduledTriggerCache))
 	}
 	return scheduledTriggerCache
 }
@@ -236,7 +240,7 @@ func initializeEventTriggerCache(
 }
 
 func GetTimeTriggerSettingsByWorkflowVersionId(workflowVersionId int) ManagedTriggerSettings {
-	triggerSettingsChannel := make(chan ManagedTriggerSettings, 1)
+	triggerSettingsChannel := make(chan ManagedTriggerSettings)
 	managedTrigger := ManagedTrigger{
 		WorkflowVersionId:  workflowVersionId,
 		Type:               READ_TIME_TRIGGER_SETTINGS,
@@ -252,7 +256,7 @@ func GetEventTriggerSettingsByWorkflowVersionId(
 	triggeringNodeType WorkflowNodeType,
 	triggeringEvent any) ManagedTriggerSettings {
 
-	triggerSettingsChannel := make(chan ManagedTriggerSettings, 1)
+	triggerSettingsChannel := make(chan ManagedTriggerSettings)
 	managedTrigger := ManagedTrigger{
 		WorkflowVersionId:               workflowVersionId,
 		TriggeringWorkflowVersionNodeId: triggeringWorkflowVersionNodeId,
@@ -347,7 +351,7 @@ func ScheduleTrigger(
 }
 
 func GetScheduledTrigger() ManagedTriggerSettings {
-	triggerSettingsChannel := make(chan ManagedTriggerSettings, 1)
+	triggerSettingsChannel := make(chan ManagedTriggerSettings)
 	ManagedTriggerChannel <- ManagedTrigger{
 		Type:               POP_SCHEDULED_TRIGGER,
 		TriggerSettingsOut: triggerSettingsChannel,

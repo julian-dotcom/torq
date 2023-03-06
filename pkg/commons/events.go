@@ -41,22 +41,34 @@ type ChannelGraphEventData struct {
 }
 
 type ChannelBalanceEventData struct {
-	Capacity                            int64 `json:"capacity"`
-	LocalBalance                        int64 `json:"localBalance"`
-	LocalBalancePerMilleRatio           int   `json:"localBalancePerMilleRatio"`
-	RemoteBalance                       int64 `json:"remoteBalance"`
-	AggregatedChannels                  int   `json:"aggregatedChannels"`
-	AggregatedCapacity                  int64 `json:"aggregatedCapacity"`
-	AggregatedLocalBalance              int64 `json:"aggregatedLocalBalance"`
-	AggregatedLocalBalancePerMilleRatio int   `json:"aggregatedLocalBalancePerMilleRatio"`
+	Capacity                      int64 `json:"capacity"`
+	LocalBalance                  int64 `json:"localBalance"`
+	LocalBalancePerMilleRatio     int   `json:"localBalancePerMilleRatio"`
+	RemoteBalance                 int64 `json:"remoteBalance"`
+	PeerChannelCapacity           int64 `json:"peerChannelCapacity"`
+	PeerChannelCount              int   `json:"peerChannelCount"`
+	PeerLocalBalance              int64 `json:"peerLocalBalance"`
+	PeerLocalBalancePerMilleRatio int   `json:"peerLocalBalancePerMilleRatio"`
 }
+
+type ServiceStatus int
+
+const (
+	ServiceInactive               = ServiceStatus(Inactive)
+	ServiceActive                 = ServiceStatus(Active)
+	ServicePending                = ServiceStatus(Pending)
+	ServiceDeleted                = ServiceStatus(Deleted)
+	ServiceInitializing           = ServiceStatus(Initializing)
+	ServiceBootRequested          = ServiceStatus(100)
+	ServiceBootRequestedWithDelay = ServiceStatus(101)
+)
 
 type ServiceEvent struct {
 	EventData
 	Type               ServiceType
 	SubscriptionStream *SubscriptionStream
-	Status             Status
-	PreviousStatus     Status
+	Status             ServiceStatus
+	PreviousStatus     ServiceStatus
 }
 
 type NodeGraphEvent struct {
@@ -75,7 +87,9 @@ type ChannelGraphEvent struct {
 
 type ChannelBalanceEvent struct {
 	EventData
-	ChannelId int `json:"channelId"`
+	ChannelId            int   `json:"channelId"`
+	BalanceDelta         int64 `json:"balanceDelta"`
+	BalanceDeltaAbsolute int64 `json:"balanceDeltaAbsolute"`
 	ChannelBalanceEventData
 	PreviousEventData *ChannelBalanceEventData `json:"previous"`
 }
@@ -343,9 +357,9 @@ type FailedRequest struct {
 // Request/Response for Vector
 type ShortChannelIdRequest struct {
 	CommunicationRequest
-	ResponseChannel chan ShortChannelIdResponse `json:"-"`
-	TransactionHash string                      `json:"transactionHash"`
-	OutputIndex     int                         `json:"outputIndex"`
+	ResponseChannel chan<- ShortChannelIdResponse `json:"-"`
+	TransactionHash string                        `json:"transactionHash"`
+	OutputIndex     int                           `json:"outputIndex"`
 }
 
 type ShortChannelIdResponse struct {
@@ -368,7 +382,7 @@ type CommunicationResponse struct {
 }
 
 type ChannelStatusUpdateRequest struct {
-	ResponseChannel chan ChannelStatusUpdateResponse `json:"-"`
+	ResponseChannel chan<- ChannelStatusUpdateResponse `json:"-"`
 	CommunicationRequest
 	ChannelId     int    `json:"channelId"`
 	ChannelStatus Status `json:"channelStatus"`
@@ -381,15 +395,15 @@ type ChannelStatusUpdateResponse struct {
 
 type RoutingPolicyUpdateRequest struct {
 	CommunicationRequest
-	ResponseChannel  chan RoutingPolicyUpdateResponse `json:"-"`
-	RateLimitSeconds int                              `json:"rateLimitSeconds"`
-	RateLimitCount   int                              `json:"rateLimitCount"`
-	ChannelId        int                              `json:"channelId"`
-	FeeRateMilliMsat *int64                           `json:"feeRateMilliMsat"`
-	FeeBaseMsat      *int64                           `json:"feeBaseMsat"`
-	MaxHtlcMsat      *uint64                          `json:"maxHtlcMsat"`
-	MinHtlcMsat      *uint64                          `json:"minHtlcMsat"`
-	TimeLockDelta    *uint32                          `json:"timeLockDelta"`
+	ResponseChannel  chan<- RoutingPolicyUpdateResponse `json:"-"`
+	RateLimitSeconds int                                `json:"rateLimitSeconds"`
+	RateLimitCount   int                                `json:"rateLimitCount"`
+	ChannelId        int                                `json:"channelId"`
+	FeeRateMilliMsat *int64                             `json:"feeRateMilliMsat"`
+	FeeBaseMsat      *int64                             `json:"feeBaseMsat"`
+	MaxHtlcMsat      *uint64                            `json:"maxHtlcMsat"`
+	MinHtlcMsat      *uint64                            `json:"minHtlcMsat"`
+	TimeLockDelta    *uint32                            `json:"timeLockDelta"`
 }
 
 type RoutingPolicyUpdateResponse struct {
@@ -400,9 +414,9 @@ type RoutingPolicyUpdateResponse struct {
 
 type SignatureVerificationRequest struct {
 	CommunicationRequest
-	ResponseChannel chan SignatureVerificationResponse `json:"-"`
-	Message         string                             `json:"message"`
-	Signature       string                             `json:"signature"`
+	ResponseChannel chan<- SignatureVerificationResponse `json:"-"`
+	Message         string                               `json:"message"`
+	Signature       string                               `json:"signature"`
 }
 
 type SignatureVerificationResponse struct {
@@ -414,9 +428,9 @@ type SignatureVerificationResponse struct {
 
 type SignMessageRequest struct {
 	CommunicationRequest
-	ResponseChannel chan SignMessageResponse `json:"-"`
-	Message         string                   `json:"message"`
-	SingleHash      *bool                    `json:"singleHash"`
+	ResponseChannel chan<- SignMessageResponse `json:"-"`
+	Message         string                     `json:"message"`
+	SingleHash      *bool                      `json:"singleHash"`
 }
 
 type SignMessageResponse struct {
@@ -427,8 +441,8 @@ type SignMessageResponse struct {
 
 type RebalanceRequest struct {
 	CommunicationRequest
-	ResponseChannel chan RebalanceResponse `json:"-"`
-	Origin          RebalanceRequestOrigin `json:"origin"`
+	ResponseChannel chan<- RebalanceResponse `json:"-"`
+	Origin          RebalanceRequestOrigin   `json:"origin"`
 	// Either manually generated number for manual rebalance or
 	// WorkflowVersionNodeId for rebalance originating from workflows
 	OriginId        int    `json:"originId"`

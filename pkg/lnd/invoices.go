@@ -18,6 +18,8 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const streamLndMaxInvoices = 1000
+
 type invoicesClient interface {
 	SubscribeInvoices(ctx context.Context, in *lnrpc.InvoiceSubscription,
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribeInvoicesClient, error)
@@ -197,12 +199,12 @@ func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIn
 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings,
-	invoiceEventChannel chan commons.InvoiceEvent,
-	serviceEventChannel chan commons.ServiceEvent) {
+	invoiceEventChannel chan<- commons.InvoiceEvent,
+	serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreInvoices terminated for nodeId: %v", nodeSettings.NodeId)
 
-	var serviceStatus commons.Status
+	var serviceStatus commons.ServiceStatus
 	bootStrapping := true
 	subscriptionStream := commons.InvoiceStream
 	importCounter := 0
@@ -210,7 +212,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	importInvoices := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportInvoices)
 	if !importInvoices {
 		log.Info().Msgf("Import of invoices is disabled for nodeId: %v", nodeSettings.NodeId)
-		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Deleted, serviceStatus)
+		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceDeleted, serviceStatus)
 		return
 	}
 
@@ -229,7 +231,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 
 		listInvoiceResponse, err := client.ListInvoices(ctx, &lnrpc.ListInvoiceRequest{
-			NumMaxInvoices: commons.STREAM_LND_MAX_INVOICES,
+			NumMaxInvoices: streamLndMaxInvoices,
 			IndexOffset:    addIndex,
 		})
 		if err != nil {
@@ -242,17 +244,17 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 
 		if bootStrapping {
 			importCounter = importCounter + len(listInvoiceResponse.Invoices)
-			if len(listInvoiceResponse.Invoices) >= commons.STREAM_LND_MAX_INVOICES {
+			if len(listInvoiceResponse.Invoices) >= streamLndMaxInvoices {
 				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Initializing, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceInitializing, serviceStatus)
 		} else {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 		}
 		for _, invoice := range listInvoiceResponse.Invoices {
 			processInvoice(invoice, nodeSettings, db, invoiceEventChannel, bootStrapping)
 		}
-		if bootStrapping && len(listInvoiceResponse.Invoices) < commons.STREAM_LND_MAX_INVOICES {
+		if bootStrapping && len(listInvoiceResponse.Invoices) < streamLndMaxInvoices {
 			bootStrapping = false
 			log.Info().Msgf("Bulk import of invoices done (%v)", importCounter)
 			break
@@ -287,7 +289,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			continue
 		}
 
-		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Active, serviceStatus)
+		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
 		invoice, err := stream.Recv()
 		if err != nil {
 			cancel()
@@ -302,7 +304,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	}
 }
 
-func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB, invoiceEventChannel chan commons.InvoiceEvent, bootStrapping bool) {
+func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB, invoiceEventChannel chan<- commons.InvoiceEvent, bootStrapping bool) {
 	invoiceEvent := commons.InvoiceEvent{
 		EventData: commons.EventData{
 			EventTime: time.Now().UTC(),
@@ -334,12 +336,12 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 	}
 }
 
-func processError(serviceStatus commons.Status, serviceEventChannel chan commons.ServiceEvent, nodeSettings commons.ManagedNodeSettings,
-	subscriptionStream commons.SubscriptionStream, err error) commons.Status {
+func processError(serviceStatus commons.ServiceStatus, serviceEventChannel chan<- commons.ServiceEvent, nodeSettings commons.ManagedNodeSettings,
+	subscriptionStream commons.SubscriptionStream, err error) commons.ServiceStatus {
 
-	serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.Pending, serviceStatus)
-	log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", commons.STREAM_ERROR_SLEEP_SECONDS)
-	time.Sleep(commons.STREAM_ERROR_SLEEP_SECONDS * time.Second)
+	serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+	log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", streamErrorSleepSeconds)
+	time.Sleep(streamErrorSleepSeconds * time.Second)
 	return serviceStatus
 }
 
@@ -383,7 +385,7 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 }
 
 func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, destinationNodeId *int, nodeId int,
-	invoiceEvent commons.InvoiceEvent, invoiceEventChannel chan commons.InvoiceEvent, bootStrapping bool) error {
+	invoiceEvent commons.InvoiceEvent, invoiceEventChannel chan<- commons.InvoiceEvent, bootStrapping bool) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {

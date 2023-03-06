@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import { MutableRefObject, useContext, useEffect, useRef, useState } from "react";
+import React, {MutableRefObject, useContext, useEffect, useRef, useState} from "react";
 import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
 import styles from "./socket_input.module.scss";
 import { GetColorClass, GetSizeClass, InputColorVaraint } from "components/forms/input/variants";
@@ -12,12 +12,14 @@ import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import useTranslations from "services/i18n/useTranslations";
 import mixpanel from "mixpanel-browser";
+import NodeConnector from "components/workflow/nodeWrapper/NodeConnector";
 
 export type SocketProps = BasicInputType & {
   workflowVersionId: number;
   workflowVersionNodeId: number;
   selectedNodes: Array<WorkflowVersionNode>;
   inputName: string;
+  outputName?: string;
   collapsed: boolean;
   placeholder?: string;
   acceptMultiple?: boolean;
@@ -94,19 +96,19 @@ function Socket(props: SocketProps) {
 
   function updater() {
     if (canvasRef !== null) {
-      const connBB = connectorRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const connBB = connectorRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const x = connBB.x - canvasBB.x + connBB.width / 2 - 8; // -14 because of the 16 padding right on the connector and 4px line width
       const y = connBB.y - canvasBB.y + connBB.height / 2 - 12.5;
-      const eventName = `childLinkMove-${props.workflowVersionNodeId}-${props.inputName}`;
-      const event = new CustomEvent(eventName, {
+      const eventNameInput = `childLinkMove-${props.workflowVersionNodeId}-${props.inputName}`;
+      const eventInput = new CustomEvent(eventNameInput, {
         detail: {
           x: x,
           y: y,
           nodeId: props.workflowVersionNodeId.toString(),
         },
       });
-      window.dispatchEvent(event);
+      window.dispatchEvent(eventInput);
     }
   }
 
@@ -169,6 +171,15 @@ function Socket(props: SocketProps) {
             })}
           {props.selectedNodes.length === 0 && "Drop connection here"}
         </div>
+        {props.outputName && (
+          <NodeConnector
+            id={`parentLinkConnector-${props.workflowVersionNodeId}-${props.outputName}`}
+            name={props.label || ""}
+            outputName={props.outputName || ""}
+            workflowVersionNodeId={props.workflowVersionNodeId}
+            workflowVersionId={props.workflowVersionId}
+          />
+        )}
       </div>
       {props.errorText && (
         <div className={classNames(styles.feedbackWrapper, styles.feedbackError)}>

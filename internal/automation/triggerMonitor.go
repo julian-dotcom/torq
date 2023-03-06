@@ -18,11 +18,13 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 )
 
+const workflowTickerSeconds = 10
+
 func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
 	defer log.Info().Msgf("IntervalTriggerMonitor terminated")
 
-	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
 	bootstrapping := true
 
 	for {
@@ -98,7 +100,7 @@ type CronTriggerParams struct {
 func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	defer log.Info().Msgf("Cron trigger monitor terminated")
 
-	ticker := clock.New().Tick(commons.WORKFLOW_TICKER_SECONDS * time.Second)
+	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
 
 bootstrappingLoop:
 	for {
@@ -126,8 +128,7 @@ bootstrappingLoop:
 		return
 	}
 
-	c := cron.New()
-
+	var crons []*cron.Cron
 	for _, trigger := range workflowTriggerNodes {
 		var params CronTriggerParams
 		if err = json.Unmarshal(trigger.Parameters.([]byte), &params); err != nil {
@@ -135,20 +136,28 @@ bootstrappingLoop:
 			continue
 		}
 		log.Debug().Msgf("Scheduling cron (%v) for workflow version node id: %v", params.CronValue, trigger.WorkflowVersionNodeId)
+		c := cron.New()
+		workflowVersionNodeId := trigger.WorkflowVersionNodeId
+		workflowVersionId := trigger.WorkflowVersionId
+		triggeringEvent := trigger
 		_, err = c.AddFunc(params.CronValue, func() {
-			log.Debug().Msgf("Scheduling for immediate execution cron trigger for workflow version node id %v", trigger.WorkflowVersionNodeId)
-			reference := fmt.Sprintf("%v_%v", trigger.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-			commons.ScheduleTrigger(reference, trigger.WorkflowVersionId,
-				commons.WorkflowNodeCronTrigger, trigger.WorkflowVersionNodeId, trigger)
+			log.Debug().Msgf("Scheduling for immediate execution cron trigger for workflow version node id %v", workflowVersionNodeId)
+			reference := fmt.Sprintf("%v_%v", workflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
+			commons.ScheduleTrigger(reference, workflowVersionId, commons.WorkflowNodeCronTrigger, workflowVersionNodeId, triggeringEvent)
 		})
 		if err != nil {
 			log.Error().Msgf("Unable to add cron func for workflow version node id: %v", trigger.WorkflowVersionNodeId)
 			continue
 		}
+		c.Start()
+		crons = append(crons, c)
 	}
 
-	c.Start()
-	defer c.Stop()
+	defer func() {
+		for _, c := range crons {
+			c.Stop()
+		}
+	}()
 
 	log.Info().Msgf("Cron trigger monitor started")
 
@@ -178,8 +187,8 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 }
 
 func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
-	lightningRequestChannel chan interface{},
-	rebalanceRequestChannel chan commons.RebalanceRequest) {
+	lightningRequestChannel chan<- interface{},
+	rebalanceRequestChannel chan<- commons.RebalanceRequest) {
 
 	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
@@ -197,20 +206,9 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 		}
 		events := scheduledTrigger.TriggeringEventQueue
 		if len(events) > 0 {
+			log.Debug().Msgf("ScheduledTriggerMonitor initiated for %v events", len(events))
 			firstEvent := events[0]
-			lastEvent := events[len(events)-1]
-
-			var eventChannelIds []int
-			for _, event := range events {
-				channelBalanceEvent, ok := event.(commons.ChannelBalanceEvent)
-				if ok {
-					eventChannelIds = append(eventChannelIds, channelBalanceEvent.ChannelId)
-				}
-				channelEvent, ok := event.(commons.ChannelEvent)
-				if ok {
-					eventChannelIds = append(eventChannelIds, channelEvent.ChannelId)
-				}
-			}
+			//lastEvent := events[len(events)-1]
 
 			workflowTriggerNode, err := workflows.GetWorkflowNode(db, scheduledTrigger.TriggeringWorkflowVersionNodeId)
 			if err != nil {
@@ -236,125 +234,97 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 				workflowTriggerNode.Type = commons.WorkflowNodeManualTrigger
 			}
 
-			if scheduledTrigger.TriggeringNodeType == commons.WorkflowNodeChannelBalanceEventTrigger {
-				// If the event is a WorkflowNode then this is the bootstrapping event that simulates a channel update
-				// since we don't know what happened while Torq was offline.
-				switch firstEvent.(type) {
-				case workflows.WorkflowNode:
-					eventTime := time.Now()
-					dummyChannelBalanceEvents := make(map[int]map[int]*commons.ChannelBalanceEvent)
-					torqNodeIds := commons.GetAllTorqNodeIds()
-					for _, torqNodeId := range torqNodeIds {
-						for _, channelId := range commons.GetChannelIdsByNodeId(torqNodeId) {
-							channelSettings := commons.GetChannelSettingByChannelId(channelId)
-							capacity := channelSettings.Capacity
-							remoteNodeId := channelSettings.FirstNodeId
-							if remoteNodeId == torqNodeId {
-								remoteNodeId = channelSettings.SecondNodeId
-							}
-							channelState := commons.GetChannelState(torqNodeId, channelId, true)
-							if channelState != nil {
-								if dummyChannelBalanceEvents[remoteNodeId] == nil {
-									dummyChannelBalanceEvents[remoteNodeId] = make(map[int]*commons.ChannelBalanceEvent)
-								}
-								dummyChannelBalanceEvents[remoteNodeId][channelId] = &commons.ChannelBalanceEvent{
-									EventData: commons.EventData{
-										EventTime: eventTime,
-										NodeId:    torqNodeId,
-									},
-									ChannelId: channelId,
-									ChannelBalanceEventData: commons.ChannelBalanceEventData{
-										Capacity:                  capacity,
-										LocalBalance:              channelState.LocalBalance,
-										RemoteBalance:             channelState.RemoteBalance,
-										LocalBalancePerMilleRatio: int(channelState.LocalBalance / capacity * 1000),
-									},
-								}
-							}
-						}
-					}
-
-					aggregateLocalBalance := make(map[int]int64)
-					aggregateLocalBalancePerMilleRatio := make(map[int]int)
-					for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
-						var localBalanceAggregate int64
-						var capacityAggregate int64
-						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
-							localBalanceAggregate += dummyChannelBalanceEvent.LocalBalance
-							capacityAggregate += dummyChannelBalanceEvent.Capacity
-						}
-						if capacityAggregate == 0 {
-							continue
-						}
-						aggregateLocalBalance[remoteNodeId] = localBalanceAggregate
-						aggregateLocalBalancePerMilleRatio[remoteNodeId] = int(localBalanceAggregate / capacityAggregate * 1000)
-					}
-					for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
-						for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
-							dummyChannelBalanceEvent.AggregatedLocalBalance = aggregateLocalBalance[remoteNodeId]
-							dummyChannelBalanceEvent.AggregatedLocalBalancePerMilleRatio = aggregateLocalBalancePerMilleRatio[remoteNodeId]
-							inputs := make(map[commons.WorkflowParameterLabel]string)
-							marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
-							if err != nil {
-								log.Error().Err(err).Msgf("Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-								continue
-							}
-							inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
-
-							triggerCtx, triggerCancel := context.WithCancel(ctx)
-
-							commons.ActivateEventTrigger(scheduledTrigger.Reference,
-								workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
-								scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
-
-							processWorkflowNode(triggerCtx, db, triggerGroupWorkflowVersionNodeId,
-								workflowTriggerNode, scheduledTrigger.Reference, inputs, lightningRequestChannel,
-								rebalanceRequestChannel)
-
-							triggerCancel()
-
-							commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
-								workflowTriggerNode.WorkflowVersionNodeId, scheduledTrigger.TriggeringNodeType, lastEvent)
-
-						}
-					}
-					continue
-				}
-			}
-
-			inputs := make(map[commons.WorkflowParameterLabel]string)
-			if len(eventChannelIds) != 0 {
-				marshalledChannelIdsFromEvents, err := json.Marshal(eventChannelIds)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to marshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-					continue
-				}
-				inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
-			} else {
-				var allChannelIds []int
-				torqNodeIds := commons.GetAllTorqNodeIds()
-				for _, torqNodeId := range torqNodeIds {
-					// Force Response because we don't care about balance accuracy
-					channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
-					allChannelIds = append(allChannelIds, channelIdsByNode...)
-				}
-
-				ba, err := json.Marshal(allChannelIds)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to marshal allChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-					continue
-				}
-				inputs[commons.WorkflowParameterLabelChannels] = string(ba)
-			}
+			//if scheduledTrigger.TriggeringNodeType == commons.WorkflowNodeChannelBalanceEventTrigger {
+			//	// If the event is a WorkflowNode then this is the bootstrapping event that simulates a channel update
+			//	// since we don't know what happened while Torq was offline.
+			//	switch firstEvent.(type) {
+			//	case workflows.WorkflowNode:
+			//		eventTime := time.Now()
+			//		dummyChannelBalanceEvents := make(map[int]map[int]*commons.ChannelBalanceEvent)
+			//		torqNodeIds := commons.GetAllTorqNodeIds()
+			//		for _, torqNodeId := range torqNodeIds {
+			//			for _, channelId := range commons.GetChannelIdsByNodeId(torqNodeId) {
+			//				channelSettings := commons.GetChannelSettingByChannelId(channelId)
+			//				capacity := channelSettings.Capacity
+			//				remoteNodeId := channelSettings.FirstNodeId
+			//				if remoteNodeId == torqNodeId {
+			//					remoteNodeId = channelSettings.SecondNodeId
+			//				}
+			//				channelState := commons.GetChannelState(torqNodeId, channelId, true)
+			//				if channelState != nil {
+			//					if dummyChannelBalanceEvents[remoteNodeId] == nil {
+			//						dummyChannelBalanceEvents[remoteNodeId] = make(map[int]*commons.ChannelBalanceEvent)
+			//					}
+			//					dummyChannelBalanceEvents[remoteNodeId][channelId] = &commons.ChannelBalanceEvent{
+			//						EventData: commons.EventData{
+			//							EventTime: eventTime,
+			//							NodeId:    torqNodeId,
+			//						},
+			//						ChannelId:            channelId,
+			//						BalanceDelta:         0,
+			//						BalanceDeltaAbsolute: 0,
+			//						ChannelBalanceEventData: commons.ChannelBalanceEventData{
+			//							Capacity:                  capacity,
+			//							LocalBalance:              channelState.LocalBalance,
+			//							RemoteBalance:             channelState.RemoteBalance,
+			//							LocalBalancePerMilleRatio: int(channelState.LocalBalance / capacity * 1000),
+			//						},
+			//					}
+			//				}
+			//			}
+			//		}
+			//
+			//		aggregateCapacity := make(map[int]int64)
+			//		aggregateCount := make(map[int]int)
+			//		aggregateLocalBalance := make(map[int]int64)
+			//		aggregateLocalBalancePerMilleRatio := make(map[int]int)
+			//		for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
+			//			var localBalanceAggregate int64
+			//			var capacityAggregate int64
+			//			for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
+			//				localBalanceAggregate += dummyChannelBalanceEvent.LocalBalance
+			//				capacityAggregate += dummyChannelBalanceEvent.Capacity
+			//			}
+			//			if capacityAggregate == 0 {
+			//				continue
+			//			}
+			//			aggregateCapacity[remoteNodeId] = capacityAggregate
+			//			aggregateCount[remoteNodeId] = len(dummyChannelBalanceEventByRemote)
+			//			aggregateLocalBalance[remoteNodeId] = localBalanceAggregate
+			//			aggregateLocalBalancePerMilleRatio[remoteNodeId] = int(localBalanceAggregate / capacityAggregate * 1000)
+			//		}
+			//		for remoteNodeId, dummyChannelBalanceEventByRemote := range dummyChannelBalanceEvents {
+			//			for _, dummyChannelBalanceEvent := range dummyChannelBalanceEventByRemote {
+			//				dummyChannelBalanceEvent.PeerChannelCapacity = aggregateCapacity[remoteNodeId]
+			//				dummyChannelBalanceEvent.PeerChannelCount = aggregateCount[remoteNodeId]
+			//				dummyChannelBalanceEvent.PeerLocalBalance = aggregateLocalBalance[remoteNodeId]
+			//				dummyChannelBalanceEvent.PeerLocalBalancePerMilleRatio = aggregateLocalBalancePerMilleRatio[remoteNodeId]
+			//
+			//				triggerCtx, triggerCancel := context.WithCancel(ctx)
+			//
+			//				commons.ActivateEventTrigger(scheduledTrigger.Reference,
+			//					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
+			//					scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
+			//
+			//				processWorkflowNode(triggerCtx, db, workflowTriggerNode,
+			//					scheduledTrigger.Reference, events, lightningRequestChannel,
+			//					rebalanceRequestChannel)
+			//
+			//				triggerCancel()
+			//
+			//				commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
+			//					workflowTriggerNode.WorkflowVersionNodeId, scheduledTrigger.TriggeringNodeType, lastEvent)
+			//
+			//			}
+			//		}
+			//		continue
+			//	}
+			//}
 
 			triggerCtx, triggerCancel := context.WithCancel(ctx)
 
 			switch workflowTriggerNode.Type {
-			case commons.WorkflowNodeIntervalTrigger:
-				fallthrough
-			case commons.WorkflowNodeCronTrigger:
-				fallthrough
-			case commons.WorkflowNodeManualTrigger:
+			case commons.WorkflowNodeIntervalTrigger, commons.WorkflowNodeCronTrigger, commons.WorkflowNodeManualTrigger:
 				commons.ActivateWorkflowTrigger(scheduledTrigger.Reference,
 					workflowTriggerNode.WorkflowVersionId, triggerCancel)
 			default:
@@ -363,18 +333,14 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 					scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
 			}
 
-			processWorkflowNode(triggerCtx, db, triggerGroupWorkflowVersionNodeId,
-				workflowTriggerNode, scheduledTrigger.Reference, inputs, lightningRequestChannel,
+			processWorkflowNode(triggerCtx, db, workflowTriggerNode,
+				scheduledTrigger.Reference, events, lightningRequestChannel,
 				rebalanceRequestChannel)
 
 			triggerCancel()
 
 			switch workflowTriggerNode.Type {
-			case commons.WorkflowNodeIntervalTrigger:
-				fallthrough
-			case commons.WorkflowNodeCronTrigger:
-				fallthrough
-			case commons.WorkflowNodeManualTrigger:
+			case commons.WorkflowNodeIntervalTrigger, commons.WorkflowNodeCronTrigger, commons.WorkflowNodeManualTrigger:
 				commons.DeactivateWorkflowTrigger(workflowTriggerNode.WorkflowVersionId)
 			default:
 				commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
@@ -455,74 +421,14 @@ func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType comm
 }
 
 func processWorkflowNode(ctx context.Context, db *sqlx.DB,
-	triggerGroupWorkflowVersionNodeId int, workflowTriggerNode workflows.WorkflowNode, reference string,
-	inputs map[commons.WorkflowParameterLabel]string,
-	lightningRequestChannel chan interface{},
-	rebalanceRequestChannel chan commons.RebalanceRequest) {
+	workflowTriggerNode workflows.WorkflowNode,
+	reference string,
+	events []any,
+	lightningRequestChannel chan<- interface{},
+	rebalanceRequestChannel chan<- commons.RebalanceRequest) {
 
-	workflowNodeStatus := make(map[int]commons.Status)
-	workflowStageExitConfigurationCache := make(map[int]map[commons.WorkflowParameterLabel]string)
-	workflowNodeCache := make(map[int]workflows.WorkflowNode)
-
-	if workflowTriggerNode.Type != commons.WorkflowNodeManualTrigger {
-		// Flag the trigger group node as processed
-		workflowNodeStatus[triggerGroupWorkflowVersionNodeId] = commons.Active
-	}
-
-	workflowChannelBalanceTriggerNodes, err := workflows.GetActiveSortedStageTriggerNodeForWorkflowVersionId(db,
-		workflowTriggerNode.WorkflowVersionId)
+	err := workflows.ProcessWorkflow(ctx, db, workflowTriggerNode, reference, events, lightningRequestChannel, rebalanceRequestChannel)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to obtain stage trigger nodes for WorkflowVersionId: %v", workflowTriggerNode.WorkflowVersionId)
-		return
-	}
-
-	if len(workflowChannelBalanceTriggerNodes) == 0 {
-		outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
-			0, workflowNodeCache, workflowNodeStatus,
-			reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
-			lightningRequestChannel, rebalanceRequestChannel)
-		workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
-			0, inputs, outputs, err)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		}
-		return
-	}
-	var channelIds []int
-	err = json.Unmarshal([]byte(inputs[commons.WorkflowParameterLabelChannels]), &channelIds)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to unmarshal eventChannelIds for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		return
-	}
-	for _, channelId := range channelIds {
-		marshalledChannelIdsFromEvents, err := json.Marshal([]int{channelId})
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal eventChannelId for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-			continue
-		}
-		inputs[commons.WorkflowParameterLabelChannels] = string(marshalledChannelIdsFromEvents)
-
-		outputs, _, err := workflows.ProcessWorkflowNode(ctx, db, workflowTriggerNode,
-			0, workflowNodeCache, workflowNodeStatus,
-			reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
-			lightningRequestChannel, rebalanceRequestChannel)
-		workflows.AddWorkflowVersionNodeLog(db, reference, workflowTriggerNode.WorkflowVersionNodeId,
-			0, inputs, outputs, err)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to trigger root nodes (trigger nodes) for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
-		}
-
-		for _, workflowDeferredLinkNode := range workflowChannelBalanceTriggerNodes {
-			inputs = commons.CopyParameters(outputs)
-			outputs, _, err = workflows.ProcessWorkflowNode(ctx, db, workflowDeferredLinkNode,
-				0, workflowNodeCache, workflowNodeStatus,
-				reference, inputs, 0, workflowTriggerNode.Type, workflowStageExitConfigurationCache,
-				lightningRequestChannel, rebalanceRequestChannel)
-			workflows.AddWorkflowVersionNodeLog(db, reference, workflowDeferredLinkNode.WorkflowVersionNodeId,
-				0, inputs, outputs, err)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to trigger deferred link node for WorkflowVersionNodeId: %v", workflowDeferredLinkNode.WorkflowVersionNodeId)
-			}
-		}
+		log.Error().Err(err).Msgf("Failed to trigger nodes for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 	}
 }

@@ -2,6 +2,7 @@ package lnd
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -14,6 +15,8 @@ import (
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
+
+const routingPolicyUpdateLimiterSeconds = 5 * 60
 
 func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 	broadcaster broadcast.BroadcastServer) {
@@ -192,7 +195,7 @@ func constructUpdateChanStatusRequest(request commons.ChannelStatusUpdateRequest
 }
 
 func channelStatusUpdateRequestIsRepeated(db *sqlx.DB, request commons.ChannelStatusUpdateRequest) *commons.ChannelStatusUpdateResponse {
-	secondsAgo := commons.ROUTING_POLICY_UPDATE_LIMITER_SECONDS
+	secondsAgo := routingPolicyUpdateLimiterSeconds
 	channelEventsFromGraph, err := graph_events.GetChannelEventFromGraph(db, request.ChannelId, &secondsAgo)
 	if err != nil {
 		return &commons.ChannelStatusUpdateResponse{
@@ -428,7 +431,7 @@ func routingPolicyUpdateRequestContainsUpdates(request commons.RoutingPolicyUpda
 }
 
 func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPolicyUpdateRequest) *commons.RoutingPolicyUpdateResponse {
-	rateLimitSeconds := commons.ROUTING_POLICY_UPDATE_LIMITER_SECONDS
+	rateLimitSeconds := routingPolicyUpdateLimiterSeconds
 	if request.RateLimitSeconds > 0 {
 		rateLimitSeconds = request.RateLimitSeconds
 	}
@@ -488,7 +491,7 @@ func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPo
 				Request: request,
 				CommunicationResponse: commons.CommunicationResponse{
 					Status: commons.Inactive,
-					Error:  "Routing policy update ignored due to rate limiter",
+					Error:  fmt.Sprintf("Routing policy update ignored due to rate limiter for channelId: %v", request.ChannelId),
 				},
 			}
 		}

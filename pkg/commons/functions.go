@@ -98,12 +98,18 @@ func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) s
 	return fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)
 }
 
-func CopyParameters(parameters map[WorkflowParameterLabel]string) map[WorkflowParameterLabel]string {
+func CloneParameters(parameters map[WorkflowParameterLabel]string) map[WorkflowParameterLabel]string {
 	parametersCopy := make(map[WorkflowParameterLabel]string)
 	for k, v := range parameters {
 		parametersCopy[k] = v
 	}
 	return parametersCopy
+}
+
+func CopyParameters(destination map[WorkflowParameterLabel]string, source map[WorkflowParameterLabel]string) {
+	for k, v := range source {
+		destination[k] = v
+	}
 }
 
 func (s *Status) String() string {
@@ -125,6 +131,29 @@ func (s *Status) String() string {
 		return "Archived"
 	case TimedOut:
 		return "TimedOut"
+	}
+	return "Unknown"
+}
+
+func (s *ServiceStatus) String() string {
+	if s == nil {
+		return "Unknown"
+	}
+	switch *s {
+	case ServiceInactive:
+		return "Inactive"
+	case ServiceActive:
+		return "Active"
+	case ServicePending:
+		return "Pending"
+	case ServiceDeleted:
+		return "Deleted"
+	case ServiceInitializing:
+		return "Initializing"
+	case ServiceBootRequested:
+		return "BootRequested"
+	case ServiceBootRequestedWithDelay:
+		return "BootRequestedWithDelay"
 	}
 	return "Unknown"
 }
@@ -242,10 +271,17 @@ func IsWorkflowNodeTypeGrouped(workflowNodeType WorkflowNodeType) bool {
 	return false
 }
 
-func SignMessageWithTimeout(unixTime time.Time, nodeId int, message string, singleHash *bool,
-	lightningRequestChannel chan interface{}) SignMessageResponse {
+func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
+	return []WorkflowParameterLabel{
+		WorkflowParameterLabelRoutingPolicySettings,
+		WorkflowParameterLabelRebalanceSettings,
+		WorkflowParameterLabelStatus}
+}
 
-	responseChannel := make(chan SignMessageResponse, 1)
+func SignMessage(unixTime time.Time, nodeId int, message string, singleHash *bool,
+	lightningRequestChannel chan<- interface{}) SignMessageResponse {
+
+	responseChannel := make(chan SignMessageResponse)
 	request := SignMessageRequest{
 		CommunicationRequest: CommunicationRequest{
 			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
@@ -257,25 +293,13 @@ func SignMessageWithTimeout(unixTime time.Time, nodeId int, message string, sing
 		SingleHash:      singleHash,
 	}
 	lightningRequestChannel <- request
-	time.AfterFunc(LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
-		timeOutMessage := fmt.Sprintf("Sign Message timed out after %v seconds.", LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
-		responseChannel <- SignMessageResponse{
-			Request: request,
-			CommunicationResponse: CommunicationResponse{
-				Status:  TimedOut,
-				Message: timeOutMessage,
-				Error:   timeOutMessage,
-			},
-		}
-	})
-	response := <-responseChannel
-	return response
+	return <-responseChannel
 }
 
-func SignatureVerificationRequestWithTimeout(unixTime time.Time, nodeId int, message string, signature string,
-	lightningRequestChannel chan interface{}) SignatureVerificationResponse {
+func SignatureVerification(unixTime time.Time, nodeId int, message string, signature string,
+	lightningRequestChannel chan<- interface{}) SignatureVerificationResponse {
 
-	responseChannel := make(chan SignatureVerificationResponse, 1)
+	responseChannel := make(chan SignatureVerificationResponse)
 	request := SignatureVerificationRequest{
 		CommunicationRequest: CommunicationRequest{
 			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
@@ -287,19 +311,7 @@ func SignatureVerificationRequestWithTimeout(unixTime time.Time, nodeId int, mes
 		Signature:       signature,
 	}
 	lightningRequestChannel <- request
-	time.AfterFunc(LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS*time.Second, func() {
-		timeOutMessage := fmt.Sprintf("Signature Verification timed out after %v seconds.", LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS)
-		responseChannel <- SignatureVerificationResponse{
-			Request: request,
-			CommunicationResponse: CommunicationResponse{
-				Status:  TimedOut,
-				Message: timeOutMessage,
-				Error:   timeOutMessage,
-			},
-		}
-	})
-	response := <-responseChannel
-	return response
+	return <-responseChannel
 }
 
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
@@ -317,6 +329,9 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 
 	channelFilterRequiredInputs := channelsOnly
 	channelFilterRequiredOutputs := channelsOnly
+
+	eventFilterRequiredInputs := channelsOnly
+	eventFilterRequiredOutputs := channelsOnly
 
 	channelPolicyConfiguratorOptionalInputs := all
 	channelPolicyConfiguratorOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
@@ -374,49 +389,49 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
-			OptionalOutputs:  all,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeManualTrigger: {
 			WorkflowNodeType: WorkflowNodeManualTrigger,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
-			OptionalOutputs:  all,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeIntervalTrigger: {
 			WorkflowNodeType: WorkflowNodeIntervalTrigger,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
-			OptionalOutputs:  all,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeCronTrigger: {
 			WorkflowNodeType: WorkflowNodeCronTrigger,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
-			OptionalOutputs:  all,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeChannelBalanceEventTrigger: {
 			WorkflowNodeType: WorkflowNodeChannelBalanceEventTrigger,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
-			OptionalOutputs:  all,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeChannelOpenEventTrigger: {
 			WorkflowNodeType: WorkflowNodeChannelBalanceEventTrigger,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
-			OptionalOutputs:  all,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeChannelCloseEventTrigger: {
 			WorkflowNodeType: WorkflowNodeChannelBalanceEventTrigger,
 			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
-			OptionalOutputs:  all,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeStageTrigger: {
 			WorkflowNodeType: WorkflowNodeStageTrigger,
@@ -425,11 +440,25 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			RequiredOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 			OptionalOutputs:  all,
 		},
+		WorkflowNodeDataSourceTorqChannels: {
+			WorkflowNodeType: WorkflowNodeDataSourceTorqChannels,
+			RequiredInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			RequiredOutputs:  channelsOnly,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+		},
 		WorkflowNodeChannelFilter: {
 			WorkflowNodeType: WorkflowNodeChannelFilter,
 			RequiredInputs:   channelFilterRequiredInputs,
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
 			RequiredOutputs:  channelFilterRequiredOutputs,
+			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
+		},
+		WorkflowNodeEventFilter: {
+			WorkflowNodeType: WorkflowNodeEventFilter,
+			RequiredInputs:   eventFilterRequiredInputs,
+			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
+			RequiredOutputs:  eventFilterRequiredOutputs,
 			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeChannelPolicyConfigurator: {

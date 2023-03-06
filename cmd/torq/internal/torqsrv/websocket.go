@@ -44,7 +44,7 @@ type wsError struct {
 	Error     string `json:"error"`
 }
 
-func processWsReq(db *sqlx.DB, c *gin.Context, eventChannel, webSocketChannel chan interface{}, req wsRequest) {
+func processWsReq(db *sqlx.DB, eventChannel, webSocketChannel chan<- interface{}, req wsRequest) {
 	if req.Type == "ping" {
 		webSocketChannel <- Pong{Message: "pong"}
 		return
@@ -61,19 +61,19 @@ func processWsReq(db *sqlx.DB, c *gin.Context, eventChannel, webSocketChannel ch
 			sendError(fmt.Errorf("unknown NewPaymentRequest for type: %s", req.Type), req, webSocketChannel)
 			break
 		}
-		sendError(payments.SendNewPayment(eventChannel, db, c, *req.NewPaymentRequest, req.RequestId), req, webSocketChannel)
+		sendError(payments.SendNewPayment(eventChannel, db, *req.NewPaymentRequest, req.RequestId), req, webSocketChannel)
 	case "newAddress":
 		if req.NewAddressRequest == nil {
 			sendError(fmt.Errorf("unknown NewAddressRequest for type: %s", req.Type), req, webSocketChannel)
 			break
 		}
-		sendError(on_chain_tx.NewAddress(eventChannel, db, c, *req.NewAddressRequest, req.RequestId), req, webSocketChannel)
+		sendError(on_chain_tx.NewAddress(eventChannel, db, *req.NewAddressRequest, req.RequestId), req, webSocketChannel)
 	case "closeChannel":
 		if req.CloseChannelRequest == nil {
 			sendError(fmt.Errorf("unknown CloseChannelRequest for type: %s", req.Type), req, webSocketChannel)
 			break
 		}
-		sendError(channels.CloseChannel(eventChannel, db, c, *req.CloseChannelRequest, req.RequestId), req, webSocketChannel)
+		sendError(channels.CloseChannel(eventChannel, db, *req.CloseChannelRequest, req.RequestId), req, webSocketChannel)
 	case "openChannel":
 		if req.OpenChannelRequest == nil {
 			sendError(fmt.Errorf("unknown OpenChannelRequest for type: %s", req.Type), req, webSocketChannel)
@@ -85,7 +85,7 @@ func processWsReq(db *sqlx.DB, c *gin.Context, eventChannel, webSocketChannel ch
 	}
 }
 
-func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}, broadcaster broadcast.BroadcastServer) error {
+func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan<- interface{}, broadcaster broadcast.BroadcastServer) error {
 	var wsUpgrade = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -113,8 +113,8 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 	defer conn.Close()
 
 	webSocketChannel := make(chan interface{})
-	done := make(chan struct{}, 1)
-	go processWebsocketRequests(c, conn, done, db, eventChannel, webSocketChannel)
+	done := make(chan struct{})
+	go processWebsocketRequests(conn, done, db, eventChannel, webSocketChannel)
 	go processBroadcasterEvents(done, broadcaster, webSocketChannel)
 
 	for {
@@ -130,8 +130,8 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan interface{}
 		}
 	}
 }
-func processWebsocketRequests(c *gin.Context, conn *websocket.Conn, done chan struct{}, db *sqlx.DB, eventChannel chan interface{},
-	webSocketChannel chan interface{}) {
+func processWebsocketRequests(conn *websocket.Conn, done chan<- struct{}, db *sqlx.DB, eventChannel chan<- interface{},
+	webSocketChannel chan<- interface{}) {
 	defer close(done)
 	for {
 		req := wsRequest{}
@@ -144,7 +144,7 @@ func processWebsocketRequests(c *gin.Context, conn *websocket.Conn, done chan st
 			log.Debug().Err(err).Msg("WebSocket Handshake Error.")
 			return
 		case nil:
-			go processWsReq(db, c, eventChannel, webSocketChannel, req)
+			go processWsReq(db, eventChannel, webSocketChannel, req)
 		default:
 			wsr := wsError{
 				RequestId: req.RequestId,
@@ -156,8 +156,8 @@ func processWebsocketRequests(c *gin.Context, conn *websocket.Conn, done chan st
 	}
 }
 
-func processBroadcasterEvents(done chan struct{}, broadcaster broadcast.BroadcastServer,
-	webSocketChannel chan interface{}) {
+func processBroadcasterEvents(done <-chan struct{}, broadcaster broadcast.BroadcastServer,
+	webSocketChannel chan<- interface{}) {
 
 	listener := broadcaster.SubscribeWebSocketResponse()
 	go func() {
@@ -181,7 +181,7 @@ func processBroadcasterEvents(done chan struct{}, broadcaster broadcast.Broadcas
 	}()
 }
 
-func sendError(err error, req wsRequest, webSocketChannel chan interface{}) {
+func sendError(err error, req wsRequest, webSocketChannel chan<- interface{}) {
 	if err != nil {
 		webSocketChannel <- wsError{
 			RequestId: req.RequestId,

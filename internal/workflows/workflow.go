@@ -25,6 +25,13 @@ const (
 	TagActionToggle
 )
 
+type RebalancerFocus string
+
+const (
+	RebalancerFocusIncomingChannels = RebalancerFocus("incomingChannels")
+	RebalancerFocusOutgoingChannels = RebalancerFocus("outgoingChannels")
+)
+
 type Workflow struct {
 	WorkflowId int            `json:"workflowId" db:"workflow_id"`
 	Name       string         `json:"name" db:"name"`
@@ -85,8 +92,17 @@ type ModifyTagsParameters struct {
 	TagAction TagAction `json:"tagAction"`
 }
 
+type TorqChannelsConfiguration struct {
+	Source string `json:"source"`
+}
+
+type EventFilterConfiguration struct {
+	IgnoreWhenEventless bool          `json:"ignoreWhenEventless"`
+	FilterClauses       FilterClauses `json:"filterClauses"`
+}
+
 type ChannelPolicyConfiguration struct {
-	ChannelIds       []int   `json:"channelIds"`
+	ChannelId        int     `json:"channelId"`
 	TimeLockDelta    *uint32 `json:"timeLockDelta"`
 	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
 	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
@@ -95,11 +111,12 @@ type ChannelPolicyConfiguration struct {
 }
 
 type RebalanceConfiguration struct {
-	IncomingChannelIds   []int   `json:"incomingChannelIds"`
-	OutgoingChannelIds   []int   `json:"outgoingChannelIds"`
-	AmountMsat           *uint64 `json:"amountMsat"`
-	MaximumCostMilliMsat *int64  `json:"maximumCostMilliMsat"`
-	MaximumCostMsat      *uint64 `json:"maximumCostMsat"`
+	IncomingChannelIds   []int           `json:"incomingChannelIds"`
+	OutgoingChannelIds   []int           `json:"outgoingChannelIds"`
+	Focus                RebalancerFocus `json:"focus"`
+	AmountMsat           *uint64         `json:"amountMsat"`
+	MaximumCostMilliMsat *int64          `json:"maximumCostMilliMsat"`
+	MaximumCostMsat      *uint64         `json:"maximumCostMsat"`
 }
 
 type TagParameters struct {
@@ -271,16 +288,4 @@ func (nvs *WorkflowNodeVisibilitySettings) Scan(val interface{}) (err error) {
 		return errors.Wrapf(err, "Incompatible type for WorkflowNodeVisibilitySettings")
 	}
 	return nil
-}
-
-func getWorkflowNodeInputsComplete(workflowNode WorkflowNode, inputs map[commons.WorkflowParameterLabel]string) bool {
-	requiredInputs := commons.GetWorkflowNodes()[workflowNode.Type].RequiredInputs
-	for label := range requiredInputs {
-		_, exists := inputs[label]
-		if exists {
-			continue
-		}
-		return false
-	}
-	return true
 }

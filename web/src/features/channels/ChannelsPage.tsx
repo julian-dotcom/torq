@@ -104,7 +104,7 @@ function ChannelsPage() {
     isFetching: boolean;
     isUninitialized: boolean;
     isSuccess: boolean;
-  }>({ network: activeNetwork }, { skip: !isSuccess });
+  }>({ network: activeNetwork }, { skip: !isSuccess, pollingInterval: 10000 });
 
   const filteredData = useFilterData(channelsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);

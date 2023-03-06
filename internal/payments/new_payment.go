@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
@@ -34,9 +33,8 @@ type rrpcClientSendPayment interface {
 // payments hash - the hash to use within the payment's HTLC
 // timeout seconds is mandatory
 func SendNewPayment(
-	eventChannel chan interface{},
+	eventChannel chan<- interface{},
 	db *sqlx.DB,
-	c *gin.Context,
 	npReq commons.NewPaymentRequest,
 	requestId string,
 ) (err error) {
@@ -96,7 +94,7 @@ func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPa
 	return newPayReq, nil
 }
 
-func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, eventChannel chan interface{}, requestId string) (err error) {
+func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, eventChannel chan<- interface{}, requestId string) (err error) {
 
 	// Create and validate payment request details
 	newPayReq, err := newSendPaymentRequest(npReq)

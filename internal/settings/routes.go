@@ -42,17 +42,17 @@ type ConnectionDetails struct {
 	TLSFileBytes      []byte
 	MacaroonFileBytes []byte
 	Status            commons.Status
-	PingSystem        commons.PingSystem
+	PingSystem        PingSystem
 	CustomSettings    commons.NodeConnectionDetailCustomSettings
 }
 
-func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem commons.PingSystem) {
+func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem PingSystem) {
 	connectionDetails.PingSystem |= pingSystem
 }
-func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem commons.PingSystem) bool {
+func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem PingSystem) bool {
 	return connectionDetails.PingSystem&pingSystem != 0
 }
-func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.PingSystem) {
+func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem PingSystem) {
 	connectionDetails.PingSystem &= ^pingSystem
 }
 
@@ -66,23 +66,25 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 	connectionDetails.CustomSettings &= ^customSettings
 }
 
-func startAllLndServicesOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage, nodeId int, lndActive bool) bool {
+func startAllLndServicesOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage, nodeId int, lndActive bool) bool {
+	// Services that aren't tied to a node but to Torq itself:
+	//	TorqService
+	//	AutomationService
+	//	MaintenanceService
+	//	CronService
 	startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, nodeId, false)
-	// AutomationService is not tight to a torq node so don't restart it
-	//startServiceOrRestartWhenRunning(serviceChannel, commons.AutomationService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.LightningCommunicationService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.RebalanceService, nodeId, false)
-	startServiceOrRestartWhenRunning(serviceChannel, commons.MaintenanceService, nodeId, false)
 	time.Sleep(2 * time.Second)
 	return startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, nodeId, lndActive)
 }
 
-func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannelMessage,
+func startServiceOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage,
 	serviceType commons.ServiceType, nodeId int, active bool) bool {
 	if active {
-		enforcedServiceStatus := commons.Active
-		resultChannel := make(chan commons.Status, 1)
+		enforcedServiceStatus := commons.ServiceActive
+		resultChannel := make(chan commons.ServiceStatus)
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,
@@ -92,12 +94,12 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 			Out:                   resultChannel,
 		}
 		switch <-resultChannel {
-		case commons.Active:
+		case commons.ServiceActive:
 			// THE RUNNING SERVICE WAS KILLED EnforcedServiceStatus is ACTIVE (subscription will attempt to start)
-		case commons.Pending:
+		case commons.ServicePending:
 			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
 			return false
-		case commons.Inactive:
+		case commons.ServiceInactive:
 			// THE SERVICE WAS NOT RUNNING
 			serviceChannel <- commons.ServiceChannelMessage{
 				NodeId:                nodeId,
@@ -107,8 +109,8 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 			}
 		}
 	} else {
-		enforcedServiceStatus := commons.Inactive
-		resultChannel := make(chan commons.Status, 1)
+		enforcedServiceStatus := commons.ServiceInactive
+		resultChannel := make(chan commons.ServiceStatus)
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,
@@ -118,19 +120,19 @@ func startServiceOrRestartWhenRunning(serviceChannel chan commons.ServiceChannel
 			Out:                   resultChannel,
 		}
 		switch <-resultChannel {
-		case commons.Active:
+		case commons.ServiceActive:
 			// THE RUNNING SERVICE WAS KILLED AND EnforcedServiceStatus is INACTIVE (subscription will stay down)
-		case commons.Pending:
+		case commons.ServicePending:
 			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
 			return false
-		case commons.Inactive:
+		case commons.ServiceInactive:
 			// THE SERVICE WAS NOT RUNNING
 		}
 	}
 	return true
 }
 
-func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan commons.ServiceChannelMessage) {
+func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan<- commons.ServiceChannelMessage) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
 	r.GET("nodeConnectionDetails", func(c *gin.Context) { getAllNodeConnectionDetailsHandler(c, db) })
@@ -201,7 +203,7 @@ func getNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan<- commons.ServiceChannelMessage) {
 
 	var ncd NodeConnectionDetails
 	var err error
@@ -320,7 +322,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 }
 
 func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan<- commons.ServiceChannelMessage) {
 
 	var ncd NodeConnectionDetails
 	var err error
@@ -416,12 +418,12 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	}
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
-	if ncd.HasNotificationType(commons.Amboss) &&
+	if ncd.HasNotificationType(Amboss) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Amboss Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
-	if ncd.HasNotificationType(commons.Vector) &&
+	if ncd.HasNotificationType(Vector) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
@@ -455,10 +457,10 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 	if err != nil {
 		return NodeConnectionDetails{}, errors.New("Failed to find/parse pingSystem in the request.")
 	}
-	if pingSystem > commons.PingSystemMax {
+	if pingSystem > PingSystemMax {
 		return NodeConnectionDetails{}, errors.New("Failed to parse pingSystem in the request.")
 	}
-	ncd.PingSystem = commons.PingSystem(pingSystem)
+	ncd.PingSystem = PingSystem(pingSystem)
 
 	// TODO c.Bind cannot process customSettings?
 	customSettings, err := strconv.Atoi(c.Request.Form.Get("customSettings"))
@@ -473,7 +475,7 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 }
 
 func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan<- commons.ServiceChannelMessage) {
 
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
@@ -508,7 +510,7 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 }
 
 func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan commons.ServiceChannelMessage) {
+	serviceChannel chan<- commons.ServiceChannelMessage) {
 
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
@@ -520,7 +522,7 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.SendBadRequest(c, "Failed to find/parse pingSystem in the request.")
 		return
 	}
-	if pingSystem > commons.PingSystemMax {
+	if pingSystem > PingSystemMax {
 		server_errors.SendBadRequest(c, "Failed to parse pingSystem in the request.")
 		return
 	}
@@ -537,16 +539,16 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
 	}
 
 	var subscription commons.ServiceType
-	if commons.PingSystem(pingSystem) == commons.Amboss {
+	if PingSystem(pingSystem) == Amboss {
 		subscription = commons.AmbossService
 	}
-	if commons.PingSystem(pingSystem) == commons.Vector {
+	if PingSystem(pingSystem) == Vector {
 		subscription = commons.VectorService
 	}
 
 	done := startServiceOrRestartWhenRunning(serviceChannel, subscription, nodeId, commons.Status(statusId) == commons.Active)
 	if done {
-		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
+		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, PingSystem(pingSystem), commons.Status(statusId))
 		if err != nil {
 			server_errors.LogAndSendServerError(c, err)
 			return
@@ -568,7 +570,7 @@ func GetActiveNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
 }
 
 func GetAmbossPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
-	ncds, err := getPingConnectionDetails(db, commons.Amboss)
+	ncds, err := getPingConnectionDetails(db, Amboss)
 	if err != nil {
 		return nil, errors.Wrap(err, "Getting node connection details for Amboss from db")
 	}
@@ -576,7 +578,7 @@ func GetAmbossPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, erro
 }
 
 func GetVectorPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
-	ncds, err := getPingConnectionDetails(db, commons.Vector)
+	ncds, err := getPingConnectionDetails(db, Vector)
 	if err != nil {
 		return nil, errors.Wrap(err, "Getting node connection details for Vector from db")
 	}

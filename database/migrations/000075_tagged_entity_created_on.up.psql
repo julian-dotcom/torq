@@ -1,0 +1,3 @@
+ALTER TABLE tagged_entity ADD COLUMN created_on TIMESTAMPTZ;
+ALTER TABLE tagged_entity ADD COLUMN created_by_workflow_version_node_id INTEGER;
+--NO FOREIGN KEY REQUIRED since it's only for debugging purposes

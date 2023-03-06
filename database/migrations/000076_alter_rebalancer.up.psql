@@ -1,0 +1,4 @@
+
+ALTER TABLE rebalance ADD COLUMN schedule_target TIMESTAMPTZ;
+UPDATE rebalance SET schedule_target=created_on;
+ALTER TABLE rebalance ALTER COLUMN schedule_target SET NOT NULL;
