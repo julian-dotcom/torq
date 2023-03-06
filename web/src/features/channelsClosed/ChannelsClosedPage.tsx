@@ -95,13 +95,13 @@ function ClosedChannelsPage() {
           hideMobileText={true}
           icon={<DownloadCsvIcon />}
           onClick={() => {
-            // mixpanel.track("Downloads Table as CSV", {
-            //   downloadTablePage: "Channels Closed",
-            //   downloadTableViewTitle: viewResponse.view?.title,
-            //   downloadTableColumns: viewResponse.view?.columns,
-            //   downloadTableFilters: viewResponse.view?.filters,
-            //   downloadTableSortBy: viewResponse.view?.sortBy,
-            // });
+            mixpanel.track("Downloads Table as CSV", {
+              downloadTablePage: "Channels Closed",
+              downloadTableViewTitle: viewResponse.view?.title,
+              downloadTableColumns: viewResponse.view?.columns,
+              downloadTableFilters: viewResponse.view?.filters,
+              downloadTableSortBy: viewResponse.view?.sortBy,
+            });
             createCsvFile(data, viewResponse.view.title || "Closed Channels");
           }}
         />
