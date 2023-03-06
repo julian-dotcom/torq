@@ -21,6 +21,9 @@ function WorkflowCell(props: WorkflowCell) {
   const [updateWorkflow] = useUpdateWorkflowMutation();
 
   function archiveWorkflow() {
+    if (!confirm(t.confirmDeleteWorkflow)) {
+      return;
+    }
     mixpanel.track("Workflow Archive", {
       workflowId: props.workflowId,
       workflowVersionId: props.workflowVersionId,

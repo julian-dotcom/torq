@@ -167,6 +167,7 @@
   "bootstrapping": "Bootstrapping",
   "workflow": "Workflow",
   "workflows": "Workflows",
+  "confirmDeleteWorkflow": "Are you sure you want to delete this workflow?",
   "nodes": "Nodes",
   "stage": "Stage",
   "StageTrigger": "Stage Trigger",
