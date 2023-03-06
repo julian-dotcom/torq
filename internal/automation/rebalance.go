@@ -28,13 +28,12 @@ const rebalanceQueueTickerSeconds = 10
 const rebalanceMaximumConcurrency = 100
 const rebalanceRouteFailedHopAllowedDeltaPerMille = 10
 const rebalanceRebalanceDelayMilliseconds = 2_000
-const rebalanceSuccessTimeoutSeconds = 2 * 60
 const rebalanceTimeoutSeconds = 2 * 60 * 60
 const rebalanceRunnerTimeoutSeconds = 1 * 60 * 60
 const rebalanceRoutesTimeoutSeconds = 1 * 60
 const rebalancePayTimeoutSeconds = 10 * 60
 const rebalanceMinimumDeltaSeconds = 10 * 60
-const rebalancePreviousResultTimeoutMinutes = 5
+const rebalancePreviousResultTimeoutMinutes = 15
 const rebalancePreviousSuccessResultTimeoutMinutes = 5
 
 type Rebalancer struct {
