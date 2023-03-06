@@ -355,24 +355,9 @@ func (rebalancer *Rebalancer) start(
 
 	active := commons.Active
 	rebalancer.Status = commons.Active
-	previousSuccess := getLatestResultByOrigin(rebalancer.Request.Origin, rebalancer.Request.OriginId,
-		rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, &active)
-	if time.Since(previousSuccess.UpdateOn).Seconds() > rebalanceSuccessTimeoutSeconds {
-		log.Debug().Msgf("Previous success ignore due to outdated for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
-			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
-		previousSuccess = RebalanceResult{}
-	}
-
-	if rebalancer.Request.IncomingChannelId == 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.IncomingChannelId) {
-		log.Debug().Msgf("Previous success ignored as it's not available anymore for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
-			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
-		previousSuccess = RebalanceResult{}
-	}
-	if rebalancer.Request.OutgoingChannelId == 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.OutgoingChannelId) {
-		log.Debug().Msgf("Previous success ignored as it's not available anymore for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
-			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
-		previousSuccess = RebalanceResult{}
-	}
+	previousSuccess := rebalancer.convertPreviousSuccess(
+		getLatestResultByOrigin(rebalancer.Request.Origin, rebalancer.Request.OriginId,
+			rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, &active))
 
 	err := AddRebalanceAndChannels(db, rebalancer)
 	if err != nil {
@@ -425,6 +410,25 @@ func (rebalancer *Rebalancer) start(
 	for i := 0; i < rebalancer.Request.MaximumConcurrency; i++ {
 		go rebalancer.createRunner(db, client, router, runnerTimeout, routesTimeout, payTimeout)
 	}
+}
+
+func (rebalancer *Rebalancer) convertPreviousSuccess(previousSuccess RebalanceResult) RebalanceResult {
+	if time.Since(previousSuccess.UpdateOn).Seconds() > rebalanceSuccessTimeoutSeconds {
+		log.Debug().Msgf("Previous success ignore due to outdated for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
+		return RebalanceResult{}
+	}
+	if rebalancer.Request.IncomingChannelId == 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.IncomingChannelId) {
+		log.Debug().Msgf("Previous success ignored as it's not available anymore for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
+		return RebalanceResult{}
+	}
+	if rebalancer.Request.OutgoingChannelId == 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.OutgoingChannelId) {
+		log.Debug().Msgf("Previous success ignored as it's not available anymore for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
+		return RebalanceResult{}
+	}
+	return previousSuccess
 }
 
 func (rebalancer *Rebalancer) createRunner(
