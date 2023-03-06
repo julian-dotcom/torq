@@ -164,6 +164,7 @@
   "developerFeedbackDetails": "By allowing us to store events about interaction with the interface you help us improve Torq. We will not store information about your channels, transactions, node or any other sensitive information. We will only store information about your interaction with the interface.",
   "logout": "Logout",
   "retry": "Retry",
+  "download": "Download",
   "bootstrapping": "Bootstrapping",
   "workflow": "Workflow",
   "workflows": "Workflows",
