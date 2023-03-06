@@ -26,7 +26,7 @@ import Input from "components/forms/input/Input";
 import { SectionContainer } from "features/section/SectionContainer";
 import useWebSocket from "react-use-websocket";
 import Switch from "components/forms/switch/Switch";
-
+import { v4 as uuidv4 } from "uuid";
 import FormRow from "features/forms/FormWrappers";
 import Note, { NoteType } from "features/note/Note";
 import { Select, TextArea } from "components/forms/forms";
@@ -62,20 +62,8 @@ function OpenChannelModal() {
 
   const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
-  const [errMessage, setErrorMEssage] = useState<string>("");
   const [openingTx, setOpeningTx] = useState<string>("");
   const [formErrorState, setFormErrorState] = useState({} as FormErrors);
-
-  useEffect(() => {
-    if (nodeConfigurationOptions !== undefined) {
-      setSelectedNodeId(nodeConfigurationOptions[0].value);
-    }
-  }, [nodeConfigurationOptions]);
-
-  function handleNodeSelection(value: number) {
-    setSelectedNodeId(value);
-  }
-
   const [connectState, setConnectState] = useState(ProgressStepState.active);
   const [detailState, setDetailState] = useState(ProgressStepState.disabled);
   const [minConfs, setMinConfs] = useState<number>(0);
@@ -90,6 +78,17 @@ function OpenChannelModal() {
   const [nodePubKey, setNodePubKey] = useState<string>("");
   const [host, setHost] = useState<string>("");
   const [stepIndex, setStepIndex] = useState(0);
+  const [requestUUID, setRequestUUID] = useState("");
+
+  useEffect(() => {
+    if (nodeConfigurationOptions !== undefined) {
+      setSelectedNodeId(nodeConfigurationOptions[0].value);
+    }
+  }, [nodeConfigurationOptions]);
+
+  function handleNodeSelection(value: number) {
+    setSelectedNodeId(value);
+  }
 
   const closeAndReset = () => {
     setStepIndex(0);
@@ -97,8 +96,8 @@ function OpenChannelModal() {
     setConnectState(ProgressStepState.active);
     setDetailState(ProgressStepState.disabled);
     setResultState(ProgressStepState.disabled);
-    setErrorMEssage("");
     setOpeningTx("");
+    setFormErrorState({});
   };
 
   const navigate = useNavigate();
@@ -112,16 +111,18 @@ function OpenChannelModal() {
 
   function onOpenChannelMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
+    if (!response || response.id !== requestUUID) {
+      return;
+    }
+    setStepIndex(1);
+    setDetailState(ProgressStepState.completed);
     if (response?.type === "Error") {
       setFormErrorState(mergeServerError(response.error, formErrorState));
-      setErrorMEssage(response.error);
       setResultState(ProgressStepState.error);
-      setDetailState(ProgressStepState.completed);
       setStepIndex(2);
       return;
     }
     if (!openingTx) {
-      setDetailState(ProgressStepState.completed);
       setResultState(ProgressStepState.completed);
       const channelPoint: string = response.pendingChannelPoint?.substring(
         0,
@@ -141,8 +142,10 @@ function OpenChannelModal() {
       openChannelUseMinimumConfirmations: minConfs !== 0,
       openChannelUseChannelCloseAddress: closeAddress !== "",
     });
+    const newRequestUUID = uuidv4();
+    setRequestUUID(newRequestUUID);
     sendJsonMessage({
-      requestId: "randId",
+      requestId: newRequestUUID,
       type: "openChannel",
       openChannelRequest: {
         nodeId: selectedNodeId,
@@ -382,14 +385,14 @@ function OpenChannelModal() {
           <div
             className={classNames(
               styles.openChannelResultIconWrapper,
-              { [styles.failed]: errMessage },
-              openStatusClass[errMessage ? "FAILED" : "SUCCEEDED"]
+              { [styles.failed]: resultState === ProgressStepState.completed },
+              openStatusClass[resultState === ProgressStepState.completed ? "SUCCEEDED" : "FAILED"]
             )}
           >
-            {openStatusIcon[errMessage ? "FAILED" : "SUCCEEDED"]}
+            {openStatusIcon[resultState === ProgressStepState.completed ? "SUCCEEDED" : "FAILED"]}
           </div>
           <div className={styles.closeChannelResultDetails}>
-            {!errMessage && (
+            {resultState === ProgressStepState.completed && (
               <>
                 <Note title={t.TxId} icon={<SuccessNoteIcon />} noteType={NoteType.success}>
                   {openingTx}
