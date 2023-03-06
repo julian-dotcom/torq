@@ -19,7 +19,7 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/rebalances"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -34,6 +34,8 @@ const rebalanceRunnerTimeoutSeconds = 1 * 60 * 60
 const rebalanceRoutesTimeoutSeconds = 1 * 60
 const rebalancePayTimeoutSeconds = 10 * 60
 const rebalanceMinimumDeltaSeconds = 10 * 60
+const rebalancePreviousResultTimeoutMinutes = 5
+const rebalancePreviousSuccessResultTimeoutMinutes = 5
 
 type Rebalancer struct {
 	NodeId          int
@@ -71,22 +73,6 @@ func (runner *RebalanceRunner) isFailedHop(hopSourcePublicKey string, hopDestina
 	return exists &&
 		commons.GetDeltaPerMille(failedHopAmountMsat, amountMsat) <
 			rebalanceRouteFailedHopAllowedDeltaPerMille
-}
-
-type RebalanceResult struct {
-	RebalanceId       int            `json:"rebalanceId"`
-	OutgoingChannelId int            `json:"outgoingChannelId"`
-	IncomingChannelId int            `json:"incomingChannelId"`
-	Status            commons.Status `json:"status"`
-	Hops              string         `json:"hops"`
-	TotalTimeLock     uint32         `json:"total_time_lock"`
-	TotalFeeMsat      uint64         `json:"total_fee_msat"`
-	TotalAmountMsat   uint64         `json:"total_amount_msat"`
-	Error             string         `json:"error"`
-	CreatedOn         time.Time      `json:"createdOn"`
-	UpdateOn          time.Time      `json:"updateOn"`
-
-	Route *lnrpc.Route `json:"-"`
 }
 
 func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
@@ -195,32 +181,29 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 	pending := commons.Pending
 	pendingRebalancers := getRebalancers(&pending)
 
+	var err error
 	var channelIdsFiltered []int
 	if request.IncomingChannelId != 0 {
-		for _, channelId := range request.ChannelIds {
-			// get rebalance attempts for the other direction
-			latestResult := getLatestResult(channelId, request.IncomingChannelId, nil)
-			if latestResult.RebalanceId == 0 || latestResult.UpdateOn.Before(time.Now().Add(-5*time.Minute)) {
-				channelIdsFiltered = rebalancePendingForOppositeDirection(pendingRebalancers, channelId, request.IncomingChannelId, channelId, channelIdsFiltered)
-			} else {
+		for _, outgoingChannelId := range request.ChannelIds {
+			channelIdsFiltered, err = appendPendingSmart(db, pendingRebalancers, outgoingChannelId,
+				request.IncomingChannelId, outgoingChannelId, channelIdsFiltered)
+			if err != nil {
 				log.Info().Msgf(
-					"ChannelId %d was removed because an opposite result already exists (IncomingChannelId: %d) "+
+					"ChannelId %d was removed because an opposite result lookup failed (IncomingChannelId: %d) "+
 						"for origin: %v, originId: %v with reference number: %v",
-					channelId, request.IncomingChannelId, request.Origin, request.OriginId, request.OriginReference)
+					outgoingChannelId, request.IncomingChannelId, request.Origin, request.OriginId, request.OriginReference)
 			}
 		}
 	}
 	if request.OutgoingChannelId != 0 {
-		for _, channelId := range request.ChannelIds {
-			// get rebalance attempts for the other direction
-			latestResult := getLatestResult(request.OutgoingChannelId, channelId, nil)
-			if latestResult.RebalanceId == 0 || latestResult.UpdateOn.Before(time.Now().Add(-5*time.Minute)) {
-				channelIdsFiltered = rebalancePendingForOppositeDirection(pendingRebalancers, channelId, channelId, request.OutgoingChannelId, channelIdsFiltered)
-			} else {
+		for _, incomingChannelId := range request.ChannelIds {
+			channelIdsFiltered, err = appendPendingSmart(db, pendingRebalancers, incomingChannelId,
+				incomingChannelId, request.OutgoingChannelId, channelIdsFiltered)
+			if err != nil {
 				log.Info().Msgf(
-					"ChannelId %d was removed because an opposite result already exists (OutgoingChannelId: %d) "+
+					"ChannelId %d was removed because an opposite result lookup failed (OutgoingChannelId: %d) "+
 						"for origin: %v, originId: %v with reference number: %v",
-					channelId, request.OutgoingChannelId, request.Origin, request.OriginId, request.OriginReference)
+					incomingChannelId, request.OutgoingChannelId, request.Origin, request.OriginId, request.OriginReference)
 			}
 		}
 	}
@@ -299,27 +282,46 @@ func processRebalanceRequest(ctx context.Context, db *sqlx.DB, request commons.R
 	})
 }
 
-func rebalancePendingForOppositeDirection(pendingRebalancers []*Rebalancer, channelId int, incomingChannelId int, outgoingChannelId int, filteredChannelIds []int) []int {
-	if len(pendingRebalancers) == 0 {
-		return append(filteredChannelIds, channelId)
+// appendPendingSmart will search for opposite direction. Do not already flip incomingChannelId and outgoingChannelId
+func appendPendingSmart(db *sqlx.DB, pendingRebalancers []*Rebalancer, channelId int,
+	incomingChannelId int, outgoingChannelId int,
+	filteredChannelIds []int) ([]int, error) {
+
+	// get rebalance attempts for the other direction
+	latestResult, err := rebalances.GetLatestResult(db, outgoingChannelId, incomingChannelId, rebalancePreviousResultTimeoutMinutes)
+	if err != nil {
+		return filteredChannelIds, errors.Wrapf(err, "Obtaining latest result failed")
 	}
+	if latestResult.RebalanceId != 0 {
+		// Opposite direction found so channelId not appended...
+		return filteredChannelIds, nil
+	}
+	// Check opposite direction
+	if hasPendingRebalance(pendingRebalancers, outgoingChannelId, incomingChannelId) {
+		// Opposite direction found so channelId not appended...
+		return filteredChannelIds, nil
+	}
+	return append(filteredChannelIds, channelId), nil
+}
+
+func hasPendingRebalance(pendingRebalancers []*Rebalancer, incomingChannelId int, outgoingChannelId int) bool {
 	for _, rebalancer := range pendingRebalancers {
-		if rebalancer.Request.IncomingChannelId == outgoingChannelId {
+		if rebalancer.Request.IncomingChannelId == incomingChannelId {
 			for _, rebalanceOutgoingChannelId := range rebalancer.Request.ChannelIds {
-				if rebalanceOutgoingChannelId == incomingChannelId {
-					return filteredChannelIds
+				if rebalanceOutgoingChannelId == outgoingChannelId {
+					return true
 				}
 			}
 		}
-		if rebalancer.Request.OutgoingChannelId == incomingChannelId {
+		if rebalancer.Request.OutgoingChannelId == outgoingChannelId {
 			for _, rebalanceIncomingChannelId := range rebalancer.Request.ChannelIds {
-				if rebalanceIncomingChannelId == outgoingChannelId {
-					return filteredChannelIds
+				if rebalanceIncomingChannelId == incomingChannelId {
+					return true
 				}
 			}
 		}
 	}
-	return append(filteredChannelIds, channelId)
+	return false
 }
 
 func (rebalancer *Rebalancer) start(
@@ -353,25 +355,29 @@ func (rebalancer *Rebalancer) start(
 		}
 	}
 
-	active := commons.Active
 	rebalancer.Status = commons.Active
-	previousSuccess := rebalancer.convertPreviousSuccess(
-		getLatestResultByOrigin(rebalancer.Request.Origin, rebalancer.Request.OriginId,
-			rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, &active))
+	latestResult, err := rebalances.GetLatestResultByOrigin(db, rebalancer.Request.Origin, rebalancer.Request.OriginId,
+		rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, commons.Active,
+		rebalancePreviousSuccessResultTimeoutMinutes)
+	if err != nil {
+		log.Error().Err(err).Msgf("Obtaining latest result for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
+	}
+	previousSuccess := rebalancer.convertPreviousSuccess(latestResult)
 
-	err := AddRebalanceAndChannels(db, rebalancer)
+	err = AddRebalanceAndChannels(db, rebalancer)
 	if err != nil {
 		log.Error().Err(err).Msgf("Storing rebalance for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
 			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 		return
 	}
 
-	if previousSuccess.Route != nil {
+	if previousSuccess.Hops != "" {
 		log.Debug().Msgf("Previous success found for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
 			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 		runnerCtx, runnerCancel := context.WithTimeout(rebalancer.RebalanceCtx, time.Second*time.Duration(runnerTimeout))
 		defer runnerCancel()
-		dummyRunner := &RebalanceRunner{
+		previousSuccessRunner := &RebalanceRunner{
 			RebalanceId:       rebalancer.RebalanceId,
 			OutgoingChannelId: previousSuccess.OutgoingChannelId,
 			IncomingChannelId: previousSuccess.IncomingChannelId,
@@ -383,11 +389,18 @@ func (rebalancer *Rebalancer) start(
 		}
 		if rebalancer.Request.IncomingChannelId != 0 {
 			// When incoming channel is provided then the runners loop over the outgoing channels
-			rebalancer.Runners[previousSuccess.OutgoingChannelId] = dummyRunner
+			rebalancer.Runners[previousSuccess.OutgoingChannelId] = previousSuccessRunner
 		} else {
-			rebalancer.Runners[previousSuccess.IncomingChannelId] = dummyRunner
+			rebalancer.Runners[previousSuccess.IncomingChannelId] = previousSuccessRunner
 		}
-		result := rebalancer.rerunPreviousSuccess(client, router, dummyRunner, previousSuccess.Route, payTimeout)
+		result := rebalances.RebalanceResult{
+			Status:            commons.Initializing,
+			RebalanceId:       rebalancer.RebalanceId,
+			CreatedOn:         time.Now().UTC(),
+			IncomingChannelId: previousSuccessRunner.IncomingChannelId,
+			OutgoingChannelId: previousSuccessRunner.OutgoingChannelId,
+		}
+		result = rebalancer.startRunner(db, client, router, previousSuccessRunner, routesTimeout, payTimeout, result)
 		if result.Status == commons.Active {
 			log.Debug().Msgf("Previous success successfully reused for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
 				rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
@@ -398,12 +411,6 @@ func (rebalancer *Rebalancer) start(
 		if result.Status == commons.Active {
 			return
 		}
-		if rebalancer.Request.IncomingChannelId != 0 {
-			// When incoming channel is provided then the runners loop over the outgoing channels
-			delete(rebalancer.Runners, previousSuccess.OutgoingChannelId)
-		} else {
-			delete(rebalancer.Runners, previousSuccess.IncomingChannelId)
-		}
 		log.Debug().Msgf("Previous success reuse failed for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
 			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 	}
@@ -412,21 +419,16 @@ func (rebalancer *Rebalancer) start(
 	}
 }
 
-func (rebalancer *Rebalancer) convertPreviousSuccess(previousSuccess RebalanceResult) RebalanceResult {
-	if time.Since(previousSuccess.UpdateOn).Seconds() > rebalanceSuccessTimeoutSeconds {
-		log.Debug().Msgf("Previous success ignore due to outdated for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
-			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
-		return RebalanceResult{}
-	}
-	if rebalancer.Request.IncomingChannelId == 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.IncomingChannelId) {
+func (rebalancer *Rebalancer) convertPreviousSuccess(previousSuccess rebalances.RebalanceResult) rebalances.RebalanceResult {
+	if rebalancer.Request.OutgoingChannelId != 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.IncomingChannelId) {
 		log.Debug().Msgf("Previous success ignored as it's not available anymore for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
 			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
-		return RebalanceResult{}
+		return rebalances.RebalanceResult{}
 	}
-	if rebalancer.Request.OutgoingChannelId == 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.OutgoingChannelId) {
+	if rebalancer.Request.IncomingChannelId != 0 && !slices.Contains(rebalancer.Request.ChannelIds, previousSuccess.OutgoingChannelId) {
 		log.Debug().Msgf("Previous success ignored as it's not available anymore for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
 			rebalancer.Request.Origin, rebalancer.Request.OriginReference, rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
-		return RebalanceResult{}
+		return rebalances.RebalanceResult{}
 	}
 	return previousSuccess
 }
@@ -443,7 +445,7 @@ func (rebalancer *Rebalancer) createRunner(
 		return
 	}
 
-	result := RebalanceResult{
+	result := rebalances.RebalanceResult{
 		Status:            commons.Initializing,
 		RebalanceId:       rebalancer.RebalanceId,
 		CreatedOn:         time.Now().UTC(),
@@ -518,7 +520,7 @@ func (rebalancer *Rebalancer) startRunner(
 	runner *RebalanceRunner,
 	routesTimeout int,
 	payTimeout int,
-	result RebalanceResult) RebalanceResult {
+	result rebalances.RebalanceResult) rebalances.RebalanceResult {
 
 	routesCtx, routesCancel := context.WithTimeout(runner.Ctx, time.Second*time.Duration(routesTimeout))
 	defer routesCancel()
@@ -553,6 +555,7 @@ func (rebalancer *Rebalancer) startRunner(
 	return result
 }
 
+// TODO FIXME make channel selection smarter instead of at random...
 func (rebalancer *Rebalancer) getPendingChannelId() int {
 outer:
 	for _, channelId := range rebalancer.Request.ChannelIds {
@@ -568,18 +571,6 @@ outer:
 		return channelId
 	}
 	return 0
-}
-
-func (rebalancer *Rebalancer) rerunPreviousSuccess(
-	client lnrpc.LightningClient,
-	router routerrpc.RouterClient,
-	runner *RebalanceRunner,
-	route *lnrpc.Route,
-	payTimeout int) RebalanceResult {
-
-	payCtx, payCancel := context.WithTimeout(runner.Ctx, time.Second*time.Duration(payTimeout))
-	defer payCancel()
-	return runner.pay(payCtx, client, router, rebalancer.Request.AmountMsat, route)
 }
 
 func (rebalancer *Rebalancer) addRunner(channelId int, runnerCtx context.Context, runnerCancel context.CancelFunc) *RebalanceRunner {
@@ -604,11 +595,9 @@ func (rebalancer *Rebalancer) addRunner(channelId int, runnerCtx context.Context
 	return &runner
 }
 
-func (rebalancer *Rebalancer) processResult(db *sqlx.DB, result RebalanceResult) {
+func (rebalancer *Rebalancer) processResult(db *sqlx.DB, result rebalances.RebalanceResult) {
 	result.UpdateOn = time.Now().UTC()
-	addRebalanceResult(rebalancer.Request.Origin, rebalancer.Request.OriginId,
-		rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId, result)
-	err := AddRebalanceLog(db, result)
+	err := rebalances.AddRebalanceResult(db, result)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to add rebalance log entry for rebalanceId: %v (ref: %v)",
 			rebalancer.RebalanceId, rebalancer.Request.OriginReference)
@@ -666,9 +655,9 @@ func (runner *RebalanceRunner) pay(
 	client lnrpc.LightningClient,
 	router routerrpc.RouterClient,
 	amountMsat uint64,
-	route *lnrpc.Route) RebalanceResult {
+	route *lnrpc.Route) rebalances.RebalanceResult {
 
-	rebalanceResult := RebalanceResult{
+	rebalanceResult := rebalances.RebalanceResult{
 		OutgoingChannelId: runner.OutgoingChannelId,
 		IncomingChannelId: runner.IncomingChannelId,
 		RebalanceId:       runner.RebalanceId,
@@ -693,7 +682,6 @@ func (runner *RebalanceRunner) pay(
 			Route:       route,
 		})
 	if result != nil && result.Route != nil {
-		rebalanceResult.Route = result.Route
 		rebalanceResult.TotalFeeMsat = uint64(result.Route.TotalFeesMsat)
 		rebalanceResult.TotalTimeLock = result.Route.TotalTimeLock
 		rebalanceResult.TotalAmountMsat = uint64(result.Route.TotalAmtMsat)
@@ -987,7 +975,9 @@ func setRebalancer(db *sqlx.DB, request commons.RebalanceRequest, rebalancer *Re
 	rebalancer.Request = request
 	if rebalancer.RebalanceId != 0 {
 		// If RebalanceId == 0 then it was not stored yet.
-		err := SetRebalanceAndChannels(db, *rebalancer)
+		err := rebalances.SetRebalanceAndChannels(db, rebalancer.Request.OriginReference, rebalancer.Request.AmountMsat,
+			rebalancer.Request.MaximumConcurrency, rebalancer.Request.MaximumCostMsat, rebalancer.UpdateOn,
+			rebalancer.RebalanceId, rebalancer.Request.ChannelIds)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to add rebalance log entry for rebalanceId: %v", rebalancer.RebalanceId)
 			return errors.Wrapf(err,
@@ -1007,95 +997,24 @@ func AddRebalanceAndChannels(db *sqlx.DB, rebalancer *Rebalancer) error {
 	if rebalancer.Request.OutgoingChannelId != 0 {
 		outgoingChannelId = &rebalancer.Request.OutgoingChannelId
 	}
-	err := db.QueryRowx(`
-			INSERT INTO rebalance (incoming_channel_id, outgoing_channel_id, status,
-			                       origin, origin_id, origin_reference,
-			                       amount_msat, maximum_concurrency, maximum_costmsat,
-			                       created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING rebalance_id;`,
-		incomingChannelId, outgoingChannelId, rebalancer.Status,
-		rebalancer.Request.Origin, rebalancer.Request.OriginId, rebalancer.Request.OriginReference,
-		rebalancer.Request.AmountMsat, rebalancer.Request.MaximumConcurrency, rebalancer.Request.MaximumCostMsat,
-		rebalancer.ScheduleTarget, rebalancer.UpdateOn).
-		Scan(&rebalancer.RebalanceId)
+	dbRebalancer := rebalances.Rebalance{
+		OutgoingChannelId:  outgoingChannelId,
+		IncomingChannelId:  incomingChannelId,
+		Status:             rebalancer.Status,
+		Origin:             rebalancer.Request.Origin,
+		OriginId:           rebalancer.Request.OriginId,
+		OriginReference:    rebalancer.Request.OriginReference,
+		AmountMsat:         rebalancer.Request.AmountMsat,
+		MaximumConcurrency: rebalancer.Request.MaximumConcurrency,
+		MaximumCostMsat:    rebalancer.Request.MaximumCostMsat,
+		ScheduleTarget:     rebalancer.ScheduleTarget,
+		CreatedOn:          rebalancer.CreatedOn,
+		UpdateOn:           rebalancer.UpdateOn,
+	}
+	var err error
+	rebalancer.RebalanceId, err = rebalances.AddRebalanceAndChannels(db, dbRebalancer, rebalancer.Request.ChannelIds)
 	if err != nil {
-		return errors.Wrap(err, database.SqlExecutionError)
-	}
-	for _, rebalanceChannelId := range rebalancer.Request.ChannelIds {
-		_, err = db.Exec(`
-				INSERT INTO rebalance_channel (channel_id, status, rebalance_id, created_on, updated_on)
-				VALUES ($1, $2, $3, $4, $5);`,
-			rebalanceChannelId, commons.Active, rebalancer.RebalanceId, rebalancer.ScheduleTarget, rebalancer.UpdateOn)
-		if err != nil {
-			return errors.Wrap(err, database.SqlExecutionError)
-		}
-	}
-	return nil
-}
-
-func SetRebalanceAndChannels(db *sqlx.DB, rebalancer Rebalancer) error {
-	tx := db.MustBegin()
-	_, err := tx.Exec(`
-			UPDATE rebalance
-			SET origin_reference=$1, amount_msat=$2, maximum_concurrency=$3, maximum_costmsat=$4, updated_on=$5
-			WHERE rebalance_id=$6;`,
-		rebalancer.Request.OriginReference, rebalancer.Request.AmountMsat, rebalancer.Request.MaximumConcurrency, rebalancer.Request.MaximumCostMsat,
-		rebalancer.UpdateOn, rebalancer.RebalanceId)
-	if err != nil {
-		if rb := tx.Rollback(); rb != nil {
-			log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-		}
-		return errors.Wrapf(err, "Update rebalancer %v", rebalancer.RebalanceId)
-	}
-	_, err = tx.Exec(`UPDATE rebalance_channel SET status=$1 WHERE rebalance_id=$2;`, commons.Inactive, rebalancer.RebalanceId)
-	if err != nil {
-		if rb := tx.Rollback(); rb != nil {
-			log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-		}
-		return errors.Wrapf(err, "Inactivate rebalancer's channels %v", rebalancer.RebalanceId)
-	}
-	for _, rebalanceChannelId := range rebalancer.Request.ChannelIds {
-		res, err := tx.Exec(`UPDATE rebalance_channel SET status=$1 WHERE rebalance_id=$2 AND channel_id=$3;`,
-			commons.Active, rebalancer.RebalanceId, rebalanceChannelId)
-		if err != nil {
-			if rb := tx.Rollback(); rb != nil {
-				log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-			}
-			return errors.Wrapf(err, "Reactivate rebalancer's (%v) channel (%v) ", rebalancer.RebalanceId, rebalanceChannelId)
-		}
-		rowsAffected, err := res.RowsAffected()
-		if err != nil {
-			return errors.Wrap(err, database.SqlAffectedRowsCheckError)
-		}
-		if rowsAffected == 0 {
-			_, err = db.Exec(`
-				INSERT INTO rebalance_channel (channel_id, status, rebalance_id, created_on, updated_on)
-				VALUES ($1, $2, $3, $4, $5);`,
-				rebalanceChannelId, commons.Active, rebalancer.RebalanceId, rebalancer.ScheduleTarget, rebalancer.UpdateOn)
-			if err != nil {
-				if rb := tx.Rollback(); rb != nil {
-					log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-				}
-				return errors.Wrapf(err, "Activate rebalancer's (%v) channel (%v) ", rebalancer.RebalanceId, rebalanceChannelId)
-			}
-		}
-	}
-	err = tx.Commit()
-	if err != nil {
-		return errors.Wrap(err, database.SqlCommitTransactionError)
-	}
-	return nil
-}
-
-func AddRebalanceLog(db *sqlx.DB, rebalanceResult RebalanceResult) error {
-	_, err := db.Exec(`INSERT INTO rebalance_log (incoming_channel_id, outgoing_channel_id, hops, status,
-                           total_time_lock, total_fee_msat, total_amount_msat, error, rebalance_id, created_on, updated_on)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`,
-		rebalanceResult.IncomingChannelId, rebalanceResult.OutgoingChannelId, rebalanceResult.Hops, rebalanceResult.Status,
-		rebalanceResult.TotalTimeLock, rebalanceResult.TotalFeeMsat, rebalanceResult.TotalAmountMsat,
-		rebalanceResult.Error, rebalanceResult.RebalanceId, rebalanceResult.CreatedOn, rebalanceResult.UpdateOn)
-	if err != nil {
-		return errors.Wrap(err, database.SqlExecutionError)
+		return errors.Wrap(err, "Storing rebalance information")
 	}
 	return nil
 }

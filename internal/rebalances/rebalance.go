@@ -17,6 +17,7 @@ type Rebalance struct {
 	AmountMsat         uint64                         `json:"amountMsat" db:"amount_msat"`
 	MaximumConcurrency int                            `json:"maximumConcurrency" db:"maximum_concurrency"`
 	MaximumCostMsat    uint64                         `json:"maximumCostMsat" db:"maximum_costmsat"`
+	ScheduleTarget     time.Time                      `json:"scheduleTarget" db:"schedule_target"`
 	CreatedOn          time.Time                      `json:"createdOn" db:"created_on"`
 	UpdateOn           time.Time                      `json:"updatedOn" db:"updated_on"`
 }
@@ -30,7 +31,7 @@ type RebalanceChannel struct {
 	UpdateOn           time.Time      `json:"updatedOn" db:"updated_on"`
 }
 
-type RebalanceLog struct {
+type RebalanceResult struct {
 	RebalanceLogId    int            `json:"rebalanceLogId" db:"rebalance_log_id"`
 	IncomingChannelId int            `json:"incomingChannelId" db:"incoming_channel_id"`
 	OutgoingChannelId int            `json:"outgoingChannelId" db:"outgoing_channel_id"`

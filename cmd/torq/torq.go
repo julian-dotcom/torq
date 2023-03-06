@@ -229,7 +229,6 @@ func main() {
 			go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctxGlobal)
 			go tags.ManagedTagCache(tags.ManagedTagChannel, ctxGlobal)
 			go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctxGlobal)
-			go automation.ManagedRebalanceResultCache(automation.ManagedRebalanceResultChannel, ctxGlobal)
 
 			// This listens to events:
 			// When Torq has status initializing it loads the caches and starts the LndServices
