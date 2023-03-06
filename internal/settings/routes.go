@@ -67,13 +67,15 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 }
 
 func startAllLndServicesOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage, nodeId int, lndActive bool) bool {
+	// Services that aren't tied to a node but to Torq itself:
+	//	TorqService
+	//	AutomationService
+	//	MaintenanceService
+	//	CronService
 	startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, nodeId, false)
-	// AutomationService is not tight to a torq node so don't restart it
-	//startServiceOrRestartWhenRunning(serviceChannel, commons.AutomationService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.LightningCommunicationService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.RebalanceService, nodeId, false)
-	startServiceOrRestartWhenRunning(serviceChannel, commons.MaintenanceService, nodeId, false)
 	time.Sleep(2 * time.Second)
 	return startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, nodeId, lndActive)
 }
