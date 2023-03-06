@@ -2,8 +2,6 @@ package commons
 
 import (
 	"context"
-	"golang.org/x/exp/maps"
-
 	"github.com/rs/zerolog/log"
 )
 
@@ -31,7 +29,7 @@ const (
 	READ_ALL_CHANNEL_NODEIDS
 	READ_ALL_CHANNEL_PUBLICKEYS
 	READ_NODE_SETTING
-	RESET_MANAGED_NODE_CACHE
+	REMOVE_MANAGED_NODE_FROM_CACHE
 )
 
 type ManagedNode struct {
@@ -341,13 +339,13 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				Status:    Inactive,
 			}
 		}
-	case RESET_MANAGED_NODE_CACHE:
-		maps.Clear(allTorqNodeIdCache)
-		maps.Clear(nodeSettingsByNodeIdCache)
-		maps.Clear(activeTorqNodeIdCache)
-		maps.Clear(channelNodeIdCache)
-		maps.Clear(allChannelNodeIdCache)
-		maps.Clear(torqNodeNameByNodeIdCache)
+	case REMOVE_MANAGED_NODE_FROM_CACHE:
+		delete(channelNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
+		delete(allTorqNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
+		delete(nodeSettingsByNodeIdCache, managedNode.NodeId)
+		delete(activeTorqNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
+		delete(allChannelNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
+		delete(torqNodeNameByNodeIdCache, managedNode.NodeId)
 	}
 }
 
@@ -550,8 +548,12 @@ func GetNodeSettingsByNodeId(nodeId int) ManagedNodeSettings {
 	return <-nodeResponseChannel
 }
 
-func ResetManagedNodeCache() {
+func RemoveManagedNodeFromCache(node ManagedNodeSettings) {
 	ManagedNodeChannel <- ManagedNode{
-		Type: RESET_MANAGED_NODE_CACHE,
+		Type:      REMOVE_MANAGED_NODE_FROM_CACHE,
+		NodeId:    node.NodeId,
+		Network:   &node.Network,
+		Chain:     &node.Chain,
+		PublicKey: node.PublicKey,
 	}
 }

@@ -258,7 +258,7 @@ func main() {
 
 			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
 				db, webSocketResponseChannelGlobal, broadcasterGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal,
-				serviceChannelGlobal, c.Bool("torq.auto-login"), serviceEventChannelGlobal); err != nil {
+				serviceChannelGlobal, c.Bool("torq.auto-login")); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}
 
@@ -553,10 +553,6 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 				log.Info().Msg("Torq is booting.")
 			case commons.Initializing:
 				log.Info().Msg("Torq is initialising.")
-
-				//reset
-				commons.ResetManagedNodeCache()
-				commons.ResetManagedChannelStateCache()
 
 				err := settings.InitializeManagedSettingsCache(db)
 				if err != nil {

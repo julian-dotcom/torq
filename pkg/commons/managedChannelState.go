@@ -6,7 +6,6 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/exp/maps"
 )
 
 var ManagedChannelStateChannel = make(chan ManagedChannelState) //nolint:gochecknoglobals
@@ -31,7 +30,7 @@ const (
 	WRITE_CHANNELSTATE_ROUTINGPOLICY
 	WRITE_CHANNELSTATE_UPDATEBALANCE
 	WRITE_CHANNELSTATE_UPDATEHTLCEVENT
-	RESET_CHANNELSTATE_CACHE
+	REMOVE_CHANNELSTATE_FROM_CACHE
 )
 
 type ChannelBalanceStateHtlcInclude uint
@@ -586,10 +585,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 		} else {
 			log.Error().Msgf("Received HTLC channel balance update for uncached node with nodeId: %v", managedChannelState.HtlcEvent.NodeId)
 		}
-	case RESET_CHANNELSTATE_CACHE:
-		maps.Clear(channelStateSettingsByChannelIdCache)
-		maps.Clear(channelStateSettingsStatusCache)
-		maps.Clear(channelStateSettingsDeactivationTimeCache)
+	case REMOVE_CHANNELSTATE_FROM_CACHE:
+		delete(channelStateSettingsDeactivationTimeCache, managedChannelState.NodeId)
+		delete(channelStateSettingsByChannelIdCache, managedChannelState.NodeId)
+		delete(channelStateSettingsStatusCache, managedChannelState.NodeId)
 	}
 }
 
@@ -798,8 +797,9 @@ func processHtlcInclude(managedChannelState ManagedChannelState, settings Manage
 	}
 }
 
-func ResetManagedChannelStateCache() {
+func RemoveManagedChannelStateFromCache(nodeId int) {
 	ManagedChannelStateChannel <- ManagedChannelState{
-		Type: RESET_CHANNELSTATE_CACHE,
+		Type:   REMOVE_CHANNELSTATE_FROM_CACHE,
+		NodeId: nodeId,
 	}
 }
