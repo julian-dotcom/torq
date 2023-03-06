@@ -324,11 +324,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			triggerCtx, triggerCancel := context.WithCancel(ctx)
 
 			switch workflowTriggerNode.Type {
-			case commons.WorkflowNodeIntervalTrigger:
-				fallthrough
-			case commons.WorkflowNodeCronTrigger:
-				fallthrough
-			case commons.WorkflowNodeManualTrigger:
+			case commons.WorkflowNodeIntervalTrigger, commons.WorkflowNodeCronTrigger, commons.WorkflowNodeManualTrigger:
 				commons.ActivateWorkflowTrigger(scheduledTrigger.Reference,
 					workflowTriggerNode.WorkflowVersionId, triggerCancel)
 			default:
@@ -344,11 +340,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 			triggerCancel()
 
 			switch workflowTriggerNode.Type {
-			case commons.WorkflowNodeIntervalTrigger:
-				fallthrough
-			case commons.WorkflowNodeCronTrigger:
-				fallthrough
-			case commons.WorkflowNodeManualTrigger:
+			case commons.WorkflowNodeIntervalTrigger, commons.WorkflowNodeCronTrigger, commons.WorkflowNodeManualTrigger:
 				commons.DeactivateWorkflowTrigger(workflowTriggerNode.WorkflowVersionId)
 			default:
 				commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,

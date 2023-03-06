@@ -703,13 +703,7 @@ func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.
 	var conn *grpc.ClientConn
 	var err error
 	switch serviceCmd.ServiceType {
-	case commons.VectorService:
-		fallthrough
-	case commons.AmbossService:
-		fallthrough
-	case commons.LightningCommunicationService:
-		fallthrough
-	case commons.RebalanceService:
+	case commons.VectorService, commons.AmbossService, commons.LightningCommunicationService, commons.RebalanceService:
 		conn, err = lnd_connect.Connect(
 			node.GRPCAddress,
 			node.TLSFileBytes,
