@@ -90,6 +90,14 @@ func OpenChannel(eventChannel chan<- interface{}, db *sqlx.DB, req commons.OpenC
 		if eventChannel != nil {
 			eventChannel <- r
 		}
+
+		// TODO: probably need some timeout on this loop to exit rather than waiting for channel to OpenChannel
+		// Or alternatively a different approach where we split the request and waiting for notification on channel open
+		// as we we should already be subscribed to those events anyway? Same applies to close channel.
+		if r.Status == commons.Open {
+			// channel has opened, exiting
+			return nil
+		}
 	}
 }
 

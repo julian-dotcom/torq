@@ -132,6 +132,9 @@ func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseCha
 			eventChannel <- r
 		}
 
+		// TODO: probably need some timeout on this loop to exit rather than waiting for channel to cooperatively close
+		// Or alternatively a different approach where we split the request and waiting for notification on channel close
+		// as we we should already be subscribed to those events anyway? Same applies to open channel.
 		if r.Status == commons.CooperativeClosed {
 			// channel has closed, exiting
 			return nil
