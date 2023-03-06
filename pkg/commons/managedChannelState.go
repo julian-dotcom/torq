@@ -6,6 +6,7 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/maps"
 )
 
 var ManagedChannelStateChannel = make(chan ManagedChannelState) //nolint:gochecknoglobals
@@ -179,11 +180,6 @@ func ManagedChannelStateCache(ch chan ManagedChannelState, ctx context.Context, 
 		case <-ctx.Done():
 			return
 		case managedChannelState := <-ch:
-			if managedChannelState.Type == RESET_CHANNELSTATE_CACHE {
-				channelStateSettingsByChannelIdCache = make(map[int]map[int]ManagedChannelStateSettings, 0)
-				channelStateSettingsStatusCache = make(map[int]Status, 0)
-				channelStateSettingsDeactivationTimeCache = make(map[int]time.Time, 0)
-			}
 			processManagedChannelStateSettings(managedChannelState,
 				channelStateSettingsStatusCache, channelStateSettingsByChannelIdCache,
 				channelStateSettingsDeactivationTimeCache, channelBalanceEventChannel)
@@ -590,6 +586,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 		} else {
 			log.Error().Msgf("Received HTLC channel balance update for uncached node with nodeId: %v", managedChannelState.HtlcEvent.NodeId)
 		}
+	case RESET_CHANNELSTATE_CACHE:
+		maps.Clear(channelStateSettingsByChannelIdCache)
+		maps.Clear(channelStateSettingsStatusCache)
+		maps.Clear(channelStateSettingsDeactivationTimeCache)
 	}
 }
 

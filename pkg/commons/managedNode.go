@@ -2,6 +2,7 @@ package commons
 
 import (
 	"context"
+	"golang.org/x/exp/maps"
 
 	"github.com/rs/zerolog/log"
 )
@@ -69,14 +70,6 @@ func ManagedNodeCache(ch chan ManagedNode, ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case managedNode := <-ch:
-			if managedNode.Type == RESET_MANAGED_NODE_CACHE {
-				allTorqNodeIdCache = make(map[Chain]map[Network]map[string]int, 0)
-				nodeSettingsByNodeIdCache = make(map[int]ManagedNodeSettings, 0)
-				activeTorqNodeIdCache = make(map[Chain]map[Network]map[string]int, 0)
-				channelNodeIdCache = make(map[Chain]map[Network]map[string]int, 0)
-				allChannelNodeIdCache = make(map[Chain]map[Network]map[string]int, 0)
-				torqNodeNameByNodeIdCache = make(map[int]string, 0)
-			}
 			processManagedNode(managedNode, allTorqNodeIdCache, activeTorqNodeIdCache,
 				channelNodeIdCache, allChannelNodeIdCache, nodeSettingsByNodeIdCache, torqNodeNameByNodeIdCache)
 		}
@@ -348,6 +341,13 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				Status:    Inactive,
 			}
 		}
+	case RESET_MANAGED_NODE_CACHE:
+		maps.Clear(allTorqNodeIdCache)
+		maps.Clear(nodeSettingsByNodeIdCache)
+		maps.Clear(activeTorqNodeIdCache)
+		maps.Clear(channelNodeIdCache)
+		maps.Clear(allChannelNodeIdCache)
+		maps.Clear(torqNodeNameByNodeIdCache)
 	}
 }
 
