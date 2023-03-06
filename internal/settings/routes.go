@@ -137,7 +137,9 @@ func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan 
 	r.GET("nodeConnectionDetails/:nodeId", func(c *gin.Context) { getNodeConnectionDetailsHandler(c, db) })
 	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db, serviceChannel) })
 	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db, serviceChannel) })
-	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) { setNodeConnectionDetailsStatusHandler(c, db, serviceChannel) })
+	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) {
+		setNodeConnectionDetailsStatusHandler(c, db, serviceChannel)
+	})
 	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) { setNodeConnectionDetailsPingSystemHandler(c, db, serviceChannel) })
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
@@ -491,6 +493,12 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 			server_errors.LogAndSendServerError(c, err)
 			return
 		}
+
+		node := commons.GetNodeSettingsByNodeId(nodeId)
+
+		commons.RemoveManagedNodeFromCache(node)
+		commons.RemoveManagedChannelStateFromCache(node.NodeId)
+
 	} else {
 		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
 		return

@@ -178,7 +178,7 @@ export const torqApi = createApi({
         method: "POST",
         body: nodeConfiguration,
       }),
-      invalidatesTags: ["nodeConfigurations", "channels"],
+      invalidatesTags: ["nodeConfigurations", "channels", "channelsClosed", "channelsPending"],
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateNodeConfiguration: builder.mutation<any, FormData>({
@@ -195,7 +195,7 @@ export const torqApi = createApi({
         url: `settings/nodeConnectionDetails/${nodeConfiguration.nodeId}/${nodeConfiguration.status}`,
         method: "PUT",
       }),
-      invalidatesTags: ["nodeConfigurations", "channels"],
+      invalidatesTags: ["nodeConfigurations", "channels", "channelsClosed", "channelsPending"],
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateNodePingSystemStatus: builder.mutation<any, { nodeId: number; pingSystem: number; statusId: number }>({

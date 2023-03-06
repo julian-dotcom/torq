@@ -553,6 +553,7 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan commons.ServiceChanne
 				log.Info().Msg("Torq is booting.")
 			case commons.Initializing:
 				log.Info().Msg("Torq is initialising.")
+
 				err := settings.InitializeManagedSettingsCache(db)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")

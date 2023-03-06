@@ -2,7 +2,6 @@ package commons
 
 import (
 	"context"
-
 	"github.com/rs/zerolog/log"
 )
 
@@ -30,6 +29,7 @@ const (
 	READ_ALL_CHANNEL_NODEIDS
 	READ_ALL_CHANNEL_PUBLICKEYS
 	READ_NODE_SETTING
+	REMOVE_MANAGED_NODE_FROM_CACHE
 )
 
 type ManagedNode struct {
@@ -339,6 +339,13 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				Status:    Inactive,
 			}
 		}
+	case REMOVE_MANAGED_NODE_FROM_CACHE:
+		delete(channelNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
+		delete(allTorqNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
+		delete(nodeSettingsByNodeIdCache, managedNode.NodeId)
+		delete(activeTorqNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
+		delete(allChannelNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
+		delete(torqNodeNameByNodeIdCache, managedNode.NodeId)
 	}
 }
 
@@ -539,4 +546,14 @@ func GetNodeSettingsByNodeId(nodeId int) ManagedNodeSettings {
 	}
 	ManagedNodeChannel <- managedNode
 	return <-nodeResponseChannel
+}
+
+func RemoveManagedNodeFromCache(node ManagedNodeSettings) {
+	ManagedNodeChannel <- ManagedNode{
+		Type:      REMOVE_MANAGED_NODE_FROM_CACHE,
+		NodeId:    node.NodeId,
+		Network:   &node.Network,
+		Chain:     &node.Chain,
+		PublicKey: node.PublicKey,
+	}
 }
