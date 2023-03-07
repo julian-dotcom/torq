@@ -15,6 +15,7 @@ export const OPEN_CHANNELS = "open-channels";
 export const PENDING_CHANNELS = "pending-channels";
 export const CLOSED_CHANNELS = "closed-channels";
 export const INSPECT_CHANNEL = "/analyse/inspect/:chanId";
+export const FORWARDS_SUMMARY = "forwards-summary";
 
 export const TRANSACTIONS = "transactions";
 export const PAYMENTS = "payments";

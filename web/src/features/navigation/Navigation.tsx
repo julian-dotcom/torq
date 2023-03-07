@@ -84,7 +84,7 @@ function Navigation() {
           <MenuItem
             text={t.summary}
             icon={<SummaryIcon />}
-            routeTo={"/"}
+            routeTo={`/${routes.ANALYSE}/${routes.FORWARDS_SUMMARY}`}
             onClick={() => mixpanel.track("Navigate to Summary")}
           />
 

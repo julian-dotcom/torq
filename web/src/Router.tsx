@@ -34,6 +34,7 @@ import AddTag from "pages/tags/addTagPage/AddTag";
 import MessageVerificationModal from "./pages/messageVerificationPage/MessageVerificationModal";
 import ClosedChannelsPage from "features/channelsClosed/ChannelsClosedPage";
 import ChannelsPendingPage from "./features/channelsPending/ChannelsPendingPage";
+import FowardsSummaryPage from "./features/channel/ForwardsSummary";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -106,6 +107,7 @@ const authenticatedRoutes: RouteObject = {
         {
           path: routes.ANALYSE,
           children: [
+            { path: routes.FORWARDS_SUMMARY, element: <FowardsSummaryPage /> },
             { path: routes.FORWARDS, element: <ForwardsPage /> },
             { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
           ],

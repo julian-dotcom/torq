@@ -35,7 +35,7 @@ import { InputSizeVariant } from "components/forms/forms";
 
 const ft = d3.format(",.0f");
 
-function ChannelPage() {
+function FowardsSummaryPage() {
   const { data: nodeConfigurations, isSuccess: nodeConfigurationsQueryHasRun } = useGetNodeConfigurationsQuery();
   const navigate = useNavigate();
   const location = useLocation();
@@ -311,4 +311,4 @@ function ChannelPage() {
   );
 }
 
-export default ChannelPage;
+export default FowardsSummaryPage;
