@@ -188,7 +188,7 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequest) {
+	rebalanceRequestChannel chan<- commons.RebalanceRequests) {
 
 	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
@@ -425,7 +425,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	reference string,
 	events []any,
 	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequest) {
+	rebalanceRequestChannel chan<- commons.RebalanceRequests) {
 
 	err := workflows.ProcessWorkflow(ctx, db, workflowTriggerNode, reference, events, lightningRequestChannel, rebalanceRequestChannel)
 	if err != nil {

@@ -39,9 +39,9 @@ import (
 
 const servicesErrorSleepSeconds = 60
 
-var serviceChannelGlobal = make(chan commons.ServiceChannelMessage)     //nolint:gochecknoglobals
-var lightningRequestChannelGlobal = make(chan interface{})              //nolint:gochecknoglobals
-var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequest) //nolint:gochecknoglobals
+var serviceChannelGlobal = make(chan commons.ServiceChannelMessage)      //nolint:gochecknoglobals
+var lightningRequestChannelGlobal = make(chan interface{})               //nolint:gochecknoglobals
+var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequests) //nolint:gochecknoglobals
 
 var serviceEventChannelGlobal = make(chan commons.ServiceEvent)               //nolint:gochecknoglobals
 var htlcEventChannelGlobal = make(chan commons.HtlcEvent)                     //nolint:gochecknoglobals
@@ -411,7 +411,7 @@ func serviceChannelDummyRoutine(serviceChannel <-chan commons.ServiceChannelMess
 
 func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel <-chan commons.ServiceChannelMessage,
 	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequest,
+	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	serviceEventChannel chan<- commons.ServiceEvent, broadcaster broadcast.BroadcastServer) {
 
 	for {
@@ -685,7 +685,7 @@ func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails
 func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails, bootLock *sync.Mutex,
 	runningServices *commons.Services, serviceCmd commons.ServiceChannelMessage,
 	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequest,
+	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer func() {

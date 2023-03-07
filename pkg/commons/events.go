@@ -439,10 +439,14 @@ type SignMessageResponse struct {
 	Signature string `json:"signature"`
 }
 
-type RebalanceRequest struct {
+type RebalanceRequests struct {
 	CommunicationRequest
-	ResponseChannel chan<- RebalanceResponse `json:"-"`
-	Origin          RebalanceRequestOrigin   `json:"origin"`
+	Requests        []RebalanceRequest
+	ResponseChannel chan<- []RebalanceResponse `json:"-"`
+}
+
+type RebalanceRequest struct {
+	Origin RebalanceRequestOrigin `json:"origin"`
 	// Either manually generated number for manual rebalance or
 	// WorkflowVersionNodeId for rebalance originating from workflows
 	OriginId        int    `json:"originId"`
