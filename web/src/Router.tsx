@@ -11,7 +11,7 @@ import CookieLoginPage from "features/auth/CookieLoginPage";
 import ServicesPage from "features/services/ServicesPage";
 import ChannelPage from "features/channel/ChannelPage";
 import ChannelsPage from "features/channels/ChannelsPage";
-import DashboardPage from "features/channel/DashboardPage";
+import DashboardPage from "features/dashboard/DashboardPage";
 import ForwardsPage from "features/forwards/ForwardsPage";
 import NoMatch from "features/no_match/NoMatch";
 import SettingsPage from "features/settings/SettingsPage";

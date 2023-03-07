@@ -22,6 +22,7 @@ import {
   Signature20Regular as MessageVerificationIcon,
   Flash20Regular as WorkflowsIcon,
   Tag20Regular as TagsIcon,
+  PanelSeparateWindow20Regular as DashboardIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
 import * as routes from "constants/routes";
@@ -71,6 +72,14 @@ function Navigation() {
       <div className={styles.mainNavWrapper}>
         {/*<MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/sadfa"} />*/}
 
+        <NavCategory text={t.dashboard} collapsed={false}>
+          <MenuItem
+            text={t.dashboard}
+            icon={<DashboardIcon />}
+            routeTo={"/"}
+            onClick={() => mixpanel.track("Navigate to Dashboard")}
+          />
+        </NavCategory>
         <NavCategory text={t.analyse} collapsed={false}>
           <MenuItem
             text={t.summary}
