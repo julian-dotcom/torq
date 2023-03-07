@@ -66,10 +66,7 @@ func Test_processResponse(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := processCloseResponse(test.input, test.req, test.requestId)
-			if err != nil {
-				t.Errorf("processCloseResponse error: %v", err)
-			}
+			got := processCloseResponse(test.input, test.req, test.requestId)
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("%d: processResponse()\nGot:\n%v\nWant:\n%v\n", i, got, test.want)
 			}
