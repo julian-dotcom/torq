@@ -82,7 +82,7 @@ function WorkflowPage() {
               />
               {workflow?.status === Status.Active && (
                 <div className={styles.workflowStatusNote}>
-                  <Note title={t.note} noteType={NoteType.warning}>
+                  <Note title={t.note} noteType={NoteType.warning} dismissible={true}>
                     <p>{t.toast.cannotModifyWorkflowActive}</p>
                   </Note>
                 </div>
