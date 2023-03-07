@@ -126,6 +126,10 @@ func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseCha
 			if closeChanReq.ChannelPoint.GetFundingTxidStr()+":"+stringOutputIndex == closing.Channel.ChannelPoint {
 				r.ClosePendingChannelPoint.TxId = []byte(closing.ClosingTxid)
 			}
+			err = updateChannelToClosingByChannelId(db, r.Request.ChannelId, closing.ClosingTxid)
+			if err != nil {
+				return errors.Wrap(err, "Updating channel to closing status in the db")
+			}
 		}
 
 		if eventChannel != nil {
@@ -140,10 +144,6 @@ func closeChannelResp(client lnrpc.LightningClient, closeChanReq *lnrpc.CloseCha
 			return nil
 		}
 
-		err = updateChannelToClosingByChannelId(db, r.Request.ChannelId, closing.ClosingTxid)
-		if err != nil {
-			return errors.Wrap(err, "Updating channel to closing status in the db")
-		}
 	}
 }
 
