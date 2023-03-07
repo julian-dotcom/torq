@@ -19,7 +19,7 @@ import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
-import Note, { NoteType } from "../../../../features/note/Note";
+import Note, { NoteType } from "features/note/Note";
 
 type ChannelPolicyConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
