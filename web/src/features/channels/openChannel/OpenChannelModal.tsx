@@ -102,24 +102,26 @@ function OpenChannelModal() {
 
   const navigate = useNavigate();
 
-  const { sendJsonMessage } = useWebSocket(WS_URL, {
+  const { sendJsonMessage, lastMessage } = useWebSocket(WS_URL, {
     //Will attempt to reconnect on all close events, such as server shutting down
     shouldReconnect: () => true,
     share: true,
-    onMessage: onOpenChannelMessage,
   });
 
-  function onOpenChannelMessage(event: MessageEvent<string>) {
-    const response = JSON.parse(event.data);
-    if (!response || response.id !== requestUUID) {
+  useEffect(() => {
+    if (!lastMessage) {
       return;
     }
-    setStepIndex(1);
+    const response = JSON.parse(lastMessage.data);
+    console.log(response);
+    if (!response || response.requestId !== requestUUID) {
+      return;
+    }
+    setStepIndex(2);
     setDetailState(ProgressStepState.completed);
     if (response?.type === "Error") {
       setFormErrorState(mergeServerError(response.error, formErrorState));
       setResultState(ProgressStepState.error);
-      setStepIndex(2);
       return;
     }
     if (!openingTx) {
@@ -130,7 +132,7 @@ function OpenChannelModal() {
       );
       setOpeningTx(channelPoint.trim());
     }
-  }
+  }, [lastMessage]);
 
   function openChannel() {
     setDetailState(ProgressStepState.processing);
