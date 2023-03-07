@@ -496,10 +496,11 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 			return
 		}
 
-		node := commons.GetNodeSettingsByNodeId(nodeId)
-
-		commons.RemoveManagedNodeFromCache(node)
-		commons.RemoveManagedChannelStateFromCache(node.NodeId)
+		if commons.Status(statusId) == commons.Deleted {
+			node := commons.GetNodeSettingsByNodeId(nodeId)
+			commons.RemoveManagedNodeFromCache(node)
+			commons.RemoveManagedChannelStateFromCache(node.NodeId)
+		}
 
 	} else {
 		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
