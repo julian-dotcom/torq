@@ -257,7 +257,7 @@ func processRebalanceRequests(ctx context.Context, db *sqlx.DB, requests commons
 	var badChannelIds []int
 	if incoming {
 		sqlString := `
-			SELECT incoming_channel_id
+			SELECT DISTINCT incoming_channel_id
 			FROM rebalance_log
 			WHERE incoming_channel_id = ANY($1) AND created_on >= $2
 			ORDER BY created_on DESC;`
@@ -276,7 +276,7 @@ func processRebalanceRequests(ctx context.Context, db *sqlx.DB, requests commons
 		}
 	} else {
 		sqlString := `
-			SELECT outgoing_channel_id
+			SELECT DISTINCT outgoing_channel_id
 			FROM rebalance_log
 			WHERE outgoing_channel_id = ANY($1) AND created_on >= $2
 			ORDER BY created_on DESC;`
