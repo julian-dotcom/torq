@@ -141,6 +141,11 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 				var pendingRebalancer *Rebalancer
 				i := 0
 				for {
+					if i >= len(pendingRebalancers) {
+						pendingRebalancer = nil
+						break
+					}
+
 					pendingRebalancer = pendingRebalancers[i]
 					if pendingRebalancer.RebalanceCtx.Err() == nil {
 						break
@@ -162,7 +167,7 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 					i++
 				}
 
-				if pendingRebalancer.ScheduleTarget.Before(time.Now()) {
+				if pendingRebalancer != nil && pendingRebalancer.ScheduleTarget.Before(time.Now()) {
 					go pendingRebalancer.start(db, client, router,
 						rebalanceRunnerTimeoutSeconds,
 						rebalanceRoutesTimeoutSeconds,
