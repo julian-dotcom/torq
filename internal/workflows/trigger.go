@@ -335,6 +335,7 @@ linkedInputLoop:
 		}
 	}
 
+	updateReferencIds := make(map[int]bool)
 	switch workflowNode.Type {
 	case commons.WorkflowNodeDataSourceTorqChannels:
 		var params TorqChannelsConfiguration
@@ -507,6 +508,7 @@ linkedInputLoop:
 				return commons.Inactive, errors.Wrapf(err, "Marshalling Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
 			outputsByReferenceId[channelId][commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
+			updateReferencIds[channelId] = true
 		}
 
 		err = setChannelIds(outputs, commons.WorkflowParameterLabelChannels, linkedChannelIds)
@@ -553,6 +555,7 @@ linkedInputLoop:
 			}
 			// TODO FIXME create a more uniform status object
 			outputsByReferenceId[channelId][commons.WorkflowParameterLabelStatus] = string(marshalledResponse)
+			updateReferencIds[channelId] = true
 		}
 
 		err = setChannelIds(outputs, commons.WorkflowParameterLabelChannels, linkedChannelIds)
@@ -586,6 +589,7 @@ linkedInputLoop:
 				}
 				// TODO FIXME create a more uniform status object
 				outputsByReferenceId[channelId][commons.WorkflowParameterLabelStatus] = string(marshalledResponse)
+				updateReferencIds[channelId] = true
 			}
 		}
 	case commons.WorkflowNodeRebalanceConfigurator:
@@ -637,6 +641,7 @@ linkedInputLoop:
 				return commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 			outputsByReferenceId[channelId][commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
+			updateReferencIds[channelId] = true
 		}
 
 		if incomingChannelIds != nil {
@@ -658,37 +663,36 @@ linkedInputLoop:
 		if err != nil {
 			return commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
-		originalFocus := rebalanceConfiguration.Focus
 
 		incomingChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelIncomingChannels)
 		if err != nil {
-			if originalFocus == RebalancerFocusIncomingChannels {
+			if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels {
 				return commons.Inactive, errors.Wrapf(err, "Obtaining incomingChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 		}
 
-		if originalFocus == RebalancerFocusIncomingChannels && len(incomingChannelIds) == 0 {
+		if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels && len(incomingChannelIds) == 0 {
 			return commons.Inactive, errors.Wrapf(err, "No IncomingChannelIds found in the inputs for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
 		outgoingChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelOutgoingChannels)
 		if err != nil {
-			if originalFocus == RebalancerFocusOutgoingChannels {
+			if rebalanceConfiguration.Focus == RebalancerFocusOutgoingChannels {
 				return commons.Inactive, errors.Wrapf(err, "Obtaining outgoingChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 		}
 
-		if originalFocus == RebalancerFocusOutgoingChannels && len(outgoingChannelIds) == 0 {
+		if rebalanceConfiguration.Focus == RebalancerFocusOutgoingChannels && len(outgoingChannelIds) == 0 {
 			return commons.Inactive, errors.Wrapf(err, "No OutgoingChannelIds found in the inputs for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
 		var rebalanceConfigurations []RebalanceConfiguration
 		for channelId, labelValueMap := range inputsByReferenceId {
-			if originalFocus == RebalancerFocusIncomingChannels && !slices.Contains(incomingChannelIds, channelId) {
+			if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels && !slices.Contains(incomingChannelIds, channelId) {
 				outputsByReferenceId[channelId] = labelValueMap
 				continue
 			}
-			if originalFocus == RebalancerFocusOutgoingChannels && !slices.Contains(outgoingChannelIds, channelId) {
+			if rebalanceConfiguration.Focus == RebalancerFocusOutgoingChannels && !slices.Contains(outgoingChannelIds, channelId) {
 				outputsByReferenceId[channelId] = labelValueMap
 				continue
 			}
@@ -702,8 +706,6 @@ linkedInputLoop:
 				continue
 			}
 
-			rebalanceConfiguration.Focus = originalFocus
-
 			if len(rebalanceConfiguration.IncomingChannelIds) != 0 && len(rebalanceConfiguration.OutgoingChannelIds) != 0 {
 				marshalledRebalanceConfiguration, err := json.Marshal(rebalanceConfiguration)
 				if err != nil {
@@ -711,6 +713,7 @@ linkedInputLoop:
 				}
 
 				outputsByReferenceId[channelId][commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
+				updateReferencIds[channelId] = true
 
 				rebalanceConfigurations = append(rebalanceConfigurations, rebalanceConfiguration)
 			}
@@ -766,6 +769,7 @@ linkedInputLoop:
 				}
 
 				outputsByReferenceId[channelId][commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
+				updateReferencIds[channelId] = true
 
 				rebalanceConfigurations = append(rebalanceConfigurations, rebalanceConfiguration)
 			}
@@ -801,8 +805,10 @@ linkedInputLoop:
 		if workflowStageOutputByReferenceIdCache[workflowNode.Stage][channelId] == nil {
 			workflowStageOutputByReferenceIdCache[workflowNode.Stage][channelId] = make(map[commons.WorkflowParameterLabel]string)
 		}
-		for label, value := range labelValueMap {
-			workflowStageOutputByReferenceIdCache[workflowNode.Stage][channelId][label] = value
+		if updateReferencIds[channelId] {
+			for label, value := range labelValueMap {
+				workflowStageOutputByReferenceIdCache[workflowNode.Stage][channelId][label] = value
+			}
 		}
 	}
 
