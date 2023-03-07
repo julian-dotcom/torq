@@ -19,6 +19,7 @@ import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
+import Note, { NoteType } from "../../../../features/note/Note";
 
 type ChannelPolicyConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -52,7 +53,10 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
   const [processing, setProcessing] = useState(false);
   useEffect(() => {
     // if the original parameters are different from the current parameters, set dirty to true
-    if (JSON.stringify(wrapperProps.parameters, Object.keys(wrapperProps.parameters).sort()) !== JSON.stringify(channelPolicy, Object.keys(channelPolicy).sort())) {
+    if (
+      JSON.stringify(wrapperProps.parameters, Object.keys(wrapperProps.parameters).sort()) !==
+      JSON.stringify(channelPolicy, Object.keys(channelPolicy).sort())
+    ) {
       setDirty(true);
     } else {
       setDirty(false);
@@ -225,6 +229,9 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
         >
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
+        <Note title={t.note} noteType={NoteType.info}>
+          <p>{t.workflowNodes.channelPolicyDescription}</p>
+        </Note>
       </Form>
     </WorkflowNodeWrapper>
   );

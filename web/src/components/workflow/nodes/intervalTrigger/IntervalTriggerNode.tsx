@@ -116,7 +116,7 @@ export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProp
   }
 
   return (
-    <WorkflowNodeWrapper {...wrapperProps} headerIcon={<IntervalTriggerIcon />} colorVariant={NodeColorVariant.accent2}>
+    <WorkflowNodeWrapper {...wrapperProps} headerIcon={<IntervalTriggerIcon />} colorVariant={NodeColorVariant.primary}>
       <Form onSubmit={handleSubmit}>
         <InputRow>
           <div style={{ flexGrow: 1 }}>

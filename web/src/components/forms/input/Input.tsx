@@ -8,6 +8,7 @@ import {
 } from "@fluentui/react-icons";
 import { GetColorClass, GetSizeClass, InputColorVaraint, InputSizeVariant } from "components/forms/input/variants";
 import styles from "./textInput.module.scss";
+import labelStyles from "components/forms/label/label.module.scss";
 import { BasicInputType } from "components/forms/formTypes";
 
 export type InputProps = React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> &
@@ -70,18 +71,18 @@ function Input({
   return (
     <div className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}>
       {label && (
-        <div className={styles.labelWrapper}>
+        <div className={labelStyles.labelWrapper}>
           <label htmlFor={inputProps.id || inputId} className={styles.label} title={"Something"}>
             {label}
           </label>
           {/* Create a div with a circled question mark icon with a data label named data-title */}
           {helpText && (
-            <div className={styles.tooltip}>
+            <div className={labelStyles.tooltip}>
               <HelpIcon />
-              <div className={styles.tooltipTextWrapper}>
-                <div className={styles.tooltipTextContainer}>
-                  <div className={styles.tooltipHeader}>{label}</div>
-                  <div className={styles.tooltipText}>{helpText}</div>
+              <div className={labelStyles.tooltipTextWrapper}>
+                <div className={labelStyles.tooltipTextContainer}>
+                  <div className={labelStyles.tooltipHeader}>{label}</div>
+                  <div className={labelStyles.tooltipText}>{helpText}</div>
                 </div>
               </div>
             </div>

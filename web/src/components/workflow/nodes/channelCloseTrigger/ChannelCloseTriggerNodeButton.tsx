@@ -9,7 +9,7 @@ export function ChannelCloseTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
-      colorVariant={NodeColorVariant.accent2}
+      colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.ChannelCloseEventTrigger}
       icon={<Icon />}
       title={t.workflowNodes.closeChannelTrigger}

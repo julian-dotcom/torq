@@ -26,7 +26,7 @@ import {
   ChannelCloseTriggerNodeButton,
   ChannelOpenTriggerNodeButton,
   DataSourceTorqChannelsNodeButton,
-  EventFilterNodeButton
+  EventFilterNodeButton,
 } from "components/workflow/nodes/nodes";
 import mixpanel from "mixpanel-browser";
 
@@ -101,10 +101,10 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           expanded={sectionState.advanced}
           handleToggle={() => toggleSection("advanced")}
         >
-          <ChannelPolicyRunNodeButton />
           <ChannelPolicyConfiguratorNodeButton />
-          <RebalanceRunNodeButton />
+          <ChannelPolicyRunNodeButton />
           <RebalanceConfiguratorNodeButton />
+          <RebalanceRunNodeButton />
         </SectionContainer>
       </Sidebar>
     </div>

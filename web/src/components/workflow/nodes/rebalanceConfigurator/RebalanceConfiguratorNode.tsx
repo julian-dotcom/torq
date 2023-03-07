@@ -37,7 +37,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
   const [updateNode] = useUpdateNodeMutation();
 
   const [configuration, setConfiguration] = useState<RebalanceConfiguration>({
-    focus: "",
+    focus: "incomingChannels",
     amountMsat: undefined,
     maximumCostMsat: undefined,
     maximumCostMilliMsat: undefined,
@@ -50,7 +50,8 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
   useEffect(() => {
     setDirty(
       JSON.stringify(wrapperProps.parameters, Object.keys(wrapperProps.parameters).sort()) !==
-      JSON.stringify(configuration, Object.keys(configuration).sort()));
+        JSON.stringify(configuration, Object.keys(configuration).sort())
+    );
   }, [configuration, wrapperProps.parameters]);
 
   const [amountSat, setAmountSat] = useState<number | undefined>(
@@ -178,7 +179,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"incomingChannels"}
-          outputName={configuration.focus==="incomingChannels"?"incomingChannels":undefined}
+          outputName={configuration.focus === "incomingChannels" ? "incomingChannels" : undefined}
           editingDisabled={editingDisabled}
         />
         <Socket
@@ -188,7 +189,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           workflowVersionId={wrapperProps.workflowVersionId}
           workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
           inputName={"outgoingChannels"}
-          outputName={configuration.focus==="outgoingChannels"?"outgoingChannels":undefined}
+          outputName={configuration.focus === "outgoingChannels" ? "outgoingChannels" : undefined}
           editingDisabled={editingDisabled}
         />
         <Socket
@@ -209,19 +210,21 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
               label: t.Destinations,
               id: "focus-switch-incomingChannels-" + wrapperProps.workflowVersionNodeId,
               checked: configuration.focus === "incomingChannels",
-              onChange: () => setConfiguration((prev) => ({
-                ...prev,
-                ["focus" as keyof RebalanceConfiguration]: "incomingChannels",
-              })),
+              onChange: () =>
+                setConfiguration((prev) => ({
+                  ...prev,
+                  ["focus" as keyof RebalanceConfiguration]: "incomingChannels",
+                })),
             },
             {
               label: t.Sources,
               id: "focus-switch-outgoingChannels-" + wrapperProps.workflowVersionNodeId,
               checked: configuration.focus === "outgoingChannels",
-              onChange: () => setConfiguration((prev) => ({
-                ...prev,
-                ["focus" as keyof RebalanceConfiguration]: "outgoingChannels",
-              })),
+              onChange: () =>
+                setConfiguration((prev) => ({
+                  ...prev,
+                  ["focus" as keyof RebalanceConfiguration]: "outgoingChannels",
+                })),
             },
           ]}
           editingDisabled={editingDisabled}

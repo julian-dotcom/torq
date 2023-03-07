@@ -25,14 +25,14 @@ function WorkflowPage() {
   const [selectedStage, setSelectedStage] = useState<number>(1); //setSelectedStage
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
 
-   function selectStage(stage: number) {
-     mixpanel.track("Workflow Select Stage", {
-       workflowId: workflowId,
-       workflowVersion: version,
-       workflowStage: stage,
-     });
-     setSelectedStage(stage);
-   }
+  function selectStage(stage: number) {
+    mixpanel.track("Workflow Select Stage", {
+      workflowId: workflowId,
+      workflowVersion: version,
+      workflowStage: stage,
+    });
+    setSelectedStage(stage);
+  }
 
   const [updateWorkflow] = useUpdateWorkflowMutation();
 
@@ -50,7 +50,6 @@ function WorkflowPage() {
       {t.workflows}
     </Link>,
     workflow?.name,
-    workflowVersion?.name,
   ];
 
   return (

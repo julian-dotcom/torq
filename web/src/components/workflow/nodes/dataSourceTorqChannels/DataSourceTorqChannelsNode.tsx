@@ -1,8 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import {
-  Play20Regular as DataSourceTorqChannelsIcon,
-  Save16Regular as SaveIcon,
-} from "@fluentui/react-icons";
+import { Play20Regular as DataSourceTorqChannelsIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { NodeColorVariant } from "components/workflow/nodes/nodeVariants";
@@ -31,7 +28,7 @@ export function DataSourceTorqChannelsNode({ ...wrapperProps }: DataSourceTorqCh
   const [updateNode] = useUpdateNodeMutation();
 
   const [configuration, setConfiguration] = useState<TorqChannelsConfiguration>({
-    source: "",
+    source: "eventXorAll",
     ...wrapperProps.parameters,
   });
 
@@ -40,7 +37,8 @@ export function DataSourceTorqChannelsNode({ ...wrapperProps }: DataSourceTorqCh
   useEffect(() => {
     setDirty(
       JSON.stringify(wrapperProps.parameters, Object.keys(wrapperProps.parameters).sort()) !==
-      JSON.stringify(configuration, Object.keys(configuration).sort()));
+        JSON.stringify(configuration, Object.keys(configuration).sort())
+    );
   }, [configuration, wrapperProps.parameters]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -70,33 +68,38 @@ export function DataSourceTorqChannelsNode({ ...wrapperProps }: DataSourceTorqCh
           label={t.channels}
           sizeVariant={InputSizeVariant.small}
           groupName={"focus-switch-" + wrapperProps.workflowVersionNodeId}
+          helpText={t.channelsDataSourceNode.channelsHelpText}
+          vertical={true}
           options={[
             {
               label: t.triggering,
               id: "focus-switch-event-" + wrapperProps.workflowVersionNodeId,
               checked: configuration.source === "event",
-              onChange: () => setConfiguration((prev) => ({
-                ...prev,
-                ["source" as keyof TorqChannelsConfiguration]: "event",
-              })),
+              onChange: () =>
+                setConfiguration((prev) => ({
+                  ...prev,
+                  ["source" as keyof TorqChannelsConfiguration]: "event",
+                })),
             },
             {
               label: t.all,
               id: "focus-switch-all-" + wrapperProps.workflowVersionNodeId,
               checked: configuration.source === "all",
-              onChange: () => setConfiguration((prev) => ({
-                ...prev,
-                ["source" as keyof TorqChannelsConfiguration]: "all",
-              })),
+              onChange: () =>
+                setConfiguration((prev) => ({
+                  ...prev,
+                  ["source" as keyof TorqChannelsConfiguration]: "all",
+                })),
             },
             {
-              label: t.both,
+              label: t.channelsDataSourceNode.triggeringOrAll,
               id: "focus-switch-eventXorAll-" + wrapperProps.workflowVersionNodeId,
               checked: configuration.source === "eventXorAll",
-              onChange: () => setConfiguration((prev) => ({
-                ...prev,
-                ["source" as keyof TorqChannelsConfiguration]: "eventXorAll",
-              })),
+              onChange: () =>
+                setConfiguration((prev) => ({
+                  ...prev,
+                  ["source" as keyof TorqChannelsConfiguration]: "eventXorAll",
+                })),
             },
           ]}
           editingDisabled={editingDisabled}

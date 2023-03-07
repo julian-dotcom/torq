@@ -9,7 +9,7 @@ export function BalanceTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
-      colorVariant={NodeColorVariant.accent2}
+      colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.ChannelBalanceEventTrigger}
       icon={<Icon />}
       title={t.workflowNodes.channelBalanceTrigger}
