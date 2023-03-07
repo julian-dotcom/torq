@@ -40,7 +40,7 @@ type AuthSuccess struct {
 }
 
 type wsError struct {
-	RequestId string                    `json:"id"`
+	RequestId string                    `json:"requestId"`
 	Type      string                    `json:"type"`
 	Error     server_errors.ServerError `json:"error"`
 }
