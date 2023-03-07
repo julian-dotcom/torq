@@ -127,8 +127,8 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 			return
 		case <-ticker:
 			activeRebalancers := getRebalancers(&active)
-			log.Debug().Msgf("Active rebalancers: %v/%v", len(activeRebalancers), rebalanceMaximumConcurrency)
-			if len(activeRebalancers) > rebalanceMaximumConcurrency {
+			log.Trace().Msgf("Active rebalancers: %v/%v", len(activeRebalancers), rebalanceMaximumConcurrency)
+			if len(activeRebalancers) >= rebalanceMaximumConcurrency {
 				continue
 			}
 
