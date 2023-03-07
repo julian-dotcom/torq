@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Options20Regular as OptionsIcon } from "@fluentui/react-icons";
+import { Options20Regular as OptionsIcon, ArrowDownload20Regular as DownloadCsvIcon } from "@fluentui/react-icons";
 import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
   TableControlSection,
@@ -18,7 +18,6 @@ import {
   SortableChannelsPendingColumns,
   DefaultPendingChannelsView,
 } from "features/channelsPending/channelsPendingDefaults";
-
 import { useGetChannelsPendingQuery } from "apiSlice";
 import { useAppSelector } from "store/hooks";
 import { useGetTableViewsQuery, useUpdateTableViewMutation } from "features/viewManagement/viewsApiSlice";
@@ -26,11 +25,12 @@ import { selectPendingChannelView, selectViews } from "features/viewManagement/v
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { useState } from "react";
 import { useFilterData, useSortData } from "features/viewManagement/hooks";
-import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import { TableResponses, ViewResponse } from "features/viewManagement/types";
 import channelsPendingCellRenderer from "features/channelsPending/channelsPendingCellRenderer";
 import { AllChannelPendingColumns } from "features/channelsPending/channelsPendingColumns.generated";
+import { createCsvFile } from "utils/JsonTableToCsv";
+import Button, { ColorVariant } from "components/buttons/Button";
 
 function useMaximums(data: Array<ChannelPending>): ChannelPending | undefined {
   if (!data.length) {
@@ -64,8 +64,7 @@ function ChannelsPendingPage() {
   }>({ network: activeNetwork }, { skip: !isSuccess });
 
   const filteredData = useFilterData(channelsResponse.data, viewResponse.view.filters);
-  const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
-  const data = useGroupBy<ChannelPending>(sortedData, viewResponse.view.groupBy);
+  const data = useSortData(filteredData, viewResponse.view.sortBy);
   const maxRow = useMaximums(data);
 
   // Logic for toggling the sidebar
@@ -90,9 +89,25 @@ function ChannelsPendingPage() {
         <TableControlsTabsGroup></TableControlsTabsGroup>
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
+        <Button
+          buttonColor={ColorVariant.primary}
+          title={t.download}
+          hideMobileText={true}
+          icon={<DownloadCsvIcon />}
+          onClick={() => {
+            mixpanel.track("Downloads Table as CSV", {
+              downloadTablePage: "Channels Pending",
+              downloadTableViewTitle: viewResponse.view.title,
+              downloadTableColumns: viewResponse.view.columns,
+              downloadTableFilters: viewResponse.view.filters,
+              downloadTableSortBy: viewResponse.view.sortBy,
+            });
+            createCsvFile(data, viewResponse.view.title || "Pending Channels");
+          }}
+        />
         <TableControlsButton
           onClickHandler={() => {
-            mixpanel.track("Toggle Table Sidebar", { page: "ChannelsPending" });
+            mixpanel.track("Toggle Table Sidebar", { page: "Channels Pending" });
             setSidebarExpanded(!sidebarExpanded);
           }}
           icon={OptionsIcon}

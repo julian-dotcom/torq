@@ -1,5 +1,9 @@
 import { Link } from "react-router-dom";
-import { Options20Regular as OptionsIcon, ArrowRouting20Regular as ChannelsIcon } from "@fluentui/react-icons";
+import {
+  Options20Regular as OptionsIcon,
+  ArrowRouting20Regular as ChannelsIcon,
+  ArrowDownload20Regular as DownloadCsvIcon,
+} from "@fluentui/react-icons";
 import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
   TableControlSection,
@@ -28,11 +32,11 @@ import { selectChannelView, selectViews } from "features/viewManagement/viewSlic
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { useState } from "react";
 import { useFilterData, useSortData } from "features/viewManagement/hooks";
-import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import channelsCellRenderer from "./channelsCellRenderer";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import { TableResponses, ViewResponse } from "../viewManagement/types";
+import { TableResponses, ViewResponse } from "features/viewManagement/types";
 import * as Routes from "constants/routes";
+import { createCsvFile } from "utils/JsonTableToCsv";
 
 function useMaximums(data: Array<channel>): channel | undefined {
   if (!data || !data.length) {
@@ -107,8 +111,7 @@ function ChannelsPage() {
   }>({ network: activeNetwork }, { skip: !isSuccess, pollingInterval: 10000 });
 
   const filteredData = useFilterData(channelsResponse.data, viewResponse.view.filters);
-  const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
-  const data = useGroupBy<channel>(sortedData, viewResponse.view.groupBy);
+  const data = useSortData(filteredData, viewResponse.view.sortBy);
   const maxRow = useMaximums(data);
 
   // Logic for toggling the sidebar
@@ -145,6 +148,22 @@ function ChannelsPage() {
         </TableControlsTabsGroup>
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
+        <Button
+          buttonColor={ColorVariant.primary}
+          title={t.download}
+          hideMobileText={true}
+          icon={<DownloadCsvIcon />}
+          onClick={() => {
+            mixpanel.track("Downloads Table as CSV", {
+              downloadTablePage: "Channels Open",
+              downloadTableViewTitle: viewResponse.view.title,
+              downloadTableColumns: viewResponse.view.columns,
+              downloadTableFilters: viewResponse.view.filters,
+              downloadTableSortBy: viewResponse.view.sortBy,
+            });
+            createCsvFile(data, viewResponse.view.title || "Open Channels");
+          }}
+        />
         <TableControlsButton
           onClickHandler={() => {
             mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
