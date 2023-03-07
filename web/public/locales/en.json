@@ -385,5 +385,8 @@
     "missingField": ":field: is required",
     "LNDConnect": "Unable to connect to LND Node. Please check connection details."
   },
-  "dashboard": "Dashboard"
+  "dashboard": "Dashboard",
+  "dashboardPage": {
+    "welcome" : "Welcome"
+  }
 }

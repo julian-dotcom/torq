@@ -80,7 +80,7 @@ function PageTitle(props: PageTitleProps) {
     <div className={classNames(styles.pageTitleWrapper, props.className)}>
       <div className={styles.leftWrapper}>
         <Breadcrumbs breadcrumbs={props.breadcrumbs || []} />
-        <h1 className={styles.titleContainer}>{title}</h1>
+        <h1 className={classNames(styles.titleContainer, props.className)}>{title}</h1>
       </div>
       {props.children && <div className={styles.rightWrapper}>{props.children}</div>}
     </div>
