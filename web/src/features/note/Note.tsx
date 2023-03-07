@@ -1,6 +1,6 @@
 import React from "react";
 import styles from "./note.module.scss";
-import { Note24Regular as DefaultNoteIcon } from "@fluentui/react-icons";
+import { Note24Regular as DefaultNoteIcon, Dismiss20Regular as DismissIcon } from "@fluentui/react-icons";
 import classNames from "classnames";
 
 export enum NoteType {
@@ -23,9 +23,12 @@ type NoteProps = {
   icon?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
+  dismissible?: boolean;
 };
 
 function Note(props: NoteProps) {
+  const [dismissed, setDismissed] = React.useState(false);
+  if (dismissed) return null;
   return (
     <div
       className={classNames(styles.noteWrapper, noteTypeClasses.get(props.noteType || NoteType.info), props.className)}
@@ -33,6 +36,11 @@ function Note(props: NoteProps) {
       <div className={styles.noteTitleWrapper}>
         <div className={styles.noteTitleIcon}>{props.icon || <DefaultNoteIcon />}</div>
         <div className={styles.noteTitle}>{props.title}</div>
+        {props.dismissible && (
+          <div className={styles.noteDismissIcon} onClick={() => setDismissed(true)}>
+            {<DismissIcon />}
+          </div>
+        )}
       </div>
       <div className={styles.noteContent}>{props.children}</div>
     </div>

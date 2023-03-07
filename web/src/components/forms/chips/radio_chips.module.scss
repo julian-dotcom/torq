@@ -44,3 +44,28 @@
     background-color: var(--input-checked-background);
   }
 }
+.vertical {
+  .radioChipsContainer {
+    flex-direction: column;
+    height: auto;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    row-gap: 4px;
+  }
+  .optionWrapper {
+    flex-direction: column;
+
+    height: var(--input-height);
+    label {
+      justify-content: flex-start;
+      padding-left: 16px;
+      padding-right: 16px;
+      height: var(--input-height);
+      &:hover {
+        border: 1px solid var(--input-hover-background);
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+    }
+  }
+}

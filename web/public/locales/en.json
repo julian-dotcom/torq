@@ -236,6 +236,13 @@
     "torqChannels": "Torq Channel(s)",
     "eventFilter": "Events Filter"
   },
+  "eventFilterNode": {
+    "ignoreWhenEventlessHelpText": "Determines what happens if no channels pass the event filter. If it is set to stop, then the workflow stops at this point."
+  },
+  "channelsDataSourceNode": {
+    "triggeringOrAll": "Triggering or All",
+    "channelsHelpText": "Determines which channels are used in the workflow. If set to 'triggered', then the channels that triggered the workflow will be used. If set to 'all', then all channels will be used. If set to 'Triggering Or All', then either just the channels that triggered the workflow will be used, or all channels will be used depending on what triggered the workflow."
+  },
   "workflowDetails": {
     "cantAddTriggerNodeToStages": "Trigger nodes can only be added to the first stage.",
     "confirmWorkflowActivate": "Are you sure you want to activate this workflow?",

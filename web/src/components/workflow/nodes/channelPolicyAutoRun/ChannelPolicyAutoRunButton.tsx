@@ -1,4 +1,4 @@
-import { MoneySettings20Regular as ChannelPolicyConfiguratorIcon } from "@fluentui/react-icons";
+import { Money20Regular as ChannelPolicyConfiguratorIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeButtonWrapper from "components/workflow/nodeButtonWrapper/NodeButtonWrapper";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";

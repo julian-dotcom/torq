@@ -1,8 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import {
-  Filter20Regular as FilterIcon,
-  Save16Regular as SaveIcon
-} from "@fluentui/react-icons";
+import { ArrowBounce20Regular as EventFilterIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Form from "components/forms/form/Form";
@@ -12,14 +9,14 @@ import { SelectWorkflowNodeLinks, SelectWorkflowNodes, useUpdateNodeMutation } f
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useSelector } from "react-redux";
 import FilterComponent from "features/sidebar/sections/filter/FilterComponent";
-import {AndClause, deserialiseQuery, FilterInterface, OrClause} from "features/sidebar/sections/filter/filter";
+import { AndClause, deserialiseQuery, FilterInterface, OrClause } from "features/sidebar/sections/filter/filter";
 import Spinny from "features/spinny/Spinny";
 import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
-import {ColumnMetaData} from "features/table/types";
-import {InputSizeVariant, RadioChips} from "components/forms/forms";
+import { ColumnMetaData } from "features/table/types";
+import { InputSizeVariant, RadioChips } from "components/forms/forms";
 
 type FilterEventsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -45,7 +42,6 @@ export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
     ignoreWhenEventless: (wrapperProps.parameters.ignoreWhenEventless || false) as boolean,
     filterClauses: deserialiseQuery(wrapperProps.parameters.filterClauses || { $and: [] }) as AndClause | OrClause,
   });
-
 
   const [dirty, setDirty] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -105,7 +101,7 @@ export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
     setConfiguration((prev) => ({
       ...prev,
       filterClauses: filter,
-    }))
+    }));
   };
 
   const filters: ColumnMetaData<event>[] = [
@@ -133,7 +129,7 @@ export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
-      headerIcon={<FilterIcon />}
+      headerIcon={<EventFilterIcon />}
       colorVariant={NodeColorVariant.accent1}
       outputName={"channels"}
     >
@@ -151,24 +147,27 @@ export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
           label={t.ignoreWhenEventless}
           sizeVariant={InputSizeVariant.small}
           groupName={"ignore-switch-" + wrapperProps.workflowVersionNodeId}
+          helpText={t.eventFilterNode.ignoreWhenEventlessHelpText}
           options={[
             {
               label: t.stop,
               id: "ignore-switch-true-" + wrapperProps.workflowVersionNodeId,
               checked: !configuration.ignoreWhenEventless,
-              onChange: () => setConfiguration((prev) => ({
-                ...prev,
-                ignoreWhenEventless: false,
-              })),
+              onChange: () =>
+                setConfiguration((prev) => ({
+                  ...prev,
+                  ignoreWhenEventless: false,
+                })),
             },
             {
               label: t.continue,
               id: "ignore-switch-false-" + wrapperProps.workflowVersionNodeId,
               checked: configuration.ignoreWhenEventless,
-              onChange: () => setConfiguration((prev) => ({
-                ...prev,
-                ignoreWhenEventless: true,
-              })),
+              onChange: () =>
+                setConfiguration((prev) => ({
+                  ...prev,
+                  ignoreWhenEventless: true,
+                })),
             },
           ]}
           editingDisabled={editingDisabled}

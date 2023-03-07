@@ -9,6 +9,7 @@ import { WorkflowContext } from "components/workflow/WorkflowContext";
 import { Status } from "constants/backend";
 import { useContext } from "react";
 import Note, { NoteType } from "features/note/Note";
+import { Form } from "components/forms/forms";
 
 type ChannelPolicyRunNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -48,7 +49,7 @@ export function ChannelPolicyRunNode({ ...wrapperProps }: ChannelPolicyRunNodePr
       headerIcon={<ChannelPolicyConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
     >
-      <div style={{ flexGrow: 1 }}>
+      <Form style={{ flexGrow: 1 }}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.inputs}
@@ -61,7 +62,7 @@ export function ChannelPolicyRunNode({ ...wrapperProps }: ChannelPolicyRunNodePr
         <Note title={t.note} noteType={NoteType.info}>
           <p>{t.workflowNodes.channelPolicyDescription}</p>
         </Note>
-      </div>
+      </Form>
     </WorkflowNodeWrapper>
   );
 }

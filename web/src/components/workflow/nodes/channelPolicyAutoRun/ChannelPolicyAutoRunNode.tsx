@@ -1,8 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import {
-  MoneySettings20Regular as ChannelPolicyConfiguratorIcon,
-  Save16Regular as SaveIcon,
-} from "@fluentui/react-icons";
+import { Money20Regular as ChannelPolicyConfiguratorIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Input from "components/forms/input/Input";
@@ -219,10 +216,10 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
         >
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
+        <Note title={t.note} noteType={NoteType.info}>
+          <p>{t.workflowNodes.channelPolicyDescription}</p>
+        </Note>
       </Form>
-      <Note title={t.note} noteType={NoteType.info}>
-        <p>{t.workflowNodes.channelPolicyDescription}</p>
-      </Note>
     </WorkflowNodeWrapper>
   );
 }
