@@ -235,7 +235,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	var blockEventChannelGlobal = make(chan commons.BlockEvent)
 	var webSocketResponseChannelGlobal = make(chan interface{})
 	var lightningRequestChannelGlobal = make(chan interface{})
-	var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequest)
+	var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequests)
 
 	broadcaster := broadcast.NewBroadcastServer(ctx,
 		serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,
