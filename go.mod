@@ -17,7 +17,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.3
-	github.com/lightningnetwork/lnd v0.15.4-beta
+	github.com/lightningnetwork/lnd v0.15.5-beta
 	github.com/mixer/clock v0.0.0-20210321161542-3ac312e8c7e8
 	github.com/pkg/errors v0.9.1
 	github.com/playwright-community/playwright-go v0.2000.1
