@@ -1224,7 +1224,7 @@ func filterChannelBalanceEventChannelIds(params FilterClauses, linkedChannelIds 
 
 func filterChannelBodyChannelIds(params FilterClauses, linkedChannels []channels.ChannelBody) []int {
 	filteredChannelIds := extractChannelIds(ApplyFilters(params, ChannelBodyToMap(linkedChannels)))
-	log.Debug().Msgf("Filtering applied to %d of %d channels", len(filteredChannelIds), len(linkedChannels))
+	log.Trace().Msgf("Filtering applied to %d of %d channels", len(filteredChannelIds), len(linkedChannels))
 	return filteredChannelIds
 }
 
