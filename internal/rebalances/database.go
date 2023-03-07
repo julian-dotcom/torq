@@ -117,37 +117,22 @@ func AddRebalanceResult(db *sqlx.DB, rebalanceResult RebalanceResult) error {
 	return nil
 }
 
-func GetLatestResult(db *sqlx.DB, incomingChannelId int, outgoingChannelId int, timeoutInMinutes int) (RebalanceResult, error) {
-	var rebalanceResult RebalanceResult
-	timeout := time.Duration(-1 * timeoutInMinutes)
-	sqlString := `
-		SELECT *
-		FROM rebalance_log
-		WHERE incoming_channel_id=$1 AND outgoing_channel_id=$2 AND created_on >= $3
-		ORDER BY created_on DESC
-		LIMIT 1;`
-	err := db.Get(&rebalanceResult, sqlString, incomingChannelId, outgoingChannelId, time.Now().Add(timeout*time.Minute))
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return RebalanceResult{}, nil
-		}
-		return RebalanceResult{}, errors.Wrapf(err,
-			"Getting latest rebalance result with incomingChannelId: %v, outgoingChannelId: %v", incomingChannelId, outgoingChannelId)
-	}
-	return rebalanceResult, nil
-}
-
 func GetLatestResultByOrigin(db *sqlx.DB,
 	origin commons.RebalanceRequestOrigin, originId int,
 	incomingChannelId int, outgoingChannelId int,
 	status commons.Status, timeoutInMinutes int) (RebalanceResult, error) {
+	if incomingChannelId == 0 && outgoingChannelId == 0 {
+		return RebalanceResult{}, nil
+	}
 	var rebalanceResult RebalanceResult
 	timeout := time.Duration(-1 * timeoutInMinutes)
 	sqlString := `
 		SELECT rr.*
 		FROM rebalance_log rr
 		JOIN rebalance r ON r.rebalance_id=rr.rebalance_id
-		WHERE rr.incoming_channel_id=$1 AND rr.outgoing_channel_id=$2 AND rr.created_on>=$3 AND r.origin=$4 AND r.origin_id=$5 AND
+		WHERE ($1=0 OR rr.incoming_channel_id=$1) AND ($2=0 OR rr.outgoing_channel_id=$2) AND
+		      rr.created_on>=$3 AND
+		      r.origin=$4 AND r.origin_id=$5 AND
 		      rr.status=$6
 		ORDER BY rr.created_on DESC
 		LIMIT 1;`

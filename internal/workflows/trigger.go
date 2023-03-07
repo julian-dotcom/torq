@@ -24,7 +24,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	reference string,
 	events []any,
 	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequest) error {
+	rebalanceRequestChannel chan<- commons.RebalanceRequests) error {
 
 	// workflowNodeInputCache: map[workflowVersionNodeId][label]value
 	workflowNodeInputCache := make(map[int]map[commons.WorkflowParameterLabel]string)
@@ -266,7 +266,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	workflowStageOutputCache map[int]map[commons.WorkflowParameterLabel]string,
 	workflowStageOutputByReferenceIdCache map[int]map[int]map[commons.WorkflowParameterLabel]string,
 	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequest) (commons.Status, error) {
+	rebalanceRequestChannel chan<- commons.RebalanceRequests) (commons.Status, error) {
 
 	select {
 	case <-ctx.Done():
@@ -658,35 +658,37 @@ linkedInputLoop:
 		if err != nil {
 			return commons.Inactive, errors.Wrapf(err, "Parse parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
+		originalFocus := rebalanceConfiguration.Focus
 
 		incomingChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelIncomingChannels)
 		if err != nil {
-			if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels {
+			if originalFocus == RebalancerFocusIncomingChannels {
 				return commons.Inactive, errors.Wrapf(err, "Obtaining incomingChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 		}
 
-		if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels && len(incomingChannelIds) == 0 {
+		if originalFocus == RebalancerFocusIncomingChannels && len(incomingChannelIds) == 0 {
 			return commons.Inactive, errors.Wrapf(err, "No IncomingChannelIds found in the inputs for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
 		outgoingChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelOutgoingChannels)
 		if err != nil {
-			if rebalanceConfiguration.Focus == RebalancerFocusOutgoingChannels {
+			if originalFocus == RebalancerFocusOutgoingChannels {
 				return commons.Inactive, errors.Wrapf(err, "Obtaining outgoingChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 		}
 
-		if rebalanceConfiguration.Focus == RebalancerFocusOutgoingChannels && len(outgoingChannelIds) == 0 {
+		if originalFocus == RebalancerFocusOutgoingChannels && len(outgoingChannelIds) == 0 {
 			return commons.Inactive, errors.Wrapf(err, "No OutgoingChannelIds found in the inputs for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
+		var rebalanceConfigurations []RebalanceConfiguration
 		for channelId, labelValueMap := range inputsByReferenceId {
-			if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels && !slices.Contains(incomingChannelIds, channelId) {
+			if originalFocus == RebalancerFocusIncomingChannels && !slices.Contains(incomingChannelIds, channelId) {
 				outputsByReferenceId[channelId] = labelValueMap
 				continue
 			}
-			if rebalanceConfiguration.Focus == RebalancerFocusOutgoingChannels && !slices.Contains(outgoingChannelIds, channelId) {
+			if originalFocus == RebalancerFocusOutgoingChannels && !slices.Contains(outgoingChannelIds, channelId) {
 				outputsByReferenceId[channelId] = labelValueMap
 				continue
 			}
@@ -696,26 +698,37 @@ linkedInputLoop:
 				return commons.Inactive, errors.Wrapf(err, "Processing Rebalance configurator for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
 
+			if rebalanceConfiguration.AmountMsat == nil {
+				continue
+			}
+
+			rebalanceConfiguration.Focus = originalFocus
+
 			if len(rebalanceConfiguration.IncomingChannelIds) != 0 && len(rebalanceConfiguration.OutgoingChannelIds) != 0 {
 				marshalledRebalanceConfiguration, err := json.Marshal(rebalanceConfiguration)
 				if err != nil {
 					return commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 				}
+
 				outputsByReferenceId[channelId][commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
 
-				var responses []commons.RebalanceResponse
-				responses, err = processRebalanceRun(rebalanceConfiguration, rebalanceRequestChannel, workflowNode, reference)
-				if err != nil {
-					return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				}
-
-				marshalledResponses, err := json.Marshal(responses)
-				if err != nil {
-					return commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance Responses for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				}
-				// TODO FIXME create a more uniform status object
-				outputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponses)
+				rebalanceConfigurations = append(rebalanceConfigurations, rebalanceConfiguration)
 			}
+		}
+
+		if len(rebalanceConfigurations) != 0 {
+			var responses []commons.RebalanceResponse
+			responses, err = processRebalanceRun(rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
+			if err != nil {
+				return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			marshalledResponses, err := json.Marshal(responses)
+			if err != nil {
+				return commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance Responses for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			// TODO FIXME create a more uniform status object
+			outputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponses)
 		}
 
 		if incomingChannelIds != nil {
@@ -732,6 +745,7 @@ linkedInputLoop:
 			}
 		}
 	case commons.WorkflowNodeRebalanceRun:
+		var rebalanceConfigurations []RebalanceConfiguration
 		for channelId, labelValueMap := range inputsByReferenceId {
 			rebalanceConfigurationString, exists := labelValueMap[commons.WorkflowParameterLabelRebalanceSettings]
 			if !exists {
@@ -746,19 +760,29 @@ linkedInputLoop:
 			}
 
 			if len(rebalanceConfiguration.IncomingChannelIds) != 0 && len(rebalanceConfiguration.OutgoingChannelIds) != 0 {
-				var responses []commons.RebalanceResponse
-				responses, err = processRebalanceRun(rebalanceConfiguration, rebalanceRequestChannel, workflowNode, reference)
+				marshalledRebalanceConfiguration, err := json.Marshal(rebalanceConfiguration)
 				if err != nil {
-					return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+					return commons.Inactive, errors.Wrapf(err, "Marshalling parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 				}
 
-				marshalledResponses, err := json.Marshal(responses)
-				if err != nil {
-					return commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance Responses for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-				}
-				// TODO FIXME create a more uniform status object
-				outputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponses)
+				outputsByReferenceId[channelId][commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
+
+				rebalanceConfigurations = append(rebalanceConfigurations, rebalanceConfiguration)
 			}
+		}
+		if len(rebalanceConfigurations) != 0 {
+			var responses []commons.RebalanceResponse
+			responses, err = processRebalanceRun(rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
+			if err != nil {
+				return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+
+			marshalledResponses, err := json.Marshal(responses)
+			if err != nil {
+				return commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance Responses for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+			}
+			// TODO FIXME create a more uniform status object
+			outputs[commons.WorkflowParameterLabelStatus] = string(marshalledResponses)
 		}
 	}
 	workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
@@ -893,108 +917,144 @@ func processRebalanceConfigurator(
 }
 
 func processRebalanceRun(
-	rebalanceSettings RebalanceConfiguration,
-	rebalanceRequestChannel chan<- commons.RebalanceRequest,
+	rebalanceSettings []RebalanceConfiguration,
+	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	workflowNode WorkflowNode,
 	reference string) ([]commons.RebalanceResponse, error) {
 
-	var responses []commons.RebalanceResponse
-	now := time.Now()
-	if rebalanceSettings.Focus == RebalancerFocusIncomingChannels {
-		for _, incomingChannelId := range rebalanceSettings.IncomingChannelIds {
-			var channelIds []int
-			for _, outgoingChannelId := range rebalanceSettings.OutgoingChannelIds {
-				if outgoingChannelId != 0 {
-					channelIds = append(channelIds, outgoingChannelId)
+	if rebalanceRequestChannel == nil {
+		return nil, errors.New("Lightning request channel is nil")
+	}
+
+	requestsMap := make(map[int]*commons.RebalanceRequests)
+	for _, rebalanceSetting := range rebalanceSettings {
+		var maxCostMsat uint64
+		if rebalanceSetting.MaximumCostMsat != nil {
+			maxCostMsat = *rebalanceSetting.MaximumCostMsat
+		}
+		if rebalanceSetting.MaximumCostMilliMsat != nil {
+			maxCostMsat = uint64(*rebalanceSetting.MaximumCostMilliMsat) * (*rebalanceSetting.AmountMsat) / 1_000_000
+		}
+
+		now := time.Now()
+		if rebalanceSetting.Focus == RebalancerFocusIncomingChannels {
+			for _, incomingChannelId := range rebalanceSetting.IncomingChannelIds {
+				var channelIds []int
+				for _, outgoingChannelId := range rebalanceSetting.OutgoingChannelIds {
+					if outgoingChannelId != 0 {
+						channelIds = append(channelIds, outgoingChannelId)
+					}
+				}
+				if len(channelIds) > 0 {
+					channelSetting := commons.GetChannelSettingByChannelId(incomingChannelId)
+					nodeId := channelSetting.FirstNodeId
+					if !slices.Contains(commons.GetAllTorqNodeIds(), nodeId) {
+						nodeId = channelSetting.SecondNodeId
+					}
+					// Randomise the sequence of the pending channels
+					rand.Seed(time.Now().UnixNano())
+					rand.Shuffle(len(channelIds), func(i, j int) { channelIds[i], channelIds[j] = channelIds[j], channelIds[i] })
+					requests, exists := requestsMap[nodeId]
+					if !exists {
+						requestsMap[nodeId] = &commons.RebalanceRequests{
+							CommunicationRequest: commons.CommunicationRequest{
+								RequestId:   reference,
+								RequestTime: &now,
+								NodeId:      nodeId,
+							},
+							Requests: []commons.RebalanceRequest{{
+								Origin:             commons.RebalanceRequestWorkflowNode,
+								OriginId:           workflowNode.WorkflowVersionNodeId,
+								OriginReference:    reference,
+								IncomingChannelId:  incomingChannelId,
+								OutgoingChannelId:  0,
+								ChannelIds:         channelIds,
+								AmountMsat:         *rebalanceSetting.AmountMsat,
+								MaximumCostMsat:    maxCostMsat,
+								MaximumConcurrency: 1,
+							}},
+						}
+						continue
+					}
+					requests.Requests = append(requests.Requests, commons.RebalanceRequest{
+						Origin:             commons.RebalanceRequestWorkflowNode,
+						OriginId:           workflowNode.WorkflowVersionNodeId,
+						OriginReference:    reference,
+						IncomingChannelId:  incomingChannelId,
+						OutgoingChannelId:  0,
+						ChannelIds:         channelIds,
+						AmountMsat:         *rebalanceSetting.AmountMsat,
+						MaximumCostMsat:    maxCostMsat,
+						MaximumConcurrency: 1,
+					})
 				}
 			}
-			if len(channelIds) > 0 {
-				var request commons.RebalanceRequest
-				channelSetting := commons.GetChannelSettingByChannelId(incomingChannelId)
-				// Randomise the sequence of the pending channels
-				rand.Seed(time.Now().UnixNano())
-				rand.Shuffle(len(channelIds), func(i, j int) { channelIds[i], channelIds[j] = channelIds[j], channelIds[i] })
-				request.ChannelIds = channelIds
-				request.IncomingChannelId = incomingChannelId
-				responses = initiatedRebalance(rebalanceSettings, channelSetting, reference, now,
-					workflowNode.WorkflowVersionNodeId, request, responses, rebalanceRequestChannel)
+		}
+		if rebalanceSetting.Focus == RebalancerFocusOutgoingChannels {
+			for _, outgoingChannelId := range rebalanceSetting.OutgoingChannelIds {
+				var channelIds []int
+				for _, incomingChannelId := range rebalanceSetting.IncomingChannelIds {
+					if incomingChannelId != 0 {
+						channelIds = append(channelIds, incomingChannelId)
+					}
+				}
+				if len(channelIds) > 0 {
+					channelSetting := commons.GetChannelSettingByChannelId(outgoingChannelId)
+					nodeId := channelSetting.FirstNodeId
+					if !slices.Contains(commons.GetAllTorqNodeIds(), nodeId) {
+						nodeId = channelSetting.SecondNodeId
+					}
+					// Randomise the sequence of the pending channels
+					rand.Seed(time.Now().UnixNano())
+					rand.Shuffle(len(channelIds), func(i, j int) { channelIds[i], channelIds[j] = channelIds[j], channelIds[i] })
+					requests, exists := requestsMap[nodeId]
+					if !exists {
+						requestsMap[nodeId] = &commons.RebalanceRequests{
+							CommunicationRequest: commons.CommunicationRequest{
+								RequestId:   reference,
+								RequestTime: &now,
+								NodeId:      nodeId,
+							},
+							Requests: []commons.RebalanceRequest{{
+								Origin:             commons.RebalanceRequestWorkflowNode,
+								OriginId:           workflowNode.WorkflowVersionNodeId,
+								OriginReference:    reference,
+								IncomingChannelId:  0,
+								OutgoingChannelId:  outgoingChannelId,
+								ChannelIds:         channelIds,
+								AmountMsat:         *rebalanceSetting.AmountMsat,
+								MaximumCostMsat:    maxCostMsat,
+								MaximumConcurrency: 1,
+							}},
+						}
+						continue
+					}
+					requests.Requests = append(requests.Requests, commons.RebalanceRequest{
+						Origin:             commons.RebalanceRequestWorkflowNode,
+						OriginId:           workflowNode.WorkflowVersionNodeId,
+						OriginReference:    reference,
+						IncomingChannelId:  0,
+						OutgoingChannelId:  outgoingChannelId,
+						ChannelIds:         channelIds,
+						AmountMsat:         *rebalanceSetting.AmountMsat,
+						MaximumCostMsat:    maxCostMsat,
+						MaximumConcurrency: 1,
+					})
+				}
 			}
 		}
 	}
-	if rebalanceSettings.Focus == RebalancerFocusOutgoingChannels {
-		for _, outgoingChannelId := range rebalanceSettings.OutgoingChannelIds {
-			var channelIds []int
-			for _, incomingChannelId := range rebalanceSettings.IncomingChannelIds {
-				if incomingChannelId != 0 {
-					channelIds = append(channelIds, incomingChannelId)
-				}
-			}
-			if len(channelIds) > 0 {
-				var request commons.RebalanceRequest
-				channelSetting := commons.GetChannelSettingByChannelId(outgoingChannelId)
-				// Randomise the sequence of the pending channels
-				rand.Seed(time.Now().UnixNano())
-				rand.Shuffle(len(channelIds), func(i, j int) { channelIds[i], channelIds[j] = channelIds[j], channelIds[i] })
-				request.ChannelIds = channelIds
-				request.OutgoingChannelId = outgoingChannelId
-				responses = initiatedRebalance(rebalanceSettings, channelSetting, reference, now,
-					workflowNode.WorkflowVersionNodeId, request, responses, rebalanceRequestChannel)
-			}
+	var responses []commons.RebalanceResponse
+	for nodeId := range requestsMap {
+		if commons.RunningServices[commons.RebalanceService].GetStatus(nodeId) != commons.ServiceActive {
+			return nil, errors.New(fmt.Sprintf("Lightning communication service is not active for nodeId: %v", nodeId))
 		}
+		responseChannel := make(chan []commons.RebalanceResponse)
+		requestsMap[nodeId].ResponseChannel = responseChannel
+		rebalanceRequestChannel <- *requestsMap[nodeId]
+		responses = append(responses, <-responseChannel...)
 	}
 	return responses, nil
-}
-
-func initiatedRebalance(
-	rebalanceSettings RebalanceConfiguration,
-	channelSetting commons.ManagedChannelSettings,
-	reference string,
-	now time.Time,
-	workflowVersionNodeId int,
-	request commons.RebalanceRequest,
-	responses []commons.RebalanceResponse,
-	rebalanceRequestChannel chan<- commons.RebalanceRequest) []commons.RebalanceResponse {
-
-	nodeId := channelSetting.FirstNodeId
-	if !slices.Contains(commons.GetAllTorqNodeIds(), nodeId) {
-		nodeId = channelSetting.SecondNodeId
-	}
-	request.CommunicationRequest = commons.CommunicationRequest{
-		RequestId:   reference,
-		RequestTime: &now,
-		NodeId:      nodeId,
-	}
-	request.Origin = commons.RebalanceRequestWorkflowNode
-	request.OriginId = workflowVersionNodeId
-	request.OriginReference = reference
-	request.MaximumConcurrency = 1
-	if rebalanceSettings.AmountMsat == nil {
-		log.Error().Err(errors.New("empty rebalance amount")).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowVersionNodeId)
-		responses = append(responses, commons.RebalanceResponse{
-			Request: request,
-			CommunicationResponse: commons.CommunicationResponse{
-				Status:  commons.Inactive,
-				Message: "empty rebalance amount",
-				Error:   "empty rebalance amount",
-			},
-		})
-		return responses
-	}
-	request.AmountMsat = *rebalanceSettings.AmountMsat
-	var maxCostMsat uint64
-	if rebalanceSettings.MaximumCostMsat != nil {
-		maxCostMsat = *rebalanceSettings.MaximumCostMsat
-	}
-	if rebalanceSettings.MaximumCostMilliMsat != nil {
-		maxCostMsat = uint64(*rebalanceSettings.MaximumCostMilliMsat) * request.AmountMsat / 1_000_000
-	}
-	request.MaximumCostMsat = maxCostMsat
-	response := channels.SetRebalance(request, rebalanceRequestChannel)
-	if response.Error != "" {
-		log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowVersionNodeId)
-	}
-	responses = append(responses, response)
-	return responses
 }
 
 func processRoutingPolicyConfigurator(

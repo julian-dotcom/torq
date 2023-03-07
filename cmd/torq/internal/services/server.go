@@ -17,7 +17,7 @@ import (
 
 func Start(ctx context.Context, db *sqlx.DB,
 	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequest,
+	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	broadcaster broadcast.BroadcastServer) error {
 
 	var wg sync.WaitGroup

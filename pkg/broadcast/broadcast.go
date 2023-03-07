@@ -35,8 +35,8 @@ type BroadcastServer interface {
 	CancelSubscriptionWebSocketResponse(<-chan interface{})
 	SubscribeLightningRequest() <-chan interface{}
 	CancelSubscriptionLightningRequest(<-chan interface{})
-	SubscribeRebalanceRequest() <-chan commons.RebalanceRequest
-	CancelSubscriptionRebalanceRequest(<-chan commons.RebalanceRequest)
+	SubscribeRebalanceRequest() <-chan commons.RebalanceRequests
+	CancelSubscriptionRebalanceRequest(<-chan commons.RebalanceRequests)
 }
 
 type broadcastServer struct {
@@ -110,10 +110,10 @@ type broadcastServer struct {
 	addLightningRequestListener    chan chan interface{}
 	removeLightningRequestListener chan (<-chan interface{})
 
-	rebalanceRequestSource         <-chan commons.RebalanceRequest
-	rebalanceRequestListeners      []chan commons.RebalanceRequest
-	addRebalanceRequestListener    chan chan commons.RebalanceRequest
-	removeRebalanceRequestListener chan (<-chan commons.RebalanceRequest)
+	rebalanceRequestSource         <-chan commons.RebalanceRequests
+	rebalanceRequestListeners      []chan commons.RebalanceRequests
+	addRebalanceRequestListener    chan chan commons.RebalanceRequests
+	removeRebalanceRequestListener chan (<-chan commons.RebalanceRequests)
 }
 
 func (s *broadcastServer) SubscribeServiceEvent() <-chan commons.ServiceEvent {
@@ -242,12 +242,12 @@ func (s *broadcastServer) CancelSubscriptionLightningRequest(channel <-chan inte
 	s.removeLightningRequestListener <- channel
 }
 
-func (s *broadcastServer) SubscribeRebalanceRequest() <-chan commons.RebalanceRequest {
-	newListener := make(chan commons.RebalanceRequest)
+func (s *broadcastServer) SubscribeRebalanceRequest() <-chan commons.RebalanceRequests {
+	newListener := make(chan commons.RebalanceRequests)
 	s.addRebalanceRequestListener <- newListener
 	return newListener
 }
-func (s *broadcastServer) CancelSubscriptionRebalanceRequest(channel <-chan commons.RebalanceRequest) {
+func (s *broadcastServer) CancelSubscriptionRebalanceRequest(channel <-chan commons.RebalanceRequests) {
 	s.removeRebalanceRequestListener <- channel
 }
 
@@ -266,7 +266,7 @@ func NewBroadcastServer(ctx context.Context,
 	blockEventSource <-chan commons.BlockEvent,
 	webSocketResponseSource <-chan interface{},
 	lightningRequestSource <-chan interface{},
-	rebalanceRequestSource <-chan commons.RebalanceRequest) BroadcastServer {
+	rebalanceRequestSource <-chan commons.RebalanceRequests) BroadcastServer {
 	service := &broadcastServer{
 		serviceEventSource:         serviceEventSource,
 		serviceEventListeners:      make([]chan commons.ServiceEvent, 0),
@@ -339,9 +339,9 @@ func NewBroadcastServer(ctx context.Context,
 		removeLightningRequestListener: make(chan (<-chan interface{})),
 
 		rebalanceRequestSource:         rebalanceRequestSource,
-		rebalanceRequestListeners:      make([]chan commons.RebalanceRequest, 0),
-		addRebalanceRequestListener:    make(chan chan commons.RebalanceRequest),
-		removeRebalanceRequestListener: make(chan (<-chan commons.RebalanceRequest)),
+		rebalanceRequestListeners:      make([]chan commons.RebalanceRequests, 0),
+		addRebalanceRequestListener:    make(chan chan commons.RebalanceRequests),
+		removeRebalanceRequestListener: make(chan (<-chan commons.RebalanceRequests)),
 	}
 	go service.serveServiceEvent(ctx)
 	go service.serveHtlcEvent(ctx)
