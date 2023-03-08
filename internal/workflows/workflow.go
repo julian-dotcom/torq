@@ -111,12 +111,13 @@ type ChannelPolicyConfiguration struct {
 }
 
 type RebalanceConfiguration struct {
-	IncomingChannelIds   []int           `json:"incomingChannelIds"`
-	OutgoingChannelIds   []int           `json:"outgoingChannelIds"`
-	Focus                RebalancerFocus `json:"focus"`
-	AmountMsat           *uint64         `json:"amountMsat"`
-	MaximumCostMilliMsat *int64          `json:"maximumCostMilliMsat"`
-	MaximumCostMsat      *uint64         `json:"maximumCostMsat"`
+	IncomingChannelIds    []int           `json:"incomingChannelIds"`
+	OutgoingChannelIds    []int           `json:"outgoingChannelIds"`
+	Focus                 RebalancerFocus `json:"focus"`
+	AmountMsat            *uint64         `json:"amountMsat"`
+	MaximumCostMilliMsat  *int64          `json:"maximumCostMilliMsat"`
+	MaximumCostMsat       *uint64         `json:"maximumCostMsat"`
+	WorkflowUnfocusedPath []WorkflowNode  `json:"-"`
 }
 
 type TagParameters struct {
@@ -151,7 +152,7 @@ type CreateNodeRequest struct {
 	Type               commons.WorkflowNodeType       `json:"type" db:"type"`
 	Stage              int                            `json:"stage" db:"stage"`
 	VisibilitySettings WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
-	Parameters         *interface{}                   `json:"parameters" db:"parameters"`
+	Parameters         *string                        `json:"parameters" db:"parameters"`
 }
 
 type UpdateNodeRequest struct {
@@ -169,7 +170,7 @@ func (wfn WorkflowVersionNode) GetWorkflowNodeStructured() WorkflowNode {
 		Stage:                 wfn.Stage,
 		Status:                wfn.Status,
 		Type:                  wfn.Type,
-		Parameters:            wfn.Parameters,
+		Parameters:            string(wfn.Parameters.([]uint8)),
 		VisibilitySettings:    wfn.VisibilitySettings,
 		UpdateOn:              wfn.UpdateOn,
 		WorkflowVersionId:     wfn.WorkflowVersionId,
@@ -236,7 +237,7 @@ type WorkflowNode struct {
 	Status                WorkflowStatus                  `json:"status"`
 	Stage                 int                             `json:"stage"`
 	Type                  commons.WorkflowNodeType        `json:"type"`
-	Parameters            interface{}                     `json:"parameters"`
+	Parameters            string                          `json:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings  `json:"visibilitySettings"`
 	UpdateOn              time.Time                       `json:"updatedOn"`
 	ParentNodes           map[int]*WorkflowNode           `json:"parentNodes"`

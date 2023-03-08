@@ -213,6 +213,7 @@ const (
 	WorkflowParameterLabelAllChannels           = WorkflowParameterLabel("allChannels")
 	WorkflowParameterLabelEventChannels         = WorkflowParameterLabel("eventChannels")
 	WorkflowParameterLabelEvents                = WorkflowParameterLabel("events")
+	WorkflowParameterLabelInternalUnfocusedPath = WorkflowParameterLabel("unfocusedPath")
 )
 
 type WorkflowNodeTypeParameters struct {

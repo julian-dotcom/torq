@@ -543,7 +543,6 @@ func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int, workflowId int, versio
 		wvn.VisibilitySettings = wvnr.VisibilitySettings
 		wvn.WorkflowId = workflowId
 		wvn.Version = version
-
 		wvn.Status = wvnr.Status
 
 		// Unmarshal parameters
@@ -781,7 +780,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 			Type:                  nodeType,
 			Status:                status,
 			Stage:                 stage,
-			Parameters:            parameters,
+			Parameters:            string(parameters),
 			VisibilitySettings:    visibilitySettings,
 			UpdateOn:              updatedOn,
 			Name:                  name,
@@ -841,7 +840,7 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	}
 
 	if req.Parameters != nil {
-		wfvn.Parameters, err = json.Marshal(*req.Parameters)
+		wfvn.Parameters, err = json.Marshal([]byte(*req.Parameters))
 		if err != nil {
 			return WorkflowVersionNode{}, errors.Wrap(err, "JSON Marshaling Parameters")
 		}

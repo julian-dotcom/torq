@@ -275,7 +275,9 @@ func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
 	return []WorkflowParameterLabel{
 		WorkflowParameterLabelRoutingPolicySettings,
 		WorkflowParameterLabelRebalanceSettings,
-		WorkflowParameterLabelStatus}
+		WorkflowParameterLabelStatus,
+		WorkflowParameterLabelInternalUnfocusedPath,
+	}
 }
 
 func SignMessage(unixTime time.Time, nodeId int, message string, singleHash *bool,

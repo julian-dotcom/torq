@@ -454,11 +454,13 @@ type RebalanceRequest struct {
 	// Either IncomingChannelId is populated or OutgoingChannelId is.
 	IncomingChannelId int `json:"incomingChannelId"`
 	// Either OutgoingChannelId is populated or IncomingChannelId is.
-	OutgoingChannelId  int    `json:"outgoingChannelIds"`
-	ChannelIds         []int  `json:"channelIds"`
-	AmountMsat         uint64 `json:"amountMsat"`
-	MaximumCostMsat    uint64 `json:"maximumCostMsat"`
-	MaximumConcurrency int    `json:"maximumConcurrency"`
+	OutgoingChannelId int `json:"outgoingChannelIds"`
+	// ONLY used for previous success rerun validation!
+	ChannelIds            []int       `json:"channelIds"`
+	AmountMsat            uint64      `json:"amountMsat"`
+	MaximumCostMsat       uint64      `json:"maximumCostMsat"`
+	MaximumConcurrency    int         `json:"maximumConcurrency"`
+	WorkflowUnfocusedPath interface{} `json:"-"`
 }
 
 type RebalanceResponse struct {
