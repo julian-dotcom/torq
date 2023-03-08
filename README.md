@@ -2,9 +2,22 @@
 
 # Torq
 
-Torq is a node management tool for large lightning network nodes.
-
 ![All Tests](https://github.com/lncapital/torq/actions/workflows/test-on-push.yml/badge.svg)
+
+Torq is an advanced node management software that helps lightning node operators analyze and automate their nodes. It is designed to handle large nodes with over 1000 channels, and it offers a range of features to simplify your node management tasks, including:
+
+* Simultaneously connect to and analyze multiple nodes
+* Access a complete overview of all channels in one place
+* Build advanced automation workflows to automate any node action
+* Review forwarding history, both current and historical
+* Easily filter and sort data with high fidelity
+* Store commonly used filter configurations for quick access to your preferred table views.
+* Enjoy advanced charts to visualize your node's performance and make informed decisions.
+
+Whether you're running a small or a large node, Torq can help you optimize its performance and streamline your node management process. Give it a try and see how it can simplify your node management tasks.
+
+![torq-automation-preview](https://user-images.githubusercontent.com/647617/223672620-dcc047f3-ebbe-4087-8da8-9a103d8b9570.png)
+
 
 ## Quick start
 
