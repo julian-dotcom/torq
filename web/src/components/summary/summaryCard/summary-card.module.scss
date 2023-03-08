@@ -1,0 +1,52 @@
+
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px;
+  gap: 8px;
+
+  height: 88px;
+
+  /* Primary - Layer 4 */
+
+  background: #C2E2FF;
+  border-radius: 4px;
+
+}
+
+.headerContainer {
+  display: flex;
+  min-width: 220px;
+  margin-bottom: 8px;
+}
+.heading {
+  height: 20px;
+  font-weight: 400;
+  font-size: var(--font-size-small);
+  color: #5D89B3;
+}
+.heading.icon {
+  margin-left:auto;
+  color: #5D89B3;
+}
+
+
+.valueContainer {
+  display: flex;
+  height: 56px;
+  align-items: baseline;
+}
+
+.value {
+  font-weight: 500;
+  font-size: var(--font-size-large);
+  padding-right: 8px;
+}
+
+.valueLabel {
+  color: #5D89B3;
+  font-weight: 400;
+  font-size: 24px;
+}
+
