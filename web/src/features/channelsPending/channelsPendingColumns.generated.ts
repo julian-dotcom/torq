@@ -92,6 +92,24 @@ export const AllChannelPendingColumns: ColumnMetaData<ChannelPending>[] = [
 		key: "status",
 		valueType: "enum",
 	},
+	{
+		heading: "Closing Date",
+		type: "DateCell",
+		key: "closedOn",
+		valueType: "date",
+	},
+	{
+		heading: "Public key",
+		type: "LongTextCell",
+		key: "pubKey",
+		valueType: "string",
+	},
+	{
+		heading: "Closing Date Delta (Seconds)",
+		type: "DurationCell",
+		key: "closedOnSecondsDelta",
+		valueType: "duration",
+	},
 ];
 
 
@@ -114,6 +132,8 @@ export const ChannelsPendingSortableColumns: Array<keyof ChannelPending> = [
 	"closingBlockHeightDelta",
 	"nodeName",
 	"status",
+	"closedOn",
+	"closedOnSecondsDelta",
 ];
 
 
@@ -136,4 +156,6 @@ export const ChannelsPendingFilterableColumns: Array<keyof ChannelPending> = [
 	"closingBlockHeightDelta",
 	"nodeName",
 	"status",
+	"closedOn",
+	"closedOnSecondsDelta",
 ];
