@@ -88,7 +88,12 @@ func OpenChannel(eventChannel chan<- interface{}, db *sqlx.DB, req commons.OpenC
 			return err
 		}
 		if eventChannel != nil {
+			log.Warn().Msg("Attempting to send to channel")
 			eventChannel <- r
+			log.Warn().Msg("Successfully sent to channel")
+			log.Warn().Msg("Attempting to send AGAIN to channel")
+			eventChannel <- r
+			log.Warn().Msg("AND.. Successfully sent to channel")
 		}
 
 		// TODO: probably need some timeout on this loop to exit rather than waiting for channel to OpenChannel

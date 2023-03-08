@@ -105,7 +105,7 @@ function OpenChannelModal() {
   const { sendJsonMessage, lastMessage } = useWebSocket(WS_URL, {
     //Will attempt to reconnect on all close events, such as server shutting down
     shouldReconnect: () => true,
-    share: true,
+    /* share: true, */
   });
 
   useEffect(() => {
@@ -113,7 +113,8 @@ function OpenChannelModal() {
       return;
     }
     const response = JSON.parse(lastMessage.data);
-    console.log(response);
+    console.log("received");
+    console.log(lastMessage);
     if (!response || response.requestId !== requestUUID) {
       return;
     }
@@ -133,6 +134,12 @@ function OpenChannelModal() {
       setOpeningTx(channelPoint.trim());
     }
   }, [lastMessage]);
+
+  useEffect(() => {
+    return () => {
+      console.log("the open channel modal is going away");
+    };
+  }, []);
 
   function openChannel() {
     setDetailState(ProgressStepState.processing);
