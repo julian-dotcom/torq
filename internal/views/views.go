@@ -641,8 +641,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "DateCell",
 			valueType:  "date",
 			pages: map[TableViewPage]int{
-				PageChannels:       31,
-				PageChannelsClosed: 14,
+				PageChannels:        31,
+				PageChannelsClosed:  14,
+				PageChannelsPending: 20,
 			},
 		},
 		{
@@ -653,8 +654,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "DurationCell",
 			valueType:  "duration",
 			pages: map[TableViewPage]int{
-				PageChannels:       32,
-				PageChannelsClosed: 15,
+				PageChannels:        32,
+				PageChannelsClosed:  15,
+				PageChannelsPending: 22,
 			},
 		},
 		{
@@ -1110,8 +1112,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "LongTextCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
-				PageForwards:       16,
-				PageChannelsClosed: 17,
+				PageForwards:        16,
+				PageChannelsClosed:  17,
+				PageChannelsPending: 21,
 			},
 		},
 		{
