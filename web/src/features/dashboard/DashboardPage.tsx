@@ -20,6 +20,7 @@ import {
 
 import { NEW_ADDRESS, NEW_INVOICE, NEW_PAYMENT } from "constants/routes";
 import SummaryCard from "components/summary/summaryCard/SummaryCard";
+import SummaryNode from "components/summary/summaryNode/SummaryNode";
 
 function DashboardPage() {
   const { t } = useTranslations();
@@ -90,6 +91,89 @@ function DashboardPage() {
           <SummaryCard heading={"Total Off-Chain Balance"} value={"320.0"} valueLabel={"btc"}></SummaryCard>
           <SummaryCard heading={"Total Channel Count"} value={"1,235"} valueLabel={""}></SummaryCard>
         </div>
+
+        <SummaryNode nodeName={"My first node"}>
+          <div className={styles.summaryNodeContainer}>
+            <SummaryCard
+              heading={"Total balance"}
+              value={"322.2"}
+              valueLabel={"btc"}
+              canInspect={true}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Total On-Chain Balance"}
+              value={"2.21"}
+              valueLabel={"btc"}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Total Off-Chain Balance"}
+              value={"320.0"}
+              valueLabel={"btc"}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Channels"}
+              value={"425"}
+              valueLabel={""}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Capacity"}
+              value={"322.2"}
+              valueLabel={""}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Peers"}
+              value={"213"}
+              valueLabel={""}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+          </div>
+        </SummaryNode>
+        <SummaryNode nodeName={"My second node"}>
+          <div className={styles.summaryNodeContainer}>
+            <SummaryCard
+              heading={"Total balance"}
+              value={"322.2"}
+              valueLabel={"btc"}
+              canInspect={true}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Total On-Chain Balance"}
+              value={"2.21"}
+              valueLabel={"btc"}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Total Off-Chain Balance"}
+              value={"320.0"}
+              valueLabel={"btc"}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Channels"}
+              value={"425"}
+              valueLabel={""}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Capacity"}
+              value={"322.2"}
+              valueLabel={""}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+            <SummaryCard
+              heading={"Peers"}
+              value={"213"}
+              valueLabel={""}
+              summaryClassOverride={styles.nodeSummaryCard}
+            ></SummaryCard>
+          </div>
+        </SummaryNode>
       </div>
     </DashboardPageTemplate>
   );
