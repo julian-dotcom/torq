@@ -510,6 +510,10 @@ func (rebalancer *Rebalancer) start(
 			rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 	}
 	for i := 0; i < rebalancer.Request.MaximumConcurrency; i++ {
+		log.Debug().Err(err).Msgf("Bootstrapping runner %v "+
+			"for origin: %v, originReference: %v, incomingChannelId: %v, outgoingChannelId: %v",
+			i, rebalancer.Request.Origin, rebalancer.Request.OriginReference,
+			rebalancer.Request.IncomingChannelId, rebalancer.Request.OutgoingChannelId)
 		go rebalancer.createRunner(db, client, router, runnerTimeout, routesTimeout, payTimeout)
 	}
 }
@@ -634,6 +638,9 @@ func (rebalancer *Rebalancer) startRunner(
 	routes, err := runner.getRoutes(routesCtx, client, router, rebalancer.NodeId,
 		rebalancer.Request.AmountMsat, rebalancer.Request.MaximumCostMsat)
 	if err != nil {
+		log.Debug().Err(err).Msgf(
+			"Failed to obtain routes from LND for incomingChannelId: %v, outgoingChannelId: %v",
+			runner.IncomingChannelId, runner.OutgoingChannelId)
 		result.Status = commons.Inactive
 		result.Error = err.Error()
 		if routesCtx.Err() == context.DeadlineExceeded {
@@ -886,6 +893,7 @@ func (runner *RebalanceRunner) pay(
 
 	invoice, err := runner.createInvoice(ctx, client, amountMsat)
 	if err != nil {
+		log.Debug().Err(err).Msgf("Failed to create an invoice for %v msats", amountMsat)
 		rebalanceResult.Error = err.Error()
 		return rebalanceResult
 	}
@@ -906,6 +914,7 @@ func (runner *RebalanceRunner) pay(
 		rebalanceResult.TotalAmountMsat = uint64(result.Route.TotalAmtMsat)
 	}
 	if err != nil {
+		log.Debug().Err(err).Msgf("Failed to call SendToRouteV2 for route: %v", route)
 		rebalanceResult.Error = err.Error()
 		return rebalanceResult
 	}
