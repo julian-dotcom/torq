@@ -276,7 +276,6 @@ func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
 		WorkflowParameterLabelRoutingPolicySettings,
 		WorkflowParameterLabelRebalanceSettings,
 		WorkflowParameterLabelStatus,
-		WorkflowParameterLabelInternalUnfocusedPath,
 	}
 }
 

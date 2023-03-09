@@ -117,7 +117,7 @@ type RebalanceConfiguration struct {
 	AmountMsat            *uint64         `json:"amountMsat"`
 	MaximumCostMilliMsat  *int64          `json:"maximumCostMilliMsat"`
 	MaximumCostMsat       *uint64         `json:"maximumCostMsat"`
-	WorkflowUnfocusedPath []WorkflowNode  `json:"-"`
+	WorkflowUnfocusedPath []WorkflowNode  `json:"workflowUnfocusedPath"`
 }
 
 type TagParameters struct {

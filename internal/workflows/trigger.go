@@ -121,7 +121,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 		}
 		done = true
 		for _, workflowVersionNode := range workflowVersionNodes {
-			processStatus, err = processWorkflowNode(ctx, db, workflowVersionNode, workflowTriggerNode,
+			processStatus, err = processWorkflowNode(ctx, db, workflowVersionNode, workflowVersionNodes, workflowTriggerNode,
 				workflowNodeStatus, reference, workflowNodeInputCache, workflowNodeInputByReferenceIdCache,
 				workflowNodeOutputCache, workflowNodeOutputByReferenceIdCache,
 				workflowStageOutputCache, workflowStageOutputByReferenceIdCache,
@@ -168,7 +168,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 			}
 			done = true
 			for _, workflowVersionNode := range workflowVersionNodes {
-				processStatus, err = processWorkflowNode(ctx, db, workflowVersionNode, workflowTriggerNode,
+				processStatus, err = processWorkflowNode(ctx, db, workflowVersionNode, workflowVersionNodes, workflowTriggerNode,
 					workflowNodeStatus, reference, workflowNodeInputCache, workflowNodeInputByReferenceIdCache,
 					workflowNodeOutputCache, workflowNodeOutputByReferenceIdCache,
 					workflowStageOutputCache, workflowStageOutputByReferenceIdCache,
@@ -249,6 +249,7 @@ func initializeInputCache(workflowVersionNodes []WorkflowNode,
 // workflowStageExitConfigurationCache: map[stage][channelId][label]value
 func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	workflowNode WorkflowNode,
+	workflowNodes []WorkflowNode,
 	workflowTriggerNode WorkflowNode,
 	workflowNodeStatus map[int]commons.Status,
 	reference string,
@@ -266,7 +267,6 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 		return commons.Inactive, errors.New(fmt.Sprintf("Context terminated for WorkflowVersionId: %v", workflowNode.WorkflowVersionId))
 	default:
 	}
-	var err error
 
 	if workflowNode.Status != Active {
 		return commons.Deleted, nil
@@ -328,25 +328,12 @@ linkedInputLoop:
 		}
 	}
 
-	workflowNodeSimplified := WorkflowNode{
-		WorkflowVersionNodeId: workflowNode.WorkflowVersionNodeId,
-		Name:                  workflowNode.Name,
-		Status:                workflowNode.Status,
-		Stage:                 workflowNode.Stage,
-		Type:                  workflowNode.Type,
-		Parameters:            workflowNode.Parameters,
-		WorkflowVersionId:     workflowNode.WorkflowVersionId,
-	}
-	if err != nil {
-		return commons.Inactive, errors.Wrapf(err, "Marshalling workflowNode for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-	}
-
 	updateReferencIds := make(map[channelIdInt]bool)
 
 	switch workflowNode.Type {
 	case commons.WorkflowNodeDataSourceTorqChannels:
 		var params TorqChannelsConfiguration
-		err = json.Unmarshal([]byte(workflowNode.Parameters), &params)
+		err := json.Unmarshal([]byte(workflowNode.Parameters), &params)
 		if err != nil {
 			return commons.Inactive, errors.Wrapf(err, "Parsing parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
@@ -578,7 +565,7 @@ linkedInputLoop:
 			}
 
 			var routingPolicySettings ChannelPolicyConfiguration
-			err = json.Unmarshal([]byte(routingPolicySettingsString), &routingPolicySettings)
+			err := json.Unmarshal([]byte(routingPolicySettingsString), &routingPolicySettings)
 			if err != nil {
 				return commons.Inactive, errors.Wrapf(err, "Unmarshalling Routing Policy Configuration with for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
@@ -628,6 +615,8 @@ linkedInputLoop:
 			return commons.Inactive, errors.Wrapf(err, "No OutgoingChannelIds found in the inputs for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
+		unfocusedPath := createUnfocusedPath(workflowNode, rebalanceConfiguration, workflowNodes)
+
 		for channelId, labelValueMap := range inputsByReferenceId {
 			if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels && !slices.Contains(incomingChannelIds, int(channelId)) {
 				outputsByReferenceId[channelId] = labelValueMap
@@ -642,6 +631,8 @@ linkedInputLoop:
 			if err != nil {
 				return commons.Inactive, errors.Wrapf(err, "Processing Rebalance configurator for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
+
+			rebalanceConfiguration.WorkflowUnfocusedPath = unfocusedPath
 
 			marshalledRebalanceConfiguration, err := json.Marshal(rebalanceConfiguration)
 			if err != nil {
@@ -693,6 +684,8 @@ linkedInputLoop:
 			return commons.Inactive, errors.Wrapf(err, "No OutgoingChannelIds found in the inputs for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
+		unfocusedPath := createUnfocusedPath(workflowNode, rebalanceConfiguration, workflowNodes)
+
 		var rebalanceConfigurations []RebalanceConfiguration
 		for channelId, labelValueMap := range inputsByReferenceId {
 			if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels && !slices.Contains(incomingChannelIds, int(channelId)) {
@@ -713,6 +706,8 @@ linkedInputLoop:
 				continue
 			}
 
+			rebalanceConfiguration.WorkflowUnfocusedPath = unfocusedPath
+
 			if len(rebalanceConfiguration.IncomingChannelIds) != 0 && len(rebalanceConfiguration.OutgoingChannelIds) != 0 {
 				marshalledRebalanceConfiguration, err := json.Marshal(rebalanceConfiguration)
 				if err != nil {
@@ -721,17 +716,6 @@ linkedInputLoop:
 
 				outputsByReferenceId[channelId][commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
 				updateReferencIds[channelId] = true
-
-				unfocusedPathString, unfocusedPathExists := inputsByReferenceId[channelId][commons.WorkflowParameterLabelInternalUnfocusedPath]
-				if unfocusedPathExists {
-					var unfocusedWorkflowNodesPath []WorkflowNode
-					err := json.Unmarshal([]byte(unfocusedPathString), &unfocusedWorkflowNodesPath)
-					if err != nil {
-						return commons.Inactive, errors.Wrapf(err, "Unmarshalling unfocusedPath for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-					}
-					rebalanceConfiguration.WorkflowUnfocusedPath = unfocusedWorkflowNodesPath
-					rebalanceConfigurations = append(rebalanceConfigurations, rebalanceConfiguration)
-				}
 			}
 		}
 
@@ -773,7 +757,7 @@ linkedInputLoop:
 			}
 
 			var rebalanceConfiguration RebalanceConfiguration
-			err = json.Unmarshal([]byte(rebalanceConfigurationString), &rebalanceConfiguration)
+			err := json.Unmarshal([]byte(rebalanceConfigurationString), &rebalanceConfiguration)
 			if err != nil {
 				return commons.Inactive, errors.Wrapf(err, "Unmarshalling Rebalance Configuration with for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
@@ -786,22 +770,11 @@ linkedInputLoop:
 
 				outputsByReferenceId[channelId][commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
 				updateReferencIds[channelId] = true
-
-				unfocusedPathString, unfocusedPathExists := inputsByReferenceId[channelId][commons.WorkflowParameterLabelInternalUnfocusedPath]
-				if unfocusedPathExists {
-					var unfocusedWorkflowNodesPath []WorkflowNode
-					err := json.Unmarshal([]byte(unfocusedPathString), &unfocusedWorkflowNodesPath)
-					if err != nil {
-						return commons.Inactive, errors.Wrapf(err, "Unmarshalling unfocusedPath for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-					}
-					rebalanceConfiguration.WorkflowUnfocusedPath = unfocusedWorkflowNodesPath
-					rebalanceConfigurations = append(rebalanceConfigurations, rebalanceConfiguration)
-				}
+				rebalanceConfigurations = append(rebalanceConfigurations, rebalanceConfiguration)
 			}
 		}
 		if len(rebalanceConfigurations) != 0 {
-			var responses []commons.RebalanceResponse
-			responses, err = processRebalanceRun(rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
+			responses, err := processRebalanceRun(rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
 			if err != nil {
 				return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 			}
@@ -815,11 +788,6 @@ linkedInputLoop:
 		}
 	}
 	workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = commons.Active
-
-	err = processDelayedExecution(updateReferencIds, inputsByReferenceId, outputsByReferenceId, workflowNodeSimplified)
-	if err != nil {
-		return commons.Inactive, errors.Wrapf(err, "DelayedExecution processing failed for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-	}
 
 	if workflowStageOutputCache[stageInt(workflowNode.Stage)] == nil {
 		workflowStageOutputCache[stageInt(workflowNode.Stage)] = make(map[commons.WorkflowParameterLabel]string)
@@ -866,50 +834,87 @@ linkedInputLoop:
 	return commons.Active, nil
 }
 
-func processDelayedExecution(
-	updateReferenceIds map[channelIdInt]bool,
-	inputsByReferenceId map[channelIdInt]map[commons.WorkflowParameterLabel]string,
-	outputsByReferenceId map[channelIdInt]map[commons.WorkflowParameterLabel]string,
-	workflowNodeSimplified WorkflowNode) error {
+func createUnfocusedPath(
+	workflowNode WorkflowNode,
+	rebalanceConfiguration RebalanceConfiguration,
+	workflowNodes []WorkflowNode) []WorkflowNode {
 
-	var referenceIds []channelIdInt
-
-	switch workflowNodeSimplified.Type {
-	case
-		commons.WorkflowNodeChannelPolicyConfigurator,
-		commons.WorkflowNodeChannelPolicyAutoRun,
-		commons.WorkflowNodeChannelPolicyRun,
-		commons.WorkflowNodeRebalanceConfigurator,
-		commons.WorkflowNodeRebalanceAutoRun,
-		commons.WorkflowNodeRebalanceRun:
-		for referenceId := range updateReferenceIds {
-			referenceIds = append(referenceIds, referenceId)
-		}
-	default:
-		for referenceId := range inputsByReferenceId {
-			referenceIds = append(referenceIds, referenceId)
-		}
-	}
-	for _, referencId := range referenceIds {
-		_, referencIdExists := inputsByReferenceId[referencId]
-		if referencIdExists {
-			var workflowNodeSimplifiedArray []WorkflowNode
-			marshalledWorkflowNodeSimplifiedArray, inputExists := inputsByReferenceId[referencId][commons.WorkflowParameterLabelInternalUnfocusedPath]
-			if inputExists {
-				err := json.Unmarshal([]byte(marshalledWorkflowNodeSimplifiedArray), &workflowNodeSimplifiedArray)
-				if err != nil {
-					return errors.Wrapf(err, "Unmarshalling Simplified WorkflowNodeArray for WorkflowVersionNodeId: %v", workflowNodeSimplified.WorkflowVersionNodeId)
+	var reversedPath []WorkflowNode
+	childWorkflowNode := workflowNode
+	goodPath := false
+	for {
+		var labelsOrdered []commons.WorkflowParameterLabel
+		switch childWorkflowNode.Type {
+		case commons.WorkflowNodeRebalanceAutoRun, commons.WorkflowNodeRebalanceConfigurator:
+			if rebalanceConfiguration.Focus == RebalancerFocusOutgoingChannels {
+				labelsOrdered = []commons.WorkflowParameterLabel{
+					commons.WorkflowParameterLabelIncomingChannels,
+					commons.WorkflowParameterLabelOutgoingChannels,
 				}
 			}
-			workflowNodeSimplifiedArray = append(workflowNodeSimplifiedArray, workflowNodeSimplified)
-			marshalledWorkflowNodeSimplifiedByteArray, err := json.Marshal(workflowNodeSimplifiedArray)
-			if err != nil {
-				return errors.Wrapf(err, "Marshalling Simplified WorkflowNodeArray for WorkflowVersionNodeId: %v", workflowNodeSimplified.WorkflowVersionNodeId)
+			if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels {
+				labelsOrdered = []commons.WorkflowParameterLabel{
+					commons.WorkflowParameterLabelOutgoingChannels,
+					commons.WorkflowParameterLabelIncomingChannels,
+				}
 			}
-			outputsByReferenceId[referencId][commons.WorkflowParameterLabelInternalUnfocusedPath] = string(marshalledWorkflowNodeSimplifiedByteArray)
+		default:
+			labelsOrdered = []commons.WorkflowParameterLabel{
+				commons.WorkflowParameterLabelChannels,
+			}
+		}
+		label, parentWorkflowNode := getParent(childWorkflowNode, workflowNodes, labelsOrdered)
+		if label == "" {
+			break
+		}
+
+		childWorkflowNode = parentWorkflowNode
+
+		if rebalanceConfiguration.Focus == RebalancerFocusOutgoingChannels &&
+			label == commons.WorkflowParameterLabelIncomingChannels {
+			goodPath = true
+		} else if rebalanceConfiguration.Focus == RebalancerFocusIncomingChannels &&
+			label == commons.WorkflowParameterLabelOutgoingChannels {
+			goodPath = true
+		} else if !goodPath {
+			continue
+		}
+		reversedPath = append(reversedPath, WorkflowNode{
+			WorkflowVersionNodeId: parentWorkflowNode.WorkflowVersionNodeId,
+			Name:                  parentWorkflowNode.Name,
+			Status:                parentWorkflowNode.Status,
+			Stage:                 parentWorkflowNode.Stage,
+			Type:                  parentWorkflowNode.Type,
+			Parameters:            parentWorkflowNode.Parameters,
+			WorkflowVersionId:     parentWorkflowNode.WorkflowVersionId,
+		})
+	}
+
+	// change direction
+	for i, j := 0, len(reversedPath)-1; i < j; i, j = i+1, j-1 {
+		reversedPath[i], reversedPath[j] = reversedPath[j], reversedPath[i]
+	}
+	return reversedPath
+}
+
+func getParent(
+	workflowNode WorkflowNode,
+	workflowNodes []WorkflowNode,
+	labelsOrdered []commons.WorkflowParameterLabel) (commons.WorkflowParameterLabel, WorkflowNode) {
+
+	for _, label := range labelsOrdered {
+		for _, link := range workflowNode.LinkDetails {
+			if link.ChildWorkflowVersionNodeId == workflowNode.WorkflowVersionNodeId &&
+				link.ChildInput == label {
+				for _, parentWorkflowNode := range workflowNodes {
+					if parentWorkflowNode.WorkflowVersionNodeId == link.ParentWorkflowVersionNodeId {
+						return label, parentWorkflowNode
+					}
+				}
+			}
 		}
 	}
-	return nil
+	return "", WorkflowNode{}
 }
 
 func getChannelIds(inputs map[commons.WorkflowParameterLabel]string, label commons.WorkflowParameterLabel) ([]int, error) {
