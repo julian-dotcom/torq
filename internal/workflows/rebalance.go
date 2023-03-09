@@ -127,12 +127,14 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 			return
 		case <-ticker:
 			activeRebalancers := getRebalancers(&active)
+			log.Trace().Msgf("Active rebalancers: %v/%v", len(activeRebalancers), rebalanceMaximumConcurrency)
 			if len(activeRebalancers) >= rebalanceMaximumConcurrency {
 				log.Debug().Msgf("Active rebalancers: %v/%v", len(activeRebalancers), rebalanceMaximumConcurrency)
 				continue
 			}
 
 			pendingRebalancers := getRebalancers(&pending)
+			log.Trace().Msgf("Queued (or on hold) rebalancers: %v", len(pendingRebalancers))
 			if len(pendingRebalancers) > 0 {
 				sort.Slice(pendingRebalancers, func(i, j int) bool {
 					return pendingRebalancers[i].ScheduleTarget.Before(pendingRebalancers[j].ScheduleTarget)
