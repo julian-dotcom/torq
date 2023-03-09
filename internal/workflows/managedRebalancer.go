@@ -1,9 +1,10 @@
-package automation
+package workflows
 
 import (
 	"context"
 
 	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/slices"
 
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -17,6 +18,8 @@ const (
 	readRebalancers
 	writeRebalancer
 	deleteRebalancer
+	cancelRebalancer
+	cancelRebalancers
 )
 
 type ManagedRebalance struct {
@@ -27,16 +30,14 @@ type ManagedRebalance struct {
 	IncomingChannelId int
 	OutgoingChannelId int
 	AmountMsat        uint64
+	ChannelId         int
+	ChannelIds        []int
 	Status            *commons.Status
 	Rebalancer        *Rebalancer
 	Out               chan<- ManagedRebalance
 	BoolOut           chan<- bool
 	RebalancersOut    chan<- []*Rebalancer
 }
-
-// originId is workflowVersionNodeId in case of workflow triggered rebalances.
-type originIdInt int
-type channelIdInt int
 
 func ManagedRebalanceCache(ch <-chan ManagedRebalance, ctx context.Context) {
 	rebalancers := make(map[commons.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer)
@@ -53,7 +54,7 @@ func ManagedRebalanceCache(ch <-chan ManagedRebalance, ctx context.Context) {
 					continue
 				}
 				initializeRebalancersCache(managedRebalance, rebalancers)
-				managedRebalance.Rebalancer = getRebalancersCache(managedRebalance, rebalancers)
+				managedRebalance.Rebalancer = getRebalancerCache(managedRebalance, rebalancers)
 				SendToManagedRebalanceChannel(managedRebalance.Out, managedRebalance)
 			case readRebalancers:
 				initializeRebalancersCache(managedRebalance, rebalancers)
@@ -75,7 +76,7 @@ func ManagedRebalanceCache(ch <-chan ManagedRebalance, ctx context.Context) {
 					continue
 				}
 				initializeRebalancersCache(managedRebalance, rebalancers)
-				if getRebalancersCache(managedRebalance, rebalancers) != nil {
+				if getRebalancerCache(managedRebalance, rebalancers) != nil {
 					commons.SendToManagedBoolChannel(managedRebalance.BoolOut, false)
 					continue
 				}
@@ -86,10 +87,37 @@ func ManagedRebalanceCache(ch <-chan ManagedRebalance, ctx context.Context) {
 					continue
 				}
 				initializeRebalancersCache(managedRebalance, rebalancers)
-				if getRebalancersCache(managedRebalance, rebalancers) == nil {
+				if getRebalancerCache(managedRebalance, rebalancers) == nil {
 					continue
 				}
 				removeRebalancersCache(managedRebalance, rebalancers)
+			case cancelRebalancer:
+				if managedRebalance.OriginId == 0 || managedRebalance.ChannelId == 0 {
+					continue
+				}
+				initializeRebalancersCache(managedRebalance, rebalancers)
+				managedRebalance.IncomingChannelId = managedRebalance.ChannelId
+				rebalancer := getRebalancerCache(managedRebalance, rebalancers)
+				if rebalancer != nil {
+					log.Debug().Msgf("Cancelling rebalancer for channelId: %v, origin: %v, originId: %v",
+						managedRebalance.ChannelId, managedRebalance.Origin, managedRebalance.OriginId)
+					rebalancer.RebalanceCancel()
+					delete(rebalancers[managedRebalance.Origin][originIdInt(managedRebalance.OriginId)], channelIdInt(managedRebalance.ChannelId))
+				}
+			case cancelRebalancers:
+				if managedRebalance.OriginId == 0 {
+					continue
+				}
+				initializeRebalancersCache(managedRebalance, rebalancers)
+				for channelId, rebalancer := range getRebalancersCache(managedRebalance, rebalancers) {
+					if slices.Contains(managedRebalance.ChannelIds, int(channelId)) {
+						continue
+					}
+					log.Debug().Msgf("Cancelling rebalancer for channelId: %v, origin: %v, originId: %v",
+						channelId, managedRebalance.Origin, managedRebalance.OriginId)
+					rebalancer.RebalanceCancel()
+					delete(rebalancers[managedRebalance.Origin][originIdInt(managedRebalance.OriginId)], channelId)
+				}
 			}
 		}
 	}
@@ -137,6 +165,25 @@ func setRebalancersCache(managedRebalance ManagedRebalance,
 }
 
 func getRebalancersCache(managedRebalance ManagedRebalance,
+	rebalancers map[commons.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer) map[channelIdInt]*Rebalancer {
+
+	_, exists := rebalancers[managedRebalance.Origin]
+	if !exists {
+		return nil
+	}
+	_, exists = rebalancers[managedRebalance.Origin][originIdInt(managedRebalance.OriginId)]
+	if !exists {
+		return nil
+	}
+	results := make(map[channelIdInt]*Rebalancer)
+	for channelId, rebalancer := range rebalancers[managedRebalance.Origin][originIdInt(managedRebalance.OriginId)] {
+		results[channelId] = rebalancer
+	}
+	return results
+
+}
+
+func getRebalancerCache(managedRebalance ManagedRebalance,
 	rebalancers map[commons.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer) *Rebalancer {
 
 	_, exists := rebalancers[managedRebalance.Origin]
@@ -189,6 +236,26 @@ func SendToManagedRebalanceChannel(ch chan<- ManagedRebalance, managedRebalance 
 func SendToRebalancersChannel(ch chan<- []*Rebalancer, rebalancers []*Rebalancer) {
 	ch <- rebalancers
 	close(ch)
+}
+
+func CancelRebalancersExcept(origin commons.RebalanceRequestOrigin, originId int, activeChannelIds []int) {
+	managedRebalance := ManagedRebalance{
+		Origin:     origin,
+		OriginId:   originId,
+		ChannelIds: activeChannelIds,
+		Type:       cancelRebalancers,
+	}
+	ManagedRebalanceChannel <- managedRebalance
+}
+
+func CancelRebalancer(origin commons.RebalanceRequestOrigin, originId int, channelId int) {
+	managedRebalance := ManagedRebalance{
+		Origin:    origin,
+		OriginId:  originId,
+		ChannelId: channelId,
+		Type:      cancelRebalancer,
+	}
+	ManagedRebalanceChannel <- managedRebalance
 }
 
 func getRebalancers(status *commons.Status) []*Rebalancer {

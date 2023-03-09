@@ -21,6 +21,7 @@ import (
 type workflowVersionNodeIdInt int
 type channelIdInt int
 type stageInt int
+type originIdInt int
 
 func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	workflowTriggerNode WorkflowNode,
@@ -719,13 +720,18 @@ linkedInputLoop:
 			}
 		}
 
-		if len(rebalanceConfigurations) != 0 {
-			var responses []commons.RebalanceResponse
-			responses, err = processRebalanceRun(rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
-			if err != nil {
-				return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			}
+		eventChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelEventChannels)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Obtaining eventChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
 
+		var responses []commons.RebalanceResponse
+		responses, err = processRebalanceRun(eventChannelIds, rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+
+		if len(rebalanceConfigurations) != 0 {
 			marshalledResponses, err := json.Marshal(responses)
 			if err != nil {
 				return commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance Responses for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
@@ -773,12 +779,18 @@ linkedInputLoop:
 				rebalanceConfigurations = append(rebalanceConfigurations, rebalanceConfiguration)
 			}
 		}
-		if len(rebalanceConfigurations) != 0 {
-			responses, err := processRebalanceRun(rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
-			if err != nil {
-				return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
-			}
 
+		eventChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelEventChannels)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Obtaining eventChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+
+		responses, err := processRebalanceRun(eventChannelIds, rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
+		if err != nil {
+			return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+		}
+
+		if len(rebalanceConfigurations) != 0 {
 			marshalledResponses, err := json.Marshal(responses)
 			if err != nil {
 				return commons.Inactive, errors.Wrapf(err, "Marshalling Rebalance Responses for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
@@ -1004,6 +1016,7 @@ func processRebalanceConfigurator(
 }
 
 func processRebalanceRun(
+	eventChannelIds []int,
 	rebalanceSettings []RebalanceConfiguration,
 	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	workflowNode WorkflowNode,
@@ -1112,6 +1125,7 @@ func processRebalanceRun(
 			}
 		}
 	}
+	var activeChannelIds []int
 	var responses []commons.RebalanceResponse
 	for nodeId := range requestsMap {
 		if commons.RunningServices[commons.RebalanceService].GetStatus(nodeId) != commons.ServiceActive {
@@ -1119,8 +1133,28 @@ func processRebalanceRun(
 		}
 		responseChannel := make(chan []commons.RebalanceResponse)
 		requestsMap[nodeId].ResponseChannel = responseChannel
-		rebalanceRequestChannel <- *requestsMap[nodeId]
+		requests := *requestsMap[nodeId]
+		for _, req := range requests.Requests {
+			if req.IncomingChannelId != 0 {
+				activeChannelIds = append(activeChannelIds, req.IncomingChannelId)
+			}
+			if req.OutgoingChannelId != 0 {
+				activeChannelIds = append(activeChannelIds, req.OutgoingChannelId)
+			}
+		}
+		rebalanceRequestChannel <- requests
 		responses = append(responses, <-responseChannel...)
+	}
+	if len(eventChannelIds) == 0 {
+		CancelRebalancersExcept(commons.RebalanceRequestWorkflowNode, workflowNode.WorkflowVersionNodeId,
+			activeChannelIds)
+	} else {
+		for _, eventChannelId := range eventChannelIds {
+			if !slices.Contains(activeChannelIds, eventChannelId) {
+				CancelRebalancer(commons.RebalanceRequestWorkflowNode, workflowNode.WorkflowVersionNodeId,
+					eventChannelId)
+			}
+		}
 	}
 	return responses, nil
 }

@@ -1,4 +1,4 @@
-package automation
+package workflows
 
 import (
 	"context"
@@ -21,7 +21,6 @@ import (
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/rebalances"
-	"github.com/lncapital/torq/internal/workflows"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
@@ -128,8 +127,8 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 			return
 		case <-ticker:
 			activeRebalancers := getRebalancers(&active)
-			log.Trace().Msgf("Active rebalancers: %v/%v", len(activeRebalancers), rebalanceMaximumConcurrency)
 			if len(activeRebalancers) >= rebalanceMaximumConcurrency {
+				log.Debug().Msgf("Active rebalancers: %v/%v", len(activeRebalancers), rebalanceMaximumConcurrency)
 				continue
 			}
 
@@ -169,6 +168,8 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 				}
 
 				if pendingRebalancer != nil && pendingRebalancer.ScheduleTarget.Before(time.Now()) {
+					log.Debug().Msgf("Rebalancers: %v/%v active and %v queued or on hold",
+						len(activeRebalancers), rebalanceMaximumConcurrency, len(pendingRebalancers)-i)
 					go pendingRebalancer.start(db, client, router,
 						rebalanceRunnerTimeoutSeconds,
 						rebalanceRoutesTimeoutSeconds,
@@ -665,7 +666,7 @@ func (rebalancer *Rebalancer) getPendingChannelId() int {
 		return 0
 	}
 
-	var unfocusedPath []workflows.WorkflowNode
+	var unfocusedPath []WorkflowNode
 	err := json.Unmarshal([]byte(rebalancer.Request.WorkflowUnfocusedPath.(string)), &unfocusedPath)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to unmarshal the workflow unfocused path originId: %v", rebalancer.Request.OriginId)
@@ -678,7 +679,7 @@ func (rebalancer *Rebalancer) getPendingChannelId() int {
 	for _, workflowNode := range unfocusedPath {
 		switch workflowNode.Type {
 		case commons.WorkflowNodeDataSourceTorqChannels:
-			var params workflows.TorqChannelsConfiguration
+			var params TorqChannelsConfiguration
 			err = json.Unmarshal([]byte(workflowNode.Parameters), &params)
 			if err != nil {
 				msg := fmt.Sprintf("Failed to unmarshal the workflow unfocused path parameters originId: %v",
@@ -721,7 +722,7 @@ func (rebalancer *Rebalancer) getPendingChannelId() int {
 				return 0
 			}
 
-			var params workflows.FilterClauses
+			var params FilterClauses
 			err = json.Unmarshal([]byte(workflowNode.Parameters), &params)
 			if err != nil {
 				msg := fmt.Sprintf("Failed to unmarshal the workflow unfocused path parameters originId: %v",
@@ -738,7 +739,7 @@ func (rebalancer *Rebalancer) getPendingChannelId() int {
 					log.Error().Err(errors.New(msg)).Msg(msg)
 					return 0
 				}
-				channelIds = workflows.FilterChannelBodyChannelIds(params, linkedChannels)
+				channelIds = FilterChannelBodyChannelIds(params, linkedChannels)
 			}
 
 			if len(channelIds) == 0 {

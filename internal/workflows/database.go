@@ -840,7 +840,7 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	}
 
 	if req.Parameters != nil {
-		wfvn.Parameters, err = json.Marshal([]byte(*req.Parameters))
+		wfvn.Parameters, err = json.Marshal(*req.Parameters)
 		if err != nil {
 			return WorkflowVersionNode{}, errors.Wrap(err, "JSON Marshaling Parameters")
 		}
