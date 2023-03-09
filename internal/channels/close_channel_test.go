@@ -18,35 +18,38 @@ const FundingOutputIndex = 1
 func Test_processResponse(t *testing.T) {
 
 	tests := []struct {
-		name      string
-		requestId string
-		req       commons.CloseChannelRequest
-		input     *lnrpc.CloseStatusUpdate
-		want      commons.CloseChannelResponse
-		wantErr   bool
+		name    string
+		req     CloseChannelRequest
+		input   *lnrpc.CloseStatusUpdate
+		want    CloseChannelResponse
+		wantErr bool
 	}{
 		{
-			name:      "Close Pending",
-			requestId: "Test",
+			name: "Close Pending",
 			input: &lnrpc.CloseStatusUpdate{
 				Update: &lnrpc.CloseStatusUpdate_ClosePending{
 					ClosePending: &lnrpc.PendingUpdate{
-						Txid:        []byte("test"),
+						Txid: []byte{
+							220, 124, 38, 210, 37, 158, 171, 139, 138, 139, 42, 195, 254, 216, 159, 104, 118, 69, 251,
+							131, 10, 115, 198, 209, 55, 86, 139, 86, 238, 156, 192, 114,
+						},
 						OutputIndex: 0,
 					},
 				},
 			},
 
-			want: commons.CloseChannelResponse{
-				RequestId:                "Test",
-				Status:                   commons.Closing,
-				ClosePendingChannelPoint: commons.ChannelPoint{TxId: []byte("test"), OutputIndex: 0},
-				CloseChannelStatus:       commons.CloseChannelStatus{},
+			want: CloseChannelResponse{
+				Request:            CloseChannelRequest{},
+				Status:             commons.Closing,
+				ClosingOutputIndex: 0,
+				ClosePendingChannelPoint: commons.ChannelPoint{TxId: []byte{
+					220, 124, 38, 210, 37, 158, 171, 139, 138, 139, 42, 195, 254, 216, 159, 104, 118, 69, 251,
+					131, 10, 115, 198, 209, 55, 86, 139, 86, 238, 156, 192, 114,
+				}, OutputIndex: 0},
 			},
 		},
 		{
-			name:      "Closed",
-			requestId: "Test",
+			name: "Closed",
 			input: &lnrpc.CloseStatusUpdate{
 				Update: &lnrpc.CloseStatusUpdate_ChanClose{
 					ChanClose: &lnrpc.ChannelCloseUpdate{
@@ -55,18 +58,17 @@ func Test_processResponse(t *testing.T) {
 					},
 				},
 			},
-			want: commons.CloseChannelResponse{
-				RequestId:                "Test",
+			want: CloseChannelResponse{
 				Status:                   commons.CooperativeClosed,
 				ClosePendingChannelPoint: commons.ChannelPoint{},
-				CloseChannelStatus:       commons.CloseChannelStatus{ClosingTxId: []byte("test"), Success: false},
+				ClosingOutputIndex:       0,
 			},
 		},
 	}
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := processCloseResponse(test.input, test.req, test.requestId)
+			got, err := processCloseResponse(test.input, test.req)
 			if err != nil {
 				t.Errorf("processCloseResponse error: %v", err)
 			}
@@ -153,13 +155,13 @@ func Test_prepareCloseRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   commons.CloseChannelRequest
+		input   CloseChannelRequest
 		want    *lnrpc.CloseChannelRequest
 		wantErr bool
 	}{
 		{
 			"Node ID not provided",
-			commons.CloseChannelRequest{
+			CloseChannelRequest{
 				ChannelId: channel.ChannelID,
 			},
 			&lnrpc.CloseChannelRequest{
@@ -169,7 +171,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Both targetConf & satPerVbyte provided",
-			commons.CloseChannelRequest{
+			CloseChannelRequest{
 				NodeId:          commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           nil,
@@ -188,7 +190,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Just mandatory params",
-			commons.CloseChannelRequest{
+			CloseChannelRequest{
 				NodeId:    commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
 				ChannelId: channel.ChannelID,
 			},
@@ -199,7 +201,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"All params provide",
-			commons.CloseChannelRequest{
+			CloseChannelRequest{
 				NodeId:          commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           &force,

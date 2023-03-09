@@ -3,6 +3,7 @@ package channels
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -528,4 +529,74 @@ func getChannelAndNodeListHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	c.JSON(http.StatusOK, nodesChannels)
+}
+
+// openChannelHandler opens a channel to a peer
+func openChannelHandler(c *gin.Context, db *sqlx.DB) {
+	var openChannelRequest OpenChannelRequest
+	err := c.BindJSON(&openChannelRequest)
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't parse request")
+		return
+	}
+
+	response, err := OpenChannel(db, openChannelRequest)
+	if err != nil {
+		// Check if the error was because the node could not connect to the peer
+		if strings.Contains(err.Error(), "Could not connect to peer.") {
+			serr := server_errors.ServerError{}
+			// TODO: Replace with error codes
+			serr.AddServerError("Could not connect to peer node.")
+			server_errors.SendBadRequestFieldError(c, &serr)
+			return
+		}
+		// Connecting to LND failed
+		if strings.Contains(err.Error(), "Connecting to LND") {
+			serr := server_errors.ServerError{}
+			// TODO: Replace with error codes
+			serr.AddServerError("Torq could not connect to your node")
+			server_errors.SendBadRequestFieldError(c, &serr)
+			return
+		}
+		// Cannot set both SatPerVbyte and TargetConf
+		if strings.Contains(err.Error(), "Cannot set both SatPerVbyte and TargetConf") {
+			serr := server_errors.ServerError{}
+			// TODO: Replace with error codes
+			serr.AddServerError("Cannot set both Sats Per vbyte and Target Confirmations")
+			server_errors.SendBadRequestFieldError(c, &serr)
+			return
+		}
+		// error decoding public key hex
+		if strings.Contains(err.Error(), "error decoding public key hex") {
+			serr := server_errors.ServerError{}
+			serr.AddServerError("Invalid public key")
+			server_errors.SendBadRequestFieldError(c, &serr)
+		}
+		server_errors.WrapLogAndSendServerError(c, err, "Open channel")
+		return
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+// CloseChannel
+func closeChannelHandler(c *gin.Context, db *sqlx.DB) {
+	var closeChannelRequest CloseChannelRequest
+	err := c.BindJSON(&closeChannelRequest)
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't parse request")
+		return
+	}
+
+	response, err := CloseChannel(db, closeChannelRequest)
+	if err != nil {
+		// Check if the error was because the node could not connect to the peer
+		if strings.Contains(err.Error(), "Could not connect to peer.") {
+			serr := server_errors.ServerError{}
+			serr.AddServerError("Could not connect to peer node.")
+			server_errors.SendBadRequestFieldError(c, &serr)
+		}
+		server_errors.WrapLogAndSendServerError(c, err, "Close channel")
+		return
+	}
+	c.JSON(http.StatusOK, response)
 }
