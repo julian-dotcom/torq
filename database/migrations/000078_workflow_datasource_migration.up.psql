@@ -1,0 +1,65 @@
+
+CREATE TABLE staging_workflow_version_data(
+    workflow_version_id INTEGER,
+    workflow_version_node_id INTEGER
+);
+CREATE TABLE staging_workflow_version_link_data(
+    workflow_version_node_link_id INTEGER,
+    workflow_version_id INTEGER,
+    link_name TEXT,
+    parent_output TEXT,
+    parent_workflow_version_node_id INTEGER,
+    child_input TEXT,
+    child_workflow_version_node_id INTEGER
+);
+
+INSERT INTO workflow_version_node(stage, name, status, type, parameters,
+                                  visibility_settings,
+                                  workflow_version_id, created_on, updated_on)
+SELECT 1, 'Torq Channel(s)', 1, 19, '{"source": "eventXorAll"}',
+       '{"collapsed": false, "xPosition": 10, "yPosition": -300}',
+       workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version;
+
+
+INSERT INTO staging_workflow_version_data
+SELECT wfv.workflow_version_id, wfvn.workflow_version_node_id
+FROM workflow_version wfv
+JOIN workflow_version_node wfvn on wfv.workflow_version_id = wfvn.workflow_version_id
+WHERE wfvn.type=19;
+
+INSERT INTO staging_workflow_version_link_data(workflow_version_node_link_id,
+                                               workflow_version_id, link_name,
+                                               parent_output, parent_workflow_version_node_id,
+                                               child_input, child_workflow_version_node_id)
+SELECT wfvnl.workflow_version_node_link_id,
+       wfvnl.workflow_version_id, wfvnl.name,
+       wfvnl.parent_output, wfvnl.parent_workflow_version_node_id,
+       wfvnl.child_input, wfvnl.child_workflow_version_node_id
+FROM workflow_version_node triggerWfvn
+         JOIN workflow_version_node_link wfvnl on triggerWfvn.workflow_version_node_id = wfvnl.parent_workflow_version_node_id
+WHERE triggerWfvn.type=10;
+
+DELETE FROM workflow_version_node_link
+WHERE workflow_version_node_link_id = ANY(
+    SELECT workflow_version_node_link_id FROM staging_workflow_version_link_data
+);
+
+INSERT INTO workflow_version_node_link(name, visibility_settings,
+                                       parent_output, parent_workflow_version_node_id,
+                                       child_input, child_workflow_version_node_id,
+                                       workflow_version_id,
+                                       created_on, updated_on)
+SELECT link_name, '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       parent_output, d.workflow_version_node_id,
+       child_input, child_workflow_version_node_id,
+       ld.workflow_version_id,
+       CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM staging_workflow_version_link_data ld
+JOIN staging_workflow_version_data d ON d.workflow_version_id=ld.workflow_version_id;
+
+UPDATE workflow SET status=0 WHERE status=1;
+
+
+DROP TABLE staging_workflow_version_data;
+DROP TABLE staging_workflow_version_link_data;
