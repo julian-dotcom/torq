@@ -82,7 +82,8 @@ func GetWorkflows(db *sqlx.DB) ([]WorkflowTableRow, error) {
 			select * from (select *,
 				ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
 				from workflow_version where status = 1 order by rank) as wv where rank = 1) as awv on w.workflow_id = awv.workflow_id
-		where w.status != $1;`, commons.Archived)
+		WHERE w.status != $1
+		ORDER BY w.name;`, commons.Archived)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowTableRow{}, nil
@@ -417,7 +418,8 @@ func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType commons.WorkflowNodeType) 
 				WHERE v_wfv.status=$1
 			) ranked
 			WHERE ranked.version_rank = 1
-		);`, commons.Active, nodeType)
+		)
+		ORDER BY wf.name;`, commons.Active, nodeType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowNode{}, nil
