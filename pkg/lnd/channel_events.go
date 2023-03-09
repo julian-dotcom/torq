@@ -24,14 +24,17 @@ const streamErrorSleepSeconds = 60
 
 type ImportRequest struct {
 	ImportType ImportType
+	Force      bool
 	Out        chan<- error
 }
 
 type ImportType int
 
 const (
-	ImportChannelAndRoutingPolicies = ImportType(iota)
+	ImportChannelRoutingPolicies = ImportType(iota)
 	ImportNodeInformation
+	ImportAllChannels
+	ImportPendingChannelsOnly
 )
 
 func chanPointFromByte(cb []byte, oi uint32) (string, error) {
@@ -47,7 +50,7 @@ func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 // Then it's stored in the database in the channel_event table.
 func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscribeChannelEvent,
 	ce *lnrpc.ChannelEventUpdate, nodeSettings commons.ManagedNodeSettings,
-	channelEventChannel chan<- commons.ChannelEvent) error {
+	importRequestChannel chan<- ImportRequest, channelEventChannel chan<- commons.ChannelEvent) error {
 
 	timestampMs := time.Now().UTC()
 
@@ -180,6 +183,20 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			channelEvent, channelEventChannel)
 		if err != nil {
 			return errors.Wrap(err, "Insert Inactive Channel Event")
+		}
+		// HACK to know if the context is a testcase.
+		if importRequestChannel != nil {
+			// We receive this event in case of a closure. So let's ask LND for a fresh copy of the pending channels.
+			responseChannel := make(chan error)
+			importRequestChannel <- ImportRequest{
+				ImportType: ImportPendingChannelsOnly,
+				Force:      true,
+				Out:        responseChannel,
+			}
+			err = <-responseChannel
+			if err != nil {
+				log.Error().Err(err).Msgf("Obtaining Pending Channels from LND failed")
+			}
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL:
@@ -384,7 +401,19 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			if importRequestChannel != nil {
 				responseChannel := make(chan error)
 				importRequestChannel <- ImportRequest{
-					ImportType: ImportChannelAndRoutingPolicies,
+					ImportType: ImportAllChannels,
+					Out:        responseChannel,
+				}
+				err = <-responseChannel
+				if err != nil {
+					log.Error().Err(err).Msgf("Obtaining Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
+					stream = nil
+					time.Sleep(streamErrorSleepSeconds * time.Second)
+					continue
+				}
+				responseChannel = make(chan error)
+				importRequestChannel <- ImportRequest{
+					ImportType: ImportChannelRoutingPolicies,
 					Out:        responseChannel,
 				}
 				err = <-responseChannel
@@ -410,7 +439,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			continue
 		}
 
-		err = storeChannelEvent(ctx, db, client, chanEvent, nodeSettings, channelEventChannel)
+		err = storeChannelEvent(ctx, db, client, chanEvent, nodeSettings, importRequestChannel, channelEventChannel)
 		if err != nil {
 			// TODO FIXME STORE THIS SOMEWHERE??? CHANNELEVENT IS NOW IGNORED???
 			log.Error().Err(err).Msg("Storing channel event failed")

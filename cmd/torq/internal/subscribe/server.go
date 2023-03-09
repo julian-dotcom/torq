@@ -58,17 +58,34 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				return
 			case importRequest := <-importRequestChannel:
 				successTime, exists := successTimes[importRequest.ImportType]
-				if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
-					if importRequest.ImportType == lnd.ImportChannelAndRoutingPolicies {
-						log.Info().Msgf("ImportChannelAndRoutingPolicies were imported very recently for nodeId: %v.", nodeSettings.NodeId)
-					}
-					if importRequest.ImportType == lnd.ImportNodeInformation {
-						log.Info().Msgf("ImportNodeInformation were imported very recently for nodeId: %v.", nodeSettings.NodeId)
+				if !importRequest.Force && exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
+					switch importRequest.ImportType {
+					case lnd.ImportAllChannels:
+						log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", nodeSettings.NodeId)
+					case lnd.ImportPendingChannelsOnly:
+						log.Info().Msgf("Pending Channels were imported very recently for nodeId: %v.", nodeSettings.NodeId)
+					case lnd.ImportChannelRoutingPolicies:
+						log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", nodeSettings.NodeId)
+					case lnd.ImportNodeInformation:
+						log.Info().Msgf("NodeInformation were imported very recently for nodeId: %v.", nodeSettings.NodeId)
 					}
 					importRequest.Out <- nil
 					continue
 				}
-				if importRequest.ImportType == lnd.ImportChannelAndRoutingPolicies {
+				if importRequest.Force {
+					switch importRequest.ImportType {
+					case lnd.ImportAllChannels:
+						log.Info().Msgf("All Channels import was enforced for nodeId: %v.", nodeSettings.NodeId)
+					case lnd.ImportPendingChannelsOnly:
+						log.Info().Msgf("Pending Channels import was enforced for nodeId: %v.", nodeSettings.NodeId)
+					case lnd.ImportChannelRoutingPolicies:
+						log.Info().Msgf("ChannelRoutingPolicies import was enforced for nodeId: %v.", nodeSettings.NodeId)
+					case lnd.ImportNodeInformation:
+						log.Info().Msgf("NodeInformation import was enforced for nodeId: %v.", nodeSettings.NodeId)
+					}
+				}
+				switch importRequest.ImportType {
+				case lnd.ImportAllChannels:
 					var err error
 					//Import Pending channels
 					err = lnd.ImportPendingChannels(db, vectorUrl, client, nodeSettings, lightningRequestChannel)
@@ -108,23 +125,38 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 						importRequest.Out <- err
 						continue
 					}
+					log.Info().Msgf("All Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
+				case lnd.ImportPendingChannelsOnly:
+					err := lnd.ImportPendingChannels(db, vectorUrl, client, nodeSettings, lightningRequestChannel)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to import pending channels.")
+						importRequest.Out <- err
+						continue
+					}
 
-					err = lnd.ImportRoutingPolicies(client, db, nodeSettings)
+					err = channels.InitializeManagedChannelCache(db)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed to Initialize ManagedChannelCache.")
+						importRequest.Out <- err
+						continue
+					}
+					log.Info().Msgf("Pending Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
+				case lnd.ImportChannelRoutingPolicies:
+					err := lnd.ImportRoutingPolicies(client, db, nodeSettings)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to import routing policies.")
 						importRequest.Out <- err
 						continue
 					}
-					log.Info().Msgf("ImportChannelAndRoutingPolicies was imported successfully for nodeId: %v.", nodeSettings.NodeId)
-				}
-				if importRequest.ImportType == lnd.ImportNodeInformation {
+					log.Info().Msgf("ChannelRoutingPolicies were imported successfully for nodeId: %v.", nodeSettings.NodeId)
+				case lnd.ImportNodeInformation:
 					err := lnd.ImportNodeInfo(client, db, nodeSettings)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed to import node information.")
 						importRequest.Out <- err
 						continue
 					}
-					log.Info().Msgf("ImportNodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
+					log.Info().Msgf("NodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
 				}
 				successTimes[importRequest.ImportType] = time.Now()
 				importRequest.Out <- nil
@@ -134,14 +166,25 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 
 	responseChannel := make(chan error)
 	importRequestChannel <- lnd.ImportRequest{
-		ImportType: lnd.ImportChannelAndRoutingPolicies,
+		ImportType: lnd.ImportAllChannels,
 		Out:        responseChannel,
 	}
 	err := <-responseChannel
 	if err != nil {
-		return errors.Wrapf(err, "LND import Channel And Routing Policies for nodeId: %v", nodeSettings.NodeId)
+		return errors.Wrapf(err, "LND import Channels for nodeId: %v", nodeSettings.NodeId)
 	}
 
+	responseChannel = make(chan error)
+	importRequestChannel <- lnd.ImportRequest{
+		ImportType: lnd.ImportChannelRoutingPolicies,
+		Out:        responseChannel,
+	}
+	err = <-responseChannel
+	if err != nil {
+		return errors.Wrapf(err, "LND import Channel routing policies for nodeId: %v", nodeSettings.NodeId)
+	}
+
+	responseChannel = make(chan error)
 	importRequestChannel <- lnd.ImportRequest{
 		ImportType: lnd.ImportNodeInformation,
 		Out:        responseChannel,

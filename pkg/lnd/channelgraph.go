@@ -67,7 +67,20 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			if importRequestChannel != nil {
 				responseChannel := make(chan error)
 				importRequestChannel <- ImportRequest{
-					ImportType: ImportChannelAndRoutingPolicies,
+					ImportType: ImportAllChannels,
+					Out:        responseChannel,
+				}
+				err = <-responseChannel
+				if err != nil {
+					log.Error().Err(err).Msgf("Obtaining All Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
+					stream = nil
+					time.Sleep(streamErrorSleepSeconds * time.Second)
+					continue
+				}
+
+				responseChannel = make(chan error)
+				importRequestChannel <- ImportRequest{
+					ImportType: ImportChannelRoutingPolicies,
 					Out:        responseChannel,
 				}
 				err = <-responseChannel
