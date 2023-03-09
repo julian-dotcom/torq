@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -121,7 +122,8 @@ func workFlowTriggerHandler(c *gin.Context, db *sqlx.DB) {
 		WorkflowVersionNodeId: workflow.WorkflowVersionNodeId,
 	}
 	reference := fmt.Sprintf("%v_%v", workflow.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-	commons.ScheduleTrigger(reference, workflow.WorkflowVersionId, commons.WorkflowNodeManualTrigger, workflow.WorkflowVersionNodeId, manualTriggerEvent)
+	commons.ScheduleTrigger(reference, workflow.WorkflowVersionId, commons.WorkflowNodeManualTrigger,
+		workflow.WorkflowVersionNodeId, manualTriggerEvent)
 
 	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully triggered Workflow."})
 }
@@ -131,6 +133,45 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
+	}
+
+	if req.Status != nil && *req.Status == Active {
+		workflowNodes, err := getWorkflowVersionNodesByWorkflow(db, req.WorkflowId)
+		if err != nil {
+			server_errors.WrapLogAndSendServerError(c, err,
+				fmt.Sprintf("Validating workflow for workflowId: %v", req.WorkflowId))
+			return
+		}
+		var rebalancerFocus RebalancerFocus
+		for _, workflowNode := range workflowNodes {
+			switch workflowNode.Type {
+			case commons.WorkflowNodeRebalanceConfigurator, commons.WorkflowNodeRebalanceAutoRun:
+				var rebalanceConfiguration RebalanceConfiguration
+				err := json.Unmarshal([]byte(workflowNode.Parameters), &rebalanceConfiguration)
+				if err != nil {
+					server_errors.WrapLogAndSendServerError(c, err,
+						fmt.Sprintf("Validating workflow for workflowId: %v", req.WorkflowId))
+					return
+				}
+				if rebalancerFocus == "" {
+					rebalancerFocus = rebalanceConfiguration.Focus
+				} else if rebalancerFocus != rebalanceConfiguration.Focus {
+					se := server_errors.SingleServerError(
+						fmt.Sprintf("Rebalance configuration focus mismatch for %v", workflowNode.Name))
+					server_errors.SendBadRequestFieldError(c, se)
+					return
+				}
+			}
+		}
+	}
+	if req.Status != nil && *req.Status != Active {
+		wfvnIds, err := getWorkflowVersionNodeIdsByWorkflow(db, req.WorkflowId)
+		if err != nil {
+			log.Error().Err(err).Msgf(
+				"Could not get the workflow version nodes to cancel the rebalances associated with it for workflowId: %v",
+				req.WorkflowId)
+		}
+		cancelRebalancersByOriginIds(commons.RebalanceRequestWorkflowNode, wfvnIds)
 	}
 	storedWorkflow, err := updateWorkflow(db, req)
 	if err != nil {

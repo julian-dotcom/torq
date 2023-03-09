@@ -1146,12 +1146,12 @@ func processRebalanceRun(
 		responses = append(responses, <-responseChannel...)
 	}
 	if len(eventChannelIds) == 0 {
-		CancelRebalancersExcept(commons.RebalanceRequestWorkflowNode, workflowNode.WorkflowVersionNodeId,
+		cancelRebalancersExcept(commons.RebalanceRequestWorkflowNode, workflowNode.WorkflowVersionNodeId,
 			activeChannelIds)
 	} else {
 		for _, eventChannelId := range eventChannelIds {
 			if !slices.Contains(activeChannelIds, eventChannelId) {
-				CancelRebalancer(commons.RebalanceRequestWorkflowNode, workflowNode.WorkflowVersionNodeId,
+				cancelRebalancer(commons.RebalanceRequestWorkflowNode, workflowNode.WorkflowVersionNodeId,
 					eventChannelId)
 			}
 		}

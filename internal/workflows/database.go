@@ -485,6 +485,38 @@ func GetWorkflowVersionNodesByStage(db *sqlx.DB, workflowVersionId int, stage in
 	return results, nil
 }
 
+func getWorkflowVersionNodesByWorkflow(db *sqlx.DB, workflowId int) ([]WorkflowNode, error) {
+	wfvnIds, err := getWorkflowVersionNodeIdsByWorkflow(db, workflowId)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Could not get workflowVersionNodeIds for workflowId: %v", workflowId)
+	}
+	var results []WorkflowNode
+	for _, wfvnId := range wfvnIds {
+		wfvn, err := GetWorkflowNode(db, wfvnId)
+		if err != nil {
+			return nil, errors.Wrap(err, database.SqlExecutionError)
+		}
+		results = append(results, wfvn)
+	}
+	return results, nil
+}
+
+func getWorkflowVersionNodeIdsByWorkflow(db *sqlx.DB, workflowId int) ([]int, error) {
+	var wfvnIds []int
+	err := db.Select(&wfvnIds, `
+		SELECT wfvn.workflow_version_node_id
+		FROM workflow_version_node wfvn
+		JOIN workflow_version wfv ON wfv.workflow_version_id=wfvn.workflow_version_id
+		WHERE wfv.workflow_id=$1;`, workflowId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return wfvnIds, nil
+}
+
 // GetWorkflowNode is not recursive and only returns direct parent/child relations without further nesting.
 func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, error) {
 	var wfvn WorkflowVersionNode
