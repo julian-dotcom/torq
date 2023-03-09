@@ -20,14 +20,13 @@ import (
 )
 
 type wsRequest struct {
-	RequestId           string                       `json:"requestId"`
-	Type                string                       `json:"type"`
-	NewPaymentRequest   *commons.NewPaymentRequest   `json:"newPaymentRequest"`
-	PayOnChainRequest   *commons.PayOnChainRequest   `json:"payOnChainRequest"`
-	OpenChannelRequest  *commons.OpenChannelRequest  `json:"openChannelRequest"`
-	CloseChannelRequest *commons.CloseChannelRequest `json:"closeChannelRequest"`
-	Password            *string                      `json:"password"`
-	NewAddressRequest   *commons.NewAddressRequest   `json:"newAddressRequest"`
+	RequestId           string                        `json:"requestId"`
+	Type                string                        `json:"type"`
+	NewPaymentRequest   *commons.NewPaymentRequest    `json:"newPaymentRequest"`
+	PayOnChainRequest   *commons.PayOnChainRequest    `json:"payOnChainRequest"`
+	CloseChannelRequest *channels.CloseChannelRequest `json:"closeChannelRequest"`
+	Password            *string                       `json:"password"`
+	NewAddressRequest   *commons.NewAddressRequest    `json:"newAddressRequest"`
 }
 
 type Pong struct {
@@ -68,18 +67,6 @@ func processWsReq(db *sqlx.DB, eventChannel, webSocketChannel chan<- interface{}
 			break
 		}
 		sendError(on_chain_tx.NewAddress(eventChannel, db, *req.NewAddressRequest, req.RequestId), req, webSocketChannel)
-	case "closeChannel":
-		if req.CloseChannelRequest == nil {
-			sendError(fmt.Errorf("unknown CloseChannelRequest for type: %s", req.Type), req, webSocketChannel)
-			break
-		}
-		sendError(channels.CloseChannel(eventChannel, db, *req.CloseChannelRequest, req.RequestId), req, webSocketChannel)
-	case "openChannel":
-		if req.OpenChannelRequest == nil {
-			sendError(fmt.Errorf("unknown OpenChannelRequest for type: %s", req.Type), req, webSocketChannel)
-			break
-		}
-		sendError(channels.OpenChannel(eventChannel, db, *req.OpenChannelRequest, req.RequestId), req, webSocketChannel)
 	default:
 		sendError(fmt.Errorf("unknown request type: %s", req.Type), req, webSocketChannel)
 	}
@@ -168,11 +155,7 @@ func processBroadcasterEvents(done <-chan struct{}, broadcaster broadcast.Broadc
 	}()
 	go func() {
 		for event := range listener {
-			if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
-				webSocketChannel <- openChannelEvent
-			} else if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
-				webSocketChannel <- closeChannelEvent
-			} else if newAddressEvent, ok := event.(commons.NewAddressResponse); ok {
+			if newAddressEvent, ok := event.(commons.NewAddressResponse); ok {
 				webSocketChannel <- newAddressEvent
 			} else if newPaymentEvent, ok := event.(commons.NewPaymentResponse); ok {
 				webSocketChannel <- newPaymentEvent

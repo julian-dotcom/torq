@@ -183,49 +183,6 @@ type ChannelPoint struct {
 	OutputIndex uint32 `json:"outputIndex"`
 }
 
-// OPEN CHANNEL
-type OpenChannelRequest struct {
-	NodeId             int     `json:"nodeId"`
-	SatPerVbyte        *uint64 `json:"satPerVbyte"`
-	NodePubKey         string  `json:"nodePubKey"`
-	Host               *string `json:"host"`
-	LocalFundingAmount int64   `json:"localFundingAmount"`
-	PushSat            *int64  `json:"pushSat"`
-	TargetConf         *int32  `json:"targetConf"`
-	Private            *bool   `json:"private"`
-	MinHtlcMsat        *uint64 `json:"minHtlcMsat"`
-	RemoteCsvDelay     *uint32 `json:"remoteCsvDelay"`
-	MinConfs           *int32  `json:"minConfs"`
-	SpendUnconfirmed   *bool   `json:"spendUnconfirmed"`
-	CloseAddress       *string `json:"closeAddress"`
-}
-
-type OpenChannelResponse struct {
-	RequestId           string             `json:"requestId"`
-	Request             OpenChannelRequest `json:"request"`
-	Status              ChannelStatus      `json:"status"`
-	ChannelPoint        string             `json:"channelPoint,omitempty"`
-	PendingChannelPoint string             `json:"pendingChannelPoint,omitempty"`
-}
-
-// CLOSE CHANNEL
-type CloseChannelRequest struct {
-	NodeId          int     `json:"nodeId"`
-	ChannelId       int     `json:"channelId"`
-	Force           *bool   `json:"force"`
-	TargetConf      *int32  `json:"targetConf"`
-	DeliveryAddress *string `json:"deliveryAddress"`
-	SatPerVbyte     *uint64 `json:"satPerVbyte"`
-}
-
-type CloseChannelResponse struct {
-	RequestId                string              `json:"requestId"`
-	Request                  CloseChannelRequest `json:"request"`
-	Status                   ChannelStatus       `json:"status"`
-	ClosePendingChannelPoint ChannelPoint        `json:"closePendingChannelPoint"`
-	CloseChannelStatus       CloseChannelStatus  `json:"closeChannelStatus"`
-}
-
 type CloseChannelStatus struct {
 	ClosingTxId []byte `json:"closingTxId"`
 	Success     bool   `json:"success"`
