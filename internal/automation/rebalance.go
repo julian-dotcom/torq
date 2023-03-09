@@ -770,6 +770,15 @@ outer:
 		if channelState.LocalDisabled {
 			continue outer
 		}
+
+		if rebalancer.Request.IncomingChannelId != 0 {
+			log.Debug().Msgf("New outgoingChannelId (%v) was chosen for incomingChannelId (%v) and originId: %v",
+				channelId, rebalancer.Request.IncomingChannelId, rebalancer.Request.OriginId)
+		}
+		if rebalancer.Request.OutgoingChannelId != 0 {
+			log.Debug().Msgf("New incomingChannelId (%v) was chosen for outgoingChannelId (%v) and originId: %v",
+				channelId, rebalancer.Request.OutgoingChannelId, rebalancer.Request.OriginId)
+		}
 		return channelId
 	}
 	return 0
