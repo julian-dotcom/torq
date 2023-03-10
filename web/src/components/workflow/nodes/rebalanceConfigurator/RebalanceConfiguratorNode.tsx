@@ -150,20 +150,20 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
     })
   );
 
-  const avoidChannelsIds =
-    childLinks
-      ?.filter((n) => {
-        return n.childInput === "avoidChannels";
-      })
-      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
-
-  const avoidChannels = useSelector(
-    SelectWorkflowNodes({
-      version: wrapperProps.version,
-      workflowId: wrapperProps.workflowId,
-      nodeIds: avoidChannelsIds,
-    })
-  );
+  // const avoidChannelsIds =
+  //   childLinks
+  //     ?.filter((n) => {
+  //       return n.childInput === "avoidChannels";
+  //     })
+  //     ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+  //
+  // const avoidChannels = useSelector(
+  //   SelectWorkflowNodes({
+  //     version: wrapperProps.version,
+  //     workflowId: wrapperProps.workflowId,
+  //     nodeIds: avoidChannelsIds,
+  //   })
+  // );
 
   return (
     <WorkflowNodeWrapper
@@ -192,15 +192,15 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           outputName={configuration.focus === "outgoingChannels" ? "outgoingChannels" : undefined}
           editingDisabled={editingDisabled}
         />
-        <Socket
-          collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.Avoid}
-          selectedNodes={avoidChannels || []}
-          workflowVersionId={wrapperProps.workflowVersionId}
-          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputName={"avoidChannels"}
-          editingDisabled={editingDisabled}
-        />
+        {/*<Socket*/}
+        {/*  collapsed={wrapperProps.visibilitySettings.collapsed}*/}
+        {/*  label={t.Avoid}*/}
+        {/*  selectedNodes={avoidChannels || []}*/}
+        {/*  workflowVersionId={wrapperProps.workflowVersionId}*/}
+        {/*  workflowVersionNodeId={wrapperProps.workflowVersionNodeId}*/}
+        {/*  inputName={"avoidChannels"}*/}
+        {/*  editingDisabled={editingDisabled}*/}
+        {/*/>*/}
         <RadioChips
           label={t.focus}
           sizeVariant={InputSizeVariant.small}
