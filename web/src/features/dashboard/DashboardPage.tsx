@@ -33,7 +33,6 @@ interface nodeSummary {
   totalBalance: number;
   channels: number;
   capacity: number;
-  peers: number;
 }
 
 interface allNodesSummary {
@@ -87,17 +86,15 @@ function DashboardPage() {
         localBalance: 0,
         totalBalance: 0,
         capacity: 0,
-        peers: 0,
       } as nodeSummary;
 
     const onChainBalance = 0;
     const nodeSummary = acc[channel.nodeId];
     nodeSummary.channels += 1;
     nodeSummary.capacity += channel.capacity;
-    nodeSummary.peers += channel.peerChannelCount;
     nodeSummary.onChainBalance += onChainBalance; // will require interegation?
     nodeSummary.localBalance += channel.localBalance;
-    nodeSummary.localBalance += channel.localBalance + onChainBalance;
+    nodeSummary.totalBalance += channel.localBalance + onChainBalance;
     return acc;
   }, {});
 
@@ -232,12 +229,6 @@ function DashboardPage() {
                     heading={t.dashboardPage.capacity}
                     value={nodeSummary.capacity}
                     valueLabel={t.dashboardPage.btc}
-                    summaryClassOverride={styles.nodeSummaryCard}
-                  ></SummaryCard>
-                  <SummaryCard
-                    heading={t.dashboardPage.peers}
-                    value={nodeSummary.peers}
-                    valueLabel={""}
                     summaryClassOverride={styles.nodeSummaryCard}
                   ></SummaryCard>
                 </div>
