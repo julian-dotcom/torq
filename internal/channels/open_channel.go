@@ -89,11 +89,6 @@ func OpenChannel(db *sqlx.DB, req OpenChannelRequest) (response OpenChannelRespo
 		return OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
 	}
 
-	// TODO: Figure out how / If we need to send a response to the event channel
-	//if eventChannel != nil {
-	//	eventChannel <- r
-	//}
-
 	return OpenChannelResponse{
 		Request:                req,
 		Status:                 commons.Opening,
