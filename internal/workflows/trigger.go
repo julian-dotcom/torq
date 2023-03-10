@@ -717,6 +717,7 @@ linkedInputLoop:
 
 				outputsByReferenceId[channelId][commons.WorkflowParameterLabelRebalanceSettings] = string(marshalledRebalanceConfiguration)
 				updateReferencIds[channelId] = true
+				rebalanceConfigurations = append(rebalanceConfigurations, rebalanceConfiguration)
 			}
 		}
 
