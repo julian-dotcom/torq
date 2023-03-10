@@ -58,7 +58,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				return
 			case importRequest := <-importRequestChannel:
 				successTime, exists := successTimes[importRequest.ImportType]
-				if !importRequest.Force && exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
+				if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
 					switch importRequest.ImportType {
 					case lnd.ImportAllChannels:
 						log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", nodeSettings.NodeId)
@@ -71,18 +71,6 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 					}
 					importRequest.Out <- nil
 					continue
-				}
-				if importRequest.Force {
-					switch importRequest.ImportType {
-					case lnd.ImportAllChannels:
-						log.Info().Msgf("All Channels import was enforced for nodeId: %v.", nodeSettings.NodeId)
-					case lnd.ImportPendingChannelsOnly:
-						log.Info().Msgf("Pending Channels import was enforced for nodeId: %v.", nodeSettings.NodeId)
-					case lnd.ImportChannelRoutingPolicies:
-						log.Info().Msgf("ChannelRoutingPolicies import was enforced for nodeId: %v.", nodeSettings.NodeId)
-					case lnd.ImportNodeInformation:
-						log.Info().Msgf("NodeInformation import was enforced for nodeId: %v.", nodeSettings.NodeId)
-					}
 				}
 				switch importRequest.ImportType {
 				case lnd.ImportAllChannels:

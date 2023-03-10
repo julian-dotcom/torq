@@ -24,7 +24,6 @@ const streamErrorSleepSeconds = 60
 
 type ImportRequest struct {
 	ImportType ImportType
-	Force      bool
 	Out        chan<- error
 }
 
@@ -190,7 +189,6 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 			responseChannel := make(chan error)
 			importRequestChannel <- ImportRequest{
 				ImportType: ImportPendingChannelsOnly,
-				Force:      true,
 				Out:        responseChannel,
 			}
 			err = <-responseChannel
