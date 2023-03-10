@@ -43,36 +43,39 @@ type wsError struct {
 	Error     string `json:"error"`
 }
 
-func processWsReq(db *sqlx.DB, eventChannel, webSocketChannel chan<- interface{}, req wsRequest) {
+func processWsReq(db *sqlx.DB,
+	webSocketResponseChannel chan<- interface{},
+	req wsRequest) {
+
 	if req.Type == "ping" {
-		webSocketChannel <- Pong{Message: "pong"}
+		webSocketResponseChannel <- Pong{Message: "pong"}
 		return
 	}
 
 	if req.RequestId == "" {
-		sendError(fmt.Errorf("unknown requestId for type: %s", req.Type), req, webSocketChannel)
+		sendError(fmt.Errorf("unknown requestId for type: %s", req.Type), req, webSocketResponseChannel)
 		return
 	}
 
 	switch req.Type {
 	case "newPayment":
 		if req.NewPaymentRequest == nil {
-			sendError(fmt.Errorf("unknown NewPaymentRequest for type: %s", req.Type), req, webSocketChannel)
+			sendError(fmt.Errorf("unknown NewPaymentRequest for type: %s", req.Type), req, webSocketResponseChannel)
 			break
 		}
-		sendError(payments.SendNewPayment(eventChannel, db, *req.NewPaymentRequest, req.RequestId), req, webSocketChannel)
+		sendError(payments.SendNewPayment(webSocketResponseChannel, db, *req.NewPaymentRequest, req.RequestId), req, webSocketResponseChannel)
 	case "newAddress":
 		if req.NewAddressRequest == nil {
-			sendError(fmt.Errorf("unknown NewAddressRequest for type: %s", req.Type), req, webSocketChannel)
+			sendError(fmt.Errorf("unknown NewAddressRequest for type: %s", req.Type), req, webSocketResponseChannel)
 			break
 		}
-		sendError(on_chain_tx.NewAddress(eventChannel, db, *req.NewAddressRequest, req.RequestId), req, webSocketChannel)
+		sendError(on_chain_tx.NewAddress(webSocketResponseChannel, db, *req.NewAddressRequest, req.RequestId), req, webSocketResponseChannel)
 	default:
-		sendError(fmt.Errorf("unknown request type: %s", req.Type), req, webSocketChannel)
+		sendError(fmt.Errorf("unknown request type: %s", req.Type), req, webSocketResponseChannel)
 	}
 }
 
-func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan<- interface{}, broadcaster broadcast.BroadcastServer) error {
+func WebsocketHandler(c *gin.Context, db *sqlx.DB, broadcaster broadcast.BroadcastServer) error {
 	var wsUpgrade = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -92,6 +95,8 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan<- interface
 			return equalASCIIFold(u.Host, r.Host)
 		},
 	}
+	webSocketResponseChannel := make(chan interface{})
+	done := make(chan struct{})
 
 	conn, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -99,16 +104,13 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan<- interface
 	}
 	defer conn.Close()
 
-	webSocketChannel := make(chan interface{})
-	done := make(chan struct{})
-	go processWebsocketRequests(conn, done, db, eventChannel, webSocketChannel)
-	go processBroadcasterEvents(done, broadcaster, webSocketChannel)
+	go processWebsocketRequests(conn, db, done, webSocketResponseChannel)
 
 	for {
 		select {
 		case <-done:
 			return errors.New("WebSocket Terminated.")
-		case data := <-webSocketChannel:
+		case data := <-webSocketResponseChannel:
 			err := conn.WriteJSON(data)
 			if err != nil {
 				log.Error().Err(err).Msg("Writing JSON to WebSocket failure.")
@@ -117,9 +119,14 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, eventChannel chan<- interface
 		}
 	}
 }
-func processWebsocketRequests(conn *websocket.Conn, done chan<- struct{}, db *sqlx.DB, eventChannel chan<- interface{},
-	webSocketChannel chan<- interface{}) {
+
+func processWebsocketRequests(conn *websocket.Conn,
+	db *sqlx.DB,
+	done chan<- struct{},
+	webSocketResponseChannel chan<- interface{}) {
+
 	defer close(done)
+	
 	for {
 		req := wsRequest{}
 		err := conn.ReadJSON(&req)
@@ -131,42 +138,21 @@ func processWebsocketRequests(conn *websocket.Conn, done chan<- struct{}, db *sq
 			log.Debug().Err(err).Msg("WebSocket Handshake Error.")
 			return
 		case nil:
-			go processWsReq(db, eventChannel, webSocketChannel, req)
+			go processWsReq(db, webSocketResponseChannel, req)
 		default:
 			wsr := wsError{
 				RequestId: req.RequestId,
 				Type:      "Error",
 				Error:     "Could not parse request, please check that your JSON is correctly formated.",
 			}
-			webSocketChannel <- wsr
+			webSocketResponseChannel <- wsr
 		}
 	}
 }
 
-func processBroadcasterEvents(done <-chan struct{}, broadcaster broadcast.BroadcastServer,
-	webSocketChannel chan<- interface{}) {
-
-	listener := broadcaster.SubscribeWebSocketResponse()
-	go func() {
-		for range done {
-			broadcaster.CancelSubscriptionWebSocketResponse(listener)
-			return
-		}
-	}()
-	go func() {
-		for event := range listener {
-			if newAddressEvent, ok := event.(commons.NewAddressResponse); ok {
-				webSocketChannel <- newAddressEvent
-			} else if newPaymentEvent, ok := event.(commons.NewPaymentResponse); ok {
-				webSocketChannel <- newPaymentEvent
-			}
-		}
-	}()
-}
-
-func sendError(err error, req wsRequest, webSocketChannel chan<- interface{}) {
+func sendError(err error, req wsRequest, webSocketResponseChannel chan<- interface{}) {
 	if err != nil {
-		webSocketChannel <- wsError{
+		webSocketResponseChannel <- wsError{
 			RequestId: req.RequestId,
 			Type:      "Error",
 			Error:     err.Error(),

@@ -85,13 +85,13 @@ type ManagedChannelSettings struct {
 	Flags                  ChannelFlags
 }
 
-func (channelSettings ManagedChannelSettings) AddChannelFlags(flags ChannelFlags) {
+func (channelSettings *ManagedChannelSettings) AddChannelFlags(flags ChannelFlags) {
 	channelSettings.Flags |= flags
 }
-func (channelSettings ManagedChannelSettings) HasChannelFlags(flags ChannelFlags) bool {
+func (channelSettings *ManagedChannelSettings) HasChannelFlags(flags ChannelFlags) bool {
 	return channelSettings.Flags&flags != 0
 }
-func (channelSettings ManagedChannelSettings) RemoveChannelFlags(flags ChannelFlags) {
+func (channelSettings *ManagedChannelSettings) RemoveChannelFlags(flags ChannelFlags) {
 	channelSettings.Flags &= ^flags
 }
 

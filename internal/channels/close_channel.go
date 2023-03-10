@@ -2,11 +2,10 @@ package channels
 
 import (
 	"context"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"io"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
 	"github.com/lncapital/torq/pkg/commons"
 
@@ -17,6 +16,8 @@ import (
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
+
+const closeChannelTimeoutInSeconds = 60
 
 type CloseChannelRequest struct {
 	NodeId          int     `json:"nodeId"`
@@ -57,7 +58,7 @@ func CloseChannel(db *sqlx.DB, req CloseChannelRequest) (response CloseChannelRe
 	return closeChannelResp(db, client, closeChanReq, req)
 }
 
-func prepareCloseRequest(ccReq commons.CloseChannelRequest) (*lnrpc.CloseChannelRequest, error) {
+func prepareCloseRequest(ccReq CloseChannelRequest) (*lnrpc.CloseChannelRequest, error) {
 
 	if ccReq.NodeId == 0 {
 		return &lnrpc.CloseChannelRequest{}, errors.New("Node id is missing")
@@ -98,16 +99,13 @@ func prepareCloseRequest(ccReq commons.CloseChannelRequest) (*lnrpc.CloseChannel
 	return closeChanReq, nil
 }
 
-func closeChannelResp(client lnrpc.LightningClient,
+func closeChannelResp(db *sqlx.DB,
+	client lnrpc.LightningClient,
 	closeChanReq *lnrpc.CloseChannelRequest,
-	eventChannel chan<- interface{},
-	ccReq commons.CloseChannelRequest,
-	requestId string,
-	db *sqlx.DB) (CloseChannelResponse, error) {
+	ccReq CloseChannelRequest) (CloseChannelResponse, error) {
 
-	// Create a context with a timeout of 60 seconds.
-	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	// Create a context with a timeout.
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), closeChannelTimeoutInSeconds*time.Second)
 	defer cancel()
 
 	// Call CloseChannel with the timeout context.
@@ -151,13 +149,11 @@ func closeChannelResp(client lnrpc.LightningClient,
 			}
 			r.ClosingTransactionHash = ch.String()
 
-			err = updateChannelToClosingByChannelId(db, ccReq.ChannelId, ch.String())
+			err = updateChannelToClosingByChannelId(db, ccReq.ChannelId, ch.String(), ccReq.NodeId)
 			if err != nil {
 				return CloseChannelResponse{}, errors.Wrap(err, "Updating channel to closing status in the db")
 			}
 			return r, nil
 		}
-		// Sleep for a short period to avoid spinning too fast.
-		time.Sleep(100 * time.Millisecond)
 	}
 }

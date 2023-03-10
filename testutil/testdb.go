@@ -233,7 +233,6 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	var transactionEventChannelGlobal = make(chan commons.TransactionEvent)
 	var peerEventChannelGlobal = make(chan commons.PeerEvent)
 	var blockEventChannelGlobal = make(chan commons.BlockEvent)
-	var webSocketResponseChannelGlobal = make(chan interface{})
 	var lightningRequestChannelGlobal = make(chan interface{})
 	var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequests)
 
@@ -241,7 +240,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 		serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,
 		channelBalanceEventChannelGlobal, channelEventChannelGlobal, nodeGraphEventChannelGlobal, channelGraphEventChannelGlobal,
 		invoiceEventChannelGlobal, paymentEventChannelGlobal, transactionEventChannelGlobal, peerEventChannelGlobal, blockEventChannelGlobal,
-		webSocketResponseChannelGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal)
+		lightningRequestChannelGlobal, rebalanceRequestChannelGlobal)
 
 	go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctx)
 	go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctx, channelBalanceEventChannelGlobal)
@@ -299,13 +298,13 @@ func AddChannel(db *sqlx.DB, shortChannelId string, lndShortChannelId uint64,
 			  short_channel_id, funding_transaction_hash, funding_output_index,
 			  closing_transaction_hash, closing_node_id,
 			  lnd_short_channel_id, first_node_id, second_node_id, initiating_node_id, accepting_node_id, capacity, private,
-			  status_id, created_on, updated_on, funding_block_height, funded_on
+			  status_id, created_on, updated_on, funding_block_height, funded_on, flags
 			) values (
-			  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+			  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
 			);`,
 		shortChannelId, fundingTransactionHash, fundingOutputIndex, nil, nil,
 		lndShortChannelId, testNodeId1, testNodeId2, nil, nil, 1_000_000,
-		false, commons.Open, time.Now().UTC(), time.Now().UTC(), 10, time.Now().UTC())
+		false, commons.Open, time.Now().UTC(), time.Now().UTC(), 10, time.Now().UTC(), 1)
 	if err != nil {
 		cancel()
 		return errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)

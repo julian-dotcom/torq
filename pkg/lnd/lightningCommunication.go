@@ -40,7 +40,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	go func() {
 		defer wg.Done()
 		for range ctx.Done() {
-			broadcaster.CancelSubscriptionWebSocketResponse(listener)
+			broadcaster.CancelSubscriptionLightningRequest(listener)
 			return
 		}
 	}()

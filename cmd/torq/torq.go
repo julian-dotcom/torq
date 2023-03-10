@@ -55,7 +55,6 @@ var paymentEventChannelGlobal = make(chan commons.PaymentEvent)               //
 var transactionEventChannelGlobal = make(chan commons.TransactionEvent)       //nolint:gochecknoglobals
 var peerEventChannelGlobal = make(chan commons.PeerEvent)                     //nolint:gochecknoglobals
 var blockEventChannelGlobal = make(chan commons.BlockEvent)                   //nolint:gochecknoglobals
-var webSocketResponseChannelGlobal = make(chan interface{})                   //nolint:gochecknoglobals
 
 var debuglevels = map[string]zerolog.Level{ //nolint:gochecknoglobals
 	"panic": zerolog.PanicLevel,
@@ -217,7 +216,7 @@ func main() {
 				serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,
 				channelBalanceEventChannelGlobal, channelEventChannelGlobal, nodeGraphEventChannelGlobal, channelGraphEventChannelGlobal,
 				invoiceEventChannelGlobal, paymentEventChannelGlobal, transactionEventChannelGlobal, peerEventChannelGlobal, blockEventChannelGlobal,
-				webSocketResponseChannelGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal)
+				lightningRequestChannelGlobal, rebalanceRequestChannelGlobal)
 
 			go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctxGlobal)
 			go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctxGlobal, channelBalanceEventChannelGlobal)
@@ -258,8 +257,9 @@ func main() {
 				go pprofStartup(c)
 			}
 
-			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
-				db, webSocketResponseChannelGlobal, broadcasterGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal,
+			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"),
+				c.String("torq.cookie-path"),
+				db, broadcasterGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal,
 				serviceChannelGlobal, c.Bool("torq.auto-login")); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}

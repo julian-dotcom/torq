@@ -58,13 +58,13 @@ type Channel struct {
 	Flags                  commons.ChannelFlags  `json:"flags" db:"flags"`
 }
 
-func (channel Channel) AddChannelFlags(flags commons.ChannelFlags) {
+func (channel *Channel) AddChannelFlags(flags commons.ChannelFlags) {
 	channel.Flags |= flags
 }
-func (channel Channel) HasChannelFlags(flags commons.ChannelFlags) bool {
+func (channel *Channel) HasChannelFlags(flags commons.ChannelFlags) bool {
 	return channel.Flags&flags != 0
 }
-func (channel Channel) RemoveChannelFlags(flags commons.ChannelFlags) {
+func (channel *Channel) RemoveChannelFlags(flags commons.ChannelFlags) {
 	channel.Flags &= ^flags
 }
 
