@@ -82,7 +82,8 @@ func GetWorkflows(db *sqlx.DB) ([]WorkflowTableRow, error) {
 			select * from (select *,
 				ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
 				from workflow_version where status = 1 order by rank) as wv where rank = 1) as awv on w.workflow_id = awv.workflow_id
-		where w.status != $1;`, commons.Archived)
+		WHERE w.status != $1
+		ORDER BY w.name;`, commons.Archived)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowTableRow{}, nil
@@ -417,7 +418,8 @@ func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType commons.WorkflowNodeType) 
 				WHERE v_wfv.status=$1
 			) ranked
 			WHERE ranked.version_rank = 1
-		);`, commons.Active, nodeType)
+		)
+		ORDER BY wf.name;`, commons.Active, nodeType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowNode{}, nil
@@ -485,6 +487,38 @@ func GetWorkflowVersionNodesByStage(db *sqlx.DB, workflowVersionId int, stage in
 	return results, nil
 }
 
+func getWorkflowVersionNodesByWorkflow(db *sqlx.DB, workflowId int) ([]WorkflowNode, error) {
+	wfvnIds, err := getWorkflowVersionNodeIdsByWorkflow(db, workflowId)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Could not get workflowVersionNodeIds for workflowId: %v", workflowId)
+	}
+	var results []WorkflowNode
+	for _, wfvnId := range wfvnIds {
+		wfvn, err := GetWorkflowNode(db, wfvnId)
+		if err != nil {
+			return nil, errors.Wrap(err, database.SqlExecutionError)
+		}
+		results = append(results, wfvn)
+	}
+	return results, nil
+}
+
+func getWorkflowVersionNodeIdsByWorkflow(db *sqlx.DB, workflowId int) ([]int, error) {
+	var wfvnIds []int
+	err := db.Select(&wfvnIds, `
+		SELECT wfvn.workflow_version_node_id
+		FROM workflow_version_node wfvn
+		JOIN workflow_version wfv ON wfv.workflow_version_id=wfvn.workflow_version_id
+		WHERE wfv.workflow_id=$1;`, workflowId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return wfvnIds, nil
+}
+
 // GetWorkflowNode is not recursive and only returns direct parent/child relations without further nesting.
 func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, error) {
 	var wfvn WorkflowVersionNode
@@ -543,7 +577,6 @@ func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int, workflowId int, versio
 		wvn.VisibilitySettings = wvnr.VisibilitySettings
 		wvn.WorkflowId = workflowId
 		wvn.Version = version
-
 		wvn.Status = wvnr.Status
 
 		// Unmarshal parameters
@@ -781,7 +814,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 			Type:                  nodeType,
 			Status:                status,
 			Stage:                 stage,
-			Parameters:            parameters,
+			Parameters:            string(parameters),
 			VisibilitySettings:    visibilitySettings,
 			UpdateOn:              updatedOn,
 			Name:                  name,

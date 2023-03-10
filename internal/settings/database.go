@@ -219,7 +219,7 @@ func InitializeManagedTaggedCache(db *sqlx.DB) error {
 				nodeTags[*nodeId] = append(nodeTags[*nodeId], tagId)
 			}
 			if channelId != nil && *channelId != 0 {
-				channelTags[*channelId] = append(nodeTags[*channelId], tagId)
+				channelTags[*channelId] = append(channelTags[*channelId], tagId)
 			}
 		}
 	}

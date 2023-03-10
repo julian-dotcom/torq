@@ -221,7 +221,6 @@ func channelStatusUpdateRequestIsRepeated(db *sqlx.DB, request commons.ChannelSt
 				Request: request,
 				CommunicationResponse: commons.CommunicationResponse{
 					Status: commons.Inactive,
-					Error:  err.Error(),
 				},
 			}
 		}

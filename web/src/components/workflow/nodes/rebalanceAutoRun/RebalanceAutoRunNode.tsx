@@ -58,20 +58,20 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
       ? ((wrapperProps.parameters as RebalanceConfiguration).amountMsat || 0) / 1000
       : undefined
   );
-  const [maximumCostSat, setMaximumCostSat] = useState<number | undefined>(
-    (wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat
-      ? ((wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat || 0) / 1000
-      : undefined
-  );
+  // const [maximumCostSat, setMaximumCostSat] = useState<number | undefined>(
+  //   (wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat
+  //     ? ((wrapperProps.parameters as RebalanceConfiguration).maximumCostMsat || 0) / 1000
+  //     : undefined
+  // );
 
   function createChangeMsatHandler(key: keyof RebalanceConfiguration) {
     return (e: NumberFormatValues) => {
       if (key == "amountMsat") {
         setAmountSat(e.floatValue);
       }
-      if (key == "maximumCostMsat") {
-        setMaximumCostSat(e.floatValue);
-      }
+      // if (key == "maximumCostMsat") {
+      //   setMaximumCostSat(e.floatValue);
+      // }
       if (e.floatValue === undefined) {
         setConfiguration((prev) => ({
           ...prev,
@@ -151,20 +151,20 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
     })
   );
 
-  const avoidChannelsIds =
-    childLinks
-      ?.filter((n) => {
-        return n.childInput === "avoidChannels";
-      })
-      ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
-
-  const avoidChannels = useSelector(
-    SelectWorkflowNodes({
-      version: wrapperProps.version,
-      workflowId: wrapperProps.workflowId,
-      nodeIds: avoidChannelsIds,
-    })
-  );
+  // const avoidChannelsIds =
+  //   childLinks
+  //     ?.filter((n) => {
+  //       return n.childInput === "avoidChannels";
+  //     })
+  //     ?.map((link) => link.parentWorkflowVersionNodeId) ?? [];
+  //
+  // const avoidChannels = useSelector(
+  //   SelectWorkflowNodes({
+  //     version: wrapperProps.version,
+  //     workflowId: wrapperProps.workflowId,
+  //     nodeIds: avoidChannelsIds,
+  //   })
+  // );
 
   return (
     <WorkflowNodeWrapper
@@ -193,15 +193,15 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
           outputName={configuration.focus === "outgoingChannels" ? "outgoingChannels" : undefined}
           editingDisabled={editingDisabled}
         />
-        <Socket
-          collapsed={wrapperProps.visibilitySettings.collapsed}
-          label={t.Avoid}
-          selectedNodes={avoidChannels || []}
-          workflowVersionId={wrapperProps.workflowVersionId}
-          workflowVersionNodeId={wrapperProps.workflowVersionNodeId}
-          inputName={"avoidChannels"}
-          editingDisabled={editingDisabled}
-        />
+        {/*<Socket*/}
+        {/*  collapsed={wrapperProps.visibilitySettings.collapsed}*/}
+        {/*  label={t.Avoid}*/}
+        {/*  selectedNodes={avoidChannels || []}*/}
+        {/*  workflowVersionId={wrapperProps.workflowVersionId}*/}
+        {/*  workflowVersionNodeId={wrapperProps.workflowVersionNodeId}*/}
+        {/*  inputName={"avoidChannels"}*/}
+        {/*  editingDisabled={editingDisabled}*/}
+        {/*/>*/}
         <RadioChips
           label={t.focus}
           sizeVariant={InputSizeVariant.small}
@@ -240,16 +240,16 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
         />
-        <Input
-          formatted={true}
-          value={maximumCostSat}
-          thousandSeparator={","}
-          suffix={" sat"}
-          onValueChange={createChangeMsatHandler("maximumCostMsat")}
-          label={t.maximumCostSat}
-          sizeVariant={InputSizeVariant.small}
-          disabled={editingDisabled}
-        />
+        {/*<Input*/}
+        {/*  formatted={true}*/}
+        {/*  value={maximumCostSat}*/}
+        {/*  thousandSeparator={","}*/}
+        {/*  suffix={" sat"}*/}
+        {/*  onValueChange={createChangeMsatHandler("maximumCostMsat")}*/}
+        {/*  label={t.maximumCostSat}*/}
+        {/*  sizeVariant={InputSizeVariant.small}*/}
+        {/*  disabled={editingDisabled}*/}
+        {/*/>*/}
         <Input
           formatted={true}
           value={configuration.maximumCostMilliMsat}

@@ -26,12 +26,12 @@ import (
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
 	"github.com/lncapital/torq/cmd/torq/internal/vector_ping"
-	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/tags"
+	"github.com/lncapital/torq/internal/workflows"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
@@ -228,7 +228,7 @@ func main() {
 			go commons.ManagedTaggedCache(commons.ManagedTaggedChannel, ctxGlobal)
 			go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctxGlobal)
 			go tags.ManagedTagCache(tags.ManagedTagChannel, ctxGlobal)
-			go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctxGlobal)
+			go workflows.ManagedRebalanceCache(workflows.ManagedRebalanceChannel, ctxGlobal)
 
 			// This listens to events:
 			// When Torq has status initializing it loads the caches and starts the LndServices
