@@ -2,9 +2,9 @@ package channels
 
 import (
 	"context"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"io"
-	"strconv"
-	"strings"
+	"time"
 
 	"github.com/lncapital/torq/pkg/commons"
 
@@ -26,11 +26,9 @@ type CloseChannelRequest struct {
 }
 
 type CloseChannelResponse struct {
-	Request                  CloseChannelRequest   `json:"request"`
-	Status                   commons.ChannelStatus `json:"status"`
-	ClosingTransactionHash   string                `json:"closingTransactionHash"`
-	ClosingOutputIndex       uint32                `json:"closingOutputIndex"`
-	ClosePendingChannelPoint commons.ChannelPoint  `json:"closePendingChannelPoint"`
+	Request                CloseChannelRequest   `json:"request"`
+	Status                 commons.ChannelStatus `json:"status"`
+	ClosingTransactionHash string                `json:"closingTransactionHash"`
 }
 
 func CloseChannel(db *sqlx.DB, req CloseChannelRequest) (response CloseChannelResponse, err error) {
@@ -100,88 +98,59 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelReques
 
 func closeChannelResp(db *sqlx.DB, client lnrpc.LightningClient, closeChanReq *lnrpc.CloseChannelRequest,
 	ccReq CloseChannelRequest) (CloseChannelResponse, error) {
-
+	// Create a context with a timeout of 60 seconds.
 	ctx := context.Background()
-	closeChanRes, err := client.CloseChannel(ctx, closeChanReq)
+	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	// Call CloseChannel with the timeout context.
+	closeChanRes, err := client.CloseChannel(timeoutCtx, closeChanReq)
 	if err != nil {
-		return CloseChannelResponse{}, errors.Wrap(err, "Closing channel")
+		return CloseChannelResponse{}, errors.Wrap(err, "Close channel request")
 	}
 
+	// Loop until we receive a close channel response or the context times out.
 	for {
 		select {
-		case <-ctx.Done():
-			//log.Debug().Msgf("%v", ctx.Err())
-			return CloseChannelResponse{}, nil
+		case <-timeoutCtx.Done():
+			return CloseChannelResponse{}, errors.New("Close channel request timeout")
 		default:
 		}
 
+		// Receive the next close channel response message.
 		resp, err := closeChanRes.Recv()
-		if err == io.EOF {
-			//log.Debug().Msgf("Close channel EOF")
-			return CloseChannelResponse{}, nil
-		}
 		if err != nil {
+			if err == io.EOF {
+				// No more messages to receive, the channel is closed.
+				return CloseChannelResponse{}, nil
+			}
 			return CloseChannelResponse{}, errors.Wrap(err, "Close channel request receive")
 		}
 
-		r, err := processCloseResponse(resp, ccReq)
-		if err != nil {
-			return CloseChannelResponse{}, errors.Wrap(err, "Process close response")
+		// Process the close channel response and see if the channel is pending closure.
+		r := CloseChannelResponse{
+			Request: ccReq,
+		}
+		if resp.Update == nil {
+			continue
 		}
 
-		pendingChannel, err := client.PendingChannels(ctx, &lnrpc.PendingChannelsRequest{})
-		if err != nil {
-			return CloseChannelResponse{}, errors.Wrap(err, "Getting pending channels")
-		}
-
-		for _, closing := range pendingChannel.WaitingCloseChannels {
-			stringOutputIndex := strconv.FormatUint(uint64(closeChanReq.ChannelPoint.GetOutputIndex()), 10)
-			if closeChanReq.ChannelPoint.GetFundingTxidStr()+":"+stringOutputIndex == closing.Channel.ChannelPoint {
-				r.ClosingTransactionHash = closing.ClosingTxid
+		switch resp.GetUpdate().(type) {
+		case *lnrpc.CloseStatusUpdate_ClosePending:
+			r.Status = commons.Closing
+			ch, err := chainhash.NewHash(resp.GetChanClose().GetClosingTxid())
+			if err != nil {
+				return CloseChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")
 			}
+			r.ClosingTransactionHash = ch.String()
 
-			err = updateChannelToClosingByChannelId(db, r.Request.ChannelId, closing.ClosingTxid)
+			err = updateChannelToClosingByChannelId(db, ccReq.ChannelId, ch.String())
 			if err != nil {
 				return CloseChannelResponse{}, errors.Wrap(err, "Updating channel to closing status in the db")
 			}
+			return r, nil
 		}
-		return r, nil
+		// Sleep for a short period to avoid spinning too fast.
+		time.Sleep(100 * time.Millisecond)
 	}
-}
-
-func convertChannelPoint(chanPointStr string) (chanPoint *lnrpc.ChannelPoint, err error) {
-	splitChanPoint := strings.Split(chanPointStr, ":")
-	if len(splitChanPoint) != 2 {
-		return chanPoint, errors.New("Channel point missing a colon")
-	}
-
-	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: splitChanPoint[0]}
-
-	oIndxUint, err := strconv.ParseUint(splitChanPoint[1], 10, 1)
-	if err != nil {
-		return chanPoint, errors.New("Parsing channel point output index")
-	}
-
-	outputIndex := uint32(oIndxUint)
-	chanPoint = &lnrpc.ChannelPoint{
-		FundingTxid: fundingTxid,
-		OutputIndex: outputIndex,
-	}
-
-	return chanPoint, nil
-}
-
-func processCloseResponse(resp *lnrpc.CloseStatusUpdate, req CloseChannelRequest) (r CloseChannelResponse, err error) {
-	switch resp.GetUpdate().(type) {
-	case *lnrpc.CloseStatusUpdate_ClosePending:
-		ccPending := resp.GetClosePending()
-		r = CloseChannelResponse{
-			Request:                  req,
-			Status:                   commons.Closing,
-			ClosePendingChannelPoint: commons.ChannelPoint{TxId: ccPending.Txid, OutputIndex: ccPending.OutputIndex},
-		}
-	default:
-	}
-
-	return r, nil
 }
