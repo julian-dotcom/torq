@@ -4,7 +4,7 @@
   grid-row-gap: 32px;
   padding-bottom: 24px;
   margin-top: 16px;
-  width: 1062px;
+  max-width: 1066px;
   @media only screen and (max-width: 900px) {
     grid-row-gap: 16px;
     padding-bottom: 12px;
@@ -36,7 +36,8 @@
   padding: 16px;
   gap: 8px;
   height: 88px;
-  width: 328px;
+  max-width: 328px;
+  min-width: 328px;
 
   background: #C2E2FF;
   border-radius: 4px;
