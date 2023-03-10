@@ -387,6 +387,14 @@
   },
   "dashboard": "Dashboard",
   "dashboardPage": {
-    "welcome" : "Welcome"
+    "welcome" : "Welcome",
+    "totalBalance": "Total Balance",
+    "totalOnChainBalance": "Total On-Chain Balance",
+    "totalOffChainBalance": "Total Off-Chain Balance",
+    "totalChannelCount": "Total Channel Count",
+    "channels" : "Channels",
+    "capacity" : "Capacity",
+    "peers" : "peers",
+    "btc" : "btc"
   }
 }
