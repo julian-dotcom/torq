@@ -1,96 +1,12 @@
 
 
 INSERT INTO workflow (name, status, created_on, updated_on)
-VALUES('EXAMPLE: Tag new',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+VALUES('EXAMPLE: Rebalancer',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
 INSERT INTO workflow_version (name, version, status, created_on, updated_on, workflow_id)
 SELECT 'Initial Version',1,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,workflow_id
 FROM workflow
-WHERE name='EXAMPLE: Tag new';
-
-INSERT INTO workflow_version_node (stage, name, status, type,
-                                   parameters,
-                                   visibility_settings,
-                                   workflow_version_id, created_on, updated_on)
-SELECT 1,'Add Tag New',1,11,
-       '{"applyTo": "channel", "addedTags": [{"label": "New", "value": -5}]}',
-       '{"collapsed": false, "xPosition": 1330, "yPosition": 155}',
-       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
-FROM workflow_version wfv
-         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='EXAMPLE: Tag new';
-
-INSERT INTO workflow_version_node (stage, name, status, type,
-                                   parameters,
-                                   visibility_settings,
-                                   workflow_version_id, created_on, updated_on)
-SELECT 1,'All Channels',1,19,
-       '{"source": "all"}',
-       '{"collapsed": false, "xPosition": 406, "yPosition": 4}',
-       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
-FROM workflow_version wfv
-         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='EXAMPLE: Tag new';
-
-INSERT INTO workflow_version_node (stage, name, status, type,
-                                   parameters,
-                                   visibility_settings,
-                                   workflow_version_id, created_on, updated_on)
-SELECT 1,'Cron Trigger',1,15,
-       '{"cronValue": "0 * * * *"}',
-       '{"collapsed": false, "xPosition": 0, "yPosition": 0}',
-       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
-FROM workflow_version wfv
-         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='EXAMPLE: Tag new';
-
-INSERT INTO workflow_version_node (stage, name, status, type,
-                                   parameters,
-                                   visibility_settings,
-                                   workflow_version_id, created_on, updated_on)
-SELECT 1,'Channel Opens',1,13,
-       '{}',
-       '{"collapsed": false, "xPosition": 0, "yPosition": 0}',
-       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
-FROM workflow_version wfv
-         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='EXAMPLE: Tag new';
-
-INSERT INTO workflow_version_node (stage, name, status, type,
-                                   parameters,
-                                   visibility_settings,
-                                   workflow_version_id, created_on, updated_on)
-SELECT 1,'Less than 7 days old',1,2,
-       '{"$and": [{"$filter": {"key": "fundedOnSecondsDelta", "category": "duration", "funcName": "lt", "parameter": 604800}}]}',
-       '{"collapsed": false, "xPosition": 891, "yPosition": 142}',
-       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
-FROM workflow_version wfv
-         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='EXAMPLE: Tag new';
-
-INSERT INTO workflow_version_node (stage, name, status, type,
-                                   parameters,
-                                   visibility_settings,
-                                   workflow_version_id, created_on, updated_on)
-SELECT 1,'More than 7 days old',1,2,
-       '{"$and": [{"$filter": {"key": "fundedOnSecondsDelta", "category": "duration", "funcName": "gte", "parameter": 604800}}]}',
-       '{"collapsed": false, "xPosition": 892, "yPosition": -167}',
-       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
-FROM workflow_version wfv
-         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='EXAMPLE: Tag new';
-
-INSERT INTO workflow_version_node (stage, name, status, type,
-                                   parameters,
-                                   visibility_settings,
-                                   workflow_version_id, created_on, updated_on)
-SELECT 1,'Remove Tag New',1,12,
-       '{"applyTo": "channel", "removedTags": [{"label": "New", "value": -5}]}',
-       '{"collapsed": false, "xPosition": 1331, "yPosition": -201}',
-       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
-FROM workflow_version wfv
-         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='EXAMPLE: Tag new';
+WHERE name='EXAMPLE: Rebalancer';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -102,13 +18,114 @@ SELECT 1,'Trigger',1,10,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='EXAMPLE: Tag new';
+WHERE wf.name='EXAMPLE: Rebalancer';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Channel Balance Changes',1,1,
+       '{}',
+       '{"collapsed": false, "xPosition": 265, "yPosition": 104}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='EXAMPLE: Rebalancer';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'All Channels',1,19,
+       '{"source": "all"}',
+       '{"collapsed": false, "xPosition": 459, "yPosition": 328}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='EXAMPLE: Rebalancer';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Triggering Channels',1,19,
+       '{"source": "eventXorAll"}',
+       '{"collapsed": false, "xPosition": 460, "yPosition": -120}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='EXAMPLE: Rebalancer';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Cron Trigger',1,15,
+       '{"cronValue": "0/30 * * * *"}',
+       '{"collapsed": false, "xPosition": 115, "yPosition": -70}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='EXAMPLE: Rebalancer';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Sources (reduce local side)',1,2,
+       '{"$and": [{"$filter": {"key": "tags", "category": "tag", "funcName": "notAny", "parameter": [-5]}}, {"$filter": {"key": "gauge", "category": "number", "funcName": "gte", "parameter": 70}}]}',
+       '{"collapsed": false, "xPosition": 912, "yPosition": 247}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='EXAMPLE: Rebalancer';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Rebalance',1,18,
+       '{"focus": "incomingChannels", "amountMsat": 50000000, "maximumCostMilliMsat": 150}',
+       '{"collapsed": false, "xPosition": 1372, "yPosition": 0}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='EXAMPLE: Rebalancer';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Destinations (fill local side)',1,2,
+       '{"$and": [{"$filter": {"key": "tags", "category": "tag", "funcName": "notAny", "parameter": [-5]}}, {"$filter": {"key": "gauge", "category": "number", "funcName": "lt", "parameter": 20}}]}',
+       '{"collapsed": false, "xPosition": 907, "yPosition": -119}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='EXAMPLE: Rebalancer';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
                                         parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
                                         workflow_version_id, created_on, updated_on)
-SELECT '20230310.084815.191887',
+SELECT '20230310.101238.015694',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Triggering Channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Destinations (fill local side)'
+WHERE wf.name='EXAMPLE: Rebalancer';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230310.101549.915051',
        '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
        'channels', wfvn.workflow_version_node_id,
        'channels', wfvn2.workflow_version_node_id,
@@ -118,56 +135,39 @@ FROM workflow_version wfv
          JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
                                             wfvn.name='All Channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
-                                             wfvn2.name='More than 7 days old'
-WHERE wf.name='EXAMPLE: Tag new';
+                                             wfvn2.name='Sources (reduce local side)'
+WHERE wf.name='EXAMPLE: Rebalancer';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
                                         parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
                                         workflow_version_id, created_on, updated_on)
-SELECT '20230310.084955.665188',
+SELECT '20230310.101727.887411',
        '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
        'channels', wfvn.workflow_version_node_id,
-       'channels', wfvn2.workflow_version_node_id,
+       'incomingChannels', wfvn2.workflow_version_node_id,
        wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
          JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
-                                            wfvn.name='All Channels'
+                                            wfvn.name='Destinations (fill local side)'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
-                                             wfvn2.name='Less than 7 days old'
-WHERE wf.name='EXAMPLE: Tag new';
+                                             wfvn2.name='Rebalance'
+WHERE wf.name='EXAMPLE: Rebalancer';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
                                         parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
                                         workflow_version_id, created_on, updated_on)
-SELECT '20230310.085125.033352',
+SELECT '20230310.101730.360557',
        '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
        'channels', wfvn.workflow_version_node_id,
-       'channels', wfvn2.workflow_version_node_id,
+       'outgoingChannels', wfvn2.workflow_version_node_id,
        wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
          JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
-                                            wfvn.name='More than 7 days old'
+                                            wfvn.name='Sources (reduce local side)'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
-                                             wfvn2.name='Remove Tag New'
-WHERE wf.name='EXAMPLE: Tag new';
-
-INSERT INTO workflow_version_node_link (name,
-                                        visibility_settings,
-                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
-                                        workflow_version_id, created_on, updated_on)
-SELECT '20230310.085153.710211',
-       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
-       'channels', wfvn.workflow_version_node_id,
-       'channels', wfvn2.workflow_version_node_id,
-       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-FROM workflow_version wfv
-         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
-                                            wfvn.name='Less than 7 days old'
-         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
-                                             wfvn2.name='Add Tag New'
-WHERE wf.name='EXAMPLE: Tag new';
+                                             wfvn2.name='Rebalance'
+WHERE wf.name='EXAMPLE: Rebalancer';
