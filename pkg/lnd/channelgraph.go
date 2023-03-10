@@ -33,7 +33,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	nodeSettings commons.ManagedNodeSettings,
 	nodeGraphEventChannel chan<- commons.NodeGraphEvent,
 	channelGraphEventChannel chan<- commons.ChannelGraphEvent,
-	importRequestChannel chan<- ImportRequest,
+	lightningRequestChannel chan<- interface{},
 	serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelGraph terminated for nodeId: %v", nodeSettings.NodeId)
@@ -64,41 +64,58 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				continue
 			}
 			// HACK to know if the context is a testcase.
-			if importRequestChannel != nil {
-				responseChannel := make(chan error)
-				importRequestChannel <- ImportRequest{
-					ImportType: ImportAllChannels,
-					Out:        responseChannel,
+			if lightningRequestChannel != nil {
+
+				now := time.Now()
+				responseChannel := make(chan commons.ImportResponse)
+				lightningRequestChannel <- commons.ImportRequest{
+					CommunicationRequest: commons.CommunicationRequest{
+						RequestId:   fmt.Sprintf("%v", now.Unix()),
+						RequestTime: &now,
+						NodeId:      nodeSettings.NodeId,
+					},
+					ImportType:      commons.ImportAllChannels,
+					ResponseChannel: responseChannel,
 				}
-				err = <-responseChannel
-				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining All Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
+				response := <-responseChannel
+				if response.Error != nil {
+					log.Error().Err(response.Error).Msgf("Obtaining All Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
 					time.Sleep(streamErrorSleepSeconds * time.Second)
 					continue
 				}
 
-				responseChannel = make(chan error)
-				importRequestChannel <- ImportRequest{
-					ImportType: ImportChannelRoutingPolicies,
-					Out:        responseChannel,
+				responseChannel = make(chan commons.ImportResponse)
+				lightningRequestChannel <- commons.ImportRequest{
+					CommunicationRequest: commons.CommunicationRequest{
+						RequestId:   fmt.Sprintf("%v", now.Unix()),
+						RequestTime: &now,
+						NodeId:      nodeSettings.NodeId,
+					},
+					ImportType:      commons.ImportChannelRoutingPolicies,
+					ResponseChannel: responseChannel,
 				}
-				err = <-responseChannel
-				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
+				response = <-responseChannel
+				if response.Error != nil {
+					log.Error().Err(response.Error).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
 					time.Sleep(streamErrorSleepSeconds * time.Second)
 					continue
 				}
 
-				responseChannel = make(chan error)
-				importRequestChannel <- ImportRequest{
-					ImportType: ImportNodeInformation,
-					Out:        responseChannel,
+				responseChannel = make(chan commons.ImportResponse)
+				lightningRequestChannel <- commons.ImportRequest{
+					CommunicationRequest: commons.CommunicationRequest{
+						RequestId:   fmt.Sprintf("%v", now.Unix()),
+						RequestTime: &now,
+						NodeId:      nodeSettings.NodeId,
+					},
+					ImportType:      commons.ImportNodeInformation,
+					ResponseChannel: responseChannel,
 				}
-				err = <-responseChannel
-				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
+				response = <-responseChannel
+				if response.Error != nil {
+					log.Error().Err(response.Error).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
 					time.Sleep(streamErrorSleepSeconds * time.Second)
 					continue
@@ -133,11 +150,10 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	}
 }
 
-func ImportNodeInfo(client subscribeChannelGraphClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+func ImportNodeInfo(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 	// Get all node public keys with channels
 	publicKeys := commons.GetAllChannelPublicKeys(nodeSettings.Chain, nodeSettings.Network)
 
-	ctx := context.Background()
 	for _, publicKey := range publicKeys {
 		ni, err := client.GetNodeInfo(ctx, &lnrpc.NodeInfoRequest{PubKey: publicKey, IncludeChannels: false})
 		if err != nil {

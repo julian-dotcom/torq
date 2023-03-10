@@ -15,8 +15,7 @@ import (
 const maintenanceQueueTickerSeconds = 60 * 60
 const maintenanceVectorDelayMilliseconds = 500
 
-func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB, vectorUrl string,
-	lightningRequestChannel chan<- interface{}) {
+func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB) {
 
 	defer log.Info().Msgf("MaintenanceService terminated")
 
@@ -28,23 +27,23 @@ func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB, vectorUrl string,
 			return
 		case <-ticker:
 			// TODO get forwards/invoices/payments without firstNodeId/secondNodeId/nodeId and assign correctly
-			processMissingChannelData(db, vectorUrl, lightningRequestChannel)
+			processMissingChannelData(db)
 		}
 	}
 }
 
-func processMissingChannelData(db *sqlx.DB, vectorUrl string, lightningRequestChannel chan<- interface{}) {
+func processMissingChannelData(db *sqlx.DB) {
 	torqNodeIds := GetAllTorqNodeIds()
 	for _, torqNodeId := range torqNodeIds {
 		nodeSettings := GetNodeSettingsByNodeId(torqNodeId)
-		if vectorUrl == VectorUrl && (nodeSettings.Chain != Bitcoin || nodeSettings.Network != MainNet) {
+		if GetVectorUrlBase() == VectorUrl && (nodeSettings.Chain != Bitcoin || nodeSettings.Network != MainNet) {
 			log.Info().Msgf("Skipping verification of funding and closing details from vector for nodeId: %v", nodeSettings.NodeId)
 			continue
 		}
 		channelSettings := GetChannelSettingsByNodeId(torqNodeId)
 		for _, channelSetting := range channelSettings {
 			if hasMissingClosingDetails(channelSetting) {
-				transactionDetails := GetTransactionDetailsFromVector(vectorUrl, *channelSetting.ClosingTransactionHash, nodeSettings, lightningRequestChannel)
+				transactionDetails := GetTransactionDetailsFromVector(*channelSetting.ClosingTransactionHash, nodeSettings)
 				err := updateClosingDetails(db, channelSetting, transactionDetails)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to update closing details from vector for channelId: %v", channelSetting.ChannelId)
@@ -52,7 +51,7 @@ func processMissingChannelData(db *sqlx.DB, vectorUrl string, lightningRequestCh
 				time.Sleep(maintenanceVectorDelayMilliseconds * time.Millisecond)
 			}
 			if hasMissingFundingDetails(channelSetting) {
-				transactionDetails := GetTransactionDetailsFromVector(vectorUrl, channelSetting.FundingTransactionHash, nodeSettings, lightningRequestChannel)
+				transactionDetails := GetTransactionDetailsFromVector(channelSetting.FundingTransactionHash, nodeSettings)
 				err := updateFundingDetails(db, channelSetting, transactionDetails)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)
@@ -77,12 +76,7 @@ func hasMissingClosingDetails(channelSetting ManagedChannelSettings) bool {
 		return false
 	}
 	if channelSetting.ClosingTransactionHash != nil && *channelSetting.ClosingTransactionHash != "" {
-		if channelSetting.ClosingBlockHeight == nil || *channelSetting.ClosingBlockHeight == 0 {
-			return true
-		}
-		if channelSetting.ClosedOn == nil {
-			return true
-		}
+		return !channelSetting.HasChannelFlags(ClosedOn)
 	}
 	return false
 }
@@ -91,11 +85,12 @@ func updateClosingDetails(db *sqlx.DB, channel ManagedChannelSettings, transacti
 	if transactionDetails.BlockHeight != 0 {
 		channel.ClosedOn = &transactionDetails.BlockTimestamp
 		channel.ClosingBlockHeight = &transactionDetails.BlockHeight
+		channel.AddChannelFlags(ClosedOn)
 		_, err := db.Exec(`
 		UPDATE channel
-		SET closing_block_height=$2, closed_on=$3, updated_on=$4
+		SET closing_block_height=$2, closed_on=$3, flags=$4, updated_on=$5
 		WHERE channel_id=$1;`,
-			channel.ChannelId, channel.ClosingBlockHeight, channel.ClosedOn, time.Now().UTC())
+			channel.ChannelId, channel.ClosingBlockHeight, channel.ClosedOn, channel.Flags, time.Now().UTC())
 		if err != nil {
 			return errors.Wrap(err, database.SqlExecutionError)
 		}
@@ -104,7 +99,8 @@ func updateClosingDetails(db *sqlx.DB, channel ManagedChannelSettings, transacti
 			channel.FundingBlockHeight, channel.FundedOn,
 			channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,
 			channel.InitiatingNodeId, channel.AcceptingNodeId,
-			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
+			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn,
+			channel.Flags)
 	}
 	return nil
 }
@@ -120,12 +116,7 @@ func hasMissingFundingDetails(channelSetting ManagedChannelSettings) bool {
 		return false
 	}
 	if channelSetting.FundingTransactionHash != "" {
-		if channelSetting.FundingBlockHeight == nil || *channelSetting.FundingBlockHeight == 0 {
-			return true
-		}
-		if channelSetting.FundedOn == nil {
-			return true
-		}
+		return !channelSetting.HasChannelFlags(FundedOn)
 	}
 	return false
 }
@@ -134,11 +125,12 @@ func updateFundingDetails(db *sqlx.DB, channel ManagedChannelSettings, transacti
 	if transactionDetails.BlockHeight != 0 {
 		channel.FundedOn = &transactionDetails.BlockTimestamp
 		channel.FundingBlockHeight = &transactionDetails.BlockHeight
+		channel.AddChannelFlags(FundedOn)
 		_, err := db.Exec(`
 		UPDATE channel
-		SET funding_block_height=$2, funded_on=$3, updated_on=$4
+		SET funding_block_height=$2, funded_on=$3, flags=$4, updated_on=$5
 		WHERE channel_id=$1;`,
-			channel.ChannelId, channel.FundingBlockHeight, channel.FundedOn, time.Now().UTC())
+			channel.ChannelId, channel.FundingBlockHeight, channel.FundedOn, channel.Flags, time.Now().UTC())
 		if err != nil {
 			return errors.Wrap(err, database.SqlExecutionError)
 		}
@@ -147,7 +139,8 @@ func updateFundingDetails(db *sqlx.DB, channel ManagedChannelSettings, transacti
 			channel.FundingBlockHeight, channel.FundedOn,
 			channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,
 			channel.InitiatingNodeId, channel.AcceptingNodeId,
-			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
+			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn,
+			channel.Flags)
 	}
 	return nil
 }

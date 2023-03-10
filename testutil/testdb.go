@@ -292,20 +292,20 @@ func addNodeConnectionDetails(db *sqlx.DB, testNodeId int, cancel context.Cancel
 }
 
 func AddChannel(db *sqlx.DB, shortChannelId string, lndShortChannelId uint64,
-	fundingTransactionHash string, foundingOutputIndex int,
+	fundingTransactionHash string, fundingOutputIndex int,
 	testNodeId1 int, testNodeId2 int, cancel context.CancelFunc) error {
 
 	_, err := db.Exec(`INSERT INTO channel (
 			  short_channel_id, funding_transaction_hash, funding_output_index,
 			  closing_transaction_hash, closing_node_id,
 			  lnd_short_channel_id, first_node_id, second_node_id, initiating_node_id, accepting_node_id, capacity, private,
-			  status_id, created_on, updated_on
+			  status_id, created_on, updated_on, funding_block_height, funded_on
 			) values (
-			  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+			  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
 			);`,
-		shortChannelId, fundingTransactionHash, foundingOutputIndex, nil, nil,
+		shortChannelId, fundingTransactionHash, fundingOutputIndex, nil, nil,
 		lndShortChannelId, testNodeId1, testNodeId2, nil, nil, 1_000_000,
-		false, commons.Open, time.Now().UTC(), time.Now().UTC())
+		false, commons.Open, time.Now().UTC(), time.Now().UTC(), 10, time.Now().UTC())
 	if err != nil {
 		cancel()
 		return errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)

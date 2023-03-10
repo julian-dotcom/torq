@@ -424,3 +424,24 @@ type RebalanceResponse struct {
 	Request RebalanceRequest `json:"request"`
 	CommunicationResponse
 }
+
+type ImportType int
+
+const (
+	ImportChannelRoutingPolicies = ImportType(iota)
+	ImportNodeInformation
+	ImportAllChannels
+	ImportPendingChannelsOnly
+)
+
+type ImportRequest struct {
+	CommunicationRequest
+	ResponseChannel chan<- ImportResponse `json:"-"`
+	ImportType      ImportType
+}
+
+type ImportResponse struct {
+	Request ImportRequest `json:"request"`
+	CommunicationResponse
+	Error error `json:"error"`
+}

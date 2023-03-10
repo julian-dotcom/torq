@@ -347,8 +347,9 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	channels, err := getClosedChannels(db, network)
-
+	channels, err := getChannelsWithStatus(db, commons.Network(network),
+		[]commons.ChannelStatus{commons.CooperativeClosed, commons.LocalForceClosed, commons.RemoteForceClosed,
+			commons.BreachClosed, commons.FundingCancelledClosed, commons.AbandonedClosed})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
 		err = errors.Wrap(err, "Problem getting closed channels from db")
@@ -422,7 +423,8 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	channels, err := getPendingChannels(db, network)
+	channels, err := getChannelsWithStatus(db, commons.Network(network),
+		[]commons.ChannelStatus{commons.Opening, commons.Closing})
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))

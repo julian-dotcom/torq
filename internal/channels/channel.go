@@ -55,6 +55,17 @@ type Channel struct {
 	FundedOn               *time.Time            `json:"fundedOn" db:"funded_on"`
 	ClosingBlockHeight     *uint32               `json:"closingBlockHeight" db:"closing_block_height"`
 	ClosedOn               *time.Time            `json:"closedOn" db:"closed_on"`
+	Flags                  commons.ChannelFlags  `json:"flags" db:"flags"`
+}
+
+func (channel Channel) AddChannelFlags(flags commons.ChannelFlags) {
+	channel.Flags |= flags
+}
+func (channel Channel) HasChannelFlags(flags commons.ChannelFlags) bool {
+	return channel.Flags&flags != 0
+}
+func (channel Channel) RemoveChannelFlags(flags commons.ChannelFlags) {
+	channel.Flags &= ^flags
 }
 
 func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) {
@@ -115,7 +126,8 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 		}
 		if existingChannel.ClosingTransactionHash == nil && channel.Status >= commons.CooperativeClosed &&
 			channel.ClosingTransactionHash != nil {
-			err := updateChannelClosingTransactionHash(db, existingChannelId, *channel.ClosingTransactionHash, channel.ClosingNodeId)
+			err := updateChannelClosing(db, existingChannelId,
+				*channel.ClosingTransactionHash, channel.ClosingBlockHeight, channel.ClosedOn, channel.ClosingNodeId)
 			if err != nil {
 				return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
 			}
@@ -140,7 +152,8 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 			}
 		}
 		if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
-			err := updateChannelClosingTransactionHash(db, existingChannelId, *channel.ClosingTransactionHash, channel.ClosingNodeId)
+			err := updateChannelClosing(db, existingChannelId,
+				*channel.ClosingTransactionHash, channel.ClosingBlockHeight, channel.ClosedOn, channel.ClosingNodeId)
 			if err != nil {
 				return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
 			}
@@ -151,7 +164,8 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 		channel.FundingBlockHeight, channel.FundedOn,
 		channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,
 		channel.InitiatingNodeId, channel.AcceptingNodeId,
-		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
+		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn,
+		channel.Flags)
 	return existingChannelId, nil
 }
 
@@ -166,11 +180,16 @@ func UpdateChannelStatus(db *sqlx.DB, channelId int, status commons.ChannelStatu
 	return nil
 }
 
-func updateChannelClosingTransactionHash(db *sqlx.DB, channelId int, closingTransactionHash string, closingNodeId *int) error {
+func updateChannelClosing(db *sqlx.DB, channelId int,
+	closingTransactionHash string, closingBlockHeight *uint32, closedOn *time.Time, closingNodeId *int) error {
 	_, err := db.Exec(`
 		UPDATE channel SET closing_transaction_hash=$1, closing_node_id=$4, updated_on=$2 WHERE channel_id=$3 AND
-		    ( closing_transaction_hash IS NULL OR closing_transaction_hash != $1 )`,
-		closingTransactionHash, time.Now().UTC(), channelId, closingNodeId)
+		    (
+		        (closing_transaction_hash IS NULL OR closing_transaction_hash != $1) OR
+		        closing_block_height != $5 OR
+		        closed_on != $6
+			)`,
+		closingTransactionHash, time.Now().UTC(), channelId, closingNodeId, closingBlockHeight, closedOn)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}

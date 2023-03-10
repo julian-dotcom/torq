@@ -28,12 +28,12 @@ func getSettings(db *sqlx.DB) (settings, error) {
 	return settingsData, nil
 }
 
-func InitializeManagedSettingsCache(db *sqlx.DB) error {
+func InitializeManagedSettingsCache(db *sqlx.DB, vectorUrl string) error {
 	settingsData, err := getSettings(db)
 	if err == nil {
 		log.Debug().Msg("Pushing settings to ManagedSettings cache.")
 		commons.SetSettings(settingsData.DefaultDateRange, settingsData.DefaultLanguage, settingsData.WeekStartsOn,
-			settingsData.PreferredTimezone, settingsData.TorqUuid, settingsData.MixpanelOptOut)
+			settingsData.PreferredTimezone, settingsData.TorqUuid, settingsData.MixpanelOptOut, vectorUrl)
 	} else {
 		log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
 	}
@@ -67,7 +67,7 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	commons.SetSettings(settings.DefaultDateRange, settings.DefaultLanguage, settings.WeekStartsOn,
-		settings.PreferredTimezone, settings.TorqUuid, settings.MixpanelOptOut)
+		settings.PreferredTimezone, settings.TorqUuid, settings.MixpanelOptOut, commons.GetVectorUrlBase())
 	return nil
 }
 

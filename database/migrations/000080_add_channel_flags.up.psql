@@ -1,0 +1,6 @@
+
+ALTER TABLE channel ADD COLUMN flags INTEGER;
+UPDATE channel SET flags=0;
+UPDATE channel SET flags=flags+1 WHERE funding_block_height IS NOT NULL AND funding_block_height!=0;
+UPDATE channel SET flags=flags+2 WHERE closing_block_height IS NOT NULL AND closing_block_height!=0;
+ALTER TABLE channel ALTER COLUMN flags SET NOT NULL;

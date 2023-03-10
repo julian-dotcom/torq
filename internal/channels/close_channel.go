@@ -6,6 +6,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/cockroachdb/errors"
@@ -55,7 +57,7 @@ func CloseChannel(db *sqlx.DB, req CloseChannelRequest) (response CloseChannelRe
 	return closeChannelResp(db, client, closeChanReq, req)
 }
 
-func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelRequest, err error) {
+func prepareCloseRequest(ccReq commons.CloseChannelRequest) (*lnrpc.CloseChannelRequest, error) {
 
 	if ccReq.NodeId == 0 {
 		return &lnrpc.CloseChannelRequest{}, errors.New("Node id is missing")
@@ -96,8 +98,13 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelReques
 	return closeChanReq, nil
 }
 
-func closeChannelResp(db *sqlx.DB, client lnrpc.LightningClient, closeChanReq *lnrpc.CloseChannelRequest,
-	ccReq CloseChannelRequest) (CloseChannelResponse, error) {
+func closeChannelResp(client lnrpc.LightningClient,
+	closeChanReq *lnrpc.CloseChannelRequest,
+	eventChannel chan<- interface{},
+	ccReq commons.CloseChannelRequest,
+	requestId string,
+	db *sqlx.DB) (CloseChannelResponse, error) {
+
 	// Create a context with a timeout of 60 seconds.
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
