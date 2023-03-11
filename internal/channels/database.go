@@ -318,34 +318,13 @@ func getChannelsWithStatus(db *sqlx.DB, network commons.Network, status []common
 	return channels, nil
 }
 
-func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionHash string,
-	nodeId int) error {
-
-	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionHash string) error {
 	currentSettings := commons.GetChannelSettingByChannelId(channelId)
-	var closingBlockHeight *uint32
-	var closedOn *time.Time
-	flags := currentSettings.Flags
-	vectorResponse := commons.GetTransactionDetailsFromVector(closingTransactionHash, nodeSettings)
-	if vectorResponse.BlockHeight != 0 {
-		closingBlockHeight = &vectorResponse.BlockHeight
-		closedOn = &vectorResponse.BlockTimestamp
-		currentSettings.AddChannelFlags(commons.ClosedOn)
-		flags = currentSettings.Flags
-	}
-	if closingBlockHeight == nil || *closingBlockHeight == 0 {
-		currentBlockHeight := commons.GetBlockHeight()
-		closingBlockHeight = &currentBlockHeight
-	}
-	if closedOn == nil {
-		now := time.Now().UTC()
-		closedOn = &now
-	}
 	_, err := db.Exec(`
 		UPDATE channel
-		SET status_id=$1, closing_transaction_hash=$2, closing_block_height=$3, closed_on=$4, flags=$5, updated_on=$6
-		WHERE channel_id=$7;`,
-		commons.Closing, closingTransactionHash, closingBlockHeight, closedOn, flags, time.Now().UTC(), channelId)
+		SET status_id=$1, closing_transaction_hash=$2, updated_on=$3
+		WHERE channel_id=$4;`,
+		commons.Closing, closingTransactionHash, time.Now().UTC(), channelId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -354,7 +333,8 @@ func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransa
 		currentSettings.FundingBlockHeight, currentSettings.FundedOn,
 		currentSettings.Capacity, currentSettings.Private, currentSettings.FirstNodeId, currentSettings.SecondNodeId,
 		currentSettings.InitiatingNodeId, currentSettings.AcceptingNodeId,
-		&closingTransactionHash, currentSettings.ClosingNodeId, closingBlockHeight, closedOn,
-		flags)
+		&closingTransactionHash, currentSettings.ClosingNodeId,
+		currentSettings.ClosingBlockHeight, currentSettings.ClosedOn,
+		currentSettings.Flags)
 	return nil
 }

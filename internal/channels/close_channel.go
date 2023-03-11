@@ -149,7 +149,7 @@ func closeChannelResp(db *sqlx.DB,
 			}
 			r.ClosingTransactionHash = ch.String()
 
-			err = updateChannelToClosingByChannelId(db, ccReq.ChannelId, ch.String(), ccReq.NodeId)
+			err = updateChannelToClosingByChannelId(db, ccReq.ChannelId, ch.String())
 			if err != nil {
 				return CloseChannelResponse{}, errors.Wrap(err, "Updating channel to closing status in the db")
 			}
