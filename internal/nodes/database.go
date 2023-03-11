@@ -39,7 +39,7 @@ func GetNodeById(db *sqlx.DB, nodeId int) (Node, error) {
 }
 
 func getNodeInformationAll(db *sqlx.DB) ([]NodeInformation, error) {
-	nds, err := getNodes(db)
+	nds, err := getNodes(db, false)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []NodeInformation{}, nil
@@ -62,9 +62,15 @@ func getNodeInformationAll(db *sqlx.DB) ([]NodeInformation, error) {
 	return ps, nil
 }
 
-func getNodes(db *sqlx.DB) ([]Node, error) {
+func getNodes(db *sqlx.DB, includeDeleted bool) ([]Node, error) {
 	var nds []Node
-	err := db.Select(&nds, `SELECT * FROM node;`)
+	query := `SELECT * FROM node;`
+
+	if !includeDeleted {
+		query = `SELECT n.* FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 ;`
+	}
+
+	err := db.Select(&nds, query)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []Node{}, nil

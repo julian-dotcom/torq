@@ -76,6 +76,15 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 					request.ResponseChannel <- response
 				}
 			}
+			if request, ok := lightningRequest.(commons.NodeWalletBalanceRequest); ok {
+				if request.NodeId != nodeSettings.NodeId {
+					continue
+				}
+				response := processWalletBalanceRequest(ctx, request, client)
+				if request.ResponseChannel != nil {
+					request.ResponseChannel <- response
+				}
+			}
 		}
 	}()
 	wg.Wait()
@@ -497,4 +506,31 @@ func routingPolicyUpdateRequestIsRepeated(db *sqlx.DB, request commons.RoutingPo
 		}
 	}
 	return nil
+}
+
+func processWalletBalanceRequest(ctx context.Context, _ commons.NodeWalletBalanceRequest,
+	client lnrpc.LightningClient) commons.NodeWalletBalanceResponse {
+
+	response := commons.NodeWalletBalanceResponse{
+		CommunicationResponse: commons.CommunicationResponse{
+			Status: commons.Inactive,
+		},
+	}
+
+	walletBalanceRequest := lnrpc.WalletBalanceRequest{}
+
+	wb, err := client.WalletBalance(ctx, &walletBalanceRequest)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	response.Status = commons.Active
+	response.ReservedBalanceAnchorChan = wb.ReservedBalanceAnchorChan
+	response.UnconfirmedBalance = wb.UnconfirmedBalance
+	response.ConfirmedBalance = wb.ConfirmedBalance
+	response.TotalBalance = wb.TotalBalance
+	response.LockedBalance = wb.LockedBalance
+
+	return response
 }

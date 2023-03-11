@@ -461,3 +461,19 @@ type RebalanceResponse struct {
 	Request RebalanceRequest `json:"request"`
 	CommunicationResponse
 }
+
+type NodeWalletBalanceRequest struct {
+	nodeId int64
+	CommunicationRequest
+	ResponseChannel chan<- NodeWalletBalanceResponse `json:"-"`
+}
+
+type NodeWalletBalanceResponse struct {
+	TotalBalance              int64
+	ConfirmedBalance          int64
+	UnconfirmedBalance        int64
+	LockedBalance             int64
+	ReservedBalanceAnchorChan int64
+	CommunicationResponse
+	ResponseChannel chan<- SignatureVerificationResponse `json:"-"`
+}

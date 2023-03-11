@@ -23,7 +23,7 @@ import { Forward } from "features/forwards/forwardsTypes";
 import type { nodeConfiguration, settings, timeZone, services, updateSettingsRequest } from "apiTypes";
 import { createSelector } from "@reduxjs/toolkit";
 import { Network } from "features/network/networkSlice";
-import { lndServices } from "apiTypes";
+import { lndServices, nodeWalletBalances } from "apiTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -69,6 +69,7 @@ export const torqApi = createApi({
     "corridors",
     "workflows",
     "workflow",
+    "nodeWalletBalance",
     // "tagsForChannel",
     // "tagsForNodes",
   ],
@@ -171,6 +172,10 @@ export const torqApi = createApi({
       query: (nodeId) => `settings/nodeConnectionDetails/${nodeId}`,
       providesTags: ["nodeConfigurations"],
     }),
+    getNodesWalletBalances: builder.query<nodeWalletBalances[], void>({
+      query: () => "nodes/walletBalances",
+      providesTags: ["nodeWalletBalance"],
+    }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     addNodeConfiguration: builder.mutation<any, FormData>({
       query: (nodeConfiguration) => ({
@@ -237,6 +242,7 @@ export const {
   useGetTimeZonesQuery,
   useGetNodeConfigurationsQuery,
   useGetNodeConfigurationQuery,
+  useGetNodesWalletBalancesQuery,
   useUpdateNodeConfigurationMutation,
   useAddNodeConfigurationMutation,
   useUpdateNodeConfigurationStatusMutation,

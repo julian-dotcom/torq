@@ -21,7 +21,7 @@ import {
 import { NEW_ADDRESS, NEW_INVOICE, NEW_PAYMENT } from "constants/routes";
 import SummaryCard from "components/summary/summaryCard/SummaryCard";
 import SummaryNode from "components/summary/summaryNode/SummaryNode";
-import { useGetChannelsQuery, useGetNodeConfigurationsQuery } from "apiSlice";
+import { useGetChannelsQuery, useGetNodeConfigurationsQuery, useGetNodesWalletBalancesQuery } from "apiSlice";
 import { channel } from "features/channels/channelsTypes";
 import { useAppSelector } from "store/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
@@ -64,6 +64,7 @@ function DashboardPage() {
   const location = useLocation();
   const activeNetwork = useAppSelector(selectActiveNetwork);
 
+  const { data: nodesWalletBalances } = useGetNodesWalletBalancesQuery();
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
 
   const channelsResponse = useGetChannelsQuery<{
@@ -88,6 +89,7 @@ function DashboardPage() {
         capacity: 0,
       } as nodeSummary;
 
+    console.log(nodesWalletBalances);
     const onChainBalance = 0;
     const nodeSummary = acc[channel.nodeId];
     nodeSummary.channels += 1;

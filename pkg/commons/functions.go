@@ -533,3 +533,18 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 		},
 	}
 }
+
+func GetNodeWalletBalance(nodeId int, lightningRequestChannel chan<- interface{}) NodeWalletBalanceResponse {
+	unixTime := time.Now()
+	responseChannel := make(chan NodeWalletBalanceResponse)
+	request := NodeWalletBalanceRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		ResponseChannel: responseChannel,
+	}
+	lightningRequestChannel <- request
+	return <-responseChannel
+}

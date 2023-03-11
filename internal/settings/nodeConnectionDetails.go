@@ -59,7 +59,7 @@ func (ncd *NodeConnectionDetails) RemoveNodeConnectionDetailCustomSettings(custo
 }
 
 func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
-	allNodeConnectionDetails, err := getAllNodeConnectionDetails(db, true)
+	allNodeConnectionDetails, err := GetAllNodeConnectionDetails(db, true)
 	if err != nil {
 		return 0, errors.Wrap(err, "Getting local nodes from db")
 	}

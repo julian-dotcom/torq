@@ -99,3 +99,12 @@ export interface lndServices {
     typeString: string;
   }[];
 }
+
+export interface nodeWalletBalances {
+  nodeId: number;
+  totalBalance: number;
+  confirmedBalance: number;
+  unconfirmedBalance: number;
+  lockedBalance: number;
+  reservedBalanceAnchorChan: number;
+}

@@ -115,7 +115,7 @@ func getPingConnectionDetails(db *sqlx.DB, pingSystem PingSystem) ([]NodeConnect
 	return ncds, nil
 }
 
-func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]NodeConnectionDetails, error) {
+func GetAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]NodeConnectionDetails, error) {
 	var nodeConnectionDetailsArray []NodeConnectionDetails
 	var err error
 	if includeDeleted {
@@ -137,7 +137,7 @@ func getAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]NodeConnec
 }
 
 func InitializeManagedNodeCache(db *sqlx.DB) error {
-	nodeConnectionDetailsArray, err := getAllNodeConnectionDetails(db, true)
+	nodeConnectionDetailsArray, err := GetAllNodeConnectionDetails(db, true)
 	if err == nil {
 		log.Debug().Msg("Pushing torq nodes to ManagedNodes cache.")
 		for _, torqNode := range nodeConnectionDetailsArray {
