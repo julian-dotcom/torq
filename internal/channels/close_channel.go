@@ -3,6 +3,7 @@ package channels
 import (
 	"context"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/rs/zerolog/log"
 	"io"
 	"time"
 
@@ -46,7 +47,11 @@ func CloseChannel(db *sqlx.DB, req CloseChannelRequest) (response CloseChannelRe
 	if err != nil {
 		return CloseChannelResponse{}, errors.Wrap(err, "Connecting to LND")
 	}
-	defer conn.Close()
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Msgf("failed to close connection to lnd")
+		}
+	}()
 	client := lnrpc.NewLightningClient(conn)
 
 	closeChanReq, err := prepareCloseRequest(req)
