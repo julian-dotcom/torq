@@ -6,15 +6,15 @@ describe("formatDurationCell", () => {
   });
 
   it('formats seconds as "X and Y" when more than 1', () => {
-    expect(formatDurationCell(1234567)).toBe("14 days and 6 hours");
+    expect(formatDurationCell(1234567)).toBe("14 days, 6 hours");
   });
 
   it('formats seconds as "X and Y" when more than 1 year', () => {
-    expect(formatDurationCell(31708800)).toBe("1 year and 2 days");
+    expect(formatDurationCell(31708800)).toBe("1 year, 2 days");
   });
 
   it('formats seconds as "X and Y" when more than 1 year', () => {
-    expect(formatDurationCell(34387200)).toBe("1 year and 1 month");
+    expect(formatDurationCell(34387200)).toBe("1 year, 1 month");
   });
 
   it('formats seconds as "X" when only one unit', () => {
