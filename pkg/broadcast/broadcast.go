@@ -31,8 +31,6 @@ type BroadcastServer interface {
 	CancelSubscriptionPeerEvent(<-chan commons.PeerEvent)
 	SubscribeBlockEvent() <-chan commons.BlockEvent
 	CancelSubscriptionBlockEvent(<-chan commons.BlockEvent)
-	SubscribeWebSocketResponse() <-chan interface{}
-	CancelSubscriptionWebSocketResponse(<-chan interface{})
 	SubscribeLightningRequest() <-chan interface{}
 	CancelSubscriptionLightningRequest(<-chan interface{})
 	SubscribeRebalanceRequest() <-chan commons.RebalanceRequests
@@ -99,11 +97,6 @@ type broadcastServer struct {
 	blockEventListeners      []chan commons.BlockEvent
 	addBlockEventListener    chan chan commons.BlockEvent
 	removeBlockEventListener chan (<-chan commons.BlockEvent)
-
-	webSocketResponseSource         <-chan interface{}
-	webSocketResponseListeners      []chan interface{}
-	addWebSocketResponseListener    chan chan interface{}
-	removeWebSocketResponseListener chan (<-chan interface{})
 
 	lightningRequestSource         <-chan interface{}
 	lightningRequestListeners      []chan interface{}
@@ -224,15 +217,6 @@ func (s *broadcastServer) CancelSubscriptionBlockEvent(channel <-chan commons.Bl
 	s.removeBlockEventListener <- channel
 }
 
-func (s *broadcastServer) SubscribeWebSocketResponse() <-chan interface{} {
-	newListener := make(chan interface{})
-	s.addWebSocketResponseListener <- newListener
-	return newListener
-}
-func (s *broadcastServer) CancelSubscriptionWebSocketResponse(channel <-chan interface{}) {
-	s.removeWebSocketResponseListener <- channel
-}
-
 func (s *broadcastServer) SubscribeLightningRequest() <-chan interface{} {
 	newListener := make(chan interface{})
 	s.addLightningRequestListener <- newListener
@@ -264,7 +248,6 @@ func NewBroadcastServer(ctx context.Context,
 	transactionEventSource <-chan commons.TransactionEvent,
 	peerEventSource <-chan commons.PeerEvent,
 	blockEventSource <-chan commons.BlockEvent,
-	webSocketResponseSource <-chan interface{},
 	lightningRequestSource <-chan interface{},
 	rebalanceRequestSource <-chan commons.RebalanceRequests) BroadcastServer {
 	service := &broadcastServer{
@@ -328,11 +311,6 @@ func NewBroadcastServer(ctx context.Context,
 		addBlockEventListener:    make(chan chan commons.BlockEvent),
 		removeBlockEventListener: make(chan (<-chan commons.BlockEvent)),
 
-		webSocketResponseSource:         webSocketResponseSource,
-		webSocketResponseListeners:      make([]chan interface{}, 0),
-		addWebSocketResponseListener:    make(chan chan interface{}),
-		removeWebSocketResponseListener: make(chan (<-chan interface{})),
-
 		lightningRequestSource:         lightningRequestSource,
 		lightningRequestListeners:      make([]chan interface{}, 0),
 		addLightningRequestListener:    make(chan chan interface{}),
@@ -355,7 +333,6 @@ func NewBroadcastServer(ctx context.Context,
 	go service.serveTransactionEvent(ctx)
 	go service.servePeerEvent(ctx)
 	go service.serveBlockEvent(ctx)
-	go service.serveWebSocketResponse(ctx)
 	go service.serveLightningRequest(ctx)
 	go service.serveRebalanceRequest(ctx)
 	return service
@@ -841,47 +818,6 @@ func (s *broadcastServer) serveBlockEvent(ctx context.Context) {
 				return
 			}
 			for _, listener := range s.blockEventListeners {
-				if listener != nil {
-					select {
-					case listener <- val:
-					case <-ctx.Done():
-						return
-					}
-				}
-			}
-		}
-	}
-}
-
-func (s *broadcastServer) serveWebSocketResponse(ctx context.Context) {
-	defer func() {
-		for _, listener := range s.webSocketResponseListeners {
-			if listener != nil {
-				close(listener)
-			}
-		}
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case newListener := <-s.addWebSocketResponseListener:
-			s.webSocketResponseListeners = append(s.webSocketResponseListeners, newListener)
-		case listenerToRemove := <-s.removeWebSocketResponseListener:
-			for i, ch := range s.webSocketResponseListeners {
-				if ch == listenerToRemove {
-					s.webSocketResponseListeners[i] = s.webSocketResponseListeners[len(s.webSocketResponseListeners)-1]
-					s.webSocketResponseListeners = s.webSocketResponseListeners[:len(s.webSocketResponseListeners)-1]
-					close(ch)
-					break
-				}
-			}
-		case val, ok := <-s.webSocketResponseSource:
-			if !ok {
-				return
-			}
-			for _, listener := range s.webSocketResponseListeners {
 				if listener != nil {
 					select {
 					case listener <- val:

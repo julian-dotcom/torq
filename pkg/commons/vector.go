@@ -3,7 +3,6 @@ package commons
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -17,22 +16,15 @@ const VectorUrl = "https://vector.ln.capital/"
 const vectorShortchannelidUrlSuffix = "api/bitcoin/shortChannelId"
 const vectorTransactiondetailsUrlSuffix = "api/bitcoin/transactionDetails"
 
-func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string, fundingOutputIndex int,
-	nodeSettings ManagedNodeSettings,
-	lightningRequestChannel chan<- interface{}) string {
+func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputIndex int,
+	nodeSettings ManagedNodeSettings) string {
 
 	unixTime := time.Now()
-	message := fmt.Sprintf("%v/%v/%v", fundingTransactionHash, fundingOutputIndex, unixTime.Unix())
-	response := SignMessage(unixTime, nodeSettings.NodeId, message, nil, lightningRequestChannel)
-
 	requestObject := ShortChannelIdHttpRequest{
 		TransactionHash: fundingTransactionHash,
 		OutputIndex:     fundingOutputIndex,
 		UnixTime:        unixTime.Unix(),
 		PublicKey:       nodeSettings.PublicKey,
-	}
-	if response.Status == Active {
-		requestObject.Signature = response.Signature
 	}
 	requestObjectBytes, err := json.Marshal(requestObject)
 	if err != nil {
@@ -40,7 +32,7 @@ func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string
 			fundingTransactionHash, fundingOutputIndex)
 		return ""
 	}
-	req, err := http.NewRequest("GET", GetVectorUrl(vectorUrl, vectorShortchannelidUrlSuffix), bytes.NewBuffer(requestObjectBytes))
+	req, err := http.NewRequest("GET", GetVectorUrl(vectorShortchannelidUrlSuffix), bytes.NewBuffer(requestObjectBytes))
 	if err != nil {
 		log.Error().Msgf("Failed (http.NewRequest) to obtain shortChannelId for closed channel with channel point %v:%v",
 			fundingTransactionHash, fundingOutputIndex)
@@ -72,27 +64,21 @@ func GetShortChannelIdFromVector(vectorUrl string, fundingTransactionHash string
 	return vectorResponse.ShortChannelId
 }
 
-func GetTransactionDetailsFromVector(vectorUrl string, transactionHash string, nodeSettings ManagedNodeSettings,
-	lightningRequestChannel chan<- interface{}) TransactionDetailsHttpResponse {
+func GetTransactionDetailsFromVector(transactionHash string,
+	nodeSettings ManagedNodeSettings) TransactionDetailsHttpResponse {
 
 	unixTime := time.Now()
-	message := fmt.Sprintf("%v/%v", transactionHash, unixTime.Unix())
-	response := SignMessage(unixTime, nodeSettings.NodeId, message, nil, lightningRequestChannel)
-
 	requestObject := TransactionDetailsHttpRequest{
 		TransactionHash: transactionHash,
 		UnixTime:        unixTime.Unix(),
 		PublicKey:       nodeSettings.PublicKey,
-	}
-	if response.Status == Active {
-		requestObject.Signature = response.Signature
 	}
 	requestObjectBytes, err := json.Marshal(requestObject)
 	if err != nil {
 		log.Error().Msgf("Failed (Marshal) to obtain transaction details for transaction hash %v", transactionHash)
 		return TransactionDetailsHttpResponse{}
 	}
-	req, err := http.NewRequest("GET", GetVectorUrl(vectorUrl, vectorTransactiondetailsUrlSuffix), bytes.NewBuffer(requestObjectBytes))
+	req, err := http.NewRequest("GET", GetVectorUrl(vectorTransactiondetailsUrlSuffix), bytes.NewBuffer(requestObjectBytes))
 	if err != nil {
 		log.Error().Msgf("Failed (http.NewRequest) to obtain transaction details for transaction hash %v", transactionHash)
 		return TransactionDetailsHttpResponse{}

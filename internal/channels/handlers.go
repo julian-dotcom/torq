@@ -218,14 +218,14 @@ func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-func GetChannelsByNetwork(db *sqlx.DB, network commons.Network) ([]ChannelBody, error) {
+func GetChannelsByNetwork(network commons.Network) ([]ChannelBody, error) {
 	var channelsBody []ChannelBody
 	chain := commons.Bitcoin
 	nodeIds := commons.GetAllTorqNodeIdsByNetwork(chain, network)
 	for _, nodeId := range nodeIds {
 		// Force Response because we don't care about balance accuracy
 		channelIds := commons.GetChannelStateChannelIds(nodeId, true)
-		channelsBodyByNode, err := GetChannelsByIds(db, nodeId, channelIds)
+		channelsBodyByNode, err := GetChannelsByIds(nodeId, channelIds)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Obtain channels for nodeId: %v", nodeId)
 		}
@@ -234,7 +234,7 @@ func GetChannelsByNetwork(db *sqlx.DB, network commons.Network) ([]ChannelBody, 
 	return channelsBody, nil
 }
 
-func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody, error) {
+func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 	var channelsBody []ChannelBody
 	for _, channelId := range channelIds {
 		// Force Response because we don't care about balance accuracy
@@ -325,14 +325,14 @@ func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody,
 	return channelsBody, nil
 }
 
-func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
+func getChannelListHandler(c *gin.Context) {
 	network, err := strconv.Atoi(c.Query("network"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Can't process network")
 		return
 	}
 
-	channelsBody, err := GetChannelsByNetwork(db, commons.Network(network))
+	channelsBody, err := GetChannelsByNetwork(commons.Network(network))
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Get channel tags for channel")
 		return
@@ -347,8 +347,9 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	channels, err := getClosedChannels(db, network)
-
+	channels, err := getChannelsWithStatus(db, commons.Network(network),
+		[]commons.ChannelStatus{commons.CooperativeClosed, commons.LocalForceClosed, commons.RemoteForceClosed,
+			commons.BreachClosed, commons.FundingCancelledClosed, commons.AbandonedClosed})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
 		err = errors.Wrap(err, "Problem getting closed channels from db")
@@ -422,7 +423,8 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	channels, err := getPendingChannels(db, network)
+	channels, err := getChannelsWithStatus(db, commons.Network(network),
+		[]commons.ChannelStatus{commons.Opening, commons.Closing})
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))

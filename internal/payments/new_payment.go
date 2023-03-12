@@ -33,7 +33,7 @@ type rrpcClientSendPayment interface {
 // payments hash - the hash to use within the payment's HTLC
 // timeout seconds is mandatory
 func SendNewPayment(
-	eventChannel chan<- interface{},
+	webSocketResponseChannel chan<- interface{},
 	db *sqlx.DB,
 	npReq commons.NewPaymentRequest,
 	requestId string,
@@ -56,7 +56,7 @@ func SendNewPayment(
 	}
 	defer conn.Close()
 	client := routerrpc.NewRouterClient(conn)
-	return sendPayment(client, npReq, eventChannel, requestId)
+	return sendPayment(client, npReq, webSocketResponseChannel, requestId)
 }
 
 func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPaymentRequest, err error) {
@@ -94,7 +94,10 @@ func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPa
 	return newPayReq, nil
 }
 
-func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, eventChannel chan<- interface{}, requestId string) (err error) {
+func sendPayment(client rrpcClientSendPayment,
+	npReq commons.NewPaymentRequest,
+	webSocketResponseChannel chan<- interface{},
+	requestId string) (err error) {
 
 	// Create and validate payment request details
 	newPayReq, err := newSendPaymentRequest(npReq)
@@ -138,9 +141,9 @@ func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, 
 			return errors.New("UNKNOWN_ERROR")
 		}
 
-		if eventChannel != nil {
+		if webSocketResponseChannel != nil {
 			// Write the payment status to the client
-			eventChannel <- processResponse(resp, npReq, requestId)
+			webSocketResponseChannel <- processResponse(resp, npReq, requestId)
 		}
 	}
 }

@@ -48,7 +48,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
     triggers: true,
     dataSources: true,
     actions: true,
-    advanced: true,
+    advanced: false,
   });
 
   const toggleSection = (section: keyof typeof sectionState) => {
@@ -88,7 +88,6 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           expanded={sectionState.actions}
           handleToggle={() => toggleSection("actions")}
         >
-          <EventFilterNodeButton />
           <ChannelFilterNodeButton />
           <ChannelPolicyAutoRunNodeButton />
           <RebalanceAutoRunNodeButton />
@@ -101,6 +100,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           expanded={sectionState.advanced}
           handleToggle={() => toggleSection("advanced")}
         >
+          <EventFilterNodeButton />
           <ChannelPolicyConfiguratorNodeButton />
           <ChannelPolicyRunNodeButton />
           <RebalanceConfiguratorNodeButton />

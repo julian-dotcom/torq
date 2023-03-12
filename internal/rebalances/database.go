@@ -6,15 +6,13 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
-func AddRebalanceAndChannels(db *sqlx.DB, rebalancer Rebalance, rebalancerChannelIds []int) (int, error) {
-	tx := db.MustBegin()
-	err := tx.QueryRowx(`
+func AddRebalance(db *sqlx.DB, rebalancer Rebalance) (int, error) {
+	err := db.QueryRowx(`
 			INSERT INTO rebalance (incoming_channel_id, outgoing_channel_id, status,
 			                       origin, origin_id, origin_reference,
 			                       amount_msat, maximum_concurrency, maximum_costmsat,
@@ -26,80 +24,20 @@ func AddRebalanceAndChannels(db *sqlx.DB, rebalancer Rebalance, rebalancerChanne
 		rebalancer.ScheduleTarget, rebalancer.CreatedOn, rebalancer.UpdateOn).
 		Scan(&rebalancer.RebalanceId)
 	if err != nil {
-		if rb := tx.Rollback(); rb != nil {
-			log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-		}
 		return 0, errors.Wrap(err, database.SqlExecutionError)
-	}
-	for _, rebalanceChannelId := range rebalancerChannelIds {
-		_, err = tx.Exec(`
-				INSERT INTO rebalance_channel (channel_id, status, rebalance_id, created_on, updated_on)
-				VALUES ($1, $2, $3, $4, $5);`,
-			rebalanceChannelId, commons.Active, rebalancer.RebalanceId, rebalancer.CreatedOn, rebalancer.UpdateOn)
-		if err != nil {
-			if rb := tx.Rollback(); rb != nil {
-				log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-			}
-			return 0, errors.Wrapf(err, "Storing rebalancer's (%v) channel (%v) ", rebalancer.RebalanceId, rebalanceChannelId)
-		}
-	}
-	err = tx.Commit()
-	if err != nil {
-		return 0, errors.Wrap(err, database.SqlCommitTransactionError)
 	}
 	return rebalancer.RebalanceId, nil
 }
 
-func SetRebalanceAndChannels(db *sqlx.DB, originReference string, amountMsat uint64, maximumConcurrency int,
-	maximumCostMsat uint64, updateOn time.Time, rebalanceId int, rebalanceChannelIds []int) error {
-	tx := db.MustBegin()
-	_, err := tx.Exec(`
+func SetRebalance(db *sqlx.DB, originReference string, amountMsat uint64, maximumConcurrency int,
+	maximumCostMsat uint64, updateOn time.Time, rebalanceId int) error {
+	_, err := db.Exec(`
 			UPDATE rebalance
 			SET origin_reference=$1, amount_msat=$2, maximum_concurrency=$3, maximum_costmsat=$4, updated_on=$5
 			WHERE rebalance_id=$6;`,
 		originReference, amountMsat, maximumConcurrency, maximumCostMsat, updateOn, rebalanceId)
 	if err != nil {
-		if rb := tx.Rollback(); rb != nil {
-			log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-		}
 		return errors.Wrapf(err, "Update rebalancer %v", rebalanceId)
-	}
-	_, err = tx.Exec(`UPDATE rebalance_channel SET status=$1 WHERE rebalance_id=$2;`, commons.Inactive, rebalanceId)
-	if err != nil {
-		if rb := tx.Rollback(); rb != nil {
-			log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-		}
-		return errors.Wrapf(err, "Inactivate rebalancer's channels %v", rebalanceId)
-	}
-	for _, rebalanceChannelId := range rebalanceChannelIds {
-		res, err := tx.Exec(`UPDATE rebalance_channel SET status=$1 WHERE rebalance_id=$2 AND channel_id=$3;`,
-			commons.Active, rebalanceId, rebalanceChannelId)
-		if err != nil {
-			if rb := tx.Rollback(); rb != nil {
-				log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-			}
-			return errors.Wrapf(err, "Reactivate rebalancer's (%v) channel (%v) ", rebalanceId, rebalanceChannelId)
-		}
-		rowsAffected, err := res.RowsAffected()
-		if err != nil {
-			return errors.Wrap(err, database.SqlAffectedRowsCheckError)
-		}
-		if rowsAffected == 0 {
-			_, err = db.Exec(`
-				INSERT INTO rebalance_channel (channel_id, status, rebalance_id, created_on, updated_on)
-				VALUES ($1, $2, $3, $4, $5);`,
-				rebalanceChannelId, commons.Active, rebalanceId, updateOn, updateOn)
-			if err != nil {
-				if rb := tx.Rollback(); rb != nil {
-					log.Error().Err(rb).Msg(database.SqlRollbackTransactionError)
-				}
-				return errors.Wrapf(err, "Activate rebalancer's (%v) channel (%v) ", rebalanceId, rebalanceChannelId)
-			}
-		}
-	}
-	err = tx.Commit()
-	if err != nil {
-		return errors.Wrap(err, database.SqlCommitTransactionError)
 	}
 	return nil
 }

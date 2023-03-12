@@ -54,7 +54,7 @@ func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
 				triggerSettings := commons.GetTimeTriggerSettingsByWorkflowVersionId(workflowTriggerNode.WorkflowVersionId)
 				var param workflows.IntervalTriggerParameters
-				err := json.Unmarshal([]byte(workflowTriggerNode.Parameters.([]uint8)), &param)
+				err := json.Unmarshal([]byte(workflowTriggerNode.Parameters), &param)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to parse parameters for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 					continue
@@ -131,7 +131,7 @@ bootstrappingLoop:
 	var crons []*cron.Cron
 	for _, trigger := range workflowTriggerNodes {
 		var params CronTriggerParams
-		if err = json.Unmarshal(trigger.Parameters.([]byte), &params); err != nil {
+		if err = json.Unmarshal([]byte(trigger.Parameters), &params); err != nil {
 			log.Error().Msgf("Can't unmarshal parameters for workflow version node id: %v", trigger.WorkflowVersionNodeId)
 			continue
 		}

@@ -56,6 +56,7 @@ type ManagedChannel struct {
 	ClosingNodeId          *int
 	ClosingBlockHeight     *uint32
 	ClosedOn               *time.Time
+	Flags                  ChannelFlags
 	Out                    chan<- ManagedChannel
 	ChannelSettingOut      chan<- ManagedChannelSettings
 	ChannelSettingsOut     chan<- []ManagedChannelSettings
@@ -81,6 +82,17 @@ type ManagedChannelSettings struct {
 	ClosingNodeId          *int
 	ClosingBlockHeight     *uint32
 	ClosedOn               *time.Time
+	Flags                  ChannelFlags
+}
+
+func (channelSettings *ManagedChannelSettings) AddChannelFlags(flags ChannelFlags) {
+	channelSettings.Flags |= flags
+}
+func (channelSettings *ManagedChannelSettings) HasChannelFlags(flags ChannelFlags) bool {
+	return channelSettings.Flags&flags != 0
+}
+func (channelSettings *ManagedChannelSettings) RemoveChannelFlags(flags ChannelFlags) {
+	channelSettings.Flags &= ^flags
 }
 
 func ManagedChannelCache(ch <-chan ManagedChannel, ctx context.Context) {
@@ -182,6 +194,7 @@ func processManagedChannel(managedChannel ManagedChannel,
 				ClosingNodeId:          managedChannel.ClosingNodeId,
 				ClosingBlockHeight:     managedChannel.ClosingBlockHeight,
 				ClosedOn:               managedChannel.ClosedOn,
+				Flags:                  managedChannel.Flags,
 			}
 		}
 	case WRITE_CHANNELSTATUSID:
@@ -380,7 +393,8 @@ func SetChannel(channelId int, shortChannelId *string, lndShortChannelId *uint64
 	fundingBlockHeight *uint32, fundedOn *time.Time,
 	capacity int64, private bool, firstNodeId int, secondNodeId int,
 	initiatingNodeId *int, acceptingNodeId *int,
-	closingTransactionHash *string, closingNodeId *int, closingBlockHeight *uint32, closedOn *time.Time) {
+	closingTransactionHash *string, closingNodeId *int, closingBlockHeight *uint32, closedOn *time.Time,
+	flags ChannelFlags) {
 
 	managedChannel := ManagedChannel{
 		ChannelId:              channelId,
@@ -399,6 +413,7 @@ func SetChannel(channelId int, shortChannelId *string, lndShortChannelId *uint64
 		ClosingNodeId:          closingNodeId,
 		ClosingBlockHeight:     closingBlockHeight,
 		ClosedOn:               closedOn,
+		Flags:                  flags,
 		Type:                   WRITE_CHANNEL,
 	}
 	if shortChannelId != nil && *shortChannelId != "" {

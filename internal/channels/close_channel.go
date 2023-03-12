@@ -16,6 +16,8 @@ import (
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
+const closeChannelTimeoutInSeconds = 60
+
 type CloseChannelRequest struct {
 	NodeId          int     `json:"nodeId"`
 	ChannelId       int     `json:"channelId"`
@@ -96,11 +98,13 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelReques
 	return closeChanReq, nil
 }
 
-func closeChannelResp(db *sqlx.DB, client lnrpc.LightningClient, closeChanReq *lnrpc.CloseChannelRequest,
+func closeChannelResp(db *sqlx.DB,
+	client lnrpc.LightningClient,
+	closeChanReq *lnrpc.CloseChannelRequest,
 	ccReq CloseChannelRequest) (CloseChannelResponse, error) {
-	// Create a context with a timeout of 60 seconds.
-	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+
+	// Create a context with a timeout.
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), closeChannelTimeoutInSeconds*time.Second)
 	defer cancel()
 
 	// Call CloseChannel with the timeout context.
@@ -150,7 +154,5 @@ func closeChannelResp(db *sqlx.DB, client lnrpc.LightningClient, closeChanReq *l
 			}
 			return r, nil
 		}
-		// Sleep for a short period to avoid spinning too fast.
-		time.Sleep(100 * time.Millisecond)
 	}
 }

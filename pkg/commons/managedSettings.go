@@ -25,6 +25,7 @@ type ManagedSettings struct {
 	TorqUuid          string
 	MixpanelOptOut    bool
 	BlockHeight       uint32
+	VectorUrl         string
 	Out               chan<- ManagedSettings
 }
 
@@ -36,14 +37,16 @@ func ManagedSettingsCache(ch <-chan ManagedSettings, ctx context.Context) {
 	var torqUuid string
 	var mixpanelOptOut bool
 	var blockHeight uint32
+	var vectorUrl string
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case managedSettings := <-ch:
-			defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn, torqUuid, mixpanelOptOut, blockHeight =
+			defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn, torqUuid, mixpanelOptOut, blockHeight,
+				vectorUrl =
 				processManagedSettings(managedSettings, defaultLanguage, preferredTimeZone, defaultDateRange,
-					weekStartsOn, torqUuid, mixpanelOptOut, blockHeight)
+					weekStartsOn, torqUuid, mixpanelOptOut, blockHeight, vectorUrl)
 		}
 	}
 }
@@ -51,7 +54,7 @@ func ManagedSettingsCache(ch <-chan ManagedSettings, ctx context.Context) {
 func processManagedSettings(managedSettings ManagedSettings,
 	defaultLanguage string, preferredTimeZone string, defaultDateRange string,
 	weekStartsOn string, torqUuid string, mixpanelOptOut bool,
-	blockHeight uint32) (string, string, string, string, string, bool, uint32) {
+	blockHeight uint32, vectorUrl string) (string, string, string, string, string, bool, uint32, string) {
 
 	switch managedSettings.Type {
 	case READ_SETTINGS:
@@ -74,6 +77,7 @@ func processManagedSettings(managedSettings ManagedSettings,
 		managedSettings.TorqUuid = torqUuid
 		managedSettings.MixpanelOptOut = mixpanelOptOut
 		managedSettings.BlockHeight = blockHeight
+		managedSettings.VectorUrl = vectorUrl
 		SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
 	case WRITE_SETTINGS:
 		defaultLanguage = managedSettings.DefaultLanguage
@@ -82,10 +86,12 @@ func processManagedSettings(managedSettings ManagedSettings,
 		weekStartsOn = managedSettings.WeekStartsOn
 		torqUuid = managedSettings.TorqUuid
 		mixpanelOptOut = managedSettings.MixpanelOptOut
+		vectorUrl = managedSettings.VectorUrl
 	case WRITE_BLOCKHEIGHT:
 		blockHeight = managedSettings.BlockHeight
 	}
-	return defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn, torqUuid, mixpanelOptOut, blockHeight
+	return defaultLanguage, preferredTimeZone, defaultDateRange, weekStartsOn, torqUuid, mixpanelOptOut, blockHeight,
+		vectorUrl
 }
 
 func SendToManagedSettingsChannel(ch chan<- ManagedSettings, managedSettings ManagedSettings) {
@@ -103,7 +109,7 @@ func GetSettings() ManagedSettings {
 }
 
 func SetSettings(defaultDateRange string, defaultLanguage string, weekStartsOn string, preferredTimeZone string,
-	torqUuid string, mixpanelOptOut bool) {
+	torqUuid string, mixpanelOptOut bool, vectorUrl string) {
 	managedSettings := ManagedSettings{
 		DefaultDateRange:  defaultDateRange,
 		DefaultLanguage:   defaultLanguage,
@@ -111,6 +117,7 @@ func SetSettings(defaultDateRange string, defaultLanguage string, weekStartsOn s
 		PreferredTimeZone: preferredTimeZone,
 		TorqUuid:          torqUuid,
 		MixpanelOptOut:    mixpanelOptOut,
+		VectorUrl:         vectorUrl,
 		Type:              WRITE_SETTINGS,
 	}
 	ManagedSettingsChannel <- managedSettings
@@ -133,4 +140,15 @@ func SetBlockHeight(blockHeight uint32) {
 		Type:        WRITE_BLOCKHEIGHT,
 	}
 	ManagedSettingsChannel <- managedSettings
+}
+
+func GetVectorUrlBase() string {
+	settingsResponseChannel := make(chan ManagedSettings)
+	managedSettings := ManagedSettings{
+		Type: READ_SETTINGS,
+		Out:  settingsResponseChannel,
+	}
+	ManagedSettingsChannel <- managedSettings
+	settings := <-settingsResponseChannel
+	return settings.VectorUrl
 }

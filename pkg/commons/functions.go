@@ -251,8 +251,8 @@ func GetDeltaPerMille(base uint64, amt uint64) int {
 	}
 }
 
-func GetVectorUrl(vectorUrl string, suffix string) string {
-	return vectorUrl + suffix
+func GetVectorUrl(suffix string) string {
+	return GetVectorUrlBase() + suffix
 }
 
 func IsWorkflowNodeTypeGrouped(workflowNodeType WorkflowNodeType) bool {
@@ -275,7 +275,8 @@ func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
 	return []WorkflowParameterLabel{
 		WorkflowParameterLabelRoutingPolicySettings,
 		WorkflowParameterLabelRebalanceSettings,
-		WorkflowParameterLabelStatus}
+		WorkflowParameterLabelStatus,
+	}
 }
 
 func SignMessage(unixTime time.Time, nodeId int, message string, singleHash *bool,
