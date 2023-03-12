@@ -184,7 +184,8 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		       status_id, capacity, private,
 		       first_node_id, second_node_id, initiating_node_id, accepting_node_id,
 		       closing_transaction_hash, closing_node_id,
-		       closing_block_height, closed_on
+		       closing_block_height, closed_on,
+		       flags
 		FROM channel;`)
 	if err != nil {
 		return errors.Wrap(err, "Obtaining channelIds and shortChannelIds")
@@ -209,20 +210,22 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		var closingNodeId *int
 		var closingBlockHeight *uint32
 		var closedOn *time.Time
+		var flags commons.ChannelFlags
 		err = rows.Scan(&channelId, &shortChannelId, &lndShortChannelId,
 			&fundingTransactionHash, &fundingOutputIndex,
 			&fundingBlockHeight, &fundedOn,
 			&status, &capacity, &private,
 			&firstNodeId, &secondNodeId, &initiatingNodeId, &acceptingNodeId,
 			&closingTransactionHash, &closingNodeId,
-			&closingBlockHeight, &closedOn)
+			&closingBlockHeight, &closedOn, &flags)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining channelId and shortChannelId from the resultSet")
 		}
 		commons.SetChannel(channelId, shortChannelId, lndShortChannelId, status,
 			fundingTransactionHash, fundingOutputIndex, fundingBlockHeight, fundedOn,
 			capacity, private, firstNodeId, secondNodeId, initiatingNodeId, acceptingNodeId,
-			closingTransactionHash, closingNodeId, closingBlockHeight, closedOn)
+			closingTransactionHash, closingNodeId, closingBlockHeight, closedOn,
+			flags)
 	}
 	return nil
 }
@@ -273,17 +276,17 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 		  closing_transaction_hash, closing_node_id, closing_block_height, closed_on,
 		  lnd_short_channel_id,
 		  first_node_id, second_node_id, initiating_node_id, accepting_node_id,
-		  capacity, private, status_id,
+		  capacity, private, status_id, flags,
 		  created_on, updated_on
 		) VALUES (
-		  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+		  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
 		) RETURNING channel_id;`,
 		channel.ShortChannelID,
 		channel.FundingTransactionHash, channel.FundingOutputIndex, channel.FundingBlockHeight, channel.FundedOn,
 		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn,
 		channel.LNDShortChannelID,
 		channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId,
-		channel.Capacity, channel.Private, channel.Status,
+		channel.Capacity, channel.Private, channel.Status, channel.Flags,
 		channel.CreatedOn, channel.UpdateOn).Scan(&channel.ChannelID)
 	if err != nil {
 		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
@@ -291,20 +294,20 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.LNDShortChannelID, channel.Status,
 		channel.FundingTransactionHash, channel.FundingOutputIndex, channel.FundingBlockHeight, channel.FundedOn,
 		channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId,
-		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn)
+		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn,
+		channel.Flags)
 	return channel, nil
 }
 
-func getClosedChannels(db *sqlx.DB, network int) ([]Channel, error) {
+func getChannelsWithStatus(db *sqlx.DB, network commons.Network, status []commons.ChannelStatus) ([]Channel, error) {
 	var channels []Channel
-
+	bitcoin := commons.Bitcoin
 	err := db.Select(&channels, `
-		SELECT c.* FROM Channel c
-		JOIN Node n on n.node_id = c.First_Node_Id
-		JOIN Node_Connection_Details ncd on ncd.node_id = n.node_id
-	 	WHERE ncd.status_id != 3 AND n.network =$1 AND c.Status_id in (100,101,102,103,104,105)
-	`, network)
-
+		SELECT *
+		FROM channel
+		WHERE (first_node_id = ANY($1) OR second_node_id = ANY($1)) AND status_id = ANY($2)
+		`, pq.Array(commons.GetAllActiveTorqNodeIds(&bitcoin, &network)),
+		pq.Array(status))
 	if err != nil {
 		if errors.As(err, &sql.ErrNoRows) {
 			return nil, nil
@@ -315,31 +318,23 @@ func getClosedChannels(db *sqlx.DB, network int) ([]Channel, error) {
 	return channels, nil
 }
 
-func getPendingChannels(db *sqlx.DB, network int) ([]Channel, error) {
-	var channels []Channel
-
-	err := db.Select(&channels, `
-		SELECT c.* FROM Channel c
-		JOIN Node n on n.node_id = c.First_Node_Id
-		JOIN Node_Connection_Details ncd on ncd.node_id = n.node_id
-	 	WHERE ncd.status_id != 3 AND n.network =$1 AND n.network =$1 AND c.Status_id in (0,2)
-	`, network)
-
-	if err != nil {
-		if errors.As(err, &sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, errors.Wrap(err, database.SqlExecutionError)
-	}
-
-	return channels, nil
-}
-
-func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionId string) error {
-	_, err := db.Exec(`UPDATE channel SET status_id=$1, closing_transaction_hash=$2, updated_on=$3 WHERE channel_id=$4;`,
-		commons.Closing, closingTransactionId, time.Now().UTC(), channelId)
+func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionHash string) error {
+	currentSettings := commons.GetChannelSettingByChannelId(channelId)
+	_, err := db.Exec(`
+		UPDATE channel
+		SET status_id=$1, closing_transaction_hash=$2, updated_on=$3
+		WHERE channel_id=$4;`,
+		commons.Closing, closingTransactionHash, time.Now().UTC(), channelId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
+	commons.SetChannel(channelId, &currentSettings.ShortChannelId, &currentSettings.LndShortChannelId, commons.Closing,
+		currentSettings.FundingTransactionHash, currentSettings.FundingOutputIndex,
+		currentSettings.FundingBlockHeight, currentSettings.FundedOn,
+		currentSettings.Capacity, currentSettings.Private, currentSettings.FirstNodeId, currentSettings.SecondNodeId,
+		currentSettings.InitiatingNodeId, currentSettings.AcceptingNodeId,
+		&closingTransactionHash, currentSettings.ClosingNodeId,
+		currentSettings.ClosingBlockHeight, currentSettings.ClosedOn,
+		currentSettings.Flags)
 	return nil
 }

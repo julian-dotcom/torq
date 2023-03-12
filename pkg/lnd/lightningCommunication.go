@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -11,12 +12,16 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
 const routingPolicyUpdateLimiterSeconds = 5 * 60
+
+// 70 because a reconnection is attempted every 60 seconds
+const avoidChannelAndPolicyImportRerunTimeSeconds = 70
 
 func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 	broadcaster broadcast.BroadcastServer) {
@@ -27,6 +32,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	router := routerrpc.NewRouterClient(conn)
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	successTimes := make(map[commons.ImportType]time.Time, 0)
 
 	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeLightningRequest()
@@ -34,7 +40,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	go func() {
 		defer wg.Done()
 		for range ctx.Done() {
-			broadcaster.CancelSubscriptionWebSocketResponse(listener)
+			broadcaster.CancelSubscriptionLightningRequest(listener)
 			return
 		}
 	}()
@@ -76,9 +82,124 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 					request.ResponseChannel <- response
 				}
 			}
+			if request, ok := lightningRequest.(commons.ImportRequest); ok {
+				if request.NodeId != nodeSettings.NodeId {
+					continue
+				}
+				response := processImportRequest(ctx, db, request, successTimes, client)
+				if request.ResponseChannel != nil {
+					request.ResponseChannel <- response
+				}
+			}
 		}
 	}()
 	wg.Wait()
+}
+
+func processImportRequest(ctx context.Context, db *sqlx.DB, request commons.ImportRequest,
+	successTimes map[commons.ImportType]time.Time,
+	client lnrpc.LightningClient) commons.ImportResponse {
+
+	nodeSettings := commons.GetNodeSettingsByNodeId(request.NodeId)
+
+	response := commons.ImportResponse{
+		Request: request,
+		CommunicationResponse: commons.CommunicationResponse{
+			Status: commons.Inactive,
+		},
+	}
+
+	successTime, exists := successTimes[request.ImportType]
+	if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
+		switch request.ImportType {
+		case commons.ImportAllChannels:
+			log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", request.NodeId)
+		case commons.ImportPendingChannelsOnly:
+			log.Info().Msgf("Pending Channels were imported very recently for nodeId: %v.", request.NodeId)
+		case commons.ImportChannelRoutingPolicies:
+			log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", request.NodeId)
+		case commons.ImportNodeInformation:
+			log.Info().Msgf("NodeInformation were imported very recently for nodeId: %v.", request.NodeId)
+		}
+		return response
+	}
+	switch request.ImportType {
+	case commons.ImportAllChannels:
+		var err error
+		//Import Pending channels
+		err = ImportPendingChannels(ctx, db, client, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import pending channels.")
+			response.Error = err
+			return response
+		}
+
+		//Import Open channels
+		err = ImportOpenChannels(ctx, db, client, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import open channels.")
+			response.Error = err
+			return response
+		}
+
+		// Import Closed channels
+		err = ImportClosedChannels(ctx, db, client, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import closed channels.")
+			response.Error = err
+			return response
+		}
+
+		// TODO FIXME channels with short_channel_id = null and status IN (1,2,100,101,102,103) should be fixed somehow???
+		//  Open                   = 1
+		//  Closing                = 2
+		//	CooperativeClosed      = 100
+		//	LocalForceClosed       = 101
+		//	RemoteForceClosed      = 102
+		//	BreachClosed           = 103
+
+		err = channels.InitializeManagedChannelCache(db)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to Initialize ManagedChannelCache.")
+			response.Error = err
+			return response
+		}
+		log.Info().Msgf("All Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
+	case commons.ImportPendingChannelsOnly:
+		err := ImportPendingChannels(ctx, db, client, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import pending channels.")
+			response.Error = err
+			return response
+		}
+
+		err = channels.InitializeManagedChannelCache(db)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to Initialize ManagedChannelCache.")
+			response.Error = err
+			return response
+		}
+		log.Info().Msgf("Pending Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
+	case commons.ImportChannelRoutingPolicies:
+		err := ImportRoutingPolicies(ctx, client, db, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import routing policies.")
+			response.Error = err
+			return response
+		}
+		log.Info().Msgf("ChannelRoutingPolicies were imported successfully for nodeId: %v.", nodeSettings.NodeId)
+	case commons.ImportNodeInformation:
+		err := ImportNodeInfo(ctx, client, db, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import node information.")
+			response.Error = err
+			return response
+		}
+		log.Info().Msgf("NodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
+	}
+	successTimes[request.ImportType] = time.Now()
+	response.Status = commons.Active
+	return response
 }
 
 func processSignMessageRequest(ctx context.Context, request commons.SignMessageRequest,

@@ -41,7 +41,7 @@ import (
 )
 
 func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
-	webSocketResponseChannel chan<- interface{}, broadcaster broadcast.BroadcastServer,
+	broadcaster broadcast.BroadcastServer,
 	lightningRequestChannel chan<- interface{},
 	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	serviceChannel chan<- commons.ServiceChannelMessage,
@@ -58,7 +58,7 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 		return errors.Wrap(err, "Creating Gin Session")
 	}
 
-	registerRoutes(r, db, apiPswd, cookiePath, webSocketResponseChannel, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel, autoLogin)
+	registerRoutes(r, db, apiPswd, cookiePath, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel, autoLogin)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -118,7 +118,7 @@ func equalASCIIFold(s, t string) bool {
 }
 
 func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string,
-	webSocketResponseChannel chan<- interface{}, broadcaster broadcast.BroadcastServer,
+	broadcaster broadcast.BroadcastServer,
 	lightningRequestChannel chan<- interface{},
 	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	serviceChannel chan<- commons.ServiceChannelMessage,
@@ -130,7 +130,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 	ws := r.Group("/ws")
 	ws.Use(auth.AuthRequired(autoLogin))
 	ws.GET("", func(c *gin.Context) {
-		err := WebsocketHandler(c, db, webSocketResponseChannel, broadcaster)
+		err := WebsocketHandler(c, db)
 		log.Debug().Msgf("WebsocketHandler: %v", err)
 	})
 

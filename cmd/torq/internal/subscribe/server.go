@@ -2,6 +2,7 @@ package subscribe
 
 import (
 	"context"
+	"fmt"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd"
@@ -26,16 +26,13 @@ const streamPaymentsTickerSeconds = 10
 const streamInflightPaymentsTickerSeconds = 60
 const streamForwardsTickerSeconds = 10
 
-// 70 because a reconnection is attempted every 60 seconds
-const avoidChannelAndPolicyImportRerunTimeSeconds = 70
-
 const genericBootstrappingTimeSeconds = 60
 
 // Start runs the background server. It subscribes to events, gossip and
 // fetches data as needed and stores it in the database.
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
-func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl string, nodeId int, broadcaster broadcast.BroadcastServer,
+func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, broadcaster broadcast.BroadcastServer,
 	serviceEventChannel chan<- commons.ServiceEvent, htlcEventChannel chan<- commons.HtlcEvent, forwardEventChannel chan<- commons.ForwardEvent,
 	channelEventChannel chan<- commons.ChannelEvent, nodeGraphEventChannel chan<- commons.NodeGraphEvent, channelGraphEventChannel chan<- commons.ChannelGraphEvent,
 	invoiceEventChannel chan<- commons.InvoiceEvent, paymentEventChannel chan<- commons.PaymentEvent, transactionEventChannel chan<- commons.TransactionEvent,
@@ -49,106 +46,50 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 
 	var wg sync.WaitGroup
 
-	importRequestChannel := make(chan lnd.ImportRequest)
-	go (func() {
-		successTimes := make(map[lnd.ImportType]time.Time, 0)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case importRequest := <-importRequestChannel:
-				successTime, exists := successTimes[importRequest.ImportType]
-				if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
-					if importRequest.ImportType == lnd.ImportChannelAndRoutingPolicies {
-						log.Info().Msgf("ImportChannelAndRoutingPolicies were imported very recently for nodeId: %v.", nodeSettings.NodeId)
-					}
-					if importRequest.ImportType == lnd.ImportNodeInformation {
-						log.Info().Msgf("ImportNodeInformation were imported very recently for nodeId: %v.", nodeSettings.NodeId)
-					}
-					importRequest.Out <- nil
-					continue
-				}
-				if importRequest.ImportType == lnd.ImportChannelAndRoutingPolicies {
-					var err error
-					//Import Pending channels
-					err = lnd.ImportPendingChannels(db, vectorUrl, client, nodeSettings, lightningRequestChannel)
-					if err != nil {
-						log.Error().Err(err).Msgf("Failed to import pending channels.")
-						importRequest.Out <- err
-						continue
-					}
-
-					//Import Open channels
-					err = lnd.ImportOpenChannels(db, vectorUrl, client, nodeSettings, lightningRequestChannel)
-					if err != nil {
-						log.Error().Err(err).Msgf("Failed to import open channels.")
-						importRequest.Out <- err
-						continue
-					}
-
-					// Import Closed channels
-					err = lnd.ImportClosedChannels(db, vectorUrl, client, nodeSettings, lightningRequestChannel)
-					if err != nil {
-						log.Error().Err(err).Msgf("Failed to import closed channels.")
-						importRequest.Out <- err
-						continue
-					}
-
-					// TODO FIXME channels with short_channel_id = null and status IN (1,2,100,101,102,103) should be fixed somehow???
-					//  Open                   = 1
-					//  Closing                = 2
-					//	CooperativeClosed      = 100
-					//	LocalForceClosed       = 101
-					//	RemoteForceClosed      = 102
-					//	BreachClosed           = 103
-
-					err = channels.InitializeManagedChannelCache(db)
-					if err != nil {
-						log.Error().Err(err).Msgf("Failed to Initialize ManagedChannelCache.")
-						importRequest.Out <- err
-						continue
-					}
-
-					err = lnd.ImportRoutingPolicies(client, db, nodeSettings)
-					if err != nil {
-						log.Error().Err(err).Msgf("Failed to import routing policies.")
-						importRequest.Out <- err
-						continue
-					}
-					log.Info().Msgf("ImportChannelAndRoutingPolicies was imported successfully for nodeId: %v.", nodeSettings.NodeId)
-				}
-				if importRequest.ImportType == lnd.ImportNodeInformation {
-					err := lnd.ImportNodeInfo(client, db, nodeSettings)
-					if err != nil {
-						log.Error().Err(err).Msgf("Failed to import node information.")
-						importRequest.Out <- err
-						continue
-					}
-					log.Info().Msgf("ImportNodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
-				}
-				successTimes[importRequest.ImportType] = time.Now()
-				importRequest.Out <- nil
-			}
-		}
-	})()
-
-	responseChannel := make(chan error)
-	importRequestChannel <- lnd.ImportRequest{
-		ImportType: lnd.ImportChannelAndRoutingPolicies,
-		Out:        responseChannel,
+	now := time.Now()
+	responseChannel := make(chan commons.ImportResponse)
+	lightningRequestChannel <- commons.ImportRequest{
+		CommunicationRequest: commons.CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", now.Unix()),
+			RequestTime: &now,
+			NodeId:      nodeSettings.NodeId,
+		},
+		ImportType:      commons.ImportAllChannels,
+		ResponseChannel: responseChannel,
 	}
-	err := <-responseChannel
-	if err != nil {
-		return errors.Wrapf(err, "LND import Channel And Routing Policies for nodeId: %v", nodeSettings.NodeId)
+	response := <-responseChannel
+	if response.Error != nil {
+		return errors.Wrapf(response.Error, "LND import Channels for nodeId: %v", nodeSettings.NodeId)
 	}
 
-	importRequestChannel <- lnd.ImportRequest{
-		ImportType: lnd.ImportNodeInformation,
-		Out:        responseChannel,
+	responseChannel = make(chan commons.ImportResponse)
+	lightningRequestChannel <- commons.ImportRequest{
+		CommunicationRequest: commons.CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", now.Unix()),
+			RequestTime: &now,
+			NodeId:      nodeSettings.NodeId,
+		},
+		ImportType:      commons.ImportChannelRoutingPolicies,
+		ResponseChannel: responseChannel,
 	}
-	err = <-responseChannel
-	if err != nil {
-		return errors.Wrapf(err, "LND import Node Information for nodeId: %v", nodeSettings.NodeId)
+	response = <-responseChannel
+	if response.Error != nil {
+		return errors.Wrapf(response.Error, "LND import Channel routing policies for nodeId: %v", nodeSettings.NodeId)
+	}
+
+	responseChannel = make(chan commons.ImportResponse)
+	lightningRequestChannel <- commons.ImportRequest{
+		CommunicationRequest: commons.CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", now.Unix()),
+			RequestTime: &now,
+			NodeId:      nodeSettings.NodeId,
+		},
+		ImportType:      commons.ImportNodeInformation,
+		ResponseChannel: responseChannel,
+	}
+	response = <-responseChannel
+	if response.Error != nil {
+		return errors.Wrapf(response.Error, "LND import Node Information for nodeId: %v", nodeSettings.NodeId)
 	}
 
 	// Channel events
@@ -161,7 +102,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, channelEventChannel, importRequestChannel, serviceEventChannel)
+		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, channelEventChannel, lightningRequestChannel, serviceEventChannel)
 	})()
 
 	waitForReadyState(nodeSettings.NodeId, commons.ChannelEventStream, "ChannelEventStream", serviceEventChannel)
@@ -176,7 +117,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, vectorUrl st
 				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, nodeGraphEventChannel, channelGraphEventChannel, importRequestChannel, serviceEventChannel)
+		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, nodeGraphEventChannel, channelGraphEventChannel, lightningRequestChannel, serviceEventChannel)
 	})()
 
 	waitForReadyState(nodeSettings.NodeId, commons.GraphEventStream, "GraphEventStream", serviceEventChannel)

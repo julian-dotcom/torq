@@ -43,7 +43,6 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	go processPaymentEvent(ctx, broadcaster)
 	//go processHtlcEvent(ctx, broadcaster)
 	go processPeerEvent(ctx, broadcaster)
-	go processWebSocketResponse(ctx, broadcaster)
 
 	// first run after 1 minute to speed up complete boot process
 	time.Sleep(1 * time.Minute)
@@ -358,54 +357,6 @@ func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer
 			//		continue
 			//	}
 			//	commons.SetChannelStateChannelStatus(openChannelEvent.Request.NodeId, openChannelEvent.ChannelId, commons.Inactive)
-		}
-	}()
-}
-
-func processWebSocketResponse(ctx context.Context, broadcaster broadcast.BroadcastServer) {
-	listener := broadcaster.SubscribeWebSocketResponse()
-	go func() {
-		for range ctx.Done() {
-			broadcaster.CancelSubscriptionWebSocketResponse(listener)
-			return
-		}
-	}()
-	go func() {
-		for event := range listener {
-			if closeChannelEvent, ok := event.(commons.CloseChannelResponse); ok {
-				if closeChannelEvent.Request.NodeId == 0 {
-					continue
-				}
-				commons.SetChannelStateChannelStatus(closeChannelEvent.Request.NodeId, closeChannelEvent.Request.ChannelId, commons.Deleted)
-			} else if updateChannelEvent, ok := event.(commons.RoutingPolicyUpdateResponse); ok {
-				if updateChannelEvent.Request.NodeId == 0 || updateChannelEvent.Request.ChannelId == 0 {
-					continue
-				}
-				// Force Response because we don't care about balance accuracy
-				currentStates := commons.GetChannelState(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true)
-				timeLockDelta := currentStates.LocalTimeLockDelta
-				if updateChannelEvent.Request.TimeLockDelta != nil {
-					timeLockDelta = *updateChannelEvent.Request.TimeLockDelta
-				}
-				minHtlcMsat := currentStates.LocalMinHtlcMsat
-				if updateChannelEvent.Request.MinHtlcMsat != nil {
-					minHtlcMsat = *updateChannelEvent.Request.MinHtlcMsat
-				}
-				maxHtlcMsat := currentStates.LocalMaxHtlcMsat
-				if updateChannelEvent.Request.MaxHtlcMsat != nil {
-					maxHtlcMsat = *updateChannelEvent.Request.MaxHtlcMsat
-				}
-				feeBaseMsat := currentStates.LocalFeeBaseMsat
-				if updateChannelEvent.Request.FeeBaseMsat != nil {
-					feeBaseMsat = *updateChannelEvent.Request.FeeBaseMsat
-				}
-				feeRateMilliMsat := currentStates.LocalFeeRateMilliMsat
-				if updateChannelEvent.Request.FeeRateMilliMsat != nil {
-					feeRateMilliMsat = *updateChannelEvent.Request.FeeRateMilliMsat
-				}
-				commons.SetChannelStateRoutingPolicy(updateChannelEvent.Request.NodeId, updateChannelEvent.Request.ChannelId, true,
-					currentStates.LocalDisabled, timeLockDelta, minHtlcMsat, maxHtlcMsat, feeBaseMsat, feeRateMilliMsat)
-			}
 		}
 	}()
 }

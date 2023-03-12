@@ -3,8 +3,9 @@ package payments
 import (
 	"context"
 	"encoding/hex"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -33,7 +34,7 @@ type rrpcClientSendPayment interface {
 // payments hash - the hash to use within the payment's HTLC
 // timeout seconds is mandatory
 func SendNewPayment(
-	eventChannel chan<- interface{},
+	webSocketResponseChannel chan<- interface{},
 	db *sqlx.DB,
 	npReq commons.NewPaymentRequest,
 	requestId string,
@@ -56,7 +57,7 @@ func SendNewPayment(
 	}
 	defer conn.Close()
 	client := routerrpc.NewRouterClient(conn)
-	return sendPayment(client, npReq, eventChannel, requestId)
+	return sendPayment(client, npReq, webSocketResponseChannel, requestId)
 }
 
 func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPaymentRequest, err error) {
@@ -94,7 +95,10 @@ func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPa
 	return newPayReq, nil
 }
 
-func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, eventChannel chan<- interface{}, requestId string) (err error) {
+func sendPayment(client rrpcClientSendPayment,
+	npReq commons.NewPaymentRequest,
+	webSocketResponseChannel chan<- interface{},
+	requestId string) (err error) {
 
 	// Create and validate payment request details
 	newPayReq, err := newSendPaymentRequest(npReq)
@@ -116,31 +120,30 @@ func sendPayment(client rrpcClientSendPayment, npReq commons.NewPaymentRequest, 
 		}
 
 		resp, err := req.Recv()
-		switch true {
-		case err == nil:
+		switch err {
+		case nil:
 			break
-		case err == io.EOF:
-			return nil
-		case err != nil && strings.Contains(err.Error(), "AlreadyExists"):
+		case io.EOF:
+		case status.Error(codes.AlreadyExists, ""):
 			return errors.New("ALREADY_PAID")
-		case err != nil && strings.Contains(err.Error(), "UnknownPaymentHash"):
+		case status.Error(codes.NotFound, "lnrpc.Lightning_PayInvoice.UnknownPaymentHash"):
 			return errors.New("INVALID_HASH")
-		case err != nil && strings.Contains(err.Error(), "InvalidPaymentRequest"):
+		case status.Error(codes.InvalidArgument, "lnrpc.Lightning_PayReq.InvalidPaymentRequest"):
 			return errors.New("INVALID_PAYMENT_REQUEST")
-		case err != nil && strings.Contains(err.Error(), "checksum failed"):
+		case status.Error(codes.InvalidArgument, "lnrpc.Lightning_SendPaymentRequest.CheckPaymentRequest"):
 			return errors.New("CHECKSUM_FAILED")
-		case err != nil && strings.Contains(err.Error(), "amount must be specified when paying a zero amount invoice"):
+		case status.Error(codes.InvalidArgument, "amount must be specified when paying a zero amount invoice"):
 			return errors.New("AMOUNT_REQUIRED")
-		case err != nil && strings.Contains(err.Error(), "amount must not be specified when paying a non-zero  amount invoice"):
+		case status.Error(codes.InvalidArgument, "amount must not be specified when paying a non-zero amount invoice"):
 			return errors.New("AMOUNT_NOT_ALLOWED")
 		default:
 			log.Error().Msgf("Unknown payment error %v", err)
 			return errors.New("UNKNOWN_ERROR")
 		}
 
-		if eventChannel != nil {
+		if webSocketResponseChannel != nil {
 			// Write the payment status to the client
-			eventChannel <- processResponse(resp, npReq, requestId)
+			webSocketResponseChannel <- processResponse(resp, npReq, requestId)
 		}
 	}
 }

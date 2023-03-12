@@ -117,7 +117,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	return nil
 }
 
-func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string, lightningRequestChannel chan<- interface{}) error {
+func StartMaintenanceService(ctx context.Context, db *sqlx.DB) error {
 	var wg sync.WaitGroup
 
 	active := commons.ServiceActive
@@ -131,7 +131,7 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB, vectorUrl string,
 				commons.RunningServices[commons.MaintenanceService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
-		commons.MaintenanceServiceStart(ctx, db, vectorUrl, lightningRequestChannel)
+		commons.MaintenanceServiceStart(ctx, db)
 	})()
 
 	wg.Wait()

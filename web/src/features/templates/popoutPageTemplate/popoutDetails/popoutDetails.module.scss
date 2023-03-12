@@ -1,5 +1,5 @@
 .txDetailsLabel {
-  color: var(--content-muted);
+  color: var(--colo);
   text-align: center;
   margin-top: 16px;
 }
@@ -36,7 +36,6 @@
   border-radius: 100%;
   width: 36px;
   height: 36px;
-  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,6 +49,9 @@
   display: flex;
   margin: 0 auto;
   text-align: center;
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius-default);
 }
 .txDetailsRow {
   margin: 0 auto;

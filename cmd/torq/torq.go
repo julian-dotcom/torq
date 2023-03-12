@@ -55,7 +55,6 @@ var paymentEventChannelGlobal = make(chan commons.PaymentEvent)               //
 var transactionEventChannelGlobal = make(chan commons.TransactionEvent)       //nolint:gochecknoglobals
 var peerEventChannelGlobal = make(chan commons.PeerEvent)                     //nolint:gochecknoglobals
 var blockEventChannelGlobal = make(chan commons.BlockEvent)                   //nolint:gochecknoglobals
-var webSocketResponseChannelGlobal = make(chan interface{})                   //nolint:gochecknoglobals
 
 var debuglevels = map[string]zerolog.Level{ //nolint:gochecknoglobals
 	"panic": zerolog.PanicLevel,
@@ -217,7 +216,7 @@ func main() {
 				serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,
 				channelBalanceEventChannelGlobal, channelEventChannelGlobal, nodeGraphEventChannelGlobal, channelGraphEventChannelGlobal,
 				invoiceEventChannelGlobal, paymentEventChannelGlobal, transactionEventChannelGlobal, peerEventChannelGlobal, blockEventChannelGlobal,
-				webSocketResponseChannelGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal)
+				lightningRequestChannelGlobal, rebalanceRequestChannelGlobal)
 
 			go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctxGlobal)
 			go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctxGlobal, channelBalanceEventChannelGlobal)
@@ -234,7 +233,7 @@ func main() {
 			// When Torq has status initializing it loads the caches and starts the LndServices
 			// When Torq has status inactive a panic is created (i.e. migration failed)
 			// When LndService has status active other services like Amboss and Vector are booted (they depend on LND)
-			go processServiceEvents(db, serviceChannelGlobal, broadcasterGlobal)
+			go processServiceEvents(db, c.String("torq.vector.url"), serviceChannelGlobal, broadcasterGlobal)
 
 			previousStatus := commons.RunningServices[commons.TorqService].AddSubscription(commons.TorqDummyNodeId, cancelGlobal)
 			commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannelGlobal, previousStatus, commons.ServicePending, commons.TorqService, nil)
@@ -258,8 +257,9 @@ func main() {
 				go pprofStartup(c)
 			}
 
-			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"), c.String("torq.cookie-path"),
-				db, webSocketResponseChannelGlobal, broadcasterGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal,
+			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"),
+				c.String("torq.cookie-path"),
+				db, broadcasterGlobal, lightningRequestChannelGlobal, rebalanceRequestChannelGlobal,
 				serviceChannelGlobal, c.Bool("torq.auto-login")); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
 			}
@@ -543,7 +543,9 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel <-chan co
 	}
 }
 
-func processServiceEvents(db *sqlx.DB, serviceChannel chan<- commons.ServiceChannelMessage, broadcaster broadcast.BroadcastServer) {
+func processServiceEvents(db *sqlx.DB, vectorUrl string, serviceChannel chan<- commons.ServiceChannelMessage,
+	broadcaster broadcast.BroadcastServer) {
+
 	listener := broadcaster.SubscribeServiceEvent()
 	for serviceEvent := range listener {
 		if serviceEvent.Type == commons.TorqService {
@@ -556,7 +558,7 @@ func processServiceEvents(db *sqlx.DB, serviceChannel chan<- commons.ServiceChan
 			case commons.ServiceInitializing:
 				log.Info().Msg("Torq is initialising.")
 
-				err := settings.InitializeManagedSettingsCache(db)
+				err := settings.InitializeManagedSettingsCache(db, vectorUrl)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
 				}
@@ -661,7 +663,7 @@ func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails
 	commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.ServiceActive, serviceCmd.ServiceType, nil)
 	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(node.NodeId, node.CustomSettings)
 	log.Info().Msgf("LND Subscription booted for node id: %v", node.NodeId)
-	err = subscribe.Start(ctx, conn, db, c.String("torq.vector.url"), node.NodeId, broadcaster,
+	err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster,
 		serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,
 		channelEventChannelGlobal, nodeGraphEventChannelGlobal, channelGraphEventChannelGlobal,
 		invoiceEventChannelGlobal, paymentEventChannelGlobal, transactionEventChannelGlobal, peerEventChannelGlobal, blockEventChannelGlobal,
@@ -721,7 +723,7 @@ func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.
 	log.Info().Msgf("%v Service booted for node id: %v", name, node.NodeId)
 	switch serviceCmd.ServiceType {
 	case commons.VectorService:
-		err = vector_ping.Start(ctx, conn, c.String("torq.vector.url"), node.NodeId)
+		err = vector_ping.Start(ctx, conn, node.NodeId)
 	case commons.AmbossService:
 		err = amboss_ping.Start(ctx, conn, node.NodeId)
 	case commons.LightningCommunicationService:
@@ -731,7 +733,7 @@ func processServiceBoot(name string, db *sqlx.DB, c *cli.Context, node settings.
 	case commons.AutomationService:
 		err = services.Start(ctx, db, lightningRequestChannel, rebalanceRequestChannel, broadcaster)
 	case commons.MaintenanceService:
-		err = services.StartMaintenanceService(ctx, db, c.String("torq.vector.url"), lightningRequestChannel)
+		err = services.StartMaintenanceService(ctx, db)
 	case commons.CronService:
 		err = services.StartCronService(ctx, db)
 	}

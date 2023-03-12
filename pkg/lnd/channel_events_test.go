@@ -122,7 +122,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = settings.InitializeManagedSettingsCache(db)
+	err = settings.InitializeManagedSettingsCache(db, commons.VectorUrl)
 	if err != nil {
 		cancel()
 		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)

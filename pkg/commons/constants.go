@@ -91,6 +91,14 @@ const (
 	AbandonedClosed        = 105
 )
 
+type ChannelFlags uint32
+
+const (
+	FundedOn ChannelFlags = 1 << iota
+	ClosedOn
+)
+const ChannelFlagsMax = int(ClosedOn)*2 - 1
+
 // override to get human readable enum
 func (s ChannelStatus) String() string {
 	switch s {

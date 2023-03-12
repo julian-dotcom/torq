@@ -15,86 +15,6 @@ import (
 const FundingTransactionHash = "c946aad8ea807099f2f4eaf2f92821024c9d8a79afd465573e924dacddfa490c"
 const FundingOutputIndex = 1
 
-func Test_processResponse(t *testing.T) {
-
-	tests := []struct {
-		name      string
-		requestId string
-		req       commons.CloseChannelRequest
-		input     *lnrpc.CloseStatusUpdate
-		want      commons.CloseChannelResponse
-		wantErr   bool
-	}{
-		{
-			name:      "Close Pending",
-			requestId: "Test",
-			input: &lnrpc.CloseStatusUpdate{
-				Update: &lnrpc.CloseStatusUpdate_ClosePending{
-					ClosePending: &lnrpc.PendingUpdate{
-						Txid:        []byte("test"),
-						OutputIndex: 0,
-					},
-				},
-			},
-
-			want: commons.CloseChannelResponse{
-				RequestId:                "Test",
-				Status:                   commons.Closing,
-				ClosePendingChannelPoint: commons.ChannelPoint{TxId: []byte("test"), OutputIndex: 0},
-				CloseChannelStatus:       commons.CloseChannelStatus{},
-			},
-		},
-		{
-			name:      "Closed",
-			requestId: "Test",
-			input: &lnrpc.CloseStatusUpdate{
-				Update: &lnrpc.CloseStatusUpdate_ChanClose{
-					ChanClose: &lnrpc.ChannelCloseUpdate{
-						ClosingTxid: []byte("test"),
-						Success:     false,
-					},
-				},
-			},
-			want: commons.CloseChannelResponse{
-				RequestId:                "Test",
-				Status:                   commons.CooperativeClosed,
-				ClosePendingChannelPoint: commons.ChannelPoint{},
-				CloseChannelStatus:       commons.CloseChannelStatus{ClosingTxId: []byte("test"), Success: false},
-			},
-		},
-	}
-
-	for i, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got, err := processCloseResponse(test.input, test.req, test.requestId)
-			if err != nil {
-				t.Errorf("processCloseResponse error: %v", err)
-			}
-			if !reflect.DeepEqual(got, test.want) {
-				t.Errorf("%d: processResponse()\nGot:\n%v\nWant:\n%v\n", i, got, test.want)
-			}
-		})
-	}
-}
-
-func Test_convertChannelPoint(t *testing.T) {
-	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: FundingTransactionHash}
-	want := &lnrpc.ChannelPoint{
-		FundingTxid: fundingTxid,
-		OutputIndex: FundingOutputIndex,
-	}
-	t.Run("converChanPoint", func(t *testing.T) {
-		chanPointStr := commons.CreateChannelPoint(FundingTransactionHash, FundingOutputIndex)
-		got, err := convertChannelPoint(chanPointStr)
-		if err != nil {
-			t.Errorf("convertChannelPoint error: %v", err)
-		}
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("converChannelPoint()\nGot:\n%v\nWant:\n%v\n", got, want)
-		}
-	})
-}
-
 func Test_prepareCloseRequest(t *testing.T) {
 
 	srv, err := testutil.InitTestDBConn()
@@ -108,7 +28,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = settings.InitializeManagedSettingsCache(db)
+	err = settings.InitializeManagedSettingsCache(db, commons.VectorUrl)
 	if err != nil {
 		cancel()
 		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
@@ -153,13 +73,13 @@ func Test_prepareCloseRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   commons.CloseChannelRequest
+		input   CloseChannelRequest
 		want    *lnrpc.CloseChannelRequest
 		wantErr bool
 	}{
 		{
 			"Node ID not provided",
-			commons.CloseChannelRequest{
+			CloseChannelRequest{
 				ChannelId: channel.ChannelID,
 			},
 			&lnrpc.CloseChannelRequest{
@@ -169,7 +89,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Both targetConf & satPerVbyte provided",
-			commons.CloseChannelRequest{
+			CloseChannelRequest{
 				NodeId:          commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           nil,
@@ -188,7 +108,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Just mandatory params",
-			commons.CloseChannelRequest{
+			CloseChannelRequest{
 				NodeId:    commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
 				ChannelId: channel.ChannelID,
 			},
@@ -199,7 +119,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"All params provide",
-			commons.CloseChannelRequest{
+			CloseChannelRequest{
 				NodeId:          commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           &force,
