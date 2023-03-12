@@ -3,8 +3,9 @@ package payments
 import (
 	"context"
 	"encoding/hex"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -119,22 +120,21 @@ func sendPayment(client rrpcClientSendPayment,
 		}
 
 		resp, err := req.Recv()
-		switch true {
-		case err == nil:
+		switch err {
+		case nil:
 			break
-		case err == io.EOF:
-			return nil
-		case err != nil && strings.Contains(err.Error(), "AlreadyExists"):
+		case io.EOF:
+		case status.Error(codes.AlreadyExists, ""):
 			return errors.New("ALREADY_PAID")
-		case err != nil && strings.Contains(err.Error(), "UnknownPaymentHash"):
+		case status.Error(codes.NotFound, "lnrpc.Lightning_PayInvoice.UnknownPaymentHash"):
 			return errors.New("INVALID_HASH")
-		case err != nil && strings.Contains(err.Error(), "InvalidPaymentRequest"):
+		case status.Error(codes.InvalidArgument, "lnrpc.Lightning_PayReq.InvalidPaymentRequest"):
 			return errors.New("INVALID_PAYMENT_REQUEST")
-		case err != nil && strings.Contains(err.Error(), "checksum failed"):
+		case status.Error(codes.InvalidArgument, "lnrpc.Lightning_SendPaymentRequest.CheckPaymentRequest"):
 			return errors.New("CHECKSUM_FAILED")
-		case err != nil && strings.Contains(err.Error(), "amount must be specified when paying a zero amount invoice"):
+		case status.Error(codes.InvalidArgument, "amount must be specified when paying a zero amount invoice"):
 			return errors.New("AMOUNT_REQUIRED")
-		case err != nil && strings.Contains(err.Error(), "amount must not be specified when paying a non-zero  amount invoice"):
+		case status.Error(codes.InvalidArgument, "amount must not be specified when paying a non-zero amount invoice"):
 			return errors.New("AMOUNT_NOT_ALLOWED")
 		default:
 			log.Error().Msgf("Unknown payment error %v", err)
