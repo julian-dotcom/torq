@@ -36,7 +36,7 @@ import { useContext } from "react";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import mixpanel from "mixpanel-browser";
-import Spinny from "../../../features/spinny/Spinny";
+import Spinny from "features/spinny/Spinny";
 
 type WorkflowCanvasStagesProps = {
   workflowId: number;

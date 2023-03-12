@@ -147,7 +147,7 @@ func closeChannelResp(db *sqlx.DB,
 		switch resp.GetUpdate().(type) {
 		case *lnrpc.CloseStatusUpdate_ClosePending:
 			r.Status = commons.Closing
-			ch, err := chainhash.NewHash(resp.GetChanClose().GetClosingTxid())
+			ch, err := chainhash.NewHash(resp.GetClosePending().Txid)
 			if err != nil {
 				return CloseChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")
 			}

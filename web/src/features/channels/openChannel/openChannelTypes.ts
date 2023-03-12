@@ -1,14 +1,4 @@
-enum ChannelStatus {
-  Opening = 1,
-  Open = 2,
-  Closing = 3,
-  CooperativeClosed = 100,
-  LocalForceClosed = 101,
-  RemoteForceClosed = 102,
-  BreachClosed = 103,
-  FundingCancelledClosed = 104,
-  AbandonedClosed = 105,
-}
+import { ChannelStatus } from "../channelsTypes";
 
 export type OpenChannelRequest = {
   nodeId: number;

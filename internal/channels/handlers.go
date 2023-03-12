@@ -621,7 +621,7 @@ func closeChannelHandler(c *gin.Context, db *sqlx.DB) {
 			serr.AddServerError("Could not connect to peer node.")
 			server_errors.SendBadRequestFieldError(c, &serr)
 		}
-		server_errors.WrapLogAndSendServerError(c, err, "Close channel")
+		server_errors.SendBadRequestFromError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, response)

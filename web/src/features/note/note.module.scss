@@ -40,6 +40,9 @@
 .noteTitle {
   flex-grow: 1;
 }
+.noteContent {
+  word-wrap: break-word;
+}
 //.error .noteTitleWrapper {
 //  color: var(--color-red-500);
 //}
