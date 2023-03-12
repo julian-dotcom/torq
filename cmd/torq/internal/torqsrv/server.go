@@ -130,7 +130,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 	ws := r.Group("/ws")
 	ws.Use(auth.AuthRequired(autoLogin))
 	ws.GET("", func(c *gin.Context) {
-		err := WebsocketHandler(c, db, broadcaster)
+		err := WebsocketHandler(c, db)
 		log.Debug().Msgf("WebsocketHandler: %v", err)
 	})
 

@@ -188,20 +188,6 @@ type CloseChannelStatus struct {
 	Success     bool   `json:"success"`
 }
 
-// NEW ADDRESS
-type NewAddressRequest struct {
-	NodeId int   `json:"nodeId"`
-	Type   int32 `json:"type"`
-	//The name of the account to generate a new address for. If empty, the default wallet account is used.
-	Account string `json:"account"`
-}
-
-type NewAddressResponse struct {
-	RequestId string            `json:"requestId"`
-	Request   NewAddressRequest `json:"request"`
-	Address   string            `json:"address"`
-}
-
 // NEW PAYMENT
 type NewPaymentRequest struct {
 	NodeId           int     `json:"nodeId"`

@@ -1,8 +1,8 @@
 import { Copy20Regular as CopyIcon, Link20Regular as LinkIcon } from "@fluentui/react-icons";
 import styles from "./popoutDetails.module.scss";
 import { ReactNode, useContext } from "react";
-import { toastCategory } from "features/toast/Toasts";
 import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
 
 type PopoutDetailsContainer = {
   children?: ReactNode;

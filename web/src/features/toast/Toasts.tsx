@@ -14,6 +14,7 @@ export enum toastCategory {
   success,
   warn,
   error,
+  info,
 }
 
 export interface toast {
@@ -77,18 +78,21 @@ const Toasts = React.forwardRef(function Toasts(_, ref) {
                 exitActive: styles.toastExitActive,
               }}
             >
-              <div ref={ref} key={toast.uuid + "toast"} className={styles.toast}>
+              <div
+                ref={ref}
+                key={toast.uuid + "toast"}
+                className={classNames(
+                  styles.toast,
+                  {
+                    [styles.success]: toast.category === toastCategory.success,
+                  },
+                  { [styles.warn]: toast.category === toastCategory.warn },
+                  { [styles.error]: toast.category === toastCategory.error },
+                  { [styles.info]: toast.category === toastCategory.info }
+                )}
+              >
                 <div className={styles.icon}>
-                  <div
-                    className={classNames(
-                      styles.iconBackground,
-                      {
-                        [styles.success]: toast.category === toastCategory.success,
-                      },
-                      { [styles.warn]: toast.category === toastCategory.warn },
-                      { [styles.error]: toast.category === toastCategory.error }
-                    )}
-                  >
+                  <div className={classNames(styles.iconBackground)}>
                     {toast.category === toastCategory.success && <SuccessIcon />}
                     {toast.category === toastCategory.warn && <WarnIcon />}
                     {toast.category === toastCategory.error && <ErrorIcon />}

@@ -13,9 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/on_chain_tx"
 	"github.com/lncapital/torq/internal/payments"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -26,7 +24,6 @@ type wsRequest struct {
 	PayOnChainRequest   *commons.PayOnChainRequest    `json:"payOnChainRequest"`
 	CloseChannelRequest *channels.CloseChannelRequest `json:"closeChannelRequest"`
 	Password            *string                       `json:"password"`
-	NewAddressRequest   *commons.NewAddressRequest    `json:"newAddressRequest"`
 }
 
 type Pong struct {
@@ -64,18 +61,12 @@ func processWsReq(db *sqlx.DB,
 			break
 		}
 		sendError(payments.SendNewPayment(webSocketResponseChannel, db, *req.NewPaymentRequest, req.RequestId), req, webSocketResponseChannel)
-	case "newAddress":
-		if req.NewAddressRequest == nil {
-			sendError(fmt.Errorf("unknown NewAddressRequest for type: %s", req.Type), req, webSocketResponseChannel)
-			break
-		}
-		sendError(on_chain_tx.NewAddress(webSocketResponseChannel, db, *req.NewAddressRequest, req.RequestId), req, webSocketResponseChannel)
 	default:
 		sendError(fmt.Errorf("unknown request type: %s", req.Type), req, webSocketResponseChannel)
 	}
 }
 
-func WebsocketHandler(c *gin.Context, db *sqlx.DB, broadcaster broadcast.BroadcastServer) error {
+func WebsocketHandler(c *gin.Context, db *sqlx.DB) error {
 	var wsUpgrade = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -102,7 +93,12 @@ func WebsocketHandler(c *gin.Context, db *sqlx.DB, broadcaster broadcast.Broadca
 	if err != nil {
 		return errors.Wrap(err, "WebSocket upgrade.")
 	}
-	defer conn.Close()
+	defer func(conn *websocket.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Error().Err(err).Msg("WebSocket close failure.")
+		}
+	}(conn)
 
 	go processWebsocketRequests(conn, db, done, webSocketResponseChannel)
 
